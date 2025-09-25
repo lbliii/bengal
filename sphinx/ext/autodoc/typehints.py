@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import inspect
 import re
 from typing import TYPE_CHECKING, cast
 

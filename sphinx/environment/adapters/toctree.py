@@ -193,7 +193,7 @@ def _resolve_toctree(
         caption_node = nodes.title(caption, '', *[nodes.Text(caption)])
         caption_node.line = toctree.line
         caption_node.source = toctree.source
-        caption_node.rawsource = toctree['rawcaption']
+        caption_node.rawsource = toctree.get('rawcaption', caption)
         if hasattr(toctree, 'uid'):
             # move uid to caption_node to translate it
             caption_node.uid = toctree.uid  # type: ignore[attr-defined]
