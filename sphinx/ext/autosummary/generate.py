@@ -27,6 +27,7 @@ from typing import TYPE_CHECKING, NamedTuple
 
 from jinja2 import TemplateNotFound
 from jinja2.sandbox import SandboxedEnvironment
+from jinja2 import FileSystemBytecodeCache
 
 import sphinx.locale
 from sphinx import __display_version__, package_dir
@@ -157,6 +158,15 @@ class AutosummaryRenderer:
         )
 
         self.env = SandboxedEnvironment(loader=loader)
+        # Enable bytecode caching for autosummary templates for faster repeated runs
+        try:
+            # Cache next to generated files if output dir is available via config, else local
+            cache_root = Path(getattr(app, 'outdir', Path.cwd()))
+            cache_dir = cache_root / '.j2cache'
+            cache_dir.mkdir(parents=True, exist_ok=True)
+            self.env.bytecode_cache = FileSystemBytecodeCache(directory=str(cache_dir))
+        except Exception:
+            pass
         self.env.filters['escape'] = rst.escape
         self.env.filters['e'] = rst.escape
         self.env.filters['underline'] = _underline

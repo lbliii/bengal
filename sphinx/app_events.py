@@ -37,22 +37,60 @@ class EventManager:
 
     def __init__(self, app: Sphinx) -> None:
         self.app = app
+        self._listeners: dict[str, list[tuple[int, Callable[..., Any], int]]] = {}
 
-    # Event connection methods would go here
-    # This is a placeholder for the event system structure
+    def add(self, name: str) -> None:
+        """Add a new event type."""
+        if name not in self._listeners:
+            self._listeners[name] = []
+
     def connect(self, event: str, callback: Callable[..., Any], priority: int = 500) -> int:
         """Connect an event handler."""
-        # Implementation would be here
-        return 0
+        if event not in self._listeners:
+            self._listeners[event] = []
+        listener_id = len(self._listeners[event])
+        self._listeners[event].append((priority, callback, listener_id))
+        # Sort by priority (lower number = higher priority)
+        self._listeners[event].sort(key=lambda x: x[0])
+        return listener_id
+
+    def disconnect(self, listener_id: int) -> None:
+        """Disconnect an event handler."""
+        for event_listeners in self._listeners.values():
+            for i, (_, _, lid) in enumerate(event_listeners):
+                if lid == listener_id:
+                    event_listeners.pop(i)
+                    return
 
     def emit(self, event: str, *args: Any, **kwargs: Any) -> list[Any]:
         """Emit an event."""
-        # Implementation would be here
-        return []
+        if event not in self._listeners:
+            return []
+
+        results = []
+        for _, callback, _ in self._listeners[event]:
+            try:
+                if 'allowed_exceptions' in kwargs:
+                    # Handle exceptions gracefully if specified
+                    try:
+                        result = callback(*args)
+                        results.append(result)
+                    except kwargs['allowed_exceptions']:
+                        pass
+                else:
+                    result = callback(*args)
+                    results.append(result)
+            except Exception:
+                # For now, ignore exceptions in event handlers
+                pass
+        return results
 
     def emit_firstresult(self, event: str, *args: Any, **kwargs: Any) -> Any | None:
         """Emit an event and return the first non-None result."""
-        # Implementation would be here
+        results = self.emit(event, *args, **kwargs)
+        for result in results:
+            if result is not None:
+                return result
         return None
 
 

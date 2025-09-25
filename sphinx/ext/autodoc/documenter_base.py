@@ -36,6 +36,7 @@ from sphinx.ext.autodoc.importer import (
 )
 from sphinx.ext.autodoc.mock import ismock
 from sphinx.locale import _, __
+from sphinx.app_utils import autodoc_attrgetter
 from sphinx.pycode import ModuleAnalyzer
 from sphinx.util import inspect, logging
 from sphinx.util.docstrings import prepare_docstring, separate_metadata
@@ -290,26 +291,36 @@ class Documenter:
         example, it would return ``('zipfile', ['ZipFile', 'open'])`` for the
         ``zipfile.ZipFile.open`` method.
         """
-        ret = _resolve_name(
+        result = _resolve_name(
             objtype=self.objtype,
-            modname=modname,
-            parents=parents,
+            module_name=modname,
             path=path,
             base=base,
+            parents=parents or (),
+            current_document=self._current_document,
+            ref_context_py_module=self.env.ref_context.get('py:module'),
+            ref_context_py_class=self.env.ref_context.get('py:class', ''),
         )
-        self.modname, self.objpath = ret
-        return ret
+        if result:
+            self.modname, self.objpath = result
+            return result[0], list(result[1])
+        return None, []
 
     def parse_name(self, name: str, arguments: str) -> None:
         """Parse the name into ``self.modname`` and ``self.objpath``."""
         if name:
-            self.modname, self.objpath = _resolve_name(
+            result = _resolve_name(
                 objtype=self.objtype,
-                modname=None,
-                parents=None,
+                module_name=None,
                 path=name,
                 base='',
+                parents=(),
+                current_document=self._current_document,
+                ref_context_py_module=self.env.ref_context.get('py:module'),
+                ref_context_py_class=self.env.ref_context.get('py:class', ''),
             )
+            if result:
+                self.modname, self.objpath = result
         if arguments:
             self.args = arguments
 
@@ -318,6 +329,17 @@ class Documenter:
         if not self._load_object_by_name():
             return False
         return True
+
+    def get_real_modname(self) -> str:
+        """Return the real module name to use for analysis."""
+        return self.modname
+
+    def format_signature(self, show_annotation: bool = True) -> str:
+        """Return the signature of the object, formatted as a string."""
+        # Simple implementation - return empty string if no args
+        if hasattr(self, 'args') and self.args:
+            return self.args
+        return ''
 
     def get_object_members(self, want_all: bool, **kwargs: bool) -> dict[str, Any]:
         """Return ``(members_check_function, members)`` where ``members`` is a

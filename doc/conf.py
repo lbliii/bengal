@@ -36,7 +36,7 @@ html_theme = 'sphinx13'
 html_theme_path = ['_themes']
 html_css_files = [
     # 'basic.css',  # included through inheritance from the basic theme
-    'sphinx13.css',
+    ('sphinx13.css', {}),
 ]
 modindex_common_prefix = ['sphinx.']
 html_static_path = ['_static']

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import inspect
 from typing import TYPE_CHECKING, Any, ClassVar
 
 from sphinx.ext.autodoc.documenter_base import Documenter

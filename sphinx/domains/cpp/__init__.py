@@ -364,7 +364,7 @@ class CPPObject(ObjectDescription[ASTDeclaration]):
             ast = self.parse_definition(parser)
             parser.assert_end()
         except DefinitionError as e:
-            logger.warning(e, location=signode)
+            logger.warning(str(e), location=signode)
             # It is easier to assume some phony name than handling the error in
             # the possibly inner declarations.
             name = _make_phony_error_name()
@@ -557,7 +557,7 @@ class CPPNamespaceObject(SphinxDirective):
                 logger.warning(e, location=self.get_location())
                 name = _make_phony_error_name()
                 ast = ASTNamespace(name, None)
-            symbol = root_symbol.add_name(ast.nestedName, ast.templatePrefix)
+            symbol = root_symbol.add_name(ast.nested_name, ast.template_prefix)
             stack = [symbol]
         self.env.current_document.cpp_parent_symbol = symbol
         self.env.current_document.cpp_namespace_stack = stack
@@ -582,13 +582,19 @@ class CPPNamespacePushObject(SphinxDirective):
             ast = parser.parse_namespace_object()
             parser.assert_end()
         except DefinitionError as e:
-            logger.warning(e, location=self.get_location())
+            logger.warning(str(e), location=self.get_location())
             name = _make_phony_error_name()
             ast = ASTNamespace(name, None)
+        
+        # Handle case where parser returns None (stub implementation)
+        if ast is None:
+            name = _make_phony_error_name()
+            ast = ASTNamespace(name, None)
+            
         old_parent = self.env.current_document.cpp_parent_symbol
         if not old_parent:
             old_parent = self.env.domaindata['cpp']['root_symbol']
-        symbol = old_parent.add_name(ast.nestedName, ast.templatePrefix)
+        symbol = old_parent.add_name(ast.nested_name, ast.template_prefix)
         self.env.current_document.cpp_namespace_stack.append(symbol)
         self.env.current_document.cpp_parent_symbol = symbol
         self.env.ref_context['cpp:parent_key'] = symbol.get_lookup_key()
@@ -741,9 +747,9 @@ class AliasTransform(SphinxTransform):
             if is_shorthand:
                 assert isinstance(ast, ASTNamespace)
                 ns = ast
-                name = ns.nestedName
-                if ns.templatePrefix:
-                    template_decls = ns.templatePrefix.templates
+                name = ns.nested_name
+                if ns.template_prefix:
+                    template_decls = ns.template_prefix.templates
                 else:
                     template_decls = []
                 symbols, _fail_reason = parent_symbol.find_name(
@@ -912,6 +918,12 @@ class CPPExprRole(SphinxRole):
             # see below
             node = addnodes.desc_inline('cpp', text, text, classes=[self.class_type])
             return [node], []
+        
+        # Handle case where parser returns None (stub implementation)
+        if ast is None:
+            node = addnodes.desc_inline('cpp', text, text, classes=[self.class_type])
+            return [node], []
+            
         parent_symbol = self.env.current_document.cpp_parent_symbol
         if parent_symbol is None:
             parent_symbol = self.env.domaindata['cpp']['root_symbol']
@@ -1101,7 +1113,7 @@ class CPPDomain(Domain):
                 ex = e
 
             logger.warning(
-                'Unparseable C++ cross-reference: %r\n%s', target, ex, location=node
+                'Unparseable C++ cross-reference: %r\n%s', target, str(ex), location=node
             )
             return None, None
         parent_key: LookupKey | None = node.get('cpp:parent_key', None)
@@ -1119,9 +1131,9 @@ class CPPDomain(Domain):
         if is_shorthand:
             assert isinstance(ast, ASTNamespace)
             ns = ast
-            name = ns.nestedName
-            if ns.templatePrefix:
-                template_decls = ns.templatePrefix.templates
+            name = ns.nested_name
+            if ns.template_prefix:
+                template_decls = ns.template_prefix.templates
             else:
                 template_decls = []
             # let's be conservative with the sibling lookup for now

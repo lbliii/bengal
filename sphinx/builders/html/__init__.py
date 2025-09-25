@@ -651,7 +651,7 @@ class StandaloneHTMLBuilder(Builder):
             'sourcename': sourcename,
             'toc': toc,
             # only display a TOC if there's more than one item to show
-            'display_toc': (self.env.toc_num_entries[docname] > 1),
+            'display_toc': (self.env.toc_num_entries.get(docname, 0) > 1),
             'page_source_suffix': source_suffix,
         }
 

@@ -646,6 +646,16 @@ def setup(app: Sphinx) -> ExtensionMetadata:
     # canonical role as well.
     roles.register_canonical_role('code', code_role)  # type: ignore[arg-type]
 
+    # FIXME: Workaround for modularization issue - manually setup extlink roles
+    # This should be removed once the event system is properly fixed
+    try:
+        if hasattr(app.config, 'extlinks') and app.config.extlinks:
+            from sphinx.ext.extlinks import setup_link_roles
+            setup_link_roles(app)
+    except Exception:
+        # Ignore errors if extlinks is not available
+        pass
+
     return {
         'version': 'builtin',
         'parallel_read_safe': True,

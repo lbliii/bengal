@@ -402,7 +402,8 @@ class Autosummary(SphinxDirective):
             documenter = self.create_documenter(
                 obj, parent, full_name, registry=self.env._registry
             )
-            if not documenter.parse_name():
+            documenter.parse_name(full_name, '')
+            if not documenter.modname:
                 logger.warning(
                     __('failed to parse name %s'),
                     real_name,

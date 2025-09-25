@@ -60,6 +60,12 @@ class BaseParser:
         if not self.match(pattern):
             self.fail(f"Expected pattern {pattern} at position {self.pos}")
 
+    def assert_end(self) -> None:
+        """Assert that we've reached the end of the definition."""
+        self.skip_ws()  # Skip any trailing whitespace
+        if not self.eof and self.pos < self.end:
+            self.fail(f"Expected end of definition, but got '{self.current_char}' at position {self.pos}")
+
     def parse_nested_name(self) -> str:
         """Parse a nested name (e.g., 'std::vector')."""
         # ... implementation would be here

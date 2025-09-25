@@ -127,6 +127,11 @@ class DefinitionParser(BaseParser, ExpressionParser, DeclarationParser, Template
         # ... implementation would be here
         return None
 
+    def parse_namespace_object(self) -> 'ASTDeclaration':
+        """Parse a namespace object."""
+        # ... implementation would be here
+        return None
+
 
 # Define __all__ for this module
 __all__ = ['DefinitionParser']

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ast
+import inspect
 from inspect import Parameter, Signature, getsource
 from typing import TYPE_CHECKING, cast
 
