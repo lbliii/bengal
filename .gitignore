@@ -24,6 +24,7 @@ wheels/
 venv/
 env/
 ENV/
+.venv/
 
 # IDE
 .vscode/
@@ -31,12 +32,33 @@ ENV/
 *.swp
 *.swo
 *~
+.cursor/
+
+# Testing
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+.tox/
+.mypy_cache/
+.ruff_cache/
+.hypothesis/
 
 # Bengal SSG
 public/
 .bengal/
 
+# Documentation builds
+docs/_build/
+site/
+
 # OS
 .DS_Store
 Thumbs.db
+
+# Temporary files
+*.log
+*.bak
+*.tmp
+.env
 
