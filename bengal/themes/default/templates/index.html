@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="home">
+    <header class="hero">
+        <h1>{{ page.title | default(site.config.title) }}</h1>
+        {% if page.metadata.description %}
+        <p>{{ page.metadata.description }}</p>
+        {% endif %}
+    </header>
+    
+    <div class="home-content prose">
+        {{ content | safe }}
+    </div>
+</div>
+{% endblock %}
+

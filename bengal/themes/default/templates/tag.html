@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="tag-page">
+    <header class="page-header">
+        <nav class="breadcrumbs">
+            <ol>
+                <li><a href="/">Home</a></li>
+                <li><a href="/tags/">Tags</a></li>
+                <li>{{ tag }}</li>
+            </ol>
+        </nav>
+        
+        <h1>
+            <span class="tag-icon">#</span>
+            {{ tag }}
+        </h1>
+        
+        <p class="page-description">
+            {{ total_posts }} post{% if total_posts != 1 %}s{% endif %} tagged with "{{ tag }}"
+        </p>
+    </header>
+    
+    {% if posts %}
+    <div class="archive-list">
+        {% for post in posts %}
+            {% set article = post %}
+            {% set show_excerpt = true %}
+            {% include 'partials/article-card.html' %}
+        {% endfor %}
+    </div>
+    
+    {# Pagination (if needed in future) #}
+    {% if total_pages and total_pages > 1 %}
+    {% include 'partials/pagination.html' %}
+    {% endif %}
+    {% else %}
+    <p>No posts found with this tag.</p>
+    {% endif %}
+    
+    <div class="tag-nav">
+        <a href="/tags/" class="btn btn-outline">← View all tags</a>
+    </div>
+</div>
+
+<style>
+.tag-icon {
+    color: var(--color-primary);
+    font-weight: var(--font-bold);
+    margin-right: var(--space-2);
+}
+
+.tag-nav {
+    margin-top: var(--space-12);
+    text-align: center;
+}
+</style>
+{% endblock %}
+

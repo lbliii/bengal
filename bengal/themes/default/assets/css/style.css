@@ -1,0 +1,279 @@
+/**
+ * Bengal SSG Default Theme
+ * Main Stylesheet
+ * 
+ * This file imports all component styles in the correct order
+ */
+
+/* ============================================
+   BASE STYLES (Order matters!)
+   ============================================ */
+
+@import url('base/variables.css');
+@import url('base/reset.css');
+@import url('base/typography.css');
+@import url('base/utilities.css');
+
+/* ============================================
+   LAYOUT STYLES
+   ============================================ */
+
+@import url('layouts/grid.css');
+@import url('layouts/header.css');
+@import url('layouts/footer.css');
+
+/* ============================================
+   COMPONENT STYLES
+   ============================================ */
+
+@import url('components/buttons.css');
+@import url('components/cards.css');
+@import url('components/tags.css');
+@import url('components/code.css');
+@import url('components/pagination.css');
+
+/* ============================================
+   PAGE-SPECIFIC STYLES
+   ============================================ */
+
+@import url('pages/article.css');
+
+/* ============================================
+   CUSTOM GLOBAL STYLES
+   ============================================ */
+
+/* Main Content Area */
+main {
+  min-height: calc(100vh - 300px); /* Adjust based on header/footer height */
+  padding: var(--space-10) 0;
+}
+
+/* Home Page Hero */
+.hero {
+  margin-bottom: var(--space-12);
+  padding: var(--space-16) 0;
+  text-align: center;
+  background: linear-gradient(
+    135deg,
+    var(--color-primary) 0%,
+    var(--color-secondary) 100%
+  );
+  border-radius: var(--radius-xl);
+  color: var(--color-text-inverse);
+}
+
+.hero h1 {
+  margin: 0 0 var(--space-4) 0;
+  font-size: var(--text-5xl);
+  font-weight: var(--font-extrabold);
+  color: var(--color-text-inverse);
+}
+
+.hero p {
+  margin: 0 auto;
+  max-width: 600px;
+  font-size: var(--text-xl);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* Section Headers */
+.section-header {
+  margin-bottom: var(--space-8);
+}
+
+.section-title {
+  margin: 0 0 var(--space-2) 0;
+  font-size: var(--text-3xl);
+  font-weight: var(--font-bold);
+  color: var(--color-text-primary);
+}
+
+.section-description {
+  margin: 0;
+  font-size: var(--text-lg);
+  color: var(--color-text-secondary);
+}
+
+/* Breadcrumbs */
+.breadcrumbs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-6);
+  padding: 0;
+  list-style: none;
+  font-size: var(--text-sm);
+}
+
+.breadcrumbs li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.breadcrumbs li:not(:last-child)::after {
+  content: '/';
+  color: var(--color-text-muted);
+}
+
+.breadcrumbs a {
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  transition: color var(--transition-fast) var(--ease-out);
+}
+
+.breadcrumbs a:hover {
+  color: var(--color-primary);
+}
+
+.breadcrumbs li:last-child {
+  color: var(--color-text-primary);
+  font-weight: var(--font-medium);
+}
+
+/* Pagination */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: var(--space-2);
+  margin: var(--space-12) 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pagination a,
+.pagination span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  height: 40px;
+  padding: var(--space-2) var(--space-3);
+  font-weight: var(--font-medium);
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  transition: all var(--transition-fast) var(--ease-out);
+}
+
+.pagination a:hover {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+  background-color: var(--color-bg-hover);
+}
+
+.pagination .active {
+  color: var(--color-text-inverse);
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.pagination .disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Alerts */
+.alert {
+  padding: var(--space-4) var(--space-5);
+  margin: var(--space-6) 0;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  line-height: var(--leading-relaxed);
+}
+
+.alert-info {
+  color: #055160;
+  background-color: #cff4fc;
+  border-color: #b6effb;
+}
+
+.alert-success {
+  color: #0f5132;
+  background-color: #d1e7dd;
+  border-color: #badbcc;
+}
+
+.alert-warning {
+  color: #664d03;
+  background-color: #fff3cd;
+  border-color: #ffecb5;
+}
+
+.alert-error {
+  color: #842029;
+  background-color: #f8d7da;
+  border-color: #f5c2c7;
+}
+
+[data-theme="dark"] .alert-info {
+  color: #6edff6;
+  background-color: #055160;
+  border-color: #087990;
+}
+
+[data-theme="dark"] .alert-success {
+  color: #75b798;
+  background-color: #0f5132;
+  border-color: #146c43;
+}
+
+[data-theme="dark"] .alert-warning {
+  color: #ffda6a;
+  background-color: #664d03;
+  border-color: #997404;
+}
+
+[data-theme="dark"] .alert-error {
+  color: #ea868f;
+  background-color: #842029;
+  border-color: #a52834;
+}
+
+/* Loading Indicator */
+.loading {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 3px solid var(--color-border);
+  border-top-color: var(--color-primary);
+  border-radius: var(--radius-full);
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Print Styles */
+@media print {
+  header[role="banner"],
+  footer[role="contentinfo"],
+  .mobile-nav-toggle,
+  .theme-toggle,
+  .share-buttons,
+  .article-nav {
+    display: none !important;
+  }
+  
+  main {
+    padding: 0;
+  }
+  
+  a {
+    color: var(--color-text-primary) !important;
+    text-decoration: underline !important;
+  }
+  
+  .prose a::after {
+    content: " (" attr(href) ")";
+    font-size: 0.8em;
+    color: var(--color-text-muted);
+  }
+}
+

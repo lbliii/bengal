@@ -1,0 +1,27 @@
+{#
+  Tag List Component
+  
+  Usage:
+    {% include 'partials/tag-list.html' with {'tags': page.tags} %}
+  
+  Variables:
+    - tags: List of tag strings
+    - small: Boolean (default: false) - use smaller size
+    - linkable: Boolean (default: true) - make tags clickable
+#}
+
+{% set small = small | default(false) %}
+{% set linkable = linkable | default(true) %}
+
+<div class="tags {% if small %}tags-small{% endif %}">
+    {% for tag in tags %}
+        {% if linkable %}
+        <a href="/tags/{{ tag | lower | replace(' ', '-') }}/" class="tag">
+            {{ tag }}
+        </a>
+        {% else %}
+        <span class="tag">{{ tag }}</span>
+        {% endif %}
+    {% endfor %}
+</div>
+

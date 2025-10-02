@@ -1,0 +1,5 @@
+---
+alwaysApply: true
+---
+
+Save all of your planning and progress documents in the `plan/` directory. When you are done with a document move it to plan/completed/

@@ -1,0 +1,44 @@
+{#
+  Breadcrumbs Component
+  
+  Usage:
+    {% include 'partials/breadcrumbs.html' %}
+  
+  Automatically generates breadcrumbs based on the page's URL path.
+  
+  Variables (optional, auto-detected if not provided):
+    - breadcrumb_items: List of {title, url} dicts (optional)
+#}
+
+{% if not breadcrumb_items %}
+  {# Auto-generate breadcrumbs from page path #}
+  {% set parts = page.url.strip('/').split('/') %}
+  {% set breadcrumb_items = [{'title': 'Home', 'url': '/'}] %}
+  
+  {% set current_path = '' %}
+  {% for part in parts %}
+    {% set current_path = current_path ~ '/' ~ part %}
+    {% if part %}
+      {# Convert slug to title (capitalize and replace dashes) #}
+      {% set part_title = part.replace('-', ' ').replace('_', ' ').title() %}
+      {% set _ = breadcrumb_items.append({'title': part_title, 'url': current_path ~ '/'}) %}
+    {% endif %}
+  {% endfor %}
+{% endif %}
+
+{% if breadcrumb_items and breadcrumb_items|length > 1 %}
+<nav aria-label="Breadcrumb" class="breadcrumbs-wrapper">
+  <ol class="breadcrumbs">
+    {% for item in breadcrumb_items %}
+      <li>
+        {% if loop.last %}
+          <span aria-current="page">{{ item.title }}</span>
+        {% else %}
+          <a href="{{ item.url }}">{{ item.title }}</a>
+        {% endif %}
+      </li>
+    {% endfor %}
+  </ol>
+</nav>
+{% endif %}
+

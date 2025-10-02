@@ -1,0 +1,63 @@
+{#
+  Article Card Component
+  
+  Usage:
+    {% include 'partials/article-card.html' with {'article': page} %}
+  
+  Variables:
+    - article: Page object to display
+    - show_excerpt: Boolean (default: true)
+    - show_image: Boolean (default: false)
+#}
+
+{% set show_excerpt = show_excerpt | default(true) %}
+{% set show_image = show_image | default(false) %}
+
+<article class="article-card">
+    {% if show_image and article.metadata.image %}
+    <img src="{{ article.metadata.image }}" alt="{{ article.title }}" class="article-card-image">
+    {% endif %}
+    
+    <div class="article-card-content">
+        <h2 class="article-card-title">
+            <a href="{{ url_for(article) }}">{{ article.title }}</a>
+        </h2>
+        
+        <div class="article-card-meta">
+            {% if article.date %}
+            <time datetime="{{ article.date.isoformat() }}">
+                {{ article.date | dateformat('%B %d, %Y') }}
+            </time>
+            {% endif %}
+            
+            {% if article.metadata.author %}
+            <span class="author">{{ article.metadata.author }}</span>
+            {% endif %}
+            
+            {% if article.content %}
+            <span class="reading-time">
+                {{ (article.content.split() | length / 200) | round | int }} min read
+            </span>
+            {% endif %}
+        </div>
+        
+        {% if show_excerpt %}
+        <p class="article-card-excerpt">
+            {% if article.metadata.description %}
+                {{ article.metadata.description }}
+            {% elif article.content %}
+                {{ article.content[:200] | striptags }}...
+            {% endif %}
+        </p>
+        {% endif %}
+        
+        {% if article.tags %}
+        <div class="article-card-footer">
+            {% set tags = article.tags %}
+            {% set small = true %}
+            {% include 'partials/tag-list.html' %}
+        </div>
+        {% endif %}
+    </div>
+</article>
+

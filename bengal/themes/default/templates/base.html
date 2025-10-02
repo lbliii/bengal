@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    
+    {# Title #}
+    <title>{% block title %}{{ page.title | default(site.config.title) }}{% if page and page.title %} - {{ site.config.title }}{% endif %}{% endblock %}</title>
+    
+    {# Meta Description #}
+    {% if page and page.metadata.description %}
+    <meta name="description" content="{{ page.metadata.description }}">
+    {% else %}
+    <meta name="description" content="{{ site.config.description | default('') }}">
+    {% endif %}
+    
+    {# Open Graph / Facebook #}
+    <meta property="og:type" content="{% if page %}article{% else %}website{% endif %}">
+    <meta property="og:title" content="{{ page.title | default(site.config.title) }}">
+    {% if page and page.metadata.description %}
+    <meta property="og:description" content="{{ page.metadata.description }}">
+    {% endif %}
+    {% if site.config.baseurl %}
+    <meta property="og:url" content="{{ site.config.baseurl }}{{ page.output_path | default('/') }}">
+    {% endif %}
+    
+    {# Twitter Card #}
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="{{ page.title | default(site.config.title) }}">
+    {% if page and page.metadata.description %}
+    <meta name="twitter:description" content="{{ page.metadata.description }}">
+    {% endif %}
+    
+    {# Canonical URL #}
+    {% if site.config.baseurl %}
+    <link rel="canonical" href="{{ site.config.baseurl }}{{ page.output_path | default('/') }}">
+    {% endif %}
+    
+    {# RSS Feed #}
+    <link rel="alternate" type="application/rss+xml" title="{{ site.config.title }} RSS Feed" href="/rss.xml">
+    
+    {# Favicon #}
+    <link rel="icon" type="image/png" href="/favicon.png">
+    
+    {# Stylesheets #}
+    <link rel="stylesheet" href="{{ asset_url('css/style.css') }}">
+    
+    {# Theme initialization (prevent flash) #}
+    <script>
+        (function() {
+            const theme = localStorage.getItem('bengal-theme') || 
+                         (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+            document.documentElement.setAttribute('data-theme', theme);
+        })();
+    </script>
+    
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    {# Skip to main content for accessibility #}
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+    
+    {# Header #}
+    <header role="banner">
+        <nav role="navigation" aria-label="Main navigation">
+            <div class="container">
+                {# Logo / Site Title #}
+                <a href="/" class="logo">{{ site.config.title }}</a>
+                
+                {# Desktop Navigation #}
+                <div class="nav-main hidden-mobile">
+                    <ul>
+                        <li><a href="/">Home</a></li>
+                        <li><a href="/about/">About</a></li>
+                        {% block nav_items %}{% endblock %}
+                    </ul>
+                    
+                    {# Theme Toggle #}
+                    <button class="theme-toggle" aria-label="Toggle dark mode" title="Toggle theme">
+                        <svg class="icon-sun" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+                        </svg>
+                        <svg class="icon-moon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+                        </svg>
+                    </button>
+                </div>
+                
+                {# Mobile Menu Toggle #}
+                <button class="mobile-nav-toggle visible-mobile" aria-label="Open menu" aria-expanded="false">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                    </svg>
+                </button>
+            </div>
+        </nav>
+    </header>
+    
+    {# Mobile Navigation #}
+    <nav class="mobile-nav" role="navigation" aria-label="Mobile navigation">
+        <div class="mobile-nav-header">
+            <span class="logo">{{ site.config.title }}</span>
+            <button class="mobile-nav-close" aria-label="Close menu">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+        <ul>
+            <li><a href="/">Home</a></li>
+            <li><a href="/about/">About</a></li>
+            {% block mobile_nav_items %}{% endblock %}
+        </ul>
+    </nav>
+    
+    {# Main Content #}
+    <main id="main-content" role="main">
+        <div class="container">
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+    
+    {# Footer #}
+    <footer role="contentinfo">
+        <div class="container">
+            <p class="footer-copyright">
+                &copy; 2025 {{ site.config.title }} | Built with <a href="https://github.com/bengal-ssg/bengal" rel="noopener">Bengal SSG</a>
+            </p>
+            <ul class="footer-links">
+                <li><a href="/about/">About</a></li>
+                <li><a href="/rss.xml">RSS</a></li>
+            </ul>
+        </div>
+    </footer>
+    
+    {# JavaScript #}
+    <script src="{{ asset_url('js/theme-toggle.js') }}"></script>
+    <script src="{{ asset_url('js/mobile-nav.js') }}"></script>
+    <script src="{{ asset_url('js/main.js') }}"></script>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
+

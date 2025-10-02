@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="tags-page">
+    <header class="page-header">
+        <h1>{{ page.title | default('All Tags') }}</h1>
+        <p class="page-description">
+            Browse all {{ total_tags }} tags
+        </p>
+    </header>
+    
+    {% if tags %}
+    <div class="tag-cloud">
+        {% for tag in tags %}
+        <div class="tag-item">
+            <a href="/tags/{{ tag.slug }}/" class="tag-link">
+                <span class="tag-name">{{ tag.name }}</span>
+                <span class="tag-count">{{ tag.count }} post{% if tag.count != 1 %}s{% endif %}</span>
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p>No tags found.</p>
+    {% endif %}
+</div>
+
+<style>
+.tags-page {
+    max-width: var(--container-lg);
+    margin: 0 auto;
+}
+
+.tag-cloud {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    margin-top: var(--space-8);
+}
+
+.tag-item {
+    flex: 0 1 auto;
+}
+
+.tag-link {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-5);
+    background-color: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    text-decoration: none;
+    transition: all var(--transition-base) var(--ease-out);
+}
+
+.tag-link:hover {
+    background-color: var(--color-primary);
+    border-color: var(--color-primary);
+    color: var(--color-text-inverse);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.tag-name {
+    font-size: var(--text-lg);
+    font-weight: var(--font-semibold);
+    color: var(--color-text-primary);
+}
+
+.tag-link:hover .tag-name {
+    color: var(--color-text-inverse);
+}
+
+.tag-count {
+    font-size: var(--text-sm);
+    color: var(--color-text-muted);
+    padding: var(--space-1) var(--space-2);
+    background-color: var(--color-bg-tertiary);
+    border-radius: var(--radius-full);
+}
+
+.tag-link:hover .tag-count {
+    background-color: rgba(255, 255, 255, 0.2);
+    color: var(--color-text-inverse);
+}
+</style>
+{% endblock %}
+

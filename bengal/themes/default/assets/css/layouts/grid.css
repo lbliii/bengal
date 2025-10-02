@@ -1,0 +1,162 @@
+/**
+ * Bengal SSG Default Theme
+ * Grid System
+ */
+
+/* ============================================
+   FLEXBOX GRID
+   ============================================ */
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  margin-left: calc(var(--space-4) * -1);
+  margin-right: calc(var(--space-4) * -1);
+}
+
+.row > * {
+  padding-left: var(--space-4);
+  padding-right: var(--space-4);
+}
+
+/* Column Sizes */
+.col {
+  flex: 1 0 0%;
+}
+
+.col-auto {
+  flex: 0 0 auto;
+  width: auto;
+}
+
+/* Fixed Columns */
+.col-1 { flex: 0 0 auto; width: 8.333333%; }
+.col-2 { flex: 0 0 auto; width: 16.666667%; }
+.col-3 { flex: 0 0 auto; width: 25%; }
+.col-4 { flex: 0 0 auto; width: 33.333333%; }
+.col-5 { flex: 0 0 auto; width: 41.666667%; }
+.col-6 { flex: 0 0 auto; width: 50%; }
+.col-7 { flex: 0 0 auto; width: 58.333333%; }
+.col-8 { flex: 0 0 auto; width: 66.666667%; }
+.col-9 { flex: 0 0 auto; width: 75%; }
+.col-10 { flex: 0 0 auto; width: 83.333333%; }
+.col-11 { flex: 0 0 auto; width: 91.666667%; }
+.col-12 { flex: 0 0 auto; width: 100%; }
+
+/* ============================================
+   CSS GRID
+   ============================================ */
+
+.grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+.grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.grid-cols-6 { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+.grid-cols-12 { grid-template-columns: repeat(12, minmax(0, 1fr)); }
+
+/* Column Span */
+.col-span-1 { grid-column: span 1 / span 1; }
+.col-span-2 { grid-column: span 2 / span 2; }
+.col-span-3 { grid-column: span 3 / span 3; }
+.col-span-4 { grid-column: span 4 / span 4; }
+.col-span-6 { grid-column: span 6 / span 6; }
+.col-span-full { grid-column: 1 / -1; }
+
+/* ============================================
+   RESPONSIVE GRID
+   ============================================ */
+
+@media (min-width: 640px) {
+  .sm\:col-1 { flex: 0 0 auto; width: 8.333333%; }
+  .sm\:col-2 { flex: 0 0 auto; width: 16.666667%; }
+  .sm\:col-3 { flex: 0 0 auto; width: 25%; }
+  .sm\:col-4 { flex: 0 0 auto; width: 33.333333%; }
+  .sm\:col-6 { flex: 0 0 auto; width: 50%; }
+  .sm\:col-12 { flex: 0 0 auto; width: 100%; }
+  
+  .sm\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .sm\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (min-width: 768px) {
+  .md\:col-1 { flex: 0 0 auto; width: 8.333333%; }
+  .md\:col-2 { flex: 0 0 auto; width: 16.666667%; }
+  .md\:col-3 { flex: 0 0 auto; width: 25%; }
+  .md\:col-4 { flex: 0 0 auto; width: 33.333333%; }
+  .md\:col-6 { flex: 0 0 auto; width: 50%; }
+  .md\:col-8 { flex: 0 0 auto; width: 66.666667%; }
+  .md\:col-12 { flex: 0 0 auto; width: 100%; }
+  
+  .md\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .md\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .md\:grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+@media (min-width: 1024px) {
+  .lg\:col-1 { flex: 0 0 auto; width: 8.333333%; }
+  .lg\:col-2 { flex: 0 0 auto; width: 16.666667%; }
+  .lg\:col-3 { flex: 0 0 auto; width: 25%; }
+  .lg\:col-4 { flex: 0 0 auto; width: 33.333333%; }
+  .lg\:col-6 { flex: 0 0 auto; width: 50%; }
+  .lg\:col-8 { flex: 0 0 auto; width: 66.666667%; }
+  .lg\:col-9 { flex: 0 0 auto; width: 75%; }
+  .lg\:col-12 { flex: 0 0 auto; width: 100%; }
+  
+  .lg\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .lg\:grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .lg\:grid-cols-6 { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+}
+
+/* ============================================
+   COMMON LAYOUTS
+   ============================================ */
+
+/* Two Column Layout (Main + Sidebar) */
+.layout-two-column {
+  display: grid;
+  gap: var(--space-8);
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 1024px) {
+  .layout-two-column {
+    grid-template-columns: 1fr 300px;
+  }
+  
+  .layout-two-column.sidebar-left {
+    grid-template-columns: 300px 1fr;
+  }
+}
+
+/* Three Column Layout (Sidebar + Main + Sidebar) */
+.layout-three-column {
+  display: grid;
+  gap: var(--space-6);
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 1024px) {
+  .layout-three-column {
+    grid-template-columns: 250px 1fr 250px;
+  }
+}
+
+/* Card Grid */
+.card-grid {
+  display: grid;
+  gap: var(--space-6);
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 640px) {
+  .card-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .card-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+

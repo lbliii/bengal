@@ -1,0 +1,301 @@
+/**
+ * Bengal SSG Default Theme
+ * Typography Styles
+ */
+
+/* ============================================
+   PROSE / CONTENT TYPOGRAPHY
+   ============================================ */
+
+.prose {
+  max-width: var(--prose-width);
+  color: var(--color-text-primary);
+}
+
+.prose > * + * {
+  margin-top: var(--space-6);
+}
+
+/* Headings */
+.prose h1,
+.prose h2,
+.prose h3,
+.prose h4,
+.prose h5,
+.prose h6 {
+  margin-top: var(--space-10);
+  margin-bottom: var(--space-4);
+  font-weight: var(--font-bold);
+  line-height: var(--leading-tight);
+  color: var(--color-text-primary);
+  scroll-margin-top: var(--space-20); /* For anchor links */
+}
+
+.prose h1 { font-size: var(--text-4xl); margin-top: 0; }
+.prose h2 { font-size: var(--text-3xl); }
+.prose h3 { font-size: var(--text-2xl); }
+.prose h4 { font-size: var(--text-xl); }
+.prose h5 { font-size: var(--text-lg); }
+.prose h6 { font-size: var(--text-base); }
+
+/* Paragraphs */
+.prose p {
+  margin-bottom: var(--space-6);
+  line-height: var(--leading-relaxed);
+}
+
+.prose p:last-child {
+  margin-bottom: 0;
+}
+
+/* Links */
+.prose a {
+  color: var(--color-primary);
+  text-decoration: underline;
+  text-decoration-color: var(--color-primary-light);
+  text-underline-offset: 0.15em;
+  transition: all var(--transition-fast) var(--ease-out);
+}
+
+.prose a:hover {
+  color: var(--color-primary-dark);
+  text-decoration-color: var(--color-primary-dark);
+}
+
+/* Strong & Emphasis */
+.prose strong {
+  font-weight: var(--font-bold);
+  color: var(--color-text-primary);
+}
+
+.prose em {
+  font-style: italic;
+}
+
+/* Lists */
+.prose ul,
+.prose ol {
+  margin: var(--space-6) 0;
+  padding-left: var(--space-8);
+}
+
+.prose ul {
+  list-style-type: disc;
+}
+
+.prose ol {
+  list-style-type: decimal;
+}
+
+.prose li {
+  margin: var(--space-2) 0;
+  line-height: var(--leading-relaxed);
+}
+
+.prose li > ul,
+.prose li > ol {
+  margin: var(--space-2) 0;
+}
+
+/* Nested lists */
+.prose ul ul,
+.prose ol ul {
+  list-style-type: circle;
+}
+
+.prose ul ul ul,
+.prose ol ul ul,
+.prose ul ol ul,
+.prose ol ol ul {
+  list-style-type: square;
+}
+
+/* Blockquotes */
+.prose blockquote {
+  margin: var(--space-8) 0;
+  padding: var(--space-4) var(--space-6);
+  border-left: 4px solid var(--color-primary);
+  background-color: var(--color-bg-secondary);
+  border-radius: var(--radius-md);
+  font-style: italic;
+  color: var(--color-text-secondary);
+}
+
+.prose blockquote p {
+  margin: 0;
+}
+
+.prose blockquote cite {
+  display: block;
+  margin-top: var(--space-4);
+  font-size: var(--text-sm);
+  font-style: normal;
+  color: var(--color-text-muted);
+}
+
+.prose blockquote cite::before {
+  content: "— ";
+}
+
+/* Code */
+.prose code {
+  padding: 0.125em 0.375em;
+  background-color: var(--color-bg-code);
+  border-radius: var(--radius-sm);
+  font-size: 0.875em;
+  font-family: var(--font-mono);
+  color: var(--color-text-primary);
+}
+
+.prose pre {
+  margin: var(--space-6) 0;
+  padding: var(--space-4);
+  background-color: var(--color-bg-code);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow-x: auto;
+  line-height: var(--leading-relaxed);
+}
+
+.prose pre code {
+  padding: 0;
+  background: none;
+  border-radius: 0;
+  font-size: var(--text-sm);
+}
+
+/* Horizontal Rule */
+.prose hr {
+  margin: var(--space-12) 0;
+  border: none;
+  border-top: 1px solid var(--color-border);
+}
+
+/* Images */
+.prose img {
+  margin: var(--space-8) auto;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+}
+
+.prose figure {
+  margin: var(--space-8) 0;
+}
+
+.prose figcaption {
+  margin-top: var(--space-2);
+  font-size: var(--text-sm);
+  text-align: center;
+  color: var(--color-text-muted);
+}
+
+/* Tables */
+.prose table {
+  margin: var(--space-8) 0;
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+.prose thead {
+  border-bottom: 2px solid var(--color-border);
+}
+
+.prose th {
+  padding: var(--space-3) var(--space-4);
+  text-align: left;
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-secondary);
+}
+
+.prose td {
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.prose tbody tr:hover {
+  background-color: var(--color-bg-hover);
+}
+
+/* Definition Lists */
+.prose dl {
+  margin: var(--space-6) 0;
+}
+
+.prose dt {
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+  margin-top: var(--space-4);
+}
+
+.prose dd {
+  margin-left: var(--space-6);
+  margin-top: var(--space-2);
+  color: var(--color-text-secondary);
+}
+
+/* ============================================
+   UTILITY CLASSES
+   ============================================ */
+
+/* Text Sizes */
+.text-xs { font-size: var(--text-xs); }
+.text-sm { font-size: var(--text-sm); }
+.text-base { font-size: var(--text-base); }
+.text-lg { font-size: var(--text-lg); }
+.text-xl { font-size: var(--text-xl); }
+.text-2xl { font-size: var(--text-2xl); }
+.text-3xl { font-size: var(--text-3xl); }
+.text-4xl { font-size: var(--text-4xl); }
+.text-5xl { font-size: var(--text-5xl); }
+
+/* Font Weights */
+.font-light { font-weight: var(--font-light); }
+.font-normal { font-weight: var(--font-normal); }
+.font-medium { font-weight: var(--font-medium); }
+.font-semibold { font-weight: var(--font-semibold); }
+.font-bold { font-weight: var(--font-bold); }
+.font-extrabold { font-weight: var(--font-extrabold); }
+
+/* Text Colors */
+.text-primary { color: var(--color-text-primary); }
+.text-secondary { color: var(--color-text-secondary); }
+.text-muted { color: var(--color-text-muted); }
+
+/* Line Heights */
+.leading-none { line-height: var(--leading-none); }
+.leading-tight { line-height: var(--leading-tight); }
+.leading-snug { line-height: var(--leading-snug); }
+.leading-normal { line-height: var(--leading-normal); }
+.leading-relaxed { line-height: var(--leading-relaxed); }
+.leading-loose { line-height: var(--leading-loose); }
+
+/* Text Alignment */
+.text-left { text-align: left; }
+.text-center { text-align: center; }
+.text-right { text-align: right; }
+.text-justify { text-align: justify; }
+
+/* Text Transform */
+.uppercase { text-transform: uppercase; }
+.lowercase { text-transform: lowercase; }
+.capitalize { text-transform: capitalize; }
+
+/* Text Decoration */
+.underline { text-decoration: underline; }
+.line-through { text-decoration: line-through; }
+.no-underline { text-decoration: none; }
+
+/* Letter Spacing */
+.tracking-tight { letter-spacing: var(--tracking-tight); }
+.tracking-normal { letter-spacing: var(--tracking-normal); }
+.tracking-wide { letter-spacing: var(--tracking-wide); }
+.tracking-wider { letter-spacing: var(--tracking-wider); }
+.tracking-widest { letter-spacing: var(--tracking-widest); }
+
+/* Font Families */
+.font-sans { font-family: var(--font-sans); }
+.font-serif { font-family: var(--font-serif); }
+.font-mono { font-family: var(--font-mono); }
+

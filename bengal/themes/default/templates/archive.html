@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block content %}
+{% include 'partials/breadcrumbs.html' %}
+
+<div class="archive">
+    <header class="archive-header">
+        <h1>{{ title | default(section.title if section else 'Archive') }}</h1>
+        
+        {% if description %}
+        <p class="archive-description">{{ description }}</p>
+        {% endif %}
+        
+        {% if total_pages %}
+        <p class="archive-count">
+            Showing {{ posts | length }} of {{ total_posts }} posts
+            {% if current_page > 1 %}(Page {{ current_page }} of {{ total_pages }}){% endif %}
+        </p>
+        {% endif %}
+    </header>
+    
+    {% if posts %}
+    <div class="archive-list">
+        {% for post in posts %}
+            {% set article = post %}
+            {% set show_excerpt = true %}
+            {% include 'partials/article-card.html' %}
+        {% endfor %}
+    </div>
+    
+    {# Pagination #}
+    {% if total_pages and total_pages > 1 %}
+    {% include 'partials/pagination.html' %}
+    {% endif %}
+    {% else %}
+    <div class="archive-empty">
+        <p>No posts found.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+

@@ -1,0 +1,51 @@
+"""
+Asset discovery - finds and organizes static assets.
+"""
+
+from pathlib import Path
+from typing import List
+
+from bengal.core.asset import Asset
+
+
+class AssetDiscovery:
+    """
+    Discovers static assets (images, CSS, JS, etc.).
+    """
+    
+    def __init__(self, assets_dir: Path) -> None:
+        """
+        Initialize asset discovery.
+        
+        Args:
+            assets_dir: Root assets directory
+        """
+        self.assets_dir = assets_dir
+        self.assets: List[Asset] = []
+    
+    def discover(self) -> List[Asset]:
+        """
+        Discover all assets in the assets directory.
+        
+        Returns:
+            List of Asset objects
+        """
+        # Walk the assets directory
+        for file_path in self.assets_dir.rglob('*'):
+            if file_path.is_file():
+                # Skip hidden files
+                if any(part.startswith('.') for part in file_path.parts):
+                    continue
+                
+                # Create asset with relative output path
+                rel_path = file_path.relative_to(self.assets_dir)
+                
+                asset = Asset(
+                    source_path=file_path,
+                    output_path=rel_path,
+                )
+                
+                self.assets.append(asset)
+        
+        return self.assets
+

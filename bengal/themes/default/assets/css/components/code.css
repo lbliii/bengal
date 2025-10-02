@@ -1,0 +1,241 @@
+/**
+ * Bengal SSG Default Theme
+ * Code & Syntax Highlighting Styles
+ */
+
+/* ============================================
+   INLINE CODE
+   ============================================ */
+
+code {
+  padding: 0.125em 0.375em;
+  font-size: 0.875em;
+  font-family: var(--font-mono);
+  color: var(--color-accent);
+  background-color: var(--color-bg-code);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-sm);
+}
+
+/* ============================================
+   CODE BLOCKS
+   ============================================ */
+
+pre {
+  position: relative;
+  margin: var(--space-6) 0;
+  padding: var(--space-5);
+  background-color: var(--color-bg-code);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow-x: auto;
+  line-height: var(--leading-relaxed);
+  box-shadow: var(--shadow-sm);
+}
+
+pre code {
+  padding: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-primary);
+  background: none;
+  border: none;
+  border-radius: 0;
+}
+
+/* ============================================
+   CODE BLOCK HEADER
+   ============================================ */
+
+.code-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+  background-color: var(--color-bg-tertiary);
+  border-bottom: 1px solid var(--color-border);
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+}
+
+.code-language {
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+}
+
+.code-copy-button {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  color: var(--color-text-secondary);
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast) var(--ease-out);
+}
+
+.code-copy-button:hover {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+  background-color: var(--color-bg-hover);
+}
+
+.code-copy-button.copied {
+  color: var(--color-success);
+  border-color: var(--color-success);
+}
+
+/* ============================================
+   SYNTAX HIGHLIGHTING (Pygments-compatible)
+   ============================================ */
+
+/* Comments */
+.highlight .c,
+.highlight .cm,
+.highlight .c1,
+.highlight .cs {
+  color: #6c757d;
+  font-style: italic;
+}
+
+/* Keywords */
+.highlight .k,
+.highlight .kc,
+.highlight .kd,
+.highlight .kn,
+.highlight .kp,
+.highlight .kr,
+.highlight .kt {
+  color: #e74c3c;
+  font-weight: bold;
+}
+
+/* Strings */
+.highlight .s,
+.highlight .s1,
+.highlight .s2,
+.highlight .sb,
+.highlight .sc,
+.highlight .sd,
+.highlight .se,
+.highlight .sh,
+.highlight .si,
+.highlight .sx {
+  color: #2ecc71;
+}
+
+/* Numbers */
+.highlight .m,
+.highlight .mf,
+.highlight .mh,
+.highlight .mi,
+.highlight .mo {
+  color: #e67e22;
+}
+
+/* Functions */
+.highlight .nf,
+.highlight .fm {
+  color: #3498db;
+  font-weight: bold;
+}
+
+/* Classes */
+.highlight .nc,
+.highlight .nn {
+  color: #9b59b6;
+  font-weight: bold;
+}
+
+/* Variables */
+.highlight .nv,
+.highlight .vc,
+.highlight .vg,
+.highlight .vi {
+  color: #e67e22;
+}
+
+/* Operators */
+.highlight .o,
+.highlight .ow {
+  color: #e74c3c;
+}
+
+/* Punctuation */
+.highlight .p {
+  color: var(--color-text-primary);
+}
+
+/* Built-ins */
+.highlight .nb,
+.highlight .bp {
+  color: #3498db;
+}
+
+/* Constants */
+.highlight .no,
+.highlight .kc {
+  color: #e67e22;
+}
+
+/* Errors */
+.highlight .err {
+  color: #e74c3c;
+  background-color: #fadbd8;
+}
+
+/* ============================================
+   LINE NUMBERS
+   ============================================ */
+
+.highlight .linenos {
+  display: inline-block;
+  padding-right: var(--space-4);
+  margin-right: var(--space-4);
+  border-right: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  user-select: none;
+}
+
+/* ============================================
+   DARK MODE ADJUSTMENTS
+   ============================================ */
+
+[data-theme="dark"] .highlight .c,
+[data-theme="dark"] .highlight .cm,
+[data-theme="dark"] .highlight .c1,
+[data-theme="dark"] .highlight .cs {
+  color: #adb5bd;
+}
+
+[data-theme="dark"] .highlight .err {
+  background-color: rgba(231, 76, 60, 0.2);
+}
+
+/* ============================================
+   SCROLLBAR FOR CODE BLOCKS
+   ============================================ */
+
+pre::-webkit-scrollbar {
+  height: 8px;
+}
+
+pre::-webkit-scrollbar-track {
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-sm);
+}
+
+pre::-webkit-scrollbar-thumb {
+  background: var(--color-border-dark);
+  border-radius: var(--radius-sm);
+}
+
+pre::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-muted);
+}
+

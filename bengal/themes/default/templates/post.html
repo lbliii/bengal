@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block content %}
+{% include 'partials/breadcrumbs.html' %}
+
+<article class="post">
+    <header class="post-header">
+        <h1>{{ page.title }}</h1>
+        
+        <div class="article-meta">
+            {% if page.date %}
+            <time datetime="{{ page.date.isoformat() }}">
+                {{ page.date | dateformat('%B %d, %Y') }}
+            </time>
+            {% endif %}
+            
+            {% if page.metadata.author %}
+            <span class="author">
+                <span>By {{ page.metadata.author }}</span>
+            </span>
+            {% endif %}
+            
+            {% if page.content %}
+            <span class="reading-time">
+                {{ (page.content.split() | length / 200) | round | int }} min read
+            </span>
+            {% endif %}
+        </div>
+    </header>
+    
+    <div class="post-content prose">
+        {{ content | safe }}
+    </div>
+    
+    {% if page.tags %}
+    <footer class="post-footer">
+        <div class="tags">
+            <strong>Tags:</strong>
+            {% for tag in page.tags %}
+            <a href="/tags/{{ tag | lower | replace(' ', '-') }}/" class="tag">{{ tag }}</a>
+            {% endfor %}
+        </div>
+    </footer>
+    {% endif %}
+</article>
+{% endblock %}
+

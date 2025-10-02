@@ -1,0 +1,76 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bengal-ssg"
+version = "0.1.0"
+description = "A high-performance static site generator with modular architecture"
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "MIT"}
+authors = [
+    {name = "Bengal Contributors"}
+]
+keywords = ["static-site-generator", "ssg", "documentation", "markdown", "website"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Documentation",
+    "Topic :: Software Development :: Documentation",
+]
+dependencies = [
+    "click>=8.1.0",
+    "markdown>=3.5.0",
+    "jinja2>=3.1.0",
+    "pyyaml>=6.0",
+    "toml>=0.10.0",
+    "watchdog>=3.0.0",
+    "pygments>=2.16.0",
+    "python-frontmatter>=1.0.0",
+    "csscompressor>=0.9.5",
+    "jsmin>=3.0.1",
+    "pillow>=10.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "black>=23.7.0",
+    "mypy>=1.5.0",
+    "ruff>=0.0.287",
+]
+
+[project.scripts]
+bengal = "bengal.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/bengal-ssg/bengal"
+Documentation = "https://bengal-ssg.github.io"
+Repository = "https://github.com/bengal-ssg/bengal"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["bengal*"]
+
+[tool.black]
+line-length = 100
+target-version = ['py39']
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+

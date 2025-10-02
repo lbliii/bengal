@@ -1,0 +1,16 @@
+[site]
+title = "Bengal Quickstart"
+baseurl = "https://example.com"
+description = "A quick start example for Bengal SSG"
+theme = "default"
+
+[build]
+output_dir = "public"
+parallel = true
+incremental = false
+
+[assets]
+minify = true
+optimize = true
+fingerprint = true
+
