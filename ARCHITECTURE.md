@@ -253,10 +253,98 @@ def custom_pre_build(site):
 
 ## Testing Strategy
 
-1. **Unit Tests**: Test individual components in isolation
-2. **Integration Tests**: Test component interactions
-3. **End-to-End Tests**: Full build tests with sample sites
-4. **Performance Tests**: Benchmark builds with large sites
+Bengal uses a comprehensive testing approach with pytest and coverage tracking.
+
+### Test Infrastructure
+
+**Location:** `tests/` directory with organized structure:
+- `tests/unit/` - Unit tests for individual components
+- `tests/integration/` - Integration tests for workflows
+- `tests/e2e/` - End-to-end tests with example sites
+- `tests/performance/` - Performance benchmarks
+- `tests/fixtures/` - Shared test data
+- `tests/conftest.py` - Shared pytest fixtures
+
+**Tools:**
+- `pytest` - Test framework
+- `pytest-cov` - Coverage reporting
+- `pytest-mock` - Mocking utilities
+- `pytest-xdist` - Parallel test execution
+- `ruff` - Linting
+- `mypy` - Type checking
+
+### Coverage Goals
+
+| Component | Target | Status |
+|-----------|--------|--------|
+| Core (Page, Site, Section) | 90%+ | ⏳ In Progress |
+| Utils (Paginator) | 95%+ | ✅ 96% |
+| Rendering Pipeline | 85%+ | ⏳ Planned |
+| CLI | 80%+ | ⏳ Planned |
+| **Overall Target** | **85%** | 🎯 Goal |
+
+### Test Types
+
+1. **Unit Tests**
+   - Test individual components in isolation
+   - Fast execution (< 1 second)
+   - Mock external dependencies
+   - Example: `tests/unit/utils/test_pagination.py` (10 tests, 96% coverage)
+
+2. **Integration Tests**
+   - Test component interactions
+   - Full build workflows
+   - Theme rendering
+   - Example: Building a complete site from content
+
+3. **End-to-End Tests**
+   - Build example sites
+   - Verify output correctness
+   - Real-world scenarios
+
+4. **Performance Tests**
+   - Build speed benchmarks
+   - Memory usage profiling
+   - Large site stress tests
+
+### Running Tests
+
+```bash
+# All tests
+pytest
+
+# With coverage
+pytest --cov=bengal
+
+# Specific test file
+pytest tests/unit/utils/test_pagination.py
+
+# Parallel execution
+pytest -n auto
+
+# Generate HTML coverage report
+pytest --cov=bengal --cov-report=html
+```
+
+### Shared Fixtures
+
+Located in `tests/conftest.py`:
+- `tmp_site` - Temporary site directory
+- `sample_config` - Sample configuration
+- `sample_page` - Sample page with frontmatter
+- `site_with_content` - Site with sample content
+- `mock_template_engine` - Mocked template engine
+
+### Current Status
+
+- ✅ Test infrastructure complete
+- ✅ Pytest configuration
+- ✅ Shared fixtures
+- ✅ First test suite (Paginator: 10 tests, 96% coverage)
+- ⏳ Core component tests in progress
+- ⏳ Integration tests planned
+
+For detailed testing strategy, see `plan/TEST_STRATEGY.md`.
 
 ## Recent Additions (Phase 2A & 2B)
 
@@ -295,8 +383,11 @@ def custom_pre_build(site):
 - [x] Dynamic page generation
 - [x] Pagination system
 - [x] Production-ready default theme
+- [x] Test infrastructure (pytest, coverage, fixtures)
+- [x] First test suite (Paginator: 96% coverage)
 
 **Next Priorities:**
+- [ ] Core component tests (Page, Site, Section) - 90% coverage target
 - [ ] Incremental builds (track file changes, rebuild only what's needed)
 - [ ] Parallel rendering optimization
 - [ ] Plugin system with hooks
