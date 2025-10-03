@@ -2,7 +2,9 @@
 title: "Understanding the Asset Pipeline"
 date: 2025-09-10
 tags: ["assets", "css", "javascript"]
+categories: ["Features", "Assets"]
 description: "How Bengal handles CSS, JS, and other assets"
+author: "Bengal Team"
 ---
 
 # Understanding the Asset Pipeline

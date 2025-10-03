@@ -2,7 +2,9 @@
 title: "Using the Development Server"
 date: 2025-09-03
 tags: ["development", "tutorial", "tools"]
+categories: ["Development", "Tools"]
 description: "Working with Bengal's built-in dev server"
+author: "Mike Rodriguez"
 ---
 
 # Using the Development Server

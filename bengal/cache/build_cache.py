@@ -20,6 +20,7 @@ class BuildCache:
         dependencies: Mapping of pages to their dependencies (templates, partials, etc.)
         output_sources: Mapping of output files to their source files
         taxonomy_deps: Mapping of taxonomy terms to affected pages
+        page_tags: Mapping of page paths to their tags (for detecting tag changes)
         last_build: Timestamp of last successful build
     """
     
@@ -27,6 +28,7 @@ class BuildCache:
     dependencies: Dict[str, Set[str]] = field(default_factory=dict)
     output_sources: Dict[str, str] = field(default_factory=dict)
     taxonomy_deps: Dict[str, Set[str]] = field(default_factory=dict)
+    page_tags: Dict[str, Set[str]] = field(default_factory=dict)
     last_build: Optional[str] = None
     
     def __post_init__(self) -> None:
@@ -40,6 +42,11 @@ class BuildCache:
         self.taxonomy_deps = {
             k: set(v) if isinstance(v, list) else v
             for k, v in self.taxonomy_deps.items()
+        }
+        # Convert page tags lists back to sets
+        self.page_tags = {
+            k: set(v) if isinstance(v, list) else v
+            for k, v in self.page_tags.items()
         }
     
     @classmethod
@@ -71,6 +78,11 @@ class BuildCache:
                     k: set(v) for k, v in data['taxonomy_deps'].items()
                 }
             
+            if 'page_tags' in data:
+                data['page_tags'] = {
+                    k: set(v) for k, v in data['page_tags'].items()
+                }
+            
             return cls(**data)
         except (json.JSONDecodeError, KeyError, TypeError) as e:
             print(f"Warning: Failed to load cache from {cache_path}: {e}")
@@ -93,6 +105,7 @@ class BuildCache:
             'dependencies': {k: list(v) for k, v in self.dependencies.items()},
             'output_sources': self.output_sources,
             'taxonomy_deps': {k: list(v) for k, v in self.taxonomy_deps.items()},
+            'page_tags': {k: list(v) for k, v in self.page_tags.items()},
             'last_build': datetime.now().isoformat()
         }
         
@@ -210,12 +223,35 @@ class BuildCache:
         
         return affected
     
+    def get_previous_tags(self, page_path: Path) -> Set[str]:
+        """
+        Get tags from previous build for a page.
+        
+        Args:
+            page_path: Path to page
+            
+        Returns:
+            Set of tags from previous build (empty set if new page)
+        """
+        return self.page_tags.get(str(page_path), set())
+    
+    def update_tags(self, page_path: Path, tags: Set[str]) -> None:
+        """
+        Store current tags for a page (for next build's comparison).
+        
+        Args:
+            page_path: Path to page
+            tags: Current set of tags for the page
+        """
+        self.page_tags[str(page_path)] = tags
+    
     def clear(self) -> None:
         """Clear all cache data."""
         self.file_hashes.clear()
         self.dependencies.clear()
         self.output_sources.clear()
         self.taxonomy_deps.clear()
+        self.page_tags.clear()
         self.last_build = None
     
     def invalidate_file(self, file_path: Path) -> None:
@@ -236,6 +272,9 @@ class BuildCache:
         # Remove from taxonomy deps
         for deps in self.taxonomy_deps.values():
             deps.discard(file_key)
+        
+        # Remove page tags
+        self.page_tags.pop(file_key, None)
     
     def get_stats(self) -> Dict[str, int]:
         """

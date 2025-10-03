@@ -50,6 +50,10 @@ class Renderer:
         if content is None:
             content = page.parsed_ast or ""
         
+        # Mark active menu items for this page
+        if hasattr(self.site, 'mark_active_menu_items'):
+            self.site.mark_active_menu_items(page)
+        
         # Determine which template to use
         template_name = self._get_template_name(page)
         
@@ -59,6 +63,8 @@ class Renderer:
             'content': content,
             'title': page.title,
             'metadata': page.metadata,
+            'toc': page.toc,  # Table of contents HTML
+            'toc_items': page.toc_items,  # Structured TOC data
         }
         
         # Add special context for generated pages

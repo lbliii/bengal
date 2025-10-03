@@ -1,6 +1,7 @@
 ---
 title: About Bengal
 type: page
+author: "Bengal Team"
 ---
 
 # About Bengal

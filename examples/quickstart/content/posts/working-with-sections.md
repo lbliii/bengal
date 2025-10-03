@@ -2,7 +2,9 @@
 title: "Working with Sections"
 date: 2025-09-15
 tags: ["tutorial", "organization", "content"]
+categories: ["Content", "Organization"]
 description: "Organize your content with Bengal sections"
+author: "Bengal Team"
 ---
 
 # Working with Sections

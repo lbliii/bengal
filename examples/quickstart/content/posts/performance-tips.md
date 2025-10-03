@@ -2,7 +2,9 @@
 title: "Performance Optimization Tips"
 date: 2025-09-22
 tags: ["performance", "optimization", "advanced"]
+categories: ["Performance", "Best Practices"]
 description: "Make your Bengal site blazing fast"
+author: "David Kim"
 ---
 
 # Performance Optimization Tips

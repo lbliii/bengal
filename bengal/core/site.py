@@ -12,6 +12,7 @@ from threading import Lock
 from bengal.core.page import Page
 from bengal.core.section import Section
 from bengal.core.asset import Asset
+from bengal.core.menu import MenuItem, MenuBuilder
 from bengal.utils.pagination import Paginator
 from bengal.rendering.pipeline import RenderingPipeline
 
@@ -46,6 +47,8 @@ class Site:
     output_dir: Path = field(default_factory=lambda: Path("public"))
     build_time: Optional[datetime] = None
     taxonomies: Dict[str, Dict[str, List[Page]]] = field(default_factory=dict)
+    menu: Dict[str, List[MenuItem]] = field(default_factory=dict)
+    menu_builders: Dict[str, MenuBuilder] = field(default_factory=dict)
     
     def __post_init__(self) -> None:
         """Initialize site from configuration."""
@@ -199,6 +202,9 @@ class Site:
         # Generate dynamic pages (archives, tag pages, etc.)
         self.generate_dynamic_pages()
         
+        # Build navigation menus
+        self.build_menus()
+        
         # Determine what to build
         pages_to_build = self.pages
         assets_to_process = self.assets
@@ -251,14 +257,25 @@ class Site:
         
         # Update cache with all processed files
         if incremental or self.config.get("cache_enabled", True):
-            # Update all page hashes (skip generated pages - they have virtual paths)
+            # Update all page hashes and tags (skip generated pages - they have virtual paths)
             for page in pages_to_build:
                 if not page.metadata.get('_generated'):
                     cache.update_file(page.source_path)
+                    # Store tags for next build's comparison
+                    if page.tags:
+                        cache.update_tags(page.source_path, set(page.tags))
+                    else:
+                        cache.update_tags(page.source_path, set())
             
             # Update all asset hashes
             for asset in assets_to_process:
                 cache.update_file(asset.source_path)
+            
+            # Update template hashes (even if not changed, to track them)
+            theme_templates_dir = self._get_theme_templates_dir()
+            if theme_templates_dir and theme_templates_dir.exists():
+                for template_file in theme_templates_dir.rglob("*.html"):
+                    cache.update_file(template_file)
             
             # Save cache
             cache.save(cache_path)
@@ -513,8 +530,12 @@ class Site:
             'Taxonomy changes': []
         }
         
-        # Find changed content files
+        # Find changed content files (skip generated pages - they have virtual paths)
         for page in self.pages:
+            # Skip generated pages - they'll be handled separately
+            if page.metadata.get('_generated'):
+                continue
+                
             if cache.is_changed(page.source_path):
                 pages_to_rebuild.add(page.source_path)
                 if verbose:
@@ -543,21 +564,64 @@ class Site:
                     affected = cache.get_affected_pages(template_file)
                     for page_path_str in affected:
                         pages_to_rebuild.add(Path(page_path_str))
+                else:
+                    # Template unchanged - still update its hash in cache to avoid re-checking
+                    cache.update_file(template_file)
         
-        # Check for taxonomy changes (if a tag was added/removed from a page)
-        # This is complex, so for now we'll regenerate tag pages if any page with tags changed
-        has_taxonomy_changes = any(
-            page for page in self.pages 
-            if page.source_path in pages_to_rebuild and page.tags
-        )
+        # Check for SPECIFIC taxonomy changes (which exact tags were added/removed)
+        # Only rebuild tag pages for tags that actually changed
+        affected_tags = set()
+        affected_sections = set()
         
-        if has_taxonomy_changes:
-            if verbose:
-                change_summary['Taxonomy changes'].append("Tags modified, rebuilding tag pages")
-            # Add all generated tag/archive pages to rebuild list
+        for page in self.pages:
+            # Skip generated pages - they don't have real source files
+            if page.metadata.get('_generated'):
+                continue
+            
+            # Check if this page changed
+            if page.source_path in pages_to_rebuild:
+                # Get old and new tags
+                old_tags = cache.get_previous_tags(page.source_path)
+                new_tags = set(page.tags) if page.tags else set()
+                
+                # Find which specific tags changed
+                added_tags = new_tags - old_tags
+                removed_tags = old_tags - new_tags
+                
+                # Track affected tags
+                for tag in (added_tags | removed_tags):
+                    affected_tags.add(tag.lower().replace(' ', '-'))
+                    if verbose:
+                        change_summary['Taxonomy changes'].append(
+                            f"Tag '{tag}' changed on {page.source_path.name}"
+                        )
+                
+                # Check if page changed sections (affects archive pages)
+                # For now, mark section as affected if page changed
+                if hasattr(page, 'section'):
+                    affected_sections.add(page.section)
+        
+        # Only rebuild specific tag pages that were affected
+        if affected_tags:
             for page in self.pages:
                 if page.metadata.get('_generated'):
-                    pages_to_rebuild.add(page.source_path)
+                    # Rebuild tag pages only for affected tags
+                    if page.metadata.get('type') == 'tag' or page.metadata.get('type') == 'tag-index':
+                        tag_slug = page.metadata.get('_tag_slug')
+                        if tag_slug and tag_slug in affected_tags:
+                            pages_to_rebuild.add(page.source_path)
+                        # Always rebuild tag index if any tags changed
+                        elif page.metadata.get('type') == 'tag-index':
+                            pages_to_rebuild.add(page.source_path)
+        
+        # Rebuild archive pages only for affected sections
+        if affected_sections:
+            for page in self.pages:
+                if page.metadata.get('_generated'):
+                    if page.metadata.get('type') == 'archive':
+                        page_section = page.metadata.get('_section')
+                        if page_section and page_section in affected_sections:
+                            pages_to_rebuild.add(page.source_path)
         
         # Convert page paths back to Page objects
         pages_to_build = [
@@ -591,7 +655,7 @@ class Site:
         
         return None
     
-    def serve(self, host: str = "localhost", port: int = 8000, watch: bool = True) -> None:
+    def serve(self, host: str = "localhost", port: int = 8000, watch: bool = True, auto_port: bool = True) -> None:
         """
         Start a development server.
         
@@ -599,10 +663,11 @@ class Site:
             host: Server host
             port: Server port
             watch: Whether to watch for file changes and rebuild
+            auto_port: Whether to automatically find an available port if the specified one is in use
         """
         from bengal.server.dev_server import DevServer
         
-        server = DevServer(self, host=host, port=port, watch=watch)
+        server = DevServer(self, host=host, port=port, watch=watch, auto_port=auto_port)
         server.start()
     
     def _validate_build_health(self) -> None:
@@ -647,7 +712,13 @@ class Site:
         
         # Check 3: Any unrendered Jinja2 syntax?
         unrendered_count = 0
+        ignore_files = self.config.get("health_check_ignore_files", [])
         for html_file in self.output_dir.rglob("*.html"):
+            # Skip files in ignore list (e.g., docs with intentional Jinja2 examples)
+            rel_path = str(html_file.relative_to(self.output_dir))
+            if any(rel_path == ignore or rel_path.endswith(ignore) for ignore in ignore_files):
+                continue
+            
             try:
                 content = html_file.read_text()
                 # Check for obvious unrendered syntax
@@ -855,6 +926,54 @@ class Site:
             pages_to_create.append(tag_page)
         
         return pages_to_create
+    
+    def build_menus(self) -> None:
+        """
+        Build all menus from config and page frontmatter.
+        Called during site.build() after content discovery.
+        """
+        # Get menu definitions from config
+        menu_config = self.config.get('menu', {})
+        
+        if not menu_config:
+            # No menus defined, skip
+            return
+        
+        verbose = self.config.get('verbose', False)
+        if verbose:
+            print("  Building navigation menus...")
+        
+        for menu_name, items in menu_config.items():
+            builder = MenuBuilder()
+            
+            # Add config-defined items
+            if isinstance(items, list):
+                builder.add_from_config(items)
+            
+            # Add items from page frontmatter
+            for page in self.pages:
+                page_menu = page.metadata.get('menu', {})
+                if menu_name in page_menu:
+                    builder.add_from_page(page, menu_name, page_menu[menu_name])
+            
+            # Build hierarchy
+            self.menu[menu_name] = builder.build_hierarchy()
+            self.menu_builders[menu_name] = builder
+            
+            if verbose:
+                print(f"    ✓ Built menu '{menu_name}': {len(self.menu[menu_name])} items")
+    
+    def mark_active_menu_items(self, current_page: Page) -> None:
+        """
+        Mark active menu items for the current page being rendered.
+        Called during rendering for each page.
+        
+        Args:
+            current_page: Page currently being rendered
+        """
+        current_url = current_page.url
+        for menu_name, builder in self.menu_builders.items():
+            builder.mark_active_items(current_url, self.menu[menu_name])
     
     def clean(self) -> None:
         """Clean the output directory."""

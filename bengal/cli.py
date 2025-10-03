@@ -56,11 +56,16 @@ def build(parallel: bool, incremental: bool, verbose: bool, strict: bool, debug:
 @click.option('--host', default='localhost', help='Server host')
 @click.option('--port', default=8000, type=int, help='Server port')
 @click.option('--no-watch', is_flag=True, help='Disable file watching')
+@click.option('--no-auto-port', is_flag=True, help='Disable automatic port selection (fail if port is in use)')
 @click.option('--config', type=click.Path(exists=True), help='Path to config file')
 @click.argument('source', type=click.Path(exists=True), default='.')
-def serve(host: str, port: int, no_watch: bool, config: str, source: str) -> None:
+def serve(host: str, port: int, no_watch: bool, no_auto_port: bool, config: str, source: str) -> None:
     """
     Start development server with hot reload.
+    
+    By default, if the specified port is already in use, the server will
+    automatically find and use the next available port. Use --no-auto-port
+    to disable this behavior and fail instead.
     """
     try:
         root_path = Path(source).resolve()
@@ -73,7 +78,7 @@ def serve(host: str, port: int, no_watch: bool, config: str, source: str) -> Non
         site.config["strict_mode"] = True
         
         # Start server
-        site.serve(host=host, port=port, watch=not no_watch)
+        site.serve(host=host, port=port, watch=not no_watch, auto_port=not no_auto_port)
         
     except KeyboardInterrupt:
         click.echo("\n👋 Server stopped")

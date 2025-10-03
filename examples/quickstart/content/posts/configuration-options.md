@@ -2,7 +2,9 @@
 title: "Configuration Options"
 date: 2025-09-08
 tags: ["configuration", "tutorial", "setup"]
+categories: ["Configuration", "Tutorials"]
 description: "All available configuration options in Bengal"
+author: "Bengal Team"
 ---
 
 # Configuration Options

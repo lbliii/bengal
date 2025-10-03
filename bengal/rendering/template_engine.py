@@ -67,6 +67,7 @@ class TemplateEngine:
         # Add global functions
         env.globals['url_for'] = self._url_for
         env.globals['asset_url'] = self._asset_url
+        env.globals['get_menu'] = self._get_menu
         
         return env
     
@@ -158,6 +159,19 @@ class TemplateEngine:
             Asset URL
         """
         return f"/assets/{asset_path}"
+    
+    def _get_menu(self, menu_name: str = 'main') -> list:
+        """
+        Get menu items as dicts for template access.
+        
+        Args:
+            menu_name: Name of the menu to get (e.g., 'main', 'footer')
+            
+        Returns:
+            List of menu item dicts
+        """
+        menu = self.site.menu.get(menu_name, [])
+        return [item.to_dict() for item in menu]
     
     def _find_template_path(self, template_name: str) -> Optional[Path]:
         """

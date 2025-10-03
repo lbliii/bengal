@@ -2,7 +2,9 @@
 title: "SEO Best Practices for Static Sites"
 date: 2025-09-20
 tags: ["seo", "best-practices", "marketing"]
+categories: ["SEO", "Best Practices"]
 description: "Optimize your Bengal site for search engines"
+author: "Lisa Martinez"
 ---
 
 # SEO Best Practices for Static Sites

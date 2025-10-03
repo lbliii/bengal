@@ -70,11 +70,26 @@
                 
                 {# Desktop Navigation #}
                 <div class="nav-main hidden-mobile">
+                    {% set main_menu = get_menu('main') %}
+                    {% if main_menu %}
                     <ul>
-                        <li><a href="/">Home</a></li>
-                        <li><a href="/about/">About</a></li>
+                        {% for item in main_menu %}
+                        <li class="{{ 'active' if item.active else '' }} {{ 'active-trail' if item.active_trail else '' }}">
+                            <a href="{{ item.url }}">{{ item.name }}</a>
+                            {% if item.children %}
+                            <ul class="submenu">
+                                {% for child in item.children %}
+                                <li class="{{ 'active' if child.active else '' }}">
+                                    <a href="{{ child.url }}">{{ child.name }}</a>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                            {% endif %}
+                        </li>
+                        {% endfor %}
                         {% block nav_items %}{% endblock %}
                     </ul>
+                    {% endif %}
                     
                     {# Theme Toggle #}
                     <button class="theme-toggle" aria-label="Toggle dark mode" title="Toggle theme">
@@ -107,11 +122,17 @@
                 </svg>
             </button>
         </div>
+        {% set main_menu = get_menu('main') %}
+        {% if main_menu %}
         <ul>
-            <li><a href="/">Home</a></li>
-            <li><a href="/about/">About</a></li>
+            {% for item in main_menu %}
+            <li class="{{ 'active' if item.active else '' }}">
+                <a href="{{ item.url }}">{{ item.name }}</a>
+            </li>
+            {% endfor %}
             {% block mobile_nav_items %}{% endblock %}
         </ul>
+        {% endif %}
     </nav>
     
     {# Main Content #}
@@ -127,10 +148,14 @@
             <p class="footer-copyright">
                 &copy; 2025 {{ site.config.title }} | Built with <a href="https://github.com/bengal-ssg/bengal" rel="noopener">Bengal SSG</a>
             </p>
+            {% set footer_menu = get_menu('footer') %}
+            {% if footer_menu %}
             <ul class="footer-links">
-                <li><a href="/about/">About</a></li>
-                <li><a href="/rss.xml">RSS</a></li>
+                {% for item in footer_menu %}
+                <li><a href="{{ item.url }}">{{ item.name }}</a></li>
+                {% endfor %}
             </ul>
+            {% endif %}
         </div>
     </footer>
     

@@ -2,7 +2,9 @@
 title: "The Taxonomy System"
 date: 2025-09-05
 tags: ["taxonomy", "tags", "categories"]
+categories: ["Features", "Organization"]
 description: "Using tags and categories in Bengal"
+author: "Bengal Team"
 ---
 
 # The Taxonomy System

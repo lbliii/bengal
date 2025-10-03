@@ -191,21 +191,16 @@ This is a realistic homepage with content.
     
     # Create config
     (temp_dir / "bengal.toml").write_text("""
-[build]
 title = "Benchmark Site"
 baseurl = "https://example.com"
-theme = "default"
 
 [build]
+theme = "default"
 parallel = true
 minify_assets = false
 optimize_assets = false
 fingerprint_assets = true
-
-[sitemap]
 generate_sitemap = true
-
-[rss]
 generate_rss = true
 
 [pagination]

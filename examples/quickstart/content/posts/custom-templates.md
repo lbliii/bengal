@@ -2,7 +2,9 @@
 title: "Creating Custom Templates"
 date: 2025-09-12
 tags: ["templates", "customization", "advanced"]
+categories: ["Customization", "Templates"]
 description: "Build custom templates for your Bengal site"
+author: "Sarah Chen"
 ---
 
 # Creating Custom Templates

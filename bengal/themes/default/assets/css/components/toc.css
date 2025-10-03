@@ -1,0 +1,150 @@
+/**
+ * Table of Contents (TOC) Styling
+ */
+
+.page-layout {
+    display: block;
+}
+
+.page-layout.page-with-toc {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2rem;
+    align-items: start;
+}
+
+@media (min-width: 1024px) {
+    .page-layout.page-with-toc {
+        grid-template-columns: 1fr 280px;
+    }
+}
+
+/* TOC Sidebar */
+.page-sidebar {
+    order: 2;
+}
+
+@media (min-width: 1024px) {
+    .page-sidebar {
+        position: sticky;
+        top: 2rem;
+        max-height: calc(100vh - 4rem);
+        overflow-y: auto;
+    }
+}
+
+.toc {
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    padding: 1.5rem;
+}
+
+.toc-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-text-secondary);
+    margin: 0 0 1rem 0;
+}
+
+.toc-content {
+    font-size: 0.875rem;
+    line-height: 1.6;
+}
+
+/* TOC List Styling */
+.toc-content ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.toc-content li {
+    margin: 0;
+    padding: 0;
+}
+
+.toc-content > ul {
+    /* Top level list */
+}
+
+.toc-content ul ul {
+    /* Nested lists */
+    padding-left: 1rem;
+    margin-top: 0.25rem;
+}
+
+.toc-content a {
+    display: block;
+    padding: 0.375rem 0.5rem;
+    color: var(--color-text-secondary);
+    text-decoration: none;
+    border-left: 2px solid transparent;
+    margin-left: -0.5rem;
+    transition: all 0.2s ease;
+}
+
+.toc-content a:hover {
+    color: var(--color-primary);
+    background: var(--color-bg-tertiary);
+    border-left-color: var(--color-primary);
+}
+
+/* Active TOC item (set by JavaScript) */
+.toc-content a.active {
+    color: var(--color-primary);
+    font-weight: 500;
+    border-left-color: var(--color-primary);
+    background: var(--color-bg-tertiary);
+}
+
+/* Mobile TOC */
+@media (max-width: 1023px) {
+    .page-sidebar {
+        margin-top: 2rem;
+    }
+    
+    .toc {
+        max-width: 100%;
+    }
+}
+
+/* Scrollbar styling for TOC on desktop */
+@media (min-width: 1024px) {
+    .page-sidebar::-webkit-scrollbar {
+        width: 6px;
+    }
+    
+    .page-sidebar::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    
+    .page-sidebar::-webkit-scrollbar-thumb {
+        background: var(--color-border);
+        border-radius: 3px;
+    }
+    
+    .page-sidebar::-webkit-scrollbar-thumb:hover {
+        background: var(--color-text-tertiary);
+    }
+}
+
+/* Ensure main article takes proper space */
+.page-layout.page-with-toc .page,
+.page-layout.page-with-toc .post {
+    min-width: 0; /* Prevent grid blowout */
+}
+
+/* Print styles */
+@media print {
+    .page-sidebar {
+        display: none;
+    }
+    
+    .page-layout.page-with-toc {
+        display: block;
+    }
+}
+

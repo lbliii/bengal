@@ -122,6 +122,11 @@ class ConfigLoader:
                 if key not in flat:
                     flat[key] = value
         
+        # Preserve menu configuration (it's already in the right structure)
+        # [[menu.main]] in TOML becomes {'menu': {'main': [...]}}
+        if 'menu' not in flat and 'menu' in config:
+            flat['menu'] = config['menu']
+        
         return flat
     
     def _default_config(self) -> Dict[str, Any]:

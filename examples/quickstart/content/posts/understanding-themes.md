@@ -2,7 +2,9 @@
 title: "Understanding Bengal Themes"
 date: 2025-09-28
 tags: ["tutorial", "themes", "customization"]
+categories: ["Themes", "Customization"]
 description: "Deep dive into Bengal's theme system"
+author: "Sarah Chen"
 ---
 
 # Understanding Bengal Themes

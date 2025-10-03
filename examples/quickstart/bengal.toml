@@ -3,6 +3,7 @@ title = "Bengal Quickstart"
 baseurl = "https://example.com"
 description = "A quick start example for Bengal SSG"
 theme = "default"
+author = "Bengal Team"
 
 [build]
 output_dir = "public"
@@ -13,4 +14,52 @@ incremental = false
 minify = true
 optimize = true
 fingerprint = true
+
+[features]
+generate_sitemap = true
+generate_rss = true
+validate_links = true
+
+[pagination]
+items_per_page = 5
+
+# Main navigation menu
+[[menu.main]]
+name = "Home"
+url = "/"
+weight = 1
+
+[[menu.main]]
+name = "About"
+url = "/about/"
+weight = 2
+
+[[menu.main]]
+name = "Blog"
+url = "/posts/"
+weight = 3
+
+[[menu.main]]
+name = "Docs"
+url = "/docs/"
+weight = 4
+identifier = "docs"
+
+[[menu.main]]
+name = "Tutorials"
+url = "/tutorials/"
+weight = 5
+
+# Footer menu
+[[menu.footer]]
+name = "About"
+url = "/about/"
+
+[[menu.footer]]
+name = "RSS"
+url = "/rss.xml"
+
+[[menu.footer]]
+name = "Tags"
+url = "/tags/"
 

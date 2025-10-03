@@ -2,7 +2,9 @@
 title: "Deploying Your Bengal Site"
 date: 2025-09-18
 tags: ["deployment", "hosting", "tutorial"]
+categories: ["Deployment", "Production"]
 description: "Learn how to deploy your Bengal site to various platforms"
+author: "Alex Thompson"
 ---
 
 # Deploying Your Bengal Site

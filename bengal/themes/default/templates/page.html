@@ -2,40 +2,54 @@
 
 {% block content %}
 {% include 'partials/breadcrumbs.html' %}
-<article class="page prose">
-    <header class="page-header">
-        <h1>{{ page.title }}</h1>
-        
-        {% if page.date or page.metadata.author %}
-        <div class="article-meta">
-            {% if page.date %}
-            <time datetime="{{ page.date.isoformat() }}">
-                {{ page.date | dateformat('%B %d, %Y') }}
-            </time>
-            {% endif %}
+
+<div class="page-layout {% if toc %}page-with-toc{% endif %}">
+    <article class="page prose">
+        <header class="page-header">
+            <h1>{{ page.title }}</h1>
             
-            {% if page.metadata.author %}
-            <span class="author">
-                <span>By {{ page.metadata.author }}</span>
-            </span>
+            {% if page.date or page.metadata.author %}
+            <div class="article-meta">
+                {% if page.date %}
+                <time datetime="{{ page.date.isoformat() }}">
+                    {{ page.date | dateformat('%B %d, %Y') }}
+                </time>
+                {% endif %}
+                
+                {% if page.metadata.author %}
+                <span class="author">
+                    <span>By {{ page.metadata.author }}</span>
+                </span>
+                {% endif %}
+            </div>
             {% endif %}
+        </header>
+        
+        <div class="page-content prose">
+            {{ content | safe }}
         </div>
+        
+        {% if page.tags %}
+        <footer class="page-footer">
+            <div class="tags">
+                {% for tag in page.tags %}
+                <a href="/tags/{{ tag | lower | replace(' ', '-') }}/" class="tag">{{ tag }}</a>
+                {% endfor %}
+            </div>
+        </footer>
         {% endif %}
-    </header>
+    </article>
     
-    <div class="page-content prose">
-        {{ content | safe }}
-    </div>
-    
-    {% if page.tags %}
-    <footer class="page-footer">
-        <div class="tags">
-            {% for tag in page.tags %}
-            <a href="/tags/{{ tag | lower | replace(' ', '-') }}/" class="tag">{{ tag }}</a>
-            {% endfor %}
-        </div>
-    </footer>
+    {% if toc %}
+    <aside class="page-sidebar">
+        <nav class="toc" aria-label="Table of contents">
+            <h2 class="toc-title">On This Page</h2>
+            <div class="toc-content">
+                {{ toc | safe }}
+            </div>
+        </nav>
+    </aside>
     {% endif %}
-</article>
+</div>
 {% endblock %}
 

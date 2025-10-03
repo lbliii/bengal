@@ -23,6 +23,8 @@ class Page:
         links: List of links found in the page
         tags: Tags associated with the page
         version: Version information for versioned content
+        toc: Table of contents HTML (auto-generated from headings)
+        toc_items: Structured TOC data for custom rendering
     """
     
     source_path: Path
@@ -34,6 +36,8 @@ class Page:
     links: List[str] = field(default_factory=list)
     tags: List[str] = field(default_factory=list)
     version: Optional[str] = None
+    toc: Optional[str] = None
+    toc_items: List[Dict[str, Any]] = field(default_factory=list)
     
     def __post_init__(self) -> None:
         """Initialize computed fields."""

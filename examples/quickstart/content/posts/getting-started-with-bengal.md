@@ -2,7 +2,9 @@
 title: "Getting Started with Bengal SSG"
 date: 2025-10-01
 tags: ["tutorial", "beginner", "setup"]
+categories: ["Getting Started", "Tutorials"]
 description: "Learn how to get started with Bengal Static Site Generator"
+author: "Bengal Team"
 ---
 
 # Getting Started with Bengal SSG

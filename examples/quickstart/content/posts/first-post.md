@@ -3,7 +3,9 @@ title: My First Post
 type: post
 date: 2025-10-02
 tags: [tutorial, getting-started]
+categories: ["Blog", "Getting Started"]
 description: Getting started with Bengal SSG
+author: "Bengal Team"
 ---
 
 # My First Post

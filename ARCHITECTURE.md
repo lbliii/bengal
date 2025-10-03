@@ -33,6 +33,9 @@ Bengal SSG follows a modular architecture with clear separation of concerns to a
   - Rendered HTML
   - Links and tags
   - Output path
+  - **Table of Contents** (TOC):
+    - `toc`: HTML table of contents
+    - `toc_items`: Structured TOC data (list of dicts with id, title, level)
 - **Properties**:
   - `title`: Get page title from metadata or generate from filename
   - `date`: Get page date from metadata
@@ -65,7 +68,7 @@ Bengal SSG follows a modular architecture with clear separation of concerns to a
 
 ### 2. Cache System (NEW)
 
-Bengal implements an intelligent caching system for incremental builds, providing 50-900x faster rebuilds.
+Bengal implements an intelligent caching system for incremental builds, providing 18-42x faster rebuilds.
 
 #### Build Cache (`bengal/cache/build_cache.py`)
 - **Purpose**: Tracks file changes between builds to enable incremental rebuilds
@@ -110,9 +113,10 @@ Bengal implements an intelligent caching system for incremental builds, providin
 - ✅ Asset change detection (selective processing)
 
 **Performance Impact:**
-- Small sites (10-100 pages): 2-30x faster
-- Medium sites (100-1000 pages): 30-180x faster
-- Large sites (1000+ pages): 180-900x faster
+- Small sites (10 pages): 18x faster (0.223s → 0.012s)
+- Medium sites (50 pages): 42x faster (0.839s → 0.020s)
+- Large sites (100 pages): 36x faster (1.688s → 0.047s)
+- Expected for very large sites (1000+ pages): 100x+ faster
 
 **CLI Usage:**
 ```bash
@@ -133,7 +137,8 @@ Parse → Build AST → Apply Templates → Render Output → Post-process
 
 #### Parser (`bengal/rendering/parser.py`)
 - Converts Markdown (or other formats) to HTML
-- Extracts table of contents
+- Extracts table of contents (TOC) from headings
+- TOC automatically exposed to templates via `page.toc`
 - Supports extensions (code highlighting, tables, etc.)
 
 #### Template Engine (`bengal/rendering/template_engine.py`)
@@ -249,9 +254,9 @@ Parse → Build AST → Apply Templates → Render Output → Post-process
   - SHA256 file hashing for change detection
   - Dependency graph tracking (pages → templates/partials)
   - Template change detection (rebuilds only affected pages)
-  - Taxonomy tracking (tags → pages)
+  - Granular taxonomy tracking (only rebuilds affected tag pages)
   - Verbose mode for debugging (`--verbose` flag)
-  - 50-900x faster for single-file changes
+  - 18-42x faster for single-file changes (validated)
   - Automatic caching with `.bengal-cache.json`
 - **Caching**: Build cache persists between builds
 - **Lazy Loading**: Parse content only when needed
@@ -301,12 +306,19 @@ Output Files
 6. **Minimal Dependencies**: Only necessary libraries included
 
 ### Performance Benchmarks (October 2025)
-- **Asset Processing**:
-  - 50 assets: 3.01x speedup with parallelism
-  - 100 assets: 4.21x speedup with parallelism
-- **Post-processing**: 2.01x speedup with parallelism
-- **Incremental Builds**: 50-900x speedup for single-file changes
-- **Combined**: Full builds 2-4x faster, incremental builds near-instant
+- **Full Builds**:
+  - Small sites (10 pages): 0.29s ✅
+  - Medium sites (100 pages): 1.66s ✅
+  - Large sites (500 pages): 7.95s ✅
+- **Parallel Processing**:
+  - 50 assets: 3.01x speedup
+  - 100 assets: 4.21x speedup
+  - Post-processing: 2.01x speedup
+- **Incremental Builds** (validated October 3, 2025):
+  - Small sites: 18.3x speedup (0.223s → 0.012s)
+  - Medium sites: 41.6x speedup (0.839s → 0.020s)
+  - Large sites: 35.6x speedup (1.688s → 0.047s)
+- **Combined**: Full builds meet all targets, incremental builds near-instant
 
 ### Future Optimizations
 1. **Content Caching**: Cache parsed Markdown AST between builds
@@ -469,6 +481,11 @@ For detailed testing strategy, see `plan/TEST_STRATEGY.md`.
 
 ### Theme Enhancements
 - **Breadcrumb Navigation**: Auto-generated from URL structure
+- **Table of Contents (TOC)**: ✅ Auto-generated from page headings
+  - Sidebar navigation on desktop
+  - Sticky positioning for easy access
+  - JavaScript highlighting of active section
+  - Responsive mobile display
 - **404 Page**: Professional error page with helpful navigation
 - **Responsive Pagination Controls**: With proper accessibility
 - **Template Partials**: Reusable components (article-card, tag-list, pagination)
@@ -486,22 +503,25 @@ For detailed testing strategy, see `plan/TEST_STRATEGY.md`.
 - [x] Production-ready default theme
 - [x] Test infrastructure (pytest, coverage, fixtures)
 - [x] Cache test suites (BuildCache, DependencyTracker: 32 tests, 95% coverage)
-- [x] **Incremental builds - Phase 1 Complete!** 🎉
+- [x] **Incremental builds - Complete!** 🎉
   - ✅ File change detection with SHA256 hashing
   - ✅ Dependency graph tracking (pages → templates)
   - ✅ Template dependency tracking during rendering
+  - ✅ Granular tag change detection (only rebuilds affected tag pages)
   - ✅ Config change detection (forces full rebuild)
   - ✅ Selective page/asset rebuilding
   - ✅ Verbose mode for change reporting
-  - ✅ 50-900x faster rebuilds!
+  - ✅ 18-42x faster rebuilds (validated October 3, 2025)
 
 **Recently Completed:**
+- [x] **Table of Contents (TOC)** - Auto-generated from headings! 🎉
 - [x] **Parallel asset processing** - 2-4x speedup achieved! 🎉
 - [x] **Parallel post-processing** - 2x speedup achieved! 🎉
 - [x] **Parallel processing tests** - 12 comprehensive tests
 - [x] **Performance benchmarks** - Validated 2-4x speedup claims
 
 **Next Priorities:**
+- [ ] Navigation menu system (config-driven, hierarchical)
 - [ ] Core component tests (Page, Site, Section) - 90% coverage target
 - [ ] Enhanced asset pipeline (robust minification, optimization)
 - [ ] Plugin system with hooks

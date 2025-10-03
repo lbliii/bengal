@@ -50,9 +50,11 @@ class RenderingPipeline:
         if self.dependency_tracker and not page.metadata.get('_generated'):
             self.dependency_tracker.start_page(page.source_path)
         
-        # Stage 1: Parse content
-        parsed_content = self.parser.parse(page.content, page.metadata)
+        # Stage 1: Parse content with TOC extraction
+        parsed_content, toc = self.parser.parse_with_toc(page.content, page.metadata)
         page.parsed_ast = parsed_content
+        page.toc = toc
+        page.toc_items = self._extract_toc_structure(toc)
         
         # Stage 2: Extract links for validation
         page.extract_links()
@@ -119,4 +121,57 @@ class RenderingPipeline:
             output_rel_path = output_rel_path.parent / output_rel_path.stem / "index.html"
         
         return self.site.output_dir / output_rel_path
+    
+    def _extract_toc_structure(self, toc_html: str) -> list:
+        """
+        Parse TOC HTML into structured data for custom rendering.
+        
+        Args:
+            toc_html: HTML table of contents
+            
+        Returns:
+            List of TOC items with id, title, and level
+        """
+        if not toc_html:
+            return []
+        
+        from html.parser import HTMLParser
+        
+        class TOCParser(HTMLParser):
+            def __init__(self):
+                super().__init__()
+                self.items = []
+                self.current_item = None
+                self.depth = 0
+            
+            def handle_starttag(self, tag, attrs):
+                if tag == 'ul':
+                    self.depth += 1
+                elif tag == 'a':
+                    attrs_dict = dict(attrs)
+                    self.current_item = {
+                        'id': attrs_dict.get('href', '').lstrip('#'),
+                        'title': '',
+                        'level': self.depth
+                    }
+            
+            def handle_data(self, data):
+                if self.current_item is not None:
+                    self.current_item['title'] += data.strip()
+            
+            def handle_endtag(self, tag):
+                if tag == 'ul':
+                    self.depth -= 1
+                elif tag == 'a' and self.current_item:
+                    if self.current_item['title']:  # Only add if has content
+                        self.items.append(self.current_item)
+                    self.current_item = None
+        
+        try:
+            parser = TOCParser()
+            parser.feed(toc_html)
+            return parser.items
+        except Exception:
+            # If parsing fails, return empty list
+            return []
 

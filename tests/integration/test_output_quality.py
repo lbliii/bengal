@@ -31,6 +31,11 @@ def built_site(tmp_path):
     # Build site in strict mode (fail if rendering broken)
     site = Site.from_config(site_dir)
     site.config["strict_mode"] = True  # Fail loudly on errors
+    # Ignore documentation files with intentional Jinja2 examples
+    site.config["health_check_ignore_files"] = [
+        "docs/template-system/index.html",
+        "guides/performance-optimization/index.html"
+    ]
     site.build()
     
     return site.output_dir
@@ -110,7 +115,18 @@ class TestOutputQuality:
     
     def test_no_unrendered_jinja2_in_output(self, built_site):
         """Verify no unrendered Jinja2 variables leak through."""
+        # Skip documentation files with intentional Jinja2 examples
+        ignore_files = [
+            "docs/template-system/index.html",
+            "guides/performance-optimization/index.html"
+        ]
+        
         for html_file in built_site.rglob("*.html"):
+            # Skip files in ignore list
+            rel_path = str(html_file.relative_to(built_site))
+            if any(rel_path == ignore or rel_path.endswith(ignore) for ignore in ignore_files):
+                continue
+            
             content = html_file.read_text()
             
             # Check for unrendered Jinja2 syntax

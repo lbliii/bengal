@@ -2,7 +2,9 @@
 title: "Markdown Features in Bengal"
 date: 2025-09-25
 tags: ["markdown", "tutorial", "writing"]
+categories: ["Writing", "Tutorials"]
 description: "All the markdown features supported by Bengal"
+author: "Emma Wilson"
 ---
 
 # Markdown Features in Bengal
