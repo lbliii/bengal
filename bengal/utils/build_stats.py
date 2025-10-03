@@ -35,12 +35,34 @@ BENGAL_BUILDING = r"""
 
 
 @dataclass
+class BuildWarning:
+    """A build warning or error."""
+    file_path: str
+    message: str
+    warning_type: str  # 'jinja2', 'preprocessing', 'link', 'other'
+    
+    @property
+    def short_path(self) -> str:
+        """Get shortened path for display."""
+        from pathlib import Path
+        try:
+            return str(Path(self.file_path).relative_to(Path.cwd()))
+        except (ValueError, OSError):
+            # If not relative to cwd, try to get just the filename with parent
+            p = Path(self.file_path)
+            return f"{p.parent.name}/{p.name}" if p.parent.name else p.name
+
+
+@dataclass
 class BuildStats:
     """Container for build statistics."""
     
     total_pages: int = 0
     regular_pages: int = 0
     generated_pages: int = 0
+    tag_pages: int = 0
+    archive_pages: int = 0
+    pagination_pages: int = 0
     total_assets: int = 0
     total_sections: int = 0
     taxonomies_count: int = 0
@@ -55,6 +77,27 @@ class BuildStats:
     rendering_time_ms: float = 0
     assets_time_ms: float = 0
     postprocess_time_ms: float = 0
+    
+    # Warnings and errors
+    warnings: list = None
+    
+    def __post_init__(self):
+        """Initialize mutable defaults."""
+        if self.warnings is None:
+            self.warnings = []
+    
+    def add_warning(self, file_path: str, message: str, warning_type: str = 'other') -> None:
+        """Add a warning to the build."""
+        self.warnings.append(BuildWarning(file_path, message, warning_type))
+    
+    @property
+    def warnings_by_type(self) -> Dict[str, list]:
+        """Group warnings by type."""
+        from collections import defaultdict
+        grouped = defaultdict(list)
+        for warning in self.warnings:
+            grouped[warning.warning_type].append(warning)
+        return dict(grouped)
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert stats to dictionary."""
@@ -88,6 +131,48 @@ def format_time(ms: float) -> str:
         return f"{seconds:.2f} s"
 
 
+def display_warnings(stats: BuildStats) -> None:
+    """
+    Display grouped warnings and errors.
+    
+    Args:
+        stats: Build statistics with warnings
+    """
+    if not stats.warnings:
+        return
+    
+    # Header
+    warning_count = len(stats.warnings)
+    click.echo(click.style(f"\n⚠️  Build completed with warnings ({warning_count}):\n", fg='yellow', bold=True))
+    
+    # Group by type
+    type_names = {
+        'jinja2': 'Jinja2 Template Errors',
+        'preprocessing': 'Pre-processing Errors',
+        'link': 'Link Validation Warnings',
+        'other': 'Other Warnings'
+    }
+    
+    grouped = stats.warnings_by_type
+    
+    for warning_type, type_warnings in grouped.items():
+        type_name = type_names.get(warning_type, warning_type.title())
+        click.echo(click.style(f"   {type_name} ({len(type_warnings)}):", fg='cyan', bold=True))
+        
+        for i, warning in enumerate(type_warnings):
+            is_last = i == len(type_warnings) - 1
+            prefix = "   └─ " if is_last else "   ├─ "
+            
+            # Show short path in yellow
+            click.echo(click.style(prefix, fg='cyan') + click.style(warning.short_path, fg='yellow'))
+            
+            # Show message indented
+            msg_prefix = "      " if is_last else "   │  "
+            click.echo(click.style(msg_prefix + "└─ ", fg='cyan') + click.style(warning.message, fg='red'))
+        
+        click.echo()  # Blank line between types
+
+
 def display_build_stats(stats: BuildStats, show_art: bool = True) -> None:
     """
     Display build statistics in a colorful table.
@@ -100,14 +185,24 @@ def display_build_stats(stats: BuildStats, show_art: bool = True) -> None:
         click.echo(click.style("\n✨ No changes detected - build skipped!", fg='cyan', bold=True))
         return
     
+    # Display warnings first if any
+    if stats.warnings:
+        display_warnings(stats)
+    
     # Display ASCII art
     if show_art:
         click.echo(click.style(BENGAL_SUCCESS, fg='yellow'))
     
     # Header
-    click.echo(click.style("\n┌─────────────────────────────────────────────────────┐", fg='cyan'))
-    click.echo(click.style("│", fg='cyan') + click.style("              🎉 BUILD COMPLETE 🎉                 ", fg='green', bold=True) + click.style("│", fg='cyan'))
-    click.echo(click.style("└─────────────────────────────────────────────────────┘", fg='cyan'))
+    has_warnings = len(stats.warnings) > 0
+    if has_warnings:
+        click.echo(click.style("\n┌─────────────────────────────────────────────────────┐", fg='cyan'))
+        click.echo(click.style("│", fg='cyan') + click.style("         ⚠️  BUILD COMPLETE (WITH WARNINGS)          ", fg='yellow', bold=True) + click.style("│", fg='cyan'))
+        click.echo(click.style("└─────────────────────────────────────────────────────┘", fg='cyan'))
+    else:
+        click.echo(click.style("\n┌─────────────────────────────────────────────────────┐", fg='cyan'))
+        click.echo(click.style("│", fg='cyan') + click.style("              🎉 BUILD COMPLETE 🎉                 ", fg='green', bold=True) + click.style("│", fg='cyan'))
+        click.echo(click.style("└─────────────────────────────────────────────────────┘", fg='cyan'))
     
     # Content stats
     click.echo(click.style("\n📊 Content Statistics:", fg='cyan', bold=True))

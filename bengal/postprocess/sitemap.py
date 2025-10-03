@@ -66,7 +66,7 @@ class SitemapGenerator:
         self._indent(urlset)
         tree.write(sitemap_path, encoding='utf-8', xml_declaration=True)
         
-        print(f"  ✓ Generated sitemap.xml")
+        print(f"   └─ Sitemap ✓")
     
     def _indent(self, elem: ET.Element, level: int = 0) -> None:
         """

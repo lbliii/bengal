@@ -2,6 +2,7 @@
 Rendering Pipeline - Orchestrates the parsing, AST building, templating, and output rendering.
 """
 
+import threading
 from pathlib import Path
 from typing import Any
 
@@ -9,6 +10,25 @@ from bengal.core.page import Page
 from bengal.rendering.parser import MarkdownParser
 from bengal.rendering.template_engine import TemplateEngine
 from bengal.rendering.renderer import Renderer
+
+
+# Thread-local storage for parser instances (reuse parsers per thread)
+_thread_local = threading.local()
+
+
+def _get_thread_parser() -> MarkdownParser:
+    """
+    Get or create a MarkdownParser instance for the current thread.
+    
+    This avoids the overhead of creating a new parser for every page,
+    while maintaining thread-safety by using thread-local storage.
+    
+    Returns:
+        MarkdownParser instance for this thread
+    """
+    if not hasattr(_thread_local, 'parser'):
+        _thread_local.parser = MarkdownParser()
+    return _thread_local.parser
 
 
 class RenderingPipeline:
@@ -23,17 +43,22 @@ class RenderingPipeline:
     5. Write to output directory
     """
     
-    def __init__(self, site: Any, dependency_tracker: Any = None) -> None:
+    def __init__(self, site: Any, dependency_tracker: Any = None, quiet: bool = False, build_stats: Any = None) -> None:
         """
         Initialize the rendering pipeline.
         
         Args:
             site: Site instance
             dependency_tracker: Optional dependency tracker for incremental builds
+            quiet: If True, suppress per-page output
+            build_stats: Optional BuildStats object to collect warnings
         """
         self.site = site
-        self.parser = MarkdownParser()
+        # Use thread-local parser to avoid re-initialization overhead
+        self.parser = _get_thread_parser()
         self.dependency_tracker = dependency_tracker
+        self.quiet = quiet
+        self.build_stats = build_stats
         self.template_engine = TemplateEngine(site)
         if self.dependency_tracker:
             self.template_engine._dependency_tracker = self.dependency_tracker
@@ -94,7 +119,9 @@ class RenderingPipeline:
         with open(page.output_path, 'w', encoding='utf-8') as f:
             f.write(page.rendered_html)
         
-        print(f"  ✓ {page.output_path.relative_to(self.site.output_dir)}")
+        # Only print in verbose mode
+        if not self.quiet:
+            print(f"  ✓ {page.output_path.relative_to(self.site.output_dir)}")
     
     def _determine_output_path(self, page: Page) -> Path:
         """
@@ -216,10 +243,16 @@ class RenderingPipeline:
             
         except TemplateSyntaxError as e:
             # If there's a syntax error, warn but continue with original content
-            print(f"  ⚠️  Jinja2 syntax error in {page.source_path}: {e}")
+            if self.build_stats:
+                self.build_stats.add_warning(str(page.source_path), str(e), 'jinja2')
+            elif not self.quiet:
+                print(f"  ⚠️  Jinja2 syntax error in {page.source_path}: {e}")
             return page.content
         except Exception as e:
             # For any other error, warn but continue
-            print(f"  ⚠️  Error pre-processing {page.source_path}: {e}")
+            if self.build_stats:
+                self.build_stats.add_warning(str(page.source_path), str(e), 'preprocessing')
+            elif not self.quiet:
+                print(f"  ⚠️  Error pre-processing {page.source_path}: {e}")
             return page.content
 

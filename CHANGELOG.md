@@ -50,6 +50,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Eliminates conflicts with real content files
     - Better incremental build handling
     - Added to `.gitignore`
+- **Enhanced Error Handling** (October 3, 2025)
+  - **Smarter Fallback Template**: When template rendering fails, fallback is now usable
+    - Attempts to link main site CSS if available
+    - Includes emergency inline styling for readability
+    - Clear visual warning that page is in fallback mode
+    - Responsive layout with proper typography
+    - Code blocks properly styled
+  - **Code-Aware Health Checks**: Health checks now recognize documentation
+    - Automatically detects Jinja2 syntax in `<code>` and `<pre>` blocks as valid
+    - No more false positives for documentation with code examples
+    - No manual ignore lists needed
+    - Graceful fallback when BeautifulSoup unavailable
 
 ### Planned
 - Incremental build system

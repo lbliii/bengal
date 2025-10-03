@@ -9,6 +9,7 @@ author = "Bengal Team"
 output_dir = "public"
 parallel = true
 incremental = false
+max_workers = 10  # 11 CPUs - 1 for OS
 
 [assets]
 minify = true

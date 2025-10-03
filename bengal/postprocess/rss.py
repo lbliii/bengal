@@ -87,7 +87,7 @@ class RSSGenerator:
         self._indent(rss)
         tree.write(rss_path, encoding='utf-8', xml_declaration=True)
         
-        print(f"  ✓ Generated rss.xml")
+        print(f"   ├─ RSS feed ✓")
     
     def _indent(self, elem: ET.Element, level: int = 0) -> None:
         """

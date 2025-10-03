@@ -120,7 +120,8 @@ class Site:
         if self.theme:
             theme_assets_dir = self._get_theme_assets_dir()
             if theme_assets_dir and theme_assets_dir.exists():
-                print(f"  Discovering theme assets from {theme_assets_dir}")
+                # Removed verbose message - shown in stats instead
+                pass
                 theme_discovery = AssetDiscovery(theme_assets_dir)
                 self.assets.extend(theme_discovery.discover())
         
@@ -282,7 +283,7 @@ class Site:
         # Initialize stats
         stats = BuildStats(parallel=parallel, incremental=incremental)
         
-        print(f"Building site at {self.root_path}...")
+        print(f"Building site at {self.root_path}...\n")
         self.build_time = datetime.now()
         
         # Initialize cache and tracker
@@ -354,10 +355,14 @@ class Site:
                             print(f"      ... and {len(items) - 5} more")
                 print()
         
-        # Initialize rendering pipeline with tracker
-        pipeline = RenderingPipeline(self, tracker)
+        # Initialize rendering pipeline with tracker and quiet mode (unless verbose)
+        quiet_mode = not verbose
+        pipeline = RenderingPipeline(self, tracker, quiet=quiet_mode, build_stats=stats)
         
         # Build pages
+        if quiet_mode:
+            print(f"\n📄 Rendering content:")
+        
         rendering_start = time.time()
         original_pages = self.pages
         self.pages = pages_to_build  # Temporarily replace with subset
@@ -369,6 +374,23 @@ class Site:
         
         self.pages = original_pages  # Restore full page list
         stats.rendering_time_ms = (time.time() - rendering_start) * 1000
+        
+        # Print rendering summary in quiet mode
+        if quiet_mode:
+            # Count page types
+            tag_pages = sum(1 for p in self.pages if p.metadata.get('_generated') and 'tag' in p.output_path.parts)
+            archive_pages = sum(1 for p in self.pages if p.metadata.get('_generated') and p.metadata.get('template') == 'archive.html')
+            pagination_pages = sum(1 for p in self.pages if p.metadata.get('_generated') and '/page/' in str(p.output_path))
+            regular_pages = sum(1 for p in self.pages if not p.metadata.get('_generated'))
+            
+            print(f"   ├─ Regular pages:    {regular_pages}")
+            if tag_pages:
+                print(f"   ├─ Tag pages:        {tag_pages}")
+            if archive_pages:
+                print(f"   ├─ Archive pages:    {archive_pages}")
+            if pagination_pages:
+                print(f"   ├─ Pagination:       {pagination_pages}")
+            print(f"   └─ Total:            {len(self.pages)} ✓")
         
         # Copy and optimize assets
         assets_start = time.time()
@@ -443,11 +465,13 @@ class Site:
         """
         max_workers = self.config.get("max_workers", 4)
         tracker = pipeline.dependency_tracker
+        quiet = pipeline.quiet
+        build_stats = pipeline.build_stats
         
         def process_page_with_pipeline(page):
             """Process a page with its own pipeline instance (thread-safe)."""
-            # Create a new pipeline instance for this thread with tracker set in constructor
-            thread_pipeline = RenderingPipeline(self, tracker)
+            # Create a new pipeline instance for this thread with same settings
+            thread_pipeline = RenderingPipeline(self, tracker, quiet=quiet, build_stats=build_stats)
             thread_pipeline.process_page(page)
         
         with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
@@ -465,7 +489,7 @@ class Site:
         if not self.assets:
             return
         
-        print(f"Processing {len(self.assets)} assets...")
+        print(f"\n📦 Assets:\n   └─ {len(self.assets)} files ✓")
         
         # Get configuration
         minify = self.config.get("minify_assets", True)
@@ -569,7 +593,7 @@ class Site:
     
     def _post_process(self) -> None:
         """Perform post-processing tasks (sitemap, RSS, link validation, etc.)."""
-        print("Running post-processing...")
+        print("\n🔧 Post-processing:")
         
         # Collect enabled tasks
         tasks = []
@@ -952,7 +976,7 @@ class Site:
         Collect taxonomies (tags, categories, etc.) from all pages.
         Organizes pages by their taxonomic terms.
         """
-        print("  Collecting taxonomies...")
+        print("\n🏷️  Taxonomies:")
         
         # Initialize taxonomy structure
         self.taxonomies = {'tags': {}, 'categories': {}}
@@ -993,13 +1017,13 @@ class Site:
         
         tag_count = len(self.taxonomies.get('tags', {}))
         cat_count = len(self.taxonomies.get('categories', {}))
-        print(f"  ✓ Found {tag_count} tags, {cat_count} categories")
+        print(f"   └─ Found {tag_count} tags" + (f", {cat_count} categories" if cat_count else "") + " ✓")
     
     def generate_dynamic_pages(self) -> None:
         """
         Generate dynamic pages (archives, tag pages, etc.) that don't have source files.
         """
-        print("  Generating dynamic pages...")
+        print("\n✨ Generated pages:")
         
         generated_count = 0
         
@@ -1027,7 +1051,18 @@ class Site:
                     self.pages.append(page)
                     generated_count += 1
         
-        print(f"  ✓ Generated {generated_count} dynamic pages")
+        # Count types of generated pages
+        tag_count = sum(1 for p in self.pages if p.metadata.get('_generated') and 'tag' in p.output_path.parts)
+        archive_count = sum(1 for p in self.pages if p.metadata.get('_generated') and p.metadata.get('template') == 'archive.html')
+        pagination_count = sum(1 for p in self.pages if p.metadata.get('_generated') and '/page/' in str(p.output_path))
+        
+        if tag_count:
+            print(f"   ├─ Tag pages:        {tag_count}")
+        if archive_count:
+            print(f"   ├─ Archive pages:    {archive_count}")
+        if pagination_count:
+            print(f"   ├─ Pagination:       {pagination_count}")
+        print(f"   └─ Total:            {generated_count} ✓")
     
     def _create_archive_pages(self, section: Section) -> List[Page]:
         """Create archive pages for a section (with pagination if needed)."""
