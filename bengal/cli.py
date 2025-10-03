@@ -59,9 +59,10 @@ def build(parallel: bool, incremental: bool, verbose: bool, strict: bool, debug:
         
         # Display build stats (unless quiet mode)
         if not quiet:
-            display_build_stats(stats, show_art=True)
+            display_build_stats(stats, show_art=True, output_dir=str(site.output_dir))
         else:
             click.echo(click.style("✅ Build complete!", fg='green', bold=True))
+            click.echo(click.style(f"   ↪ {site.output_dir}", fg='cyan'))
         
     except Exception as e:
         show_error(f"Build failed: {e}", show_art=True)

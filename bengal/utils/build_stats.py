@@ -8,29 +8,22 @@ import time
 import click
 
 
-# Bengal tiger ASCII art variations
+# Bengal cat ASCII art variations (inspired by ᓚᘏᗢ)
+
 BENGAL_ART = r"""
-    /\_/\  
-   ( o.o ) 
-    > ^ <   Bengal SSG
+    ᓚᘏᗢ   Bengal SSG
 """
 
 BENGAL_SUCCESS = r"""
-    /\_/\  
-   ( ^.^ ) 
-    > ^ <
+    ᓚᘏᗢ
 """
 
 BENGAL_ERROR = r"""
-    /\_/\  
-   ( x.x ) 
-    > ^ <
+    ᓚᘏᗢ !!!
 """
 
 BENGAL_BUILDING = r"""
-    /\_/\  
-   ( -.o ) 
-    > ^ <   Building...
+    ᓚᘏᗢ Building...
 """
 
 
@@ -173,13 +166,14 @@ def display_warnings(stats: BuildStats) -> None:
         click.echo()  # Blank line between types
 
 
-def display_build_stats(stats: BuildStats, show_art: bool = True) -> None:
+def display_build_stats(stats: BuildStats, show_art: bool = True, output_dir: str = None) -> None:
     """
     Display build statistics in a colorful table.
     
     Args:
         stats: Build statistics to display
         show_art: Whether to show ASCII art
+        output_dir: Output directory path to display
     """
     if stats.skipped:
         click.echo(click.style("\n✨ No changes detected - build skipped!", fg='cyan', bold=True))
@@ -189,20 +183,18 @@ def display_build_stats(stats: BuildStats, show_art: bool = True) -> None:
     if stats.warnings:
         display_warnings(stats)
     
-    # Display ASCII art
-    if show_art:
-        click.echo(click.style(BENGAL_SUCCESS, fg='yellow'))
-    
-    # Header
+    # Header with ASCII art integrated
     has_warnings = len(stats.warnings) > 0
     if has_warnings:
         click.echo(click.style("\n┌─────────────────────────────────────────────────────┐", fg='cyan'))
         click.echo(click.style("│", fg='cyan') + click.style("         ⚠️  BUILD COMPLETE (WITH WARNINGS)          ", fg='yellow', bold=True) + click.style("│", fg='cyan'))
         click.echo(click.style("└─────────────────────────────────────────────────────┘", fg='cyan'))
     else:
-        click.echo(click.style("\n┌─────────────────────────────────────────────────────┐", fg='cyan'))
-        click.echo(click.style("│", fg='cyan') + click.style("              🎉 BUILD COMPLETE 🎉                 ", fg='green', bold=True) + click.style("│", fg='cyan'))
-        click.echo(click.style("└─────────────────────────────────────────────────────┘", fg='cyan'))
+        click.echo()
+        if show_art:
+            click.echo(click.style("    ᓚᘏᗢ  ", fg='yellow') + click.style("BUILD COMPLETE", fg='green', bold=True))
+        else:
+            click.echo(click.style("    BUILD COMPLETE", fg='green', bold=True))
     
     # Content stats
     click.echo(click.style("\n📊 Content Statistics:", fg='cyan', bold=True))
@@ -262,6 +254,11 @@ def display_build_stats(stats: BuildStats, show_art: bool = True) -> None:
             click.echo(click.style("   └─ ", fg='cyan') + 
                       f"{click.style(f'{pages_per_sec:.1f}', fg='magenta', bold=True)} pages/second")
     
+    # Output location
+    if output_dir:
+        click.echo(click.style("\n📂 Output:", fg='cyan', bold=True))
+        click.echo(click.style("   ↪ ", fg='cyan') + click.style(output_dir, fg='white', bold=True))
+    
     click.echo(click.style("\n─────────────────────────────────────────────────────\n", fg='cyan'))
 
 
@@ -283,9 +280,8 @@ def show_welcome() -> None:
     banner = r"""
     ╔══════════════════════════════════════════════════════╗
     ║                                                      ║
-    ║        /\_/\      BENGAL SSG                        ║
-    ║       ( ^.^ )     Fast & Fierce Static Sites        ║
-    ║        > ^ <                                         ║
+    ║           ᓚᘏᗢ     BENGAL SSG                        ║
+    ║                   Fast & Fierce Static Sites         ║
     ║                                                      ║
     ╚══════════════════════════════════════════════════════╝
     """

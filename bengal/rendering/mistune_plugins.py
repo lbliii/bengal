@@ -88,6 +88,16 @@ class VariableSubstitutionPlugin:
         self.context = context
         self.errors = []  # Track substitution errors
     
+    def update_context(self, context: Dict[str, Any]) -> None:
+        """
+        Update the rendering context (for parser reuse).
+        
+        Args:
+            context: New context dict with variables (page, site, config, etc.)
+        """
+        self.context = context
+        self.errors = []  # Reset errors for new page
+    
     def __call__(self, md):
         """Register the plugin with Mistune."""
         if md.renderer and md.renderer.NAME == 'html':

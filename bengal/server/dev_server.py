@@ -54,7 +54,7 @@ class BuildHandler(FileSystemEventHandler):
             
             try:
                 stats = self.site.build(parallel=False)
-                display_build_stats(stats, show_art=False)
+                display_build_stats(stats, show_art=False, output_dir=str(self.site.output_dir))
             except Exception as e:
                 show_error(f"Build failed: {e}", show_art=False)
             finally:
@@ -89,7 +89,7 @@ class DevServer:
         # Always do an initial build to ensure site is up to date
         show_building_indicator("Initial build")
         stats = self.site.build()
-        display_build_stats(stats, show_art=False)
+        display_build_stats(stats, show_art=False, output_dir=str(self.site.output_dir))
         
         # Start file watcher if enabled
         if self.watch:

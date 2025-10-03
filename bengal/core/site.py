@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 import concurrent.futures
+import threading
 from datetime import datetime
 from threading import Lock
 
@@ -15,6 +16,22 @@ from bengal.core.asset import Asset
 from bengal.core.menu import MenuItem, MenuBuilder
 from bengal.utils.pagination import Paginator
 from bengal.rendering.pipeline import RenderingPipeline
+from bengal.utils.build_stats import BuildStats
+from bengal.health import HealthCheck
+from bengal.health.validators import (
+    OutputValidator,
+    ConfigValidatorWrapper,
+    MenuValidator,
+    LinkValidatorWrapper,
+    NavigationValidator,
+    TaxonomyValidator,
+    RenderingValidator,
+    CacheValidator,
+    PerformanceValidator,
+)
+
+# Thread-local storage for pipelines (reuse per thread, not per page!)
+_thread_local = threading.local()
 
 
 # Thread-safe output lock for parallel processing
@@ -275,7 +292,7 @@ class Site:
         
         return None
     
-    def build(self, parallel: bool = True, incremental: bool = False, verbose: bool = False) -> 'BuildStats':
+    def build(self, parallel: bool = True, incremental: bool = False, verbose: bool = False) -> BuildStats:
         """
         Build the entire site.
         
@@ -287,9 +304,7 @@ class Site:
         Returns:
             BuildStats object with build statistics
         """
-        from bengal.rendering.pipeline import RenderingPipeline
         from bengal.cache import BuildCache, DependencyTracker
-        from bengal.utils.build_stats import BuildStats
         import time
         
         # Start timing
@@ -298,7 +313,7 @@ class Site:
         # Initialize stats
         stats = BuildStats(parallel=parallel, incremental=incremental)
         
-        print(f"Building site at {self.root_path}...\n")
+        print(f"   ↪ {self.root_path}\n")
         self.build_time = datetime.now()
         
         # Initialize cache and tracker
@@ -445,10 +460,7 @@ class Site:
             # Save cache
             cache.save(cache_path)
         
-        # Run build health checks
-        self._validate_build_health()
-        
-        # Collect final stats
+        # Collect final stats (before health check so we can include them in report)
         stats.total_pages = len(self.pages)
         stats.regular_pages = len([p for p in self.pages if not p.metadata.get('_generated')])
         stats.generated_pages = len([p for p in self.pages if p.metadata.get('_generated')])
@@ -457,7 +469,16 @@ class Site:
         stats.taxonomies_count = sum(len(terms) for terms in self.taxonomies.values())
         stats.build_time_ms = (time.time() - build_start) * 1000
         
-        print(f"✓ Site built successfully in {self.output_dir}")
+        # Store stats for health check validators to access
+        self._last_build_stats = {
+            'build_time_ms': stats.build_time_ms,
+            'rendering_time_ms': stats.rendering_time_ms,
+            'total_pages': stats.total_pages,
+            'total_assets': stats.total_assets,
+        }
+        
+        # Run unified health check system
+        self._run_health_check(stats)
         
         return stats
     
@@ -484,10 +505,12 @@ class Site:
         build_stats = pipeline.build_stats
         
         def process_page_with_pipeline(page):
-            """Process a page with its own pipeline instance (thread-safe)."""
-            # Create a new pipeline instance for this thread with same settings
-            thread_pipeline = RenderingPipeline(self, tracker, quiet=quiet, build_stats=build_stats)
-            thread_pipeline.process_page(page)
+            """Process a page with a thread-local pipeline instance (thread-safe)."""
+            # Reuse pipeline for this thread (one per thread, NOT one per page!)
+            # This avoids expensive Jinja2 environment re-initialization
+            if not hasattr(_thread_local, 'pipeline'):
+                _thread_local.pipeline = RenderingPipeline(self, tracker, quiet=quiet, build_stats=build_stats)
+            _thread_local.pipeline.process_page(page)
         
         with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
             futures = [executor.submit(process_page_with_pipeline, page) for page in self.pages]
@@ -848,120 +871,58 @@ class Site:
         server = DevServer(self, host=host, port=port, watch=watch, auto_port=auto_port)
         server.start()
     
-    def _validate_build_health(self) -> None:
+    def _run_health_check(self, stats: BuildStats) -> None:
         """
-        Validate build output quality after building.
+        Run unified health check system.
         
-        Run basic health checks to catch obvious issues like:
-        - Pages that are suspiciously small (likely fallback HTML)
-        - Missing theme assets
-        - Unrendered Jinja2 syntax
+        This replaces the old _validate_build_health() method with a more
+        comprehensive and extensible health check system.
+        
+        Args:
+            stats: Build statistics to include in the health report
         """
         if not self.config.get("validate_build", True):
             return
         
-        issues = []
+        # Create health check orchestrator
+        health = HealthCheck(self)
+        
+        # Register Phase 1 validators (basic checks)
+        health.register(ConfigValidatorWrapper())
+        health.register(OutputValidator())
+        health.register(MenuValidator())
+        health.register(LinkValidatorWrapper())
+        
+        # Register Phase 2 validators (build-time checks)
+        health.register(NavigationValidator())
+        health.register(TaxonomyValidator())
+        health.register(RenderingValidator())
+        
+        # Register Phase 3 Lite validators (advanced checks)
+        health.register(CacheValidator())
+        health.register(PerformanceValidator())
+        
+        # Run health checks and get report
+        verbose = self.config.get("verbose", False)
+        build_stats_dict = {
+            'build_time_ms': stats.build_time_ms,
+            'total_pages': stats.total_pages,
+            'total_assets': stats.total_assets,
+        }
+        
+        report = health.run(build_stats=build_stats_dict, verbose=verbose)
+        
+        # Display report (unless quiet mode)
+        if not self.config.get("quiet", False):
+            print(report.format_console(verbose=verbose))
+        
+        # In strict mode, fail build if there are errors
         strict_mode = self.config.get("strict_mode", False)
-        
-        # Check 1: Are all pages large enough?
-        min_size = self.config.get("min_page_size", 1000)  # 1KB minimum
-        for page in self.pages:
-            if page.output_path and page.output_path.exists():
-                size = page.output_path.stat().st_size
-                if size < min_size:
-                    issues.append(
-                        f"Page {page.output_path.relative_to(self.output_dir)} "
-                        f"is suspiciously small ({size} bytes, expected >{min_size})"
-                    )
-        
-        # Check 2: Are theme assets present?
-        assets_dir = self.output_dir / "assets"
-        if assets_dir.exists():
-            css_count = len(list(assets_dir.glob("css/*.css")))
-            js_count = len(list(assets_dir.glob("js/*.js")))
-            
-            if css_count == 0:
-                issues.append("No CSS files found in output (theme may not be applied)")
-            if js_count == 0 and self.config.get("theme") == "default":
-                # JS files are expected for default theme
-                issues.append("No JS files found in output")
-        else:
-            issues.append("No assets directory found in output")
-        
-        # Check 3: Any unrendered Jinja2 syntax? (DISABLED for now)
-        # NOTE: Health check disabled because:
-        # - {{ vars }} in markdown work correctly via VariableSubstitutionPlugin
-        # - {% if %} is intentionally not supported in markdown (use templates)
-        # - Code blocks correctly stay literal
-        # The health check was flagging documentation examples as errors.
-        pass
-        
-        # Report issues
-        if issues:
-            print("\n⚠️  Build Health Check Issues:")
-            for issue in issues[:10]:  # Show first 10
-                print(f"  • {issue}")
-            if len(issues) > 10:
-                print(f"  ... and {len(issues) - 10} more issues")
-            
-            if strict_mode:
-                # In strict mode, health check failures should fail the build
-                raise Exception(
-                    f"Build failed health checks: {len(issues)} issue(s) found. "
-                    "Review output or disable strict_mode."
-                )
-            else:
-                print("  (These may be acceptable in production - review output)")
-    
-    def _has_unrendered_jinja2(self, html_content: str) -> bool:
-        """
-        Detect if HTML has unrendered Jinja2 syntax (not in code blocks).
-        
-        Distinguishes between:
-        - Actual unrendered templates (bad) 
-        - Documented/escaped syntax in code blocks (ok)
-        
-        Args:
-            html_content: HTML content to check
-            
-        Returns:
-            True if unrendered Jinja2 found (not in code blocks)
-        """
-        try:
-            from bs4 import BeautifulSoup
-            
-            soup = BeautifulSoup(html_content, 'html.parser')
-            
-            # Remove all code blocks first (they're allowed to have Jinja2 syntax)
-            for code_block in soup.find_all(['code', 'pre']):
-                code_block.decompose()
-            
-            # Now check the remaining HTML for Jinja2 syntax
-            remaining_text = soup.get_text()
-            
-            # Check for unrendered syntax patterns
-            # NOTE: We only check for {{ vars }} since {% if %} is not supported in markdown
-            # (conditionals belong in templates, not content)
-            jinja2_patterns = [
-                '{{ page.',
-                '{{ site.',
-            ]
-            
-            for pattern in jinja2_patterns:
-                if pattern in remaining_text:
-                    return True
-            
-            return False
-            
-        except ImportError:
-            # BeautifulSoup not available, fall back to simple check
-            # (will have false positives for docs with code examples)
-            return ('{{ page.' in html_content or 
-                    '{{ site.' in html_content or 
-                    '{% if page' in html_content)
-        except Exception:
-            # On any parsing error, assume it's ok to avoid false positives
-            return False
+        if strict_mode and report.has_errors():
+            raise Exception(
+                f"Build failed health checks: {report.total_errors} error(s) found. "
+                "Review output or disable strict_mode."
+            )
     
     def collect_taxonomies(self) -> None:
         """
