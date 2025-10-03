@@ -149,5 +149,10 @@ class ConfigLoader:
             'generate_sitemap': True,
             'generate_rss': True,
             'validate_links': True,
+            # Debug and validation options
+            'strict_mode': False,       # Fail on template errors instead of fallback
+            'debug': False,             # Show verbose debug output and tracebacks
+            'validate_build': True,     # Run post-build health checks
+            'min_page_size': 1000,      # Minimum expected page size in bytes
         }
 

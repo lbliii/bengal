@@ -4,6 +4,7 @@ Renderer for converting pages to final HTML output.
 
 from typing import Any, Dict, Optional
 from datetime import datetime
+import traceback
 
 from bengal.core.page import Page
 
@@ -21,6 +22,7 @@ class Renderer:
             template_engine: Template engine instance
         """
         self.template_engine = template_engine
+        self.site = template_engine.site  # Access to site config for strict mode
     
     def render_content(self, content: str) -> str:
         """
@@ -67,7 +69,27 @@ class Renderer:
         try:
             return self.template_engine.render(template_name, context)
         except Exception as e:
-            print(f"Warning: Failed to render page {page.source_path} with template {template_name}: {e}")
+            # In strict mode, fail loudly instead of falling back
+            strict_mode = self.site.config.get("strict_mode", False)
+            debug_mode = self.site.config.get("debug", False)
+            
+            if strict_mode:
+                # Don't catch - let build fail with full error
+                print(f"\n❌ ERROR: Failed to render page {page.source_path}")
+                print(f"   Template: {template_name}")
+                print(f"   Error: {e}")
+                if debug_mode:
+                    print("\nFull traceback:")
+                    traceback.print_exc()
+                raise
+            
+            # In production mode, warn and fall back gracefully
+            print(f"⚠️  Warning: Failed to render page {page.source_path} with template {template_name}: {e}")
+            
+            if debug_mode:
+                print("   Full traceback:")
+                traceback.print_exc()
+            
             # Fallback to simple HTML
             return self._render_fallback(page, content)
     

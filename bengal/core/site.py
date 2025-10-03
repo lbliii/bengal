@@ -7,11 +7,17 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 import concurrent.futures
 from datetime import datetime
+from threading import Lock
 
 from bengal.core.page import Page
 from bengal.core.section import Section
 from bengal.core.asset import Asset
 from bengal.utils.pagination import Paginator
+from bengal.rendering.pipeline import RenderingPipeline
+
+
+# Thread-safe output lock for parallel processing
+_print_lock = Lock()
 
 
 @dataclass
@@ -145,20 +151,47 @@ class Site:
         
         return None
     
-    def build(self, parallel: bool = True, incremental: bool = False) -> None:
+    def build(self, parallel: bool = True, incremental: bool = False, verbose: bool = False) -> None:
         """
         Build the entire site.
         
         Args:
             parallel: Whether to use parallel processing
             incremental: Whether to perform incremental build (only changed files)
+            verbose: Whether to show detailed build information
         """
+        from bengal.rendering.pipeline import RenderingPipeline
+        from bengal.cache import BuildCache, DependencyTracker
+        
         print(f"Building site at {self.root_path}...")
         self.build_time = datetime.now()
+        
+        # Initialize cache and tracker
+        cache_path = self.output_dir / ".bengal-cache.json"
+        cache = BuildCache.load(cache_path) if incremental else BuildCache()
+        tracker = DependencyTracker(cache)
         
         # Discover content and assets
         self.discover_content()
         self.discover_assets()
+        
+        # Track config file as a global dependency
+        config_files = [
+            self.root_path / "bengal.toml",
+            self.root_path / "bengal.yaml",
+            self.root_path / "bengal.yml"
+        ]
+        config_file = next((f for f in config_files if f.exists()), None)
+        
+        if config_file:
+            if incremental:
+                # Check if config changed - if so, force full rebuild
+                if cache.is_changed(config_file):
+                    print("  Config file changed - performing full rebuild")
+                    incremental = False
+                    cache.clear()
+            # Always update config file hash (for next build)
+            cache.update_file(config_file)
         
         # Collect taxonomies (tags, categories, etc.)
         self.collect_taxonomies()
@@ -166,22 +199,72 @@ class Site:
         # Generate dynamic pages (archives, tag pages, etc.)
         self.generate_dynamic_pages()
         
-        # Initialize rendering pipeline
-        from bengal.rendering.pipeline import RenderingPipeline
+        # Determine what to build
+        pages_to_build = self.pages
+        assets_to_process = self.assets
         
-        pipeline = RenderingPipeline(self)
+        if incremental:
+            pages_to_build, assets_to_process, change_summary = self._find_incremental_work(
+                cache, tracker, verbose=verbose
+            )
+            
+            if not pages_to_build and not assets_to_process:
+                print("✓ No changes detected - skipping build")
+                return
+            
+            print(f"  Incremental build: {len(pages_to_build)} pages, "
+                  f"{len(assets_to_process)} assets")
+            
+            if verbose and change_summary:
+                print(f"\n  📝 Changes detected:")
+                for change_type, items in change_summary.items():
+                    if items:
+                        print(f"    • {change_type}: {len(items)} file(s)")
+                        for item in items[:5]:  # Show first 5
+                            print(f"      - {item.name if hasattr(item, 'name') else item}")
+                        if len(items) > 5:
+                            print(f"      ... and {len(items) - 5} more")
+                print()
+        
+        # Initialize rendering pipeline with tracker
+        pipeline = RenderingPipeline(self, tracker)
         
         # Build pages
-        if parallel:
+        original_pages = self.pages
+        self.pages = pages_to_build  # Temporarily replace with subset
+        
+        if parallel and len(pages_to_build) > 1:
             self._build_parallel(pipeline)
         else:
             self._build_sequential(pipeline)
         
+        self.pages = original_pages  # Restore full page list
+        
         # Copy and optimize assets
+        original_assets = self.assets
+        self.assets = assets_to_process  # Temporarily replace with subset
         self._process_assets()
+        self.assets = original_assets  # Restore full asset list
         
         # Post-processing
         self._post_process()
+        
+        # Update cache with all processed files
+        if incremental or self.config.get("cache_enabled", True):
+            # Update all page hashes (skip generated pages - they have virtual paths)
+            for page in pages_to_build:
+                if not page.metadata.get('_generated'):
+                    cache.update_file(page.source_path)
+            
+            # Update all asset hashes
+            for asset in assets_to_process:
+                cache.update_file(asset.source_path)
+            
+            # Save cache
+            cache.save(cache_path)
+        
+        # Run build health checks
+        self._validate_build_health()
         
         print(f"✓ Site built successfully in {self.output_dir}")
     
@@ -200,12 +283,19 @@ class Site:
         Build pages in parallel for better performance.
         
         Args:
-            pipeline: Rendering pipeline instance
+            pipeline: Rendering pipeline instance (template for creating thread-local copies)
         """
         max_workers = self.config.get("max_workers", 4)
+        tracker = pipeline.dependency_tracker
+        
+        def process_page_with_pipeline(page):
+            """Process a page with its own pipeline instance (thread-safe)."""
+            # Create a new pipeline instance for this thread with tracker set in constructor
+            thread_pipeline = RenderingPipeline(self, tracker)
+            thread_pipeline.process_page(page)
         
         with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-            futures = [executor.submit(pipeline.process_page, page) for page in self.pages]
+            futures = [executor.submit(process_page_with_pipeline, page) for page in self.pages]
             
             # Wait for all to complete
             for future in concurrent.futures.as_completed(futures):
@@ -216,12 +306,28 @@ class Site:
     
     def _process_assets(self) -> None:
         """Process and copy all assets to output directory."""
+        if not self.assets:
+            return
+        
         print(f"Processing {len(self.assets)} assets...")
         
+        # Get configuration
         minify = self.config.get("minify_assets", True)
         optimize = self.config.get("optimize_assets", True)
         fingerprint = self.config.get("fingerprint_assets", True)
+        parallel = self.config.get("parallel", True)
         
+        # Use parallel processing only for larger workloads to avoid overhead
+        # Threshold of 5 assets balances parallelism benefit vs thread overhead
+        MIN_ASSETS_FOR_PARALLEL = 5
+        
+        if parallel and len(self.assets) >= MIN_ASSETS_FOR_PARALLEL:
+            self._process_assets_parallel(minify, optimize, fingerprint)
+        else:
+            self._process_assets_sequential(minify, optimize, fingerprint)
+    
+    def _process_assets_sequential(self, minify: bool, optimize: bool, fingerprint: bool) -> None:
+        """Process assets sequentially (fallback or for small workloads)."""
         assets_output = self.output_dir / "assets"
         
         for asset in self.assets:
@@ -236,29 +342,254 @@ class Site:
             except Exception as e:
                 print(f"Warning: Failed to process asset {asset.source_path}: {e}")
     
+    def _process_assets_parallel(self, minify: bool, optimize: bool, fingerprint: bool) -> None:
+        """Process assets in parallel for better performance."""
+        assets_output = self.output_dir / "assets"
+        max_workers = self.config.get("max_workers", min(8, (len(self.assets) + 3) // 4))
+        
+        errors = []
+        
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = [
+                executor.submit(
+                    self._process_single_asset,
+                    asset,
+                    assets_output,
+                    minify,
+                    optimize,
+                    fingerprint
+                )
+                for asset in self.assets
+            ]
+            
+            # Collect results and errors
+            for future in concurrent.futures.as_completed(futures):
+                try:
+                    future.result()
+                except Exception as e:
+                    errors.append(str(e))
+        
+        # Report errors after all processing is complete
+        if errors:
+            with _print_lock:
+                print(f"  ⚠️  {len(errors)} asset(s) failed to process:")
+                for error in errors[:5]:  # Show first 5 errors
+                    print(f"    • {error}")
+                if len(errors) > 5:
+                    print(f"    ... and {len(errors) - 5} more errors")
+    
+    def _process_single_asset(
+        self,
+        asset: Asset,
+        assets_output: Path,
+        minify: bool,
+        optimize: bool,
+        fingerprint: bool
+    ) -> None:
+        """
+        Process a single asset (called in parallel).
+        
+        Args:
+            asset: Asset to process
+            assets_output: Output directory for assets
+            minify: Whether to minify CSS/JS
+            optimize: Whether to optimize images
+            fingerprint: Whether to add fingerprint to filename
+        
+        Raises:
+            Exception: If asset processing fails
+        """
+        try:
+            if minify and asset.asset_type in ('css', 'javascript'):
+                asset.minify()
+            
+            if optimize and asset.asset_type == 'image':
+                asset.optimize()
+            
+            asset.copy_to_output(assets_output, use_fingerprint=fingerprint)
+        except Exception as e:
+            # Re-raise with asset context for better error messages
+            raise Exception(f"Failed to process {asset.source_path}: {e}") from e
+    
     def _post_process(self) -> None:
         """Perform post-processing tasks (sitemap, RSS, link validation, etc.)."""
         print("Running post-processing...")
         
-        # Generate sitemap
+        # Collect enabled tasks
+        tasks = []
+        
         if self.config.get("generate_sitemap", True):
-            from bengal.postprocess.sitemap import SitemapGenerator
-            generator = SitemapGenerator(self)
-            generator.generate()
+            tasks.append(('sitemap', self._generate_sitemap))
         
-        # Generate RSS feed
         if self.config.get("generate_rss", True):
-            from bengal.postprocess.rss import RSSGenerator
-            generator = RSSGenerator(self)
-            generator.generate()
+            tasks.append(('rss', self._generate_rss))
         
-        # Validate links
         if self.config.get("validate_links", True):
-            from bengal.rendering.link_validator import LinkValidator
-            validator = LinkValidator()
-            broken_links = validator.validate_site(self)
-            if broken_links:
+            tasks.append(('link validation', self._validate_links))
+        
+        if not tasks:
+            return
+        
+        # Run in parallel if enabled and multiple tasks
+        # Threshold of 2 tasks (always parallel if multiple tasks since they're independent)
+        parallel = self.config.get("parallel", True)
+        
+        if parallel and len(tasks) > 1:
+            self._run_postprocess_parallel(tasks)
+        else:
+            self._run_postprocess_sequential(tasks)
+    
+    def _run_postprocess_sequential(self, tasks: List[tuple]) -> None:
+        """Run post-processing tasks sequentially."""
+        for task_name, task_fn in tasks:
+            try:
+                task_fn()
+            except Exception as e:
+                with _print_lock:
+                    print(f"  ✗ {task_name}: {e}")
+    
+    def _run_postprocess_parallel(self, tasks: List[tuple]) -> None:
+        """Run post-processing tasks in parallel."""
+        errors = []
+        
+        with concurrent.futures.ThreadPoolExecutor(max_workers=len(tasks)) as executor:
+            futures = {executor.submit(task_fn): name for name, task_fn in tasks}
+            
+            for future in concurrent.futures.as_completed(futures):
+                task_name = futures[future]
+                try:
+                    future.result()
+                except Exception as e:
+                    errors.append((task_name, str(e)))
+        
+        # Report errors
+        if errors:
+            with _print_lock:
+                print(f"  ⚠️  {len(errors)} post-processing task(s) failed:")
+                for task_name, error in errors:
+                    print(f"    • {task_name}: {error}")
+    
+    def _generate_sitemap(self) -> None:
+        """Generate sitemap (extracted for parallel execution)."""
+        from bengal.postprocess.sitemap import SitemapGenerator
+        generator = SitemapGenerator(self)
+        generator.generate()
+    
+    def _generate_rss(self) -> None:
+        """Generate RSS feed (extracted for parallel execution)."""
+        from bengal.postprocess.rss import RSSGenerator
+        generator = RSSGenerator(self)
+        generator.generate()
+    
+    def _validate_links(self) -> None:
+        """Validate links (extracted for parallel execution)."""
+        from bengal.rendering.link_validator import LinkValidator
+        validator = LinkValidator()
+        broken_links = validator.validate_site(self)
+        if broken_links:
+            with _print_lock:
                 print(f"Warning: Found {len(broken_links)} broken links")
+    
+    def _find_incremental_work(self, cache: Any, tracker: Any, verbose: bool = False) -> tuple[List[Page], List[Asset], Dict[str, List]]:
+        """
+        Determine which pages and assets need to be rebuilt based on changes.
+        
+        Args:
+            cache: BuildCache instance
+            tracker: DependencyTracker instance
+            verbose: Whether to collect detailed change information
+            
+        Returns:
+            Tuple of (pages_to_build, assets_to_process, change_summary)
+        """
+        from bengal.cache import BuildCache
+        
+        pages_to_rebuild = set()
+        assets_to_process = []
+        change_summary = {
+            'Modified content': [],
+            'Modified assets': [],
+            'Modified templates': [],
+            'Taxonomy changes': []
+        }
+        
+        # Find changed content files
+        for page in self.pages:
+            if cache.is_changed(page.source_path):
+                pages_to_rebuild.add(page.source_path)
+                if verbose:
+                    change_summary['Modified content'].append(page.source_path)
+                # Track taxonomy changes
+                if page.tags:
+                    tracker.track_taxonomy(page.source_path, set(page.tags))
+        
+        # Find changed assets
+        for asset in self.assets:
+            if cache.is_changed(asset.source_path):
+                assets_to_process.append(asset)
+                if verbose:
+                    change_summary['Modified assets'].append(asset.source_path)
+        
+        # Check template/theme directory for changes
+        theme_templates_dir = self._get_theme_templates_dir()
+        changed_templates = []
+        if theme_templates_dir and theme_templates_dir.exists():
+            for template_file in theme_templates_dir.rglob("*.html"):
+                if cache.is_changed(template_file):
+                    changed_templates.append(template_file)
+                    if verbose:
+                        change_summary['Modified templates'].append(template_file)
+                    # Template changed - find affected pages
+                    affected = cache.get_affected_pages(template_file)
+                    for page_path_str in affected:
+                        pages_to_rebuild.add(Path(page_path_str))
+        
+        # Check for taxonomy changes (if a tag was added/removed from a page)
+        # This is complex, so for now we'll regenerate tag pages if any page with tags changed
+        has_taxonomy_changes = any(
+            page for page in self.pages 
+            if page.source_path in pages_to_rebuild and page.tags
+        )
+        
+        if has_taxonomy_changes:
+            if verbose:
+                change_summary['Taxonomy changes'].append("Tags modified, rebuilding tag pages")
+            # Add all generated tag/archive pages to rebuild list
+            for page in self.pages:
+                if page.metadata.get('_generated'):
+                    pages_to_rebuild.add(page.source_path)
+        
+        # Convert page paths back to Page objects
+        pages_to_build = [
+            page for page in self.pages 
+            if page.source_path in pages_to_rebuild
+        ]
+        
+        return pages_to_build, assets_to_process, change_summary
+    
+    def _get_theme_templates_dir(self) -> Optional[Path]:
+        """
+        Get the templates directory for the current theme.
+        
+        Returns:
+            Path to theme templates or None if not found
+        """
+        if not self.theme:
+            return None
+        
+        # Check in site's themes directory first
+        site_theme_dir = self.root_path / "themes" / self.theme / "templates"
+        if site_theme_dir.exists():
+            return site_theme_dir
+        
+        # Check in Bengal's bundled themes
+        import bengal
+        bengal_dir = Path(bengal.__file__).parent
+        bundled_theme_dir = bengal_dir / "themes" / self.theme / "templates"
+        if bundled_theme_dir.exists():
+            return bundled_theme_dir
+        
+        return None
     
     def serve(self, host: str = "localhost", port: int = 8000, watch: bool = True) -> None:
         """
@@ -273,6 +604,82 @@ class Site:
         
         server = DevServer(self, host=host, port=port, watch=watch)
         server.start()
+    
+    def _validate_build_health(self) -> None:
+        """
+        Validate build output quality after building.
+        
+        Run basic health checks to catch obvious issues like:
+        - Pages that are suspiciously small (likely fallback HTML)
+        - Missing theme assets
+        - Unrendered Jinja2 syntax
+        """
+        if not self.config.get("validate_build", True):
+            return
+        
+        issues = []
+        strict_mode = self.config.get("strict_mode", False)
+        
+        # Check 1: Are all pages large enough?
+        min_size = self.config.get("min_page_size", 1000)  # 1KB minimum
+        for page in self.pages:
+            if page.output_path and page.output_path.exists():
+                size = page.output_path.stat().st_size
+                if size < min_size:
+                    issues.append(
+                        f"Page {page.output_path.relative_to(self.output_dir)} "
+                        f"is suspiciously small ({size} bytes, expected >{min_size})"
+                    )
+        
+        # Check 2: Are theme assets present?
+        assets_dir = self.output_dir / "assets"
+        if assets_dir.exists():
+            css_count = len(list(assets_dir.glob("css/*.css")))
+            js_count = len(list(assets_dir.glob("js/*.js")))
+            
+            if css_count == 0:
+                issues.append("No CSS files found in output (theme may not be applied)")
+            if js_count == 0 and self.config.get("theme") == "default":
+                # JS files are expected for default theme
+                issues.append("No JS files found in output")
+        else:
+            issues.append("No assets directory found in output")
+        
+        # Check 3: Any unrendered Jinja2 syntax?
+        unrendered_count = 0
+        for html_file in self.output_dir.rglob("*.html"):
+            try:
+                content = html_file.read_text()
+                # Check for obvious unrendered syntax
+                if "{{ page." in content or "{% if page" in content or "{{ site." in content:
+                    unrendered_count += 1
+                    if unrendered_count <= 3:  # Only report first few
+                        issues.append(
+                            f"Unrendered Jinja2 syntax in {html_file.relative_to(self.output_dir)}"
+                        )
+            except Exception:
+                # Ignore files we can't read
+                pass
+        
+        if unrendered_count > 3:
+            issues.append(f"... and {unrendered_count - 3} more files with unrendered syntax")
+        
+        # Report issues
+        if issues:
+            print("\n⚠️  Build Health Check Issues:")
+            for issue in issues[:10]:  # Show first 10
+                print(f"  • {issue}")
+            if len(issues) > 10:
+                print(f"  ... and {len(issues) - 10} more issues")
+            
+            if strict_mode:
+                # In strict mode, health check failures should fail the build
+                raise Exception(
+                    f"Build failed health checks: {len(issues)} issue(s) found. "
+                    "Review output or disable strict_mode."
+                )
+            else:
+                print("  (These may be acceptable in production - review output)")
     
     def collect_taxonomies(self) -> None:
         """

@@ -23,16 +23,20 @@ class RenderingPipeline:
     5. Write to output directory
     """
     
-    def __init__(self, site: Any) -> None:
+    def __init__(self, site: Any, dependency_tracker: Any = None) -> None:
         """
         Initialize the rendering pipeline.
         
         Args:
             site: Site instance
+            dependency_tracker: Optional dependency tracker for incremental builds
         """
         self.site = site
         self.parser = MarkdownParser()
+        self.dependency_tracker = dependency_tracker
         self.template_engine = TemplateEngine(site)
+        if self.dependency_tracker:
+            self.template_engine._dependency_tracker = self.dependency_tracker
         self.renderer = Renderer(self.template_engine)
     
     def process_page(self, page: Page) -> None:
@@ -42,6 +46,10 @@ class RenderingPipeline:
         Args:
             page: Page to process
         """
+        # Track this page if we have a dependency tracker
+        if self.dependency_tracker and not page.metadata.get('_generated'):
+            self.dependency_tracker.start_page(page.source_path)
+        
         # Stage 1: Parse content
         parsed_content = self.parser.parse(page.content, page.metadata)
         page.parsed_ast = parsed_content
@@ -52,11 +60,15 @@ class RenderingPipeline:
         # Stage 3: Render content to HTML
         html_content = self.renderer.render_content(parsed_content)
         
-        # Stage 4: Apply template
+        # Stage 4: Apply template (with dependency tracking already set in __init__)
         page.rendered_html = self.renderer.render_page(page, html_content)
         
         # Stage 5: Write output
         self._write_output(page)
+        
+        # End page tracking
+        if self.dependency_tracker and not page.metadata.get('_generated'):
+            self.dependency_tracker.end_page()
     
     def _write_output(self, page: Page) -> None:
         """

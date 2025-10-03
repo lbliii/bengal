@@ -21,9 +21,12 @@ def main() -> None:
 @main.command()
 @click.option('--parallel/--no-parallel', default=True, help='Use parallel processing')
 @click.option('--incremental', is_flag=True, help='Perform incremental build')
+@click.option('--verbose', '-v', is_flag=True, help='Show detailed build information')
+@click.option('--strict', is_flag=True, help='Fail on template errors (recommended for CI)')
+@click.option('--debug', is_flag=True, help='Show debug output and full tracebacks')
 @click.option('--config', type=click.Path(exists=True), help='Path to config file')
 @click.argument('source', type=click.Path(exists=True), default='.')
-def build(parallel: bool, incremental: bool, config: str, source: str) -> None:
+def build(parallel: bool, incremental: bool, verbose: bool, strict: bool, debug: bool, config: str, source: str) -> None:
     """
     Build the static site.
     """
@@ -33,7 +36,14 @@ def build(parallel: bool, incremental: bool, config: str, source: str) -> None:
         
         # Create and build site
         site = Site.from_config(root_path, config_path)
-        site.build(parallel=parallel, incremental=incremental)
+        
+        # Override config with CLI flags
+        if strict:
+            site.config["strict_mode"] = True
+        if debug:
+            site.config["debug"] = True
+        
+        site.build(parallel=parallel, incremental=incremental, verbose=verbose)
         
         click.echo(click.style("✅ Build complete!", fg='green', bold=True))
         
@@ -58,6 +68,9 @@ def serve(host: str, port: int, no_watch: bool, config: str, source: str) -> Non
         
         # Create site
         site = Site.from_config(root_path, config_path)
+        
+        # Enable strict mode in development (fail fast on errors)
+        site.config["strict_mode"] = True
         
         # Start server
         site.serve(host=host, port=port, watch=not no_watch)

@@ -21,6 +21,8 @@ class TemplateEngine:
         """
         self.site = site
         self.env = self._create_environment()
+        self._dependency_tracker = None  # Set by RenderingPipeline for incremental builds (private attr)
+        self.template_dirs = []  # Will be populated in _create_environment
     
     def _create_environment(self) -> Environment:
         """
@@ -47,6 +49,9 @@ class TemplateEngine:
         default_templates = Path(__file__).parent.parent / "themes" / "default" / "templates"
         if default_templates.exists():
             template_dirs.append(str(default_templates))
+        
+        # Store for dependency tracking
+        self.template_dirs = [Path(d) for d in template_dirs]
         
         # Create environment
         env = Environment(
@@ -76,6 +81,12 @@ class TemplateEngine:
         Returns:
             Rendered HTML
         """
+        # Track template dependency
+        if self._dependency_tracker:
+            template_path = self._find_template_path(template_name)
+            if template_path:
+                self._dependency_tracker.track_template(template_path)
+        
         # Add site to context
         context.setdefault('site', self.site)
         context.setdefault('config', self.site.config)
@@ -147,4 +158,21 @@ class TemplateEngine:
             Asset URL
         """
         return f"/assets/{asset_path}"
+    
+    def _find_template_path(self, template_name: str) -> Optional[Path]:
+        """
+        Find the full path to a template file.
+        
+        Args:
+            template_name: Name of the template
+            
+        Returns:
+            Full path to template file, or None if not found
+        """
+        for template_dir in self.template_dirs:
+            template_path = template_dir / template_name
+            if template_path.exists():
+                return template_path
+        return None
+    
 
