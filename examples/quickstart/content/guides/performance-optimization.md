@@ -503,11 +503,11 @@ Add JSON-LD structured data:
 {
   "@context": "https://schema.org",
   "@type": "BlogPosting",
-  "headline": "{{ page.title }}",
-  "datePublished": "{{ page.date | dateformat('%Y-%m-%d') }}",
+  "headline": "{{ '{{ page.title }}' }}",
+  "datePublished": "{{ '{{ page.date | dateformat' }}('%Y-%m-%d') }}",
   "author": {
     "@type": "Person",
-    "name": "{{ page.metadata.author }}"
+    "name": "{{ '{{ page.metadata.author }}' }}"
   }
 }
 </script>

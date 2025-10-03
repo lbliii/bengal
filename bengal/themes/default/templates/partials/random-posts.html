@@ -1,6 +1,6 @@
 {# Random posts widget - showcases sample() function #}
 
-{% set random_posts = site.pages | sample(3) %}
+{% set random_posts = site.regular_pages | sample(3) %}
 {% if random_posts %}
 <aside class="random-posts-widget">
     <h3>You Might Also Like</h3>

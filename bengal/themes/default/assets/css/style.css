@@ -27,6 +27,8 @@
    ============================================ */
 
 @import url('components/admonitions.css');
+@import url('components/tabs.css');
+@import url('components/dropdowns.css');
 @import url('components/buttons.css');
 @import url('components/cards.css');
 @import url('components/tags.css');

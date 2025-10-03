@@ -143,20 +143,20 @@ Create `themes/mytheme/templates/base.html`:
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{% block title %}{{ page.title | default(site.title) }}{% endblock %}</title>
+  <title>{{ '{% block title %}{{ page.title | default(site.title) }}{% endblock %}' }}</title>
   
   <!-- Meta tags -->
-  <meta name="description" content="{{ page.metadata.description | default(site.description) }}">
-  {% if site.baseurl %}
-    <link rel="canonical" href="{{ site.baseurl }}{{ url_for(page) }}">
-  {% endif %}
+  <meta name="description" content="{{ '{{ page.metadata.description | default(site.description) }}' }}">
+  {{ '{% if site.baseurl %}' }}
+    <link rel="canonical" href="{{ '{{ site.baseurl }}{{ url_for(page) }}' }}">
+  {{ '{% endif %}' }}
   
   <!-- Stylesheets -->
-  <link rel="stylesheet" href="{{ asset_url('css/design-system.css') }}">
-  <link rel="stylesheet" href="{{ asset_url('css/components.css') }}">
-  <link rel="stylesheet" href="{{ asset_url('css/layout.css') }}">
+  <link rel="stylesheet" href="{{ '{{ asset_url' }}('css/design-system.css') }}">
+  <link rel="stylesheet" href="{{ '{{ asset_url' }}('css/components.css') }}">
+  <link rel="stylesheet" href="{{ '{{ asset_url' }}('css/layout.css') }}">
   
-  {% block head %}{% endblock %}
+  {{ '{% block head %}{% endblock %}' }}
 </head>
 <body>
   <!-- Header -->
@@ -164,10 +164,10 @@ Create `themes/mytheme/templates/base.html`:
     <div class="container">
       <div class="header-content">
         <div class="site-brand">
-          <a href="/" class="site-title">{{ site.title }}</a>
-          {% if site.description %}
-            <p class="site-description">{{ site.description }}</p>
-          {% endif %}
+          <a href="/" class="site-title">{{ '{{ site.title }}' }}</a>
+          {{ '{% if site.description %}' }}
+            <p class="site-description">{{ '{{ site.description }}' }}</p>
+          {{ '{% endif %}' }}
         </div>
         
         <nav class="site-nav">
@@ -186,21 +186,21 @@ Create `themes/mytheme/templates/base.html`:
   <!-- Main content -->
   <main class="site-main">
     <div class="container">
-      {% block content %}{% endblock %}
+      {{ '{% block content %}{% endblock %}' }}
     </div>
   </main>
   
   <!-- Footer -->
   <footer class="site-footer">
     <div class="container">
-      <p>&copy; {{ "now" | dateformat("%Y") }} {{ site.title }}. All rights reserved.</p>
+      <p>&copy; {{ '{{ "now" | dateformat' }}("%Y") }} {{ '{{ site.title }}' }}. All rights reserved.</p>
       <p>Built with <a href="https://github.com/bengal-ssg/bengal">Bengal SSG</a></p>
     </div>
   </footer>
   
   <!-- Scripts -->
-  <script src="{{ asset_url('js/theme-toggle.js') }}"></script>
-  {% block scripts %}{% endblock %}
+  <script src="{{ '{{ asset_url' }}('js/theme-toggle.js') }}"></script>
+  {{ '{% block scripts %}{% endblock %}' }}
 </body>
 </html>
 ```
@@ -210,61 +210,61 @@ Create `themes/mytheme/templates/base.html`:
 Create `themes/mytheme/templates/post.html`:
 
 ```jinja2
-{% extends "base.html" %}
+{{ '{% extends "base.html" %}' }}
 
-{% block title %}{{ page.title }} - {{ site.title }}{% endblock %}
+{{ '{% block title %}{{ page.title }} - {{ site.title }}{% endblock %}' }}
 
-{% block content %}
+{{ '{% block content %}' }}
 <article class="post">
   <header class="post-header">
-    <h1 class="post-title">{{ page.title }}</h1>
+    <h1 class="post-title">{{ '{{ page.title }}' }}</h1>
     
     <div class="post-meta">
-      {% if page.date %}
-        <time datetime="{{ page.date | dateformat('%Y-%m-%d') }}" class="post-date">
-          {{ page.date | dateformat('%B %d, %Y') }}
+      {{ '{% if page.date %}' }}
+        <time datetime="{{ '{{ page.date | dateformat' }}('%Y-%m-%d') }}" class="post-date">
+          {{ '{{ page.date | dateformat' }}('%B %d, %Y') }}
         </time>
-      {% endif %}
+      {{ '{% endif %}' }}
       
-      {% if page.metadata.author %}
-        <span class="post-author">by {{ page.metadata.author }}</span>
-      {% endif %}
+      {{ '{% if page.metadata.author %}' }}
+        <span class="post-author">by {{ '{{ page.metadata.author }}' }}</span>
+      {{ '{% endif %}' }}
       
-      {% if page.metadata.category %}
-        <span class="post-category">in {{ page.metadata.category }}</span>
-      {% endif %}
+      {{ '{% if page.metadata.category %}' }}
+        <span class="post-category">in {{ '{{ page.metadata.category }}' }}</span>
+      {{ '{% endif %}' }}
     </div>
     
-    {% if page.tags %}
+    {{ '{% if page.tags %}' }}
       <div class="post-tags">
-        {% for tag in page.tags %}
-          <a href="/tags/{{ tag }}/" class="tag">{{ tag }}</a>
-        {% endfor %}
+        {{ '{% for tag in page.tags %}' }}
+          <a href="/tags/{{ '{{ tag }}' }}/" class="tag">{{ '{{ tag }}' }}</a>
+        {{ '{% endfor %}' }}
       </div>
-    {% endif %}
+    {{ '{% endif %}' }}
   </header>
   
   <div class="post-content prose">
-    {{ content }}
+    {{ '{{ content }}' }}
   </div>
   
   <footer class="post-footer">
     <div class="post-navigation">
-      {% if page.metadata.previous %}
-        <a href="{{ url_for(page.metadata.previous) }}" class="nav-prev">
-          ← Previous: {{ page.metadata.previous.title }}
+      {{ '{% if page.metadata.previous %}' }}
+        <a href="{{ '{{ url_for(page.metadata.previous) }}' }}" class="nav-prev">
+          ← Previous: {{ '{{ page.metadata.previous.title }}' }}
         </a>
-      {% endif %}
+      {{ '{% endif %}' }}
       
-      {% if page.metadata.next %}
-        <a href="{{ url_for(page.metadata.next) }}" class="nav-next">
-          Next: {{ page.metadata.next.title }} →
+      {{ '{% if page.metadata.next %}' }}
+        <a href="{{ '{{ url_for(page.metadata.next) }}' }}" class="nav-next">
+          Next: {{ '{{ page.metadata.next.title }}' }} →
         </a>
-      {% endif %}
+      {{ '{% endif %}' }}
     </div>
   </footer>
 </article>
-{% endblock %}
+{{ '{% endblock %}' }}
 ```
 
 ## Step 5: Component Styles
@@ -479,34 +479,34 @@ Create additional templates as needed:
 
 **Index page** (`templates/index.html`):
 ```jinja2
-{% extends "base.html" %}
+{{ '{% extends "base.html" %}' }}
 
-{% block content %}
+{{ '{% block content %}' }}
 <div class="hero">
-  <h1>{{ page.title }}</h1>
-  <p>{{ site.description }}</p>
+  <h1>{{ '{{ page.title }}' }}</h1>
+  <p>{{ '{{ site.description }}' }}</p>
 </div>
 
 <div class="recent-posts">
   <h2>Recent Posts</h2>
-  {% for post in site.pages[:5] %}
-    {% if post.metadata.type == 'post' %}
-      {% include "partials/post-card.html" %}
-    {% endif %}
-  {% endfor %}
+  {{ '{% for post in site.pages[:5] %}' }}
+    {{ '{% if post.metadata.type' }} == 'post' {{ '%}' }}
+      {{ '{% include "partials/post-card.html" %}' }}
+    {{ '{% endif %}' }}
+  {{ '{% endfor %}' }}
 </div>
-{% endblock %}
+{{ '{% endblock %}' }}
 ```
 
 **Post card partial** (`templates/partials/post-card.html`):
 ```jinja2
 <div class="card post-card">
-  <h3><a href="{{ url_for(post) }}">{{ post.title }}</a></h3>
+  <h3><a href="{{ '{{ url_for(post) }}' }}">{{ '{{ post.title }}' }}</a></h3>
   <p class="post-meta">
-    {{ post.date | dateformat('%B %d, %Y') }}
+    {{ '{{ post.date | dateformat' }}('%B %d, %Y') }}
   </p>
-  <p>{{ post.metadata.description }}</p>
-  <a href="{{ url_for(post) }}" class="btn">Read more →</a>
+  <p>{{ '{{ post.metadata.description }}' }}</p>
+  <a href="{{ '{{ url_for(post) }}' }}" class="btn">Read more →</a>
 </div>
 ```
 

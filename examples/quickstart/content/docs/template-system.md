@@ -6,6 +6,7 @@ categories: ["Documentation", "Reference"]
 type: "reference"
 description: "Complete reference for Bengal's Jinja2-based template system"
 author: "Bengal Documentation Team"
+preprocess: false  # Disable Jinja2 preprocessing (this page documents Jinja2 syntax)
 ---
 
 # Template System Reference
@@ -23,7 +24,7 @@ Bengal uses [Jinja2](https://jinja.palletsprojects.com/) for templating, providi
 - ✅ Loops and iteration
 - ✅ Safe HTML escaping
 
-> **📝 Writing Template Documentation?** If you need to show Jinja2 syntax literally (like `{{ '{{ toc }}' }}` or `{{ '{% for %}' }}`), use **string literals** instead of `{% raw %}` blocks. See [Escaping Template Syntax](#escaping-template-syntax) below for details.
+> **📝 Writing Template Documentation?** If you need to show Jinja2 syntax literally (like `{{ '{{ toc }}' }}` or `{{ '{% for %}' }}`), use **string literals** instead of `{{ '{% raw %}' }}` blocks. See [Escaping Template Syntax](#escaping-template-syntax) below for details.
 
 ## Available Templates
 
@@ -664,7 +665,7 @@ Use {{ '{{ site.pages | length }}' }} to show page count.
 {{ '{% endif %}' }}
 ```
 
-**How it works**: The outer `{{ }}` evaluates the inner string literal, outputting the Jinja2 syntax as plain text.
+**How it works**: The outer `{{ '{{ }}' }}` evaluates the inner string literal, outputting the Jinja2 syntax as plain text.
 
 #### In Code Blocks
 
@@ -700,15 +701,15 @@ Format dates with {{ '{{ page.date | dateformat("%Y-%m-%d") }}' }}.
 Use {{ '{% if page.featured %}' }} to check if a page is featured.
 ```
 
-#### Why Not `{% raw %}`?
+#### Why Not `{{ '{% raw %}' }}`?
 
-**Don't use** `{% raw %}...{% endraw %}` in Bengal markdown files! Here's why:
+**Don't use** `{{ '{% raw %}...{% endraw %}' }}` in Bengal markdown files! Here's why:
 
 Bengal has a **two-stage rendering process**:
 1. **Stage 1**: Markdown content is preprocessed through Jinja2 (allows variables in markdown)
 2. **Stage 2**: Final HTML is wrapped in templates (base.html with CSS, navigation, etc.)
 
-`{% raw %}` blocks can span between these stages, causing:
+`{{ '{% raw %}' }}` blocks can span between these stages, causing:
 - ❌ Template rendering errors
 - ❌ Broken CSS and styling
 - ❌ Missing navigation/page structure
@@ -725,19 +726,19 @@ String literals work because they're evaluated in Stage 1, becoming plain text b
 | `{{ page.title }}` | `{{ '{{ page.title }}' }}` |
 | Multiple lines | Use string literal for each line |
 
-> **Pro Tip**: This only applies to **markdown content files**. In actual `.html` template files, you can use `{% raw %}` normally since they're only processed once.
+> **Pro Tip**: This only applies to **markdown content files**. In actual `.html` template files, you can use `{{ '{% raw %}' }}` normally since they're only processed once.
 
 ### Whitespace Control
 
 ```jinja2
 {# Remove whitespace before #}
-{%- if condition %}
+{{ '{%- if condition %}' }}
 
 {# Remove whitespace after #}
-{% if condition -%}
+{{ '{% if condition -%}' }}
 
 {# Remove both #}
-{%- if condition -%}
+{{ '{%- if condition -%}' }}
 ```
 
 ### Set Variables

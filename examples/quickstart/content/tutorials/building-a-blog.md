@@ -434,36 +434,36 @@ Create `assets/css/custom.css`:
 Create `templates/post.html` to override the default:
 
 ```jinja2
-{% extends "base.html" %}
+{{ '{% extends "base.html" %}' }}
 
-{% block content %}
+{{ '{% block content %}' }}
 <article class="blog-post">
   <header>
-    <h1>{{ page.title }}</h1>
+    <h1>{{ '{{ page.title }}' }}</h1>
     <div class="post-meta">
-      <time datetime="{{ page.date | dateformat('%Y-%m-%d') }}">
-        {{ page.date | dateformat('%B %d, %Y') }}
+      <time datetime="{{ '{{ page.date | dateformat' }}('%Y-%m-%d') }}">
+        {{ '{{ page.date | dateformat' }}('%B %d, %Y') }}
       </time>
-      {% if page.metadata.author %}
-        <span> • By {{ page.metadata.author }}</span>
-      {% endif %}
+      {{ '{% if page.metadata.author %}' }}
+        <span> • By {{ '{{ page.metadata.author }}' }}</span>
+      {{ '{% endif %}' }}
     </div>
   </header>
 
   <div class="post-content">
-    {{ content }}
+    {{ '{{ content }}' }}
   </div>
 
-  {% if page.tags %}
+  {{ '{% if page.tags %}' }}
     <footer class="post-tags">
       <strong>Tags:</strong>
-      {% for tag in page.tags %}
-        <a href="/tags/{{ tag }}/" class="tag">{{ tag }}</a>
-      {% endfor %}
+      {{ '{% for tag in page.tags %}' }}
+        <a href="/tags/{{ '{{ tag }}' }}/" class="tag">{{ '{{ tag }}' }}</a>
+      {{ '{% endfor %}' }}
     </footer>
-  {% endif %}
+  {{ '{% endif %}' }}
 </article>
-{% endblock %}
+{{ '{% endblock %}' }}
 ```
 
 ## Step 12: Deploy Your Blog

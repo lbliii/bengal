@@ -66,7 +66,7 @@ class DevServer:
     Development server with file watching and auto-rebuild.
     """
     
-    def __init__(self, site: Any, host: str = "localhost", port: int = 8000, watch: bool = True, auto_port: bool = True) -> None:
+    def __init__(self, site: Any, host: str = "localhost", port: int = 5173, watch: bool = True, auto_port: bool = True) -> None:
         """
         Initialize the dev server.
         

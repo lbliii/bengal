@@ -277,10 +277,99 @@ Parse → Build AST → Apply Templates → Render Output → Post-process
   - **Pagination (3 functions)**: `paginate`, `page_url`, `page_range`
 
 #### Parser (`bengal/rendering/parser.py`)
-- Converts Markdown (or other formats) to HTML
-- Extracts table of contents (TOC) from headings
-- TOC automatically exposed to templates via `page.toc`
-- Supports extensions (code highlighting, tables, etc.)
+- **Multi-Engine Architecture**: Supports multiple Markdown parsers with unified interface
+- **Base Parser Interface**: `BaseMarkdownParser` ABC defines contract for all parsers
+- **Factory Pattern**: `create_markdown_parser(engine)` returns appropriate parser instance
+- **Thread-Local Caching**: Parser instances reused per thread for performance
+- **Supported Engines**:
+  - **`python-markdown`** (default, legacy): Feature-rich, slower (3.78s for 78 pages)
+  - **`mistune`** (recommended): Fast parser with full doc features (2.18s for 78 pages, **42% faster**)
+- **Configuration**: Select engine via `bengal.toml`:
+  ```toml
+  [build]
+  markdown_engine = "mistune"  # or "python-markdown"
+  ```
+
+##### Mistune Parser (`MistuneParser`)
+- **Performance**: 52% faster rendering, 42% faster total builds
+- **Built-in Features**:
+  - GFM tables, footnotes, definition lists
+  - Task lists, strikethrough, autolinks
+  - Code blocks (fenced + inline)
+- **Custom Plugins**:
+  - **Admonitions**: `!!! note "Title"` syntax (7+ types)
+  - **Directives**: Fenced directives for rich content (` ```{name} `)
+    - **Tabs**: Multi-tab content with markdown support
+    - **Dropdowns**: Collapsible sections
+    - **Code-tabs**: Multi-language code examples (partial support)
+  - **Variable Substitution**: `{{ page.metadata.xxx }}` in markdown content
+  - **TOC Generation**: Extracts h2-h4 headings with slugs
+  - **Heading IDs**: Auto-generated with permalink anchors
+- **Nesting Support**: Full recursive markdown parsing inside directives
+- **Plugin Architecture**: Extensible via `mistune.DirectivePlugin`
+- **Location**: Core parser in `bengal/rendering/parser.py`, plugins in `bengal/rendering/mistune_plugins.py`
+
+##### Variable Substitution in Markdown Content
+- **Purpose**: Allow DRY content with dynamic values from frontmatter
+- **Architecture**: Mistune plugin operating at AST level (single-pass)
+- **Plugin**: `VariableSubstitutionPlugin` in `mistune_plugins.py`
+
+**What Works:**
+```markdown
+Welcome to {{ page.metadata.product_name }} version {{ page.metadata.version }}.
+
+Connect to {{ page.metadata.api_url }}/users
+```
+
+**Code Blocks Stay Literal (Natural Behavior):**
+```markdown
+Use `{{ page.title }}` to show the title.  ← Literal in output
+
+```python
+# This {{ var }} stays literal too!
+print("{{ page.title }}")
+```
+```
+
+**Design Decision: Separation of Concerns**
+
+Conditionals and loops belong in **templates**, not markdown:
+
+```html
+<!-- templates/page.html -->
+<article>
+  {% if page.metadata.enterprise %}
+  <div class="enterprise-badge">Enterprise Feature</div>
+  {% endif %}
+  
+  {{ content }}  <!-- Markdown with {{ vars }} renders here -->
+</article>
+```
+
+**Why This Design:**
+- ✅ **Fast**: Single-pass parsing (no preprocessing)
+- ✅ **Simple**: No code block protection needed
+- ✅ **Natural**: Code blocks work without escaping
+- ✅ **Clean**: Content vs logic separation (like Hugo)
+- ✅ **Maintainable**: Less complex, easier to understand
+
+**Supported:**
+- `{{ page.metadata.xxx }}` - Frontmatter values
+- `{{ page.title }}`, `{{ page.date }}` - Page properties
+- `{{ site.config.xxx }}` - Site configuration
+
+**Not Supported (use templates instead):**
+- `{% if condition %}` - Conditional blocks
+- `{% for item %}` - Loop constructs
+- Complex Jinja2 logic
+
+##### Parser Performance Comparison
+| Parser | Time (78 pages) | Throughput | Features |
+|--------|----------------|------------|----------|
+| python-markdown | 3.78s | 20.6 pages/s | 100% (attribute lists) |
+| **mistune** | **2.18s** | **35.8 pages/s** | 95% (no attribute lists) |
+
+**Recommendation**: Use Mistune for documentation sites (fastest Python SSG)
 
 #### Template Engine (`bengal/rendering/template_engine.py`)
 - Jinja2-based templating
@@ -691,6 +780,11 @@ For detailed testing strategy, see `plan/TEST_STRATEGY.md`.
 - [x] **Parallel post-processing** - 2x speedup achieved! 🎉
 - [x] **Parallel processing tests** - 12 comprehensive tests
 - [x] **Performance benchmarks** - Validated 2-4x speedup claims
+- [x] **Mistune Parser Integration** - 42% faster builds, full doc features! 🎉
+  - Multi-engine architecture with factory pattern
+  - Custom plugins: admonitions, directives (tabs, dropdowns)
+  - Thread-local parser caching
+  - Comprehensive documentation
 
 **Next Priorities:**
 - [ ] Documentation site with comprehensive template function reference

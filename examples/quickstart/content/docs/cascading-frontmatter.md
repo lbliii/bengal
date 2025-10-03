@@ -128,25 +128,15 @@ This guide covers installing {{ page.metadata.product_name }} version {{ page.me
 
 In your page template, display cascaded values:
 
-```html
-<!-- In your template (e.g., doc.html) -->
-<div class="doc-header">
-  <span class="product-name">{{ page.metadata.product_name }}</span>
-  <span class="version-badge">v{{ page.metadata.product_version }}</span>
-  {% if page.metadata.status == 'stable' %}
-    <span class="badge-stable">Stable</span>
-  {% endif %}
-</div>
+In your markdown content, use variables directly:
 
-<article>
-  {{ content }}
-</article>
+```markdown
+# {{ page.metadata.product_name }} {{ page.metadata.product_version }}
 
-<footer class="doc-footer">
-  <p>{{ page.metadata.product_name }} {{ page.metadata.product_version }} 
-     - Released {{ page.metadata.release_date }}</p>
-</footer>
+Released {{ page.metadata.release_date }}.
 ```
+
+**Note:** For conditional logic (if/else), use templates instead of markdown. See the [Template System](../template-system/) documentation.
 
 ### Step 4: Using Variables Inline in Content
 
@@ -182,13 +172,7 @@ Connect to {{ page.metadata.api_base_url }}:
 curl {{ page.metadata.api_base_url }}/health
 ```
 
-Released {{ page.metadata.release_date }}, this is the 
-{% if page.metadata.status == 'stable' %}
-**stable** production version
-{% else %}
-beta version
-{% endif %}
-of {{ page.metadata.product_name }}.
+Released {{ page.metadata.release_date }}, this is the **stable** production version of {{ page.metadata.product_name }}.
 ```
 
 **Result:** All variables are replaced during build:
@@ -197,6 +181,7 @@ of {{ page.metadata.product_name }}.
 - `{{ page.metadata.api_base_url }}` → "https://api.dataflow.example.com/v2"
 
 **To update v2.0 → v2.1:** Change ONE line in `_index.md` cascade, rebuild, done!
+
 
 ## Nested Sections
 

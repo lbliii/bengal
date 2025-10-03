@@ -1,0 +1,258 @@
+/**
+ * Tabs Component
+ * For tabbed content with multiple panes
+ */
+
+/* ============================================
+   TABS CONTAINER
+   ============================================ */
+
+.tabs {
+  position: relative;
+  margin: var(--space-6) 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-primary);
+  overflow: hidden;
+}
+
+/* ============================================
+   TAB NAVIGATION
+   ============================================ */
+
+.tab-nav {
+  display: flex;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-bottom: 2px solid var(--color-border);
+  background-color: var(--color-bg-secondary);
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.tab-nav::-webkit-scrollbar {
+  height: 4px;
+}
+
+.tab-nav::-webkit-scrollbar-track {
+  background: var(--color-bg-secondary);
+}
+
+.tab-nav::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 2px;
+}
+
+.tab-nav li {
+  flex-shrink: 0;
+}
+
+.tab-nav a {
+  display: block;
+  padding: var(--space-3) var(--space-5);
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  font-weight: var(--font-medium);
+  font-size: var(--text-sm);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: all var(--transition-fast) var(--ease-out);
+  white-space: nowrap;
+}
+
+.tab-nav a:hover {
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-tertiary);
+}
+
+.tab-nav li.active a {
+  color: var(--color-accent);
+  border-bottom-color: var(--color-accent);
+  background-color: var(--color-bg-primary);
+  font-weight: var(--font-semibold);
+}
+
+/* ============================================
+   TAB CONTENT
+   ============================================ */
+
+.tab-content {
+  padding: var(--space-5);
+  background-color: var(--color-bg-primary);
+}
+
+.tab-pane {
+  display: none;
+}
+
+.tab-pane.active {
+  display: block;
+  animation: fadeIn 0.2s var(--ease-out);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ============================================
+   TAB CONTENT STYLING
+   ============================================ */
+
+.tab-pane > *:first-child {
+  margin-top: 0;
+}
+
+.tab-pane > *:last-child {
+  margin-bottom: 0;
+}
+
+.tab-pane pre {
+  margin: var(--space-4) 0;
+}
+
+.tab-pane code {
+  font-size: var(--text-sm);
+}
+
+/* ============================================
+   NESTED TABS
+   ============================================ */
+
+.tab-pane .tabs {
+  margin-top: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+/* ============================================
+   DARK MODE
+   ============================================ */
+
+[data-theme="dark"] .tabs {
+  border-color: var(--color-border-dark);
+}
+
+[data-theme="dark"] .tab-nav {
+  border-bottom-color: var(--color-border-dark);
+  background-color: var(--color-bg-secondary-dark);
+}
+
+[data-theme="dark"] .tab-nav a:hover {
+  background-color: var(--color-bg-tertiary-dark);
+}
+
+[data-theme="dark"] .tab-nav li.active a {
+  background-color: var(--color-bg-primary-dark);
+}
+
+[data-theme="dark"] .tab-content {
+  background-color: var(--color-bg-primary-dark);
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
+@media (max-width: 640px) {
+  .tabs {
+    margin: var(--space-4) 0;
+  }
+  
+  .tab-nav a {
+    padding: var(--space-2) var(--space-3);
+    font-size: var(--text-xs);
+  }
+  
+  .tab-content {
+    padding: var(--space-4);
+  }
+}
+
+/* ============================================
+   CODE TABS (Special variant)
+   ============================================ */
+
+.code-tabs .tab-nav {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.code-tabs .tab-nav a {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.code-tabs .tab-nav a:hover {
+  color: rgba(255, 255, 255, 1);
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.code-tabs .tab-nav li.active a {
+  color: #fff;
+  background-color: var(--color-bg-primary);
+  border-bottom-color: transparent;
+}
+
+.code-tabs .tab-content {
+  padding: 0;
+}
+
+.code-tabs .tab-pane {
+  position: relative;
+}
+
+.code-tabs .tab-pane pre {
+  margin: 0;
+  border-radius: 0;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+
+[data-theme="dark"] .code-tabs .tab-nav li.active a {
+  background-color: var(--color-bg-primary-dark);
+}
+
+/* ============================================
+   ACCESSIBILITY
+   ============================================ */
+
+.tab-nav a:focus {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+  z-index: 1;
+}
+
+.tab-nav a:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* ============================================
+   PRINT
+   ============================================ */
+
+@media print {
+  .tabs {
+    border: none;
+  }
+  
+  .tab-nav {
+    display: none;
+  }
+  
+  .tab-pane {
+    display: block !important;
+    page-break-inside: avoid;
+  }
+  
+  .tab-pane:not(:last-child) {
+    border-bottom: 1px solid #ccc;
+    padding-bottom: var(--space-4);
+    margin-bottom: var(--space-4);
+  }
+}
+

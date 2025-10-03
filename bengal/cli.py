@@ -72,7 +72,7 @@ def build(parallel: bool, incremental: bool, verbose: bool, strict: bool, debug:
 
 @main.command()
 @click.option('--host', default='localhost', help='Server host')
-@click.option('--port', default=8000, type=int, help='Server port')
+@click.option('--port', default=5173, type=int, help='Server port')
 @click.option('--no-watch', is_flag=True, help='Disable file watching')
 @click.option('--no-auto-port', is_flag=True, help='Disable automatic port selection (fail if port is in use)')
 @click.option('--config', type=click.Path(exists=True), help='Path to config file')

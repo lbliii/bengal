@@ -14,12 +14,12 @@ Bengal uses Jinja2 for templating, giving you powerful template features.
 ## Template Inheritance
 
 ```jinja2
-{% extends "base.html" %}
+{{ '{% extends "base.html" %}' }}
 
-{% block content %}
-  <h1>{{ page.title }}</h1>
-  {{ content }}
-{% endblock %}
+{{ '{% block content %}' }}
+  <h1>{{ '{{ page.title }}' }}</h1>
+  {{ '{{ content }}' }}
+{{ '{% endblock %}' }}
 ```
 
 ## Template Variables
@@ -34,6 +34,6 @@ All pages have access to:
 Use Jinja2 filters:
 
 ```jinja2
-{{ page.date | date_format("%B %d, %Y") }}
+{{ '{{ page.date | date_format' }}("%B %d, %Y") }}
 ```
 

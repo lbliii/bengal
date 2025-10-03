@@ -4,10 +4,10 @@ Rendering Pipeline - Orchestrates the parsing, AST building, templating, and out
 
 import threading
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 from bengal.core.page import Page
-from bengal.rendering.parser import MarkdownParser
+from bengal.rendering.parser import create_markdown_parser, BaseMarkdownParser
 from bengal.rendering.template_engine import TemplateEngine
 from bengal.rendering.renderer import Renderer
 
@@ -16,19 +16,24 @@ from bengal.rendering.renderer import Renderer
 _thread_local = threading.local()
 
 
-def _get_thread_parser() -> MarkdownParser:
+def _get_thread_parser(engine: Optional[str] = None) -> BaseMarkdownParser:
     """
     Get or create a MarkdownParser instance for the current thread.
     
     This avoids the overhead of creating a new parser for every page,
     while maintaining thread-safety by using thread-local storage.
     
+    Args:
+        engine: Parser engine to use ('python-markdown', 'mistune', or None for default)
+    
     Returns:
         MarkdownParser instance for this thread
     """
-    if not hasattr(_thread_local, 'parser'):
-        _thread_local.parser = MarkdownParser()
-    return _thread_local.parser
+    # Store parser per engine type
+    cache_key = f'parser_{engine or "default"}'
+    if not hasattr(_thread_local, cache_key):
+        setattr(_thread_local, cache_key, create_markdown_parser(engine))
+    return getattr(_thread_local, cache_key)
 
 
 class RenderingPipeline:
@@ -54,8 +59,10 @@ class RenderingPipeline:
             build_stats: Optional BuildStats object to collect warnings
         """
         self.site = site
+        # Get markdown engine from config (default: python-markdown)
+        markdown_engine = site.config.get('markdown_engine', 'python-markdown')
         # Use thread-local parser to avoid re-initialization overhead
-        self.parser = _get_thread_parser()
+        self.parser = _get_thread_parser(markdown_engine)
         self.dependency_tracker = dependency_tracker
         self.quiet = quiet
         self.build_stats = build_stats
@@ -79,12 +86,31 @@ class RenderingPipeline:
         if not page.output_path:
             page.output_path = self._determine_output_path(page)
         
-        # Stage 1: Pre-process content through Jinja2 if enabled
-        # This allows using {{ page.metadata.xxx }} directly in markdown content
-        content = self._preprocess_content(page)
+        # Stage 1 & 2: Parse content with variable substitution
+        # 
+        # ARCHITECTURE: Clean separation of concerns
+        # - Mistune parser: Handles {{ vars }} via VariableSubstitutionPlugin
+        # - Templates: Handle {% if %}, {% for %}, complex logic
+        # - Code blocks: Naturally stay literal (AST-level operation)
+        #
+        if hasattr(self.parser, 'parse_with_toc_and_context'):
+            # Mistune with VariableSubstitutionPlugin (recommended)
+            # Single-pass parsing - fast and simple!
+            context = {
+                'page': page,
+                'site': self.site,
+                'config': self.site.config
+            }
+            parsed_content, toc = self.parser.parse_with_toc_and_context(
+                page.content,
+                page.metadata,
+                context
+            )
+        else:
+            # FALLBACK: python-markdown (legacy, no variable substitution)
+            content = self._preprocess_content(page)
+            parsed_content, toc = self.parser.parse_with_toc(content, page.metadata)
         
-        # Stage 2: Parse content with TOC extraction
-        parsed_content, toc = self.parser.parse_with_toc(content, page.metadata)
         page.parsed_ast = parsed_content
         page.toc = toc
         page.toc_items = self._extract_toc_structure(toc)
@@ -215,6 +241,9 @@ class RenderingPipeline:
         This allows technical writers to use {{ page.metadata.xxx }} directly
         in their markdown content, not just in templates.
         
+        Pages can disable preprocessing by setting `preprocess: false` in frontmatter.
+        This is useful for documentation pages that show Jinja2 syntax examples.
+        
         Args:
             page: Page to pre-process
             
@@ -226,6 +255,10 @@ class RenderingPipeline:
             Today we're talking about {{ page.metadata.product_name }} 
             version {{ page.metadata.version }}.
         """
+        # Skip preprocessing if disabled in frontmatter
+        if page.metadata.get('preprocess') is False:
+            return page.content
+        
         from jinja2 import Template, TemplateSyntaxError
         
         try:
