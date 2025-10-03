@@ -8,6 +8,8 @@ import tempfile
 import shutil
 from bengal.core.site import Site
 from bengal.core.asset import Asset
+from bengal.orchestration.asset import AssetOrchestrator
+from bengal.orchestration.postprocess import PostprocessOrchestrator
 
 
 class TestParallelAssetProcessing:
@@ -81,7 +83,8 @@ parallel = true
         assert len(site.assets) >= 2
         
         # Process assets (should work regardless of parallel/sequential)
-        site._process_assets()
+        asset_orchestrator = AssetOrchestrator(site)
+        asset_orchestrator.process(site.assets, parallel=False)
         
         # Verify our assets were copied
         output_files = list((temp_site_dir / "public" / "assets").rglob("*.*"))
@@ -96,7 +99,8 @@ parallel = true
         assert len(site.assets) >= 18
         
         # Process assets
-        site._process_assets()
+        asset_orchestrator = AssetOrchestrator(site)
+        asset_orchestrator.process(site.assets, parallel=True)
         
         # Verify all assets were copied
         output_dir = temp_site_dir / "public" / "assets"
@@ -111,7 +115,8 @@ parallel = true
         # First run: parallel (default)
         site1 = Site.from_config(temp_site_dir)
         site1.discover_assets()
-        site1._process_assets()
+        asset_orchestrator1 = AssetOrchestrator(site1)
+        asset_orchestrator1.process(site1.assets, parallel=True)
         
         parallel_output = temp_site_dir / "public" / "assets"
         parallel_files = {f.name: f.read_bytes() for f in parallel_output.rglob("*.*") if f.is_file()}
@@ -124,7 +129,8 @@ parallel = true
         # Actually, let's just verify the method works
         site2 = Site.from_config(temp_site_dir)
         site2.discover_assets()
-        site2._process_assets()
+        asset_orchestrator2 = AssetOrchestrator(site2)
+        asset_orchestrator2.process(site2.assets, parallel=False)
         
         sequential_output = temp_site_dir / "public" / "assets"
         sequential_files = {f.name: f.read_bytes() for f in sequential_output.rglob("*.*") if f.is_file()}
@@ -144,7 +150,8 @@ parallel = true
         site.assets.append(bad_asset)
         
         # Should not raise exception
-        site._process_assets()
+        asset_orchestrator = AssetOrchestrator(site)
+        asset_orchestrator.process(site.assets, parallel=True)
         
         # Other assets should still be processed
         output_dir = temp_site_dir / "public" / "assets"
@@ -202,7 +209,8 @@ parallel = true
             page.output_path.write_text(f"<html><body>{page.title}</body></html>")
         
         # Run post-processing
-        site._post_process()
+        postprocess_orchestrator = PostprocessOrchestrator(site)
+        postprocess_orchestrator.run(parallel=True)
         
         # Verify files were created
         assert (site.output_dir / "sitemap.xml").exists()
@@ -229,7 +237,8 @@ validate_links = false
             page.output_path.write_text(f"<html><body>{page.title}</body></html>")
         
         # Run post-processing
-        site._post_process()
+        postprocess_orchestrator = PostprocessOrchestrator(site)
+        postprocess_orchestrator.run(parallel=True)
         
         # Verify only sitemap was created
         assert (site.output_dir / "sitemap.xml").exists()
@@ -244,7 +253,8 @@ validate_links = false
         # but shouldn't crash
         
         # Should not raise exception
-        site._post_process()
+        postprocess_orchestrator = PostprocessOrchestrator(site)
+        postprocess_orchestrator.run(parallel=True)
         
         # Files may or may not be created, but build shouldn't crash
 
