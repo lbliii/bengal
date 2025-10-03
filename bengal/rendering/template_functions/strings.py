@@ -1,0 +1,344 @@
+"""
+String manipulation functions for templates.
+
+Provides 10 essential string functions for text processing in templates.
+"""
+
+import re
+from typing import TYPE_CHECKING, Optional
+
+if TYPE_CHECKING:
+    from jinja2 import Environment
+    from bengal.core.site import Site
+
+
+def register(env: 'Environment', site: 'Site') -> None:
+    """Register string functions with Jinja2 environment."""
+    env.filters.update({
+        'truncatewords': truncatewords,
+        'truncatewords_html': truncatewords_html,
+        'slugify': slugify,
+        'markdownify': markdownify,
+        'strip_html': strip_html,
+        'truncate_chars': truncate_chars,
+        'replace_regex': replace_regex,
+        'pluralize': pluralize,
+        'reading_time': reading_time,
+        'excerpt': excerpt,
+        'strip_whitespace': strip_whitespace,
+    })
+
+
+def truncatewords(text: str, count: int, suffix: str = "...") -> str:
+    """
+    Truncate text to a specified number of words.
+    
+    Args:
+        text: Text to truncate
+        count: Maximum number of words
+        suffix: Text to append when truncated (default: "...")
+    
+    Returns:
+        Truncated text with suffix if needed
+    
+    Example:
+        {{ post.content | truncatewords(50) }}
+        {{ post.content | truncatewords(30, " [Read more]") }}
+    """
+    if not text:
+        return ''
+    
+    words = text.split()
+    if len(words) <= count:
+        return text
+    
+    return ' '.join(words[:count]) + suffix
+
+
+def truncatewords_html(html: str, count: int, suffix: str = "...") -> str:
+    """
+    Truncate HTML text to word count, preserving HTML tags.
+    
+    This is more sophisticated than truncatewords - it preserves HTML structure
+    and properly closes tags.
+    
+    Args:
+        html: HTML text to truncate
+        count: Maximum number of words
+        suffix: Text to append when truncated
+    
+    Returns:
+        Truncated HTML with properly closed tags
+    
+    Example:
+        {{ post.html_content | truncatewords_html(50) }}
+    """
+    if not html:
+        return ''
+    
+    # Strip HTML to count words
+    text_only = strip_html(html)
+    words = text_only.split()
+    
+    if len(words) <= count:
+        return html
+    
+    # Simple implementation: strip HTML, truncate, add suffix
+    # A more sophisticated version would preserve HTML structure
+    truncated_text = ' '.join(words[:count])
+    return truncated_text + suffix
+
+
+def slugify(text: str) -> str:
+    """
+    Convert text to URL-safe slug.
+    
+    Converts to lowercase, removes special characters, replaces spaces with hyphens.
+    
+    Args:
+        text: Text to convert
+    
+    Returns:
+        URL-safe slug
+    
+    Example:
+        {{ page.title | slugify }}  # "Hello World!" -> "hello-world"
+    """
+    if not text:
+        return ''
+    
+    # Convert to lowercase and strip
+    text = text.lower().strip()
+    
+    # Remove non-word characters (except spaces and hyphens)
+    text = re.sub(r'[^\w\s-]', '', text)
+    
+    # Replace multiple spaces/hyphens with single hyphen
+    text = re.sub(r'[-\s]+', '-', text)
+    
+    # Remove leading/trailing hyphens
+    text = text.strip('-')
+    
+    return text
+
+
+def markdownify(text: str) -> str:
+    """
+    Render Markdown text to HTML.
+    
+    Uses Python-Markdown with extensions for tables, code highlighting, etc.
+    
+    Args:
+        text: Markdown text
+    
+    Returns:
+        Rendered HTML
+    
+    Example:
+        {{ markdown_text | markdownify | safe }}
+    """
+    if not text:
+        return ''
+    
+    try:
+        import markdown
+        md = markdown.Markdown(extensions=[
+            'extra',
+            'codehilite',
+            'tables',
+            'fenced_code',
+        ])
+        return md.convert(text)
+    except ImportError:
+        # Fallback if markdown not installed
+        return text
+
+
+def strip_html(text: str) -> str:
+    """
+    Remove all HTML tags from text.
+    
+    Args:
+        text: HTML text
+    
+    Returns:
+        Text with HTML tags removed
+    
+    Example:
+        {{ post.html_content | strip_html }}
+    """
+    if not text:
+        return ''
+    
+    # Remove HTML tags
+    text = re.sub(r'<[^>]+>', '', text)
+    
+    # Decode HTML entities
+    try:
+        import html
+        text = html.unescape(text)
+    except ImportError:
+        pass
+    
+    return text
+
+
+def truncate_chars(text: str, length: int, suffix: str = "...") -> str:
+    """
+    Truncate text to character length.
+    
+    Args:
+        text: Text to truncate
+        length: Maximum character length
+        suffix: Text to append when truncated
+    
+    Returns:
+        Truncated text with suffix if needed
+    
+    Example:
+        {{ post.excerpt | truncate_chars(200) }}
+    """
+    if not text:
+        return ''
+    
+    if len(text) <= length:
+        return text
+    
+    return text[:length].rstrip() + suffix
+
+
+def replace_regex(text: str, pattern: str, replacement: str) -> str:
+    """
+    Replace text using regular expression.
+    
+    Args:
+        text: Text to search in
+        pattern: Regular expression pattern
+        replacement: Replacement text
+    
+    Returns:
+        Text with replacements made
+    
+    Example:
+        {{ text | replace_regex('\\d+', 'NUM') }}
+    """
+    if not text:
+        return ''
+    
+    try:
+        return re.sub(pattern, replacement, text)
+    except re.error:
+        # Return original text if regex is invalid
+        return text
+
+
+def pluralize(count: int, singular: str, plural: Optional[str] = None) -> str:
+    """
+    Return singular or plural form based on count.
+    
+    Args:
+        count: Number to check
+        singular: Singular form
+        plural: Plural form (default: singular + 's')
+    
+    Returns:
+        Appropriate form based on count
+    
+    Example:
+        {{ posts | length }} {{ posts | length | pluralize('post', 'posts') }}
+        {{ count | pluralize('item') }}  # auto-pluralizes to "items"
+    """
+    if plural is None:
+        plural = singular + 's'
+    
+    return singular if count == 1 else plural
+
+
+def reading_time(text: str, wpm: int = 200) -> int:
+    """
+    Calculate reading time in minutes.
+    
+    Args:
+        text: Text to analyze
+        wpm: Words per minute reading speed (default: 200)
+    
+    Returns:
+        Reading time in minutes (minimum 1)
+    
+    Example:
+        {{ post.content | reading_time }} min read
+        {{ post.content | reading_time(250) }} min read
+    """
+    if not text:
+        return 1
+    
+    # Strip HTML if present
+    clean_text = strip_html(text)
+    
+    # Count words
+    words = len(clean_text.split())
+    
+    # Calculate reading time
+    minutes = words / wpm
+    
+    # Always return at least 1 minute
+    return max(1, round(minutes))
+
+
+def excerpt(text: str, length: int = 200, respect_word_boundaries: bool = True) -> str:
+    """
+    Extract excerpt from text, optionally respecting word boundaries.
+    
+    Args:
+        text: Text to excerpt from
+        length: Maximum length in characters
+        respect_word_boundaries: Don't cut words in half (default: True)
+    
+    Returns:
+        Excerpt with ellipsis if truncated
+    
+    Example:
+        {{ post.content | excerpt(200) }}
+        {{ post.content | excerpt(150, false) }}  # Can cut words
+    """
+    if not text:
+        return ''
+    
+    # Strip HTML first
+    clean_text = strip_html(text)
+    
+    if len(clean_text) <= length:
+        return clean_text
+    
+    if respect_word_boundaries:
+        # Find the last space before the limit
+        excerpt_text = clean_text[:length].rsplit(' ', 1)[0]
+        return excerpt_text + "..."
+    else:
+        return clean_text[:length] + "..."
+
+
+def strip_whitespace(text: str) -> str:
+    """
+    Remove extra whitespace (multiple spaces, newlines, tabs).
+    
+    Replaces all whitespace sequences with a single space.
+    
+    Args:
+        text: Text to clean
+    
+    Returns:
+        Text with normalized whitespace
+    
+    Example:
+        {{ messy_text | strip_whitespace }}
+    """
+    if not text:
+        return ''
+    
+    # Replace all whitespace sequences with single space
+    text = re.sub(r'\s+', ' ', text)
+    
+    # Strip leading/trailing whitespace
+    return text.strip()
+

@@ -6,6 +6,8 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 from jinja2 import Environment, FileSystemLoader, select_autoescape, Template
 
+from bengal.rendering.template_functions import register_all
+
 
 class TemplateEngine:
     """
@@ -61,13 +63,16 @@ class TemplateEngine:
             lstrip_blocks=True,
         )
         
-        # Add custom filters
+        # Add custom filters (legacy)
         env.filters['dateformat'] = self._filter_dateformat
         
-        # Add global functions
+        # Add global functions (legacy)
         env.globals['url_for'] = self._url_for
         env.globals['asset_url'] = self._asset_url
         env.globals['get_menu'] = self._get_menu
+        
+        # Register all template functions (Phase 1: 30 functions)
+        register_all(env, self.site)
         
         return env
     

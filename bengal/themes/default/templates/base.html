@@ -8,11 +8,18 @@
     {# Title #}
     <title>{% block title %}{{ page.title | default(site.config.title) }}{% if page and page.title %} - {{ site.config.title }}{% endif %}{% endblock %}</title>
     
-    {# Meta Description #}
+    {# Meta Description - Auto-generate if not provided #}
     {% if page and page.metadata.description %}
     <meta name="description" content="{{ page.metadata.description }}">
+    {% elif page and page.content %}
+    <meta name="description" content="{{ page.content | meta_description(160) }}">
     {% else %}
     <meta name="description" content="{{ site.config.description | default('') }}">
+    {% endif %}
+    
+    {# Meta Keywords #}
+    {% if page and page.tags %}
+    <meta name="keywords" content="{{ page.tags | meta_keywords(10) }}">
     {% endif %}
     
     {# Open Graph / Facebook #}
@@ -20,21 +27,36 @@
     <meta property="og:title" content="{{ page.title | default(site.config.title) }}">
     {% if page and page.metadata.description %}
     <meta property="og:description" content="{{ page.metadata.description }}">
+    {% elif page and page.content %}
+    <meta property="og:description" content="{{ page.content | meta_description(160) }}">
     {% endif %}
     {% if site.config.baseurl %}
-    <meta property="og:url" content="{{ site.config.baseurl }}{{ page.output_path | default('/') }}">
+    <meta property="og:url" content="{{ canonical_url(page.url | default('/')) }}">
+    {% endif %}
+    {# Open Graph Image #}
+    {% if page and page.metadata.image %}
+    <meta property="og:image" content="{{ og_image(page.metadata.image) }}">
+    {% elif site.config.og_image %}
+    <meta property="og:image" content="{{ og_image(site.config.og_image) }}">
     {% endif %}
     
     {# Twitter Card #}
-    <meta name="twitter:card" content="summary">
+    <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="{{ page.title | default(site.config.title) }}">
     {% if page and page.metadata.description %}
     <meta name="twitter:description" content="{{ page.metadata.description }}">
+    {% elif page and page.content %}
+    <meta name="twitter:description" content="{{ page.content | meta_description(160) }}">
+    {% endif %}
+    {% if page and page.metadata.image %}
+    <meta name="twitter:image" content="{{ og_image(page.metadata.image) }}">
+    {% elif site.config.og_image %}
+    <meta name="twitter:image" content="{{ og_image(site.config.og_image) }}">
     {% endif %}
     
     {# Canonical URL #}
     {% if site.config.baseurl %}
-    <link rel="canonical" href="{{ site.config.baseurl }}{{ page.output_path | default('/') }}">
+    <link rel="canonical" href="{{ canonical_url(page.url | default('/')) }}">
     {% endif %}
     
     {# RSS Feed #}
@@ -126,8 +148,17 @@
         {% if main_menu %}
         <ul>
             {% for item in main_menu %}
-            <li class="{{ 'active' if item.active else '' }}">
+            <li class="{{ 'has-submenu' if item.children else '' }} {{ 'active' if item.active else '' }}">
                 <a href="{{ item.url }}">{{ item.name }}</a>
+                {% if item.children %}
+                <ul class="submenu">
+                    {% for child in item.children %}
+                    <li class="{{ 'active' if child.active else '' }}">
+                        <a href="{{ child.url }}">{{ child.name }}</a>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
             </li>
             {% endfor %}
             {% block mobile_nav_items %}{% endblock %}

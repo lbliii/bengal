@@ -25,8 +25,8 @@
         
         <div class="article-card-meta">
             {% if article.date %}
-            <time datetime="{{ article.date.isoformat() }}">
-                {{ article.date | dateformat('%B %d, %Y') }}
+            <time datetime="{{ article.date | date_iso }}" title="{{ article.date | dateformat('%B %d, %Y') }}">
+                {{ article.date | time_ago }}
             </time>
             {% endif %}
             
@@ -36,7 +36,7 @@
             
             {% if article.content %}
             <span class="reading-time">
-                {{ (article.content.split() | length / 200) | round | int }} min read
+                {{ article.content | reading_time }} min read
             </span>
             {% endif %}
         </div>
@@ -46,7 +46,7 @@
             {% if article.metadata.description %}
                 {{ article.metadata.description }}
             {% elif article.content %}
-                {{ article.content[:200] | striptags }}...
+                {{ article.content | strip_html | excerpt(150) }}
             {% endif %}
         </p>
         {% endif %}

@@ -45,6 +45,19 @@ url = "/docs/"
 weight = 4
 identifier = "docs"
 
+# Nested under Docs
+[[menu.main]]
+name = "Getting Started"
+url = "/docs/"
+weight = 1
+parent = "docs"
+
+[[menu.main]]
+name = "Advanced Topics"
+url = "/docs/advanced-markdown/"
+weight = 2
+parent = "docs"
+
 [[menu.main]]
 name = "Tutorials"
 url = "/tutorials/"

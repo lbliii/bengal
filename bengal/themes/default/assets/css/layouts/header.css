@@ -90,7 +90,76 @@ header .container {
   text-decoration: none;
 }
 
-.nav-main a.active {
+.nav-main li.active > a {
+  color: var(--color-primary);
+  background-color: var(--color-bg-secondary);
+}
+
+.nav-main li.active-trail > a {
+  color: var(--color-primary);
+}
+
+/* ============================================
+   SUBMENU / NESTED NAVIGATION
+   ============================================ */
+
+.nav-main li {
+  position: relative;
+}
+
+.nav-main .submenu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  min-width: 200px;
+  margin-top: var(--space-1);
+  padding: var(--space-2) 0;
+  background-color: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-8px);
+  transition: all var(--transition-fast) var(--ease-out);
+  z-index: var(--z-dropdown);
+  
+  /* Reset flex layout */
+  display: block;
+}
+
+[data-theme="dark"] .nav-main .submenu {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.nav-main li:hover > .submenu,
+.nav-main li:focus-within > .submenu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.nav-main .submenu li {
+  margin: 0;
+  width: 100%;
+}
+
+.nav-main .submenu a {
+  width: 100%;
+  padding: var(--space-2) var(--space-4);
+  border-radius: 0;
+  font-size: var(--text-base);
+}
+
+.nav-main .submenu li:first-child a {
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+}
+
+.nav-main .submenu li:last-child a {
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+}
+
+.nav-main .submenu li.active > a {
   color: var(--color-primary);
   background-color: var(--color-bg-secondary);
 }
@@ -196,6 +265,34 @@ header .container {
   color: var(--color-primary);
   background-color: var(--color-bg-hover);
   text-decoration: none;
+}
+
+.mobile-nav li.active > a {
+  color: var(--color-primary);
+  background-color: var(--color-bg-secondary);
+}
+
+/* Mobile submenus - show as nested list */
+.mobile-nav .submenu {
+  display: none;
+  padding-left: var(--space-6);
+  margin-top: var(--space-2);
+}
+
+.mobile-nav li.has-submenu > a::after {
+  content: '▼';
+  margin-left: var(--space-2);
+  font-size: var(--text-sm);
+  opacity: 0.6;
+  transition: transform var(--transition-fast);
+}
+
+.mobile-nav li.has-submenu.submenu-open > a::after {
+  transform: rotate(180deg);
+}
+
+.mobile-nav li.has-submenu.submenu-open > .submenu {
+  display: block;
 }
 
 /* ============================================

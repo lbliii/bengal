@@ -98,8 +98,32 @@
       closeBtn.addEventListener('click', closeNav);
     }
     
-    // Close on link click (for single-page apps or anchor links)
-    const navLinks = mobileNav.querySelectorAll('a');
+    // Handle submenu toggles
+    const submenuParents = mobileNav.querySelectorAll('.has-submenu > a');
+    submenuParents.forEach(function(link) {
+      link.addEventListener('click', function(e) {
+        const parent = link.parentElement;
+        const isSubmenuOpen = parent.classList.contains('submenu-open');
+        
+        // Close all other submenus
+        mobileNav.querySelectorAll('.submenu-open').forEach(function(item) {
+          if (item !== parent) {
+            item.classList.remove('submenu-open');
+          }
+        });
+        
+        // Toggle this submenu
+        parent.classList.toggle('submenu-open');
+        
+        // If submenu is being opened, prevent navigation
+        if (!isSubmenuOpen) {
+          e.preventDefault();
+        }
+      });
+    });
+    
+    // Close on regular link click (for single-page apps or anchor links)
+    const navLinks = mobileNav.querySelectorAll('a:not(.has-submenu > a)');
     navLinks.forEach(function(link) {
       link.addEventListener('click', function() {
         // Small delay to allow navigation
