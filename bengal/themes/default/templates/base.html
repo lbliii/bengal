@@ -64,8 +64,10 @@
     {# RSS Feed #}
     <link rel="alternate" type="application/rss+xml" title="{{ site.config.title }} RSS Feed" href="/rss.xml">
     
-    {# Favicon #}
-    <link rel="icon" type="image/png" href="/favicon.png">
+    {# Favicon - only include if configured #}
+    {% if site.config.favicon %}
+    <link rel="icon" type="image/png" href="{{ site.config.favicon }}">
+    {% endif %}
     
     {# Stylesheets #}
     <link rel="stylesheet" href="{{ asset_url('css/style.css') }}">

@@ -8,10 +8,129 @@ import http.server
 import socketserver
 import socket
 import threading
+import time
+from datetime import datetime
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler, FileSystemEvent
 
 from bengal.utils.build_stats import display_build_stats, show_building_indicator, show_error
+
+
+class QuietHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
+    """
+    Custom HTTP request handler with beautiful, minimal logging.
+    """
+    
+    # Suppress default server version header
+    server_version = "Bengal/1.0"
+    sys_version = ""
+    
+    def log_message(self, format: str, *args: Any) -> None:
+        """
+        Log an HTTP request with beautiful formatting.
+        
+        Args:
+            format: Format string
+            *args: Format arguments
+        """
+        # Skip certain requests that clutter the logs
+        path = args[0] if args else ""
+        status_code = args[1] if len(args) > 1 else ""
+        
+        # Skip these noisy requests
+        skip_patterns = [
+            "/.well-known/",
+            "/favicon.ico",
+            "/favicon.png",
+        ]
+        
+        for pattern in skip_patterns:
+            if pattern in path:
+                return
+        
+        # Get request method and path
+        parts = path.split()
+        method = parts[0] if parts else "GET"
+        request_path = parts[1] if len(parts) > 1 else "/"
+        
+        # Skip assets unless they're errors or initial loads
+        is_asset = any(request_path.startswith(prefix) for prefix in ['/assets/', '/static/'])
+        is_cached = status_code == "304"
+        is_success = status_code.startswith("2")
+        
+        # Only show assets if they're errors, not cached successful loads
+        if is_asset and (is_cached or is_success):
+            return
+        
+        # Skip 304s entirely - they're just cache hits
+        if is_cached:
+            return
+        
+        # Colorize status codes
+        status_color = self._get_status_color(status_code)
+        method_color = self._get_method_color(method)
+        
+        # Format path nicely
+        if len(request_path) > 60:
+            request_path = request_path[:57] + "..."
+        
+        # Get timestamp
+        timestamp = datetime.now().strftime("%H:%M:%S")
+        
+        # Add emoji indicators for different types
+        indicator = ""
+        if not is_asset:
+            if status_code.startswith("2"):
+                indicator = "📄 "  # Page load
+            elif status_code.startswith("4"):
+                indicator = "❌ "  # Error
+        
+        # Beautiful output
+        print(f"  {timestamp} │ {method_color}{method:6}{self._reset()} │ {status_color}{status_code:3}{self._reset()} │ {indicator}{request_path}")
+    
+    def _get_status_color(self, status: str) -> str:
+        """Get ANSI color code for status code."""
+        try:
+            code = int(status)
+            if 200 <= code < 300:
+                return "\033[32m"  # Green
+            elif code == 304:
+                return "\033[90m"  # Gray
+            elif 300 <= code < 400:
+                return "\033[36m"  # Cyan
+            elif 400 <= code < 500:
+                return "\033[33m"  # Yellow
+            else:
+                return "\033[31m"  # Red
+        except (ValueError, TypeError):
+            return ""
+    
+    def _get_method_color(self, method: str) -> str:
+        """Get ANSI color code for HTTP method."""
+        colors = {
+            "GET": "\033[36m",     # Cyan
+            "POST": "\033[33m",    # Yellow
+            "PUT": "\033[35m",     # Magenta
+            "DELETE": "\033[31m",  # Red
+            "PATCH": "\033[35m",   # Magenta
+        }
+        return colors.get(method, "\033[37m")  # Default white
+    
+    def _reset(self) -> str:
+        """Get ANSI reset code."""
+        return "\033[0m"
+    
+    def log_error(self, format: str, *args: Any) -> None:
+        """
+        Suppress error logging - we handle everything in log_message.
+        
+        Args:
+            format: Format string
+            *args: Format arguments
+        """
+        # All error logging is handled in log_message with proper filtering
+        # This prevents duplicate error messages
+        pass
 
 
 class BuildHandler(FileSystemEventHandler):
@@ -49,14 +168,22 @@ class BuildHandler(FileSystemEventHandler):
         # Trigger rebuild
         if not self.building:
             self.building = True
-            print(f"\n📝 Change detected: {Path(event.src_path).name}")
+            timestamp = datetime.now().strftime("%H:%M:%S")
+            file_name = Path(event.src_path).name
+            print(f"\n  \033[90m{'─' * 78}\033[0m")
+            print(f"  {timestamp} │ \033[33m📝 File changed:\033[0m {file_name}")
+            print(f"  \033[90m{'─' * 78}\033[0m\n")
             show_building_indicator("Rebuilding")
             
             try:
                 stats = self.site.build(parallel=False)
                 display_build_stats(stats, show_art=False, output_dir=str(self.site.output_dir))
+                print(f"\n  \033[90m{'TIME':8} │ {'METHOD':6} │ {'STATUS':3} │ PATH\033[0m")
+                print(f"  \033[90m{'─' * 8}─┼─{'─' * 6}─┼─{'─' * 3}─┼─{'─' * 60}\033[0m")
             except Exception as e:
                 show_error(f"Build failed: {e}", show_art=False)
+                print(f"\n  \033[90m{'TIME':8} │ {'METHOD':6} │ {'STATUS':3} │ PATH\033[0m")
+                print(f"  \033[90m{'─' * 8}─┼─{'─' * 6}─┼─{'─' * 3}─┼─{'─' * 60}\033[0m")
             finally:
                 self.building = False
 
@@ -115,7 +242,6 @@ class DevServer:
                 self.observer.schedule(event_handler, str(watch_dir), recursive=True)
         
         self.observer.start()
-        print(f"👀 Watching for file changes...")
     
     def _is_port_available(self, port: int) -> bool:
         """
@@ -159,8 +285,8 @@ class DevServer:
         import os
         os.chdir(self.site.output_dir)
         
-        # Create server
-        Handler = http.server.SimpleHTTPRequestHandler
+        # Create server with our custom handler
+        Handler = QuietHTTPRequestHandler
         
         # Determine port to use
         actual_port = self.port
@@ -192,16 +318,24 @@ class DevServer:
         socketserver.TCPServer.allow_reuse_address = True
         
         with socketserver.TCPServer((self.host, actual_port), Handler) as httpd:
-            print(f"\n🚀 Bengal dev server running at http://{self.host}:{actual_port}/")
-            print(f"📁 Serving from: {self.site.output_dir}")
-            print("Press Ctrl+C to stop\n")
+            print(f"\n╭{'─' * 78}╮")
+            print(f"│ 🚀 \033[1mBengal Dev Server\033[0m{' ' * 59}│")
+            print(f"│{' ' * 78}│")
+            print(f"│   \033[36m➜\033[0m  Local:   \033[1mhttp://{self.host}:{actual_port}/\033[0m{' ' * (52 - len(self.host) - len(str(actual_port)))}│")
+            print(f"│   \033[90m➜\033[0m  Serving: {str(self.site.output_dir)[:60]}{' ' * max(0, 60 - len(str(self.site.output_dir)))}│")
+            print(f"│{' ' * 78}│")
+            print(f"│   \033[90mPress Ctrl+C to stop\033[0m{' ' * 54}│")
+            print(f"╰{'─' * 78}╯\n")
+            print(f"  \033[90m{'TIME':8} │ {'METHOD':6} │ {'STATUS':3} │ PATH\033[0m")
+            print(f"  \033[90m{'─' * 8}─┼─{'─' * 6}─┼─{'─' * 3}─┼─{'─' * 60}\033[0m")
             
             try:
                 httpd.serve_forever()
             except KeyboardInterrupt:
-                print("\n\n👋 Shutting down server...")
+                print(f"\n\n  \033[90m{'─' * 78}\033[0m")
+                print(f"  👋 Shutting down server...")
                 if self.observer:
                     self.observer.stop()
                     self.observer.join()
-                print("✅ Server stopped")
+                print(f"  ✅ Server stopped\n")
 
