@@ -131,14 +131,31 @@ class MenuBuilder:
     
     def build_hierarchy(self) -> List[MenuItem]:
         """
-        Build hierarchical tree from flat list.
+        Build hierarchical tree from flat list with validation.
         Returns list of root items (no parent).
         
         Returns:
             List of root MenuItem objects with children populated
+            
+        Raises:
+            ValueError: If circular references detected
         """
         # Create lookup by identifier
         by_id = {item.identifier: item for item in self.items}
+        
+        # Validate parent references
+        orphaned_items = []
+        for item in self.items:
+            if item.parent and item.parent not in by_id:
+                orphaned_items.append((item.name, item.parent))
+        
+        if orphaned_items:
+            print(f"⚠️  Menu configuration warning: {len(orphaned_items)} items reference missing parents:")
+            for name, parent in orphaned_items[:5]:
+                print(f"    • '{name}' references missing parent '{parent}'")
+            if len(orphaned_items) > 5:
+                print(f"    ... and {len(orphaned_items) - 5} more")
+            print(f"    These items will be added to root level")
         
         # Build tree
         roots = []
@@ -153,10 +170,40 @@ class MenuBuilder:
             else:
                 roots.append(item)
         
+        # Detect cycles
+        visited = set()
+        for root in roots:
+            if self._has_cycle(root, visited, set()):
+                raise ValueError(f"Menu has circular reference involving '{root.name}'")
+        
         # Sort roots by weight
         roots.sort(key=lambda x: x.weight)
         
         return roots
+    
+    def _has_cycle(self, item: MenuItem, visited: set, path: set) -> bool:
+        """
+        Detect circular references in menu tree.
+        
+        Args:
+            item: Current menu item
+            visited: Set of all visited identifiers
+            path: Current path identifiers (for cycle detection)
+            
+        Returns:
+            True if cycle detected
+        """
+        if item.identifier in path:
+            return True
+        
+        path.add(item.identifier)
+        visited.add(item.identifier)
+        
+        for child in item.children:
+            if self._has_cycle(child, visited, path.copy()):
+                return True
+        
+        return False
     
     def mark_active_items(self, current_url: str, menu_items: List[MenuItem]) -> None:
         """

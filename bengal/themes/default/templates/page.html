@@ -55,9 +55,15 @@
                 {{ toc | safe }}
             </div>
         </nav>
+        
+        {# Random posts - dogfooding sample() #}
+        {% include 'partials/random-posts.html' %}
     </aside>
     {% endif %}
 </div>
+
+{# Page Navigation (prev/next) #}
+{% include 'partials/page-navigation.html' %}
 
 {# Related Posts Section (for pages with tags) #}
 {% set related = related_posts(page, limit=3) %}

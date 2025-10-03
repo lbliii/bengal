@@ -1,0 +1,72 @@
+/* Badge Components */
+
+.badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: var(--radius-full);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.badge-featured {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.badge-tutorial {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  color: white;
+}
+
+.badge-new {
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  color: white;
+}
+
+/* Article Card Badges */
+.article-card-badges {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+}
+
+/* Featured Card Styling */
+.featured-card {
+  border: 2px solid var(--color-primary);
+  background: linear-gradient(
+    to bottom right,
+    var(--color-bg-primary),
+    var(--color-bg-secondary)
+  );
+}
+
+.featured-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+}
+
+/* Page Kind Body Classes */
+body.page-kind-home .hero {
+  display: block;
+}
+
+body.page-kind-section .section-navigation {
+  margin-bottom: 2rem;
+}
+
+body.draft-page::before {
+  content: "DRAFT";
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  background: #ff6b6b;
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-md);
+  font-weight: bold;
+  z-index: 1000;
+}
+

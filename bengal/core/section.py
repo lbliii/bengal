@@ -32,6 +32,9 @@ class Section:
     index_page: Optional[Page] = None
     parent: Optional['Section'] = None
     
+    # Reference to site (set during site building)
+    _site: Optional[Any] = field(default=None, repr=False)
+    
     @property
     def title(self) -> str:
         """Get section title from metadata or generate from name."""
@@ -54,6 +57,76 @@ class Section:
         """Get the depth of this section in the hierarchy."""
         return len(self.hierarchy)
     
+    # Section navigation properties
+    
+    @property
+    def regular_pages(self) -> List[Page]:
+        """
+        Get only regular pages (non-sections) in this section.
+        
+        Returns:
+            List of regular Page objects (excludes subsections)
+            
+        Example:
+            {% for page in section.regular_pages %}
+              <article>{{ page.title }}</article>
+            {% endfor %}
+        """
+        return [p for p in self.pages if not isinstance(p, Section)]
+    
+    @property
+    def sections(self) -> List['Section']:
+        """
+        Get immediate child sections.
+        
+        Returns:
+            List of child Section objects
+            
+        Example:
+            {% for subsection in section.sections %}
+              <h3>{{ subsection.title }}</h3>
+            {% endfor %}
+        """
+        return self.subsections
+    
+    @property
+    def regular_pages_recursive(self) -> List[Page]:
+        """
+        Get all regular pages recursively (including from subsections).
+        
+        Returns:
+            List of all descendant regular pages
+            
+        Example:
+            <p>Total pages: {{ section.regular_pages_recursive | length }}</p>
+        """
+        result = list(self.regular_pages)
+        for subsection in self.subsections:
+            result.extend(subsection.regular_pages_recursive)
+        return result
+    
+    @property
+    def url(self) -> str:
+        """
+        Get the URL for this section.
+        
+        Returns:
+            URL path for the section
+        """
+        # If we have an index page with a proper output_path, use its URL
+        if (self.index_page and 
+            hasattr(self.index_page, 'output_path') and 
+            self.index_page.output_path):
+            return self.index_page.url
+        
+        # Otherwise, construct from section hierarchy
+        # This handles the case before pages have output_paths set
+        if self.parent and self.parent.name != 'root':
+            return f"{self.parent.url}{self.name}/"
+        else:
+            # Top-level section or root parent
+            return f"/{self.name}/"
+    
     def add_page(self, page: Page) -> None:
         """
         Add a page to this section.
@@ -66,6 +139,10 @@ class Section:
         # Set as index page if it's named index.md or _index.md
         if page.source_path.stem in ("index", "_index"):
             self.index_page = page
+            
+            # Extract cascade metadata from index page for inheritance
+            if 'cascade' in page.metadata:
+                self.metadata['cascade'] = page.metadata['cascade']
     
     def add_subsection(self, section: 'Section') -> None:
         """

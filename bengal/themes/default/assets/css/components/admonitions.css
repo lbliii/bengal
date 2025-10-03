@@ -1,0 +1,255 @@
+/**
+ * Admonitions (Callouts)
+ * Styled callout boxes for highlighting important information
+ */
+
+/* Base Admonition Styles */
+.admonition {
+  position: relative;
+  margin: var(--space-6) 0;
+  padding: var(--space-4) var(--space-5);
+  border-left: 4px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-secondary);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: all var(--transition-normal) var(--ease-out);
+}
+
+.admonition:hover {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Admonition Title */
+.admonition-title {
+  margin: 0 0 var(--space-3) 0;
+  font-size: var(--text-base);
+  font-weight: var(--font-bold);
+  color: var(--color-text-primary);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.admonition-title::before {
+  content: '';
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  flex-shrink: 0;
+}
+
+/* Admonition Content */
+.admonition > p:last-child {
+  margin-bottom: 0;
+}
+
+.admonition > *:not(.admonition-title):first-child {
+  margin-top: 0;
+}
+
+.admonition code {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="dark"] .admonition code {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* ============================================
+   ADMONITION TYPES
+   ============================================ */
+
+/* Note / Info */
+.admonition.note,
+.admonition.info {
+  border-left-color: #3b82f6; /* blue-500 */
+  background-color: #eff6ff; /* blue-50 */
+}
+
+.admonition.note .admonition-title,
+.admonition.info .admonition-title {
+  color: #1e40af; /* blue-800 */
+}
+
+.admonition.note .admonition-title::before,
+.admonition.info .admonition-title::before {
+  content: 'ℹ️';
+  font-size: var(--text-lg);
+}
+
+[data-theme="dark"] .admonition.note,
+[data-theme="dark"] .admonition.info {
+  border-left-color: #60a5fa; /* blue-400 */
+  background-color: rgba(59, 130, 246, 0.1);
+}
+
+[data-theme="dark"] .admonition.note .admonition-title,
+[data-theme="dark"] .admonition.info .admonition-title {
+  color: #93c5fd; /* blue-300 */
+}
+
+/* Tip / Success */
+.admonition.tip,
+.admonition.success {
+  border-left-color: #10b981; /* green-500 */
+  background-color: #ecfdf5; /* green-50 */
+}
+
+.admonition.tip .admonition-title,
+.admonition.success .admonition-title {
+  color: #047857; /* green-700 */
+}
+
+.admonition.tip .admonition-title::before {
+  content: '💡';
+  font-size: var(--text-lg);
+}
+
+.admonition.success .admonition-title::before {
+  content: '✅';
+  font-size: var(--text-lg);
+}
+
+[data-theme="dark"] .admonition.tip,
+[data-theme="dark"] .admonition.success {
+  border-left-color: #34d399; /* green-400 */
+  background-color: rgba(16, 185, 129, 0.1);
+}
+
+[data-theme="dark"] .admonition.tip .admonition-title,
+[data-theme="dark"] .admonition.success .admonition-title {
+  color: #6ee7b7; /* green-300 */
+}
+
+/* Warning / Caution */
+.admonition.warning,
+.admonition.caution {
+  border-left-color: #f59e0b; /* amber-500 */
+  background-color: #fffbeb; /* amber-50 */
+}
+
+.admonition.warning .admonition-title,
+.admonition.caution .admonition-title {
+  color: #d97706; /* amber-600 */
+}
+
+.admonition.warning .admonition-title::before,
+.admonition.caution .admonition-title::before {
+  content: '⚠️';
+  font-size: var(--text-lg);
+}
+
+[data-theme="dark"] .admonition.warning,
+[data-theme="dark"] .admonition.caution {
+  border-left-color: #fbbf24; /* amber-400 */
+  background-color: rgba(245, 158, 11, 0.1);
+}
+
+[data-theme="dark"] .admonition.warning .admonition-title,
+[data-theme="dark"] .admonition.caution .admonition-title {
+  color: #fcd34d; /* amber-300 */
+}
+
+/* Danger / Error */
+.admonition.danger,
+.admonition.error {
+  border-left-color: #ef4444; /* red-500 */
+  background-color: #fef2f2; /* red-50 */
+}
+
+.admonition.danger .admonition-title,
+.admonition.error .admonition-title {
+  color: #dc2626; /* red-600 */
+}
+
+.admonition.danger .admonition-title::before,
+.admonition.error .admonition-title::before {
+  content: '🛑';
+  font-size: var(--text-lg);
+}
+
+[data-theme="dark"] .admonition.danger,
+[data-theme="dark"] .admonition.error {
+  border-left-color: #f87171; /* red-400 */
+  background-color: rgba(239, 68, 68, 0.1);
+}
+
+[data-theme="dark"] .admonition.danger .admonition-title,
+[data-theme="dark"] .admonition.error .admonition-title {
+  color: #fca5a5; /* red-300 */
+}
+
+/* Example */
+.admonition.example {
+  border-left-color: #8b5cf6; /* violet-500 */
+  background-color: #f5f3ff; /* violet-50 */
+}
+
+.admonition.example .admonition-title {
+  color: #7c3aed; /* violet-600 */
+}
+
+.admonition.example .admonition-title::before {
+  content: '📝';
+  font-size: var(--text-lg);
+}
+
+[data-theme="dark"] .admonition.example {
+  border-left-color: #a78bfa; /* violet-400 */
+  background-color: rgba(139, 92, 246, 0.1);
+}
+
+[data-theme="dark"] .admonition.example .admonition-title {
+  color: #c4b5fd; /* violet-300 */
+}
+
+/* ============================================
+   COLLAPSIBLE ADMONITIONS
+   ============================================ */
+
+.admonition.collapsible {
+  cursor: pointer;
+}
+
+.admonition.collapsible .admonition-title::after {
+  content: '▼';
+  margin-left: auto;
+  font-size: var(--text-sm);
+  transition: transform var(--transition-fast) var(--ease-out);
+}
+
+.admonition.collapsible.collapsed .admonition-title::after {
+  transform: rotate(-90deg);
+}
+
+.admonition.collapsible.collapsed > *:not(.admonition-title) {
+  display: none;
+}
+
+/* ============================================
+   NESTED ADMONITIONS
+   ============================================ */
+
+.admonition .admonition {
+  margin-top: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
+@media (max-width: 640px) {
+  .admonition {
+    padding: var(--space-3) var(--space-4);
+    margin: var(--space-4) 0;
+  }
+  
+  .admonition-title {
+    font-size: var(--text-sm);
+  }
+}
+

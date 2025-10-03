@@ -3,6 +3,12 @@
 {% block content %}
 {% include 'partials/breadcrumbs.html' %}
 
+{# Section navigation for section pages - dogfooding section properties #}
+{% if section %}
+    {% set page = section %}
+    {% include 'partials/section-navigation.html' %}
+{% endif %}
+
 <div class="archive">
     <header class="archive-header">
         <h1>{{ title | default(section.title if section else 'Archive') }}</h1>
@@ -20,13 +26,36 @@
     </header>
     
     {% if posts %}
-    <div class="archive-list">
-        {% for post in posts %}
-            {% set article = post %}
-            {% set show_excerpt = true %}
-            {% include 'partials/article-card.html' %}
-        {% endfor %}
-    </div>
+    {# Show featured posts first - dogfooding where() and where_not() #}
+    {% set featured_posts = posts | where('featured', true) %}
+    {% if featured_posts %}
+    <section class="featured-posts">
+        <h2 class="section-subtitle">Featured Posts</h2>
+        <div class="archive-list archive-list-featured">
+            {% for post in featured_posts %}
+                {% set article = post %}
+                {% set show_excerpt = true %}
+                {% set show_image = true %}
+                {% include 'partials/article-card.html' %}
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+    
+    {# Regular posts - dogfooding where_not() #}
+    {% set regular_posts = posts | where_not('featured', true) %}
+    {% if regular_posts %}
+    <section class="regular-posts">
+        {% if featured_posts %}<h2 class="section-subtitle">All Posts</h2>{% endif %}
+        <div class="archive-list">
+            {% for post in regular_posts %}
+                {% set article = post %}
+                {% set show_excerpt = true %}
+                {% include 'partials/article-card.html' %}
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
     
     {# Pagination #}
     {% if total_pages and total_pages > 1 %}

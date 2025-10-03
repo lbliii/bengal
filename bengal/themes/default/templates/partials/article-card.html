@@ -13,12 +13,33 @@
 {% set show_excerpt = show_excerpt | default(true) %}
 {% set show_image = show_image | default(false) %}
 
-<article class="article-card">
+<article class="article-card {% if article | has_tag('featured') %}featured-card{% endif %}">
     {% if show_image and article.metadata.image %}
-    <img src="{{ article.metadata.image }}" alt="{{ article.title }}" class="article-card-image">
+    {# Responsive image with srcset - dogfooding image_srcset() #}
+    <img 
+        src="{{ image_url(article.metadata.image, width=800) }}"
+        srcset="{{ article.metadata.image | image_srcset([400, 800, 1200]) }}"
+        sizes="(max-width: 640px) 400px, (max-width: 1024px) 800px, 1200px"
+        alt="{{ article.metadata.image | image_alt }}"
+        class="article-card-image"
+        loading="lazy"
+    >
     {% endif %}
     
     <div class="article-card-content">
+        {# Tag badges - dogfooding has_tag() #}
+        <div class="article-card-badges">
+            {% if article | has_tag('featured') %}
+            <span class="badge badge-featured">⭐ Featured</span>
+            {% endif %}
+            {% if article | has_tag('tutorial') %}
+            <span class="badge badge-tutorial">📚 Tutorial</span>
+            {% endif %}
+            {% if article | has_tag('new') %}
+            <span class="badge badge-new">✨ New</span>
+            {% endif %}
+        </div>
+        
         <h2 class="article-card-title">
             <a href="{{ url_for(article) }}">{{ article.title }}</a>
         </h2>

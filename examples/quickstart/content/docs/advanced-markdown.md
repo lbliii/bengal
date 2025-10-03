@@ -482,8 +482,24 @@ Bengal automatically generates a table of contents from your headings. Reference
 Or in templates:
 
 ```jinja2
-{{ toc }}
+{{ '{{ toc }}' }}
 ```
+
+### 📝 Showing Template Syntax in Documentation
+
+When documenting templates, use **string literals** to display Jinja2 syntax:
+
+```markdown
+Use {{ '{{ toc }}' }} to display the table of contents.
+Use {{ '{{ page.title }}' }} to show the page title.
+```
+
+**More examples**:
+- Show variables: `{{ '{{ page.date }}' }}`
+- Show filters: `{{ '{{ text | upper }}' }}`  
+- Show tags: `{{ '{% for item in items %}' }}`
+
+See [Template System → Escaping Template Syntax](/docs/template-system/#escaping-template-syntax) for complete details.
 
 ## Best Practices
 

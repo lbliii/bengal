@@ -30,6 +30,8 @@ Bengal SSG follows a modular architecture with clear separation of concerns to a
   - `discover_assets()`: Find all static assets
   - `build_menus()`: Build all navigation menus
   - `mark_active_menu_items()`: Mark active items for current page
+  - `_setup_page_references()`: Set up navigation references (next, prev, parent, etc.)
+  - `_apply_cascades()`: Apply cascading metadata from sections to pages
 
 #### Page Object (`bengal/core/page.py`)
 - **Purpose**: Represents a single content page
@@ -43,12 +45,32 @@ Bengal SSG follows a modular architecture with clear separation of concerns to a
   - **Table of Contents** (TOC):
     - `toc`: HTML table of contents
     - `toc_items`: Structured TOC data (list of dicts with id, title, level)
-- **Properties**:
+- **Core Properties**:
   - `title`: Get page title from metadata or generate from filename
   - `date`: Get page date from metadata
   - `slug`: Get URL slug for the page
   - `url`: Get the full URL path (e.g., `/posts/my-post/`)
-- **Methods**:
+  - `description`: Page description from frontmatter
+  - `draft`: Draft status (boolean)
+  - `keywords`: List of keywords from frontmatter
+- **Navigation Properties**:
+  - `next`: Get next page in site collection
+  - `prev`: Get previous page in site collection
+  - `next_in_section`: Get next page within same section
+  - `prev_in_section`: Get previous page within same section
+  - `parent`: Get parent section
+  - `ancestors`: Get all ancestor sections (list)
+- **Type Checking Properties**:
+  - `is_home`: Check if this is the home page (boolean)
+  - `is_section`: Check if this is a section page (boolean)
+  - `is_page`: Check if this is a regular page (boolean)
+  - `kind`: Get page type as string ('home', 'section', or 'page')
+- **Comparison Methods**:
+  - `eq(other)`: Check if two pages are equal
+  - `in_section(section)`: Check if page is in given section
+  - `is_ancestor(other)`: Check if this page is ancestor of another
+  - `is_descendant(other)`: Check if this page is descendant of another
+- **Core Methods**:
   - `render()`: Render page with template
   - `validate_links()`: Check for broken links
   - `extract_links()`: Extract all links from content
@@ -58,12 +80,22 @@ Bengal SSG follows a modular architecture with clear separation of concerns to a
 - **Attributes**:
   - Hierarchy information
   - Collection of pages and subsections
-  - Inherited metadata
-  - Optional index page
-- **Methods**:
+  - Metadata (including cascade for inheritance)
+  - Optional index page (`_index.md`)
+- **Navigation Properties**:
+  - `regular_pages`: Get only regular pages (excludes subsections)
+  - `sections`: Get immediate child sections
+  - `regular_pages_recursive`: Get all descendant pages recursively
+  - `url`: Get URL for this section
+- **Core Methods**:
   - `aggregate_content()`: Collect metadata from all pages
   - `walk()`: Iteratively traverse section hierarchy
   - `apply_section_template()`: Generate section index
+- **Cascade Feature**:
+  - Supports frontmatter cascade for metadata inheritance
+  - Define `cascade` in section's `_index.md` to apply metadata to all descendants
+  - Child values take precedence over cascaded values
+  - Cascades accumulate through the hierarchy
 
 #### Asset Object (`bengal/core/asset.py`)
 - **Purpose**: Handles static files (images, CSS, JS)
@@ -92,7 +124,58 @@ Bengal SSG follows a modular architecture with clear separation of concerns to a
   - Multiple menus (main, footer, custom)
   - Nested/dropdown support
   - Automatic active detection
-  - Hugo-like conventions
+
+#### Page Navigation System
+- **Purpose**: Provides rich navigation between pages and through site hierarchy
+- **Automatic Setup**: Page references are automatically configured during `discover_content()`
+- **Navigation Types**:
+  - **Sequential Navigation**: `page.next` and `page.prev` for moving through all pages
+  - **Section Navigation**: `page.next_in_section` and `page.prev_in_section` for section-specific navigation
+  - **Hierarchical Navigation**: `page.parent` and `page.ancestors` for breadcrumbs and hierarchy
+- **Template Usage**:
+  ```jinja2
+  {# Previous/Next links #}
+  {% if page.prev %}
+    <a href="{{ url_for(page.prev) }}">← {{ page.prev.title }}</a>
+  {% endif %}
+  
+  {# Breadcrumbs #}
+  {% for ancestor in page.ancestors | reverse %}
+    <a href="{{ url_for(ancestor) }}">{{ ancestor.title }}</a> /
+  {% endfor %}
+  
+  {# Section pages #}
+  {% if page.is_section %}
+    {% for child in page.regular_pages %}
+      {{ child.title }}
+    {% endfor %}
+  {% endif %}
+  ```
+
+#### Cascade System (Frontmatter Inheritance)
+- **Purpose**: Apply metadata from section index pages to all descendant pages
+- **How It Works**:
+  - Define `cascade` in a section's `_index.md` frontmatter
+  - All pages in that section (and subsections) inherit the cascaded metadata
+  - Page-specific metadata takes precedence over cascaded values
+  - Cascades accumulate through hierarchy (child sections extend parent cascades)
+- **Example**:
+  ```yaml
+  # content/products/_index.md
+  ---
+  title: "Products"
+  cascade:
+    type: "product"
+    layout: "product-page"
+    show_price: true
+  ---
+  ```
+  All pages under `/products/` will inherit `type: "product"` unless they define their own
+- **Use Cases**:
+  - Apply consistent layouts to entire sections
+  - Set default types for content organization
+  - Configure section-wide settings (show/hide features)
+  - Maintain DRY principles in frontmatter
 
 ### 2. Cache System (NEW)
 
@@ -517,7 +600,23 @@ Located in `tests/conftest.py`:
 
 For detailed testing strategy, see `plan/TEST_STRATEGY.md`.
 
-## Recent Additions (Phase 2A & 2B)
+## Recent Additions
+
+### Page Navigation System (October 2025)
+- **Rich Navigation Properties**: `next`, `prev`, `next_in_section`, `prev_in_section`
+- **Hierarchical Navigation**: `parent`, `ancestors` for breadcrumbs
+- **Type Checking**: `is_home`, `is_section`, `is_page`, `kind`
+- **Comparison Methods**: `eq()`, `in_section()`, `is_ancestor()`, `is_descendant()`
+- **Section Properties**: `regular_pages`, `sections`, `regular_pages_recursive`
+- **Template Components**: Breadcrumbs and page navigation partials
+- **Automatic Setup**: References configured during content discovery
+
+### Cascade System (October 2025)
+- **Frontmatter Inheritance**: Section `_index.md` can define cascading metadata
+- **Hierarchical Accumulation**: Child sections extend parent cascades
+- **Precedence Rules**: Page values override cascaded values
+- **Use Cases**: Consistent layouts, section-wide settings, DRY frontmatter
+- **Automatic Application**: Applied during content discovery phase
 
 ### Taxonomy System
 - **Automatic Collection**: Tags and categories extracted from all pages
@@ -538,15 +637,16 @@ For detailed testing strategy, see `plan/TEST_STRATEGY.md`.
 - **Configurable**: Per-page count configurable globally or per-section
 
 ### Theme Enhancements
-- **Breadcrumb Navigation**: Auto-generated from URL structure
-- **Table of Contents (TOC)**: ✅ Auto-generated from page headings
+- **Breadcrumb Navigation**: Auto-generated from page ancestors
+- **Page Navigation**: Previous/Next links with beautiful styling
+- **Table of Contents (TOC)**: Auto-generated from page headings
   - Sidebar navigation on desktop
   - Sticky positioning for easy access
   - JavaScript highlighting of active section
   - Responsive mobile display
 - **404 Page**: Professional error page with helpful navigation
 - **Responsive Pagination Controls**: With proper accessibility
-- **Template Partials**: Reusable components (article-card, tag-list, pagination)
+- **Template Partials**: Reusable components (article-card, tag-list, pagination, breadcrumbs, page-navigation)
 
 ## Roadmap
 
@@ -582,6 +682,8 @@ For detailed testing strategy, see `plan/TEST_STRATEGY.md`.
   - ✅ **Feature parity with Hugo/Jekyll**
 
 **Recently Completed:**
+- [x] **Page Navigation System** - Rich navigation properties (next, prev, ancestors, etc.)! 🎉
+- [x] **Cascade System** - Frontmatter inheritance from sections to pages! 🎉
 - [x] **Navigation Menu System** - Config-driven, hierarchical menus with dropdowns! 🎉
 - [x] **Table of Contents (TOC)** - Auto-generated from headings! 🎉
 - [x] **Menu System Tests** - 13 comprehensive tests, 98% coverage

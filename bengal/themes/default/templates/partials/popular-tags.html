@@ -1,0 +1,17 @@
+{# Popular tags component - showcases popular_tags() function #}
+
+{% set top_tags = popular_tags(limit=10) %}
+{% if top_tags %}
+<div class="popular-tags-widget">
+  <h3>Popular Topics</h3>
+  <div class="tag-cloud">
+    {% for tag, count in top_tags %}
+    <a href="{{ tag_url(tag) }}" class="tag-bubble" data-count="{{ count }}">
+      {{ tag }}
+      <span class="tag-count">{{ count }}</span>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+

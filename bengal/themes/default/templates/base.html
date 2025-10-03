@@ -17,8 +17,10 @@
     <meta name="description" content="{{ site.config.description | default('') }}">
     {% endif %}
     
-    {# Meta Keywords #}
-    {% if page and page.tags %}
+    {# Meta Keywords - use page.keywords or fallback to tags #}
+    {% if page and page.keywords %}
+    <meta name="keywords" content="{{ page.keywords | join(', ') }}">
+    {% elif page and page.tags %}
     <meta name="keywords" content="{{ page.tags | meta_keywords(10) }}">
     {% endif %}
     
@@ -79,7 +81,7 @@
     
     {% block extra_head %}{% endblock %}
 </head>
-<body>
+<body class="page-kind-{{ page.kind }} {% if page.draft %}draft-page{% endif %} {% if page | has_tag('featured') %}featured-content{% endif %}">
     {# Skip to main content for accessibility #}
     <a href="#main-content" class="skip-link">Skip to main content</a>
     
@@ -176,6 +178,9 @@
     {# Footer #}
     <footer role="contentinfo">
         <div class="container">
+            {# Popular Tags Widget - dogfooding popular_tags() function #}
+            {% include 'partials/popular-tags.html' %}
+            
             <p class="footer-copyright">
                 &copy; 2025 {{ site.config.title }} | Built with <a href="https://github.com/bengal-ssg/bengal" rel="noopener">Bengal SSG</a>
             </p>

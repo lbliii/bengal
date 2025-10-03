@@ -26,8 +26,10 @@ New to Bengal? Start here:
 
 ### Content & Templating
 
+- [Content Organization](/docs/content-organization/) ⭐ NEW: Pages, sections, and index files explained!
 - [Advanced Markdown Features](/docs/advanced-markdown/)
 - [Template System Reference](/docs/template-system/)
+- [Cascading Frontmatter](/docs/cascading-frontmatter/) ⭐ NEW: Hugo-style cascade!
 - [Working with Sections](/posts/working-with-sections/)
 - [Taxonomy System](/posts/taxonomy-system/)
 

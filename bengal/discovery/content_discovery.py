@@ -101,26 +101,25 @@ class ContentDiscovery:
     
     def _create_page(self, file_path: Path) -> Page:
         """
-        Create a Page object from a file.
+        Create a Page object from a file with robust error handling.
+        
+        Handles:
+        - Valid frontmatter
+        - Invalid YAML in frontmatter  
+        - Missing frontmatter
+        - File encoding issues
+        - IO errors
         
         Args:
             file_path: Path to content file
             
         Returns:
-            Page object
+            Page object (always succeeds with fallback metadata)
+            
+        Raises:
+            IOError: Only if file cannot be read at all
         """
-        # Parse frontmatter and content
-        try:
-            with open(file_path, 'r', encoding='utf-8') as f:
-                post = frontmatter.load(f)
-                content = post.content
-                metadata = dict(post.metadata)
-        except Exception as e:
-            print(f"Warning: Failed to parse {file_path}: {e}")
-            # Fallback to reading as plain text
-            with open(file_path, 'r', encoding='utf-8') as f:
-                content = f.read()
-                metadata = {}
+        content, metadata = self._parse_content_file(file_path)
         
         page = Page(
             source_path=file_path,
@@ -129,4 +128,105 @@ class ContentDiscovery:
         )
         
         return page
+    
+    def _parse_content_file(self, file_path: Path) -> tuple:
+        """
+        Parse content file with robust error handling.
+        
+        Args:
+            file_path: Path to content file
+            
+        Returns:
+            Tuple of (content, metadata)
+            
+        Raises:
+            IOError: If file cannot be read
+        """
+        import yaml
+        
+        # Read file once
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                file_content = f.read()
+        except UnicodeDecodeError as e:
+            # Try different encodings
+            print(f"⚠️  Warning: UTF-8 decode failed for {file_path}, trying latin-1")
+            try:
+                with open(file_path, 'r', encoding='latin-1') as f:
+                    file_content = f.read()
+            except Exception:
+                # Give up
+                raise IOError(f"Cannot decode {file_path}: {e}") from e
+        except IOError as e:
+            print(f"❌ Error: Cannot read {file_path}: {e}")
+            raise
+        
+        # Parse frontmatter
+        try:
+            post = frontmatter.loads(file_content)
+            content = post.content
+            metadata = dict(post.metadata)
+            return content, metadata
+            
+        except yaml.YAMLError as e:
+            # YAML syntax error in frontmatter
+            print(f"⚠️  Warning: Invalid YAML frontmatter in {file_path}")
+            print(f"    Error: {e}")
+            print(f"    File will be processed without metadata.")
+            print(f"    Please fix the frontmatter syntax.")
+            
+            # Try to extract content (skip broken frontmatter)
+            content = self._extract_content_skip_frontmatter(file_content)
+            
+            # Create minimal metadata for identification
+            metadata = {
+                '_parse_error': str(e),
+                '_parse_error_type': 'yaml',
+                '_source_file': str(file_path),
+                'title': file_path.stem.replace('-', ' ').replace('_', ' ').title()
+            }
+            
+            return content, metadata
+        
+        except Exception as e:
+            # Unexpected error
+            print(f"⚠️  Warning: Unexpected error parsing {file_path}: {e}")
+            
+            # Use entire file as content
+            metadata = {
+                '_parse_error': str(e),
+                '_parse_error_type': 'unknown',
+                '_source_file': str(file_path),
+                'title': file_path.stem.replace('-', ' ').replace('_', ' ').title()
+            }
+            
+            return file_content, metadata
+    
+    def _extract_content_skip_frontmatter(self, file_content: str) -> str:
+        """
+        Extract content, skipping broken frontmatter section.
+        
+        Frontmatter is between --- delimiters at start of file.
+        If parsing failed, skip the section entirely.
+        
+        Args:
+            file_content: Full file content
+            
+        Returns:
+            Content without frontmatter section
+        """
+        # Split on --- delimiters
+        parts = file_content.split('---', 2)
+        
+        if len(parts) >= 3:
+            # Format: --- frontmatter --- content
+            # Return content (3rd part)
+            return parts[2].strip()
+        elif len(parts) == 2:
+            # Format: --- frontmatter (no closing delimiter)
+            # Return second part
+            return parts[1].strip()
+        else:
+            # No frontmatter delimiters, return whole file
+            return file_content.strip()
 

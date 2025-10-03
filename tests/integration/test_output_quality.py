@@ -31,11 +31,7 @@ def built_site(tmp_path):
     # Build site in strict mode (fail if rendering broken)
     site = Site.from_config(site_dir)
     site.config["strict_mode"] = True  # Fail loudly on errors
-    # Ignore documentation files with intentional Jinja2 examples
-    site.config["health_check_ignore_files"] = [
-        "docs/template-system/index.html",
-        "guides/performance-optimization/index.html"
-    ]
+    # No need for ignore list - health check now recognizes code blocks automatically!
     site.build()
     
     return site.output_dir
@@ -115,26 +111,25 @@ class TestOutputQuality:
     
     def test_no_unrendered_jinja2_in_output(self, built_site):
         """Verify no unrendered Jinja2 variables leak through."""
-        # Skip documentation files with intentional Jinja2 examples
-        ignore_files = [
-            "docs/template-system/index.html",
-            "guides/performance-optimization/index.html"
-        ]
+        from bs4 import BeautifulSoup
         
         for html_file in built_site.rglob("*.html"):
-            # Skip files in ignore list
-            rel_path = str(html_file.relative_to(built_site))
-            if any(rel_path == ignore or rel_path.endswith(ignore) for ignore in ignore_files):
-                continue
-            
             content = html_file.read_text()
             
-            # Check for unrendered Jinja2 syntax
-            # Some false positives possible in code examples, so we check for page context
-            if "{{ page." in content or "{% if page" in content:
+            # Use smart detection to skip code blocks (documentation)
+            soup = BeautifulSoup(content, 'html.parser')
+            
+            # Remove code blocks (allowed to have Jinja2 syntax)
+            for code_block in soup.find_all(['code', 'pre']):
+                code_block.decompose()
+            
+            remaining_text = soup.get_text()
+            
+            # Check for unrendered Jinja2 syntax outside of code blocks
+            if "{{ page." in remaining_text or "{% if page" in remaining_text:
                 pytest.fail(f"Unrendered Jinja2 page variable in {html_file}")
             
-            if "{{ site." in content or "{% if site" in content:
+            if "{{ site." in remaining_text or "{% if site" in remaining_text:
                 pytest.fail(f"Unrendered Jinja2 site variable in {html_file}")
     
     def test_theme_assets_copied(self, built_site):

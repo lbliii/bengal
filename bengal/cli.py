@@ -7,13 +7,22 @@ import click
 
 from bengal import __version__
 from bengal.core.site import Site
+from bengal.utils.build_stats import (
+    display_build_stats,
+    show_building_indicator,
+    show_error,
+    show_welcome,
+    show_clean_success,
+)
 
 
 @click.group()
 @click.version_option(version=__version__, prog_name="Bengal SSG")
 def main() -> None:
     """
-    Bengal SSG - A high-performance static site generator.
+    🐯 Bengal SSG - A high-performance static site generator.
+    
+    Fast & fierce static site generation with personality!
     """
     pass
 
@@ -25,12 +34,15 @@ def main() -> None:
 @click.option('--strict', is_flag=True, help='Fail on template errors (recommended for CI)')
 @click.option('--debug', is_flag=True, help='Show debug output and full tracebacks')
 @click.option('--config', type=click.Path(exists=True), help='Path to config file')
+@click.option('--quiet', '-q', is_flag=True, help='Minimal output (no stats table)')
 @click.argument('source', type=click.Path(exists=True), default='.')
-def build(parallel: bool, incremental: bool, verbose: bool, strict: bool, debug: bool, config: str, source: str) -> None:
+def build(parallel: bool, incremental: bool, verbose: bool, strict: bool, debug: bool, config: str, quiet: bool, source: str) -> None:
     """
-    Build the static site.
+    🔨 Build the static site.
     """
     try:
+        show_building_indicator("Building site")
+        
         root_path = Path(source).resolve()
         config_path = Path(config).resolve() if config else None
         
@@ -43,12 +55,18 @@ def build(parallel: bool, incremental: bool, verbose: bool, strict: bool, debug:
         if debug:
             site.config["debug"] = True
         
-        site.build(parallel=parallel, incremental=incremental, verbose=verbose)
+        stats = site.build(parallel=parallel, incremental=incremental, verbose=verbose)
         
-        click.echo(click.style("✅ Build complete!", fg='green', bold=True))
+        # Display build stats (unless quiet mode)
+        if not quiet:
+            display_build_stats(stats, show_art=True)
+        else:
+            click.echo(click.style("✅ Build complete!", fg='green', bold=True))
         
     except Exception as e:
-        click.echo(click.style(f"❌ Build failed: {e}", fg='red'), err=True)
+        show_error(f"Build failed: {e}", show_art=True)
+        if debug:
+            raise
         raise click.Abort()
 
 
@@ -61,13 +79,15 @@ def build(parallel: bool, incremental: bool, verbose: bool, strict: bool, debug:
 @click.argument('source', type=click.Path(exists=True), default='.')
 def serve(host: str, port: int, no_watch: bool, no_auto_port: bool, config: str, source: str) -> None:
     """
-    Start development server with hot reload.
+    🚀 Start development server with hot reload.
     
     By default, if the specified port is already in use, the server will
     automatically find and use the next available port. Use --no-auto-port
     to disable this behavior and fail instead.
     """
     try:
+        show_welcome()
+        
         root_path = Path(source).resolve()
         config_path = Path(config).resolve() if config else None
         
@@ -83,7 +103,7 @@ def serve(host: str, port: int, no_watch: bool, no_auto_port: bool, config: str,
     except KeyboardInterrupt:
         click.echo("\n👋 Server stopped")
     except Exception as e:
-        click.echo(click.style(f"❌ Server failed: {e}", fg='red'), err=True)
+        show_error(f"Server failed: {e}", show_art=True)
         raise click.Abort()
 
 
@@ -92,7 +112,7 @@ def serve(host: str, port: int, no_watch: bool, no_auto_port: bool, config: str,
 @click.argument('source', type=click.Path(exists=True), default='.')
 def clean(config: str, source: str) -> None:
     """
-    Clean the output directory.
+    🧹 Clean the output directory.
     """
     try:
         root_path = Path(source).resolve()
@@ -102,17 +122,17 @@ def clean(config: str, source: str) -> None:
         site = Site.from_config(root_path, config_path)
         site.clean()
         
-        click.echo(click.style("✅ Clean complete!", fg='green', bold=True))
+        show_clean_success(str(site.output_dir))
         
     except Exception as e:
-        click.echo(click.style(f"❌ Clean failed: {e}", fg='red'), err=True)
+        show_error(f"Clean failed: {e}", show_art=False)
         raise click.Abort()
 
 
 @main.group()
 def new() -> None:
     """
-    Create new site, page, or section.
+    ✨ Create new site, page, or section.
     """
     pass
 
@@ -122,14 +142,16 @@ def new() -> None:
 @click.option('--theme', default='default', help='Theme to use')
 def site(name: str, theme: str) -> None:
     """
-    Create a new Bengal site.
+    🏗️  Create a new Bengal site.
     """
     try:
         site_path = Path(name)
         
         if site_path.exists():
-            click.echo(click.style(f"❌ Directory {name} already exists!", fg='red'), err=True)
+            show_error(f"Directory {name} already exists!", show_art=False)
             raise click.Abort()
+        
+        click.echo(click.style(f"\n🏗️  Creating new Bengal site: {name}", fg='cyan', bold=True))
         
         # Create directory structure
         site_path.mkdir(parents=True)
@@ -138,6 +160,8 @@ def site(name: str, theme: str) -> None:
         (site_path / 'assets' / 'js').mkdir()
         (site_path / 'assets' / 'images').mkdir()
         (site_path / 'templates').mkdir()
+        
+        click.echo(click.style("   ├─ ", fg='cyan') + "Created directory structure")
         
         # Create config file
         config_content = f"""[site]
@@ -154,6 +178,7 @@ minify = true
 fingerprint = true
 """
         (site_path / 'bengal.toml').write_text(config_content)
+        click.echo(click.style("   ├─ ", fg='cyan') + "Created bengal.toml")
         
         # Create sample index page
         index_content = """---
@@ -179,14 +204,16 @@ This is your new Bengal static site. Start editing this file to begin!
 4. Preview with `bengal serve`
 """
         (site_path / 'content' / 'index.md').write_text(index_content)
+        click.echo(click.style("   └─ ", fg='cyan') + "Created sample index page")
         
-        click.echo(click.style(f"✅ Created new site: {name}", fg='green', bold=True))
-        click.echo(f"\nNext steps:")
-        click.echo(f"  cd {name}")
-        click.echo(f"  bengal serve")
+        click.echo(click.style(f"\n✅ Site created successfully!", fg='green', bold=True))
+        click.echo(click.style("\n📚 Next steps:", fg='cyan', bold=True))
+        click.echo(click.style("   ├─ ", fg='cyan') + f"cd {name}")
+        click.echo(click.style("   └─ ", fg='cyan') + "bengal serve")
+        click.echo()
         
     except Exception as e:
-        click.echo(click.style(f"❌ Failed to create site: {e}", fg='red'), err=True)
+        show_error(f"Failed to create site: {e}", show_art=False)
         raise click.Abort()
 
 
@@ -195,13 +222,13 @@ This is your new Bengal static site. Start editing this file to begin!
 @click.option('--section', default='', help='Section to create page in')
 def page(name: str, section: str) -> None:
     """
-    Create a new page.
+    📄 Create a new page.
     """
     try:
         # Ensure we're in a Bengal site
         content_dir = Path('content')
         if not content_dir.exists():
-            click.echo(click.style("❌ Not in a Bengal site directory!", fg='red'), err=True)
+            show_error("Not in a Bengal site directory!", show_art=False)
             raise click.Abort()
         
         # Determine page path
@@ -215,7 +242,7 @@ def page(name: str, section: str) -> None:
         page_path = page_dir / f"{name}.md"
         
         if page_path.exists():
-            click.echo(click.style(f"❌ Page {page_path} already exists!", fg='red'), err=True)
+            show_error(f"Page {page_path} already exists!", show_art=False)
             raise click.Abort()
         
         # Create page content
@@ -230,10 +257,12 @@ Your content goes here.
 """
         page_path.write_text(page_content)
         
-        click.echo(click.style(f"✅ Created new page: {page_path}", fg='green', bold=True))
+        click.echo(click.style(f"\n✨ Created new page: ", fg='cyan') + 
+                  click.style(str(page_path), fg='green', bold=True))
+        click.echo()
         
     except Exception as e:
-        click.echo(click.style(f"❌ Failed to create page: {e}", fg='red'), err=True)
+        show_error(f"Failed to create page: {e}", show_art=False)
         raise click.Abort()
 
 

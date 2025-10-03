@@ -50,22 +50,30 @@ class RenderingPipeline:
         if self.dependency_tracker and not page.metadata.get('_generated'):
             self.dependency_tracker.start_page(page.source_path)
         
-        # Stage 1: Parse content with TOC extraction
-        parsed_content, toc = self.parser.parse_with_toc(page.content, page.metadata)
+        # Stage 0: Determine output path early so page.url works correctly
+        if not page.output_path:
+            page.output_path = self._determine_output_path(page)
+        
+        # Stage 1: Pre-process content through Jinja2 if enabled
+        # This allows using {{ page.metadata.xxx }} directly in markdown content
+        content = self._preprocess_content(page)
+        
+        # Stage 2: Parse content with TOC extraction
+        parsed_content, toc = self.parser.parse_with_toc(content, page.metadata)
         page.parsed_ast = parsed_content
         page.toc = toc
         page.toc_items = self._extract_toc_structure(toc)
         
-        # Stage 2: Extract links for validation
+        # Stage 3: Extract links for validation
         page.extract_links()
         
-        # Stage 3: Render content to HTML
+        # Stage 4: Render content to HTML
         html_content = self.renderer.render_content(parsed_content)
         
-        # Stage 4: Apply template (with dependency tracking already set in __init__)
+        # Stage 5: Apply template (with dependency tracking already set in __init__)
         page.rendered_html = self.renderer.render_page(page, html_content)
         
-        # Stage 5: Write output
+        # Stage 6: Write output
         self._write_output(page)
         
         # End page tracking
@@ -79,11 +87,6 @@ class RenderingPipeline:
         Args:
             page: Page with rendered content
         """
-        # Determine output path
-        if not page.output_path:
-            output_path = self._determine_output_path(page)
-            page.output_path = output_path
-        
         # Ensure parent directory exists
         page.output_path.parent.mkdir(parents=True, exist_ok=True)
         
@@ -115,10 +118,13 @@ class RenderingPipeline:
         # Change extension to .html
         output_rel_path = rel_path.with_suffix('.html')
         
-        # Handle index pages specially (index.md → index.html)
+        # Handle index pages specially (index.md and _index.md → index.html)
         # Others can optionally use pretty URLs (about.md → about/index.html)
-        if self.site.config.get("pretty_urls", True) and output_rel_path.stem != "index":
+        if self.site.config.get("pretty_urls", True) and output_rel_path.stem not in ("index", "_index"):
             output_rel_path = output_rel_path.parent / output_rel_path.stem / "index.html"
+        elif output_rel_path.stem == "_index":
+            # _index.md should become index.html in the same directory
+            output_rel_path = output_rel_path.parent / "index.html"
         
         return self.site.output_dir / output_rel_path
     
@@ -174,4 +180,46 @@ class RenderingPipeline:
         except Exception:
             # If parsing fails, return empty list
             return []
+    
+    def _preprocess_content(self, page: Page) -> str:
+        """
+        Pre-process page content through Jinja2 to allow variable substitution.
+        
+        This allows technical writers to use {{ page.metadata.xxx }} directly
+        in their markdown content, not just in templates.
+        
+        Args:
+            page: Page to pre-process
+            
+        Returns:
+            Content with Jinja2 variables rendered
+            
+        Example:
+            # In markdown:
+            Today we're talking about {{ page.metadata.product_name }} 
+            version {{ page.metadata.version }}.
+        """
+        from jinja2 import Template, TemplateSyntaxError
+        
+        try:
+            # Create a Jinja2 template from the content
+            template = Template(page.content)
+            
+            # Render with page and site context
+            rendered_content = template.render(
+                page=page,
+                site=self.site,
+                config=self.site.config
+            )
+            
+            return rendered_content
+            
+        except TemplateSyntaxError as e:
+            # If there's a syntax error, warn but continue with original content
+            print(f"  ⚠️  Jinja2 syntax error in {page.source_path}: {e}")
+            return page.content
+        except Exception as e:
+            # For any other error, warn but continue
+            print(f"  ⚠️  Error pre-processing {page.source_path}: {e}")
+            return page.content
 

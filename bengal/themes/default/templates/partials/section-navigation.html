@@ -1,0 +1,45 @@
+{# Section navigation component - showcases section navigation properties #}
+
+{% if page.regular_pages is defined or page.sections is defined %}
+<div class="section-navigation">
+    {# Section stats - dogfooding regular_pages and sections properties #}
+    <div class="section-stats">
+        <p class="stat">
+            <strong>{{ page.regular_pages | length }}</strong> pages in this section
+        </p>
+        {% if page.sections %}
+        <p class="stat">
+            <strong>{{ page.sections | length }}</strong> subsections
+        </p>
+        {% endif %}
+        {% if page.regular_pages_recursive | length > page.regular_pages | length %}
+        <p class="stat">
+            <strong>{{ page.regular_pages_recursive | length }}</strong> total pages (including subsections)
+        </p>
+        {% endif %}
+    </div>
+    
+    {# Subsections - dogfooding page.sections #}
+    {% if page.sections %}
+    <div class="subsections">
+        <h2>Subsections</h2>
+        <div class="subsection-grid">
+            {% for subsection in page.sections %}
+            <div class="subsection-card">
+                <h3>
+                    <a href="{{ url_for(subsection) }}">{{ subsection.title }}</a>
+                </h3>
+                {% if subsection.metadata.description %}
+                <p>{{ subsection.metadata.description }}</p>
+                {% endif %}
+                <p class="subsection-meta">
+                    {{ subsection.regular_pages | length }} pages
+                </p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+

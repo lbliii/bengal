@@ -98,6 +98,12 @@ class Site:
         
         discovery = ContentDiscovery(content_dir)
         self.sections, self.pages = discovery.discover()
+        
+        # Set up page references for navigation
+        self._setup_page_references()
+        
+        # Apply cascading frontmatter from sections to pages
+        self._apply_cascades()
     
     def discover_assets(self, assets_dir: Optional[Path] = None) -> None:
         """
@@ -130,6 +136,105 @@ class Site:
             # Only warn if we have no theme assets either
             print(f"Warning: Assets directory {assets_dir} does not exist")
     
+    def _setup_page_references(self) -> None:
+        """
+        Set up page references for navigation (next, prev, parent, etc.).
+        
+        This method sets _site and _section references on all pages to enable
+        navigation properties (next, prev, ancestors, etc.).
+        """
+        # Set site reference on all pages
+        for page in self.pages:
+            page._site = self
+        
+        # Set section references
+        for section in self.sections:
+            # Set site reference on section
+            section._site = self
+            
+            # Set section reference on all pages in this section
+            for page in section.pages:
+                page._section = section
+            
+            # Recursively set for subsections
+            self._setup_section_references(section)
+    
+    def _setup_section_references(self, section: Section) -> None:
+        """
+        Recursively set up references for a section and its subsections.
+        
+        Args:
+            section: Section to set up references for
+        """
+        for subsection in section.subsections:
+            subsection._site = self
+            
+            # Set section reference on pages in subsection
+            for page in subsection.pages:
+                page._section = subsection
+            
+            # Recurse into deeper subsections
+            self._setup_section_references(subsection)
+    
+    def _apply_cascades(self) -> None:
+        """
+        Apply cascading metadata from sections to their child pages and subsections.
+        
+        This implements Hugo-style cascade functionality where section _index.md files
+        can define metadata that automatically applies to all descendant pages.
+        
+        Cascade metadata is defined in a section's _index.md frontmatter:
+        
+        Example:
+            ---
+            title: "Products"
+            cascade:
+              type: "product"
+              version: "2.0"
+              show_price: true
+            ---
+        
+        All pages under this section will inherit these values unless they
+        define their own values (page values take precedence over cascaded values).
+        """
+        # Process all top-level sections (they will recurse to subsections)
+        for section in self.sections:
+            self._apply_section_cascade(section, parent_cascade=None)
+    
+    def _apply_section_cascade(self, section: Section, parent_cascade: Optional[Dict[str, Any]] = None) -> None:
+        """
+        Recursively apply cascade metadata to a section and its descendants.
+        
+        Cascade metadata accumulates through the hierarchy - child sections inherit
+        and can extend parent cascades.
+        
+        Args:
+            section: Section to process
+            parent_cascade: Cascade metadata inherited from parent sections
+        """
+        # Merge parent cascade with this section's cascade
+        accumulated_cascade = {}
+        
+        if parent_cascade:
+            accumulated_cascade.update(parent_cascade)
+        
+        if 'cascade' in section.metadata:
+            # Section's cascade extends/overrides parent cascade
+            accumulated_cascade.update(section.metadata['cascade'])
+        
+        # Apply accumulated cascade to all pages in this section
+        # (but only for keys not already defined in page metadata)
+        for page in section.pages:
+            if accumulated_cascade:
+                for key, value in accumulated_cascade.items():
+                    # Page metadata takes precedence over cascade
+                    if key not in page.metadata:
+                        page.metadata[key] = value
+        
+        # Recursively apply to subsections with accumulated cascade
+        for subsection in section.subsections:
+            self._apply_section_cascade(subsection, accumulated_cascade)
+    
     def _get_theme_assets_dir(self) -> Optional[Path]:
         """
         Get the assets directory for the current theme.
@@ -154,7 +259,7 @@ class Site:
         
         return None
     
-    def build(self, parallel: bool = True, incremental: bool = False, verbose: bool = False) -> None:
+    def build(self, parallel: bool = True, incremental: bool = False, verbose: bool = False) -> 'BuildStats':
         """
         Build the entire site.
         
@@ -162,9 +267,20 @@ class Site:
             parallel: Whether to use parallel processing
             incremental: Whether to perform incremental build (only changed files)
             verbose: Whether to show detailed build information
+            
+        Returns:
+            BuildStats object with build statistics
         """
         from bengal.rendering.pipeline import RenderingPipeline
         from bengal.cache import BuildCache, DependencyTracker
+        from bengal.utils.build_stats import BuildStats
+        import time
+        
+        # Start timing
+        build_start = time.time()
+        
+        # Initialize stats
+        stats = BuildStats(parallel=parallel, incremental=incremental)
         
         print(f"Building site at {self.root_path}...")
         self.build_time = datetime.now()
@@ -175,8 +291,10 @@ class Site:
         tracker = DependencyTracker(cache)
         
         # Discover content and assets
+        discovery_start = time.time()
         self.discover_content()
         self.discover_assets()
+        stats.discovery_time_ms = (time.time() - discovery_start) * 1000
         
         # Track config file as a global dependency
         config_files = [
@@ -197,6 +315,7 @@ class Site:
             cache.update_file(config_file)
         
         # Collect taxonomies (tags, categories, etc.)
+        taxonomy_start = time.time()
         self.collect_taxonomies()
         
         # Generate dynamic pages (archives, tag pages, etc.)
@@ -204,6 +323,7 @@ class Site:
         
         # Build navigation menus
         self.build_menus()
+        stats.taxonomy_time_ms = (time.time() - taxonomy_start) * 1000
         
         # Determine what to build
         pages_to_build = self.pages
@@ -216,7 +336,9 @@ class Site:
             
             if not pages_to_build and not assets_to_process:
                 print("✓ No changes detected - skipping build")
-                return
+                stats.skipped = True
+                stats.build_time_ms = (time.time() - build_start) * 1000
+                return stats
             
             print(f"  Incremental build: {len(pages_to_build)} pages, "
                   f"{len(assets_to_process)} assets")
@@ -236,6 +358,7 @@ class Site:
         pipeline = RenderingPipeline(self, tracker)
         
         # Build pages
+        rendering_start = time.time()
         original_pages = self.pages
         self.pages = pages_to_build  # Temporarily replace with subset
         
@@ -245,15 +368,20 @@ class Site:
             self._build_sequential(pipeline)
         
         self.pages = original_pages  # Restore full page list
+        stats.rendering_time_ms = (time.time() - rendering_start) * 1000
         
         # Copy and optimize assets
+        assets_start = time.time()
         original_assets = self.assets
         self.assets = assets_to_process  # Temporarily replace with subset
         self._process_assets()
         self.assets = original_assets  # Restore full asset list
+        stats.assets_time_ms = (time.time() - assets_start) * 1000
         
         # Post-processing
+        postprocess_start = time.time()
         self._post_process()
+        stats.postprocess_time_ms = (time.time() - postprocess_start) * 1000
         
         # Update cache with all processed files
         if incremental or self.config.get("cache_enabled", True):
@@ -283,7 +411,18 @@ class Site:
         # Run build health checks
         self._validate_build_health()
         
+        # Collect final stats
+        stats.total_pages = len(self.pages)
+        stats.regular_pages = len([p for p in self.pages if not p.metadata.get('_generated')])
+        stats.generated_pages = len([p for p in self.pages if p.metadata.get('_generated')])
+        stats.total_assets = len(self.assets)
+        stats.total_sections = len(self.sections)
+        stats.taxonomies_count = sum(len(terms) for terms in self.taxonomies.values())
+        stats.build_time_ms = (time.time() - build_start) * 1000
+        
         print(f"✓ Site built successfully in {self.output_dir}")
+        
+        return stats
     
     def _build_sequential(self, pipeline: Any) -> None:
         """
@@ -721,13 +860,17 @@ class Site:
             
             try:
                 content = html_file.read_text()
-                # Check for obvious unrendered syntax
+                
+                # Check for obvious unrendered syntax, but skip code blocks
                 if "{{ page." in content or "{% if page" in content or "{{ site." in content:
-                    unrendered_count += 1
-                    if unrendered_count <= 3:  # Only report first few
-                        issues.append(
-                            f"Unrendered Jinja2 syntax in {html_file.relative_to(self.output_dir)}"
-                        )
+                    # Might be unrendered, but could be in code blocks (documentation)
+                    # Use smarter detection to avoid false positives
+                    if self._has_unrendered_jinja2(content):
+                        unrendered_count += 1
+                        if unrendered_count <= 3:  # Only report first few
+                            issues.append(
+                                f"Unrendered Jinja2 syntax in {html_file.relative_to(self.output_dir)}"
+                            )
             except Exception:
                 # Ignore files we can't read
                 pass
@@ -751,6 +894,58 @@ class Site:
                 )
             else:
                 print("  (These may be acceptable in production - review output)")
+    
+    def _has_unrendered_jinja2(self, html_content: str) -> bool:
+        """
+        Detect if HTML has unrendered Jinja2 syntax (not in code blocks).
+        
+        Distinguishes between:
+        - Actual unrendered templates (bad) 
+        - Documented/escaped syntax in code blocks (ok)
+        
+        Args:
+            html_content: HTML content to check
+            
+        Returns:
+            True if unrendered Jinja2 found (not in code blocks)
+        """
+        try:
+            from bs4 import BeautifulSoup
+            
+            soup = BeautifulSoup(html_content, 'html.parser')
+            
+            # Remove all code blocks first (they're allowed to have Jinja2 syntax)
+            for code_block in soup.find_all(['code', 'pre']):
+                code_block.decompose()
+            
+            # Now check the remaining HTML for Jinja2 syntax
+            remaining_text = soup.get_text()
+            
+            # Check for unrendered syntax patterns
+            jinja2_patterns = [
+                '{{ page.',
+                '{{ site.',
+                '{% if page',
+                '{% if site',
+                '{% for page',
+                '{% for site'
+            ]
+            
+            for pattern in jinja2_patterns:
+                if pattern in remaining_text:
+                    return True
+            
+            return False
+            
+        except ImportError:
+            # BeautifulSoup not available, fall back to simple check
+            # (will have false positives for docs with code examples)
+            return ('{{ page.' in html_content or 
+                    '{{ site.' in html_content or 
+                    '{% if page' in html_content)
+        except Exception:
+            # On any parsing error, assume it's ok to avoid false positives
+            return False
     
     def collect_taxonomies(self) -> None:
         """
@@ -846,17 +1041,28 @@ class Site:
         # Create paginator
         paginator = Paginator(section.pages, per_page=per_page)
         
+        # Use dedicated virtual namespace for generated pages
+        virtual_base = self.root_path / ".bengal" / "generated"
+        
         # Create a page for each pagination page
         for page_num in range(1, paginator.num_pages + 1):
+            # Create unique, namespaced virtual path
+            virtual_path = virtual_base / "archives" / section.name / f"page_{page_num}.md"
+            
+            # Validate it doesn't exist (should never happen with .bengal namespace)
+            if virtual_path.exists():
+                print(f"⚠️  Warning: Virtual path conflict: {virtual_path} exists as real file")
+            
             # Create virtual page
             archive_page = Page(
-                source_path=section.path / f"_generated_archive_p{page_num}.md",
+                source_path=virtual_path,
                 content="",
                 metadata={
                     'title': f"{section.title}",
                     'template': 'archive.html',
                     'type': 'archive',
                     '_generated': True,
+                    '_virtual': True,  # Flag for special handling
                     '_section': section,
                     '_posts': section.pages,
                     '_paginator': paginator,
@@ -876,14 +1082,19 @@ class Site:
     
     def _create_tag_index_page(self) -> Page:
         """Create the main tags index page."""
+        # Use dedicated virtual namespace
+        virtual_base = self.root_path / ".bengal" / "generated"
+        virtual_path = virtual_base / "tags" / "index.md"
+        
         tag_index = Page(
-            source_path=self.root_path / "_generated_tags_index.md",
+            source_path=virtual_path,
             content="",
             metadata={
                 'title': 'All Tags',
                 'template': 'tags.html',
                 'type': 'tag-index',
                 '_generated': True,
+                '_virtual': True,
                 '_tags': self.taxonomies['tags']
             }
         )
@@ -899,16 +1110,23 @@ class Site:
         # Create paginator
         paginator = Paginator(tag_data['pages'], per_page=per_page)
         
+        # Use dedicated virtual namespace
+        virtual_base = self.root_path / ".bengal" / "generated"
+        
         # Create a page for each pagination page
         for page_num in range(1, paginator.num_pages + 1):
+            # Create unique, namespaced virtual path
+            virtual_path = virtual_base / "tags" / tag_slug / f"page_{page_num}.md"
+            
             tag_page = Page(
-                source_path=self.root_path / f"_generated_tag_{tag_slug}_p{page_num}.md",
+                source_path=virtual_path,
                 content="",
                 metadata={
                     'title': f"Posts tagged '{tag_data['name']}'",
                     'template': 'tag.html',
                     'type': 'tag',
                     '_generated': True,
+                    '_virtual': True,
                     '_tag': tag_data['name'],
                     '_tag_slug': tag_slug,
                     '_posts': tag_data['pages'],

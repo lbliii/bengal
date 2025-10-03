@@ -23,6 +23,8 @@ Bengal uses [Jinja2](https://jinja.palletsprojects.com/) for templating, providi
 - ✅ Loops and iteration
 - ✅ Safe HTML escaping
 
+> **📝 Writing Template Documentation?** If you need to show Jinja2 syntax literally (like `{{ '{{ toc }}' }}` or `{{ '{% for %}' }}`), use **string literals** instead of `{% raw %}` blocks. See [Escaping Template Syntax](#escaping-template-syntax) below for details.
+
 ## Available Templates
 
 Bengal's default theme includes these templates:
@@ -642,6 +644,88 @@ For a page, Bengal determines the template in this order:
 {# Better: use markdown rendering #}
 {{ content }}
 ```
+
+### Escaping Template Syntax
+
+When writing documentation about Bengal's templates, you need to show Jinja2 syntax literally without it being processed. **Use string literals** for this:
+
+#### Basic Escaping
+
+```jinja2
+{# Show template variables as text #}
+Use {{ '{{ page.title }}' }} to display the page title.
+Use {{ '{{ toc }}' }} for table of contents.
+Use {{ '{{ site.pages | length }}' }} to show page count.
+
+{# Show template tags #}
+{{ '{% for item in items %}' }}
+{{ '{% if condition %}' }}
+{{ '{% endfor %}' }}
+{{ '{% endif %}' }}
+```
+
+**How it works**: The outer `{{ }}` evaluates the inner string literal, outputting the Jinja2 syntax as plain text.
+
+#### In Code Blocks
+
+String literals work perfectly in fenced code blocks:
+
+````markdown
+Example template code:
+
+```jinja2
+{{ '{{ toc }}' }}
+{{ '{{ page.metadata.author }}' }}
+{{ '{% for post in site.pages %}' }}
+  <h2>{{ '{{ post.title }}' }}</h2>
+{{ '{% endfor %}' }}
+```
+````
+
+#### Common Use Cases
+
+**Documenting template variables**:
+```markdown
+To display the page title, use {{ '{{ page.title }}' }}.
+To show the table of contents, use {{ '{{ toc }}' }}.
+```
+
+**Showing filter usage**:
+```markdown
+Format dates with {{ '{{ page.date | dateformat("%Y-%m-%d") }}' }}.
+```
+
+**Explaining conditionals**:
+```markdown
+Use {{ '{% if page.featured %}' }} to check if a page is featured.
+```
+
+#### Why Not `{% raw %}`?
+
+**Don't use** `{% raw %}...{% endraw %}` in Bengal markdown files! Here's why:
+
+Bengal has a **two-stage rendering process**:
+1. **Stage 1**: Markdown content is preprocessed through Jinja2 (allows variables in markdown)
+2. **Stage 2**: Final HTML is wrapped in templates (base.html with CSS, navigation, etc.)
+
+`{% raw %}` blocks can span between these stages, causing:
+- ❌ Template rendering errors
+- ❌ Broken CSS and styling
+- ❌ Missing navigation/page structure
+- ❌ Incomplete output
+
+String literals work because they're evaluated in Stage 1, becoming plain text before Stage 2 runs.
+
+#### Quick Reference
+
+| Need to Show | Use This |
+|--------------|----------|
+| `{{ toc }}` | `{{ '{{' }} toc {{ '}}' }}` or `{{ '{{ toc }}' }}` |
+| `{% for x in y %}` | `{{ '{% for x in y %}' }}` |
+| `{{ page.title }}` | `{{ '{{ page.title }}' }}` |
+| Multiple lines | Use string literal for each line |
+
+> **Pro Tip**: This only applies to **markdown content files**. In actual `.html` template files, you can use `{% raw %}` normally since they're only processed once.
 
 ### Whitespace Control
 

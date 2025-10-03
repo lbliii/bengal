@@ -26,6 +26,7 @@
    COMPONENT STYLES
    ============================================ */
 
+@import url('components/admonitions.css');
 @import url('components/buttons.css');
 @import url('components/cards.css');
 @import url('components/tags.css');
@@ -33,6 +34,9 @@
 @import url('components/pagination.css');
 @import url('components/toc.css');
 @import url('components/related-posts.css');
+@import url('components/navigation.css');
+@import url('components/badges.css');
+@import url('components/widgets.css');
 
 /* ============================================
    PAGE-SPECIFIC STYLES

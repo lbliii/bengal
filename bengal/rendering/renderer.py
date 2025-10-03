@@ -203,6 +203,11 @@ class Renderer:
         if 'template' in page.metadata:
             return page.metadata['template']
         
+        # Check if this is an _index.md file (section index)
+        if page.source_path.stem == '_index':
+            # Use index template for section index pages
+            return 'index.html'
+        
         # Check page type
         page_type = page.metadata.get('type', 'page')
         
@@ -217,23 +222,64 @@ class Renderer:
     
     def _render_fallback(self, page: Page, content: str) -> str:
         """
-        Render a simple fallback HTML page.
+        Render a fallback HTML page with basic styling.
+        
+        When the main template fails, we still try to produce a usable page
+        with basic CSS and structure (though without partials/navigation).
         
         Args:
             page: Page to render
             content: Page content
             
         Returns:
-            Simple HTML page
+            Fallback HTML page with minimal styling
         """
+        # Try to include CSS if available
+        css_link = ''
+        if hasattr(self.site, 'output_dir'):
+            css_file = self.site.output_dir / 'assets' / 'css' / 'style.css'
+            if css_file.exists():
+                css_link = '<link rel="stylesheet" href="/assets/css/style.css">'
+        
         return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{page.title}</title>
+    <title>{page.title} - {self.site.config.get('title', 'Site')}</title>
+    {css_link}
+    <style>
+        /* Emergency fallback styling */
+        body {{
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+            color: #333;
+        }}
+        .fallback-notice {{
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 4px;
+            padding: 1rem;
+            margin-bottom: 2rem;
+        }}
+        article {{
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+        }}
+        h1 {{ color: #2c3e50; }}
+        code {{ background: #f4f4f4; padding: 0.2em 0.4em; border-radius: 3px; }}
+        pre {{ background: #f4f4f4; padding: 1rem; border-radius: 4px; overflow-x: auto; }}
+    </style>
 </head>
 <body>
+    <div class="fallback-notice">
+        <strong>⚠️ Notice:</strong> This page is displayed in fallback mode due to a template error. 
+        Some features (navigation, sidebars, etc.) may be missing.
+    </div>
     <article>
         <h1>{page.title}</h1>
         {content}

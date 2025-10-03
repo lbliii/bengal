@@ -11,6 +11,8 @@ import threading
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler, FileSystemEvent
 
+from bengal.utils.build_stats import display_build_stats, show_building_indicator, show_error
+
 
 class BuildHandler(FileSystemEventHandler):
     """
@@ -47,14 +49,14 @@ class BuildHandler(FileSystemEventHandler):
         # Trigger rebuild
         if not self.building:
             self.building = True
-            print(f"\n📝 Change detected: {event.src_path}")
-            print("🔨 Rebuilding site...")
+            print(f"\n📝 Change detected: {Path(event.src_path).name}")
+            show_building_indicator("Rebuilding")
             
             try:
-                self.site.build(parallel=False)
-                print("✅ Rebuild complete!\n")
+                stats = self.site.build(parallel=False)
+                display_build_stats(stats, show_art=False)
             except Exception as e:
-                print(f"❌ Build failed: {e}\n")
+                show_error(f"Build failed: {e}", show_art=False)
             finally:
                 self.building = False
 
@@ -84,10 +86,10 @@ class DevServer:
     
     def start(self) -> None:
         """Start the development server."""
-        # Ensure site is built
-        if not self.site.output_dir.exists():
-            print("Building site before starting server...")
-            self.site.build()
+        # Always do an initial build to ensure site is up to date
+        show_building_indicator("Initial build")
+        stats = self.site.build()
+        display_build_stats(stats, show_art=False)
         
         # Start file watcher if enabled
         if self.watch:

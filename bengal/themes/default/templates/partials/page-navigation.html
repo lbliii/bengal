@@ -1,0 +1,26 @@
+{# Page navigation component - prev/next links #}
+
+{% if page.prev or page.next %}
+<nav class="page-navigation" aria-label="Page navigation">
+  <div class="nav-links">
+    {% if page.prev %}
+    <div class="nav-previous">
+      <a href="{{ url_for(page.prev) }}" rel="prev">
+        <span class="nav-subtitle">← Previous</span>
+        <span class="nav-title">{{ page.prev.title }}</span>
+      </a>
+    </div>
+    {% endif %}
+    
+    {% if page.next %}
+    <div class="nav-next">
+      <a href="{{ url_for(page.next) }}" rel="next">
+        <span class="nav-subtitle">Next →</span>
+        <span class="nav-title">{{ page.next.title }}</span>
+      </a>
+    </div>
+    {% endif %}
+  </div>
+</nav>
+{% endif %}
+

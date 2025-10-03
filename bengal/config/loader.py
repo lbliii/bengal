@@ -47,25 +47,41 @@ class ConfigLoader:
     
     def _load_file(self, config_path: Path) -> Dict[str, Any]:
         """
-        Load a specific config file.
+        Load a specific config file with validation.
         
         Args:
             config_path: Path to config file
             
         Returns:
-            Configuration dictionary
+            Validated configuration dictionary
+            
+        Raises:
+            ConfigValidationError: If validation fails
         """
+        from bengal.config.validators import ConfigValidator, ConfigValidationError
+        
         suffix = config_path.suffix.lower()
         
         try:
+            # Load raw config
             if suffix == '.toml':
-                return self._load_toml(config_path)
+                raw_config = self._load_toml(config_path)
             elif suffix in ('.yaml', '.yml'):
-                return self._load_yaml(config_path)
+                raw_config = self._load_yaml(config_path)
             else:
                 raise ValueError(f"Unsupported config format: {suffix}")
+            
+            # Validate with lightweight validator
+            validator = ConfigValidator()
+            validated_config = validator.validate(raw_config, source_file=config_path)
+            
+            return validated_config
+            
+        except ConfigValidationError:
+            # Validation error already printed nice errors
+            raise
         except Exception as e:
-            print(f"Error loading config from {config_path}: {e}")
+            print(f"❌ Error loading config from {config_path}: {e}")
             return self._default_config()
     
     def _load_toml(self, config_path: Path) -> Dict[str, Any]:
