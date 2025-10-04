@@ -1,0 +1,40 @@
+# Bengal SSG Configuration Example
+
+[site]
+title = "My Site"
+baseurl = "https://example.com"
+
+[build]
+output_dir = "public"
+
+# Autodoc Configuration
+[autodoc.python]
+enabled = true
+source_dirs = ["bengal"]  # Directories to document
+output_dir = "content/api"  # Where to put generated docs
+docstring_style = "auto"  # auto, google, numpy, or sphinx
+
+# Files/patterns to exclude
+exclude = [
+    "*/tests/*",
+    "*/test_*.py",
+    "*/__pycache__/*",
+    "*/migrations/*",
+]
+
+# Member visibility
+include_private = false  # Include _private methods
+include_special = false  # Include __special__ methods
+
+# Future: OpenAPI autodoc
+[autodoc.openapi]
+enabled = false
+# spec_file = "openapi.yaml"
+# output_dir = "content/api-docs"
+
+# Future: CLI autodoc
+[autodoc.cli]
+enabled = false
+# module = "myapp.cli"
+# output_dir = "content/cli"
+

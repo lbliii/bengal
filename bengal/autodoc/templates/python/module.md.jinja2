@@ -1,0 +1,207 @@
+---
+title: "{{ element.name }}"
+layout: api-reference
+type: python-module
+source_file: "{{ element.source_file }}"
+---
+
+# {{ element.name }}
+
+{% if element.description %}
+{{ element.description }}
+{% else %}
+*No module description provided.*
+{% endif %}
+
+**Source:** `{{ element.metadata.file_path }}`
+
+---
+
+{% if element.children | selectattr('element_type', 'equalto', 'class') | list %}
+## Classes
+
+{% for cls in element.children | selectattr('element_type', 'equalto', 'class') %}
+### {{ cls.name }}
+
+{% if cls.metadata.bases %}
+**Inherits from:** {% for base in cls.metadata.bases %}`{{ base }}`{% if not loop.last %}, {% endif %}{% endfor %}
+{% endif %}
+
+{% if cls.description %}
+{{ cls.description }}
+{% else %}
+*No class description provided.*
+{% endif %}
+
+{% if cls.metadata.is_dataclass %}
+::: info
+This is a dataclass.
+:::
+{% endif %}
+
+{% if cls.children | selectattr('element_type', 'equalto', 'attribute') | list %}
+**Attributes:**
+
+{% for attr in cls.children | selectattr('element_type', 'equalto', 'attribute') %}
+- **{{ attr.name }}**{% if attr.metadata.annotation %} (`{{ attr.metadata.annotation }}`){% endif %}
+{% endfor %}
+{% endif %}
+
+{% if cls.children | selectattr('metadata.is_property', 'equalto', true) | list %}
+**Properties:**
+
+{% for prop in cls.children | selectattr('metadata.is_property', 'equalto', true) %}
+#### {{ prop.name }}
+
+```python
+@property
+{{ prop.metadata.signature }}
+```
+
+{% if prop.description %}
+{{ prop.description }}
+{% endif %}
+{% endfor %}
+{% endif %}
+
+{% if cls.children | selectattr('element_type', 'equalto', 'method') | list %}
+**Methods:**
+
+{% for method in cls.children | selectattr('element_type', 'equalto', 'method') %}
+{% if not method.name.startswith('_') or method.name.startswith('__') %}
+#### {{ method.name }}
+
+```python
+{{ method.metadata.signature }}
+```
+
+{% if method.description %}
+{{ method.description }}
+{% else %}
+*No description provided.*
+{% endif %}
+
+{% if method.metadata.args %}
+**Parameters:**
+
+{% for arg in method.metadata.args %}
+- **{{ arg.name }}**{% if arg.annotation %} (`{{ arg.annotation }}`){% endif %}{% if arg.default %} = `{{ arg.default }}`{% endif %}{% if arg.docstring %} - {{ arg.docstring }}{% endif %}
+
+{% endfor %}
+{% endif %}
+
+{% if method.metadata.returns %}
+**Returns:** `{{ method.metadata.returns }}`{% if method.metadata.parsed_doc.returns %} - {{ method.metadata.parsed_doc.returns }}{% endif %}
+
+{% endif %}
+
+{% if method.metadata.parsed_doc.raises %}
+**Raises:**
+
+{% for exc in method.metadata.parsed_doc.raises %}
+- **{{ exc.type }}**{% if exc.description %}: {{ exc.description }}{% endif %}
+
+{% endfor %}
+{% endif %}
+
+{% if method.examples %}
+**Examples:**
+
+{% for example in method.examples %}
+{{ example }}
+
+{% endfor %}
+{% endif %}
+
+{% if method.see_also %}
+**See Also:** {% for ref in method.see_also %}{{ ref }}{% if not loop.last %}, {% endif %}{% endfor %}
+
+{% endif %}
+
+{% if method.deprecated %}
+::: warning "Deprecated"
+{{ method.deprecated }}
+:::
+
+{% endif %}
+
+{% if method.metadata.is_async %}
+::: info
+This is an async method.
+:::
+{% endif %}
+
+---
+{% endif %}
+{% endfor %}
+{% endif %}
+
+{% endfor %}
+{% endif %}
+
+{% if element.children | selectattr('element_type', 'equalto', 'function') | list %}
+## Functions
+
+{% for func in element.children | selectattr('element_type', 'equalto', 'function') %}
+{% if not func.name.startswith('_') %}
+### {{ func.name }}
+
+```python
+{{ func.metadata.signature }}
+```
+
+{% if func.description %}
+{{ func.description }}
+{% else %}
+*No description provided.*
+{% endif %}
+
+{% if func.metadata.args %}
+**Parameters:**
+
+{% for arg in func.metadata.args %}
+- **{{ arg.name }}**{% if arg.annotation %} (`{{ arg.annotation }}`){% endif %}{% if arg.default %} = `{{ arg.default }}`{% endif %}{% if arg.docstring %} - {{ arg.docstring }}{% endif %}
+
+{% endfor %}
+{% endif %}
+
+{% if func.metadata.returns %}
+**Returns:** `{{ func.metadata.returns }}`{% if func.metadata.parsed_doc.returns %} - {{ func.metadata.parsed_doc.returns }}{% endif %}
+
+{% endif %}
+
+{% if func.metadata.parsed_doc.raises %}
+**Raises:**
+
+{% for exc in func.metadata.parsed_doc.raises %}
+- **{{ exc.type }}**{% if exc.description %}: {{ exc.description }}{% endif %}
+
+{% endfor %}
+{% endif %}
+
+{% if func.examples %}
+**Examples:**
+
+{% for example in func.examples %}
+{{ example }}
+
+{% endfor %}
+{% endif %}
+
+{% if func.see_also %}
+**See Also:** {% for ref in func.see_also %}{{ ref }}{% if not loop.last %}, {% endif %}{% endfor %}
+
+{% endif %}
+
+{% if func.deprecated %}
+::: warning "Deprecated"
+{{ func.deprecated }}
+:::
+
+{% endif %}
+
+---
+{% endif %}
+{% endfor %}
+{% endif %}
+

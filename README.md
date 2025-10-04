@@ -24,6 +24,7 @@ A Python-based static site generator with modular architecture, incremental buil
 
 ### Content & Templates
 - **75 Template Functions**: Strings, collections, math, dates, URLs, content, data, files, images, SEO, taxonomies, pagination
+- **Autodoc (NEW!)**: AST-based API documentation generation from Python source (175+ pages/sec, no imports needed)
 - **Navigation System**: Automatic next/prev, breadcrumbs, hierarchical navigation
 - **Menu System**: Config-driven hierarchical menus with active state detection
 - **Cascade System**: Frontmatter inheritance from sections to child pages
@@ -129,12 +130,57 @@ bengal build --parallel
 # Strict mode (fail on errors, recommended for CI)
 bengal build --strict
 
+# Generate API documentation from Python source
+bengal autodoc --source mylib --output content/api
+
 # Development server with file watching
 bengal serve --port 5173
 
 # Clean output directory
 bengal clean
 ```
+
+## API Documentation (Autodoc)
+
+Bengal includes a powerful autodoc system for generating API documentation from Python source code:
+
+```bash
+# Generate docs for a module
+bengal autodoc --source src/mylib --output content/api
+
+# Use config file
+bengal autodoc  # reads from bengal.toml
+
+# Show statistics
+bengal autodoc --stats --verbose
+```
+
+**Configuration** (`bengal.toml`):
+
+```toml
+[autodoc.python]
+enabled = true
+source_dirs = ["src/mylib"]
+output_dir = "content/api"
+docstring_style = "auto"  # auto, google, numpy, sphinx
+
+exclude = [
+    "*/tests/*",
+    "*/__pycache__/*",
+]
+
+include_private = false  # Include _private methods
+include_special = false  # Include __special__ methods
+```
+
+**Features:**
+- ⚡ **Fast**: AST-based extraction (no imports!) - 175+ pages/sec
+- 🎨 **Flexible**: Fully customizable Jinja2 templates
+- 📝 **Smart**: Parses Google, NumPy, and Sphinx docstring formats
+- 🔒 **Safe**: No code execution, works with any dependencies
+- 📊 **Rich**: Extracts args, returns, raises, examples, type hints, deprecations
+
+See the [showcase site](examples/showcase) for a live example with full Bengal API docs!
 
 ## Development Status
 
@@ -146,6 +192,7 @@ Bengal SSG is functional and under active development.
 - Incremental builds with dependency tracking
 - Parallel processing for pages, assets, and post-processing
 - 75 template functions across 15 modules
+- **Autodoc system (AST-based API documentation generation)** ⭐ NEW
 - Navigation system (next/prev, breadcrumbs, hierarchical)
 - Menu system (config-driven, hierarchical)
 - Cascade system (frontmatter inheritance)

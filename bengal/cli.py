@@ -15,6 +15,9 @@ from bengal.utils.build_stats import (
     show_welcome,
     show_clean_success,
 )
+from bengal.autodoc.extractors.python import PythonExtractor
+from bengal.autodoc.generator import DocumentationGenerator
+from bengal.autodoc.config import load_autodoc_config
 
 
 @click.group()
@@ -376,7 +379,9 @@ date: {datetime.now().isoformat()}
 
 Your content goes here.
 """
-        page_path.write_text(page_content)
+        # Write new page atomically (crash-safe)
+        from bengal.utils.atomic_write import atomic_write_text
+        atomic_write_text(page_path, page_content)
         
         click.echo(click.style(f"\n✨ Created new page: ", fg='cyan') + 
                   click.style(str(page_path), fg='green', bold=True))
@@ -384,6 +389,127 @@ Your content goes here.
         
     except Exception as e:
         show_error(f"Failed to create page: {e}", show_art=False)
+        raise click.Abort()
+
+
+@main.command()
+@click.option('--source', '-s', multiple=True, type=click.Path(exists=True), help='Source directory to document (can specify multiple)')
+@click.option('--output', '-o', type=click.Path(), help='Output directory for generated docs (default: from config or content/api)')
+@click.option('--clean', is_flag=True, help='Clean output directory before generating')
+@click.option('--parallel/--no-parallel', default=True, help='Use parallel processing (default: enabled)')
+@click.option('--verbose', '-v', is_flag=True, help='Show detailed progress')
+@click.option('--stats', is_flag=True, help='Show performance statistics')
+@click.option('--config', type=click.Path(exists=True), help='Path to config file (default: bengal.toml)')
+def autodoc(source: tuple, output: str, clean: bool, parallel: bool, verbose: bool, stats: bool, config: str) -> None:
+    """
+    📚 Generate API documentation from Python source code.
+    
+    Extracts documentation via AST parsing (no imports needed!).
+    Fast, reliable, and works even with complex dependencies.
+    
+    Example:
+        bengal autodoc --source src/mylib --output content/api
+    """
+    import time
+    
+    try:
+        click.echo()
+        click.echo(click.style("📚 Bengal Autodoc", fg='cyan', bold=True))
+        click.echo()
+        
+        # Load configuration
+        config_path = Path(config) if config else None
+        autodoc_config = load_autodoc_config(config_path)
+        python_config = autodoc_config.get('python', {})
+        
+        # Use CLI args or fall back to config
+        if source:
+            sources = list(source)
+        else:
+            sources = python_config.get('source_dirs', ['.'])
+        
+        if output:
+            output_dir = Path(output)
+        else:
+            output_dir = Path(python_config.get('output_dir', 'content/api'))
+        
+        # Get exclusion patterns from config
+        exclude_patterns = python_config.get('exclude', [])
+        
+        # Clean output directory if requested
+        if clean and output_dir.exists():
+            import shutil
+            shutil.rmtree(output_dir)
+            click.echo(click.style(f"🧹 Cleaned {output_dir}", fg='yellow'))
+        
+        # Create output directory
+        output_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Extract documentation
+        click.echo(click.style("🔍 Extracting Python API documentation...", fg='blue'))
+        start_time = time.time()
+        
+        extractor = PythonExtractor(exclude_patterns=exclude_patterns)
+        all_elements = []
+        
+        for source_path in sources:
+            source_path = Path(source_path)
+            if verbose:
+                click.echo(f"   📂 Scanning {source_path}")
+            
+            elements = extractor.extract(source_path)
+            all_elements.extend(elements)
+            
+            if verbose:
+                module_count = len(elements)
+                class_count = sum(len([c for c in e.children if c.element_type == 'class']) for e in elements)
+                func_count = sum(len([c for c in e.children if c.element_type == 'function']) for e in elements)
+                click.echo(f"   ✓ Found {module_count} modules, {class_count} classes, {func_count} functions")
+        
+        extraction_time = time.time() - start_time
+        
+        if not all_elements:
+            click.echo(click.style("⚠️  No Python modules found", fg='yellow'))
+            return
+        
+        click.echo(click.style(f"   ✓ Extracted {len(all_elements)} modules in {extraction_time:.2f}s", fg='green'))
+        
+        # Generate documentation
+        click.echo(click.style("\n🔨 Generating documentation...", fg='blue'))
+        gen_start = time.time()
+        
+        generator = DocumentationGenerator(extractor, autodoc_config)
+        generated = generator.generate_all(all_elements, output_dir, parallel=parallel)
+        
+        generation_time = time.time() - gen_start
+        total_time = time.time() - start_time
+        
+        # Success message
+        click.echo()
+        click.echo(click.style(f"✅ Generated {len(generated)} documentation pages", fg='green', bold=True))
+        click.echo(click.style(f"   📁 Output: {output_dir}", fg='cyan'))
+        
+        if stats:
+            click.echo()
+            click.echo(click.style("📊 Performance Statistics:", fg='blue'))
+            click.echo(f"   Extraction time:  {extraction_time:.2f}s")
+            click.echo(f"   Generation time:  {generation_time:.2f}s")
+            click.echo(f"   Total time:       {total_time:.2f}s")
+            click.echo(f"   Throughput:       {len(generated) / total_time:.1f} pages/sec")
+        
+        click.echo()
+        click.echo(click.style("💡 Next steps:", fg='yellow'))
+        click.echo(f"   • View docs: ls {output_dir}")
+        click.echo(f"   • Build site: bengal build")
+        click.echo()
+        
+    except Exception as e:
+        click.echo()
+        click.echo(click.style(f"❌ Error: {e}", fg='red', bold=True))
+        if verbose:
+            import traceback
+            click.echo()
+            click.echo(traceback.format_exc())
         raise click.Abort()
 
 

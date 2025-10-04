@@ -1,0 +1,251 @@
+"""
+Documentation generator - renders DocElements to markdown using templates.
+"""
+
+import concurrent.futures
+import json
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+from jinja2 import Environment, FileSystemLoader, TemplateNotFound
+import hashlib
+
+from bengal.autodoc.base import DocElement, Extractor
+
+
+class TemplateCache:
+    """Cache rendered templates for performance."""
+    
+    def __init__(self):
+        self.cache: Dict[str, str] = {}
+        self.template_hashes: Dict[str, str] = {}
+    
+    def get_cache_key(self, template_name: str, element: DocElement) -> str:
+        """Generate cache key from template + data."""
+        template_hash = self.template_hashes.get(template_name, '')
+        element_hash = hashlib.sha256(
+            json.dumps(element.to_dict(), sort_keys=True).encode()
+        ).hexdigest()[:8]
+        
+        return f"{template_name}:{element_hash}:{template_hash}"
+    
+    def get(self, key: str) -> Optional[str]:
+        """Get cached rendered template."""
+        return self.cache.get(key)
+    
+    def set(self, key: str, rendered: str):
+        """Cache rendered template."""
+        self.cache[key] = rendered
+
+
+class DocumentationGenerator:
+    """
+    Generate documentation from DocElements using templates.
+    
+    Features:
+    - Template hierarchy (user templates override built-in)
+    - Template caching for performance
+    - Parallel generation
+    - Progress tracking
+    """
+    
+    def __init__(
+        self,
+        extractor: Extractor,
+        config: Dict[str, Any],
+        template_cache: Optional[TemplateCache] = None,
+        max_workers: Optional[int] = None
+    ):
+        """
+        Initialize generator.
+        
+        Args:
+            extractor: Extractor instance for this doc type
+            config: Configuration dict
+            template_cache: Optional template cache
+            max_workers: Max parallel workers (None = auto-detect)
+        """
+        self.extractor = extractor
+        self.config = config
+        self.template_cache = template_cache or TemplateCache()
+        self.max_workers = max_workers
+        
+        # Setup Jinja2 environment with template directories
+        self.env = self._setup_template_env()
+    
+    def _setup_template_env(self) -> Environment:
+        """Setup Jinja2 environment with template loaders."""
+        template_dirs = []
+        
+        # User templates (highest priority)
+        user_template_dir = Path('templates/autodoc') / self.extractor.get_template_dir()
+        if user_template_dir.exists():
+            template_dirs.append(str(user_template_dir))
+        
+        # Alternative user locations
+        for alt_dir in ['templates/api', 'templates/sdk']:
+            alt_path = Path(alt_dir)
+            if alt_path.exists():
+                template_dirs.append(str(alt_path))
+        
+        # Built-in templates (fallback)
+        builtin_dir = Path(__file__).parent / 'templates' / self.extractor.get_template_dir()
+        if builtin_dir.exists():
+            template_dirs.append(str(builtin_dir))
+        
+        # Create Jinja2 environment
+        env = Environment(
+            loader=FileSystemLoader(template_dirs) if template_dirs else None,
+            autoescape=False,  # We're generating markdown, not HTML
+            trim_blocks=True,
+            lstrip_blocks=True,
+        )
+        
+        return env
+    
+    def generate_all(
+        self,
+        elements: List[DocElement],
+        output_dir: Path,
+        parallel: bool = True
+    ) -> List[Path]:
+        """
+        Generate documentation for all elements.
+        
+        Args:
+            elements: List of elements to document
+            output_dir: Output directory for markdown files
+            parallel: Use parallel processing
+            
+        Returns:
+            List of generated file paths
+        """
+        output_dir.mkdir(parents=True, exist_ok=True)
+        
+        if parallel and len(elements) > 3:
+            return self._generate_parallel(elements, output_dir)
+        else:
+            return self._generate_sequential(elements, output_dir)
+    
+    def _generate_sequential(
+        self,
+        elements: List[DocElement],
+        output_dir: Path
+    ) -> List[Path]:
+        """Generate documentation sequentially."""
+        generated = []
+        
+        for element in elements:
+            try:
+                path = self.generate_single(element, output_dir)
+                generated.append(path)
+            except Exception as e:
+                print(f"  ⚠️  Error generating {element.qualified_name}: {e}")
+        
+        return generated
+    
+    def _generate_parallel(
+        self,
+        elements: List[DocElement],
+        output_dir: Path
+    ) -> List[Path]:
+        """Generate documentation in parallel."""
+        generated = []
+        
+        with concurrent.futures.ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+            futures = {
+                executor.submit(self.generate_single, element, output_dir): element
+                for element in elements
+            }
+            
+            for future in concurrent.futures.as_completed(futures):
+                element = futures[future]
+                try:
+                    path = future.result()
+                    generated.append(path)
+                except Exception as e:
+                    print(f"  ⚠️  Error generating {element.qualified_name}: {e}")
+        
+        return generated
+    
+    def generate_single(self, element: DocElement, output_dir: Path) -> Path:
+        """
+        Generate documentation for a single element.
+        
+        Args:
+            element: Element to document
+            output_dir: Output directory
+            
+        Returns:
+            Path to generated file
+        """
+        # Get template name based on element type
+        template_name = self._get_template_name(element)
+        
+        # Check cache
+        cache_key = self.template_cache.get_cache_key(template_name, element)
+        cached = self.template_cache.get(cache_key)
+        
+        if cached:
+            content = cached
+        else:
+            # Render template
+            content = self._render_template(template_name, element)
+            
+            # Cache result
+            self.template_cache.set(cache_key, content)
+        
+        # Determine output path
+        output_path = output_dir / self.extractor.get_output_path(element)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        
+        # Write file
+        output_path.write_text(content, encoding='utf-8')
+        
+        return output_path
+    
+    def _get_template_name(self, element: DocElement) -> str:
+        """Get template filename for element type."""
+        # Map element types to template files
+        type_map = {
+            'module': 'module.md.jinja2',
+            'class': 'class.md.jinja2',
+            'function': 'function.md.jinja2',
+            'method': 'function.md.jinja2',  # Methods use function template
+            'endpoint': 'endpoint.md.jinja2',
+            'schema': 'schema.md.jinja2',
+            'command': 'command.md.jinja2',
+            'command-group': 'command-group.md.jinja2',
+        }
+        
+        template_name = type_map.get(element.element_type, f"{element.element_type}.md.jinja2")
+        
+        # Try with .jinja2 extension, fall back to .md
+        try:
+            self.env.get_template(template_name)
+            return template_name
+        except TemplateNotFound:
+            # Try without .jinja2
+            alt_name = template_name.replace('.jinja2', '')
+            try:
+                self.env.get_template(alt_name)
+                return alt_name
+            except TemplateNotFound:
+                raise TemplateNotFound(
+                    f"Template not found: {template_name} or {alt_name}. "
+                    f"Create template in templates/autodoc/{self.extractor.get_template_dir()}/"
+                )
+    
+    def _render_template(self, template_name: str, element: DocElement) -> str:
+        """Render template with element data."""
+        template = self.env.get_template(template_name)
+        
+        # Build template context
+        context = {
+            'element': element,
+            'config': self.config,
+            'autodoc_config': self.config.get('autodoc', {}),
+        }
+        
+        # Render
+        return template.render(**context)
+

@@ -9,6 +9,9 @@ from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, List
 
+from bengal.utils.url_strategy import URLStrategy
+from bengal.utils.page_initializer import PageInitializer
+
 if TYPE_CHECKING:
     from bengal.core.site import Site
     from bengal.core.page import Page
@@ -35,6 +38,8 @@ class TaxonomyOrchestrator:
             site: Site instance containing pages and sections
         """
         self.site = site
+        self.url_strategy = URLStrategy()
+        self.initializer = PageInitializer(site)
     
     def collect_and_generate(self) -> None:
         """
@@ -135,9 +140,8 @@ class TaxonomyOrchestrator:
         """
         from bengal.core.page import Page
         
-        # Use dedicated virtual namespace
-        virtual_base = self.site.root_path / ".bengal" / "generated"
-        virtual_path = virtual_base / "tags" / "index.md"
+        # Create virtual path (delegate to utility)
+        virtual_path = self.url_strategy.make_virtual_path(self.site, 'tags')
         
         tag_index = Page(
             source_path=virtual_path,
@@ -152,7 +156,12 @@ class TaxonomyOrchestrator:
             }
         )
         
-        tag_index.output_path = self.site.output_dir / "tags" / "index.html"
+        # Compute output path using centralized logic
+        tag_index.output_path = self.url_strategy.compute_tag_index_output_path(self.site)
+        
+        # Ensure page is correctly initialized (sets _site, validates)
+        self.initializer.ensure_initialized(tag_index)
+        
         return tag_index
     
     def _create_tag_pages(self, tag_slug: str, tag_data: Dict[str, Any]) -> List['Page']:
@@ -175,13 +184,12 @@ class TaxonomyOrchestrator:
         # Create paginator
         paginator = Paginator(tag_data['pages'], per_page=per_page)
         
-        # Use dedicated virtual namespace
-        virtual_base = self.site.root_path / ".bengal" / "generated"
-        
         # Create a page for each pagination page
         for page_num in range(1, paginator.num_pages + 1):
-            # Create unique, namespaced virtual path
-            virtual_path = virtual_base / "tags" / tag_slug / f"page_{page_num}.md"
+            # Create virtual path (delegate to utility)
+            virtual_path = self.url_strategy.make_virtual_path(
+                self.site, 'tags', tag_slug, f"page_{page_num}"
+            )
             
             tag_page = Page(
                 source_path=virtual_path,
@@ -200,11 +208,15 @@ class TaxonomyOrchestrator:
                 }
             )
             
-            # Set output path
-            if page_num == 1:
-                tag_page.output_path = self.site.output_dir / "tags" / tag_slug / "index.html"
-            else:
-                tag_page.output_path = self.site.output_dir / "tags" / tag_slug / f"page/{page_num}/index.html"
+            # Compute output path using centralized logic
+            tag_page.output_path = self.url_strategy.compute_tag_output_path(
+                tag_slug=tag_slug,
+                page_num=page_num,
+                site=self.site
+            )
+            
+            # Ensure page is correctly initialized (sets _site, validates)
+            self.initializer.ensure_initialized(tag_page)
             
             pages_to_create.append(tag_page)
         
