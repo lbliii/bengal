@@ -5,45 +5,17 @@
 #}
 ---
 title: "{{ element.name }} CLI"
+description: "Command-line interface reference and documentation"
 type: cli-reference
+template: cli-reference/list.html
+cli_name: {{ element.name }}
 ---
 
-# {{ element.name }} CLI Reference
+## Quick Start
 
 {{ element.description }}
 
-{% if element.children %}
-## Commands
-
-{% for command in element.children | sort(attribute='name') %}
-### {{ command.name }}
-
-{{ command.description | truncate(200) }}
-
-{% if command.metadata.option_count or command.metadata.argument_count %}
-**Usage:**
-
-```bash
-{{ element.name }} {{ command.name }}{% if command.metadata.argument_count %} [ARGUMENTS]{% endif %}{% if command.metadata.option_count %} [OPTIONS]{% endif %}
-
-```
-{% endif %}
-
-{% if command.examples %}
-**Example:**
-{{ command.examples[0] }}
-{% endif %}
-
-[Full documentation →](commands/{{ command.name }})
-
----
-
-{% endfor %}
-{% else %}
-*No commands available.*
-{% endif %}
-
-## Getting Help
+Get started with the {{ element.name }} command-line interface:
 
 ```bash
 # Show help for main command
@@ -52,3 +24,6 @@ type: cli-reference
 # Show help for specific command
 {{ element.name }} COMMAND --help
 ```
+
+{# Note: Individual commands are automatically shown as cards by the cli-reference/list.html template #}
+{# The template will pull from the commands/ subdirectory and display them nicely #}

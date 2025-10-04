@@ -21,12 +21,44 @@ from bengal.server.pid_manager import PIDManager
 
 class QuietHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
     """
-    Custom HTTP request handler with beautiful, minimal logging.
+    Custom HTTP request handler with beautiful, minimal logging and custom 404 page.
     """
     
     # Suppress default server version header
     server_version = "Bengal/1.0"
     sys_version = ""
+    
+    def send_error(self, code: int, message: str = None, explain: str = None) -> None:
+        """
+        Override send_error to serve custom 404 page.
+        
+        Args:
+            code: HTTP error code
+            message: Error message
+            explain: Detailed explanation
+        """
+        # If it's a 404 error, try to serve custom 404.html
+        if code == 404:
+            custom_404_path = Path(self.directory) / "404.html"
+            if custom_404_path.exists():
+                try:
+                    # Read custom 404 page
+                    with open(custom_404_path, 'rb') as f:
+                        content = f.read()
+                    
+                    # Send custom 404 response
+                    self.send_response(404)
+                    self.send_header("Content-Type", "text/html; charset=utf-8")
+                    self.send_header("Content-Length", str(len(content)))
+                    self.end_headers()
+                    self.wfile.write(content)
+                    return
+                except Exception:
+                    # If custom 404 fails, fall back to default
+                    pass
+        
+        # Fall back to default error handling for non-404 or if custom 404 failed
+        super().send_error(code, message, explain)
     
     def log_message(self, format: str, *args: Any) -> None:
         """

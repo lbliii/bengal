@@ -1,0 +1,388 @@
+/**
+ * Reference Documentation Styles
+ * 
+ * Styles for API and CLI reference documentation pages.
+ * Used by api-reference/ and cli-reference/ templates.
+ */
+
+/* ============================================
+   API Reference Styles
+   ============================================ */
+
+.api-reference-container {
+    max-width: var(--content-max-width, 1200px);
+    margin: 0 auto;
+    padding: var(--space-l) var(--space-m);
+}
+
+.api-reference-header {
+    margin-bottom: var(--space-xl);
+    text-align: center;
+}
+
+.api-reference-header h1 {
+    font-size: var(--text-3xl);
+    font-weight: 700;
+    color: var(--color-text);
+    margin-bottom: var(--space-s);
+}
+
+.api-reference-description {
+    font-size: var(--text-lg);
+    color: var(--color-text-muted);
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+/* API Statistics Bar */
+.api-stats {
+    display: flex;
+    justify-content: center;
+    gap: var(--space-xl);
+    flex-wrap: wrap;
+    margin-bottom: var(--space-xl);
+    padding: var(--space-m);
+    background: var(--color-surface);
+    border-radius: var(--radius-m);
+    border: 1px solid var(--color-border);
+}
+
+.api-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-xs);
+}
+
+.api-stat strong {
+    font-size: var(--text-2xl);
+    font-weight: 700;
+    color: var(--color-primary);
+}
+
+.api-stat span {
+    font-size: var(--text-sm);
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* API Modules Section */
+.api-modules {
+    margin-top: var(--space-xl);
+}
+
+.api-section {
+    margin-bottom: var(--space-2xl);
+}
+
+.api-section-title {
+    font-size: var(--text-xl);
+    font-weight: 600;
+    color: var(--color-text);
+    margin-bottom: var(--space-m);
+    padding-bottom: var(--space-s);
+    border-bottom: 2px solid var(--color-border);
+}
+
+/* API Module Grid */
+.api-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: var(--space-m);
+}
+
+@media (max-width: 640px) {
+    .api-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* API Module Card */
+.api-module-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-m);
+    padding: var(--space-m);
+    transition: all 0.2s ease;
+}
+
+.api-module-card:hover {
+    border-color: var(--color-primary);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+}
+
+.api-module-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-s);
+    margin-bottom: var(--space-s);
+}
+
+.api-module-icon {
+    font-size: var(--text-2xl);
+    line-height: 1;
+}
+
+.api-module-title {
+    font-size: var(--text-lg);
+    font-weight: 600;
+    margin: 0;
+}
+
+.api-module-title a {
+    color: var(--color-text);
+    text-decoration: none;
+}
+
+.api-module-title a:hover {
+    color: var(--color-primary);
+}
+
+.api-module-content {
+    margin-top: var(--space-s);
+}
+
+.api-module-description {
+    font-size: var(--text-base);
+    color: var(--color-text-muted);
+    line-height: 1.6;
+    margin-bottom: var(--space-s);
+}
+
+.api-module-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-m);
+    font-size: var(--text-sm);
+    color: var(--color-text-muted);
+}
+
+.api-meta-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+}
+
+.api-meta-item svg {
+    flex-shrink: 0;
+}
+
+/* Empty State */
+.api-empty {
+    text-align: center;
+    padding: var(--space-2xl);
+    color: var(--color-text-muted);
+}
+
+/* ============================================
+   CLI Reference Styles
+   ============================================ */
+
+.cli-reference-container {
+    max-width: var(--content-max-width, 1200px);
+    margin: 0 auto;
+    padding: var(--space-l) var(--space-m);
+}
+
+.cli-reference-header {
+    margin-bottom: var(--space-xl);
+}
+
+.cli-reference-header h1 {
+    font-size: var(--text-3xl);
+    font-weight: 700;
+    color: var(--color-text);
+    margin-bottom: var(--space-s);
+}
+
+.cli-reference-description {
+    font-size: var(--text-lg);
+    color: var(--color-text-muted);
+    line-height: 1.6;
+}
+
+/* CLI Intro Section */
+.cli-intro {
+    margin-bottom: var(--space-xl);
+    padding: var(--space-l);
+    background: var(--color-surface);
+    border-radius: var(--radius-m);
+    border-left: 4px solid var(--color-primary);
+}
+
+.cli-intro .prose {
+    max-width: 100%;
+}
+
+/* CLI Commands Section */
+.cli-commands {
+    margin-top: var(--space-xl);
+}
+
+.cli-section {
+    margin-bottom: var(--space-2xl);
+}
+
+.cli-section-title {
+    font-size: var(--text-xl);
+    font-weight: 600;
+    color: var(--color-text);
+    margin-bottom: var(--space-m);
+    padding-bottom: var(--space-s);
+    border-bottom: 2px solid var(--color-border);
+}
+
+/* CLI Command Grid */
+.cli-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: var(--space-m);
+}
+
+@media (max-width: 768px) {
+    .cli-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* CLI Command Card */
+.cli-command-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-m);
+    padding: var(--space-m);
+    transition: all 0.2s ease;
+}
+
+.cli-command-card:hover {
+    border-color: var(--color-primary);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+}
+
+.cli-command-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-s);
+    margin-bottom: var(--space-s);
+}
+
+.cli-command-icon {
+    font-size: var(--text-xl);
+    line-height: 1;
+}
+
+.cli-command-title {
+    font-size: var(--text-lg);
+    font-weight: 600;
+    margin: 0;
+}
+
+.cli-command-title a {
+    color: var(--color-text);
+    text-decoration: none;
+}
+
+.cli-command-title a:hover {
+    color: var(--color-primary);
+}
+
+.cli-command-content {
+    margin-top: var(--space-s);
+}
+
+.cli-command-description {
+    font-size: var(--text-base);
+    color: var(--color-text-muted);
+    line-height: 1.6;
+    margin-bottom: var(--space-s);
+}
+
+.cli-usage {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    background: var(--color-code-bg);
+    color: var(--color-code-text);
+    padding: var(--space-xs) var(--space-s);
+    border-radius: var(--radius-s);
+    margin: var(--space-s) 0;
+    overflow-x: auto;
+}
+
+.cli-command-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-m);
+    font-size: var(--text-sm);
+    color: var(--color-text-muted);
+    margin: var(--space-s) 0;
+}
+
+.cli-meta-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+}
+
+.cli-command-link {
+    display: inline-block;
+    margin-top: var(--space-s);
+    color: var(--color-primary);
+    text-decoration: none;
+    font-size: var(--text-sm);
+    font-weight: 500;
+}
+
+.cli-command-link:hover {
+    text-decoration: underline;
+}
+
+.cli-command-link::after {
+    content: ' →';
+}
+
+/* CLI Help Section */
+.cli-help {
+    margin-top: var(--space-2xl);
+    padding: var(--space-l);
+    background: var(--color-surface);
+    border-radius: var(--radius-m);
+    border: 1px solid var(--color-border);
+}
+
+.cli-help h2 {
+    font-size: var(--text-xl);
+    font-weight: 600;
+    margin-bottom: var(--space-m);
+}
+
+.cli-help-content pre {
+    margin: 0;
+}
+
+/* Empty State */
+.cli-empty {
+    text-align: center;
+    padding: var(--space-2xl);
+    color: var(--color-text-muted);
+}
+
+/* ============================================
+   Dark Mode Support
+   ============================================ */
+
+@media (prefers-color-scheme: dark) {
+    .api-module-card:hover,
+    .cli-command-card:hover {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+}
+
+[data-theme="dark"] .api-module-card:hover,
+[data-theme="dark"] .cli-command-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+

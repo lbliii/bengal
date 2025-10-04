@@ -79,6 +79,21 @@ class Site:
             self.output_dir = self.root_path / self.output_dir
     
     @property
+    def title(self) -> Optional[str]:
+        """Get site title from config."""
+        return self.config.get('title')
+    
+    @property
+    def baseurl(self) -> Optional[str]:
+        """Get site baseurl from config."""
+        return self.config.get('baseurl')
+    
+    @property
+    def author(self) -> Optional[str]:
+        """Get site author from config."""
+        return self.config.get('author')
+    
+    @property
     def regular_pages(self) -> List[Page]:
         """
         Get only regular content pages (excludes generated taxonomy/archive pages).

@@ -270,7 +270,15 @@ class MistuneParser(BaseMarkdownParser):
             self._var_plugin.update_context(context)
         
         try:
+            # IMPORTANT: Process escape syntax BEFORE Mistune parses markdown
+            # because {{/* */}} contains * which Mistune treats as emphasis
+            content = self._var_plugin._substitute_variables(content)
+            
             html = self._md_with_vars(content)
+            
+            # Post-process: Restore __BENGAL_ESCAPED_*__ placeholders to literal {{ }}
+            html = self._var_plugin.restore_placeholders(html)
+            
             # Post-process for cross-references if enabled
             if self._xref_enabled and self._xref_plugin:
                 html = self._xref_plugin._substitute_xrefs(html)

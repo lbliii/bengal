@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+
+{#
+  CLI Reference List Template
+  
+  Used for CLI documentation section indexes (command overview).
+  Shows commands in a clean, scannable reference layout.
+  
+  Context variables:
+    - section: Section object with CLI commands
+    - posts: List of command pages
+    - subsections: List of command group subsections
+    - content_type: 'cli-reference'
+#}
+
+{% block content %}
+{% include 'partials/breadcrumbs.html' %}
+
+<div class="cli-reference-container">
+    <header class="cli-reference-header">
+        <h1>⌨️  {{ section.title if section else title | default('CLI Reference') }}</h1>
+        
+        {% if section and section.metadata.description %}
+        <p class="cli-reference-description">{{ section.metadata.description }}</p>
+        {% elif section and section.index_page and section.index_page.content %}
+        {# Show first paragraph from index page content if it exists #}
+        <div class="cli-reference-description prose">
+            {{ section.index_page.content | striptags | truncate(200) }}
+        </div>
+        {% else %}
+        <p class="cli-reference-description">Command-line interface reference and documentation</p>
+        {% endif %}
+    </header>
+    
+    {# Quick Start Section - if index page has content, show it #}
+    {% if section is defined and section and section.index_page and section.index_page.parsed_ast %}
+    <section class="cli-intro">
+        <div class="prose">
+            {{ section.index_page.parsed_ast | safe }}
+        </div>
+    </section>
+    {% endif %}
+    
+    {# Commands Section #}
+    {% if posts or subsections %}
+    <div class="cli-commands">
+        
+        {# Collect all commands from direct pages and subsections #}
+        {% set all_commands = posts | list %}
+        
+        {# If we have subsections with names like "commands", flatten them #}
+        {% if subsections %}
+            {% for subsection in subsections %}
+                {# Common pattern: cli/commands/ subdirectory from autodoc-cli #}
+                {% if subsection.name in ('commands', 'subcommands') and subsection.regular_pages %}
+                    {% set _ = all_commands.extend(subsection.regular_pages) %}
+                {% endif %}
+            {% endfor %}
+        {% endif %}
+        
+        {# Show all commands as cards #}
+        {% if all_commands %}
+        <section class="cli-section">
+            <h2 class="cli-section-title">Commands</h2>
+            <div class="cli-grid">
+                {% for command in all_commands %}
+                <article class="cli-command-card">
+                    <div class="cli-command-header">
+                        {% if command.metadata.emoji %}
+                        <span class="cli-command-icon">{{ command.metadata.emoji }}</span>
+                        {% endif %}
+                        <h3 class="cli-command-title">
+                            <a href="{{ url_for(command) }}">{{ command.title }}</a>
+                        </h3>
+                    </div>
+                    
+                    <div class="cli-command-content">
+                        {% if command.metadata.description %}
+                        <p class="cli-command-description">
+                            {{ command.metadata.description | truncate(120) }}
+                        </p>
+                        {% elif command.content %}
+                        <p class="cli-command-description">
+                            {{ command.content | striptags | truncate(120) }}
+                        </p>
+                        {% endif %}
+                        
+                        {% if command.metadata.usage %}
+                        <code class="cli-usage">{{ command.metadata.usage }}</code>
+                        {% endif %}
+                        
+                        <a href="{{ url_for(command) }}" class="cli-command-link">
+                            Full documentation →
+                        </a>
+                    </div>
+                </article>
+                {% endfor %}
+            </div>
+        </section>
+        {% endif %}
+        
+        {# Show other subsections that aren't just command containers #}
+        {% if subsections %}
+            {% set other_subsections = [] %}
+            {% for subsection in subsections %}
+                {% if subsection.name not in ('commands', 'subcommands') %}
+                    {% set _ = other_subsections.append(subsection) %}
+                {% endif %}
+            {% endfor %}
+            
+            {% if other_subsections %}
+            <section class="cli-section">
+                <h2 class="cli-section-title">Command Groups</h2>
+                <div class="cli-grid">
+                    {% for subsection in other_subsections %}
+                    <article class="cli-command-card">
+                        <div class="cli-command-header">
+                            <h3 class="cli-command-title">
+                                <a href="{{ url_for(subsection) }}">{{ subsection.title }}</a>
+                            </h3>
+                        </div>
+                        
+                        <div class="cli-command-content">
+                            {% if subsection.metadata.description %}
+                            <p class="cli-command-description">
+                                {{ subsection.metadata.description }}
+                            </p>
+                            {% endif %}
+                            
+                            <div class="cli-command-meta">
+                                {% if subsection.regular_pages %}
+                                <span class="cli-meta-item">
+                                    {{ subsection.regular_pages | length }} command{{ 's' if subsection.regular_pages | length != 1 }}
+                                </span>
+                                {% endif %}
+                            </div>
+                            
+                            <a href="{{ url_for(subsection) }}" class="cli-command-link">
+                                View commands →
+                            </a>
+                        </div>
+                    </article>
+                    {% endfor %}
+                </div>
+            </section>
+            {% endif %}
+        {% endif %}
+        
+    </div>
+    {% else %}
+    {# Empty state #}
+    <div class="cli-empty">
+        <p>No CLI documentation available yet.</p>
+    </div>
+    {% endif %}
+    
+    {# Getting Help Section #}
+    <section class="cli-help">
+        <h2>Getting Help</h2>
+        <div class="cli-help-content prose">
+            <pre><code class="language-bash"># Show help for main command
+{{ (section.metadata.cli_name if section is defined and section else 'command') | default('command') }} --help
+
+# Show help for specific command
+{{ (section.metadata.cli_name if section is defined and section else 'command') | default('command') }} COMMAND --help</code></pre>
+        </div>
+    </section>
+    
+    {# NO PAGINATION - Reference docs should not be paginated #}
+    
+</div>
+{% endblock %}
+

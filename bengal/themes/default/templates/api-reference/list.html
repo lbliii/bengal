@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+
+{#
+  API Reference List Template
+  
+  Used for API documentation section indexes (module/package overview).
+  Shows modules and packages in a clean, reference-style layout.
+  
+  Context variables:
+    - section: Section object with API modules
+    - posts: List of module pages (may be empty)
+    - subsections: List of package/module subsections
+    - content_type: 'api-reference'
+#}
+
+{% block content %}
+{% include 'partials/breadcrumbs.html' %}
+
+<div class="api-reference-container">
+    <header class="api-reference-header">
+        <h1>📦 {{ section.title if section else title | default('API Reference') }}</h1>
+        
+        {% if section and section.metadata.description %}
+        <p class="api-reference-description">{{ section.metadata.description }}</p>
+        {% else %}
+        <p class="api-reference-description">Complete API documentation and reference</p>
+        {% endif %}
+    </header>
+    
+    {# API Statistics #}
+    {% if section %}
+    <div class="api-stats">
+        {% set module_count = (posts | length) + (subsections | length) %}
+        {% set all_pages = section.regular_pages_recursive %}
+        
+        <div class="api-stat">
+            <strong>{{ module_count }}</strong>
+            <span>{{ 'module' if module_count == 1 else 'modules' }}</span>
+        </div>
+        
+        {% if subsections %}
+        <div class="api-stat">
+            <strong>{{ subsections | length }}</strong>
+            <span>{{ 'package' if subsections | length == 1 else 'packages' }}</span>
+        </div>
+        {% endif %}
+        
+        {% if all_pages %}
+        <div class="api-stat">
+            <strong>{{ all_pages | length }}</strong>
+            <span>total pages</span>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+    
+    {# Package/Module Grid #}
+    {% if subsections or posts %}
+    <div class="api-modules">
+        
+        {# Subsections (packages with multiple modules) #}
+        {% if subsections %}
+        <section class="api-section">
+            <h2 class="api-section-title">Packages</h2>
+            <div class="api-grid">
+                {% for subsection in subsections %}
+                <article class="api-module-card">
+                    <div class="api-module-header">
+                        <span class="api-module-icon">📁</span>
+                        <h3 class="api-module-title">
+                            <a href="{{ url_for(subsection) }}">{{ subsection.title }}</a>
+                        </h3>
+                    </div>
+                    
+                    <div class="api-module-content">
+                        {% if subsection.metadata.description %}
+                        <p class="api-module-description">
+                            {{ subsection.metadata.description | truncate(150) }}
+                        </p>
+                        {% endif %}
+                        
+                        <div class="api-module-meta">
+                            {% if subsection.regular_pages %}
+                            <span class="api-meta-item">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
+                                    <polyline points="13 2 13 9 20 9"></polyline>
+                                </svg>
+                                {{ subsection.regular_pages | length }} module{{ 's' if subsection.regular_pages | length != 1 }}
+                            </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </article>
+                {% endfor %}
+            </div>
+        </section>
+        {% endif %}
+        
+        {# Direct module pages #}
+        {% if posts %}
+        <section class="api-section">
+            <h2 class="api-section-title">Modules</h2>
+            <div class="api-grid">
+                {% for post in posts %}
+                <article class="api-module-card">
+                    <div class="api-module-header">
+                        <span class="api-module-icon">📄</span>
+                        <h3 class="api-module-title">
+                            <a href="{{ url_for(post) }}">{{ post.title }}</a>
+                        </h3>
+                    </div>
+                    
+                    <div class="api-module-content">
+                        {% if post.metadata.description %}
+                        <p class="api-module-description">
+                            {{ post.metadata.description | truncate(150) }}
+                        </p>
+                        {% elif post.content %}
+                        <p class="api-module-description">
+                            {{ post.content | striptags | truncate(150) }}
+                        </p>
+                        {% endif %}
+                        
+                        <div class="api-module-meta">
+                            {% if post.metadata.classes %}
+                            <span class="api-meta-item">
+                                {{ post.metadata.classes | length }} class{{ 'es' if post.metadata.classes | length != 1 else '' }}
+                            </span>
+                            {% endif %}
+                            
+                            {% if post.metadata.functions %}
+                            <span class="api-meta-item">
+                                {{ post.metadata.functions | length }} function{{ 's' if post.metadata.functions | length != 1 }}
+                            </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </article>
+                {% endfor %}
+            </div>
+        </section>
+        {% endif %}
+        
+    </div>
+    {% else %}
+    {# Empty state #}
+    <div class="api-empty">
+        <p>No API documentation available yet.</p>
+    </div>
+    {% endif %}
+    
+    {# NO PAGINATION - Reference docs should not be paginated #}
+    
+</div>
+{% endblock %}
+

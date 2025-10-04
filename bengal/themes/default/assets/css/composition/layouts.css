@@ -58,7 +58,7 @@
 .docs-main {
   grid-column: content-start / toc-start;
   min-width: 0; /* Prevent grid blowout */
-  max-width: var(--prose-max-width);
+  /* max-width removed - let grid control width */
 }
 
 /* Right Sidebar (TOC) */

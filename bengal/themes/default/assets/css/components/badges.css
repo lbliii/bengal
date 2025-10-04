@@ -67,6 +67,6 @@ body.draft-page::before {
   padding: 0.5rem 1rem;
   border-radius: var(--radius-md);
   font-weight: bold;
-  z-index: 1000;
+  z-index: var(--z-dropdown);
 }
 

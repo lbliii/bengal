@@ -86,7 +86,7 @@ Meta descriptions:
 """)
         
         # Build the site
-        site = Site(site_dir)
+        site = Site.from_config(site_dir)
         orchestrator = BuildOrchestrator(site)
         
         # This should NOT raise errors
@@ -167,7 +167,7 @@ Use {{/* content | meta_description(160) */}} for meta tags.
             (docs_dir / filename).write_text(content)
         
         # Build site
-        site = Site(site_dir)
+        site = Site.from_config(site_dir)
         orchestrator = BuildOrchestrator(site)
         
         # Should build without errors
@@ -221,7 +221,7 @@ To get site name, use: {{/* site.title */}}
 """)
         
         # Build
-        site = Site(site_dir)
+        site = Site.from_config(site_dir)
         orchestrator = BuildOrchestrator(site)
         orchestrator.build()
         

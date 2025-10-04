@@ -395,15 +395,15 @@ class CLIExtractor(Extractor):
             Relative path for the generated markdown file
             
         Example:
-            command-group (main) → index.md
+            command-group (main) → _index.md (section index)
             command-group (nested) → commands/{name}.md
             command → commands/{name}.md
         """
         if element.element_type == 'command-group':
-            # Main CLI group gets index.md
+            # Main CLI group gets _index.md (section index)
             # Nested command groups (like 'new') get their own page in commands/
             if '.' not in element.qualified_name:
-                return Path("index.md")
+                return Path("_index.md")
             else:
                 return Path(f"commands/{element.name}.md")
         elif element.element_type == 'command':

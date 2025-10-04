@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{#
+  Tutorial List Template (Placeholder)
+  
+  Fallback template for tutorial sections.
+  Can be customized later when tutorials are added.
+#}
+
+{% block content %}
+{% include 'partials/breadcrumbs.html' %}
+
+<div class="tutorial-container">
+    <header>
+        <h1>📚 {{ section.title if section is defined and section else title | default('Tutorials') }}</h1>
+        {% if section is defined and section and section.metadata.description %}
+        <p>{{ section.metadata.description }}</p>
+        {% endif %}
+    </header>
+    
+    {# Use same layout as archive for now #}
+    {% if posts %}
+    <div class="tutorial-list">
+        {% for post in posts %}
+        <article>
+            <h2><a href="{{ url_for(post) }}">{{ post.title }}</a></h2>
+            {% if post.metadata.description %}
+            <p>{{ post.metadata.description }}</p>
+            {% endif %}
+        </article>
+        {% endfor %}
+    </div>
+    {% elif subsections %}
+    <div class="tutorial-sections">
+        {% for subsection in subsections %}
+        <article>
+            <h2><a href="{{ url_for(subsection) }}">{{ subsection.title }}</a></h2>
+            {% if subsection.metadata.description %}
+            <p>{{ subsection.metadata.description }}</p>
+            {% endif %}
+        </article>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p>No tutorials available yet.</p>
+    {% endif %}
+</div>
+{% endblock %}
+

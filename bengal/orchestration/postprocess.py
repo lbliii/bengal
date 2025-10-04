@@ -48,6 +48,9 @@ class PostprocessOrchestrator:
         # Collect enabled tasks
         tasks = []
         
+        # Always generate special pages (404, etc.) - important for deployment
+        tasks.append(('special pages', self._generate_special_pages))
+        
         if self.site.config.get("generate_sitemap", True):
             tasks.append(('sitemap', self._generate_sitemap))
         
@@ -111,6 +114,12 @@ class PostprocessOrchestrator:
                 print(f"  ⚠️  {len(errors)} post-processing task(s) failed:")
                 for task_name, error in errors:
                     print(f"    • {task_name}: {error}")
+    
+    def _generate_special_pages(self) -> None:
+        """Generate special pages like 404 (extracted for parallel execution)."""
+        from bengal.postprocess.special_pages import SpecialPagesGenerator
+        generator = SpecialPagesGenerator(self.site)
+        generator.generate()
     
     def _generate_sitemap(self) -> None:
         """Generate sitemap (extracted for parallel execution)."""

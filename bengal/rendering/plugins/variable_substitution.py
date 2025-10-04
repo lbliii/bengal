@@ -85,6 +85,7 @@ class VariableSubstitutionPlugin:
         """
         self.context = context
         self.errors = []  # Track substitution errors
+        self.escaped_placeholders = {}  # Track escaped template syntax
     
     def update_context(self, context: Dict[str, Any]) -> None:
         """
@@ -95,6 +96,7 @@ class VariableSubstitutionPlugin:
         """
         self.context = context
         self.errors = []  # Reset errors for new page
+        self.escaped_placeholders = {}  # Reset placeholders
     
     def __call__(self, md):
         """Register the plugin with Mistune."""
@@ -123,15 +125,15 @@ class VariableSubstitutionPlugin:
         Returns:
             Text with variables substituted and escapes processed
         """
-        # Step 1: Handle escaped syntax {{/* ... */}} → {{ ... }}
-        # Use double HTML entities so it survives | safe in templates
-        escaped_placeholders = {}
+        # Reset placeholders for this substitution
+        self.escaped_placeholders = {}
         
+        # Step 1: Handle escaped syntax {{/* ... */}} → {{ ... }}
         def save_escaped(match: Match) -> str:
             expr = match.group(1).strip()
-            placeholder = f"__ESCAPED_{len(escaped_placeholders)}__"
-            # Double-escape: &amp;#123; → &#123; (after | safe) → { (in browser)
-            escaped_placeholders[placeholder] = f"&amp;#123;&amp;#123; {expr} &amp;#125;&amp;#125;"
+            placeholder = f"BENGALESCAPED{len(self.escaped_placeholders)}ENDESC"
+            # Store the literal {{ }} for later restoration
+            self.escaped_placeholders[placeholder] = f"{{{{ {expr} }}}}"
             return placeholder
         
         text = self.ESCAPE_PATTERN.sub(save_escaped, text)
@@ -141,27 +143,43 @@ class VariableSubstitutionPlugin:
             expr = match.group(1).strip()
             
             # If expression contains filter syntax (|), control flow ({%), or other
-            # Jinja2 syntax, double-escape it for safe display in documentation
+            # Jinja2 syntax, keep as literal {{ }} for documentation
             # This prevents docs showing "{{ text | filter }}" from being processed by Jinja2
             if '|' in expr or '{%' in expr or expr.startswith('#') or ' if ' in expr or ' for ' in expr:
-                # Double-escape: &amp;#123; → &#123; (after | safe) → { (in browser)
-                return f"&amp;#123;&amp;#123; {expr} &amp;#125;&amp;#125;"
+                # Keep as placeholder - will be restored after Mistune
+                placeholder = f"BENGALESCAPED{len(self.escaped_placeholders)}ENDESC"
+                self.escaped_placeholders[placeholder] = f"{{{{ {expr} }}}}"
+                return placeholder
             
             try:
                 # Evaluate expression in context
                 result = self._eval_expression(expr)
                 return str(result) if result is not None else match.group(0)
             except Exception:
-                # On error, double-escape for safe display
-                return f"&amp;#123;&amp;#123; {expr} &amp;#125;&amp;#125;"
+                # On error, keep as placeholder for documentation display
+                placeholder = f"BENGALESCAPED{len(self.escaped_placeholders)}ENDESC"
+                self.escaped_placeholders[placeholder] = f"{{{{ {expr} }}}}"
+                return placeholder
         
         text = self.VARIABLE_PATTERN.sub(replace_var, text)
         
-        # Step 3: Restore escaped syntax as literal text
-        for placeholder, literal in escaped_placeholders.items():
-            text = text.replace(placeholder, literal)
-        
+        # Step 3: Don't restore placeholders yet - they'll be restored after Mistune
+        # This prevents Mistune from escaping the {{ }} characters
         return text
+    
+    def restore_placeholders(self, html: str) -> str:
+        """
+        Restore __BENGAL_ESCAPED_*__ placeholders to literal {{ }} after Mistune processing.
+        
+        Args:
+            html: HTML output from Mistune
+            
+        Returns:
+            HTML with placeholders restored to literal template syntax
+        """
+        for placeholder, literal in self.escaped_placeholders.items():
+            html = html.replace(placeholder, literal)
+        return html
     
     def _eval_expression(self, expr: str) -> Any:
         """

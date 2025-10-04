@@ -99,6 +99,17 @@ class Renderer:
         if page.metadata.get('_generated'):
             self._add_generated_page_context(page, context)
         
+        # Add section context for reference documentation types
+        # This allows manual reference pages to access section data
+        page_type = page.metadata.get('type')
+        if page_type in ('api-reference', 'cli-reference', 'tutorial') and hasattr(page, '_section') and page._section:
+            section = page._section
+            context.update({
+                'section': section,
+                'posts': section.pages,
+                'subsections': section.subsections,
+            })
+        
         # Render with template
         try:
             return self.template_engine.render(template_name, context)
@@ -148,10 +159,11 @@ class Renderer:
         """
         page_type = page.metadata.get('type')
         
-        if page_type == 'archive':
-            # Archive page context
+        if page_type in ('archive', 'api-reference', 'cli-reference', 'tutorial'):
+            # Archive/Reference page context
             section = page.metadata.get('_section')
             all_posts = page.metadata.get('_posts', [])
+            subsections = page.metadata.get('_subsections', [])
             paginator = page.metadata.get('_paginator')
             page_num = page.metadata.get('_page_num', 1)
             
@@ -160,7 +172,13 @@ class Renderer:
                 posts = paginator.page(page_num)
                 pagination = paginator.page_context(page_num, f"/{section.name}/")
             else:
-                posts = sorted(all_posts, key=lambda p: p.date if p.date else datetime.min, reverse=True)
+                # Reference docs: no date sorting (keep original order or alphabetical)
+                if page_type in ('api-reference', 'cli-reference', 'tutorial'):
+                    posts = all_posts  # Keep original order
+                else:
+                    # Archives: sort by date
+                    posts = sorted(all_posts, key=lambda p: p.date if p.date else datetime.min, reverse=True)
+                
                 pagination = {
                     'current_page': 1,
                     'total_pages': 1,
@@ -172,6 +190,7 @@ class Renderer:
             context.update({
                 'section': section,
                 'posts': posts,
+                'subsections': subsections,
                 'total_posts': len(all_posts),
                 **pagination
             })

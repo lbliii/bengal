@@ -8,7 +8,8 @@ This directory contains planning documents, progress reports, and strategic anal
 
 **Phase:** Core development complete ✅  
 **Status:** Production-ready v1.0  
-**Next:** Documentation site & community building
+**Next:** Documentation site & community building  
+**Last Cleanup:** October 4, 2025 - Major directory reorganization
 
 ---
 
@@ -68,27 +69,48 @@ This directory contains planning documents, progress reports, and strategic anal
 
 ## 📁 Document Organization
 
-### 🎯 Active Planning (Start Here)
-- **`STRATEGIC_PLAN.md`** - Overall strategy and future direction
-- **`NEXT_STEPS.md`** - Roadmap and priorities
-- **`TEST_STRATEGY.md`** - Testing approach and coverage
+### 🎯 Active Planning (Start Here - 3 docs)
+1. **`STRATEGIC_PLAN.md`** - Overall strategy and future direction
+2. **`NEXT_STEPS.md`** - Roadmap and priorities
+3. **`TEST_STRATEGY.md`** - Testing approach and coverage
 
-### 📋 Future Plans & Ideas
+### 📋 Future Plans & Ideas (4 docs)
 - `ROOT_SECTION_ELIMINATION_PLAN.md` - Potential architecture improvement
 - `THEME_ENHANCEMENT_PLAN.md` - Additional theme enhancements
+- `VERSIONED_DOCS_IMPLEMENTATION_PLAN.md` - Versioning system for docs
 - `PYO3_RUST_PARSER_EVALUATION.md` - Rust parser evaluation
 
-### 📚 Reference Documentation
+### 🏗️ Architecture & Design (3 docs)
+- `DYNAMIC_PAGE_ARCHITECTURE.md` - Dynamic page generation architecture
+- `UNIFIED_AUTODOC_ARCHITECTURE.md` - Autodoc system architecture
 - `SHORTCODES_VS_BENGAL_APPROACH.md` - Design philosophy
+
+### 🎯 Competitive Strategy (3 docs)
+- `SPHINX_COMPETITIVE_STRATEGY.md` - Overall Sphinx competitive strategy
+- `SPHINX_STRATEGY_NEXT_STEPS.md` - Sphinx strategy action items
+- `SPHINX_STRATEGY_SUMMARY.md` - Sphinx strategy summary
+
+### 📊 Benchmarks & Comparisons (2 docs)
 - `SSG_COMPARISON_QUICK_REFERENCE.md` - Quick comparison with other SSGs
 - `SSG_COMPARISON_RESULTS.md` - Detailed benchmark comparisons
 
-### ✅ Completed (moved to `completed/`)
-- **51 documents** covering all completed phases, audits, and summaries
-- All phase completion reports (Phases 1-5)
-- All implementation summaries
-- All session summaries
-- Historical progress reports
+### 📖 Reference & Guides (5 docs)
+- `PRODUCTION_READINESS_CHECKLIST.md` - Production readiness checklist
+- `PRODUCTION_READINESS_DIMENSIONS.md` - Production readiness dimensions
+- `SYNTAX_HIGHLIGHTING_VISUAL_GUIDE.md` - Syntax highlighting guide
+- `MERMAID_DIAGRAM_SUPPORT.md` - Mermaid diagram support
+- `bengal-syntax-demo.md` - Syntax demo examples
+
+### 🔌 Extensions & Tools (2 docs)
+- `VSCODE_EXTENSION_SUMMARY.md` - VSCode extension summary
+- `VSCODE_SYNTAX_EXTENSION_RESEARCH.md` - VSCode extension research
+
+### ✅ Completed Archive (120 docs in `completed/`)
+- **All implementation summaries** (autodoc, features, optimizations)
+- **All phase completion reports** (Phases 1-5)
+- **All historical analyses** (performance, architecture, competitive)
+- **All bug fixes and improvements** (URL, CLI, CSS, etc.)
+- **All cleanup and testing summaries**
 
 ---
 
@@ -225,8 +247,15 @@ If working on Bengal:
 
 ## 📈 Plan Directory Statistics
 
-- **Active documents:** 9 files
-- **Completed/archived:** 51 files  
-- **Total cleanup:** 22 files pruned (October 4, 2025)
-- **Organization:** Clean and focused on future work
+### Current Organization (October 4, 2025 - Second Cleanup)
+- **Active documents:** 22 files (well-organized by category)
+- **Completed/archived:** 120 files in `completed/`
+- **Total moved:** 33 files moved to completed/ in second cleanup
+- **Deleted:** 1 empty directory (`next/`)
+- **Organization:** Excellent - clear categories and focus
+
+### Cleanup History
+- **First cleanup** (Earlier Oct 4): 22 files pruned, 51 completed docs archived
+- **Second cleanup** (Later Oct 4): 33 additional files moved, 120 total archived (including cleanup doc)
+- **Result:** Clean, focused directory structure with clear purpose for each document
 
