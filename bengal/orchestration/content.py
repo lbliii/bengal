@@ -8,6 +8,8 @@ and cascading frontmatter.
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, Optional
 
+from bengal.utils.logger import get_logger
+
 if TYPE_CHECKING:
     from bengal.core.site import Site
     from bengal.core.section import Section
@@ -32,6 +34,7 @@ class ContentOrchestrator:
             site: Site instance to populate with content
         """
         self.site = site
+        self.logger = get_logger(__name__)
     
     def discover(self) -> None:
         """
@@ -52,22 +55,33 @@ class ContentOrchestrator:
             content_dir = self.site.root_path / "content"
         
         if not content_dir.exists():
+            self.logger.warning("content_dir_not_found", path=str(content_dir))
             print(f"Warning: Content directory {content_dir} does not exist")
             return
+        
+        self.logger.debug("discovering_content", path=str(content_dir))
         
         from bengal.discovery.content_discovery import ContentDiscovery
         
         discovery = ContentDiscovery(content_dir)
         self.site.sections, self.site.pages = discovery.discover()
         
+        self.logger.debug("raw_content_discovered", 
+                         pages=len(self.site.pages), 
+                         sections=len(self.site.sections))
+        
         # Set up page references for navigation
         self._setup_page_references()
+        self.logger.debug("page_references_setup")
         
         # Apply cascading frontmatter from sections to pages
         self._apply_cascades()
+        self.logger.debug("cascades_applied")
         
         # Build cross-reference index for O(1) lookups
         self._build_xref_index()
+        self.logger.debug("xref_index_built", 
+                         index_size=len(self.site.xref_index.get('by_path', {})))
     
     def discover_assets(self, assets_dir: Optional[Path] = None) -> None:
         """
@@ -79,26 +93,41 @@ class ContentOrchestrator:
         from bengal.discovery.asset_discovery import AssetDiscovery
         
         self.site.assets = []
+        theme_asset_count = 0
+        site_asset_count = 0
         
         # Discover theme assets first (lower priority)
         if self.site.theme:
             theme_assets_dir = self._get_theme_assets_dir()
             if theme_assets_dir and theme_assets_dir.exists():
-                # Removed verbose message - shown in stats instead
+                self.logger.debug("discovering_theme_assets", 
+                                theme=self.site.theme,
+                                path=str(theme_assets_dir))
                 theme_discovery = AssetDiscovery(theme_assets_dir)
-                self.site.assets.extend(theme_discovery.discover())
+                theme_assets = theme_discovery.discover()
+                self.site.assets.extend(theme_assets)
+                theme_asset_count = len(theme_assets)
         
         # Discover site assets (higher priority, can override theme assets)
         if assets_dir is None:
             assets_dir = self.site.root_path / "assets"
         
         if assets_dir.exists():
+            self.logger.debug("discovering_site_assets", path=str(assets_dir))
             print(f"  Discovering site assets from {assets_dir}")
             site_discovery = AssetDiscovery(assets_dir)
-            self.site.assets.extend(site_discovery.discover())
+            site_assets = site_discovery.discover()
+            self.site.assets.extend(site_assets)
+            site_asset_count = len(site_assets)
         elif not self.site.assets:
             # Only warn if we have no theme assets either
+            self.logger.warning("assets_dir_not_found", path=str(assets_dir))
             print(f"Warning: Assets directory {assets_dir} does not exist")
+        
+        self.logger.debug("assets_discovered",
+                         theme_assets=theme_asset_count,
+                         site_assets=site_asset_count,
+                         total=len(self.site.assets))
     
     def _setup_page_references(self) -> None:
         """

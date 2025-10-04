@@ -278,10 +278,10 @@ Even nested tabs work!
 
 Perfect for showing the same example in multiple programming languages.
 
-```{code-tabs}
+````{code-tabs}
 :id: hello-world-example
 
-### Lang: Python
+### Tab: Python
 ```python
 # Hello World in Python
 def hello(name):
@@ -290,7 +290,7 @@ def hello(name):
 print(hello("Bengal"))
 ```
 
-### Lang: JavaScript
+### Tab: JavaScript
 ```javascript
 // Hello World in JavaScript
 function hello(name) {
@@ -300,7 +300,7 @@ function hello(name) {
 console.log(hello("Bengal"));
 ```
 
-### Lang: Ruby
+### Tab: Ruby
 ```ruby
 # Hello World in Ruby
 def hello(name)
@@ -310,7 +310,7 @@ end
 puts hello("Bengal")
 ```
 
-### Lang: Go
+### Tab: Go
 ```go
 // Hello World in Go
 package main
@@ -325,14 +325,14 @@ func main() {
     fmt.Println(hello("Bengal"))
 }
 ```
-```
+````
 
 ### Another Code-Tabs Example
 
-```{code-tabs}
+````{code-tabs}
 :id: api-example
 
-### Lang: Python
+### Tab: Python
 ```python
 import requests
 
@@ -341,19 +341,19 @@ data = response.json()
 print(data)
 ```
 
-### Lang: JavaScript
+### Tab: JavaScript
 ```javascript
 fetch("https://api.example.com/data")
   .then(response => response.json())
   .then(data => console.log(data));
 ```
 
-### Lang: cURL
+### Tab: cURL
 ```bash
 curl -X GET "https://api.example.com/data" \
   -H "Accept: application/json"
 ```
-```
+````
 
 ---
 
@@ -713,7 +713,7 @@ Bengal provides **75+ template functions**:
 ````{code-tabs}
 :id: performance-comparison
 
-### Lang: Bash
+### Tab: Bash
 ```bash
 # Bengal build time
 $ time bengal build
@@ -724,7 +724,7 @@ $ time bengal build
 ✅ Built 3 pages in 0.07s (42x faster!)
 ```
 
-### Lang: Python
+### Tab: Python
 ```python
 from bengal.utils.build_stats import BuildStats
 

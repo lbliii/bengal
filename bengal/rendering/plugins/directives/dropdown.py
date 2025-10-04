@@ -15,14 +15,14 @@ class DropdownDirective(DirectivePlugin):
     Collapsible dropdown directive with markdown support.
     
     Syntax:
-        ```{dropdown} Title
+        ````{dropdown} Title
         :open: true
         
         Content with **markdown**, code blocks, etc.
         
         !!! note
             Even nested admonitions work!
-        ```
+        ````
     """
     
     def parse(self, block, m, state):

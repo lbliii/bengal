@@ -29,7 +29,7 @@ class CodeTabsDirective(DirectivePlugin):
     Code tabs for multi-language examples.
     
     Syntax:
-        ```{code-tabs}
+        ````{code-tabs}
         
         ### Tab: Python
         ```python
@@ -40,7 +40,7 @@ class CodeTabsDirective(DirectivePlugin):
         ```javascript
         console.log("hello")
         ```
-        ```
+        ````
     """
     
     def parse(self, block, m, state):

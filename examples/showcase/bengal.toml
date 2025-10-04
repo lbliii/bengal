@@ -51,24 +51,14 @@ url = "/docs/"
 weight = 2
 
 [[menu.main]]
-name = "Examples"
-url = "/examples/"
-weight = 3
-
-[[menu.main]]
-name = "Blog"
-url = "/blog/"
-weight = 4
-
-[[menu.main]]
 name = "API"
 url = "/api/"
-weight = 5
+weight = 3
 
 [[menu.main]]
 name = "CLI"
 url = "/cli/"
-weight = 6
+weight = 4
 
 [params]
 # Custom site parameters

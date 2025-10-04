@@ -111,7 +111,8 @@ def test_phase_tracking(logger, capsys):
     
     # Check phase_complete
     assert events[2].event_type == "phase_complete"
-    assert "duration_ms" in events[2].context
+    assert events[2].duration_ms is not None
+    assert events[2].duration_ms >= 0
 
 
 def test_nested_phases(logger):
@@ -308,7 +309,8 @@ def test_print_summary(logger, capsys):
     logger.print_summary()
     
     captured = capsys.readouterr()
-    assert "Build Phase Timings" in captured.out
+    # Check for summary content (heading changed to "Performance" to include memory)
+    assert ("Build Phase Timings" in captured.out or "Build Phase Performance" in captured.out)
     assert "phase1" in captured.out
     assert "phase2" in captured.out
     assert "TOTAL" in captured.out

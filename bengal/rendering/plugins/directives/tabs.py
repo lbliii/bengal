@@ -28,7 +28,7 @@ class TabsDirective(DirectivePlugin):
     Tabbed content directive with full markdown support.
     
     Syntax:
-        ```{tabs}
+        ````{tabs}
         :id: my-tabs
         
         ### Tab: Python
@@ -38,7 +38,7 @@ class TabsDirective(DirectivePlugin):
         ### Tab: JavaScript
         
         More content here.
-        ```
+        ````
     
     Supports nested directives, code blocks, admonitions, etc.
     """

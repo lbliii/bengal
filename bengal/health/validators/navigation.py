@@ -99,13 +99,14 @@ class NavigationValidator(BaseValidator):
             
             # Check each ancestor in the breadcrumb trail
             for i, ancestor in enumerate(page.ancestors):
-                # Verify ancestor is a valid page/section
-                if not hasattr(ancestor, 'output_path'):
+                # Verify ancestor is a valid Section or Page
+                # Sections don't have output_path, but they have 'name' and 'url' properties
+                if not (hasattr(ancestor, 'url') and hasattr(ancestor, 'title')):
                     issues.append(f"{page.source_path.name}: ancestor {i} is not a valid page/section")
                     continue
                 
-                # Check if ancestor has output
-                if ancestor.output_path and not ancestor.output_path.exists():
+                # For Page ancestors (not Sections), check if they have output
+                if hasattr(ancestor, 'output_path') and ancestor.output_path and not ancestor.output_path.exists():
                     issues.append(f"{page.source_path.name}: ancestor '{ancestor.title}' has no output")
         
         if issues:

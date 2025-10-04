@@ -196,7 +196,7 @@ The **[Kitchen Sink](docs/markdown/kitchen-sink.md)** page is the best place to 
 
 ### Admonitions & Directives
 
-```markdown
+````markdown
 # Use 9 types of admonitions
 ```{note}
 This is important information!
@@ -212,7 +212,7 @@ Great job! You completed the tutorial.
 
 # Tabbed content
 
-````{tabs}
+`````{tabs}
 :id: example-tabs
 
 ### Tab: Python
@@ -225,13 +225,14 @@ print("Hello, Bengal!")
 ```javascript
 console.log("Hello, Bengal!");
 ```
-````
+`````
 
 # Collapsible sections
 
 ```{dropdown} Click to expand
 Hidden content here!
 ```
+````
 
 ---
 

@@ -18,6 +18,7 @@ Example:
 import json
 import time
 import sys
+import tracemalloc
 from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
@@ -46,6 +47,8 @@ class LogEvent:
     phase: Optional[str] = None
     phase_depth: int = 0
     duration_ms: Optional[float] = None
+    memory_mb: Optional[float] = None  # Memory delta for phase
+    peak_memory_mb: Optional[float] = None  # Peak memory during phase
     context: Dict[str, Any] = field(default_factory=dict)
     
     def to_dict(self) -> Dict[str, Any]:
@@ -74,17 +77,25 @@ class LogEvent:
         else:
             phase_marker = ""
         
-        # Timing
+        # Timing and memory
+        metrics = []
         if self.duration_ms is not None:
-            timing = f" {colors['DIM']}({self.duration_ms:.1f}ms){colors['RESET']}"
-        else:
-            timing = ""
+            metrics.append(f"{self.duration_ms:.1f}ms")
+        if self.memory_mb is not None:
+            if self.memory_mb >= 0:
+                metrics.append(f"+{self.memory_mb:.1f}MB")
+            else:
+                metrics.append(f"{self.memory_mb:.1f}MB")
+        if self.peak_memory_mb is not None:
+            metrics.append(f"peak:{self.peak_memory_mb:.1f}MB")
+        
+        metrics_str = f" {colors['DIM']}({', '.join(metrics)}){colors['RESET']}" if metrics else ""
         
         # Level color
         level_color = colors.get(self.level, colors['RESET'])
         
         # Basic format
-        base = f"{indent}{level_color}●{colors['RESET']}{phase_marker} {self.message}{timing}"
+        base = f"{indent}{level_color}●{colors['RESET']}{phase_marker} {self.message}{metrics_str}"
         
         if verbose:
             # Add context in verbose mode
@@ -141,7 +152,7 @@ class BengalLogger:
     @contextmanager
     def phase(self, name: str, **context):
         """
-        Context manager for tracking build phases.
+        Context manager for tracking build phases with timing and memory.
         
         Example:
             with logger.phase("discovery", page_count=100):
@@ -153,6 +164,13 @@ class BengalLogger:
             **context: Additional context to attach to all events in phase
         """
         start_time = time.time()
+        
+        # Track memory if tracemalloc is active
+        start_memory = None
+        memory_tracking = tracemalloc.is_tracing()
+        if memory_tracking:
+            start_memory = tracemalloc.get_traced_memory()[0]  # current
+        
         self._phase_stack.append((name, start_time, context))
         
         # Emit phase start
@@ -165,14 +183,24 @@ class BengalLogger:
             self.error(f"phase_error", phase_name=name, error=str(e), **context)
             raise
         finally:
-            # Pop phase and emit completion
+            # Pop phase and calculate metrics
             phase_name, phase_start, phase_context = self._phase_stack.pop()
             duration_ms = (time.time() - phase_start) * 1000
+            
+            # Calculate memory metrics if tracking
+            memory_mb = None
+            peak_memory_mb = None
+            if memory_tracking and start_memory is not None:
+                current_memory, peak_memory = tracemalloc.get_traced_memory()
+                memory_mb = (current_memory - start_memory) / 1024 / 1024  # MB
+                peak_memory_mb = peak_memory / 1024 / 1024  # MB
             
             self.info(
                 f"phase_complete",
                 phase_name=phase_name,
                 duration_ms=duration_ms,
+                memory_mb=memory_mb,
+                peak_memory_mb=peak_memory_mb,
                 **phase_context
             )
     
@@ -201,6 +229,11 @@ class BengalLogger:
         # Merge contexts (explicit context overrides phase context)
         merged_context = {**phase_context, **context}
         
+        # Extract memory metrics from context if present
+        memory_mb = merged_context.pop('memory_mb', None)
+        peak_memory_mb = merged_context.pop('peak_memory_mb', None)
+        duration_ms = merged_context.pop('duration_ms', None)
+        
         # Create event
         event = LogEvent(
             timestamp=datetime.now().isoformat(),
@@ -210,6 +243,9 @@ class BengalLogger:
             message=message,
             phase=phase_name,
             phase_depth=phase_depth,
+            duration_ms=duration_ms,
+            memory_mb=memory_mb,
+            peak_memory_mb=peak_memory_mb,
             context=merged_context
         )
         
@@ -257,10 +293,10 @@ class BengalLogger:
         """
         timings = {}
         for event in self._events:
-            if event.message == "phase_complete" and "duration_ms" in event.context:
+            if event.message == "phase_complete" and event.duration_ms is not None:
                 phase = event.context.get("phase_name", event.phase)
                 if phase:
-                    timings[phase] = event.context["duration_ms"]
+                    timings[phase] = event.duration_ms
         return timings
     
     def print_summary(self):
@@ -310,7 +346,8 @@ _global_config = {
 def configure_logging(
     level: LogLevel = LogLevel.INFO,
     log_file: Optional[Path] = None,
-    verbose: bool = False
+    verbose: bool = False,
+    track_memory: bool = False
 ):
     """
     Configure global logging settings.
@@ -319,10 +356,15 @@ def configure_logging(
         level: Minimum log level to emit
         log_file: Path to log file
         verbose: Show verbose output
+        track_memory: Enable memory profiling (adds overhead)
     """
     _global_config['level'] = level
     _global_config['log_file'] = log_file
     _global_config['verbose'] = verbose
+    
+    # Enable memory tracking if requested
+    if track_memory and not tracemalloc.is_tracing():
+        tracemalloc.start()
     
     # Update existing loggers
     for logger in _loggers.values():
@@ -361,33 +403,58 @@ def close_all_loggers():
 
 
 def print_all_summaries():
-    """Print timing summaries from all loggers."""
+    """Print timing and memory summaries from all loggers."""
     # Merge all events
     all_events = []
     for logger in _loggers.values():
         all_events.extend(logger.get_events())
     
-    # Extract phase timings
+    # Extract phase timings and memory
     timings = {}
+    memory_deltas = {}
+    peak_memories = {}
+    
     for event in all_events:
-        if event.message == "phase_complete" and "duration_ms" in event.context:
+        if event.message == "phase_complete":
             phase = event.context.get("phase_name", event.phase)
             if phase:
-                timings[phase] = event.context["duration_ms"]
+                if event.duration_ms is not None:
+                    timings[phase] = event.duration_ms
+                if event.memory_mb is not None:
+                    memory_deltas[phase] = event.memory_mb
+                if event.peak_memory_mb is not None:
+                    peak_memories[phase] = event.peak_memory_mb
     
     if not timings:
         return
     
-    print("\n" + "="*60)
-    print("Build Phase Timings:")
-    print("="*60)
+    print("\n" + "="*70)
+    print("Build Phase Performance:")
+    print("="*70)
     
-    total = sum(timings.values())
-    for phase, duration in sorted(timings.items(), key=lambda x: x[1], reverse=True):
-        percentage = (duration / total * 100) if total > 0 else 0
-        print(f"  {phase:30s} {duration:8.1f}ms ({percentage:5.1f}%)")
+    # Show timing + memory
+    total_time = sum(timings.values())
+    for phase in sorted(timings.keys(), key=lambda x: timings[x], reverse=True):
+        duration = timings[phase]
+        percentage = (duration / total_time * 100) if total_time > 0 else 0
+        
+        line = f"  {phase:25s} {duration:8.1f}ms ({percentage:5.1f}%)"
+        
+        # Add memory if available
+        if phase in memory_deltas:
+            mem_delta = memory_deltas[phase]
+            line += f"  Δ{mem_delta:+7.1f}MB"
+        if phase in peak_memories:
+            peak = peak_memories[phase]
+            line += f"  peak:{peak:7.1f}MB"
+        
+        print(line)
     
-    print("-"*60)
-    print(f"  {'TOTAL':30s} {total:8.1f}ms (100.0%)")
-    print("="*60)
+    print("-"*70)
+    total_line = f"  {'TOTAL':25s} {total_time:8.1f}ms (100.0%)"
+    if memory_deltas:
+        total_mem = sum(memory_deltas.values())
+        total_line += f"  Δ{total_mem:+7.1f}MB"
+    print(total_line)
+    print("="*70)
 
