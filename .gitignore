@@ -49,6 +49,10 @@ public/
 .bengal/
 .bengal.pid
 
+# Autodoc generated content (regenerate with `bengal autodoc`)
+**/content/api/
+**/content/cli/
+
 # Documentation builds
 docs/_build/
 site/

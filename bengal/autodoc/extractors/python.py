@@ -11,6 +11,7 @@ from typing import List, Optional, Set, Union
 
 from bengal.autodoc.base import DocElement, Extractor
 from bengal.autodoc.docstring_parser import parse_docstring
+from bengal.autodoc.utils import sanitize_text
 
 
 class PythonExtractor(Extractor):
@@ -131,7 +132,7 @@ class PythonExtractor(Extractor):
         return DocElement(
             name=module_name,
             qualified_name=module_name,
-            description=docstring or "",
+            description=sanitize_text(docstring),
             element_type='module',
             source_file=file_path,
             line_number=1,
@@ -192,7 +193,8 @@ class PythonExtractor(Extractor):
         children = properties + methods + class_vars
         
         # Use parsed description if available
-        description = parsed_doc.description if parsed_doc else (docstring or "")
+        raw_description = parsed_doc.description if parsed_doc else docstring
+        description = sanitize_text(raw_description)
         
         return DocElement(
             name=node.name,
@@ -260,7 +262,8 @@ class PythonExtractor(Extractor):
                     arg['docstring'] = parsed_doc.args[arg['name']]
         
         # Use parsed description if available
-        description = parsed_doc.description if parsed_doc else (docstring or "")
+        raw_description = parsed_doc.description if parsed_doc else docstring
+        description = sanitize_text(raw_description)
         
         return DocElement(
             name=node.name,

@@ -1,0 +1,91 @@
+{#
+  Command Template
+  
+  Generates documentation for a single CLI command.
+#}
+---
+title: "{{ element.name }}"
+type: cli-command
+---
+
+# {{ element.name }}
+
+{{ element.description }}
+{% if element.deprecated %}
+
+:::warning Deprecated
+{{ element.deprecated }}
+:::
+{% endif %}
+
+## Usage
+
+```bash
+{{ element.qualified_name | replace('.', ' ') }}{% if element.children | selectattr('element_type', 'equalto', 'argument') | list %} [ARGUMENTS]{% endif %}{% if element.children | selectattr('element_type', 'equalto', 'option') | list %} [OPTIONS]{% endif %}
+
+```
+
+{% set arguments = element.children | selectattr('element_type', 'equalto', 'argument') | list %}
+{% if arguments %}
+## Arguments
+
+{% for arg in arguments %}
+### {{ arg.name }}
+
+{% if arg.description %}{{ arg.description }}
+
+{% endif %}{% if arg.metadata.type %}**Type:** `{{ arg.metadata.type }}`  
+{% endif %}{% if arg.metadata.required %}**Required:** Yes  
+{% else %}**Required:** No  
+{% endif %}{% if arg.metadata.default %}**Default:** `{{ arg.metadata.default }}`{% endif %}
+
+{% endfor %}
+{% endif %}
+
+{% set options = element.children | selectattr('element_type', 'equalto', 'option') | list %}
+{% if options %}
+## Options
+
+{% for option in options | sort(attribute='name') %}
+### {{ option.metadata.opts | join(', ') }}
+
+{% if option.description %}{{ option.description }}
+
+{% endif %}{% if option.metadata.type and not option.metadata.is_flag %}**Type:** `{{ option.metadata.type }}`  
+{% endif %}{% if option.metadata.is_flag %}**Type:** Flag (boolean)  
+{% endif %}{% if option.metadata.count %}**Type:** Counter (counts occurrences)  
+{% endif %}{% if option.metadata.default %}**Default:** `{{ option.metadata.default }}`  
+{% endif %}{% if option.metadata.required %}**Required:** Yes  
+{% endif %}{% if option.metadata.multiple %}**Multiple:** Can be specified multiple times  
+{% endif %}{% if option.metadata.envvar %}**Environment variable:** `{{ option.metadata.envvar }}`{% endif %}
+
+{% endfor %}
+{% endif %}
+{% if element.examples %}
+
+## Examples
+
+{% for example in element.examples %}
+{{ example }}
+{% endfor %}
+{% endif %}
+{% if element.see_also %}
+
+## See Also
+
+{% for ref in element.see_also %}
+- [[{{ ref }}]]
+{% endfor %}
+{% endif %}
+
+## Help
+
+```bash
+{{ element.qualified_name | replace('.', ' ') }} --help
+```
+
+{% if element.source_file %}
+---
+
+*Source: {{ element.source_file }}{% if element.line_number %}:{{ element.line_number }}{% endif %}*
+{% endif %}

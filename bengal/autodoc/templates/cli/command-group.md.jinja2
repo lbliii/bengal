@@ -1,0 +1,54 @@
+{#
+  Command Group Template
+  
+  Generates the main CLI index page showing all commands.
+#}
+---
+title: "{{ element.name }} CLI"
+type: cli-reference
+---
+
+# {{ element.name }} CLI Reference
+
+{{ element.description }}
+
+{% if element.children %}
+## Commands
+
+{% for command in element.children | sort(attribute='name') %}
+### {{ command.name }}
+
+{{ command.description | truncate(200) }}
+
+{% if command.metadata.option_count or command.metadata.argument_count %}
+**Usage:**
+
+```bash
+{{ element.name }} {{ command.name }}{% if command.metadata.argument_count %} [ARGUMENTS]{% endif %}{% if command.metadata.option_count %} [OPTIONS]{% endif %}
+
+```
+{% endif %}
+
+{% if command.examples %}
+**Example:**
+{{ command.examples[0] }}
+{% endif %}
+
+[Full documentation →](commands/{{ command.name }})
+
+---
+
+{% endfor %}
+{% else %}
+*No commands available.*
+{% endif %}
+
+## Getting Help
+
+```bash
+# Show help for main command
+{{ element.name }} --help
+
+# Show help for specific command
+{{ element.name }} COMMAND --help
+```

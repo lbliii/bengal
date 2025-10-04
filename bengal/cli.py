@@ -16,6 +16,7 @@ from bengal.utils.build_stats import (
     show_clean_success,
 )
 from bengal.autodoc.extractors.python import PythonExtractor
+from bengal.autodoc.extractors.cli import CLIExtractor
 from bengal.autodoc.generator import DocumentationGenerator
 from bengal.autodoc.config import load_autodoc_config
 
@@ -503,6 +504,164 @@ def autodoc(source: tuple, output: str, clean: bool, parallel: bool, verbose: bo
         click.echo(f"   • Build site: bengal build")
         click.echo()
         
+    except Exception as e:
+        click.echo()
+        click.echo(click.style(f"❌ Error: {e}", fg='red', bold=True))
+        if verbose:
+            import traceback
+            click.echo()
+            click.echo(traceback.format_exc())
+        raise click.Abort()
+
+
+@main.command(name='autodoc-cli')
+@click.option('--app', '-a', help='CLI app module (e.g., bengal.cli:main)')
+@click.option('--framework', '-f', type=click.Choice(['click', 'argparse', 'typer']), default='click', help='CLI framework (default: click)')
+@click.option('--output', '-o', type=click.Path(), help='Output directory for generated docs (default: content/cli)')
+@click.option('--include-hidden', is_flag=True, help='Include hidden commands')
+@click.option('--clean', is_flag=True, help='Clean output directory before generating')
+@click.option('--verbose', '-v', is_flag=True, help='Show detailed progress')
+@click.option('--config', type=click.Path(exists=True), help='Path to config file (default: bengal.toml)')
+def autodoc_cli(app: str, framework: str, output: str, include_hidden: bool, clean: bool, verbose: bool, config: str) -> None:
+    """
+    ⌨️  Generate CLI documentation from Click/argparse/typer apps.
+    
+    Extracts documentation from command-line interfaces to create
+    comprehensive command reference documentation.
+    
+    Example:
+        bengal autodoc-cli --app bengal.cli:main --output content/cli
+    """
+    import time
+    import importlib
+    
+    try:
+        click.echo()
+        click.echo(click.style("⌨️  Bengal CLI Autodoc", fg='cyan', bold=True))
+        click.echo()
+        
+        # Load configuration
+        config_path = Path(config) if config else None
+        autodoc_config = load_autodoc_config(config_path)
+        cli_config = autodoc_config.get('cli', {})
+        
+        # Use CLI args or fall back to config
+        if not app:
+            app = cli_config.get('app_module')
+        
+        if not app:
+            click.echo(click.style("❌ Error: No CLI app specified", fg='red', bold=True))
+            click.echo()
+            click.echo("Please specify the app module either:")
+            click.echo("  • Via command line: --app bengal.cli:main")
+            click.echo("  • Via config file: [autodoc.cli] app_module = 'bengal.cli:main'")
+            click.echo()
+            raise click.Abort()
+        
+        if not framework:
+            framework = cli_config.get('framework', 'click')
+        
+        if output:
+            output_dir = Path(output)
+        else:
+            output_dir = Path(cli_config.get('output_dir', 'content/cli'))
+        
+        if not include_hidden:
+            include_hidden = cli_config.get('include_hidden', False)
+        
+        # Clean output directory if requested
+        if clean and output_dir.exists():
+            import shutil
+            shutil.rmtree(output_dir)
+            click.echo(click.style(f"🧹 Cleaned {output_dir}", fg='yellow'))
+        
+        # Create output directory
+        output_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Import the CLI app
+        click.echo(click.style(f"🔍 Loading CLI app from {app}...", fg='blue'))
+        
+        try:
+            module_path, attr_name = app.split(':')
+            module = importlib.import_module(module_path)
+            cli_app = getattr(module, attr_name)
+        except Exception as e:
+            click.echo(click.style(f"❌ Failed to load app: {e}", fg='red', bold=True))
+            click.echo()
+            click.echo("Make sure the module path is correct:")
+            click.echo(f"  • Module: {app.split(':')[0]}")
+            click.echo(f"  • Attribute: {app.split(':')[1] if ':' in app else '(missing)'}")
+            click.echo()
+            raise click.Abort()
+        
+        # Extract documentation
+        click.echo(click.style(f"📝 Extracting CLI documentation...", fg='blue'))
+        start_time = time.time()
+        
+        extractor = CLIExtractor(framework=framework, include_hidden=include_hidden)
+        elements = extractor.extract(cli_app)
+        
+        extraction_time = time.time() - start_time
+        
+        # Count commands
+        command_count = 0
+        option_count = 0
+        for element in elements:
+            if element.element_type == 'command-group':
+                command_count = len(element.children)
+                for cmd in element.children:
+                    option_count += cmd.metadata.get('option_count', 0)
+        
+        click.echo(click.style(f"   ✓ Extracted {command_count} commands, {option_count} options", fg='green'))
+        
+        if verbose:
+            click.echo()
+            click.echo("Commands found:")
+            for element in elements:
+                if element.element_type == 'command-group':
+                    for cmd in element.children:
+                        click.echo(f"  • {cmd.name}")
+        
+        # Generate documentation
+        click.echo(click.style("📄 Generating documentation...", fg='blue'))
+        gen_start = time.time()
+        
+        generator = DocumentationGenerator(extractor, cli_config)
+        generated_files = generator.generate_all(elements, output_dir)
+        
+        gen_time = time.time() - gen_start
+        total_time = time.time() - start_time
+        
+        # Display results
+        click.echo()
+        click.echo(click.style("✅ CLI Documentation Generated!", fg='green', bold=True))
+        click.echo()
+        click.echo(f"   📊 Statistics:")
+        click.echo(f"      • Commands: {command_count}")
+        click.echo(f"      • Options:  {option_count}")
+        click.echo(f"      • Pages:    {len(generated_files)}")
+        click.echo()
+        click.echo(f"   ⚡ Performance:")
+        click.echo(f"      • Extraction: {extraction_time:.3f}s")
+        click.echo(f"      • Generation: {gen_time:.3f}s")
+        click.echo(f"      • Total:      {total_time:.3f}s")
+        click.echo()
+        click.echo(f"   📂 Output: {output_dir}")
+        click.echo()
+        
+        if verbose:
+            click.echo("Generated files:")
+            for file in generated_files:
+                click.echo(f"  • {file}")
+            click.echo()
+        
+        click.echo(click.style("💡 Next steps:", fg='yellow'))
+        click.echo(f"   • View docs: ls {output_dir}")
+        click.echo(f"   • Build site: bengal build")
+        click.echo()
+        
+    except click.Abort:
+        raise
     except Exception as e:
         click.echo()
         click.echo(click.style(f"❌ Error: {e}", fg='red', bold=True))

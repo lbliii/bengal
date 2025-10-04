@@ -40,6 +40,10 @@ def load_autodoc_config(config_path: Optional[Path] = None) -> Dict[str, Any]:
         },
         'cli': {
             'enabled': False,
+            'app_module': None,  # e.g., 'bengal.cli:main'
+            'framework': 'click',  # 'click', 'argparse', 'typer'
+            'output_dir': 'content/cli',
+            'include_hidden': False,
         },
     }
     
