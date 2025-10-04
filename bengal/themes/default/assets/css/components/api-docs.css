@@ -1,0 +1,454 @@
+/**
+ * API Documentation Styles
+ * 
+ * Specialized styles for auto-generated API documentation content.
+ * Complements reference-docs.css (which handles index/list pages).
+ * 
+ * These styles target the rendered API documentation pages generated
+ * by Bengal's autodoc system for Python, OpenAPI, and CLI docs.
+ */
+
+/* ============================================
+   API CONTENT STRUCTURE
+   ============================================ */
+
+/* Override prose max-width for API docs to allow wider layouts */
+.prose.api-content {
+  max-width: var(--content-max-width, 1200px);
+}
+
+/* ============================================
+   API SECTION HEADERS
+   ============================================ */
+
+.api-module-header,
+.api-class-header,
+.api-function-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-m);
+  margin: var(--space-xl) 0 var(--space-m) 0;
+  padding-bottom: var(--space-m);
+  border-bottom: 2px solid var(--color-border);
+}
+
+.api-module-icon,
+.api-class-icon,
+.api-function-icon {
+  font-size: var(--text-2xl);
+  line-height: 1;
+}
+
+.api-source-link {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-s);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-s);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  text-decoration: none;
+  transition: all 0.2s;
+}
+
+.api-source-link:hover {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+  text-decoration: none;
+}
+
+/* ============================================
+   METHOD/FUNCTION SIGNATURES
+   ============================================ */
+
+/* Enhanced styling for code blocks containing signatures */
+.prose h3 + pre,
+.prose h4 + pre {
+  background: var(--color-surface);
+  border-left: 4px solid var(--color-primary);
+  border-radius: var(--radius-m);
+  margin: var(--space-s) 0 var(--space-m) 0;
+  position: relative;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Signature code blocks should wrap on mobile */
+.prose h3 + pre code,
+.prose h4 + pre code {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* ============================================
+   PARAMETERS & ARGUMENTS
+   ============================================ */
+
+/* Style parameter lists with better visual hierarchy */
+.prose strong + code {
+  /* Parameter types following bold parameter names */
+  background: var(--color-code-type-bg);
+  color: var(--color-code-type);
+  font-weight: var(--font-medium);
+  padding: 0.2em 0.5em;
+  border-radius: var(--radius-xs);
+  font-size: 0.9em;
+}
+
+/* Parameter list styling */
+.prose ul li strong:first-child {
+  /* Parameter names */
+  color: var(--color-primary);
+  font-family: var(--font-mono);
+  font-size: 0.95em;
+}
+
+/* Add subtle background to parameter/argument lists */
+.prose p + ul,
+.prose h4 + ul,
+.prose h5 + ul {
+  background: var(--color-surface);
+  padding: var(--space-m) var(--space-m) var(--space-m) var(--space-xl);
+  border-radius: var(--radius-m);
+  border: 1px solid var(--color-border-light);
+  margin: var(--space-s) 0 var(--space-m) 0;
+}
+
+/* ============================================
+   RETURNS, RAISES, EXCEPTIONS
+   ============================================ */
+
+/* Style "Returns:" and "Raises:" sections */
+.prose p strong {
+  color: var(--color-text-primary);
+}
+
+/* Special styling for Returns: and Raises: paragraphs */
+.prose p:has(strong:first-child) {
+  background: var(--color-surface);
+  padding: var(--space-s) var(--space-m);
+  border-radius: var(--radius-m);
+  border-left: 3px solid var(--color-info);
+  margin: var(--space-m) 0;
+}
+
+/* Raises section with danger color */
+.prose h4:has(+ p strong:first-child) + p,
+.prose p strong:first-child:contains("Raises") {
+  border-left-color: var(--color-danger);
+}
+
+/* ============================================
+   BADGES & INDICATORS
+   ============================================ */
+
+.api-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: 0.25em 0.75em;
+  border-radius: var(--radius-s);
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  vertical-align: middle;
+  margin-left: var(--space-s);
+}
+
+.api-badge-async {
+  background: var(--color-info-bg);
+  color: var(--color-info);
+  border: 1px solid var(--color-info-light);
+}
+
+.api-badge-property {
+  background: var(--color-success-bg);
+  color: var(--color-success);
+  border: 1px solid var(--color-success-light);
+}
+
+.api-badge-classmethod,
+.api-badge-staticmethod {
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+  border: 1px solid var(--color-warning-light);
+}
+
+.api-badge-deprecated {
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+  border: 1px solid var(--color-danger-light);
+}
+
+.api-badge-dataclass {
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  border: 1px solid var(--color-primary);
+}
+
+/* CSS-based badges using pseudo-elements */
+.prose h4.api-property::after,
+.prose h3.api-async::after,
+.prose h4.api-async::after,
+.prose h4.api-classmethod::after,
+.prose h4.api-staticmethod::after {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25em 0.75em;
+  border-radius: var(--radius-s);
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-left: var(--space-s);
+  vertical-align: middle;
+}
+
+.prose h4.api-property::after {
+  content: 'property';
+  background: var(--color-success-bg);
+  color: var(--color-success);
+  border: 1px solid var(--color-success-light);
+}
+
+.prose h3.api-async::after,
+.prose h4.api-async::after {
+  content: 'async';
+  background: var(--color-info-bg);
+  color: var(--color-info);
+  border: 1px solid var(--color-info-light);
+}
+
+.prose h4.api-classmethod::after {
+  content: 'classmethod';
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+  border: 1px solid var(--color-warning-light);
+}
+
+.prose h4.api-staticmethod::after {
+  content: 'staticmethod';
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+  border: 1px solid var(--color-warning-light);
+}
+
+/* ============================================
+   TYPE ANNOTATIONS
+   ============================================ */
+
+/* Enhanced inline code for type annotations */
+.prose code {
+  font-weight: var(--font-medium);
+}
+
+/* Type in parentheses after parameter names */
+.prose li code:first-of-type {
+  background: var(--color-code-type-bg);
+  color: var(--color-code-type);
+  font-weight: var(--font-semibold);
+}
+
+/* ============================================
+   ATTRIBUTES & PROPERTIES
+   ============================================ */
+
+/* Attributes list styling */
+.prose p:has(strong:contains("Attributes")) + ul {
+  background: var(--color-surface);
+  border-left: 3px solid var(--color-primary);
+  padding: var(--space-m) var(--space-m) var(--space-m) var(--space-xl);
+  border-radius: var(--radius-m);
+  margin: var(--space-s) 0 var(--space-m) 0;
+}
+
+/* Properties section */
+.prose p:has(strong:contains("Properties")) + ul,
+.prose p:has(strong:contains("Methods")) + ul {
+  background: transparent;
+  border: none;
+  padding-left: var(--space-8);
+}
+
+/* ============================================
+   EXAMPLES & CODE BLOCKS
+   ============================================ */
+
+/* Example sections */
+.prose p:has(strong:contains("Examples")) {
+  margin-top: var(--space-l);
+  color: var(--color-text-primary);
+  font-weight: var(--font-semibold);
+}
+
+.prose p:has(strong:contains("Examples")) + pre {
+  border-left: 4px solid var(--color-success);
+}
+
+/* ============================================
+   INFO BOXES (for dataclass, async, etc.)
+   ============================================ */
+
+/* Bengal's ::: info directive styling enhancement for API docs */
+.prose .info {
+  background: var(--color-info-bg);
+  border-left: 4px solid var(--color-info);
+  padding: var(--space-m);
+  border-radius: var(--radius-m);
+  margin: var(--space-m) 0;
+  font-size: var(--text-sm);
+}
+
+.prose .warning {
+  background: var(--color-warning-bg);
+  border-left: 4px solid var(--color-warning);
+  padding: var(--space-m);
+  border-radius: var(--radius-m);
+  margin: var(--space-m) 0;
+}
+
+/* ============================================
+   SECTION DIVIDERS
+   ============================================ */
+
+/* Horizontal rules between methods/functions */
+.prose hr {
+  margin: var(--space-xl) 0;
+  border-top: 2px solid var(--color-border-light);
+}
+
+/* ============================================
+   CLASS INHERITANCE
+   ============================================ */
+
+/* "Inherits from:" line */
+.prose p:has(strong:contains("Inherits")) {
+  background: var(--color-surface);
+  padding: var(--space-s) var(--space-m);
+  border-radius: var(--radius-m);
+  border-left: 3px solid var(--color-primary);
+  font-size: var(--text-sm);
+  margin: var(--space-s) 0;
+}
+
+/* ============================================
+   RESPONSIVE DESIGN
+   ============================================ */
+
+@media (max-width: 768px) {
+  .api-module-header,
+  .api-class-header,
+  .api-function-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .api-source-link {
+    margin-left: 0;
+    margin-top: var(--space-s);
+  }
+  
+  /* Make code blocks more readable on mobile */
+  .prose pre {
+    font-size: 0.85rem;
+    padding: var(--space-s);
+  }
+  
+  /* Reduce padding on parameter lists */
+  .prose p + ul,
+  .prose h4 + ul,
+  .prose h5 + ul {
+    padding: var(--space-s) var(--space-s) var(--space-s) var(--space-l);
+  }
+}
+
+/* ============================================
+   DARK MODE SUPPORT
+   ============================================ */
+
+[data-theme="dark"] .prose h3 + pre,
+[data-theme="dark"] .prose h4 + pre {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+@media (prefers-color-scheme: dark) {
+  .prose h3 + pre,
+  .prose h4 + pre {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  }
+}
+
+/* ============================================
+   UTILITY CLASSES
+   ============================================ */
+
+/* For manual application in templates */
+.api-parameter-list {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) minmax(100px, auto) 2fr;
+  gap: var(--space-m);
+  padding: var(--space-m);
+  background: var(--color-surface);
+  border-radius: var(--radius-m);
+  border: 1px solid var(--color-border-light);
+  margin: var(--space-m) 0;
+}
+
+.api-parameter-list > div {
+  padding: var(--space-s);
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.api-parameter-name {
+  font-family: var(--font-mono);
+  font-weight: var(--font-semibold);
+  color: var(--color-primary);
+}
+
+.api-parameter-type {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  background: var(--color-code-type-bg);
+  padding: 0.25em 0.5em;
+  border-radius: var(--radius-s);
+  width: fit-content;
+}
+
+.api-parameter-description {
+  color: var(--color-text-secondary);
+  line-height: var(--line-height-relaxed);
+}
+
+@media (max-width: 768px) {
+  .api-parameter-list {
+    grid-template-columns: 1fr;
+    gap: var(--space-xs);
+  }
+}
+
+/* ============================================
+   PRINT STYLES
+   ============================================ */
+
+@media print {
+  .api-source-link {
+    display: none;
+  }
+  
+  .api-badge {
+    border: 1px solid black;
+    background: white;
+    color: black;
+  }
+  
+  .prose h3 + pre,
+  .prose h4 + pre {
+    border: 1px solid black;
+    box-shadow: none;
+  }
+}
+

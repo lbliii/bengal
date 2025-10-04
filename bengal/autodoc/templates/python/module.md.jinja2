@@ -51,7 +51,7 @@ This is a dataclass.
 **Properties:**
 
 {% for prop in cls.children | selectattr('metadata.is_property', 'equalto', true) %}
-#### {{ prop.name }}
+#### {{ prop.name }} @property
 
 ```python
 @property
@@ -69,7 +69,7 @@ This is a dataclass.
 
 {% for method in cls.children | selectattr('element_type', 'equalto', 'method') %}
 {% if not method.name.startswith('_') or method.name.startswith('__') %}
-#### {{ method.name }}
+#### {{ method.name }}{% if method.metadata.is_async %} @async{% endif %}{% if method.metadata.is_classmethod %} @classmethod{% endif %}{% if method.metadata.is_staticmethod %} @staticmethod{% endif %}
 
 ```python
 {{ method.metadata.signature }}
@@ -144,7 +144,7 @@ This is an async method.
 
 {% for func in element.children | selectattr('element_type', 'equalto', 'function') %}
 {% if not func.name.startswith('_') %}
-### {{ func.name }}
+### {{ func.name }}{% if func.metadata.is_async %} @async{% endif %}
 
 ```python
 {{ func.metadata.signature }}

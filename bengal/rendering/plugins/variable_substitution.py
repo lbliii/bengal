@@ -74,7 +74,8 @@ class VariableSubstitutionPlugin:
     """
     
     VARIABLE_PATTERN = re.compile(r'\{\{\s*([^}]+)\s*\}\}')
-    ESCAPE_PATTERN = re.compile(r'\{\{/\*\s*(.+?)\s*\*/\}\}')
+    # Capture everything between {{/* and */}} without stripping whitespace
+    ESCAPE_PATTERN = re.compile(r'\{\{/\*(.+?)\*/\}\}')
     
     def __init__(self, context: Dict[str, Any]):
         """
@@ -125,15 +126,17 @@ class VariableSubstitutionPlugin:
         Returns:
             Text with variables substituted and escapes processed
         """
-        # Reset placeholders for this substitution
-        self.escaped_placeholders = {}
+        # DON'T reset placeholders - accumulate them across multiple calls
+        # (preprocessing + text renderer calls from Mistune)
+        # Only reset when update_context() is called for a new page
         
         # Step 1: Handle escaped syntax {{/* ... */}} → {{ ... }}
         def save_escaped(match: Match) -> str:
-            expr = match.group(1).strip()
+            # Preserve the original content without stripping whitespace
+            expr = match.group(1)
             placeholder = f"BENGALESCAPED{len(self.escaped_placeholders)}ENDESC"
-            # Store the literal {{ }} for later restoration
-            self.escaped_placeholders[placeholder] = f"{{{{ {expr} }}}}"
+            # Store the literal {{ }} for later restoration, preserving whitespace
+            self.escaped_placeholders[placeholder] = f"{{{{{expr}}}}}"
             return placeholder
         
         text = self.ESCAPE_PATTERN.sub(save_escaped, text)
@@ -154,7 +157,12 @@ class VariableSubstitutionPlugin:
             try:
                 # Evaluate expression in context
                 result = self._eval_expression(expr)
-                return str(result) if result is not None else match.group(0)
+                if result is None:
+                    # Variable not found - treat as documentation example
+                    placeholder = f"BENGALESCAPED{len(self.escaped_placeholders)}ENDESC"
+                    self.escaped_placeholders[placeholder] = f"{{{{ {expr} }}}}"
+                    return placeholder
+                return str(result)
             except Exception:
                 # On error, keep as placeholder for documentation display
                 placeholder = f"BENGALESCAPED{len(self.escaped_placeholders)}ENDESC"
@@ -169,16 +177,27 @@ class VariableSubstitutionPlugin:
     
     def restore_placeholders(self, html: str) -> str:
         """
-        Restore __BENGAL_ESCAPED_*__ placeholders to literal {{ }} after Mistune processing.
+        Restore placeholders to HTML-escaped template syntax.
+        
+        This uses HTML entities to prevent Jinja2 from processing the restored
+        template syntax. The browser will render &#123;&#123; as {{ in the final output.
+        
+        This is the correct long-term solution because:
+        - Jinja2 won't see {{ so it won't try to template it
+        - The browser renders entities as literal {{ for users to see
+        - No timing issues or re-processing concerns
+        - Works for documentation examples, code snippets, etc.
         
         Args:
             html: HTML output from Mistune
             
         Returns:
-            HTML with placeholders restored to literal template syntax
+            HTML with placeholders restored as HTML entities
         """
         for placeholder, literal in self.escaped_placeholders.items():
-            html = html.replace(placeholder, literal)
+            # Convert {{ and }} to HTML entities so Jinja2 doesn't process them
+            html_escaped = literal.replace('{', '&#123;').replace('}', '&#125;')
+            html = html.replace(placeholder, html_escaped)
         return html
     
     def _eval_expression(self, expr: str) -> Any:

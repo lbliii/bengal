@@ -15,6 +15,7 @@ from bengal.utils.build_stats import (
     show_welcome,
     show_clean_success,
 )
+from bengal.utils.logger import configure_logging, LogLevel, close_all_loggers, print_all_summaries
 from bengal.autodoc.extractors.python import PythonExtractor
 from bengal.autodoc.extractors.cli import CLIExtractor
 from bengal.autodoc.generator import DocumentationGenerator
@@ -41,8 +42,9 @@ def main() -> None:
 @click.option('--validate', is_flag=True, help='Validate templates before building (catch errors early)')
 @click.option('--config', type=click.Path(exists=True), help='Path to config file (default: bengal.toml)')
 @click.option('--quiet', '-q', is_flag=True, help='Minimal output - only show errors and summary')
+@click.option('--log-file', type=click.Path(), help='Write detailed logs to file (default: .bengal-build.log)')
 @click.argument('source', type=click.Path(exists=True), default='.')
-def build(parallel: bool, incremental: bool, verbose: bool, strict: bool, debug: bool, validate: bool, config: str, quiet: bool, source: str) -> None:
+def build(parallel: bool, incremental: bool, verbose: bool, strict: bool, debug: bool, validate: bool, config: str, quiet: bool, log_file: str, source: str) -> None:
     """
     🔨 Build the static site.
     
@@ -52,6 +54,26 @@ def build(parallel: bool, incremental: bool, verbose: bool, strict: bool, debug:
     # Validate conflicting flags
     if quiet and verbose:
         raise click.UsageError("--quiet and --verbose cannot be used together")
+    
+    # Configure structured logging
+    if debug:
+        log_level = LogLevel.DEBUG
+    elif verbose:
+        log_level = LogLevel.INFO
+    else:
+        log_level = LogLevel.WARNING  # Minimal logging in normal mode
+    
+    # Determine log file path
+    if log_file:
+        log_path = Path(log_file)
+    else:
+        log_path = Path(source) / '.bengal-build.log'
+    
+    configure_logging(
+        level=log_level,
+        log_file=log_path,
+        verbose=verbose or debug
+    )
     
     try:
         show_building_indicator("Building site")
@@ -98,11 +120,18 @@ def build(parallel: bool, incremental: bool, verbose: bool, strict: bool, debug:
             click.echo(click.style("✅ Build complete!", fg='green', bold=True))
             click.echo(click.style(f"   ↪ {site.output_dir}", fg='cyan'))
         
+        # Print phase timing summary in verbose mode
+        if verbose and not quiet:
+            print_all_summaries()
+        
     except Exception as e:
         show_error(f"Build failed: {e}", show_art=True)
         if debug:
             raise
         raise click.Abort()
+    finally:
+        # Always close log file handles
+        close_all_loggers()
 
 
 @main.command()

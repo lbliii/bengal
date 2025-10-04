@@ -6,6 +6,7 @@ from typing import Any, Dict, Optional
 from datetime import datetime
 import traceback
 import re
+from markupsafe import Markup
 
 from bengal.core.page import Page
 
@@ -77,6 +78,15 @@ class Renderer:
         """
         if content is None:
             content = page.parsed_ast or ""
+            # Debug: Check core/page specifically
+            import sys
+            if hasattr(page, 'source_path') and 'core/page.md' in str(page.source_path):
+                has_badges = 'api-badge' in content
+                has_markers = '@property' in content
+                print(f"[Renderer] {page.source_path}:", file=sys.stderr)
+                print(f"  Content length: {len(content)} chars", file=sys.stderr)
+                print(f"  Has badges: {has_badges}", file=sys.stderr)
+                print(f"  Has markers: {has_markers}", file=sys.stderr)
         
         # Mark active menu items for this page
         if hasattr(self.site, 'mark_active_menu_items'):
@@ -86,12 +96,14 @@ class Renderer:
         template_name = self._get_template_name(page)
         
         # Build base context
+        # Note: Content and TOC are marked as safe HTML to prevent auto-escaping
+        # (they're already sanitized during markdown parsing)
         context = {
             'page': page,
-            'content': content,
+            'content': Markup(content),  # Mark as safe HTML
             'title': page.title,
             'metadata': page.metadata,
-            'toc': page.toc,  # Table of contents HTML
+            'toc': Markup(page.toc) if page.toc else '',  # Mark TOC as safe HTML
             'toc_items': page.toc_items,  # Structured TOC data
         }
         

@@ -78,6 +78,29 @@
   --color-info-border: var(--blue-300);
   --color-info-text: var(--blue-900);
   
+  /* Danger/Error alias (for consistency) */
+  --color-danger: var(--red-600);
+  --color-danger-bg: var(--red-50);
+  --color-danger-border: var(--red-300);
+  --color-danger-light: var(--red-300);
+  
+  /* Success alias (for badge consistency) */
+  --color-success-light: var(--green-300);
+  
+  /* Info alias (for badge consistency) */
+  --color-info-light: var(--blue-300);
+  
+  /* Warning alias (for badge consistency) */
+  --color-warning-light: var(--orange-300);
+  
+  /* API Documentation Colors */
+  --color-code-type: var(--blue-700);
+  --color-code-type-bg: var(--blue-50);
+  --color-code-keyword: var(--purple-600);
+  --color-code-string: var(--green-700);
+  --color-code-number: var(--orange-600);
+  --color-code-text: var(--gray-700);
+  
   /* ============================================
      SEMANTIC SPACING
      ============================================ */
@@ -343,6 +366,29 @@
   --color-info-bg: rgba(33, 150, 243, 0.1);
   --color-info-border: var(--blue-700);
   --color-info-text: var(--blue-200);
+  
+  /* Danger/Error alias (for consistency) */
+  --color-danger: var(--red-400);
+  --color-danger-bg: rgba(239, 68, 68, 0.1);
+  --color-danger-border: var(--red-700);
+  --color-danger-light: var(--red-700);
+  
+  /* Success alias (for badge consistency) */
+  --color-success-light: var(--green-700);
+  
+  /* Info alias (for badge consistency) */
+  --color-info-light: var(--blue-700);
+  
+  /* Warning alias (for badge consistency) */
+  --color-warning-light: var(--orange-700);
+  
+  /* API Documentation Colors (dark mode) */
+  --color-code-type: var(--blue-400);
+  --color-code-type-bg: rgba(59, 130, 246, 0.15);
+  --color-code-keyword: var(--purple-400);
+  --color-code-string: var(--green-400);
+  --color-code-number: var(--orange-400);
+  --color-code-text: var(--gray-300);
   
   /* Shadows (Deeper for dark mode) */
   --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.3);

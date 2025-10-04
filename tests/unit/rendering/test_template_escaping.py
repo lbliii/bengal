@@ -17,14 +17,17 @@ class TestVariableSubstitutionEscaping:
     """Test the {{/* ... */}} escape pattern."""
     
     def test_basic_escape_pattern(self):
-        """Test that {{/* expression */}} becomes {{ expression }}."""
+        """Test that {{/* expression */}} becomes HTML-escaped {{ expression }}."""
         context = {'page': type('obj', (), {'title': 'Test'})}
         plugin = VariableSubstitutionPlugin(context)
         
         text = "Use {{/* page.title */}} to display the title."
         result = plugin._substitute_variables(text)
+        result = plugin.restore_placeholders(result)
         
-        assert result == "Use {{ page.title }} to display the title."
+        # Should be HTML-escaped so Jinja2 won't process it
+        assert result == "Use &#123;&#123; page.title &#125;&#125; to display the title."
+        # Browser will render this as: Use {{ page.title }} to display the title.
     
     def test_escape_with_filters(self):
         """Test escaping template syntax with filters."""
@@ -33,8 +36,9 @@ class TestVariableSubstitutionEscaping:
         
         text = "Example: {{/* post.content | truncatewords(50) */}}"
         result = plugin._substitute_variables(text)
+        result = plugin.restore_placeholders(result)
         
-        assert result == "Example: {{ post.content | truncatewords(50) }}"
+        assert result == "Example: &#123;&#123; post.content | truncatewords(50) &#125;&#125;"
     
     def test_escape_with_complex_expression(self):
         """Test escaping complex template expressions."""
@@ -43,8 +47,9 @@ class TestVariableSubstitutionEscaping:
         
         text = "Use {{/* page.date | format_date('%Y-%m-%d') */}} for dates."
         result = plugin._substitute_variables(text)
+        result = plugin.restore_placeholders(result)
         
-        assert result == "Use {{ page.date | format_date('%Y-%m-%d') }} for dates."
+        assert result == "Use &#123;&#123; page.date | format_date('%Y-%m-%d') &#125;&#125; for dates."
     
     def test_normal_variables_still_work(self):
         """Test that normal variable substitution still works alongside escaping."""
@@ -54,10 +59,11 @@ class TestVariableSubstitutionEscaping:
         
         text = "Title: {{ page.title }}. Show syntax: {{/* page.title */}}"
         result = plugin._substitute_variables(text)
+        result = plugin.restore_placeholders(result)
         
         # First {{ page.title }} should be substituted
-        # Second {{/* page.title */}} should become literal {{ page.title }}
-        assert result == "Title: My Page. Show syntax: {{ page.title }}"
+        # Second {{/* page.title */}} should become HTML-escaped
+        assert result == "Title: My Page. Show syntax: &#123;&#123; page.title &#125;&#125;"
     
     def test_multiple_escapes_in_text(self):
         """Test multiple escape patterns in same text."""
@@ -70,10 +76,11 @@ class TestVariableSubstitutionEscaping:
         Use {{/* site.baseurl */}} for the base URL.
         """
         result = plugin._substitute_variables(text)
+        result = plugin.restore_placeholders(result)
         
-        assert "{{ page.title }}" in result
-        assert "{{ page.content | strip_html }}" in result
-        assert "{{ site.baseurl }}" in result
+        assert "&#123;&#123; page.title &#125;&#125;" in result
+        assert "&#123;&#123; page.content | strip_html &#125;&#125;" in result
+        assert "&#123;&#123; site.baseurl &#125;&#125;" in result
         assert "{{/*" not in result  # Escape markers should be gone
     
     def test_escape_preserves_whitespace(self):
@@ -83,9 +90,10 @@ class TestVariableSubstitutionEscaping:
         
         text = "{{/*  page.title  */}}"
         result = plugin._substitute_variables(text)
+        result = plugin.restore_placeholders(result)
         
-        # Should preserve the internal spaces
-        assert result == "{{  page.title  }}"
+        # Should preserve the internal spaces (HTML escaped)
+        assert result == "&#123;&#123;  page.title  &#125;&#125;"
     
     def test_nested_braces_in_escape(self):
         """Test escaping expressions with nested braces."""
@@ -95,8 +103,9 @@ class TestVariableSubstitutionEscaping:
         # JSX example from output-formats.md
         text = "{{/* __html: page.content_html */}}"
         result = plugin._substitute_variables(text)
+        result = plugin.restore_placeholders(result)
         
-        assert result == "{{ __html: page.content_html }}"
+        assert result == "&#123;&#123; __html: page.content_html &#125;&#125;"
     
     def test_escape_with_hugo_style_comments(self):
         """Test that Hugo comment syntax {{/* ... */}} works."""
@@ -106,8 +115,9 @@ class TestVariableSubstitutionEscaping:
         # This is the actual escape pattern
         text = "{{/* .Title */}}"
         result = plugin._substitute_variables(text)
+        result = plugin.restore_placeholders(result)
         
-        assert result == "{{ .Title }}"
+        assert result == "&#123;&#123; .Title &#125;&#125;"
     
     def test_incomplete_escape_patterns(self):
         """Test that incomplete escape patterns don't break."""
@@ -168,10 +178,11 @@ For dates:
         assert "{{/* page.title */}}" in content
         assert "{{/* post.content | truncatewords(50) */}}" in content
         
-        # After processing through plugin, they should become literal
+        # After processing through plugin, they should become HTML-escaped
         processed = plugin._substitute_variables(content)
-        assert "{{ page.title }}" in processed
-        assert "{{ post.content | truncatewords(50) }}" in processed
+        processed = plugin.restore_placeholders(processed)
+        assert "&#123;&#123; page.title &#125;&#125;" in processed
+        assert "&#123;&#123; post.content | truncatewords(50) &#125;&#125;" in processed
         assert "{{/*" not in processed  # All escape markers removed
     
     def test_mixed_real_and_example_templates(self, tmp_path):
@@ -205,13 +216,14 @@ To show dates, use {{/* page.date | format_date */}}.
         
         content = doc_page.read_text()
         processed = plugin._substitute_variables(content)
+        processed = plugin.restore_placeholders(processed)
         
         # Real variables should be substituted
         assert "Written by Bengal Team" in processed
         
-        # Examples should become literal (not substituted)
-        assert "use {{ page.metadata.author }}" in processed
-        assert "use {{ page.date | format_date }}" in processed
+        # Examples should become HTML-escaped (not substituted)
+        assert "use &#123;&#123; page.metadata.author &#125;&#125;" in processed
+        assert "use &#123;&#123; page.date | format_date &#125;&#125;" in processed
 
 
 class TestRegressionPrevention:
@@ -232,8 +244,9 @@ class TestRegressionPrevention:
         
         for example in examples:
             result = plugin._substitute_variables(example)
-            # Should become literal, not cause error
-            assert "{{" in result and "}}" in result
+            result = plugin.restore_placeholders(result)
+            # Should become HTML-escaped, not cause error
+            assert "&#123;&#123;" in result and "&#125;&#125;" in result
             assert "{{/*" not in result
     
     def test_jsx_syntax_in_docs(self):
@@ -244,9 +257,10 @@ class TestRegressionPrevention:
         # The problematic JSX from output-formats.md
         text = '<div dangerouslySetInnerHTML={{/* __html: page.content_html */}} />'
         result = plugin._substitute_variables(text)
+        result = plugin.restore_placeholders(result)
         
-        # Should become literal JSX
-        assert "{{ __html: page.content_html }}" in result
+        # Should become HTML-escaped JSX (safe from Jinja2)
+        assert "&#123;&#123; __html: page.content_html &#125;&#125;" in result
         assert "expected token 'end of print statement'" not in result
     
     def test_hugo_syntax_examples(self):
@@ -264,8 +278,9 @@ class TestRegressionPrevention:
         
         for example in examples:
             result = plugin._substitute_variables(example)
-            # Should preserve the dot syntax as literal
-            assert "{{" in result and "}}" in result
+            result = plugin.restore_placeholders(result)
+            # Should preserve the dot syntax as HTML-escaped
+            assert "&#123;&#123;" in result and "&#125;&#125;" in result
             # Should not have the escape markers
             assert "{{/*" not in result
 

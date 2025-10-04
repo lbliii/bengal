@@ -138,6 +138,21 @@ class RenderingPipeline:
             parsed_content, toc = self.parser.parse_with_toc(content, page.metadata)
         
         page.parsed_ast = parsed_content
+        
+        # Post-process: Enhance API documentation with badges
+        # (inject HTML badges for @async, @property, etc. markers)
+        from bengal.rendering.api_doc_enhancer import get_enhancer
+        enhancer = get_enhancer()
+        page_type = page.metadata.get('type')
+        if enhancer.should_enhance(page_type):
+            before_enhancement = page.parsed_ast
+            page.parsed_ast = enhancer.enhance(page.parsed_ast, page_type)
+            if '@property' in before_enhancement and 'page.md' in str(page.source_path) and 'core' in str(page.source_path):
+                import sys
+                print(f"[Pipeline] Enhanced {page.source_path}:", file=sys.stderr)
+                print(f"  Before: {len(before_enhancement)} chars, has markers: {'@property' in before_enhancement}", file=sys.stderr)
+                print(f"  After:  {len(page.parsed_ast)} chars, has badges: {'api-badge' in page.parsed_ast}", file=sys.stderr)
+        
         page.toc = toc
         # Note: toc_items is now a lazy property on Page (only extracted when accessed)
         

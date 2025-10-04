@@ -117,19 +117,21 @@ class TestOutputQuality:
             content = html_file.read_text()
             
             # Use smart detection to skip code blocks (documentation)
-            soup = BeautifulSoup(content, 'html.parser')
+            # Remove code blocks using regex (don't use BeautifulSoup - it decodes HTML entities!)
+            # Code blocks are allowed to have Jinja2 syntax for documentation
+            import re
+            raw_html_without_code = re.sub(r'<code[^>]*>.*?</code>', '', content, flags=re.DOTALL)
+            raw_html_without_code = re.sub(r'<pre[^>]*>.*?</pre>', '', raw_html_without_code, flags=re.DOTALL)
             
-            # Remove code blocks (allowed to have Jinja2 syntax)
-            for code_block in soup.find_all(['code', 'pre']):
-                code_block.decompose()
+            # Replace HTML-escaped versions so they don't trigger false positives
+            clean_html = raw_html_without_code.replace("&#123;&#123;", "ESCAPED_OPEN")
+            clean_html = clean_html.replace("&#125;&#125;", "ESCAPED_CLOSE")
             
-            remaining_text = soup.get_text()
-            
-            # Check for unrendered Jinja2 syntax outside of code blocks
-            if "{{ page." in remaining_text or "{% if page" in remaining_text:
+            # Now check for unescaped template syntax
+            if "{{ page." in clean_html or "{% if page" in clean_html:
                 pytest.fail(f"Unrendered Jinja2 page variable in {html_file}")
             
-            if "{{ site." in remaining_text or "{% if site" in remaining_text:
+            if "{{ site." in clean_html or "{% if site" in clean_html:
                 pytest.fail(f"Unrendered Jinja2 site variable in {html_file}")
     
     def test_theme_assets_copied(self, built_site):

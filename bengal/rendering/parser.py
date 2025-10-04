@@ -261,7 +261,8 @@ class MistuneParser(BaseMarkdownParser):
                     'footnotes',
                     'def_list',
                     create_documentation_directives(),
-                    self._var_plugin,  # Reusable plugin instance
+                    # NOTE: Don't register _var_plugin here - we do preprocessing before Mistune
+                    # Registering it would cause double-processing and create placeholders that never get restored
                 ],
                 renderer='html',
             )

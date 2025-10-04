@@ -9,6 +9,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 
 from bengal.utils.build_stats import BuildStats
+from bengal.utils.logger import get_logger
 from bengal.orchestration.content import ContentOrchestrator
 from bengal.orchestration.section import SectionOrchestrator
 from bengal.orchestration.taxonomy import TaxonomyOrchestrator
@@ -45,6 +46,7 @@ class BuildOrchestrator:
         """
         self.site = site
         self.stats = BuildStats()
+        self.logger = get_logger(__name__)
         
         # Initialize orchestrators
         self.content = ContentOrchestrator(site)
@@ -75,16 +77,25 @@ class BuildOrchestrator:
         # Initialize stats
         self.stats = BuildStats(parallel=parallel, incremental=incremental)
         
+        self.logger.info("build_start", parallel=parallel, incremental=incremental, 
+                        root_path=str(self.site.root_path))
+        
         print(f"   ↪ {self.site.root_path}\n")
         self.site.build_time = datetime.now()
         
         # Initialize cache and tracker for incremental builds
-        cache, tracker = self.incremental.initialize(enabled=incremental)
+        with self.logger.phase("initialization"):
+            cache, tracker = self.incremental.initialize(enabled=incremental)
         
         # Phase 1: Content Discovery
-        discovery_start = time.time()
-        self.content.discover()
-        self.stats.discovery_time_ms = (time.time() - discovery_start) * 1000
+        content_dir = self.site.root_path / "content"
+        with self.logger.phase("discovery", content_dir=str(content_dir)):
+            discovery_start = time.time()
+            self.content.discover()
+            self.stats.discovery_time_ms = (time.time() - discovery_start) * 1000
+            self.logger.info("discovery_complete", 
+                           pages=len(self.site.pages), 
+                           sections=len(self.site.sections))
         
         # Check if config changed (forces full rebuild)
         if incremental and self.incremental.check_config_changed():
@@ -94,97 +105,124 @@ class BuildOrchestrator:
         
         # Phase 2: Section Finalization (ensure all sections have index pages)
         print("\n✨ Generated pages:")
-        self.sections.finalize_sections()
-        
-        # Validate section structure
-        section_errors = self.sections.validate_sections()
-        if section_errors:
-            strict_mode = self.site.config.get('strict_mode', False)
-            if strict_mode:
-                print("\n❌ Section validation errors:")
-                for error in section_errors:
-                    print(f"   • {error}")
-                raise Exception(f"Build failed: {len(section_errors)} section validation error(s)")
-            else:
-                # Warn but continue in non-strict mode
-                for error in section_errors[:3]:  # Show first 3
-                    print(f"⚠️  {error}")
-                if len(section_errors) > 3:
-                    print(f"⚠️  ... and {len(section_errors) - 3} more errors")
+        with self.logger.phase("section_finalization"):
+            self.sections.finalize_sections()
+            
+            # Validate section structure
+            section_errors = self.sections.validate_sections()
+            if section_errors:
+                self.logger.warning("section_validation_errors", 
+                                  error_count=len(section_errors),
+                                  errors=section_errors[:3])
+                strict_mode = self.site.config.get('strict_mode', False)
+                if strict_mode:
+                    print("\n❌ Section validation errors:")
+                    for error in section_errors:
+                        print(f"   • {error}")
+                    raise Exception(f"Build failed: {len(section_errors)} section validation error(s)")
+                else:
+                    # Warn but continue in non-strict mode
+                    for error in section_errors[:3]:  # Show first 3
+                        print(f"⚠️  {error}")
+                    if len(section_errors) > 3:
+                        print(f"⚠️  ... and {len(section_errors) - 3} more errors")
         
         # Phase 3: Taxonomies & Dynamic Pages
-        taxonomy_start = time.time()
-        self.taxonomy.collect_and_generate()
-        self.stats.taxonomy_time_ms = (time.time() - taxonomy_start) * 1000
+        with self.logger.phase("taxonomies"):
+            taxonomy_start = time.time()
+            self.taxonomy.collect_and_generate()
+            self.stats.taxonomy_time_ms = (time.time() - taxonomy_start) * 1000
+            self.logger.info("taxonomies_built",
+                           taxonomy_count=len(self.site.taxonomies),
+                           total_terms=sum(len(terms) for terms in self.site.taxonomies.values()))
         
         # Phase 4: Menus
-        self.menu.build()
+        with self.logger.phase("menus"):
+            self.menu.build()
+            self.logger.info("menus_built", menu_count=len(self.site.menu))
         
         # Phase 5: Determine what to build (incremental)
-        pages_to_build = self.site.pages
-        assets_to_process = self.site.assets
-        
-        if incremental:
-            pages_to_build, assets_to_process, change_summary = self.incremental.find_work(
-                verbose=verbose
-            )
+        with self.logger.phase("incremental_filtering", enabled=incremental):
+            pages_to_build = self.site.pages
+            assets_to_process = self.site.assets
             
-            if not pages_to_build and not assets_to_process:
-                print("✓ No changes detected - skipping build")
-                self.stats.skipped = True
-                self.stats.build_time_ms = (time.time() - build_start) * 1000
-                return self.stats
-            
-            print(f"  Incremental build: {len(pages_to_build)} pages, "
-                  f"{len(assets_to_process)} assets")
-            
-            if verbose and change_summary:
-                print(f"\n  📝 Changes detected:")
-                for change_type, items in change_summary.items():
-                    if items:
-                        print(f"    • {change_type}: {len(items)} file(s)")
-                        for item in items[:5]:  # Show first 5
-                            print(f"      - {item.name if hasattr(item, 'name') else item}")
-                        if len(items) > 5:
-                            print(f"      ... and {len(items) - 5} more")
-                print()
+            if incremental:
+                pages_to_build, assets_to_process, change_summary = self.incremental.find_work(
+                    verbose=verbose
+                )
+                
+                self.logger.info("incremental_work_identified",
+                               pages_to_build=len(pages_to_build),
+                               assets_to_process=len(assets_to_process),
+                               skipped_pages=len(self.site.pages) - len(pages_to_build))
+                
+                if not pages_to_build and not assets_to_process:
+                    print("✓ No changes detected - skipping build")
+                    self.logger.info("no_changes_detected")
+                    self.stats.skipped = True
+                    self.stats.build_time_ms = (time.time() - build_start) * 1000
+                    return self.stats
+                
+                print(f"  Incremental build: {len(pages_to_build)} pages, "
+                      f"{len(assets_to_process)} assets")
+                
+                if verbose and change_summary:
+                    print(f"\n  📝 Changes detected:")
+                    for change_type, items in change_summary.items():
+                        if items:
+                            print(f"    • {change_type}: {len(items)} file(s)")
+                            for item in items[:5]:  # Show first 5
+                                print(f"      - {item.name if hasattr(item, 'name') else item}")
+                            if len(items) > 5:
+                                print(f"      ... and {len(items) - 5} more")
+                    print()
         
         # Phase 6: Render Pages
         quiet_mode = not verbose
         if quiet_mode:
             print(f"\n📄 Rendering content:")
         
-        rendering_start = time.time()
-        original_pages = self.site.pages
-        self.site.pages = pages_to_build  # Temporarily replace with subset
-        
-        self.render.process(pages_to_build, parallel=parallel, tracker=tracker, stats=self.stats)
-        
-        self.site.pages = original_pages  # Restore full page list
-        self.stats.rendering_time_ms = (time.time() - rendering_start) * 1000
+        with self.logger.phase("rendering", page_count=len(pages_to_build), parallel=parallel):
+            rendering_start = time.time()
+            original_pages = self.site.pages
+            self.site.pages = pages_to_build  # Temporarily replace with subset
+            
+            self.render.process(pages_to_build, parallel=parallel, tracker=tracker, stats=self.stats)
+            
+            self.site.pages = original_pages  # Restore full page list
+            self.stats.rendering_time_ms = (time.time() - rendering_start) * 1000
+            self.logger.info("rendering_complete", 
+                           pages_rendered=len(pages_to_build),
+                           errors=len(self.stats.template_errors) if hasattr(self.stats, 'template_errors') else 0)
         
         # Print rendering summary in quiet mode
         if quiet_mode:
             self._print_rendering_summary()
         
         # Phase 7: Process Assets
-        assets_start = time.time()
-        original_assets = self.site.assets
-        self.site.assets = assets_to_process  # Temporarily replace with subset
-        
-        self.assets.process(assets_to_process, parallel=parallel)
-        
-        self.site.assets = original_assets  # Restore full asset list
-        self.stats.assets_time_ms = (time.time() - assets_start) * 1000
+        with self.logger.phase("assets", asset_count=len(assets_to_process), parallel=parallel):
+            assets_start = time.time()
+            original_assets = self.site.assets
+            self.site.assets = assets_to_process  # Temporarily replace with subset
+            
+            self.assets.process(assets_to_process, parallel=parallel)
+            
+            self.site.assets = original_assets  # Restore full asset list
+            self.stats.assets_time_ms = (time.time() - assets_start) * 1000
+            self.logger.info("assets_complete", assets_processed=len(assets_to_process))
         
         # Phase 8: Post-processing
-        postprocess_start = time.time()
-        self.postprocess.run(parallel=parallel)
-        self.stats.postprocess_time_ms = (time.time() - postprocess_start) * 1000
+        with self.logger.phase("postprocessing", parallel=parallel):
+            postprocess_start = time.time()
+            self.postprocess.run(parallel=parallel)
+            self.stats.postprocess_time_ms = (time.time() - postprocess_start) * 1000
+            self.logger.info("postprocessing_complete")
         
         # Phase 9: Update cache
         if incremental or self.site.config.get("cache_enabled", True):
-            self.incremental.save_cache(pages_to_build, assets_to_process)
+            with self.logger.phase("cache_save"):
+                self.incremental.save_cache(pages_to_build, assets_to_process)
+                self.logger.info("cache_saved")
         
         # Collect final stats (before health check so we can include them in report)
         self.stats.total_pages = len(self.site.pages)
@@ -204,7 +242,15 @@ class BuildOrchestrator:
         }
         
         # Phase 10: Health Check
-        self._run_health_check()
+        with self.logger.phase("health_check"):
+            self._run_health_check()
+        
+        # Log build completion
+        self.logger.info("build_complete",
+                        duration_ms=self.stats.build_time_ms,
+                        total_pages=self.stats.total_pages,
+                        total_assets=self.stats.total_assets,
+                        success=True)
         
         return self.stats
     
