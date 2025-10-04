@@ -12,6 +12,7 @@ Provides centralized cleanup handling for all termination scenarios:
 import signal
 import atexit
 import sys
+import time
 import threading
 from typing import Callable, List, Optional, Any, Tuple
 from contextlib import contextmanager
@@ -72,7 +73,15 @@ class ResourceManager:
         """
         def cleanup(s):
             try:
-                s.shutdown()
+                # Shutdown in a thread with timeout to avoid hanging
+                shutdown_thread = threading.Thread(target=s.shutdown)
+                shutdown_thread.daemon = True
+                shutdown_thread.start()
+                shutdown_thread.join(timeout=2.0)
+                
+                if shutdown_thread.is_alive():
+                    print(f"  ⚠️  Server shutdown timed out (press Ctrl+C again to force quit)")
+                
                 s.server_close()
             except Exception as e:
                 print(f"  ⚠️  Error closing server: {e}")
@@ -91,8 +100,8 @@ class ResourceManager:
         def cleanup(o):
             try:
                 o.stop()
-                # Don't hang forever waiting for observer
-                o.join(timeout=5)
+                # Don't hang forever waiting for observer (reduced from 5s to 2s)
+                o.join(timeout=2.0)
                 if o.is_alive():
                     print(f"  ⚠️  File observer did not stop cleanly (still running)")
             except Exception as e:
@@ -131,9 +140,14 @@ class ResourceManager:
             
         if signum:
             sig_name = signal.Signals(signum).name if hasattr(signal.Signals, '__contains__') else str(signum)
-            print(f"\n  👋 Received {sig_name}, shutting down...")
+            if sig_name == "SIGINT":
+                print(f"\n  👋 Shutting down gracefully... (press Ctrl+C again to force quit)")
+            else:
+                print(f"\n  👋 Received {sig_name}, shutting down...")
         
         # Clean up in reverse order (LIFO - like context managers)
+        start_time = time.time()
+        
         for name, resource, cleanup_fn in reversed(self._resources):
             try:
                 cleanup_fn(resource)
@@ -141,11 +155,23 @@ class ResourceManager:
                 print(f"  ⚠️  Error cleaning up {name}: {e}")
         
         self._restore_signals()
+        
+        # Show completion message if shutdown was fast enough
+        elapsed = time.time() - start_time
+        if signum and elapsed < 3.0:  # Only show if cleanup was reasonably quick
+            print(f"  ✅ Server stopped")
     
     def _signal_handler(self, signum, frame):
         """Handle termination signals."""
-        self.cleanup(signum=signum)
-        sys.exit(0)
+        # Check if this is the first or second interrupt
+        if not self._cleanup_done:
+            # First interrupt - start graceful shutdown
+            self.cleanup(signum=signum)
+            sys.exit(0)
+        else:
+            # Second interrupt - force exit
+            print("\n  ⚠️  Force shutdown")
+            sys.exit(1)
     
     def _register_signal_handlers(self):
         """Register signal handlers for cleanup."""

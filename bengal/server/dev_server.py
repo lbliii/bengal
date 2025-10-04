@@ -253,6 +253,7 @@ class DevServer:
             try:
                 httpd.serve_forever()
             except KeyboardInterrupt:
+                # KeyboardInterrupt caught by serve_forever (backup to signal handler)
                 print("\n  👋 Shutting down server...")
             # ResourceManager cleanup happens automatically via __exit__
     
@@ -395,7 +396,7 @@ class DevServer:
         print(f"│   \033[36m➜\033[0m  Local:   \033[1mhttp://{self.host}:{port}/\033[0m{' ' * (52 - len(self.host) - len(str(port)))}│")
         print(f"│   \033[90m➜\033[0m  Serving: {str(self.site.output_dir)[:60]}{' ' * max(0, 60 - len(str(self.site.output_dir)))}│")
         print(f"│{' ' * 78}│")
-        print(f"│   \033[90mPress Ctrl+C to stop\033[0m{' ' * 54}│")
+        print(f"│   \033[90mPress Ctrl+C to stop (or twice to force quit)\033[0m{' ' * 37}│")
         print(f"╰{'─' * 78}╯\n")
         print(f"  \033[90m{'TIME':8} │ {'METHOD':6} │ {'STATUS':3} │ PATH\033[0m")
         print(f"  \033[90m{'─' * 8}─┼─{'─' * 6}─┼─{'─' * 3}─┼─{'─' * 60}\033[0m")
