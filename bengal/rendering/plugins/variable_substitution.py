@@ -40,6 +40,11 @@ class VariableSubstitutionPlugin:
         
         Connect to {{ page.metadata.api_url }}/users
     
+    Example - Escaping Syntax (Hugo-style):
+        Use {{/* page.title */}} to display the page title.
+        
+        This renders as: Use {{ page.title }} to display the page title.
+    
     Example - Using Conditionals in Templates:
         <!-- templates/page.html -->
         <article>
@@ -69,6 +74,7 @@ class VariableSubstitutionPlugin:
     """
     
     VARIABLE_PATTERN = re.compile(r'\{\{\s*([^}]+)\s*\}\}')
+    ESCAPE_PATTERN = re.compile(r'\{\{/\*\s*(.+?)\s*\*/\}\}')
     
     def __init__(self, context: Dict[str, Any]):
         """
@@ -109,26 +115,53 @@ class VariableSubstitutionPlugin:
         """
         Substitute {{ variable }} expressions in text.
         
-        Note: {% if %} blocks are handled by preprocessing, not here.
+        Supports Hugo-style inline escaping: {{/* expr */}} becomes literal {{ expr }}
         
         Args:
             text: Raw text content
             
         Returns:
-            Text with variables substituted
+            Text with variables substituted and escapes processed
         """
+        # Step 1: Handle escaped syntax {{/* ... */}} → {{ ... }}
+        # Use double HTML entities so it survives | safe in templates
+        escaped_placeholders = {}
+        
+        def save_escaped(match: Match) -> str:
+            expr = match.group(1).strip()
+            placeholder = f"__ESCAPED_{len(escaped_placeholders)}__"
+            # Double-escape: &amp;#123; → &#123; (after | safe) → { (in browser)
+            escaped_placeholders[placeholder] = f"&amp;#123;&amp;#123; {expr} &amp;#125;&amp;#125;"
+            return placeholder
+        
+        text = self.ESCAPE_PATTERN.sub(save_escaped, text)
+        
+        # Step 2: Normal variable substitution
         def replace_var(match: Match) -> str:
             expr = match.group(1).strip()
+            
+            # If expression contains filter syntax (|), control flow ({%), or other
+            # Jinja2 syntax, double-escape it for safe display in documentation
+            # This prevents docs showing "{{ text | filter }}" from being processed by Jinja2
+            if '|' in expr or '{%' in expr or expr.startswith('#') or ' if ' in expr or ' for ' in expr:
+                # Double-escape: &amp;#123; → &#123; (after | safe) → { (in browser)
+                return f"&amp;#123;&amp;#123; {expr} &amp;#125;&amp;#125;"
+            
             try:
                 # Evaluate expression in context
                 result = self._eval_expression(expr)
                 return str(result) if result is not None else match.group(0)
             except Exception:
-                # On error, leave original syntax unchanged
-                # This is intentional: allows documentation to show template syntax
-                return match.group(0)
+                # On error, double-escape for safe display
+                return f"&amp;#123;&amp;#123; {expr} &amp;#125;&amp;#125;"
         
-        return self.VARIABLE_PATTERN.sub(replace_var, text)
+        text = self.VARIABLE_PATTERN.sub(replace_var, text)
+        
+        # Step 3: Restore escaped syntax as literal text
+        for placeholder, literal in escaped_placeholders.items():
+            text = text.replace(placeholder, literal)
+        
+        return text
     
     def _eval_expression(self, expr: str) -> Any:
         """

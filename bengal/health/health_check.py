@@ -16,35 +16,64 @@ if TYPE_CHECKING:
 
 class HealthCheck:
     """
-    Orchestrates health check validators and produces unified reports.
+    Orchestrates health check validators and produces unified health reports.
+    
+    By default, registers all standard validators. You can disable auto-registration
+    by passing auto_register=False, then manually register validators.
     
     Usage:
+        # Default: auto-registers all validators
         health = HealthCheck(site)
-        
-        # Add validators
-        health.register(ConfigValidator())
-        health.register(OutputValidator())
-        
-        # Run all validators
         report = health.run()
-        
-        # Display report
         print(report.format_console())
         
-        # Or get JSON
-        import json
-        print(json.dumps(report.format_json(), indent=2))
+        # Manual registration:
+        health = HealthCheck(site, auto_register=False)
+        health.register(ConfigValidator())
+        health.register(OutputValidator())
+        report = health.run()
     """
     
-    def __init__(self, site: 'Site'):
+    def __init__(self, site: 'Site', auto_register: bool = True):
         """
         Initialize health check system.
         
         Args:
             site: The Site object to validate
+            auto_register: Whether to automatically register all default validators
         """
         self.site = site
         self.validators: List[BaseValidator] = []
+        
+        if auto_register:
+            self._register_default_validators()
+    
+    def _register_default_validators(self) -> None:
+        """Register all default validators."""
+        from bengal.health.validators import (
+            ConfigValidatorWrapper,
+            OutputValidator,
+            MenuValidator,
+            LinkValidatorWrapper,
+            NavigationValidator,
+            TaxonomyValidator,
+            RenderingValidator,
+            DirectiveValidator,
+            CacheValidator,
+            PerformanceValidator,
+        )
+        
+        # Register in logical order (fast validators first)
+        self.register(ConfigValidatorWrapper())
+        self.register(OutputValidator())
+        self.register(RenderingValidator())
+        self.register(DirectiveValidator())  # New!
+        self.register(NavigationValidator())
+        self.register(MenuValidator())
+        self.register(TaxonomyValidator())
+        self.register(LinkValidatorWrapper())
+        self.register(CacheValidator())
+        self.register(PerformanceValidator())
     
     def register(self, validator: BaseValidator) -> None:
         """

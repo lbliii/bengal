@@ -60,7 +60,12 @@ class RenderingPipeline:
         """
         self.site = site
         # Get markdown engine from config (default: python-markdown)
-        markdown_engine = site.config.get('markdown_engine', 'python-markdown')
+        # Check both old location (markdown_engine) and new nested location (markdown.parser)
+        markdown_engine = site.config.get('markdown_engine')
+        if not markdown_engine:
+            # Check nested markdown section
+            markdown_config = site.config.get('markdown', {})
+            markdown_engine = markdown_config.get('parser', 'python-markdown')
         # Use thread-local parser to avoid re-initialization overhead
         self.parser = _get_thread_parser(markdown_engine)
         
@@ -98,21 +103,33 @@ class RenderingPipeline:
         # - Templates: Handle {% if %}, {% for %}, complex logic
         # - Code blocks: Naturally stay literal (AST-level operation)
         #
+        # Pages can disable preprocessing by setting `preprocess: false` in frontmatter.
+        # This is useful for documentation pages that show template syntax examples.
+        #
         if hasattr(self.parser, 'parse_with_toc_and_context'):
             # Mistune with VariableSubstitutionPlugin (recommended)
-            # Single-pass parsing - fast and simple!
-            context = {
-                'page': page,
-                'site': self.site,
-                'config': self.site.config
-            }
-            parsed_content, toc = self.parser.parse_with_toc_and_context(
-                page.content,
-                page.metadata,
-                context
-            )
+            # Check if preprocessing is disabled
+            if page.metadata.get('preprocess') is False:
+                # Parse without variable substitution (for docs showing template syntax)
+                parsed_content, toc = self.parser.parse_with_toc(
+                    page.content,
+                    page.metadata
+                )
+            else:
+                # Single-pass parsing with variable substitution - fast and simple!
+                context = {
+                    'page': page,
+                    'site': self.site,
+                    'config': self.site.config
+                }
+                parsed_content, toc = self.parser.parse_with_toc_and_context(
+                    page.content,
+                    page.metadata,
+                    context
+                )
         else:
-            # FALLBACK: python-markdown (legacy, no variable substitution)
+            # FALLBACK: python-markdown (legacy)
+            # Uses Jinja2 preprocessing - deprecated, use Mistune instead
             content = self._preprocess_content(page)
             parsed_content, toc = self.parser.parse_with_toc(content, page.metadata)
         

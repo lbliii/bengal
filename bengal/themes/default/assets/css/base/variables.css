@@ -72,6 +72,14 @@
   --text-4xl: clamp(2.25rem, 1.8rem + 2vw, 3.75rem);
   --text-5xl: clamp(3rem, 2.5rem + 2.5vw, 4.5rem);
   
+  /* Heading Sizes (semantic aliases) */
+  --text-heading-1: var(--text-5xl);
+  --text-heading-2: var(--text-4xl);
+  --text-heading-3: var(--text-3xl);
+  --text-heading-4: var(--text-2xl);
+  --text-heading-5: var(--text-xl);
+  --text-heading-6: var(--text-lg);
+  
   /* Line Heights */
   --leading-none: 1;
   --leading-tight: 1.25;

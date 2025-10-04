@@ -34,7 +34,7 @@
 
 .prose h1 { 
   font-size: var(--text-heading-1);
-  font-weight: var(--font-weight-extrabold);
+  font-weight: var(--font-extrabold);
   margin-top: 0;
   margin-bottom: 1rem;
   line-height: 1.1;
@@ -43,7 +43,7 @@
 
 .prose h2 { 
   font-size: var(--text-heading-2);
-  font-weight: var(--font-weight-bold);
+  font-weight: var(--font-bold);
   margin-top: 2em;
   padding-bottom: 0.5rem;
   border-bottom: 1px solid var(--color-border-light);
@@ -52,22 +52,22 @@
 
 .prose h3 { 
   font-size: var(--text-heading-3);
-  font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-semibold);
 }
 
 .prose h4 { 
   font-size: var(--text-heading-4);
-  font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-semibold);
 }
 
 .prose h5 { 
   font-size: var(--text-heading-5);
-  font-weight: var(--font-weight-medium);
+  font-weight: var(--font-medium);
 }
 
 .prose h6 { 
   font-size: var(--text-heading-6);
-  font-weight: var(--font-weight-medium);
+  font-weight: var(--font-medium);
   text-transform: uppercase;
   letter-spacing: var(--letter-spacing-wide);
   color: var(--color-text-secondary);

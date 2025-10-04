@@ -13,6 +13,7 @@ Phase 2 (Build-Time):
 - NavigationValidator: Page navigation (next/prev, breadcrumbs)
 - TaxonomyValidator: Tags, categories, generated pages
 - RenderingValidator: HTML quality, template functions
+- DirectiveValidator: Directive syntax, usage, and performance
 
 Phase 3 Lite (Advanced):
 - CacheValidator: Incremental build cache integrity
@@ -26,6 +27,7 @@ from bengal.health.validators.links import LinkValidatorWrapper
 from bengal.health.validators.navigation import NavigationValidator
 from bengal.health.validators.taxonomy import TaxonomyValidator
 from bengal.health.validators.rendering import RenderingValidator
+from bengal.health.validators.directives import DirectiveValidator
 from bengal.health.validators.cache import CacheValidator
 from bengal.health.validators.performance import PerformanceValidator
 
@@ -39,6 +41,7 @@ __all__ = [
     'NavigationValidator',
     'TaxonomyValidator',
     'RenderingValidator',
+    'DirectiveValidator',
     # Phase 3 Lite
     'CacheValidator',
     'PerformanceValidator',
