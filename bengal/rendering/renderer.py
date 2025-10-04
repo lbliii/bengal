@@ -206,32 +206,72 @@ class Renderer:
         """
         Determine which template to use for a page.
         
+        Priority order:
+        1. Explicit template in frontmatter (`template: doc.html`)
+        2. Section-based auto-detection (e.g., `docs.html`, `docs/single.html`)
+        3. Default fallback (`page.html` or `index.html`)
+        
+        Note: We intentionally avoid Hugo's confusing type/kind/layout hierarchy.
+        
         Args:
             page: Page to get template for
             
         Returns:
             Template name
         """
-        # Check page metadata for custom template
+        # 1. Explicit template (highest priority)
         if 'template' in page.metadata:
             return page.metadata['template']
         
-        # Check if this is an _index.md file (section index)
+        # 2. Section-based auto-detection
+        if hasattr(page, '_section') and page._section:
+            section_name = page._section.name
+            is_section_index = page.source_path.stem == '_index'
+            
+            if is_section_index:
+                # Try section index templates in order of specificity
+                templates_to_try = [
+                    f"{section_name}/list.html",      # Hugo-style directory
+                    f"{section_name}/index.html",     # Alternative directory
+                    f"{section_name}-list.html",      # Flat with suffix
+                    f"{section_name}.html",           # Flat simple
+                ]
+            else:
+                # Try section page templates in order of specificity
+                templates_to_try = [
+                    f"{section_name}/single.html",    # Hugo-style directory
+                    f"{section_name}/page.html",      # Alternative directory
+                    f"{section_name}.html",           # Flat
+                ]
+            
+            # Check if any template exists
+            for template_name in templates_to_try:
+                if self._template_exists(template_name):
+                    return template_name
+        
+        # 3. Simple default fallback (no type/kind complexity)
         if page.source_path.stem == '_index':
-            # Use index template for section index pages
+            # Section index without custom template
             return 'index.html'
         
-        # Check page type
-        page_type = page.metadata.get('type', 'page')
+        # Regular page - just use page.html
+        return 'page.html'
+    
+    def _template_exists(self, template_name: str) -> bool:
+        """
+        Check if a template exists in any template directory.
         
-        # Map types to templates
-        template_map = {
-            'post': 'post.html',
-            'page': 'page.html',
-            'index': 'index.html',
-        }
-        
-        return template_map.get(page_type, 'page.html')
+        Args:
+            template_name: Template filename or path
+            
+        Returns:
+            True if template exists, False otherwise
+        """
+        try:
+            self.template_engine.env.get_template(template_name)
+            return True
+        except Exception:
+            return False
     
     def _render_fallback(self, page: Page, content: str) -> str:
         """

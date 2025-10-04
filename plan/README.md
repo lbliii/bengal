@@ -4,11 +4,11 @@ This directory contains planning documents, progress reports, and strategic anal
 
 ---
 
-## 📍 Current Status (October 3, 2025)
+## 📍 Current Status (October 4, 2025)
 
-**Phase:** Incremental build fix complete ✅  
-**Status:** All performance targets met!  
-**Next:** Documentation site (Phase 6)
+**Phase:** Core development complete ✅  
+**Status:** Production-ready v1.0  
+**Next:** Documentation site & community building
 
 ---
 
@@ -68,27 +68,27 @@ This directory contains planning documents, progress reports, and strategic anal
 
 ## 📁 Document Organization
 
-### Active Planning
-- `STRATEGIC_PLAN.md` - Overall strategy and options analysis
-- `PERFORMANCE_AUDIT_RESULTS.md` - Benchmark results and findings
-- `NEXT_STEPS.md` - Roadmap and priorities
-- `ARCHITECTURE_IMPROVEMENTS.md` - Technical improvement proposals
-- `TEST_STRATEGY.md` - Testing approach
+### 🎯 Active Planning (Start Here)
+- **`STRATEGIC_PLAN.md`** - Overall strategy and future direction
+- **`NEXT_STEPS.md`** - Roadmap and priorities
+- **`TEST_STRATEGY.md`** - Testing approach and coverage
 
-### Implementation Tracking
-- `PARALLEL_PROCESSING_IMPLEMENTATION_COMPLETE.md` - Parallel processing done
-- `PHASE_1_4_COMPLETE.md` - Incremental builds implemented (but needs fix)
-- `RENDERING_BUG_FIX.md` - Template rendering fixes
-- `THREAD_SAFETY_FIX_COMPLETE.md` - Thread safety improvements
+### 📋 Future Plans & Ideas
+- `ROOT_SECTION_ELIMINATION_PLAN.md` - Potential architecture improvement
+- `THEME_ENHANCEMENT_PLAN.md` - Additional theme enhancements
+- `PYO3_RUST_PARSER_EVALUATION.md` - Rust parser evaluation
 
-### Reference
-- `GIT_SETUP.md` - Git workflow and branching
-- `SETUP_SUMMARY.md` - Initial project setup
+### 📚 Reference Documentation
+- `SHORTCODES_VS_BENGAL_APPROACH.md` - Design philosophy
+- `SSG_COMPARISON_QUICK_REFERENCE.md` - Quick comparison with other SSGs
+- `SSG_COMPARISON_RESULTS.md` - Detailed benchmark comparisons
 
-### Completed (moved to `completed/`)
-- All completed phase documentation
+### ✅ Completed (moved to `completed/`)
+- **51 documents** covering all completed phases, audits, and summaries
+- All phase completion reports (Phases 1-5)
+- All implementation summaries
+- All session summaries
 - Historical progress reports
-- Closed planning documents
 
 ---
 
@@ -219,5 +219,14 @@ If working on Bengal:
 
 ---
 
-**TL;DR:** Bengal is 98% done! Incremental builds fixed (✅ complete). Now just need docs site (2 weeks) and we're ready for v1.0! 🚀
+**TL;DR:** Bengal v1.0 is feature-complete! 🎉 All core features implemented, performance targets met, default theme polished. Ready for documentation site and community launch! 🚀
+
+---
+
+## 📈 Plan Directory Statistics
+
+- **Active documents:** 9 files
+- **Completed/archived:** 51 files  
+- **Total cleanup:** 22 files pruned (October 4, 2025)
+- **Organization:** Clean and focused on future work
 

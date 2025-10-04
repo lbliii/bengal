@@ -1,0 +1,183 @@
+/**
+ * Bengal SSG Default Theme
+ * Lazy Loading Utilities
+ *
+ * Styles to improve UX for lazy-loaded content.
+ */
+
+/* ============================================
+   LAZY LOADED IMAGES
+   ============================================ */
+
+/* Images with loading="lazy" attribute */
+img[loading="lazy"] {
+  /* Blur up placeholder effect */
+  transition: opacity var(--transition-base), filter var(--transition-base);
+}
+
+/* Before image loads (if using blur placeholder) */
+img[loading="lazy"]:not([src]) {
+  opacity: 0.5;
+  filter: blur(10px);
+}
+
+/* Image is loading */
+img[loading="lazy"].loading {
+  opacity: 0.7;
+  filter: blur(5px);
+}
+
+/* Image has loaded */
+img[loading="lazy"].loaded {
+  opacity: 1;
+  filter: blur(0);
+}
+
+/* ============================================
+   IMAGE PLACEHOLDERS
+   ============================================ */
+
+/* Placeholder for lazy images */
+.img-placeholder {
+  background-color: var(--color-bg-tertiary);
+  background-image: linear-gradient(
+    90deg,
+    var(--color-bg-tertiary) 0%,
+    var(--color-bg-secondary) 50%,
+    var(--color-bg-tertiary) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .img-placeholder {
+    animation: none;
+  }
+  
+  img[loading="lazy"] {
+    transition: none;
+  }
+}
+
+/* ============================================
+   INTERSECTION OBSERVER SUPPORT
+   ============================================ */
+
+/* Elements observed for lazy loading */
+[data-lazy] {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity var(--transition-slow), transform var(--transition-slow);
+}
+
+/* Element enters viewport */
+[data-lazy].in-view {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ============================================
+   CONTENT LOADING STATES
+   ============================================ */
+
+/* Skeleton loading for text content */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--color-bg-tertiary) 0%,
+    var(--color-bg-secondary) 50%,
+    var(--color-bg-tertiary) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: var(--border-radius-small);
+  min-height: 1em;
+}
+
+.skeleton-text {
+  height: 1em;
+  margin-bottom: 0.5em;
+  width: 100%;
+}
+
+.skeleton-text:last-child {
+  width: 70%;
+}
+
+.skeleton-heading {
+  height: 2em;
+  width: 60%;
+  margin-bottom: 1em;
+}
+
+.skeleton-image {
+  aspect-ratio: 16 / 9;
+  width: 100%;
+}
+
+/* ============================================
+   PERFORMANCE HINTS
+   ============================================ */
+
+/* Hint to browser about image decode */
+img[loading="lazy"] {
+  /* Modern browsers will decode async automatically */
+  /* But we can hint about it */
+}
+
+/* Content-visibility for off-screen content */
+.offscreen-content {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 500px;
+}
+
+/* ============================================
+   FADE IN ANIMATIONS
+   ============================================ */
+
+/* Subtle fade-in for lazy-loaded content */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.fade-in {
+  animation: fadeIn var(--transition-slow) ease-in;
+}
+
+/* Staggered animations */
+.fade-in-stagger > * {
+  opacity: 0;
+  animation: fadeIn var(--transition-base) ease-in forwards;
+}
+
+.fade-in-stagger > *:nth-child(1) { animation-delay: 0ms; }
+.fade-in-stagger > *:nth-child(2) { animation-delay: 50ms; }
+.fade-in-stagger > *:nth-child(3) { animation-delay: 100ms; }
+.fade-in-stagger > *:nth-child(4) { animation-delay: 150ms; }
+.fade-in-stagger > *:nth-child(5) { animation-delay: 200ms; }
+
+/* Disable animations if reduced motion preferred */
+@media (prefers-reduced-motion: reduce) {
+  .fade-in,
+  .fade-in-stagger > * {
+    animation: none;
+    opacity: 1;
+  }
+}
+

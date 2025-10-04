@@ -33,18 +33,33 @@ class ContentDiscovery:
         Returns:
             Tuple of (sections, pages)
         """
-        # Create root section
-        root_section = Section(
-            name="root",
-            path=self.content_dir,
-        )
+        if not self.content_dir.exists():
+            return self.sections, self.pages
         
-        # Walk the content directory
-        self._walk_directory(self.content_dir, root_section)
-        
-        # Only add root section if it has content
-        if root_section.pages or root_section.subsections:
-            self.sections.append(root_section)
+        # Walk top-level items directly (no root section wrapper)
+        for item in sorted(self.content_dir.iterdir()):
+            # Skip hidden files and directories
+            if item.name.startswith(('.', '_')) and item.name not in ('_index.md', '_index.markdown'):
+                continue
+            
+            if item.is_file() and self._is_content_file(item):
+                # Top-level page (no section)
+                page = self._create_page(item)
+                self.pages.append(page)
+            
+            elif item.is_dir():
+                # Top-level section
+                section = Section(
+                    name=item.name,
+                    path=item,
+                )
+                
+                # Recursively walk the subdirectory
+                self._walk_directory(item, section)
+                
+                # Only add section if it has content
+                if section.pages or section.subsections:
+                    self.sections.append(section)
         
         return self.sections, self.pages
     

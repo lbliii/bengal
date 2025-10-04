@@ -129,10 +129,6 @@ class TaxonomyValidator(BaseValidator):
             if not section.pages:
                 continue
             
-            # Skip root section
-            if section.name == 'root':
-                continue
-            
             # Check if section has index page or archive
             has_index = section.index_page is not None
             has_archive = any(

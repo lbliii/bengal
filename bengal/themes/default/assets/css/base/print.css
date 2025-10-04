@@ -1,0 +1,322 @@
+/**
+ * Bengal SSG Default Theme
+ * Print Styles
+ *
+ * Optimized styles for printing pages.
+ * Removes interactive elements, optimizes colors, and improves readability.
+ */
+
+@media print {
+  /* ============================================
+     GLOBAL PRINT SETTINGS
+     ============================================ */
+  
+  *,
+  *::before,
+  *::after {
+    /* Remove shadows and transitions for print */
+    box-shadow: none !important;
+    text-shadow: none !important;
+    transition: none !important;
+    animation: none !important;
+  }
+  
+  body {
+    /* Use black text on white background */
+    background: white !important;
+    color: black !important;
+    font-size: 12pt;
+    line-height: 1.5;
+  }
+  
+  /* ============================================
+     HIDE INTERACTIVE & NAVIGATION ELEMENTS
+     ============================================ */
+  
+  /* Navigation and controls */
+  header,
+  nav,
+  .site-header,
+  .docs-nav,
+  .toc-sidebar,
+  .mobile-nav,
+  .theme-toggle,
+  .breadcrumbs,
+  footer,
+  .site-footer,
+  
+  /* Interactive elements */
+  button,
+  .button,
+  .btn,
+  #back-to-top,
+  #reading-progress,
+  .header-anchor-link,
+  .code-copy-button,
+  .search-input-wrapper,
+  .pagination,
+  .tags,
+  .related-posts,
+  
+  /* Overlays and modals */
+  .lightbox-overlay,
+  .search-overlay,
+  .modal,
+  .overlay,
+  
+  /* Skip to content */
+  .skip-to-content {
+    display: none !important;
+  }
+  
+  /* ============================================
+     LAYOUT & STRUCTURE
+     ============================================ */
+  
+  .docs-layout {
+    display: block !important;
+    grid-template-columns: none !important;
+  }
+  
+  .docs-content {
+    max-width: 100% !important;
+    padding: 0 !important;
+  }
+  
+  .prose,
+  .content,
+  article {
+    max-width: 100% !important;
+  }
+  
+  /* ============================================
+     TYPOGRAPHY
+     ============================================ */
+  
+  h1, h2, h3, h4, h5, h6 {
+    color: black !important;
+    page-break-after: avoid;
+    page-break-inside: avoid;
+  }
+  
+  h1 {
+    font-size: 24pt;
+    margin-top: 0;
+  }
+  
+  h2 {
+    font-size: 18pt;
+    border-bottom: 1pt solid #ccc;
+    padding-bottom: 0.25em;
+  }
+  
+  h3 {
+    font-size: 14pt;
+  }
+  
+  h4, h5, h6 {
+    font-size: 12pt;
+  }
+  
+  p {
+    orphans: 3;
+    widows: 3;
+  }
+  
+  /* ============================================
+     LINKS
+     ============================================ */
+  
+  a {
+    color: black !important;
+    text-decoration: underline;
+  }
+  
+  /* Show URLs after links in content */
+  .prose a[href^="http"]:after,
+  .content a[href^="http"]:after,
+  article a[href^="http"]:after {
+    content: " (" attr(href) ")";
+    font-size: 0.9em;
+    color: #666 !important;
+  }
+  
+  /* Don't show URLs for anchor links */
+  a[href^="#"]:after {
+    content: "";
+  }
+  
+  /* ============================================
+     CODE BLOCKS
+     ============================================ */
+  
+  pre,
+  code {
+    background: #f5f5f5 !important;
+    color: black !important;
+    border: 1pt solid #ccc !important;
+    page-break-inside: avoid;
+  }
+  
+  pre {
+    white-space: pre-wrap !important;
+    word-wrap: break-word !important;
+    padding: 10pt !important;
+    font-size: 10pt;
+    line-height: 1.4;
+  }
+  
+  code {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 10pt;
+    padding: 2pt 4pt;
+  }
+  
+  .code-header {
+    display: none !important;
+  }
+  
+  /* ============================================
+     ADMONITIONS / CALLOUTS
+     ============================================ */
+  
+  .admonition,
+  .callout {
+    background: white !important;
+    border: 1pt solid #ccc !important;
+    padding: 10pt !important;
+    page-break-inside: avoid;
+  }
+  
+  .admonition-title,
+  .callout-title {
+    color: black !important;
+    font-weight: bold;
+  }
+  
+  /* ============================================
+     TABLES
+     ============================================ */
+  
+  table {
+    border-collapse: collapse !important;
+    border: 1pt solid #ccc !important;
+    page-break-inside: avoid;
+    width: 100% !important;
+  }
+  
+  thead {
+    display: table-header-group;
+  }
+  
+  tfoot {
+    display: table-footer-group;
+  }
+  
+  th,
+  td {
+    border: 1pt solid #ccc !important;
+    padding: 6pt !important;
+    background: white !important;
+    color: black !important;
+  }
+  
+  th {
+    font-weight: bold;
+  }
+  
+  /* ============================================
+     IMAGES & FIGURES
+     ============================================ */
+  
+  img {
+    max-width: 100% !important;
+    page-break-inside: avoid;
+  }
+  
+  figure {
+    page-break-inside: avoid;
+  }
+  
+  figcaption {
+    font-size: 10pt;
+    font-style: italic;
+    color: #666 !important;
+  }
+  
+  /* ============================================
+     LISTS
+     ============================================ */
+  
+  ul, ol {
+    page-break-inside: avoid;
+  }
+  
+  li {
+    page-break-inside: avoid;
+  }
+  
+  /* ============================================
+     CARDS
+     ============================================ */
+  
+  .card,
+  .feature-card,
+  .callout-card {
+    background: white !important;
+    border: 1pt solid #ccc !important;
+    box-shadow: none !important;
+    page-break-inside: avoid;
+    padding: 10pt !important;
+  }
+  
+  /* ============================================
+     PAGE BREAKS
+     ============================================ */
+  
+  /* Break before major sections */
+  .page-break-before,
+  section.break-before {
+    page-break-before: always;
+  }
+  
+  /* Avoid breaking inside */
+  .page-break-avoid,
+  blockquote {
+    page-break-inside: avoid;
+  }
+  
+  /* ============================================
+     METADATA & HEADERS
+     ============================================ */
+  
+  /* Add page header with document title */
+  @page {
+    margin: 2cm;
+    
+    @top-right {
+      content: counter(page);
+    }
+  }
+  
+  /* ============================================
+     UTILITIES
+     ============================================ */
+  
+  /* Hide print-hidden elements */
+  .print-hidden,
+  [aria-hidden="true"] {
+    display: none !important;
+  }
+  
+  /* Show print-only elements */
+  .print-only {
+    display: block !important;
+  }
+  
+  /* Optimize spacing */
+  .prose > * + * {
+    margin-top: 12pt;
+  }
+}
+

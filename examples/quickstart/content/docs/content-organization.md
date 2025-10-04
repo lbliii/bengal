@@ -1,7 +1,6 @@
 ---
 title: "Content Organization"
 description: "How to organize your content with pages, sections, and index files"
-template: doc.html
 date: 2025-10-03
 ---
 

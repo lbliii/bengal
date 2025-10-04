@@ -38,7 +38,7 @@ class PostprocessOrchestrator:
     
     def run(self, parallel: bool = True) -> None:
         """
-        Perform post-processing tasks (sitemap, RSS, link validation, etc.).
+        Perform post-processing tasks (sitemap, RSS, output formats, link validation, etc.).
         
         Args:
             parallel: Whether to run tasks in parallel
@@ -53,6 +53,11 @@ class PostprocessOrchestrator:
         
         if self.site.config.get("generate_rss", True):
             tasks.append(('rss', self._generate_rss))
+        
+        # Custom output formats (JSON, LLM text, etc.)
+        output_formats_config = self.site.config.get("output_formats", {})
+        if output_formats_config.get("enabled", True):
+            tasks.append(('output formats', self._generate_output_formats))
         
         if self.site.config.get("validate_links", True):
             tasks.append(('link validation', self._validate_links))
@@ -117,6 +122,13 @@ class PostprocessOrchestrator:
         """Generate RSS feed (extracted for parallel execution)."""
         from bengal.postprocess.rss import RSSGenerator
         generator = RSSGenerator(self.site)
+        generator.generate()
+    
+    def _generate_output_formats(self) -> None:
+        """Generate custom output formats (extracted for parallel execution)."""
+        from bengal.postprocess.output_formats import OutputFormatsGenerator
+        config = self.site.config.get("output_formats", {})
+        generator = OutputFormatsGenerator(self.site, config)
         generator.generate()
     
     def _validate_links(self) -> None:

@@ -121,10 +121,11 @@ class Section:
         
         # Otherwise, construct from section hierarchy
         # This handles the case before pages have output_paths set
-        if self.parent and self.parent.name != 'root':
+        if self.parent:
+            # Nested section - include parent URL
             return f"{self.parent.url}{self.name}/"
         else:
-            # Top-level section or root parent
+            # Top-level section (no parent)
             return f"/{self.name}/"
     
     def add_page(self, page: Page) -> None:

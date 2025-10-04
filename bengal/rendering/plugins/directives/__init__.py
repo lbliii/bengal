@@ -1,0 +1,67 @@
+"""
+Mistune directives package.
+
+Provides all documentation directives (admonitions, tabs, dropdown, code-tabs)
+as a single factory function for easy registration with Mistune.
+"""
+
+from bengal.rendering.plugins.directives.admonitions import AdmonitionDirective
+from bengal.rendering.plugins.directives.tabs import TabsDirective
+from bengal.rendering.plugins.directives.dropdown import DropdownDirective
+from bengal.rendering.plugins.directives.code_tabs import CodeTabsDirective
+
+__all__ = ['create_documentation_directives']
+
+
+def create_documentation_directives():
+    """
+    Create documentation directives plugin for Mistune.
+    
+    Returns a function that can be passed to mistune.create_markdown(plugins=[...]).
+    
+    Provides:
+    - admonitions: note, tip, warning, danger, error, info, example, success
+    - tabs: Tabbed content with full markdown support
+    - dropdown: Collapsible sections with markdown
+    - code-tabs: Code examples in multiple languages
+    
+    Usage:
+        from bengal.rendering.plugins.directives import create_documentation_directives
+        
+        md = mistune.create_markdown(
+            plugins=[create_documentation_directives()]
+        )
+    
+    Raises:
+        RuntimeError: If directive registration fails
+        ImportError: If FencedDirective is not available
+    """
+    def plugin_documentation_directives(md):
+        """Register all documentation directives with Mistune."""
+        try:
+            from mistune.directives import FencedDirective
+        except ImportError as e:
+            import sys
+            print(f"Error: FencedDirective not available in mistune: {e}", file=sys.stderr)
+            raise ImportError(
+                "FencedDirective not found. Ensure mistune>=3.0.0 is installed."
+            ) from e
+        
+        try:
+            # Create fenced directive with all our custom directives
+            directive = FencedDirective([
+                AdmonitionDirective(),  # Supports note, tip, warning, etc.
+                TabsDirective(),
+                DropdownDirective(),
+                CodeTabsDirective(),
+            ])
+            
+            # Apply to markdown instance
+            return directive(md)
+        except Exception as e:
+            import sys
+            print(f"Error registering documentation directives: {e}", file=sys.stderr)
+            raise RuntimeError(f"Failed to register directives plugin: {e}") from e
+    
+    return plugin_documentation_directives
+

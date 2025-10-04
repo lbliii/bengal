@@ -286,6 +286,20 @@ Parse → Build AST → Apply Templates → Render Output → Post-process
   markdown_engine = "mistune"  # or "python-markdown"
   ```
 
+##### Mistune Plugins (`bengal/rendering/plugins/`)
+- **Modular Plugin System**: Each plugin in focused ~100-200 line file
+- **Core Plugins**:
+  - `variable_substitution.py`: {{ variable }} in markdown content
+  - `cross_references.py`: [[link]] syntax for internal references
+- **Documentation Directives** (`directives/`):
+  - `admonitions.py`: Callout boxes (note, warning, tip, etc.)
+  - `tabs.py`: Tabbed content sections
+  - `dropdown.py`: Collapsible sections
+  - `code_tabs.py`: Multi-language code examples
+- **Clean API**: Only 3 main exports, rest is internal
+- **Extensible**: Add new plugins without touching existing code
+- **See**: `bengal/rendering/plugins/README.md` for details
+
 ##### Mistune Parser (`MistuneParser`)
 - **Performance**: 52% faster rendering, 42% faster total builds
 - **Built-in Features**:

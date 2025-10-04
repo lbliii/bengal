@@ -75,15 +75,13 @@ class TestSectionURLGeneration:
         assert level2.url == "/docs/guides/"
         assert level3.url == "/docs/guides/advanced/"
     
-    def test_root_section_child_url(self):
-        """Test that child of root section doesn't include 'root' in URL."""
-        root = Section(name="root", path=Path("/content"))
-        child = Section(name="docs", path=Path("/content/docs"))
+    def test_top_level_section_url(self):
+        """Test URL generation for top-level section (no parent)."""
+        # Top-level sections have no parent (root section eliminated)
+        top_level = Section(name="docs", path=Path("/content/docs"))
         
-        root.add_subsection(child)
-        
-        # Child of root should not have '/root/' in URL
-        assert child.url == "/docs/"
+        # Top-level section should have URL like "/docs/"
+        assert top_level.url == "/docs/"
 
 
 class TestPageAncestors:
@@ -207,11 +205,11 @@ class TestPageAncestors:
 class TestBreadcrumbLogic:
     """Test breadcrumb generation logic."""
     
-    def test_breadcrumb_filtering_root_section(self):
-        """Test that breadcrumb logic filters out root section."""
+    def test_breadcrumb_single_level(self):
+        """Test breadcrumb generation with single-level section."""
         site = Site(root_path=Path("/site"), config={})
         
-        root = Section(name="root", path=Path("/content"))
+        # No root section - docs is top-level
         docs = Section(name="docs", path=Path("/content/docs"))
         
         page = Page(
@@ -219,37 +217,32 @@ class TestBreadcrumbLogic:
             metadata={'title': 'Advanced Topics'}
         )
         
-        root.add_subsection(docs)
         docs.add_page(page)
         
-        root._site = site
         docs._site = site
         page._site = site
         page._section = docs
         
-        # Simulate breadcrumb template logic:
-        # {% for ancestor in page.ancestors | reverse %}
-        #   {% if ancestor.name != 'root' %}
+        # Get ancestors (no root)
         ancestors = page.ancestors
         breadcrumb_items = []
         
         for ancestor in reversed(ancestors):
-            if ancestor.name != 'root':
-                breadcrumb_items.append({
-                    'title': ancestor.title,
-                    'url': ancestor.url
-                })
+            breadcrumb_items.append({
+                'title': ancestor.title,
+                'url': ancestor.url
+            })
         
-        # Should only have docs, not root
+        # Should only have docs (no root)
         assert len(breadcrumb_items) == 1
         assert breadcrumb_items[0]['title'] == 'Docs'
         assert breadcrumb_items[0]['url'] == '/docs/'
     
-    def test_breadcrumb_with_nested_sections_no_root(self):
-        """Test breadcrumb generation with nested sections excluding root."""
+    def test_breadcrumb_with_nested_sections(self):
+        """Test breadcrumb generation with nested sections."""
         site = Site(root_path=Path("/site"), config={})
         
-        root = Section(name="root", path=Path("/content"))
+        # No root section - api is top-level
         api = Section(name="api", path=Path("/content/api"))
         v2 = Section(name="v2", path=Path("/content/api/v2"))
         
@@ -258,26 +251,23 @@ class TestBreadcrumbLogic:
             metadata={'title': 'User Management'}
         )
         
-        root.add_subsection(api)
         api.add_subsection(v2)
         v2.add_page(page)
         
-        root._site = site
         api._site = site
         v2._site = site
         page._site = site
         page._section = v2
         
-        # Simulate breadcrumb generation
+        # Get ancestors (no root)
         ancestors = page.ancestors
         breadcrumb_items = []
         
         for ancestor in reversed(ancestors):
-            if ancestor.name != 'root':
-                breadcrumb_items.append({
-                    'title': ancestor.title,
-                    'url': ancestor.url
-                })
+            breadcrumb_items.append({
+                'title': ancestor.title,
+                'url': ancestor.url
+            })
         
         # Should have: Api → V2 (no root)
         assert len(breadcrumb_items) == 2

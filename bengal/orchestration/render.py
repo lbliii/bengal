@@ -51,6 +51,11 @@ class RenderOrchestrator:
         """
         from bengal.rendering.pipeline import RenderingPipeline
         
+        # PRE-PROCESS: Set output paths for ALL pages before rendering starts
+        # This ensures that page.url works correctly in templates (e.g., for navigation)
+        # Even if a page isn't being rendered yet, its URL needs to be available
+        self._set_output_paths_for_all_pages()
+        
         quiet = not self.site.config.get('verbose', False)
         
         if parallel and len(pages) > 1:
@@ -119,4 +124,41 @@ class RenderOrchestrator:
                     future.result()
                 except Exception as e:
                     print(f"Error processing page: {e}")
+    
+    def _set_output_paths_for_all_pages(self) -> None:
+        """
+        Pre-set output paths for ALL pages in the site before rendering.
+        
+        This ensures that page.url works correctly in templates even for pages
+        that haven't been rendered yet. Critical for navigation menus that reference
+        pages from multiple sections.
+        """
+        from pathlib import Path
+        
+        content_dir = self.site.root_path / "content"
+        
+        for page in self.site.pages:
+            # Skip if already set (e.g., generated pages)
+            if page.output_path:
+                continue
+            
+            # Determine output path using same logic as pipeline
+            try:
+                rel_path = page.source_path.relative_to(content_dir)
+            except ValueError:
+                # If not under content_dir, use just the filename
+                rel_path = Path(page.source_path.name)
+            
+            # Change extension to .html
+            output_rel_path = rel_path.with_suffix('.html')
+            
+            # Handle index pages specially (index.md and _index.md → index.html)
+            # Others can optionally use pretty URLs (about.md → about/index.html)
+            if self.site.config.get("pretty_urls", True) and output_rel_path.stem not in ("index", "_index"):
+                output_rel_path = output_rel_path.parent / output_rel_path.stem / "index.html"
+            elif output_rel_path.stem == "_index":
+                # _index.md should become index.html in the same directory
+                output_rel_path = output_rel_path.parent / "index.html"
+            
+            page.output_path = self.site.output_dir / output_rel_path
 

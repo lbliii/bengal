@@ -32,8 +32,15 @@
   gap: 2rem;
   max-width: 1600px;
   margin: 0 auto;
-  padding: 2rem;
+  padding: 2rem 0;
   align-items: start;
+}
+
+/* Remove container constraints for docs layout */
+.container > .docs-layout {
+  max-width: 100%;
+  margin: 0;
+  padding: 2rem;
 }
 
 /* Left Sidebar (Navigation) */

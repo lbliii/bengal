@@ -92,13 +92,13 @@ class TestTemplateRenderError:
     
     def test_error_classification_syntax(self):
         """Test classification of syntax errors."""
-        error = TemplateSyntaxError("Unexpected end of template")
+        error = TemplateSyntaxError("Unexpected end of template", 1)
         error_type = TemplateRenderError._classify_error(error)
         assert error_type == 'syntax'
     
     def test_error_classification_filter(self):
         """Test classification of filter errors."""
-        error = TemplateAssertionError("No filter named 'unknown_filter'")
+        error = TemplateAssertionError("No filter named 'unknown_filter'", 1)
         error_type = TemplateRenderError._classify_error(error)
         assert error_type == 'filter'
     
@@ -147,7 +147,7 @@ class TestTemplateRenderError:
     
     def test_suggestion_generation_filter(self):
         """Test generating suggestions for filter errors."""
-        error = TemplateAssertionError("No filter named 'in_section'")
+        error = TemplateAssertionError("No filter named 'in_section'", 1)
         mock_engine = MockTemplateEngine()
         
         suggestion = TemplateRenderError._generate_suggestion(
@@ -159,7 +159,7 @@ class TestTemplateRenderError:
     
     def test_find_alternatives_filter(self):
         """Test finding alternative filters."""
-        error = TemplateAssertionError("No filter named 'markdwn'")
+        error = TemplateAssertionError("No filter named 'markdwn'", 1)
         mock_engine = MockTemplateEngine()
         
         alternatives = TemplateRenderError._find_alternatives(
@@ -171,7 +171,7 @@ class TestTemplateRenderError:
     
     def test_find_alternatives_no_match(self):
         """Test finding alternatives when no close match."""
-        error = TemplateAssertionError("No filter named 'xyz123'")
+        error = TemplateAssertionError("No filter named 'xyz123'", 1)
         mock_engine = MockTemplateEngine()
         
         alternatives = TemplateRenderError._find_alternatives(
@@ -269,7 +269,8 @@ class TestIntegration:
             
             # Verify error properties
             assert rich_error.error_type == 'syntax'
-            assert rich_error.template_context.template_name == "broken.html"
+            # Template name may be full path or just filename
+            assert rich_error.template_context.template_name.endswith("broken.html")
             assert rich_error.template_context.line_number is not None
             assert rich_error.page_source == tmp_path / "content" / "page.md"
 

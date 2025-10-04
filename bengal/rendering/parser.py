@@ -121,7 +121,7 @@ class MistuneParser(BaseMarkdownParser):
             )
         
         # Import our custom plugins
-        from bengal.rendering.mistune_plugins import plugin_documentation_directives
+        from bengal.rendering.plugins import create_documentation_directives
         
         # Create markdown instance with built-in + custom plugins
         # Note: Variable substitution is added per-page in parse_with_context()
@@ -134,7 +134,7 @@ class MistuneParser(BaseMarkdownParser):
                 'url',                # Built-in: autolinks
                 'footnotes',          # Built-in: [^1]
                 'def_list',           # Built-in: Term\n:   Def
-                plugin_documentation_directives,  # Custom: admonitions, tabs, dropdowns
+                create_documentation_directives(),  # Custom: admonitions, tabs, dropdowns
             ],
             renderer='html',
         )
@@ -229,9 +229,9 @@ class MistuneParser(BaseMarkdownParser):
             import mistune
             self._mistune = mistune
         
-        from bengal.rendering.mistune_plugins import (
+        from bengal.rendering.plugins import (
             VariableSubstitutionPlugin,
-            plugin_documentation_directives
+            create_documentation_directives
         )
         
         # Create parser once, reuse thereafter (saves ~150ms per build!)
@@ -245,7 +245,7 @@ class MistuneParser(BaseMarkdownParser):
                     'url',
                     'footnotes',
                     'def_list',
-                    plugin_documentation_directives,
+                    create_documentation_directives(),
                     self._var_plugin,  # Reusable plugin instance
                 ],
                 renderer='html',
@@ -348,7 +348,7 @@ class MistuneParser(BaseMarkdownParser):
                 self._xref_plugin.xref_index = xref_index
             return
         
-        from bengal.rendering.mistune_plugins import CrossReferencePlugin
+        from bengal.rendering.plugins import CrossReferencePlugin
         
         # Create plugin instance (for post-processing HTML)
         self._xref_plugin = CrossReferencePlugin(xref_index)

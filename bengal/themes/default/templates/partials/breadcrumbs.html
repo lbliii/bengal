@@ -5,13 +5,11 @@
   <ol>
     <li><a href="/">Home</a></li>
     
+    {# Show all ancestors (root section no longer exists) #}
     {% for ancestor in page.ancestors | reverse %}
-      {# Skip the root section as it's redundant with "Home" #}
-      {% if ancestor.name != 'root' %}
       <li>
         <a href="{{ url_for(ancestor) }}">{{ ancestor.title }}</a>
       </li>
-      {% endif %}
     {% endfor %}
     
     <li aria-current="page">{{ page.title }}</li>

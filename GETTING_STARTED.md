@@ -361,6 +361,143 @@ generate_rss = true         # Generate RSS feed
 validate_links = true       # Check for broken links
 ```
 
+## Custom Output Formats
+
+Bengal can generate multiple output formats for your content, enabling search functionality, AI discovery, and programmatic access.
+
+### Available Formats
+
+**Per-Page Outputs:**
+- **JSON** (`.json`) - Structured data for each page
+- **LLM Text** (`.txt`) - AI-friendly plain text format
+
+**Site-Wide Outputs:**
+- **index.json** - Searchable index of all pages
+- **llm-full.txt** - Complete site content for AI consumption
+
+### Configuration
+
+Add to your `bengal.toml`:
+
+```toml
+[output_formats]
+enabled = true
+per_page = ["json", "llm_txt"]        # Per-page formats
+site_wide = ["index_json", "llm_full"] # Site-wide formats
+
+[output_formats.options]
+include_html_content = true    # Include HTML in JSON
+include_plain_text = true      # Include plain text in JSON
+excerpt_length = 200           # Excerpt length for index
+exclude_sections = []          # Sections to exclude
+exclude_patterns = ["404.html", "search.html"]
+json_indent = 2                # Pretty-print JSON (use null for compact)
+llm_separator_width = 80       # Separator line width
+```
+
+### Generated Files
+
+**Per-Page JSON** (`docs/intro/index.json`):
+```json
+{
+  "url": "/docs/intro/",
+  "title": "Introduction",
+  "description": "Getting started guide",
+  "content": "<p>Full HTML content...</p>",
+  "plain_text": "Full plain text...",
+  "excerpt": "Getting started guide...",
+  "metadata": {...},
+  "section": "docs",
+  "tags": ["docs", "intro"],
+  "word_count": 1234,
+  "reading_time": 5
+}
+```
+
+**Per-Page LLM Text** (`docs/intro/index.txt`):
+```
+# Introduction
+
+URL: /docs/intro/
+Section: docs
+Tags: docs, intro
+
+--------------------------------------------------------------------------------
+
+[Full plain text content without HTML tags]
+
+--------------------------------------------------------------------------------
+
+Metadata:
+- Word Count: 1234
+- Reading Time: 5 minutes
+```
+
+**Site Index** (`index.json`):
+```json
+{
+  "site": {
+    "title": "My Site",
+    "baseurl": "https://example.com",
+    "build_time": "2025-10-04T12:00:00Z"
+  },
+  "pages": [
+    {
+      "url": "/docs/intro/",
+      "title": "Introduction",
+      "excerpt": "Getting started...",
+      "section": "docs",
+      "tags": ["docs"],
+      "word_count": 1234,
+      "reading_time": 5
+    }
+  ],
+  "sections": [
+    {"name": "docs", "count": 15}
+  ],
+  "tags": [
+    {"name": "tutorial", "count": 8}
+  ]
+}
+```
+
+### Use Cases
+
+**1. Client-Side Search:**
+```javascript
+// Fetch and search the index
+fetch('/index.json')
+  .then(r => r.json())
+  .then(data => {
+    const results = data.pages.filter(p => 
+      p.title.includes(searchTerm) || 
+      p.excerpt.includes(searchTerm)
+    );
+  });
+```
+
+**2. AI/LLM Discovery:**
+```bash
+# Full site content for AI
+curl https://mysite.com/llm-full.txt
+
+# Per-page AI-friendly text
+curl https://mysite.com/docs/intro.txt
+```
+
+**3. Static API:**
+```python
+# Programmatic access
+import requests
+data = requests.get('https://mysite.com/index.json').json()
+pages = data['pages']
+```
+
+**4. Search Tools:**
+- Use with [Pagefind](https://pagefind.app/)
+- Build custom search with [Lunr.js](https://lunrjs.com/)
+- Feed to [Fuse.js](https://fusejs.io/) for fuzzy search
+
 ## Troubleshooting
 
 ### Build Fails

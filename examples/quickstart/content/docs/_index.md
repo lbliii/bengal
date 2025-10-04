@@ -1,7 +1,5 @@
 ---
 title: "Documentation"
-type: page
-template: doc.html
 description: "Complete documentation for Bengal SSG features and capabilities"
 ---
 

@@ -106,10 +106,15 @@ class ContentOrchestrator:
         
         This method sets _site and _section references on all pages to enable
         navigation properties (next, prev, ancestors, etc.).
+        
+        Top-level pages (those not in any section) will have _section = None.
         """
-        # Set site reference on all pages
+        # Set site reference on all pages (including top-level pages)
         for page in self.site.pages:
             page._site = self.site
+            # Initialize _section to None for pages not yet assigned
+            if not hasattr(page, '_section'):
+                page._section = None
         
         # Set section references
         for section in self.site.sections:

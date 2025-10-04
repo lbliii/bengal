@@ -13,7 +13,7 @@ from bengal.core.site import Site
 from bengal.core.page import Page
 from bengal.orchestration.content import ContentOrchestrator
 from bengal.rendering.template_functions import crossref
-from bengal.rendering.mistune_plugins import CrossReferencePlugin
+from bengal.rendering.plugins import CrossReferencePlugin
 
 
 class TestCrossReferenceIndex:
@@ -123,12 +123,17 @@ Content""")
 class TestCrossReferenceTemplateFunctions:
     """Test template functions for cross-references."""
     
-    def test_ref_function_by_path(self):
+    def test_ref_function_by_path(self, tmp_path):
         """Test ref() function with path reference."""
+        # Create a minimal site for URL generation
+        site = Site(root_path=tmp_path, config={}, theme='default')
+        site.output_dir = tmp_path / 'public'
+        
         # Mock page
         page = Page(source_path=Path('docs/install.md'))
-        page.title = "Installation"
-        page.url = "/docs/installation/"
+        page.metadata = {"title": "Installation"}
+        page.output_path = tmp_path / 'public' / 'docs' / 'installation' / 'index.html'
+        page._site = site
         
         index = {
             'by_path': {'docs/installation': page},
@@ -158,27 +163,37 @@ class TestCrossReferenceTemplateFunctions:
         assert 'broken-ref' in result
         assert 'nonexistent/page' in result
     
-    def test_doc_function(self):
+    def test_doc_function(self, tmp_path):
         """Test doc() function returns page object."""
+        # Create a minimal site for URL generation
+        site = Site(root_path=tmp_path, config={}, theme='default')
+        site.output_dir = tmp_path / 'public'
+        
         page = Page(source_path=Path('about.md'))
-        page.title = "About"
-        page.url = "/about/"
+        page.metadata = {"title": "About"}
+        page.output_path = tmp_path / 'public' / 'about' / 'index.html'
+        page._site = site
         
         index = {
-            'by_path': {'about': page},
+            'by_path': {'content/about': page},  # Use path with '/' for doc() to work
             'by_slug': {},
             'by_id': {},
             'by_heading': {},
         }
         
-        result = crossref.doc('about', index)
+        result = crossref.doc('content/about', index)  # Use path with '/'
         assert result is page
         assert result.title == "About"
     
-    def test_relref_function(self):
+    def test_relref_function(self, tmp_path):
         """Test relref() function returns URL only."""
+        # Create a minimal site for URL generation
+        site = Site(root_path=tmp_path, config={}, theme='default')
+        site.output_dir = tmp_path / 'public'
+        
         page = Page(source_path=Path('docs/api.md'))
-        page.url = "/docs/api/"
+        page.output_path = tmp_path / 'public' / 'docs' / 'api' / 'index.html'
+        page._site = site
         
         index = {
             'by_path': {'docs/api': page},
@@ -218,11 +233,16 @@ class TestCrossReferenceMistunePlugin:
         assert plugin.pattern.search('[[id:my-page]]')
         assert plugin.pattern.search('[[#heading]]')
     
-    def test_resolve_path_success(self):
+    def test_resolve_path_success(self, tmp_path):
         """Test _resolve_path with valid page."""
+        # Create a minimal site for URL generation
+        site = Site(root_path=tmp_path, config={}, theme='default')
+        site.output_dir = tmp_path / 'public'
+        
         page = Page(source_path=Path('docs/install.md'))
-        page.title = "Installation"
-        page.url = "/docs/installation/"
+        page.metadata = {"title": "Installation"}
+        page.output_path = tmp_path / 'public' / 'docs' / 'installation' / 'index.html'
+        page._site = site
         
         index = {
             'by_path': {'docs/installation': page},
@@ -236,11 +256,16 @@ class TestCrossReferenceMistunePlugin:
         
         assert '<a href="/docs/installation/">Installation</a>' in result
     
-    def test_resolve_path_with_custom_text(self):
+    def test_resolve_path_with_custom_text(self, tmp_path):
         """Test _resolve_path with custom link text."""
+        # Create a minimal site for URL generation
+        site = Site(root_path=tmp_path, config={}, theme='default')
+        site.output_dir = tmp_path / 'public'
+        
         page = Page(source_path=Path('docs/install.md'))
-        page.title = "Installation"
-        page.url = "/docs/installation/"
+        page.metadata = {"title": "Installation"}
+        page.output_path = tmp_path / 'public' / 'docs' / 'installation' / 'index.html'
+        page._site = site
         
         index = {
             'by_path': {'docs/installation': page},
@@ -272,8 +297,8 @@ class TestCrossReferenceMistunePlugin:
     def test_resolve_id(self):
         """Test _resolve_id with custom ID."""
         page = Page(source_path=Path('about.md'))
-        page.title = "About Us"
-        page.url = "/about/"
+        page.metadata = {"title": "About Us"}
+        page.output_path = Path('/about/index.html')
         
         index = {
             'by_path': {},
@@ -292,13 +317,18 @@ def test_integration_mistune_parser_with_xref(tmp_path):
     """Integration test: parser with cross-reference plugin."""
     from bengal.rendering.parser import MistuneParser
     
+    # Create a minimal site for URL generation
+    site = Site(root_path=tmp_path, config={}, theme='default')
+    site.output_dir = tmp_path / 'public'
+    
     # Create parser
     parser = MistuneParser()
     
     # Create mock page for xref_index
     page = Page(source_path=Path('docs/api.md'))
-    page.title = "API Reference"
-    page.url = "/docs/api/"
+    page.metadata = {"title": "API Reference"}
+    page.output_path = tmp_path / 'public' / 'docs' / 'api' / 'index.html'
+    page._site = site
     
     xref_index = {
         'by_path': {'docs/api': page},
