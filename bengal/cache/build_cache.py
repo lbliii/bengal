@@ -110,7 +110,9 @@ class BuildCache:
         }
         
         try:
-            with open(cache_path, 'w', encoding='utf-8') as f:
+            # Write cache atomically (crash-safe)
+            from bengal.utils.atomic_write import AtomicFile
+            with AtomicFile(cache_path, 'w', encoding='utf-8') as f:
                 json.dump(data, f, indent=2)
         except Exception as e:
             print(f"Warning: Failed to save cache to {cache_path}: {e}")

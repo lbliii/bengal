@@ -148,8 +148,9 @@ class OutputFormatsGenerator:
             # Ensure directory exists
             json_path.parent.mkdir(parents=True, exist_ok=True)
             
-            # Write JSON
-            with open(json_path, 'w', encoding='utf-8') as f:
+            # Write JSON atomically (crash-safe)
+            from bengal.utils.atomic_write import AtomicFile
+            with AtomicFile(json_path, 'w', encoding='utf-8') as f:
                 json.dump(data, f, indent=indent, ensure_ascii=False)
             
             count += 1
@@ -182,8 +183,9 @@ class OutputFormatsGenerator:
             # Ensure directory exists
             txt_path.parent.mkdir(parents=True, exist_ok=True)
             
-            # Write text
-            with open(txt_path, 'w', encoding='utf-8') as f:
+            # Write text atomically (crash-safe)
+            from bengal.utils.atomic_write import AtomicFile
+            with AtomicFile(txt_path, 'w', encoding='utf-8') as f:
                 f.write(text)
             
             count += 1
@@ -238,9 +240,10 @@ class OutputFormatsGenerator:
             for name, count in sorted(site_data['tags'].items(), key=lambda x: -x[1])
         ]
         
-        # Write to root of output directory
+        # Write to root of output directory atomically (crash-safe)
+        from bengal.utils.atomic_write import AtomicFile
         index_path = self.site.output_dir / 'index.json'
-        with open(index_path, 'w', encoding='utf-8') as f:
+        with AtomicFile(index_path, 'w', encoding='utf-8') as f:
             json.dump(site_data, f, indent=indent, ensure_ascii=False)
     
     def _generate_site_llm_txt(self, pages: List[Any]) -> None:
@@ -292,9 +295,10 @@ class OutputFormatsGenerator:
             
             lines.append("\n" + separator + "\n")
         
-        # Write to root of output directory
+        # Write to root of output directory atomically (crash-safe)
+        from bengal.utils.atomic_write import AtomicFile
         llm_path = self.site.output_dir / 'llm-full.txt'
-        with open(llm_path, 'w', encoding='utf-8') as f:
+        with AtomicFile(llm_path, 'w', encoding='utf-8') as f:
             f.write('\n'.join(lines))
     
     def _page_to_json(self, page: Any, include_html: bool = True,

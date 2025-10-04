@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING
 
 from bengal.utils.build_stats import BuildStats
 from bengal.orchestration.content import ContentOrchestrator
+from bengal.orchestration.section import SectionOrchestrator
 from bengal.orchestration.taxonomy import TaxonomyOrchestrator
 from bengal.orchestration.menu import MenuOrchestrator
 from bengal.orchestration.render import RenderOrchestrator
@@ -47,6 +48,7 @@ class BuildOrchestrator:
         
         # Initialize orchestrators
         self.content = ContentOrchestrator(site)
+        self.sections = SectionOrchestrator(site)
         self.taxonomy = TaxonomyOrchestrator(site)
         self.menu = MenuOrchestrator(site)
         self.render = RenderOrchestrator(site)
@@ -90,15 +92,35 @@ class BuildOrchestrator:
             incremental = False
             cache.clear()
         
-        # Phase 2: Taxonomies & Dynamic Pages
+        # Phase 2: Section Finalization (ensure all sections have index pages)
+        print("\n✨ Generated pages:")
+        self.sections.finalize_sections()
+        
+        # Validate section structure
+        section_errors = self.sections.validate_sections()
+        if section_errors:
+            strict_mode = self.site.config.get('strict_mode', False)
+            if strict_mode:
+                print("\n❌ Section validation errors:")
+                for error in section_errors:
+                    print(f"   • {error}")
+                raise Exception(f"Build failed: {len(section_errors)} section validation error(s)")
+            else:
+                # Warn but continue in non-strict mode
+                for error in section_errors[:3]:  # Show first 3
+                    print(f"⚠️  {error}")
+                if len(section_errors) > 3:
+                    print(f"⚠️  ... and {len(section_errors) - 3} more errors")
+        
+        # Phase 3: Taxonomies & Dynamic Pages
         taxonomy_start = time.time()
         self.taxonomy.collect_and_generate()
         self.stats.taxonomy_time_ms = (time.time() - taxonomy_start) * 1000
         
-        # Phase 3: Menus
+        # Phase 4: Menus
         self.menu.build()
         
-        # Phase 4: Determine what to build (incremental)
+        # Phase 5: Determine what to build (incremental)
         pages_to_build = self.site.pages
         assets_to_process = self.site.assets
         
@@ -127,7 +149,7 @@ class BuildOrchestrator:
                             print(f"      ... and {len(items) - 5} more")
                 print()
         
-        # Phase 5: Render Pages
+        # Phase 6: Render Pages
         quiet_mode = not verbose
         if quiet_mode:
             print(f"\n📄 Rendering content:")
@@ -145,7 +167,7 @@ class BuildOrchestrator:
         if quiet_mode:
             self._print_rendering_summary()
         
-        # Phase 6: Process Assets
+        # Phase 7: Process Assets
         assets_start = time.time()
         original_assets = self.site.assets
         self.site.assets = assets_to_process  # Temporarily replace with subset
@@ -155,12 +177,12 @@ class BuildOrchestrator:
         self.site.assets = original_assets  # Restore full asset list
         self.stats.assets_time_ms = (time.time() - assets_start) * 1000
         
-        # Phase 7: Post-processing
+        # Phase 8: Post-processing
         postprocess_start = time.time()
         self.postprocess.run(parallel=parallel)
         self.stats.postprocess_time_ms = (time.time() - postprocess_start) * 1000
         
-        # Phase 8: Update cache
+        # Phase 9: Update cache
         if incremental or self.site.config.get("cache_enabled", True):
             self.incremental.save_cache(pages_to_build, assets_to_process)
         
@@ -181,7 +203,7 @@ class BuildOrchestrator:
             'total_assets': self.stats.total_assets,
         }
         
-        # Phase 9: Health Check
+        # Phase 10: Health Check
         self._run_health_check()
         
         return self.stats

@@ -189,15 +189,22 @@ class Asset:
         # Create parent directories
         output_path.parent.mkdir(parents=True, exist_ok=True)
         
-        # Copy or write optimized/minified content
+        # Copy or write optimized/minified content atomically
         if hasattr(self, '_minified_content'):
-            with open(output_path, 'w', encoding='utf-8') as f:
-                f.write(self._minified_content)
+            # Write minified content atomically (crash-safe)
+            from bengal.utils.atomic_write import atomic_write_text
+            atomic_write_text(output_path, self._minified_content, encoding='utf-8')
         elif hasattr(self, '_optimized_image'):
-            # Save optimized image
-            self._optimized_image.save(output_path, optimize=True, quality=85)
+            # Save optimized image atomically
+            tmp_path = output_path.with_suffix(output_path.suffix + '.tmp')
+            try:
+                self._optimized_image.save(tmp_path, optimize=True, quality=85)
+                tmp_path.replace(output_path)
+            except Exception:
+                tmp_path.unlink(missing_ok=True)
+                raise
         else:
-            # Simple copy
+            # Simple copy (shutil.copy2 is already safe for most cases)
             shutil.copy2(self.source_path, output_path)
         
         self.output_path = output_path

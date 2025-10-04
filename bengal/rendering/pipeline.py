@@ -175,9 +175,9 @@ class RenderingPipeline:
                     parent_dir.mkdir(parents=True, exist_ok=True)
                     _created_dirs.add(parent_dir)
         
-        # Write rendered HTML
-        with open(page.output_path, 'w', encoding='utf-8') as f:
-            f.write(page.rendered_html)
+        # Write rendered HTML atomically (crash-safe)
+        from bengal.utils.atomic_write import atomic_write_text
+        atomic_write_text(page.output_path, page.rendered_html, encoding='utf-8')
         
         # Only print in verbose mode
         if not self.quiet:

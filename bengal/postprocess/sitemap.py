@@ -58,13 +58,18 @@ class SitemapGenerator:
             ET.SubElement(url_elem, 'changefreq').text = 'weekly'
             ET.SubElement(url_elem, 'priority').text = '0.5'
         
-        # Write sitemap to file
+        # Write sitemap to file atomically (crash-safe)
+        from bengal.utils.atomic_write import AtomicFile
+        
         tree = ET.ElementTree(urlset)
         sitemap_path = self.site.output_dir / 'sitemap.xml'
         
         # Format XML with indentation
         self._indent(urlset)
-        tree.write(sitemap_path, encoding='utf-8', xml_declaration=True)
+        
+        # Write atomically using context manager
+        with AtomicFile(sitemap_path, 'wb') as f:
+            tree.write(f, encoding='utf-8', xml_declaration=True)
         
         print(f"   └─ Sitemap ✓")
     

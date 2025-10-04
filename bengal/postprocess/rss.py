@@ -79,13 +79,18 @@ class RSSGenerator:
                 pubdate = page.date.strftime('%a, %d %b %Y %H:%M:%S +0000')
                 ET.SubElement(item, 'pubDate').text = pubdate
         
-        # Write RSS to file
+        # Write RSS to file atomically (crash-safe)
+        from bengal.utils.atomic_write import AtomicFile
+        
         tree = ET.ElementTree(rss)
         rss_path = self.site.output_dir / 'rss.xml'
         
         # Format XML with indentation
         self._indent(rss)
-        tree.write(rss_path, encoding='utf-8', xml_declaration=True)
+        
+        # Write atomically using context manager
+        with AtomicFile(rss_path, 'wb') as f:
+            tree.write(f, encoding='utf-8', xml_declaration=True)
         
         print(f"   ├─ RSS feed ✓")
     

@@ -294,7 +294,9 @@ parallel = true
 minify = true
 fingerprint = true
 """
-        (site_path / 'bengal.toml').write_text(config_content)
+        # Write config atomically (crash-safe)
+        from bengal.utils.atomic_write import atomic_write_text
+        atomic_write_text(site_path / 'bengal.toml', config_content)
         click.echo(click.style("   ├─ ", fg='cyan') + "Created bengal.toml")
         
         # Create sample index page
@@ -320,7 +322,9 @@ This is your new Bengal static site. Start editing this file to begin!
 3. Build your site with `bengal build`
 4. Preview with `bengal serve`
 """
-        (site_path / 'content' / 'index.md').write_text(index_content)
+        # Write index page atomically (crash-safe)
+        from bengal.utils.atomic_write import atomic_write_text
+        atomic_write_text(site_path / 'content' / 'index.md', index_content)
         click.echo(click.style("   └─ ", fg='cyan') + "Created sample index page")
         
         click.echo(click.style(f"\n✅ Site created successfully!", fg='green', bold=True))

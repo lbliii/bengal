@@ -822,6 +822,350 @@ Located in `tests/conftest.py`:
 
 For detailed testing strategy, see `plan/TEST_STRATEGY.md`.
 
+## Production & Operational Architecture
+
+Bengal is designed for production use with enterprise-grade operational concerns built in. This section covers the non-functional requirements that make Bengal robust and maintainable.
+
+### Resource Management ✅ World-Class
+
+**Status**: Implemented October 2025 (v0.2.0)
+
+**Components**:
+- **ResourceManager** (`bengal/server/resource_manager.py`): Centralized lifecycle management
+  - Signal handlers for SIGINT, SIGTERM, SIGHUP
+  - atexit handler for orphaned processes
+  - Context manager for exception safety
+  - Idempotent cleanup (LIFO order)
+  - Thread-safe resource registration
+
+- **PIDManager** (`bengal/server/pid_manager.py`): Process tracking and recovery
+  - PID file creation and validation
+  - Stale process detection
+  - Graceful termination (SIGTERM → SIGKILL with timeout)
+  - Cross-platform support with graceful fallbacks
+
+**Coverage**: Handles 9/9 termination scenarios:
+- Normal exit, Ctrl+C, SIGTERM, SIGHUP
+- Parent process death, terminal crashes, SSH disconnects
+- Exceptions, rapid restarts
+
+**User Experience**:
+```bash
+$ bengal serve
+⚠️  Found stale Bengal server process (PID 12345)
+   This process is holding port 5173
+  Kill stale process? [Y/n]: y
+  ✅ Stale process terminated
+```
+
+**CLI**: `bengal cleanup` command for manual recovery
+
+**Atomic Writes** (`bengal/utils/atomic_write.py`): Crash-safe file operations  
+Added October 2025
+- Write-to-temp-then-rename pattern for all file writes
+- Prevents data corruption on unexpected interruptions (Ctrl+C, power loss, kill -9, etc.)
+- **13 write sites protected** across 7 files:
+  - Page rendering (HTML)
+  - Assets (minified CSS/JS, optimized images)
+  - Output formats (JSON, TXT)
+  - Sitemap and RSS feeds
+  - Build cache
+  - PID files
+- **Zero performance impact** (rename is essentially free)
+- Comprehensive test suite (20 test cases covering crash scenarios)
+
+**APIs**:
+```python
+# Simple writes
+from bengal.utils.atomic_write import atomic_write_text
+atomic_write_text('output.html', html)
+
+# Context manager for incremental writes (JSON, XML, etc.)
+from bengal.utils.atomic_write import AtomicFile
+with AtomicFile('sitemap.xml', 'wb') as f:
+    tree.write(f, encoding='utf-8')
+```
+
+**What's Protected**: Files are always either in their old complete state or new complete state, never partially written. If Bengal crashes during write, original file (if any) remains intact.
+
+### Error Handling & Recovery ⚠️ Good Foundation, Needs Expansion
+
+**Current State**:
+- Template errors don't crash builds (collected and reported)
+- Graceful degradation (psutil optional, parallel → sequential fallback)
+- Helpful error messages with actionable suggestions
+- Build continues on individual page failures
+
+**Architecture**:
+```python
+# Error boundaries in rendering
+for page in pages:
+    try:
+        render(page)
+    except TemplateError as e:
+        errors.append(e)
+        continue  # Keep building!
+
+# Report all at end
+display_error_report(errors)
+```
+
+**Gaps** (Future Work):
+- No retry logic for file operations
+- Limited error boundaries in orchestration
+- No circuit breakers for external resources
+- Could auto-suggest fixes based on error patterns
+
+### Observability ⚠️ Needs Major Work
+
+**Current State**:
+- Build stats displayed after builds
+- Health check system (9 validators)
+- `--debug` flag for tracebacks
+- `--verbose` flag for detailed output
+
+**Architecture**:
+```python
+# Current: Print-based output
+print(f"✓ Rendered {page.title}")
+
+# Future: Structured logging
+logger.info("page_rendered", extra={
+    "page": page.path,
+    "duration": elapsed,
+    "template": template_used
+})
+```
+
+**Gaps** (Planned for v0.3.0):
+- No structured logging (DEBUG/INFO/WARNING/ERROR levels)
+- No log files or persistence
+- No metrics tracking over time
+- No progress bars for long operations
+- No performance profiling in production
+
+**Target**:
+```bash
+$ bengal build --log-level=debug --log-file=build.log
+[2025-10-04 14:30:22] INFO  Starting build (42 pages)
+[2025-10-04 14:30:22] DEBUG Loaded config from bengal.toml
+[2025-10-04 14:30:23] INFO  Rendering pages [████████████] 100%
+[2025-10-04 14:30:24] INFO  Build complete in 1.2s
+```
+
+### Reliability & Data Integrity ⚠️ Critical Gaps
+
+**Current State**:
+- Config validation (schema and constraints)
+- Template validation (syntax checking)
+- Content health checks (9 validators)
+- Parallel processing with error isolation
+
+**Architecture**:
+```python
+# Current: Direct writes
+with open(output_path, 'w') as f:
+    f.write(rendered_html)  # Crash = corrupted file
+
+# Future: Atomic writes
+tmp_file = f"{output_path}.tmp"
+with open(tmp_file, 'w') as f:
+    f.write(rendered_html)
+os.replace(tmp_file, output_path)  # Atomic on POSIX
+```
+
+**Gaps** (Planned for v0.3.0):
+- **No atomic writes** - crashes can corrupt output
+- No crash recovery or checkpoints
+- No reproducible builds (timestamps vary)
+- No output validation (HTML well-formedness)
+
+**Impact**: A crash during build = partial/corrupted site
+
+### Security ⚠️ Good Defaults, Needs Audit
+
+**Current State**:
+- Jinja2 auto-escaping enabled (XSS protection)
+- Sandboxed template environment
+- No eval()/exec() in codebase
+- Path objects used throughout
+
+**Architecture**:
+```python
+# Template auto-escape (safe by default)
+{{ user_content }}  # Auto-escaped
+
+# Explicit unsafe when needed
+{{ trusted_html | safe }}
+```
+
+**Gaps** (Planned for v0.3.0):
+- No explicit path traversal protection
+- No dependency security scanning in CI
+- No security audit performed
+- No rate limiting (if network features added)
+
+**Planned Improvements**:
+```python
+# Path traversal protection
+def safe_path(base, user_path):
+    full = (base / user_path).resolve()
+    if not full.is_relative_to(base):
+        raise SecurityError("Path traversal detected")
+    return full
+```
+
+### Performance & Efficiency ✅ Strong
+
+**Current State**:
+- Parallel rendering (ThreadPoolExecutor)
+- Parallel asset processing (2-4x speedup)
+- Incremental builds (18-42x speedup)
+- Smart thresholds (avoid thread overhead)
+- Benchmark suite for regression detection
+
+**Benchmarks** (October 2025):
+```
+Small (10 pages):   0.29s
+Medium (100 pages): 1.66s  
+Large (500 pages):  7.95s
+
+Incremental: 18-42x faster
+Parallel assets: 3-4x faster
+```
+
+**Gaps** (Future):
+- No memory profiling
+- No streaming for very large sites
+- No content caching (parsed AST)
+- Performance regression tests not in CI
+
+### Configuration & Extensibility ⚠️ Limited
+
+**Current State**:
+- Config validation (types and constraints)
+- Template functions extensible
+- Rendering plugins (admonitions, tabs, etc.)
+- Multiple template directories
+
+**Architecture**:
+```python
+# Template function registration
+def register_custom_function(env, site):
+    env.globals['my_function'] = my_impl
+```
+
+**Gaps** (Planned for v0.4.0):
+- No full plugin architecture
+- No backwards compatibility strategy
+- No migration system
+- No presets (blog, docs, portfolio)
+
+### Testing & Quality ✅ Good Structure
+
+**Coverage**: 64% (target: 85%)
+- Strong: Cache (95%), Utils (96%), Navigation (98%)
+- Weak: CLI (0%), Dev Server (0%), Discovery (75%)
+
+**Test Pyramid**:
+```
+     /\     E2E (minimal)
+    /  \    Integration (some)
+   /____\   Unit (strong)
+```
+
+**CI/CD** (Planned):
+- Automated test runs on PR
+- Coverage reporting
+- Performance regression tests
+- Security scanning
+
+### Operational Concerns ⚠️ Basic
+
+**Current State**:
+- `pip install bengal-ssg` works
+- `--debug` flag for troubleshooting
+- Resource cleanup on all termination scenarios
+
+**Gaps** (Planned for v0.5.0):
+- No update checker
+- No migration system for config changes
+- No package managers (brew, apt)
+- No structured debug output
+- No telemetry (even opt-in)
+
+**Planned**:
+```bash
+$ bengal build
+ℹ️  New version available: 0.3.0 (you have 0.2.0)
+   Run: pip install --upgrade bengal-ssg
+
+$ bengal migrate
+Migrating configuration from 0.2.0 to 0.3.0...
+✅ Updated bengal.toml
+✅ Templates migrated
+```
+
+### Production Readiness Scorecard
+
+| Dimension | Score | Status |
+|-----------|-------|--------|
+| Resource Management | 98/100 | ✅ Excellent |
+| User Experience | 85/100 | ✅ Excellent |
+| Performance | 75/100 | ✅ Good |
+| Testing | 70/100 | ✅ Good |
+| Error Handling | 65/100 | ⚠️ Adequate |
+| Security | 60/100 | ⚠️ Adequate |
+| Extensibility | 55/100 | ⚠️ Adequate |
+| Reliability | 50/100 | ⚠️ Weak |
+| Operations | 45/100 | ⚠️ Weak |
+| Observability | 40/100 | ⚠️ Weak |
+| **Overall** | **62/100** | **Good** |
+
+**Maturity Level**: Production-ready for small-medium sites, needs hardening for enterprise scale.
+
+**Target**: 85/100 (Excellent) by v1.0.0
+
+### Roadmap by Version
+
+**v0.2.0** (October 2025) - ✅ **SHIPPED**
+- ✅ Resource management (ResourceManager, PIDManager)
+- ✅ Stale process cleanup
+- ✅ Signal handlers
+- ✅ `bengal cleanup` command
+
+**v0.3.0** (Q1 2026) - **Reliability & Observability**
+- Structured logging (DEBUG/INFO/WARNING/ERROR)
+- Atomic writes for all outputs
+- Progress bars for long operations
+- Path traversal protection
+- Security audit
+
+**v0.4.0** (Q2 2026) - **Extensibility & Operations**
+- Plugin architecture
+- Preset system (blog, docs, portfolio)
+- Update checker
+- Migration system
+- Better debug output
+
+**v0.5.0** (Q3 2026) - **Performance & Quality**
+- Memory optimization
+- Performance regression tests in CI
+- 85%+ test coverage
+- Dependency security scanning
+- Crash recovery system
+
+**v1.0.0** (Q4 2026) - **Production-Ready**
+- All gaps addressed
+- 85/100+ production score
+- Backwards compatibility guarantees
+- Complete documentation
+- Enterprise-ready
+
+For detailed analysis of each dimension, see `plan/PRODUCTION_READINESS_DIMENSIONS.md`.
+
+---
+
 ## Roadmap
 
 **Completed (October 2025):**

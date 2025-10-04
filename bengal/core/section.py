@@ -155,6 +155,24 @@ class Section:
         section.parent = self
         self.subsections.append(section)
     
+    def needs_auto_index(self) -> bool:
+        """
+        Check if this section needs an auto-generated index page.
+        
+        Returns:
+            True if section needs auto-generated index (no explicit _index.md)
+        """
+        return self.name != 'root' and self.index_page is None
+    
+    def has_index(self) -> bool:
+        """
+        Check if section has a valid index page.
+        
+        Returns:
+            True if section has an index page (explicit or auto-generated)
+        """
+        return self.index_page is not None
+    
     def get_all_pages(self, recursive: bool = True) -> List[Page]:
         """
         Get all pages in this section.

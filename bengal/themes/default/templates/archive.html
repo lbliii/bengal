@@ -61,9 +61,27 @@
     {% if total_pages and total_pages > 1 %}
     {% include 'partials/pagination.html' %}
     {% endif %}
+    {% elif subsections %}
+    {# Show subsections if no direct posts #}
+    <section class="subsections">
+        <h2 class="section-subtitle">Sections</h2>
+        <div class="archive-list">
+            {% for subsection in subsections %}
+            <article class="archive-item">
+                <h3><a href="{{ subsection.url }}">{{ subsection.title }}</a></h3>
+                {% if subsection.metadata.description %}
+                <p>{{ subsection.metadata.description }}</p>
+                {% endif %}
+                {% if subsection.pages %}
+                <p class="meta">{{ subsection.pages | length }} page(s)</p>
+                {% endif %}
+            </article>
+            {% endfor %}
+        </div>
+    </section>
     {% else %}
     <div class="archive-empty">
-        <p>No posts found.</p>
+        <p>No content in this section yet.</p>
     </div>
     {% endif %}
 </div>

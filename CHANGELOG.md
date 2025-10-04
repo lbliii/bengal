@@ -8,6 +8,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Atomic writes for all file operations** - Critical reliability improvement
+  - All file writes now use write-to-temp-then-rename pattern
+  - Prevents data corruption during unexpected build interruptions (Ctrl+C, power loss, etc.)
+  - Applies to: pages, assets, sitemap, RSS, cache, all output formats
+  - Zero performance impact (rename is essentially free)
+  - New utility module: `bengal.utils.atomic_write`
+
+### Changed
+- File write operations now crash-safe across entire codebase
+
+### Technical
+- Added `atomic_write_text()` function for simple text writes
+- Added `atomic_write_bytes()` function for binary writes
+- Added `AtomicFile` context manager for incremental writes (JSON, XML)
+- Updated 7 production files, protecting 13 write sites
+- Added comprehensive test suite (20 test cases)
+
+### Added
 - **Comprehensive resource cleanup system** - Dev server now properly cleans up resources in ALL termination scenarios
   - New `ResourceManager` class for centralized lifecycle management with signal handlers, atexit, and context manager support
   - New `PIDManager` class for process tracking and stale process detection

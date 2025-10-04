@@ -169,7 +169,9 @@ class PIDManager:
             pid_file: Path to PID file
         """
         try:
-            pid_file.write_text(str(os.getpid()))
+            # Write PID file atomically (crash-safe)
+            from bengal.utils.atomic_write import atomic_write_text
+            atomic_write_text(pid_file, str(os.getpid()))
         except OSError as e:
             print(f"  ⚠️  Warning: Could not write PID file: {e}")
     
