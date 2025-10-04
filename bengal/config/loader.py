@@ -3,7 +3,8 @@ Configuration loader supporting TOML and YAML formats.
 """
 
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, List
+import difflib
 import toml
 import yaml
 
@@ -13,6 +14,19 @@ class ConfigLoader:
     Loads site configuration from bengal.toml or bengal.yaml.
     """
     
+    # Section aliases for ergonomic config (accept common variations)
+    SECTION_ALIASES = {
+        'menus': 'menu',        # Plural → singular
+        'plugin': 'plugins',    # Singular → plural (if we add plugins)
+    }
+    
+    # Known valid section names
+    KNOWN_SECTIONS = {
+        'site', 'build', 'markdown', 'features', 'taxonomies',
+        'menu', 'params', 'assets', 'pagination', 'dev', 
+        'output_formats', 'health_check'
+    }
+    
     def __init__(self, root_path: Path) -> None:
         """
         Initialize the config loader.
@@ -21,6 +35,7 @@ class ConfigLoader:
             root_path: Root directory to look for config files
         """
         self.root_path = root_path
+        self.warnings: List[str] = []
     
     def load(self, config_path: Optional[Path] = None) -> Dict[str, Any]:
         """
@@ -124,26 +139,91 @@ class ConfigLoader:
         Returns:
             Flattened configuration (sections are preserved but accessible at top level too)
         """
+        # First, normalize section names (accept aliases)
+        normalized = self._normalize_sections(config)
+        
         # Keep the original structure but also flatten for convenience
-        flat = dict(config)
+        flat = dict(normalized)
         
         # Extract common sections to top level
-        if 'site' in config:
-            for key, value in config['site'].items():
+        if 'site' in normalized:
+            for key, value in normalized['site'].items():
                 if key not in flat:
                     flat[key] = value
         
-        if 'build' in config:
-            for key, value in config['build'].items():
+        if 'build' in normalized:
+            for key, value in normalized['build'].items():
                 if key not in flat:
                     flat[key] = value
         
         # Preserve menu configuration (it's already in the right structure)
         # [[menu.main]] in TOML becomes {'menu': {'main': [...]}}
-        if 'menu' not in flat and 'menu' in config:
-            flat['menu'] = config['menu']
+        if 'menu' not in flat and 'menu' in normalized:
+            flat['menu'] = normalized['menu']
         
         return flat
+    
+    def _normalize_sections(self, config: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Normalize config section names using aliases.
+        
+        Accepts common variations like [menus] → [menu].
+        Warns about unknown sections.
+        
+        Args:
+            config: Raw configuration dictionary
+            
+        Returns:
+            Normalized configuration with canonical section names
+        """
+        normalized = {}
+        
+        for key, value in config.items():
+            # Check if this is an alias
+            canonical = self.SECTION_ALIASES.get(key)
+            
+            if canonical:
+                # Using an alias - normalize it
+                if canonical in normalized:
+                    # Both forms present - merge if possible
+                    if isinstance(value, dict) and isinstance(normalized[canonical], dict):
+                        normalized[canonical].update(value)
+                        self.warnings.append(
+                            f"⚠️  Both [{key}] and [{canonical}] defined. Merging into [{canonical}]."
+                        )
+                    else:
+                        self.warnings.append(
+                            f"⚠️  Both [{key}] and [{canonical}] defined. Using [{canonical}]."
+                        )
+                else:
+                    normalized[canonical] = value
+                    self.warnings.append(
+                        f"💡 Config note: [{key}] works, but [{canonical}] is preferred for consistency"
+                    )
+            elif key not in self.KNOWN_SECTIONS:
+                # Unknown section - check for typos
+                suggestions = difflib.get_close_matches(key, self.KNOWN_SECTIONS, n=1, cutoff=0.6)
+                if suggestions:
+                    self.warnings.append(
+                        f"⚠️  Unknown section [{key}]. Did you mean [{suggestions[0]}]?"
+                    )
+                # Still include it (might be user-defined)
+                normalized[key] = value
+            else:
+                # Known canonical section
+                normalized[key] = value
+        
+        return normalized
+    
+    def get_warnings(self) -> List[str]:
+        """Get configuration warnings (aliases used, unknown sections, etc)."""
+        return self.warnings
+    
+    def print_warnings(self, verbose: bool = False) -> None:
+        """Print configuration warnings if verbose mode is enabled."""
+        if verbose and self.warnings:
+            for warning in self.warnings:
+                print(warning)
     
     def _default_config(self) -> Dict[str, Any]:
         """

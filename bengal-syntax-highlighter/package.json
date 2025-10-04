@@ -1,0 +1,43 @@
+{
+  "name": "bengal-syntax-highlighter",
+  "displayName": "Bengal SSG Syntax Highlighter",
+  "description": "Syntax highlighting for Bengal SSG markdown directives including tabs, admonitions, and dropdowns",
+  "version": "1.0.0",
+  "publisher": "bengal-ssg",
+  "author": {
+    "name": "Bengal SSG Team"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/bengal"
+  },
+  "engines": {
+    "vscode": "^1.74.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "keywords": [
+    "bengal",
+    "ssg",
+    "markdown",
+    "syntax",
+    "highlighting",
+    "directives",
+    "tabs",
+    "admonitions"
+  ],
+  "contributes": {
+    "grammars": [
+      {
+        "scopeName": "markdown.bengal.injection",
+        "path": "./syntaxes/bengal.tmLanguage.json",
+        "injectTo": [
+          "text.html.markdown"
+        ]
+      }
+    ]
+  }
+}
+

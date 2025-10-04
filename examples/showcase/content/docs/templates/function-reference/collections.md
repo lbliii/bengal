@@ -178,7 +178,7 @@ Filtered list containing only items where `item[key] != value`.
 
 ### Comparison with where
 
-```{tabs}
+````{tabs}
 :id: where-vs-where-not
 
 ### Tab: where (Include)
@@ -202,11 +202,11 @@ Result: Only posts WHERE category IS 'tutorial'
 Result: All posts WHERE category IS NOT 'tutorial'
 
 **Use when:** You know what you don't want
-```
+````
 
 ### Combine Both
 
-```{example} Include and Exclude
+````{example} Include and Exclude
 
 ```jinja2
 {# Published posts, excluding archived #}
@@ -218,7 +218,7 @@ Result: All posts WHERE category IS NOT 'tutorial'
 ```
 
 **Result:** Posts that ARE published AND are NOT archived
-```
+````
 
 ---
 

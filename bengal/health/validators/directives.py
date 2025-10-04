@@ -85,6 +85,7 @@ class DirectiveValidator(BaseValidator):
             'syntax_errors': [],
             'completeness_errors': [],
             'performance_warnings': [],
+            'fence_nesting_warnings': [],
         }
         
         # Analyze each page's source content
@@ -121,6 +122,15 @@ class DirectiveValidator(BaseValidator):
                             'line': directive['line_number'],
                             'type': directive['type'],
                             'error': directive['completeness_error']
+                        })
+                    
+                    # Check for fence nesting warnings
+                    if directive.get('fence_nesting_warning'):
+                        data['fence_nesting_warnings'].append({
+                            'page': page.source_path,
+                            'line': directive['line_number'],
+                            'type': directive['type'],
+                            'warning': directive['fence_nesting_warning']
                         })
                     
             except Exception as e:
@@ -165,19 +175,21 @@ class DirectiveValidator(BaseValidator):
         """
         directives = []
         
-        # Pattern: ```{directive_type} optional_title
+        # Pattern: `{3,}\{directive_type} optional_title
         #          :option: value
         #          
         #          content
-        #          ```
-        pattern = r'```\{(\w+(?:-\w+)?)\}([^\n]*)\n(.*?)```'
+        #          `{3,}
+        # Capture fence markers to detect nesting issues
+        pattern = r'(`{3,})\{(\w+(?:-\w+)?)\}([^\n]*)\n(.*?)\1'
         
         lines = content.split('\n')
         
         for match in re.finditer(pattern, content, re.DOTALL):
-            directive_type = match.group(1)
-            title = match.group(2).strip()
-            directive_content = match.group(3)
+            fence_marker = match.group(1)  # e.g., ``` or ````
+            directive_type = match.group(2)
+            title = match.group(3).strip()
+            directive_content = match.group(4)
             
             # Find line number
             start_pos = match.start()
@@ -189,7 +201,11 @@ class DirectiveValidator(BaseValidator):
                 'content': directive_content,
                 'line_number': line_number,
                 'file_path': file_path,
+                'fence_depth': len(fence_marker),  # Track fence depth
             }
+            
+            # Check for fence nesting issues
+            self._check_fence_nesting(directive_info)
             
             # Check if directive type is known
             if directive_type not in self.KNOWN_DIRECTIVES:
@@ -258,11 +274,71 @@ class DirectiveValidator(BaseValidator):
             # Title is optional but recommended
             pass
     
+    def _check_fence_nesting(self, directive: Dict[str, Any]) -> None:
+        """
+        Check for fence nesting issues - when a directive uses 3 backticks
+        but contains code blocks that also use 3 backticks.
+        
+        This checks if:
+        1. The directive uses exactly 3 backticks
+        2. The content appears truncated (suspiciously short) OR
+        3. The content contains code block markers
+        
+        Args:
+            directive: Directive info dict with 'fence_depth' and 'content'
+        """
+        content = directive['content']
+        fence_depth = directive['fence_depth']
+        
+        # Only check if using exactly 3 backticks for the directive
+        if fence_depth != 3:
+            return
+        
+        # Check 1: Look for code blocks in the extracted content
+        # Match both ``` and ~~~ fenced code blocks
+        code_block_pattern = r'^(`{3,}|~{3,})[a-zA-Z0-9_-]*\s*$'
+        
+        lines = content.split('\n')
+        has_code_blocks = False
+        for line in lines:
+            match = re.match(code_block_pattern, line.strip())
+            if match:
+                fence_marker = match.group(1)
+                # If we find a 3-backtick code block inside a 3-backtick directive
+                if fence_marker.startswith('`') and len(fence_marker) == 3:
+                    has_code_blocks = True
+                    break
+        
+        if has_code_blocks:
+            directive['fence_nesting_warning'] = (
+                f'Directive uses 3 backticks (```) but contains 3-backtick code blocks. '
+                f'Use 4+ backticks (````) for the directive to avoid parsing issues.'
+            )
+            return
+        
+        # Check 2: Detect suspiciously short content for tabs/code-tabs directives
+        # These directives typically have substantial content; if truncated, it's a red flag
+        directive_type = directive['type']
+        if directive_type in ('tabs', 'code-tabs', 'code_tabs'):
+            # Count tab markers
+            tab_count = len(re.findall(r'^### Tab:', content, re.MULTILINE))
+            content_lines = len([l for l in lines if l.strip()])
+            
+            # If we have tab markers but very little content, might be truncated
+            if tab_count > 0 and content_lines < (tab_count * 3):
+                # Probably truncated - warn about potential nesting
+                directive['fence_nesting_warning'] = (
+                    f'Directive content appears incomplete ({content_lines} lines, {tab_count} tabs). '
+                    f'If tabs contain code blocks, use 4+ backticks (````) for the directive fence.'
+                )
+    
     def _check_directive_syntax(self, data: Dict[str, Any]) -> List[CheckResult]:
         """Check directive syntax is valid."""
         results = []
         errors = data['syntax_errors']
+        fence_warnings = data['fence_nesting_warnings']
         
+        # Check for syntax errors
         if errors:
             results.append(CheckResult.error(
                 f"{len(errors)} directive(s) have syntax errors",
@@ -280,6 +356,17 @@ class DirectiveValidator(BaseValidator):
             # No directives found
             results.append(CheckResult.success(
                 "No directives found in site (validation skipped)"
+            ))
+        
+        # Check for fence nesting warnings
+        if fence_warnings:
+            results.append(CheckResult.warning(
+                f"{len(fence_warnings)} directive(s) may have fence nesting issues",
+                recommendation="Use 4+ backticks (````) for directive fences when content contains 3-backtick code blocks.",
+                details=[
+                    f"{w['page'].name}:{w['line']} - {w['type']}: {w['warning']}"
+                    for w in fence_warnings[:5]
+                ]
             ))
         
         return results

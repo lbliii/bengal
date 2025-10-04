@@ -9,11 +9,14 @@ import socketserver
 import socket
 import threading
 import time
+import os
 from datetime import datetime
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler, FileSystemEvent
 
 from bengal.utils.build_stats import display_build_stats, show_building_indicator, show_error
+from bengal.server.resource_manager import ResourceManager
+from bengal.server.pid_manager import PIDManager
 
 
 class QuietHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
@@ -211,26 +214,52 @@ class DevServer:
         self.watch = watch
         self.auto_port = auto_port
         self.open_browser = open_browser
-        self.observer: Any = None
     
     def start(self) -> None:
-        """Start the development server."""
-        # Always do an initial build to ensure site is up to date
-        show_building_indicator("Initial build")
-        stats = self.site.build()
-        display_build_stats(stats, show_art=False, output_dir=str(self.site.output_dir))
+        """Start the development server with robust resource cleanup."""
+        # Check for and handle stale processes
+        self._check_stale_processes()
         
-        # Start file watcher if enabled
-        if self.watch:
-            self._start_watcher()
-        
-        # Start HTTP server
-        self._start_http_server()
+        # Use ResourceManager for comprehensive cleanup handling
+        with ResourceManager() as rm:
+            # Always do an initial build to ensure site is up to date
+            show_building_indicator("Initial build")
+            stats = self.site.build()
+            display_build_stats(stats, show_art=False, output_dir=str(self.site.output_dir))
+            
+            # Create and register PID file for this process
+            pid_file = PIDManager.get_pid_file(self.site.root_path)
+            PIDManager.write_pid_file(pid_file)
+            rm.register_pidfile(pid_file)
+            
+            # Start file watcher if enabled
+            if self.watch:
+                observer = self._create_observer()
+                rm.register_observer(observer)
+                observer.start()
+            
+            # Create and start HTTP server
+            httpd, actual_port = self._create_server()
+            rm.register_server(httpd)
+            
+            # Open browser if requested
+            if self.open_browser:
+                self._open_browser_delayed(actual_port)
+            
+            # Print startup message
+            self._print_startup_message(actual_port)
+            
+            # Run until interrupted (cleanup happens automatically via ResourceManager)
+            try:
+                httpd.serve_forever()
+            except KeyboardInterrupt:
+                print("\n  👋 Shutting down server...")
+            # ResourceManager cleanup happens automatically via __exit__
     
-    def _start_watcher(self) -> None:
-        """Start file system watcher."""
+    def _create_observer(self) -> Observer:
+        """Create file system observer (does not start it)."""
         event_handler = BuildHandler(self.site)
-        self.observer = Observer()
+        observer = Observer()
         
         # Watch content and assets directories
         watch_dirs = [
@@ -241,9 +270,9 @@ class DevServer:
         
         for watch_dir in watch_dirs:
             if watch_dir.exists():
-                self.observer.schedule(event_handler, str(watch_dir), recursive=True)
+                observer.schedule(event_handler, str(watch_dir), recursive=True)
         
-        self.observer.start()
+        return observer
     
     def _is_port_available(self, port: int) -> bool:
         """
@@ -281,10 +310,44 @@ class DevServer:
                 return port
         raise OSError(f"Could not find an available port in range {start_port}-{start_port + max_attempts - 1}")
     
-    def _start_http_server(self) -> None:
-        """Start HTTP server."""
+    def _check_stale_processes(self) -> None:
+        """Check for and offer to clean up stale processes."""
+        pid_file = PIDManager.get_pid_file(self.site.root_path)
+        stale_pid = PIDManager.check_stale_pid(pid_file)
+        
+        if stale_pid:
+            print(f"\n⚠️  Found stale Bengal server process (PID {stale_pid})")
+            
+            # Check if it's holding our port
+            port_pid = PIDManager.get_process_on_port(self.port)
+            if port_pid == stale_pid:
+                print(f"   This process is holding port {self.port}")
+            
+            # Try to import click for confirmation, fall back to input
+            try:
+                import click
+                if click.confirm("  Kill stale process?", default=True):
+                    should_kill = True
+                else:
+                    should_kill = False
+            except ImportError:
+                response = input("  Kill stale process? [Y/n]: ").strip().lower()
+                should_kill = response in ('', 'y', 'yes')
+            
+            if should_kill:
+                if PIDManager.kill_stale_process(stale_pid):
+                    print("  ✅ Stale process terminated")
+                    time.sleep(1)  # Give OS time to release resources
+                else:
+                    print(f"  ❌ Failed to kill process")
+                    print(f"     Try manually: kill {stale_pid}")
+                    raise OSError(f"Cannot start: stale process {stale_pid} is still running")
+            else:
+                print("  Continuing anyway (may encounter port conflicts)...")
+    
+    def _create_server(self):
+        """Create HTTP server (does not start it)."""
         # Change to output directory
-        import os
         os.chdir(self.site.output_dir)
         
         # Create server with our custom handler
@@ -319,37 +382,29 @@ class DevServer:
         # Allow address reuse to prevent "address already in use" errors on restart
         socketserver.TCPServer.allow_reuse_address = True
         
-        with socketserver.TCPServer((self.host, actual_port), Handler) as httpd:
-            print(f"\n╭{'─' * 78}╮")
-            print(f"│ 🚀 \033[1mBengal Dev Server\033[0m{' ' * 59}│")
-            print(f"│{' ' * 78}│")
-            print(f"│   \033[36m➜\033[0m  Local:   \033[1mhttp://{self.host}:{actual_port}/\033[0m{' ' * (52 - len(self.host) - len(str(actual_port)))}│")
-            print(f"│   \033[90m➜\033[0m  Serving: {str(self.site.output_dir)[:60]}{' ' * max(0, 60 - len(str(self.site.output_dir)))}│")
-            print(f"│{' ' * 78}│")
-            print(f"│   \033[90mPress Ctrl+C to stop\033[0m{' ' * 54}│")
-            print(f"╰{'─' * 78}╯\n")
-            print(f"  \033[90m{'TIME':8} │ {'METHOD':6} │ {'STATUS':3} │ PATH\033[0m")
-            print(f"  \033[90m{'─' * 8}─┼─{'─' * 6}─┼─{'─' * 3}─┼─{'─' * 60}\033[0m")
-            
-            # Open browser after server starts
-            if self.open_browser:
-                import webbrowser
-                import threading
-                def open_browser_delayed():
-                    time.sleep(0.5)  # Give server time to start
-                    webbrowser.open(f'http://{self.host}:{actual_port}/')
-                threading.Thread(target=open_browser_delayed, daemon=True).start()
-            
-            try:
-                httpd.serve_forever()
-            except KeyboardInterrupt:
-                print(f"\n\n  \033[90m{'─' * 78}\033[0m")
-                print(f"  👋 Shutting down server...")
-                # Explicitly shutdown the server to close the socket
-                httpd.shutdown()
-                httpd.server_close()
-                if self.observer:
-                    self.observer.stop()
-                    self.observer.join()
-                print(f"  ✅ Server stopped\n")
+        # Create server (don't use context manager - ResourceManager handles cleanup)
+        httpd = socketserver.TCPServer((self.host, actual_port), Handler)
+        
+        return httpd, actual_port
+    
+    def _print_startup_message(self, port: int) -> None:
+        """Print server startup message."""
+        print(f"\n╭{'─' * 78}╮")
+        print(f"│ 🚀 \033[1mBengal Dev Server\033[0m{' ' * 59}│")
+        print(f"│{' ' * 78}│")
+        print(f"│   \033[36m➜\033[0m  Local:   \033[1mhttp://{self.host}:{port}/\033[0m{' ' * (52 - len(self.host) - len(str(port)))}│")
+        print(f"│   \033[90m➜\033[0m  Serving: {str(self.site.output_dir)[:60]}{' ' * max(0, 60 - len(str(self.site.output_dir)))}│")
+        print(f"│{' ' * 78}│")
+        print(f"│   \033[90mPress Ctrl+C to stop\033[0m{' ' * 54}│")
+        print(f"╰{'─' * 78}╯\n")
+        print(f"  \033[90m{'TIME':8} │ {'METHOD':6} │ {'STATUS':3} │ PATH\033[0m")
+        print(f"  \033[90m{'─' * 8}─┼─{'─' * 6}─┼─{'─' * 3}─┼─{'─' * 60}\033[0m")
+    
+    def _open_browser_delayed(self, port: int) -> None:
+        """Open browser after a short delay (in background thread)."""
+        import webbrowser
+        def open_browser():
+            time.sleep(0.5)  # Give server time to start
+            webbrowser.open(f'http://{self.host}:{port}/')
+        threading.Thread(target=open_browser, daemon=True).start()
 

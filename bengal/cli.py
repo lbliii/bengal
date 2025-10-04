@@ -169,6 +169,83 @@ def clean(force: bool, config: str, source: str) -> None:
         raise click.Abort()
 
 
+@main.command()
+@click.option('--force', '-f', is_flag=True, help='Kill process without confirmation')
+@click.option('--port', '-p', type=int, help='Also check if process is using this port')
+@click.argument('source', type=click.Path(exists=True), default='.')
+def cleanup(force: bool, port: int, source: str) -> None:
+    """
+    🔧 Clean up stale Bengal server processes.
+    
+    Finds and terminates any stale 'bengal serve' processes that may be
+    holding ports or preventing new servers from starting.
+    
+    This is useful if a previous server didn't shut down cleanly.
+    """
+    try:
+        from bengal.server.pid_manager import PIDManager
+        
+        root_path = Path(source).resolve()
+        pid_file = PIDManager.get_pid_file(root_path)
+        
+        # Check for stale process
+        stale_pid = PIDManager.check_stale_pid(pid_file)
+        
+        if not stale_pid:
+            click.echo(click.style("✅ No stale processes found", fg='green'))
+            
+            # If port specified, check if something else is using it
+            if port:
+                port_pid = PIDManager.get_process_on_port(port)
+                if port_pid:
+                    click.echo(click.style(f"\n⚠️  However, port {port} is in use by PID {port_pid}", fg='yellow'))
+                    if PIDManager.is_bengal_process(port_pid):
+                        click.echo(f"   This appears to be a Bengal process not tracked by PID file")
+                        if not force and not click.confirm(f"  Kill process {port_pid}?"):
+                            click.echo("Cancelled")
+                            return
+                        if PIDManager.kill_stale_process(port_pid):
+                            click.echo(click.style(f"✅ Process {port_pid} terminated", fg='green'))
+                        else:
+                            click.echo(click.style(f"❌ Failed to kill process {port_pid}", fg='red'))
+                            raise click.Abort()
+                    else:
+                        click.echo(f"   This is not a Bengal process")
+                        click.echo(f"   Try manually: kill {port_pid}")
+            return
+        
+        # Found stale process
+        click.echo(click.style(f"⚠️  Found stale Bengal server process", fg='yellow'))
+        click.echo(f"   PID: {stale_pid}")
+        
+        # Check if it's holding a port
+        if port:
+            port_pid = PIDManager.get_process_on_port(port)
+            if port_pid == stale_pid:
+                click.echo(f"   Holding port: {port}")
+        
+        # Confirm unless --force
+        if not force:
+            if not click.confirm("  Kill this process?"):
+                click.echo("Cancelled")
+                return
+        
+        # Kill the process
+        if PIDManager.kill_stale_process(stale_pid):
+            click.echo(click.style("✅ Stale process terminated successfully", fg='green'))
+        else:
+            click.echo(click.style(f"❌ Failed to terminate process", fg='red'))
+            click.echo(f"   Try manually: kill {stale_pid}")
+            raise click.Abort()
+            
+    except ImportError:
+        show_error("Cleanup command requires server dependencies", show_art=False)
+        raise click.Abort()
+    except Exception as e:
+        show_error(f"Cleanup failed: {e}", show_art=False)
+        raise click.Abort()
+
+
 @main.group()
 def new() -> None:
     """

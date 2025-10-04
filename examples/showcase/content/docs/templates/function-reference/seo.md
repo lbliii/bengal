@@ -238,7 +238,7 @@ Meta keywords have **minimal SEO impact** in modern search engines:
 
 ### Alternatives to Meta Keywords
 
-```{tabs}
+````{tabs}
 :id: keyword-alternatives
 
 ### Tab: Schema.org
@@ -280,7 +280,7 @@ Better for search engines!
 ```
 
 Natural, visible tags are better for SEO!
-```
+````
 
 ---
 
@@ -651,7 +651,7 @@ Here's a complete head section using all SEO functions:
 
 Use this checklist to ensure every page is SEO-optimized:
 
-```{tabs}
+````{tabs}
 :id: seo-checklist
 
 ### Tab: Essential Meta Tags
@@ -733,7 +733,7 @@ Use this checklist to ensure every page is SEO-optimized:
 - [ ] **Mobile responsive**
 - [ ] **HTTPS**
 - [ ] **No broken links** (use health checks!)
-```
+````
 
 ---
 

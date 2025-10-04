@@ -348,7 +348,7 @@ Published {{ page.date | time_ago }}
 
 ## 📊 Function Coverage by Category
 
-```{tabs}
+````{tabs}
 :id: function-categories
 
 ### Tab: Text Processing
@@ -422,7 +422,7 @@ Perfect for:
 - `get_data`
 - `related_posts`
 - `paginate`
-```
+````
 
 ---
 
@@ -615,7 +615,7 @@ Use one of these approaches:
 
 ## 🎓 Learning Path
 
-```{tabs}
+````{tabs}
 :id: learning-path
 
 ### Tab: Beginners
@@ -680,7 +680,7 @@ Use one of these approaches:
    - `responsive_image` - Responsive images
    - `image_srcset` - Srcset generation
    - `thumbnail` - Thumbnails
-```
+````
 
 ---
 

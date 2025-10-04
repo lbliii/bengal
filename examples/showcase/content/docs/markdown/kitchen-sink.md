@@ -107,7 +107,7 @@ This feature is experimental and may change in future versions. Use at your own 
 
 Tabs are perfect for showing platform-specific instructions or alternative approaches.
 
-```{tabs}
+````{tabs}
 :id: installation-tabs
 
 ### Tab: macOS
@@ -152,11 +152,11 @@ python -m pip install bengal-ssg
 ```
 
 Or download from [PyPI](https://pypi.org/project/bengal-ssg/)
-```
+````
 
 ### Nested Tabs Example
 
-```{tabs}
+````{tabs}
 :id: framework-examples
 
 ### Tab: Python
@@ -199,7 +199,7 @@ incremental = true
 ```
 
 TOML configuration is clean and readable.
-```
+````
 
 ---
 
@@ -207,7 +207,7 @@ TOML configuration is clean and readable.
 
 Use dropdowns to hide optional or advanced content.
 
-```{dropdown} Click to Expand: Advanced Configuration
+````{dropdown} Click to Expand: Advanced Configuration
 :open: false
 
 Here's an advanced configuration example:
@@ -238,7 +238,7 @@ This configuration enables:
 - Incremental builds (18-42x faster!)
 - Multiple output formats
 - Strict mode for error checking
-```
+````
 
 ```{dropdown} Default Open Dropdown
 :open: true
@@ -251,7 +251,7 @@ This dropdown is open by default! Great for showing important information that u
 - Frequently needed references
 ```
 
-```{dropdown} Another Advanced Example
+````{dropdown} Another Advanced Example
 
 You can nest almost anything in dropdowns:
 
@@ -270,7 +270,7 @@ Content for option 2
 ```
 
 Even nested tabs work!
-```
+````
 
 ---
 
@@ -602,10 +602,10 @@ Term 2
 
 Here's a complex nesting example:
 
-```{dropdown} Complex Nesting Example
+`````{dropdown} Complex Nesting Example
 :open: true
 
-```{tabs}
+````{tabs}
 :id: complex-nesting
 
 ### Tab: With Admonitions
@@ -641,8 +641,8 @@ print(factorial(5))  # 120
 ```{success} It Works!
 Bengal handles complex nesting gracefully.
 ```
-```
-```
+````
+`````
 
 ---
 
@@ -650,7 +650,7 @@ Bengal handles complex nesting gracefully.
 
 Let's combine multiple features in one section:
 
-```{tabs}
+`````{tabs}
 :id: ultimate-example
 
 ### Tab: Directives Reference
@@ -710,7 +710,7 @@ Bengal provides **75+ template functions**:
 - 📦 **75+** template functions
 ```
 
-```{code-tabs}
+````{code-tabs}
 :id: performance-comparison
 
 ### Lang: Bash
@@ -734,8 +734,8 @@ print(f"Pages: {stats.pages_built}")
 print(f"Time: {stats.build_time}s")
 print(f"Speed: {stats.pages_per_second} pages/s")
 ```
-```
-```
+````
+`````
 
 ---
 
@@ -762,7 +762,7 @@ This page demonstrates **every major feature** of Bengal SSG:
 
 Want to learn more? Check out these resources:
 
-```{tabs}
+````{tabs}
 :id: next-steps
 
 ### Tab: For Beginners
@@ -782,7 +782,7 @@ Want to learn more? Check out these resources:
 1. [[tutorials/migration/from-hugo|Migrating from Hugo]]
 2. [[tutorials/migration/from-jekyll|Migrating from Jekyll]]
 3. [[tutorials/migration/from-eleventy|Migrating from Eleventy]]
-```
+````
 
 ---
 

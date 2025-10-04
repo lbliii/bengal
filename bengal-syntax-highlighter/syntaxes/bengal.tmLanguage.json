@@ -1,0 +1,222 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "scopeName": "markdown.bengal.injection",
+  "injectionSelector": "L:text.html.markdown",
+  "patterns": [
+    {
+      "include": "#bengal-tabs-directive"
+    },
+    {
+      "include": "#bengal-admonition-directive"
+    },
+    {
+      "include": "#bengal-dropdown-directive"
+    },
+    {
+      "include": "#bengal-code-tabs-directive"
+    }
+  ],
+  "repository": {
+    "bengal-tabs-directive": {
+      "patterns": [
+        {
+          "name": "meta.embedded.block.bengal.tabs",
+          "begin": "^(````)(\\{)(tabs)(\\})",
+          "end": "^(````)",
+          "beginCaptures": {
+            "1": {
+              "name": "punctuation.definition.markdown.code.begin.bengal"
+            },
+            "2": {
+              "name": "punctuation.definition.directive.begin.bengal"
+            },
+            "3": {
+              "name": "entity.name.function.directive.bengal"
+            },
+            "4": {
+              "name": "punctuation.definition.directive.end.bengal"
+            }
+          },
+          "endCaptures": {
+            "1": {
+              "name": "punctuation.definition.markdown.code.end.bengal"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#directive-options"
+            },
+            {
+              "include": "#tab-markers"
+            },
+            {
+              "include": "text.html.markdown"
+            }
+          ]
+        }
+      ]
+    },
+    "bengal-admonition-directive": {
+      "patterns": [
+        {
+          "name": "meta.embedded.block.bengal.admonition",
+          "begin": "^(```)(\\{)(note|tip|warning|danger|error|info|example|success|caution)(\\})\\s*(.*)?$",
+          "end": "^(```)",
+          "beginCaptures": {
+            "1": {
+              "name": "punctuation.definition.markdown.code.begin.bengal"
+            },
+            "2": {
+              "name": "punctuation.definition.directive.begin.bengal"
+            },
+            "3": {
+              "name": "entity.name.function.directive.admonition.bengal"
+            },
+            "4": {
+              "name": "punctuation.definition.directive.end.bengal"
+            },
+            "5": {
+              "name": "string.unquoted.directive.title.bengal"
+            }
+          },
+          "endCaptures": {
+            "1": {
+              "name": "punctuation.definition.markdown.code.end.bengal"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#directive-options"
+            },
+            {
+              "include": "text.html.markdown"
+            }
+          ]
+        }
+      ]
+    },
+    "bengal-dropdown-directive": {
+      "patterns": [
+        {
+          "name": "meta.embedded.block.bengal.dropdown",
+          "begin": "^(```)(\\{)(dropdown|details)(\\})\\s*(.*)?$",
+          "end": "^(```)",
+          "beginCaptures": {
+            "1": {
+              "name": "punctuation.definition.markdown.code.begin.bengal"
+            },
+            "2": {
+              "name": "punctuation.definition.directive.begin.bengal"
+            },
+            "3": {
+              "name": "entity.name.function.directive.dropdown.bengal"
+            },
+            "4": {
+              "name": "punctuation.definition.directive.end.bengal"
+            },
+            "5": {
+              "name": "string.unquoted.directive.title.bengal"
+            }
+          },
+          "endCaptures": {
+            "1": {
+              "name": "punctuation.definition.markdown.code.end.bengal"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#directive-options"
+            },
+            {
+              "include": "text.html.markdown"
+            }
+          ]
+        }
+      ]
+    },
+    "bengal-code-tabs-directive": {
+      "patterns": [
+        {
+          "name": "meta.embedded.block.bengal.code-tabs",
+          "begin": "^(```)(\\{)(code-tabs|code_tabs)(\\})",
+          "end": "^(```)",
+          "beginCaptures": {
+            "1": {
+              "name": "punctuation.definition.markdown.code.begin.bengal"
+            },
+            "2": {
+              "name": "punctuation.definition.directive.begin.bengal"
+            },
+            "3": {
+              "name": "entity.name.function.directive.code-tabs.bengal"
+            },
+            "4": {
+              "name": "punctuation.definition.directive.end.bengal"
+            }
+          },
+          "endCaptures": {
+            "1": {
+              "name": "punctuation.definition.markdown.code.end.bengal"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#directive-options"
+            },
+            {
+              "include": "text.html.markdown"
+            }
+          ]
+        }
+      ]
+    },
+    "directive-options": {
+      "patterns": [
+        {
+          "name": "meta.directive.option.bengal",
+          "match": "^(:)(\\w+)(:)\\s*(.*)$",
+          "captures": {
+            "1": {
+              "name": "punctuation.definition.option.begin.bengal"
+            },
+            "2": {
+              "name": "variable.parameter.option.bengal"
+            },
+            "3": {
+              "name": "punctuation.definition.option.end.bengal"
+            },
+            "4": {
+              "name": "string.unquoted.option.value.bengal"
+            }
+          }
+        }
+      ]
+    },
+    "tab-markers": {
+      "patterns": [
+        {
+          "name": "meta.tab.marker.bengal",
+          "match": "^(###)(\\s+)(Tab:)(\\s+)(.+)$",
+          "captures": {
+            "1": {
+              "name": "punctuation.definition.heading.bengal"
+            },
+            "2": {
+              "name": "punctuation.whitespace.bengal"
+            },
+            "3": {
+              "name": "keyword.control.tab.bengal"
+            },
+            "4": {
+              "name": "punctuation.whitespace.bengal"
+            },
+            "5": {
+              "name": "entity.name.section.tab.bengal"
+            }
+          }
+        }
+      ]
+    }
+  }
+}
+

@@ -237,7 +237,7 @@ String truncated to character length with suffix if truncated.
 
 ### Comparison with truncatewords
 
-```{tabs}
+````{tabs}
 :id: truncate-comparison
 
 ### Tab: truncate_chars
@@ -267,7 +267,7 @@ String truncated to character length with suffix if truncated.
 - Reading excerpts
 - Natural text breaks
 - Content previews
-```
+````
 
 ---
 
@@ -507,7 +507,7 @@ Also decodes HTML entities:
 
 ### Common Use Cases
 
-```{tabs}
+````{tabs}
 :id: strip-html-uses
 
 ### Tab: Content Preview
@@ -541,7 +541,7 @@ Also decodes HTML entities:
   "content": "{{ page.content | strip_html }}"
 }
 ```
-```
+````
 
 ---
 
@@ -779,7 +779,7 @@ Reading time in minutes (minimum 1).
 
 ### Reading Speed Guide
 
-```{tabs}
+````{tabs}
 :id: reading-speeds
 
 ### Tab: Standard (200 wpm)
@@ -815,7 +815,7 @@ Reading time in minutes (minimum 1).
 ```jinja2
 {{ content | reading_time(150) }}
 ```
-```
+````
 
 ---
 
@@ -869,7 +869,7 @@ Excerpt with ellipsis if truncated.
 
 ### Comparison with truncatewords
 
-```{tabs}
+````{tabs}
 :id: excerpt-vs-truncatewords
 
 ### Tab: excerpt (Character-Based)
@@ -905,11 +905,11 @@ Excerpt with ellipsis if truncated.
 - Content previews
 - Reading excerpts
 - Natural text breaks
-```
+````
 
 ### Smart Word Boundaries
 
-```{example} Word Boundary Behavior
+````{example} Word Boundary Behavior
 
 **With respect_word_boundaries=True (default):**
 ```jinja2
@@ -924,7 +924,7 @@ Excerpt with ellipsis if truncated.
 ```
 **Output:** `"The quick brown fo..."`
 (Cuts at exactly 20 chars)
-```
+````
 
 ---
 

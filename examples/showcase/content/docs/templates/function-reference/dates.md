@@ -483,7 +483,7 @@ RFC 822 is used in:
 
 Different use cases call for different date formats:
 
-```{tabs}
+````{tabs}
 :id: date-strategies
 
 ### Tab: Relative (Recent)

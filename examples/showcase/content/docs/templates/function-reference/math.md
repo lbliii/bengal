@@ -238,7 +238,7 @@ Product of `value * multiplier`.
 
 ### Practical Uses
 
-```{tabs}
+````{tabs}
 :id: times-uses
 
 ### Tab: Pricing
@@ -267,7 +267,7 @@ With markup: ${{ cost | times(1.5) }}  {# 50% markup #}
 width: {{ original_width | times(scale) }}px
 height: {{ original_height | times(scale) }}px
 ```
-```
+````
 
 ---
 
@@ -436,7 +436,7 @@ Ceiling value (smallest integer ≥ value).
 
 ### Ceil vs Round vs Floor
 
-```{tabs}
+````{tabs}
 :id: rounding-comparison
 
 ### Tab: ceil (Round Up)
@@ -471,7 +471,7 @@ Ceiling value (smallest integer ≥ value).
 ```
 
 **Use when:** Want most accurate whole number
-```
+````
 
 ---
 
@@ -628,7 +628,7 @@ Rounded value to specified precision.
 
 ### Decimal Places
 
-```{tabs}
+````{tabs}
 :id: decimal-places
 
 ### Tab: 0 Decimals
@@ -666,7 +666,7 @@ Common for money
 ```
 
 Scientific precision
-```
+````
 
 ---
 

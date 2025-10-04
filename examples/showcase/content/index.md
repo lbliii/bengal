@@ -16,7 +16,7 @@ Bengal is a **blazingly fast, beautifully modular** static site generator for Py
 
 ### Why Bengal?
 
-```{tabs}
+````{tabs}
 :id: why-bengal
 
 ### Tab: ⚡ Performance
@@ -72,7 +72,7 @@ $ time bengal build --incremental
 - Familiar syntax
 - Rich libraries
 - Great tooling
-```
+````
 
 ---
 
@@ -211,7 +211,8 @@ Great job! You completed the tutorial.
 ```
 
 # Tabbed content
-```{tabs}
+
+````{tabs}
 :id: example-tabs
 
 ### Tab: Python
@@ -220,15 +221,16 @@ print("Hello, Bengal!")
 ```
 
 ### Tab: JavaScript
+
 ```javascript
 console.log("Hello, Bengal!");
 ```
-```
+````
 
 # Collapsible sections
+
 ```{dropdown} Click to expand
 Hidden content here!
-```
 ```
 
 ---
@@ -256,7 +258,7 @@ Hidden content here!
 
 ### Features You Won't Find Elsewhere
 
-```{tabs}
+````{tabs}
 :id: unique-features
 
 ### Tab: 🤖 LLM-Friendly Output
@@ -335,7 +337,8 @@ $ time bengal build --incremental
 - `/rss.xml` - RSS feed
 
 **Read more:** [Output Formats Guide](docs/output/output-formats.md)
-```
+
+````
 
 ---
 

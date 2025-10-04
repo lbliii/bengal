@@ -35,7 +35,7 @@ The health check system validates your site build across multiple dimensions:
 
 ### Why Health Checks?
 
-```{tabs}
+````{tabs}
 :id: why-health-checks
 
 ### Tab: Catch Issues Early
@@ -76,7 +76,7 @@ bengal health-check
 ```
 
 **Prevent bad builds from reaching production.**
-```
+````
 
 ---
 
@@ -770,7 +770,7 @@ $ bengal health-check
 
 ### Development Workflow
 
-```{tabs}
+````{tabs}
 :id: dev-workflow
 
 ### Tab: During Development
@@ -827,7 +827,7 @@ bengal health-check --format=console > health-report.txt
 - Performance over time
 - Link health history
 - Cache effectiveness
-```
+````
 
 ---
 

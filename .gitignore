@@ -47,6 +47,7 @@ htmlcov/
 # Bengal SSG
 public/
 .bengal/
+.bengal.pid
 
 # Documentation builds
 docs/_build/
@@ -61,5 +62,3 @@ Thumbs.db
 *.bak
 *.tmp
 .env
-
-.bengal/

@@ -5,6 +5,7 @@ Renderer for converting pages to final HTML output.
 from typing import Any, Dict, Optional
 from datetime import datetime
 import traceback
+import re
 
 from bengal.core.page import Page
 
@@ -30,13 +31,38 @@ class Renderer:
         """
         Render raw content (already parsed HTML).
         
+        Automatically strips the first H1 tag to avoid duplication with
+        the template-rendered title.
+        
         Args:
             content: Parsed HTML content
             
         Returns:
-            Content (pass-through in this case)
+            Content with first H1 removed
         """
-        return content
+        return self._strip_first_h1(content)
+    
+    def _strip_first_h1(self, content: str) -> str:
+        """
+        Remove the first H1 tag from HTML content.
+        
+        This prevents duplication when templates render {{ page.title }} as H1
+        and the markdown also contains an H1 heading.
+        
+        Args:
+            content: HTML content
+            
+        Returns:
+            Content with first H1 tag removed
+        """
+        # Pattern matches: <h1>...</h1> or <h1 id="...">...</h1>
+        # Uses non-greedy matching to get just the first H1
+        pattern = r'<h1[^>]*>.*?</h1>'
+        
+        # Remove only the first occurrence
+        result = re.sub(pattern, '', content, count=1, flags=re.DOTALL | re.IGNORECASE)
+        
+        return result
     
     def render_page(self, page: Page, content: Optional[str] = None) -> str:
         """

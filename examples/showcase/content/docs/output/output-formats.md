@@ -29,7 +29,7 @@ Output formats are **alternative representations** of your content beyond HTML:
 
 ### Why Multiple Formats?
 
-```{tabs}
+````{tabs}
 :id: why-output-formats
 
 ### Tab: Search
@@ -93,7 +93,7 @@ print(page['content'])
 ```
 
 **No backend needed!** Static JSON files.
-```
+````
 
 ---
 
@@ -724,7 +724,7 @@ exclude_patterns = ["*.draft.html", "**/admin/**"]
 
 ### Build Time
 
-```{tabs}
+````{tabs}
 :id: performance-impact
 
 ### Tab: JSON Generation
@@ -768,7 +768,7 @@ Total size:    12.3 MB → 16.5 MB
 ```
 
 **Small price for huge benefits!**
-```
+````
 
 ---
 
@@ -841,7 +841,7 @@ json_indent = 2          # Pretty-print for developers
 
 ### When to Use Each
 
-```{tabs}
+````{tabs}
 :id: when-to-use
 
 ### Tab: JSON Per-Page
@@ -883,7 +883,7 @@ json_indent = 2          # Pretty-print for developers
 - No AI integration planned
 - Privacy concerns
 - Bandwidth limited
-```
+````
 
 ---
 

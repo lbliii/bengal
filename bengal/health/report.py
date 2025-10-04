@@ -204,15 +204,146 @@ class HealthReport:
         else:
             return "Needs Improvement"
     
-    def format_console(self, verbose: bool = False) -> str:
+    def format_console(self, mode: str = "auto", verbose: bool = False) -> str:
         """
         Format report for console output.
         
         Args:
-            verbose: Show detailed messages for all checks (not just problems)
+            mode: Display mode - "auto", "quiet", "normal", "verbose"
+                  auto = quiet if no problems, normal if warnings/errors
+            verbose: Legacy parameter, sets mode to "verbose"
             
         Returns:
             Formatted string ready to print
+        """
+        # Handle legacy verbose parameter
+        if verbose:
+            mode = "verbose"
+        
+        # Auto-detect mode based on results
+        if mode == "auto":
+            if not self.has_problems():
+                mode = "quiet"
+            else:
+                mode = "normal"
+        
+        if mode == "quiet":
+            return self._format_quiet()
+        elif mode == "verbose":
+            return self._format_verbose()
+        else:  # normal
+            return self._format_normal()
+    
+    def _format_quiet(self) -> str:
+        """
+        Minimal output - perfect builds get one line, problems shown clearly.
+        """
+        lines = []
+        
+        # Perfect build - just success message
+        if not self.has_problems():
+            score = self.build_quality_score()
+            return f"✓ Build complete. All health checks passed (quality: {score}%)\n"
+        
+        # Has problems - show them
+        lines.append("")
+        
+        # Group by validator, only show problems
+        for vr in self.validator_reports:
+            if not vr.has_problems:
+                continue
+            
+            # Show validator name with problem count
+            problem_count = vr.warning_count + vr.error_count
+            emoji = "❌" if vr.error_count > 0 else "⚠️"
+            lines.append(f"{emoji} {vr.validator_name} ({problem_count} issue(s)):")
+            
+            # Show problem messages
+            for result in vr.results:
+                if result.is_problem():
+                    lines.append(f"   • {result.message}")
+                    
+                    # Show recommendation
+                    if result.recommendation:
+                        lines.append(f"     💡 {result.recommendation}")
+                    
+                    # Show first 3 details
+                    if result.details:
+                        for detail in result.details[:3]:
+                            lines.append(f"        - {detail}")
+                        if len(result.details) > 3:
+                            remaining = len(result.details) - 3
+                            lines.append(f"        ... and {remaining} more")
+            
+            lines.append("")  # Blank line between validators
+        
+        # Summary
+        score = self.build_quality_score()
+        rating = self.quality_rating()
+        summary_parts = []
+        
+        if self.total_errors > 0:
+            summary_parts.append(f"{self.total_errors} error(s)")
+        if self.total_warnings > 0:
+            summary_parts.append(f"{self.total_warnings} warning(s)")
+        
+        lines.append(f"Build Quality: {score}% ({rating}) · {', '.join(summary_parts)}")
+        lines.append("")
+        
+        return "\n".join(lines)
+    
+    def _format_normal(self) -> str:
+        """
+        Balanced output - show all validators but only problem details.
+        """
+        lines = []
+        
+        lines.append("\n🏥 Health Check Summary")
+        lines.append("━" * 60)
+        lines.append("")
+        
+        # Show all validators with status
+        for vr in self.validator_reports:
+            status_line = f"{vr.status_emoji} {vr.validator_name:<20}"
+            
+            if vr.error_count > 0:
+                status_line += f" {vr.error_count} error(s)"
+            elif vr.warning_count > 0:
+                status_line += f" {vr.warning_count} warning(s)"
+            elif vr.info_count > 0:
+                status_line += f" {vr.info_count} info"
+            else:
+                status_line += " passed"
+            
+            lines.append(status_line)
+            
+            # Show problems only (not success messages)
+            for result in vr.results:
+                if result.is_problem():
+                    lines.append(f"   • {result.message}")
+                    if result.recommendation:
+                        lines.append(f"     💡 {result.recommendation}")
+                    if result.details:
+                        for detail in result.details[:3]:
+                            lines.append(f"        - {detail}")
+                        if len(result.details) > 3:
+                            lines.append(f"        ... and {len(result.details) - 3} more")
+        
+        # Summary
+        lines.append("")
+        lines.append("━" * 60)
+        lines.append(f"Summary: {self.total_passed} passed, {self.total_warnings} warnings, {self.total_errors} errors")
+        
+        score = self.build_quality_score()
+        rating = self.quality_rating()
+        lines.append(f"Build Quality: {score}% ({rating})")
+        lines.append("")
+        
+        return "\n".join(lines)
+    
+    def _format_verbose(self) -> str:
+        """
+        Full audit trail - show everything including successes.
         """
         lines = []
         
@@ -230,27 +361,28 @@ class HealthReport:
                 status_line += f" {vr.error_count} error(s)"
             elif vr.warning_count > 0:
                 status_line += f" {vr.warning_count} warning(s)"
+            elif vr.info_count > 0:
+                status_line += f" {vr.info_count} info"
             elif vr.passed_count > 0:
                 status_line += f" {vr.passed_count} check(s) passed"
             
             lines.append(status_line)
             
-            # Show problems or all results in verbose mode
+            # Show all results in verbose mode
             for result in vr.results:
-                if result.is_problem() or verbose:
-                    # Indent the message
-                    lines.append(f"   • {result.message}")
-                    
-                    # Show recommendation if present
-                    if result.recommendation:
-                        lines.append(f"     💡 {result.recommendation}")
-                    
-                    # Show details if present (limit to first 3)
-                    if result.details:
-                        for detail in result.details[:3]:
-                            lines.append(f"        - {detail}")
-                        if len(result.details) > 3:
-                            lines.append(f"        ... and {len(result.details) - 3} more")
+                # Indent the message
+                lines.append(f"   • {result.message}")
+                
+                # Show recommendation if present
+                if result.recommendation:
+                    lines.append(f"     💡 {result.recommendation}")
+                
+                # Show details if present (limit to first 3)
+                if result.details:
+                    for detail in result.details[:3]:
+                        lines.append(f"        - {detail}")
+                    if len(result.details) > 3:
+                        lines.append(f"        ... and {len(result.details) - 3} more")
         
         # Summary
         lines.append("")

@@ -92,7 +92,7 @@ Absolute URL with site base URL prepended.
 
 ### When to Use Absolute URLs
 
-```{tabs}
+````{tabs}
 :id: absolute-url-uses
 
 ### Tab: Required
@@ -157,7 +157,7 @@ Absolute URL with site base URL prepended.
 - Better for site migrations
 - Smaller HTML file size
 - Simpler maintenance
-```
+````
 
 ### Configuration
 
@@ -516,7 +516,7 @@ Display: "Searching for: {{ request.args.q | url_decode }}"
 
 ### When to Encode
 
-```{tabs}
+````{tabs}
 :id: when-to-encode
 
 ### Tab: Always Encode
@@ -583,7 +583,7 @@ https://twitter.com/...?text={{ text | url_encode }}
   {{ text | url_encode }}
 {% endif %}
 ```
-```
+````
 
 ---
 

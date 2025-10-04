@@ -53,7 +53,7 @@ For most sites (< 10,000 pages), the difference is negligible.
 
 ### Directory Structure Mapping
 
-```{tabs}
+````{tabs}
 :id: directory-mapping
 
 ### Tab: Hugo Structure
@@ -111,11 +111,11 @@ my-bengal-site/
 - `layouts/` → Built-in templates + optional `templates/`
 - `static/` → `assets/` or theme `assets/`
 - Content structure is **nearly identical**!
-```
+````
 
 ### Frontmatter Migration
 
-```{tabs}
+````{tabs}
 :id: frontmatter-mapping
 
 ### Tab: Hugo Frontmatter
@@ -163,7 +163,7 @@ template: "custom-post.html"         # Use custom template
 - ⚠️ `summary` - Use `description` instead
 - ✅ `slug` - Works the same
 - 🆕 `toc` - Bengal-specific feature
-```
+````
 
 ---
 
@@ -171,7 +171,7 @@ template: "custom-post.html"         # Use custom template
 
 ### Config File Conversion
 
-```{tabs}
+````{tabs}
 :id: config-conversion
 
 ### Tab: Hugo (config.toml)
@@ -223,24 +223,24 @@ incremental = true                    # 🆕 18-42x faster!
 tags = "tags"                         # Same!
 categories = "categories"             # Same!
 
-[menus]
-  [[menus.main]]
-    name = "Home"
-    url = "/"
-    weight = 1
-  
-  [[menus.main]]
-    name = "Posts"
-    url = "/posts/"
-    weight = 2
+# Menu configuration (same in both!)
+[[menu.main]]
+  name = "Home"
+  url = "/"
+  weight = 1
+
+[[menu.main]]
+  name = "Posts"
+  url = "/posts/"
+  weight = 2
 ```
 
 **Conversion tips:**
 - Most keys stay the same!
 - `[params]` → Moved to `[site]`
-- `[menu]` → `[menus]`
+- Menu syntax identical: `[[menu.main]]` in both
 - Added `[build]` section with new features
-```
+````
 
 ---
 
@@ -248,7 +248,7 @@ categories = "categories"             # Same!
 
 ### Template Syntax Comparison
 
-```{tabs}
+````{tabs}
 :id: template-syntax
 
 ### Tab: Hugo Template
@@ -321,11 +321,12 @@ categories = "categories"             # Same!
 - `.Title` → `page.title` - Lowercase properties
 - `.Params.X` → `page.metadata.X` - Metadata access
 - `range` → `for` - Different loop syntax
-- `partial` → `include` - Different inclusion```
+- `partial` → `include` - Different inclusion
+````
 
 ### Common Template Conversions
 
-```{dropdown} Hugo `.Title` → Bengal `page.title`
+````{dropdown} Hugo `.Title` → Bengal `page.title`
 
 **Hugo:**
 ```go-html-template
@@ -340,9 +341,9 @@ categories = "categories"             # Same!
 <p>By {{/* page.metadata.author */}}</p>
 <time>{{/* page.date | format_date("%Y-%m-%d") */}}</time>
 ```
-```
+````
 
-```{dropdown} Hugo `.Pages` → Bengal `section.pages` or `page.children`
+````{dropdown} Hugo `.Pages` → Bengal `section.pages` or `page.children`
 
 **Hugo:**
 ```go-html-template
@@ -357,9 +358,9 @@ categories = "categories"             # Same!
   <a href="{{/* child.url */}}">{{/* child.title */}}</a>
 {% endfor %}
 ```
-```
+````
 
-```{dropdown} Hugo Conditionals → Bengal Conditionals
+````{dropdown} Hugo Conditionals → Bengal Conditionals
 
 **Hugo:**
 ```go-html-template
@@ -382,7 +383,7 @@ categories = "categories"             # Same!
   <span>Other</span>
 {% endif %}
 ```
-```
+````
 
 ---
 
@@ -390,7 +391,7 @@ categories = "categories"             # Same!
 
 ### Syntax Comparison
 
-```{tabs}
+````{tabs}
 :id: shortcodes-vs-directives
 
 ### Tab: Hugo Shortcodes
@@ -439,11 +440,12 @@ def hello():
 **Migration notes:**
 - Hugo shortcodes `{{< >}}` → Bengal directives ` ```{} `
 - Some shortcodes need HTML equivalents
-- Code highlighting is built-in (no shortcode needed)```
+- Code highlighting is built-in (no shortcode needed)
+````
 
 ### Admonition Migration
 
-```{example} Hugo Notices → Bengal Admonitions
+````{example} Hugo Notices → Bengal Admonitions
 
 **Hugo (using custom shortcodes):**
 ```markdown
@@ -471,7 +473,7 @@ Bengal has **9 built-in admonition types**:
 - note, tip, warning, danger, error, info, example, success, caution
 
 Hugo requires custom shortcodes or theme support.
-```
+````
 
 ---
 
@@ -479,7 +481,7 @@ Hugo requires custom shortcodes or theme support.
 
 ### Build Commands
 
-```{tabs}
+````{tabs}
 :id: build-commands
 
 ### Tab: Hugo
@@ -515,11 +517,11 @@ bengal new posts/my-post.md
 ```
 
 **Nearly identical!** Commands map 1:1.
-```
+````
 
 ### Performance Optimization
 
-```{example} Enable Bengal's Speed Features
+````{example} Enable Bengal's Speed Features
 
 **Hugo (config.toml):**
 ```toml
@@ -542,7 +544,7 @@ enabled = true           # Required for incremental
 ```
 
 **Result:** Bengal rebuilds are **18-42x faster** than Hugo after first build!
-```
+````
 
 ---
 
@@ -641,7 +643,7 @@ bengal health-check
 
 ## 🐛 Common Migration Issues
 
-```{dropdown} Issue: "Template function not found"
+````{dropdown} Issue: "Template function not found"
 
 **Problem:** Hugo function doesn't exist in Bengal
 
@@ -656,9 +658,9 @@ bengal health-check
 ```
 
 See [Template Functions Reference](../../docs/templates/function-reference/) for all 75 functions.
-```
+````
 
-```{dropdown} Issue: "Shortcode not rendering"
+````{dropdown} Issue: "Shortcode not rendering"
 
 **Problem:** Hugo shortcodes don't work in Bengal
 
@@ -675,30 +677,28 @@ See [Template Functions Reference](../../docs/templates/function-reference/) for
 ```
 
 Or create custom directive (advanced).
-```
+````
 
-```{dropdown} Issue: "Menu not showing"
+````{dropdown} Issue: "Menu not showing"
 
 **Problem:** Menu configuration syntax difference
 
 **Hugo:**
 ```toml
-[menu]
-  [[menu.main]]
-    name = "Home"
+[[menu.main]]
+  name = "Home"
 ```
 
 **Bengal:**
 ```toml
-[menus]          # Note the 's'
-  [[menus.main]]
-    name = "Home"
+[[menu.main]]    # Same syntax!
+  name = "Home"
 ```
 
-Simple typo - add the 's'!
-```
+No changes needed - menu syntax is identical!
+````
 
-```{dropdown} Issue: "Taxonomies not working"
+````{dropdown} Issue: "Taxonomies not working"
 
 **Problem:** Plural/singular mismatch
 
@@ -717,13 +717,13 @@ categories = "categories"
 ```
 
 Bengal uses `plural = "singular"` format.
-```
+````
 
 ---
 
 ## 🎯 Migration Checklist
 
-```{tabs}
+````{tabs}
 :id: migration-checklist
 
 ### Tab: Pre-Migration
@@ -761,13 +761,13 @@ Bengal uses `plural = "singular"` format.
 - [ ] Deploy to staging
 - [ ] Test staging thoroughly
 - [ ] Deploy to production
-```
+````
 
 ---
 
 ## 💡 Pro Tips
 
-```{success} Hybrid Approach
+````{success} Hybrid Approach
 
 You can run Hugo and Bengal side-by-side during migration!
 
@@ -785,9 +785,9 @@ my-site/
 ```
 
 **Benefit:** Test Bengal without breaking Hugo!
-```
+````
 
-```{tip} Automated Conversion Script
+````{tip} Automated Conversion Script
 
 Create a migration script:
 
@@ -820,11 +820,12 @@ def convert_config(hugo_config, bengal_config):
     with open(hugo_config) as f:
         hugo = f.read()
     
-    # Convert [menu] to [menus]
-    bengal = hugo.replace("[menu]", "[menus]")
+    # Menu syntax is identical - no conversion needed!
+    bengal = hugo
     
-    # Move [params] to [site]
+    # Move [params] to [site] section
     # (simplified - add more complex logic as needed)
+    bengal = bengal.replace("[params]", "[site]")
     
     with open(bengal_config, 'w') as f:
         f.write(bengal)
@@ -838,7 +839,7 @@ if __name__ == "__main__":
 ```
 
 Save time with automation!
-```
+````
 
 ---
 
@@ -846,7 +847,7 @@ Save time with automation!
 
 ### Build Performance
 
-```{tabs}
+````{tabs}
 :id: performance-comparison
 
 ### Tab: Hugo Performance
@@ -870,7 +871,7 @@ Memory:           87 MB
 ```
 
 **Winner:** Hugo for full builds, Bengal for incremental rebuilds!
-```
+````
 
 ### Developer Experience
 
