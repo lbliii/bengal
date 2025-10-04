@@ -22,11 +22,15 @@
   --color-secondary: var(--green-500);
   --color-secondary-hover: var(--green-600);
   --color-secondary-active: var(--green-700);
+  --color-secondary-light: var(--green-300);
+  --color-secondary-dark: var(--green-700);
   
   /* Accent Color */
   --color-accent: var(--orange-500);
   --color-accent-hover: var(--orange-600);
   --color-accent-active: var(--orange-700);
+  --color-accent-light: var(--orange-300);
+  --color-accent-dark: var(--orange-700);
   
   /* Text Colors */
   --color-text-primary: var(--gray-900);
@@ -78,6 +82,33 @@
      SEMANTIC SPACING
      ============================================ */
   
+  /* Spacing scale - aliases for foundation size tokens */
+  --space-0: var(--size-0);
+  --space-px: var(--size-px);
+  --space-0-5: var(--size-0-5);
+  --space-1: var(--size-1);
+  --space-1-5: var(--size-1-5);
+  --space-2: var(--size-2);
+  --space-2-5: var(--size-2-5);
+  --space-3: var(--size-3);
+  --space-3-5: var(--size-3-5);
+  --space-4: var(--size-4);
+  --space-5: var(--size-5);
+  --space-6: var(--size-6);
+  --space-7: var(--size-7);
+  --space-8: var(--size-8);
+  --space-9: var(--size-9);
+  --space-10: var(--size-10);
+  --space-11: var(--size-11);
+  --space-12: var(--size-12);
+  --space-14: var(--size-14);
+  --space-16: var(--size-16);
+  --space-20: var(--size-20);
+  --space-24: var(--size-24);
+  --space-28: var(--size-28);
+  --space-32: var(--size-32);
+  
+  /* Semantic spacing purposes */
   --space-component-gap: var(--size-4);      /* Gap within components */
   --space-section-gap: var(--size-12);       /* Gap between sections */
   --space-content-padding: var(--size-6);    /* Content padding */
@@ -119,9 +150,49 @@
   --text-body-small: var(--text-sm);
   --text-caption: var(--text-xs);
   
+  /* Line Heights (aliases for foundation tokens) */
+  --leading-none: var(--line-height-none);
+  --leading-tight: var(--line-height-tight);
+  --leading-snug: var(--line-height-snug);
+  --leading-normal: var(--line-height-normal);
+  --leading-relaxed: var(--line-height-relaxed);
+  --leading-loose: var(--line-height-loose);
+  
+  /* Line height semantic alias */
+  --line-height-relaxed: var(--line-height-relaxed);
+  
+  /* Letter Spacing (aliases for foundation tokens) */
+  --tracking-tight: var(--letter-spacing-tight);
+  --tracking-normal: var(--letter-spacing-normal);
+  --tracking-wide: var(--letter-spacing-wide);
+  --tracking-wider: var(--letter-spacing-wider);
+  --tracking-widest: var(--letter-spacing-widest);
+  
+  /* Letter spacing semantic aliases */
+  --letter-spacing-tighter: var(--letter-spacing-tighter);
+  --letter-spacing-tight: var(--letter-spacing-tight);
+  --letter-spacing-wide: var(--letter-spacing-wide);
+  
+  /* Font Weights (aliases for foundation tokens) */
+  --font-light: var(--font-weight-light);
+  --font-normal: var(--font-weight-normal);
+  --font-medium: var(--font-weight-medium);
+  --font-semibold: var(--font-weight-semibold);
+  --font-bold: var(--font-weight-bold);
+  --font-extrabold: var(--font-weight-extrabold);
+  
+  /* Font weight semantic aliases */
+  --font-weight-bold: var(--font-weight-bold);
+  
   /* ============================================
      SEMANTIC ELEVATION (Shadows)
      ============================================ */
+  
+  /* Shadow aliases */
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+  --shadow-xl: var(--shadow-xl);
   
   --elevation-none: var(--shadow-none);
   --elevation-subtle: var(--shadow-xs);
@@ -145,15 +216,31 @@
   --border-width-medium: 2px;
   --border-width-thick: 4px;
   
+  /* Border radius aliases */
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+  --radius-2xl: var(--radius-2xl);
+  --radius-full: var(--radius-full);
+  
   --border-radius-small: var(--radius-sm);
   --border-radius-medium: var(--radius-md);
   --border-radius-large: var(--radius-lg);
   --border-radius-xlarge: var(--radius-xl);
   --border-radius-round: var(--radius-full);
   
+  /* Additional border colors */
+  --color-border-dark: var(--color-border-strong);
+  
   /* ============================================
      SEMANTIC TRANSITIONS
      ============================================ */
+  
+  /* Easing function aliases */
+  --ease-in: var(--ease-in);
+  --ease-out: var(--ease-out);
+  --ease-in-out: var(--ease-in-out);
   
   --transition-fast: var(--duration-150) var(--ease-out);
   --transition-base: var(--duration-200) var(--ease-out);
@@ -163,6 +250,14 @@
   /* ============================================
      SEMANTIC Z-INDEX
      ============================================ */
+  
+  /* Z-index aliases */
+  --z-0: var(--z-0);
+  --z-10: var(--z-10);
+  --z-20: var(--z-20);
+  --z-30: var(--z-30);
+  --z-40: var(--z-40);
+  --z-50: var(--z-50);
   
   --z-base: var(--z-0);
   --z-dropdown: 1000;
@@ -179,11 +274,23 @@
   
   --content-max-width: 70ch;   /* Optimal reading width */
   --prose-max-width: 75ch;     /* Prose content width */
+  
+  /* Legacy aliases for compatibility */
+  --content-width: 65ch;
+  --prose-width: 75ch;
+  
   --container-sm: 640px;
   --container-md: 768px;
   --container-lg: 1024px;
   --container-xl: 1280px;
   --container-2xl: 1536px;
+  
+  /* Breakpoints (for reference in JS) */
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
+  --breakpoint-2xl: 1536px;
 }
 
 /* ============================================

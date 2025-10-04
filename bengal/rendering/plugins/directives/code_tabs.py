@@ -15,6 +15,14 @@ __all__ = [
     'render_code_tab_item'
 ]
 
+# Pre-compiled regex patterns (compiled once, reused for all pages)
+_CODE_TAB_SPLIT_PATTERN = re.compile(r'^### Tab: (.+)$', re.MULTILINE)
+_CODE_BLOCK_EXTRACT_PATTERN = re.compile(r'```\w*\n(.*?)```', re.DOTALL)
+_CODE_TAB_ITEM_PATTERN = re.compile(
+    r'<div class="code-tab-item" data-lang="(.*?)" data-code="(.*?)"></div>',
+    re.DOTALL
+)
+
 
 class CodeTabsDirective(DirectivePlugin):
     """
@@ -39,8 +47,8 @@ class CodeTabsDirective(DirectivePlugin):
         """Parse code tabs directive."""
         content = self.parse_content(m)
         
-        # Split by tab markers
-        parts = re.split(r'^### Tab: (.+)$', content, flags=re.MULTILINE)
+        # Split by tab markers (using pre-compiled pattern)
+        parts = _CODE_TAB_SPLIT_PATTERN.split(content)
         
         tabs = []
         if len(parts) > 1:
@@ -51,8 +59,8 @@ class CodeTabsDirective(DirectivePlugin):
                     lang = parts[i].strip()
                     code_content = parts[i + 1].strip()
                     
-                    # Extract code from fenced block if present
-                    code_match = re.search(r'```\w*\n(.*?)```', code_content, re.DOTALL)
+                    # Extract code from fenced block if present (using pre-compiled pattern)
+                    code_match = _CODE_BLOCK_EXTRACT_PATTERN.search(code_content)
                     if code_match:
                         code = code_match.group(1).strip()
                     else:
@@ -82,10 +90,8 @@ def render_code_tabs(renderer, text, **attrs):
     """Render code tabs to HTML."""
     tab_id = f'code-tabs-{id(text)}'
     
-    # Extract code blocks from rendered text
-    # Pattern: <div class="code-tab-item" data-lang="..." data-code="..."></div>
-    pattern = r'<div class="code-tab-item" data-lang="(.*?)" data-code="(.*?)"></div>'
-    matches = re.findall(pattern, text, re.DOTALL)
+    # Extract code blocks from rendered text (using pre-compiled pattern)
+    matches = _CODE_TAB_ITEM_PATTERN.findall(text)
     
     if not matches:
         return f'<div class="code-tabs">{text}</div>'

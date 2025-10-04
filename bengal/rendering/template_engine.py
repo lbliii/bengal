@@ -63,10 +63,10 @@ class TemplateEngine:
             lstrip_blocks=True,
         )
         
-        # Add custom filters (legacy)
+        # Add custom filters and functions (core template helpers)
         env.filters['dateformat'] = self._filter_dateformat
         
-        # Add global functions (legacy)
+        # Add global functions (core template helpers)
         env.globals['url_for'] = self._url_for
         env.globals['asset_url'] = self._asset_url
         env.globals['get_menu'] = self._get_menu

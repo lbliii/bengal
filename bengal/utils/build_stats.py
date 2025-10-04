@@ -64,6 +64,10 @@ class BuildStats:
     incremental: bool = False
     skipped: bool = False
     
+    # Directive statistics
+    total_directives: int = 0
+    directives_by_type: Dict[str, int] = None
+    
     # Phase timings
     discovery_time_ms: float = 0
     taxonomy_time_ms: float = 0
@@ -81,6 +85,8 @@ class BuildStats:
             self.warnings = []
         if self.template_errors is None:
             self.template_errors = []
+        if self.directives_by_type is None:
+            self.directives_by_type = {}
     
     def add_warning(self, file_path: str, message: str, warning_type: str = 'other') -> None:
         """Add a warning to the build."""
@@ -89,6 +95,11 @@ class BuildStats:
     def add_template_error(self, error: Any) -> None:
         """Add a rich template error."""
         self.template_errors.append(error)
+    
+    def add_directive(self, directive_type: str) -> None:
+        """Track a directive usage."""
+        self.total_directives += 1
+        self.directives_by_type[directive_type] = self.directives_by_type.get(directive_type, 0) + 1
     
     @property
     def has_errors(self) -> bool:
@@ -214,6 +225,15 @@ def display_build_stats(stats: BuildStats, show_art: bool = True, output_dir: st
                f" ({stats.regular_pages} regular + {stats.generated_pages} generated)")
     click.echo(click.style("   ├─ ", fg='cyan') + f"Sections:    {click.style(str(stats.total_sections), fg='green', bold=True)}")
     click.echo(click.style("   ├─ ", fg='cyan') + f"Assets:      {click.style(str(stats.total_assets), fg='green', bold=True)}")
+    
+    # Directive statistics (if present)
+    if stats.total_directives > 0:
+        # Get top 3 directive types
+        top_types = sorted(stats.directives_by_type.items(), key=lambda x: x[1], reverse=True)[:3]
+        type_summary = ', '.join([f"{t}({c})" for t, c in top_types])
+        click.echo(click.style("   ├─ ", fg='cyan') + f"Directives:  {click.style(str(stats.total_directives), fg='magenta', bold=True)}" +
+                   f" ({type_summary})")
+    
     click.echo(click.style("   └─ ", fg='cyan') + f"Taxonomies:  {click.style(str(stats.taxonomies_count), fg='green', bold=True)}")
     
     # Build info

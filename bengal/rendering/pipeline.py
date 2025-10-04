@@ -15,6 +15,10 @@ from bengal.rendering.renderer import Renderer
 # Thread-local storage for parser instances (reuse parsers per thread)
 _thread_local = threading.local()
 
+# Cache for created directories (reduces syscalls in parallel builds)
+_created_dirs = set()
+_created_dirs_lock = threading.Lock()
+
 
 def _get_thread_parser(engine: Optional[str] = None) -> BaseMarkdownParser:
     """
@@ -135,7 +139,7 @@ class RenderingPipeline:
         
         page.parsed_ast = parsed_content
         page.toc = toc
-        page.toc_items = self._extract_toc_structure(toc)
+        # Note: toc_items is now a lazy property on Page (only extracted when accessed)
         
         # Stage 3: Extract links for validation
         page.extract_links()
@@ -160,8 +164,16 @@ class RenderingPipeline:
         Args:
             page: Page with rendered content
         """
-        # Ensure parent directory exists
-        page.output_path.parent.mkdir(parents=True, exist_ok=True)
+        # Ensure parent directory exists (with caching to reduce syscalls)
+        parent_dir = page.output_path.parent
+        
+        # Only create directory if not already done (thread-safe check)
+        if parent_dir not in _created_dirs:
+            with _created_dirs_lock:
+                # Double-check inside lock to avoid race condition
+                if parent_dir not in _created_dirs:
+                    parent_dir.mkdir(parents=True, exist_ok=True)
+                    _created_dirs.add(parent_dir)
         
         # Write rendered HTML
         with open(page.output_path, 'w', encoding='utf-8') as f:
@@ -202,59 +214,6 @@ class RenderingPipeline:
             output_rel_path = output_rel_path.parent / "index.html"
         
         return self.site.output_dir / output_rel_path
-    
-    def _extract_toc_structure(self, toc_html: str) -> list:
-        """
-        Parse TOC HTML into structured data for custom rendering.
-        
-        Args:
-            toc_html: HTML table of contents
-            
-        Returns:
-            List of TOC items with id, title, and level
-        """
-        if not toc_html:
-            return []
-        
-        from html.parser import HTMLParser
-        
-        class TOCParser(HTMLParser):
-            def __init__(self):
-                super().__init__()
-                self.items = []
-                self.current_item = None
-                self.depth = 0
-            
-            def handle_starttag(self, tag, attrs):
-                if tag == 'ul':
-                    self.depth += 1
-                elif tag == 'a':
-                    attrs_dict = dict(attrs)
-                    self.current_item = {
-                        'id': attrs_dict.get('href', '').lstrip('#'),
-                        'title': '',
-                        'level': self.depth
-                    }
-            
-            def handle_data(self, data):
-                if self.current_item is not None:
-                    self.current_item['title'] += data.strip()
-            
-            def handle_endtag(self, tag):
-                if tag == 'ul':
-                    self.depth -= 1
-                elif tag == 'a' and self.current_item:
-                    if self.current_item['title']:  # Only add if has content
-                        self.items.append(self.current_item)
-                    self.current_item = None
-        
-        try:
-            parser = TOCParser()
-            parser.feed(toc_html)
-            return parser.items
-        except Exception:
-            # If parsing fails, return empty list
-            return []
     
     def _preprocess_content(self, page: Page) -> str:
         """
@@ -310,4 +269,61 @@ class RenderingPipeline:
             elif not self.quiet:
                 print(f"  ⚠️  Error pre-processing {page.source_path}: {e}")
             return page.content
+
+
+def extract_toc_structure(toc_html: str) -> list:
+    """
+    Parse TOC HTML into structured data for custom rendering.
+    
+    This is a standalone function so it can be called from Page.toc_items
+    property for lazy evaluation.
+    
+    Args:
+        toc_html: HTML table of contents
+        
+    Returns:
+        List of TOC items with id, title, and level
+    """
+    if not toc_html:
+        return []
+    
+    from html.parser import HTMLParser
+    
+    class TOCParser(HTMLParser):
+        def __init__(self):
+            super().__init__()
+            self.items = []
+            self.current_item = None
+            self.depth = 0
+        
+        def handle_starttag(self, tag, attrs):
+            if tag == 'ul':
+                self.depth += 1
+            elif tag == 'a':
+                attrs_dict = dict(attrs)
+                self.current_item = {
+                    'id': attrs_dict.get('href', '').lstrip('#'),
+                    'title': '',
+                    'level': self.depth
+                }
+        
+        def handle_data(self, data):
+            if self.current_item is not None:
+                self.current_item['title'] += data.strip()
+        
+        def handle_endtag(self, tag):
+            if tag == 'ul':
+                self.depth -= 1
+            elif tag == 'a' and self.current_item:
+                if self.current_item['title']:  # Only add if has content
+                    self.items.append(self.current_item)
+                self.current_item = None
+    
+    try:
+        parser = TOCParser()
+        parser.feed(toc_html)
+        return parser.items
+    except Exception:
+        # If parsing fails, return empty list
+        return []
 

@@ -85,6 +85,11 @@ class CrossReferencePlugin:
         Returns:
             Text with [[link]] patterns replaced by HTML links
         """
+        # Quick rejection: most text doesn't have [[link]] patterns
+        # This saves expensive regex matching on 90%+ of text nodes
+        if '[[' not in text:
+            return text
+        
         def replace_xref(match: Match) -> str:
             ref = match.group(1).strip()
             text = match.group(2).strip() if match.group(2) else None

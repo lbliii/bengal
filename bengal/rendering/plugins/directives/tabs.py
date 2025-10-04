@@ -15,6 +15,13 @@ __all__ = [
     'render_tab_content'
 ]
 
+# Pre-compiled regex patterns (compiled once, reused for all pages)
+_TAB_SPLIT_PATTERN = re.compile(r'^### Tab: (.+)$', re.MULTILINE)
+_TAB_EXTRACT_PATTERN = re.compile(
+    r'<div class="tab-title">(.*?)</div>\s*<div class="tab-content">(.*?)</div>',
+    re.DOTALL
+)
+
 
 class TabsDirective(DirectivePlugin):
     """
@@ -41,8 +48,8 @@ class TabsDirective(DirectivePlugin):
         options = dict(self.parse_options(m))
         content = self.parse_content(m)
         
-        # Split content by tab markers: ### Tab: Title
-        parts = re.split(r'^### Tab: (.+)$', content, flags=re.MULTILINE)
+        # Split content by tab markers: ### Tab: Title (using pre-compiled pattern)
+        parts = _TAB_SPLIT_PATTERN.split(content)
         
         tab_items = []
         if len(parts) > 1:
@@ -109,10 +116,8 @@ def render_tabs(renderer, text, **attrs):
     """
     tab_id = attrs.get('id', f'tabs-{id(text)}')
     
-    # Extract titles and contents from the rendered HTML
-    # Pattern: <div class="tab-title">Title</div><div class="tab-content">Content</div>
-    pattern = r'<div class="tab-title">(.*?)</div>\s*<div class="tab-content">(.*?)</div>'
-    matches = re.findall(pattern, text, re.DOTALL)
+    # Extract titles and contents from the rendered HTML (using pre-compiled pattern)
+    matches = _TAB_EXTRACT_PATTERN.findall(text)
     
     if not matches:
         # Fallback: just wrap the content

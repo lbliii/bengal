@@ -3,14 +3,37 @@ Mistune directives package.
 
 Provides all documentation directives (admonitions, tabs, dropdown, code-tabs)
 as a single factory function for easy registration with Mistune.
+
+Also provides:
+- Directive caching for performance
+- Error handling and validation
 """
 
 from bengal.rendering.plugins.directives.admonitions import AdmonitionDirective
 from bengal.rendering.plugins.directives.tabs import TabsDirective
 from bengal.rendering.plugins.directives.dropdown import DropdownDirective
 from bengal.rendering.plugins.directives.code_tabs import CodeTabsDirective
+from bengal.rendering.plugins.directives.cache import (
+    DirectiveCache,
+    get_cache,
+    configure_cache,
+    clear_cache,
+    get_cache_stats,
+)
+from bengal.rendering.plugins.directives.errors import DirectiveError, format_directive_error
+from bengal.rendering.plugins.directives.validator import DirectiveSyntaxValidator
 
-__all__ = ['create_documentation_directives']
+__all__ = [
+    'create_documentation_directives',
+    'DirectiveCache',
+    'get_cache',
+    'configure_cache',
+    'clear_cache',
+    'get_cache_stats',
+    'DirectiveError',
+    'format_directive_error',
+    'DirectiveSyntaxValidator',
+]
 
 
 def create_documentation_directives():

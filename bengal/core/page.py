@@ -37,11 +37,13 @@ class Page:
     tags: List[str] = field(default_factory=list)
     version: Optional[str] = None
     toc: Optional[str] = None
-    toc_items: List[Dict[str, Any]] = field(default_factory=list)
     
     # References for navigation (set during site building)
     _site: Optional[Any] = field(default=None, repr=False)
     _section: Optional[Any] = field(default=None, repr=False)
+    
+    # Private cache for lazy toc_items property
+    _toc_items_cache: Optional[List[Dict[str, Any]]] = field(default=None, repr=False, init=False)
     
     def __post_init__(self) -> None:
         """Initialize computed fields."""
@@ -153,6 +155,27 @@ class Page:
             URL based on slug
         """
         return f"/{self.slug}/"
+    
+    @property
+    def toc_items(self) -> List[Dict[str, Any]]:
+        """
+        Get structured TOC data (lazy evaluation).
+        
+        Only extracts TOC structure when accessed by templates, saving
+        HTMLParser overhead for pages that don't use toc_items.
+        
+        Returns:
+            List of TOC items with id, title, and level
+        """
+        if self._toc_items_cache is None:
+            if self.toc:
+                # Import here to avoid circular dependency
+                from bengal.rendering.pipeline import extract_toc_structure
+                self._toc_items_cache = extract_toc_structure(self.toc)
+            else:
+                self._toc_items_cache = []
+        
+        return self._toc_items_cache
     
     # Navigation properties
     

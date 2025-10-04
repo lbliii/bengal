@@ -35,18 +35,36 @@ For detailed documentation on each plugin, see:
     - directives/ package
 """
 
+import warnings
+
 from bengal.rendering.plugins.variable_substitution import VariableSubstitutionPlugin
 from bengal.rendering.plugins.cross_references import CrossReferencePlugin
 from bengal.rendering.plugins.directives import create_documentation_directives
 
-# For backward compatibility, provide the old function name
+
 def plugin_documentation_directives(md):
     """
     DEPRECATED: Use create_documentation_directives() instead.
     
-    This function is maintained for backward compatibility but will be
-    removed in a future version.
+    This function will be removed in Bengal 2.0.
+    
+    Usage:
+        # Old (deprecated):
+        md = mistune.create_markdown(
+            plugins=[plugin_documentation_directives]
+        )
+        
+        # New (recommended):
+        md = mistune.create_markdown(
+            plugins=[create_documentation_directives()]
+        )
     """
+    warnings.warn(
+        "plugin_documentation_directives() is deprecated and will be removed in Bengal 2.0. "
+        "Use create_documentation_directives() instead.",
+        DeprecationWarning,
+        stacklevel=2
+    )
     return create_documentation_directives()(md)
 
 
@@ -58,7 +76,7 @@ __all__ = [
     # Directive factory
     'create_documentation_directives',
     
-    # Backward compatibility (deprecated)
+    # Deprecated (will be removed in Bengal 2.0)
     'plugin_documentation_directives',
 ]
 

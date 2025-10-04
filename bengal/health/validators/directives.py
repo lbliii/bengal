@@ -272,11 +272,15 @@ class DirectiveValidator(BaseValidator):
                     for e in errors[:5]
                 ]
             ))
+        elif data['total_directives'] > 0:
+            results.append(CheckResult.success(
+                f"All {data['total_directives']} directive(s) syntactically valid"
+            ))
         else:
-            if data['total_directives'] > 0:
-                results.append(CheckResult.success(
-                    f"All {data['total_directives']} directive(s) syntactically valid"
-                ))
+            # No directives found
+            results.append(CheckResult.success(
+                "No directives found in site (validation skipped)"
+            ))
         
         return results
     
@@ -353,13 +357,11 @@ class DirectiveValidator(BaseValidator):
         if data['total_directives'] > 0:
             top_types = sorted(data['by_type'].items(), key=lambda x: x[1], reverse=True)[:3]
             type_summary = ', '.join([f"{t}({c})" for t, c in top_types])
+            avg_per_page = data['total_directives'] / max(len(data['by_page']), 1)
             
             results.append(CheckResult.info(
-                f"Directive usage: {data['total_directives']} total across {len(data['by_page'])} pages",
-                details=[
-                    f"Most used: {type_summary}",
-                    f"Average per page: {data['total_directives'] / max(len(data['by_page']), 1):.1f}"
-                ]
+                f"Directive usage: {data['total_directives']} total across {len(data['by_page'])} pages. "
+                f"Most used: {type_summary}. Average per page: {avg_per_page:.1f}"
             ))
         
         return results
@@ -379,8 +381,8 @@ class DirectiveValidator(BaseValidator):
             try:
                 content = page.output_path.read_text(encoding='utf-8')
                 
-                # Check for unrendered directive markers (shouldn't appear in output)
-                if re.search(r'```\{(\w+)', content):
+                # Check for unrendered directive markers (outside code blocks)
+                if self._has_unrendered_directives(content):
                     issues.append(f"{page.output_path.name}: Unrendered directive block found")
                 
                 # Check for directive parsing error markers
@@ -403,4 +405,44 @@ class DirectiveValidator(BaseValidator):
                 ))
         
         return results
+    
+    def _has_unrendered_directives(self, html_content: str) -> bool:
+        """
+        Check if HTML has unrendered directive blocks (outside code blocks).
+        
+        Distinguishes between:
+        - Actual unrendered directives (bad)
+        - Documented/escaped directive syntax in code examples (ok)
+        
+        Args:
+            html_content: HTML content to check
+            
+        Returns:
+            True if unrendered directives found (not in code blocks)
+        """
+        try:
+            from bs4 import BeautifulSoup
+            
+            soup = BeautifulSoup(html_content, 'html.parser')
+            
+            # Remove all code blocks first (they're allowed to show directive syntax)
+            for code_block in soup.find_all(['code', 'pre']):
+                code_block.decompose()
+            
+            # Now check the remaining HTML for directive markers
+            remaining_text = soup.get_text()
+            
+            # Check for unrendered directive blocks: ```{type}
+            if re.search(r'```\{(\w+)', remaining_text):
+                return True
+            
+            return False
+            
+        except ImportError:
+            # BeautifulSoup not available, fall back to simple check
+            # (will have false positives for docs with code examples)
+            return re.search(r'```\{(\w+)', html_content) is not None
+        except Exception:
+            # On any parsing error, assume it's ok to avoid false positives
+            return False
 

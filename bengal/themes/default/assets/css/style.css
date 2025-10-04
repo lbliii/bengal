@@ -20,9 +20,6 @@
    BASE STYLES (Resets & Foundations)
    ============================================ */
 
-/* Legacy variables (will be phased out in favor of semantic tokens) */
-@import url('base/variables.css');
-
 @import url('base/reset.css');
 @import url('base/typography.css');
 @import url('base/utilities.css');
