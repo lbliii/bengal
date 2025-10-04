@@ -1,0 +1,156 @@
+{#
+  Documentation Navigation Sidebar
+  
+  Displays hierarchical navigation tree for documentation sites.
+  Shows all sections and pages with collapsible groups.
+  
+  Features:
+  - Hierarchical structure
+  - Active page highlighting
+  - Active trail marking
+  - Collapsible sections
+  - Keyboard accessible
+#}
+
+<nav class="docs-nav" aria-label="Documentation pages">
+  {# Logo/Home Link #}
+  <div class="docs-nav-header">
+    <a href="/" class="docs-nav-title">
+      {{ site.config.title }}
+    </a>
+  </div>
+  
+  {# Navigation Tree #}
+  <div class="docs-nav-tree">
+    {# Get all root-level sections #}
+    {% set root_sections = site.sections | selectattr('parent', 'none') | list %}
+    
+    {% for section in root_sections %}
+      {% set depth = 0 %}
+      {% include 'partials/docs-nav-section.html' %}
+    {% endfor %}
+  </div>
+</nav>
+
+<style>
+/* Documentation Navigation Styles */
+.docs-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.docs-nav-header {
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.docs-nav-title {
+  font-size: var(--text-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+.docs-nav-title:hover {
+  color: var(--color-primary);
+}
+
+.docs-nav-tree {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+/* Navigation Groups (Sections) */
+.docs-nav-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.docs-nav-group-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  width: 100%;
+  background: none;
+  border: none;
+  text-align: left;
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  border-radius: var(--border-radius-small);
+  transition: all var(--transition-fast);
+}
+
+.docs-nav-group-toggle:hover {
+  background: var(--color-bg-hover);
+}
+
+.docs-nav-group-toggle svg {
+  width: 14px;
+  height: 14px;
+  transition: transform var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.docs-nav-group-toggle[aria-expanded="true"] svg {
+  transform: rotate(90deg);
+}
+
+.docs-nav-group-items {
+  display: none;
+  flex-direction: column;
+  gap: 0.125rem;
+  padding-left: 1.25rem;
+  margin-top: 0.25rem;
+}
+
+.docs-nav-group-toggle[aria-expanded="true"] + .docs-nav-group-items {
+  display: flex;
+}
+
+/* Navigation Links */
+.docs-nav-link {
+  display: block;
+  padding: 0.5rem 0.75rem;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  border-radius: var(--border-radius-small);
+  border-left: 2px solid transparent;
+  margin-left: -2px;
+  transition: all var(--transition-fast);
+}
+
+.docs-nav-link:hover {
+  color: var(--color-text-primary);
+  background: var(--color-bg-hover);
+}
+
+.docs-nav-link.active {
+  color: var(--color-primary);
+  font-weight: var(--font-weight-medium);
+  background: var(--color-primary-light);
+  border-left-color: var(--color-primary);
+}
+
+[data-theme="dark"] .docs-nav-link.active {
+  background: rgba(33, 150, 243, 0.15);
+}
+
+/* Active trail (parent of active page) */
+.docs-nav-link.active-trail {
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-medium);
+}
+
+/* Nested sections */
+.docs-nav-group .docs-nav-group {
+  margin-left: 0.5rem;
+}
+</style>
+

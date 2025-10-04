@@ -177,9 +177,9 @@ Bengal SSG follows a modular architecture with clear separation of concerns to a
   - Configure section-wide settings (show/hide features)
   - Maintain DRY principles in frontmatter
 
-### 2. Cache System (NEW)
+### 2. Cache System
 
-Bengal implements an intelligent caching system for incremental builds, providing 18-42x faster rebuilds.
+Bengal implements an intelligent caching system for incremental builds. Benchmarks show 18-42x faster rebuilds on sites with 10-100 pages.
 
 #### Build Cache (`bengal/cache/build_cache.py`)
 - **Purpose**: Tracks file changes between builds to enable incremental rebuilds
@@ -216,18 +216,19 @@ Bengal implements an intelligent caching system for incremental builds, providin
 9. Save cache for next build
 ```
 
-**Key Features:**
-- ✅ Template dependency tracking (pages → templates/partials)
-- ✅ Taxonomy dependency tracking (tags → pages)
-- ✅ Config change detection (forces full rebuild)
-- ✅ Verbose mode (`--verbose` flag shows what changed)
-- ✅ Asset change detection (selective processing)
+**Implemented Features:**
+- Template dependency tracking (pages → templates/partials)
+- Taxonomy dependency tracking (tags → pages)
+- Config change detection (forces full rebuild)
+- Verbose mode (`--verbose` flag shows what changed)
+- Asset change detection (selective processing)
 
-**Performance Impact:**
-- Small sites (10 pages): 18x faster (0.223s → 0.012s)
-- Medium sites (50 pages): 42x faster (0.839s → 0.020s)
-- Large sites (100 pages): 36x faster (1.688s → 0.047s)
-- Expected for very large sites (1000+ pages): 100x+ faster
+**Performance Measurements (October 2025):**
+- Small sites (10 pages): 18.3x speedup (0.223s → 0.012s)
+- Medium sites (50 pages): 41.6x speedup (0.839s → 0.020s)
+- Large sites (100 pages): 35.6x speedup (1.688s → 0.047s)
+
+Performance on larger sites (1000+ pages) has not been benchmarked yet.
 
 **CLI Usage:**
 ```bash
@@ -247,16 +248,11 @@ Parse → Build AST → Apply Templates → Render Output → Post-process
 ```
 
 #### Template Functions (`bengal/rendering/template_functions/`)
-- **Purpose**: Provide **75 custom filters and functions** for templates with **99% use case coverage**
-- **Organization**: Modular design with self-registering modules across **15 focused modules**
-- **No God Objects**: Each module has single responsibility
-- **Coverage**: **335 tests, 83%+ coverage** across all function modules
-- **Competitive Position**:
-  - 🥇 **Best Python SSG** (5x more than Pelican)
-  - 🥈 **Rivals Hugo** (99% use case coverage with 37.5% function count)
-  - 🏆 **Exceeds Jekyll** (125% function coverage)
-  - See [Competitive Analysis](plan/COMPETITIVE_ANALYSIS_TEMPLATE_METHODS.md) for detailed comparison
-- **Quick Reference**: [Template Functions Summary](plan/TEMPLATE_FUNCTIONS_SUMMARY.md)
+- **Purpose**: Provide 75 custom filters and functions for templates
+- **Organization**: Modular design with self-registering modules across 15 focused modules
+- **Architecture**: Each module has single responsibility (no monolithic classes)
+- **Testing**: 335 tests with 71-98% coverage across function modules
+- **Documentation**: See [Template Functions Summary](plan/TEMPLATE_FUNCTIONS_SUMMARY.md) and [Competitive Analysis](plan/COMPETITIVE_ANALYSIS_TEMPLATE_METHODS.md)
 - **Phase 1 - Essential Functions (30)**:
   - **Strings (10 functions)**: `truncatewords`, `slugify`, `markdownify`, `strip_html`, `excerpt`, `reading_time`, etc.
   - **Collections (8 functions)**: `where`, `where_not`, `group_by`, `sort_by`, `limit`, `offset`, `uniq`, `flatten`
@@ -282,8 +278,8 @@ Parse → Build AST → Apply Templates → Render Output → Post-process
 - **Factory Pattern**: `create_markdown_parser(engine)` returns appropriate parser instance
 - **Thread-Local Caching**: Parser instances reused per thread for performance
 - **Supported Engines**:
-  - **`python-markdown`** (default, legacy): Feature-rich, slower (3.78s for 78 pages)
-  - **`mistune`** (recommended): Fast parser with full doc features (2.18s for 78 pages, **42% faster**)
+  - **`python-markdown`** (default): Feature-rich (3.78s for 78 pages)
+  - **`mistune`** (recommended): Faster parser with full doc features (2.18s for 78 pages, 42% faster)
 - **Configuration**: Select engine via `bengal.toml`:
   ```toml
   [build]
@@ -346,12 +342,12 @@ Conditionals and loops belong in **templates**, not markdown:
 </article>
 ```
 
-**Why This Design:**
-- ✅ **Fast**: Single-pass parsing (no preprocessing)
-- ✅ **Simple**: No code block protection needed
-- ✅ **Natural**: Code blocks work without escaping
-- ✅ **Clean**: Content vs logic separation (like Hugo)
-- ✅ **Maintainable**: Less complex, easier to understand
+**Design Rationale:**
+- Single-pass parsing (no preprocessing step)
+- No code block protection needed
+- Code blocks work without escaping
+- Content vs logic separation (similar to Hugo)
+- Less complex, easier to maintain
 
 **Supported:**
 - `{{ page.metadata.xxx }}` - Frontmatter values
@@ -369,12 +365,12 @@ Conditionals and loops belong in **templates**, not markdown:
 | python-markdown | 3.78s | 20.6 pages/s | 100% (attribute lists) |
 | **mistune** | **2.18s** | **35.8 pages/s** | 95% (no attribute lists) |
 
-**Recommendation**: Use Mistune for documentation sites (fastest Python SSG)
+Mistune is recommended for most use cases due to faster performance.
 
 #### Template Engine (`bengal/rendering/template_engine.py`)
 - Jinja2-based templating
 - Supports nested templates and partials
-- **30+ custom template functions** organized in focused modules
+- 75 custom template functions organized in focused modules
 - Multiple template directories (custom, theme, default)
 - Template dependency tracking for incremental builds
 - Tracks includes, extends, and imports automatically
@@ -437,18 +433,112 @@ Conditionals and loops belong in **templates**, not markdown:
 - Automatic rebuild on changes
 - Hot reload support (future enhancement)
 
-### 8. CLI (`bengal/cli.py`)
+### 8. Health Check System (`bengal/health/`)
+
+Bengal includes a comprehensive health check system that validates builds across all components.
+
+#### Health Check (`bengal/health/health_check.py`)
+- **Purpose**: Orchestrates validators and produces unified health reports
+- **Features**:
+  - Modular validator architecture
+  - Fast execution (< 100ms per validator)
+  - Configurable per-validator enable/disable
+  - Console and JSON report formats
+  - Integration with build stats
+- **Usage**:
+  ```python
+  from bengal.health import HealthCheck
+  
+  health = HealthCheck(site)
+  report = health.run(build_stats=stats)
+  print(report.format_console())
+  ```
+
+#### Base Validator (`bengal/health/base.py`)
+- **Purpose**: Abstract base class for all validators
+- **Interface**: `validate(site) -> List[CheckResult]`
+- **Features**:
+  - Independent execution (no validator dependencies)
+  - Error handling and crash recovery
+  - Performance tracking per validator
+  - Configuration-based enablement
+
+#### Health Report (`bengal/health/report.py`)
+- **Purpose**: Unified reporting structure for health check results
+- **Components**:
+  - `CheckStatus`: SUCCESS, INFO, WARNING, ERROR
+  - `CheckResult`: Individual check result with recommendation
+  - `ValidatorReport`: Results from a single validator
+  - `HealthReport`: Aggregated report from all validators
+- **Formats**:
+  - Console output (colored, formatted)
+  - JSON output (machine-readable)
+  - Summary statistics (pass/warning/error counts)
+
+#### Validators (`bengal/health/validators/`)
+
+**Phase 1 - Basic Validators:**
+- **OutputValidator**: Validates page sizes, asset presence, file structure
+- **ConfigValidatorWrapper**: Configuration validity (integrates existing validator)
+- **MenuValidator**: Menu structure integrity, circular reference detection
+- **LinkValidatorWrapper**: Broken links detection (internal and external)
+
+**Phase 2 - Build-Time Validators:**
+- **NavigationValidator**: Page navigation (next/prev, breadcrumbs, ancestors)
+- **TaxonomyValidator**: Tags, categories, generated pages correctness
+- **RenderingValidator**: HTML quality, template function usage, output integrity
+
+**Phase 3 - Advanced Validators:**
+- **CacheValidator**: Incremental build cache integrity and consistency
+- **PerformanceValidator**: Build performance metrics and bottleneck detection
+
+#### Configuration
+Health checks can be configured via `bengal.toml`:
+```toml
+[health_check]
+# Globally enable/disable health checks
+validate_build = true
+
+# Per-validator configuration
+[health_check.validators]
+output = true
+config = true
+menu = true
+links = true
+navigation = true
+taxonomy = true
+rendering = true
+cache = true
+performance = true
+```
+
+#### Integration
+Health checks run automatically after builds in strict mode and can be triggered manually:
+```python
+# Automatic validation in strict mode
+site.config["strict_mode"] = True
+stats = site.build()
+
+# Manual validation
+from bengal.health import HealthCheck
+health = HealthCheck(site)
+report = health.run(build_stats=stats)
+```
+
+### 9. CLI (`bengal/cli.py`)
 - Click-based command-line interface
 - Commands:
   - `bengal build`: Build the site
   - `bengal build --incremental`: Incremental build (only changed files)
   - `bengal build --parallel`: Parallel build (default)
+  - `bengal build --strict`: Fail on template errors (recommended for CI)
+  - `bengal build --debug`: Show debug output and full tracebacks
   - `bengal serve`: Start dev server
   - `bengal clean`: Clean output
   - `bengal new site/page`: Create new content
   - `bengal --version`: Show version
 
-### 9. Utilities (`bengal/utils/`)
+### 10. Utilities (`bengal/utils/`)
 
 #### Paginator (`bengal/utils/pagination.py`)
 - **Purpose**: Generic pagination utility for splitting long lists
@@ -472,21 +562,21 @@ Conditionals and loops belong in **templates**, not markdown:
 - **Clear Dependencies**: Site → Sections → Pages (one direction)
 
 ### 3. Performance Optimization
-- **Parallel Processing**: ✅ Fully Implemented!
-  - Pages: Rendered in parallel using ThreadPoolExecutor
-  - Assets: Processed in parallel for 5+ assets (2-4x speedup)
-  - Post-processing: Sitemap, RSS, link validation run concurrently (2x speedup)
+- **Parallel Processing** (implemented):
+  - Pages rendered in parallel using ThreadPoolExecutor
+  - Assets processed in parallel for 5+ assets (2-4x speedup measured)
+  - Post-processing: Sitemap, RSS, link validation run concurrently (2x speedup measured)
   - Smart thresholds avoid thread overhead for tiny workloads
   - Thread-safe error handling and output
   - Configurable via single `parallel` flag (default: true)
   - Configurable worker count (`max_workers`, default: auto-detect)
-- **Incremental Builds**: ✅ Fully Implemented!
+- **Incremental Builds** (implemented):
   - SHA256 file hashing for change detection
   - Dependency graph tracking (pages → templates/partials)
   - Template change detection (rebuilds only affected pages)
   - Granular taxonomy tracking (only rebuilds affected tag pages)
   - Verbose mode for debugging (`--verbose` flag)
-  - 18-42x faster for single-file changes (validated)
+  - 18-42x faster for single-file changes (measured on 10-100 page sites)
   - Automatic caching with `.bengal-cache.json`
 - **Caching**: Build cache persists between builds
 - **Lazy Loading**: Parse content only when needed
@@ -529,7 +619,7 @@ Output Files
 
 ### Current Optimizations
 1. **Parallel Processing**: Pages, assets, and post-processing tasks run concurrently
-2. **Incremental Builds**: Only rebuild changed files (50-900x speedup)
+2. **Incremental Builds**: Only rebuild changed files (18-42x speedup measured)
 3. **Smart Thresholds**: Automatic detection of when parallelism is beneficial
 4. **Efficient File I/O**: Thread-safe concurrent file operations
 5. **Build Cache**: Persists file hashes and dependencies between builds
@@ -537,24 +627,22 @@ Output Files
 
 ### Performance Benchmarks (October 2025)
 - **Full Builds**:
-  - Small sites (10 pages): 0.29s ✅
-  - Medium sites (100 pages): 1.66s ✅
-  - Large sites (500 pages): 7.95s ✅
+  - Small sites (10 pages): 0.29s
+  - Medium sites (100 pages): 1.66s
+  - Large sites (500 pages): 7.95s
 - **Parallel Processing**:
-  - 50 assets: 3.01x speedup
-  - 100 assets: 4.21x speedup
-  - Post-processing: 2.01x speedup
-- **Incremental Builds** (validated October 3, 2025):
-  - Small sites: 18.3x speedup (0.223s → 0.012s)
-  - Medium sites: 41.6x speedup (0.839s → 0.020s)
-  - Large sites: 35.6x speedup (1.688s → 0.047s)
-- **Combined**: Full builds meet all targets, incremental builds near-instant
+  - 50 assets: 3.01x speedup vs sequential
+  - 100 assets: 4.21x speedup vs sequential
+  - Post-processing: 2.01x speedup vs sequential
+- **Incremental Builds**:
+  - Small sites (10 pages): 18.3x speedup (0.223s → 0.012s)
+  - Medium sites (50 pages): 41.6x speedup (0.839s → 0.020s)
+  - Large sites (100 pages): 35.6x speedup (1.688s → 0.047s)
 
-### Future Optimizations
+### Potential Future Optimizations
 1. **Content Caching**: Cache parsed Markdown AST between builds
 2. **Asset Deduplication**: Share common assets across pages
 3. **Build Profiling**: Identify bottlenecks with detailed timing
-4. **Parallel Asset Processing**: Process assets in parallel (planned)
 
 ## Extension Points
 
@@ -608,15 +696,27 @@ Bengal uses a comprehensive testing approach with pytest and coverage tracking.
 
 ### Coverage Goals
 
-| Component | Target | Status |
-|-----------|--------|--------|
-| Cache (BuildCache, DependencyTracker) | 95%+ | ✅ 95% (32 tests) |
-| Utils (Paginator) | 95%+ | ✅ 96% (10 tests) |
-| Parallel Processing (Assets, Post-processing) | 90%+ | ✅ Tested (12 tests) |
-| Core (Page, Site, Section) | 90%+ | ⏳ In Progress |
-| Rendering Pipeline | 85%+ | ⏳ Planned |
-| CLI | 80%+ | ⏳ Planned |
-| **Overall Target** | **85%** | 🎯 Goal |
+| Component | Target | Current | Status |
+|-----------|--------|---------|--------|
+| Cache (BuildCache, DependencyTracker) | 95%+ | 95% | ✅ 32 tests |
+| Utils (Paginator) | 95%+ | 96% | ✅ 10 tests |
+| Postprocess (RSS, Sitemap) | 95%+ | 96% | ✅ Complete |
+| Core Navigation & Menu | 90%+ | 98% | ✅ 13 tests |
+| Orchestration (Taxonomy, Asset, Render) | 85%+ | 78-91% | ✅ Tested |
+| Template Functions (15 modules) | 85%+ | 71-98% | ✅ 335 tests |
+| Rendering Pipeline | 80%+ | 71-87% | ⚠️ Partial |
+| Parallel Processing | 80%+ | 90% | ✅ 12 tests |
+| Health Validators (9 validators) | 75%+ | 13-98% | ⚠️ In Progress |
+| Discovery (Content, Asset) | 80%+ | 75-81% | ⚠️ In Progress |
+| CLI | 75%+ | 0% | ❌ Not Started |
+| Dev Server | 75%+ | 0% | ❌ Not Started |
+| **Overall** | **85%** | **64%** | 🎯 **Gap: 21%** |
+
+**Test Statistics (as of October 2025):**
+- Total tests: 475 passing, 4 skipped, 1 failing
+- Lines covered: 2,881 of 4,517 (64%)
+- Branches: Not tracked yet
+- Test execution time: ~15 seconds
 
 ### Test Types
 
@@ -670,134 +770,86 @@ Located in `tests/conftest.py`:
 - `site_with_content` - Site with sample content
 - `mock_template_engine` - Mocked template engine
 
-### Current Status
+### Current Status (October 2025)
 
-- ✅ Test infrastructure complete
-- ✅ Pytest configuration
-- ✅ Shared fixtures
-- ✅ Paginator test suite: 10 tests, 96% coverage
-- ✅ Cache test suites: 32 tests, 95% coverage
-  - BuildCache: 19 tests, 93% coverage
-  - DependencyTracker: 13 tests, 98% coverage
-- ✅ Parallel processing test suite: 12 tests
-  - Asset processing: 4 tests
-  - Post-processing: 3 tests
-  - Configuration: 3 tests
-  - Thread safety: 2 tests
-- ⏳ Core component tests in progress
-- ⏳ Integration tests planned
+**Completed:**
+- Test infrastructure (pytest, fixtures, conftest)
+- Paginator: 10 tests, 96% coverage
+- Cache system: 32 tests, 95% coverage
+  - BuildCache: 19 tests
+  - DependencyTracker: 13 tests
+- Parallel processing: 12 tests, 90% coverage
+- Navigation & Menu: 13 tests, 98% coverage
+- Cascade system: 2 integration tests
+- Template functions: 335 tests across 15 modules
+- Postprocess (RSS/Sitemap): 96% coverage
+- Orchestration: Partial coverage (78-91%)
+- Mistune parser: Basic tests
+
+**In Progress:**
+- Health validators: 9 validators, 13-98% coverage
+- Rendering pipeline: 71-87% coverage
+- Discovery system: 75-81% coverage
+- Incremental builds: 34% coverage
+- Build orchestration: 78% coverage
+
+**Not Started:**
+- CLI tests: 0% coverage
+- Dev server tests: 0% coverage
+- E2E tests: Minimal coverage
+- Integration tests: Only 2 test files
+
+**Gaps to Address:**
+1. CLI and dev server testing (needed for production readiness)
+2. Health validator coverage improvement
+3. Incremental build test coverage
+4. More integration and E2E tests
+5. Overall gap: 21% to reach 85% target
 
 For detailed testing strategy, see `plan/TEST_STRATEGY.md`.
 
-## Recent Additions
-
-### Page Navigation System (October 2025)
-- **Rich Navigation Properties**: `next`, `prev`, `next_in_section`, `prev_in_section`
-- **Hierarchical Navigation**: `parent`, `ancestors` for breadcrumbs
-- **Type Checking**: `is_home`, `is_section`, `is_page`, `kind`
-- **Comparison Methods**: `eq()`, `in_section()`, `is_ancestor()`, `is_descendant()`
-- **Section Properties**: `regular_pages`, `sections`, `regular_pages_recursive`
-- **Template Components**: Breadcrumbs and page navigation partials
-- **Automatic Setup**: References configured during content discovery
-
-### Cascade System (October 2025)
-- **Frontmatter Inheritance**: Section `_index.md` can define cascading metadata
-- **Hierarchical Accumulation**: Child sections extend parent cascades
-- **Precedence Rules**: Page values override cascaded values
-- **Use Cases**: Consistent layouts, section-wide settings, DRY frontmatter
-- **Automatic Application**: Applied during content discovery phase
-
-### Taxonomy System
-- **Automatic Collection**: Tags and categories extracted from all pages
-- **Dynamic Pages**: Tag index and individual tag pages auto-generated
-- **Organized Data**: Taxonomies stored in structured format for templates
-
-### Dynamic Page Generation
-- **Archive Pages**: Automatically created for sections (e.g., `/posts/`)
-- **Tag Pages**: Individual pages for each tag (e.g., `/tags/tutorial/`)
-- **Tag Index**: Central page listing all tags (`/tags/`)
-- **Virtual Pages**: Generated pages behave like real pages in the system
-
-### Pagination System
-- **Generic Paginator**: Reusable utility class for any list
-- **Automatic Pagination**: Archives and tag pages paginate when > 10 items
-- **URL Structure**: Page 1 at base URL, subsequent at `/page/N/`
-- **Template Context**: Full pagination data (current, total, next, previous)
-- **Configurable**: Per-page count configurable globally or per-section
-
-### Theme Enhancements
-- **Breadcrumb Navigation**: Auto-generated from page ancestors
-- **Page Navigation**: Previous/Next links with beautiful styling
-- **Table of Contents (TOC)**: Auto-generated from page headings
-  - Sidebar navigation on desktop
-  - Sticky positioning for easy access
-  - JavaScript highlighting of active section
-  - Responsive mobile display
-- **404 Page**: Professional error page with helpful navigation
-- **Responsive Pagination Controls**: With proper accessibility
-- **Template Partials**: Reusable components (article-card, tag-list, pagination, breadcrumbs, page-navigation)
-
 ## Roadmap
 
-**Completed:**
-- [x] Core object model
-- [x] Rendering pipeline
-- [x] CLI basics
-- [x] Dev server
-- [x] Taxonomy system
-- [x] Dynamic page generation
-- [x] Pagination system
-- [x] Production-ready default theme
-- [x] Test infrastructure (pytest, coverage, fixtures)
-- [x] Cache test suites (BuildCache, DependencyTracker: 32 tests, 95% coverage)
-- [x] **Incremental builds - Complete!** 🎉
-  - ✅ File change detection with SHA256 hashing
-  - ✅ Dependency graph tracking (pages → templates)
-  - ✅ Template dependency tracking during rendering
-  - ✅ Granular tag change detection (only rebuilds affected tag pages)
-  - ✅ Config change detection (forces full rebuild)
-  - ✅ Selective page/asset rebuilding
-  - ✅ Verbose mode for change reporting
-  - ✅ 18-42x faster rebuilds (validated October 3, 2025)
-- [x] **Template Functions - All Phases Complete!** 🎉🎉🎉
-  - ✅ **75 template functions** across 15 focused modules
-  - ✅ Modular, self-registering architecture (no god objects)
-  - ✅ **335 unit tests** with 80%+ coverage
-  - ✅ Phase 1 (30 functions): Strings, Collections, Math, Dates, URLs
-  - ✅ Phase 2 (25 functions): Content, Data, Advanced strings, Files, Advanced collections
-  - ✅ Phase 3 (20 functions): Images, SEO, Debug, Taxonomies, Pagination
-  - ✅ Comprehensive documentation with examples
-  - ✅ **99% use case coverage achieved**
-  - ✅ **Feature parity with Hugo/Jekyll**
+**Completed (October 2025):**
+- Core object model (Page, Section, Site, Asset)
+- Rendering pipeline with multi-engine support
+- CLI with incremental and parallel build flags
+- Development server with file watching
+- Taxonomy system (tags, categories)
+- Dynamic page generation (archives, tag pages)
+- Pagination system
+- Default theme with responsive design
+- Test infrastructure (pytest, coverage, fixtures)
+- Health check system (9 validators)
+- Page navigation system (next/prev, breadcrumbs, ancestors)
+- Cascade system (frontmatter inheritance)
+- Navigation menu system (hierarchical, config-driven)
+- Table of contents (auto-generated from headings)
+- Incremental builds:
+  - File change detection with SHA256 hashing
+  - Dependency graph tracking (pages → templates)
+  - 18-42x faster rebuilds (benchmarked on 10-100 page sites)
+- Template functions (75 functions across 15 modules, 335 tests)
+- Parallel processing (2-4x speedup for assets/post-processing)
+- Mistune parser integration (42% faster than python-markdown)
 
-**Recently Completed:**
-- [x] **Page Navigation System** - Rich navigation properties (next, prev, ancestors, etc.)! 🎉
-- [x] **Cascade System** - Frontmatter inheritance from sections to pages! 🎉
-- [x] **Navigation Menu System** - Config-driven, hierarchical menus with dropdowns! 🎉
-- [x] **Table of Contents (TOC)** - Auto-generated from headings! 🎉
-- [x] **Menu System Tests** - 13 comprehensive tests, 98% coverage
-- [x] **Parallel asset processing** - 2-4x speedup achieved! 🎉
-- [x] **Parallel post-processing** - 2x speedup achieved! 🎉
-- [x] **Parallel processing tests** - 12 comprehensive tests
-- [x] **Performance benchmarks** - Validated 2-4x speedup claims
-- [x] **Mistune Parser Integration** - 42% faster builds, full doc features! 🎉
-  - Multi-engine architecture with factory pattern
-  - Custom plugins: admonitions, directives (tabs, dropdowns)
-  - Thread-local parser caching
-  - Comprehensive documentation
+**Current Priorities:**
+- Test coverage improvements (current: 64%, target: 85%):
+  - CLI tests: 0% → 75%
+  - Dev server tests: 0% → 75%
+  - Health validator tests: improve consistency (currently 13-98%)
+  - Incremental build tests: 34% → 80%
+  - Rendering pipeline tests: 71-87% → 85%
+  - More integration and E2E tests
+- Documentation site with template function reference
+- Example templates demonstrating available functions
+- Enhanced asset pipeline (minification, optimization)
+- Plugin system with build hooks
+- Performance benchmarking against other SSGs
 
-**Next Priorities:**
-- [ ] Documentation site with comprehensive template function reference
-- [ ] Example templates showcasing all 75 functions
-- [ ] Core component tests (Page, Site, Section) - 90% coverage target
-- [ ] Enhanced asset pipeline (robust minification, optimization)
-- [ ] Plugin system with hooks
-- [ ] Performance benchmarking vs Hugo/Jekyll
-
-**Future:**
-- [ ] Hot reload in browser
-- [ ] Build caching
-- [ ] Multi-language support
-- [ ] Search functionality
-- [ ] Content versioning
+**Future Considerations:**
+- Hot reload in browser
+- Multi-language support (i18n)
+- Built-in search functionality
+- Content versioning system
 

@@ -2,20 +2,40 @@
  * Bengal SSG Default Theme
  * Main Stylesheet
  * 
- * This file imports all component styles in the correct order
+ * This file imports all component styles in the correct order.
+ * Following CUBE CSS methodology: Composition, Utility, Block, Exception
  */
 
 /* ============================================
-   BASE STYLES (Order matters!)
+   DESIGN TOKENS (Variables First!)
    ============================================ */
 
+/* Foundation tokens (primitives - never use directly) */
+@import url('tokens/foundation.css');
+
+/* Semantic tokens (purpose-based - use these in components) */
+@import url('tokens/semantic.css');
+
+/* ============================================
+   BASE STYLES (Resets & Foundations)
+   ============================================ */
+
+/* Legacy variables (will be phased out in favor of semantic tokens) */
 @import url('base/variables.css');
+
 @import url('base/reset.css');
 @import url('base/typography.css');
 @import url('base/utilities.css');
+@import url('base/accessibility.css');
 
 /* ============================================
-   LAYOUT STYLES
+   COMPOSITION (Layout Primitives)
+   ============================================ */
+
+@import url('composition/layouts.css');
+
+/* ============================================
+   LAYOUT STYLES (Legacy - will be refactored)
    ============================================ */
 
 @import url('layouts/grid.css');
@@ -39,6 +59,8 @@
 @import url('components/navigation.css');
 @import url('components/badges.css');
 @import url('components/widgets.css');
+@import url('components/search.css');
+@import url('components/hero.css');
 
 /* ============================================
    PAGE-SPECIFIC STYLES

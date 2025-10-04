@@ -22,9 +22,9 @@ class TemplateEngine:
             site: Site instance
         """
         self.site = site
-        self.env = self._create_environment()
+        self.template_dirs = []  # Initialize before _create_environment populates it
+        self.env = self._create_environment()  # This will populate self.template_dirs
         self._dependency_tracker = None  # Set by RenderingPipeline for incremental builds (private attr)
-        self.template_dirs = []  # Will be populated in _create_environment
     
     def _create_environment(self) -> Environment:
         """
@@ -52,7 +52,7 @@ class TemplateEngine:
         if default_templates.exists():
             template_dirs.append(str(default_templates))
         
-        # Store for dependency tracking
+        # Store for dependency tracking (convert back to Path objects)
         self.template_dirs = [Path(d) for d in template_dirs]
         
         # Create environment

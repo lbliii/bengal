@@ -1,0 +1,334 @@
+/**
+ * Bengal SSG Default Theme
+ * Accessibility & Focus States
+ * 
+ * Ensures all interactive elements have visible, accessible focus indicators
+ * that meet WCAG 2.1 AA standards.
+ */
+
+/* ============================================
+   FOCUS VISIBLE STYLES
+   ============================================ */
+
+/**
+ * Modern focus-visible selector
+ * Only shows outline when navigating via keyboard
+ */
+*:focus {
+  outline: none;
+}
+
+*:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+  border-radius: var(--border-radius-small);
+  transition: outline var(--transition-fast);
+}
+
+/* ============================================
+   LINKS
+   ============================================ */
+
+a:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 3px;
+  border-radius: var(--border-radius-small);
+}
+
+/* Links in navigation */
+nav a:focus-visible {
+  outline-offset: 2px;
+  background-color: var(--color-bg-hover);
+}
+
+/* ============================================
+   BUTTONS
+   ============================================ */
+
+button:focus-visible,
+.btn:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(33, 150, 243, 0.1);
+}
+
+/* Theme toggle button */
+.theme-toggle:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(33, 150, 243, 0.15);
+}
+
+/* ============================================
+   FORMS
+   ============================================ */
+
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 0;
+  border-color: var(--color-border-focus);
+  box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
+}
+
+/* ============================================
+   SKIP LINKS
+   ============================================ */
+
+.skip-link {
+  position: absolute;
+  top: -100px;
+  left: 0;
+  padding: 0.75rem 1rem;
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+  font-weight: var(--font-weight-semibold);
+  text-decoration: none;
+  border-radius: 0 0 var(--border-radius-medium) 0;
+  box-shadow: var(--elevation-high);
+  z-index: var(--z-modal);
+  transition: top var(--transition-base);
+}
+
+.skip-link:focus {
+  top: 0;
+  outline: 2px solid var(--color-text-inverse);
+  outline-offset: -4px;
+}
+
+/* ============================================
+   MENU & NAVIGATION
+   ============================================ */
+
+/* Mobile menu toggle */
+.mobile-nav-toggle:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+  background-color: var(--color-bg-hover);
+}
+
+/* Menu items */
+.nav-main a:focus-visible,
+.mobile-nav a:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: -2px;
+  background-color: var(--color-bg-hover);
+}
+
+/* ============================================
+   TABLE OF CONTENTS
+   ============================================ */
+
+.toc a:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: -2px;
+  background-color: var(--color-bg-tertiary);
+  border-left-color: var(--color-border-focus);
+}
+
+/* ============================================
+   CARDS
+   ============================================ */
+
+.card:focus-within {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+  box-shadow: var(--elevation-medium);
+}
+
+/* ============================================
+   PAGINATION
+   ============================================ */
+
+.pagination a:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(33, 150, 243, 0.1);
+}
+
+/* ============================================
+   CODE BLOCKS
+   ============================================ */
+
+.code-copy-button:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(33, 150, 243, 0.15);
+}
+
+/* ============================================
+   TABS
+   ============================================ */
+
+.tab-button:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: -2px;
+  z-index: 1;
+}
+
+/* ============================================
+   ACCORDIONS / COLLAPSIBLE
+   ============================================ */
+
+.accordion-button:focus-visible,
+[aria-expanded]:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+  background-color: var(--color-bg-hover);
+}
+
+/* ============================================
+   SCREEN READER ONLY CONTENT
+   ============================================ */
+
+.sr-only,
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Allow screen reader text to be focusable when navigated to via keyboard */
+.sr-only-focusable:active,
+.sr-only-focusable:focus {
+  position: static;
+  width: auto;
+  height: auto;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+}
+
+/* ============================================
+   HIGH CONTRAST MODE SUPPORT
+   ============================================ */
+
+@media (prefers-contrast: high) {
+  *:focus-visible {
+    outline-width: 3px;
+    outline-offset: 3px;
+  }
+  
+  .skip-link:focus {
+    outline-width: 3px;
+  }
+}
+
+/* ============================================
+   REDUCED MOTION
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  *:focus-visible {
+    transition: none;
+  }
+  
+  .skip-link {
+    transition: none;
+  }
+}
+
+/* ============================================
+   DARK MODE ADJUSTMENTS
+   ============================================ */
+
+[data-theme="dark"] *:focus-visible {
+  outline-color: var(--color-border-focus);
+  box-shadow: 0 0 0 4px rgba(96, 165, 250, 0.15);
+}
+
+[data-theme="dark"] .skip-link:focus {
+  outline-color: var(--color-text-inverse);
+}
+
+/* ============================================
+   KEYBOARD NAVIGATION INDICATORS
+   ============================================ */
+
+/**
+ * Add subtle indicator when user is navigating with keyboard
+ * This helps users know when keyboard navigation is active
+ */
+body.user-is-tabbing *:focus {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+}
+
+/* JavaScript will add .user-is-tabbing class on Tab key press */
+
+/* ============================================
+   FOCUS WITHIN (Parent Container)
+   ============================================ */
+
+/* Highlight parent containers when child has focus */
+.nav-main:focus-within,
+.mobile-nav:focus-within {
+  /* Optional: Add subtle background to show active navigation */
+}
+
+/* ============================================
+   CUSTOM FOCUS STYLES FOR SPECIFIC COMPONENTS
+   ============================================ */
+
+/* Search input (if/when implemented) */
+.search-input:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 0;
+  border-color: var(--color-border-focus);
+  box-shadow: 0 0 0 4px rgba(33, 150, 243, 0.1);
+}
+
+/* Dropdown menus */
+.dropdown-item:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: -2px;
+  background-color: var(--color-bg-hover);
+}
+
+/* ============================================
+   ACCESSIBILITY HELPERS
+   ============================================ */
+
+/* Indicate when element is disabled */
+[aria-disabled="true"],
+[disabled] {
+  opacity: 0.6;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Indicate when element is pressed */
+[aria-pressed="true"] {
+  background-color: var(--color-primary);
+  color: var(--color-text-inverse);
+}
+
+/* Loading state */
+[aria-busy="true"] {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+/* ============================================
+   PRINT STYLES
+   ============================================ */
+
+@media print {
+  /* Remove focus outlines in print */
+  *:focus,
+  *:focus-visible {
+    outline: none;
+  }
+  
+  .skip-link {
+    display: none;
+  }
+}
+

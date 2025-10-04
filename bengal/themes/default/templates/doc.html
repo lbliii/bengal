@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+
+{#
+  Documentation Template
+  
+  Three-column layout optimized for documentation sites:
+  - Left sidebar: Navigation tree
+  - Center: Content
+  - Right sidebar: TOC + metadata
+  
+  Usage: Set `template: doc.html` in frontmatter
+  Or set `type: doc` to auto-select this template
+#}
+
+{% block content %}
+{# Three-column documentation layout #}
+<div class="docs-layout">
+  {# Left Sidebar: Navigation #}
+  <aside class="docs-sidebar" id="docs-sidebar" role="navigation" aria-label="Documentation navigation">
+    {% include 'partials/docs-nav.html' %}
+  </aside>
+  
+  {# Main Content #}
+  <main class="docs-main" role="main">
+    {# Breadcrumbs #}
+    {% include 'partials/breadcrumbs.html' %}
+    
+    {# Article Content #}
+    <article class="prose">
+      <header class="docs-header">
+        <h1>{{ page.title }}</h1>
+        
+        {% if page.metadata.description %}
+        <p class="lead">{{ page.metadata.description }}</p>
+        {% endif %}
+        
+        {# Document metadata #}
+        <div class="docs-meta cluster cluster-small">
+          {% if page.date %}
+          <time datetime="{{ page.date | date_iso }}" class="docs-meta-item">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="16" y1="2" x2="16" y2="6"></line>
+              <line x1="8" y1="2" x2="8" y2="6"></line>
+              <line x1="3" y1="10" x2="21" y2="10"></line>
+            </svg>
+            <span>{{ page.date | dateformat('%B %d, %Y') }}</span>
+          </time>
+          {% endif %}
+          
+          {% if page.content %}
+          <span class="docs-meta-item">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+            <span>{{ page.content | reading_time }} min read</span>
+          </span>
+          {% endif %}
+        </div>
+      </header>
+      
+      {# Main content #}
+      <div class="docs-content">
+        {{ content | safe }}
+      </div>
+      
+      {# Tags #}
+      {% if page.tags %}
+      <footer class="docs-footer">
+        {% include 'partials/tag-list.html' %}
+      </footer>
+      {% endif %}
+    </article>
+    
+    {# Page navigation (prev/next) at bottom #}
+    {% include 'partials/page-navigation.html' %}
+  </main>
+  
+  {# Right Sidebar: TOC + Metadata #}
+  {% if toc %}
+  <aside class="docs-toc" role="complementary" aria-label="Table of contents">
+    {% include 'partials/toc-sidebar.html' %}
+  </aside>
+  {% endif %}
+</div>
+
+{# Mobile sidebar toggle button #}
+<button 
+  class="docs-sidebar-toggle" 
+  aria-label="Toggle navigation sidebar"
+  aria-expanded="false"
+  aria-controls="docs-sidebar">
+  <svg viewBox="0 0 24 24">
+    <line x1="3" y1="12" x2="21" y2="12"></line>
+    <line x1="3" y1="6" x2="21" y2="6"></line>
+    <line x1="3" y1="18" x2="21" y2="18"></line>
+  </svg>
+</button>
+
+{# Sidebar overlay for mobile #}
+<div class="docs-sidebar-overlay" aria-hidden="true"></div>
+{% endblock %}
+
+{% block extra_js %}
+{# Sidebar toggle functionality #}
+<script>
+(function() {
+  'use strict';
+  
+  const sidebar = document.getElementById('docs-sidebar');
+  const toggle = document.querySelector('.docs-sidebar-toggle');
+  const overlay = document.querySelector('.docs-sidebar-overlay');
+  
+  if (!sidebar || !toggle || !overlay) return;
+  
+  function openSidebar() {
+    sidebar.classList.add('open');
+    overlay.classList.add('visible');
+    toggle.setAttribute('aria-expanded', 'true');
+    document.body.style.overflow = 'hidden'; // Prevent scrolling
+  }
+  
+  function closeSidebar() {
+    sidebar.classList.remove('open');
+    overlay.classList.remove('visible');
+    toggle.setAttribute('aria-expanded', 'false');
+    document.body.style.overflow = '';
+  }
+  
+  function toggleSidebar() {
+    if (sidebar.classList.contains('open')) {
+      closeSidebar();
+    } else {
+      openSidebar();
+    }
+  }
+  
+  // Toggle button click
+  toggle.addEventListener('click', toggleSidebar);
+  
+  // Overlay click (close sidebar)
+  overlay.addEventListener('click', closeSidebar);
+  
+  // Close on escape key
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && sidebar.classList.contains('open')) {
+      closeSidebar();
+    }
+  });
+  
+  // Close sidebar when clicking a link (mobile)
+  sidebar.querySelectorAll('a').forEach(function(link) {
+    link.addEventListener('click', function() {
+      if (window.innerWidth <= 768) {
+        closeSidebar();
+      }
+    });
+  });
+})();
+</script>
+{% endblock %}
+

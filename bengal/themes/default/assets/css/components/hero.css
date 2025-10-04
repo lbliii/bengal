@@ -1,0 +1,364 @@
+/**
+ * Bengal SSG Default Theme
+ * Hero & Page Header Components
+ * 
+ * Large, attention-grabbing headers for landing pages
+ * and prominent page introductions.
+ */
+
+/* ============================================
+   HERO SECTION
+   ============================================ */
+
+.hero {
+  position: relative;
+  padding: 4rem 0;
+  text-align: center;
+  background: linear-gradient(
+    135deg,
+    var(--color-bg-elevated) 0%,
+    var(--color-bg-secondary) 100%
+  );
+  border-bottom: 1px solid var(--color-border-light);
+  overflow: hidden;
+}
+
+[data-theme="dark"] .hero {
+  background: linear-gradient(
+    135deg,
+    var(--color-bg-primary) 0%,
+    rgba(33, 150, 243, 0.05) 100%
+  );
+}
+
+.hero__container {
+  max-width: var(--container-lg);
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+.hero__content {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.hero__eyebrow {
+  display: inline-block;
+  margin: 0 0 1rem 0;
+  padding: 0.375rem 0.875rem;
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-primary);
+  background-color: rgba(33, 150, 243, 0.1);
+  border-radius: var(--border-radius-full);
+}
+
+.hero__title {
+  margin: 0 0 1.5rem 0;
+  font-size: var(--text-5xl);
+  font-weight: var(--font-weight-extrabold);
+  line-height: 1.1;
+  letter-spacing: var(--letter-spacing-tighter);
+  color: var(--color-text-primary);
+}
+
+.hero__subtitle {
+  margin: 0 0 2rem 0;
+  font-size: var(--text-xl);
+  line-height: var(--line-height-relaxed);
+  color: var(--color-text-secondary);
+}
+
+.hero__actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 2rem;
+}
+
+.hero__button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.875rem 1.75rem;
+  font-size: var(--text-body);
+  font-weight: var(--font-weight-semibold);
+  text-decoration: none;
+  border-radius: var(--border-radius-medium);
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.hero__button--primary {
+  color: var(--color-text-inverse);
+  background-color: var(--color-primary);
+  box-shadow: var(--elevation-card);
+}
+
+.hero__button--primary:hover {
+  background-color: var(--color-primary-hover);
+  box-shadow: var(--elevation-card-hover);
+  transform: translateY(-2px);
+}
+
+.hero__button--secondary {
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-elevated);
+  border: 2px solid var(--color-border);
+}
+
+.hero__button--secondary:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  box-shadow: var(--elevation-low);
+}
+
+.hero__button svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* ============================================
+   HERO VARIANTS
+   ============================================ */
+
+/* Large Hero */
+.hero--large {
+  padding: 6rem 0;
+}
+
+.hero--large .hero__title {
+  font-size: clamp(3rem, 5vw, 5rem);
+}
+
+/* Compact Hero */
+.hero--compact {
+  padding: 2rem 0;
+}
+
+.hero--compact .hero__title {
+  font-size: var(--text-3xl);
+}
+
+/* Left-aligned Hero */
+.hero--left {
+  text-align: left;
+}
+
+.hero--left .hero__actions {
+  justify-content: flex-start;
+}
+
+/* ============================================
+   PAGE HEADER (Smaller version)
+   ============================================ */
+
+.page-header {
+  padding: 2rem 0;
+  border-bottom: 1px solid var(--color-border-light);
+  margin-bottom: 2rem;
+}
+
+.page-header__eyebrow {
+  display: inline-block;
+  margin: 0 0 0.5rem 0;
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-tertiary);
+}
+
+.page-header__title {
+  margin: 0 0 0.75rem 0;
+  font-size: var(--text-4xl);
+  font-weight: var(--font-weight-extrabold);
+  line-height: 1.2;
+  letter-spacing: var(--letter-spacing-tighter);
+  color: var(--color-text-primary);
+}
+
+.page-header__subtitle {
+  margin: 0;
+  font-size: var(--text-lg);
+  line-height: var(--line-height-relaxed);
+  color: var(--color-text-secondary);
+}
+
+.page-header__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 1rem;
+  font-size: var(--text-sm);
+  color: var(--color-text-tertiary);
+}
+
+.page-header__meta-item {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.page-header__meta-item svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* ============================================
+   SECTION HEADER (for content sections)
+   ============================================ */
+
+.section-header {
+  text-align: center;
+  margin: 4rem 0 3rem 0;
+}
+
+.section-header__eyebrow {
+  display: inline-block;
+  margin: 0 0 1rem 0;
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-primary);
+}
+
+.section-header__title {
+  margin: 0 0 1rem 0;
+  font-size: var(--text-3xl);
+  font-weight: var(--font-weight-bold);
+  line-height: 1.2;
+  color: var(--color-text-primary);
+}
+
+.section-header__subtitle {
+  margin: 0 auto;
+  max-width: 600px;
+  font-size: var(--text-lg);
+  line-height: var(--line-height-relaxed);
+  color: var(--color-text-secondary);
+}
+
+/* Left-aligned section header */
+.section-header--left {
+  text-align: left;
+}
+
+.section-header--left .section-header__subtitle {
+  margin: 0;
+}
+
+/* ============================================
+   DECORATIVE ELEMENTS
+   ============================================ */
+
+/* Optional background pattern */
+.hero__background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  opacity: 0.05;
+  background-image: 
+    radial-gradient(circle at 25% 25%, var(--color-primary) 1px, transparent 1px),
+    radial-gradient(circle at 75% 75%, var(--color-secondary) 1px, transparent 1px);
+  background-size: 50px 50px;
+  pointer-events: none;
+}
+
+[data-theme="dark"] .hero__background {
+  opacity: 0.03;
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
+@media (max-width: 768px) {
+  .hero {
+    padding: 3rem 0;
+  }
+  
+  .hero__title {
+    font-size: var(--text-3xl);
+  }
+  
+  .hero__subtitle {
+    font-size: var(--text-body);
+  }
+  
+  .hero--large {
+    padding: 4rem 0;
+  }
+  
+  .hero--large .hero__title {
+    font-size: var(--text-3xl);
+  }
+  
+  .hero__actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .hero__button {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .page-header {
+    padding: 1.5rem 0;
+  }
+  
+  .page-header__title {
+    font-size: var(--text-2xl);
+  }
+  
+  .section-header {
+    margin: 3rem 0 2rem 0;
+  }
+  
+  .section-header__title {
+    font-size: var(--text-2xl);
+  }
+}
+
+@media (max-width: 640px) {
+  .hero {
+    padding: 2rem 0;
+  }
+  
+  .hero__title {
+    font-size: var(--text-2xl);
+  }
+  
+  .page-header__meta {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+}
+
+/* ============================================
+   PRINT
+   ============================================ */
+
+@media print {
+  .hero {
+    padding: 1rem 0;
+    background: none;
+    border: none;
+  }
+  
+  .hero__actions {
+    display: none;
+  }
+  
+  .hero__background {
+    display: none;
+  }
+}
+

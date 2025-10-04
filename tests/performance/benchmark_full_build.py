@@ -240,44 +240,18 @@ def benchmark_site_build(num_pages: int, num_assets: int, label: str) -> dict:
             # Measure total build time
             start_total = time.time()
             
-            # Discovery phase
-            start_discovery = time.time()
-            site.discover_content()
-            site.discover_assets()
-            discovery_time = time.time() - start_discovery
-            
-            # Taxonomy collection
-            start_taxonomy = time.time()
-            site.collect_taxonomies()
-            site.generate_dynamic_pages()
-            taxonomy_time = time.time() - start_taxonomy
-            
-            # Rendering phase
-            from bengal.rendering.pipeline import RenderingPipeline
-            from bengal.cache import BuildCache, DependencyTracker
-            
-            cache = BuildCache()
-            tracker = DependencyTracker(cache)
-            pipeline = RenderingPipeline(site, tracker)
-            
-            start_rendering = time.time()
-            if site.config.get("parallel", True) and len(site.pages) > 1:
-                site._build_parallel(pipeline)
-            else:
-                site._build_sequential(pipeline)
-            rendering_time = time.time() - start_rendering
-            
-            # Asset processing
-            start_assets = time.time()
-            site._process_assets()
-            assets_time = time.time() - start_assets
-            
-            # Post-processing
-            start_postprocess = time.time()
-            site._post_process()
-            postprocess_time = time.time() - start_postprocess
+            # Run full build (BuildOrchestrator handles all phases)
+            parallel = site.config.get("parallel", True)
+            build_stats = site.build(parallel=parallel, incremental=False, verbose=False)
             
             total_time = time.time() - start_total
+            
+            # Extract phase times from build stats
+            discovery_time = build_stats.discovery_time_ms / 1000
+            taxonomy_time = build_stats.taxonomy_time_ms / 1000
+            rendering_time = build_stats.rendering_time_ms / 1000
+            assets_time = build_stats.assets_time_ms / 1000
+            postprocess_time = build_stats.postprocess_time_ms / 1000
             
             times.append({
                 'total': total_time,

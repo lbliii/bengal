@@ -193,7 +193,7 @@ class DevServer:
     Development server with file watching and auto-rebuild.
     """
     
-    def __init__(self, site: Any, host: str = "localhost", port: int = 5173, watch: bool = True, auto_port: bool = True) -> None:
+    def __init__(self, site: Any, host: str = "localhost", port: int = 5173, watch: bool = True, auto_port: bool = True, open_browser: bool = False) -> None:
         """
         Initialize the dev server.
         
@@ -203,12 +203,14 @@ class DevServer:
             port: Server port
             watch: Whether to watch for file changes
             auto_port: Whether to automatically find an available port if the specified one is in use
+            open_browser: Whether to automatically open the browser
         """
         self.site = site
         self.host = host
         self.port = port
         self.watch = watch
         self.auto_port = auto_port
+        self.open_browser = open_browser
         self.observer: Any = None
     
     def start(self) -> None:
@@ -329,11 +331,23 @@ class DevServer:
             print(f"  \033[90m{'TIME':8} │ {'METHOD':6} │ {'STATUS':3} │ PATH\033[0m")
             print(f"  \033[90m{'─' * 8}─┼─{'─' * 6}─┼─{'─' * 3}─┼─{'─' * 60}\033[0m")
             
+            # Open browser after server starts
+            if self.open_browser:
+                import webbrowser
+                import threading
+                def open_browser_delayed():
+                    time.sleep(0.5)  # Give server time to start
+                    webbrowser.open(f'http://{self.host}:{actual_port}/')
+                threading.Thread(target=open_browser_delayed, daemon=True).start()
+            
             try:
                 httpd.serve_forever()
             except KeyboardInterrupt:
                 print(f"\n\n  \033[90m{'─' * 78}\033[0m")
                 print(f"  👋 Shutting down server...")
+                # Explicitly shutdown the server to close the socket
+                httpd.shutdown()
+                httpd.server_close()
                 if self.observer:
                     self.observer.stop()
                     self.observer.join()

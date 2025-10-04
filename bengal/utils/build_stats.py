@@ -73,15 +73,27 @@ class BuildStats:
     
     # Warnings and errors
     warnings: list = None
+    template_errors: list = None  # NEW: Rich template errors
     
     def __post_init__(self):
         """Initialize mutable defaults."""
         if self.warnings is None:
             self.warnings = []
+        if self.template_errors is None:
+            self.template_errors = []
     
     def add_warning(self, file_path: str, message: str, warning_type: str = 'other') -> None:
         """Add a warning to the build."""
         self.warnings.append(BuildWarning(file_path, message, warning_type))
+    
+    def add_template_error(self, error: Any) -> None:
+        """Add a rich template error."""
+        self.template_errors.append(error)
+    
+    @property
+    def has_errors(self) -> bool:
+        """Check if build has any errors."""
+        return len(self.template_errors) > 0
     
     @property
     def warnings_by_type(self) -> Dict[str, list]:
@@ -294,4 +306,27 @@ def show_clean_success(output_dir: str) -> None:
     click.echo(click.style("   ├─ ", fg='cyan') + f"Directory: {click.style(output_dir, fg='white')}")
     click.echo(click.style("   └─ ", fg='cyan') + click.style("✓ Clean complete!", fg='green', bold=True))
     click.echo()
+
+
+def display_template_errors(stats: BuildStats) -> None:
+    """
+    Display all collected template errors.
+    
+    Args:
+        stats: Build statistics with template errors
+    """
+    if not stats.template_errors:
+        return
+    
+    from bengal.rendering.errors import display_template_error
+    
+    error_count = len(stats.template_errors)
+    click.echo(click.style(f"\n❌ Template Errors ({error_count}):\n", fg='red', bold=True))
+    
+    for i, error in enumerate(stats.template_errors, 1):
+        click.echo(click.style(f"Error {i}/{error_count}:", fg='red', bold=True))
+        display_template_error(error, use_color=True)
+        
+        if i < error_count:
+            click.echo(click.style("─" * 80, fg='cyan'))
 

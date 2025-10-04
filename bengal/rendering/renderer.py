@@ -14,15 +14,17 @@ class Renderer:
     Renders pages using templates.
     """
     
-    def __init__(self, template_engine: Any) -> None:
+    def __init__(self, template_engine: Any, build_stats: Any = None) -> None:
         """
         Initialize the renderer.
         
         Args:
             template_engine: Template engine instance
+            build_stats: Optional BuildStats object for error collection
         """
         self.template_engine = template_engine
         self.site = template_engine.site  # Access to site config for strict mode
+        self.build_stats = build_stats  # For collecting template errors
     
     def render_content(self, content: str) -> str:
         """
@@ -75,25 +77,36 @@ class Renderer:
         try:
             return self.template_engine.render(template_name, context)
         except Exception as e:
-            # In strict mode, fail loudly instead of falling back
+            from bengal.rendering.errors import TemplateRenderError, display_template_error
+            
+            # Create rich error object
+            rich_error = TemplateRenderError.from_jinja2_error(
+                e,
+                template_name,
+                page.source_path,
+                self.template_engine
+            )
+            
+            # In strict mode, display and fail immediately
             strict_mode = self.site.config.get("strict_mode", False)
             debug_mode = self.site.config.get("debug", False)
             
             if strict_mode:
-                # Don't catch - let build fail with full error
-                print(f"\n❌ ERROR: Failed to render page {page.source_path}")
-                print(f"   Template: {template_name}")
-                print(f"   Error: {e}")
+                display_template_error(rich_error)
                 if debug_mode:
-                    print("\nFull traceback:")
+                    import traceback
                     traceback.print_exc()
                 raise
             
-            # In production mode, warn and fall back gracefully
-            print(f"⚠️  Warning: Failed to render page {page.source_path} with template {template_name}: {e}")
+            # In production mode, collect error and continue
+            if self.build_stats:
+                self.build_stats.add_template_error(rich_error)
+            else:
+                # No build stats available, display immediately
+                display_template_error(rich_error)
             
             if debug_mode:
-                print("   Full traceback:")
+                import traceback
                 traceback.print_exc()
             
             # Fallback to simple HTML

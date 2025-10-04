@@ -65,6 +65,9 @@ class ContentOrchestrator:
         
         # Apply cascading frontmatter from sections to pages
         self._apply_cascades()
+        
+        # Build cross-reference index for O(1) lookups
+        self._build_xref_index()
     
     def discover_assets(self, assets_dir: Optional[Path] = None) -> None:
         """
@@ -196,6 +199,61 @@ class ContentOrchestrator:
         # Recursively apply to subsections with accumulated cascade
         for subsection in section.subsections:
             self._apply_section_cascade(subsection, accumulated_cascade)
+    
+    def _build_xref_index(self) -> None:
+        """
+        Build cross-reference index for O(1) page lookups.
+        
+        Creates multiple indices to support different reference styles:
+        - by_path: Reference by file path (e.g., 'docs/installation')
+        - by_slug: Reference by slug (e.g., 'installation')
+        - by_id: Reference by custom ID from frontmatter (e.g., 'install-guide')
+        - by_heading: Reference by heading text for anchor links
+        
+        Performance: O(n) build time, O(1) lookup time
+        Thread-safe: Read-only after building, safe for parallel rendering
+        """
+        self.site.xref_index = {
+            'by_path': {},      # 'docs/getting-started' -> Page
+            'by_slug': {},      # 'getting-started' -> [Pages]
+            'by_id': {},        # Custom IDs from frontmatter -> Page
+            'by_heading': {},   # Heading text -> [(Page, anchor)]
+        }
+        
+        content_dir = self.site.root_path / "content"
+        
+        for page in self.site.pages:
+            # Index by relative path (without extension)
+            try:
+                rel_path = page.source_path.relative_to(content_dir)
+                # Remove extension and normalize path separators
+                path_key = str(rel_path.with_suffix('')).replace('\\', '/')
+                # Also handle _index.md -> directory path
+                if path_key.endswith('/_index'):
+                    path_key = path_key[:-7]  # Remove '/_index'
+                self.site.xref_index['by_path'][path_key] = page
+            except ValueError:
+                # Page is not relative to content_dir (e.g., generated page)
+                pass
+            
+            # Index by slug (multiple pages can have same slug)
+            if hasattr(page, 'slug') and page.slug:
+                self.site.xref_index['by_slug'].setdefault(page.slug, []).append(page)
+            
+            # Index custom IDs from frontmatter
+            if 'id' in page.metadata:
+                ref_id = page.metadata['id']
+                self.site.xref_index['by_id'][ref_id] = page
+            
+            # Index headings from TOC (for anchor links)
+            if hasattr(page, 'toc_items') and page.toc_items:
+                for toc_item in page.toc_items:
+                    heading_text = toc_item.get('title', '').lower()
+                    anchor_id = toc_item.get('id', '')
+                    if heading_text and anchor_id:
+                        self.site.xref_index['by_heading'].setdefault(
+                            heading_text, []
+                        ).append((page, anchor_id))
     
     def _get_theme_assets_dir(self) -> Optional[Path]:
         """

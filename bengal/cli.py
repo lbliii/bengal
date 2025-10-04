@@ -3,6 +3,7 @@ Command-line interface for Bengal SSG.
 """
 
 from pathlib import Path
+from datetime import datetime
 import click
 
 from bengal import __version__
@@ -28,18 +29,26 @@ def main() -> None:
 
 
 @main.command()
-@click.option('--parallel/--no-parallel', default=True, help='Use parallel processing')
-@click.option('--incremental', is_flag=True, help='Perform incremental build')
-@click.option('--verbose', '-v', is_flag=True, help='Show detailed build information')
-@click.option('--strict', is_flag=True, help='Fail on template errors (recommended for CI)')
+@click.option('--parallel/--no-parallel', default=True, help='Enable parallel processing for faster builds (default: enabled)')
+@click.option('--incremental', is_flag=True, help='Perform incremental build (only rebuild changed files)')
+@click.option('--verbose', '-v', is_flag=True, help='Show detailed build information and progress')
+@click.option('--strict', is_flag=True, help='Fail on template errors (recommended for CI/CD)')
 @click.option('--debug', is_flag=True, help='Show debug output and full tracebacks')
-@click.option('--config', type=click.Path(exists=True), help='Path to config file')
-@click.option('--quiet', '-q', is_flag=True, help='Minimal output (no stats table)')
+@click.option('--validate', is_flag=True, help='Validate templates before building (catch errors early)')
+@click.option('--config', type=click.Path(exists=True), help='Path to config file (default: bengal.toml)')
+@click.option('--quiet', '-q', is_flag=True, help='Minimal output - only show errors and summary')
 @click.argument('source', type=click.Path(exists=True), default='.')
-def build(parallel: bool, incremental: bool, verbose: bool, strict: bool, debug: bool, config: str, quiet: bool, source: str) -> None:
+def build(parallel: bool, incremental: bool, verbose: bool, strict: bool, debug: bool, validate: bool, config: str, quiet: bool, source: str) -> None:
     """
     🔨 Build the static site.
+    
+    Generates HTML files from your content, applies templates,
+    processes assets, and outputs a production-ready site.
     """
+    # Validate conflicting flags
+    if quiet and verbose:
+        raise click.UsageError("--quiet and --verbose cannot be used together")
+    
     try:
         show_building_indicator("Building site")
         
@@ -55,7 +64,28 @@ def build(parallel: bool, incremental: bool, verbose: bool, strict: bool, debug:
         if debug:
             site.config["debug"] = True
         
+        # Validate templates if requested
+        if validate:
+            from bengal.rendering.validator import validate_templates
+            from bengal.rendering.template_engine import TemplateEngine
+            
+            template_engine = TemplateEngine(site)
+            error_count = validate_templates(template_engine)
+            
+            if error_count > 0:
+                click.echo(click.style(f"\n❌ Validation failed with {error_count} error(s).", 
+                                      fg='red', bold=True))
+                click.echo(click.style("Fix errors above, then run 'bengal build'", fg='yellow'))
+                raise click.Abort()
+            
+            click.echo()  # Blank line before build
+        
         stats = site.build(parallel=parallel, incremental=incremental, verbose=verbose)
+        
+        # Display template errors first (if any)
+        if stats.template_errors:
+            from bengal.utils.build_stats import display_template_errors
+            display_template_errors(stats)
         
         # Display build stats (unless quiet mode)
         if not quiet:
@@ -72,19 +102,19 @@ def build(parallel: bool, incremental: bool, verbose: bool, strict: bool, debug:
 
 
 @main.command()
-@click.option('--host', default='localhost', help='Server host')
-@click.option('--port', default=5173, type=int, help='Server port')
-@click.option('--no-watch', is_flag=True, help='Disable file watching')
-@click.option('--no-auto-port', is_flag=True, help='Disable automatic port selection (fail if port is in use)')
-@click.option('--config', type=click.Path(exists=True), help='Path to config file')
+@click.option('--host', default='localhost', help='Server host address')
+@click.option('--port', '-p', default=5173, type=int, help='Server port number')
+@click.option('--watch/--no-watch', default=True, help='Watch for file changes and rebuild (default: enabled)')
+@click.option('--auto-port/--no-auto-port', default=True, help='Find available port if specified port is taken (default: enabled)')
+@click.option('--open', '-o', 'open_browser', is_flag=True, help='Open browser automatically after server starts')
+@click.option('--config', type=click.Path(exists=True), help='Path to config file (default: bengal.toml)')
 @click.argument('source', type=click.Path(exists=True), default='.')
-def serve(host: str, port: int, no_watch: bool, no_auto_port: bool, config: str, source: str) -> None:
+def serve(host: str, port: int, watch: bool, auto_port: bool, open_browser: bool, config: str, source: str) -> None:
     """
     🚀 Start development server with hot reload.
     
-    By default, if the specified port is already in use, the server will
-    automatically find and use the next available port. Use --no-auto-port
-    to disable this behavior and fail instead.
+    Watches for changes in content, assets, and templates,
+    automatically rebuilding the site when files are modified.
     """
     try:
         show_welcome()
@@ -98,29 +128,38 @@ def serve(host: str, port: int, no_watch: bool, no_auto_port: bool, config: str,
         # Enable strict mode in development (fail fast on errors)
         site.config["strict_mode"] = True
         
-        # Start server
-        site.serve(host=host, port=port, watch=not no_watch, auto_port=not no_auto_port)
+        # Start server (this blocks)
+        site.serve(host=host, port=port, watch=watch, auto_port=auto_port, open_browser=open_browser)
         
-    except KeyboardInterrupt:
-        click.echo("\n👋 Server stopped")
     except Exception as e:
         show_error(f"Server failed: {e}", show_art=True)
         raise click.Abort()
 
 
 @main.command()
-@click.option('--config', type=click.Path(exists=True), help='Path to config file')
+@click.option('--force', '-f', is_flag=True, help='Skip confirmation prompt')
+@click.option('--config', type=click.Path(exists=True), help='Path to config file (default: bengal.toml)')
 @click.argument('source', type=click.Path(exists=True), default='.')
-def clean(config: str, source: str) -> None:
+def clean(force: bool, config: str, source: str) -> None:
     """
     🧹 Clean the output directory.
+    
+    Removes all generated files from the output directory.
     """
     try:
         root_path = Path(source).resolve()
         config_path = Path(config).resolve() if config else None
         
-        # Create site and clean
+        # Create site
         site = Site.from_config(root_path, config_path)
+        
+        # Confirm before cleaning unless --force
+        if not force:
+            if not click.confirm(f"Delete all files in {site.output_dir}?"):
+                click.echo("Cancelled")
+                return
+        
+        # Clean
         site.clean()
         
         show_clean_success(str(site.output_dir))
@@ -246,10 +285,10 @@ def page(name: str, section: str) -> None:
             show_error(f"Page {page_path} already exists!", show_art=False)
             raise click.Abort()
         
-        # Create page content
+        # Create page content with current timestamp
         page_content = f"""---
 title: {name.replace('-', ' ').title()}
-date: {Path(__file__).stat().st_mtime}
+date: {datetime.now().isoformat()}
 ---
 
 # {name.replace('-', ' ').title()}

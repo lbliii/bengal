@@ -125,6 +125,7 @@ class MistuneParser(BaseMarkdownParser):
         
         # Create markdown instance with built-in + custom plugins
         # Note: Variable substitution is added per-page in parse_with_context()
+        # Note: Cross-references added via enable_cross_references() when xref_index available
         self.md = mistune.create_markdown(
             plugins=[
                 'table',              # Built-in: GFM tables
@@ -145,6 +146,10 @@ class MistuneParser(BaseMarkdownParser):
         # Cache parser with variable substitution (created lazily in parse_with_context)
         self._var_plugin = None
         self._md_with_vars = None
+        
+        # Cross-reference plugin (added when xref_index is available)
+        self._xref_plugin = None
+        self._xref_enabled = False
     
     def parse(self, content: str, metadata: Dict[str, Any]) -> str:
         """
@@ -161,7 +166,11 @@ class MistuneParser(BaseMarkdownParser):
             return ""
         
         try:
-            return self.md(content)
+            html = self.md(content)
+            # Post-process for cross-references if enabled
+            if self._xref_enabled and self._xref_plugin:
+                html = self._xref_plugin._substitute_xrefs(html)
+            return html
         except Exception as e:
             # Log error but don't fail the entire build
             import sys
@@ -246,7 +255,11 @@ class MistuneParser(BaseMarkdownParser):
             self._var_plugin.update_context(context)
         
         try:
-            return self._md_with_vars(content)
+            html = self._md_with_vars(content)
+            # Post-process for cross-references if enabled
+            if self._xref_enabled and self._xref_plugin:
+                html = self._xref_plugin._substitute_xrefs(html)
+            return html
         except Exception as e:
             # Log error but don't fail the entire build
             import sys
@@ -309,6 +322,37 @@ class MistuneParser(BaseMarkdownParser):
         toc = self._extract_toc(html)
         
         return html, toc
+    
+    def enable_cross_references(self, xref_index: Dict[str, Any]) -> None:
+        """
+        Enable cross-reference support with [[link]] syntax.
+        
+        Should be called after content discovery when xref_index is built.
+        Creates CrossReferencePlugin for post-processing HTML output.
+        
+        Performance: O(1) - just stores reference to index
+        Thread-safe: Each thread-local parser instance needs this called once
+        
+        Args:
+            xref_index: Pre-built cross-reference index from site discovery
+        
+        Example usage:
+            parser = MistuneParser()
+            # ... after content discovery ...
+            parser.enable_cross_references(site.xref_index)
+            # Now [[docs/installation]] works in markdown!
+        """
+        if self._xref_enabled:
+            # Already enabled, just update index
+            if self._xref_plugin:
+                self._xref_plugin.xref_index = xref_index
+            return
+        
+        from bengal.rendering.mistune_plugins import CrossReferencePlugin
+        
+        # Create plugin instance (for post-processing HTML)
+        self._xref_plugin = CrossReferencePlugin(xref_index)
+        self._xref_enabled = True
     
     def _inject_heading_anchors(self, html: str) -> str:
         """

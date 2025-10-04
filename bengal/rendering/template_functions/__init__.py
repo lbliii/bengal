@@ -30,6 +30,7 @@ from . import (
     debug,
     taxonomies,
     pagination_helpers,
+    crossref,
 )
 
 
@@ -64,6 +65,9 @@ def register_all(env: 'Environment', site: 'Site') -> None:
     debug.register(env, site)
     taxonomies.register(env, site)
     pagination_helpers.register(env, site)
+    
+    # Phase 4: Cross-reference functions (5 functions)
+    crossref.register(env, site)
 
 
 __all__ = [
@@ -83,5 +87,6 @@ __all__ = [
     'debug',
     'taxonomies',
     'pagination_helpers',
+    'crossref',
 ]
 

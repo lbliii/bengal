@@ -1,0 +1,53 @@
+{#
+  Recursive Documentation Navigation Section
+  
+  Renders a section with its pages and subsections.
+  Called recursively for nested sections.
+  
+  Parameters:
+  - section: The section object to render
+  - depth: Current nesting depth (for styling)
+#}
+
+<div class="docs-nav-group" data-depth="{{ depth }}">
+  {# Section Toggle Button #}
+  <button 
+    class="docs-nav-group-toggle"
+    aria-expanded="false"
+    aria-controls="nav-section-{{ section.url | slugify }}">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+    <span>{{ section.title }}</span>
+  </button>
+  
+  {# Section Items #}
+  <div class="docs-nav-group-items" id="nav-section-{{ section.url | slugify }}">
+    {# Section index page (if exists) #}
+    {% if section.pages | selectattr('is_section', 'equalto', true) | first %}
+      {% set index_page = section.pages | selectattr('is_section', 'equalto', true) | first %}
+      <a 
+        href="{{ url_for(index_page) }}" 
+        class="docs-nav-link {% if page.url == index_page.url %}active{% endif %}">
+        Overview
+      </a>
+    {% endif %}
+    
+    {# Regular pages in this section #}
+    {% for p in section.regular_pages %}
+      <a 
+        href="{{ url_for(p) }}" 
+        class="docs-nav-link {% if page.url == p.url %}active{% endif %}">
+        {{ p.title }}
+      </a>
+    {% endfor %}
+    
+    {# Subsections (recursive) #}
+    {% for subsection in section.sections %}
+      {% set section = subsection %}
+      {% set depth = depth + 1 %}
+      {% include 'partials/docs-nav-section.html' %}
+    {% endfor %}
+  </div>
+</div>
+

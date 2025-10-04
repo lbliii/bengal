@@ -63,13 +63,18 @@ class RenderingPipeline:
         markdown_engine = site.config.get('markdown_engine', 'python-markdown')
         # Use thread-local parser to avoid re-initialization overhead
         self.parser = _get_thread_parser(markdown_engine)
+        
+        # Enable cross-references if xref_index is available
+        if hasattr(site, 'xref_index') and hasattr(self.parser, 'enable_cross_references'):
+            self.parser.enable_cross_references(site.xref_index)
+        
         self.dependency_tracker = dependency_tracker
         self.quiet = quiet
         self.build_stats = build_stats
         self.template_engine = TemplateEngine(site)
         if self.dependency_tracker:
             self.template_engine._dependency_tracker = self.dependency_tracker
-        self.renderer = Renderer(self.template_engine)
+        self.renderer = Renderer(self.template_engine, build_stats=build_stats)
     
     def process_page(self, page: Page) -> None:
         """

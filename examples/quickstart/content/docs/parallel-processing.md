@@ -1,6 +1,7 @@
 ---
 title: "Parallel Processing for Maximum Speed"
 date: 2025-10-03
+template: doc.html
 tags: ["performance", "configuration", "advanced"]
 categories: ["Documentation", "Performance"]
 type: "guide"
