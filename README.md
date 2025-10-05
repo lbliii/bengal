@@ -23,7 +23,7 @@ A Python-based static site generator with modular architecture, incremental buil
 *Benchmark methodology: [CSS-Tricks SSG comparison](https://css-tricks.com/comparing-static-site-generator-build-times/)*
 
 ### Content & Templates
-- **75 Template Functions**: Strings, collections, math, dates, URLs, content, data, files, images, SEO, taxonomies, pagination
+- **120+ Template Functions**: Strings, collections, math, dates, URLs, content, data, files, images, SEO, taxonomies, pagination, debug, cross-reference
 - **Autodoc (NEW!)**: AST-based API documentation generation from Python source (175+ pages/sec, no imports needed)
 - **Navigation System**: Automatic next/prev, breadcrumbs, hierarchical navigation
 - **Menu System**: Config-driven hierarchical menus with active state detection
@@ -31,7 +31,7 @@ A Python-based static site generator with modular architecture, incremental buil
 - **Taxonomy System**: Automatic tag/category pages with pagination
 
 ### Development
-- **Health Checks**: 9 validators for output quality, config, menus, links, navigation, taxonomy, rendering, cache, performance
+- **Health Checks**: 10 validators for output quality, config, menus, links, navigation, taxonomy, rendering, directives, cache, performance
 - **Dev Server**: File watching with automatic rebuilds
 - **Modular Architecture**: Clean separation of Site, Page, Section, Asset objects
 
@@ -191,14 +191,14 @@ Bengal SSG is functional and under active development.
 - Rendering pipeline with Mistune and python-markdown support
 - Incremental builds with dependency tracking
 - Parallel processing for pages, assets, and post-processing
-- 75 template functions across 15 modules
+- 120+ template functions across 16 modules
 - **Autodoc system (AST-based API documentation generation)** ⭐ NEW
 - Navigation system (next/prev, breadcrumbs, hierarchical)
 - Menu system (config-driven, hierarchical)
 - Cascade system (frontmatter inheritance)
 - Taxonomy system (tags, categories, dynamic pages)
 - Table of contents (auto-generated from headings)
-- Health check system (9 validators)
+- Health check system (10 validators)
 - CLI with multiple build modes
 - Development server with file watching
 - SEO features (sitemap, RSS)
@@ -210,10 +210,10 @@ Bengal SSG is functional and under active development.
 - Plugin system with build hooks
 
 **Test Coverage:**
-- 475 passing tests
-- 64% overall coverage (2,881 of 4,517 lines)
+- 900+ passing tests (unit + integration + performance)
+- 64% overall coverage (2,881 of 4,517 lines) - needs update
 - High coverage: Cache (95%), Utils (96%), Postprocess (96%), Navigation (98%)
-- Needs work: CLI (0%), Dev Server (0%), Health validators (13-98%)
+- Needs work: CLI (0%), Dev Server (0%), some Health validators
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for complete roadmap and technical details.
 

@@ -196,15 +196,14 @@ class TestMemoryProfiling:
         print(f"  Used: {memory_used:.1f}MB")
         print(f"  Per page: {memory_used/1000:.2f}MB")
     
-    @pytest.mark.slow
-    def test_10k_page_site_memory(self, site_generator):
-        """Test memory usage for a 10K-page site."""
+    def test_500_page_site_memory(self, site_generator):
+        """Test memory usage for a 500-page site."""
         # Enable memory tracking
         tracemalloc.start()
         configure_logging(level=LogLevel.INFO, track_memory=True)
         
         # Generate site
-        site_root = site_generator(page_count=10000, sections=20)
+        site_root = site_generator(page_count=500, sections=5)
         
         # Get baseline memory
         gc.collect()
@@ -222,10 +221,202 @@ class TestMemoryProfiling:
         tracemalloc.stop()
         
         # Assertions
+        assert stats.regular_pages >= 500, f"Should have at least 500 regular pages, got {stats.regular_pages}"
+        assert peak_mb < 750, f"Peak memory {peak_mb:.1f}MB exceeds 750MB threshold for 500 pages"
+        
+        print(f"\n500-page site:")
+        print(f"  Baseline: {baseline_memory:.1f}MB")
+        print(f"  Peak: {peak_mb:.1f}MB")
+        print(f"  Used: {memory_used:.1f}MB")
+        print(f"  Per page: {memory_used/500:.3f}MB")
+    
+    def test_1200_page_site_memory(self, site_generator):
+        """Test memory usage for a 1.2K-page site."""
+        # Enable memory tracking
+        tracemalloc.start()
+        configure_logging(level=LogLevel.INFO, track_memory=True)
+        
+        # Generate site
+        print("\nGenerating 1.2K-page site...")
+        site_root = site_generator(page_count=1200, sections=10)
+        print(f"Site generated at: {site_root}")
+        
+        # Get baseline memory
+        gc.collect()
+        baseline_memory = tracemalloc.get_traced_memory()[0] / 1024 / 1024  # MB
+        
+        # Build site
+        print("Starting build...")
+        site = Site.from_config(site_root)
+        stats = site.build(parallel=False)
+        
+        # Get peak memory
+        current_memory, peak_memory = tracemalloc.get_traced_memory()
+        peak_mb = peak_memory / 1024 / 1024
+        memory_used = (current_memory - (baseline_memory * 1024 * 1024)) / 1024 / 1024
+        
+        tracemalloc.stop()
+        
+        # Assertions
+        assert stats.regular_pages >= 1200, f"Should have at least 1200 regular pages, got {stats.regular_pages}"
+        assert peak_mb < 850, f"Peak memory {peak_mb:.1f}MB exceeds 850MB threshold for 1.2K pages"
+        
+        print(f"\n1.2K-page site:")
+        print(f"  Baseline: {baseline_memory:.1f}MB")
+        print(f"  Peak: {peak_mb:.1f}MB")
+        print(f"  Used: {memory_used:.1f}MB")
+        print(f"  Per page: {memory_used/1200:.3f}MB")
+    
+    def test_1500_page_site_memory(self, site_generator):
+        """Test memory usage for a 1.5K-page site."""
+        # Enable memory tracking
+        tracemalloc.start()
+        configure_logging(level=LogLevel.INFO, track_memory=True)
+        
+        # Generate site
+        print("\nGenerating 1.5K-page site...")
+        site_root = site_generator(page_count=1500, sections=10)
+        print(f"Site generated at: {site_root}")
+        
+        # Get baseline memory
+        gc.collect()
+        baseline_memory = tracemalloc.get_traced_memory()[0] / 1024 / 1024  # MB
+        
+        # Build site
+        print("Starting build...")
+        site = Site.from_config(site_root)
+        stats = site.build(parallel=False)
+        
+        # Get peak memory
+        current_memory, peak_memory = tracemalloc.get_traced_memory()
+        peak_mb = peak_memory / 1024 / 1024
+        memory_used = (current_memory - (baseline_memory * 1024 * 1024)) / 1024 / 1024
+        
+        tracemalloc.stop()
+        
+        # Assertions
+        assert stats.regular_pages >= 1500, f"Should have at least 1500 regular pages, got {stats.regular_pages}"
+        assert peak_mb < 900, f"Peak memory {peak_mb:.1f}MB exceeds 900MB threshold for 1.5K pages"
+        
+        print(f"\n1.5K-page site:")
+        print(f"  Baseline: {baseline_memory:.1f}MB")
+        print(f"  Peak: {peak_mb:.1f}MB")
+        print(f"  Used: {memory_used:.1f}MB")
+        print(f"  Per page: {memory_used/1500:.3f}MB")
+    
+    def test_2k_page_site_memory(self, site_generator):
+        """Test memory usage for a 2K-page site."""
+        # Enable memory tracking
+        tracemalloc.start()
+        configure_logging(level=LogLevel.INFO, track_memory=True)
+        
+        # Generate site
+        print("\nGenerating 2K-page site...")
+        site_root = site_generator(page_count=2000, sections=10)
+        print(f"Site generated at: {site_root}")
+        
+        # Get baseline memory
+        gc.collect()
+        baseline_memory = tracemalloc.get_traced_memory()[0] / 1024 / 1024  # MB
+        
+        # Build site
+        print("Starting build...")
+        site = Site.from_config(site_root)
+        stats = site.build(parallel=False)
+        
+        # Get peak memory
+        current_memory, peak_memory = tracemalloc.get_traced_memory()
+        peak_mb = peak_memory / 1024 / 1024
+        memory_used = (current_memory - (baseline_memory * 1024 * 1024)) / 1024 / 1024
+        
+        tracemalloc.stop()
+        
+        # Assertions
+        assert stats.regular_pages >= 2000, f"Should have at least 2000 regular pages, got {stats.regular_pages}"
+        assert peak_mb < 1000, f"Peak memory {peak_mb:.1f}MB exceeds 1GB threshold for 2K pages"
+        
+        print(f"\n2K-page site:")
+        print(f"  Baseline: {baseline_memory:.1f}MB")
+        print(f"  Peak: {peak_mb:.1f}MB")
+        print(f"  Used: {memory_used:.1f}MB")
+        print(f"  Per page: {memory_used/2000:.3f}MB")
+    
+    def test_5k_page_site_memory(self, site_generator):
+        """Test memory usage for a 5K-page site."""
+        # Enable memory tracking
+        tracemalloc.start()
+        configure_logging(level=LogLevel.INFO, track_memory=True)
+        
+        # Generate site
+        site_root = site_generator(page_count=5000, sections=10)
+        
+        # Get baseline memory
+        gc.collect()
+        baseline_memory = tracemalloc.get_traced_memory()[0] / 1024 / 1024  # MB
+        
+        # Build site
+        site = Site.from_config(site_root)
+        stats = site.build(parallel=False)
+        
+        # Get peak memory
+        current_memory, peak_memory = tracemalloc.get_traced_memory()
+        peak_mb = peak_memory / 1024 / 1024
+        memory_used = (current_memory - (baseline_memory * 1024 * 1024)) / 1024 / 1024
+        
+        tracemalloc.stop()
+        
+        # Assertions
+        assert stats.regular_pages >= 5000, f"Should have at least 5000 regular pages, got {stats.regular_pages}"
+        assert peak_mb < 2000, f"Peak memory {peak_mb:.1f}MB exceeds 2GB threshold for 5K pages"
+        
+        print(f"\n5K-page site:")
+        print(f"  Baseline: {baseline_memory:.1f}MB")
+        print(f"  Peak: {peak_mb:.1f}MB")
+        print(f"  Used: {memory_used:.1f}MB")
+        print(f"  Per page: {memory_used/5000:.3f}MB")
+    
+    @pytest.mark.slow
+    def test_10k_page_site_memory(self, site_generator):
+        """Test memory usage for a 10K-page site."""
+        # Enable memory tracking
+        tracemalloc.start()
+        configure_logging(level=LogLevel.INFO, track_memory=True)
+        
+        # Generate site
+        print("\nGenerating 10K-page site...")
+        import time
+        gen_start = time.time()
+        site_root = site_generator(page_count=10000, sections=20)
+        gen_time = time.time() - gen_start
+        print(f"Site generated in {gen_time:.1f}s at: {site_root}")
+        
+        # Get baseline memory
+        gc.collect()
+        baseline_memory = tracemalloc.get_traced_memory()[0] / 1024 / 1024  # MB
+        
+        # Build site
+        print("Loading config...")
+        site = Site.from_config(site_root)
+        print(f"Starting build... (this will take ~20 minutes)")
+        build_start = time.time()
+        stats = site.build(parallel=False)
+        build_time = time.time() - build_start
+        print(f"Build completed in {build_time:.1f}s ({build_time/60:.1f} minutes)")
+        
+        # Get peak memory
+        current_memory, peak_memory = tracemalloc.get_traced_memory()
+        peak_mb = peak_memory / 1024 / 1024
+        memory_used = (current_memory - (baseline_memory * 1024 * 1024)) / 1024 / 1024
+        
+        tracemalloc.stop()
+        
+        # Assertions
         assert stats.total_pages >= 10000  # May have taxonomy pages too
         assert peak_mb < 8000, f"Peak memory {peak_mb:.1f}MB exceeds 8GB threshold for 10K pages"
         
         print(f"\n10K-page site:")
+        print(f"  Total pages: {stats.total_pages}")
+        print(f"  Build time: {build_time:.1f}s ({build_time/60:.1f} minutes)")
         print(f"  Baseline: {baseline_memory:.1f}MB")
         print(f"  Peak: {peak_mb:.1f}MB")
         print(f"  Used: {memory_used:.1f}MB")
