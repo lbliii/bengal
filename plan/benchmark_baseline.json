@@ -1,0 +1,9 @@
+{
+  "timestamp": "2025-10-05 11:47:12",
+  "test_site": "examples/showcase",
+  "results": {
+    "full_build": 1.0543451309204102,
+    "incremental_no_changes": 0.8776466846466064,
+    "incremental_1_change": 5.985853910446167
+  }
+}

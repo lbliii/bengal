@@ -51,14 +51,16 @@ class RenderOrchestrator:
         """
         from bengal.rendering.pipeline import RenderingPipeline
         
-        # PRE-PROCESS: Set output paths for ALL pages before rendering starts
-        # This ensures that page.url works correctly in templates (e.g., for navigation)
-        # Even if a page isn't being rendered yet, its URL needs to be available
-        self._set_output_paths_for_all_pages()
+        # PRE-PROCESS: Set output paths for pages being rendered
+        # Note: This only sets paths for pages we're actually rendering.
+        # Other pages should already have paths from previous builds or will get them when needed.
+        self._set_output_paths_for_pages(pages)
         
         quiet = not self.site.config.get('verbose', False)
         
-        if parallel and len(pages) > 1:
+        # Use parallel rendering only for 5+ pages (avoid thread overhead for small batches)
+        PARALLEL_THRESHOLD = 5
+        if parallel and len(pages) >= PARALLEL_THRESHOLD:
             self._render_parallel(pages, tracker, quiet, stats)
         else:
             self._render_sequential(pages, tracker, quiet, stats)
@@ -125,19 +127,18 @@ class RenderOrchestrator:
                 except Exception as e:
                     print(f"Error processing page: {e}")
     
-    def _set_output_paths_for_all_pages(self) -> None:
+    def _set_output_paths_for_pages(self, pages: List['Page']) -> None:
         """
-        Pre-set output paths for ALL pages in the site before rendering.
+        Pre-set output paths for specific pages before rendering.
         
-        This ensures that page.url works correctly in templates even for pages
-        that haven't been rendered yet. Critical for navigation menus that reference
-        pages from multiple sections.
+        Only processes pages that are being rendered, not all pages in the site.
+        This is an optimization for incremental builds where we only render a subset.
         """
         from pathlib import Path
         
         content_dir = self.site.root_path / "content"
         
-        for page in self.site.pages:
+        for page in pages:
             # Skip if already set (e.g., generated pages)
             if page.output_path:
                 continue
