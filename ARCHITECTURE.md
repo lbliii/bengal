@@ -79,29 +79,27 @@ graph TB
 ### 1. Object Model
 
 #### Site Object (`bengal/core/site.py`)
-- **Purpose**: Orchestrates the entire website build process
-- **Responsibilities**:
-  - Holds configuration and global metadata
-  - Manages collections of pages, sections, and assets
-  - Coordinates the build process (sequential or parallel)
-  - Triggers post-processing tasks
-  - Collects taxonomies (tags, categories)
-  - Generates dynamic pages (archives, tag pages)
-  - Builds navigation menus (config + frontmatter)
-  - Manages menu active state detection
+- **Purpose**: Central data model that holds all site content and delegates build coordination
+- **Primary Role**: Data container and coordination entry point
 - **Key Attributes**:
+  - `root_path`: Site root directory
+  - `config`: Site configuration dictionary
+  - `pages`: List of all Page objects
+  - `sections`: List of all Section objects
+  - `assets`: List of all Asset objects
+  - `taxonomies`: Dict of taxonomies (tags, categories)
   - `menu`: Dict[str, List[MenuItem]] - All built menus by name
   - `menu_builders`: Dict[str, MenuBuilder] - Menu builders for active marking
+  - `theme`: Theme name or path
+  - `output_dir`: Output directory path
+  - `build_time`: Timestamp of last build
 - **Key Methods**:
-  - `build()`: Main build orchestration
-  - `collect_taxonomies()`: Gather tags/categories from all pages
-  - `generate_dynamic_pages()`: Create archive and taxonomy pages
-  - `discover_content()`: Find and parse all content files
-  - `discover_assets()`: Find all static assets
-  - `build_menus()`: Build all navigation menus
-  - `mark_active_menu_items()`: Mark active items for current page
-  - `_setup_page_references()`: Set up navigation references (next, prev, parent, etc.)
-  - `_apply_cascades()`: Apply cascading metadata from sections to pages
+  - `build()`: Entry point that **delegates to BuildOrchestrator**
+  - `from_config()`: Factory method to create Site from config file
+  - `discover_content()`: Wrapper that delegates to ContentOrchestrator
+  - `discover_assets()`: Wrapper that delegates to AssetOrchestrator
+  - `mark_active_menu_items()`: Mark active menu items for current page
+- **Architecture Pattern**: Site is a **data container**, not a "God object" - actual build logic lives in specialized orchestrators
 
 #### Page Object (`bengal/core/page.py`)
 
@@ -515,7 +513,7 @@ sequenceDiagram
     Site-->>CLI: build complete
 ```
 
-**Pipeline Phases (10 total):**
+**Pipeline Phases:**
 
 0. **Initialization**: Load cache, set up dependency tracker
 1. **Content Discovery**: Find pages/sections/assets, setup references, apply cascades, build xref index
@@ -1414,24 +1412,6 @@ report = health.run(build_stats=stats)
                                     ↓
                             BUILD COMPLETE
 ```
-
-### Key Corrections from Old Diagram
-
-**Old diagram said:** "Markdown Parser → AST → Template Engine"  
-**Reality:** Markdown parser outputs HTML directly (no intermediate AST exposed). HTML then goes through template engine.
-
-**Old diagram said:** "Optimization Pipeline"  
-**Reality:** No separate pipeline - optimization is done via `Asset.minify()` and `Asset.optimize()` methods called by AssetOrchestrator.
-
-**Old diagram missed:** 
-- Section finalization phase
-- Taxonomy generation phase  
-- Menu building phase
-- Post-processing phase (sitemap, RSS)
-- Incremental build filtering
-- Health checks
-
-The actual build process has **10 distinct phases** coordinated by `BuildOrchestrator`, not the simplified 2-track flow shown before.
 
 ## Performance Considerations
 
