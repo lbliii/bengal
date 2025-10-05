@@ -197,6 +197,66 @@ def display_warnings(stats: BuildStats) -> None:
         click.echo()  # Blank line between types
 
 
+def display_simple_build_stats(stats: BuildStats, output_dir: str = None) -> None:
+    """
+    Display simple build statistics for writers.
+    
+    Clean, minimal output focused on success/failure and critical issues only.
+    Perfect for content authors who just want to know "did it work?"
+    
+    Args:
+        stats: Build statistics to display
+        output_dir: Output directory path to display
+    """
+    if stats.skipped:
+        click.echo(click.style("\n✨ No changes detected - build skipped!", fg='cyan', bold=True))
+        return
+    
+    # Success indicator
+    if not stats.has_errors:
+        build_time_s = stats.build_time_ms / 1000
+        click.echo(click.style(f"\n✨ Built {stats.total_pages} pages in {build_time_s:.1f}s\n", 
+                  fg='green', bold=True))
+    else:
+        click.echo(click.style(f"\n⚠️  Built with {len(stats.template_errors)} error(s)\n", 
+                  fg='yellow', bold=True))
+    
+    # Show template errors if any (critical for writers)
+    if stats.template_errors:
+        click.echo(click.style(f"❌ {len(stats.template_errors)} template error(s):", fg='red', bold=True))
+        for error in stats.template_errors[:3]:  # Show first 3
+            # Extract key info without overwhelming detail
+            template_name = error.template_context.template_name if hasattr(error, 'template_context') else 'unknown'
+            message = str(error.message)[:80]  # Truncate long messages
+            click.echo(f"   • {click.style(template_name, fg='yellow')}: {message}")
+            
+            # Show suggestion if available
+            if hasattr(error, 'suggestion') and error.suggestion:
+                click.echo(click.style(f"     💡 {error.suggestion}", fg='cyan'))
+        
+        if len(stats.template_errors) > 3:
+            remaining = len(stats.template_errors) - 3
+            click.echo(f"   ... and {remaining} more")
+        click.echo()
+    
+    # Show link validation warnings if any
+    link_warnings = [w for w in stats.warnings if w.warning_type == 'link']
+    if link_warnings:
+        click.echo(click.style(f"⚠️  {len(link_warnings)} broken link(s) found:", fg='yellow'))
+        for warning in link_warnings[:5]:  # Show first 5
+            click.echo(f"   • {click.style(warning.short_path, fg='yellow')} → {warning.message}")
+        if len(link_warnings) > 5:
+            remaining = len(link_warnings) - 5
+            click.echo(f"   ... and {remaining} more")
+        click.echo()
+    
+    # Output location
+    if output_dir:
+        click.echo(click.style("📂 Output:", fg='cyan'))
+        click.echo(click.style("   ↪ ", fg='cyan') + click.style(output_dir, fg='white', bold=True))
+        click.echo()
+
+
 def display_build_stats(stats: BuildStats, show_art: bool = True, output_dir: str = None) -> None:
     """
     Display build statistics in a colorful table.

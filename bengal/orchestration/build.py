@@ -59,7 +59,7 @@ class BuildOrchestrator:
         self.incremental = IncrementalOrchestrator(site)
     
     def build(self, parallel: bool = True, incremental: bool = False, 
-              verbose: bool = False) -> BuildStats:
+              verbose: bool = False, profile: 'BuildProfile' = None) -> BuildStats:
         """
         Execute full build pipeline.
         
@@ -67,17 +67,30 @@ class BuildOrchestrator:
             parallel: Whether to use parallel processing
             incremental: Whether to perform incremental build (only changed files)
             verbose: Whether to show detailed build information
+            profile: Build profile (writer, theme-dev, or dev)
             
         Returns:
             BuildStats object with build statistics
         """
+        # Import profile utilities
+        from bengal.utils.profile import BuildProfile, should_collect_metrics
+        
+        # Use default profile if not provided
+        if profile is None:
+            profile = BuildProfile.WRITER
+        
+        # Get profile configuration
+        profile_config = profile.get_config()
+        
         # Start timing
         build_start = time.time()
         
-        # Initialize performance collection
-        from bengal.utils.performance_collector import PerformanceCollector
-        collector = PerformanceCollector()
-        collector.start_build()
+        # Initialize performance collection only if profile enables it
+        collector = None
+        if profile_config.get('collect_metrics', False):
+            from bengal.utils.performance_collector import PerformanceCollector
+            collector = PerformanceCollector()
+            collector.start_build()
         
         # Initialize stats
         self.stats = BuildStats(parallel=parallel, incremental=incremental)
@@ -246,22 +259,29 @@ class BuildOrchestrator:
             'total_assets': self.stats.total_assets,
         }
         
-        # Phase 10: Health Check
+        # Phase 10: Health Check (with profile filtering)
         with self.logger.phase("health_check"):
-            self._run_health_check()
+            self._run_health_check(profile=profile)
         
-        # Collect memory metrics and save performance data
-        self.stats = collector.end_build(self.stats)
-        collector.save(self.stats)
+        # Collect memory metrics and save performance data (if enabled by profile)
+        if collector:
+            self.stats = collector.end_build(self.stats)
+            collector.save(self.stats)
         
         # Log build completion
-        self.logger.info("build_complete",
-                        duration_ms=self.stats.build_time_ms,
-                        total_pages=self.stats.total_pages,
-                        total_assets=self.stats.total_assets,
-                        memory_rss_mb=self.stats.memory_rss_mb,
-                        memory_heap_mb=self.stats.memory_heap_mb,
-                        success=True)
+        log_data = {
+            'duration_ms': self.stats.build_time_ms,
+            'total_pages': self.stats.total_pages,
+            'total_assets': self.stats.total_assets,
+            'success': True
+        }
+        
+        # Only add memory metrics if they were collected
+        if self.stats.memory_rss_mb > 0:
+            log_data['memory_rss_mb'] = self.stats.memory_rss_mb
+            log_data['memory_heap_mb'] = self.stats.memory_heap_mb
+        
+        self.logger.info("build_complete", **log_data)
         
         return self.stats
     
@@ -282,8 +302,13 @@ class BuildOrchestrator:
             print(f"   ├─ Pagination:       {pagination_pages}")
         print(f"   └─ Total:            {len(self.site.pages)} ✓")
     
-    def _run_health_check(self) -> None:
-        """Run health check system."""
+    def _run_health_check(self, profile: 'BuildProfile' = None) -> None:
+        """
+        Run health check system with profile-based filtering.
+        
+        Args:
+            profile: Build profile to use for filtering validators
+        """
         from bengal.health import HealthCheck
         
         health_config = self.site.config.get('health_check', {})
@@ -297,9 +322,9 @@ class BuildOrchestrator:
         if not enabled:
             return
         
-        # Run health checks
+        # Run health checks with profile filtering
         health_check = HealthCheck(self.site)
-        report = health_check.run()
+        report = health_check.run(profile=profile)
         
         # Print report
         if health_config.get('verbose', False):

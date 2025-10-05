@@ -127,10 +127,12 @@ class APIDocEnhancer:
             if len(enhanced) != len(before):
                 replacements_made += 1
         
-        # Debug: Report if badges were added
+        # Debug: Report if badges were added (only in dev mode)
         if replacements_made > 0:
-            import sys
-            print(f"[APIDocEnhancer] Made {replacements_made} badge replacements", file=sys.stderr)
+            from bengal.utils.profile import should_show_debug
+            if should_show_debug():
+                import sys
+                print(f"[APIDocEnhancer] Made {replacements_made} badge replacements", file=sys.stderr)
         
         return enhanced
     

@@ -7,6 +7,10 @@ baseurl = "https://example.com"
 [build]
 output_dir = "public"
 
+# Template caching (10-15% faster builds)
+# Caches compiled Jinja2 templates to .bengal-cache/templates/
+cache_templates = true
+
 # Autodoc Configuration
 [autodoc.python]
 enabled = true

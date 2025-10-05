@@ -84,21 +84,31 @@ class HealthCheck:
         """
         self.validators.append(validator)
     
-    def run(self, build_stats: dict = None, verbose: bool = False) -> HealthReport:
+    def run(self, build_stats: dict = None, verbose: bool = False, profile: 'BuildProfile' = None) -> HealthReport:
         """
         Run all registered validators and produce a health report.
         
         Args:
             build_stats: Optional build statistics to include in report
             verbose: Whether to show verbose output during validation
+            profile: Build profile to use for filtering validators
             
         Returns:
             HealthReport with results from all validators
         """
+        from bengal.utils.profile import is_validator_enabled
+        
         report = HealthReport(build_stats=build_stats)
         
         for validator in self.validators:
-            # Check if validator is enabled
+            # Check if validator is enabled by profile
+            if profile:
+                if not is_validator_enabled(validator.name):
+                    if verbose:
+                        print(f"  Skipping {validator.name} (disabled by profile)")
+                    continue
+            
+            # Check if validator is enabled by config
             if not validator.is_enabled(self.site.config):
                 if verbose:
                     print(f"  Skipping {validator.name} (disabled in config)")

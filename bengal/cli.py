@@ -36,32 +36,56 @@ def main() -> None:
 @main.command()
 @click.option('--parallel/--no-parallel', default=True, help='Enable parallel processing for faster builds (default: enabled)')
 @click.option('--incremental', is_flag=True, help='Perform incremental build (only rebuild changed files)')
-@click.option('--verbose', '-v', is_flag=True, help='Show detailed build information and progress')
+@click.option('--profile', type=click.Choice(['writer', 'theme-dev', 'dev']), 
+              help='Build profile: writer (fast/clean), theme-dev (templates), dev (full debug)')
+@click.option('--theme-dev', 'use_theme_dev', is_flag=True, help='Use theme developer profile (shorthand for --profile theme-dev)')
+@click.option('--dev', 'use_dev', is_flag=True, help='Use developer profile with full observability (shorthand for --profile dev)')
+@click.option('--verbose', '-v', is_flag=True, help='Show detailed build information (maps to theme-dev profile)')
 @click.option('--strict', is_flag=True, help='Fail on template errors (recommended for CI/CD)')
-@click.option('--debug', is_flag=True, help='Show debug output and full tracebacks')
+@click.option('--debug', is_flag=True, help='Show debug output and full tracebacks (maps to dev profile)')
 @click.option('--validate', is_flag=True, help='Validate templates before building (catch errors early)')
 @click.option('--config', type=click.Path(exists=True), help='Path to config file (default: bengal.toml)')
 @click.option('--quiet', '-q', is_flag=True, help='Minimal output - only show errors and summary')
 @click.option('--log-file', type=click.Path(), help='Write detailed logs to file (default: .bengal-build.log)')
 @click.argument('source', type=click.Path(exists=True), default='.')
-def build(parallel: bool, incremental: bool, verbose: bool, strict: bool, debug: bool, validate: bool, config: str, quiet: bool, log_file: str, source: str) -> None:
+def build(parallel: bool, incremental: bool, profile: str, use_theme_dev: bool, use_dev: bool, verbose: bool, strict: bool, debug: bool, validate: bool, config: str, quiet: bool, log_file: str, source: str) -> None:
     """
     🔨 Build the static site.
     
     Generates HTML files from your content, applies templates,
     processes assets, and outputs a production-ready site.
     """
+    # Import profile system
+    from bengal.utils.profile import BuildProfile, set_current_profile
+    
     # Validate conflicting flags
     if quiet and verbose:
         raise click.UsageError("--quiet and --verbose cannot be used together")
+    if quiet and (use_dev or use_theme_dev):
+        raise click.UsageError("--quiet cannot be used with --dev or --theme-dev")
     
-    # Configure structured logging
-    if debug:
+    # Determine build profile with proper precedence
+    build_profile = BuildProfile.from_cli_args(
+        profile=profile,
+        dev=use_dev,
+        theme_dev=use_theme_dev,
+        verbose=verbose,
+        debug=debug
+    )
+    
+    # Set global profile for helper functions
+    set_current_profile(build_profile)
+    
+    # Get profile configuration
+    profile_config = build_profile.get_config()
+    
+    # Configure logging based on profile
+    if build_profile == BuildProfile.DEVELOPER:
         log_level = LogLevel.DEBUG
-    elif verbose:
+    elif build_profile == BuildProfile.THEME_DEV:
         log_level = LogLevel.INFO
-    else:
-        log_level = LogLevel.WARNING  # Minimal logging in normal mode
+    else:  # WRITER
+        log_level = LogLevel.WARNING
     
     # Determine log file path
     if log_file:
@@ -72,7 +96,8 @@ def build(parallel: bool, incremental: bool, verbose: bool, strict: bool, debug:
     configure_logging(
         level=log_level,
         log_file=log_path,
-        verbose=verbose or debug
+        verbose=profile_config['verbose_build_stats'],
+        track_memory=profile_config['track_memory']
     )
     
     try:
@@ -106,22 +131,34 @@ def build(parallel: bool, incremental: bool, verbose: bool, strict: bool, debug:
             
             click.echo()  # Blank line before build
         
-        stats = site.build(parallel=parallel, incremental=incremental, verbose=verbose)
+        # Pass profile to build
+        stats = site.build(
+            parallel=parallel, 
+            incremental=incremental, 
+            verbose=profile_config['verbose_build_stats'],
+            profile=build_profile
+        )
         
-        # Display template errors first (if any)
-        if stats.template_errors:
+        # Display template errors first if we're in theme-dev or dev mode
+        if stats.template_errors and build_profile != BuildProfile.WRITER:
             from bengal.utils.build_stats import display_template_errors
             display_template_errors(stats)
         
-        # Display build stats (unless quiet mode)
+        # Display build stats based on profile (unless quiet mode)
         if not quiet:
-            display_build_stats(stats, show_art=True, output_dir=str(site.output_dir))
+            if build_profile == BuildProfile.WRITER:
+                # Simple, clean output for writers
+                from bengal.utils.build_stats import display_simple_build_stats
+                display_simple_build_stats(stats, output_dir=str(site.output_dir))
+            else:
+                # Detailed output for theme-dev and dev profiles
+                display_build_stats(stats, show_art=True, output_dir=str(site.output_dir))
         else:
             click.echo(click.style("✅ Build complete!", fg='green', bold=True))
             click.echo(click.style(f"   ↪ {site.output_dir}", fg='cyan'))
         
-        # Print phase timing summary in verbose mode
-        if verbose and not quiet:
+        # Print phase timing summary in dev mode only
+        if build_profile == BuildProfile.DEVELOPER and not quiet:
             print_all_summaries()
         
     except Exception as e:

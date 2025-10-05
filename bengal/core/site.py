@@ -307,7 +307,7 @@ class Site:
         
         return None
     
-    def build(self, parallel: bool = True, incremental: bool = False, verbose: bool = False) -> BuildStats:
+    def build(self, parallel: bool = True, incremental: bool = False, verbose: bool = False, profile: 'BuildProfile' = None) -> BuildStats:
         """
         Build the entire site.
         
@@ -317,6 +317,7 @@ class Site:
             parallel: Whether to use parallel processing
             incremental: Whether to perform incremental build (only changed files)
             verbose: Whether to show detailed build information
+            profile: Build profile (writer, theme-dev, or dev)
             
         Returns:
             BuildStats object with build statistics
@@ -324,7 +325,7 @@ class Site:
         from bengal.orchestration import BuildOrchestrator
         
         orchestrator = BuildOrchestrator(self)
-        return orchestrator.build(parallel=parallel, incremental=incremental, verbose=verbose)
+        return orchestrator.build(parallel=parallel, incremental=incremental, verbose=verbose, profile=profile)
     
     def serve(self, host: str = "localhost", port: int = 8000, watch: bool = True, auto_port: bool = True, open_browser: bool = False) -> None:
         """

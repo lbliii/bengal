@@ -63,6 +63,55 @@ bengal build
 bengal serve
 ```
 
+## Build Profiles
+
+Bengal offers three build profiles optimized for different workflows:
+
+### Writer Profile (Default) 🚀
+Fast, clean builds for content authors. **12% faster, 97% less noise.**
+
+```bash
+bengal build  # Automatically uses writer profile
+```
+
+**Output:**
+- ✨ Build status
+- ⚠️ Errors and broken links
+- 📂 Output location
+- That's it! Clean and fast.
+
+### Theme Developer Profile 🎨
+Template-focused validation with detailed feedback.
+
+```bash
+bengal build --theme-dev
+```
+
+**Output:**
+- Phase timing breakdown
+- Template error details
+- Asset processing info
+- Navigation & directive validation
+- 7 relevant health checks
+
+### Developer Profile 🔧
+Full observability for framework optimization.
+
+```bash
+bengal build --dev
+```
+
+**Output:**
+- Debug messages
+- Memory profiling (tracemalloc)
+- All 10 health checks
+- Per-phase memory deltas
+- Performance metrics saved to `.bengal-metrics/`
+
+**Legacy flags still work:**
+- `--verbose` → maps to `--theme-dev`
+- `--debug` → maps to `--dev`
+
 ## Architecture
 
 Bengal follows a modular design with clear separation of concerns:

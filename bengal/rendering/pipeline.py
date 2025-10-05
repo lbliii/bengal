@@ -147,7 +147,10 @@ class RenderingPipeline:
         if enhancer.should_enhance(page_type):
             before_enhancement = page.parsed_ast
             page.parsed_ast = enhancer.enhance(page.parsed_ast, page_type)
-            if '@property' in before_enhancement and 'page.md' in str(page.source_path) and 'core' in str(page.source_path):
+            
+            # Debug output only in dev mode
+            from bengal.utils.profile import should_show_debug
+            if should_show_debug() and '@property' in before_enhancement and 'page.md' in str(page.source_path) and 'core' in str(page.source_path):
                 import sys
                 print(f"[Pipeline] Enhanced {page.source_path}:", file=sys.stderr)
                 print(f"  Before: {len(before_enhancement)} chars, has markers: {'@property' in before_enhancement}", file=sys.stderr)
