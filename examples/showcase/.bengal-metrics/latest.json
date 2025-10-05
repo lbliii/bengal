@@ -1,0 +1,23 @@
+{
+  "timestamp": "2025-10-05T14:55:45.800011",
+  "python_version": "3.12.2",
+  "platform": "darwin",
+  "total_pages": 192,
+  "regular_pages": 125,
+  "generated_pages": 67,
+  "total_assets": 40,
+  "total_sections": 28,
+  "taxonomies_count": 40,
+  "build_time_ms": 5368.014097213745,
+  "parallel": true,
+  "incremental": false,
+  "skipped": false,
+  "discovery_time_ms": 78.62496376037598,
+  "taxonomy_time_ms": 10.087728500366211,
+  "rendering_time_ms": 4290.6858921051025,
+  "assets_time_ms": 392.32587814331055,
+  "postprocess_time_ms": 539.9510860443115,
+  "memory_rss_mb": 51.703125,
+  "memory_heap_mb": 22.27027988433838,
+  "memory_peak_mb": 22.746885299682617
+}

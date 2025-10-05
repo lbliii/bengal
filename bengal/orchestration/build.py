@@ -74,6 +74,11 @@ class BuildOrchestrator:
         # Start timing
         build_start = time.time()
         
+        # Initialize performance collection
+        from bengal.utils.performance_collector import PerformanceCollector
+        collector = PerformanceCollector()
+        collector.start_build()
+        
         # Initialize stats
         self.stats = BuildStats(parallel=parallel, incremental=incremental)
         
@@ -245,11 +250,17 @@ class BuildOrchestrator:
         with self.logger.phase("health_check"):
             self._run_health_check()
         
+        # Collect memory metrics and save performance data
+        self.stats = collector.end_build(self.stats)
+        collector.save(self.stats)
+        
         # Log build completion
         self.logger.info("build_complete",
                         duration_ms=self.stats.build_time_ms,
                         total_pages=self.stats.total_pages,
                         total_assets=self.stats.total_assets,
+                        memory_rss_mb=self.stats.memory_rss_mb,
+                        memory_heap_mb=self.stats.memory_heap_mb,
                         success=True)
         
         return self.stats

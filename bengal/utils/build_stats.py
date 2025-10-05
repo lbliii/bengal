@@ -75,6 +75,11 @@ class BuildStats:
     assets_time_ms: float = 0
     postprocess_time_ms: float = 0
     
+    # Memory metrics (Phase 1 - Performance Tracking)
+    memory_rss_mb: float = 0      # Process RSS (Resident Set Size) memory
+    memory_heap_mb: float = 0     # Python heap memory from tracemalloc
+    memory_peak_mb: float = 0     # Peak memory during build
+    
     # Warnings and errors
     warnings: list = None
     template_errors: list = None  # NEW: Rich template errors
@@ -133,6 +138,9 @@ class BuildStats:
             'rendering_time_ms': self.rendering_time_ms,
             'assets_time_ms': self.assets_time_ms,
             'postprocess_time_ms': self.postprocess_time_ms,
+            'memory_rss_mb': self.memory_rss_mb,
+            'memory_heap_mb': self.memory_heap_mb,
+            'memory_peak_mb': self.memory_peak_mb,
         }
 
 

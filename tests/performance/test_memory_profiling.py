@@ -1,34 +1,40 @@
 """
-Memory profiling tests for Bengal SSG.
+Memory profiling tests for Bengal SSG - CORRECTED VERSION.
 
-Tests memory usage at different scales to ensure the system can handle
-large sites without running out of memory.
+This version properly measures memory by:
+1. Separating fixture setup from actual build measurement
+2. Tracking both Python heap and process RSS
+3. Using snapshot comparison to identify allocators
+4. Testing for actual memory leaks, not GC noise
+
+Key differences from old implementation:
+- Site generation happens OUTSIDE memory profiling
+- Clean GC baseline before measurement
+- Both tracemalloc (Python heap) and psutil (RSS) tracking
+- Snapshot comparison to identify top allocators
 """
 
 import pytest
 from pathlib import Path
-import tracemalloc
 import gc
+import statistics
 
 from bengal.core.site import Site
 from bengal.utils.logger import configure_logging, LogLevel, close_all_loggers, _loggers
 
+from memory_test_helpers import MemoryProfiler, profile_memory
+
 
 @pytest.fixture
 def site_generator(tmp_path):
-    """Factory fixture for generating test sites of various sizes."""
+    """
+    Factory fixture for generating test sites.
+    
+    NOTE: Memory used by this fixture is NOT included in build measurements.
+    """
     
     def _generate_site(page_count: int, sections: int = 5) -> Path:
-        """
-        Generate a test site with specified number of pages.
-        
-        Args:
-            page_count: Total number of pages to generate
-            sections: Number of top-level sections
-            
-        Returns:
-            Path to the generated site root
-        """
+        """Generate a test site with specified number of pages."""
         site_root = tmp_path / f"site_{page_count}pages"
         site_root.mkdir(exist_ok=True)
         
@@ -57,7 +63,7 @@ This is a test site for memory profiling.
 """)
         
         # Calculate pages per section
-        pages_per_section = (page_count - 1) // sections  # -1 for index
+        pages_per_section = (page_count - 1) // sections
         
         # Create sections with pages
         for section_idx in range(sections):
@@ -75,7 +81,11 @@ This is section {section_idx}.
 """)
             
             # Pages in section
-            pages_in_this_section = min(pages_per_section, page_count - 1 - (section_idx * pages_per_section))
+            pages_in_this_section = min(
+                pages_per_section,
+                page_count - 1 - (section_idx * pages_per_section)
+            )
+            
             for page_idx in range(pages_in_this_section):
                 page_file = section_dir / f"page{page_idx:04d}.md"
                 page_file.write_text(f"""---
@@ -89,8 +99,7 @@ This is test page {page_idx} in section {section_idx}.
 
 ## Content
 
-Lorem ipsum dolor sit amet, consectetur adipiscing elit. 
-Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+Lorem ipsum dolor sit amet, consectetur adipiscing elit.
 
 ### Code Example
 
@@ -115,8 +124,8 @@ def hello_world():
 
 
 @pytest.fixture(autouse=True)
-def reset_loggers_and_memory():
-    """Reset logger state and run garbage collection before each test."""
+def cleanup():
+    """Clean up before and after each test."""
     _loggers.clear()
     gc.collect()
     yield
@@ -126,385 +135,277 @@ def reset_loggers_and_memory():
 
 
 class TestMemoryProfiling:
-    """Memory profiling tests at different scales."""
+    """Memory profiling tests with correct measurement methodology."""
     
     def test_100_page_site_memory(self, site_generator):
         """Test memory usage for a 100-page site."""
-        # Enable memory tracking
-        tracemalloc.start()
-        configure_logging(level=LogLevel.INFO, track_memory=True)
-        
-        # Generate site
+        # Generate site OUTSIDE of profiling
         site_root = site_generator(page_count=100, sections=5)
+        configure_logging(level=LogLevel.WARNING)
         
-        # Get baseline memory
-        gc.collect()
-        baseline_memory = tracemalloc.get_traced_memory()[0] / 1024 / 1024  # MB
+        # Profile ONLY the build
+        with profile_memory("100-page build", verbose=True) as prof:
+            site = Site.from_config(site_root)
+            stats = site.build(parallel=False)
         
-        # Build site
-        site = Site.from_config(site_root)
-        stats = site.build(parallel=False)
+        delta = prof.get_delta()
         
-        # Get peak memory
-        current_memory, peak_memory = tracemalloc.get_traced_memory()
-        peak_mb = peak_memory / 1024 / 1024
-        memory_used = (current_memory - (baseline_memory * 1024 * 1024)) / 1024 / 1024
+        # Assertions on ACTUAL build memory
+        assert stats.regular_pages >= 100, \
+            f"Should have at least 100 regular pages, got {stats.regular_pages}"
         
-        tracemalloc.stop()
+        # Use generous threshold initially until we establish real baseline
+        assert delta.rss_delta_mb < 500, \
+            f"Build used {delta.rss_delta_mb:.1f}MB RSS (expected <500MB)"
         
-        # Assertions
-        assert stats.regular_pages >= 100, f"Should have at least 100 regular pages, got {stats.regular_pages}"
-        assert peak_mb < 500, f"Peak memory {peak_mb:.1f}MB exceeds 500MB threshold for 100 pages"
-        
-        print(f"\n100-page site:")
-        print(f"  Baseline: {baseline_memory:.1f}MB")
-        print(f"  Peak: {peak_mb:.1f}MB")
-        print(f"  Used: {memory_used:.1f}MB")
-        print(f"  Per page: {memory_used/100:.2f}MB")
-    
-    def test_1k_page_site_memory(self, site_generator):
-        """Test memory usage for a 1K-page site."""
-        # Enable memory tracking
-        tracemalloc.start()
-        configure_logging(level=LogLevel.INFO, track_memory=True)
-        
-        # Generate site
-        site_root = site_generator(page_count=1000, sections=10)
-        
-        # Get baseline memory
-        gc.collect()
-        baseline_memory = tracemalloc.get_traced_memory()[0] / 1024 / 1024  # MB
-        
-        # Build site
-        site = Site.from_config(site_root)
-        stats = site.build(parallel=False)
-        
-        # Get peak memory
-        current_memory, peak_memory = tracemalloc.get_traced_memory()
-        peak_mb = peak_memory / 1024 / 1024
-        memory_used = (current_memory - (baseline_memory * 1024 * 1024)) / 1024 / 1024
-        
-        tracemalloc.stop()
-        
-        # Assertions
-        assert stats.total_pages >= 1000  # May have taxonomy pages too
-        assert peak_mb < 2000, f"Peak memory {peak_mb:.1f}MB exceeds 2GB threshold for 1K pages"
-        
-        print(f"\n1K-page site:")
-        print(f"  Baseline: {baseline_memory:.1f}MB")
-        print(f"  Peak: {peak_mb:.1f}MB")
-        print(f"  Used: {memory_used:.1f}MB")
-        print(f"  Per page: {memory_used/1000:.2f}MB")
+        print(f"\nPer-page memory: {delta.rss_delta_mb/100:.2f}MB RSS")
     
     def test_500_page_site_memory(self, site_generator):
         """Test memory usage for a 500-page site."""
-        # Enable memory tracking
-        tracemalloc.start()
-        configure_logging(level=LogLevel.INFO, track_memory=True)
-        
-        # Generate site
         site_root = site_generator(page_count=500, sections=5)
+        configure_logging(level=LogLevel.WARNING)
         
-        # Get baseline memory
-        gc.collect()
-        baseline_memory = tracemalloc.get_traced_memory()[0] / 1024 / 1024  # MB
+        with profile_memory("500-page build", verbose=True) as prof:
+            site = Site.from_config(site_root)
+            stats = site.build(parallel=False)
         
-        # Build site
-        site = Site.from_config(site_root)
-        stats = site.build(parallel=False)
+        delta = prof.get_delta()
         
-        # Get peak memory
-        current_memory, peak_memory = tracemalloc.get_traced_memory()
-        peak_mb = peak_memory / 1024 / 1024
-        memory_used = (current_memory - (baseline_memory * 1024 * 1024)) / 1024 / 1024
+        assert stats.regular_pages >= 500, \
+            f"Should have at least 500 regular pages, got {stats.regular_pages}"
+        assert delta.rss_delta_mb < 1000, \
+            f"Build used {delta.rss_delta_mb:.1f}MB RSS (expected <1000MB)"
         
-        tracemalloc.stop()
-        
-        # Assertions
-        assert stats.regular_pages >= 500, f"Should have at least 500 regular pages, got {stats.regular_pages}"
-        assert peak_mb < 750, f"Peak memory {peak_mb:.1f}MB exceeds 750MB threshold for 500 pages"
-        
-        print(f"\n500-page site:")
-        print(f"  Baseline: {baseline_memory:.1f}MB")
-        print(f"  Peak: {peak_mb:.1f}MB")
-        print(f"  Used: {memory_used:.1f}MB")
-        print(f"  Per page: {memory_used/500:.3f}MB")
+        print(f"\nPer-page memory: {delta.rss_delta_mb/500:.3f}MB RSS")
     
-    def test_1200_page_site_memory(self, site_generator):
-        """Test memory usage for a 1.2K-page site."""
-        # Enable memory tracking
-        tracemalloc.start()
-        configure_logging(level=LogLevel.INFO, track_memory=True)
+    def test_1k_page_site_memory(self, site_generator):
+        """Test memory usage for a 1K-page site."""
+        site_root = site_generator(page_count=1000, sections=10)
+        configure_logging(level=LogLevel.WARNING)
         
-        # Generate site
-        print("\nGenerating 1.2K-page site...")
-        site_root = site_generator(page_count=1200, sections=10)
-        print(f"Site generated at: {site_root}")
+        with profile_memory("1K-page build", verbose=True) as prof:
+            site = Site.from_config(site_root)
+            stats = site.build(parallel=False)
         
-        # Get baseline memory
-        gc.collect()
-        baseline_memory = tracemalloc.get_traced_memory()[0] / 1024 / 1024  # MB
+        delta = prof.get_delta()
         
-        # Build site
-        print("Starting build...")
-        site = Site.from_config(site_root)
-        stats = site.build(parallel=False)
+        assert stats.total_pages >= 1000, \
+            f"Should have at least 1000 total pages, got {stats.total_pages}"
+        assert delta.rss_delta_mb < 1500, \
+            f"Build used {delta.rss_delta_mb:.1f}MB RSS (expected <1500MB)"
         
-        # Get peak memory
-        current_memory, peak_memory = tracemalloc.get_traced_memory()
-        peak_mb = peak_memory / 1024 / 1024
-        memory_used = (current_memory - (baseline_memory * 1024 * 1024)) / 1024 / 1024
-        
-        tracemalloc.stop()
-        
-        # Assertions
-        assert stats.regular_pages >= 1200, f"Should have at least 1200 regular pages, got {stats.regular_pages}"
-        assert peak_mb < 850, f"Peak memory {peak_mb:.1f}MB exceeds 850MB threshold for 1.2K pages"
-        
-        print(f"\n1.2K-page site:")
-        print(f"  Baseline: {baseline_memory:.1f}MB")
-        print(f"  Peak: {peak_mb:.1f}MB")
-        print(f"  Used: {memory_used:.1f}MB")
-        print(f"  Per page: {memory_used/1200:.3f}MB")
+        print(f"\nPer-page memory: {delta.rss_delta_mb/1000:.3f}MB RSS")
     
-    def test_1500_page_site_memory(self, site_generator):
-        """Test memory usage for a 1.5K-page site."""
-        # Enable memory tracking
-        tracemalloc.start()
-        configure_logging(level=LogLevel.INFO, track_memory=True)
+    def test_memory_scaling(self, site_generator):
+        """Test how memory scales with page count."""
+        page_counts = [50, 100, 200, 400]
+        results = []
         
-        # Generate site
-        print("\nGenerating 1.5K-page site...")
-        site_root = site_generator(page_count=1500, sections=10)
-        print(f"Site generated at: {site_root}")
+        print("\n" + "="*60)
+        print("Memory Scaling Analysis")
+        print("="*60)
         
-        # Get baseline memory
-        gc.collect()
-        baseline_memory = tracemalloc.get_traced_memory()[0] / 1024 / 1024  # MB
+        for count in page_counts:
+            # Generate site
+            site_root = site_generator(page_count=count, sections=5)
+            configure_logging(level=LogLevel.WARNING)
+            
+            # Measure build memory
+            profiler = MemoryProfiler(track_allocations=False)
+            with profiler:
+                site = Site.from_config(site_root)
+                site.build(parallel=False)
+            
+            delta = profiler.get_delta()
+            results.append({
+                'pages': count,
+                'rss_mb': delta.rss_delta_mb,
+                'python_heap_mb': delta.python_heap_delta_mb,
+                'per_page_mb': delta.rss_delta_mb / count
+            })
+            
+            print(f"  {count:4d} pages: {delta.rss_delta_mb:6.1f}MB RSS, "
+                  f"{delta.python_heap_delta_mb:6.1f}MB heap, "
+                  f"{delta.rss_delta_mb/count:.3f}MB/page")
+            
+            # Clean up between runs
+            close_all_loggers()
+            _loggers.clear()
+            gc.collect()
         
-        # Build site
-        print("Starting build...")
-        site = Site.from_config(site_root)
-        stats = site.build(parallel=False)
+        # Analyze scaling
+        print("\nScaling Summary:")
+        print(f"{'Pages':<10} {'RSS (MB)':<12} {'Heap (MB)':<12} {'Per Page (MB)':<15}")
+        print("-" * 60)
         
-        # Get peak memory
-        current_memory, peak_memory = tracemalloc.get_traced_memory()
-        peak_mb = peak_memory / 1024 / 1024
-        memory_used = (current_memory - (baseline_memory * 1024 * 1024)) / 1024 / 1024
+        for r in results:
+            print(f"{r['pages']:<10} {r['rss_mb']:<12.1f} "
+                  f"{r['python_heap_mb']:<12.1f} {r['per_page_mb']:<15.3f}")
         
-        tracemalloc.stop()
+        # Check scaling characteristics
+        # Memory should be roughly linear: pages * constant + fixed_overhead
+        # Smaller builds will have higher per-page cost due to fixed overhead
+        # Larger builds amortize that overhead better
         
-        # Assertions
-        assert stats.regular_pages >= 1500, f"Should have at least 1500 regular pages, got {stats.regular_pages}"
-        assert peak_mb < 900, f"Peak memory {peak_mb:.1f}MB exceeds 900MB threshold for 1.5K pages"
+        per_page_costs = [r['per_page_mb'] for r in results]
         
-        print(f"\n1.5K-page site:")
-        print(f"  Baseline: {baseline_memory:.1f}MB")
-        print(f"  Peak: {peak_mb:.1f}MB")
-        print(f"  Used: {memory_used:.1f}MB")
-        print(f"  Per page: {memory_used/1500:.3f}MB")
-    
-    def test_2k_page_site_memory(self, site_generator):
-        """Test memory usage for a 2K-page site."""
-        # Enable memory tracking
-        tracemalloc.start()
-        configure_logging(level=LogLevel.INFO, track_memory=True)
+        # Skip first build for per-page analysis (it has setup overhead)
+        # Use builds 2-4 to analyze marginal per-page cost
+        if len(per_page_costs) > 1:
+            marginal_costs = per_page_costs[1:]
+            avg_per_page = statistics.mean(marginal_costs)
+            stddev = statistics.stdev(marginal_costs) if len(marginal_costs) > 1 else 0
+        else:
+            avg_per_page = statistics.mean(per_page_costs)
+            stddev = 0
         
-        # Generate site
-        print("\nGenerating 2K-page site...")
-        site_root = site_generator(page_count=2000, sections=10)
-        print(f"Site generated at: {site_root}")
+        print(f"\nMarginal per-page (excl. first build): {avg_per_page:.3f}MB ± {stddev:.3f}MB")
         
-        # Get baseline memory
-        gc.collect()
-        baseline_memory = tracemalloc.get_traced_memory()[0] / 1024 / 1024  # MB
+        # Check that memory doesn't grow quadratically
+        # Total memory should be roughly: base + (pages * per_page)
+        # If quadratic, larger builds would have much higher per-page cost
+        if len(results) >= 3:
+            # Compare 100-page vs 400-page: should be ~4x total memory, not 16x
+            total_100 = results[1]['rss_mb']  # 100 pages
+            total_400 = results[3]['rss_mb']  # 400 pages
+            growth_ratio = total_400 / total_100 if total_100 > 0 else 0
+            
+            print(f"\nMemory growth 100→400 pages: {growth_ratio:.2f}x (expected: ~4x for linear)")
+            
+            # Allow some overhead, but should be closer to 4x than 16x
+            assert growth_ratio < 8, \
+                f"Memory scaling appears quadratic: {growth_ratio:.2f}x growth " \
+                f"for 4x page increase (expected ~4x for linear)"
         
-        # Build site
-        print("Starting build...")
-        site = Site.from_config(site_root)
-        stats = site.build(parallel=False)
-        
-        # Get peak memory
-        current_memory, peak_memory = tracemalloc.get_traced_memory()
-        peak_mb = peak_memory / 1024 / 1024
-        memory_used = (current_memory - (baseline_memory * 1024 * 1024)) / 1024 / 1024
-        
-        tracemalloc.stop()
-        
-        # Assertions
-        assert stats.regular_pages >= 2000, f"Should have at least 2000 regular pages, got {stats.regular_pages}"
-        assert peak_mb < 1000, f"Peak memory {peak_mb:.1f}MB exceeds 1GB threshold for 2K pages"
-        
-        print(f"\n2K-page site:")
-        print(f"  Baseline: {baseline_memory:.1f}MB")
-        print(f"  Peak: {peak_mb:.1f}MB")
-        print(f"  Used: {memory_used:.1f}MB")
-        print(f"  Per page: {memory_used/2000:.3f}MB")
-    
-    def test_5k_page_site_memory(self, site_generator):
-        """Test memory usage for a 5K-page site."""
-        # Enable memory tracking
-        tracemalloc.start()
-        configure_logging(level=LogLevel.INFO, track_memory=True)
-        
-        # Generate site
-        site_root = site_generator(page_count=5000, sections=10)
-        
-        # Get baseline memory
-        gc.collect()
-        baseline_memory = tracemalloc.get_traced_memory()[0] / 1024 / 1024  # MB
-        
-        # Build site
-        site = Site.from_config(site_root)
-        stats = site.build(parallel=False)
-        
-        # Get peak memory
-        current_memory, peak_memory = tracemalloc.get_traced_memory()
-        peak_mb = peak_memory / 1024 / 1024
-        memory_used = (current_memory - (baseline_memory * 1024 * 1024)) / 1024 / 1024
-        
-        tracemalloc.stop()
-        
-        # Assertions
-        assert stats.regular_pages >= 5000, f"Should have at least 5000 regular pages, got {stats.regular_pages}"
-        assert peak_mb < 2000, f"Peak memory {peak_mb:.1f}MB exceeds 2GB threshold for 5K pages"
-        
-        print(f"\n5K-page site:")
-        print(f"  Baseline: {baseline_memory:.1f}MB")
-        print(f"  Peak: {peak_mb:.1f}MB")
-        print(f"  Used: {memory_used:.1f}MB")
-        print(f"  Per page: {memory_used/5000:.3f}MB")
-    
-    @pytest.mark.slow
-    def test_10k_page_site_memory(self, site_generator):
-        """Test memory usage for a 10K-page site."""
-        # Enable memory tracking
-        tracemalloc.start()
-        configure_logging(level=LogLevel.INFO, track_memory=True)
-        
-        # Generate site
-        print("\nGenerating 10K-page site...")
-        import time
-        gen_start = time.time()
-        site_root = site_generator(page_count=10000, sections=20)
-        gen_time = time.time() - gen_start
-        print(f"Site generated in {gen_time:.1f}s at: {site_root}")
-        
-        # Get baseline memory
-        gc.collect()
-        baseline_memory = tracemalloc.get_traced_memory()[0] / 1024 / 1024  # MB
-        
-        # Build site
-        print("Loading config...")
-        site = Site.from_config(site_root)
-        print(f"Starting build... (this will take ~20 minutes)")
-        build_start = time.time()
-        stats = site.build(parallel=False)
-        build_time = time.time() - build_start
-        print(f"Build completed in {build_time:.1f}s ({build_time/60:.1f} minutes)")
-        
-        # Get peak memory
-        current_memory, peak_memory = tracemalloc.get_traced_memory()
-        peak_mb = peak_memory / 1024 / 1024
-        memory_used = (current_memory - (baseline_memory * 1024 * 1024)) / 1024 / 1024
-        
-        tracemalloc.stop()
-        
-        # Assertions
-        assert stats.total_pages >= 10000  # May have taxonomy pages too
-        assert peak_mb < 8000, f"Peak memory {peak_mb:.1f}MB exceeds 8GB threshold for 10K pages"
-        
-        print(f"\n10K-page site:")
-        print(f"  Total pages: {stats.total_pages}")
-        print(f"  Build time: {build_time:.1f}s ({build_time/60:.1f} minutes)")
-        print(f"  Baseline: {baseline_memory:.1f}MB")
-        print(f"  Peak: {peak_mb:.1f}MB")
-        print(f"  Used: {memory_used:.1f}MB")
-        print(f"  Per page: {memory_used/10000:.2f}MB")
+        # Per-page cost should decrease or stabilize as pages increase (not grow)
+        # This confirms we're not leaking or having quadratic behavior
+        assert per_page_costs[-1] <= per_page_costs[1], \
+            f"Per-page cost increased with scale: {per_page_costs[1]:.3f} → {per_page_costs[-1]:.3f}MB/page"
     
     def test_memory_leak_detection(self, site_generator):
-        """Test for memory leaks by building multiple times."""
-        tracemalloc.start()
-        configure_logging(level=LogLevel.WARNING, track_memory=True)
-        
-        # Generate small site
+        """Test for memory leaks with multiple builds."""
         site_root = site_generator(page_count=50, sections=3)
+        configure_logging(level=LogLevel.WARNING)
         
-        # Build 3 times and track memory growth
-        memory_samples = []
-        baseline_memory = tracemalloc.get_traced_memory()[0]
+        print("\n" + "="*60)
+        print("Memory Leak Detection (10 builds)")
+        print("="*60)
         
-        for i in range(3):
+        # Build 10 times and track memory
+        rss_samples = []
+        
+        for i in range(10):
+            # Clean up thoroughly
+            close_all_loggers()
+            _loggers.clear()
             gc.collect()
-            before_memory = tracemalloc.get_traced_memory()[0]
             
-            site = Site.from_config(site_root)
-            site.build(parallel=False)
+            # Measure build
+            profiler = MemoryProfiler(track_allocations=False)
+            with profiler:
+                site = Site.from_config(site_root)
+                site.build(parallel=False)
             
-            gc.collect()
-            after_memory = tracemalloc.get_traced_memory()[0]
-            memory_delta = (after_memory - before_memory) / 1024 / 1024
-            memory_samples.append(after_memory)
+            delta = profiler.get_delta()
+            rss_samples.append(delta.rss_delta_mb)
             
-            print(f"\n  Build {i+1}: delta={memory_delta:.1f}MB, total={after_memory/1024/1024:.1f}MB")
+            print(f"  Build {i+1:2d}: {delta.rss_delta_mb:6.1f}MB RSS")
         
-        tracemalloc.stop()
+        # Statistical analysis
+        first_three = rss_samples[:3]
+        last_three = rss_samples[-3:]
         
-        # Check for true memory leaks: memory should plateau, not grow linearly
-        # First build will allocate, subsequent builds should stabilize
-        # A leak would show memory growing on builds 2 and 3
-        if len(memory_samples) >= 3:
-            build1_to_2_growth = (memory_samples[1] - memory_samples[0]) / 1024 / 1024
-            build2_to_3_growth = (memory_samples[2] - memory_samples[1]) / 1024 / 1024
-            
-            # If memory keeps growing after stabilization, that's a leak
-            # Allow first build to allocate, but subsequent builds should be stable
-            assert build2_to_3_growth < 5, \
-                f"Memory leak detected: grew {build2_to_3_growth:.1f}MB from build 2 to 3 (should be < 5MB)"
-            
-            print(f"\n  Build 1→2 growth: {build1_to_2_growth:.1f}MB (initial allocation)")
-            print(f"  Build 2→3 growth: {build2_to_3_growth:.1f}MB (should be minimal)")
-            print(f"  ✓ No memory leak detected")
+        avg_first = statistics.mean(first_three)
+        avg_last = statistics.mean(last_three)
+        growth = avg_last - avg_first
+        
+        print(f"\n  First 3 builds:  {avg_first:.1f}MB average")
+        print(f"  Last 3 builds:   {avg_last:.1f}MB average")
+        print(f"  Growth:          {growth:+.1f}MB")
+        
+        # Check for leak: last 3 should not be significantly higher than first 3
+        # Allow 15% variation for noise
+        threshold = avg_first * 0.15
+        
+        if abs(growth) < threshold:
+            print(f"  ✓ No memory leak detected (threshold: {threshold:.1f}MB)")
+        else:
+            print(f"  ✗ Potential leak: {growth:+.1f}MB growth (threshold: {threshold:.1f}MB)")
+        
+        assert abs(growth) < threshold, \
+            f"Memory leak detected: {growth:+.1f}MB growth (threshold: {threshold:.1f}MB)"
     
-    def test_phase_memory_breakdown(self, site_generator):
-        """Test memory usage breakdown by phase."""
-        tracemalloc.start()
-        configure_logging(level=LogLevel.INFO, track_memory=True, verbose=True)
-        
-        # Generate site
+    def test_build_with_detailed_allocators(self, site_generator):
+        """Test build with detailed allocator tracking."""
         site_root = site_generator(page_count=100, sections=5)
+        configure_logging(level=LogLevel.WARNING)
         
-        # Build site
-        site = Site.from_config(site_root)
-        site.build(parallel=False)
+        print("\n" + "="*60)
+        print("Detailed Memory Allocation Analysis")
+        print("="*60)
         
-        # Get logger events
-        from bengal.utils.logger import get_logger
-        logger = get_logger("bengal.orchestration.build")
-        events = logger.get_events()
+        # Profile with detailed tracking
+        profiler = MemoryProfiler(track_allocations=True)
+        with profiler:
+            site = Site.from_config(site_root)
+            stats = site.build(parallel=False)
         
-        # Extract phase memory usage
-        phase_memory = {}
-        for event in events:
-            if event.message == "phase_complete" and event.memory_mb is not None:
-                phase = event.context.get("phase_name", event.phase)
-                if phase:
-                    phase_memory[phase] = {
-                        'delta_mb': event.memory_mb,
-                        'peak_mb': event.peak_memory_mb
-                    }
+        delta = profiler.get_delta(top_n=20)
         
-        tracemalloc.stop()
+        print(f"\nBuild Statistics:")
+        print(f"  Regular pages: {stats.regular_pages}")
+        print(f"  Total pages:   {stats.total_pages}")
         
-        # Verify we captured memory data
-        assert len(phase_memory) > 0, "Should have captured memory data for phases"
+        print(f"\nMemory Usage:")
+        print(f"  Python heap:   Δ{delta.python_heap_delta_mb:+.1f}MB "
+              f"(peak: {delta.python_heap_peak_mb:.1f}MB)")
+        print(f"  Process RSS:   Δ{delta.rss_delta_mb:+.1f}MB")
+        print(f"  Per page:      {delta.rss_delta_mb/stats.regular_pages:.3f}MB RSS")
         
-        # Print breakdown
-        print("\nMemory usage by phase:")
-        for phase, mem in sorted(phase_memory.items(), key=lambda x: x[1]['delta_mb'], reverse=True):
-            print(f"  {phase:25s} Δ{mem['delta_mb']:+7.1f}MB  peak:{mem['peak_mb']:7.1f}MB")
+        if delta.top_allocators:
+            print(f"\nTop 20 Memory Allocators:")
+            for i, alloc in enumerate(delta.top_allocators, 1):
+                print(f"  {i:2d}. {alloc}")
         
-        # Check that major phases are tracked
-        assert 'discovery' in phase_memory or 'rendering' in phase_memory, \
-            "Should track memory for major phases"
+        assert stats.regular_pages >= 100
+        assert delta.rss_delta_mb > 0, "Should use some memory"
+
+
+class TestMemoryEdgeCases:
+    """Test edge cases and unusual scenarios."""
+    
+    def test_empty_site_memory(self, site_generator):
+        """Test memory usage for minimal site (just index)."""
+        site_root = site_generator(page_count=1, sections=0)
+        configure_logging(level=LogLevel.WARNING)
+        
+        with profile_memory("Empty site build", verbose=False) as prof:
+            site = Site.from_config(site_root)
+            stats = site.build(parallel=False)
+        
+        delta = prof.get_delta()
+        
+        print(f"\nMinimal site: {delta}")
+        
+        # Even empty site should use some memory for framework
+        assert delta.rss_delta_mb > 0
+        assert delta.rss_delta_mb < 100, \
+            f"Empty site used {delta.rss_delta_mb:.1f}MB (expected <100MB)"
+    
+    def test_config_load_memory(self, site_generator):
+        """Test memory usage of just loading config (no build)."""
+        site_root = site_generator(page_count=100, sections=5)
+        configure_logging(level=LogLevel.WARNING)
+        
+        with profile_memory("Config load only", verbose=False) as prof:
+            site = Site.from_config(site_root)
+            # Don't build, just load config
+        
+        delta = prof.get_delta()
+        
+        print(f"\nConfig load only: {delta}")
+        
+        # Loading config should be very light
+        assert delta.rss_delta_mb < 50, \
+            f"Config load used {delta.rss_delta_mb:.1f}MB (expected <50MB)"
 

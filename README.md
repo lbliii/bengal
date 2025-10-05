@@ -9,6 +9,7 @@ A Python-based static site generator with modular architecture, incremental buil
 - **Incremental Builds**: 18-42x faster rebuilds on 10-100 page sites (SHA256 change detection, dependency tracking)
 - **Parallel Processing**: 2-4x speedup for asset processing and post-processing tasks
 - **Sub-linear Scaling**: 32x time increase for 1024x more files (excellent scaling efficiency)
+- **Memory Efficient**: ~35MB RSS for 100 pages, linear scaling (~0.03-0.35MB per page)
 - **Multiple Markdown Engines**: Mistune (42% faster) or python-markdown
 
 #### SSG Comparison (100 pages, cold build)
