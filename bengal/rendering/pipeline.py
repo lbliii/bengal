@@ -100,6 +100,48 @@ class RenderingPipeline:
         if not page.output_path:
             page.output_path = self._determine_output_path(page)
         
+        # OPTIMIZATION #2: Try parsed content cache first
+        # Skip markdown parsing if we have cached HTML and only template changed
+        template = self._determine_template(page)
+        parser_version = self._get_parser_version()
+        
+        if self.dependency_tracker and hasattr(self.dependency_tracker, '_cache'):
+            cache = self.dependency_tracker._cache
+            if cache and not page.metadata.get('_generated'):
+                cached = cache.get_parsed_content(
+                    page.source_path,
+                    page.metadata,
+                    template,
+                    parser_version
+                )
+                
+                if cached:
+                    # Cache HIT - skip markdown parsing!
+                    page.parsed_ast = cached['html']
+                    page.toc = cached['toc']
+                    page._toc_items = cached.get('toc_items', [])
+                    
+                    # Track cache hit for statistics
+                    if self.build_stats:
+                        if not hasattr(self.build_stats, 'parsed_cache_hits'):
+                            self.build_stats.parsed_cache_hits = 0
+                        self.build_stats.parsed_cache_hits += 1
+                    
+                    # Continue to template rendering (skipped parsing, will apply current template)
+                    # Note: We don't return early - we need to apply the template
+                    parsed_content = cached['html']
+                    
+                    # Skip to stage 3 (template rendering)
+                    page.extract_links()
+                    html_content = self.renderer.render_content(parsed_content)
+                    page.rendered_html = self.renderer.render_page(page, html_content)
+                    self._write_output(page)
+                    
+                    if self.dependency_tracker and not page.metadata.get('_generated'):
+                        self.dependency_tracker.end_page()
+                    
+                    return  # EARLY RETURN - parsing skipped, template applied!
+        
         # Stage 1 & 2: Parse content with variable substitution
         # 
         # ARCHITECTURE: Clean separation of concerns
@@ -158,6 +200,23 @@ class RenderingPipeline:
         
         page.toc = toc
         # Note: toc_items is now a lazy property on Page (only extracted when accessed)
+        
+        # OPTIMIZATION #2: Store parsed content in cache for next build
+        if self.dependency_tracker and hasattr(self.dependency_tracker, '_cache'):
+            cache = self.dependency_tracker._cache
+            if cache and not page.metadata.get('_generated'):
+                # Extract TOC items for caching
+                toc_items = extract_toc_structure(toc)
+                
+                cache.store_parsed_content(
+                    page.source_path,
+                    parsed_content,
+                    toc,
+                    toc_items,
+                    page.metadata,
+                    template,
+                    parser_version
+                )
         
         # Stage 3: Extract links for validation
         page.extract_links()
@@ -232,6 +291,59 @@ class RenderingPipeline:
             output_rel_path = output_rel_path.parent / "index.html"
         
         return self.site.output_dir / output_rel_path
+    
+    def _determine_template(self, page: Page) -> str:
+        """
+        Determine which template will be used for this page.
+        
+        Args:
+            page: Page object
+            
+        Returns:
+            Template name (e.g., 'single.html', 'page.html')
+        """
+        # Check page-specific template first
+        if hasattr(page, 'template') and page.template:
+            return page.template
+        
+        # Check metadata
+        if 'template' in page.metadata:
+            return page.metadata['template']
+        
+        # Default based on page type
+        page_type = page.metadata.get('type', 'page')
+        
+        if page_type == 'page':
+            return 'page.html'
+        elif page_type == 'section' or page.metadata.get('is_section'):
+            return 'list.html'
+        else:
+            return 'single.html'
+    
+    def _get_parser_version(self) -> str:
+        """
+        Get parser version string for cache validation.
+        
+        Returns:
+            Parser version (e.g., "mistune-3.0", "markdown-3.4")
+        """
+        parser_name = type(self.parser).__name__
+        
+        # Try to get actual version
+        if parser_name == 'MistuneParser':
+            try:
+                import mistune
+                return f"mistune-{mistune.__version__}"
+            except (ImportError, AttributeError):
+                return "mistune-unknown"
+        elif parser_name == 'PythonMarkdownParser':
+            try:
+                import markdown
+                return f"markdown-{markdown.__version__}"
+            except (ImportError, AttributeError):
+                return "markdown-unknown"
+        
+        return f"{parser_name}-unknown"
     
     def _preprocess_content(self, page: Page) -> str:
         """
