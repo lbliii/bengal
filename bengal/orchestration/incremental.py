@@ -85,9 +85,81 @@ class IncrementalOrchestrator:
         
         return False
     
+    def find_work_early(self, verbose: bool = False) -> Tuple[List['Page'], List['Asset'], Dict[str, List]]:
+        """
+        Find pages/assets that need rebuilding (early version - before taxonomy generation).
+        
+        This is called BEFORE taxonomies/menus are generated, so it only checks content/asset changes.
+        Generated pages (tags, etc.) will be determined later based on affected tags.
+        
+        Args:
+            verbose: Whether to collect detailed change information
+            
+        Returns:
+            Tuple of (pages_to_build, assets_to_process, change_summary)
+        """
+        if not self.cache or not self.tracker:
+            raise RuntimeError("Cache not initialized - call initialize() first")
+        
+        pages_to_rebuild: Set[Path] = set()
+        assets_to_process: List['Asset'] = []
+        change_summary: Dict[str, List] = {
+            'Modified content': [],
+            'Modified assets': [],
+            'Modified templates': [],
+            'Taxonomy changes': []
+        }
+        
+        # Find changed content files (skip generated pages - they don't have real source files)
+        for page in self.site.pages:
+            # Skip generated pages - they'll be handled separately
+            if page.metadata.get('_generated'):
+                continue
+                
+            if self.cache.is_changed(page.source_path):
+                pages_to_rebuild.add(page.source_path)
+                if verbose:
+                    change_summary['Modified content'].append(page.source_path)
+                # Track taxonomy changes
+                if page.tags:
+                    self.tracker.track_taxonomy(page.source_path, set(page.tags))
+        
+        # Find changed assets
+        for asset in self.site.assets:
+            if self.cache.is_changed(asset.source_path):
+                assets_to_process.append(asset)
+                if verbose:
+                    change_summary['Modified assets'].append(asset.source_path)
+        
+        # Check template/theme directory for changes
+        theme_templates_dir = self._get_theme_templates_dir()
+        if theme_templates_dir and theme_templates_dir.exists():
+            for template_file in theme_templates_dir.rglob("*.html"):
+                if self.cache.is_changed(template_file):
+                    if verbose:
+                        change_summary['Modified templates'].append(template_file)
+                    # Template changed - find affected pages
+                    affected = self.cache.get_affected_pages(template_file)
+                    for page_path_str in affected:
+                        pages_to_rebuild.add(Path(page_path_str))
+                else:
+                    # Template unchanged - still update its hash in cache to avoid re-checking
+                    self.cache.update_file(template_file)
+        
+        # Convert to Page objects
+        pages_to_build_list = [
+            page for page in self.site.pages 
+            if page.source_path in pages_to_rebuild and not page.metadata.get('_generated')
+        ]
+        
+        return pages_to_build_list, assets_to_process, change_summary
+    
     def find_work(self, verbose: bool = False) -> Tuple[List['Page'], List['Asset'], Dict[str, List]]:
         """
-        Find pages/assets that need rebuilding.
+        Find pages/assets that need rebuilding (legacy version - after taxonomy generation).
+        
+        This is the old method that expects generated pages to already exist.
+        Kept for backward compatibility but should be replaced with find_work_early().
         
         Args:
             verbose: Whether to collect detailed change information

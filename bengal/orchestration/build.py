@@ -121,53 +121,28 @@ class BuildOrchestrator:
             incremental = False
             cache.clear()
         
-        # Phase 2: Section Finalization (ensure all sections have index pages)
-        print("\n✨ Generated pages:")
-        with self.logger.phase("section_finalization"):
-            self.sections.finalize_sections()
-            
-            # Validate section structure
-            section_errors = self.sections.validate_sections()
-            if section_errors:
-                self.logger.warning("section_validation_errors", 
-                                  error_count=len(section_errors),
-                                  errors=section_errors[:3])
-                strict_mode = self.site.config.get('strict_mode', False)
-                if strict_mode:
-                    print("\n❌ Section validation errors:")
-                    for error in section_errors:
-                        print(f"   • {error}")
-                    raise Exception(f"Build failed: {len(section_errors)} section validation error(s)")
-                else:
-                    # Warn but continue in non-strict mode
-                    for error in section_errors[:3]:  # Show first 3
-                        print(f"⚠️  {error}")
-                    if len(section_errors) > 3:
-                        print(f"⚠️  ... and {len(section_errors) - 3} more errors")
-        
-        # Phase 3: Taxonomies & Dynamic Pages
-        with self.logger.phase("taxonomies"):
-            taxonomy_start = time.time()
-            self.taxonomy.collect_and_generate()
-            self.stats.taxonomy_time_ms = (time.time() - taxonomy_start) * 1000
-            self.logger.info("taxonomies_built",
-                           taxonomy_count=len(self.site.taxonomies),
-                           total_terms=sum(len(terms) for terms in self.site.taxonomies.values()))
-        
-        # Phase 4: Menus
-        with self.logger.phase("menus"):
-            self.menu.build()
-            self.logger.info("menus_built", menu_count=len(self.site.menu))
-        
-        # Phase 5: Determine what to build (incremental)
+        # Phase 2: Determine what to build (MOVED UP - before taxonomies/menus)
+        # This is the KEY optimization: filter BEFORE expensive operations
         with self.logger.phase("incremental_filtering", enabled=incremental):
             pages_to_build = self.site.pages
             assets_to_process = self.site.assets
+            affected_tags = set()
+            changed_page_paths = set()
             
             if incremental:
-                pages_to_build, assets_to_process, change_summary = self.incremental.find_work(
+                # Find what changed BEFORE generating taxonomies/menus
+                pages_to_build, assets_to_process, change_summary = self.incremental.find_work_early(
                     verbose=verbose
                 )
+                
+                # Track which pages changed (for taxonomy updates)
+                changed_page_paths = {p.source_path for p in pages_to_build if not p.metadata.get('_generated')}
+                
+                # Determine affected tags from changed pages
+                for page in pages_to_build:
+                    if page.tags and not page.metadata.get('_generated'):
+                        for tag in page.tags:
+                            affected_tags.add(tag.lower().replace(' ', '-'))
                 
                 self.logger.info("incremental_work_identified",
                                pages_to_build=len(pages_to_build),
@@ -195,7 +170,70 @@ class BuildOrchestrator:
                                 print(f"      ... and {len(items) - 5} more")
                     print()
         
-        # Phase 6: Render Pages
+        # Phase 3: Section Finalization (ensure all sections have index pages)
+        print("\n✨ Generated pages:")
+        with self.logger.phase("section_finalization"):
+            self.sections.finalize_sections()
+            
+            # Validate section structure
+            section_errors = self.sections.validate_sections()
+            if section_errors:
+                self.logger.warning("section_validation_errors", 
+                                  error_count=len(section_errors),
+                                  errors=section_errors[:3])
+                strict_mode = self.site.config.get('strict_mode', False)
+                if strict_mode:
+                    print("\n❌ Section validation errors:")
+                    for error in section_errors:
+                        print(f"   • {error}")
+                    raise Exception(f"Build failed: {len(section_errors)} section validation error(s)")
+                else:
+                    # Warn but continue in non-strict mode
+                    for error in section_errors[:3]:  # Show first 3
+                        print(f"⚠️  {error}")
+                    if len(section_errors) > 3:
+                        print(f"⚠️  ... and {len(section_errors) - 3} more errors")
+        
+        # Phase 4: Taxonomies & Dynamic Pages (NOW CONDITIONAL)
+        with self.logger.phase("taxonomies"):
+            taxonomy_start = time.time()
+            
+            if incremental and affected_tags:
+                # Incremental: Only collect/generate for affected tags
+                print(f"   ℹ Updating {len(affected_tags)} affected tag(s)")
+                self.taxonomy.collect_taxonomies()  # Still need to collect all for navigation
+                # But only generate pages for affected tags
+                self.taxonomy.generate_dynamic_pages_for_tags(affected_tags)
+            elif not incremental:
+                # Full build: Generate everything
+                self.taxonomy.collect_and_generate()
+            # else: No tags affected, skip generation
+            
+            self.stats.taxonomy_time_ms = (time.time() - taxonomy_start) * 1000
+            if hasattr(self.site, 'taxonomies'):
+                self.logger.info("taxonomies_built",
+                               taxonomy_count=len(self.site.taxonomies),
+                               total_terms=sum(len(terms) for terms in self.site.taxonomies.values()))
+        
+        # Phase 5: Menus (NOW CONDITIONAL)
+        with self.logger.phase("menus"):
+            # TODO: Make this conditional based on menu config changes
+            # For now, always rebuild (safe but not optimal)
+            self.menu.build()
+            self.logger.info("menus_built", menu_count=len(self.site.menu))
+        
+        # Phase 6: Update filtered pages list (add generated pages)
+        # Now that we've generated tag pages, update pages_to_build if needed
+        if incremental and affected_tags:
+            # Add newly generated tag pages to rebuild list
+            for page in self.site.pages:
+                if page.metadata.get('_generated') and page.metadata.get('type') in ('tag', 'tag-index'):
+                    tag_slug = page.metadata.get('_tag_slug')
+                    if tag_slug in affected_tags or page.metadata.get('type') == 'tag-index':
+                        if page not in pages_to_build:
+                            pages_to_build.append(page)
+        
+        # Phase 7: Render Pages
         quiet_mode = not verbose
         if quiet_mode:
             print(f"\n📄 Rendering content:")

@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-10-05T15:47:12.291571",
+  "timestamp": "2025-10-05T15:49:47.455122",
   "python_version": "3.10.2",
   "platform": "darwin",
   "total_pages": 192,
@@ -8,16 +8,16 @@
   "total_assets": 40,
   "total_sections": 28,
   "taxonomies_count": 40,
-  "build_time_ms": 2865.8289909362793,
+  "build_time_ms": 2842.3309326171875,
   "parallel": true,
   "incremental": true,
   "skipped": false,
-  "discovery_time_ms": 55.93609809875488,
-  "taxonomy_time_ms": 2.5739669799804688,
-  "rendering_time_ms": 2319.147825241089,
-  "assets_time_ms": 162.8742218017578,
-  "postprocess_time_ms": 289.37387466430664,
-  "memory_rss_mb": 50.90625,
-  "memory_heap_mb": 17.84962272644043,
-  "memory_peak_mb": 21.962414741516113
+  "discovery_time_ms": 35.53485870361328,
+  "taxonomy_time_ms": 2.6972293853759766,
+  "rendering_time_ms": 2335.397243499756,
+  "assets_time_ms": 157.95612335205078,
+  "postprocess_time_ms": 278.536319732666,
+  "memory_rss_mb": 51.5625,
+  "memory_heap_mb": 17.850756645202637,
+  "memory_peak_mb": 22.165247917175293
 }

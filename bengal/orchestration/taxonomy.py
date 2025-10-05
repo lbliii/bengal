@@ -97,6 +97,36 @@ class TaxonomyOrchestrator:
         cat_count = len(self.site.taxonomies.get('categories', {}))
         print(f"   └─ Found {tag_count} tags" + (f", {cat_count} categories" if cat_count else "") + " ✓")
     
+    def generate_dynamic_pages_for_tags(self, affected_tags: set) -> None:
+        """
+        Generate dynamic pages only for specific affected tags (incremental optimization).
+        
+        Args:
+            affected_tags: Set of tag slugs that need page regeneration
+        """
+        generated_count = 0
+        
+        # Always regenerate tag index (it lists all tags)
+        if self.site.taxonomies.get('tags'):
+            tag_index = self._create_tag_index_page()
+            if tag_index:
+                self.site.pages.append(tag_index)
+                generated_count += 1
+                print(f"   ├─ Tag index:        1")
+            
+            # Only generate pages for affected tags
+            for tag_slug in affected_tags:
+                if tag_slug in self.site.taxonomies['tags']:
+                    tag_data = self.site.taxonomies['tags'][tag_slug]
+                    tag_pages = self._create_tag_pages(tag_slug, tag_data)
+                    for page in tag_pages:
+                        self.site.pages.append(page)
+                        generated_count += 1
+            
+            if generated_count > 1:
+                print(f"   ├─ Tag pages:        {generated_count - 1}")
+                print(f"   └─ Total:            {generated_count} ✓")
+    
     def generate_dynamic_pages(self) -> None:
         """
         Generate dynamic taxonomy pages (tag pages, etc.) that don't have source files.
