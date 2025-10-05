@@ -211,7 +211,9 @@ class BuildHandler(FileSystemEventHandler):
             show_building_indicator("Rebuilding")
             
             try:
-                stats = self.site.build(parallel=False)
+                # Use incremental + parallel for fast dev server rebuilds (5-10x faster)
+                # Cache invalidation auto-detects config/template changes and falls back to full rebuild
+                stats = self.site.build(parallel=True, incremental=True)
                 display_build_stats(stats, show_art=False, output_dir=str(self.site.output_dir))
                 print(f"\n  \033[90m{'TIME':8} │ {'METHOD':6} │ {'STATUS':3} │ PATH\033[0m")
                 print(f"  \033[90m{'─' * 8}─┼─{'─' * 6}─┼─{'─' * 3}─┼─{'─' * 60}\033[0m")
