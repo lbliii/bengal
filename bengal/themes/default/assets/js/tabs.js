@@ -100,7 +100,7 @@
         return;
     }
     
-    tabLinks[newIndex].focus();
+    tabLinks[newIndex].focus({ preventScroll: true });
     tabLinks[newIndex].click();
   }
 

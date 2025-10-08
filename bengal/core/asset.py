@@ -8,6 +8,9 @@ from typing import Optional
 import hashlib
 import shutil
 
+# Module-level flag to track if we've warned about missing lightningcss
+_warned_no_bundling = False
+
 
 @dataclass
 class Asset:
@@ -21,6 +24,7 @@ class Asset:
         fingerprint: Hash-based fingerprint for cache busting
         minified: Whether the asset has been minified
         optimized: Whether the asset has been optimized
+        bundled: Whether CSS @import statements have been inlined
     """
     
     source_path: Path
@@ -29,6 +33,7 @@ class Asset:
     fingerprint: Optional[str] = None
     minified: bool = False
     optimized: bool = False
+    bundled: bool = False
     
     def __post_init__(self) -> None:
         """Determine asset type from file extension."""
@@ -64,6 +69,33 @@ class Asset:
         
         return type_map.get(ext, 'other')
     
+    def is_css_entry_point(self) -> bool:
+        """
+        Check if this asset is a CSS entry point that should be bundled.
+        
+        Entry points are CSS files named 'style.css' at any level.
+        These files typically contain @import statements that pull in other CSS.
+        
+        Returns:
+            True if this is a CSS entry point (e.g., style.css)
+        """
+        return (
+            self.asset_type == 'css' and 
+            self.source_path.name == 'style.css'
+        )
+    
+    def is_css_module(self) -> bool:
+        """
+        Check if this asset is a CSS module (imported by an entry point).
+        
+        CSS modules are CSS files that are NOT entry points.
+        They should be bundled into entry points, not copied separately.
+        
+        Returns:
+            True if this is a CSS module (e.g., components/buttons.css)
+        """
+        return self.asset_type == 'css' and not self.is_css_entry_point()
+    
     def minify(self) -> 'Asset':
         """
         Minify the asset (for CSS and JS).
@@ -79,21 +111,115 @@ class Asset:
         self.minified = True
         return self
     
-    def _minify_css(self) -> None:
-        """Minify CSS content."""
-        try:
-            import csscompressor
+    def bundle_css(self) -> str:
+        """
+        Bundle CSS by resolving all @import statements recursively.
+        
+        This creates a single CSS file from an entry point that has @imports.
+        Works without any external dependencies.
+        
+        Returns:
+            Bundled CSS content as a string
+        """
+        import re
+        
+        def bundle_imports(css_content: str, base_path: Path) -> str:
+            """Recursively resolve @import statements."""
+            # Pattern: @import url('...') or @import '...'
+            import_pattern = r'@import\s+(?:url\()?\s*[\'"]([^\'"]+)[\'"]\s*(?:\))?\s*;'
             
+            def resolve_import(match):
+                import_path = match.group(1)
+                imported_file = base_path / import_path
+                
+                if not imported_file.exists():
+                    # Keep the @import (might be a URL or external)
+                    return match.group(0)
+                
+                try:
+                    # Read and recursively process the imported file
+                    imported_content = imported_file.read_text(encoding='utf-8')
+                    # Recursively resolve nested imports
+                    return bundle_imports(imported_content, imported_file.parent)
+                except Exception as e:
+                    print(f"⚠️  Warning: Could not read {imported_file}: {e}")
+                    return match.group(0)
+            
+            # Replace all @import statements with their content
+            return re.sub(import_pattern, resolve_import, css_content)
+        
+        # Read the CSS file
+        with open(self.source_path, 'r', encoding='utf-8') as f:
+            css_content = f.read()
+        
+        # Bundle all @import statements
+        bundled = bundle_imports(css_content, self.source_path.parent)
+        self.bundled = True
+        
+        return bundled
+    
+    def _minify_css(self) -> None:
+        """
+        Minify CSS content using lightningcss (preferred) or csscompressor (fallback).
+        
+        For CSS entry points (style.css), this should be called AFTER bundling.
+        """
+        # Get the CSS content (bundled if this is an entry point)
+        if hasattr(self, '_bundled_content'):
+            css_content = self._bundled_content
+        else:
             with open(self.source_path, 'r', encoding='utf-8') as f:
                 css_content = f.read()
+        
+        # Try Lightning CSS for minification + autoprefixing
+        try:
+            import lightningcss
             
-            minified_content = csscompressor.compress(css_content)
+            result = lightningcss.process_stylesheet(
+                css_content,
+                filename=str(self.source_path),
+                minify=True,
+                # Autoprefix for modern browsers
+                browsers_list=[
+                    'last 2 Chrome versions',
+                    'last 2 Firefox versions',
+                    'last 2 Safari versions',
+                    'last 2 Edge versions',
+                ],
+            )
             
-            # Write to a temporary location or update in-memory
-            # This would be written during copy_to_output()
-            self._minified_content = minified_content
+            self._minified_content = result
+            
         except ImportError:
-            print("Warning: csscompressor not available, skipping CSS minification")
+            # Fallback: try csscompressor (basic minification only)
+            try:
+                import csscompressor
+                minified_content = csscompressor.compress(css_content)
+                self._minified_content = minified_content
+                
+                # Warn about missing lightningcss (only once per build)
+                global _warned_no_bundling
+                if not _warned_no_bundling:
+                    print("⚠️  Warning: lightningcss not available")
+                    print("   CSS will be minified but not autoprefixed")
+                    print("   Install: pip install lightningcss")
+                    _warned_no_bundling = True
+                    
+            except ImportError:
+                # No minification available - just use the content as-is
+                print("Warning: No CSS minifier available, using unminified CSS")
+                self._minified_content = css_content
+                
+        except Exception as e:
+            # If Lightning CSS fails, fall back to csscompressor
+            print(f"⚠️  Lightning CSS processing failed: {e}")
+            print("   Falling back to basic minification")
+            try:
+                import csscompressor
+                self._minified_content = csscompressor.compress(css_content)
+            except Exception as fallback_error:
+                print(f"Warning: Fallback minification also failed: {fallback_error}")
+                self._minified_content = css_content
     
     def _minify_js(self) -> None:
         """Minify JavaScript content."""

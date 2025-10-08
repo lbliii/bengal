@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Set, Optional
 import threading
 from bengal.cache.build_cache import BuildCache
+from bengal.utils.logger import get_logger
 
 
 class DependencyTracker:
@@ -26,6 +27,7 @@ class DependencyTracker:
             cache: BuildCache instance to store dependencies in
         """
         self.cache = cache
+        self.logger = get_logger(__name__)
         # Use thread-local storage for current page to support parallel processing
         self.current_page = threading.local()
     
@@ -127,6 +129,12 @@ class DependencyTracker:
             if file_path.exists() and self.cache.is_changed(file_path):
                 changed.add(file_path)
         
+        if changed:
+            self.logger.info("changed_files_detected",
+                           changed_count=len(changed),
+                           total_tracked=len(self.cache.file_hashes),
+                           change_ratio=f"{len(changed)/len(self.cache.file_hashes)*100:.1f}%")
+        
         return changed
     
     def find_new_files(self, current_files: Set[Path]) -> Set[Path]:
@@ -140,7 +148,14 @@ class DependencyTracker:
             Set of new file paths
         """
         tracked_files = {Path(f) for f in self.cache.file_hashes.keys()}
-        return current_files - tracked_files
+        new_files = current_files - tracked_files
+        
+        if new_files:
+            self.logger.info("new_files_detected",
+                           new_count=len(new_files),
+                           total_current=len(current_files))
+        
+        return new_files
     
     def find_deleted_files(self, current_files: Set[Path]) -> Set[Path]:
         """
@@ -153,5 +168,12 @@ class DependencyTracker:
             Set of deleted file paths
         """
         tracked_files = {Path(f) for f in self.cache.file_hashes.keys()}
-        return tracked_files - current_files
+        deleted_files = tracked_files - current_files
+        
+        if deleted_files:
+            self.logger.info("deleted_files_detected",
+                           deleted_count=len(deleted_files),
+                           total_tracked=len(tracked_files))
+        
+        return deleted_files
 

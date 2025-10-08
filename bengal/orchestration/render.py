@@ -91,14 +91,40 @@ class RenderOrchestrator:
         """
         Build pages in parallel for better performance.
         
-        Uses thread-local pipelines to avoid expensive Jinja2 environment
-        re-initialization (one pipeline per thread, not per page).
+        Threading Model:
+            - Creates ThreadPoolExecutor with max_workers threads
+            - max_workers comes from config (default: 4)
+            - Each thread gets its own RenderingPipeline instance (cached)
+            - Each pipeline gets its own MarkdownParser instance (cached)
+        
+        Caching Strategy:
+            Thread-local caching at two levels:
+            1. RenderingPipeline: One per thread (Jinja2 environment is expensive)
+            2. MarkdownParser: One per thread (parser setup is expensive)
+            
+            This means with max_workers=N:
+            - N RenderingPipeline instances created
+            - N MarkdownParser instances created
+            - Both are reused for all pages processed by that thread
+        
+        Performance Example:
+            With 200 pages and max_workers=10:
+            - 10 threads created
+            - 10 pipelines created (one-time cost: ~50ms)
+            - 10 parsers created (one-time cost: ~100ms)
+            - Each thread processes ~20 pages
+            - Per-page savings: ~5ms (pipeline) + ~10ms (parser) = ~15ms
+            - Total savings: ~3 seconds vs creating fresh for each page
         
         Args:
             pages: Pages to render
-            tracker: Dependency tracker
+            tracker: Dependency tracker for incremental builds
             quiet: Whether to suppress verbose output
             stats: Build statistics tracker
+            
+        Note:
+            If you're profiling and see N parser/pipeline instances created,
+            where N = max_workers, this is OPTIMAL behavior.
         """
         from bengal.rendering.pipeline import RenderingPipeline
         

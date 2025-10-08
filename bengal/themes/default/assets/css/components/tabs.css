@@ -22,9 +22,9 @@
 
 .tab-nav {
   display: flex;
-  list-style: none !important;
-  margin: 0 !important;
-  padding: 0 !important;
+  list-style: none;
+  margin: 0;
+  padding: 0;
   border-bottom: 2px solid var(--color-border);
   background-color: var(--color-bg-secondary);
   overflow-x: auto;
@@ -34,9 +34,9 @@
 /* Override prose list styles for tab navigation */
 .prose .tab-nav,
 .prose .tab-nav li {
-  list-style: none !important;
-  margin: 0 !important;
-  padding: 0 !important;
+  list-style: none;
+  margin: 0;
+  padding: 0;
 }
 
 .tab-nav::-webkit-scrollbar {
@@ -54,9 +54,9 @@
 
 .tab-nav li {
   flex-shrink: 0;
-  list-style: none !important;
-  margin: 0 !important;
-  padding: 0 !important;
+  list-style: none;
+  margin: 0;
+  padding: 0;
 }
 
 .tab-nav a {
@@ -123,6 +123,25 @@
 
 .tab-pane > *:last-child {
   margin-bottom: 0;
+}
+
+/* List styling in tab content */
+.tab-pane ul,
+.tab-pane ol {
+  padding-left: var(--space-8);
+  margin: var(--space-4) 0;
+}
+
+.tab-pane ul {
+  list-style-type: disc;
+}
+
+.tab-pane ol {
+  list-style-type: decimal;
+}
+
+.tab-pane li {
+  margin: var(--space-2) 0;
 }
 
 .tab-pane pre {

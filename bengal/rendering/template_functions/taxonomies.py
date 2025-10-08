@@ -35,24 +35,44 @@ def register(env: 'Environment', site: 'Site') -> None:
     })
 
 
-def related_posts(page: Any, all_pages: List[Any], limit: int = 5) -> List[Any]:
+def related_posts(page: Any, all_pages: List[Any] = None, limit: int = 5) -> List[Any]:
     """
     Find related posts based on shared tags.
     
+    PERFORMANCE NOTE: This function now uses pre-computed related posts
+    for O(1) access. The old O(n²) algorithm is kept as a fallback for
+    backward compatibility with custom templates.
+    
+    RECOMMENDED: Use `page.related_posts` directly in templates instead
+    of calling this function.
+    
     Args:
         page: Current page
-        all_pages: All site pages
+        all_pages: All site pages (optional, only needed for fallback)
         limit: Maximum number of related posts
     
     Returns:
         List of related pages sorted by relevance
     
-    Example:
+    Example (NEW - recommended):
+        {% set related = page.related_posts[:3] %}
+    
+    Example (OLD - backward compatible):
         {% set related = related_posts(page, limit=3) %}
         {% for post in related %}
           <a href="{{ url_for(post) }}">{{ post.title }}</a>
         {% endfor %}
     """
+    # FAST PATH: Use pre-computed related posts (O(1))
+    if hasattr(page, 'related_posts') and page.related_posts:
+        return page.related_posts[:limit]
+    
+    # SLOW PATH: Fallback to runtime computation for backward compatibility
+    # (Only happens if related posts weren't pre-computed during build)
+    if all_pages is None:
+        # Can't compute without all_pages
+        return []
+    
     if not hasattr(page, 'tags') or not page.tags:
         return []
     

@@ -24,7 +24,7 @@
                 
                 {% if page.content %}
                 <span class="reading-time">
-                    {{ page.content | reading_time }} min read
+                    {{ reading_time }} min read
                 </span>
                 {% endif %}
             </div>
@@ -65,8 +65,8 @@
 {# Page Navigation (prev/next) #}
 {% include 'partials/page-navigation.html' %}
 
-{# Related Posts Section (for pages with tags) #}
-{% set related = related_posts(page, limit=3) %}
+{# Related Posts Section (for pages with tags) - Pre-computed during build #}
+{% set related = page.related_posts[:3] %}
 {% if related %}
 <aside class="related-posts">
     <div class="container">
@@ -79,7 +79,7 @@
                 <time datetime="{{ post.date | date_iso }}">{{ post.date | time_ago }}</time>
                 {% endif %}
                 {% if post.content %}
-                <p>{{ post.content | excerpt(100) }}</p>
+                <p>{{ post.excerpt }}</p>
                 {% endif %}
             </article>
             {% endfor %}

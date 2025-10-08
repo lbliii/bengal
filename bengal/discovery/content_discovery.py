@@ -8,6 +8,7 @@ import frontmatter
 
 from bengal.core.page import Page
 from bengal.core.section import Section
+from bengal.utils.logger import get_logger
 
 
 class ContentDiscovery:
@@ -25,6 +26,7 @@ class ContentDiscovery:
         self.content_dir = content_dir
         self.sections: List[Section] = []
         self.pages: List[Page] = []
+        self.logger = get_logger(__name__)
     
     def discover(self) -> Tuple[List[Section], List[Page]]:
         """
@@ -33,7 +35,12 @@ class ContentDiscovery:
         Returns:
             Tuple of (sections, pages)
         """
+        self.logger.info("content_discovery_start", content_dir=str(self.content_dir))
+        
         if not self.content_dir.exists():
+            self.logger.warning("content_dir_missing",
+                              content_dir=str(self.content_dir),
+                              action="returning_empty")
             return self.sections, self.pages
         
         # Walk top-level items directly (no root section wrapper)
@@ -60,6 +67,16 @@ class ContentDiscovery:
                 # Only add section if it has content
                 if section.pages or section.subsections:
                     self.sections.append(section)
+        
+        # Calculate metrics
+        top_level_sections = len([s for s in self.sections if not hasattr(s, 'parent') or s.parent is None])
+        top_level_pages = len([p for p in self.pages if not any(p in s.pages for s in self.sections)])
+        
+        self.logger.info("content_discovery_complete",
+                        total_sections=len(self.sections),
+                        total_pages=len(self.pages),
+                        top_level_sections=top_level_sections,
+                        top_level_pages=top_level_pages)
         
         return self.sections, self.pages
     
@@ -134,15 +151,27 @@ class ContentDiscovery:
         Raises:
             IOError: Only if file cannot be read at all
         """
-        content, metadata = self._parse_content_file(file_path)
-        
-        page = Page(
-            source_path=file_path,
-            content=content,
-            metadata=metadata,
-        )
-        
-        return page
+        try:
+            content, metadata = self._parse_content_file(file_path)
+            
+            page = Page(
+                source_path=file_path,
+                content=content,
+                metadata=metadata,
+            )
+            
+            self.logger.debug("page_created",
+                            page_path=str(file_path),
+                            has_metadata=bool(metadata),
+                            has_parse_error='_parse_error' in metadata)
+            
+            return page
+        except Exception as e:
+            self.logger.error("page_creation_failed",
+                            file_path=str(file_path),
+                            error=str(e),
+                            error_type=type(e).__name__)
+            raise
     
     def _parse_content_file(self, file_path: Path) -> tuple:
         """
@@ -165,15 +194,25 @@ class ContentDiscovery:
                 file_content = f.read()
         except UnicodeDecodeError as e:
             # Try different encodings
-            print(f"⚠️  Warning: UTF-8 decode failed for {file_path}, trying latin-1")
+            self.logger.warning("encoding_decode_failed",
+                              file_path=str(file_path),
+                              encoding="utf-8",
+                              fallback="latin-1")
             try:
                 with open(file_path, 'r', encoding='latin-1') as f:
                     file_content = f.read()
             except Exception:
                 # Give up
+                self.logger.error("file_decode_failed",
+                                file_path=str(file_path),
+                                error=str(e),
+                                tried_encodings=["utf-8", "latin-1"])
                 raise IOError(f"Cannot decode {file_path}: {e}") from e
         except IOError as e:
-            print(f"❌ Error: Cannot read {file_path}: {e}")
+            self.logger.error("file_read_failed",
+                            file_path=str(file_path),
+                            error=str(e),
+                            error_type=type(e).__name__)
             raise
         
         # Parse frontmatter
@@ -185,10 +224,12 @@ class ContentDiscovery:
             
         except yaml.YAMLError as e:
             # YAML syntax error in frontmatter
-            print(f"⚠️  Warning: Invalid YAML frontmatter in {file_path}")
-            print(f"    Error: {e}")
-            print(f"    File will be processed without metadata.")
-            print(f"    Please fix the frontmatter syntax.")
+            self.logger.warning("frontmatter_parse_failed",
+                              file_path=str(file_path),
+                              error=str(e),
+                              error_type="yaml_syntax",
+                              action="processing_without_metadata",
+                              suggestion="Fix frontmatter YAML syntax")
             
             # Try to extract content (skip broken frontmatter)
             content = self._extract_content_skip_frontmatter(file_content)
@@ -205,7 +246,11 @@ class ContentDiscovery:
         
         except Exception as e:
             # Unexpected error
-            print(f"⚠️  Warning: Unexpected error parsing {file_path}: {e}")
+            self.logger.warning("content_parse_unexpected_error",
+                              file_path=str(file_path),
+                              error=str(e),
+                              error_type=type(e).__name__,
+                              action="using_full_file_as_content")
             
             # Use entire file as content
             metadata = {

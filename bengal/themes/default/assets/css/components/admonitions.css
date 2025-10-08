@@ -52,6 +52,25 @@
   margin-top: 0;
 }
 
+/* List styling in admonitions */
+.admonition ul,
+.admonition ol {
+  padding-left: var(--space-8);
+  margin: var(--space-3) 0;
+}
+
+.admonition ul {
+  list-style-type: disc;
+}
+
+.admonition ol {
+  list-style-type: decimal;
+}
+
+.admonition li {
+  margin: var(--space-1) 0;
+}
+
 .admonition code {
   background-color: rgba(0, 0, 0, 0.05);
 }

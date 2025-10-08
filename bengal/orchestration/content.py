@@ -280,6 +280,10 @@ class ContentOrchestrator:
                 self.site.xref_index['by_id'][ref_id] = page
             
             # Index headings from TOC (for anchor links)
+            # NOTE: This accesses toc_items BEFORE parsing (during discovery phase).
+            # This is safe because toc_items property returns [] when toc is not set,
+            # and importantly does NOT cache the empty result. After parsing, when
+            # toc is set, the property will extract and cache the real structure.
             if hasattr(page, 'toc_items') and page.toc_items:
                 for toc_item in page.toc_items:
                     heading_text = toc_item.get('title', '').lower()

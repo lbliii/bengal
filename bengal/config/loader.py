@@ -8,6 +8,8 @@ import difflib
 import toml
 import yaml
 
+from bengal.utils.logger import get_logger
+
 
 class ConfigLoader:
     """
@@ -24,7 +26,7 @@ class ConfigLoader:
     KNOWN_SECTIONS = {
         'site', 'build', 'markdown', 'features', 'taxonomies',
         'menu', 'params', 'assets', 'pagination', 'dev', 
-        'output_formats', 'health_check'
+        'output_formats', 'health_check', 'fonts'
     }
     
     def __init__(self, root_path: Path) -> None:
@@ -36,6 +38,7 @@ class ConfigLoader:
         """
         self.root_path = root_path
         self.warnings: List[str] = []
+        self.logger = get_logger(__name__)
     
     def load(self, config_path: Optional[Path] = None) -> Dict[str, Any]:
         """
@@ -54,10 +57,16 @@ class ConfigLoader:
         for filename in ['bengal.toml', 'bengal.yaml', 'bengal.yml']:
             config_file = self.root_path / filename
             if config_file.exists():
+                self.logger.info("config_file_found",
+                               config_file=str(config_file),
+                               format=config_file.suffix)
                 return self._load_file(config_file)
         
         # Return default config if no file found
-        print("Warning: No configuration file found, using defaults")
+        self.logger.warning("config_file_not_found",
+                          search_path=str(self.root_path),
+                          tried_files=['bengal.toml', 'bengal.yaml', 'bengal.yml'],
+                          action="using_defaults")
         return self._default_config()
     
     def _load_file(self, config_path: Path) -> Dict[str, Any]:
@@ -78,6 +87,10 @@ class ConfigLoader:
         suffix = config_path.suffix.lower()
         
         try:
+            self.logger.info("config_load_start",
+                           config_path=str(config_path),
+                           format=suffix)
+            
             # Load raw config
             if suffix == '.toml':
                 raw_config = self._load_toml(config_path)
@@ -90,13 +103,25 @@ class ConfigLoader:
             validator = ConfigValidator()
             validated_config = validator.validate(raw_config, source_file=config_path)
             
+            self.logger.info("config_load_complete",
+                           config_path=str(config_path),
+                           sections=list(validated_config.keys()),
+                           warnings=len(self.warnings))
+            
             return validated_config
             
         except ConfigValidationError:
             # Validation error already printed nice errors
+            self.logger.error("config_validation_failed",
+                            config_path=str(config_path),
+                            error="validation_error")
             raise
         except Exception as e:
-            print(f"❌ Error loading config from {config_path}: {e}")
+            self.logger.error("config_load_failed",
+                            config_path=str(config_path),
+                            error=str(e),
+                            error_type=type(e).__name__,
+                            action="using_defaults")
             return self._default_config()
     
     def _load_toml(self, config_path: Path) -> Dict[str, Any]:
@@ -188,25 +213,41 @@ class ConfigLoader:
                     # Both forms present - merge if possible
                     if isinstance(value, dict) and isinstance(normalized[canonical], dict):
                         normalized[canonical].update(value)
-                        self.warnings.append(
-                            f"⚠️  Both [{key}] and [{canonical}] defined. Merging into [{canonical}]."
-                        )
+                        warning_msg = f"⚠️  Both [{key}] and [{canonical}] defined. Merging into [{canonical}]."
+                        self.warnings.append(warning_msg)
+                        self.logger.warning("config_section_duplicate",
+                                          alias=key,
+                                          canonical=canonical,
+                                          action="merging")
                     else:
-                        self.warnings.append(
-                            f"⚠️  Both [{key}] and [{canonical}] defined. Using [{canonical}]."
-                        )
+                        warning_msg = f"⚠️  Both [{key}] and [{canonical}] defined. Using [{canonical}]."
+                        self.warnings.append(warning_msg)
+                        self.logger.warning("config_section_duplicate",
+                                          alias=key,
+                                          canonical=canonical,
+                                          action="using_canonical")
                 else:
                     normalized[canonical] = value
-                    self.warnings.append(
-                        f"💡 Config note: [{key}] works, but [{canonical}] is preferred for consistency"
-                    )
+                    warning_msg = f"💡 Config note: [{key}] works, but [{canonical}] is preferred for consistency"
+                    self.warnings.append(warning_msg)
+                    self.logger.debug("config_section_alias_used",
+                                     alias=key,
+                                     canonical=canonical,
+                                     suggestion=f"use [{canonical}] instead")
             elif key not in self.KNOWN_SECTIONS:
                 # Unknown section - check for typos
                 suggestions = difflib.get_close_matches(key, self.KNOWN_SECTIONS, n=1, cutoff=0.6)
                 if suggestions:
-                    self.warnings.append(
-                        f"⚠️  Unknown section [{key}]. Did you mean [{suggestions[0]}]?"
-                    )
+                    warning_msg = f"⚠️  Unknown section [{key}]. Did you mean [{suggestions[0]}]?"
+                    self.warnings.append(warning_msg)
+                    self.logger.warning("config_section_unknown",
+                                      section=key,
+                                      suggestion=suggestions[0],
+                                      action="including_anyway")
+                else:
+                    self.logger.debug("config_section_custom",
+                                    section=key,
+                                    note="not in known sections")
                 # Still include it (might be user-defined)
                 normalized[key] = value
             else:

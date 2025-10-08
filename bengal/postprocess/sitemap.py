@@ -7,6 +7,8 @@ from typing import Any
 from datetime import datetime
 import xml.etree.ElementTree as ET
 
+from bengal.utils.logger import get_logger
+
 
 class SitemapGenerator:
     """
@@ -21,9 +23,13 @@ class SitemapGenerator:
             site: Site instance
         """
         self.site = site
+        self.logger = get_logger(__name__)
     
     def generate(self) -> None:
         """Generate and write sitemap.xml."""
+        self.logger.info("sitemap_generation_start",
+                        total_pages=len(self.site.pages))
+        
         # Create root element
         urlset = ET.Element('urlset')
         urlset.set('xmlns', 'http://www.sitemaps.org/schemas/sitemap/0.9')
@@ -31,6 +37,9 @@ class SitemapGenerator:
         baseurl = self.site.config.get('baseurl', '')
         
         # Add each page to sitemap
+        included_count = 0
+        skipped_count = 0
+        
         for page in self.site.pages:
             url_elem = ET.SubElement(urlset, 'url')
             
@@ -40,6 +49,7 @@ class SitemapGenerator:
                     rel_path = page.output_path.relative_to(self.site.output_dir)
                     loc = f"{baseurl}/{rel_path}".replace('\\', '/')
                 except ValueError:
+                    skipped_count += 1
                     continue
             else:
                 loc = f"{baseurl}/{page.slug}/"
@@ -48,6 +58,7 @@ class SitemapGenerator:
             loc = loc.replace('/index.html', '/')
             
             ET.SubElement(url_elem, 'loc').text = loc
+            included_count += 1
             
             # Add lastmod if available
             if page.date:
@@ -68,10 +79,23 @@ class SitemapGenerator:
         self._indent(urlset)
         
         # Write atomically using context manager
-        with AtomicFile(sitemap_path, 'wb') as f:
-            tree.write(f, encoding='utf-8', xml_declaration=True)
-        
-        print(f"   └─ Sitemap ✓")
+        try:
+            with AtomicFile(sitemap_path, 'wb') as f:
+                tree.write(f, encoding='utf-8', xml_declaration=True)
+            
+            self.logger.info("sitemap_generation_complete",
+                           sitemap_path=str(sitemap_path),
+                           pages_included=included_count,
+                           pages_skipped=skipped_count,
+                           total_pages=len(self.site.pages))
+            
+            print(f"   └─ Sitemap ✓")
+        except Exception as e:
+            self.logger.error("sitemap_generation_failed",
+                            sitemap_path=str(sitemap_path),
+                            error=str(e),
+                            error_type=type(e).__name__)
+            raise
     
     def _indent(self, elem: ET.Element, level: int = 0) -> None:
         """

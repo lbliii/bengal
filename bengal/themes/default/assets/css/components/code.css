@@ -7,14 +7,14 @@
    INLINE CODE
    ============================================ */
 
-code {
-  padding: 0.125em 0.375em;
-  font-size: 0.875em;
-  font-family: var(--font-mono);
+/* NOTE: Base inline code styles are defined in base/reset.css
+ * This file only contains additional code block and syntax highlighting styles.
+ * If you need different inline code styles, use a class like .code-accent
+ */
+
+.code-accent {
   color: var(--color-accent);
-  background-color: var(--color-bg-code);
   border: 1px solid var(--color-border-light);
-  border-radius: var(--border-radius-small);
   font-weight: var(--font-weight-medium);
 }
 

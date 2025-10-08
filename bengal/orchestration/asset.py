@@ -5,9 +5,12 @@ Handles asset copying, minification, optimization, and fingerprinting.
 """
 
 import concurrent.futures
+import time
 from pathlib import Path
 from threading import Lock
 from typing import TYPE_CHECKING, List
+
+from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.core.site import Site
@@ -37,33 +40,127 @@ class AssetOrchestrator:
             site: Site instance containing assets and configuration
         """
         self.site = site
+        self.logger = get_logger(__name__)
     
     def process(self, assets: List['Asset'], parallel: bool = True) -> None:
         """
         Process and copy assets to output directory.
+        
+        CSS entry points (style.css) are bundled to resolve @imports.
+        CSS modules are skipped (they're bundled into entry points).
+        All other assets are processed normally.
         
         Args:
             assets: List of assets to process
             parallel: Whether to use parallel processing
         """
         if not assets:
+            self.logger.info("asset_processing_skipped", reason="no_assets")
             return
         
-        print(f"\n📦 Assets:\n   └─ {len(assets)} files ✓")
+        start_time = time.time()
+        
+        # Separate CSS entry points, CSS modules, and other assets
+        css_entries = [a for a in assets if a.is_css_entry_point()]
+        css_modules = [a for a in assets if a.is_css_module()]
+        other_assets = [a for a in assets if a.asset_type != 'css']
+        
+        # Report discovery
+        total_discovered = len(assets)
+        total_output = len(css_entries) + len(other_assets)
+        print(f"\n📦 Assets:")
+        print(f"   └─ Discovered: {total_discovered} files")
+        if css_modules:
+            print(f"   └─ CSS bundling: {len(css_entries)} entry point(s), {len(css_modules)} module(s) bundled")
+        print(f"   └─ Output: {total_output} files ✓")
         
         # Get configuration
         minify = self.site.config.get("minify_assets", True)
         optimize = self.site.config.get("optimize_assets", True)
         fingerprint = self.site.config.get("fingerprint_assets", True)
         
+        # Log asset processing configuration
+        self.logger.info("asset_processing_start",
+                        total_assets=len(assets),
+                        css_entries=len(css_entries),
+                        css_modules=len(css_modules),
+                        other_assets=len(other_assets),
+                        mode="parallel" if parallel else "sequential",
+                        minify=minify,
+                        optimize=optimize,
+                        fingerprint=fingerprint)
+        
+        # Process CSS entry points first (bundle + minify)
+        for css_entry in css_entries:
+            self._process_css_entry(css_entry, minify, optimize, fingerprint)
+        
+        # Process other assets (skip CSS modules)
+        assets_to_process = other_assets
+        
         # Use parallel processing only for larger workloads to avoid overhead
-        # Threshold of 5 assets balances parallelism benefit vs thread overhead
         MIN_ASSETS_FOR_PARALLEL = 5
         
-        if parallel and len(assets) >= MIN_ASSETS_FOR_PARALLEL:
-            self._process_parallel(assets, minify, optimize, fingerprint)
+        if parallel and len(assets_to_process) >= MIN_ASSETS_FOR_PARALLEL:
+            self._process_parallel(assets_to_process, minify, optimize, fingerprint)
         else:
-            self._process_sequential(assets, minify, optimize, fingerprint)
+            self._process_sequential(assets_to_process, minify, optimize, fingerprint)
+        
+        # Log completion metrics
+        duration_ms = (time.time() - start_time) * 1000
+        self.logger.info("asset_processing_complete",
+                        assets_processed=len(assets),
+                        output_files=total_output,
+                        duration_ms=duration_ms,
+                        throughput=len(assets) / (duration_ms / 1000) if duration_ms > 0 else 0)
+    
+    def _process_css_entry(
+        self,
+        css_entry: 'Asset',
+        minify: bool,
+        optimize: bool,
+        fingerprint: bool
+    ) -> None:
+        """
+        Process a CSS entry point (e.g., style.css) with bundling.
+        
+        Steps:
+        1. Bundle all @import statements into single file
+        2. Minify the bundled CSS
+        3. Output to public directory
+        
+        Args:
+            css_entry: CSS entry point asset
+            minify: Whether to minify
+            optimize: Whether to optimize (unused for CSS)
+            fingerprint: Whether to add hash to filename
+        """
+        try:
+            assets_output = self.site.output_dir / "assets"
+            
+            # Step 1: Bundle CSS (resolve all @imports)
+            bundled_css = css_entry.bundle_css()
+            
+            # Store bundled content for minification
+            css_entry._bundled_content = bundled_css
+            
+            # Step 2: Minify (if enabled)
+            if minify:
+                css_entry.minify()
+            else:
+                # Use bundled content as-is
+                css_entry._minified_content = bundled_css
+            
+            # Step 3: Output to public directory
+            css_entry.copy_to_output(assets_output, use_fingerprint=fingerprint)
+            
+        except Exception as e:
+            self.logger.error("css_entry_processing_failed",
+                            asset_path=str(css_entry.source_path),
+                            error=str(e),
+                            error_type=type(e).__name__,
+                            stage="bundle_or_minify")
+            with _print_lock:
+                print(f"⚠️  Failed to process CSS entry point {css_entry.source_path}: {e}")
     
     def _process_sequential(self, assets: List['Asset'], minify: bool, 
                            optimize: bool, fingerprint: bool) -> None:
@@ -88,6 +185,12 @@ class AssetOrchestrator:
                 
                 asset.copy_to_output(assets_output, use_fingerprint=fingerprint)
             except Exception as e:
+                self.logger.error("asset_processing_failed",
+                                asset_path=str(asset.source_path),
+                                asset_type=asset.asset_type,
+                                error=str(e),
+                                error_type=type(e).__name__,
+                                mode="sequential")
                 print(f"Warning: Failed to process asset {asset.source_path}: {e}")
     
     def _process_parallel(self, assets: List['Asset'], minify: bool, 
@@ -128,6 +231,12 @@ class AssetOrchestrator:
         
         # Report errors after all processing is complete
         if errors:
+            self.logger.error("asset_batch_processing_failed",
+                            total_errors=len(errors),
+                            total_assets=len(assets),
+                            success_rate=f"{((len(assets) - len(errors)) / len(assets) * 100):.1f}%",
+                            first_errors=errors[:5],
+                            mode="parallel")
             with _print_lock:
                 print(f"  ⚠️  {len(errors)} asset(s) failed to process:")
                 for error in errors[:5]:  # Show first 5 errors

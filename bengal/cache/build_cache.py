@@ -9,6 +9,10 @@ import hashlib
 import json
 from datetime import datetime
 
+from bengal.utils.logger import get_logger
+
+logger = get_logger(__name__)
+
 
 @dataclass
 class ParsedContentCache:
@@ -106,8 +110,11 @@ class BuildCache:
             
             return cls(**data)
         except (json.JSONDecodeError, KeyError, TypeError) as e:
-            print(f"Warning: Failed to load cache from {cache_path}: {e}")
-            print("Starting with fresh cache")
+            logger.warning("cache_load_failed",
+                          cache_path=str(cache_path),
+                          error=str(e),
+                          error_type=type(e).__name__,
+                          action="using_fresh_cache")
             return cls()
     
     def save(self, cache_path: Path) -> None:
@@ -136,8 +143,18 @@ class BuildCache:
             from bengal.utils.atomic_write import AtomicFile
             with AtomicFile(cache_path, 'w', encoding='utf-8') as f:
                 json.dump(data, f, indent=2)
+            
+            logger.debug("cache_saved",
+                        cache_path=str(cache_path),
+                        tracked_files=len(self.file_hashes),
+                        dependencies=len(self.dependencies),
+                        cached_content=len(self.parsed_content))
         except Exception as e:
-            print(f"Warning: Failed to save cache to {cache_path}: {e}")
+            logger.error("cache_save_failed",
+                        cache_path=str(cache_path),
+                        error=str(e),
+                        error_type=type(e).__name__,
+                        impact="incremental_builds_disabled")
     
     def hash_file(self, file_path: Path) -> str:
         """
@@ -157,7 +174,11 @@ class BuildCache:
                     hasher.update(chunk)
             return hasher.hexdigest()
         except Exception as e:
-            print(f"Warning: Failed to hash file {file_path}: {e}")
+            logger.warning("file_hash_failed",
+                          file_path=str(file_path),
+                          error=str(e),
+                          error_type=type(e).__name__,
+                          fallback="empty_hash")
             return ""
     
     def is_changed(self, file_path: Path) -> bool:
@@ -302,16 +323,20 @@ class BuildCache:
     
     def get_stats(self) -> Dict[str, int]:
         """
-        Get cache statistics.
+        Get cache statistics with logging.
         
         Returns:
             Dictionary with cache stats
         """
-        return {
+        stats = {
             'tracked_files': len(self.file_hashes),
             'dependencies': sum(len(deps) for deps in self.dependencies.values()),
             'taxonomy_terms': len(self.taxonomy_deps),
+            'cached_content_pages': len(self.parsed_content),
         }
+        
+        logger.debug("cache_stats", **stats)
+        return stats
     
     def __repr__(self) -> str:
         stats = self.get_stats()

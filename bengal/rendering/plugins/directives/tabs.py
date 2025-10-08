@@ -127,7 +127,7 @@ def render_tabs(renderer, text, **attrs):
     nav_html = f'<div class="tabs" id="{tab_id}">\n  <ul class="tab-nav">\n'
     for i, (title, _) in enumerate(matches):
         active = ' class="active"' if i == 0 else ''
-        nav_html += f'    <li{active}><a href="#{tab_id}-{i}">{title.strip()}</a></li>\n'
+        nav_html += f'    <li{active}><a href="#" data-tab-target="{tab_id}-{i}">{title.strip()}</a></li>\n'
     nav_html += '  </ul>\n'
     
     # Build content panes

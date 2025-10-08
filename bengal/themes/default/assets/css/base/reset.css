@@ -145,7 +145,11 @@ ul,
 ol {
   margin: 0;
   padding: 0;
-  list-style: none;
+  /* NOTE: list-style is NOT removed globally.
+   * Semantic lists should have bullets/numbers by default.
+   * Components that need unstyled lists (nav, breadcrumbs, etc.) 
+   * should explicitly set list-style: none.
+   */
 }
 
 /* ============================================

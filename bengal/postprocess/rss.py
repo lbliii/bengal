@@ -7,6 +7,8 @@ from typing import Any
 from datetime import datetime
 import xml.etree.ElementTree as ET
 
+from bengal.utils.logger import get_logger
+
 
 class RSSGenerator:
     """
@@ -21,9 +23,19 @@ class RSSGenerator:
             site: Site instance
         """
         self.site = site
+        self.logger = get_logger(__name__)
     
     def generate(self) -> None:
         """Generate and write rss.xml."""
+        # Add items (pages sorted by date)
+        pages_with_dates = [p for p in self.site.pages if p.date]
+        sorted_pages = sorted(pages_with_dates, key=lambda p: p.date, reverse=True)
+        
+        self.logger.info("rss_generation_start",
+                        total_pages=len(self.site.pages),
+                        pages_with_dates=len(pages_with_dates),
+                        rss_limit=min(20, len(sorted_pages)))
+        
         # Create root element
         rss = ET.Element('rss')
         rss.set('version', '2.0')
@@ -38,10 +50,6 @@ class RSSGenerator:
         ET.SubElement(channel, 'title').text = title
         ET.SubElement(channel, 'link').text = baseurl
         ET.SubElement(channel, 'description').text = description
-        
-        # Add items (pages sorted by date)
-        pages_with_dates = [p for p in self.site.pages if p.date]
-        sorted_pages = sorted(pages_with_dates, key=lambda p: p.date, reverse=True)
         
         # Limit to most recent 20 items
         for page in sorted_pages[:20]:
@@ -89,10 +97,22 @@ class RSSGenerator:
         self._indent(rss)
         
         # Write atomically using context manager
-        with AtomicFile(rss_path, 'wb') as f:
-            tree.write(f, encoding='utf-8', xml_declaration=True)
-        
-        print(f"   ├─ RSS feed ✓")
+        try:
+            with AtomicFile(rss_path, 'wb') as f:
+                tree.write(f, encoding='utf-8', xml_declaration=True)
+            
+            self.logger.info("rss_generation_complete",
+                           rss_path=str(rss_path),
+                           items_included=min(20, len(sorted_pages)),
+                           total_pages_with_dates=len(pages_with_dates))
+            
+            print(f"   ├─ RSS feed ✓")
+        except Exception as e:
+            self.logger.error("rss_generation_failed",
+                            rss_path=str(rss_path),
+                            error=str(e),
+                            error_type=type(e).__name__)
+            raise
     
     def _indent(self, elem: ET.Element, level: int = 0) -> None:
         """

@@ -11,6 +11,24 @@ output_dir = "public"
 # Caches compiled Jinja2 templates to .bengal-cache/templates/
 cache_templates = true
 
+# Font Configuration - Automatically downloads and self-hosts Google Fonts
+# Simple string format: "FontFamily:weight1,weight2,weight3"
+[fonts]
+primary = "Inter:400,600,700"        # Body text
+heading = "Playfair Display:700"     # Headings
+code = "JetBrains Mono:400"          # Code blocks
+
+# Or use detailed dict format for more control:
+# [fonts.custom]
+# family = "Roboto"
+# weights = [300, 400, 700]
+# styles = ["normal", "italic"]  # Optional, defaults to ["normal"]
+
+# Generated CSS uses custom properties:
+#   --font-primary: 'Inter'
+#   --font-heading: 'Playfair Display'
+#   --font-code: 'JetBrains Mono'
+
 # Autodoc Configuration
 [autodoc.python]
 enabled = true

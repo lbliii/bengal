@@ -43,6 +43,25 @@
   padding: var(--space-6);
 }
 
+/* List styling in card bodies */
+.card-body ul,
+.card-body ol {
+  padding-left: var(--space-8);
+  margin: var(--space-3) 0;
+}
+
+.card-body ul {
+  list-style-type: disc;
+}
+
+.card-body ol {
+  list-style-type: decimal;
+}
+
+.card-body li {
+  margin: var(--space-1) 0;
+}
+
 .card-footer {
   padding: var(--space-5) var(--space-6);
   border-top: 1px solid var(--color-border-light);

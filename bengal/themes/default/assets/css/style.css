@@ -22,6 +22,7 @@
 
 @import url('base/reset.css');
 @import url('base/typography.css');
+@import url('base/prose-content.css');
 @import url('base/utilities.css');
 @import url('base/accessibility.css');
 @import url('base/print.css');
@@ -55,6 +56,7 @@
 @import url('components/toc.css');
 @import url('components/related-posts.css');
 @import url('components/navigation.css');
+@import url('components/docs-nav.css');
 @import url('components/badges.css');
 @import url('components/widgets.css');
 @import url('components/search.css');

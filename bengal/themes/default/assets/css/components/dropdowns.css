@@ -120,6 +120,40 @@ details.dropdown summary:focus:not(:focus-visible) {
   margin-bottom: 0;
 }
 
+/* Fix list styling inside dropdowns */
+.dropdown-content ul,
+.dropdown-content ol {
+  padding-left: var(--space-6);
+  margin: var(--space-3) 0;
+}
+
+.dropdown-content ul {
+  list-style-type: disc;
+}
+
+.dropdown-content ol {
+  list-style-type: decimal;
+}
+
+.dropdown-content li {
+  margin: var(--space-1) 0;
+}
+
+/* Ensure paragraphs don't inherit the left border */
+.dropdown-content p {
+  border-left: none;
+  padding-left: 0;
+  background: transparent;
+}
+
+/* Remove any unintended styling on strong/bold elements */
+.dropdown-content strong,
+.dropdown-content b {
+  border: none;
+  background: transparent;
+  padding: 0;
+}
+
 /* ============================================
    DROPDOWN VARIANTS
    ============================================ */

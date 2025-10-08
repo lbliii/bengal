@@ -1,0 +1,265 @@
+/**
+ * Bengal SSG - Prose Content Utility
+ * 
+ * Shared styling for components that contain user-generated content
+ * (markdown, HTML, rich text, etc.)
+ * 
+ * Usage: Add .has-prose-content to any container with user content
+ * 
+ * Example:
+ * <div class="dropdown-content has-prose-content">
+ *   <p>User content...</p>
+ *   <ul><li>List items</li></ul>
+ * </div>
+ */
+
+/* ============================================
+   LISTS
+   ============================================ */
+
+.has-prose-content ul,
+.has-prose-content ol {
+  padding-left: var(--space-8);
+  margin: var(--space-3) 0;
+}
+
+.has-prose-content ul {
+  list-style-type: disc;
+}
+
+.has-prose-content ol {
+  list-style-type: decimal;
+}
+
+.has-prose-content li {
+  margin: var(--space-1) 0;
+  line-height: var(--leading-relaxed);
+}
+
+/* Nested lists */
+.has-prose-content ul ul,
+.has-prose-content ol ul {
+  list-style-type: circle;
+  margin-top: var(--space-1);
+}
+
+.has-prose-content ul ul ul,
+.has-prose-content ol ul ul {
+  list-style-type: square;
+}
+
+/* ============================================
+   PARAGRAPHS
+   ============================================ */
+
+.has-prose-content p {
+  margin-bottom: var(--space-4);
+  line-height: var(--leading-relaxed);
+}
+
+.has-prose-content p:last-child {
+  margin-bottom: 0;
+}
+
+/* ============================================
+   HEADINGS
+   ============================================ */
+
+.has-prose-content h1,
+.has-prose-content h2,
+.has-prose-content h3,
+.has-prose-content h4,
+.has-prose-content h5,
+.has-prose-content h6 {
+  margin-top: var(--space-4);
+  margin-bottom: var(--space-2);
+  font-weight: var(--font-semibold);
+  line-height: var(--leading-tight);
+}
+
+.has-prose-content h1 { font-size: var(--text-2xl); }
+.has-prose-content h2 { font-size: var(--text-xl); }
+.has-prose-content h3 { font-size: var(--text-lg); }
+.has-prose-content h4 { font-size: var(--text-base); }
+.has-prose-content h5 { font-size: var(--text-sm); }
+.has-prose-content h6 { font-size: var(--text-sm); }
+
+/* ============================================
+   INLINE ELEMENTS
+   ============================================ */
+
+.has-prose-content strong,
+.has-prose-content b {
+  font-weight: var(--font-bold);
+  /* Ensure no borders/backgrounds leak */
+  border: none;
+  background: transparent;
+  padding: 0;
+}
+
+.has-prose-content em,
+.has-prose-content i {
+  font-style: italic;
+}
+
+.has-prose-content code {
+  /* Inherits from base reset.css */
+  /* No additional styling to prevent conflicts */
+}
+
+.has-prose-content a {
+  color: var(--color-primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.has-prose-content a:hover {
+  color: var(--color-primary-hover);
+}
+
+/* ============================================
+   BLOCKQUOTES
+   ============================================ */
+
+.has-prose-content blockquote {
+  margin: var(--space-4) 0;
+  padding-left: var(--space-4);
+  border-left: 3px solid var(--color-border);
+  color: var(--color-text-secondary);
+  font-style: italic;
+}
+
+/* ============================================
+   CODE BLOCKS
+   ============================================ */
+
+.has-prose-content pre {
+  margin: var(--space-4) 0;
+  padding: var(--space-4);
+  background: var(--color-bg-code);
+  border-radius: var(--radius-md);
+  overflow-x: auto;
+}
+
+.has-prose-content pre code {
+  background: none;
+  padding: 0;
+}
+
+/* ============================================
+   TABLES
+   ============================================ */
+
+.has-prose-content table {
+  width: 100%;
+  margin: var(--space-4) 0;
+  border-collapse: collapse;
+}
+
+.has-prose-content th,
+.has-prose-content td {
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  text-align: left;
+}
+
+.has-prose-content th {
+  background: var(--color-bg-secondary);
+  font-weight: var(--font-semibold);
+}
+
+/* ============================================
+   HORIZONTAL RULES
+   ============================================ */
+
+.has-prose-content hr {
+  margin: var(--space-6) 0;
+  border: none;
+  border-top: 1px solid var(--color-border);
+}
+
+/* ============================================
+   IMAGES & MEDIA
+   ============================================ */
+
+.has-prose-content img {
+  max-width: 100%;
+  height: auto;
+  margin: var(--space-4) 0;
+  border-radius: var(--radius-sm);
+}
+
+/* ============================================
+   DEFINITION LISTS
+   ============================================ */
+
+.has-prose-content dl {
+  margin: var(--space-4) 0;
+}
+
+.has-prose-content dt {
+  font-weight: var(--font-semibold);
+  margin-top: var(--space-2);
+}
+
+.has-prose-content dd {
+  margin-left: var(--space-6);
+  margin-bottom: var(--space-2);
+}
+
+/* ============================================
+   DEFENSIVE RESETS
+   ============================================ */
+
+/* Ensure no unintended styling leaks in */
+.has-prose-content {
+  /* Reset any potential container styles */
+}
+
+/* Ensure nested components don't inherit list styles */
+.has-prose-content .dropdown-content ul,
+.has-prose-content .tab-nav,
+.has-prose-content .breadcrumbs,
+.has-prose-content .pagination {
+  /* UI components override prose styles */
+  padding-left: 0;
+  list-style: none;
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
+@media (max-width: 640px) {
+  .has-prose-content ul,
+  .has-prose-content ol {
+    padding-left: var(--space-6);
+  }
+  
+  .has-prose-content table {
+    font-size: var(--text-sm);
+  }
+  
+  .has-prose-content pre {
+    padding: var(--space-3);
+    font-size: var(--text-sm);
+  }
+}
+
+/* ============================================
+   PRINT
+   ============================================ */
+
+@media print {
+  .has-prose-content a {
+    color: inherit;
+    text-decoration: underline;
+  }
+  
+  .has-prose-content a[href]::after {
+    content: " (" attr(href) ")";
+    font-size: 0.85em;
+  }
+}
+
+

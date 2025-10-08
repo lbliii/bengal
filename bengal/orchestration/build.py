@@ -105,6 +105,29 @@ class BuildOrchestrator:
         with self.logger.phase("initialization"):
             cache, tracker = self.incremental.initialize(enabled=incremental)
         
+        # Phase 0.5: Font Processing (before asset discovery)
+        # Download Google Fonts and generate CSS if configured
+        if 'fonts' in self.site.config:
+            with self.logger.phase("fonts"):
+                fonts_start = time.time()
+                try:
+                    from bengal.fonts import FontHelper
+                    
+                    # Ensure assets directory exists
+                    assets_dir = self.site.root_path / "assets"
+                    assets_dir.mkdir(parents=True, exist_ok=True)
+                    
+                    # Process fonts (download + generate CSS)
+                    font_helper = FontHelper(self.site.config['fonts'])
+                    fonts_css = font_helper.process(assets_dir)
+                    
+                    self.stats.fonts_time_ms = (time.time() - fonts_start) * 1000
+                    self.logger.info("fonts_complete")
+                except Exception as e:
+                    print(f"⚠️  Font processing failed: {e}")
+                    print("   Continuing build without custom fonts...")
+                    self.logger.warning("fonts_failed", error=str(e))
+        
         # Phase 1: Content Discovery
         content_dir = self.site.root_path / "content"
         with self.logger.phase("discovery", content_dir=str(content_dir)):
@@ -175,6 +198,9 @@ class BuildOrchestrator:
         with self.logger.phase("section_finalization"):
             self.sections.finalize_sections()
             
+            # Invalidate regular_pages cache (section finalization may add generated index pages)
+            self.site.invalidate_regular_pages_cache()
+            
             # Validate section structure
             section_errors = self.sections.validate_sections()
             if section_errors:
@@ -194,33 +220,69 @@ class BuildOrchestrator:
                     if len(section_errors) > 3:
                         print(f"⚠️  ... and {len(section_errors) - 3} more errors")
         
-        # Phase 4: Taxonomies & Dynamic Pages (NOW CONDITIONAL)
+        # Phase 4: Taxonomies & Dynamic Pages (INCREMENTAL OPTIMIZATION)
         with self.logger.phase("taxonomies"):
             taxonomy_start = time.time()
             
-            if incremental and affected_tags:
-                # Incremental: Only collect/generate for affected tags
-                print(f"   ℹ Updating {len(affected_tags)} affected tag(s)")
-                self.taxonomy.collect_taxonomies()  # Still need to collect all for navigation
-                # But only generate pages for affected tags
-                self.taxonomy.generate_dynamic_pages_for_tags(affected_tags)
+            if incremental and pages_to_build:
+                # Incremental: Only update taxonomies for changed pages
+                # This is O(changed) instead of O(all) - major optimization!
+                affected_tags = self.taxonomy.collect_and_generate_incremental(
+                    pages_to_build,
+                    cache
+                )
+                
+                # Store affected tags for later use (related posts, etc.)
+                self.site._affected_tags = affected_tags
+                
             elif not incremental:
-                # Full build: Generate everything
+                # Full build: Collect and generate everything
                 self.taxonomy.collect_and_generate()
-            # else: No tags affected, skip generation
+            # else: No pages changed, skip taxonomy updates
             
             self.stats.taxonomy_time_ms = (time.time() - taxonomy_start) * 1000
             if hasattr(self.site, 'taxonomies'):
                 self.logger.info("taxonomies_built",
                                taxonomy_count=len(self.site.taxonomies),
                                total_terms=sum(len(terms) for terms in self.site.taxonomies.values()))
+            
+            # Invalidate regular_pages cache (taxonomy generation adds tag/category pages)
+            self.site.invalidate_regular_pages_cache()
         
-        # Phase 5: Menus (NOW CONDITIONAL)
+        # Phase 5: Menus (INCREMENTAL - skip if unchanged)
         with self.logger.phase("menus"):
-            # TODO: Make this conditional based on menu config changes
-            # For now, always rebuild (safe but not optimal)
-            self.menu.build()
-            self.logger.info("menus_built", menu_count=len(self.site.menu))
+            menu_start = time.time()
+            # Check if config changed (forces menu rebuild)
+            config_changed = incremental and self.incremental.check_config_changed()
+            
+            # Build menus (or reuse cached if unchanged)
+            menu_rebuilt = self.menu.build(
+                changed_pages=changed_page_paths if incremental else None,
+                config_changed=config_changed
+            )
+            
+            self.stats.menu_time_ms = (time.time() - menu_start) * 1000
+            self.logger.info("menus_built", 
+                           menu_count=len(self.site.menu),
+                           rebuilt=menu_rebuilt)
+        
+        # Phase 5.5: Related Posts Index (NEW - Pre-compute for O(1) template access)
+        with self.logger.phase("related_posts_index"):
+            from bengal.orchestration.related_posts import RelatedPostsOrchestrator
+            
+            related_posts_start = time.time()
+            related_posts_orchestrator = RelatedPostsOrchestrator(self.site)
+            related_posts_orchestrator.build_index(limit=5)
+            
+            # Log statistics
+            pages_with_related = sum(
+                1 for p in self.site.pages 
+                if hasattr(p, 'related_posts') and p.related_posts and not p.metadata.get('_generated')
+            )
+            self.stats.related_posts_time_ms = (time.time() - related_posts_start) * 1000
+            self.logger.info("related_posts_built", 
+                           pages_with_related=pages_with_related,
+                           total_pages=len([p for p in self.site.pages if not p.metadata.get('_generated')]))
         
         # Phase 6: Update filtered pages list (add generated pages)
         # Now that we've generated tag pages, update pages_to_build if needed

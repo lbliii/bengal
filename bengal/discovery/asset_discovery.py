@@ -11,6 +11,9 @@ from bengal.core.asset import Asset
 class AssetDiscovery:
     """
     Discovers static assets (images, CSS, JS, etc.).
+    
+    This class is responsible ONLY for finding files.
+    Asset processing logic (bundling, minification) is handled elsewhere.
     """
     
     def __init__(self, assets_dir: Path) -> None:
@@ -27,6 +30,9 @@ class AssetDiscovery:
         """
         Discover all assets in the assets directory.
         
+        Simply walks the directory tree and creates Asset objects.
+        No business logic - just discovery.
+        
         Returns:
             List of Asset objects
         """
@@ -35,6 +41,10 @@ class AssetDiscovery:
             if file_path.is_file():
                 # Skip hidden files
                 if any(part.startswith('.') for part in file_path.parts):
+                    continue
+                
+                # Skip markdown/documentation files
+                if file_path.suffix.lower() == '.md':
                     continue
                 
                 # Create asset with relative output path

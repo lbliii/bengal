@@ -1,6 +1,9 @@
 ---
 title: "Documentation"
 description: "Complete documentation for Bengal SSG features and capabilities"
+template: docs.html
+cascade:
+  template: docs.html
 ---
 
 # Bengal SSG Documentation

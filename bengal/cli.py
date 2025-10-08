@@ -38,6 +38,7 @@ def main() -> None:
 @click.option('--incremental', is_flag=True, help='Perform incremental build (only rebuild changed files)')
 @click.option('--profile', type=click.Choice(['writer', 'theme-dev', 'dev']), 
               help='Build profile: writer (fast/clean), theme-dev (templates), dev (full debug)')
+@click.option('--perf-profile', type=click.Path(), help='Enable performance profiling and save to file (e.g., profile.stats)')
 @click.option('--theme-dev', 'use_theme_dev', is_flag=True, help='Use theme developer profile (shorthand for --profile theme-dev)')
 @click.option('--dev', 'use_dev', is_flag=True, help='Use developer profile with full observability (shorthand for --profile dev)')
 @click.option('--verbose', '-v', is_flag=True, help='Show detailed build information (maps to theme-dev profile)')
@@ -48,7 +49,7 @@ def main() -> None:
 @click.option('--quiet', '-q', is_flag=True, help='Minimal output - only show errors and summary')
 @click.option('--log-file', type=click.Path(), help='Write detailed logs to file (default: .bengal-build.log)')
 @click.argument('source', type=click.Path(exists=True), default='.')
-def build(parallel: bool, incremental: bool, profile: str, use_theme_dev: bool, use_dev: bool, verbose: bool, strict: bool, debug: bool, validate: bool, config: str, quiet: bool, log_file: str, source: str) -> None:
+def build(parallel: bool, incremental: bool, profile: str, perf_profile: str, use_theme_dev: bool, use_dev: bool, verbose: bool, strict: bool, debug: bool, validate: bool, config: str, quiet: bool, log_file: str, source: str) -> None:
     """
     🔨 Build the static site.
     
@@ -131,13 +132,51 @@ def build(parallel: bool, incremental: bool, profile: str, use_theme_dev: bool, 
             
             click.echo()  # Blank line before build
         
-        # Pass profile to build
-        stats = site.build(
-            parallel=parallel, 
-            incremental=incremental, 
-            verbose=profile_config['verbose_build_stats'],
-            profile=build_profile
-        )
+        # Enable performance profiling if requested
+        if perf_profile:
+            import cProfile
+            import pstats
+            from io import StringIO
+            
+            profiler = cProfile.Profile()
+            profiler.enable()
+            
+            # Pass profile to build
+            stats = site.build(
+                parallel=parallel, 
+                incremental=incremental, 
+                verbose=profile_config['verbose_build_stats'],
+                profile=build_profile
+            )
+            
+            profiler.disable()
+            
+            # Save profiling data
+            perf_profile_path = Path(perf_profile)
+            profiler.dump_stats(str(perf_profile_path))
+            
+            # Display summary
+            if not quiet:
+                s = StringIO()
+                ps = pstats.Stats(profiler, stream=s).sort_stats('cumulative')
+                ps.print_stats(20)  # Top 20 functions
+                
+                click.echo()
+                click.echo(click.style("📊 Performance Profile (Top 20 by cumulative time):", 
+                                      fg='cyan', bold=True))
+                click.echo(s.getvalue())
+                click.echo(click.style(f"Full profile saved to: {perf_profile_path}", 
+                                      fg='green'))
+                click.echo(click.style("Analyze with: python -m pstats " + str(perf_profile_path), 
+                                      fg='yellow'))
+        else:
+            # Pass profile to build
+            stats = site.build(
+                parallel=parallel, 
+                incremental=incremental, 
+                verbose=profile_config['verbose_build_stats'],
+                profile=build_profile
+            )
         
         # Display template errors first if we're in theme-dev or dev mode
         if stats.template_errors and build_profile != BuildProfile.WRITER:

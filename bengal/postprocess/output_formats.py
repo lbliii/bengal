@@ -385,12 +385,21 @@ class OutputFormatsGenerator:
             excerpt_length: Length of excerpt
             
         Returns:
-            Dictionary with page summary
+            Dictionary with page summary (enhanced for search)
         """
         content_text = self._strip_html(page.parsed_ast or page.content)
         
+        # Get relative URI (path without domain)
+        page_uri = self._get_page_url(page)
+        
+        # Get baseurl from site config and construct absolute URL
+        baseurl = self.site.config.get('baseurl', '').rstrip('/')
+        page_url = f"{baseurl}{page_uri}" if baseurl else page_uri
+        
         summary = {
-            'url': self._get_page_url(page),
+            'objectID': page_uri,  # Unique identifier (relative path)
+            'url': page_url,       # Absolute URL with baseurl
+            'uri': page_uri,       # Relative path (Hugo convention)
             'title': page.title,
             'description': page.metadata.get('description', ''),
             'excerpt': self._generate_excerpt(content_text, excerpt_length),
@@ -410,6 +419,98 @@ class OutputFormatsGenerator:
         word_count = len(content_text.split())
         summary['word_count'] = word_count
         summary['reading_time'] = max(1, round(word_count / 200))
+        
+        # Enhanced metadata for search (from standardized frontmatter)
+        metadata = page.metadata
+        
+        # Content type and layout
+        if metadata.get('type'):
+            summary['type'] = metadata['type']
+        if metadata.get('layout'):
+            summary['layout'] = metadata['layout']
+        
+        # Authorship
+        if metadata.get('author'):
+            summary['author'] = metadata['author']
+        if metadata.get('authors'):
+            summary['authors'] = metadata['authors']
+        
+        # Categories and taxonomy
+        if metadata.get('category'):
+            summary['category'] = metadata['category']
+        if metadata.get('categories'):
+            summary['categories'] = metadata['categories']
+        
+        # Weight/order for sorting
+        if metadata.get('weight') is not None:
+            summary['weight'] = metadata['weight']
+        
+        # Status flags
+        if metadata.get('draft'):
+            summary['draft'] = True
+        if metadata.get('featured'):
+            summary['featured'] = True
+        
+        # Search-specific fields
+        if metadata.get('search_keywords'):
+            summary['search_keywords'] = metadata['search_keywords']
+        if metadata.get('search_exclude'):
+            summary['search_exclude'] = True
+        
+        # API/CLI specific
+        if metadata.get('cli_name'):
+            summary['cli_name'] = metadata['cli_name']
+        if metadata.get('api_module'):
+            summary['api_module'] = metadata['api_module']
+        
+        # Difficulty/level for tutorials
+        if metadata.get('difficulty'):
+            summary['difficulty'] = metadata['difficulty']
+        if metadata.get('level'):
+            summary['level'] = metadata['level']
+        
+        # Related content
+        if metadata.get('related'):
+            summary['related'] = metadata['related']
+        
+        # Last modified (if different from date)
+        if metadata.get('lastmod'):
+            lastmod = metadata['lastmod']
+            # Convert date objects to ISO format string
+            if hasattr(lastmod, 'isoformat'):
+                summary['lastmod'] = lastmod.isoformat() if hasattr(lastmod, 'isoformat') else str(lastmod)
+            else:
+                summary['lastmod'] = str(lastmod)
+        
+        # Content text for full-text search
+        # Check config option for full content vs excerpt
+        options = self.config.get('options', {})
+        include_full_content = options.get('include_full_content_in_index', False)
+        
+        if len(content_text) > 0:
+            if include_full_content:
+                # Include full content for comprehensive search
+                summary['content'] = content_text
+            else:
+                # Include extended excerpt (3x normal length)
+                summary['content'] = self._generate_excerpt(content_text, excerpt_length * 3)
+        
+        # Add source file path if available (useful for docs)
+        if metadata.get('source_file'):
+            summary['source_file'] = metadata['source_file']
+        
+        # Add directory/path structure for hierarchical navigation
+        if page.url:
+            # Extract directory path (everything except filename)
+            path_parts = page.url.strip('/').split('/')
+            if len(path_parts) > 1:
+                summary['dir'] = '/' + '/'.join(path_parts[:-1]) + '/'
+            else:
+                summary['dir'] = '/'
+        
+        # Add kind/content type for filtering (alternative naming)
+        if result_type := summary.get('type'):
+            summary['kind'] = result_type  # Alias for Hugo compatibility
         
         return summary
     

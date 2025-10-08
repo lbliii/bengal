@@ -8,14 +8,11 @@
     {# Title #}
     <title>{% block title %}{{ page.title | default(site.config.title) }}{% if page and page.title %} - {{ site.config.title }}{% endif %}{% endblock %}</title>
     
+    {# Meta description - automatically pre-computed by renderer (page.meta_description cached_property) #}
+    {% set meta_desc = meta_desc | default(site.config.description, '') %}
+    
     {# Meta Description - Auto-generate if not provided #}
-    {% if page and page.metadata.description %}
-    <meta name="description" content="{{ page.metadata.description }}">
-    {% elif page and page.content %}
-    <meta name="description" content="{{ page.content | meta_description(160) }}">
-    {% else %}
-    <meta name="description" content="{{ site.config.description | default('') }}">
-    {% endif %}
+    <meta name="description" content="{{ meta_desc }}">
     
     {# Meta Keywords - use page.keywords or fallback to tags #}
     {% if page and page.keywords %}
@@ -27,10 +24,8 @@
     {# Open Graph / Facebook #}
     <meta property="og:type" content="{% if page %}article{% else %}website{% endif %}">
     <meta property="og:title" content="{{ page.title | default(site.config.title) }}">
-    {% if page and page.metadata.description %}
-    <meta property="og:description" content="{{ page.metadata.description }}">
-    {% elif page and page.content %}
-    <meta property="og:description" content="{{ page.content | meta_description(160) }}">
+    {% if meta_desc %}
+    <meta property="og:description" content="{{ meta_desc }}">
     {% endif %}
     {% if site.config.baseurl %}
     <meta property="og:url" content="{{ canonical_url(page.url | default('/')) }}">
@@ -45,10 +40,8 @@
     {# Twitter Card #}
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="{{ page.title | default(site.config.title) }}">
-    {% if page and page.metadata.description %}
-    <meta name="twitter:description" content="{{ page.metadata.description }}">
-    {% elif page and page.content %}
-    <meta name="twitter:description" content="{{ page.content | meta_description(160) }}">
+    {% if meta_desc %}
+    <meta name="twitter:description" content="{{ meta_desc }}">
     {% endif %}
     {% if page and page.metadata.image %}
     <meta name="twitter:image" content="{{ og_image(page.metadata.image) }}">
@@ -113,6 +106,16 @@
                             {% endif %}
                         </li>
                         {% endfor %}
+                        {# Search link #}
+                        <li>
+                            <a href="/search/" title="Search (⌘K)">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="11" cy="11" r="8"></circle>
+                                    <path d="m21 21-4.35-4.35"></path>
+                                </svg>
+                                <span>Search</span>
+                            </a>
+                        </li>
                         {% block nav_items %}{% endblock %}
                     </ul>
                     {% endif %}
@@ -201,10 +204,57 @@
     <script src="{{ asset_url('js/theme-toggle.js') }}"></script>
     <script src="{{ asset_url('js/mobile-nav.js') }}"></script>
     <script src="{{ asset_url('js/tabs.js') }}"></script>
+    <script src="{{ asset_url('js/toc.js') }}"></script>
     <script src="{{ asset_url('js/main.js') }}"></script>
     <script src="{{ asset_url('js/interactive.js') }}"></script>
     <script src="{{ asset_url('js/copy-link.js') }}"></script>
     <script src="{{ asset_url('js/lightbox.js') }}"></script>
+    
+    {# Lunr.js for search (local copy avoids CDN integrity issues) #}
+    <script src="{{ asset_url('js/lunr.min.js') }}"></script>
+    <script src="{{ asset_url('js/search.js') }}"></script>
+    
+    {# Smart search index preloading #}
+    <script>
+    (function() {
+      {% set search_preload = site.config.get('search_preload', 'smart') %}
+      const preloadMode = '{{ search_preload }}';  // 'immediate', 'smart', or 'lazy'
+      let preloadTriggered = false;
+      
+      function preloadSearch() {
+        if (preloadTriggered || !window.BengalSearch) return;
+        preloadTriggered = true;
+        
+        console.log('🔍 Preloading search index...');
+        window.BengalSearch.load();
+      }
+      
+      // Immediate: Load right away (best for small sites <100 pages)
+      if (preloadMode === 'immediate') {
+        document.addEventListener('DOMContentLoaded', preloadSearch);
+      }
+      // Smart: Load on user intent signals (default, best for most sites)
+      else if (preloadMode === 'smart') {
+        document.addEventListener('DOMContentLoaded', function() {
+          // Preload on search link hover (user likely to search)
+          const searchLinks = document.querySelectorAll('a[href="/search/"], a[href*="search"]');
+          searchLinks.forEach(link => {
+            link.addEventListener('mouseenter', preloadSearch, { once: true });
+            link.addEventListener('focus', preloadSearch, { once: true });
+          });
+          
+          // Preload if user presses Cmd/Ctrl (likely ⌘K)
+          document.addEventListener('keydown', function(e) {
+            if (e.metaKey || e.ctrlKey) {
+              preloadSearch();
+            }
+          }, { once: true });
+        });
+      }
+      // Lazy: Only load when search is actually opened (best for large sites >500 pages)
+      // No preloading - index loads on first search
+    })();
+    </script>
     
     {% block extra_js %}{% endblock %}
 </body>

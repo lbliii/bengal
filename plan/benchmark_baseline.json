@@ -1,9 +1,0 @@
-{
-  "timestamp": "2025-10-05 11:49:28",
-  "test_site": "examples/showcase",
-  "results": {
-    "full_build": 1.1291639804840088,
-    "incremental_no_changes": 0.9158408641815186,
-    "incremental_1_change": 6.0910680294036865
-  }
-}

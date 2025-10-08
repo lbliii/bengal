@@ -1,6 +1,18 @@
 /**
- * Table of Contents (TOC) Styling
+ * Enhanced Table of Contents (TOC) with Intelligent Grouping
+ * 
+ * Features:
+ * - Hierarchical grouping by H2 sections
+ * - Collapsible/expandable sections
+ * - Progress indicator with position marker
+ * - Quick navigation buttons
+ * - Compact mode for deeply nested content
+ * - Full keyboard navigation support
  */
+
+/* ============================================================================
+   Layout & Container
+   ============================================================================ */
 
 .page-layout {
     display: block;
@@ -19,7 +31,7 @@
     }
 }
 
-/* TOC Sidebar */
+/* TOC Sidebar Container */
 .page-sidebar {
     order: 2;
 }
@@ -33,28 +45,412 @@
     }
 }
 
-.toc {
-    background: var(--color-bg-secondary);
-    border: 1px solid var(--color-border);
-    border-radius: 8px;
-    padding: 1.5rem;
+.toc-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    height: 100%;
+}
+
+/* ============================================================================
+   TOC Header with Controls
+   ============================================================================ */
+
+.toc-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--color-border-light);
 }
 
 .toc-title {
-    font-size: 0.875rem;
-    font-weight: 600;
+    margin: 0;
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-semibold);
     text-transform: uppercase;
     letter-spacing: 0.05em;
     color: var(--color-text-secondary);
-    margin: 0 0 1rem 0;
+    flex: 1;
 }
+
+.toc-controls {
+    display: flex;
+    gap: 0.25rem;
+}
+
+.toc-control-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    background: transparent;
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius-small);
+    color: var(--color-text-tertiary);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.toc-control-btn:hover {
+    background: var(--color-bg-hover);
+    color: var(--color-text-primary);
+    border-color: var(--color-border-dark);
+}
+
+.toc-control-btn:active {
+    transform: scale(0.95);
+}
+
+.toc-control-btn svg {
+    flex-shrink: 0;
+}
+
+/* ============================================================================
+   Scroll Progress Indicator
+   ============================================================================ */
+
+.toc-progress {
+    position: relative;
+    width: 2px;
+    height: 100%;
+    background: var(--color-border-light);
+    border-radius: 1px;
+    overflow: visible;
+}
+
+.toc-progress-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 0%;
+    background: linear-gradient(180deg, var(--color-primary) 0%, var(--color-primary-dark, var(--color-primary)) 100%);
+    transition: height 0.1s linear;
+    border-radius: 1px;
+}
+
+.toc-progress-position {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 8px;
+    height: 8px;
+    background: var(--color-primary);
+    border: 2px solid var(--color-bg-primary, white);
+    border-radius: 50%;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    opacity: 0;
+    transition: opacity 0.2s ease, top 0.1s linear;
+}
+
+.toc-progress:hover .toc-progress-position {
+    opacity: 1;
+}
+
+/* ============================================================================
+   TOC Navigation
+   ============================================================================ */
+
+.toc-nav {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.toc-scroll-container {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    margin-right: -0.5rem;
+    padding-right: 0.5rem;
+}
+
+.toc-scroll-container::-webkit-scrollbar {
+    width: 4px;
+}
+
+.toc-scroll-container::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.toc-scroll-container::-webkit-scrollbar-thumb {
+    background: var(--color-border);
+    border-radius: 2px;
+}
+
+.toc-scroll-container::-webkit-scrollbar-thumb:hover {
+    background: var(--color-border-dark);
+}
+
+.toc-items {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.toc-item {
+    margin: 0;
+}
+
+/* ============================================================================
+   TOC Group (H2 Sections)
+   ============================================================================ */
+
+.toc-group {
+    border-radius: var(--border-radius-small);
+    overflow: hidden;
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-border-light);
+    transition: all var(--transition-fast);
+}
+
+.toc-group:hover {
+    border-color: var(--color-border);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.toc-group-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    background: var(--color-bg-tertiary, var(--color-bg-secondary));
+}
+
+.toc-group-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    color: var(--color-text-tertiary);
+    cursor: pointer;
+    border-radius: var(--border-radius-small);
+    transition: all var(--transition-fast);
+    flex-shrink: 0;
+}
+
+.toc-group-toggle:hover {
+    background: var(--color-bg-hover);
+    color: var(--color-text-primary);
+}
+
+.toc-chevron {
+    transition: transform var(--transition-fast);
+    transform-origin: center;
+}
+
+.toc-group-toggle[aria-expanded="true"] .toc-chevron {
+    transform: rotate(90deg);
+}
+
+.toc-group-toggle[aria-expanded="false"] .toc-chevron {
+    transform: rotate(0deg);
+}
+
+.toc-link-h2 {
+    flex: 1;
+    font-weight: var(--font-weight-semibold);
+    font-size: var(--text-sm);
+}
+
+.toc-count {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 0.375rem;
+    font-size: 11px;
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text-tertiary);
+    background: var(--color-bg-primary, white);
+    border: 1px solid var(--color-border-light);
+    border-radius: 10px;
+    flex-shrink: 0;
+}
+
+.toc-subitems {
+    list-style: none;
+    padding: 0.5rem;
+    padding-top: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    max-height: 500px;
+    overflow: hidden;
+    transition: max-height 0.3s ease, padding 0.3s ease;
+}
+
+.toc-group[data-collapsed="true"] .toc-subitems {
+    max-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+}
+
+/* ============================================================================
+   TOC Links
+   ============================================================================ */
+
+.toc-link {
+    display: block;
+    padding: 0.375rem 0.75rem;
+    font-size: var(--text-sm);
+    line-height: 1.5;
+    color: var(--color-text-secondary);
+    text-decoration: none;
+    border-left: 2px solid transparent;
+    margin-left: -2px;
+    border-radius: var(--border-radius-small);
+    transition: all var(--transition-fast);
+}
+
+.toc-link:hover {
+    color: var(--color-text-primary);
+    background: var(--color-bg-hover);
+}
+
+.toc-link.active {
+    color: var(--color-primary);
+    font-weight: var(--font-weight-medium);
+    border-left-color: var(--color-primary);
+    background: var(--color-primary-light);
+}
+
+[data-theme="dark"] .toc-link.active {
+    background: rgba(33, 150, 243, 0.15);
+}
+
+/* ============================================================================
+   Heading Levels - Enhanced hierarchy
+   Note: level 1 = H2, level 2 = H3, level 3 = H4, etc.
+   ============================================================================ */
+
+.toc-level-2 .toc-link {
+    padding-left: 1rem;
+    font-size: var(--text-sm);
+}
+
+.toc-level-3 .toc-link {
+    padding-left: 1.75rem;
+    font-size: var(--text-xs);
+    opacity: 0.9;
+}
+
+.toc-level-4 .toc-link {
+    padding-left: 2.5rem;
+    font-size: var(--text-xs);
+    opacity: 0.85;
+}
+
+.toc-level-5 .toc-link {
+    padding-left: 3.25rem;
+    font-size: var(--text-xs);
+    opacity: 0.8;
+}
+
+/* ============================================================================
+   Compact Mode
+   ============================================================================ */
+
+[data-toc-mode="compact"] .toc-group {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+}
+
+[data-toc-mode="compact"] .toc-group-header {
+    padding: 0.25rem 0;
+    background: transparent;
+}
+
+[data-toc-mode="compact"] .toc-subitems {
+    padding: 0.25rem 0;
+    padding-left: 1.5rem;
+}
+
+[data-toc-mode="compact"] .toc-link {
+    padding: 0.25rem 0.5rem;
+}
+
+[data-toc-mode="compact"] .toc-count {
+    font-size: 10px;
+    min-width: 18px;
+    height: 18px;
+}
+
+[data-toc-mode="compact"] .toc-level-3,
+[data-toc-mode="compact"] .toc-level-4,
+[data-toc-mode="compact"] .toc-level-5 {
+    display: none;
+}
+
+/* ============================================================================
+   Quick Navigation
+   ============================================================================ */
+
+.toc-quick-nav {
+    display: flex;
+    gap: 0.5rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--color-border-light);
+}
+
+.toc-quick-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
+    padding: 0.5rem;
+    font-size: var(--text-xs);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text-secondary);
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius-small);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.toc-quick-btn:hover {
+    color: var(--color-primary);
+    border-color: var(--color-primary);
+    background: var(--color-bg-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.toc-quick-btn:active {
+    transform: translateY(0);
+}
+
+.toc-quick-btn svg {
+    flex-shrink: 0;
+}
+
+/* ============================================================================
+   TOC Content (Fallback HTML)
+   ============================================================================ */
 
 .toc-content {
-    font-size: 0.875rem;
-    line-height: 1.6;
+    font-size: var(--text-sm);
 }
 
-/* TOC List Styling */
 .toc-content ul {
     list-style: none;
     padding: 0;
@@ -63,52 +459,142 @@
 
 .toc-content li {
     margin: 0;
-    padding: 0;
-}
-
-.toc-content > ul {
-    /* Top level list */
 }
 
 .toc-content ul ul {
-    /* Nested lists */
-    padding-left: 1rem;
+    padding-left: 0.75rem;
     margin-top: 0.25rem;
 }
 
 .toc-content a {
     display: block;
-    padding: 0.375rem 0.5rem;
+    padding: 0.375rem 0.75rem;
     color: var(--color-text-secondary);
     text-decoration: none;
     border-left: 2px solid transparent;
-    margin-left: -0.5rem;
-    transition: all 0.2s ease;
+    margin-left: -2px;
+    transition: all var(--transition-fast);
+    border-radius: var(--border-radius-small);
 }
 
 .toc-content a:hover {
-    color: var(--color-primary);
-    background: var(--color-bg-tertiary);
-    border-left-color: var(--color-primary);
+    color: var(--color-text-primary);
+    background: var(--color-bg-hover);
 }
 
-/* Active TOC item (set by JavaScript) */
 .toc-content a.active {
     color: var(--color-primary);
-    font-weight: 500;
+    font-weight: var(--font-weight-medium);
     border-left-color: var(--color-primary);
-    background: var(--color-bg-tertiary);
+    background: var(--color-primary-light);
 }
 
-/* Mobile TOC */
+/* ============================================================================
+   Page Metadata
+   ============================================================================ */
+
+.toc-metadata {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--color-border-light);
+    font-size: var(--text-xs);
+}
+
+.toc-meta-item {
+    display: flex;
+    gap: 0.5rem;
+    color: var(--color-text-secondary);
+}
+
+.toc-meta-item svg {
+    flex-shrink: 0;
+    margin-top: 0.125rem;
+}
+
+.toc-meta-label {
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text-tertiary);
+    margin-bottom: 0.125rem;
+}
+
+.toc-meta-value {
+    color: var(--color-text-secondary);
+}
+
+/* Edit Link */
+.toc-edit-link {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    font-size: var(--text-xs);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text-secondary);
+    text-decoration: none;
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius-small);
+    transition: all var(--transition-fast);
+}
+
+.toc-edit-link:hover {
+    color: var(--color-primary);
+    border-color: var(--color-primary);
+    background: var(--color-bg-hover);
+}
+
+.toc-edit-link svg {
+    flex-shrink: 0;
+}
+
+/* ============================================================================
+   Mobile & Responsive
+   ============================================================================ */
+
 @media (max-width: 1023px) {
     .page-sidebar {
         margin-top: 2rem;
     }
     
-    .toc {
+    .toc-sidebar {
         max-width: 100%;
     }
+    
+    /* Simplify on mobile */
+    .toc-controls {
+        display: none;
+    }
+    
+    .toc-quick-nav {
+        display: none;
+    }
+}
+
+/* ============================================================================
+   Print Styles
+   ============================================================================ */
+
+@media print {
+    .page-sidebar {
+        display: none;
+    }
+    
+    .page-layout.page-with-toc {
+        display: block;
+    }
+}
+
+/* ============================================================================
+   Ensure Main Article Takes Proper Space
+   ============================================================================ */
+
+.page-layout.page-with-toc .page,
+.page-layout.page-with-toc .post {
+    min-width: 0; /* Prevent grid blowout */
+    max-width: none; /* Remove prose width constraint in grid layout */
+    margin: 0; /* Remove auto centering in grid */
 }
 
 /* Scrollbar styling for TOC on desktop */
@@ -130,23 +616,3 @@
         background: var(--color-text-tertiary);
     }
 }
-
-/* Ensure main article takes proper space */
-.page-layout.page-with-toc .page,
-.page-layout.page-with-toc .post {
-    min-width: 0; /* Prevent grid blowout */
-    max-width: none; /* Remove prose width constraint in grid layout */
-    margin: 0; /* Remove auto centering in grid */
-}
-
-/* Print styles */
-@media print {
-    .page-sidebar {
-        display: none;
-    }
-    
-    .page-layout.page-with-toc {
-        display: block;
-    }
-}
-

@@ -43,9 +43,20 @@ class Site:
     """
     Represents the entire website and orchestrates the build process.
     
+    Creation:
+        Recommended: Site.from_config(root_path)
+            - Loads configuration from bengal.toml
+            - Applies all settings automatically
+            - Use for production builds and CLI
+        
+        Direct instantiation: Site(root_path=path, config=config)
+            - For unit testing with controlled state
+            - For programmatic config manipulation
+            - Advanced use case only
+    
     Attributes:
         root_path: Root directory of the site
-        config: Site configuration dictionary
+        config: Site configuration dictionary (from bengal.toml or explicit)
         pages: All pages in the site
         sections: All sections in the site
         assets: All assets in the site
@@ -53,6 +64,21 @@ class Site:
         output_dir: Output directory for built site
         build_time: Timestamp of the last build
         taxonomies: Collected taxonomies (tags, categories, etc.)
+    
+    Examples:
+        # Production/CLI (recommended):
+        site = Site.from_config(Path('/path/to/site'))
+        
+        # Unit testing:
+        site = Site(root_path=Path('/test'), config={})
+        site.pages = [test_page1, test_page2]
+        
+        # Programmatic config:
+        from bengal.config.loader import ConfigLoader
+        loader = ConfigLoader(path)
+        config = loader.load()
+        config['custom_setting'] = 'value'
+        site = Site(root_path=path, config=config)
     """
     
     root_path: Path
@@ -66,6 +92,9 @@ class Site:
     taxonomies: Dict[str, Dict[str, List[Page]]] = field(default_factory=dict)
     menu: Dict[str, List[MenuItem]] = field(default_factory=dict)
     menu_builders: Dict[str, MenuBuilder] = field(default_factory=dict)
+    
+    # Private caches for expensive properties (invalidated when pages change)
+    _regular_pages_cache: Optional[List[Page]] = field(default=None, repr=False, init=False)
     
     def __post_init__(self) -> None:
         """Initialize site from configuration."""
@@ -98,6 +127,9 @@ class Site:
         """
         Get only regular content pages (excludes generated taxonomy/archive pages).
         
+        PERFORMANCE: This property is cached after first access for O(1) subsequent lookups.
+        The cache is automatically invalidated when pages are modified.
+        
         Returns:
             List of regular Page objects (excludes tag pages, archive pages, etc.)
             
@@ -106,19 +138,68 @@ class Site:
                 <article>{{ page.title }}</article>
             {% endfor %}
         """
-        return [p for p in self.pages if not p.metadata.get('_generated')]
+        # Return cached value if available (O(1))
+        if self._regular_pages_cache is not None:
+            return self._regular_pages_cache
+        
+        # Compute and cache (O(n), only happens once)
+        self._regular_pages_cache = [p for p in self.pages if not p.metadata.get('_generated')]
+        return self._regular_pages_cache
+    
+    def invalidate_regular_pages_cache(self) -> None:
+        """
+        Invalidate the regular_pages cache.
+        
+        Call this after modifying the pages list or page metadata that affects
+        the _generated flag.
+        """
+        self._regular_pages_cache = None
     
     @classmethod
     def from_config(cls, root_path: Path, config_path: Optional[Path] = None) -> 'Site':
         """
         Create a Site instance from a configuration file.
         
+        This is the PREFERRED way to create a Site - it loads configuration
+        from bengal.toml (or bengal.yaml) and applies all settings properly.
+        
+        Config Loading:
+            1. Searches for config file: bengal.toml, bengal.yaml, bengal.yml
+            2. Parses and validates configuration
+            3. Flattens nested sections for easy access
+            4. Returns Site with all settings applied
+        
+        Important Config Sections:
+            - [site]: title, baseurl, author, etc.
+            - [build]: parallel, max_workers, incremental, etc.
+            - [markdown]: parser selection ('mistune' recommended)
+            - [features]: syntax_highlighting, search, etc.
+            - [taxonomies]: tags, categories, series
+        
         Args:
             root_path: Root directory of the site
-            config_path: Optional path to config file (auto-detected if not provided)
+            config_path: Optional explicit path to config file
+                        (auto-detected from root_path if not provided)
             
         Returns:
-            Configured Site instance
+            Configured Site instance with all settings loaded
+            
+        Example:
+            site = Site.from_config(Path('/path/to/site'))
+            # Loads /path/to/site/bengal.toml automatically
+            
+        Use Cases:
+            1. Unit testing: Site(root_path=path, config={})
+               - Tests can control exact state without config files
+               - Allows isolated testing of specific features
+            
+            2. Manual config loading: Site(root_path=path, config=loaded_config)
+               - When you need to modify config programmatically
+               - Advanced use case for custom build scripts
+        
+        Warning:
+            In production/normal builds, use Site.from_config() instead!
+            Passing config={} will override bengal.toml settings and use defaults.
         """
         from bengal.config.loader import ConfigLoader
         

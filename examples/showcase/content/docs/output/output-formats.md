@@ -2,9 +2,17 @@
 title: "Output Formats: JSON & LLM Text"
 description: "Generate JSON and LLM-friendly text outputs for search, AI discovery, and programmatic access"
 date: 2025-10-04
+lastmod: 2025-10-08
+type: doc
 weight: 10
 tags: ["output", "json", "llm", "search", "ai", "api"]
+author: "Bengal Team"
 toc: true
+difficulty: intermediate
+search_keywords: ["index.json", "search index", "api", "json output", "llm text"]
+related:
+  - "/docs/frontmatter-standard/"
+  - "/search/"
 ---
 
 # Output Formats: JSON & LLM Text

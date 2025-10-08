@@ -309,4 +309,26 @@ class TestNavigationEdgeCases:
         
         assert parent.hierarchy == ["docs"]
         assert child.hierarchy == ["docs", "guides"]
+    
+    def test_section_root_property(self):
+        """Test section.root returns the topmost ancestor."""
+        # Single section (no parent) - root is itself
+        single = Section(name="blog", path=Path("/content/blog"))
+        assert single.root == single
+        
+        # Two-level hierarchy
+        parent = Section(name="docs", path=Path("/content/docs"))
+        child = Section(name="guides", path=Path("/content/docs/guides"))
+        parent.add_subsection(child)
+        
+        assert parent.root == parent
+        assert child.root == parent
+        
+        # Three-level hierarchy
+        grandchild = Section(name="advanced", path=Path("/content/docs/guides/advanced"))
+        child.add_subsection(grandchild)
+        
+        assert parent.root == parent
+        assert child.root == parent
+        assert grandchild.root == parent
 

@@ -24,14 +24,37 @@ def _get_thread_parser(engine: Optional[str] = None) -> BaseMarkdownParser:
     """
     Get or create a MarkdownParser instance for the current thread.
     
-    This avoids the overhead of creating a new parser for every page,
-    while maintaining thread-safety by using thread-local storage.
+    Thread-Local Caching Strategy:
+        - Creates ONE parser per worker thread (expensive operation ~10ms)
+        - Caches it for the lifetime of that thread
+        - Each thread reuses its parser for all pages it processes
+        - Total parsers created = number of worker threads
+    
+    Performance Impact:
+        With max_workers=N (from config):
+        - N worker threads created
+        - N parser instances created (one per thread)
+        - Each parser handles ~(total_pages / N) pages
+        
+        Example with max_workers=10 and 200 pages:
+        - 10 threads → 10 parsers created
+        - Each parser processes ~20 pages
+        - Creation cost: 10ms × 10 = 100ms one-time
+        - Reuse savings: 9.9 seconds (avoiding 190 × 10ms)
+    
+    Thread Safety:
+        Each thread gets its own parser instance, no locking needed.
+        Read-only access to site config and xref_index is safe.
     
     Args:
         engine: Parser engine to use ('python-markdown', 'mistune', or None for default)
     
     Returns:
-        MarkdownParser instance for this thread
+        Cached MarkdownParser instance for this thread
+        
+    Note:
+        If you see N parser instances created where N = max_workers,
+        this is OPTIMAL behavior, not a bug!
     """
     # Store parser per engine type
     cache_key = f'parser_{engine or "default"}'
@@ -56,11 +79,40 @@ class RenderingPipeline:
         """
         Initialize the rendering pipeline.
         
+        Parser Selection:
+            Reads from config in this order:
+            1. config['markdown_engine'] (legacy)
+            2. config['markdown']['parser'] (preferred)
+            3. Default: 'python-markdown'
+            
+            Common values:
+            - 'mistune': Fast parser, recommended for most sites
+            - 'python-markdown': Full-featured, slightly slower
+        
+        Parser Caching:
+            Uses thread-local caching via _get_thread_parser().
+            Creates ONE parser per worker thread, cached for reuse.
+            
+            With max_workers=N:
+            - First page in thread: creates parser (~10ms)
+            - Subsequent pages: reuses cached parser (~0ms)
+            - Total parsers = N (optimal)
+        
+        Cross-Reference Support:
+            If site has xref_index (built during discovery):
+            - Enables [[link]] syntax in markdown
+            - Enables automatic .md link resolution (future)
+            - O(1) lookup performance
+        
         Args:
-            site: Site instance
-            dependency_tracker: Optional dependency tracker for incremental builds
+            site: Site instance with config and xref_index
+            dependency_tracker: Optional tracker for incremental builds
             quiet: If True, suppress per-page output
             build_stats: Optional BuildStats object to collect warnings
+            
+        Note:
+            Each worker thread creates its own RenderingPipeline instance.
+            The parser is cached at thread level, not pipeline level.
         """
         self.site = site
         # Get markdown engine from config (default: python-markdown)
@@ -119,7 +171,7 @@ class RenderingPipeline:
                     # Cache HIT - skip markdown parsing!
                     page.parsed_ast = cached['html']
                     page.toc = cached['toc']
-                    page._toc_items = cached.get('toc_items', [])
+                    page._toc_items_cache = cached.get('toc_items', [])
                     
                     # Track cache hit for statistics
                     if self.build_stats:
@@ -198,8 +250,19 @@ class RenderingPipeline:
                 print(f"  Before: {len(before_enhancement)} chars, has markers: {'@property' in before_enhancement}", file=sys.stderr)
                 print(f"  After:  {len(page.parsed_ast)} chars, has badges: {'api-badge' in page.parsed_ast}", file=sys.stderr)
         
+        # ============================================================================
+        # Build Phase: PARSING COMPLETE
+        # ============================================================================
+        # At this point:
+        # - page.parsed_ast contains HTML (post-markdown, pre-template)
+        # - page.toc contains TOC HTML
+        # - page.toc_items property can now extract structured TOC data
+        #
+        # Note: toc_items is a lazy @property that:
+        # - Returns [] if accessed before this point (doesn't cache empty)
+        # - Extracts and caches structure when accessed after this point
+        # ============================================================================
         page.toc = toc
-        # Note: toc_items is now a lazy property on Page (only extracted when accessed)
         
         # OPTIMIZATION #2: Store parsed content in cache for next build
         if self.dependency_tracker and hasattr(self.dependency_tracker, '_cache'):
@@ -324,8 +387,11 @@ class RenderingPipeline:
         """
         Get parser version string for cache validation.
         
+        Includes both parser library version and TOC extraction version to
+        invalidate cache when TOC parsing logic changes.
+        
         Returns:
-            Parser version (e.g., "mistune-3.0", "markdown-3.4")
+            Parser version (e.g., "mistune-3.0-toc2", "markdown-3.4-toc2")
         """
         parser_name = type(self.parser).__name__
         
@@ -333,17 +399,20 @@ class RenderingPipeline:
         if parser_name == 'MistuneParser':
             try:
                 import mistune
-                return f"mistune-{mistune.__version__}"
+                base_version = f"mistune-{mistune.__version__}"
             except (ImportError, AttributeError):
-                return "mistune-unknown"
+                base_version = "mistune-unknown"
         elif parser_name == 'PythonMarkdownParser':
             try:
                 import markdown
-                return f"markdown-{markdown.__version__}"
+                base_version = f"markdown-{markdown.__version__}"
             except (ImportError, AttributeError):
-                return "markdown-unknown"
+                base_version = "markdown-unknown"
+        else:
+            base_version = f"{parser_name}-unknown"
         
-        return f"{parser_name}-unknown"
+        # Add TOC extraction version to invalidate cache when extraction logic changes
+        return f"{base_version}-toc{TOC_EXTRACTION_VERSION}"
     
     def _preprocess_content(self, page: Page) -> str:
         """
@@ -401,9 +470,15 @@ class RenderingPipeline:
             return page.content
 
 
+# TOC extraction version - increment when extract_toc_structure() logic changes
+TOC_EXTRACTION_VERSION = "2"  # v2: Added regex-based indentation parsing for mistune
+
 def extract_toc_structure(toc_html: str) -> list:
     """
     Parse TOC HTML into structured data for custom rendering.
+    
+    Handles both nested <ul> structures (python-markdown style) and flat lists (mistune style).
+    For flat lists from mistune, parses indentation to infer heading levels.
     
     This is a standalone function so it can be called from Page.toc_items
     property for lazy evaluation.
@@ -412,47 +487,73 @@ def extract_toc_structure(toc_html: str) -> list:
         toc_html: HTML table of contents
         
     Returns:
-        List of TOC items with id, title, and level
+        List of TOC items with id, title, and level (1=H2, 2=H3, 3=H4, etc.)
     """
     if not toc_html:
         return []
     
-    from html.parser import HTMLParser
-    
-    class TOCParser(HTMLParser):
-        def __init__(self):
-            super().__init__()
-            self.items = []
-            self.current_item = None
-            self.depth = 0
-        
-        def handle_starttag(self, tag, attrs):
-            if tag == 'ul':
-                self.depth += 1
-            elif tag == 'a':
-                attrs_dict = dict(attrs)
-                self.current_item = {
-                    'id': attrs_dict.get('href', '').lstrip('#'),
-                    'title': '',
-                    'level': self.depth
-                }
-        
-        def handle_data(self, data):
-            if self.current_item is not None:
-                self.current_item['title'] += data.strip()
-        
-        def handle_endtag(self, tag):
-            if tag == 'ul':
-                self.depth -= 1
-            elif tag == 'a' and self.current_item:
-                if self.current_item['title']:  # Only add if has content
-                    self.items.append(self.current_item)
-                self.current_item = None
+    import re
     
     try:
+        # For mistune's flat TOC with indentation, use regex to preserve whitespace
+        # Pattern: optional spaces + <li><a href="#id">title</a></li>
+        pattern = r'^(\s*)<li><a href="#([^"]+)">([^<]+)</a></li>'
+        
+        items = []
+        for line in toc_html.split('\n'):
+            match = re.match(pattern, line)
+            if match:
+                indent_str, anchor_id, title = match.groups()
+                # Count spaces to determine level (mistune uses 2 spaces per level)
+                indent_level = len(indent_str)
+                level = (indent_level // 2) + 1  # 0 spaces = level 1 (H2), 2 spaces = level 2 (H3), etc.
+                
+                items.append({
+                    'id': anchor_id,
+                    'title': title,
+                    'level': level
+                })
+        
+        if items:
+            return items
+        
+        # Fallback to HTML parser for nested structures (python-markdown style)
+        from html.parser import HTMLParser
+        
+        class TOCParser(HTMLParser):
+            def __init__(self):
+                super().__init__()
+                self.items = []
+                self.current_item = None
+                self.depth = 0
+            
+            def handle_starttag(self, tag, attrs):
+                if tag == 'ul':
+                    self.depth += 1
+                elif tag == 'a':
+                    attrs_dict = dict(attrs)
+                    self.current_item = {
+                        'id': attrs_dict.get('href', '').lstrip('#'),
+                        'title': '',
+                        'level': self.depth
+                    }
+            
+            def handle_data(self, data):
+                if self.current_item is not None:
+                    self.current_item['title'] += data.strip()
+            
+            def handle_endtag(self, tag):
+                if tag == 'ul':
+                    self.depth -= 1
+                elif tag == 'a' and self.current_item:
+                    if self.current_item['title']:
+                        self.items.append(self.current_item)
+                    self.current_item = None
+        
         parser = TOCParser()
         parser.feed(toc_html)
         return parser.items
+        
     except Exception:
         # If parsing fails, return empty list
         return []

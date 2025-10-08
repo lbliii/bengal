@@ -57,6 +57,22 @@ class Section:
         """Get the depth of this section in the hierarchy."""
         return len(self.hierarchy)
     
+    @property
+    def root(self) -> 'Section':
+        """
+        Get the root section of this section's hierarchy.
+        
+        Returns:
+            The topmost ancestor section
+            
+        Example:
+            {% set root_section = page._section.root %}
+        """
+        current = self
+        while current.parent:
+            current = current.parent
+        return current
+    
     # Section navigation properties
     
     @property

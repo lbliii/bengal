@@ -105,6 +105,12 @@ class Renderer:
             'metadata': page.metadata,
             'toc': Markup(page.toc) if page.toc else '',  # Mark TOC as safe HTML
             'toc_items': page.toc_items,  # Structured TOC data
+            
+            # Pre-computed cached properties (computed once, reused in templates)
+            # Templates can use these directly or access via page.meta_description, etc.
+            'meta_desc': page.meta_description,  # From cached_property
+            'reading_time': page.reading_time,   # From cached_property
+            'excerpt': page.excerpt,             # From cached_property
         }
         
         # Add special context for generated pages

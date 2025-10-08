@@ -3,7 +3,7 @@ Development server with file watching and hot reload.
 """
 
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional, Set
 import http.server
 import socketserver
 import socket
@@ -170,8 +170,11 @@ class QuietHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
 
 class BuildHandler(FileSystemEventHandler):
     """
-    File system event handler that triggers site rebuild.
+    File system event handler that triggers site rebuild with debouncing.
     """
+    
+    # Debounce delay in seconds
+    DEBOUNCE_DELAY = 0.2
     
     def __init__(self, site: Any) -> None:
         """
@@ -182,29 +185,61 @@ class BuildHandler(FileSystemEventHandler):
         """
         self.site = site
         self.building = False
+        self.pending_changes: Set[str] = set()
+        self.debounce_timer: Optional[threading.Timer] = None
+        self.timer_lock = threading.Lock()
     
-    def on_modified(self, event: FileSystemEvent) -> None:
+    def _should_ignore_file(self, file_path: str) -> bool:
         """
-        Handle file modification events.
+        Check if file should be ignored (temp files, swap files, etc).
         
         Args:
-            event: File system event
+            file_path: Path to file
+            
+        Returns:
+            True if file should be ignored
         """
-        if event.is_directory:
-            return
+        ignore_patterns = [
+            '.swp', '.swo', '.swx',  # Vim swap files
+            '.tmp', '~',              # Temp files
+            '.pyc', '.pyo',           # Python cache
+            '__pycache__',            # Python cache dir
+            '.DS_Store',              # macOS
+            '.git',                   # Git
+            '.bengal-cache.json',     # Bengal cache
+        ]
         
-        # Skip files in output directory
-        try:
-            Path(event.src_path).relative_to(self.site.output_dir)
-            return
-        except ValueError:
-            pass
+        path = Path(file_path)
+        name = path.name
         
-        # Trigger rebuild
-        if not self.building:
+        # Check if file matches any ignore pattern
+        for pattern in ignore_patterns:
+            if pattern in name or name.endswith(pattern):
+                return True
+        
+        return False
+    
+    def _trigger_build(self) -> None:
+        """Execute the actual build (called after debounce delay)."""
+        with self.timer_lock:
+            self.debounce_timer = None
+            
+            if self.building:
+                return
+            
             self.building = True
+            
+            # Get first changed file for display
+            file_name = "multiple files"
+            if self.pending_changes:
+                first_file = next(iter(self.pending_changes))
+                file_name = Path(first_file).name
+                if len(self.pending_changes) > 1:
+                    file_name = f"{file_name} (+{len(self.pending_changes) - 1} more)"
+            
+            self.pending_changes.clear()
+            
             timestamp = datetime.now().strftime("%H:%M:%S")
-            file_name = Path(event.src_path).name
             print(f"\n  \033[90m{'─' * 78}\033[0m")
             print(f"  {timestamp} │ \033[33m📝 File changed:\033[0m {file_name}")
             print(f"  \033[90m{'─' * 78}\033[0m\n")
@@ -223,6 +258,39 @@ class BuildHandler(FileSystemEventHandler):
                 print(f"  \033[90m{'─' * 8}─┼─{'─' * 6}─┼─{'─' * 3}─┼─{'─' * 60}\033[0m")
             finally:
                 self.building = False
+    
+    def on_modified(self, event: FileSystemEvent) -> None:
+        """
+        Handle file modification events with debouncing.
+        
+        Args:
+            event: File system event
+        """
+        if event.is_directory:
+            return
+        
+        # Skip files in output directory
+        try:
+            Path(event.src_path).relative_to(self.site.output_dir)
+            return
+        except ValueError:
+            pass
+        
+        # Skip temp files and other files that should be ignored
+        if self._should_ignore_file(event.src_path):
+            return
+        
+        # Add to pending changes
+        self.pending_changes.add(event.src_path)
+        
+        # Cancel existing timer and start new one (debouncing)
+        with self.timer_lock:
+            if self.debounce_timer:
+                self.debounce_timer.cancel()
+            
+            self.debounce_timer = threading.Timer(self.DEBOUNCE_DELAY, self._trigger_build)
+            self.debounce_timer.daemon = True
+            self.debounce_timer.start()
 
 
 class DevServer:
@@ -302,6 +370,20 @@ class DevServer:
             self.site.root_path / "assets",
             self.site.root_path / "templates",
         ]
+        
+        # Watch theme directories (both project-level and bundled)
+        if self.site.theme:
+            # Project-level theme
+            project_theme_dir = self.site.root_path / "themes" / self.site.theme
+            if project_theme_dir.exists():
+                watch_dirs.append(project_theme_dir)
+            
+            # Bundled theme (for Bengal development)
+            import bengal
+            bengal_dir = Path(bengal.__file__).parent
+            bundled_theme_dir = bengal_dir / "themes" / self.site.theme
+            if bundled_theme_dir.exists():
+                watch_dirs.append(bundled_theme_dir)
         
         for watch_dir in watch_dirs:
             if watch_dir.exists():

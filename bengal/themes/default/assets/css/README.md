@@ -1,7 +1,25 @@
 # Bengal Default Theme - CSS Architecture
 
-**Last Updated:** October 4, 2025  
-**Architecture:** Semantic Design Token System
+**Last Updated:** October 8, 2025  
+**Architecture:** Semantic Design Token System + Scoping Rules
+
+---
+
+## ⚠️ Important: CSS Scoping Rules
+
+**Bengal follows strict CSS scoping rules to prevent conflicts.**
+
+**📖 Read before writing CSS:**
+- [CSS Scoping Rules](./CSS_SCOPING_RULES.md) - Full documentation
+- [Quick Reference](./CSS_QUICK_REFERENCE.md) - Keep this handy!
+
+**Key principles:**
+1. All selectors must be scoped (no bare elements in components)
+2. Use `.has-prose-content` utility for user content
+3. Content-type specific styles use `.prose.api-content`, etc.
+4. Test with nested components
+
+---
 
 ## Overview
 
