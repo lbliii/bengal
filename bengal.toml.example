@@ -11,6 +11,11 @@ output_dir = "public"
 # Caches compiled Jinja2 templates to .bengal-cache/templates/
 cache_templates = true
 
+# Auto-regenerate autodoc before builds
+# Automatically regenerates Python/CLI docs if source files are newer than generated docs
+# Only regenerates when needed (smart timestamp checking)
+auto_regenerate_autodoc = false  # Set to true for convenience during development
+
 # Font Configuration - Automatically downloads and self-hosts Google Fonts
 # Simple string format: "FontFamily:weight1,weight2,weight3"
 [fonts]
@@ -54,9 +59,11 @@ enabled = false
 # spec_file = "openapi.yaml"
 # output_dir = "content/api-docs"
 
-# Future: CLI autodoc
+# CLI autodoc
 [autodoc.cli]
-enabled = false
-# module = "myapp.cli"
-# output_dir = "content/cli"
+enabled = true
+app_module = "bengal.cli:main"  # module_path:attribute format
+output_dir = "content/cli"
+framework = "click"  # click, argparse, or typer
+include_hidden = false  # Include hidden commands
 

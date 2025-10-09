@@ -5,10 +5,11 @@
 #}
 ---
 title: "{{ element.name }} CLI"
-description: "Command-line interface reference and documentation"
+description: "{% if element.description %}{% set lines = element.description.split('\n') %}{% set desc_lines = [] %}{% for line in lines %}{% if not line.strip().startswith('#') %}{% set _ = desc_lines.append(line) %}{% endif %}{% endfor %}{{ desc_lines | join(' ') | truncate(180, True, '...') }}{% else %}Command-line interface reference and documentation{% endif %}"
 type: cli-reference
 template: cli-reference/list.html
 cli_name: {{ element.name }}
+css_class: api-content
 ---
 
 ## Quick Start

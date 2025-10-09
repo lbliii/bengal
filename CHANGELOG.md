@@ -7,6 +7,152 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **📄 Template System Improvements** - Clarified template behavior and enhanced UX
+  - **Index File Collision Detection:**
+    - Detects when both `index.md` and `_index.md` exist in same section
+    - Prefers `_index.md` over `index.md` (Hugo convention)
+    - Logs helpful warning with suggestion to remove one
+  - **Archive vs List Separation:**
+    - `archive.html` now specifically for chronological/blog content
+    - `index.html` as generic fallback for non-chronological sections
+    - Smart content type detection with date-based heuristics
+    - New content types: `archive`, `list`, `api-reference`, `cli-reference`, `tutorial`
+  - **Enhanced Empty States:**
+    - Helpful guidance with specific file paths
+    - Different messages for archives vs generic sections
+    - Instructions for adding content and subsections
+  - **Comprehensive Documentation:**
+    - New `TEMPLATES.md` guide covering:
+      - Template selection priority
+      - Index file semantics
+      - Auto-generation behavior
+      - Content type detection rules
+      - Customization options
+      - Common patterns and troubleshooting
+  - **Test Coverage:**
+    - 6 tests for index collision detection
+    - 21 tests for content type detection and template selection
+  - **Files Modified:**
+    - `bengal/core/section.py` - Collision detection in `add_page()`
+    - `bengal/orchestration/section.py` - Enhanced content type detection
+    - `bengal/themes/default/templates/index.html` - Complete rewrite with better UX
+    - `bengal/themes/default/templates/archive.html` - Enhanced documentation
+  - **Benefits:**
+    - Better organized content with appropriate templates
+    - Clear warnings prevent configuration mistakes
+    - Smart defaults reduce manual configuration
+    - Helpful empty states guide writers
+
+- **💡 Link Suggestions** - Smart cross-linking recommendations
+  - Multi-signal scoring: tags, categories, PageRank, betweenness, link gaps
+  - Prioritizes underlinked valuable content for better discoverability
+  - **CLI Command:** `bengal suggest` with multiple output formats
+    - Table format: Quick overview of top suggestions
+    - JSON format: Export for programmatic processing
+    - Markdown format: Implementation checklist with action items
+  - **Integrated with KnowledgeGraph:**
+    - `suggest_links()` - Generate smart link suggestions
+    - `get_suggestions_for_page()` - Get suggestions for specific page
+    - Results cached automatically for performance
+  - **Scoring factors** (configurable weights):
+    - Topic similarity (40%): Shared tags between pages
+    - Category match (30%): Same category/section
+    - PageRank (20%): Link to important pages
+    - Betweenness (10%): Link to bridge pages
+    - Underlink bonus: Boost orphaned/underlinked content
+  - New modules:
+    - `bengal/analysis/link_suggestions.py` - Smart link engine (330 LOC, 95% coverage)
+    - Integrated in `bengal/analysis/knowledge_graph.py`
+    - CLI command in `bengal/cli.py`
+  - Comprehensive test coverage: 15 unit tests
+  - Use cases:
+    - Improve internal linking structure
+    - Boost SEO through better site connectivity
+    - Increase content discoverability
+    - Identify and fill navigation gaps
+
+- **🌉 Path Analysis** - Identify bridge pages and navigation bottlenecks
+  - Implements Brandes' algorithm for betweenness centrality
+  - Computes closeness centrality for accessibility analysis
+  - Finds shortest paths between pages using BFS
+  - **CLI Command:** `bengal bridges` with flexible metric selection
+    - Table format: Shows top N bridge/accessible pages
+    - JSON format: Export for programmatic analysis
+    - Summary format: Detailed view with centrality scores
+  - **Integrated with KnowledgeGraph:**
+    - `analyze_paths()` - Compute path metrics with caching
+    - `get_betweenness_centrality()` - Bridge page scores
+    - `get_closeness_centrality()` - Accessibility scores
+    - `find_shortest_path()` - Path finding between pages
+  - **Network metrics:**
+    - Betweenness: Identifies pages that connect different parts of the site
+    - Closeness: Measures how easily pages can be reached
+    - Network diameter: Longest shortest path
+    - Average path length: Mean distance between pages
+  - New modules:
+    - `bengal/analysis/path_analysis.py` - Path analyzer (143 LOC, 98% coverage)
+    - Integrated in `bengal/analysis/knowledge_graph.py`
+    - CLI command in `bengal/cli.py`
+  - Comprehensive test coverage: 16 unit + 12 integration tests
+  - Use cases:
+    - Optimize navigation structure
+    - Identify critical bridge pages
+    - Improve content discoverability
+    - Find navigation bottlenecks
+
+- **🔍 Community Detection** - Discover topical clusters in content
+  - Implements Louvain algorithm for modularity optimization
+  - Automatically finds natural groupings of related pages
+  - **CLI Command:** `bengal communities` with multiple output formats
+    - Table format: Shows top N communities with representative pages
+    - JSON format: Export for programmatic analysis
+    - Summary format: Detailed view with top pages per community
+  - **Integrated with KnowledgeGraph:**
+    - `detect_communities()` - Find topical clusters
+    - `get_community_for_page()` - Lookup page's community
+    - Results cached automatically for performance
+  - **Configurable parameters:**
+    - Resolution: Control community granularity (default 1.0)
+    - Random seed: Reproducible results for testing
+    - Minimum size: Filter out small communities
+  - New modules:
+    - `bengal/analysis/community_detection.py` - Louvain detector (143 LOC, 89% coverage)
+    - Integrated in `bengal/analysis/knowledge_graph.py`
+    - CLI command in `bengal/cli.py`
+  - Comprehensive test coverage: 16 unit + 10 integration tests
+  - Use cases:
+    - Discover hidden content structure automatically
+    - Organize content into logical topic groups
+    - Guide taxonomy and navigation design
+    - Identify content gaps and opportunities
+
+- **🏆 PageRank Analysis** - Data-driven page importance scoring
+  - Identifies most important content using Google's PageRank algorithm
+  - Iterative power method with configurable damping factor (default 0.85)
+  - Converges in typically 10-50 iterations for sites of any size
+  - **Personalized PageRank:** Find content related to specific topics
+  - **CLI Command:** `bengal pagerank` with multiple output formats
+    - Table format: Top N pages with scores and link counts
+    - JSON format: Export for programmatic analysis
+    - Summary format: Quick overview with insights
+  - **Integrated with KnowledgeGraph:**
+    - `compute_pagerank()` - Standard PageRank computation
+    - `compute_personalized_pagerank()` - Topic-specific scoring
+    - `get_top_pages_by_pagerank()` - Convenience method
+    - Results cached automatically for performance
+  - New modules:
+    - `bengal/analysis/page_rank.py` - PageRank calculator (81 LOC, 88% coverage)
+    - Integrated in `bengal/analysis/knowledge_graph.py`
+    - CLI command in `bengal/cli.py`
+  - Comprehensive test coverage: 17 unit + 11 integration tests
+  - Use cases:
+    - Prioritize content updates based on importance
+    - Guide sitemap and navigation design
+    - Identify underlinked valuable content
+    - Find hub pages for cross-linking opportunities
+
 ### Changed
 - **🔧 Hashable Pages and Sections** - Core data structures now support set operations
   - `Page` and `Section` objects are now hashable based on their `source_path` and `path` respectively

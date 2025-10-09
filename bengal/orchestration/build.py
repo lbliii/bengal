@@ -59,8 +59,9 @@ class BuildOrchestrator:
         self.incremental = IncrementalOrchestrator(site)
     
     def build(self, parallel: bool = True, incremental: bool = False, 
-              verbose: bool = False, profile: 'BuildProfile' = None,
-              memory_optimized: bool = False) -> BuildStats:
+              verbose: bool = False, quiet: bool = False, profile: 'BuildProfile' = None,
+              memory_optimized: bool = False, strict: bool = False, 
+              full_output: bool = False) -> BuildStats:
         """
         Execute full build pipeline.
         
@@ -68,14 +69,18 @@ class BuildOrchestrator:
             parallel: Whether to use parallel processing
             incremental: Whether to perform incremental build (only changed files)
             verbose: Whether to show detailed build information
+            quiet: Whether to suppress progress output (minimal output mode)
             profile: Build profile (writer, theme-dev, or dev)
             memory_optimized: Use streaming build for memory efficiency (best for 5K+ pages)
+            strict: Whether to fail build on validation errors
+            full_output: Show full traditional output instead of live progress
             
         Returns:
             BuildStats object with build statistics
         """
         # Import profile utilities
         from bengal.utils.profile import BuildProfile, should_collect_metrics
+        from bengal.utils.cli_output import init_cli_output
         
         # Use default profile if not provided
         if profile is None:
@@ -83,6 +88,39 @@ class BuildOrchestrator:
         
         # Get profile configuration
         profile_config = profile.get_config()
+        
+        # Initialize CLI output system with profile
+        cli = init_cli_output(profile=profile, quiet=quiet, verbose=verbose)
+        
+        # Determine if we should use live progress
+        # Disable if: quiet mode, verbose mode, full_output requested, or not a TTY
+        use_live_progress = (
+            not quiet and 
+            not verbose and 
+            not full_output and
+            profile_config.get('live_progress', {}).get('enabled', True)
+        )
+        
+        # Suppress console log noise even when not using live progress
+        # (logs still go to file for debugging)
+        from bengal.utils.logger import set_console_quiet
+        if not verbose:  # Only suppress if not in verbose mode
+            set_console_quiet(True)
+        
+        # Create live progress manager if enabled
+        progress_manager = None
+        if use_live_progress:
+            try:
+                from bengal.utils.live_progress import LiveProgressManager
+                from bengal.utils.rich_console import should_use_rich
+                
+                if should_use_rich():
+                    progress_manager = LiveProgressManager(profile)
+                    progress_manager.__enter__()
+            except Exception as e:
+                # Fallback to traditional output if live progress fails
+                self.logger.warning("live_progress_init_failed", error=str(e))
+                progress_manager = None
         
         # Start timing
         build_start = time.time()
@@ -96,11 +134,17 @@ class BuildOrchestrator:
         
         # Initialize stats
         self.stats = BuildStats(parallel=parallel, incremental=incremental)
+        self.stats.strict_mode = strict
         
         self.logger.info("build_start", parallel=parallel, incremental=incremental, 
                         root_path=str(self.site.root_path))
         
-        print(f"   ↪ {self.site.root_path}\n")
+        # Show build header (unless using live progress which handles its own display)
+        if not progress_manager:
+            cli.header("Building your site...")
+            cli.info(f"   ↪ {self.site.root_path}")
+            cli.blank()
+        
         self.site.build_time = datetime.now()
         
         # Initialize cache and tracker for incremental builds
@@ -126,23 +170,36 @@ class BuildOrchestrator:
                     self.stats.fonts_time_ms = (time.time() - fonts_start) * 1000
                     self.logger.info("fonts_complete")
                 except Exception as e:
-                    print(f"⚠️  Font processing failed: {e}")
-                    print("   Continuing build without custom fonts...")
+                    cli.warning(f"Font processing failed: {e}")
+                    cli.info("   Continuing build without custom fonts...")
                     self.logger.warning("fonts_failed", error=str(e))
         
         # Phase 1: Content Discovery
         content_dir = self.site.root_path / "content"
         with self.logger.phase("discovery", content_dir=str(content_dir)):
             discovery_start = time.time()
+            
+            if progress_manager:
+                progress_manager.add_phase('discovery', 'Discovery')
+                progress_manager.start_phase('discovery')
+            
             self.content.discover()
+            
             self.stats.discovery_time_ms = (time.time() - discovery_start) * 1000
+            
+            if progress_manager:
+                progress_manager.complete_phase('discovery', elapsed_ms=self.stats.discovery_time_ms)
+                progress_manager.update_phase('discovery', 
+                                             pages=len(self.site.pages),
+                                             sections=len(self.site.sections))
+            
             self.logger.info("discovery_complete", 
                            pages=len(self.site.pages), 
                            sections=len(self.site.sections))
         
         # Check if config changed (forces full rebuild)
         if incremental and self.incremental.check_config_changed():
-            print("  Config file changed - performing full rebuild")
+            cli.info("  Config file changed - performing full rebuild")
             incremental = False
             cache.clear()
         
@@ -169,34 +226,49 @@ class BuildOrchestrator:
                         for tag in page.tags:
                             affected_tags.add(tag.lower().replace(' ', '-'))
                 
+                # Track cache statistics (Phase 2)
+                total_pages = len(self.site.pages)
+                pages_rebuilt = len(pages_to_build)
+                pages_cached = total_pages - pages_rebuilt
+                
+                self.stats.cache_hits = pages_cached
+                self.stats.cache_misses = pages_rebuilt
+                
+                # Estimate time saved (approximate: 80% of rendering time for cached pages)
+                if pages_rebuilt > 0 and total_pages > 0:
+                    avg_time_per_page = (self.stats.rendering_time_ms / total_pages) if hasattr(self.stats, 'rendering_time_ms') else 50
+                    self.stats.time_saved_ms = pages_cached * avg_time_per_page * 0.8
+                
                 self.logger.info("incremental_work_identified",
                                pages_to_build=len(pages_to_build),
                                assets_to_process=len(assets_to_process),
-                               skipped_pages=len(self.site.pages) - len(pages_to_build))
+                               skipped_pages=len(self.site.pages) - len(pages_to_build),
+                               cache_hit_rate=f"{(pages_cached/total_pages*100) if total_pages > 0 else 0:.1f}%")
                 
                 if not pages_to_build and not assets_to_process:
-                    print("✓ No changes detected - skipping build")
+                    cli.success("No changes detected - skipping build")
                     self.logger.info("no_changes_detected")
                     self.stats.skipped = True
                     self.stats.build_time_ms = (time.time() - build_start) * 1000
                     return self.stats
                 
-                print(f"  Incremental build: {len(pages_to_build)} pages, "
-                      f"{len(assets_to_process)} assets")
+                cli.info(f"  Incremental build: {len(pages_to_build)} pages, "
+                        f"{len(assets_to_process)} assets")
                 
                 if verbose and change_summary:
-                    print(f"\n  📝 Changes detected:")
+                    cli.blank()
+                    cli.info("  📝 Changes detected:")
                     for change_type, items in change_summary.items():
                         if items:
-                            print(f"    • {change_type}: {len(items)} file(s)")
+                            cli.info(f"    • {change_type}: {len(items)} file(s)")
                             for item in items[:5]:  # Show first 5
-                                print(f"      - {item.name if hasattr(item, 'name') else item}")
+                                cli.info(f"      - {item.name if hasattr(item, 'name') else item}")
                             if len(items) > 5:
-                                print(f"      ... and {len(items) - 5} more")
-                    print()
+                                cli.info(f"      ... and {len(items) - 5} more")
+                    cli.blank()
         
         # Phase 3: Section Finalization (ensure all sections have index pages)
-        print("\n✨ Generated pages:")
+        # Note: "Generated pages" message removed - cluttered output
         with self.logger.phase("section_finalization"):
             self.sections.finalize_sections()
             
@@ -211,16 +283,17 @@ class BuildOrchestrator:
                                   errors=section_errors[:3])
                 strict_mode = self.site.config.get('strict_mode', False)
                 if strict_mode:
-                    print("\n❌ Section validation errors:")
+                    cli.blank()
+                    cli.error("Section validation errors:")
                     for error in section_errors:
-                        print(f"   • {error}")
+                        cli.detail(str(error), indent=1, icon="•")
                     raise Exception(f"Build failed: {len(section_errors)} section validation error(s)")
                 else:
                     # Warn but continue in non-strict mode
                     for error in section_errors[:3]:  # Show first 3
-                        print(f"⚠️  {error}")
+                        cli.warning(str(error))
                     if len(section_errors) > 3:
-                        print(f"⚠️  ... and {len(section_errors) - 3} more errors")
+                        cli.warning(f"... and {len(section_errors) - 3} more errors")
         
         # Phase 4: Taxonomies & Dynamic Pages (INCREMENTAL OPTIMIZATION)
         with self.logger.phase("taxonomies"):
@@ -308,25 +381,34 @@ class BuildOrchestrator:
             pages_to_build = list(pages_to_build_set)
         
         # Phase 7: Render Pages
-        quiet_mode = not verbose
-        if quiet_mode:
-            print(f"\n📄 Rendering content:")
+        # quiet mode: suppress progress when --quiet flag is used (unless verbose overrides)
+        quiet_mode = quiet and not verbose
         
+        # Rendering phase header removed - phases are now shown via progress manager or final summary
         with self.logger.phase("rendering", page_count=len(pages_to_build), parallel=parallel, memory_optimized=memory_optimized):
             rendering_start = time.time()
             original_pages = self.site.pages
             self.site.pages = pages_to_build  # Temporarily replace with subset
             
+            # Register rendering phase
+            if progress_manager:
+                progress_manager.add_phase('rendering', 'Rendering', total=len(pages_to_build))
+                progress_manager.start_phase('rendering')
+            
             # Use memory-optimized streaming if requested
             if memory_optimized:
                 from bengal.orchestration.streaming import StreamingRenderOrchestrator
                 streaming_render = StreamingRenderOrchestrator(self.site)
-                streaming_render.process(pages_to_build, parallel=parallel, tracker=tracker, stats=self.stats)
+                streaming_render.process(pages_to_build, parallel=parallel, quiet=quiet_mode, tracker=tracker, stats=self.stats)
             else:
-                self.render.process(pages_to_build, parallel=parallel, tracker=tracker, stats=self.stats)
+                self.render.process(pages_to_build, parallel=parallel, quiet=quiet_mode, tracker=tracker, stats=self.stats, progress_manager=progress_manager)
             
             self.site.pages = original_pages  # Restore full page list
             self.stats.rendering_time_ms = (time.time() - rendering_start) * 1000
+            
+            if progress_manager:
+                progress_manager.complete_phase('rendering', elapsed_ms=self.stats.rendering_time_ms)
+            
             self.logger.info("rendering_complete", 
                            pages_rendered=len(pages_to_build),
                            errors=len(self.stats.template_errors) if hasattr(self.stats, 'template_errors') else 0,
@@ -336,23 +418,54 @@ class BuildOrchestrator:
         if quiet_mode:
             self._print_rendering_summary()
         
-        # Phase 7: Process Assets
+        # Phase 8: Process Assets
         with self.logger.phase("assets", asset_count=len(assets_to_process), parallel=parallel):
             assets_start = time.time()
             original_assets = self.site.assets
             self.site.assets = assets_to_process  # Temporarily replace with subset
             
-            self.assets.process(assets_to_process, parallel=parallel)
+            # Register assets phase
+            if progress_manager:
+                progress_manager.add_phase('assets', 'Assets', total=len(assets_to_process))
+                progress_manager.start_phase('assets')
+            
+            self.assets.process(assets_to_process, parallel=parallel, progress_manager=progress_manager)
             
             self.site.assets = original_assets  # Restore full asset list
             self.stats.assets_time_ms = (time.time() - assets_start) * 1000
+            
+            if progress_manager:
+                progress_manager.complete_phase('assets', elapsed_ms=self.stats.assets_time_ms)
+            
             self.logger.info("assets_complete", assets_processed=len(assets_to_process))
         
-        # Phase 8: Post-processing
+        # Phase 9: Post-processing
         with self.logger.phase("postprocessing", parallel=parallel):
             postprocess_start = time.time()
-            self.postprocess.run(parallel=parallel)
+            
+            # Count postprocess tasks
+            postprocess_task_count = 0
+            if self.site.config.get("generate_sitemap", True):
+                postprocess_task_count += 1
+            if self.site.config.get("generate_rss", True):
+                postprocess_task_count += 1
+            if self.site.config.get("output_formats", {}).get("enabled", True):
+                postprocess_task_count += 1
+            if self.site.config.get("validate_links", True):
+                postprocess_task_count += 1
+            postprocess_task_count += 1  # special pages always run
+            
+            if progress_manager:
+                progress_manager.add_phase('postprocess', 'Post-process', total=postprocess_task_count)
+                progress_manager.start_phase('postprocess')
+            
+            self.postprocess.run(parallel=parallel, progress_manager=progress_manager)
+            
             self.stats.postprocess_time_ms = (time.time() - postprocess_start) * 1000
+            
+            if progress_manager:
+                progress_manager.complete_phase('postprocess', elapsed_ms=self.stats.postprocess_time_ms)
+            
             self.logger.info("postprocessing_complete")
         
         # Phase 9: Update cache
@@ -402,24 +515,38 @@ class BuildOrchestrator:
         
         self.logger.info("build_complete", **log_data)
         
+        # Close progress manager and restore logger output
+        if progress_manager:
+            try:
+                progress_manager.__exit__(None, None, None)
+            except Exception as e:
+                self.logger.warning("live_progress_close_failed", error=str(e))
+        
+        # Restore normal logger console output if we suppressed it
+        if not verbose:
+            set_console_quiet(False)
+        
         return self.stats
     
     def _print_rendering_summary(self) -> None:
         """Print summary of rendered pages (quiet mode)."""
+        from bengal.utils.cli_output import get_cli_output
+        cli = get_cli_output()
+        
         # Count page types
         tag_pages = sum(1 for p in self.site.pages if p.metadata.get('_generated') and 'tag' in p.output_path.parts)
         archive_pages = sum(1 for p in self.site.pages if p.metadata.get('_generated') and p.metadata.get('template') == 'archive.html')
         pagination_pages = sum(1 for p in self.site.pages if p.metadata.get('_generated') and '/page/' in str(p.output_path))
         regular_pages = sum(1 for p in self.site.pages if not p.metadata.get('_generated'))
         
-        print(f"   ├─ Regular pages:    {regular_pages}")
+        cli.detail(f"Regular pages:    {regular_pages}", indent=1, icon="├─")
         if tag_pages:
-            print(f"   ├─ Tag pages:        {tag_pages}")
+            cli.detail(f"Tag pages:        {tag_pages}", indent=1, icon="├─")
         if archive_pages:
-            print(f"   ├─ Archive pages:    {archive_pages}")
+            cli.detail(f"Archive pages:    {archive_pages}", indent=1, icon="├─")
         if pagination_pages:
-            print(f"   ├─ Pagination:       {pagination_pages}")
-        print(f"   └─ Total:            {len(self.site.pages)} ✓")
+            cli.detail(f"Pagination:       {pagination_pages}", indent=1, icon="├─")
+        cli.detail(f"Total:            {len(self.site.pages)} ✓", indent=1, icon="└─")
     
     def _run_health_check(self, profile: 'BuildProfile' = None) -> None:
         """
@@ -445,13 +572,16 @@ class BuildOrchestrator:
         health_check = HealthCheck(self.site)
         report = health_check.run(profile=profile)
         
-        # Print report
+        # Print report using CLI output
+        from bengal.utils.cli_output import get_cli_output
+        cli = get_cli_output()
+        
         if health_config.get('verbose', False):
-            print(report.format_console(verbose=True))
+            cli.info(report.format_console(verbose=True))
         else:
             # Only print if there are issues
             if report.has_errors() or report.has_warnings():
-                print(report.format_console(verbose=False))
+                cli.info(report.format_console(verbose=False))
         
         # Store report in stats
         self.stats.health_report = report

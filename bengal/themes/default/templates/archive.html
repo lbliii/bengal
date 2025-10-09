@@ -1,5 +1,24 @@
 {% extends "base.html" %}
 
+{#
+  Chronological Archive Template
+  
+  Used for blog-style sections with dated posts.
+  Displays content in reverse chronological order with pagination.
+  
+  When to use:
+  - Blog posts
+  - News articles
+  - Any time-ordered content
+  
+  Context variables:
+    - section: Section object
+    - posts: List of pages (may be paginated)
+    - subsections: Child sections
+    - total_pages: Total pagination pages (if paginated)
+    - current_page: Current page number (if paginated)
+#}
+
 {% block content %}
 {% include 'partials/breadcrumbs.html' %}
 
@@ -15,6 +34,8 @@
         
         {% if description %}
         <p class="archive-description">{{ description }}</p>
+        {% elif section and section.metadata.description %}
+        <p class="archive-description">{{ section.metadata.description }}</p>
         {% endif %}
         
         {% if total_pages %}
@@ -81,7 +102,19 @@
     </section>
     {% else %}
     <div class="archive-empty">
-        <p>No content in this section yet.</p>
+        <div class="empty-state">
+            <p class="empty-message">No posts in this archive yet.</p>
+            {% if section %}
+            <div class="empty-help">
+                <p><strong>To add posts:</strong></p>
+                <ul>
+                    <li>Create a post with a date: <code>content/{{ section.path.relative_to(site.content_dir) }}/my-post.md</code></li>
+                    <li>Add frontmatter with <code>date: 2025-01-01</code></li>
+                </ul>
+                <p class="empty-hint">💡 Posts in this section will be displayed in reverse chronological order.</p>
+            </div>
+            {% endif %}
+        </div>
     </div>
     {% endif %}
 </div>

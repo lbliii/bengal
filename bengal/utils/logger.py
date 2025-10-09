@@ -56,26 +56,22 @@ class LogEvent:
         return {k: v for k, v in asdict(self).items() if v is not None}
     
     def format_console(self, verbose: bool = False) -> str:
-        """Format for console output."""
+        """Format for console output using Rich markup."""
         indent = "  " * self.phase_depth
         
-        # Color codes
-        colors = {
-            'DEBUG': '\033[36m',    # Cyan
-            'INFO': '\033[32m',     # Green
-            'WARNING': '\033[33m',  # Yellow
-            'ERROR': '\033[31m',    # Red
-            'CRITICAL': '\033[35m', # Magenta
-            'RESET': '\033[0m',
-            'BOLD': '\033[1m',
-            'DIM': '\033[2m',
+        # Level colors (Rich markup styles)
+        level_styles = {
+            'DEBUG': 'cyan',
+            'INFO': 'green',
+            'WARNING': 'yellow',
+            'ERROR': 'red',
+            'CRITICAL': 'magenta',
         }
         
+        style = level_styles.get(self.level, 'white')
+        
         # Phase markers
-        if self.phase:
-            phase_marker = f" {colors['BOLD']}[{self.phase}]{colors['RESET']}"
-        else:
-            phase_marker = ""
+        phase_marker = f" [bold]\\[{self.phase}][/bold]" if self.phase else ""
         
         # Timing and memory
         metrics = []
@@ -89,23 +85,20 @@ class LogEvent:
         if self.peak_memory_mb is not None:
             metrics.append(f"peak:{self.peak_memory_mb:.1f}MB")
         
-        metrics_str = f" {colors['DIM']}({', '.join(metrics)}){colors['RESET']}" if metrics else ""
+        metrics_str = f" [dim]({', '.join(metrics)})[/dim]" if metrics else ""
         
-        # Level color
-        level_color = colors.get(self.level, colors['RESET'])
-        
-        # Basic format
-        base = f"{indent}{level_color}●{colors['RESET']}{phase_marker} {self.message}{metrics_str}"
+        # Basic format with Rich markup
+        base = f"{indent}[{style}]●[/{style}]{phase_marker} {self.message}{metrics_str}"
         
         if verbose:
             # Add context in verbose mode
             if self.context:
                 context_str = " " + " ".join(f"{k}={v}" for k, v in self.context.items())
-                base += f"{colors['DIM']}{context_str}{colors['RESET']}"
+                base += f"[dim]{context_str}[/dim]"
             
             # Add timestamp in verbose mode
             time_str = self.timestamp.split('T')[1].split('.')[0]  # HH:MM:SS
-            base = f"{colors['DIM']}{time_str}{colors['RESET']} {base}"
+            base = f"[dim]{time_str}[/dim] {base}"
         
         return base
 
@@ -124,7 +117,8 @@ class BengalLogger:
         name: str,
         level: LogLevel = LogLevel.INFO,
         log_file: Optional[Path] = None,
-        verbose: bool = False
+        verbose: bool = False,
+        quiet_console: bool = False
     ):
         """
         Initialize logger.
@@ -134,11 +128,13 @@ class BengalLogger:
             level: Minimum log level to emit
             log_file: Path to log file (optional)
             verbose: Whether to show verbose output
+            quiet_console: Suppress console output (for live progress mode)
         """
         self.name = name
         self.level = level
         self.log_file = log_file
         self.verbose = verbose
+        self.quiet_console = quiet_console
         
         # Phase tracking
         self._phase_stack: List[tuple[str, float, Dict[str, Any]]] = []
@@ -252,8 +248,21 @@ class BengalLogger:
         # Store event
         self._events.append(event)
         
-        # Output to console
-        print(event.format_console(verbose=self.verbose))
+        # Output to console (unless suppressed for live progress)
+        if not self.quiet_console:
+            try:
+                # Use Rich console for markup rendering
+                from bengal.utils.rich_console import get_console
+                console = get_console()
+                console.print(event.format_console(verbose=self.verbose))
+            except ImportError:
+                # Fallback to plain print if Rich not available
+                # Strip markup for plain output
+                message = event.format_console(verbose=self.verbose)
+                # Simple markup stripping (remove [style]...[/style])
+                import re
+                message = re.sub(r'\[/?[^\]]+\]', '', message)
+                print(message)
         
         # Output to file (JSON format)
         if self._file_handle:
@@ -305,18 +314,36 @@ class BengalLogger:
         if not timings:
             return
         
-        print("\n" + "="*60)
-        print("Build Phase Timings:")
-        print("="*60)
-        
-        total = sum(timings.values())
-        for phase, duration in sorted(timings.items(), key=lambda x: x[1], reverse=True):
-            percentage = (duration / total * 100) if total > 0 else 0
-            print(f"  {phase:30s} {duration:8.1f}ms ({percentage:5.1f}%)")
-        
-        print("-"*60)
-        print(f"  {'TOTAL':30s} {total:8.1f}ms (100.0%)")
-        print("="*60)
+        try:
+            from bengal.utils.rich_console import get_console
+            console = get_console()
+            
+            console.print("\n" + "="*60)
+            console.print("Build Phase Timings:")
+            console.print("="*60)
+            
+            total = sum(timings.values())
+            for phase, duration in sorted(timings.items(), key=lambda x: x[1], reverse=True):
+                percentage = (duration / total * 100) if total > 0 else 0
+                console.print(f"  {phase:30s} {duration:8.1f}ms ({percentage:5.1f}%)")
+            
+            console.print("-"*60)
+            console.print(f"  {'TOTAL':30s} {total:8.1f}ms (100.0%)")
+            console.print("="*60)
+        except ImportError:
+            # Fallback to plain print
+            print("\n" + "="*60)
+            print("Build Phase Timings:")
+            print("="*60)
+            
+            total = sum(timings.values())
+            for phase, duration in sorted(timings.items(), key=lambda x: x[1], reverse=True):
+                percentage = (duration / total * 100) if total > 0 else 0
+                print(f"  {phase:30s} {duration:8.1f}ms ({percentage:5.1f}%)")
+            
+            print("-"*60)
+            print(f"  {'TOTAL':30s} {total:8.1f}ms (100.0%)")
+            print("="*60)
     
     def close(self):
         """Close log file handle."""
@@ -340,6 +367,7 @@ _global_config = {
     'level': LogLevel.INFO,
     'log_file': None,
     'verbose': False,
+    'quiet_console': False,
 }
 
 
@@ -390,10 +418,28 @@ def get_logger(name: str) -> BengalLogger:
             name=name,
             level=_global_config['level'],
             log_file=_global_config['log_file'],
-            verbose=_global_config['verbose']
+            verbose=_global_config['verbose'],
+            quiet_console=_global_config['quiet_console']
         )
     
     return _loggers[name]
+
+
+def set_console_quiet(quiet: bool = True):
+    """
+    Enable or disable console output for all loggers.
+    
+    Used by live progress manager to suppress structured log events
+    while preserving file logging for debugging.
+    
+    Args:
+        quiet: If True, suppress console output; if False, enable it
+    """
+    _global_config['quiet_console'] = quiet
+    
+    # Update existing loggers
+    for logger in _loggers.values():
+        logger.quiet_console = quiet
 
 
 def close_all_loggers():
@@ -428,33 +474,68 @@ def print_all_summaries():
     if not timings:
         return
     
-    print("\n" + "="*70)
-    print("Build Phase Performance:")
-    print("="*70)
-    
-    # Show timing + memory
-    total_time = sum(timings.values())
-    for phase in sorted(timings.keys(), key=lambda x: timings[x], reverse=True):
-        duration = timings[phase]
-        percentage = (duration / total_time * 100) if total_time > 0 else 0
+    try:
+        from bengal.utils.rich_console import get_console
+        console = get_console()
         
-        line = f"  {phase:25s} {duration:8.1f}ms ({percentage:5.1f}%)"
+        console.print("\n" + "="*70)
+        console.print("[bold cyan]Build Phase Performance:[/bold cyan]")
+        console.print("="*70)
         
-        # Add memory if available
-        if phase in memory_deltas:
-            mem_delta = memory_deltas[phase]
-            line += f"  Δ{mem_delta:+7.1f}MB"
-        if phase in peak_memories:
-            peak = peak_memories[phase]
-            line += f"  peak:{peak:7.1f}MB"
+        # Show timing + memory
+        total_time = sum(timings.values())
+        for phase in sorted(timings.keys(), key=lambda x: timings[x], reverse=True):
+            duration = timings[phase]
+            percentage = (duration / total_time * 100) if total_time > 0 else 0
+            
+            line = f"  {phase:25s} {duration:8.1f}ms ({percentage:5.1f}%)"
+            
+            # Add memory if available
+            if phase in memory_deltas:
+                mem_delta = memory_deltas[phase]
+                line += f"  Δ{mem_delta:+7.1f}MB"
+            if phase in peak_memories:
+                peak = peak_memories[phase]
+                line += f"  peak:{peak:7.1f}MB"
+            
+            console.print(line)
         
-        print(line)
-    
-    print("-"*70)
-    total_line = f"  {'TOTAL':25s} {total_time:8.1f}ms (100.0%)"
-    if memory_deltas:
-        total_mem = sum(memory_deltas.values())
-        total_line += f"  Δ{total_mem:+7.1f}MB"
-    print(total_line)
-    print("="*70)
+        console.print("-"*70)
+        total_line = f"  {'TOTAL':25s} {total_time:8.1f}ms (100.0%)"
+        if memory_deltas:
+            total_mem = sum(memory_deltas.values())
+            total_line += f"  Δ{total_mem:+7.1f}MB"
+        console.print(total_line)
+        console.print("="*70)
+    except ImportError:
+        # Fallback to plain print
+        print("\n" + "="*70)
+        print("Build Phase Performance:")
+        print("="*70)
+        
+        # Show timing + memory
+        total_time = sum(timings.values())
+        for phase in sorted(timings.keys(), key=lambda x: timings[x], reverse=True):
+            duration = timings[phase]
+            percentage = (duration / total_time * 100) if total_time > 0 else 0
+            
+            line = f"  {phase:25s} {duration:8.1f}ms ({percentage:5.1f}%)"
+            
+            # Add memory if available
+            if phase in memory_deltas:
+                mem_delta = memory_deltas[phase]
+                line += f"  Δ{mem_delta:+7.1f}MB"
+            if phase in peak_memories:
+                peak = peak_memories[phase]
+                line += f"  peak:{peak:7.1f}MB"
+            
+            print(line)
+        
+        print("-"*70)
+        total_line = f"  {'TOTAL':25s} {total_time:8.1f}ms (100.0%)"
+        if memory_deltas:
+            total_mem = sum(memory_deltas.values())
+            total_line += f"  Δ{total_mem:+7.1f}MB"
+        print(total_line)
+        print("="*70)
 

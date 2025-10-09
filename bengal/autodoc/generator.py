@@ -230,7 +230,7 @@ class DocumentationGenerator:
         logger.debug(
             "generating_autodoc_element",
             element=element.qualified_name,
-            element_type=element.type
+            element_type=element.element_type
         )
         
         # Get template name based on element type

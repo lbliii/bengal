@@ -75,7 +75,7 @@
                     <div class="api-module-content">
                         {% if subsection.metadata.description %}
                         <p class="api-module-description">
-                            {{ subsection.metadata.description | truncate(150) }}
+                            {{ subsection.metadata.description | truncate(200) }}
                         </p>
                         {% endif %}
                         
@@ -114,11 +114,11 @@
                     <div class="api-module-content">
                         {% if post.metadata.description %}
                         <p class="api-module-description">
-                            {{ post.metadata.description | truncate(150) }}
+                            {{ post.metadata.description | truncate(200) }}
                         </p>
                         {% elif post.content %}
                         <p class="api-module-description">
-                            {{ post.content | striptags | truncate(150) }}
+                            {{ post.content | striptags | truncate(200) }}
                         </p>
                         {% endif %}
                         

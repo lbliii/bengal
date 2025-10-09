@@ -77,11 +77,11 @@
                     <div class="cli-command-content">
                         {% if command.metadata.description %}
                         <p class="cli-command-description">
-                            {{ command.metadata.description | truncate(120) }}
+                            {{ command.metadata.description | truncate(180) }}
                         </p>
                         {% elif command.content %}
                         <p class="cli-command-description">
-                            {{ command.content | striptags | truncate(120) }}
+                            {{ command.content | striptags | truncate(180) }}
                         </p>
                         {% endif %}
                         

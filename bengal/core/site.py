@@ -391,7 +391,7 @@ class Site:
         
         return None
     
-    def build(self, parallel: bool = True, incremental: bool = False, verbose: bool = False, profile: 'BuildProfile' = None, memory_optimized: bool = False) -> BuildStats:
+    def build(self, parallel: bool = True, incremental: bool = False, verbose: bool = False, quiet: bool = False, profile: 'BuildProfile' = None, memory_optimized: bool = False, strict: bool = False, full_output: bool = False) -> BuildStats:
         """
         Build the entire site.
         
@@ -401,8 +401,11 @@ class Site:
             parallel: Whether to use parallel processing
             incremental: Whether to perform incremental build (only changed files)
             verbose: Whether to show detailed build information
+            quiet: Whether to suppress progress output (minimal output mode)
             profile: Build profile (writer, theme-dev, or dev)
             memory_optimized: Use streaming build for memory efficiency (best for 5K+ pages)
+            strict: Whether to fail on warnings
+            full_output: Show full traditional output instead of live progress
             
         Returns:
             BuildStats object with build statistics
@@ -410,7 +413,7 @@ class Site:
         from bengal.orchestration import BuildOrchestrator
         
         orchestrator = BuildOrchestrator(self)
-        return orchestrator.build(parallel=parallel, incremental=incremental, verbose=verbose, profile=profile, memory_optimized=memory_optimized)
+        return orchestrator.build(parallel=parallel, incremental=incremental, verbose=verbose, quiet=quiet, profile=profile, memory_optimized=memory_optimized, strict=strict, full_output=full_output)
     
     def serve(self, host: str = "localhost", port: int = 8000, watch: bool = True, auto_port: bool = True, open_browser: bool = False) -> None:
         """
@@ -433,9 +436,10 @@ class Site:
         import shutil
         
         if self.output_dir.exists():
-            logger.info("cleaning_output_dir", path=str(self.output_dir))
+            # Use debug level to avoid noise in clean command output
+            logger.debug("cleaning_output_dir", path=str(self.output_dir))
             shutil.rmtree(self.output_dir)
-            logger.info("output_dir_cleaned", path=str(self.output_dir))
+            logger.debug("output_dir_cleaned", path=str(self.output_dir))
         else:
             logger.debug("output_dir_does_not_exist", path=str(self.output_dir))
     

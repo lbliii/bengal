@@ -40,14 +40,16 @@ class PostprocessOrchestrator:
         """
         self.site = site
     
-    def run(self, parallel: bool = True) -> None:
+    def run(self, parallel: bool = True, progress_manager=None) -> None:
         """
         Perform post-processing tasks (sitemap, RSS, output formats, link validation, etc.).
         
         Args:
             parallel: Whether to run tasks in parallel
+            progress_manager: Live progress manager (optional)
         """
-        print("\n🔧 Post-processing:")
+        if not progress_manager:
+            print("\n🔧 Post-processing:")
         
         # Collect enabled tasks
         tasks = []
@@ -75,32 +77,41 @@ class PostprocessOrchestrator:
         # Run in parallel if enabled and multiple tasks
         # Threshold of 2 tasks (always parallel if multiple tasks since they're independent)
         if parallel and len(tasks) > 1:
-            self._run_parallel(tasks)
+            self._run_parallel(tasks, progress_manager)
         else:
-            self._run_sequential(tasks)
+            self._run_sequential(tasks, progress_manager)
     
-    def _run_sequential(self, tasks: List[Tuple[str, Callable]]) -> None:
+    def _run_sequential(self, tasks: List[Tuple[str, Callable]], progress_manager=None) -> None:
         """
         Run post-processing tasks sequentially.
         
         Args:
             tasks: List of (task_name, task_function) tuples
+            progress_manager: Live progress manager (optional)
         """
-        for task_name, task_fn in tasks:
+        for i, (task_name, task_fn) in enumerate(tasks):
             try:
+                if progress_manager:
+                    progress_manager.update_phase('postprocess', current=i+1, current_item=task_name)
                 task_fn()
             except Exception as e:
-                with _print_lock:
-                    print(f"  ✗ {task_name}: {e}")
+                if progress_manager:
+                    logger.error("postprocess_task_failed", task=task_name, error=str(e))
+                else:
+                    with _print_lock:
+                        print(f"  ✗ {task_name}: {e}")
     
-    def _run_parallel(self, tasks: List[Tuple[str, Callable]]) -> None:
+    def _run_parallel(self, tasks: List[Tuple[str, Callable]], progress_manager=None) -> None:
         """
         Run post-processing tasks in parallel.
         
         Args:
             tasks: List of (task_name, task_function) tuples
+            progress_manager: Live progress manager (optional)
         """
         errors = []
+        completed_count = 0
+        lock = Lock()
         
         with concurrent.futures.ThreadPoolExecutor(max_workers=len(tasks)) as executor:
             futures = {executor.submit(task_fn): name for name, task_fn in tasks}
@@ -109,11 +120,17 @@ class PostprocessOrchestrator:
                 task_name = futures[future]
                 try:
                     future.result()
+                    if progress_manager:
+                        with lock:
+                            completed_count += 1
+                            progress_manager.update_phase('postprocess', current=completed_count, current_item=task_name)
                 except Exception as e:
                     errors.append((task_name, str(e)))
+                    if progress_manager:
+                        logger.error("postprocess_task_failed", task=task_name, error=str(e))
         
         # Report errors
-        if errors:
+        if errors and not progress_manager:
             with _print_lock:
                 print(f"  ⚠️  {len(errors)} post-processing task(s) failed:")
                 for task_name, error in errors:

@@ -44,6 +44,7 @@ class StreamingRenderOrchestrator:
     def process(self, 
                 pages: List['Page'], 
                 parallel: bool = True,
+                quiet: bool = False,
                 tracker: Optional['DependencyTracker'] = None,
                 stats: Optional['BuildStats'] = None,
                 batch_size: int = 100) -> None:
@@ -53,6 +54,7 @@ class StreamingRenderOrchestrator:
         Args:
             pages: List of pages to render
             parallel: Whether to use parallel rendering
+            quiet: Whether to suppress progress output (minimal output mode)
             tracker: Dependency tracker for incremental builds
             stats: Build statistics tracker
             batch_size: Number of leaves to process per batch
@@ -88,7 +90,7 @@ class StreamingRenderOrchestrator:
             # Fall back to standard rendering
             from bengal.orchestration.render import RenderOrchestrator
             orchestrator = RenderOrchestrator(self.site)
-            orchestrator.process(pages, parallel, tracker, stats)
+            orchestrator.process(pages, parallel, quiet, tracker, stats)
             return
         
         # Build knowledge graph to analyze connectivity
@@ -127,7 +129,7 @@ class StreamingRenderOrchestrator:
         # Phase 1: Render hubs (keep in memory - they're referenced often)
         if hubs_to_render:
             print(f"\n  📍 Rendering {total_hubs} hub page(s)...")
-            renderer.process(hubs_to_render, parallel, tracker, stats)
+            renderer.process(hubs_to_render, parallel, quiet, tracker, stats)
             logger.debug("streaming_render_hubs_complete", count=total_hubs)
         
         # Phase 2: Render mid-tier in batches
@@ -135,7 +137,7 @@ class StreamingRenderOrchestrator:
             print(f"  🔗 Rendering {total_mid} mid-tier page(s)...")
             self._render_batches(
                 renderer, mid_to_render, batch_size,
-                parallel, tracker, stats, "mid-tier"
+                parallel, quiet, tracker, stats, "mid-tier"
             )
             logger.debug("streaming_render_mid_complete", count=total_mid)
         
@@ -144,7 +146,7 @@ class StreamingRenderOrchestrator:
             print(f"  🍃 Streaming {total_leaves} leaf page(s)...")
             self._render_batches(
                 renderer, leaves_to_render, batch_size,
-                parallel, tracker, stats, "leaves",
+                parallel, quiet, tracker, stats, "leaves",
                 release_memory=True
             )
             logger.debug("streaming_render_leaves_complete", count=total_leaves)
@@ -164,6 +166,7 @@ class StreamingRenderOrchestrator:
                        pages: List['Page'],
                        batch_size: int,
                        parallel: bool,
+                       quiet: bool,
                        tracker: Optional['DependencyTracker'],
                        stats: Optional['BuildStats'],
                        batch_label: str = "pages",
@@ -176,6 +179,7 @@ class StreamingRenderOrchestrator:
             pages: Pages to render
             batch_size: Pages per batch
             parallel: Use parallel rendering
+            quiet: Whether to suppress progress output
             tracker: Dependency tracker
             stats: Build statistics
             batch_label: Label for logging
@@ -189,7 +193,7 @@ class StreamingRenderOrchestrator:
             batch_num = (i // batch_size) + 1
             
             # Render this batch
-            renderer.process(batch, parallel, tracker, stats)
+            renderer.process(batch, parallel, quiet, tracker, stats)
             
             logger.debug(
                 "streaming_render_batch_complete",

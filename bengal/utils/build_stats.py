@@ -80,6 +80,19 @@ class BuildStats:
     memory_heap_mb: float = 0     # Python heap memory from tracemalloc
     memory_peak_mb: float = 0     # Peak memory during build
     
+    # Cache statistics (Phase 2 - Intelligence)
+    cache_hits: int = 0           # Pages/assets served from cache
+    cache_misses: int = 0         # Pages/assets rebuilt
+    time_saved_ms: float = 0      # Estimated time saved by caching
+    
+    # Additional phase timings (Phase 2)
+    menu_time_ms: float = 0
+    related_posts_time_ms: float = 0
+    fonts_time_ms: float = 0
+    
+    # Output directory (for display)
+    output_dir: str = None
+    
     # Warnings and errors
     warnings: list = None
     template_errors: list = None  # NEW: Rich template errors
@@ -363,7 +376,21 @@ def display_build_stats(stats: BuildStats, show_art: bool = True, output_dir: st
 
 
 def show_building_indicator(text: str = "Building") -> None:
-    """Show a building indicator."""
+    """Show a building indicator (static or animated based on terminal)."""
+    try:
+        from bengal.utils.rich_console import get_console, should_use_rich
+        
+        if should_use_rich():
+            # Rich output with cat mascot
+            console = get_console()
+            console.print()
+            console.print("    [bengal]ᓚᘏᗢ[/bengal]  [bold cyan]Building your site...[/bold cyan]")
+            console.print()
+            return
+    except ImportError:
+        pass  # Fall back to click
+    
+    # Fallback to click (for CI, dumb terminals, or if rich not available)
     click.echo(click.style(BENGAL_BUILDING, fg='yellow'))
     click.echo(click.style(f"🔨 {text}...\n", fg='cyan', bold=True))
 
@@ -376,8 +403,34 @@ def show_error(message: str, show_art: bool = True) -> None:
 
 
 def show_welcome() -> None:
-    """Show welcome banner."""
-    banner = r"""
+    """Show welcome banner using Rich for stable borders."""
+    try:
+        from rich.console import Console
+        from rich.panel import Panel
+        from rich.align import Align
+        
+        console = Console()
+        
+        # Create centered content
+        content = Align.center(
+            "[bengal]ᓚᘏᗢ[/bengal]     [bold yellow]BENGAL SSG[/bold yellow]\n"
+            "          [dim]Fast & Fierce Static Sites[/dim]",
+            vertical="middle"
+        )
+        
+        panel = Panel(
+            content,
+            border_style="yellow",
+            padding=(1, 2),
+            expand=False,
+            width=58  # Match original width
+        )
+        
+        console.print()
+        console.print(panel)
+    except ImportError:
+        # Fallback if Rich not available
+        banner = r"""
     ╔══════════════════════════════════════════════════════╗
     ║                                                      ║
     ║           ᓚᘏᗢ     BENGAL SSG                        ║
@@ -385,15 +438,26 @@ def show_welcome() -> None:
     ║                                                      ║
     ╚══════════════════════════════════════════════════════╝
     """
-    click.echo(click.style(banner, fg='yellow', bold=True))
+        click.echo(click.style(banner, fg='yellow', bold=True))
 
 
 def show_clean_success(output_dir: str) -> None:
-    """Show clean success message."""
-    click.echo(click.style("\n🧹 Cleaning output directory...", fg='cyan'))
-    click.echo(click.style("   ├─ ", fg='cyan') + f"Directory: {click.style(output_dir, fg='white')}")
-    click.echo(click.style("   └─ ", fg='cyan') + click.style("✓ Clean complete!", fg='green', bold=True))
-    click.echo()
+    """Show clean success message using CLI output system.
+    
+    Note: This is now only used for --force mode (when there's no prompt).
+    Regular clean uses inline success message after prompt confirmation.
+    """
+    from bengal.utils.cli_output import CLIOutput
+    
+    # Create CLI output instance (simple, no profile needed for clean)
+    cli = CLIOutput(quiet=False, verbose=False)
+    
+    cli.blank()
+    cli.header("Cleaning output directory...")
+    cli.info(f"   ↪ {output_dir}")
+    cli.blank()
+    cli.success("Clean complete!", icon="✓")
+    cli.blank()
 
 
 def display_template_errors(stats: BuildStats) -> None:

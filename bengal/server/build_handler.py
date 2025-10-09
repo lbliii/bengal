@@ -26,14 +26,18 @@ class BuildHandler(FileSystemEventHandler):
     # Debounce delay in seconds
     DEBOUNCE_DELAY = 0.2
     
-    def __init__(self, site: Any) -> None:
+    def __init__(self, site: Any, host: str = "localhost", port: int = 5173) -> None:
         """
         Initialize the build handler.
         
         Args:
             site: Site instance
+            host: Server host
+            port: Server port
         """
         self.site = site
+        self.host = host
+        self.port = port
         self.building = False
         self.pending_changes: Set[str] = set()
         self.debounce_timer: Optional[threading.Timer] = None
@@ -151,11 +155,18 @@ class BuildHandler(FileSystemEventHandler):
             try:
                 # Use incremental + parallel for fast dev server rebuilds (5-10x faster)
                 # Cache invalidation auto-detects config/template changes and falls back to full rebuild
-                stats = self.site.build(parallel=True, incremental=True)
+                # Use WRITER profile for clean, minimal output during file watching
+                from bengal.utils.profile import BuildProfile
+                
+                stats = self.site.build(parallel=True, incremental=True, profile=BuildProfile.WRITER)
                 build_duration = time.time() - build_start
                 
                 display_build_stats(stats, show_art=False, output_dir=str(self.site.output_dir))
-                print(f"\n  \033[90m{'TIME':8} │ {'METHOD':6} │ {'STATUS':3} │ PATH\033[0m")
+                
+                # Show server URL after rebuild for easy access
+                print(f"\n  \033[36m➜\033[0m  Local: \033[1mhttp://{self.host}:{self.port}/\033[0m\n")
+                
+                print(f"  \033[90m{'TIME':8} │ {'METHOD':6} │ {'STATUS':3} │ PATH\033[0m")
                 print(f"  \033[90m{'─' * 8}─┼─{'─' * 6}─┼─{'─' * 3}─┼─{'─' * 60}\033[0m")
                 
                 logger.info("rebuild_complete",

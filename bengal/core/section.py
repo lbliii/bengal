@@ -199,7 +199,27 @@ class Section:
         
         # Set as index page if it's named index.md or _index.md
         if is_index:
-            self.index_page = page
+            # Detect collision: both index.md and _index.md exist
+            if self.index_page is not None:
+                existing_name = self.index_page.source_path.stem
+                new_name = page.source_path.stem
+                
+                logger.warning(
+                    "index_file_collision",
+                    section=self.name,
+                    section_path=str(self.path),
+                    existing_file=f"{existing_name}.md",
+                    new_file=f"{new_name}.md",
+                    action="preferring_underscore_version",
+                    suggestion="Remove one of the index files - only _index.md or index.md should exist"
+                )
+                
+                # Prefer _index.md over index.md (Hugo convention)
+                if new_name == "_index":
+                    self.index_page = page
+                # else: keep existing _index.md
+            else:
+                self.index_page = page
             
             # Extract cascade metadata from index page for inheritance
             if 'cascade' in page.metadata:

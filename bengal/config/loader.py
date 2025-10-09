@@ -11,6 +11,44 @@ import yaml
 from bengal.utils.logger import get_logger
 
 
+def pretty_print_config(config: Dict[str, Any], title: str = "Configuration") -> None:
+    """
+    Pretty print configuration using Rich (if available) or fallback to pprint.
+    
+    Args:
+        config: Configuration dictionary to display
+        title: Title for the output
+    """
+    try:
+        from bengal.utils.rich_console import get_console, should_use_rich
+        from rich.pretty import pprint as rich_pprint
+        from rich.panel import Panel
+        from rich.syntax import Syntax
+        import json
+        
+        if should_use_rich():
+            console = get_console()
+            console.print()
+            console.print(f"[bold cyan]{title}[/bold cyan]")
+            console.print()
+            
+            # Use Rich pretty printing with syntax highlighting
+            rich_pprint(config, console=console, expand_all=True)
+            console.print()
+        else:
+            # Fallback to standard pprint
+            import pprint
+            print(f"\n{title}:\n")
+            pprint.pprint(config, width=100, compact=False)
+            print()
+    except ImportError:
+        # Ultimate fallback
+        import pprint
+        print(f"\n{title}:\n")
+        pprint.pprint(config, width=100, compact=False)
+        print()
+
+
 class ConfigLoader:
     """
     Loads site configuration from bengal.toml or bengal.yaml.
@@ -57,9 +95,10 @@ class ConfigLoader:
         for filename in ['bengal.toml', 'bengal.yaml', 'bengal.yml']:
             config_file = self.root_path / filename
             if config_file.exists():
-                self.logger.info("config_file_found",
-                               config_file=str(config_file),
-                               format=config_file.suffix)
+                # Use debug level to avoid noise in normal output
+                self.logger.debug("config_file_found",
+                                config_file=str(config_file),
+                                format=config_file.suffix)
                 return self._load_file(config_file)
         
         # Return default config if no file found
@@ -87,9 +126,10 @@ class ConfigLoader:
         suffix = config_path.suffix.lower()
         
         try:
-            self.logger.info("config_load_start",
-                           config_path=str(config_path),
-                           format=suffix)
+            # Use debug level to avoid noise in normal output
+            self.logger.debug("config_load_start",
+                            config_path=str(config_path),
+                            format=suffix)
             
             # Load raw config
             if suffix == '.toml':
@@ -103,10 +143,11 @@ class ConfigLoader:
             validator = ConfigValidator()
             validated_config = validator.validate(raw_config, source_file=config_path)
             
-            self.logger.info("config_load_complete",
-                           config_path=str(config_path),
-                           sections=list(validated_config.keys()),
-                           warnings=len(self.warnings))
+            # Use debug level to avoid noise in normal output
+            self.logger.debug("config_load_complete",
+                            config_path=str(config_path),
+                            sections=list(validated_config.keys()),
+                            warnings=len(self.warnings))
             
             return validated_config
             

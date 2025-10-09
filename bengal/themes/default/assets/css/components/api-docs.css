@@ -17,6 +17,25 @@
   max-width: var(--content-max-width, 1200px);
 }
 
+/* Ensure .prose base styles don't conflict with api-content */
+.prose.api-content h1,
+.prose.api-content h2,
+.prose.api-content h3,
+.prose.api-content h4,
+.prose.api-content h5,
+.prose.api-content h6 {
+  /* API content headings inherit from prose but maintain api-docs specificity */
+  font-weight: var(--font-semibold);
+}
+
+/* API content inherits prose list styles but maintains spacing */
+.prose.api-content ul,
+.prose.api-content ol {
+  /* Lists use prose defaults unless overridden by parameter list styles */
+  margin-top: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
 /* ============================================
    API SECTION HEADERS
    ============================================ */
@@ -26,10 +45,10 @@
 .api-function-header {
   display: flex;
   align-items: center;
-  gap: var(--space-m);
-  margin: var(--space-xl) 0 var(--space-m) 0;
-  padding-bottom: var(--space-m);
-  border-bottom: 2px solid var(--color-border);
+  gap: var(--space-l);
+  margin: var(--space-2xl) 0 var(--space-l) 0;
+  padding-bottom: var(--space-l);
+  border-bottom: 1px solid var(--color-border-light);
 }
 
 .api-module-icon,
@@ -67,12 +86,13 @@
 /* Enhanced styling for code blocks containing signatures - API docs only */
 .prose.api-content h3 + pre,
 .prose.api-content h4 + pre {
-  background: var(--color-surface);
+  background: var(--color-bg-elevated);
   border-left: 4px solid var(--color-primary);
-  border-radius: var(--radius-m);
-  margin: var(--space-s) 0 var(--space-m) 0;
+  border-radius: var(--radius-lg);
+  padding: var(--space-l);
+  margin: var(--space-m) 0 var(--space-l) 0;
   position: relative;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--elevation-subtle);
 }
 
 /* Signature code blocks should wrap on mobile - API docs only */
@@ -109,11 +129,12 @@
 .prose.api-content p + ul,
 .prose.api-content h4 + ul,
 .prose.api-content h5 + ul {
-  background: var(--color-surface);
-  padding: var(--space-m) var(--space-m) var(--space-m) var(--space-xl);
-  border-radius: var(--radius-m);
-  border: 1px solid var(--color-border-light);
-  margin: var(--space-s) 0 var(--space-m) 0;
+  background: var(--color-bg-elevated);
+  padding: var(--space-l) var(--space-l) var(--space-l) var(--space-2xl);
+  border-radius: var(--radius-lg);
+  border: none;
+  box-shadow: var(--elevation-subtle);
+  margin: var(--space-m) 0;
 }
 
 /* ============================================
@@ -148,14 +169,15 @@
   display: inline-flex;
   align-items: center;
   gap: var(--space-xs);
-  padding: 0.25em 0.75em;
-  border-radius: var(--radius-s);
+  padding: 0.35em 0.85em;
+  border-radius: var(--radius-md);
   font-size: var(--text-xs);
   font-weight: var(--font-semibold);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   vertical-align: middle;
   margin-left: var(--space-s);
+  box-shadow: var(--elevation-subtle);
 }
 
 .api-badge-async {
@@ -296,19 +318,21 @@
 /* Scoped to api-content to prevent conflicts with general prose */
 .prose.api-content .info {
   background: var(--color-info-bg);
-  border-left: 4px solid var(--color-info);
-  padding: var(--space-m);
-  border-radius: var(--radius-m);
+  border-left: 3px solid var(--color-info);
+  padding: var(--space-l);
+  border-radius: var(--radius-lg);
   margin: var(--space-m) 0;
   font-size: var(--text-sm);
+  box-shadow: var(--elevation-subtle);
 }
 
 .prose.api-content .warning {
   background: var(--color-warning-bg);
-  border-left: 4px solid var(--color-warning);
-  padding: var(--space-m);
-  border-radius: var(--radius-m);
+  border-left: 3px solid var(--color-warning);
+  padding: var(--space-l);
+  border-radius: var(--radius-lg);
   margin: var(--space-m) 0;
+  box-shadow: var(--elevation-subtle);
 }
 
 /* ============================================
@@ -353,16 +377,17 @@
   }
   
   /* Make code blocks more readable on mobile */
-  .prose pre {
+  .prose.api-content h3 + pre,
+  .prose.api-content h4 + pre {
     font-size: 0.85rem;
-    padding: var(--space-s);
+    padding: var(--space-m);
   }
   
   /* Reduce padding on parameter lists */
-  .prose p + ul,
-  .prose h4 + ul,
-  .prose h5 + ul {
-    padding: var(--space-s) var(--space-s) var(--space-s) var(--space-l);
+  .prose.api-content p + ul,
+  .prose.api-content h4 + ul,
+  .prose.api-content h5 + ul {
+    padding: var(--space-m) var(--space-m) var(--space-m) var(--space-l);
   }
 }
 

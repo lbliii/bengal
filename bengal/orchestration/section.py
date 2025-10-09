@@ -113,13 +113,14 @@ class SectionOrchestrator:
         1. Explicit metadata override (highest priority)
         2. Section name patterns (api, cli, etc.)
         3. Content analysis (check page metadata)
-        4. Default to archive (blog-style)
+        4. Date-based heuristic (has dates = archive)
+        5. Default to generic list (not archive)
         
         Args:
             section: Section to analyze
             
         Returns:
-            Content type: 'api-reference', 'cli-reference', 'tutorial', or 'archive'
+            Content type: 'api-reference', 'cli-reference', 'tutorial', 'archive', or 'list'
         """
         # 1. Explicit override (highest priority)
         if 'content_type' in section.metadata:
@@ -137,10 +138,16 @@ class SectionOrchestrator:
         if name in ('tutorials', 'guides', 'how-to'):
             return 'tutorial'
         
+        # Blog/news sections (chronological)
+        if name in ('blog', 'posts', 'news', 'articles'):
+            return 'archive'
+        
         # 3. Content analysis: check page metadata
         if section.pages:
             # Sample first few pages to detect type
-            for page in section.pages[:3]:
+            pages_with_dates = 0
+            
+            for page in section.pages[:5]:
                 page_type = page.metadata.get('type', '')
                 
                 if 'python-module' in page_type or 'api-reference' in page_type:
@@ -148,9 +155,17 @@ class SectionOrchestrator:
                 
                 if 'cli-' in page_type or page_type == 'command':
                     return 'cli-reference'
+                
+                # Check if page has a date (blog/archive indicator)
+                if page.metadata.get('date') or page.date:
+                    pages_with_dates += 1
+            
+            # 4. If most pages have dates, treat as chronological archive
+            if pages_with_dates >= len(section.pages[:5]) * 0.6:
+                return 'archive'
         
-        # 4. Default: chronological archive (blog-style)
-        return 'archive'
+        # 5. Default: generic list page (not chronological archive)
+        return 'list'
     
     def _should_paginate(self, section: 'Section', content_type: str) -> bool:
         """
@@ -183,6 +198,11 @@ class SectionOrchestrator:
         """
         Get the appropriate template for a content type.
         
+        Template hierarchy:
+        - archive.html: Chronological/blog content with dates and pagination
+        - index.html: Generic section landing page (fallback)
+        - {type}/list.html: Specialized reference docs (api, cli, tutorial)
+        
         Args:
             content_type: Type of content
             
@@ -194,23 +214,26 @@ class SectionOrchestrator:
             'cli-reference': 'cli-reference/list.html',
             'tutorial': 'tutorial/list.html',
             'archive': 'archive.html',
+            'list': 'index.html',  # Generic fallback for non-chronological sections
         }
-        return template_map.get(content_type, 'archive.html')
+        return template_map.get(content_type, 'index.html')
     
     def _create_archive_index(self, section: 'Section') -> 'Page':
         """
-        Create an auto-generated archive index page for a section.
+        Create an auto-generated index page for a section.
         
         Detects content type and uses appropriate template:
         - API reference docs: api-reference/list.html (no pagination)
         - CLI reference docs: cli-reference/list.html (no pagination)
-        - Blog/archive: archive.html (with pagination)
+        - Tutorial sections: tutorial/list.html (no pagination)
+        - Blog/chronological: archive.html (with pagination)
+        - Generic sections: index.html (fallback)
         
         Args:
-            section: Section that needs an archive index
+            section: Section that needs an index page
             
         Returns:
-            Page object representing the archive index
+            Page object representing the section index
         """
         from bengal.core.page import Page
         from bengal.utils.pagination import Paginator

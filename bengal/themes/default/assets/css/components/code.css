@@ -24,11 +24,11 @@
 
 pre {
   position: relative;
-  margin: 1.5rem 0;
-  padding: 1.25rem;
+  margin: var(--space-l) 0;
+  padding: var(--space-l);
   background-color: var(--color-bg-code);
-  border: 1px solid var(--color-border);
-  border-radius: var(--border-radius-large);
+  border: none;
+  border-radius: var(--radius-xl);
   overflow-x: auto;
   line-height: var(--line-height-relaxed);
   box-shadow: var(--elevation-card);

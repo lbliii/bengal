@@ -42,7 +42,8 @@ class AssetOrchestrator:
         self.site = site
         self.logger = get_logger(__name__)
     
-    def process(self, assets: List['Asset'], parallel: bool = True) -> None:
+    def process(self, assets: List['Asset'], parallel: bool = True, 
+                progress_manager=None) -> None:
         """
         Process and copy assets to output directory.
         
@@ -53,6 +54,7 @@ class AssetOrchestrator:
         Args:
             assets: List of assets to process
             parallel: Whether to use parallel processing
+            progress_manager: Live progress manager (optional)
         """
         if not assets:
             self.logger.info("asset_processing_skipped", reason="no_assets")
@@ -65,14 +67,15 @@ class AssetOrchestrator:
         css_modules = [a for a in assets if a.is_css_module()]
         other_assets = [a for a in assets if a.asset_type != 'css']
         
-        # Report discovery
+        # Report discovery (skip if using progress manager)
         total_discovered = len(assets)
         total_output = len(css_entries) + len(other_assets)
-        print(f"\n📦 Assets:")
-        print(f"   └─ Discovered: {total_discovered} files")
-        if css_modules:
-            print(f"   └─ CSS bundling: {len(css_entries)} entry point(s), {len(css_modules)} module(s) bundled")
-        print(f"   └─ Output: {total_output} files ✓")
+        if not progress_manager:
+            print(f"\n📦 Assets:")
+            print(f"   └─ Discovered: {total_discovered} files")
+            if css_modules:
+                print(f"   └─ CSS bundling: {len(css_entries)} entry point(s), {len(css_modules)} module(s) bundled")
+            print(f"   └─ Output: {total_output} files ✓")
         
         # Get configuration
         minify = self.site.config.get("minify_assets", True)
@@ -91,8 +94,16 @@ class AssetOrchestrator:
                         fingerprint=fingerprint)
         
         # Process CSS entry points first (bundle + minify)
-        for css_entry in css_entries:
+        for i, css_entry in enumerate(css_entries):
             self._process_css_entry(css_entry, minify, optimize, fingerprint)
+            if progress_manager:
+                progress_manager.update_phase(
+                    'assets',
+                    current=i+1,
+                    current_item=f"{css_entry.source_path.name} (bundled {len(css_modules)} modules)",
+                    minified=minify,
+                    bundled_modules=len(css_modules)
+                )
         
         # Process other assets (skip CSS modules)
         assets_to_process = other_assets
@@ -101,9 +112,9 @@ class AssetOrchestrator:
         MIN_ASSETS_FOR_PARALLEL = 5
         
         if parallel and len(assets_to_process) >= MIN_ASSETS_FOR_PARALLEL:
-            self._process_parallel(assets_to_process, minify, optimize, fingerprint)
+            self._process_parallel(assets_to_process, minify, optimize, fingerprint, progress_manager, len(css_entries))
         else:
-            self._process_sequential(assets_to_process, minify, optimize, fingerprint)
+            self._process_sequential(assets_to_process, minify, optimize, fingerprint, progress_manager, len(css_entries))
         
         # Log completion metrics
         duration_ms = (time.time() - start_time) * 1000
@@ -161,7 +172,8 @@ class AssetOrchestrator:
                             stage="bundle_or_minify")
     
     def _process_sequential(self, assets: List['Asset'], minify: bool, 
-                           optimize: bool, fingerprint: bool) -> None:
+                           optimize: bool, fingerprint: bool, progress_manager=None, 
+                           css_entries_processed: int = 0) -> None:
         """
         Process assets sequentially (fallback or for small workloads).
         
@@ -170,10 +182,12 @@ class AssetOrchestrator:
             minify: Whether to minify CSS/JS
             optimize: Whether to optimize images
             fingerprint: Whether to add fingerprint to filename
+            progress_manager: Live progress manager (optional)
+            css_entries_processed: Number of CSS entries already processed
         """
         assets_output = self.site.output_dir / "assets"
         
-        for asset in assets:
+        for i, asset in enumerate(assets):
             try:
                 if minify and asset.asset_type in ('css', 'javascript'):
                     asset.minify()
@@ -182,6 +196,13 @@ class AssetOrchestrator:
                     asset.optimize()
                 
                 asset.copy_to_output(assets_output, use_fingerprint=fingerprint)
+                
+                if progress_manager:
+                    progress_manager.update_phase(
+                        'assets',
+                        current=css_entries_processed + i + 1,
+                        current_item=asset.source_path.name
+                    )
             except Exception as e:
                 self.logger.error("asset_processing_failed",
                                 asset_path=str(asset.source_path),
@@ -191,7 +212,8 @@ class AssetOrchestrator:
                                 mode="sequential")
     
     def _process_parallel(self, assets: List['Asset'], minify: bool, 
-                         optimize: bool, fingerprint: bool) -> None:
+                         optimize: bool, fingerprint: bool, progress_manager=None,
+                         css_entries_processed: int = 0) -> None:
         """
         Process assets in parallel for better performance.
         
@@ -200,15 +222,20 @@ class AssetOrchestrator:
             minify: Whether to minify CSS/JS
             optimize: Whether to optimize images
             fingerprint: Whether to add fingerprint to filename
+            progress_manager: Live progress manager (optional)
+            css_entries_processed: Number of CSS entries already processed
         """
         assets_output = self.site.output_dir / "assets"
         max_workers = self.site.config.get("max_workers", min(8, (len(assets) + 3) // 4))
         
         errors = []
+        completed_count = css_entries_processed
+        lock = Lock()
         
         with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-            futures = [
-                executor.submit(
+            futures = []
+            for asset in assets:
+                future = executor.submit(
                     self._process_single_asset,
                     asset,
                     assets_output,
@@ -216,13 +243,20 @@ class AssetOrchestrator:
                     optimize,
                     fingerprint
                 )
-                for asset in assets
-            ]
+                futures.append((future, asset))
             
             # Collect results and errors
-            for future in concurrent.futures.as_completed(futures):
+            for future, asset in futures:
                 try:
                     future.result()
+                    if progress_manager:
+                        with lock:
+                            completed_count += 1
+                            progress_manager.update_phase(
+                                'assets',
+                                current=completed_count,
+                                current_item=asset.source_path.name
+                            )
                 except Exception as e:
                     errors.append(str(e))
         

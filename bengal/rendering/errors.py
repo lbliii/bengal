@@ -251,6 +251,254 @@ def display_template_error(error: TemplateRenderError, use_color: bool = True) -
         error: Rich error object
         use_color: Whether to use terminal colors
     """
+    # Try to use rich for enhanced display
+    try:
+        from bengal.utils.rich_console import get_console, should_use_rich
+        if should_use_rich():
+            _display_template_error_rich(error)
+            return
+    except ImportError:
+        pass  # Fall back to click
+    
+    # Fallback to click-based display
+    _display_template_error_click(error, use_color)
+
+
+def _display_template_error_rich(error: TemplateRenderError) -> None:
+    """Display template error with rich formatting."""
+    from bengal.utils.rich_console import get_console
+    from rich.syntax import Syntax
+    from rich.panel import Panel
+    from rich.text import Text
+    from rich.table import Table
+    
+    console = get_console()
+    
+    # Error type names
+    error_type_names = {
+        'syntax': 'Template Syntax Error',
+        'filter': 'Unknown Filter',
+        'undefined': 'Undefined Variable',
+        'runtime': 'Template Runtime Error',
+        'other': 'Template Error'
+    }
+    
+    header = error_type_names.get(error.error_type, 'Template Error')
+    ctx = error.template_context
+    
+    # Build code context with syntax highlighting
+    if ctx.surrounding_lines:
+        # Extract code around error
+        code_lines = []
+        error_line_in_display = None
+        
+        for i, (line_num, line_content) in enumerate(ctx.surrounding_lines):
+            code_lines.append(line_content)
+            if line_num == ctx.line_number:
+                error_line_in_display = i + 1  # Syntax uses 1-based indexing
+        
+        code_text = '\n'.join(code_lines)
+        
+        # Create syntax-highlighted code
+        start_line = ctx.surrounding_lines[0][0] if ctx.surrounding_lines else 1
+        
+        syntax = Syntax(
+            code_text,
+            "jinja2",
+            theme="monokai",
+            line_numbers=True,
+            start_line=start_line,
+            highlight_lines={ctx.line_number} if ctx.line_number else set(),
+            word_wrap=False,
+            background_color="default"
+        )
+        
+        # Display in panel
+        panel_title = f"[red bold]{header}[/red bold] in [yellow]{ctx.template_name}[/yellow]"
+        if ctx.line_number:
+            panel_title += f":[yellow]{ctx.line_number}[/yellow]"
+        
+        console.print()
+        console.print(Panel(
+            syntax,
+            title=panel_title,
+            border_style="red",
+            padding=(1, 2)
+        ))
+    else:
+        # No code context, just show header
+        console.print()
+        console.print(f"[red bold]⚠️  {header}[/red bold]")
+        console.print()
+        if ctx.template_path:
+            console.print(f"  [cyan]File:[/cyan] {ctx.template_path}")
+        else:
+            console.print(f"  [cyan]Template:[/cyan] {ctx.template_name}")
+        if ctx.line_number:
+            console.print(f"  [cyan]Line:[/cyan] {ctx.line_number}")
+    
+    # Error message
+    console.print()
+    console.print(f"[red bold]Error:[/red bold] {error.message}")
+    
+    # Generate enhanced suggestions
+    suggestions = _generate_enhanced_suggestions(error)
+    
+    if suggestions:
+        console.print()
+        console.print("[yellow bold]💡 Suggestions:[/yellow bold]")
+        console.print()
+        for i, suggestion in enumerate(suggestions, 1):
+            console.print(f"   [yellow]{i}.[/yellow] {suggestion}")
+    
+    # Alternatives (for filter/variable errors)
+    if error.available_alternatives:
+        console.print()
+        console.print("[yellow bold]Did you mean:[/yellow bold]")
+        for alt in error.available_alternatives:
+            console.print(f"   • [cyan]{alt}[/cyan]")
+    
+    # Inclusion chain
+    if error.inclusion_chain:
+        console.print()
+        console.print("[cyan bold]Template Chain:[/cyan bold]")
+        for line in str(error.inclusion_chain).split('\n'):
+            console.print(f"  {line}")
+    
+    # Page source
+    if error.page_source:
+        console.print()
+        console.print(f"[cyan]Used by page:[/cyan] {error.page_source}")
+    
+    # Documentation link
+    doc_links = {
+        'filter': 'https://bengal.dev/docs/templates/filters',
+        'undefined': 'https://bengal.dev/docs/templates/variables',
+        'syntax': 'https://bengal.dev/docs/templates/syntax',
+    }
+    
+    if error.error_type in doc_links:
+        console.print()
+        console.print(f"[dim]📚 Learn more: {doc_links[error.error_type]}[/dim]")
+    
+    console.print()
+
+
+def _generate_enhanced_suggestions(error: TemplateRenderError) -> List[str]:
+    """Generate context-aware suggestions for template errors."""
+    suggestions = []
+    
+    # Start with existing suggestion
+    if error.suggestion:
+        suggestions.append(error.suggestion)
+    
+    error_str = str(error.message).lower()
+    
+    # Enhanced suggestions based on error type
+    if error.error_type == 'undefined':
+        var_name = _extract_variable_name(error.message)
+        
+        if var_name:
+            # Common typos
+            typo_map = {
+                'titel': 'title',
+                'dat': 'date',
+                'autor': 'author',
+                'sumary': 'summary',
+                'desciption': 'description',
+                'metdata': 'metadata',
+                'conent': 'content'
+            }
+            
+            if var_name.lower() in typo_map:
+                suggestions.append(
+                    f"Common typo: try [cyan]'{typo_map[var_name.lower()]}'[/cyan] instead"
+                )
+            
+            # Suggest safe access
+            suggestions.append(
+                f"Use safe access: [cyan]{{{{ {var_name} | default('fallback') }}}}[/cyan]"
+            )
+            
+            # Check if it looks like metadata access
+            if '.' in var_name:
+                base, attr = var_name.rsplit('.', 1)
+                suggestions.append(
+                    f"Or use dict access: [cyan]{{{{ {base}.get('{attr}', 'default') }}}}[/cyan]"
+                )
+            else:
+                # Suggest adding to frontmatter
+                suggestions.append(
+                    f"Add [cyan]'{var_name}'[/cyan] to page frontmatter"
+                )
+    
+    elif error.error_type == 'filter':
+        filter_name = _extract_filter_name(error.message)
+        
+        if filter_name:
+            # Suggest checking documentation
+            suggestions.append(
+                "Check available filters in [cyan]bengal --help[/cyan] or documentation"
+            )
+            
+            # Common filter mistakes
+            if 'date' in filter_name.lower():
+                suggestions.append(
+                    "For dates, use [cyan]{{ date | date('%Y-%m-%d') }}[/cyan]"
+                )
+    
+    elif error.error_type == 'syntax':
+        if 'unexpected' in error_str:
+            suggestions.append(
+                "Check for missing [cyan]%}[/cyan] or [cyan]}}[/cyan] tags"
+            )
+        
+        if 'expected token' in error_str:
+            suggestions.append(
+                "Verify Jinja2 syntax - might be using unsupported features"
+            )
+        
+        if 'endfor' in error_str or 'endif' in error_str:
+            suggestions.append(
+                "Every [cyan]{% for %}[/cyan] needs [cyan]{% endfor %}[/cyan], "
+                "every [cyan]{% if %}[/cyan] needs [cyan]{% endif %}[/cyan]"
+            )
+    
+    return suggestions
+
+
+def _extract_variable_name(error_message: str) -> Optional[str]:
+    """Extract variable name from undefined variable error."""
+    import re
+    
+    # Try different patterns
+    patterns = [
+        r"'([^']+)' is undefined",
+        r"undefined variable: ([^\s]+)",
+        r"no such element: ([^\s]+)"
+    ]
+    
+    for pattern in patterns:
+        match = re.search(pattern, error_message)
+        if match:
+            return match.group(1)
+    
+    return None
+
+
+def _extract_filter_name(error_message: str) -> Optional[str]:
+    """Extract filter name from filter error."""
+    import re
+    
+    match = re.search(r"no filter named ['\"]([^'\"]+)['\"]", error_message, re.IGNORECASE)
+    if match:
+        return match.group(1)
+    
+    return None
+
+
+def _display_template_error_click(error: TemplateRenderError, use_color: bool = True) -> None:
+    """Fallback display using click (original implementation)."""
     import click
     
     # Header
@@ -303,11 +551,6 @@ def display_template_error(error: TemplateRenderError, use_color: bool = True) -
     if error.available_alternatives:
         click.echo(click.style(f"\n  Did you mean: ", fg='yellow', bold=True) + 
                   ", ".join(f"'{alt}'" for alt in error.available_alternatives))
-    
-    # All available filters (for filter errors)
-    if error.error_type == 'filter' and error.available_alternatives:
-        # Don't list all filters here, just show close matches above
-        pass
     
     # Inclusion chain
     if error.inclusion_chain:

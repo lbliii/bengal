@@ -106,7 +106,8 @@ class RSSGenerator:
                            items_included=min(20, len(sorted_pages)),
                            total_pages_with_dates=len(pages_with_dates))
             
-            print(f"   ├─ RSS feed ✓")
+            # Detailed output removed - postprocess phase summary is sufficient
+            # Individual task output clutters the build log
         except Exception as e:
             self.logger.error("rss_generation_failed",
                             rss_path=str(rss_path),

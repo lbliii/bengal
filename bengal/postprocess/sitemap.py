@@ -89,7 +89,8 @@ class SitemapGenerator:
                            pages_skipped=skipped_count,
                            total_pages=len(self.site.pages))
             
-            print(f"   └─ Sitemap ✓")
+            # Detailed output removed - postprocess phase summary is sufficient
+            # Individual task output clutters the build log
         except Exception as e:
             self.logger.error("sitemap_generation_failed",
                             sitemap_path=str(sitemap_path),

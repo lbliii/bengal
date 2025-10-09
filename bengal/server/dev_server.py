@@ -47,10 +47,11 @@ class DevServer:
     
     def start(self) -> None:
         """Start the development server with robust resource cleanup."""
-        logger.info("dev_server_starting",
-                   host=self.host,
-                   port=self.port,
-                   watch_enabled=self.watch,
+        # Use debug level to avoid noise in normal output
+        logger.debug("dev_server_starting",
+                    host=self.host,
+                    port=self.port,
+                    watch_enabled=self.watch,
                    auto_port=self.auto_port,
                    open_browser=self.open_browser,
                    site_root=str(self.site.root_path))
@@ -61,8 +62,11 @@ class DevServer:
         # Use ResourceManager for comprehensive cleanup handling
         with ResourceManager() as rm:
             # Always do an initial build to ensure site is up to date
+            # Use WRITER profile for clean, minimal output in dev server
+            from bengal.utils.profile import BuildProfile
+            
             show_building_indicator("Initial build")
-            stats = self.site.build()
+            stats = self.site.build(profile=BuildProfile.WRITER)
             display_build_stats(stats, show_art=False, output_dir=str(self.site.output_dir))
             
             logger.debug("initial_build_complete",
@@ -74,17 +78,17 @@ class DevServer:
             PIDManager.write_pid_file(pid_file)
             rm.register_pidfile(pid_file)
             
-            # Start file watcher if enabled
+            # Create HTTP server (determines actual port)
+            httpd, actual_port = self._create_server()
+            rm.register_server(httpd)
+            
+            # Start file watcher if enabled (needs actual_port for rebuild messages)
             if self.watch:
-                observer = self._create_observer()
+                observer = self._create_observer(actual_port)
                 rm.register_observer(observer)
                 observer.start()
                 logger.info("file_watcher_started",
                            watch_dirs=self._get_watched_directories())
-            
-            # Create and start HTTP server
-            httpd, actual_port = self._create_server()
-            rm.register_server(httpd)
             
             # Open browser if requested
             if self.open_browser:
@@ -134,9 +138,9 @@ class DevServer:
         # Filter to only existing directories
         return [str(d) for d in watch_dirs if d.exists()]
     
-    def _create_observer(self) -> Observer:
+    def _create_observer(self, actual_port: int) -> Observer:
         """Create file system observer (does not start it)."""
-        event_handler = BuildHandler(self.site)
+        event_handler = BuildHandler(self.site, self.host, actual_port)
         observer = Observer()
         
         # Get all watch directories
@@ -301,26 +305,58 @@ class DevServer:
         return httpd, actual_port
     
     def _print_startup_message(self, port: int) -> None:
-        """Print server startup message."""
-        print(f"\n╭{'─' * 78}╮")
-        print(f"│ 🚀 \033[1mBengal Dev Server\033[0m{' ' * 59}│")
-        print(f"│{' ' * 78}│")
-        print(f"│   \033[36m➜\033[0m  Local:   \033[1mhttp://{self.host}:{port}/\033[0m{' ' * (52 - len(self.host) - len(str(port)))}│")
-        print(f"│   \033[90m➜\033[0m  Serving: {str(self.site.output_dir)[:60]}{' ' * max(0, 60 - len(str(self.site.output_dir)))}│")
-        print(f"│{' ' * 78}│")
+        """Print server startup message using Rich for stable borders."""
+        from rich.console import Console
+        from rich.panel import Panel
+        from rich.text import Text
         
-        # Show watching status
+        console = Console()
+        
+        # Build message content
+        lines = []
+        lines.append("")  # Blank line for spacing
+        
+        # Server info
+        url = f"http://{self.host}:{port}/"
+        lines.append(f"   [cyan]➜[/cyan]  Local:   [bold]{url}[/bold]")
+        
+        # Serving path (truncate intelligently if too long)
+        serving_path = str(self.site.output_dir)
+        if len(serving_path) > 60:
+            # Show start and end of path with ellipsis
+            serving_path = serving_path[:30] + "..." + serving_path[-27:]
+        lines.append(f"   [dim]➜[/dim]  Serving: {serving_path}")
+        
+        lines.append("")  # Blank line
+        
+        # Watching status
         if self.watch:
-            print(f"│   \033[33m⚠\033[0m  File watching enabled (auto-reload on changes){' ' * 27}│")
-            print(f"│   \033[90m   (Live reload disabled - refresh browser manually)\033[0m{' ' * 24}│")
+            lines.append("   [yellow]⚠[/yellow]  File watching enabled (auto-reload on changes)")
+            lines.append("      [dim](Live reload disabled - refresh browser manually)[/dim]")
         else:
-            print(f"│   \033[90m○\033[0m  File watching disabled{' ' * 48}│")
+            lines.append("   [dim]○  File watching disabled[/dim]")
         
-        print(f"│{' ' * 78}│")
-        print(f"│   \033[90mPress Ctrl+C to stop (or twice to force quit)\033[0m{' ' * 37}│")
-        print(f"╰{'─' * 78}╯\n")
-        print(f"  \033[90m{'TIME':8} │ {'METHOD':6} │ {'STATUS':3} │ PATH\033[0m")
-        print(f"  \033[90m{'─' * 8}─┼─{'─' * 6}─┼─{'─' * 3}─┼─{'─' * 60}\033[0m")
+        lines.append("")  # Blank line
+        lines.append("   [dim]Press Ctrl+C to stop (or twice to force quit)[/dim]")
+        
+        # Create panel with content
+        content = "\n".join(lines)
+        panel = Panel(
+            content,
+            title="[bold]🚀 Bengal Dev Server[/bold]",
+            border_style="cyan",
+            padding=(0, 1),
+            expand=False,  # Don't expand to full terminal width
+            width=80  # Fixed width that works well
+        )
+        
+        console.print()
+        console.print(panel)
+        console.print()
+        
+        # Request log header
+        console.print(f"  [dim]{'TIME':8} │ {'METHOD':6} │ {'STATUS':3} │ PATH[/dim]")
+        console.print(f"  [dim]{'─' * 8}─┼─{'─' * 6}─┼─{'─' * 3}─┼─{'─' * 60}[/dim]")
     
     def _open_browser_delayed(self, port: int) -> None:
         """Open browser after a short delay (in background thread)."""

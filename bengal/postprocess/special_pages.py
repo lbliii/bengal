@@ -44,8 +44,9 @@ class SpecialPagesGenerator:
         if self._generate_404():
             pages_generated.append('404')
         
-        if pages_generated:
-            print(f"  ✓ Special pages: {', '.join(pages_generated)}")
+        # Detailed output removed - postprocess phase summary is sufficient
+        # Individual task output clutters the build log
+        pass
     
     def _generate_404(self) -> bool:
         """

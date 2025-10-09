@@ -159,6 +159,12 @@ class BuildProfile(Enum):
                     ]
                 },
                 'verbose_build_stats': False,
+                'live_progress': {
+                    'enabled': True,
+                    'show_recent_items': False,
+                    'show_metrics': False,
+                    'max_recent': 0,
+                },
             }
         elif self == BuildProfile.THEME_DEV:
             return {
@@ -175,6 +181,12 @@ class BuildProfile(Enum):
                     'disabled': ['performance', 'cache', 'taxonomy']
                 },
                 'verbose_build_stats': True,
+                'live_progress': {
+                    'enabled': True,
+                    'show_recent_items': True,
+                    'show_metrics': True,
+                    'max_recent': 3,
+                },
             }
         else:  # DEVELOPER
             return {
@@ -188,6 +200,12 @@ class BuildProfile(Enum):
                     'disabled': []
                 },
                 'verbose_build_stats': True,
+                'live_progress': {
+                    'enabled': True,
+                    'show_recent_items': True,
+                    'show_metrics': True,
+                    'max_recent': 5,
+                },
             }
     
     def __str__(self) -> str:

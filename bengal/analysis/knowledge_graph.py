@@ -5,7 +5,7 @@ Analyzes page connectivity, identifies hubs and leaves, finds orphaned pages,
 and provides insights for optimization and content strategy.
 """
 
-from typing import TYPE_CHECKING, Dict, List, Set, Tuple
+from typing import TYPE_CHECKING, Dict, List, Set, Tuple, Optional
 from collections import defaultdict
 from dataclasses import dataclass
 
@@ -14,6 +14,10 @@ from bengal.utils.logger import get_logger
 if TYPE_CHECKING:
     from bengal.core.site import Site
     from bengal.core.page import Page
+    from bengal.analysis.page_rank import PageRankResults
+    from bengal.analysis.community_detection import CommunityDetectionResults
+    from bengal.analysis.path_analysis import PathAnalysisResults
+    from bengal.analysis.link_suggestions import LinkSuggestionResults
 
 logger = get_logger(__name__)
 
@@ -107,6 +111,12 @@ class KnowledgeGraph:
         # Analysis results
         self.metrics: GraphMetrics = None
         self._built = False
+        
+        # Analysis results cache
+        self._pagerank_results: Optional['PageRankResults'] = None
+        self._community_results: Optional['CommunityDetectionResults'] = None
+        self._path_results: Optional['PathAnalysisResults'] = None
+        self._link_suggestions: Optional['LinkSuggestionResults'] = None
     
     def build(self) -> None:
         """
@@ -558,4 +568,343 @@ class KnowledgeGraph:
         output.append("")
         
         return "\n".join(output)
+    
+    def compute_pagerank(self, 
+                        damping: float = 0.85,
+                        max_iterations: int = 100,
+                        force_recompute: bool = False) -> 'PageRankResults':
+        """
+        Compute PageRank scores for all pages in the graph.
+        
+        PageRank assigns importance scores based on link structure.
+        Pages that are linked to by many important pages get high scores.
+        
+        Args:
+            damping: Probability of following links vs random jump (default 0.85)
+            max_iterations: Maximum iterations before stopping (default 100)
+            force_recompute: If True, recompute even if cached
+        
+        Returns:
+            PageRankResults with scores and metadata
+        
+        Example:
+            >>> graph = KnowledgeGraph(site)
+            >>> graph.build()
+            >>> results = graph.compute_pagerank()
+            >>> top_pages = results.get_top_pages(10)
+        """
+        if not self._built:
+            raise RuntimeError("Must call build() before computing PageRank")
+        
+        # Return cached results unless forced
+        if self._pagerank_results and not force_recompute:
+            logger.debug("pagerank_cached", action="returning cached results")
+            return self._pagerank_results
+        
+        # Import here to avoid circular dependency
+        from bengal.analysis.page_rank import PageRankCalculator
+        
+        calculator = PageRankCalculator(
+            graph=self,
+            damping=damping,
+            max_iterations=max_iterations
+        )
+        
+        self._pagerank_results = calculator.compute()
+        return self._pagerank_results
+    
+    def compute_personalized_pagerank(self,
+                                     seed_pages: Set['Page'],
+                                     damping: float = 0.85,
+                                     max_iterations: int = 100) -> 'PageRankResults':
+        """
+        Compute personalized PageRank from seed pages.
+        
+        Personalized PageRank biases random jumps toward seed pages,
+        useful for finding pages related to a specific topic or set of pages.
+        
+        Args:
+            seed_pages: Set of pages to bias toward
+            damping: Probability of following links vs random jump
+            max_iterations: Maximum iterations before stopping
+        
+        Returns:
+            PageRankResults with personalized scores
+        
+        Example:
+            >>> graph = KnowledgeGraph(site)
+            >>> graph.build()
+            >>> # Find pages related to Python posts
+            >>> python_posts = {p for p in site.pages if 'python' in p.tags}
+            >>> results = graph.compute_personalized_pagerank(python_posts)
+            >>> related = results.get_top_pages(10)
+        """
+        if not self._built:
+            raise RuntimeError("Must call build() before computing PageRank")
+        
+        if not seed_pages:
+            raise ValueError("seed_pages cannot be empty")
+        
+        # Import here to avoid circular dependency
+        from bengal.analysis.page_rank import PageRankCalculator
+        
+        calculator = PageRankCalculator(
+            graph=self,
+            damping=damping,
+            max_iterations=max_iterations
+        )
+        
+        return calculator.compute_personalized(seed_pages)
+    
+    def get_top_pages_by_pagerank(self, limit: int = 20) -> List[Tuple['Page', float]]:
+        """
+        Get top-ranked pages by PageRank score.
+        
+        Automatically computes PageRank if not already computed.
+        
+        Args:
+            limit: Number of pages to return
+        
+        Returns:
+            List of (page, score) tuples sorted by score descending
+        
+        Example:
+            >>> graph = KnowledgeGraph(site)
+            >>> graph.build()
+            >>> top_pages = graph.get_top_pages_by_pagerank(10)
+            >>> print(f"Most important: {top_pages[0][0].title}")
+        """
+        if not self._pagerank_results:
+            self.compute_pagerank()
+        
+        return self._pagerank_results.get_top_pages(limit)
+    
+    def get_pagerank_score(self, page: 'Page') -> float:
+        """
+        Get PageRank score for a specific page.
+        
+        Automatically computes PageRank if not already computed.
+        
+        Args:
+            page: Page to get score for
+        
+        Returns:
+            PageRank score (0.0 if page not found)
+        
+        Example:
+            >>> graph = KnowledgeGraph(site)
+            >>> graph.build()
+            >>> score = graph.get_pagerank_score(some_page)
+            >>> print(f"Importance score: {score:.4f}")
+        """
+        if not self._pagerank_results:
+            self.compute_pagerank()
+        
+        return self._pagerank_results.get_score(page)
+    
+    def detect_communities(self,
+                          resolution: float = 1.0,
+                          random_seed: Optional[int] = None,
+                          force_recompute: bool = False) -> 'CommunityDetectionResults':
+        """
+        Detect topical communities using Louvain method.
+        
+        Discovers natural clusters of related pages based on link structure.
+        Communities represent topic areas or content groups.
+        
+        Args:
+            resolution: Resolution parameter (higher = more communities, default 1.0)
+            random_seed: Random seed for reproducibility
+            force_recompute: If True, recompute even if cached
+        
+        Returns:
+            CommunityDetectionResults with discovered communities
+        
+        Example:
+            >>> graph = KnowledgeGraph(site)
+            >>> graph.build()
+            >>> results = graph.detect_communities()
+            >>> for community in results.get_largest_communities(5):
+            ...     print(f"Community {community.id}: {community.size} pages")
+        """
+        if not self._built:
+            raise RuntimeError("Must call build() before detecting communities")
+        
+        # Return cached results unless forced
+        if self._community_results and not force_recompute:
+            logger.debug("community_detection_cached", action="returning cached results")
+            return self._community_results
+        
+        # Import here to avoid circular dependency
+        from bengal.analysis.community_detection import LouvainCommunityDetector
+        
+        detector = LouvainCommunityDetector(
+            graph=self,
+            resolution=resolution,
+            random_seed=random_seed
+        )
+        
+        self._community_results = detector.detect()
+        return self._community_results
+    
+    def get_community_for_page(self, page: 'Page') -> Optional[int]:
+        """
+        Get community ID for a specific page.
+        
+        Automatically detects communities if not already computed.
+        
+        Args:
+            page: Page to get community for
+        
+        Returns:
+            Community ID or None if page not found
+        
+        Example:
+            >>> graph = KnowledgeGraph(site)
+            >>> graph.build()
+            >>> community_id = graph.get_community_for_page(some_page)
+            >>> print(f"Page belongs to community {community_id}")
+        """
+        if not self._community_results:
+            self.detect_communities()
+        
+        community = self._community_results.get_community_for_page(page)
+        return community.id if community else None
+    
+    def analyze_paths(self, force_recompute: bool = False) -> 'PathAnalysisResults':
+        """
+        Analyze navigation paths and centrality metrics.
+        
+        Computes:
+        - Betweenness centrality: Pages that act as bridges
+        - Closeness centrality: Pages that are easily accessible
+        - Network diameter and average path length
+        
+        Args:
+            force_recompute: If True, recompute even if cached
+        
+        Returns:
+            PathAnalysisResults with centrality metrics
+        
+        Example:
+            >>> graph = KnowledgeGraph(site)
+            >>> graph.build()
+            >>> results = graph.analyze_paths()
+            >>> bridges = results.get_top_bridges(10)
+        """
+        if not self._built:
+            raise RuntimeError("Must call build() before analyzing paths")
+        
+        # Return cached results unless forced
+        if self._path_results and not force_recompute:
+            logger.debug("path_analysis_cached", action="returning cached results")
+            return self._path_results
+        
+        # Import here to avoid circular dependency
+        from bengal.analysis.path_analysis import PathAnalyzer
+        
+        analyzer = PathAnalyzer(graph=self)
+        self._path_results = analyzer.analyze()
+        return self._path_results
+    
+    def get_betweenness_centrality(self, page: 'Page') -> float:
+        """
+        Get betweenness centrality for a specific page.
+        
+        Automatically analyzes paths if not already computed.
+        
+        Args:
+            page: Page to get centrality for
+        
+        Returns:
+            Betweenness centrality score
+        """
+        if not self._path_results:
+            self.analyze_paths()
+        
+        return self._path_results.get_betweenness(page)
+    
+    def get_closeness_centrality(self, page: 'Page') -> float:
+        """
+        Get closeness centrality for a specific page.
+        
+        Automatically analyzes paths if not already computed.
+        
+        Args:
+            page: Page to get centrality for
+        
+        Returns:
+            Closeness centrality score
+        """
+        if not self._path_results:
+            self.analyze_paths()
+        
+        return self._path_results.get_closeness(page)
+    
+    def suggest_links(self,
+                     min_score: float = 0.3,
+                     max_suggestions_per_page: int = 10,
+                     force_recompute: bool = False) -> 'LinkSuggestionResults':
+        """
+        Generate smart link suggestions to improve site connectivity.
+        
+        Uses multiple signals:
+        - Topic similarity (shared tags/categories)
+        - PageRank importance
+        - Betweenness centrality (bridge pages)
+        - Link gaps (underlinked content)
+        
+        Args:
+            min_score: Minimum score threshold for suggestions
+            max_suggestions_per_page: Maximum suggestions per page
+            force_recompute: If True, recompute even if cached
+        
+        Returns:
+            LinkSuggestionResults with all suggestions
+        
+        Example:
+            >>> graph = KnowledgeGraph(site)
+            >>> graph.build()
+            >>> results = graph.suggest_links()
+            >>> for suggestion in results.get_top_suggestions(20):
+            ...     print(f"{suggestion.source.title} -> {suggestion.target.title}")
+        """
+        if not self._built:
+            raise RuntimeError("Must call build() before generating link suggestions")
+        
+        # Return cached results unless forced
+        if self._link_suggestions and not force_recompute:
+            logger.debug("link_suggestions_cached", action="returning cached results")
+            return self._link_suggestions
+        
+        # Import here to avoid circular dependency
+        from bengal.analysis.link_suggestions import LinkSuggestionEngine
+        
+        engine = LinkSuggestionEngine(
+            graph=self,
+            min_score=min_score,
+            max_suggestions_per_page=max_suggestions_per_page
+        )
+        
+        self._link_suggestions = engine.generate_suggestions()
+        return self._link_suggestions
+    
+    def get_suggestions_for_page(self, page: 'Page', limit: int = 10) -> List[Tuple['Page', float, List[str]]]:
+        """
+        Get link suggestions for a specific page.
+        
+        Automatically generates suggestions if not already computed.
+        
+        Args:
+            page: Page to get suggestions for
+            limit: Maximum number of suggestions
+        
+        Returns:
+            List of (target_page, score, reasons) tuples
+        """
+        if not self._link_suggestions:
+            self.suggest_links()
+        
+        suggestions = self._link_suggestions.get_suggestions_for_page(page, limit)
+        return [(s.target, s.score, s.reasons) for s in suggestions]
 

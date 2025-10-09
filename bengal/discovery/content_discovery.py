@@ -206,11 +206,11 @@ class ContentDiscovery:
             return content, metadata
             
         except yaml.YAMLError as e:
-            # YAML syntax error in frontmatter
-            self.logger.warning("frontmatter_parse_failed",
-                              file_path=str(file_path),
-                              error=str(e),
-                              error_type="yaml_syntax",
+            # YAML syntax error in frontmatter - use debug to avoid noise
+            self.logger.debug("frontmatter_parse_failed",
+                            file_path=str(file_path),
+                            error=str(e),
+                            error_type="yaml_syntax",
                               action="processing_without_metadata",
                               suggestion="Fix frontmatter YAML syntax")
             

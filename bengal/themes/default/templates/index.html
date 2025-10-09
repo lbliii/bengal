@@ -1,17 +1,96 @@
 {% extends "base.html" %}
 
+{#
+  Generic Section Index Template
+  
+  Used for non-chronological section landing pages.
+  Falls back when no specialized template exists.
+  
+  Context variables:
+    - section: Section object (for auto-generated pages)
+    - page: Page object (for explicit _index.md files)
+    - posts: Child pages (_posts)
+    - subsections: Child sections (_subsections)
+#}
+
 {% block content %}
-<div class="home">
-    <header class="hero">
-        <h1>{{ page.title | default(site.config.title) }}</h1>
-        {% if page.metadata.description %}
-        <p>{{ page.metadata.description }}</p>
+{% include 'partials/breadcrumbs.html' %}
+
+<div class="section-index">
+    <header class="section-header">
+        <h1>{{ page.title if page else section.title if section else site.config.title }}</h1>
+        
+        {% if page and page.metadata.description %}
+        <p class="section-description">{{ page.metadata.description }}</p>
+        {% elif section and section.metadata.description %}
+        <p class="section-description">{{ section.metadata.description }}</p>
         {% endif %}
     </header>
     
-    <div class="home-content prose">
+    {# User-provided content (from _index.md) #}
+    {% if content %}
+    <div class="section-content prose">
         {{ content | safe }}
     </div>
+    {% endif %}
+    
+    {# Child content display #}
+    {% if posts or subsections %}
+    <section class="section-children">
+        
+        {# Subsections first #}
+        {% if subsections %}
+        <div class="subsections-grid">
+            <h2 class="section-subtitle">Sections</h2>
+            <div class="subsection-cards">
+                {% for subsection in subsections %}
+                <article class="subsection-card">
+                    <h3><a href="{{ url_for(subsection) }}">{{ subsection.title }}</a></h3>
+                    {% if subsection.metadata.description %}
+                    <p class="subsection-description">{{ subsection.metadata.description }}</p>
+                    {% endif %}
+                    {% if subsection.pages %}
+                    <p class="subsection-meta">{{ subsection.pages | length }} page{{ 's' if subsection.pages | length != 1 }}</p>
+                    {% endif %}
+                </article>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        
+        {# Child pages #}
+        {% if posts %}
+        <div class="pages-list">
+            {% if subsections %}<h2 class="section-subtitle">Pages</h2>{% endif %}
+            <div class="page-cards">
+                {% for post in posts %}
+                    {% set article = post %}
+                    {% set show_excerpt = true %}
+                    {% include 'partials/article-card.html' %}
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        
+    </section>
+    {% else %}
+    {# Empty state with helpful guidance #}
+    <div class="section-empty">
+        <div class="empty-state">
+            <p class="empty-message">This section doesn't have any content yet.</p>
+            {% if section %}
+            <div class="empty-help">
+                <p><strong>To add content:</strong></p>
+                <ul>
+                    <li>Create a page: <code>content/{{ section.path.relative_to(site.content_dir) }}/my-page.md</code></li>
+                    <li>Add a custom index: <code>content/{{ section.path.relative_to(site.content_dir) }}/_index.md</code></li>
+                    <li>Create a subsection: <code>content/{{ section.path.relative_to(site.content_dir) }}/subsection/</code></li>
+                </ul>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
 </div>
 {% endblock %}
 
