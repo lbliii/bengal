@@ -27,6 +27,20 @@ class Page(
     """
     Represents a single content page.
     
+    HASHABILITY:
+    ============
+    Pages are hashable based on their source_path, allowing them to be stored
+    in sets and used as dictionary keys. This enables:
+    - Fast membership tests (O(1) instead of O(n))
+    - Automatic deduplication with sets
+    - Set operations for page analysis
+    - Direct use as dictionary keys
+    
+    Two pages with the same source_path are considered equal, even if their
+    content differs. The hash is stable throughout the page lifecycle because
+    source_path is immutable. Mutable fields (content, rendered_html, etc.)
+    do not affect the hash or equality.
+    
     BUILD LIFECYCLE:
     ================
     Pages progress through distinct build phases. Properties have different
@@ -86,6 +100,38 @@ class Page(
         if self.metadata:
             self.tags = self.metadata.get("tags", [])
             self.version = self.metadata.get("version")
+    
+    def __hash__(self) -> int:
+        """
+        Hash based on source_path for stable identity.
+        
+        The hash is computed from the page's source_path, which is immutable
+        throughout the page lifecycle. This allows pages to be stored in sets
+        and used as dictionary keys.
+        
+        Returns:
+            Integer hash of the source path
+        """
+        return hash(self.source_path)
+    
+    def __eq__(self, other: Any) -> bool:
+        """
+        Pages are equal if they have the same source path.
+        
+        Equality is based on source_path only, not on content or other
+        mutable fields. This means two Page objects representing the same
+        source file are considered equal, even if their processed content
+        differs.
+        
+        Args:
+            other: Object to compare with
+        
+        Returns:
+            True if other is a Page with the same source_path
+        """
+        if not isinstance(other, Page):
+            return NotImplemented
+        return self.source_path == other.source_path
     
     def __repr__(self) -> str:
         return f"Page(title='{self.title}', source='{self.source_path}')"

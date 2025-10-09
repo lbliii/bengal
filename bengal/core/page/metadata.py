@@ -3,6 +3,7 @@ Page Metadata Mixin - Basic properties and type checking.
 """
 
 from datetime import datetime
+from functools import cached_property
 from typing import Any, Dict, List, Optional
 import re
 
@@ -53,16 +54,20 @@ class PageMetadataMixin:
         
         return self.source_path.stem
     
-    @property
+    @cached_property
     def url(self) -> str:
         """
-        Get the URL path for the page.
+        Get the URL path for the page (cached after first access).
         
         Generates clean URLs from output paths, handling:
         - Pretty URLs (about/index.html -> /about/)
         - Index pages (docs/index.html -> /docs/)
         - Root index (index.html -> /)
         - Edge cases (missing site reference, invalid paths)
+        
+        URLs are stable after output_path is set (during rendering phase),
+        so caching eliminates redundant recalculation during health checks
+        and template rendering.
         
         Returns:
             URL path with leading and trailing slashes

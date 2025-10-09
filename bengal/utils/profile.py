@@ -77,18 +77,22 @@ class BuildProfile(Enum):
         Determine profile from CLI arguments with proper precedence.
         
         Precedence (highest to lowest):
-        1. --dev or --debug flags
+        1. --dev flag (full developer mode)
         2. --theme-dev flag
         3. --profile option
         4. --verbose flag (legacy)
-        5. Default (WRITER)
+        5. --debug flag (debug logging only, fast health checks)
+        6. Default (WRITER)
+        
+        NOTE: --debug now only enables debug logging, not comprehensive health checks.
+        For full validation, use --dev or --profile=dev.
         
         Args:
             profile: Explicit profile name from --profile
-            dev: --dev flag
+            dev: --dev flag (full developer mode)
             theme_dev: --theme-dev flag
             verbose: --verbose flag (legacy)
-            debug: --debug flag (legacy)
+            debug: --debug flag (debug logging only)
             
         Returns:
             Determined BuildProfile
@@ -97,11 +101,14 @@ class BuildProfile(Enum):
             >>> BuildProfile.from_cli_args(dev=True)
             BuildProfile.DEVELOPER
             
+            >>> BuildProfile.from_cli_args(debug=True)
+            BuildProfile.WRITER  # Fast health checks, debug logging
+            
             >>> BuildProfile.from_cli_args(verbose=True)
             BuildProfile.THEME_DEV
         """
-        # Priority 1: Explicit dev/debug flags
-        if dev or debug:
+        # Priority 1: Explicit dev flag (full developer mode)
+        if dev:
             return cls.DEVELOPER
         
         # Priority 2: Theme dev flag
@@ -116,7 +123,10 @@ class BuildProfile(Enum):
         if verbose:
             return cls.THEME_DEV
         
-        # Priority 5: Default
+        # Priority 5: --debug flag (debug logging only, not comprehensive health checks)
+        # Falls through to default WRITER profile with fast health checks
+        
+        # Priority 6: Default (WRITER for fast, clean builds)
         return cls.WRITER
     
     def get_config(self) -> Dict[str, Any]:

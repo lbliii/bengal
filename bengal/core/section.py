@@ -3,6 +3,7 @@ Section Object - Represents a folder or logical grouping of pages.
 """
 
 from dataclasses import dataclass, field
+from functools import cached_property
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -16,6 +17,17 @@ logger = get_logger(__name__)
 class Section:
     """
     Represents a folder or logical grouping of pages.
+    
+    HASHABILITY:
+    ============
+    Sections are hashable based on their path, allowing them to be stored
+    in sets and used as dictionary keys. This enables:
+    - Fast membership tests and lookups
+    - Type-safe Set[Section] collections
+    - Set operations for section analysis
+    
+    Two sections with the same path are considered equal. The hash is stable
+    throughout the section lifecycle because path is immutable.
     
     Attributes:
         name: Section name
@@ -124,10 +136,14 @@ class Section:
             result.extend(subsection.regular_pages_recursive)
         return result
     
-    @property
+    @cached_property
     def url(self) -> str:
         """
-        Get the URL for this section.
+        Get the URL for this section (cached after first access).
+        
+        Section URLs are stable after index pages have output_path set.
+        Caching eliminates redundant recalculation - previously this was
+        computed ~5× per page during health checks.
         
         Returns:
             URL path for the section
@@ -322,6 +338,37 @@ class Section:
             stack.extend(section.subsections)
         
         return sections
+    
+    def __hash__(self) -> int:
+        """
+        Hash based on section path for stable identity.
+        
+        The hash is computed from the section's path, which is immutable
+        throughout the section lifecycle. This allows sections to be stored
+        in sets and used as dictionary keys.
+        
+        Returns:
+            Integer hash of the section path
+        """
+        return hash(self.path)
+    
+    def __eq__(self, other: Any) -> bool:
+        """
+        Sections are equal if they have the same path.
+        
+        Equality is based on path only, not on pages or other mutable fields.
+        This means two Section objects representing the same directory are
+        considered equal, even if their contents differ.
+        
+        Args:
+            other: Object to compare with
+        
+        Returns:
+            True if other is a Section with the same path
+        """
+        if not isinstance(other, Section):
+            return NotImplemented
+        return self.path == other.path
     
     def __repr__(self) -> str:
         return f"Section(name='{self.name}', pages={len(self.pages)}, subsections={len(self.subsections)})"

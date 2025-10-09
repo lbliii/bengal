@@ -1222,20 +1222,37 @@ Bengal includes a comprehensive health check system that validates builds across
 
 #### Validators (`bengal/health/validators/`)
 
-**All Validators (10 total)**:
+**All Validators (14 total)**:
 
+**Basic Validation:**
 | Validator | Validates |
 |-----------|-----------|
-| **OutputValidator** | Page sizes, asset presence, file structure |
-| **ConfigValidatorWrapper** | Configuration validity (integrates existing validator) |
+| **ConfigValidatorWrapper** | Configuration validity, essential fields, common issues |
+| **OutputValidator** | Page sizes, asset presence, directory structure |
 | **MenuValidator** | Menu structure integrity, circular reference detection |
 | **LinkValidatorWrapper** | Broken links detection (internal and external) |
+
+**Content Validation:**
+| Validator | Validates |
+|-----------|-----------|
 | **NavigationValidator** | Page navigation (next/prev, breadcrumbs, ancestors) |
-| **TaxonomyValidator** | Tags, categories, generated pages correctness |
-| **RenderingValidator** | HTML quality, template function usage, output integrity |
+| **TaxonomyValidator** | Tags, categories, archives, pagination integrity |
+| **RenderingValidator** | HTML quality, template function usage, SEO metadata |
 | **DirectiveValidator** | Directive syntax, completeness, and performance |
+
+**Advanced Validation:**
+| Validator | Validates |
+|-----------|-----------|
 | **CacheValidator** | Incremental build cache integrity and consistency |
 | **PerformanceValidator** | Build performance metrics and bottleneck detection |
+
+**Production-Ready Validation:**
+| Validator | Validates |
+|-----------|-----------|
+| **RSSValidator** | RSS feed quality, XML validity, URL formatting |
+| **SitemapValidator** | Sitemap.xml validity for SEO, no duplicate URLs |
+| **FontValidator** | Font downloads, CSS generation, file sizes |
+| **AssetValidator** | Asset optimization, minification hints, size analysis |
 
 #### Configuration
 Health checks can be configured via `bengal.toml`:
@@ -1244,17 +1261,29 @@ Health checks can be configured via `bengal.toml`:
 # Globally enable/disable health checks
 validate_build = true
 
-# Per-validator configuration
+# Per-validator configuration (all enabled by default)
 [health_check.validators]
+# Phase 1: Basic
+configuration = true
 output = true
-config = true
-menu = true
+navigation_menus = true
 links = true
+
+# Phase 2: Content
 navigation = true
-taxonomy = true
+taxonomies = true
 rendering = true
-cache = true
+directives = true
+
+# Phase 3: Advanced
+cache_integrity = true
 performance = true
+
+# Phase 4: Production-ready
+rss_feed = true
+sitemap = true
+fonts = true
+asset_processing = true
 ```
 
 #### Integration

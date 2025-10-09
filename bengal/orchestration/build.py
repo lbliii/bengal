@@ -59,7 +59,8 @@ class BuildOrchestrator:
         self.incremental = IncrementalOrchestrator(site)
     
     def build(self, parallel: bool = True, incremental: bool = False, 
-              verbose: bool = False, profile: 'BuildProfile' = None) -> BuildStats:
+              verbose: bool = False, profile: 'BuildProfile' = None,
+              memory_optimized: bool = False) -> BuildStats:
         """
         Execute full build pipeline.
         
@@ -68,6 +69,7 @@ class BuildOrchestrator:
             incremental: Whether to perform incremental build (only changed files)
             verbose: Whether to show detailed build information
             profile: Build profile (writer, theme-dev, or dev)
+            memory_optimized: Use streaming build for memory efficiency (best for 5K+ pages)
             
         Returns:
             BuildStats object with build statistics
@@ -292,31 +294,43 @@ class BuildOrchestrator:
         # Phase 6: Update filtered pages list (add generated pages)
         # Now that we've generated tag pages, update pages_to_build if needed
         if incremental and affected_tags:
-            # Add newly generated tag pages to rebuild list
+            # Convert to set for O(1) membership and automatic deduplication
+            pages_to_build_set = set(pages_to_build)
+            
+            # Add newly generated tag pages to rebuild set
             for page in self.site.pages:
                 if page.metadata.get('_generated') and page.metadata.get('type') in ('tag', 'tag-index'):
                     tag_slug = page.metadata.get('_tag_slug')
                     if tag_slug in affected_tags or page.metadata.get('type') == 'tag-index':
-                        if page not in pages_to_build:
-                            pages_to_build.append(page)
+                        pages_to_build_set.add(page)  # O(1) + automatic dedup
+            
+            # Convert back to list for rendering (preserves compatibility)
+            pages_to_build = list(pages_to_build_set)
         
         # Phase 7: Render Pages
         quiet_mode = not verbose
         if quiet_mode:
             print(f"\n📄 Rendering content:")
         
-        with self.logger.phase("rendering", page_count=len(pages_to_build), parallel=parallel):
+        with self.logger.phase("rendering", page_count=len(pages_to_build), parallel=parallel, memory_optimized=memory_optimized):
             rendering_start = time.time()
             original_pages = self.site.pages
             self.site.pages = pages_to_build  # Temporarily replace with subset
             
-            self.render.process(pages_to_build, parallel=parallel, tracker=tracker, stats=self.stats)
+            # Use memory-optimized streaming if requested
+            if memory_optimized:
+                from bengal.orchestration.streaming import StreamingRenderOrchestrator
+                streaming_render = StreamingRenderOrchestrator(self.site)
+                streaming_render.process(pages_to_build, parallel=parallel, tracker=tracker, stats=self.stats)
+            else:
+                self.render.process(pages_to_build, parallel=parallel, tracker=tracker, stats=self.stats)
             
             self.site.pages = original_pages  # Restore full page list
             self.stats.rendering_time_ms = (time.time() - rendering_start) * 1000
             self.logger.info("rendering_complete", 
                            pages_rendered=len(pages_to_build),
-                           errors=len(self.stats.template_errors) if hasattr(self.stats, 'template_errors') else 0)
+                           errors=len(self.stats.template_errors) if hasattr(self.stats, 'template_errors') else 0,
+                           memory_optimized=memory_optimized)
         
         # Print rendering summary in quiet mode
         if quiet_mode:

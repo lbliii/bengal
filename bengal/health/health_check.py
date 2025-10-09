@@ -61,19 +61,38 @@ class HealthCheck:
             DirectiveValidator,
             CacheValidator,
             PerformanceValidator,
+            RSSValidator,
+            SitemapValidator,
+            FontValidator,
+            AssetValidator,
+            ConnectivityValidator,
         )
         
         # Register in logical order (fast validators first)
+        # Phase 1: Basic validation
         self.register(ConfigValidatorWrapper())
         self.register(OutputValidator())
+        
+        # Phase 2: Content validation
         self.register(RenderingValidator())
-        self.register(DirectiveValidator())  # New!
+        self.register(DirectiveValidator())
         self.register(NavigationValidator())
         self.register(MenuValidator())
         self.register(TaxonomyValidator())
         self.register(LinkValidatorWrapper())
+        
+        # Phase 3: Advanced validation
         self.register(CacheValidator())
         self.register(PerformanceValidator())
+        
+        # Phase 4: Production-ready validation
+        self.register(RSSValidator())
+        self.register(SitemapValidator())
+        self.register(FontValidator())
+        self.register(AssetValidator())
+        
+        # Phase 5: Knowledge graph validation
+        self.register(ConnectivityValidator())
     
     def register(self, validator: BaseValidator) -> None:
         """

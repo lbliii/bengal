@@ -36,6 +36,7 @@ def main() -> None:
 @main.command()
 @click.option('--parallel/--no-parallel', default=True, help='Enable parallel processing for faster builds (default: enabled)')
 @click.option('--incremental', is_flag=True, help='Perform incremental build (only rebuild changed files)')
+@click.option('--memory-optimized', is_flag=True, help='Use streaming build for memory efficiency (best for 5K+ pages)')
 @click.option('--profile', type=click.Choice(['writer', 'theme-dev', 'dev']), 
               help='Build profile: writer (fast/clean), theme-dev (templates), dev (full debug)')
 @click.option('--perf-profile', type=click.Path(), help='Enable performance profiling and save to file (e.g., profile.stats)')
@@ -49,7 +50,7 @@ def main() -> None:
 @click.option('--quiet', '-q', is_flag=True, help='Minimal output - only show errors and summary')
 @click.option('--log-file', type=click.Path(), help='Write detailed logs to file (default: .bengal-build.log)')
 @click.argument('source', type=click.Path(exists=True), default='.')
-def build(parallel: bool, incremental: bool, profile: str, perf_profile: str, use_theme_dev: bool, use_dev: bool, verbose: bool, strict: bool, debug: bool, validate: bool, config: str, quiet: bool, log_file: str, source: str) -> None:
+def build(parallel: bool, incremental: bool, memory_optimized: bool, profile: str, perf_profile: str, use_theme_dev: bool, use_dev: bool, verbose: bool, strict: bool, debug: bool, validate: bool, config: str, quiet: bool, log_file: str, source: str) -> None:
     """
     🔨 Build the static site.
     
@@ -146,7 +147,8 @@ def build(parallel: bool, incremental: bool, profile: str, perf_profile: str, us
                 parallel=parallel, 
                 incremental=incremental, 
                 verbose=profile_config['verbose_build_stats'],
-                profile=build_profile
+                profile=build_profile,
+                memory_optimized=memory_optimized
             )
             
             profiler.disable()
@@ -175,7 +177,8 @@ def build(parallel: bool, incremental: bool, profile: str, perf_profile: str, us
                 parallel=parallel, 
                 incremental=incremental, 
                 verbose=profile_config['verbose_build_stats'],
-                profile=build_profile
+                profile=build_profile,
+                memory_optimized=memory_optimized
             )
         
         # Display template errors first if we're in theme-dev or dev mode
@@ -207,6 +210,92 @@ def build(parallel: bool, incremental: bool, profile: str, perf_profile: str, us
         raise click.Abort()
     finally:
         # Always close log file handles
+        close_all_loggers()
+
+
+@main.command()
+@click.option('--stats', 'show_stats', is_flag=True, default=True, help='Show graph statistics (default: enabled)')
+@click.option('--output', type=click.Path(), help='Generate interactive visualization to file (e.g., public/graph.html)')
+@click.option('--config', type=click.Path(exists=True), help='Path to config file (default: bengal.toml)')
+@click.argument('source', type=click.Path(exists=True), default='.')
+def graph(show_stats: bool, output: str, config: str, source: str) -> None:
+    """
+    📊 Analyze site structure and connectivity.
+    
+    Builds a knowledge graph of your site to:
+    - Find orphaned pages (no incoming links)
+    - Identify hub pages (highly connected)
+    - Understand content structure
+    - Generate interactive visualizations
+    
+    Examples:
+        # Show connectivity statistics
+        bengal graph
+        
+        # Generate interactive visualization
+        bengal graph --output public/graph.html
+    """
+    from bengal.analysis.knowledge_graph import KnowledgeGraph
+    from bengal.utils.logger import configure_logging, LogLevel, close_all_loggers
+    
+    try:
+        # Configure minimal logging
+        configure_logging(level=LogLevel.WARNING)
+        
+        # Load site
+        source_path = Path(source).resolve()
+        
+        if config:
+            config_path = Path(config).resolve()
+            site = Site.from_config(source_path, config_file=config_path)
+        else:
+            site = Site.from_config(source_path)
+        
+        # We need to discover content to analyze it
+        # This also builds the xref_index for link analysis
+        click.echo("🔍 Discovering site content...")
+        from bengal.orchestration.content import ContentOrchestrator
+        content_orch = ContentOrchestrator(site)
+        content_orch.discover()
+        
+        # Build knowledge graph
+        click.echo(f"📊 Analyzing {len(site.pages)} pages...")
+        graph = KnowledgeGraph(site)
+        graph.build()
+        
+        # Show statistics
+        if show_stats:
+            stats = graph.format_stats()
+            click.echo(stats)
+        
+        # Generate visualization if requested
+        if output:
+            output_path = Path(output).resolve()
+            click.echo(f"\n🎨 Generating interactive visualization...")
+            click.echo(f"   ↪ {output_path}")
+            
+            # Check if visualization module exists
+            try:
+                from bengal.analysis.graph_visualizer import GraphVisualizer
+                visualizer = GraphVisualizer(site, graph)
+                html = visualizer.generate_html()
+                
+                # Ensure output directory exists
+                output_path.parent.mkdir(parents=True, exist_ok=True)
+                
+                # Write HTML file
+                output_path.write_text(html, encoding='utf-8')
+                
+                click.echo(click.style("✅ Visualization generated!", fg='green', bold=True))
+                click.echo(f"   Open {output_path} in your browser to explore.")
+            except ImportError:
+                click.echo(click.style("⚠️  Graph visualization not yet implemented.", fg='yellow'))
+                click.echo("   This feature is coming in Phase 2!")
+        
+    except Exception as e:
+        click.echo(click.style(f"❌ Error: {e}", fg='red', bold=True))
+        raise click.Abort()
+    finally:
         close_all_loggers()
 
 

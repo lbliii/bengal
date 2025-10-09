@@ -96,29 +96,30 @@ class RelatedPostsOrchestrator:
         for page in self.site.pages:
             page.related_posts = []
     
-    def _build_page_tags_map(self) -> Dict[int, Set[str]]:
+    def _build_page_tags_map(self) -> Dict['Page', Set[str]]:
         """
-        Build mapping of page ID -> set of tag slugs.
+        Build mapping of page -> set of tag slugs.
         
         This creates an efficient lookup structure for checking tag overlap.
+        Now uses pages directly as keys (hashable based on source_path).
         
         Returns:
-            Dictionary mapping page id() to set of tag slugs
+            Dictionary mapping Page to set of tag slugs
         """
         page_tags = {}
         for page in self.site.pages:
             if hasattr(page, 'tags') and page.tags:
                 # Convert tags to slugs for consistent matching (same as taxonomy)
-                page_tags[id(page)] = {tag.lower().replace(' ', '-') for tag in page.tags}
+                page_tags[page] = {tag.lower().replace(' ', '-') for tag in page.tags}
             else:
-                page_tags[id(page)] = set()
+                page_tags[page] = set()
         
         return page_tags
     
     def _find_related_posts(
         self, 
         page: 'Page',
-        page_tags_map: Dict[int, Set[str]],
+        page_tags_map: Dict['Page', Set[str]],
         tags_dict: Dict[str, Dict],
         limit: int
     ) -> List['Page']:
@@ -133,22 +134,21 @@ class RelatedPostsOrchestrator:
         
         Args:
             page: Page to find related posts for
-            page_tags_map: Pre-built page -> tags mapping
+            page_tags_map: Pre-built page -> tags mapping (now uses pages directly)
             tags_dict: Taxonomy tags dictionary {slug: {pages: [...]}}
             limit: Maximum related posts to return
         
         Returns:
             List of related pages sorted by relevance (most shared tags first)
         """
-        page_id = id(page)
-        page_tag_slugs = page_tags_map.get(page_id, set())
+        page_tag_slugs = page_tags_map.get(page, set())
         
         if not page_tag_slugs:
             # Page has no tags - no related posts
             return []
         
         # Score other pages by number of shared tags
-        # Map page_id -> (page_object, score) to avoid hashable issues
+        # Now using pages directly as keys (hashable!)
         scored_pages = {}
         
         # For each tag on current page
@@ -161,10 +161,8 @@ class RelatedPostsOrchestrator:
             pages_with_tag = tag_data.get('pages', [])
             
             for other_page in pages_with_tag:
-                other_id = id(other_page)
-                
                 # Skip self
-                if other_id == page_id:
+                if other_page == page:
                     continue
                 
                 # Skip generated pages (tag indexes, archives, etc.)
@@ -172,9 +170,9 @@ class RelatedPostsOrchestrator:
                     continue
                 
                 # Increment score (counts shared tags)
-                if other_id not in scored_pages:
-                    scored_pages[other_id] = [other_page, 0]
-                scored_pages[other_id][1] += 1
+                if other_page not in scored_pages:
+                    scored_pages[other_page] = [other_page, 0]
+                scored_pages[other_page][1] += 1
         
         if not scored_pages:
             return []

@@ -14,6 +14,7 @@ logger = get_logger(__name__)
 if TYPE_CHECKING:
     from bengal.core.site import Site
     from bengal.core.page import Page
+    from bengal.core.section import Section
     from bengal.core.asset import Asset
     from bengal.cache import BuildCache, DependencyTracker
 
@@ -245,7 +246,7 @@ class IncrementalOrchestrator:
         # Check for SPECIFIC taxonomy changes (which exact tags were added/removed)
         # Only rebuild tag pages for tags that actually changed
         affected_tags: Set[str] = set()
-        affected_sections: Set[Any] = set()
+        affected_sections: Set['Section'] = set()  # Type-safe with hashable sections
         
         for page in self.site.pages:
             # Skip generated pages - they don't have real source files
