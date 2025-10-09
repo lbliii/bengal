@@ -1,10 +1,23 @@
 ---
 title: "Migrating from Hugo to Bengal"
 description: "Complete guide to migrating your Hugo site to Bengal SSG"
+type: tutorial
+difficulty: intermediate
+time: 30 minutes
 date: 2025-10-04
 weight: 10
 tags: ["migration", "hugo", "tutorial", "guide"]
 toc: true
+icon: 🔄
+learning_objectives:
+  - Understand feature mapping between Hugo and Bengal
+  - Convert Hugo configuration to Bengal
+  - Migrate Hugo templates to Jinja2
+  - Handle shortcodes and directives
+prerequisites:
+  - Existing Hugo site
+  - Basic Python knowledge
+  - Familiarity with static site generators
 ---
 
 # Migrating from Hugo to Bengal

@@ -12,7 +12,7 @@
 
 .docs-nav-title {
   font-size: var(--text-lg);
-  font-weight: var(--font-weight-bold);
+  font-weight: var(--font-bold);
   color: var(--color-text-primary);
   text-decoration: none;
   transition: color var(--transition-fast);
@@ -34,36 +34,70 @@
   flex-direction: column;
 }
 
-.docs-nav-group-toggle {
+/* Wrapper containing toggle button + link */
+.docs-nav-group-toggle-wrapper {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 0.75rem;
-  width: 100%;
-  background: none;
-  border: none;
-  text-align: left;
-  font-size: var(--text-sm);
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-text-primary);
-  cursor: pointer;
+  gap: 0.25rem;
   border-radius: var(--border-radius-small);
   transition: all var(--transition-fast);
 }
 
-.docs-nav-group-toggle:hover {
+.docs-nav-group-toggle-wrapper:hover {
   background: var(--color-bg-hover);
+}
+
+/* Toggle button (just the arrow icon) */
+.docs-nav-group-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: all var(--transition-fast);
 }
 
 .docs-nav-group-toggle svg {
   width: 14px;
   height: 14px;
+  color: var(--color-text-secondary);
   transition: transform var(--transition-fast);
   flex-shrink: 0;
 }
 
+.docs-nav-group-toggle:hover svg {
+  color: var(--color-text-primary);
+}
+
 .docs-nav-group-toggle[aria-expanded="true"] svg {
   transform: rotate(90deg);
+}
+
+/* Section link (the title, clickable to navigate) */
+.docs-nav-group-link {
+  flex: 1;
+  padding: 0.5rem 0.75rem 0.5rem 0.25rem;
+  font-size: var(--text-sm);
+  font-weight: var(--font-bold);
+  color: var(--color-text-primary);
+  text-decoration: none;
+  border-radius: var(--border-radius-small);
+  transition: all var(--transition-fast);
+}
+
+.docs-nav-group-link:hover {
+  color: var(--color-primary);
+}
+
+.docs-nav-group-link.active {
+  color: var(--color-primary);
+  background: var(--color-primary-light);
+}
+
+[data-theme="dark"] .docs-nav-group-link.active {
+  background: rgba(33, 150, 243, 0.15);
 }
 
 .docs-nav-group-items {
@@ -74,7 +108,8 @@
   margin-top: 0.25rem;
 }
 
-.docs-nav-group-toggle[aria-expanded="true"] + .docs-nav-group-items {
+/* Show items when expanded (controlled by JavaScript) */
+.docs-nav-group-items.expanded {
   display: flex;
 }
 

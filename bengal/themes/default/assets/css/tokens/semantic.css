@@ -207,9 +207,6 @@
   --font-bold: var(--font-weight-bold);
   --font-extrabold: var(--font-weight-extrabold);
   
-  /* Font weight semantic aliases */
-  --font-weight-bold: var(--font-weight-bold);
-  
   /* ============================================
      SEMANTIC ELEVATION (Shadows)
      ============================================ */

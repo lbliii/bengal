@@ -1,18 +1,31 @@
-{# Breadcrumbs component - Shows hierarchical navigation using ancestors #}
+{# 
+  Breadcrumbs component - Shows hierarchical navigation
+  
+  Uses get_breadcrumbs() function which handles all the logic:
+  - Building ancestor chain
+  - Detecting section index pages (no duplication)
+  - Determining current page
+  
+  You can customize this template to match your design system.
+  The get_breadcrumbs() function returns a list of items with:
+  - title: Display text
+  - url: Link URL
+  - is_current: Whether this is the current page
+#}
 
-{% if page.ancestors %}
+{% set breadcrumb_items = get_breadcrumbs(page) %}
+{% if breadcrumb_items %}
 <nav class="breadcrumbs" aria-label="Breadcrumb">
   <ol>
-    <li><a href="/">Home</a></li>
-    
-    {# Show all ancestors (root section no longer exists) #}
-    {% for ancestor in page.ancestors | reverse %}
-      <li>
-        <a href="{{ url_for(ancestor) }}">{{ ancestor.title }}</a>
+    {% for item in breadcrumb_items %}
+      <li{% if item.is_current %} aria-current="page"{% endif %}>
+        {% if item.is_current %}
+          {{ item.title }}
+        {% else %}
+          <a href="{{ item.url }}">{{ item.title }}</a>
+        {% endif %}
       </li>
     {% endfor %}
-    
-    <li aria-current="page">{{ page.title }}</li>
   </ol>
 </nav>
 {% endif %}

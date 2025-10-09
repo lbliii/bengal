@@ -274,8 +274,9 @@ class Renderer:
         
         Priority order:
         1. Explicit template in frontmatter (`template: doc.html`)
-        2. Section-based auto-detection (e.g., `docs.html`, `docs/single.html`)
-        3. Default fallback (`page.html` or `index.html`)
+        2. Type-based template selection (e.g., `type: api-reference`)
+        3. Section-based auto-detection (e.g., `docs.html`, `docs/single.html`)
+        4. Default fallback (`page.html` or `index.html`)
         
         Note: We intentionally avoid Hugo's confusing type/kind/layout hierarchy.
         
@@ -289,10 +290,64 @@ class Renderer:
         if 'template' in page.metadata:
             return page.metadata['template']
         
-        # 2. Section-based auto-detection
+        # 2. Type-based or content_type-based template selection
+        # Page's explicit type has priority over section's content_type
+        page_type = page.metadata.get('type')
+        content_type = None
+        
+        if hasattr(page, '_section') and page._section and hasattr(page._section, 'metadata'):
+            content_type = page._section.metadata.get('content_type')
+        
+        is_section_index = page.source_path.stem == '_index'
+        
+        # Try type-based templates (for pages with explicit type) - HIGHER PRIORITY
+        if page_type:
+            # Map common types to content types
+            type_mappings = {
+                'python-module': 'api-reference',
+                'cli-command': 'cli-reference',
+                'api-reference': 'api-reference',
+                'cli-reference': 'cli-reference',
+                'doc': 'doc',
+                'tutorial': 'tutorial',
+                'blog': 'blog',
+            }
+            
+            if page_type in type_mappings:
+                mapped_type = type_mappings[page_type]
+                
+                if is_section_index:
+                    # Index pages: try list-style templates
+                    templates_to_try = [
+                        f"{mapped_type}/list.html",
+                        f"{mapped_type}/index.html",
+                    ]
+                else:
+                    # Regular pages: try single-style templates
+                    templates_to_try = [
+                        f"{mapped_type}/single.html",
+                        f"{mapped_type}/page.html",
+                    ]
+                
+                for template_name in templates_to_try:
+                    if self._template_exists(template_name):
+                        return template_name
+        
+        # Try content_type-based templates (for autodoc pages) - LOWER PRIORITY
+        # Only used if page doesn't have explicit type
+        if content_type and not is_section_index and not page_type:
+            # For pages in api-reference or cli-reference sections
+            templates_to_try = [
+                f"{content_type}/single.html",
+                f"{content_type}/page.html",
+            ]
+            for template_name in templates_to_try:
+                if self._template_exists(template_name):
+                    return template_name
+        
+        # 3. Section-based auto-detection
         if hasattr(page, '_section') and page._section:
             section_name = page._section.name
-            is_section_index = page.source_path.stem == '_index'
             
             if is_section_index:
                 # Try section index templates in order of specificity
@@ -315,8 +370,8 @@ class Renderer:
                 if self._template_exists(template_name):
                     return template_name
         
-        # 3. Simple default fallback (no type/kind complexity)
-        if page.source_path.stem == '_index':
+        # 4. Simple default fallback (no type/kind complexity)
+        if is_section_index:
             # Section index without custom template
             return 'index.html'
         

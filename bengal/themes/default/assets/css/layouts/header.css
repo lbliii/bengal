@@ -75,7 +75,9 @@ header .container {
 }
 
 .nav-main a {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
   padding: var(--space-2) var(--space-4);
   font-weight: var(--font-medium);
   color: var(--color-text-secondary);
@@ -88,6 +90,12 @@ header .container {
   color: var(--color-primary);
   background-color: var(--color-bg-hover);
   text-decoration: none;
+}
+
+.nav-main a svg {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
 }
 
 .nav-main li.active > a {

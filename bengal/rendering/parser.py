@@ -78,7 +78,7 @@ class PythonMarkdownParser(BaseMarkdownParser):
                     'linenums': False,
                 },
                 'toc': {
-                    'permalink': True,
+                    'permalink': False,  # Permalink handled by JavaScript copy-link
                     'toc_depth': '2-4',
                 }
             }
@@ -123,7 +123,7 @@ class MistuneParser(BaseMarkdownParser):
     
     # Pattern for extracting TOC from anchored headings
     _TOC_HEADING_PATTERN = re.compile(
-        r'<(h[234])\s+id="([^"]+)"[^>]*>(.*?)<a[^>]*>¶</a></\1>',
+        r'<(h[234])\s+id="([^"]+)"[^>]*>(.*?)</\1>',
         re.IGNORECASE | re.DOTALL
     )
     
@@ -469,12 +469,8 @@ class MistuneParser(BaseMarkdownParser):
                 
                 slug = self._slugify(text)
                 
-                # Build heading with ID and headerlink
-                return (
-                    f'<{tag} id="{slug}"{attrs}>{content}'
-                    f'<a href="#{slug}" class="headerlink" title="Permanent link">¶</a>'
-                    f'</{tag}>'
-                )
+                # Build heading with ID (anchor link added by JavaScript)
+                return f'<{tag} id="{slug}"{attrs}>{content}</{tag}>'
             
             try:
                 return self._HEADING_PATTERN.sub(replace_heading, html)
@@ -514,11 +510,7 @@ class MistuneParser(BaseMarkdownParser):
                             return m.group(0)
                         
                         slug = self._slugify(text)
-                        return (
-                            f'<{tag} id="{slug}"{attrs}>{content}'
-                            f'<a href="#{slug}" class="headerlink" title="Permanent link">¶</a>'
-                            f'</{tag}>'
-                        )
+                        return f'<{tag} id="{slug}"{attrs}>{content}</{tag}>'
                     
                     parts.append(self._HEADING_PATTERN.sub(replace_heading, before))
                 else:
@@ -552,11 +544,7 @@ class MistuneParser(BaseMarkdownParser):
                         return m.group(0)
                     
                     slug = self._slugify(text)
-                    return (
-                        f'<{tag} id="{slug}"{attrs}>{content}'
-                        f'<a href="#{slug}" class="headerlink" title="Permanent link">¶</a>'
-                        f'</{tag}>'
-                    )
+                    return f'<{tag} id="{slug}"{attrs}>{content}</{tag}>'
                 
                 parts.append(self._HEADING_PATTERN.sub(replace_heading, remaining))
             else:

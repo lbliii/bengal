@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+
+{#
+  CLI Reference Single Page Template
+  
+  Three-column layout for individual CLI command documentation:
+  - Left sidebar: Command navigation tree
+  - Center: Content with command details, usage, options
+  - Right sidebar: TOC for quick navigation
+  
+  Usage: Automatically applied to pages in cli-reference sections
+  Or set `template: cli-reference/single.html` in frontmatter
+#}
+
+{% block content %}
+{# Three-column documentation layout #}
+<div class="docs-layout">
+  {# Left Sidebar: CLI Navigation #}
+  <aside class="docs-sidebar" id="docs-sidebar" role="navigation" aria-label="CLI navigation">
+    {% include 'partials/docs-nav.html' %}
+  </aside>
+  
+  {# Main Content #}
+  <div class="docs-main">
+    {# Breadcrumbs #}
+    {% include 'partials/breadcrumbs.html' %}
+    
+    {# Article Content #}
+    <article class="prose cli-reference-page {% if page.metadata.css_class %}{{ page.metadata.css_class }}{% endif %}">
+      <header class="docs-header">
+        <div class="cli-header-top">
+          {% if page.metadata.emoji %}
+          <span class="cli-page-icon">{{ page.metadata.emoji }}</span>
+          {% else %}
+          <span class="cli-page-icon">⌨️</span>
+          {% endif %}
+          <h1>{{ page.title }}</h1>
+        </div>
+        
+        {% if page.metadata.description %}
+        <p class="lead">{{ page.metadata.description }}</p>
+        {% endif %}
+        
+        {# Command usage #}
+        {% if page.metadata.usage %}
+        <div class="cli-usage-header">
+          <strong>Usage:</strong>
+          <pre><code>{{ page.metadata.usage }}</code></pre>
+        </div>
+        {% endif %}
+        
+        {# Document metadata (last updated, etc) #}
+        {% include 'partials/docs-meta.html' %}
+      </header>
+      
+      {# Main content #}
+      <div class="docs-content cli-content">
+        {{ content | safe }}
+      </div>
+      
+      {# Tags #}
+      {% if page.tags %}
+      <footer class="docs-footer">
+        {% include 'partials/tag-list.html' %}
+      </footer>
+      {% endif %}
+    </article>
+    
+    {# Page navigation (prev/next command) at bottom #}
+    {% include 'partials/page-navigation.html' %}
+  </div>
+  
+  {# Right Sidebar: TOC #}
+  {% if toc %}
+  <aside class="docs-toc" role="complementary" aria-label="Table of contents">
+    {% include 'partials/toc-sidebar.html' %}
+  </aside>
+  {% endif %}
+</div>
+
+{# Mobile sidebar toggle button #}
+<button 
+  class="docs-sidebar-toggle" 
+  aria-label="Toggle navigation sidebar"
+  aria-expanded="false"
+  aria-controls="docs-sidebar">
+  <svg viewBox="0 0 24 24">
+    <line x1="3" y1="12" x2="21" y2="12"></line>
+    <line x1="3" y1="6" x2="21" y2="6"></line>
+    <line x1="3" y1="18" x2="21" y2="18"></line>
+  </svg>
+</button>
+
+{# Sidebar overlay for mobile #}
+<div class="docs-sidebar-overlay" aria-hidden="true"></div>
+{% endblock %}
+
+{% block extra_js %}
+{# Sidebar toggle functionality #}
+<script>
+(function() {
+  'use strict';
+  
+  const sidebar = document.getElementById('docs-sidebar');
+  const toggle = document.querySelector('.docs-sidebar-toggle');
+  const overlay = document.querySelector('.docs-sidebar-overlay');
+  
+  if (!sidebar || !toggle || !overlay) return;
+  
+  function openSidebar() {
+    sidebar.classList.add('open');
+    overlay.classList.add('visible');
+    toggle.setAttribute('aria-expanded', 'true');
+    document.body.style.overflow = 'hidden'; // Prevent scrolling
+  }
+  
+  function closeSidebar() {
+    sidebar.classList.remove('open');
+    overlay.classList.remove('visible');
+    toggle.setAttribute('aria-expanded', 'false');
+    document.body.style.overflow = '';
+  }
+  
+  function toggleSidebar() {
+    if (sidebar.classList.contains('open')) {
+      closeSidebar();
+    } else {
+      openSidebar();
+    }
+  }
+  
+  // Toggle button click
+  toggle.addEventListener('click', toggleSidebar);
+  
+  // Overlay click (close sidebar)
+  overlay.addEventListener('click', closeSidebar);
+  
+  // Close on escape key
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && sidebar.classList.contains('open')) {
+      closeSidebar();
+    }
+  });
+  
+  // Close sidebar when clicking a link (mobile)
+  sidebar.querySelectorAll('a').forEach(function(link) {
+    link.addEventListener('click', function() {
+      if (window.innerWidth <= 768) {
+        closeSidebar();
+      }
+    });
+  });
+})();
+</script>
+{% endblock %}
+

@@ -1,6 +1,6 @@
 ---
 title: Bengal SSG Docs
-template: docs.html
+type: doc
 cascade:
-  template: docs.html
+  type: doc
 ---

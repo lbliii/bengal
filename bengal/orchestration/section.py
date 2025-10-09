@@ -111,10 +111,11 @@ class SectionOrchestrator:
         
         Uses convention over configuration:
         1. Explicit metadata override (highest priority)
-        2. Section name patterns (api, cli, etc.)
-        3. Content analysis (check page metadata)
-        4. Date-based heuristic (has dates = archive)
-        5. Default to generic list (not archive)
+        2. Cascaded type from parent section (inherits parent's content type)
+        3. Section name patterns (api, cli, etc.)
+        4. Content analysis (check page metadata)
+        5. Date-based heuristic (has dates = archive)
+        6. Default to generic list (not archive)
         
         Args:
             section: Section to analyze
@@ -126,7 +127,16 @@ class SectionOrchestrator:
         if 'content_type' in section.metadata:
             return section.metadata['content_type']
         
-        # 2. Convention: section name patterns
+        # 2. Check for cascaded type from parent section
+        # This ensures subsections inherit the parent's type (e.g., /docs/markdown/ inherits 'doc' from /docs/)
+        if section.parent and hasattr(section.parent, 'metadata'):
+            parent_cascade = section.parent.metadata.get('cascade', {})
+            if 'type' in parent_cascade:
+                # Just return the cascaded type directly
+                # The template map will handle finding the right template
+                return parent_cascade['type']
+        
+        # 3. Convention: section name patterns
         name = section.name.lower()
         
         if name in ('api', 'reference', 'api-reference', 'api-docs'):
@@ -181,8 +191,8 @@ class SectionOrchestrator:
         Returns:
             True if section should have pagination
         """
-        # Reference docs: NEVER paginate
-        if content_type in ('api-reference', 'cli-reference', 'tutorial'):
+        # Reference docs and documentation: NEVER paginate
+        if content_type in ('api-reference', 'cli-reference', 'tutorial', 'doc'):
             return False
         
         # Archives: paginate if many items
@@ -213,6 +223,8 @@ class SectionOrchestrator:
             'api-reference': 'api-reference/list.html',
             'cli-reference': 'cli-reference/list.html',
             'tutorial': 'tutorial/list.html',
+            'doc': 'doc/list.html',
+            'blog': 'blog/list.html',
             'archive': 'archive.html',
             'list': 'index.html',  # Generic fallback for non-chronological sections
         }

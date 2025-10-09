@@ -28,17 +28,31 @@
         <a 
           href="{{ url_for(root_section.index_page) }}" 
           class="docs-nav-link {% if page.url == root_section.index_page.url %}active{% endif %}">
-          Overview
+          {{ root_section.index_page.title }}
         </a>
       {% endif %}
       
-      {# Show regular pages in the root section #}
+      {# Show regular pages in the root section (excluding index page and subsection index pages) #}
       {% for p in root_section.regular_pages %}
-        <a 
-          href="{{ url_for(p) }}" 
-          class="docs-nav-link {% if page.url == p.url %}active{% endif %}">
-          {{ p.title }}
-        </a>
+        {# Skip root section index page #}
+        {% if p.url != root_section.index_page.url %}
+          {# Skip if this page is the index page of any subsection (avoid duplication) #}
+          {% set is_subsection_index = namespace(value=false) %}
+          {% for subsection in root_section.sections %}
+            {% if subsection.index_page and p.url == subsection.index_page.url %}
+              {% set is_subsection_index.value = true %}
+            {% endif %}
+          {% endfor %}
+          
+          {# Only show if not a subsection index page #}
+          {% if not is_subsection_index.value %}
+            <a 
+              href="{{ url_for(p) }}" 
+              class="docs-nav-link {% if page.url == p.url %}active{% endif %}">
+              {{ p.title }}
+            </a>
+          {% endif %}
+        {% endif %}
       {% endfor %}
       
       {# Show subsections #}

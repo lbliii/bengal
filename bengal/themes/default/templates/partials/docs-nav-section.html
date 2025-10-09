@@ -10,36 +10,41 @@
 #}
 
 <div class="docs-nav-group" data-depth="{{ depth }}">
-  {# Section Toggle Button #}
-  <button 
-    class="docs-nav-group-toggle"
-    aria-expanded="false"
-    aria-controls="nav-section-{{ section.url | slugify }}">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <polyline points="9 18 15 12 9 6"></polyline>
-    </svg>
-    <span>{{ section.title }}</span>
-  </button>
+  {# Section Toggle Button - with link functionality #}
+  <div class="docs-nav-group-toggle-wrapper">
+    <button 
+      class="docs-nav-group-toggle"
+      aria-expanded="false"
+      aria-controls="nav-section-{{ section.url | slugify }}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="9 18 15 12 9 6"></polyline>
+      </svg>
+    </button>
+    {% if section.index_page %}
+      <a 
+        href="{{ url_for(section.index_page) }}"
+        class="docs-nav-group-link {% if page.url == section.index_page.url %}active{% endif %}">
+        {{ section.title }}
+      </a>
+    {% else %}
+      <span class="docs-nav-group-link">{{ section.title }}</span>
+    {% endif %}
+  </div>
   
   {# Section Items #}
-  <div class="docs-nav-group-items" id="nav-section-{{ section.url | slugify }}">
-    {# Section index page (if exists) #}
-    {% if section.pages | selectattr('is_section', 'equalto', true) | first %}
-      {% set index_page = section.pages | selectattr('is_section', 'equalto', true) | first %}
-      <a 
-        href="{{ url_for(index_page) }}" 
-        class="docs-nav-link {% if page.url == index_page.url %}active{% endif %}">
-        Overview
-      </a>
-    {% endif %}
+  <div class="docs-nav-group-items" id="nav-section-{{ section.url | slugify }}">{# Section index page removed - now handled by toggle button link #}
     
-    {# Regular pages in this section #}
+    {# Regular pages in this section (excluding index page) #}
     {% for p in section.regular_pages %}
-      <a 
-        href="{{ url_for(p) }}" 
-        class="docs-nav-link {% if page.url == p.url %}active{% endif %}">
-        {{ p.title }}
-      </a>
+      {% if p.url != section.index_page.url %}
+        {# Extract short name for nested items (e.g., "admonitions" from "directives.admonitions") #}
+        {% set display_title = p.title.split('.')[-1] if '.' in p.title else p.title %}
+        <a 
+          href="{{ url_for(p) }}" 
+          class="docs-nav-link {% if page.url == p.url %}active{% endif %}">
+          {{ display_title }}
+        </a>
+      {% endif %}
     {% endfor %}
     
     {# Subsections (recursive) #}

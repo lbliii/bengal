@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+
+{#
+  Tutorial Single Page Template
+  
+  Used for individual tutorial pages. Optimized for step-by-step learning
+  with clear navigation, progress indicators, and helpful metadata.
+  
+  Usage: Set `type: tutorial` in frontmatter or use cascade from section
+  
+  Context variables:
+    - page: Tutorial page object
+    - content: Rendered tutorial content
+    - toc: Table of contents
+#}
+
+{% block content %}
+{% include 'partials/breadcrumbs.html' %}
+
+<div class="tutorial-page-layout {% if toc %}tutorial-with-toc{% endif %}">
+    <article class="tutorial-page prose {% if page.metadata.css_class %}{{ page.metadata.css_class }}{% endif %}">
+        <header class="tutorial-page-header">
+            {# Tutorial Icon #}
+            {% if page.metadata.icon %}
+            <div class="tutorial-page-icon">{{ page.metadata.icon }}</div>
+            {% endif %}
+            
+            <h1>{{ page.title }}</h1>
+            
+            {% if page.metadata.description %}
+            <p class="lead">{{ page.metadata.description }}</p>
+            {% endif %}
+            
+            {# Tutorial Metadata Bar #}
+            <div class="tutorial-page-meta">
+                {# Difficulty #}
+                {% if page.metadata.difficulty %}
+                <span class="tutorial-badge tutorial-badge-{{ page.metadata.difficulty }}">
+                    {{ page.metadata.difficulty | capitalize }}
+                </span>
+                {% endif %}
+                
+                {# Time Estimate #}
+                {% if page.metadata.time or page.metadata.duration %}
+                <span class="tutorial-meta-item">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                    {{ page.metadata.time | default(page.metadata.duration) }}
+                </span>
+                {% endif %}
+                
+                {# Last Updated #}
+                {% if page.date %}
+                <span class="tutorial-meta-item">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                    </svg>
+                    Updated {{ page.date | time_ago }}
+                </span>
+                {% endif %}
+            </div>
+            
+            {# Prerequisites #}
+            {% if page.metadata.prerequisites %}
+            <div class="tutorial-prerequisites">
+                <h4>Prerequisites</h4>
+                <ul>
+                    {% for prereq in page.metadata.prerequisites %}
+                    <li>{{ prereq }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+            
+            {# What You'll Learn #}
+            {% if page.metadata.learning_objectives or page.metadata.objectives %}
+            <div class="tutorial-objectives">
+                <h4>What you'll learn</h4>
+                <ul>
+                    {% for objective in (page.metadata.learning_objectives | default(page.metadata.objectives)) %}
+                    <li>{{ objective }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+        </header>
+        
+        {# Main Tutorial Content #}
+        <div class="tutorial-content">
+            {{ content | safe }}
+        </div>
+        
+        {# What's Next / Further Reading #}
+        {% if page.metadata.next_steps or page.metadata.further_reading %}
+        <footer class="tutorial-footer">
+            {% if page.metadata.next_steps %}
+            <div class="tutorial-next-steps">
+                <h3>What's Next?</h3>
+                <ul>
+                    {% for step in page.metadata.next_steps %}
+                    <li>{{ step }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+            
+            {% if page.metadata.further_reading %}
+            <div class="tutorial-further-reading">
+                <h3>Further Reading</h3>
+                <ul>
+                    {% for resource in page.metadata.further_reading %}
+                    <li>{{ resource }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+        </footer>
+        {% endif %}
+    </article>
+    
+    {# Right Sidebar: TOC #}
+    {% if toc %}
+    <aside class="tutorial-sidebar">
+        <nav class="toc" aria-label="Table of contents">
+            <h2 class="toc-title">Tutorial Steps</h2>
+            <div class="toc-content">
+                {{ toc | safe }}
+            </div>
+        </nav>
+    </aside>
+    {% endif %}
+</div>
+
+{# Prominent Prev/Next Navigation #}
+<div class="tutorial-navigation">
+    {% include 'partials/page-navigation.html' %}
+</div>
+
+{# Related Tutorials #}
+{% if page.tags %}
+{% set related = page.related_posts[:3] %}
+{% if related %}
+<aside class="related-tutorials">
+    <div class="container">
+        <h2>Related Tutorials</h2>
+        <div class="tutorial-grid">
+            {% for tutorial in related %}
+            <article class="tutorial-card">
+                <div class="tutorial-card-header">
+                    {% if tutorial.metadata.icon %}
+                    <span class="tutorial-icon">{{ tutorial.metadata.icon }}</span>
+                    {% else %}
+                    <span class="tutorial-icon">📖</span>
+                    {% endif %}
+                    <h3 class="tutorial-title">
+                        <a href="{{ url_for(tutorial) }}">{{ tutorial.title }}</a>
+                    </h3>
+                </div>
+                <div class="tutorial-card-content">
+                    {% if tutorial.metadata.description %}
+                    <p class="tutorial-description">{{ tutorial.metadata.description | truncate(100) }}</p>
+                    {% endif %}
+                    {% if tutorial.metadata.difficulty %}
+                    <span class="tutorial-badge tutorial-badge-{{ tutorial.metadata.difficulty }}">
+                        {{ tutorial.metadata.difficulty | capitalize }}
+                    </span>
+                    {% endif %}
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+    </div>
+</aside>
+{% endif %}
+{% endif %}
+{% endblock %}
+

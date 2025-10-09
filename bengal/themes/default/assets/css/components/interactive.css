@@ -133,6 +133,7 @@
   cursor: pointer;
   transition: all var(--transition-fast);
   vertical-align: middle;
+  text-decoration: none; /* Remove underline for anchor tags */
 }
 
 .heading-anchor:hover .copy-link,

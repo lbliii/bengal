@@ -39,6 +39,68 @@ When rendering a page, Bengal selects a template in this order:
 
 3. **Default fallback**: `page.html`
 
+## Content Type System (NEW!)
+
+Bengal now supports **type-based template selection** - a semantic way to define content that's more intuitive than template paths.
+
+### Quick Example
+
+Instead of:
+```yaml
+---
+title: My Tutorial
+template: tutorial/single.html   # Implementation detail
+---
+```
+
+Use:
+```yaml
+---
+title: My Tutorial
+type: tutorial                   # Semantic description
+---
+```
+
+### How It Works
+
+When you set `type: tutorial`, Bengal automatically looks for:
+- `tutorial/single.html` (for regular pages)
+- `tutorial/list.html` (for index pages)
+
+### Updated Priority Chain
+
+**With type system**, template selection is:
+
+1. **Explicit `template:`** (highest priority)
+2. **Type-based selection** (NEW!)
+   - Check section's `content_type`
+   - Check page's `type` field → map to template family
+3. **Section name patterns**
+4. **Default fallback**
+
+### Available Types
+
+- `doc` - Documentation (3-column with sidebar)
+- `tutorial` - Step-by-step guides
+- `blog` - Blog posts
+- `api-reference` - API documentation
+- `cli-reference` - CLI documentation
+
+See [Content Types Guide](docs/CONTENT_TYPES.md) for full documentation.
+
+### Cascading Types
+
+Set once, applies to all children:
+
+```yaml
+# content/tutorials/_index.md
+---
+type: tutorial
+cascade:
+  type: tutorial    # All children inherit
+---
+```
+
 ## Template Hierarchy
 
 Bengal uses different templates for different content types:

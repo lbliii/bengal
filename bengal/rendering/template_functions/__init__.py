@@ -32,6 +32,7 @@ from . import (
     taxonomies,
     pagination_helpers,
     crossref,
+    navigation,
 )
 
 logger = get_logger(__name__)
@@ -74,7 +75,10 @@ def register_all(env: 'Environment', site: 'Site') -> None:
     # Phase 4: Cross-reference functions (5 functions)
     crossref.register(env, site)
     
-    logger.debug("template_functions_registered", count=17)
+    # Phase 5: Navigation functions
+    navigation.register(env, site)
+    
+    logger.debug("template_functions_registered", count=18)
 
 
 __all__ = [
@@ -95,5 +99,6 @@ __all__ = [
     'taxonomies',
     'pagination_helpers',
     'crossref',
+    'navigation',
 ]
 

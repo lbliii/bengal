@@ -54,90 +54,50 @@
     {% if toc_items %}
     <div class="toc-scroll-container">
       <ul class="toc-items" role="tree">
-        {# Group items by H2 sections (level 1 in the depth-based TOC structure) #}
-        {% set current_h2 = namespace(item=none, children=[]) %}
-        {% for item in toc_items %}
-          {% if item.level == 1 %}
-            {# Render previous H2 group if exists #}
-            {% if current_h2.item %}
-              <li class="toc-item toc-group" role="treeitem" data-level="1" data-collapsed="true">
-                <div class="toc-group-header">
-                  <button 
-                    class="toc-group-toggle" 
-                    aria-expanded="false"
-                    aria-label="Toggle section: {{ current_h2.item.title }}">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="toc-chevron">
-                      <polyline points="9 18 15 12 9 6"></polyline>
-                    </svg>
-                  </button>
-                  <a href="#{{ current_h2.item.id }}" class="toc-link toc-link-h2" data-toc-item="#{{ current_h2.item.id }}">
-                    {{ current_h2.item.title }}
-                  </a>
-                  {% if current_h2.children|length > 0 %}
-                  <span class="toc-count" aria-label="{{ current_h2.children|length }} subsections">{{ current_h2.children|length }}</span>
-                  {% endif %}
-                </div>
-                {% if current_h2.children|length > 0 %}
-                <ul class="toc-subitems" role="group">
-                  {% for child in current_h2.children %}
+        {# 
+          Use get_toc_grouped() to handle all grouping logic in Python.
+          This replaces 80+ lines of complex template logic with a clean iteration.
+          See: bengal/rendering/template_functions/navigation.py
+        #}
+        {% for group in get_toc_grouped(toc_items) %}
+          {% if group.is_group %}
+            {# Group with children (collapsible section) #}
+            <li class="toc-item toc-group" role="treeitem" data-level="1" data-collapsed="true">
+              <div class="toc-group-header">
+                <button 
+                  class="toc-group-toggle" 
+                  aria-expanded="false"
+                  aria-label="Toggle section: {{ group.header.title }}">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="toc-chevron">
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                  </svg>
+                </button>
+                <a href="#{{ group.header.id }}" class="toc-link toc-link-h2" data-toc-item="#{{ group.header.id }}">
+                  {{ group.header.title }}
+                </a>
+                <span class="toc-count" aria-label="{{ group.children|length }} subsections">
+                  {{ group.children|length }}
+                </span>
+              </div>
+              <ul class="toc-subitems" role="group">
+                {% for child in group.children %}
                   <li class="toc-item toc-level-{{ child.level }}" role="treeitem" data-level="{{ child.level }}">
                     <a href="#{{ child.id }}" class="toc-link" data-toc-item="#{{ child.id }}">
                       {{ child.title }}
                     </a>
                   </li>
-                  {% endfor %}
-                </ul>
-                {% endif %}
-              </li>
-            {% endif %}
-            {# Start new H2 group #}
-            {% set current_h2.item = item %}
-            {% set current_h2.children = [] %}
-          {% elif item.level > 1 %}
-            {# Add to current H2 group #}
-            {% set _ = current_h2.children.append(item) %}
+                {% endfor %}
+              </ul>
+            </li>
           {% else %}
-            {# Standalone H1 or other top-level item #}
-            <li class="toc-item toc-level-{{ item.level }}" role="treeitem" data-level="{{ item.level }}">
-              <a href="#{{ item.id }}" class="toc-link" data-toc-item="#{{ item.id }}">
-                {{ item.title }}
+            {# Standalone item (no children) #}
+            <li class="toc-item toc-level-{{ group.header.level }}" role="treeitem" data-level="{{ group.header.level }}">
+              <a href="#{{ group.header.id }}" class="toc-link" data-toc-item="#{{ group.header.id }}">
+                {{ group.header.title }}
               </a>
             </li>
           {% endif %}
         {% endfor %}
-        
-        {# Render final H2 group if exists #}
-        {% if current_h2.item %}
-          <li class="toc-item toc-group" role="treeitem" data-level="1" data-collapsed="true">
-            <div class="toc-group-header">
-              <button 
-                class="toc-group-toggle" 
-                aria-expanded="false"
-                aria-label="Toggle section: {{ current_h2.item.title }}">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="toc-chevron">
-                  <polyline points="9 18 15 12 9 6"></polyline>
-                </svg>
-              </button>
-              <a href="#{{ current_h2.item.id }}" class="toc-link toc-link-h2" data-toc-item="#{{ current_h2.item.id }}">
-                {{ current_h2.item.title }}
-              </a>
-              {% if current_h2.children|length > 0 %}
-              <span class="toc-count" aria-label="{{ current_h2.children|length }} subsections">{{ current_h2.children|length }}</span>
-              {% endif %}
-            </div>
-            {% if current_h2.children|length > 0 %}
-            <ul class="toc-subitems" role="group">
-              {% for child in current_h2.children %}
-              <li class="toc-item toc-level-{{ child.level }}" role="treeitem" data-level="{{ child.level }}">
-                <a href="#{{ child.id }}" class="toc-link" data-toc-item="#{{ child.id }}">
-                  {{ child.title }}
-                </a>
-              </li>
-              {% endfor %}
-            </ul>
-            {% endif %}
-          </li>
-        {% endif %}
       </ul>
     </div>
     {% else %}

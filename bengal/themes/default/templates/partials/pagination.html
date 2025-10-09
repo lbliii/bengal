@@ -7,95 +7,66 @@
   Variables:
     - current_page: Current page number (1-indexed)
     - total_pages: Total number of pages
-    - base_url: Base URL for pagination (e.g., '/blog/page/')
-    - has_next: Boolean
-    - has_prev: Boolean
+    - base_url: Base URL for pagination (e.g., '/blog/')
+    
+  Note: Uses get_pagination_items() to handle all pagination logic in Python.
+  This replaces 50+ lines of complex template logic with clean iteration.
+  See: bengal/rendering/template_functions/navigation.py
 #}
 
 {% if total_pages > 1 %}
+{% set p = get_pagination_items(current_page, total_pages, base_url) %}
+
 <nav class="pagination" role="navigation" aria-label="Pagination">
     <ul>
         {# Previous Button #}
         <li>
-            {% if has_prev %}
-                {% if current_page == 2 %}
-                <a href="{{ base_url }}" aria-label="Previous page">
+            {% if p.prev %}
+                <a href="{{ p.prev.url }}" aria-label="Previous page">
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="20" height="20">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
                     </svg>
                     Previous
                 </a>
-                {% else %}
-                <a href="{{ base_url }}page/{{ current_page - 1 }}/" aria-label="Previous page">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="20" height="20">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-                    </svg>
-                    Previous
-                </a>
-                {% endif %}
             {% else %}
-            <span class="disabled">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="20" height="20">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-                </svg>
-                Previous
-            </span>
+                <span class="disabled">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="20" height="20">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                    </svg>
+                    Previous
+                </span>
             {% endif %}
         </li>
         
         {# Page Numbers #}
-        {% set start_page = [current_page - 2, 1] | max %}
-        {% set end_page = [current_page + 2, total_pages] | min %}
-        
-        {# First page if not in range #}
-        {% if start_page > 1 %}
-        <li>
-            <a href="{{ base_url }}">1</a>
-        </li>
-        {% if start_page > 2 %}
-        <li><span class="ellipsis">...</span></li>
-        {% endif %}
-        {% endif %}
-        
-        {# Page number range #}
-        {% for page_num in range(start_page, end_page + 1) %}
-        <li>
-            {% if page_num == current_page %}
-            <span class="active" aria-current="page">{{ page_num }}</span>
-            {% elif page_num == 1 %}
-            <a href="{{ base_url }}">{{ page_num }}</a>
-            {% else %}
-            <a href="{{ base_url }}page/{{ page_num }}/">{{ page_num }}</a>
-            {% endif %}
-        </li>
+        {% for item in p.pages %}
+            <li>
+                {% if item.is_ellipsis %}
+                    <span class="ellipsis">...</span>
+                {% elif item.is_current %}
+                    <span class="active" aria-current="page">{{ item.num }}</span>
+                {% else %}
+                    <a href="{{ item.url }}">{{ item.num }}</a>
+                {% endif %}
+            </li>
         {% endfor %}
-        
-        {# Last page if not in range #}
-        {% if end_page < total_pages %}
-        {% if end_page < total_pages - 1 %}
-        <li><span class="ellipsis">...</span></li>
-        {% endif %}
-        <li>
-            <a href="{{ base_url }}page/{{ total_pages }}/">{{ total_pages }}</a>
-        </li>
-        {% endif %}
         
         {# Next Button #}
         <li>
-            {% if has_next %}
-            <a href="{{ base_url }}page/{{ current_page + 1 }}/" aria-label="Next page">
-                Next
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="20" height="20">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                </svg>
-            </a>
+            {% if p.next %}
+                <a href="{{ p.next.url }}" aria-label="Next page">
+                    Next
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="20" height="20">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                    </svg>
+                </a>
             {% else %}
-            <span class="disabled">
-                Next
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="20" height="20">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                </svg>
-            </span>
+                <span class="disabled">
+                    Next
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="20" height="20">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                    </svg>
+                </span>
             {% endif %}
         </li>
     </ul>

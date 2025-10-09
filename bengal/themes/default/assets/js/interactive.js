@@ -264,17 +264,34 @@
     });
     
     // Auto-expand sections that contain the active page
-    const activeLink = document.querySelector('.docs-nav-link.active');
+    const activeLink = document.querySelector('.docs-nav-link.active, .docs-nav-group-link.active');
     if (activeLink) {
+      // If the active link is a section group link (section index page), expand that section
+      if (activeLink.classList.contains('docs-nav-group-link')) {
+        const wrapper = activeLink.parentElement;
+        if (wrapper && wrapper.classList.contains('docs-nav-group-toggle-wrapper')) {
+          const toggle = wrapper.querySelector('.docs-nav-group-toggle');
+          const items = wrapper.nextElementSibling;
+          if (toggle && items && items.classList.contains('docs-nav-group-items')) {
+            toggle.setAttribute('aria-expanded', 'true');
+            items.classList.add('expanded');
+          }
+        }
+      }
+      
       // Find all parent nav groups and expand them
       let parent = activeLink.parentElement;
       while (parent) {
         if (parent.classList.contains('docs-nav-group-items')) {
           // Find the toggle button for this group
-          const toggle = parent.previousElementSibling;
-          if (toggle && toggle.classList.contains('docs-nav-group-toggle')) {
-            toggle.setAttribute('aria-expanded', 'true');
-            parent.classList.add('expanded');
+          // It's now inside a wrapper that's the previous sibling
+          const wrapper = parent.previousElementSibling;
+          if (wrapper && wrapper.classList.contains('docs-nav-group-toggle-wrapper')) {
+            const toggle = wrapper.querySelector('.docs-nav-group-toggle');
+            if (toggle) {
+              toggle.setAttribute('aria-expanded', 'true');
+              parent.classList.add('expanded');
+            }
           }
         }
         parent = parent.parentElement;
