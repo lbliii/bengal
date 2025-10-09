@@ -29,22 +29,15 @@ class PageMetadataMixin:
     
     @property
     def date(self) -> Optional[datetime]:
-        """Get page date from metadata."""
-        from datetime import date as date_type
+        """
+        Get page date from metadata.
+        
+        Uses bengal.utils.dates.parse_date for flexible date parsing.
+        """
+        from bengal.utils.dates import parse_date
         
         date_value = self.metadata.get("date")
-        if isinstance(date_value, datetime):
-            return date_value
-        elif isinstance(date_value, date_type):
-            # Convert date to datetime
-            return datetime.combine(date_value, datetime.min.time())
-        elif isinstance(date_value, str):
-            # Try parsing string dates
-            try:
-                return datetime.fromisoformat(date_value)
-            except (ValueError, AttributeError):
-                pass
-        return None
+        return parse_date(date_value)
     
     @property
     def slug(self) -> str:

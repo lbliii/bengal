@@ -10,6 +10,9 @@ from jinja2 import Environment, FileSystemLoader, TemplateNotFound
 import hashlib
 
 from bengal.autodoc.base import DocElement, Extractor
+from bengal.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 class TemplateCache:
@@ -64,6 +67,12 @@ class DocumentationGenerator:
             template_cache: Optional template cache
             max_workers: Max parallel workers (None = auto-detect)
         """
+        logger.debug(
+            "initializing_autodoc_generator",
+            extractor_type=extractor.__class__.__name__,
+            max_workers=max_workers
+        )
+        
         self.extractor = extractor
         self.config = config
         self.template_cache = template_cache or TemplateCache()
@@ -92,6 +101,12 @@ class DocumentationGenerator:
         if builtin_dir.exists():
             template_dirs.append(str(builtin_dir))
         
+        logger.debug(
+            "autodoc_template_env_setup",
+            template_dirs=template_dirs,
+            dir_count=len(template_dirs)
+        )
+        
         # Create Jinja2 environment
         env = Environment(
             loader=FileSystemLoader(template_dirs) if template_dirs else None,
@@ -119,12 +134,27 @@ class DocumentationGenerator:
         Returns:
             List of generated file paths
         """
+        logger.debug(
+            "generating_autodoc",
+            element_count=len(elements),
+            output_dir=str(output_dir),
+            parallel=parallel
+        )
+        
         output_dir.mkdir(parents=True, exist_ok=True)
         
         if parallel and len(elements) > 3:
-            return self._generate_parallel(elements, output_dir)
+            result = self._generate_parallel(elements, output_dir)
         else:
-            return self._generate_sequential(elements, output_dir)
+            result = self._generate_sequential(elements, output_dir)
+        
+        logger.info(
+            "autodoc_generation_complete",
+            files_generated=len(result),
+            output_dir=str(output_dir)
+        )
+        
+        return result
     
     def _generate_sequential(
         self,
@@ -132,6 +162,11 @@ class DocumentationGenerator:
         output_dir: Path
     ) -> List[Path]:
         """Generate documentation sequentially."""
+        logger.debug(
+            "autodoc_sequential_generation",
+            element_count=len(elements)
+        )
+        
         generated = []
         
         for element in elements:
@@ -139,7 +174,11 @@ class DocumentationGenerator:
                 path = self.generate_single(element, output_dir)
                 generated.append(path)
             except Exception as e:
-                print(f"  ⚠️  Error generating {element.qualified_name}: {e}")
+                logger.error(
+                    "autodoc_generation_failed",
+                    element=element.qualified_name,
+                    error=str(e)[:200]
+                )
         
         return generated
     
@@ -149,6 +188,12 @@ class DocumentationGenerator:
         output_dir: Path
     ) -> List[Path]:
         """Generate documentation in parallel."""
+        logger.debug(
+            "autodoc_parallel_generation",
+            element_count=len(elements),
+            max_workers=self.max_workers
+        )
+        
         generated = []
         
         with concurrent.futures.ThreadPoolExecutor(max_workers=self.max_workers) as executor:
@@ -163,7 +208,11 @@ class DocumentationGenerator:
                     path = future.result()
                     generated.append(path)
                 except Exception as e:
-                    print(f"  ⚠️  Error generating {element.qualified_name}: {e}")
+                    logger.error(
+                        "autodoc_parallel_generation_failed",
+                        element=element.qualified_name,
+                        error=str(e)[:200]
+                    )
         
         return generated
     
@@ -178,6 +227,12 @@ class DocumentationGenerator:
         Returns:
             Path to generated file
         """
+        logger.debug(
+            "generating_autodoc_element",
+            element=element.qualified_name,
+            element_type=element.type
+        )
+        
         # Get template name based on element type
         template_name = self._get_template_name(element)
         
@@ -186,9 +241,19 @@ class DocumentationGenerator:
         cached = self.template_cache.get(cache_key)
         
         if cached:
+            logger.debug(
+                "autodoc_template_cache_hit",
+                element=element.qualified_name,
+                template=template_name
+            )
             content = cached
         else:
             # Render template
+            logger.debug(
+                "autodoc_rendering_template",
+                element=element.qualified_name,
+                template=template_name
+            )
             content = self._render_template(template_name, element)
             
             # Cache result
@@ -200,6 +265,13 @@ class DocumentationGenerator:
         
         # Write file
         output_path.write_text(content, encoding='utf-8')
+        
+        logger.debug(
+            "autodoc_element_generated",
+            element=element.qualified_name,
+            output_path=str(output_path),
+            size_kb=len(content) / 1024
+        )
         
         return output_path
     

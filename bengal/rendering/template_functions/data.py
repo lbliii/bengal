@@ -41,6 +41,9 @@ def get_data(path: str, root_path: Any) -> Any:
     """
     Load data from JSON or YAML file.
     
+    Uses bengal.utils.file_io.load_data_file internally for robust file loading
+    with error handling and logging.
+    
     Args:
         path: Relative path to data file
         root_path: Site root path
@@ -59,81 +62,13 @@ def get_data(path: str, root_path: Any) -> Any:
         return {}
     
     from pathlib import Path
+    from bengal.utils.file_io import load_data_file
     
     file_path = Path(root_path) / path
     
-    if not file_path.exists():
-        logger.warning(
-            "data_file_not_found",
-            path=path,
-            attempted=str(file_path),
-            caller="template"
-        )
-        return {}
-    
-    try:
-        with open(file_path, 'r', encoding='utf-8') as f:
-            content = f.read()
-            
-        # Try JSON first
-        if path.endswith('.json'):
-            data = json.loads(content)
-            logger.debug(
-                "data_loaded", 
-                path=path, 
-                format="json",
-                size_bytes=len(content),
-                keys=len(data) if isinstance(data, dict) else None
-            )
-            return data
-        
-        # Try YAML
-        if path.endswith(('.yaml', '.yml')):
-            try:
-                import yaml
-                data = yaml.safe_load(content)
-                logger.debug(
-                    "data_loaded",
-                    path=path,
-                    format="yaml",
-                    size_bytes=len(content),
-                    keys=len(data) if isinstance(data, dict) else None
-                )
-                return data
-            except ImportError:
-                logger.warning(
-                    "yaml_not_available",
-                    path=path,
-                    message="PyYAML not installed, cannot load YAML files",
-                    caller="template"
-                )
-                return {}
-        
-        # Fallback: try JSON
-        data = json.loads(content)
-        logger.debug("data_loaded", path=path, format="json_fallback", size_bytes=len(content))
-        return data
-        
-    except json.JSONDecodeError as e:
-        logger.error(
-            "data_parse_error",
-            path=path,
-            format="json",
-            error=str(e),
-            line=e.lineno,
-            column=e.colno,
-            caller="template"
-        )
-        return {}
-    except Exception as e:
-        logger.error(
-            "data_load_error",
-            path=path,
-            error=str(e),
-            error_type=type(e).__name__,
-            caller="template"
-        )
-        return {}
+    # Use file_io utility for robust loading with error handling
+    # on_error='return_empty' returns {} for missing/invalid files
+    return load_data_file(file_path, on_error='return_empty', caller='template')
 
 
 def jsonify(data: Any, indent: Optional[int] = None) -> str:

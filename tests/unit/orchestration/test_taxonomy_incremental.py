@@ -40,15 +40,18 @@ def test_incremental_collection_tag_added(mock_site, mock_cache):
     }
     
     # Cache previous tags
-    mock_cache.update_tags(page1.source_path, {"python"})
+    mock_cache.update_page_tags(page1.source_path, {"python"})
     
     # Modify page: Add a new tag
     page1_modified = Page(source_path=Path("page1.md"), metadata={"title": "Post 1", "tags": ["python", "django"]})
     page1_modified.__post_init__()
     
+    # Update site.pages with modified page (simulates how the build system would work)
+    mock_site.pages = [page1_modified]
+    
     # Run incremental collection
     orchestrator = TaxonomyOrchestrator(mock_site)
-    affected_tags = orchestrator.collect_taxonomies_incremental([page1_modified], mock_cache)
+    affected_tags = orchestrator.collect_and_generate_incremental([page1_modified], mock_cache)
     
     # Verify: django tag was added
     assert 'django' in affected_tags
@@ -76,15 +79,18 @@ def test_incremental_collection_tag_removed(mock_site, mock_cache):
     }
     
     # Cache previous tags
-    mock_cache.update_tags(page1.source_path, {"python", "django"})
+    mock_cache.update_page_tags(page1.source_path, {"python", "django"})
     
     # Modify page: Remove django tag
     page1_modified = Page(source_path=Path("page1.md"), metadata={"title": "Post 1", "tags": ["python"]})
     page1_modified.__post_init__()
     
+    # Update site.pages with modified page
+    mock_site.pages = [page1_modified]
+    
     # Run incremental collection
     orchestrator = TaxonomyOrchestrator(mock_site)
-    affected_tags = orchestrator.collect_taxonomies_incremental([page1_modified], mock_cache)
+    affected_tags = orchestrator.collect_and_generate_incremental([page1_modified], mock_cache)
     
     # Verify: django tag was removed
     assert 'django' in affected_tags
@@ -116,8 +122,8 @@ def test_incremental_collection_multiple_pages(mock_site, mock_cache):
     }
     
     # Cache previous tags
-    mock_cache.update_tags(page1.source_path, {"python"})
-    mock_cache.update_tags(page2.source_path, {"python", "flask"})
+    mock_cache.update_page_tags(page1.source_path, {"python"})
+    mock_cache.update_page_tags(page2.source_path, {"python", "flask"})
     
     # Modify page1: Add django
     page1_modified = Page(source_path=Path("page1.md"), metadata={"title": "Post 1", "tags": ["python", "django"]})
@@ -127,9 +133,12 @@ def test_incremental_collection_multiple_pages(mock_site, mock_cache):
     page2_modified = Page(source_path=Path("page2.md"), metadata={"title": "Post 2", "tags": ["python"]})
     page2_modified.__post_init__()
     
-    # Run incremental collection
+    # Update site.pages with modified pages
+    mock_site.pages = [page1_modified, page2_modified, page3]
+    
+    # Run incremental collection  
     orchestrator = TaxonomyOrchestrator(mock_site)
-    affected_tags = orchestrator.collect_taxonomies_incremental([page1_modified, page2_modified], mock_cache)
+    affected_tags = orchestrator.collect_and_generate_incremental([page1_modified, page2_modified], mock_cache)
     
     # Verify affected tags
     assert 'django' in affected_tags  # Added
@@ -153,7 +162,7 @@ def test_incremental_collection_no_previous_taxonomy(mock_site, mock_cache):
     
     # Run incremental collection
     orchestrator = TaxonomyOrchestrator(mock_site)
-    affected_tags = orchestrator.collect_taxonomies_incremental([page1], mock_cache)
+    affected_tags = orchestrator.collect_and_generate_incremental([page1], mock_cache)
     
     # Should fall back to full collection
     assert 'python' in affected_tags
@@ -182,7 +191,7 @@ def test_incremental_collection_skips_generated_pages(mock_site, mock_cache):
         'categories': {}
     }
     
-    mock_cache.update_tags(page1.source_path, {"python"})
+    mock_cache.update_page_tags(page1.source_path, {"python"})
     
     # Modify both pages (adding django tag)
     page1_modified = Page(source_path=Path("page1.md"), metadata={"title": "Post 1", "tags": ["python", "django"]})
@@ -195,9 +204,12 @@ def test_incremental_collection_skips_generated_pages(mock_site, mock_cache):
     page1_modified.__post_init__()
     page2_modified.__post_init__()
     
+    # Update site.pages with modified pages
+    mock_site.pages = [page1_modified, page2_modified]
+    
     # Run incremental collection
     orchestrator = TaxonomyOrchestrator(mock_site)
-    affected_tags = orchestrator.collect_taxonomies_incremental([page1_modified, page2_modified], mock_cache)
+    affected_tags = orchestrator.collect_and_generate_incremental([page1_modified, page2_modified], mock_cache)
     
     # Verify: Only page1 update was processed
     assert 'django' in affected_tags
@@ -231,8 +243,8 @@ def test_incremental_collection_sorting(mock_site, mock_cache):
         'categories': {}
     }
     
-    mock_cache.update_tags(page1.source_path, {"python"})
-    mock_cache.update_tags(page2.source_path, {"python"})
+    mock_cache.update_page_tags(page1.source_path, {"python"})
+    mock_cache.update_page_tags(page2.source_path, {"python"})
     
     # Modify page1 content (trigger resort)
     page1_modified = Page(
@@ -241,9 +253,12 @@ def test_incremental_collection_sorting(mock_site, mock_cache):
     )
     page1_modified.__post_init__()
     
+    # Update site.pages with modified pages
+    mock_site.pages = [page1_modified, page2]
+    
     # Run incremental collection
     orchestrator = TaxonomyOrchestrator(mock_site)
-    affected_tags = orchestrator.collect_taxonomies_incremental([page1_modified], mock_cache)
+    affected_tags = orchestrator.collect_and_generate_incremental([page1_modified], mock_cache)
     
     # Verify: Pages are sorted by date (newest first)
     pages = mock_site.taxonomies['tags']['python']['pages']
@@ -264,11 +279,14 @@ def test_collect_and_generate_incremental(mock_site, mock_cache):
         'categories': {}
     }
     
-    mock_cache.update_tags(page1.source_path, {"python"})
+    mock_cache.update_page_tags(page1.source_path, {"python"})
     
     # Modify page: Add django tag
     page1_modified = Page(source_path=Path("page1.md"), metadata={"title": "Post 1", "tags": ["python", "django"]})
     page1_modified.__post_init__()
+    
+    # Update site.pages with modified page
+    mock_site.pages = [page1_modified]
     
     # Run full incremental flow
     orchestrator = TaxonomyOrchestrator(mock_site)

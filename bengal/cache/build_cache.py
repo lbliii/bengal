@@ -37,12 +37,19 @@ class BuildCache:
     """
     Tracks file hashes and dependencies between builds.
     
+    IMPORTANT PERSISTENCE CONTRACT:
+    - This cache must NEVER contain object references (Page, Section, Asset objects)
+    - All data must be JSON-serializable (paths, strings, numbers, lists, dicts, sets)
+    - Object relationships are rebuilt each build from cached paths
+    
     Attributes:
         file_hashes: Mapping of file paths to their SHA256 hashes
         dependencies: Mapping of pages to their dependencies (templates, partials, etc.)
         output_sources: Mapping of output files to their source files
         taxonomy_deps: Mapping of taxonomy terms to affected pages
         page_tags: Mapping of page paths to their tags (for detecting tag changes)
+        tag_to_pages: Inverted index mapping tag slug to page paths (for O(1) reconstruction)
+        known_tags: Set of all tag slugs from previous build (for detecting deletions)
         parsed_content: Cached parsed HTML/TOC (Optimization #2)
         last_build: Timestamp of last successful build
     """
@@ -52,7 +59,12 @@ class BuildCache:
     output_sources: Dict[str, str] = field(default_factory=dict)
     taxonomy_deps: Dict[str, Set[str]] = field(default_factory=dict)
     page_tags: Dict[str, Set[str]] = field(default_factory=dict)
-    parsed_content: Dict[str, Dict[str, Any]] = field(default_factory=dict)  # NEW
+    
+    # Inverted index for fast taxonomy reconstruction (NEW)
+    tag_to_pages: Dict[str, Set[str]] = field(default_factory=dict)
+    known_tags: Set[str] = field(default_factory=set)
+    
+    parsed_content: Dict[str, Dict[str, Any]] = field(default_factory=dict)
     last_build: Optional[str] = None
     
     def __post_init__(self) -> None:
@@ -72,6 +84,14 @@ class BuildCache:
             k: set(v) if isinstance(v, list) else v
             for k, v in self.page_tags.items()
         }
+        # Convert tag_to_pages lists back to sets
+        self.tag_to_pages = {
+            k: set(v) if isinstance(v, list) else v
+            for k, v in self.tag_to_pages.items()
+        }
+        # Convert known_tags list back to set
+        if isinstance(self.known_tags, list):
+            self.known_tags = set(self.known_tags)
         # Parsed content is already in dict format (no conversion needed)
     
     @classmethod
@@ -97,6 +117,16 @@ class BuildCache:
                 data['dependencies'] = {
                     k: set(v) for k, v in data['dependencies'].items()
                 }
+            
+            # Convert lists back to sets in tag_to_pages
+            if 'tag_to_pages' in data:
+                data['tag_to_pages'] = {
+                    k: set(v) for k, v in data['tag_to_pages'].items()
+                }
+            
+            # Convert list back to set in known_tags
+            if 'known_tags' in data and isinstance(data['known_tags'], list):
+                data['known_tags'] = set(data['known_tags'])
             
             if 'taxonomy_deps' in data:
                 data['taxonomy_deps'] = {
@@ -290,6 +320,82 @@ class BuildCache:
         """
         self.page_tags[str(page_path)] = tags
     
+    def update_page_tags(self, page_path: Path, tags: Set[str]) -> Set[str]:
+        """
+        Update tag index when a page's tags change.
+        
+        Maintains bidirectional index:
+        - page_tags: path → tags (forward)
+        - tag_to_pages: tag → paths (inverted)
+        
+        This is the key method that enables O(1) taxonomy reconstruction.
+        
+        Args:
+            page_path: Path to page source file
+            tags: Current set of tags for this page (original case, e.g., "Python", "Web Dev")
+            
+        Returns:
+            Set of affected tag slugs (tags added, removed, or modified)
+        """
+        page_path_str = str(page_path)
+        affected_tags = set()
+        
+        # Get old tags for this page
+        old_tags = self.page_tags.get(page_path_str, set())
+        old_slugs = {tag.lower().replace(' ', '-') for tag in old_tags}
+        new_slugs = {tag.lower().replace(' ', '-') for tag in tags}
+        
+        # Find changes
+        removed_slugs = old_slugs - new_slugs
+        added_slugs = new_slugs - old_slugs
+        unchanged_slugs = old_slugs & new_slugs
+        
+        # Remove page from old tags
+        for tag_slug in removed_slugs:
+            if tag_slug in self.tag_to_pages:
+                self.tag_to_pages[tag_slug].discard(page_path_str)
+                # Remove empty tag entries
+                if not self.tag_to_pages[tag_slug]:
+                    del self.tag_to_pages[tag_slug]
+                    self.known_tags.discard(tag_slug)
+            affected_tags.add(tag_slug)
+        
+        # Add page to new tags
+        for tag_slug in added_slugs:
+            self.tag_to_pages.setdefault(tag_slug, set()).add(page_path_str)
+            self.known_tags.add(tag_slug)
+            affected_tags.add(tag_slug)
+        
+        # Mark unchanged tags as affected if page content changed
+        # (affects sort order, which affects tag page rendering)
+        affected_tags.update(unchanged_slugs)
+        
+        # Update forward index
+        self.page_tags[page_path_str] = tags
+        
+        return affected_tags
+    
+    def get_pages_for_tag(self, tag_slug: str) -> Set[str]:
+        """
+        Get all page paths for a given tag.
+        
+        Args:
+            tag_slug: Tag slug (e.g., 'python', 'web-dev')
+            
+        Returns:
+            Set of page path strings
+        """
+        return self.tag_to_pages.get(tag_slug, set()).copy()
+    
+    def get_all_tags(self) -> Set[str]:
+        """
+        Get all known tag slugs from previous build.
+        
+        Returns:
+            Set of tag slugs
+        """
+        return self.known_tags.copy()
+    
     def clear(self) -> None:
         """Clear all cache data."""
         self.file_hashes.clear()
@@ -297,6 +403,8 @@ class BuildCache:
         self.output_sources.clear()
         self.taxonomy_deps.clear()
         self.page_tags.clear()
+        self.tag_to_pages.clear()
+        self.known_tags.clear()
         self.last_build = None
     
     def invalidate_file(self, file_path: Path) -> None:

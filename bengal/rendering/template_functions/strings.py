@@ -2,10 +2,14 @@
 String manipulation functions for templates.
 
 Provides 10 essential string functions for text processing in templates.
+
+Many of these functions are now thin wrappers around bengal.utils.text utilities
+to avoid code duplication and ensure consistency.
 """
 
 import re
 from typing import TYPE_CHECKING, Optional
+from bengal.utils import text as text_utils
 
 if TYPE_CHECKING:
     from jinja2 import Environment
@@ -33,6 +37,8 @@ def truncatewords(text: str, count: int, suffix: str = "...") -> str:
     """
     Truncate text to a specified number of words.
     
+    Uses bengal.utils.text.truncate_words internally.
+    
     Args:
         text: Text to truncate
         count: Maximum number of words
@@ -45,14 +51,7 @@ def truncatewords(text: str, count: int, suffix: str = "...") -> str:
         {{ post.content | truncatewords(50) }}
         {{ post.content | truncatewords(30, " [Read more]") }}
     """
-    if not text:
-        return ''
-    
-    words = text.split()
-    if len(words) <= count:
-        return text
-    
-    return ' '.join(words[:count]) + suffix
+    return text_utils.truncate_words(text, count, suffix)
 
 
 def truncatewords_html(html: str, count: int, suffix: str = "...") -> str:
@@ -93,6 +92,7 @@ def slugify(text: str) -> str:
     """
     Convert text to URL-safe slug.
     
+    Uses bengal.utils.text.slugify internally.
     Converts to lowercase, removes special characters, replaces spaces with hyphens.
     
     Args:
@@ -104,22 +104,7 @@ def slugify(text: str) -> str:
     Example:
         {{ page.title | slugify }}  # "Hello World!" -> "hello-world"
     """
-    if not text:
-        return ''
-    
-    # Convert to lowercase and strip
-    text = text.lower().strip()
-    
-    # Remove non-word characters (except spaces and hyphens)
-    text = re.sub(r'[^\w\s-]', '', text)
-    
-    # Replace multiple spaces/hyphens with single hyphen
-    text = re.sub(r'[-\s]+', '-', text)
-    
-    # Remove leading/trailing hyphens
-    text = text.strip('-')
-    
-    return text
+    return text_utils.slugify(text, unescape_html=False)
 
 
 def markdownify(text: str) -> str:
@@ -158,6 +143,8 @@ def strip_html(text: str) -> str:
     """
     Remove all HTML tags from text.
     
+    Uses bengal.utils.text.strip_html internally.
+    
     Args:
         text: HTML text
     
@@ -167,25 +154,14 @@ def strip_html(text: str) -> str:
     Example:
         {{ post.html_content | strip_html }}
     """
-    if not text:
-        return ''
-    
-    # Remove HTML tags
-    text = re.sub(r'<[^>]+>', '', text)
-    
-    # Decode HTML entities
-    try:
-        import html
-        text = html.unescape(text)
-    except ImportError:
-        pass
-    
-    return text
+    return text_utils.strip_html(text, decode_entities=True)
 
 
 def truncate_chars(text: str, length: int, suffix: str = "...") -> str:
     """
     Truncate text to character length.
+    
+    Uses bengal.utils.text.truncate_chars internally.
     
     Args:
         text: Text to truncate
@@ -198,13 +174,7 @@ def truncate_chars(text: str, length: int, suffix: str = "...") -> str:
     Example:
         {{ post.excerpt | truncate_chars(200) }}
     """
-    if not text:
-        return ''
-    
-    if len(text) <= length:
-        return text
-    
-    return text[:length].rstrip() + suffix
+    return text_utils.truncate_chars(text, length, suffix)
 
 
 def replace_regex(text: str, pattern: str, replacement: str) -> str:
@@ -236,6 +206,8 @@ def pluralize(count: int, singular: str, plural: Optional[str] = None) -> str:
     """
     Return singular or plural form based on count.
     
+    Uses bengal.utils.text.pluralize internally.
+    
     Args:
         count: Number to check
         singular: Singular form
@@ -248,10 +220,7 @@ def pluralize(count: int, singular: str, plural: Optional[str] = None) -> str:
         {{ posts | length }} {{ posts | length | pluralize('post', 'posts') }}
         {{ count | pluralize('item') }}  # auto-pluralizes to "items"
     """
-    if plural is None:
-        plural = singular + 's'
-    
-    return singular if count == 1 else plural
+    return text_utils.pluralize(count, singular, plural)
 
 
 def reading_time(text: str, wpm: int = 200) -> int:
@@ -322,6 +291,7 @@ def strip_whitespace(text: str) -> str:
     """
     Remove extra whitespace (multiple spaces, newlines, tabs).
     
+    Uses bengal.utils.text.normalize_whitespace internally.
     Replaces all whitespace sequences with a single space.
     
     Args:
@@ -333,12 +303,5 @@ def strip_whitespace(text: str) -> str:
     Example:
         {{ messy_text | strip_whitespace }}
     """
-    if not text:
-        return ''
-    
-    # Replace all whitespace sequences with single space
-    text = re.sub(r'\s+', ' ', text)
-    
-    # Strip leading/trailing whitespace
-    return text.strip()
+    return text_utils.normalize_whitespace(text, collapse=True)
 

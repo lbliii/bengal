@@ -8,6 +8,10 @@ performance using pre-built xref_index.
 import re
 from typing import Any, Dict, Match, Optional
 
+from bengal.utils.logger import get_logger
+
+logger = get_logger(__name__)
+
 __all__ = ['CrossReferencePlugin']
 
 
@@ -120,10 +124,25 @@ class CrossReferencePlugin:
             page = pages[0] if pages else None
         
         if not page:
+            logger.debug(
+                "xref_resolution_failed",
+                ref=path,
+                type="path",
+                clean_path=clean_path,
+                available_paths=len(self.xref_index.get('by_path', {}))
+            )
             return (
                 f'<span class="broken-ref" data-ref="{path}" '
                 f'title="Page not found: {path}">[{text or path}]</span>'
             )
+        
+        logger.debug(
+            "xref_resolved",
+            ref=path,
+            type="path",
+            target=page.title,
+            url=page.url if hasattr(page, 'url') else f'/{page.slug}/'
+        )
         
         link_text = text or page.title
         url = page.url if hasattr(page, 'url') else f'/{page.slug}/'
@@ -138,10 +157,23 @@ class CrossReferencePlugin:
         page = self.xref_index.get('by_id', {}).get(ref_id)
         
         if not page:
+            logger.debug(
+                "xref_resolution_failed",
+                ref=f"id:{ref_id}",
+                type="id",
+                available_ids=len(self.xref_index.get('by_id', {}))
+            )
             return (
                 f'<span class="broken-ref" data-ref="id:{ref_id}" '
                 f'title="ID not found: {ref_id}">[{text or ref_id}]</span>'
             )
+        
+        logger.debug(
+            "xref_resolved",
+            ref=f"id:{ref_id}",
+            type="id",
+            target=page.title
+        )
         
         link_text = text or page.title
         url = page.url if hasattr(page, 'url') else f'/{page.slug}/'
@@ -158,6 +190,13 @@ class CrossReferencePlugin:
         results = self.xref_index.get('by_heading', {}).get(heading_key, [])
         
         if not results:
+            logger.debug(
+                "xref_resolution_failed",
+                ref=anchor,
+                type="heading",
+                heading_key=heading_key,
+                available_headings=len(self.xref_index.get('by_heading', {}))
+            )
             return (
                 f'<span class="broken-ref" data-anchor="{anchor}" '
                 f'title="Heading not found: {anchor}">[{text or anchor}]</span>'
@@ -165,6 +204,15 @@ class CrossReferencePlugin:
         
         # Use first match
         page, anchor_id = results[0]
+        logger.debug(
+            "xref_resolved",
+            ref=anchor,
+            type="heading",
+            target_page=page.title if hasattr(page, 'title') else 'unknown',
+            anchor_id=anchor_id,
+            matches=len(results)
+        )
+        
         link_text = text or anchor.lstrip('#').replace('-', ' ').title()
         url = page.url if hasattr(page, 'url') else f'/{page.slug}/'
         return f'<a href="{url}#{anchor_id}">{link_text}</a>'

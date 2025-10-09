@@ -109,7 +109,7 @@ graph TB
 
 | Category | Property | Description |
 |----------|----------|-------------|
-| **Content** | `title`, `date`, `slug`, `url` | Basic page metadata and URL path |
+| **Content** | `title`, `date`, `slug`, `url` | Basic page metadata and URL path (date uses `bengal.utils.dates`) |
 | | `description`, `keywords`, `draft` | SEO and publishing metadata |
 | | `toc`, `toc_items` | Auto-generated table of contents |
 | **Navigation** | `next`, `prev` | Sequential navigation across all pages |
@@ -328,7 +328,26 @@ Bengal implements an intelligent caching system for incremental builds. Benchmar
 | `is_changed(path)` | Check if file has changed since last build |
 | `add_dependency(source, dependency)` | Record file dependencies (page → template/partial) |
 | `get_affected_pages(changed_file)` | Find all pages needing rebuild based on dependency graph |
+| `update_page_tags(path, tags)` | Update taxonomy inverted index, returns affected tags |
+| `get_pages_for_tag(tag)` | Get all page paths for a specific tag (O(1) lookup) |
+| `get_all_tags()` | Get all known tags from previous build |
 | `save()` / `load()` | Persist cache between builds |
+
+**Inverted Index Pattern**: The cache stores a bidirectional mapping between pages and tags:
+- **Forward index**: `page_tags` (page path → set of tags)
+- **Inverted index**: `tag_to_pages` (tag slug → set of page paths)
+
+This enables efficient taxonomy reconstruction without persisting object references:
+```python
+# Only paths stored in cache, never object references
+cache.tag_to_pages['python'] = {'content/post1.md', 'content/post2.md'}
+
+# During build: Reconstruct with current Page objects
+current_page_map = {p.source_path: p for p in site.pages}
+pages_for_tag = [current_page_map[path] for path in cache.get_pages_for_tag('python')]
+```
+
+**Key Design Principle**: "Never persist object references across builds" - cache stores paths and hashes, relationships are reconstructed from current objects each build.
 
 #### Dependency Tracker (`bengal/cache/dependency_tracker.py`)
 - **Purpose**: Tracks dependencies during the build process
@@ -391,10 +410,11 @@ flowchart TD
 
 **Implemented Features:**
 - Template dependency tracking (pages → templates/partials)
-- Taxonomy dependency tracking (tags → pages)
+- Taxonomy dependency tracking (tags → pages) with inverted index pattern
 - Config change detection (forces full rebuild)
 - Verbose mode (`--verbose` flag shows what changed)
 - Asset change detection (selective processing)
+- Object reference safety (cache stores paths, not objects)
 
 **Performance Measurements (October 2025):**
 - Small sites (10 pages): 18.3x speedup (0.223s → 0.012s)
@@ -450,8 +470,15 @@ sequenceDiagram
     
     Note over BuildOrch,TaxonomyOrch: Phase 3: Taxonomies & Dynamic Pages
     BuildOrch->>TaxonomyOrch: collect_and_generate()
-    TaxonomyOrch->>TaxonomyOrch: collect_taxonomies()
-    TaxonomyOrch->>TaxonomyOrch: generate_dynamic_pages()
+    alt Incremental Build
+        TaxonomyOrch->>Cache: detect affected tags
+        TaxonomyOrch->>Cache: rebuild taxonomy from paths
+        TaxonomyOrch->>TaxonomyOrch: generate only affected tag pages
+    else Full Build
+        TaxonomyOrch->>TaxonomyOrch: collect_taxonomies()
+        TaxonomyOrch->>TaxonomyOrch: generate_dynamic_pages()
+        TaxonomyOrch->>Cache: update inverted index
+    end
     TaxonomyOrch-->>BuildOrch: taxonomies built
     
     Note over BuildOrch,MenuOrch: Phase 4: Menus
@@ -518,13 +545,13 @@ sequenceDiagram
 0. **Initialization**: Load cache, set up dependency tracker
 1. **Content Discovery**: Find pages/sections/assets, setup references, apply cascades, build xref index
 2. **Section Finalization**: Ensure all sections have index pages, validate structure
-3. **Taxonomies**: Collect tags/categories, generate tag pages and pagination
+3. **Taxonomies**: Collect tags/categories (incremental: detect affected tags + rebuild from cache paths), generate tag pages and pagination
 4. **Menus**: Build navigation from config + page frontmatter (stored in `site.menu`)
 5. **Incremental Filtering**: Determine what needs rebuilding (pages, assets, affected dependencies)
 6. **Rendering**: Parse markdown → apply plugins → render templates (uses `site.menu`) → write HTML
 7. **Assets**: Copy/process static files from site and theme
 8. **Post-processing**: Generate sitemap, RSS, output formats, validate links (can run in parallel)
-9. **Cache Update**: Save file hashes and dependencies for next incremental build
+9. **Cache Update**: Save file hashes, dependencies, and taxonomy inverted index for next incremental build
 10. **Health Check**: Validate build output, check for broken links, performance metrics
 
 **Key Architecture Patterns:**
@@ -618,23 +645,24 @@ flowchart TD
 - **Purpose**: Provide 80+ custom filters and functions for templates
 - **Organization**: Modular design with self-registering modules across 16 focused modules
 - **Architecture**: Each module has single responsibility (no monolithic classes)
+- **Built on Utilities**: Many functions now delegate to `bengal/utils/` modules for consistent behavior
 - **Testing**: 335+ tests with 71-98% coverage across function modules
 - **Documentation**: See template function modules for detailed documentation
 - **Modules (16 total)**:
-  - **Strings (11 functions)**: `truncatewords`, `slugify`, `markdownify`, `strip_html`, `excerpt`, `reading_time`, etc.
+  - **Strings (11 functions)**: `truncatewords`, `slugify`, `markdownify`, `strip_html`, `excerpt`, `reading_time`, etc. (uses `bengal.utils.text`)
   - **Collections (8 functions)**: `where`, `where_not`, `group_by`, `sort_by`, `limit`, `offset`, `uniq`, `flatten`
   - **Math (6 functions)**: `percentage`, `times`, `divided_by`, `ceil`, `floor`, `round`
-  - **Dates (3 functions)**: `time_ago`, `date_iso`, `date_rfc822`
+  - **Dates (3 functions)**: `time_ago`, `date_iso`, `date_rfc822` (uses `bengal.utils.dates`)
   - **URLs (3 functions)**: `absolute_url`, `url_encode`, `url_decode`
-  - **Content (6 functions)**: `safe_html`, `html_escape`, `html_unescape`, `nl2br`, `smartquotes`, `emojify`
-  - **Data (8 functions)**: `get_data`, `jsonify`, `merge`, `has_key`, `get_nested`, `keys`, `values`, `items`
+  - **Content (6 functions)**: `safe_html`, `html_escape`, `html_unescape`, `nl2br`, `smartquotes`, `emojify` (uses `bengal.utils.text`)
+  - **Data (8 functions)**: `get_data`, `jsonify`, `merge`, `has_key`, `get_nested`, `keys`, `values`, `items` (uses `bengal.utils.file_io`)
   - **Advanced Strings (5 functions)**: `camelize`, `underscore`, `titleize`, `wrap_text`, `indent_text`
-  - **Files (3 functions)**: `read_file`, `file_exists`, `file_size`
+  - **Files (3 functions)**: `read_file`, `file_exists`, `file_size` (uses `bengal.utils.file_io`)
   - **Advanced Collections (3 functions)**: `sample`, `shuffle`, `chunk`
   - **Images (6 functions)**: `image_url`, `image_dimensions`, `image_srcset`, `image_srcset_gen`, `image_alt`, `image_data_uri`
   - **SEO (4 functions)**: `meta_description`, `meta_keywords`, `canonical_url`, `og_image`
   - **Debug (3 functions)**: `debug`, `typeof`, `inspect`
-  - **Taxonomies (4 functions)**: `related_posts`, `popular_tags`, `tag_url`, `has_tag`
+  - **Taxonomies (4 functions)**: `related_posts`, `popular_tags`, `tag_url`, `has_tag` (uses `bengal.utils.text`)
   - **Pagination (3 functions)**: `paginate`, `page_url`, `page_range`
   - **Cross-reference (5 functions)**: `ref`, `doc`, `anchor`, `relref`, etc.
 
@@ -643,6 +671,7 @@ flowchart TD
 - **Base Parser Interface**: `BaseMarkdownParser` ABC defines contract for all parsers
 - **Factory Pattern**: `create_markdown_parser(engine)` returns appropriate parser instance
 - **Thread-Local Caching**: Parser instances reused per thread for performance
+- **Uses Utilities**: Delegates to `bengal.utils.text.slugify()` for heading ID generation
 - **Supported Engines**:
   - **`python-markdown`** (default): Feature-rich (3.78s for 78 pages)
   - **`mistune`** (recommended): Faster parser with full doc features (2.18s for 78 pages, 42% faster)
@@ -1108,6 +1137,7 @@ bengal serve
 - Parses frontmatter
 - Organizes content into hierarchy
 - **Includes autodoc-generated markdown files**
+- **Uses Utilities**: Delegates to `bengal.utils.file_io.read_text_file()` for robust file reading with encoding fallback
 
 #### Asset Discovery (`bengal/discovery/asset_discovery.py`)
 - Finds all static assets
@@ -1121,6 +1151,7 @@ bengal serve
 - Auto-detects config files
 - Provides sensible defaults
 - Flattens nested configuration for easy access
+- **Uses Utilities**: Delegates to `bengal.utils.file_io` for robust file loading with error handling
 
 ### 7. Post-Processing
 
@@ -1255,6 +1286,63 @@ report = health.run(build_stats=stats)
 
 ### 11. Utilities (`bengal/utils/`)
 
+Bengal provides a comprehensive set of utility modules that consolidate common operations across the codebase, eliminating duplication and providing consistent, well-tested implementations.
+
+#### Text Utilities (`bengal/utils/text.py`)
+- **Purpose**: Text processing and manipulation
+- **Functions (12 total)**:
+  - `slugify()` - URL-safe slug generation with configurable separators
+  - `strip_html()` - Remove HTML tags and decode entities
+  - `truncate_words()` - Intelligent word-based truncation
+  - `truncate_chars()` - Character-based truncation with suffix
+  - `truncate_middle()` - Ellipsis in the middle (for long paths)
+  - `generate_excerpt()` - Create previews from content
+  - `normalize_whitespace()` - Collapse and normalize spaces
+  - `escape_html()` - Escape HTML special characters
+  - `unescape_html()` - Unescape HTML entities
+  - `pluralize()` - Simple pluralization (with custom forms)
+  - `humanize_bytes()` - Format bytes as KB/MB/GB
+  - `humanize_number()` - Format numbers with thousand separators
+- **Usage**: Used by template functions, parser, and throughout rendering pipeline
+- **Coverage**: 91% with 74 comprehensive tests
+
+#### File I/O Utilities (`bengal/utils/file_io.py`)
+- **Purpose**: Robust file reading/writing with consistent error handling
+- **Functions (7 total)**:
+  - `read_text_file()` - Read text with UTF-8/latin-1 fallback
+  - `load_json()` - Load JSON with validation
+  - `load_yaml()` - Load YAML with graceful PyYAML detection
+  - `load_toml()` - Load TOML with validation
+  - `load_data_file()` - Smart loader (auto-detects JSON/YAML/TOML)
+  - `write_text_file()` - Atomic writes with temp file pattern
+  - `write_json()` - Atomic JSON writes with formatting
+- **Features**:
+  - Encoding fallback (UTF-8 → latin-1)
+  - Multiple error handling strategies (raise, return_empty, return_none)
+  - Structured logging with context
+  - Atomic writes for data integrity
+- **Usage**: Used by config loader, content discovery, template functions
+- **Coverage**: 23-91% (increases as adoption grows)
+
+#### Date Utilities (`bengal/utils/dates.py`)
+- **Purpose**: Date parsing, formatting, and manipulation
+- **Functions (8 total)**:
+  - `parse_date()` - Unified date parsing (datetime, date, str, None)
+  - `format_date_iso()` - Format as ISO 8601
+  - `format_date_rfc822()` - Format as RFC 822 (RSS feeds)
+  - `format_date_human()` - Custom strftime formatting
+  - `time_ago()` - Human-readable "2 days ago" format
+  - `get_current_year()` - Current year (for copyright)
+  - `is_recent()` - Check if date is within N days
+  - `date_range_overlap()` - Check if ranges overlap
+- **Features**:
+  - Flexible date parsing (many formats with fallback chain)
+  - Timezone-aware operations
+  - Multiple error handling strategies
+  - Type-safe with DateLike type alias
+- **Usage**: Used by template functions, frontmatter parsing, RSS generation
+- **Coverage**: 91% with 56 comprehensive tests
+
 #### Paginator (`bengal/utils/pagination.py`)
 - **Purpose**: Generic pagination utility for splitting long lists
 - **Features**:
@@ -1263,6 +1351,15 @@ report = health.run(build_stats=stats)
   - Template context generation
   - Type-safe generic implementation
 - **Usage**: Used for archive pages and tag pages
+- **Coverage**: 96% with 10 tests
+
+#### Impact of Utility Consolidation
+- **Code Reduction**: Eliminated 311 lines of duplicate code across 9 files
+- **Test Coverage**: Added 184+ comprehensive tests
+- **Consistency**: Single source of truth for text, files, and dates
+- **Maintainability**: Fix once in utility module vs 4+ places
+- **Type Safety**: Full type hints with type aliases
+- **Error Handling**: Consistent strategies across all utilities
 
 ## Design Principles
 
@@ -1496,23 +1593,38 @@ Bengal uses a comprehensive testing approach with pytest and coverage tracking.
 
 | Component | Target | Current | Status |
 |-----------|--------|---------|--------|
+| **Utilities** | | | |
+| Utils - Text | 95%+ | 91% | ✅ 74 tests |
+| Utils - Date | 95%+ | 91% | ✅ 56 tests |
+| Utils - File I/O | 95%+ | 23-91% | ⚠️ 54 tests (coverage grows with adoption) |
+| Utils - Paginator | 95%+ | 96% | ✅ 10 tests |
+| **Core Systems** | | | |
 | Cache (BuildCache, DependencyTracker) | 95%+ | 95% | ✅ 32 tests |
-| Utils (Paginator) | 95%+ | 96% | ✅ 10 tests |
 | Postprocess (RSS, Sitemap) | 95%+ | 96% | ✅ Complete |
 | Core Navigation & Menu | 90%+ | 98% | ✅ 13 tests |
+| **Orchestration & Rendering** | | | |
 | Orchestration (Taxonomy, Asset, Render) | 85%+ | 78-91% | ✅ Tested |
-| Template Functions (15 modules) | 85%+ | 71-98% | ✅ 335 tests |
+| Template Functions (16 modules) | 85%+ | 44-98% | ✅ 335+ tests |
 | Rendering Pipeline | 80%+ | 71-87% | ⚠️ Partial |
 | Parallel Processing | 80%+ | 90% | ✅ 12 tests |
-| Health Validators (9 validators) | 75%+ | 13-98% | ⚠️ In Progress |
+| **Quality & Discovery** | | | |
+| Health Validators (10 validators) | 75%+ | 13-98% | ⚠️ In Progress |
 | Discovery (Content, Asset) | 80%+ | 75-81% | ⚠️ In Progress |
+| Page Metadata | 85%+ | 86% | ✅ Improved (+146%) |
+| **Entry Points** | | | |
 | CLI | 75%+ | 0% | ❌ Not Started |
 | Dev Server | 75%+ | 0% | ❌ Not Started |
-| **Overall** | **85%** | **64%** | 🎯 **Gap: 21%** |
+| **Overall** | **85%** | **~68%** | 🎯 **Gap: 17%** (improved +4%) |
+
+**Recent Coverage Improvements (Utility Extraction - Oct 2025):**
+- `template_functions/strings.py`: 15% → 44% (+193%)
+- `template_functions/dates.py`: 10% → 92% (+820%)
+- `core/page/metadata.py`: 35% → 86% (+146%)
 
 **Test Statistics (as of October 2025):**
-- Total tests: 900+ passing (unit + integration)
-- Lines covered: Target 85%, current verification needed
+- Total tests: 1,084+ passing (900+ existing + 184 new utility tests)
+- Utility tests added: 184 (text: 74, file_io: 54, dates: 56)
+- Lines covered: ~68% overall (improved from 64%)
 - Test execution time: ~20 seconds (excluding performance benchmarks)
 - Performance benchmarks: Separate suite with longer-running tests
 
@@ -1522,7 +1634,11 @@ Bengal uses a comprehensive testing approach with pytest and coverage tracking.
    - Test individual components in isolation
    - Fast execution (< 1 second)
    - Mock external dependencies
-   - Example: `tests/unit/utils/test_pagination.py` (10 tests, 96% coverage)
+   - Examples:
+     - `tests/unit/utils/test_text.py` (74 tests, 91% coverage)
+     - `tests/unit/utils/test_dates.py` (56 tests, 91% coverage)
+     - `tests/unit/utils/test_file_io.py` (54 tests, 23-91% coverage)
+     - `tests/unit/utils/test_pagination.py` (10 tests, 96% coverage)
 
 2. **Integration Tests**
    - Test component interactions
@@ -1571,261 +1687,3 @@ pytest tests/performance/test_memory_profiling.py -v -s
 # Specific memory test with allocator details
 pytest tests/performance/test_memory_profiling.py::TestMemoryProfiling::test_build_with_detailed_allocators -v -s
 ```
-
-### Shared Fixtures
-
-Located in `tests/conftest.py`:
-- `tmp_site` - Temporary site directory
-- `sample_config` - Sample configuration
-- `sample_page` - Sample page with frontmatter
-- `site_with_content` - Site with sample content
-- `mock_template_engine` - Mocked template engine
-
-### Current Status (October 2025)
-
-**Completed:**
-- Test infrastructure (pytest, fixtures, conftest)
-- Paginator: 10 tests, 96% coverage
-- Cache system: 32 tests, 95% coverage
-  - BuildCache: 19 tests
-  - DependencyTracker: 13 tests
-- Parallel processing: 12 tests, 90% coverage
-- Navigation & Menu: 13 tests, 98% coverage
-- Cascade system: 2 integration tests
-- Template functions: 335 tests across 15 modules
-- Postprocess (RSS/Sitemap): 96% coverage
-- Orchestration: Partial coverage (78-91%)
-- Mistune parser: Basic tests
-
-**In Progress:**
-- Health validators: 9 validators, 13-98% coverage
-- Rendering pipeline: 71-87% coverage
-- Discovery system: 75-81% coverage
-- Incremental builds: 34% coverage
-- Build orchestration: 78% coverage
-
-**Recently Completed (Oct 2025):**
-- Memory profiling: Corrected implementation with 8 comprehensive tests
-  - Old broken implementation preserved in `test_memory_profiling_old.py`
-  - New implementation uses `MemoryProfiler` helper class
-  - See `plan/completed/MEMORY_PROFILING_IMPLEMENTATION_COMPLETE.md` for details
-
-**Not Started:**
-- CLI tests: 0% coverage
-- Dev server tests: 0% coverage
-- E2E tests: Minimal coverage
-- Integration tests: Only 2 test files
-
-**Gaps to Address:**
-1. CLI and dev server testing (needed for production readiness)
-2. Health validator coverage improvement
-3. Incremental build test coverage
-4. More integration and E2E tests
-5. Overall gap: 21% to reach 85% target
-
-For detailed testing strategy, see `plan/TEST_STRATEGY.md`.
-
-## Production & Operational Architecture
-
-Bengal is designed for production use with enterprise-grade operational concerns built in. This section covers the non-functional requirements that make Bengal robust and maintainable.
-
-### Resource Management ✅ World-Class
-
-**Status**: Implemented October 2025 (v0.2.0)
-
-**ResourceManager** (`bengal/server/resource_manager.py`): Centralized lifecycle with signal handlers (SIGINT/SIGTERM/SIGHUP), atexit, context manager, LIFO cleanup.
-
-**PIDManager** (`bengal/server/pid_manager.py`): Process tracking with stale detection, graceful termination (SIGTERM → SIGKILL), cross-platform support.
-
-**Coverage**: Handles 9/9 termination scenarios (normal exit, Ctrl+C, signals, crashes, SSH disconnect, rapid restarts).
-
-**Atomic Writes** (`bengal/utils/atomic_write.py`): Write-to-temp-then-rename pattern prevents corruption on crashes (Ctrl+C, power loss, kill -9). Protects 13 write sites: HTML, CSS/JS, images, JSON, sitemap, RSS, cache, PID files. Zero performance impact.
-
-```python
-from bengal.utils.atomic_write import atomic_write_text, AtomicFile
-atomic_write_text('output.html', html)
-with AtomicFile('sitemap.xml', 'wb') as f:
-    tree.write(f, encoding='utf-8')
-```
-
-**CLI**: `bengal cleanup` for manual recovery of stale processes.
-
-### Error Handling & Recovery ⚠️ Good Foundation, Needs Expansion
-
-**Current**: Template errors collected (not fatal), graceful degradation (psutil optional, parallel → sequential fallback), helpful messages, build continues on page failures.
-
-**Architecture**: Error boundaries in rendering - individual page failures don't stop build, all errors reported at end.
-
-**Gaps**: No retry logic, limited orchestration error boundaries, no circuit breakers, no auto-fix suggestions.
-
-### Observability ⚠️ Needs Major Work
-
-**Current**: Build stats display, health checks (9 validators), `--debug` and `--verbose` flags, print-based output.
-
-**Recent Addition** (Oct 2025): Performance metrics collection via `PerformanceCollector` - automatically tracks and saves build timing + memory to `.bengal-metrics/history.jsonl`.
-
-**Gaps** (v0.3.0): No structured logging (levels), log files, progress bars, or metrics visualization/CLI.
-
-**Target**: Structured logging with levels, log files, progress bars (`bengal build --log-level=debug --log-file=build.log`).
-
-### Reliability & Data Integrity ✅ Strong with Atomic Writes
-
-**Current**: Config/template validation, content health checks (9 validators), parallel processing with error isolation, **atomic writes** for all output (prevents corruption on crash).
-
-**Gaps**: No crash recovery checkpoints, no reproducible builds (timestamps vary), no HTML well-formedness validation.
-
-### Security ⚠️ Good Defaults, Needs Audit
-
-**Current**: Jinja2 auto-escaping (XSS protection), sandboxed templates, no eval()/exec(), Path objects throughout.
-
-**Gaps** (v0.3.0): No explicit path traversal protection, no dependency scanning in CI, no security audit, no rate limiting.
-
-### Performance & Efficiency ✅ Strong
-
-**Current**: Parallel rendering/assets, incremental builds (18-42x speedup), smart thresholds, benchmark suite.
-
-**Benchmarks** (Oct 2025): 10 pages: 0.29s | 100 pages: 1.66s | 500 pages: 7.95s | Incremental: 18-42x | Parallel assets: 3-4x
-
-**Memory Profiling** (Oct 2025): Comprehensive memory testing with dual tracking (Python heap + RSS). Results show efficient scaling:
-- **100 pages**: ~35MB RSS, ~14MB heap, 0.35MB/page
-- **Scaling**: Linear (2.08x memory for 4x pages), not quadratic
-- **Fixed overhead**: ~30MB (imports, Jinja2 compilation)
-- **No leaks**: 10 consecutive builds show <1% memory growth
-- **Top allocators**: Jinja2 templates (2.8MB), BeautifulSoup parsing (2.6MB)
-
-See `tests/performance/test_memory_profiling.py` for corrected implementation with `MemoryProfiler` class using tracemalloc + psutil.
-
-**Gaps**: Streaming for huge sites, parsed AST caching, CI regression tests for performance/memory.
-
-### Configuration & Extensibility ⚠️ Limited
-
-**Current**: Config validation, extensible template functions, rendering plugins (admonitions/tabs/etc), multiple template directories.
-
-**Gaps** (v0.4.0): No full plugin architecture, backwards compatibility strategy, migration system, or presets.
-
-### Testing & Quality ✅ Good Structure
-
-**Coverage**: 64% (target: 85%). Strong: Cache (95%), Utils (96%), Navigation (98%). Weak: CLI (0%), Dev Server (0%), Discovery (75%).
-
-**CI/CD** (Planned): Automated tests on PR, coverage reporting, regression tests, security scanning.
-
-### Operational Concerns ⚠️ Basic
-
-**Current**: `pip install bengal-ssg`, `--debug` flag, resource cleanup on all termination scenarios.
-
-**Gaps** (v0.5.0): No update checker, migration system, package managers (brew/apt), structured debug output, or telemetry.
-
-### Production Readiness Scorecard
-
-| Dimension | Score | Status |
-|-----------|-------|--------|
-| Resource Management | 98/100 | ✅ Excellent |
-| User Experience | 85/100 | ✅ Excellent |
-| Performance | 75/100 | ✅ Good |
-| Testing | 70/100 | ✅ Good |
-| Error Handling | 65/100 | ⚠️ Adequate |
-| Security | 60/100 | ⚠️ Adequate |
-| Extensibility | 55/100 | ⚠️ Adequate |
-| Reliability | 50/100 | ⚠️ Weak |
-| Operations | 45/100 | ⚠️ Weak |
-| Observability | 40/100 | ⚠️ Weak |
-| **Overall** | **62/100** | **Good** |
-
-**Maturity Level**: Production-ready for small-medium sites, needs hardening for enterprise scale.
-
-**Target**: 85/100 (Excellent) by v1.0.0
-
-### Roadmap by Version
-
-**v0.2.0** (October 2025) - ✅ **SHIPPED**
-- ✅ Resource management (ResourceManager, PIDManager)
-- ✅ Stale process cleanup
-- ✅ Signal handlers
-- ✅ `bengal cleanup` command
-
-**v0.3.0** (Q1 2026) - **Reliability & Observability** 📋 Planned
-- Structured logging (DEBUG/INFO/WARNING/ERROR)
-- Progress bars for long operations
-- Path traversal protection
-- Security audit
-
-**v0.4.0** (Q2 2026) - **Extensibility & Operations** 📋 Planned
-- Plugin architecture with build hooks
-- Preset system (blog, docs, portfolio)
-- Update checker
-- Better debug output
-
-**v0.5.0** (Q3 2026) - **Performance & Quality** 📋 Planned
-- Memory optimization
-- Performance regression tests in CI
-- 85%+ test coverage
-- Dependency security scanning
-
-**v1.0.0** (Q4 2026) - **Production-Ready** 📋 Planned
-- Core feature stabilization
-- Backwards compatibility guarantees
-- Complete documentation
-- Enhanced error handling
-
-For detailed analysis of each dimension, see `plan/PRODUCTION_READINESS_DIMENSIONS.md`.
-
----
-
-## Roadmap
-
-**Completed (October 2025):**
-- Core object model (Page, Section, Site, Asset)
-- Rendering pipeline with multi-engine support
-- CLI with incremental and parallel build flags
-- Development server with file watching
-- Taxonomy system (tags, categories)
-- Dynamic page generation (archives, tag pages)
-- Pagination system
-- Default theme with responsive design
-- Test infrastructure (pytest, coverage, fixtures)
-- Health check system (10 validators)
-- Page navigation system (next/prev, breadcrumbs, ancestors)
-- Cascade system (frontmatter inheritance)
-- Navigation menu system (hierarchical, config-driven)
-- Table of contents (auto-generated from headings)
-- Incremental builds:
-  - File change detection with SHA256 hashing
-  - Dependency graph tracking (pages → templates)
-  - 18-42x faster rebuilds (benchmarked on 10-100 page sites)
-- Template functions (80+ functions across 16 modules, 335+ tests)
-- Parallel processing (2-4x speedup for assets/post-processing)
-- Mistune parser integration (42% faster than python-markdown)
-- **Autodoc system (v0.2.0)**:
-  - AST-based Python API documentation (no imports needed)
-  - Click CLI framework documentation
-  - Rich docstring parsing (Google, NumPy, Sphinx styles)
-  - Two-layer template system (markdown → HTML)
-  - 175+ pages/sec performance (measured)
-  - Integrated with Bengal's build pipeline
-
-**Current Priorities:**
-- Test coverage improvements (target: 85%):
-  - CLI tests: Increase from minimal coverage
-  - Dev server tests: Increase from minimal coverage
-  - Autodoc tests: Add comprehensive test suite
-  - Health validator tests: Improve consistency
-  - More integration and E2E tests
-- Documentation improvements:
-  - Template function reference
-  - Autodoc usage examples
-  - Example templates
-- Code quality:
-  - Edge case handling
-  - Error message improvements
-  - Documentation updates
-
-**Future Enhancements** (📋 Not Yet Implemented):
-- **OpenAPI Extractor**: REST API documentation from OpenAPI specs or FastAPI apps
-- **Full CLI Support**: argparse and typer framework documentation
-- **Versioned Docs**: Multi-version documentation support
-- **Plugin System**: Build hooks and custom processors
-- **i18n Support**: Multi-language site generation
-- **Search Integration**: Client-side or server-side search
-- **Migration Tools**: Import from other SSGs (Sphinx, Hugo, etc.)
-- **Hot Reload**: Live browser refresh without manual reload
-

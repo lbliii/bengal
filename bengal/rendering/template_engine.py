@@ -8,6 +8,9 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape, Template
 from jinja2.bccache import FileSystemBytecodeCache
 
 from bengal.rendering.template_functions import register_all
+from bengal.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 class TemplateEngine:
@@ -22,6 +25,12 @@ class TemplateEngine:
         Args:
             site: Site instance
         """
+        logger.debug(
+            "initializing_template_engine",
+            theme=site.theme,
+            root_path=str(site.root_path)
+        )
+        
         self.site = site
         self.template_dirs = []  # Initialize before _create_environment populates it
         self.env = self._create_environment()  # This will populate self.template_dirs
@@ -56,6 +65,12 @@ class TemplateEngine:
         # Store for dependency tracking (convert back to Path objects)
         self.template_dirs = [Path(d) for d in template_dirs]
         
+        logger.debug(
+            "template_dirs_configured",
+            dir_count=len(self.template_dirs),
+            dirs=[str(d) for d in self.template_dirs]
+        )
+        
         # Setup bytecode cache for faster template compilation
         # This caches compiled templates between builds (10-15% speedup)
         bytecode_cache = None
@@ -71,6 +86,11 @@ class TemplateEngine:
             bytecode_cache = FileSystemBytecodeCache(
                 directory=str(cache_dir),
                 pattern='__bengal_template_%s.cache'
+            )
+            
+            logger.debug(
+                "template_bytecode_cache_enabled",
+                cache_dir=str(cache_dir)
             )
         
         # Create environment
@@ -107,18 +127,49 @@ class TemplateEngine:
         Returns:
             Rendered HTML
         """
+        logger.debug(
+            "rendering_template",
+            template=template_name,
+            context_keys=list(context.keys())
+        )
+        
         # Track template dependency
         if self._dependency_tracker:
             template_path = self._find_template_path(template_name)
             if template_path:
                 self._dependency_tracker.track_template(template_path)
+                logger.debug(
+                    "tracked_template_dependency",
+                    template=template_name,
+                    path=str(template_path)
+                )
         
         # Add site to context
         context.setdefault('site', self.site)
         context.setdefault('config', self.site.config)
         
-        template = self.env.get_template(template_name)
-        return template.render(**context)
+        try:
+            template = self.env.get_template(template_name)
+            result = template.render(**context)
+            
+            logger.debug(
+                "template_rendered",
+                template=template_name,
+                output_size=len(result)
+            )
+            
+            return result
+            
+        except Exception as e:
+            # Log the error with context before re-raising
+            logger.error(
+                "template_render_failed",
+                template=template_name,
+                error_type=type(e).__name__,
+                error=str(e)[:200],
+                context_keys=list(context.keys())
+            )
+            raise
     
     def render_string(self, template_string: str, context: Dict[str, Any]) -> str:
         """
@@ -211,7 +262,19 @@ class TemplateEngine:
         for template_dir in self.template_dirs:
             template_path = template_dir / template_name
             if template_path.exists():
+                logger.debug(
+                    "template_found",
+                    template=template_name,
+                    path=str(template_path),
+                    dir=str(template_dir)
+                )
                 return template_path
+        
+        logger.debug(
+            "template_not_found",
+            template=template_name,
+            searched_dirs=[str(d) for d in self.template_dirs]
+        )
         return None
     
 

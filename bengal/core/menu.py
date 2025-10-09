@@ -5,6 +5,10 @@ Menu system for navigation.
 from dataclasses import dataclass, field
 from typing import List, Optional, Any
 
+from bengal.utils.logger import get_logger
+
+logger = get_logger(__name__)
+
 
 @dataclass
 class MenuItem:
@@ -140,6 +144,12 @@ class MenuBuilder:
         Raises:
             ValueError: If circular references detected
         """
+        logger.debug(
+            "building_menu_hierarchy",
+            total_items=len(self.items),
+            items_with_parents=sum(1 for i in self.items if i.parent)
+        )
+        
         # Create lookup by identifier
         by_id = {item.identifier: item for item in self.items}
         
@@ -150,12 +160,12 @@ class MenuBuilder:
                 orphaned_items.append((item.name, item.parent))
         
         if orphaned_items:
-            print(f"⚠️  Menu configuration warning: {len(orphaned_items)} items reference missing parents:")
-            for name, parent in orphaned_items[:5]:
-                print(f"    • '{name}' references missing parent '{parent}'")
-            if len(orphaned_items) > 5:
-                print(f"    ... and {len(orphaned_items) - 5} more")
-            print(f"    These items will be added to root level")
+            logger.warning(
+                "orphaned_menu_items",
+                count=len(orphaned_items),
+                items=[(name, parent) for name, parent in orphaned_items[:5]],
+                message=f"{len(orphaned_items)} menu items reference missing parents and will be added to root level"
+            )
         
         # Build tree
         roots = []
@@ -174,10 +184,22 @@ class MenuBuilder:
         visited = set()
         for root in roots:
             if self._has_cycle(root, visited, set()):
+                logger.error(
+                    "menu_cycle_detected",
+                    root_item=root.name,
+                    root_identifier=root.identifier
+                )
                 raise ValueError(f"Menu has circular reference involving '{root.name}'")
         
         # Sort roots by weight
         roots.sort(key=lambda x: x.weight)
+        
+        logger.debug(
+            "menu_hierarchy_built",
+            root_items=len(roots),
+            total_items=len(self.items),
+            max_depth=max((self._get_depth(r) for r in roots), default=0)
+        )
         
         return roots
     
@@ -205,6 +227,20 @@ class MenuBuilder:
         
         return False
     
+    def _get_depth(self, item: MenuItem) -> int:
+        """
+        Get maximum depth of menu tree from this item.
+        
+        Args:
+            item: Root menu item
+            
+        Returns:
+            Maximum depth (1 = no children, 2 = children but no grandchildren, etc.)
+        """
+        if not item.children:
+            return 1
+        return 1 + max(self._get_depth(child) for child in item.children)
+    
     def mark_active_items(self, current_url: str, menu_items: List[MenuItem]) -> None:
         """
         Mark active items in menu tree.
@@ -213,11 +249,24 @@ class MenuBuilder:
             current_url: Current page URL
             menu_items: List of menu items to process
         """
+        logger.debug(
+            "marking_active_menu_items",
+            current_url=current_url,
+            menu_item_count=len(menu_items)
+        )
+        
         # Reset all items first
         for item in menu_items:
             item.reset_active()
         
         # Mark active items
+        active_count = 0
         for item in menu_items:
-            item.mark_active(current_url)
+            if item.mark_active(current_url):
+                active_count += 1
+        
+        logger.debug(
+            "menu_active_items_marked",
+            active_items=active_count
+        )
 

@@ -238,6 +238,11 @@ class BuildOrchestrator:
             elif not incremental:
                 # Full build: Collect and generate everything
                 self.taxonomy.collect_and_generate()
+                
+                # Update cache with full taxonomy data (for next incremental build)
+                for page in self.site.pages:
+                    if not page.metadata.get('_generated') and page.tags:
+                        cache.update_page_tags(page.source_path, set(page.tags))
             # else: No pages changed, skip taxonomy updates
             
             self.stats.taxonomy_time_ms = (time.time() - taxonomy_start) * 1000

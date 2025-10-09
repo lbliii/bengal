@@ -185,6 +185,8 @@ def tag_url(tag: str) -> str:
     """
     Generate URL for a tag page.
     
+    Uses bengal.utils.text.slugify for tag slug generation.
+    
     Args:
         tag: Tag name
     
@@ -199,10 +201,8 @@ def tag_url(tag: str) -> str:
         return '/tags/'
     
     # Convert tag to URL-safe slug
-    import re
-    slug = tag.lower().strip()
-    slug = re.sub(r'[^\w\s-]', '', slug)
-    slug = re.sub(r'[-\s]+', '-', slug)
+    from bengal.utils.text import slugify
+    slug = slugify(tag, unescape_html=False)
     
     return f"/tags/{slug}/"
 

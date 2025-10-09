@@ -7,6 +7,10 @@ Handles cache management, change detection, and determining what needs rebuildin
 from pathlib import Path
 from typing import TYPE_CHECKING, Dict, List, Set, Tuple, Optional, Any
 
+from bengal.utils.logger import get_logger
+
+logger = get_logger(__name__)
+
 if TYPE_CHECKING:
     from bengal.core.site import Site
     from bengal.core.page import Page
@@ -53,8 +57,20 @@ class IncrementalOrchestrator:
         
         if enabled:
             self.cache = BuildCache.load(cache_path)
+            cache_exists = cache_path.exists()
+            try:
+                file_count = len(self.cache.file_hashes)
+            except (AttributeError, TypeError):
+                file_count = 0
+            logger.info(
+                "cache_initialized",
+                enabled=True,
+                cache_loaded=cache_exists,
+                cached_files=file_count
+            )
         else:
             self.cache = BuildCache()
+            logger.debug("cache_initialized", enabled=False)
         
         self.tracker = DependencyTracker(self.cache)
         
@@ -81,6 +97,10 @@ class IncrementalOrchestrator:
             changed = self.cache.is_changed(config_file)
             # Always update config file hash (for next build)
             self.cache.update_file(config_file)
+            
+            if changed:
+                logger.info("config_changed", config_file=config_file.name)
+            
             return changed
         
         return False
@@ -151,6 +171,13 @@ class IncrementalOrchestrator:
             page for page in self.site.pages 
             if page.source_path in pages_to_rebuild and not page.metadata.get('_generated')
         ]
+        
+        logger.info(
+            "incremental_work_detected",
+            pages_to_build=len(pages_to_build_list),
+            assets_to_process=len(assets_to_process),
+            template_changes=len(change_summary.get('Modified templates', []))
+        )
         
         return pages_to_build_list, assets_to_process, change_summary
     

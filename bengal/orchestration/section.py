@@ -10,6 +10,9 @@ from typing import TYPE_CHECKING, List
 
 from bengal.utils.url_strategy import URLStrategy
 from bengal.utils.page_initializer import PageInitializer
+from bengal.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 if TYPE_CHECKING:
     from bengal.core.site import Site
@@ -53,22 +56,33 @@ class SectionOrchestrator:
         
         This ensures all section URLs resolve to valid pages.
         """
+        logger.info("section_finalization_start", section_count=len(self.site.sections))
+        
+        archive_count = 0
         for section in self.site.sections:
-            self._finalize_recursive(section)
+            archives_created = self._finalize_recursive(section)
+            archive_count += archives_created
+        
+        logger.info("section_finalization_complete", archives_created=archive_count)
     
-    def _finalize_recursive(self, section: 'Section') -> None:
+    def _finalize_recursive(self, section: 'Section') -> int:
         """
         Recursively finalize a section and its subsections.
         
         Args:
             section: Section to finalize
+            
+        Returns:
+            Number of archive pages created
         """
+        archive_count = 0
+        
         # Skip root section (no index needed)
         if section.name == 'root':
             # Still process subsections
             for subsection in section.subsections:
-                self._finalize_recursive(subsection)
-            return
+                archive_count += self._finalize_recursive(subsection)
+            return archive_count
         
         # Ensure this section has an index page
         if not section.index_page:
@@ -76,10 +90,20 @@ class SectionOrchestrator:
             archive_page = self._create_archive_index(section)
             section.index_page = archive_page
             self.site.pages.append(archive_page)
+            archive_count += 1
+            
+            logger.debug(
+                "section_archive_created",
+                section_name=section.name,
+                section_path=str(section.path),
+                page_count=len(section.pages)
+            )
         
         # Recursively finalize subsections
         for subsection in section.subsections:
-            self._finalize_recursive(subsection)
+            archive_count += self._finalize_recursive(subsection)
+        
+        return archive_count
     
     def _detect_content_type(self, section: 'Section') -> str:
         """

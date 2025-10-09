@@ -128,14 +128,17 @@ class ConfigLoader:
         """
         Load TOML configuration file.
         
+        Uses bengal.utils.file_io.load_toml internally for robust loading.
+        
         Args:
             config_path: Path to TOML file
             
         Returns:
             Configuration dictionary
         """
-        with open(config_path, 'r', encoding='utf-8') as f:
-            config = toml.load(f)
+        from bengal.utils.file_io import load_toml
+        
+        config = load_toml(config_path, on_error='raise', caller='config_loader')
         
         return self._flatten_config(config)
     
@@ -143,14 +146,17 @@ class ConfigLoader:
         """
         Load YAML configuration file.
         
+        Uses bengal.utils.file_io.load_yaml internally for robust loading.
+        
         Args:
             config_path: Path to YAML file
             
         Returns:
             Configuration dictionary
         """
-        with open(config_path, 'r', encoding='utf-8') as f:
-            config = yaml.safe_load(f)
+        from bengal.utils.file_io import load_yaml
+        
+        config = load_yaml(config_path, on_error='raise', caller='config_loader')
         
         return self._flatten_config(config or {})
     
@@ -265,7 +271,7 @@ class ConfigLoader:
         if self.warnings:
             # Always log warnings for observability
             for warning in self.warnings:
-                self.logger.warning("config_warning", message=warning)
+                self.logger.warning("config_warning", note=warning)
             
             # Print in verbose mode for user visibility
             if verbose:

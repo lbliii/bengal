@@ -39,6 +39,42 @@ class BuildHandler(FileSystemEventHandler):
         self.debounce_timer: Optional[threading.Timer] = None
         self.timer_lock = threading.Lock()
     
+    def _clear_ephemeral_state(self) -> None:
+        """
+        Clear ephemeral state that shouldn't persist between builds.
+        
+        This is CRITICAL in dev server mode where the Site object persists
+        across multiple builds. We must clear derived state to avoid stale
+        object references.
+        
+        Persistence contract:
+        - root_path, config, theme: Persist (static config)
+        - output_dir, build_time: Persist (metadata)
+        - pages, sections, assets: CLEAR (will be rediscovered)
+        - taxonomies, menu, xref_index: CLEAR (derived from pages)
+        
+        This prevents the stale reference bug where taxonomies contain
+        old Page objects from previous builds.
+        """
+        logger.debug("clearing_ephemeral_state", site_root=str(self.site.root_path))
+        
+        # Clear content (will be rediscovered)
+        self.site.pages = []
+        self.site.sections = []
+        self.site.assets = []
+        
+        # Clear derived structures (contain object references)
+        self.site.taxonomies = {}
+        self.site.menu = {}
+        self.site.menu_builders = {}
+        
+        # Clear indices (rebuilt from pages)
+        if hasattr(self.site, 'xref_index'):
+            self.site.xref_index = {}
+        
+        # Clear caches on pages (if any survived somehow)
+        self.site.invalidate_regular_pages_cache()
+    
     def _should_ignore_file(self, file_path: str) -> bool:
         """
         Check if file should be ignored (temp files, swap files, etc).
@@ -107,6 +143,10 @@ class BuildHandler(FileSystemEventHandler):
             show_building_indicator("Rebuilding")
             
             build_start = time.time()
+            
+            # CRITICAL: Clear ephemeral state before rebuild
+            # This prevents stale object references (bug: taxonomy counts wrong)
+            self._clear_ephemeral_state()
             
             try:
                 # Use incremental + parallel for fast dev server rebuilds (5-10x faster)

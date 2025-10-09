@@ -631,23 +631,16 @@ class MistuneParser(BaseMarkdownParser):
         Convert text to a URL-friendly slug.
         Matches python-markdown's default slugify behavior.
         
+        Uses bengal.utils.text.slugify with HTML unescaping enabled.
+        
         Args:
             text: Text to slugify
             
         Returns:
             Slugified text
         """
-        # Decode HTML entities first (&amp; -> &, &lt; -> <, etc.)
-        # This handles cases like "Test & Code" which Mistune renders as "Test &amp; Code"
-        import html
-        text = html.unescape(text)
-        
-        # Convert to lowercase
-        text = text.lower()
-        # Replace spaces and special chars with hyphens
-        text = re.sub(r'[^\w\s-]', '', text)
-        text = re.sub(r'[-\s]+', '-', text)
-        return text.strip('-')
+        from bengal.utils.text import slugify
+        return slugify(text, unescape_html=True)
 
 
 # Legacy alias for backwards compatibility

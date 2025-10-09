@@ -9,6 +9,10 @@ from pathlib import Path
 import hashlib
 import json
 
+from bengal.utils.logger import get_logger
+
+logger = get_logger(__name__)
+
 if TYPE_CHECKING:
     from bengal.core.site import Site
     from bengal.core.page import Page
@@ -55,9 +59,7 @@ class MenuOrchestrator:
         # Check if we can skip menu rebuild
         if not config_changed and changed_pages is not None:
             if self._can_skip_rebuild(changed_pages):
-                verbose = self.site.config.get('verbose', False)
-                if verbose:
-                    print("  ✓ Menus unchanged (using cache)")
+                logger.debug("menu_rebuild_skipped", reason="cache_valid")
                 return False
         
         # Full menu rebuild needed
@@ -157,9 +159,7 @@ class MenuOrchestrator:
             # No menus defined, skip
             return False
         
-        verbose = self.site.config.get('verbose', False)
-        if verbose:
-            print("  Building navigation menus...")
+        logger.info("menu_build_start", menu_count=len(menu_config))
         
         for menu_name, items in menu_config.items():
             builder = MenuBuilder()
@@ -178,8 +178,11 @@ class MenuOrchestrator:
             self.site.menu[menu_name] = builder.build_hierarchy()
             self.site.menu_builders[menu_name] = builder
             
-            if verbose:
-                print(f"    ✓ Built menu '{menu_name}': {len(self.site.menu[menu_name])} items")
+            logger.info(
+                "menu_built",
+                menu_name=menu_name,
+                item_count=len(self.site.menu[menu_name])
+            )
         
         # Update cache key
         self._menu_cache_key = self._compute_menu_cache_key()

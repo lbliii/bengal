@@ -11,6 +11,9 @@ from typing import TYPE_CHECKING, Any, Dict, List, Set
 
 from bengal.utils.url_strategy import URLStrategy
 from bengal.utils.page_initializer import PageInitializer
+from bengal.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 if TYPE_CHECKING:
     from bengal.core.site import Site
@@ -54,20 +57,54 @@ class TaxonomyOrchestrator:
         """
         Incrementally update taxonomies for changed pages only.
         
-        This is much faster than full collection for large sites with few changes.
-        Only updates taxonomy data for pages that changed, returning affected tags.
+        Architecture:
+        1. Always rebuild site.taxonomies from current Page objects (correct)
+        2. Use cache to determine which tag PAGES need regeneration (fast)
+        3. Never reuse taxonomy structure with object references (prevents bugs)
+        
+        Performance:
+        - Change detection: O(changed pages)
+        - Taxonomy reconstruction: O(all tags * pages_per_tag) ≈ O(all pages) but fast
+        - Tag page generation: O(affected tags)
         
         Args:
-            changed_pages: List of pages that changed
-            cache: Build cache with previous tag data
+            changed_pages: List of pages that changed (NOT generated pages)
+            cache: Build cache with tag index
             
         Returns:
             Set of affected tag slugs (for regenerating tag pages)
         """
-        affected_tags = self.collect_taxonomies_incremental(changed_pages, cache)
+        logger.info(
+            "taxonomy_collection_incremental_start",
+            changed_pages=len(changed_pages)
+        )
         
+        # STEP 1: Determine which tags are affected
+        # This is the O(changed) optimization - only look at changed pages
+        affected_tags = set()
+        for page in changed_pages:
+            if page.metadata.get('_generated'):
+                continue
+            
+            # Update cache and get affected tags
+            new_tags = set(page.tags) if page.tags else set()
+            page_affected = cache.update_page_tags(page.source_path, new_tags)
+            affected_tags.update(page_affected)
+        
+        # STEP 2: Rebuild taxonomy structure from current Page objects
+        # This is ALWAYS done from scratch to avoid stale references
+        # Performance: O(all pages) but very fast (just iteration + dict ops)
+        self._rebuild_taxonomy_structure_from_cache(cache)
+        
+        logger.info(
+            "taxonomy_collection_incremental_complete",
+            tags=len(self.site.taxonomies.get('tags', {})),
+            updated_pages=len(changed_pages),
+            affected_tags=len(affected_tags)
+        )
+        
+        # STEP 3: Generate tag pages only for affected tags
         if affected_tags:
-            # Generate pages only for affected tags
             self.generate_dynamic_pages_for_tags(affected_tags)
         
         return affected_tags
@@ -77,7 +114,7 @@ class TaxonomyOrchestrator:
         Collect taxonomies (tags, categories, etc.) from all pages.
         Organizes pages by their taxonomic terms.
         """
-        print("\n🏷️  Taxonomies:")
+        logger.info("taxonomy_collection_start", total_pages=len(self.site.pages))
         
         # Initialize taxonomy structure
         self.site.taxonomies = {'tags': {}, 'categories': {}}
@@ -118,124 +155,78 @@ class TaxonomyOrchestrator:
         
         tag_count = len(self.site.taxonomies.get('tags', {}))
         cat_count = len(self.site.taxonomies.get('categories', {}))
-        print(f"   └─ Found {tag_count} tags" + (f", {cat_count} categories" if cat_count else "") + " ✓")
+        logger.info(
+            "taxonomy_collection_complete",
+            tags=tag_count,
+            categories=cat_count
+        )
     
-    def collect_taxonomies_incremental(self, changed_pages: List['Page'], cache: 'BuildCache') -> Set[str]:
+    def _rebuild_taxonomy_structure_from_cache(self, cache: 'BuildCache') -> None:
         """
-        Incrementally update taxonomies for changed pages only.
+        Rebuild site.taxonomies from cache using CURRENT Page objects.
         
-        This is the key optimization: instead of iterating ALL pages to collect tags,
-        we only update the taxonomy index for pages that changed. This makes taxonomy
-        collection O(changed) instead of O(all).
+        This is the key to avoiding stale references:
+        1. Cache tells us which pages have which tags (paths only)
+        2. We map paths to current Page objects (from site.pages)
+        3. We reconstruct taxonomy dict with current objects
         
-        Algorithm:
-        1. Start with previous taxonomy structure (reuse from last build)
-        2. For each changed page:
-           a. Get old tags from cache
-           b. Remove page from old tag entries
-           c. Add page to new tag entries
-        3. Return set of affected tag slugs (for regenerating tag pages)
+        Performance: O(tags * pages_per_tag) which is O(all pages) worst case,
+        but in practice very fast because it's just dict lookups and list appends.
         
-        Args:
-            changed_pages: List of pages that changed (NOT generated pages)
-            cache: Build cache with previous tag data
+        CRITICAL: This always uses current Page objects, never cached references.
+        """
+        # Initialize fresh structure
+        self.site.taxonomies = {'tags': {}, 'categories': {}}
+        
+        # Build lookup map: path → current Page object
+        current_page_map = {
+            p.source_path: p 
+            for p in self.site.pages 
+            if not p.metadata.get('_generated')
+        }
+        
+        # For each tag in cache, map paths to current Page objects
+        for tag_slug in cache.get_all_tags():
+            page_paths = cache.get_pages_for_tag(tag_slug)
             
-        Returns:
-            Set of affected tag slugs that need page regeneration
-        """
-        print("\n🏷️  Taxonomies (incremental):")
-        
-        # Start with existing taxonomy structure (or initialize if first build)
-        if not hasattr(self.site, 'taxonomies') or not self.site.taxonomies:
-            # First build or cache miss - do full collection
-            print("   ℹ️  No cached taxonomies, doing full collection")
-            self.collect_taxonomies()
-            # Mark all tags as affected (need to generate all tag pages)
-            return set(self.site.taxonomies.get('tags', {}).keys())
-        
-        affected_tags = set()
-        
-        # Process each changed page
-        for page in changed_pages:
-            # Skip generated pages (they don't have real source files)
-            if page.metadata.get('_generated'):
+            # Map paths to current Page objects
+            current_pages = []
+            for path_str in page_paths:
+                path = Path(path_str)
+                if path in current_page_map:
+                    current_pages.append(current_page_map[path])
+            
+            if not current_pages:
+                # Tag has no pages - skip it (was removed)
                 continue
             
-            # Get old tags from cache
-            old_tags = cache.get_previous_tags(page.source_path)
-            new_tags = set(page.tags) if page.tags else set()
+            # Get original tag name (not slug) from first page's tags
+            # This handles "Python" vs "python" correctly
+            original_tag = None
+            for page in current_pages:
+                if page.tags:
+                    for tag in page.tags:
+                        if tag.lower().replace(' ', '-') == tag_slug:
+                            original_tag = tag
+                            break
+                if original_tag:
+                    break
             
-            # Helper to convert tag to slug
-            def to_slug(tag: str) -> str:
-                return tag.lower().replace(' ', '-')
+            if not original_tag:
+                original_tag = tag_slug  # Fallback
             
-            old_tag_slugs = {to_slug(tag) for tag in old_tags}
-            new_tag_slugs = {to_slug(tag) for tag in new_tags}
-            
-            # Find which tags were added/removed
-            removed_tags = old_tag_slugs - new_tag_slugs
-            added_tags = new_tag_slugs - old_tag_slugs
-            
-            # Remove page from old tags
-            for tag_slug in removed_tags:
-                if tag_slug in self.site.taxonomies['tags']:
-                    tag_data = self.site.taxonomies['tags'][tag_slug]
-                    # Remove page from list (compare by source_path, not id)
-                    # In incremental builds, pages are reloaded so id() won't match
-                    tag_data['pages'] = [p for p in tag_data['pages'] if p.source_path != page.source_path]
-                    affected_tags.add(tag_slug)
-                    
-                    # Remove empty tag entries
-                    if not tag_data['pages']:
-                        del self.site.taxonomies['tags'][tag_slug]
-            
-            # Add page to new tags
-            for tag_slug in added_tags:
-                # Find the original tag name (not slug) from page.tags
-                original_tag = next((t for t in page.tags if to_slug(t) == tag_slug), tag_slug)
-                
-                if tag_slug not in self.site.taxonomies['tags']:
-                    # Create new tag entry
-                    self.site.taxonomies['tags'][tag_slug] = {
-                        'name': original_tag,
-                        'slug': tag_slug,
-                        'pages': []
-                    }
-                
-                self.site.taxonomies['tags'][tag_slug]['pages'].append(page)
-                affected_tags.add(tag_slug)
-            
-            # For tags that stayed the same, need to update page reference
-            # (in case page content/date changed)
-            unchanged_tags = old_tag_slugs & new_tag_slugs
-            for tag_slug in unchanged_tags:
-                if tag_slug in self.site.taxonomies['tags']:
-                    tag_data = self.site.taxonomies['tags'][tag_slug]
-                    # Update page reference (remove old, add new)
-                    # Compare by source_path since page objects are reloaded in incremental builds
-                    tag_data['pages'] = [p for p in tag_data['pages'] if p.source_path != page.source_path]
-                    tag_data['pages'].append(page)
-                    # Mark as affected (page content/date may have changed, affecting sort order)
-                    affected_tags.add(tag_slug)
-        
-        # Re-sort pages within affected tags by date (newest first)
-        for tag_slug in affected_tags:
-            if tag_slug in self.site.taxonomies['tags']:
-                tag_data = self.site.taxonomies['tags'][tag_slug]
-                tag_data['pages'].sort(
+            # Create tag entry with CURRENT page objects
+            self.site.taxonomies['tags'][tag_slug] = {
+                'name': original_tag,
+                'slug': tag_slug,
+                'pages': sorted(
+                    current_pages,
                     key=lambda p: p.date if p.date else datetime.min,
                     reverse=True
                 )
+            }
         
-        # Handle categories similarly (if needed - keeping it simple for now)
-        # Categories are less common, can be added later if needed
-        
-        tag_count = len(self.site.taxonomies.get('tags', {}))
-        print(f"   ├─ Cached: {tag_count} tag(s)")
-        print(f"   ├─ Updated: {len(changed_pages)} page(s)")
-        print(f"   └─ Affected: {len(affected_tags)} tag(s) ✓")
-        
-        return affected_tags
+        # Handle categories (similar pattern if needed in future)
     
     def generate_dynamic_pages_for_tags(self, affected_tags: set) -> None:
         """
@@ -252,7 +243,6 @@ class TaxonomyOrchestrator:
             if tag_index:
                 self.site.pages.append(tag_index)
                 generated_count += 1
-                print(f"   ├─ Tag index:        1")
             
             # Only generate pages for affected tags
             for tag_slug in affected_tags:
@@ -263,9 +253,13 @@ class TaxonomyOrchestrator:
                         self.site.pages.append(page)
                         generated_count += 1
             
-            if generated_count > 1:
-                print(f"   ├─ Tag pages:        {generated_count - 1}")
-                print(f"   └─ Total:            {generated_count} ✓")
+            logger.info(
+                "dynamic_pages_generated_incremental",
+                tag_index=1,
+                tag_pages=generated_count - 1,
+                total=generated_count,
+                affected_tags=len(affected_tags)
+            )
     
     def generate_dynamic_pages(self) -> None:
         """
@@ -294,12 +288,13 @@ class TaxonomyOrchestrator:
         tag_count = sum(1 for p in self.site.pages if p.metadata.get('_generated') and 'tag' in p.output_path.parts)
         pagination_count = sum(1 for p in self.site.pages if p.metadata.get('_generated') and '/page/' in str(p.output_path))
         
-        if tag_count:
-            print(f"   ├─ Tag pages:        {tag_count}")
-        if pagination_count:
-            print(f"   ├─ Pagination:       {pagination_count}")
         if generated_count > 0:
-            print(f"   └─ Total:            {generated_count} ✓")
+            logger.info(
+                "dynamic_pages_generated",
+                tag_pages=tag_count,
+                pagination_pages=pagination_count,
+                total=generated_count
+            )
     
     def _create_tag_index_page(self) -> 'Page':
         """

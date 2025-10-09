@@ -188,32 +188,15 @@ class ContentDiscovery:
         """
         import yaml
         
-        # Read file once
-        try:
-            with open(file_path, 'r', encoding='utf-8') as f:
-                file_content = f.read()
-        except UnicodeDecodeError as e:
-            # Try different encodings
-            self.logger.warning("encoding_decode_failed",
-                              file_path=str(file_path),
-                              encoding="utf-8",
-                              fallback="latin-1")
-            try:
-                with open(file_path, 'r', encoding='latin-1') as f:
-                    file_content = f.read()
-            except Exception:
-                # Give up
-                self.logger.error("file_decode_failed",
-                                file_path=str(file_path),
-                                error=str(e),
-                                tried_encodings=["utf-8", "latin-1"])
-                raise IOError(f"Cannot decode {file_path}: {e}") from e
-        except IOError as e:
-            self.logger.error("file_read_failed",
-                            file_path=str(file_path),
-                            error=str(e),
-                            error_type=type(e).__name__)
-            raise
+        # Read file once using file_io utility for robust encoding handling
+        from bengal.utils.file_io import read_text_file
+        
+        file_content = read_text_file(
+            file_path,
+            fallback_encoding='latin-1',
+            on_error='raise',
+            caller='content_discovery'
+        )
         
         # Parse frontmatter
         try:

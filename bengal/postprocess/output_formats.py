@@ -13,6 +13,10 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 from datetime import datetime
 
+from bengal.utils.logger import get_logger
+
+logger = get_logger(__name__)
+
 
 class OutputFormatsGenerator:
     """
@@ -56,10 +60,17 @@ class OutputFormatsGenerator:
     def generate(self) -> None:
         """Generate all enabled output formats."""
         if not self.config.get('enabled', True):
+            logger.debug("output_formats_disabled")
             return
         
         per_page = self.config.get('per_page', ['json'])
         site_wide = self.config.get('site_wide', ['index_json'])
+        
+        logger.debug(
+            "generating_output_formats",
+            per_page_formats=per_page,
+            site_wide_formats=site_wide
+        )
         
         # Filter pages based on exclusions
         pages = self._filter_pages()
@@ -71,22 +82,29 @@ class OutputFormatsGenerator:
         if 'json' in per_page:
             count = self._generate_page_json(pages)
             generated.append(f"JSON ({count} files)")
+            logger.debug("generated_page_json", file_count=count)
         
         if 'llm_txt' in per_page:
             count = self._generate_page_txt(pages)
             generated.append(f"LLM text ({count} files)")
+            logger.debug("generated_page_txt", file_count=count)
         
         # Site-wide outputs
         if 'index_json' in site_wide:
             self._generate_site_index_json(pages)
             generated.append("index.json")
+            logger.debug("generated_site_index_json")
         
         if 'llm_full' in site_wide:
             self._generate_site_llm_txt(pages)
             generated.append("llm-full.txt")
+            logger.debug("generated_site_llm_full")
         
         if generated:
-            print(f"   ├─ Output formats: {', '.join(generated)} ✓")
+            logger.info(
+                "output_formats_complete",
+                formats=generated
+            )
     
     def _filter_pages(self) -> List[Any]:
         """Filter pages based on exclusion rules."""
@@ -94,23 +112,45 @@ class OutputFormatsGenerator:
         exclude_sections = options.get('exclude_sections', [])
         exclude_patterns = options.get('exclude_patterns', ['404.html', 'search.html'])
         
+        logger.debug(
+            "filtering_pages_for_output",
+            total_pages=len(self.site.pages),
+            exclude_sections=exclude_sections,
+            exclude_patterns=exclude_patterns
+        )
+        
         filtered = []
+        excluded_by_section = 0
+        excluded_by_pattern = 0
+        excluded_no_output = 0
+        
         for page in self.site.pages:
             # Skip if no output path
             if not page.output_path:
+                excluded_no_output += 1
                 continue
             
             # Check section exclusions
             section_name = getattr(page._section, 'name', '') if hasattr(page, '_section') and page._section else ''
             if section_name in exclude_sections:
+                excluded_by_section += 1
                 continue
             
             # Check pattern exclusions
             output_str = str(page.output_path)
             if any(pattern in output_str for pattern in exclude_patterns):
+                excluded_by_pattern += 1
                 continue
             
             filtered.append(page)
+        
+        logger.debug(
+            "page_filtering_complete",
+            filtered_pages=len(filtered),
+            excluded_no_output=excluded_no_output,
+            excluded_by_section=excluded_by_section,
+            excluded_by_pattern=excluded_by_pattern
+        )
         
         return filtered
     
@@ -199,6 +239,11 @@ class OutputFormatsGenerator:
         Args:
             pages: List of pages to include
         """
+        logger.debug(
+            "generating_site_index_json",
+            page_count=len(pages)
+        )
+        
         options = self.config.get('options', {})
         indent = options.get('json_indent')
         excerpt_length = options.get('excerpt_length', 200)
@@ -240,11 +285,24 @@ class OutputFormatsGenerator:
             for name, count in sorted(site_data['tags'].items(), key=lambda x: -x[1])
         ]
         
+        logger.debug(
+            "site_index_data_aggregated",
+            total_pages=len(site_data['pages']),
+            sections=len(site_data['sections']),
+            tags=len(site_data['tags'])
+        )
+        
         # Write to root of output directory atomically (crash-safe)
         from bengal.utils.atomic_write import AtomicFile
         index_path = self.site.output_dir / 'index.json'
         with AtomicFile(index_path, 'w', encoding='utf-8') as f:
             json.dump(site_data, f, indent=indent, ensure_ascii=False)
+        
+        logger.debug(
+            "site_index_json_written",
+            path=str(index_path),
+            size_kb=index_path.stat().st_size / 1024
+        )
     
     def _generate_site_llm_txt(self, pages: List[Any]) -> None:
         """
@@ -339,6 +397,7 @@ class OutputFormatsGenerator:
         
         # Metadata (serialize dates and other non-JSON types)
         data['metadata'] = {}
+        skipped_keys = []
         for k, v in page.metadata.items():
             if k in ['content', 'parsed_ast', 'rendered_html', '_generated']:
                 continue
@@ -357,9 +416,24 @@ class OutputFormatsGenerator:
                     json.dumps(v)
                     data['metadata'][k] = v
                 # Skip complex objects that can't be serialized
-            except (TypeError, ValueError):
+            except (TypeError, ValueError) as e:
                 # Skip non-serializable values
-                pass
+                skipped_keys.append(k)
+                logger.debug(
+                    "json_serialization_skipped",
+                    page=str(page.source_path),
+                    key=k,
+                    value_type=type(v).__name__,
+                    reason=str(e)[:100]
+                )
+        
+        if skipped_keys:
+            logger.debug(
+                "metadata_keys_skipped",
+                page=str(page.source_path),
+                skipped_count=len(skipped_keys),
+                keys=skipped_keys
+            )
         
         # Section
         if hasattr(page, '_section') and page._section:

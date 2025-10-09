@@ -7,6 +7,9 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from bengal.core.page import Page
+from bengal.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 @dataclass
@@ -133,16 +136,31 @@ class Section:
         if (self.index_page and 
             hasattr(self.index_page, 'output_path') and 
             self.index_page.output_path):
-            return self.index_page.url
+            url = self.index_page.url
+            logger.debug(
+                "section_url_from_index",
+                section=self.name,
+                url=url
+            )
+            return url
         
         # Otherwise, construct from section hierarchy
         # This handles the case before pages have output_paths set
         if self.parent:
             # Nested section - include parent URL
-            return f"{self.parent.url}{self.name}/"
+            url = f"{self.parent.url}{self.name}/"
         else:
             # Top-level section (no parent)
-            return f"/{self.name}/"
+            url = f"/{self.name}/"
+        
+        logger.debug(
+            "section_url_constructed",
+            section=self.name,
+            url=url,
+            has_parent=bool(self.parent)
+        )
+        
+        return url
     
     def add_page(self, page: Page) -> None:
         """
@@ -151,15 +169,30 @@ class Section:
         Args:
             page: Page to add
         """
+        is_index = page.source_path.stem in ("index", "_index")
+        
+        logger.debug(
+            "adding_page_to_section",
+            section=self.name,
+            page=str(page.source_path),
+            is_index=is_index,
+            total_pages=len(self.pages) + 1
+        )
+        
         self.pages.append(page)
         
         # Set as index page if it's named index.md or _index.md
-        if page.source_path.stem in ("index", "_index"):
+        if is_index:
             self.index_page = page
             
             # Extract cascade metadata from index page for inheritance
             if 'cascade' in page.metadata:
                 self.metadata['cascade'] = page.metadata['cascade']
+                logger.debug(
+                    "section_cascade_inherited",
+                    section=self.name,
+                    cascade_keys=list(page.metadata['cascade'].keys())
+                )
     
     def add_subsection(self, section: 'Section') -> None:
         """
@@ -168,6 +201,14 @@ class Section:
         Args:
             section: Child section to add
         """
+        logger.debug(
+            "adding_subsection",
+            parent_section=self.name,
+            child_section=section.name,
+            depth=self.depth + 1,
+            total_subsections=len(self.subsections) + 1
+        )
+        
         section.parent = self
         self.subsections.append(section)
     
@@ -221,7 +262,7 @@ class Section:
         for page in pages:
             all_tags.update(page.tags)
         
-        return {
+        result = {
             "page_count": len(pages),
             "total_page_count": len(self.get_all_pages(recursive=True)),
             "subsection_count": len(self.subsections),
@@ -229,6 +270,16 @@ class Section:
             "title": self.title,
             "hierarchy": self.hierarchy,
         }
+        
+        logger.debug(
+            "section_content_aggregated",
+            section=self.name,
+            page_count=result["page_count"],
+            total_pages=result["total_page_count"],
+            unique_tags=len(all_tags)
+        )
+        
+        return result
     
     def apply_section_template(self, template_engine: Any) -> str:
         """

@@ -79,8 +79,9 @@ class TestDateIso:
         assert "2025-10-03" in result
     
     def test_invalid_input(self):
+        """Invalid input now returns empty string (safer behavior)."""
         result = date_iso("invalid")
-        assert result == "invalid"
+        assert result == ""
 
 
 class TestDateRfc822:

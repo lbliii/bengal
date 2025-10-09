@@ -7,6 +7,10 @@ Builds related posts index during build phase for O(1) template access.
 from typing import TYPE_CHECKING, List, Dict, Set
 from collections import defaultdict
 
+from bengal.utils.logger import get_logger
+
+logger = get_logger(__name__)
+
 if TYPE_CHECKING:
     from bengal.core.site import Site
     from bengal.core.page import Page
@@ -42,15 +46,19 @@ class RelatedPostsOrchestrator:
         Args:
             limit: Maximum related posts per page (default: 5)
         """
+        logger.info("related_posts_build_start", total_pages=len(self.site.pages))
+        
         # Skip if no taxonomies built yet
         if not hasattr(self.site, 'taxonomies'):
             self._set_empty_related_posts()
+            logger.debug("related_posts_skipped", reason="no_taxonomies")
             return
         
         tags_dict = self.site.taxonomies.get('tags', {})
         if not tags_dict:
             # No tags in site - nothing to relate
             self._set_empty_related_posts()
+            logger.debug("related_posts_skipped", reason="no_tags")
             return
         
         # Build inverted index: page_id -> set of tag slugs
@@ -60,6 +68,7 @@ class RelatedPostsOrchestrator:
         # Compute related posts for each page
         # This is O(n·t·p) where t = avg tags per page, p = avg pages per tag
         # In practice, t and p are small constants, so effectively O(n)
+        pages_with_related = 0
         for page in self.site.pages:
             if page.metadata.get('_generated'):
                 # Skip generated pages (tag pages, archives, etc.)
@@ -72,6 +81,15 @@ class RelatedPostsOrchestrator:
                 tags_dict, 
                 limit
             )
+            
+            if page.related_posts:
+                pages_with_related += 1
+        
+        logger.info(
+            "related_posts_build_complete",
+            pages_with_related=pages_with_related,
+            total_pages=len(self.site.pages)
+        )
     
     def _set_empty_related_posts(self) -> None:
         """Set empty related_posts list for all pages."""

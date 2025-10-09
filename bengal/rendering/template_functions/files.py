@@ -39,6 +39,9 @@ def read_file(path: str, root_path: Path) -> str:
     """
     Read file contents.
     
+    Uses bengal.utils.file_io.read_text_file internally for robust file reading
+    with UTF-8/latin-1 encoding fallback and comprehensive error handling.
+    
     Args:
         path: Relative path to file
         root_path: Site root path
@@ -54,60 +57,18 @@ def read_file(path: str, root_path: Path) -> str:
         logger.debug("read_file_empty_path", caller="template")
         return ''
     
+    from bengal.utils.file_io import read_text_file
+    
     file_path = Path(root_path) / path
     
-    if not file_path.exists():
-        logger.warning(
-            "file_not_found",
-            path=path,
-            attempted=str(file_path),
-            caller="template"
-        )
-        return ''
-    
-    if not file_path.is_file():
-        logger.warning(
-            "path_not_file",
-            path=path,
-            file_path=str(file_path),
-            message="Path exists but is not a file (directory?)",
-            caller="template"
-        )
-        return ''
-    
-    try:
-        with open(file_path, 'r', encoding='utf-8') as f:
-            content = f.read()
-        
-        logger.debug(
-            "file_read",
-            path=path,
-            size_bytes=len(content),
-            lines=content.count('\n') + 1
-        )
-        return content
-        
-    except IOError as e:
-        logger.error(
-            "file_read_error",
-            path=path,
-            file_path=str(file_path),
-            error=str(e),
-            error_type="IOError",
-            caller="template"
-        )
-        return ''
-    except UnicodeDecodeError as e:
-        logger.error(
-            "file_encoding_error",
-            path=path,
-            file_path=str(file_path),
-            error=str(e),
-            message="File contains invalid UTF-8 characters",
-            suggestion="File may be binary or use a different encoding",
-            caller="template"
-        )
-        return ''
+    # Use file_io utility for robust reading with encoding fallback
+    # on_error='return_empty' returns '' for missing/invalid files
+    return read_text_file(
+        file_path,
+        fallback_encoding='latin-1',
+        on_error='return_empty',
+        caller='template'
+    )
 
 
 def file_exists(path: str, root_path: Path) -> bool:
