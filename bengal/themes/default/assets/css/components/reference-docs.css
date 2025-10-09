@@ -12,25 +12,25 @@
 .api-reference-container {
     max-width: var(--content-max-width, 1200px);
     margin: 0 auto;
-    padding: var(--space-l) var(--space-m);
+    padding: var(--space-6) var(--space-4);
 }
 
 .api-reference-header {
-    margin-bottom: var(--space-2xl);
-    padding: var(--space-xl) 0;
+    margin-bottom: var(--space-12);
+    padding: var(--space-8) 0;
     text-align: center;
 }
 
 .api-reference-header h1 {
     font-size: var(--text-3xl);
     font-weight: 700;
-    color: var(--color-text);
-    margin-bottom: var(--space-s);
+    color: var(--color-text-primary);
+    margin-bottom: var(--space-3);
 }
 
 .api-reference-description {
     font-size: var(--text-lg);
-    color: var(--color-text-muted);
+    color: var(--color-text-primary-muted);
     max-width: 600px;
     margin: 0 auto;
 }
@@ -39,12 +39,12 @@
 .api-stats {
     display: flex;
     justify-content: center;
-    gap: var(--space-2xl);
+    gap: var(--space-12);
     flex-wrap: wrap;
-    margin-bottom: var(--space-xl);
-    padding: var(--space-l);
+    margin-bottom: var(--space-8);
+    padding: var(--space-6);
     background: var(--color-surface);
-    border-radius: var(--radius-m);
+    border-radius: var(--radius-md);
     border: none;
     box-shadow: var(--elevation-low);
 }
@@ -53,7 +53,7 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: var(--space-xs);
+    gap: var(--space-2);
 }
 
 .api-stat strong {
@@ -64,26 +64,26 @@
 
 .api-stat span {
     font-size: var(--text-sm);
-    color: var(--color-text-muted);
+    color: var(--color-text-primary-muted);
     text-transform: uppercase;
     letter-spacing: 0.05em;
 }
 
 /* API Modules Section */
 .api-modules {
-    margin-top: var(--space-xl);
+    margin-top: var(--space-8);
 }
 
 .api-section {
-    margin-bottom: var(--space-2xl);
+    margin-bottom: var(--space-12);
 }
 
 .api-section-title {
     font-size: var(--text-xl);
     font-weight: 600;
-    color: var(--color-text);
-    margin-bottom: var(--space-m);
-    padding-bottom: var(--space-s);
+    color: var(--color-text-primary);
+    margin-bottom: var(--space-4);
+    padding-bottom: var(--space-3);
     border-bottom: 2px solid var(--color-border);
 }
 
@@ -91,13 +91,13 @@
 .api-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: var(--space-l);
+    gap: var(--space-6);
 }
 
 @media (max-width: 640px) {
     .api-grid {
         grid-template-columns: 1fr;
-        gap: var(--space-m);
+        gap: var(--space-4);
     }
 }
 
@@ -106,7 +106,7 @@
     background: var(--color-surface);
     border: none;
     border-radius: var(--radius-xl);
-    padding: var(--space-l);
+    padding: var(--space-6);
     box-shadow: var(--elevation-card);
     transition: all 0.2s ease;
     transform: translateY(0);
@@ -120,8 +120,8 @@
 .api-module-header {
     display: flex;
     align-items: center;
-    gap: var(--space-s);
-    margin-bottom: var(--space-s);
+    gap: var(--space-3);
+    margin-bottom: var(--space-3);
 }
 
 .api-module-icon {
@@ -133,11 +133,11 @@
     font-size: var(--text-xl);
     font-weight: 600;
     line-height: 1.3;
-    margin: 0 0 var(--space-s) 0;
+    margin: 0 0 var(--space-3) 0;
 }
 
 .api-module-title a {
-    color: var(--color-text);
+    color: var(--color-text-primary);
     text-decoration: none;
 }
 
@@ -146,29 +146,29 @@
 }
 
 .api-module-content {
-    margin-top: var(--space-s);
+    margin-top: var(--space-3);
 }
 
 .api-module-description {
     font-size: var(--text-base);
-    color: var(--color-text-secondary);
+    color: var(--color-text-primary-secondary);
     line-height: 1.6;
-    margin-top: var(--space-s);
-    margin-bottom: var(--space-m);
+    margin-top: var(--space-3);
+    margin-bottom: var(--space-4);
 }
 
 .api-module-meta {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--space-m);
+    gap: var(--space-4);
     font-size: var(--text-sm);
-    color: var(--color-text-muted);
+    color: var(--color-text-primary-muted);
 }
 
 .api-meta-item {
     display: flex;
     align-items: center;
-    gap: var(--space-xs);
+    gap: var(--space-2);
 }
 
 .api-meta-item svg {
@@ -178,8 +178,8 @@
 /* Empty State */
 .api-empty {
     text-align: center;
-    padding: var(--space-2xl);
-    color: var(--color-text-muted);
+    padding: var(--space-12);
+    color: var(--color-text-primary-muted);
 }
 
 /* ============================================
@@ -189,33 +189,33 @@
 .cli-reference-container {
     max-width: var(--content-max-width, 1200px);
     margin: 0 auto;
-    padding: var(--space-l) var(--space-m);
+    padding: var(--space-6) var(--space-4);
 }
 
 .cli-reference-header {
-    margin-bottom: var(--space-2xl);
-    padding: var(--space-xl) 0;
+    margin-bottom: var(--space-12);
+    padding: var(--space-8) 0;
 }
 
 .cli-reference-header h1 {
     font-size: var(--text-3xl);
     font-weight: 700;
-    color: var(--color-text);
-    margin-bottom: var(--space-s);
+    color: var(--color-text-primary);
+    margin-bottom: var(--space-3);
 }
 
 .cli-reference-description {
     font-size: var(--text-lg);
-    color: var(--color-text-muted);
+    color: var(--color-text-primary-muted);
     line-height: 1.6;
 }
 
 /* CLI Intro Section */
 .cli-intro {
-    margin-bottom: var(--space-xl);
-    padding: var(--space-l);
+    margin-bottom: var(--space-8);
+    padding: var(--space-6);
     background: var(--color-surface);
-    border-radius: var(--radius-m);
+    border-radius: var(--radius-md);
     border-left: 4px solid var(--color-primary);
 }
 
@@ -225,19 +225,19 @@
 
 /* CLI Commands Section */
 .cli-commands {
-    margin-top: var(--space-xl);
+    margin-top: var(--space-8);
 }
 
 .cli-section {
-    margin-bottom: var(--space-2xl);
+    margin-bottom: var(--space-12);
 }
 
 .cli-section-title {
     font-size: var(--text-xl);
     font-weight: 600;
-    color: var(--color-text);
-    margin-bottom: var(--space-m);
-    padding-bottom: var(--space-s);
+    color: var(--color-text-primary);
+    margin-bottom: var(--space-4);
+    padding-bottom: var(--space-3);
     border-bottom: 2px solid var(--color-border);
 }
 
@@ -245,13 +245,13 @@
 .cli-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: var(--space-l);
+    gap: var(--space-6);
 }
 
 @media (max-width: 768px) {
     .cli-grid {
         grid-template-columns: 1fr;
-        gap: var(--space-m);
+        gap: var(--space-4);
     }
 }
 
@@ -260,7 +260,7 @@
     background: var(--color-surface);
     border: none;
     border-radius: var(--radius-xl);
-    padding: var(--space-l);
+    padding: var(--space-6);
     box-shadow: var(--elevation-card);
     transition: all 0.2s ease;
     transform: translateY(0);
@@ -274,8 +274,8 @@
 .cli-command-header {
     display: flex;
     align-items: center;
-    gap: var(--space-s);
-    margin-bottom: var(--space-s);
+    gap: var(--space-3);
+    margin-bottom: var(--space-3);
 }
 
 .cli-command-icon {
@@ -287,11 +287,11 @@
     font-size: var(--text-xl);
     font-weight: 600;
     line-height: 1.3;
-    margin: 0 0 var(--space-s) 0;
+    margin: 0 0 var(--space-3) 0;
 }
 
 .cli-command-title a {
-    color: var(--color-text);
+    color: var(--color-text-primary);
     text-decoration: none;
 }
 
@@ -300,47 +300,47 @@
 }
 
 .cli-command-content {
-    margin-top: var(--space-s);
+    margin-top: var(--space-3);
 }
 
 .cli-command-description {
     font-size: var(--text-base);
-    color: var(--color-text-secondary);
+    color: var(--color-text-primary-secondary);
     line-height: 1.6;
-    margin-top: var(--space-s);
-    margin-bottom: var(--space-m);
+    margin-top: var(--space-3);
+    margin-bottom: var(--space-4);
 }
 
 .cli-usage {
     display: block;
     font-family: var(--font-mono);
     font-size: var(--text-sm);
-    background: var(--color-code-bg);
+    background: var(--color-bg-code);
     color: var(--color-code-text);
-    padding: var(--space-xs) var(--space-s);
-    border-radius: var(--radius-s);
-    margin: var(--space-s) 0;
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-sm);
+    margin: var(--space-3) 0;
     overflow-x: auto;
 }
 
 .cli-command-meta {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--space-m);
+    gap: var(--space-4);
     font-size: var(--text-sm);
-    color: var(--color-text-muted);
-    margin: var(--space-s) 0;
+    color: var(--color-text-primary-muted);
+    margin: var(--space-3) 0;
 }
 
 .cli-meta-item {
     display: flex;
     align-items: center;
-    gap: var(--space-xs);
+    gap: var(--space-2);
 }
 
 .cli-command-link {
     display: inline-block;
-    margin-top: var(--space-s);
+    margin-top: var(--space-3);
     color: var(--color-primary);
     text-decoration: none;
     font-size: var(--text-sm);
@@ -357,17 +357,17 @@
 
 /* CLI Help Section */
 .cli-help {
-    margin-top: var(--space-2xl);
-    padding: var(--space-l);
+    margin-top: var(--space-12);
+    padding: var(--space-6);
     background: var(--color-surface);
-    border-radius: var(--radius-m);
+    border-radius: var(--radius-md);
     border: 1px solid var(--color-border);
 }
 
 .cli-help h2 {
     font-size: var(--text-xl);
     font-weight: 600;
-    margin-bottom: var(--space-m);
+    margin-bottom: var(--space-4);
 }
 
 .cli-help-content pre {
@@ -377,8 +377,8 @@
 /* Empty State */
 .cli-empty {
     text-align: center;
-    padding: var(--space-2xl);
-    color: var(--color-text-muted);
+    padding: var(--space-12);
+    color: var(--color-text-primary-muted);
 }
 
 /* ============================================
@@ -404,13 +404,13 @@
 @media (max-width: 768px) {
     .api-module-card,
     .cli-command-card {
-        padding: var(--space-m);
+        padding: var(--space-4);
     }
     
     .api-reference-header,
     .cli-reference-header {
-        margin-bottom: var(--space-l);
-        padding: var(--space-l) 0;
+        margin-bottom: var(--space-6);
+        padding: var(--space-6) 0;
     }
 }
 

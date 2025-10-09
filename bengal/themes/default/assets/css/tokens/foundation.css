@@ -35,6 +35,18 @@
   --green-800: #2e7d32;
   --green-900: #1b5e20;
   
+  /* Purple Scale */
+  --purple-50: #f3e5f5;
+  --purple-100: #e1bee7;
+  --purple-200: #ce93d8;
+  --purple-300: #ba68c8;
+  --purple-400: #ab47bc;
+  --purple-500: #9c27b0;
+  --purple-600: #8e24aa;
+  --purple-700: #7b1fa2;
+  --purple-800: #6a1b9a;
+  --purple-900: #4a148c;
+  
   /* Orange Scale */
   --orange-50: #fff3e0;
   --orange-100: #ffe0b2;

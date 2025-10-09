@@ -45,9 +45,9 @@
 .api-function-header {
   display: flex;
   align-items: center;
-  gap: var(--space-l);
-  margin: var(--space-2xl) 0 var(--space-l) 0;
-  padding-bottom: var(--space-l);
+  gap: var(--space-6);
+  margin: var(--space-12) 0 var(--space-6) 0;
+  padding-bottom: var(--space-6);
   border-bottom: 1px solid var(--color-border-light);
 }
 
@@ -62,11 +62,11 @@
   margin-left: auto;
   display: inline-flex;
   align-items: center;
-  gap: var(--space-xs);
-  padding: var(--space-xs) var(--space-s);
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-s);
+  border-radius: var(--radius-sm);
   font-size: var(--text-sm);
   color: var(--color-text-muted);
   text-decoration: none;
@@ -89,8 +89,8 @@
   background: var(--color-bg-elevated);
   border-left: 4px solid var(--color-primary);
   border-radius: var(--radius-lg);
-  padding: var(--space-l);
-  margin: var(--space-m) 0 var(--space-l) 0;
+  padding: var(--space-6);
+  margin: var(--space-4) 0 var(--space-6) 0;
   position: relative;
   box-shadow: var(--elevation-subtle);
 }
@@ -113,7 +113,7 @@
   color: var(--color-code-type);
   font-weight: var(--font-medium);
   padding: 0.2em 0.5em;
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-sm);
   font-size: 0.9em;
 }
 
@@ -130,11 +130,11 @@
 .prose.api-content h4 + ul,
 .prose.api-content h5 + ul {
   background: var(--color-bg-elevated);
-  padding: var(--space-l) var(--space-l) var(--space-l) var(--space-2xl);
+  padding: var(--space-6) var(--space-6) var(--space-6) var(--space-12);
   border-radius: var(--radius-lg);
   border: none;
   box-shadow: var(--elevation-subtle);
-  margin: var(--space-m) 0;
+  margin: var(--space-4) 0;
 }
 
 /* ============================================
@@ -149,10 +149,10 @@
 /* Special styling for Returns: and Raises: paragraphs - API docs only */
 .prose.api-content p:has(strong:first-child) {
   background: var(--color-surface);
-  padding: var(--space-s) var(--space-m);
-  border-radius: var(--radius-m);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
   border-left: 3px solid var(--color-info);
-  margin: var(--space-m) 0;
+  margin: var(--space-4) 0;
 }
 
 /* Raises section with danger color - API docs only */
@@ -168,15 +168,15 @@
 .api-badge {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-xs);
+  gap: var(--space-2);
   padding: 0.35em 0.85em;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-mdd);
   font-size: var(--text-xs);
   font-weight: var(--font-semibold);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   vertical-align: middle;
-  margin-left: var(--space-s);
+  margin-left: var(--space-3);
   box-shadow: var(--elevation-subtle);
 }
 
@@ -220,12 +220,12 @@
   display: inline-flex;
   align-items: center;
   padding: 0.25em 0.75em;
-  border-radius: var(--radius-s);
+  border-radius: var(--radius-sm);
   font-size: var(--text-xs);
   font-weight: var(--font-semibold);
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  margin-left: var(--space-s);
+  margin-left: var(--space-3);
   vertical-align: middle;
 }
 
@@ -282,9 +282,9 @@
 .prose.api-content p:has(strong:contains("Attributes")) + ul {
   background: var(--color-surface);
   border-left: 3px solid var(--color-primary);
-  padding: var(--space-m) var(--space-m) var(--space-m) var(--space-xl);
-  border-radius: var(--radius-m);
-  margin: var(--space-s) 0 var(--space-m) 0;
+  padding: var(--space-4) var(--space-4) var(--space-4) var(--space-8);
+  border-radius: var(--radius-md);
+  margin: var(--space-3) 0 var(--space-4) 0;
 }
 
 /* Properties section - API docs only */
@@ -301,7 +301,7 @@
 
 /* Example sections - API docs only */
 .prose.api-content p:has(strong:contains("Examples")) {
-  margin-top: var(--space-l);
+  margin-top: var(--space-6);
   color: var(--color-text-primary);
   font-weight: var(--font-semibold);
 }
@@ -319,9 +319,9 @@
 .prose.api-content .info {
   background: var(--color-info-bg);
   border-left: 3px solid var(--color-info);
-  padding: var(--space-l);
+  padding: var(--space-6);
   border-radius: var(--radius-lg);
-  margin: var(--space-m) 0;
+  margin: var(--space-4) 0;
   font-size: var(--text-sm);
   box-shadow: var(--elevation-subtle);
 }
@@ -329,9 +329,9 @@
 .prose.api-content .warning {
   background: var(--color-warning-bg);
   border-left: 3px solid var(--color-warning);
-  padding: var(--space-l);
+  padding: var(--space-6);
   border-radius: var(--radius-lg);
-  margin: var(--space-m) 0;
+  margin: var(--space-4) 0;
   box-shadow: var(--elevation-subtle);
 }
 
@@ -341,7 +341,7 @@
 
 /* Horizontal rules between methods/functions */
 .prose hr {
-  margin: var(--space-xl) 0;
+  margin: var(--space-8) 0;
   border-top: 2px solid var(--color-border-light);
 }
 
@@ -352,11 +352,11 @@
 /* "Inherits from:" line */
 .prose p:has(strong:contains("Inherits")) {
   background: var(--color-surface);
-  padding: var(--space-s) var(--space-m);
-  border-radius: var(--radius-m);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
   border-left: 3px solid var(--color-primary);
   font-size: var(--text-sm);
-  margin: var(--space-s) 0;
+  margin: var(--space-3) 0;
 }
 
 /* ============================================
@@ -373,21 +373,21 @@
   
   .api-source-link {
     margin-left: 0;
-    margin-top: var(--space-s);
+    margin-top: var(--space-3);
   }
   
   /* Make code blocks more readable on mobile */
   .prose.api-content h3 + pre,
   .prose.api-content h4 + pre {
     font-size: 0.85rem;
-    padding: var(--space-m);
+    padding: var(--space-4);
   }
   
   /* Reduce padding on parameter lists */
   .prose.api-content p + ul,
   .prose.api-content h4 + ul,
   .prose.api-content h5 + ul {
-    padding: var(--space-m) var(--space-m) var(--space-m) var(--space-l);
+    padding: var(--space-4) var(--space-4) var(--space-4) var(--space-6);
   }
 }
 
@@ -415,16 +415,16 @@
 .api-parameter-list {
   display: grid;
   grid-template-columns: minmax(120px, 1fr) minmax(100px, auto) 2fr;
-  gap: var(--space-m);
-  padding: var(--space-m);
+  gap: var(--space-4);
+  padding: var(--space-4);
   background: var(--color-surface);
-  border-radius: var(--radius-m);
+  border-radius: var(--radius-md);
   border: 1px solid var(--color-border-light);
-  margin: var(--space-m) 0;
+  margin: var(--space-4) 0;
 }
 
 .api-parameter-list > div {
-  padding: var(--space-s);
+  padding: var(--space-3);
   border-bottom: 1px solid var(--color-border-light);
 }
 
@@ -440,7 +440,7 @@
   color: var(--color-text-muted);
   background: var(--color-code-type-bg);
   padding: 0.25em 0.5em;
-  border-radius: var(--radius-s);
+  border-radius: var(--radius-sm);
   width: fit-content;
 }
 
@@ -452,7 +452,7 @@
 @media (max-width: 768px) {
   .api-parameter-list {
     grid-template-columns: 1fr;
-    gap: var(--space-xs);
+    gap: var(--space-2);
   }
 }
 

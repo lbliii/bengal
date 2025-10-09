@@ -24,8 +24,8 @@
 
 pre {
   position: relative;
-  margin: var(--space-l) 0;
-  padding: var(--space-l);
+  margin: var(--space-6) 0;
+  padding: var(--space-6);
   background-color: var(--color-bg-code);
   border: none;
   border-radius: var(--radius-xl);
