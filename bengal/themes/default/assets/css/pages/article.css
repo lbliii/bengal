@@ -77,6 +77,38 @@
 }
 
 /* ============================================
+   DOCS META (Minimal Design)
+   ============================================ */
+
+.docs-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4);
+  margin-top: var(--space-4);
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+}
+
+.docs-meta-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text-tertiary);
+  opacity: 0.8;
+  transition: opacity var(--transition-fast);
+}
+
+.docs-meta-item:hover {
+  opacity: 1;
+}
+
+.docs-meta-item svg {
+  flex-shrink: 0;
+  opacity: 0.6;
+}
+
+/* ============================================
    ARTICLE CONTENT
    ============================================ */
 

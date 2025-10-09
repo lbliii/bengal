@@ -43,14 +43,14 @@ The `info` admonition is great for providing additional context or background in
 
 ### Warning Admonition
 
-```{warning} Pay Attention!
+````{warning} Pay Attention!
 Warnings should be used for important caveats, potential issues, or things users need to be careful about.
 
 ```python
 # Be careful with this code!
 dangerous_operation()
 ```
-```
+````
 
 ### Danger Admonition
 

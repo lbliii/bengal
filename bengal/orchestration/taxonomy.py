@@ -180,8 +180,9 @@ class TaxonomyOrchestrator:
             for tag_slug in removed_tags:
                 if tag_slug in self.site.taxonomies['tags']:
                     tag_data = self.site.taxonomies['tags'][tag_slug]
-                    # Remove page from list (using id() for comparison)
-                    tag_data['pages'] = [p for p in tag_data['pages'] if id(p) != id(page)]
+                    # Remove page from list (compare by source_path, not id)
+                    # In incremental builds, pages are reloaded so id() won't match
+                    tag_data['pages'] = [p for p in tag_data['pages'] if p.source_path != page.source_path]
                     affected_tags.add(tag_slug)
                     
                     # Remove empty tag entries
@@ -211,7 +212,8 @@ class TaxonomyOrchestrator:
                 if tag_slug in self.site.taxonomies['tags']:
                     tag_data = self.site.taxonomies['tags'][tag_slug]
                     # Update page reference (remove old, add new)
-                    tag_data['pages'] = [p for p in tag_data['pages'] if id(p) != id(page)]
+                    # Compare by source_path since page objects are reloaded in incremental builds
+                    tag_data['pages'] = [p for p in tag_data['pages'] if p.source_path != page.source_path]
                     tag_data['pages'].append(page)
                     # Mark as affected (page content/date may have changed, affecting sort order)
                     affected_tags.add(tag_slug)

@@ -6,10 +6,13 @@ Provides 8 functions for working with JSON, YAML, and nested data structures.
 
 import json
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
     from jinja2 import Environment
     from bengal.core.site import Site
+
+logger = get_logger(__name__)
 
 
 def register(env: 'Environment', site: 'Site') -> None:
@@ -52,6 +55,7 @@ def get_data(path: str, root_path: Any) -> Any:
         {% endfor %}
     """
     if not path:
+        logger.debug("get_data_empty_path", caller="template")
         return {}
     
     from pathlib import Path
@@ -59,6 +63,12 @@ def get_data(path: str, root_path: Any) -> Any:
     file_path = Path(root_path) / path
     
     if not file_path.exists():
+        logger.warning(
+            "data_file_not_found",
+            path=path,
+            attempted=str(file_path),
+            caller="template"
+        )
         return {}
     
     try:
@@ -67,20 +77,62 @@ def get_data(path: str, root_path: Any) -> Any:
             
         # Try JSON first
         if path.endswith('.json'):
-            return json.loads(content)
+            data = json.loads(content)
+            logger.debug(
+                "data_loaded", 
+                path=path, 
+                format="json",
+                size_bytes=len(content),
+                keys=len(data) if isinstance(data, dict) else None
+            )
+            return data
         
         # Try YAML
         if path.endswith(('.yaml', '.yml')):
             try:
                 import yaml
-                return yaml.safe_load(content)
+                data = yaml.safe_load(content)
+                logger.debug(
+                    "data_loaded",
+                    path=path,
+                    format="yaml",
+                    size_bytes=len(content),
+                    keys=len(data) if isinstance(data, dict) else None
+                )
+                return data
             except ImportError:
+                logger.warning(
+                    "yaml_not_available",
+                    path=path,
+                    message="PyYAML not installed, cannot load YAML files",
+                    caller="template"
+                )
                 return {}
         
         # Fallback: try JSON
-        return json.loads(content)
+        data = json.loads(content)
+        logger.debug("data_loaded", path=path, format="json_fallback", size_bytes=len(content))
+        return data
         
-    except (json.JSONDecodeError, Exception):
+    except json.JSONDecodeError as e:
+        logger.error(
+            "data_parse_error",
+            path=path,
+            format="json",
+            error=str(e),
+            line=e.lineno,
+            column=e.colno,
+            caller="template"
+        )
+        return {}
+    except Exception as e:
+        logger.error(
+            "data_load_error",
+            path=path,
+            error=str(e),
+            error_type=type(e).__name__,
+            caller="template"
+        )
         return {}
 
 

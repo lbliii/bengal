@@ -10,7 +10,7 @@
    * Initialize all tab components
    */
   function initTabs() {
-    const tabContainers = document.querySelectorAll('.tabs');
+    const tabContainers = document.querySelectorAll('.tabs, .code-tabs');
     
     tabContainers.forEach(container => {
       const tabLinks = container.querySelectorAll('.tab-nav a');

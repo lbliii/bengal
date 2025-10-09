@@ -3,294 +3,22 @@ Development server with file watching and hot reload.
 """
 
 from pathlib import Path
-from typing import Any, Optional, Set
-import http.server
+from typing import Any
 import socketserver
 import socket
 import threading
 import time
 import os
-from datetime import datetime
 from watchdog.observers import Observer
-from watchdog.events import FileSystemEventHandler, FileSystemEvent
 
-from bengal.utils.build_stats import display_build_stats, show_building_indicator, show_error
+from bengal.utils.build_stats import display_build_stats, show_building_indicator
+from bengal.utils.logger import get_logger
 from bengal.server.resource_manager import ResourceManager
 from bengal.server.pid_manager import PIDManager
+from bengal.server.request_handler import BengalRequestHandler
+from bengal.server.build_handler import BuildHandler
 
-
-class QuietHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
-    """
-    Custom HTTP request handler with beautiful, minimal logging and custom 404 page.
-    """
-    
-    # Suppress default server version header
-    server_version = "Bengal/1.0"
-    sys_version = ""
-    
-    def send_error(self, code: int, message: str = None, explain: str = None) -> None:
-        """
-        Override send_error to serve custom 404 page.
-        
-        Args:
-            code: HTTP error code
-            message: Error message
-            explain: Detailed explanation
-        """
-        # If it's a 404 error, try to serve custom 404.html
-        if code == 404:
-            custom_404_path = Path(self.directory) / "404.html"
-            if custom_404_path.exists():
-                try:
-                    # Read custom 404 page
-                    with open(custom_404_path, 'rb') as f:
-                        content = f.read()
-                    
-                    # Send custom 404 response
-                    self.send_response(404)
-                    self.send_header("Content-Type", "text/html; charset=utf-8")
-                    self.send_header("Content-Length", str(len(content)))
-                    self.end_headers()
-                    self.wfile.write(content)
-                    return
-                except Exception:
-                    # If custom 404 fails, fall back to default
-                    pass
-        
-        # Fall back to default error handling for non-404 or if custom 404 failed
-        super().send_error(code, message, explain)
-    
-    def log_message(self, format: str, *args: Any) -> None:
-        """
-        Log an HTTP request with beautiful formatting.
-        
-        Args:
-            format: Format string
-            *args: Format arguments
-        """
-        # Skip certain requests that clutter the logs
-        path = args[0] if args else ""
-        status_code = args[1] if len(args) > 1 else ""
-        
-        # Skip these noisy requests
-        skip_patterns = [
-            "/.well-known/",
-            "/favicon.ico",
-            "/favicon.png",
-        ]
-        
-        for pattern in skip_patterns:
-            if pattern in path:
-                return
-        
-        # Get request method and path
-        parts = path.split()
-        method = parts[0] if parts else "GET"
-        request_path = parts[1] if len(parts) > 1 else "/"
-        
-        # Skip assets unless they're errors or initial loads
-        is_asset = any(request_path.startswith(prefix) for prefix in ['/assets/', '/static/'])
-        is_cached = status_code == "304"
-        is_success = status_code.startswith("2")
-        
-        # Only show assets if they're errors, not cached successful loads
-        if is_asset and (is_cached or is_success):
-            return
-        
-        # Skip 304s entirely - they're just cache hits
-        if is_cached:
-            return
-        
-        # Colorize status codes
-        status_color = self._get_status_color(status_code)
-        method_color = self._get_method_color(method)
-        
-        # Format path nicely
-        if len(request_path) > 60:
-            request_path = request_path[:57] + "..."
-        
-        # Get timestamp
-        timestamp = datetime.now().strftime("%H:%M:%S")
-        
-        # Add emoji indicators for different types
-        indicator = ""
-        if not is_asset:
-            if status_code.startswith("2"):
-                indicator = "📄 "  # Page load
-            elif status_code.startswith("4"):
-                indicator = "❌ "  # Error
-        
-        # Beautiful output
-        print(f"  {timestamp} │ {method_color}{method:6}{self._reset()} │ {status_color}{status_code:3}{self._reset()} │ {indicator}{request_path}")
-    
-    def _get_status_color(self, status: str) -> str:
-        """Get ANSI color code for status code."""
-        try:
-            code = int(status)
-            if 200 <= code < 300:
-                return "\033[32m"  # Green
-            elif code == 304:
-                return "\033[90m"  # Gray
-            elif 300 <= code < 400:
-                return "\033[36m"  # Cyan
-            elif 400 <= code < 500:
-                return "\033[33m"  # Yellow
-            else:
-                return "\033[31m"  # Red
-        except (ValueError, TypeError):
-            return ""
-    
-    def _get_method_color(self, method: str) -> str:
-        """Get ANSI color code for HTTP method."""
-        colors = {
-            "GET": "\033[36m",     # Cyan
-            "POST": "\033[33m",    # Yellow
-            "PUT": "\033[35m",     # Magenta
-            "DELETE": "\033[31m",  # Red
-            "PATCH": "\033[35m",   # Magenta
-        }
-        return colors.get(method, "\033[37m")  # Default white
-    
-    def _reset(self) -> str:
-        """Get ANSI reset code."""
-        return "\033[0m"
-    
-    def log_error(self, format: str, *args: Any) -> None:
-        """
-        Suppress error logging - we handle everything in log_message.
-        
-        Args:
-            format: Format string
-            *args: Format arguments
-        """
-        # All error logging is handled in log_message with proper filtering
-        # This prevents duplicate error messages
-        pass
-
-
-class BuildHandler(FileSystemEventHandler):
-    """
-    File system event handler that triggers site rebuild with debouncing.
-    """
-    
-    # Debounce delay in seconds
-    DEBOUNCE_DELAY = 0.2
-    
-    def __init__(self, site: Any) -> None:
-        """
-        Initialize the build handler.
-        
-        Args:
-            site: Site instance
-        """
-        self.site = site
-        self.building = False
-        self.pending_changes: Set[str] = set()
-        self.debounce_timer: Optional[threading.Timer] = None
-        self.timer_lock = threading.Lock()
-    
-    def _should_ignore_file(self, file_path: str) -> bool:
-        """
-        Check if file should be ignored (temp files, swap files, etc).
-        
-        Args:
-            file_path: Path to file
-            
-        Returns:
-            True if file should be ignored
-        """
-        ignore_patterns = [
-            '.swp', '.swo', '.swx',  # Vim swap files
-            '.tmp', '~',              # Temp files
-            '.pyc', '.pyo',           # Python cache
-            '__pycache__',            # Python cache dir
-            '.DS_Store',              # macOS
-            '.git',                   # Git
-            '.bengal-cache.json',     # Bengal cache
-        ]
-        
-        path = Path(file_path)
-        name = path.name
-        
-        # Check if file matches any ignore pattern
-        for pattern in ignore_patterns:
-            if pattern in name or name.endswith(pattern):
-                return True
-        
-        return False
-    
-    def _trigger_build(self) -> None:
-        """Execute the actual build (called after debounce delay)."""
-        with self.timer_lock:
-            self.debounce_timer = None
-            
-            if self.building:
-                return
-            
-            self.building = True
-            
-            # Get first changed file for display
-            file_name = "multiple files"
-            if self.pending_changes:
-                first_file = next(iter(self.pending_changes))
-                file_name = Path(first_file).name
-                if len(self.pending_changes) > 1:
-                    file_name = f"{file_name} (+{len(self.pending_changes) - 1} more)"
-            
-            self.pending_changes.clear()
-            
-            timestamp = datetime.now().strftime("%H:%M:%S")
-            print(f"\n  \033[90m{'─' * 78}\033[0m")
-            print(f"  {timestamp} │ \033[33m📝 File changed:\033[0m {file_name}")
-            print(f"  \033[90m{'─' * 78}\033[0m\n")
-            show_building_indicator("Rebuilding")
-            
-            try:
-                # Use incremental + parallel for fast dev server rebuilds (5-10x faster)
-                # Cache invalidation auto-detects config/template changes and falls back to full rebuild
-                stats = self.site.build(parallel=True, incremental=True)
-                display_build_stats(stats, show_art=False, output_dir=str(self.site.output_dir))
-                print(f"\n  \033[90m{'TIME':8} │ {'METHOD':6} │ {'STATUS':3} │ PATH\033[0m")
-                print(f"  \033[90m{'─' * 8}─┼─{'─' * 6}─┼─{'─' * 3}─┼─{'─' * 60}\033[0m")
-            except Exception as e:
-                show_error(f"Build failed: {e}", show_art=False)
-                print(f"\n  \033[90m{'TIME':8} │ {'METHOD':6} │ {'STATUS':3} │ PATH\033[0m")
-                print(f"  \033[90m{'─' * 8}─┼─{'─' * 6}─┼─{'─' * 3}─┼─{'─' * 60}\033[0m")
-            finally:
-                self.building = False
-    
-    def on_modified(self, event: FileSystemEvent) -> None:
-        """
-        Handle file modification events with debouncing.
-        
-        Args:
-            event: File system event
-        """
-        if event.is_directory:
-            return
-        
-        # Skip files in output directory
-        try:
-            Path(event.src_path).relative_to(self.site.output_dir)
-            return
-        except ValueError:
-            pass
-        
-        # Skip temp files and other files that should be ignored
-        if self._should_ignore_file(event.src_path):
-            return
-        
-        # Add to pending changes
-        self.pending_changes.add(event.src_path)
-        
-        # Cancel existing timer and start new one (debouncing)
-        with self.timer_lock:
-            if self.debounce_timer:
-                self.debounce_timer.cancel()
-            
-            self.debounce_timer = threading.Timer(self.DEBOUNCE_DELAY, self._trigger_build)
-            self.debounce_timer.daemon = True
-            self.debounce_timer.start()
+logger = get_logger(__name__)
 
 
 class DevServer:
@@ -319,6 +47,14 @@ class DevServer:
     
     def start(self) -> None:
         """Start the development server with robust resource cleanup."""
+        logger.info("dev_server_starting",
+                   host=self.host,
+                   port=self.port,
+                   watch_enabled=self.watch,
+                   auto_port=self.auto_port,
+                   open_browser=self.open_browser,
+                   site_root=str(self.site.root_path))
+        
         # Check for and handle stale processes
         self._check_stale_processes()
         
@@ -328,6 +64,10 @@ class DevServer:
             show_building_indicator("Initial build")
             stats = self.site.build()
             display_build_stats(stats, show_art=False, output_dir=str(self.site.output_dir))
+            
+            logger.debug("initial_build_complete",
+                        pages_built=stats.total_pages,
+                        duration_ms=stats.build_time_ms)
             
             # Create and register PID file for this process
             pid_file = PIDManager.get_pid_file(self.site.root_path)
@@ -339,6 +79,8 @@ class DevServer:
                 observer = self._create_observer()
                 rm.register_observer(observer)
                 observer.start()
+                logger.info("file_watcher_started",
+                           watch_dirs=self._get_watched_directories())
             
             # Create and start HTTP server
             httpd, actual_port = self._create_server()
@@ -347,9 +89,17 @@ class DevServer:
             # Open browser if requested
             if self.open_browser:
                 self._open_browser_delayed(actual_port)
+                logger.debug("browser_opening",
+                            url=f'http://{self.host}:{actual_port}/')
             
-            # Print startup message
+            # Print startup message (keep for UX)
             self._print_startup_message(actual_port)
+            
+            logger.info("dev_server_started",
+                       host=self.host,
+                       port=actual_port,
+                       output_dir=str(self.site.output_dir),
+                       watch_enabled=self.watch)
             
             # Run until interrupted (cleanup happens automatically via ResourceManager)
             try:
@@ -357,37 +107,52 @@ class DevServer:
             except KeyboardInterrupt:
                 # KeyboardInterrupt caught by serve_forever (backup to signal handler)
                 print("\n  👋 Shutting down server...")
+                logger.info("dev_server_shutdown", reason="keyboard_interrupt")
             # ResourceManager cleanup happens automatically via __exit__
     
-    def _create_observer(self) -> Observer:
-        """Create file system observer (does not start it)."""
-        event_handler = BuildHandler(self.site)
-        observer = Observer()
-        
-        # Watch content and assets directories
+    def _get_watched_directories(self) -> list:
+        """Get list of directories that will be watched."""
         watch_dirs = [
             self.site.root_path / "content",
             self.site.root_path / "assets",
             self.site.root_path / "templates",
+            self.site.root_path / "data",
         ]
         
-        # Watch theme directories (both project-level and bundled)
+        # Add theme directories if they exist
         if self.site.theme:
-            # Project-level theme
             project_theme_dir = self.site.root_path / "themes" / self.site.theme
             if project_theme_dir.exists():
                 watch_dirs.append(project_theme_dir)
             
-            # Bundled theme (for Bengal development)
             import bengal
             bengal_dir = Path(bengal.__file__).parent
             bundled_theme_dir = bengal_dir / "themes" / self.site.theme
             if bundled_theme_dir.exists():
                 watch_dirs.append(bundled_theme_dir)
         
+        # Filter to only existing directories
+        return [str(d) for d in watch_dirs if d.exists()]
+    
+    def _create_observer(self) -> Observer:
+        """Create file system observer (does not start it)."""
+        event_handler = BuildHandler(self.site)
+        observer = Observer()
+        
+        # Get all watch directories
+        watch_dirs = self._get_watched_directories()
+        
         for watch_dir in watch_dirs:
-            if watch_dir.exists():
-                observer.schedule(event_handler, str(watch_dir), recursive=True)
+            observer.schedule(event_handler, watch_dir, recursive=True)
+            logger.debug("watching_directory", path=watch_dir, recursive=True)
+        
+        # Watch bengal.toml for config changes
+        # Use non-recursive watching for the root directory to only catch bengal.toml
+        observer.schedule(event_handler, str(self.site.root_path), recursive=False)
+        logger.debug("watching_directory", 
+                    path=str(self.site.root_path), 
+                    recursive=False,
+                    reason="config_file_changes")
         
         return observer
     
@@ -433,11 +198,18 @@ class DevServer:
         stale_pid = PIDManager.check_stale_pid(pid_file)
         
         if stale_pid:
+            port_pid = PIDManager.get_process_on_port(self.port)
+            is_holding_port = port_pid == stale_pid
+            
+            logger.warning("stale_process_detected",
+                          pid=stale_pid,
+                          pid_file=str(pid_file),
+                          holding_port=is_holding_port,
+                          port=self.port if is_holding_port else None)
+            
             print(f"\n⚠️  Found stale Bengal server process (PID {stale_pid})")
             
-            # Check if it's holding our port
-            port_pid = PIDManager.get_process_on_port(self.port)
-            if port_pid == stale_pid:
+            if is_holding_port:
                 print(f"   This process is holding port {self.port}")
             
             # Try to import click for confirmation, fall back to input
@@ -454,39 +226,55 @@ class DevServer:
             if should_kill:
                 if PIDManager.kill_stale_process(stale_pid):
                     print("  ✅ Stale process terminated")
+                    logger.info("stale_process_killed", pid=stale_pid)
                     time.sleep(1)  # Give OS time to release resources
                 else:
                     print(f"  ❌ Failed to kill process")
                     print(f"     Try manually: kill {stale_pid}")
+                    logger.error("stale_process_kill_failed",
+                                pid=stale_pid,
+                                user_action="kill_manually")
                     raise OSError(f"Cannot start: stale process {stale_pid} is still running")
             else:
                 print("  Continuing anyway (may encounter port conflicts)...")
+                logger.warning("stale_process_ignored",
+                              pid=stale_pid,
+                              user_choice="continue_anyway")
     
     def _create_server(self):
         """Create HTTP server (does not start it)."""
         # Change to output directory
         os.chdir(self.site.output_dir)
-        
-        # Create server with our custom handler
-        Handler = QuietHTTPRequestHandler
+        logger.debug("changed_directory", path=str(self.site.output_dir))
         
         # Determine port to use
         actual_port = self.port
         
         # Check if requested port is available
         if not self._is_port_available(self.port):
+            logger.warning("port_unavailable", 
+                          port=self.port,
+                          auto_port_enabled=self.auto_port)
+            
             if self.auto_port:
                 # Try to find an available port
                 try:
                     actual_port = self._find_available_port(self.port + 1)
                     print(f"⚠️  Port {self.port} is already in use")
                     print(f"🔄 Using port {actual_port} instead")
+                    logger.info("port_fallback",
+                               requested_port=self.port,
+                               actual_port=actual_port)
                 except OSError as e:
                     print(f"❌ Port {self.port} is already in use and no alternative ports are available.")
                     print(f"\nTo fix this issue:")
                     print(f"  1. Stop the process using port {self.port}, or")
                     print(f"  2. Specify a different port with: bengal serve --port <PORT>")
                     print(f"  3. Find the blocking process with: lsof -ti:{self.port}")
+                    logger.error("no_ports_available",
+                                requested_port=self.port,
+                                search_range=(self.port + 1, self.port + 10),
+                                user_action="check_running_processes")
                     raise OSError(f"Port {self.port} is already in use") from e
             else:
                 print(f"❌ Port {self.port} is already in use.")
@@ -494,13 +282,21 @@ class DevServer:
                 print(f"  1. Stop the process using port {self.port}, or")
                 print(f"  2. Specify a different port with: bengal serve --port <PORT>")
                 print(f"  3. Find the blocking process with: lsof -ti:{self.port}")
+                logger.error("port_unavailable_no_fallback",
+                            port=self.port,
+                            user_action="specify_different_port")
                 raise OSError(f"Port {self.port} is already in use")
         
         # Allow address reuse to prevent "address already in use" errors on restart
         socketserver.TCPServer.allow_reuse_address = True
         
         # Create server (don't use context manager - ResourceManager handles cleanup)
-        httpd = socketserver.TCPServer((self.host, actual_port), Handler)
+        httpd = socketserver.TCPServer((self.host, actual_port), BengalRequestHandler)
+        
+        logger.info("http_server_created",
+                   host=self.host,
+                   port=actual_port,
+                   handler_class="BengalRequestHandler")
         
         return httpd, actual_port
     
@@ -511,6 +307,14 @@ class DevServer:
         print(f"│{' ' * 78}│")
         print(f"│   \033[36m➜\033[0m  Local:   \033[1mhttp://{self.host}:{port}/\033[0m{' ' * (52 - len(self.host) - len(str(port)))}│")
         print(f"│   \033[90m➜\033[0m  Serving: {str(self.site.output_dir)[:60]}{' ' * max(0, 60 - len(str(self.site.output_dir)))}│")
+        print(f"│{' ' * 78}│")
+        
+        # Show watching status
+        if self.watch:
+            print(f"│   \033[33m⚠\033[0m  File watching enabled (live reload temporarily disabled){' ' * 18}│")
+        else:
+            print(f"│   \033[90m○\033[0m  File watching disabled{' ' * 48}│")
+        
         print(f"│{' ' * 78}│")
         print(f"│   \033[90mPress Ctrl+C to stop (or twice to force quit)\033[0m{' ' * 37}│")
         print(f"╰{'─' * 78}╯\n")
@@ -524,4 +328,3 @@ class DevServer:
             time.sleep(0.5)  # Give server time to start
             webbrowser.open(f'http://{self.host}:{port}/')
         threading.Thread(target=open_browser, daemon=True).start()
-

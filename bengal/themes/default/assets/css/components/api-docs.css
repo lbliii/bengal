@@ -293,7 +293,8 @@
    ============================================ */
 
 /* Bengal's ::: info directive styling enhancement for API docs */
-.prose .info {
+/* Scoped to api-content to prevent conflicts with general prose */
+.prose.api-content .info {
   background: var(--color-info-bg);
   border-left: 4px solid var(--color-info);
   padding: var(--space-m);
@@ -302,7 +303,7 @@
   font-size: var(--text-sm);
 }
 
-.prose .warning {
+.prose.api-content .warning {
   background: var(--color-warning-bg);
   border-left: 4px solid var(--color-warning);
   padding: var(--space-m);

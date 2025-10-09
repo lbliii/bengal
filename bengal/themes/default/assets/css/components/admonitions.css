@@ -44,19 +44,47 @@
 }
 
 /* Admonition Content */
+.admonition > p {
+  margin: 0.75rem 0;
+}
+
+.admonition > p:first-of-type {
+  margin-top: 0;
+}
+
 .admonition > p:last-child {
   margin-bottom: 0;
 }
 
-.admonition > *:not(.admonition-title):first-child {
+/* Remove top margin from first element after title */
+.admonition-title + * {
   margin-top: 0;
+}
+
+/* Spacing for other direct children */
+.admonition > *:not(.admonition-title):not(p) {
+  margin-top: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.admonition > *:not(.admonition-title):first-of-type {
+  margin-top: 0;
+}
+
+.admonition > *:last-child {
+  margin-bottom: 0;
 }
 
 /* List styling in admonitions */
 .admonition ul,
 .admonition ol {
   padding-left: var(--space-8);
-  margin: var(--space-3) 0;
+  margin: 0.75rem 0;
+}
+
+.admonition ul:first-child,
+.admonition ol:first-child {
+  margin-top: 0;
 }
 
 .admonition ul {
@@ -69,6 +97,19 @@
 
 .admonition li {
   margin: var(--space-1) 0;
+}
+
+/* Code blocks in admonitions */
+.admonition pre {
+  margin: 0.75rem 0;
+}
+
+.admonition pre:first-child {
+  margin-top: 0;
+}
+
+.admonition pre:last-child {
+  margin-bottom: 0;
 }
 
 .admonition code {

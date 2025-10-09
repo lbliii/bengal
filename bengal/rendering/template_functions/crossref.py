@@ -6,11 +6,14 @@ Provides 4 functions for Sphinx-style cross-referencing with O(1) performance.
 
 from typing import TYPE_CHECKING, Optional, List
 from markupsafe import Markup
+from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
     from jinja2 import Environment
     from bengal.core.site import Site
     from bengal.core.page import Page
+
+logger = get_logger(__name__)
 
 
 def register(env: 'Environment', site: 'Site') -> None:
@@ -62,28 +65,54 @@ def ref(path: str, index: dict, text: str = None) -> Markup:
             Check out {{ ref('docs/api') }} for details.
     """
     if not path:
+        logger.debug("ref_empty_path", caller="template")
         return Markup('<span class="broken-ref" data-ref="">[empty ref]</span>')
     
     # Try different lookup strategies
     page = None
+    lookup_strategy = None
     
     # Strategy 1: Custom ID (id:xxx)
     if path.startswith('id:'):
         ref_id = path[3:]
         page = index.get('by_id', {}).get(ref_id)
+        lookup_strategy = "by_id"
     
     # Strategy 2: Path lookup (docs/installation)
     elif '/' in path or path.endswith('.md'):
         # Normalize path (remove .md extension if present)
         clean_path = path.replace('.md', '')
         page = index.get('by_path', {}).get(clean_path)
+        lookup_strategy = "by_path"
     
     # Strategy 3: Slug lookup (installation)
     else:
         pages = index.get('by_slug', {}).get(path, [])
         page = pages[0] if pages else None
+        lookup_strategy = "by_slug"
     
     if not page:
+        # Find suggestions for broken reference
+        from difflib import get_close_matches
+        
+        all_refs = []
+        if lookup_strategy == "by_id":
+            all_refs = list(index.get('by_id', {}).keys())
+        elif lookup_strategy == "by_path":
+            all_refs = list(index.get('by_path', {}).keys())
+        else:
+            all_refs = list(index.get('by_slug', {}).keys())
+        
+        suggestions = get_close_matches(path, all_refs, n=3, cutoff=0.6)
+        
+        logger.warning(
+            "xref_not_found",
+            path=path,
+            strategy=lookup_strategy,
+            suggestions=suggestions,
+            caller="template"
+        )
+        
         # Return broken reference indicator
         return Markup(
             f'<span class="broken-ref" data-ref="{path}" '
@@ -93,6 +122,14 @@ def ref(path: str, index: dict, text: str = None) -> Markup:
     # Generate link
     link_text = text or page.title
     url = page.url if hasattr(page, 'url') else f'/{page.slug}/'
+    
+    logger.debug(
+        "xref_resolved",
+        path=path,
+        strategy=lookup_strategy,
+        url=url,
+        page_title=page.title
+    )
     
     return Markup(f'<a href="{url}">{link_text}</a>')
 
@@ -123,17 +160,55 @@ def doc(path: str, index: dict) -> Optional['Page']:
         Last updated: {{ api.metadata.date | date_format('%Y-%m-%d') }}
     """
     if not path:
+        logger.debug("doc_empty_path", caller="template")
         return None
     
     # Try different lookup strategies
+    page = None
+    lookup_strategy = None
+    
     if path.startswith('id:'):
-        return index.get('by_id', {}).get(path[3:])
+        page = index.get('by_id', {}).get(path[3:])
+        lookup_strategy = "by_id"
     elif '/' in path or path.endswith('.md'):
         clean_path = path.replace('.md', '')
-        return index.get('by_path', {}).get(clean_path)
+        page = index.get('by_path', {}).get(clean_path)
+        lookup_strategy = "by_path"
     else:
         pages = index.get('by_slug', {}).get(path, [])
-        return pages[0] if pages else None
+        page = pages[0] if pages else None
+        lookup_strategy = "by_slug"
+    
+    if page:
+        logger.debug(
+            "doc_found",
+            path=path,
+            strategy=lookup_strategy,
+            page_title=page.title
+        )
+    else:
+        # Find suggestions for failed lookup
+        from difflib import get_close_matches
+        
+        all_refs = []
+        if lookup_strategy == "by_id":
+            all_refs = list(index.get('by_id', {}).keys())
+        elif lookup_strategy == "by_path":
+            all_refs = list(index.get('by_path', {}).keys())
+        else:
+            all_refs = list(index.get('by_slug', {}).keys())
+        
+        suggestions = get_close_matches(path, all_refs, n=3, cutoff=0.6)
+        
+        logger.warning(
+            "doc_not_found",
+            path=path,
+            strategy=lookup_strategy,
+            suggestions=suggestions,
+            caller="template"
+        )
+    
+    return page
 
 
 def anchor(heading: str, index: dict, page_path: str = None) -> Markup:

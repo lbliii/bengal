@@ -8,10 +8,13 @@ Note: Some functions are stubs for future PIL/Pillow integration.
 from pathlib import Path
 from typing import TYPE_CHECKING, Tuple, Optional, List
 import base64
+from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
     from jinja2 import Environment
     from bengal.core.site import Site
+
+logger = get_logger(__name__)
 
 
 def register(env: 'Environment', site: 'Site') -> None:
@@ -103,20 +106,57 @@ def image_dimensions(path: str, root_path: Path) -> Optional[Tuple[int, int]]:
         <img width="{{ width }}" height="{{ height }}" src="..." alt="...">
     """
     if not path:
+        logger.debug("image_dimensions_empty_path", caller="template")
         return None
     
+    # Try multiple paths
+    tried_paths = []
     file_path = Path(root_path) / path
+    tried_paths.append(str(file_path))
+    
     if not file_path.exists():
         # Try in assets directory
         file_path = Path(root_path) / 'assets' / path
+        tried_paths.append(str(file_path))
         if not file_path.exists():
+            logger.warning(
+                "image_not_found",
+                path=path,
+                tried_paths=tried_paths,
+                caller="template"
+            )
             return None
     
     try:
         from PIL import Image
         with Image.open(file_path) as img:
-            return img.size
-    except (ImportError, Exception):
+            dimensions = img.size
+            logger.debug(
+                "image_dimensions_extracted",
+                path=path,
+                width=dimensions[0],
+                height=dimensions[1],
+                format=img.format
+            )
+            return dimensions
+    except ImportError:
+        logger.warning(
+            "pillow_not_available",
+            path=path,
+            message="Pillow library not installed, cannot get image dimensions",
+            suggestion="Install with: pip install Pillow",
+            caller="template"
+        )
+        return None
+    except Exception as e:
+        logger.error(
+            "image_read_error",
+            path=path,
+            file_path=str(file_path),
+            error=str(e),
+            error_type=type(e).__name__,
+            caller="template"
+        )
         return None
 
 
@@ -213,12 +253,24 @@ def image_data_uri(path: str, root_path: Path) -> str:
         <img src="{{ image_data_uri('icons/logo.svg') }}" alt="Logo">
     """
     if not path:
+        logger.debug("image_data_uri_empty_path", caller="template")
         return ''
     
+    # Try multiple paths
+    tried_paths = []
     file_path = Path(root_path) / path
+    tried_paths.append(str(file_path))
+    
     if not file_path.exists():
         file_path = Path(root_path) / 'assets' / path
+        tried_paths.append(str(file_path))
         if not file_path.exists():
+            logger.warning(
+                "image_not_found",
+                path=path,
+                tried_paths=tried_paths,
+                caller="template"
+            )
             return ''
     
     try:
@@ -243,14 +295,49 @@ def image_data_uri(path: str, root_path: Path) -> str:
                 svg_text = data.decode('utf-8')
                 # URL encode for data URI
                 from urllib.parse import quote
-                return f"data:{mime_type};utf8,{quote(svg_text)}"
+                data_uri = f"data:{mime_type};utf8,{quote(svg_text)}"
+                logger.debug(
+                    "image_data_uri_created",
+                    path=path,
+                    format="svg",
+                    encoding="utf8",
+                    size_bytes=len(data)
+                )
+                return data_uri
             except UnicodeDecodeError:
                 pass
         
         # Base64 encode for other images
         encoded = base64.b64encode(data).decode('ascii')
-        return f"data:{mime_type};base64,{encoded}"
+        data_uri = f"data:{mime_type};base64,{encoded}"
+        logger.debug(
+            "image_data_uri_created",
+            path=path,
+            mime_type=mime_type,
+            encoding="base64",
+            size_bytes=len(data),
+            encoded_length=len(encoded)
+        )
+        return data_uri
         
-    except (IOError, Exception):
+    except IOError as e:
+        logger.error(
+            "image_read_error",
+            path=path,
+            file_path=str(file_path),
+            error=str(e),
+            error_type="IOError",
+            caller="template"
+        )
+        return ''
+    except Exception as e:
+        logger.error(
+            "image_encoding_error",
+            path=path,
+            file_path=str(file_path),
+            error=str(e),
+            error_type=type(e).__name__,
+            caller="template"
+        )
         return ''
 

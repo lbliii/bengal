@@ -6,6 +6,7 @@
   <h3>Popular Topics</h3>
   <div class="tag-cloud">
     {% for tag, count in top_tags %}
+    <!-- DEBUG: tag={{ tag }}, count={{ count }}, count_type={{ count|string }} -->
     <a href="{{ tag_url(tag) }}" class="tag-bubble" data-count="{{ count }}">
       {{ tag }}
       <span class="tag-count">{{ count }}</span>

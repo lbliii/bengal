@@ -9,6 +9,7 @@ clean separation of concerns.
 """
 
 from typing import TYPE_CHECKING
+from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
     from jinja2 import Environment
@@ -33,6 +34,8 @@ from . import (
     crossref,
 )
 
+logger = get_logger(__name__)
+
 
 def register_all(env: 'Environment', site: 'Site') -> None:
     """
@@ -45,6 +48,8 @@ def register_all(env: 'Environment', site: 'Site') -> None:
         env: Jinja2 environment to register functions with
         site: Site instance for context-aware functions
     """
+    logger.debug("registering_template_functions", phase="template_setup")
+    
     # Phase 1: Essential functions (30 functions)
     strings.register(env, site)
     collections.register(env, site)
@@ -68,6 +73,8 @@ def register_all(env: 'Environment', site: 'Site') -> None:
     
     # Phase 4: Cross-reference functions (5 functions)
     crossref.register(env, site)
+    
+    logger.debug("template_functions_registered", count=17)
 
 
 __all__ = [

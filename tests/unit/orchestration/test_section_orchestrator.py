@@ -180,8 +180,9 @@ class TestSectionOrchestrator:
         assert archive.metadata['_section'] == section
         assert archive.metadata['_posts'] == section.pages
         assert archive.metadata['_subsections'] == section.subsections
-        assert '_paginator' in archive.metadata
-        assert archive.metadata['_page_num'] == 1
+        # Note: _paginator is only added for sections with >20 pages (pagination threshold)
+        # This test has only 1 page, so no pagination
+        assert archive.metadata['_content_type'] == 'archive'
     
     def test_archive_output_path(self, orchestrator, mock_site, tmp_path):
         """Test that archive pages have correct output paths."""

@@ -425,49 +425,138 @@ class MistuneParser(BaseMarkdownParser):
     def _inject_heading_anchors(self, html: str) -> str:
         """
         Inject IDs and headerlinks into heading tags using fast regex (5-10x faster than BS4).
+        Excludes headings inside blockquotes from getting IDs (so they don't appear in TOC).
         
         Single-pass regex replacement handles:
         - h2, h3, h4 headings (matching python-markdown's toc_depth)
         - Existing IDs (preserves them)
         - Heading content with nested HTML
         - Generates clean slugs from heading text
+        - Skips headings inside <blockquote> tags
         
         Args:
             html: HTML content from markdown parser
             
         Returns:
-            HTML with heading IDs and headerlinks added
+            HTML with heading IDs and headerlinks added (except those in blockquotes)
         """
         # Quick rejection: skip if no headings
         if not html or not ('<h2' in html or '<h3' in html or '<h4' in html):
             return html
         
-        def replace_heading(match):
-            """Replace heading with ID and headerlink anchor."""
-            tag = match.group(1)  # 'h2', 'h3', or 'h4'
-            attrs = match.group(2)  # Existing attributes
-            content = match.group(3)  # Heading content
+        # If no blockquotes, use fast path
+        if '<blockquote' not in html:
+            def replace_heading(match):
+                """Replace heading with ID and headerlink anchor."""
+                tag = match.group(1)  # 'h2', 'h3', or 'h4'
+                attrs = match.group(2)  # Existing attributes
+                content = match.group(3)  # Heading content
+                
+                # Skip if already has id= attribute
+                if 'id=' in attrs or 'id =' in attrs:
+                    return match.group(0)
+                
+                # Extract text for slug (strip any HTML tags from content)
+                text = self._HTML_TAG_PATTERN.sub('', content).strip()
+                if not text:
+                    return match.group(0)
+                
+                slug = self._slugify(text)
+                
+                # Build heading with ID and headerlink
+                return (
+                    f'<{tag} id="{slug}"{attrs}>{content}'
+                    f'<a href="#{slug}" class="headerlink" title="Permanent link">¶</a>'
+                    f'</{tag}>'
+                )
             
-            # Skip if already has id= attribute
-            if 'id=' in attrs or 'id =' in attrs:
-                return match.group(0)
-            
-            # Extract text for slug (strip any HTML tags from content)
-            text = self._HTML_TAG_PATTERN.sub('', content).strip()
-            if not text:
-                return match.group(0)
-            
-            slug = self._slugify(text)
-            
-            # Build heading with ID and headerlink
-            return (
-                f'<{tag} id="{slug}"{attrs}>{content}'
-                f'<a href="#{slug}" class="headerlink" title="Permanent link">¶</a>'
-                f'</{tag}>'
-            )
+            try:
+                return self._HEADING_PATTERN.sub(replace_heading, html)
+            except Exception as e:
+                # On any error, return original HTML (safe fallback)
+                import sys
+                print(f"Warning: Error injecting heading anchors: {e}", file=sys.stderr)
+                return html
         
+        # Slow path: need to skip headings inside blockquotes
         try:
-            return self._HEADING_PATTERN.sub(replace_heading, html)
+            import re
+            parts = []
+            in_blockquote = 0  # Track nesting level
+            current_pos = 0
+            
+            # Find all blockquote open/close tags
+            blockquote_pattern = re.compile(r'<(/?)blockquote[^>]*>', re.IGNORECASE)
+            
+            for match in blockquote_pattern.finditer(html):
+                # Process content before this tag
+                before = html[current_pos:match.start()]
+                
+                if in_blockquote == 0:
+                    # Outside blockquote: add anchors
+                    def replace_heading(m):
+                        tag = m.group(1)
+                        attrs = m.group(2)
+                        content = m.group(3)
+                        
+                        if 'id=' in attrs or 'id =' in attrs:
+                            return m.group(0)
+                        
+                        text = self._HTML_TAG_PATTERN.sub('', content).strip()
+                        if not text:
+                            return m.group(0)
+                        
+                        slug = self._slugify(text)
+                        return (
+                            f'<{tag} id="{slug}"{attrs}>{content}'
+                            f'<a href="#{slug}" class="headerlink" title="Permanent link">¶</a>'
+                            f'</{tag}>'
+                        )
+                    
+                    parts.append(self._HEADING_PATTERN.sub(replace_heading, before))
+                else:
+                    # Inside blockquote: keep as-is
+                    parts.append(before)
+                
+                # Add the blockquote tag
+                parts.append(match.group(0))
+                
+                # Update nesting level
+                if match.group(1) == '/':
+                    in_blockquote = max(0, in_blockquote - 1)
+                else:
+                    in_blockquote += 1
+                
+                current_pos = match.end()
+            
+            # Process remaining content
+            remaining = html[current_pos:]
+            if in_blockquote == 0:
+                def replace_heading(m):
+                    tag = m.group(1)
+                    attrs = m.group(2)
+                    content = m.group(3)
+                    
+                    if 'id=' in attrs or 'id =' in attrs:
+                        return m.group(0)
+                    
+                    text = self._HTML_TAG_PATTERN.sub('', content).strip()
+                    if not text:
+                        return m.group(0)
+                    
+                    slug = self._slugify(text)
+                    return (
+                        f'<{tag} id="{slug}"{attrs}>{content}'
+                        f'<a href="#{slug}" class="headerlink" title="Permanent link">¶</a>'
+                        f'</{tag}>'
+                    )
+                
+                parts.append(self._HEADING_PATTERN.sub(replace_heading, remaining))
+            else:
+                parts.append(remaining)
+            
+            return ''.join(parts)
+            
         except Exception as e:
             # On any error, return original HTML (safe fallback)
             import sys
@@ -539,6 +628,11 @@ class MistuneParser(BaseMarkdownParser):
         Returns:
             Slugified text
         """
+        # Decode HTML entities first (&amp; -> &, &lt; -> <, etc.)
+        # This handles cases like "Test & Code" which Mistune renders as "Test &amp; Code"
+        import html
+        text = html.unescape(text)
+        
         # Convert to lowercase
         text = text.lower()
         # Replace spaces and special chars with hyphens

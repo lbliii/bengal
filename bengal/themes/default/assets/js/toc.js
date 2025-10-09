@@ -40,7 +40,8 @@
       if (savedState) {
         const state = JSON.parse(savedState);
         isCompactMode = state.compact || false;
-        collapsedGroups = new Set(state.collapsed || []);
+        // Don't restore collapsed state - start fresh with all collapsed
+        collapsedGroups = new Set();
         
         if (isCompactMode && tocNav) {
           tocNav.setAttribute('data-toc-mode', 'compact');
@@ -113,13 +114,25 @@
       if (index === activeIndex) {
         heading.link.classList.add('active');
         
-        // Auto-expand parent group if collapsed
+        // Auto-expand ONLY the active parent group (collapse others)
         const parentGroup = heading.link.closest('.toc-group');
         if (parentGroup) {
           const groupId = getGroupId(parentGroup);
-          if (collapsedGroups.has(groupId)) {
+          
+          // Expand the active group
+          if (parentGroup.hasAttribute('data-collapsed')) {
             expandGroup(parentGroup, groupId);
           }
+          
+          // Collapse all other groups for minimal view
+          tocGroups.forEach(group => {
+            if (group !== parentGroup) {
+              const otherGroupId = getGroupId(group);
+              if (!group.hasAttribute('data-collapsed')) {
+                collapseGroup(group, otherGroupId);
+              }
+            }
+          });
           
           // Scroll into view if needed
           if (tocScrollContainer) {
@@ -209,10 +222,8 @@
       const toggle = group.querySelector('.toc-group-toggle');
       const groupId = getGroupId(group);
       
-      // Restore collapsed state
-      if (groupId && collapsedGroups.has(groupId)) {
-        collapseGroup(group, groupId);
-      }
+      // All groups start collapsed by default
+      // They are already collapsed via data-collapsed="true" in HTML
       
       if (toggle) {
         toggle.addEventListener('click', (e) => {
@@ -229,9 +240,36 @@
   // ============================================================================
   
   /**
-   * Initialize control buttons (expand/collapse/compact)
+   * Initialize control buttons and settings menu
    */
   function initControlButtons() {
+    // Settings menu toggle
+    const settingsBtn = document.querySelector('[data-toc-action="toggle-settings"]');
+    const settingsMenu = document.querySelector('.toc-settings-menu');
+    
+    if (settingsBtn && settingsMenu) {
+      settingsBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isHidden = settingsMenu.hasAttribute('hidden');
+        
+        if (isHidden) {
+          settingsMenu.removeAttribute('hidden');
+          settingsBtn.setAttribute('aria-expanded', 'true');
+        } else {
+          settingsMenu.setAttribute('hidden', '');
+          settingsBtn.setAttribute('aria-expanded', 'false');
+        }
+      });
+      
+      // Close menu when clicking outside
+      document.addEventListener('click', (e) => {
+        if (!settingsMenu.contains(e.target) && !settingsBtn.contains(e.target)) {
+          settingsMenu.setAttribute('hidden', '');
+          settingsBtn.setAttribute('aria-expanded', 'false');
+        }
+      });
+    }
+    
     // Expand all sections
     const expandAllBtn = document.querySelector('[data-toc-action="expand-all"]');
     if (expandAllBtn) {
@@ -240,6 +278,7 @@
           const groupId = getGroupId(group);
           expandGroup(group, groupId);
         });
+        if (settingsMenu) settingsMenu.setAttribute('hidden', '');
       });
     }
     
@@ -251,50 +290,7 @@
           const groupId = getGroupId(group);
           collapseGroup(group, groupId);
         });
-      });
-    }
-    
-    // Toggle compact mode
-    const compactBtn = document.querySelector('[data-toc-action="toggle-compact"]');
-    if (compactBtn) {
-      compactBtn.addEventListener('click', () => {
-        isCompactMode = !isCompactMode;
-        if (tocNav) {
-          tocNav.setAttribute('data-toc-mode', isCompactMode ? 'compact' : 'normal');
-        }
-        saveState();
-        
-        // Visual feedback
-        compactBtn.style.transform = 'scale(0.9)';
-        setTimeout(() => {
-          compactBtn.style.transform = '';
-        }, 150);
-      });
-    }
-  }
-  
-  // ============================================================================
-  // Quick Navigation
-  // ============================================================================
-  
-  /**
-   * Initialize quick navigation buttons (top/bottom)
-   */
-  function initQuickNavigation() {
-    const jumpTopBtn = document.querySelector('[data-toc-jump="top"]');
-    if (jumpTopBtn) {
-      jumpTopBtn.addEventListener('click', () => {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      });
-    }
-    
-    const jumpBottomBtn = document.querySelector('[data-toc-jump="bottom"]');
-    if (jumpBottomBtn) {
-      jumpBottomBtn.addEventListener('click', () => {
-        window.scrollTo({ 
-          top: document.documentElement.scrollHeight, 
-          behavior: 'smooth' 
-        });
+        if (settingsMenu) settingsMenu.setAttribute('hidden', '');
       });
     }
   }
@@ -430,7 +426,6 @@
     // Initialize all features
     initGroupToggles();
     initControlButtons();
-    initQuickNavigation();
     initSmoothScroll();
     initKeyboardNavigation();
     

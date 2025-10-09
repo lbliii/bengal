@@ -22,46 +22,31 @@
 #}
 
 <div class="toc-sidebar">
-  {# TOC Header with Controls #}
+  {# TOC Header - Minimal #}
   <div class="toc-header">
     <h3 class="toc-title">On This Page</h3>
-    <div class="toc-controls">
-      <button 
-        class="toc-control-btn" 
-        data-toc-action="expand-all"
-        title="Expand all sections"
-        aria-label="Expand all sections">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <polyline points="6 9 12 15 18 9"></polyline>
-        </svg>
-      </button>
-      <button 
-        class="toc-control-btn" 
-        data-toc-action="collapse-all"
-        title="Collapse all sections"
-        aria-label="Collapse all sections">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <polyline points="18 15 12 9 6 15"></polyline>
-        </svg>
-      </button>
-      <button 
-        class="toc-control-btn" 
-        data-toc-action="toggle-compact"
-        title="Toggle compact mode"
-        aria-label="Toggle compact mode">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <line x1="4" y1="6" x2="20" y2="6"></line>
-          <line x1="4" y1="12" x2="20" y2="12"></line>
-          <line x1="4" y1="18" x2="20" y2="18"></line>
-        </svg>
-      </button>
+    <button 
+      class="toc-settings-btn" 
+      data-toc-action="toggle-settings"
+      title="TOC settings"
+      aria-label="TOC settings"
+      aria-expanded="false">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="1"></circle>
+        <circle cx="12" cy="5" r="1"></circle>
+        <circle cx="12" cy="19" r="1"></circle>
+      </svg>
+    </button>
+    {# Settings dropdown (hidden by default) #}
+    <div class="toc-settings-menu" hidden>
+      <button data-toc-action="expand-all">Expand all</button>
+      <button data-toc-action="collapse-all">Collapse all</button>
     </div>
   </div>
   
-  {# Scroll Progress Indicator #}
+  {# Scroll Progress Indicator - Subtle #}
   <div class="toc-progress" aria-hidden="true">
     <div class="toc-progress-bar"></div>
-    <div class="toc-progress-position"></div>
   </div>
   
   {# Table of Contents #}
@@ -75,11 +60,11 @@
           {% if item.level == 1 %}
             {# Render previous H2 group if exists #}
             {% if current_h2.item %}
-              <li class="toc-item toc-group" role="treeitem" data-level="1">
+              <li class="toc-item toc-group" role="treeitem" data-level="1" data-collapsed="true">
                 <div class="toc-group-header">
                   <button 
                     class="toc-group-toggle" 
-                    aria-expanded="true"
+                    aria-expanded="false"
                     aria-label="Toggle section: {{ current_h2.item.title }}">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="toc-chevron">
                       <polyline points="9 18 15 12 9 6"></polyline>
@@ -123,11 +108,11 @@
         
         {# Render final H2 group if exists #}
         {% if current_h2.item %}
-          <li class="toc-item toc-group" role="treeitem" data-level="1">
+          <li class="toc-item toc-group" role="treeitem" data-level="1" data-collapsed="true">
             <div class="toc-group-header">
               <button 
                 class="toc-group-toggle" 
-                aria-expanded="true"
+                aria-expanded="false"
                 aria-label="Toggle section: {{ current_h2.item.title }}">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="toc-chevron">
                   <polyline points="9 18 15 12 9 6"></polyline>
@@ -154,22 +139,6 @@
           </li>
         {% endif %}
       </ul>
-    </div>
-    
-    {# Quick Navigation #}
-    <div class="toc-quick-nav">
-      <button class="toc-quick-btn" data-toc-jump="top" title="Jump to top" aria-label="Jump to top of page">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <polyline points="18 15 12 9 6 15"></polyline>
-        </svg>
-        <span>Top</span>
-      </button>
-      <button class="toc-quick-btn" data-toc-jump="bottom" title="Jump to bottom" aria-label="Jump to bottom of page">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <polyline points="6 9 12 15 18 9"></polyline>
-        </svg>
-        <span>Bottom</span>
-      </button>
     </div>
     {% else %}
     {# Fallback to HTML TOC #}

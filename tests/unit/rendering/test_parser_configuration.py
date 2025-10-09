@@ -28,8 +28,10 @@ class TestParserSelection:
             'site': {'title': 'Test Site'},
             'theme': 'default',
         }
+        site.theme = 'default'  # Must be accessible as attribute for path operations
         site.xref_index = {}
         site.root_path = tmp_path
+        site.output_dir = tmp_path / 'public'  # Required for template cache
         
         pipeline = RenderingPipeline(site, quiet=True)
         
@@ -46,8 +48,10 @@ class TestParserSelection:
             'site': {'title': 'Test Site'},
             'theme': 'default',
         }
+        site.theme = 'default'  # Must be accessible as attribute for path operations
         site.xref_index = {}
         site.root_path = tmp_path
+        site.output_dir = tmp_path / 'public'  # Required for template cache
         
         pipeline = RenderingPipeline(site, quiet=True)
         
@@ -62,8 +66,10 @@ class TestParserSelection:
             'site': {'title': 'Test Site'},
             'theme': 'default',
         }
+        site.theme = 'default'  # Must be accessible as attribute for path operations
         site.xref_index = {}
         site.root_path = tmp_path
+        site.output_dir = tmp_path / 'public'  # Required for template cache
         
         pipeline = RenderingPipeline(site, quiet=True)
         
@@ -82,8 +88,10 @@ class TestParserSelection:
             },
             'theme': 'default',
         }
+        site.theme = 'default'  # Must be accessible as attribute for path operations
         site.xref_index = {}
         site.root_path = tmp_path
+        site.output_dir = tmp_path / 'public'  # Required for template cache
         
         pipeline = RenderingPipeline(site, quiet=True)
         
@@ -95,13 +103,17 @@ class TestParserSelection:
         """Test that parsers are reused within the same thread."""
         site1 = Mock()
         site1.config = {'markdown': {'parser': 'mistune'}, 'theme': 'default'}
+        site1.theme = 'default'  # Must be accessible as attribute for path operations
         site1.xref_index = {}
         site1.root_path = tmp_path
+        site1.output_dir = tmp_path / 'public'  # Required for template cache
         
         site2 = Mock()
         site2.config = {'markdown': {'parser': 'mistune'}, 'theme': 'default'}
+        site2.theme = 'default'  # Must be accessible as attribute for path operations
         site2.xref_index = {}
         site2.root_path = tmp_path
+        site2.output_dir = tmp_path / 'public'  # Required for template cache
         
         pipeline1 = RenderingPipeline(site1, quiet=True)
         pipeline2 = RenderingPipeline(site2, quiet=True)
@@ -218,8 +230,10 @@ table_of_contents = true
         site = Mock()
         site.config = config
         site.config['theme'] = 'default'
+        site.theme = 'default'  # Must be accessible as attribute for path operations
         site.xref_index = {}
         site.root_path = tmp_path
+        site.output_dir = tmp_path / 'public'  # Required for template cache
         
         pipeline = RenderingPipeline(site, quiet=True)
         

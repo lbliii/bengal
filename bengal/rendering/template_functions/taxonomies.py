@@ -5,10 +5,13 @@ Provides 4 functions for working with tags, categories, and related content.
 """
 
 from typing import TYPE_CHECKING, List, Dict, Any, Optional
+from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
     from jinja2 import Environment
     from bengal.core.site import Site
+
+logger = get_logger(__name__)
 
 
 def register(env: 'Environment', site: 'Site') -> None:
@@ -19,7 +22,13 @@ def register(env: 'Environment', site: 'Site') -> None:
         return related_posts(page, site.pages, limit)
     
     def popular_tags_with_site(limit: int = 10) -> List[tuple]:
-        return popular_tags(site.taxonomies.get('tags', {}), limit)
+        # Transform tags dict to extract pages lists from nested structure
+        raw_tags = site.taxonomies.get('tags', {})
+        tags_with_pages = {
+            tag_slug: tag_data['pages'] 
+            for tag_slug, tag_data in raw_tags.items()
+        }
+        return popular_tags(tags_with_pages, limit)
     
     def tag_url_with_site(tag: str) -> str:
         return tag_url(tag)
@@ -63,18 +72,39 @@ def related_posts(page: Any, all_pages: List[Any] = None, limit: int = 5) -> Lis
           <a href="{{ url_for(post) }}">{{ post.title }}</a>
         {% endfor %}
     """
+    page_slug = page.slug if hasattr(page, 'slug') else 'unknown'
+    
     # FAST PATH: Use pre-computed related posts (O(1))
     if hasattr(page, 'related_posts') and page.related_posts:
+        logger.debug(
+            "related_posts_fast_path",
+            page=page_slug,
+            precomputed_count=len(page.related_posts),
+            limit=limit
+        )
         return page.related_posts[:limit]
     
     # SLOW PATH: Fallback to runtime computation for backward compatibility
     # (Only happens if related posts weren't pre-computed during build)
+    logger.warning(
+        "related_posts_slow_path",
+        page=page_slug,
+        all_pages=len(all_pages) if all_pages else 0,
+        message="Pre-computed related posts not available, using O(n²) fallback algorithm",
+        caller="template"
+    )
+    
     if all_pages is None:
         # Can't compute without all_pages
+        logger.debug("related_posts_no_pages", page=page_slug)
         return []
     
     if not hasattr(page, 'tags') or not page.tags:
+        logger.debug("related_posts_no_tags", page=page_slug)
         return []
+    
+    import time
+    start = time.time()
     
     page_tags = set(page.tags)
     scored_pages = []
@@ -98,7 +128,18 @@ def related_posts(page: Any, all_pages: List[Any] = None, limit: int = 5) -> Lis
     
     # Sort by score (descending) and return top N
     scored_pages.sort(key=lambda x: x[0], reverse=True)
-    return [page for score, page in scored_pages[:limit]]
+    result = [page for score, page in scored_pages[:limit]]
+    
+    duration_ms = (time.time() - start) * 1000
+    logger.debug(
+        "related_posts_computed",
+        page=page_slug,
+        duration_ms=duration_ms,
+        candidates=len(scored_pages),
+        result_count=len(result)
+    )
+    
+    return result
 
 
 def popular_tags(tags_dict: Dict[str, List[Any]], limit: int = 10) -> List[tuple]:
@@ -119,6 +160,7 @@ def popular_tags(tags_dict: Dict[str, List[Any]], limit: int = 10) -> List[tuple
         {% endfor %}
     """
     if not tags_dict:
+        logger.debug("popular_tags_empty", caller="template")
         return []
     
     # Count pages per tag
@@ -127,7 +169,16 @@ def popular_tags(tags_dict: Dict[str, List[Any]], limit: int = 10) -> List[tuple
     # Sort by count (descending)
     tag_counts.sort(key=lambda x: x[1], reverse=True)
     
-    return tag_counts[:limit]
+    result = tag_counts[:limit]
+    
+    logger.debug(
+        "popular_tags_computed",
+        total_tags=len(tags_dict),
+        limit=limit,
+        result_count=len(result)
+    )
+    
+    return result
 
 
 def tag_url(tag: str) -> str:
