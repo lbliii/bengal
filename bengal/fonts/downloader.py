@@ -12,6 +12,10 @@ from pathlib import Path
 from typing import Dict, List, Optional
 from dataclasses import dataclass
 
+from bengal.utils.logger import get_logger
+
+logger = get_logger(__name__)
+
 
 @dataclass
 class FontVariant:
@@ -74,7 +78,7 @@ class GoogleFontsDownloader:
             font_urls = self._extract_font_urls(css_url)
             
             if not font_urls:
-                print(f"⚠️  Warning: No fonts found for {family}")
+                logger.warning("no_fonts_found_for_family", family=family)
                 return []
             
             # Download each font file
@@ -99,8 +103,10 @@ class GoogleFontsDownloader:
             return variants
             
         except Exception as e:
-            print(f"⚠️  Error downloading {family}: {e}")
-            print(f"   Continuing build without this font...")
+            logger.error("font_download_failed",
+                        family=family,
+                        error=str(e),
+                        error_type=type(e).__name__)
             return []
     
     def _build_css_url(self, family: str, weights: List[int], styles: List[str]) -> str:

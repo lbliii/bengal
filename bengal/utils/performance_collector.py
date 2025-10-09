@@ -18,6 +18,10 @@ Example:
 
 import time
 import json
+
+from bengal.utils.logger import get_logger
+
+logger = get_logger(__name__)
 import tracemalloc
 import sys
 from pathlib import Path
@@ -139,7 +143,9 @@ class PerformanceCollector:
         
         except Exception as e:
             # Fail gracefully - don't break the build if metrics can't be saved
-            print(f"Warning: Could not save performance metrics: {e}")
+            logger.warning("performance_metrics_save_failed",
+                          error=str(e),
+                          error_type=type(e).__name__)
     
     def get_summary(self, stats) -> str:
         """

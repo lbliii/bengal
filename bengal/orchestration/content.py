@@ -56,7 +56,6 @@ class ContentOrchestrator:
         
         if not content_dir.exists():
             self.logger.warning("content_dir_not_found", path=str(content_dir))
-            print(f"Warning: Content directory {content_dir} does not exist")
             return
         
         self.logger.debug("discovering_content", path=str(content_dir))
@@ -114,7 +113,6 @@ class ContentOrchestrator:
         
         if assets_dir.exists():
             self.logger.debug("discovering_site_assets", path=str(assets_dir))
-            print(f"  Discovering site assets from {assets_dir}")
             site_discovery = AssetDiscovery(assets_dir)
             site_assets = site_discovery.discover()
             self.site.assets.extend(site_assets)
@@ -122,7 +120,6 @@ class ContentOrchestrator:
         elif not self.site.assets:
             # Only warn if we have no theme assets either
             self.logger.warning("assets_dir_not_found", path=str(assets_dir))
-            print(f"Warning: Assets directory {assets_dir} does not exist")
         
         self.logger.debug("assets_discovered",
                          theme_assets=theme_asset_count,

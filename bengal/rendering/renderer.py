@@ -9,6 +9,9 @@ import re
 from markupsafe import Markup
 
 from bengal.core.page import Page
+from bengal.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 class Renderer:
@@ -79,14 +82,14 @@ class Renderer:
         if content is None:
             content = page.parsed_ast or ""
             # Debug: Check core/page specifically
-            import sys
             if hasattr(page, 'source_path') and 'core/page.md' in str(page.source_path):
                 has_badges = 'api-badge' in content
                 has_markers = '@property' in content
-                print(f"[Renderer] {page.source_path}:", file=sys.stderr)
-                print(f"  Content length: {len(content)} chars", file=sys.stderr)
-                print(f"  Has badges: {has_badges}", file=sys.stderr)
-                print(f"  Has markers: {has_markers}", file=sys.stderr)
+                logger.debug("renderer_content_check",
+                           source_path=str(page.source_path),
+                           content_length=len(content),
+                           has_badges=has_badges,
+                           has_markers=has_markers)
         
         # Mark active menu items for this page
         if hasattr(self.site, 'mark_active_menu_items'):

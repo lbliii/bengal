@@ -8,6 +8,10 @@ following Bengal's minimal dependencies and single-responsibility principles.
 from typing import Dict, Any, List, Optional
 from pathlib import Path
 
+from bengal.utils.logger import get_logger
+
+logger = get_logger(__name__)
+
 
 class ConfigValidationError(ValueError):
     """Raised when configuration validation fails."""
@@ -216,6 +220,14 @@ class ConfigValidator:
     def _print_errors(self, errors: List[str], source_file: Optional[Path] = None) -> None:
         """Print formatted validation errors."""
         source_info = f" in {source_file}" if source_file else ""
+        
+        # Log for observability
+        logger.error("config_validation_failed",
+                    error_count=len(errors),
+                    source_file=str(source_file) if source_file else None,
+                    errors=errors)
+        
+        # Print for user visibility (part of CLI UX)
         print(f"\n❌ Configuration validation failed{source_info}:")
         print()
         

@@ -33,7 +33,7 @@ class CodeTabsDirective(DirectivePlugin):
         
         ### Tab: Python
         ```python
-        print("hello")
+        # Example code here
         ```
         
         ### Tab: JavaScript

@@ -17,7 +17,10 @@ from bengal.core.menu import MenuItem, MenuBuilder
 from bengal.utils.pagination import Paginator
 from bengal.rendering.pipeline import RenderingPipeline
 from bengal.utils.build_stats import BuildStats
+from bengal.utils.logger import get_logger
 from bengal.health import HealthCheck
+
+logger = get_logger(__name__)
 from bengal.health.validators import (
     OutputValidator,
     ConfigValidatorWrapper,
@@ -219,7 +222,7 @@ class Site:
             content_dir = self.root_path / "content"
         
         if not content_dir.exists():
-            print(f"Warning: Content directory {content_dir} does not exist")
+            logger.warning("content_dir_not_found", path=str(content_dir))
             return
         
         from bengal.discovery.content_discovery import ContentDiscovery
@@ -258,12 +261,12 @@ class Site:
             assets_dir = self.root_path / "assets"
         
         if assets_dir.exists():
-            print(f"  Discovering site assets from {assets_dir}")
+            logger.debug("discovering_site_assets", path=str(assets_dir))
             site_discovery = AssetDiscovery(assets_dir)
             self.assets.extend(site_discovery.discover())
         elif not self.assets:
             # Only warn if we have no theme assets either
-            print(f"Warning: Assets directory {assets_dir} does not exist")
+            logger.warning("assets_dir_not_found", path=str(assets_dir))
     
     def _setup_page_references(self) -> None:
         """
@@ -429,11 +432,11 @@ class Site:
         import shutil
         
         if self.output_dir.exists():
-            print(f"Cleaning {self.output_dir}...")
+            logger.info("cleaning_output_dir", path=str(self.output_dir))
             shutil.rmtree(self.output_dir)
-            print("✓ Output directory cleaned")
+            logger.info("output_dir_cleaned", path=str(self.output_dir))
         else:
-            print("Output directory does not exist, nothing to clean")
+            logger.debug("output_dir_does_not_exist", path=str(self.output_dir))
     
     def __repr__(self) -> str:
         return f"Site(pages={len(self.pages)}, sections={len(self.sections)}, assets={len(self.assets)})"

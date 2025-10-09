@@ -159,8 +159,6 @@ class AssetOrchestrator:
                             error=str(e),
                             error_type=type(e).__name__,
                             stage="bundle_or_minify")
-            with _print_lock:
-                print(f"⚠️  Failed to process CSS entry point {css_entry.source_path}: {e}")
     
     def _process_sequential(self, assets: List['Asset'], minify: bool, 
                            optimize: bool, fingerprint: bool) -> None:
@@ -191,7 +189,6 @@ class AssetOrchestrator:
                                 error=str(e),
                                 error_type=type(e).__name__,
                                 mode="sequential")
-                print(f"Warning: Failed to process asset {asset.source_path}: {e}")
     
     def _process_parallel(self, assets: List['Asset'], minify: bool, 
                          optimize: bool, fingerprint: bool) -> None:
@@ -237,12 +234,6 @@ class AssetOrchestrator:
                             success_rate=f"{((len(assets) - len(errors)) / len(assets) * 100):.1f}%",
                             first_errors=errors[:5],
                             mode="parallel")
-            with _print_lock:
-                print(f"  ⚠️  {len(errors)} asset(s) failed to process:")
-                for error in errors[:5]:  # Show first 5 errors
-                    print(f"    • {error}")
-                if len(errors) > 5:
-                    print(f"    ... and {len(errors) - 5} more errors")
     
     def _process_single_asset(
         self,

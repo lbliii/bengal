@@ -262,9 +262,15 @@ class ConfigLoader:
     
     def print_warnings(self, verbose: bool = False) -> None:
         """Print configuration warnings if verbose mode is enabled."""
-        if verbose and self.warnings:
+        if self.warnings:
+            # Always log warnings for observability
             for warning in self.warnings:
-                print(warning)
+                self.logger.warning("config_warning", message=warning)
+            
+            # Print in verbose mode for user visibility
+            if verbose:
+                for warning in self.warnings:
+                    print(warning)
     
     def _default_config(self) -> Dict[str, Any]:
         """

@@ -6,6 +6,10 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 import re
 
+from bengal.utils.logger import get_logger
+
+logger = get_logger(__name__)
+
 
 class PageMetadataMixin:
     """
@@ -84,8 +88,10 @@ class PageMetadataMixin:
         except ValueError:
             # output_path not under output_dir - should never happen
             # but handle gracefully with warning
-            print(f"⚠️  Warning: Page output path {self.output_path} "
-                  f"is not under output directory {self._site.output_dir}")
+            logger.warning("page_output_path_mismatch",
+                          output_path=str(self.output_path),
+                          output_dir=str(self._site.output_dir),
+                          page_source=str(getattr(self, 'source_path', 'unknown')))
             return self._fallback_url()
         
         # Convert Path to URL components

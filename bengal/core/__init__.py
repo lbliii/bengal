@@ -39,7 +39,7 @@ from bengal.core.site import Site
 from bengal.core.page import Page
 from bengal.core.section import Section
 from bengal.core.asset import Asset
-from bengal.core.menu import Menu
+from bengal.core.menu import MenuItem, MenuBuilder
 
-__all__ = ["Site", "Page", "Section", "Asset", "Menu"]
+__all__ = ["Site", "Page", "Section", "Asset", "MenuItem", "MenuBuilder"]
 

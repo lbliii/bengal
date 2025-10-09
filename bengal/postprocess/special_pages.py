@@ -10,6 +10,10 @@ Handles generation of special pages that don't come from markdown content:
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict
 
+from bengal.utils.logger import get_logger
+
+logger = get_logger(__name__)
+
 if TYPE_CHECKING:
     from bengal.core.site import Site
 
@@ -100,6 +104,8 @@ class SpecialPagesGenerator:
             return True
             
         except Exception as e:
-            print(f"  ⚠️  Failed to generate 404 page: {e}")
+            logger.error("404_page_generation_failed",
+                        error=str(e),
+                        error_type=type(e).__name__)
             return False
 

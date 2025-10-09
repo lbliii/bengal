@@ -9,6 +9,7 @@ Also provides:
 - Error handling and validation
 """
 
+from bengal.utils.logger import get_logger
 from bengal.rendering.plugins.directives.admonitions import AdmonitionDirective
 from bengal.rendering.plugins.directives.tabs import TabsDirective
 from bengal.rendering.plugins.directives.dropdown import DropdownDirective
@@ -61,11 +62,13 @@ def create_documentation_directives():
     """
     def plugin_documentation_directives(md):
         """Register all documentation directives with Mistune."""
+        logger = get_logger(__name__)
         try:
             from mistune.directives import FencedDirective
         except ImportError as e:
-            import sys
-            print(f"Error: FencedDirective not available in mistune: {e}", file=sys.stderr)
+            logger.error("fenced_directive_unavailable",
+                        error=str(e),
+                        error_type=type(e).__name__)
             raise ImportError(
                 "FencedDirective not found. Ensure mistune>=3.0.0 is installed."
             ) from e
@@ -82,8 +85,9 @@ def create_documentation_directives():
             # Apply to markdown instance
             return directive(md)
         except Exception as e:
-            import sys
-            print(f"Error registering documentation directives: {e}", file=sys.stderr)
+            logger.error("directive_registration_error",
+                        error=str(e),
+                        error_type=type(e).__name__)
             raise RuntimeError(f"Failed to register directives plugin: {e}") from e
     
     return plugin_documentation_directives

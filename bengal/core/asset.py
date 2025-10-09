@@ -8,6 +8,10 @@ from typing import Optional
 import hashlib
 import shutil
 
+from bengal.utils.logger import get_logger
+
+logger = get_logger(__name__)
+
 # Module-level flag to track if we've warned about missing lightningcss
 _warned_no_bundling = False
 
@@ -142,7 +146,10 @@ class Asset:
                     # Recursively resolve nested imports
                     return bundle_imports(imported_content, imported_file.parent)
                 except Exception as e:
-                    print(f"⚠️  Warning: Could not read {imported_file}: {e}")
+                    logger.warning("css_import_read_failed",
+                                  imported_file=str(imported_file),
+                                  error=str(e),
+                                  error_type=type(e).__name__)
                     return match.group(0)
             
             # Replace all @import statements with their content
@@ -200,25 +207,29 @@ class Asset:
                 # Warn about missing lightningcss (only once per build)
                 global _warned_no_bundling
                 if not _warned_no_bundling:
-                    print("⚠️  Warning: lightningcss not available")
-                    print("   CSS will be minified but not autoprefixed")
-                    print("   Install: pip install lightningcss")
+                    logger.warning("lightningcss_unavailable",
+                                  message="CSS will be minified but not autoprefixed",
+                                  install_command="pip install lightningcss")
                     _warned_no_bundling = True
                     
             except ImportError:
                 # No minification available - just use the content as-is
-                print("Warning: No CSS minifier available, using unminified CSS")
+                logger.warning("no_css_minifier_available")
                 self._minified_content = css_content
                 
         except Exception as e:
             # If Lightning CSS fails, fall back to csscompressor
-            print(f"⚠️  Lightning CSS processing failed: {e}")
-            print("   Falling back to basic minification")
+            logger.warning("lightningcss_processing_failed",
+                          error=str(e),
+                          error_type=type(e).__name__,
+                          fallback="csscompressor")
             try:
                 import csscompressor
                 self._minified_content = csscompressor.compress(css_content)
             except Exception as fallback_error:
-                print(f"Warning: Fallback minification also failed: {fallback_error}")
+                logger.error("css_fallback_minification_failed",
+                           error=str(fallback_error),
+                           error_type=type(fallback_error).__name__)
                 self._minified_content = css_content
     
     def _minify_js(self) -> None:
@@ -232,7 +243,8 @@ class Asset:
             minified_content = jsmin(js_content)
             self._minified_content = minified_content
         except ImportError:
-            print("Warning: jsmin not available, skipping JS minification")
+            logger.warning("jsmin_unavailable",
+                          source=str(self.source_path))
     
     def hash(self) -> str:
         """
@@ -281,9 +293,13 @@ class Asset:
             # Store optimized image (would be saved during copy_to_output)
             self._optimized_image = img
         except ImportError:
-            print("Warning: Pillow not available, skipping image optimization")
+            logger.warning("pillow_unavailable",
+                          source=str(self.source_path))
         except Exception as e:
-            print(f"Warning: Could not optimize image {self.source_path}: {e}")
+            logger.warning("image_optimization_failed",
+                          source=str(self.source_path),
+                          error=str(e),
+                          error_type=type(e).__name__)
     
     def copy_to_output(self, output_dir: Path, use_fingerprint: bool = True) -> Path:
         """

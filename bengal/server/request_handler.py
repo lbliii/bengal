@@ -6,10 +6,12 @@ Provides beautiful logging, custom 404 pages, and live reload support.
 
 from pathlib import Path
 import http.server
+import re
 
 from bengal.utils.logger import get_logger
 from bengal.server.request_logger import RequestLogger
-from bengal.server.live_reload import LiveReloadMixin
+from bengal.server.live_reload import LiveReloadMixin, LIVE_RELOAD_SCRIPT
+from bengal.server.response_wrapper import ResponseBuffer
 
 logger = get_logger(__name__)
 
@@ -38,27 +40,170 @@ class BengalRequestHandler(RequestLogger, LiveReloadMixin, http.server.SimpleHTT
     
     def do_GET(self) -> None:
         """
-        Override GET handler to support SSE endpoint and inject live reload script.
+        Override GET handler for potential future enhancements.
+        
+        NOTE: Live reload is currently DISABLED due to implementation issues.
+        The Response Wrapper Pattern implementation is complete but needs
+        more testing before re-enabling. See:
+        - plan/LIVE_RELOAD_ARCHITECTURE_PROPOSAL.md for the proper solution
+        - plan/LIVE_RELOAD_QUICK_START.md for implementation guide
+        
+        For now, just use default file serving behavior.
         """
-        # TEMPORARY: Disable live reload to debug navigation issues
-        # Handle SSE endpoint for live reload
-        # if self.path == '/__bengal_reload__':
-        #     self.handle_sse()
-        #     return
-        
-        # # For HTML files, inject live reload script
-        # if self.path.endswith('.html') or self.path.endswith('/'):
-        #     try:
-        #         handled = self.serve_html_with_live_reload()
-        #         if handled:
-        #             return
-        #         # If not handled, fall through to default handling
-        #     except (BrokenPipeError, ConnectionResetError):
-        #         # Client disconnected while we were serving - this is normal
-        #         return
-        
-        # Default handling for other files
+        # Live reload DISABLED - just use default handler
         super().do_GET()
+    
+    def _might_be_html(self, path: str) -> bool:
+        """
+        Quick check if request might return HTML.
+        
+        This is a fast pre-filter to avoid buffering responses that are
+        definitely not HTML (like CSS, JS, images).
+        
+        Args:
+            path: Request path
+            
+        Returns:
+            True if request might return HTML, False if definitely not HTML
+        """
+        # Check if path has a non-HTML extension
+        if '/' not in path:
+            return True  # Root path
+        
+        last_segment = path.split('/')[-1]
+        
+        # If no dot in last segment, it's either a directory or no extension
+        if '.' not in last_segment:
+            return True
+        
+        # Check extension
+        extension = last_segment.split('.')[-1].lower()
+        
+        # Common non-HTML extensions
+        non_html_extensions = {
+            'css', 'js', 'json', 'xml',
+            'jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'ico',
+            'woff', 'woff2', 'ttf', 'otf', 'eot',
+            'mp4', 'webm', 'mp3', 'wav',
+            'pdf', 'zip', 'tar', 'gz',
+            'txt', 'md', 'csv',
+        }
+        
+        if extension in non_html_extensions:
+            return False
+        
+        # Might be HTML (including .html, .htm, or unknown extensions)
+        return True
+    
+    def _is_html_response(self, response_data: bytes) -> bool:
+        """
+        Check if response is HTML by inspecting headers and content.
+        
+        Args:
+            response_data: Complete HTTP response (headers + body)
+            
+        Returns:
+            True if response is HTML, False otherwise
+        """
+        try:
+            # HTTP response format: headers\r\n\r\nbody
+            if b'\r\n\r\n' not in response_data:
+                return False
+            
+            headers_end = response_data.index(b'\r\n\r\n')
+            headers_bytes = response_data[:headers_end]
+            body = response_data[headers_end + 4:]
+            
+            # Decode headers (HTTP headers are latin-1)
+            headers = headers_bytes.decode('latin-1', errors='ignore')
+            
+            # Check Content-Type header (most reliable)
+            for line in headers.split('\r\n'):
+                if line.lower().startswith('content-type:'):
+                    content_type = line.split(':', 1)[1].strip().lower()
+                    if 'text/html' in content_type:
+                        return True
+                    # If Content-Type is present but not HTML, trust it
+                    return False
+            
+            # No Content-Type header - check body for HTML markers (fallback)
+            body_lower = body.lower()
+            if b'<html' in body_lower or b'<!doctype html' in body_lower:
+                return True
+            
+            return False
+            
+        except Exception as e:
+            logger.debug("html_detection_failed", 
+                        error=str(e),
+                        error_type=type(e).__name__)
+            return False
+    
+    def _inject_live_reload(self, response_data: bytes) -> bytes:
+        """
+        Inject live reload script into HTML response.
+        
+        Args:
+            response_data: Complete HTTP response (headers + body)
+            
+        Returns:
+            Modified HTTP response with injected script
+        """
+        try:
+            # Split headers and body
+            headers_end = response_data.index(b'\r\n\r\n')
+            headers_bytes = response_data[:headers_end + 4]
+            body = response_data[headers_end + 4:]
+            
+            # Decode body as UTF-8 (with error handling)
+            html = body.decode('utf-8', errors='replace')
+            
+            # Inject script before </body> (case-insensitive)
+            html_lower = html.lower()
+            
+            if '</body>' in html_lower:
+                # Find last occurrence of </body>
+                idx = html_lower.rfind('</body>')
+                # Get actual index in original (preserving case)
+                html = html[:idx] + LIVE_RELOAD_SCRIPT + html[idx:]
+            elif '</html>' in html_lower:
+                # Fallback: inject before </html>
+                idx = html_lower.rfind('</html>')
+                html = html[:idx] + LIVE_RELOAD_SCRIPT + html[idx:]
+            else:
+                # Last resort: append at end
+                html += LIVE_RELOAD_SCRIPT
+            
+            # Re-encode body
+            new_body = html.encode('utf-8')
+            
+            # Update Content-Length header if present
+            headers = headers_bytes.decode('latin-1', errors='ignore')
+            
+            if 'Content-Length:' in headers:
+                # Replace Content-Length with new value
+                headers = re.sub(
+                    r'Content-Length:\s*\d+',
+                    f'Content-Length: {len(new_body)}',
+                    headers,
+                    flags=re.IGNORECASE
+                )
+            
+            new_headers = headers.encode('latin-1')
+            
+            logger.debug("live_reload_injected",
+                        original_size=len(body),
+                        new_size=len(new_body),
+                        script_size=len(LIVE_RELOAD_SCRIPT))
+            
+            return new_headers + new_body
+            
+        except Exception as e:
+            # If injection fails, return original response
+            logger.error("injection_failed", 
+                        error=str(e),
+                        error_type=type(e).__name__)
+            return response_data
     
     def send_error(self, code: int, message: str = None, explain: str = None) -> None:
         """

@@ -8,6 +8,10 @@ import concurrent.futures
 import threading
 from typing import TYPE_CHECKING, List, Optional, Any
 
+from bengal.utils.logger import get_logger
+
+logger = get_logger(__name__)
+
 if TYPE_CHECKING:
     from bengal.core.site import Site
     from bengal.core.page import Page
@@ -151,7 +155,9 @@ class RenderOrchestrator:
                 try:
                     future.result()
                 except Exception as e:
-                    print(f"Error processing page: {e}")
+                    logger.error("page_rendering_error",
+                                error=str(e),
+                                error_type=type(e).__name__)
     
     def _set_output_paths_for_pages(self, pages: List['Page']) -> None:
         """

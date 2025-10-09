@@ -10,6 +10,9 @@ from bengal.core.page import Page
 from bengal.rendering.parser import create_markdown_parser, BaseMarkdownParser
 from bengal.rendering.template_engine import TemplateEngine
 from bengal.rendering.renderer import Renderer
+from bengal.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 # Thread-local storage for parser instances (reuse parsers per thread)
@@ -245,10 +248,12 @@ class RenderingPipeline:
             # Debug output only in dev mode
             from bengal.utils.profile import should_show_debug
             if should_show_debug() and '@property' in before_enhancement and 'page.md' in str(page.source_path) and 'core' in str(page.source_path):
-                import sys
-                print(f"[Pipeline] Enhanced {page.source_path}:", file=sys.stderr)
-                print(f"  Before: {len(before_enhancement)} chars, has markers: {'@property' in before_enhancement}", file=sys.stderr)
-                print(f"  After:  {len(page.parsed_ast)} chars, has badges: {'api-badge' in page.parsed_ast}", file=sys.stderr)
+                logger.debug("api_doc_enhancement",
+                            source_path=str(page.source_path),
+                            before_chars=len(before_enhancement),
+                            after_chars=len(page.parsed_ast),
+                            has_markers=('@property' in before_enhancement),
+                            has_badges=('api-badge' in page.parsed_ast))
         
         # ============================================================================
         # Build Phase: PARSING COMPLETE
@@ -458,14 +463,24 @@ class RenderingPipeline:
             # If there's a syntax error, warn but continue with original content
             if self.build_stats:
                 self.build_stats.add_warning(str(page.source_path), str(e), 'jinja2')
-            elif not self.quiet:
+            else:
+                logger.warning("jinja2_syntax_error",
+                              source_path=str(page.source_path),
+                              error=str(e),
+                              error_type=type(e).__name__)
+            if not self.quiet and not self.build_stats:
                 print(f"  ⚠️  Jinja2 syntax error in {page.source_path}: {e}")
             return page.content
         except Exception as e:
             # For any other error, warn but continue
             if self.build_stats:
                 self.build_stats.add_warning(str(page.source_path), str(e), 'preprocessing')
-            elif not self.quiet:
+            else:
+                logger.warning("preprocessing_error",
+                              source_path=str(page.source_path),
+                              error=str(e),
+                              error_type=type(e).__name__)
+            if not self.quiet and not self.build_stats:
                 print(f"  ⚠️  Error pre-processing {page.source_path}: {e}")
             return page.content
 

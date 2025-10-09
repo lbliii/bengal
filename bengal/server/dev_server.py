@@ -311,7 +311,8 @@ class DevServer:
         
         # Show watching status
         if self.watch:
-            print(f"│   \033[33m⚠\033[0m  File watching enabled (live reload temporarily disabled){' ' * 18}│")
+            print(f"│   \033[33m⚠\033[0m  File watching enabled (auto-reload on changes){' ' * 27}│")
+            print(f"│   \033[90m   (Live reload disabled - refresh browser manually)\033[0m{' ' * 24}│")
         else:
             print(f"│   \033[90m○\033[0m  File watching disabled{' ' * 48}│")
         

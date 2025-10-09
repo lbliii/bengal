@@ -9,6 +9,10 @@ from pathlib import Path
 from threading import Lock
 from typing import TYPE_CHECKING, List, Tuple, Callable
 
+from bengal.utils.logger import get_logger
+
+logger = get_logger(__name__)
+
 if TYPE_CHECKING:
     from bengal.core.site import Site
 
@@ -146,6 +150,5 @@ class PostprocessOrchestrator:
         validator = LinkValidator()
         broken_links = validator.validate_site(self.site)
         if broken_links:
-            with _print_lock:
-                print(f"Warning: Found {len(broken_links)} broken links")
+            logger.warning("broken_links_found", count=len(broken_links))
 

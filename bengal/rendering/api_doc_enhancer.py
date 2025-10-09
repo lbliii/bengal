@@ -18,6 +18,9 @@ Usage:
 """
 
 import re
+from bengal.utils.logger import get_logger
+
+logger = get_logger(__name__)
 from typing import Optional
 
 
@@ -131,8 +134,8 @@ class APIDocEnhancer:
         if replacements_made > 0:
             from bengal.utils.profile import should_show_debug
             if should_show_debug():
-                import sys
-                print(f"[APIDocEnhancer] Made {replacements_made} badge replacements", file=sys.stderr)
+                logger.debug("api_doc_badge_replacements",
+                           replacements_made=replacements_made)
         
         return enhanced
     

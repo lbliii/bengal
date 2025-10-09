@@ -10,6 +10,10 @@ from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional
 import re
 
+from bengal.utils.logger import get_logger
+
+logger = get_logger(__name__)
+
 
 class BaseMarkdownParser(ABC):
     """
@@ -211,8 +215,9 @@ class MistuneParser(BaseMarkdownParser):
             return html
         except Exception as e:
             # Log error but don't fail the entire build
-            import sys
-            print(f"Warning: Mistune parsing error: {e}", file=sys.stderr)
+            logger.warning("mistune_parsing_error", 
+                          error=str(e), 
+                          error_type=type(e).__name__)
             # Return content wrapped in error message
             return f'<div class="markdown-error"><p><strong>Markdown parsing error:</strong> {e}</p><pre>{content}</pre></div>'
     
@@ -330,8 +335,9 @@ class MistuneParser(BaseMarkdownParser):
             return html
         except Exception as e:
             # Log error but don't fail the entire build
-            import sys
-            print(f"Warning: Mistune parsing error: {e}", file=sys.stderr)
+            logger.warning("mistune_parsing_error_with_toc",
+                          error=str(e),
+                          error_type=type(e).__name__)
             return f'<div class="markdown-error"><p><strong>Markdown parsing error:</strong> {e}</p><pre>{content}</pre></div>'
     
     def parse_with_toc_and_context(self, content: str, metadata: Dict[str, Any], context: Dict[str, Any]) -> tuple[str, str]:
@@ -474,8 +480,9 @@ class MistuneParser(BaseMarkdownParser):
                 return self._HEADING_PATTERN.sub(replace_heading, html)
             except Exception as e:
                 # On any error, return original HTML (safe fallback)
-                import sys
-                print(f"Warning: Error injecting heading anchors: {e}", file=sys.stderr)
+                logger.warning("heading_anchor_injection_error",
+                              error=str(e),
+                              error_type=type(e).__name__)
                 return html
         
         # Slow path: need to skip headings inside blockquotes
@@ -559,8 +566,9 @@ class MistuneParser(BaseMarkdownParser):
             
         except Exception as e:
             # On any error, return original HTML (safe fallback)
-            import sys
-            print(f"Warning: Error injecting heading anchors: {e}", file=sys.stderr)
+            logger.warning("heading_anchor_injection_error_blockquote",
+                          error=str(e),
+                          error_type=type(e).__name__)
             return html
     
     def _extract_toc(self, html: str) -> str:
@@ -613,8 +621,9 @@ class MistuneParser(BaseMarkdownParser):
         
         except Exception as e:
             # On any error, return empty TOC (safe fallback)
-            import sys
-            print(f"Warning: Error extracting TOC: {e}", file=sys.stderr)
+            logger.warning("toc_extraction_error",
+                          error=str(e),
+                          error_type=type(e).__name__)
             return ''
     
     def _slugify(self, text: str) -> str:
