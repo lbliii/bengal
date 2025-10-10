@@ -147,6 +147,10 @@ class ContentOrchestrator:
             # Set site reference on section
             section._site = self.site
             
+            # Set section reference on the section's index page (if it has one)
+            if section.index_page:
+                section.index_page._section = section
+            
             # Set section reference on all pages in this section
             for page in section.pages:
                 page._section = section
@@ -163,6 +167,10 @@ class ContentOrchestrator:
         """
         for subsection in section.subsections:
             subsection._site = self.site
+            
+            # Set section reference on the subsection's index page (if it has one)
+            if subsection.index_page:
+                subsection.index_page._section = subsection
             
             # Set section reference on pages in subsection
             for page in subsection.pages:

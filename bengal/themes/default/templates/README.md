@@ -85,6 +85,7 @@ templates/
     ├── docs-nav-section.html    # Docs nav section (recursive)
     ├── docs-meta.html           # Documentation metadata
     ├── article-card.html        # Article preview card
+    ├── child-page-tiles.html    # Child pages/subsections tiles
     ├── tag-list.html            # Tag cloud
     ├── popular-tags.html        # Popular tags widget
     ├── random-posts.html        # Random posts widget
@@ -229,12 +230,45 @@ templates/
 
 #### `doc/list.html`
 
-**Purpose:** Documentation section listing
+**Purpose:** Documentation section index page
 
 **Features:**
-- Section description
-- Subsection cards
-- Page list
+- Docs navigation sidebar
+- Section description and content
+- **Child page tiles** (subsections + pages as cards)
+- Can be disabled with `show_children: false` in frontmatter
+- Table of contents sidebar (if content has headings)
+
+**Layout:**
+```html
+<div class="docs-layout">
+  <aside class="docs-sidebar">
+    <!-- Docs navigation -->
+  </aside>
+  
+  <main class="docs-main">
+    <article class="prose">
+      <!-- Content -->
+      <!-- Child page tiles (auto-displayed) -->
+    </article>
+  </main>
+  
+  <aside class="docs-toc">
+    <!-- Table of contents (if available) -->
+  </aside>
+</div>
+```
+
+**Example Frontmatter:**
+```yaml
+---
+title: API Documentation
+description: Complete API reference
+type: doc
+template: doc/list.html
+# show_children: false  # Optionally hide child tiles
+---
+```
 
 ---
 
@@ -480,6 +514,47 @@ pagination = {
 {{ post.url }}
 {{ post.hero_image }}
 {{ post.tags }}
+```
+
+---
+
+### `partials/child-page-tiles.html`
+
+**Purpose:** Display child pages and subsections as card tiles
+
+**Usage:**
+```jinja
+{% include "partials/child-page-tiles.html" %}
+```
+
+**Variables:**
+```jinja
+{{ posts }}              # List of child pages
+{{ subsections }}        # List of child sections
+{{ show_subsections }}   # Boolean (default: true)
+{{ show_pages }}         # Boolean (default: true)
+{{ show_excerpt }}       # Boolean (default: true)
+```
+
+**Features:**
+- Automatically displays subsection cards with descriptions
+- Shows child pages using `article-card.html` 
+- Can be disabled via frontmatter: `show_children: false`
+- Flexible control over what to display
+
+**Example: Hide children in index page**
+```yaml
+---
+title: My Section
+show_children: false
+---
+
+Custom content here without child page tiles.
+```
+
+**Example: Customize display**
+```jinja
+{% include "partials/child-page-tiles.html" with {'show_excerpt': false} %}
 ```
 
 ---

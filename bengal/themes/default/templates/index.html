@@ -11,6 +11,10 @@
     - page: Page object (for explicit _index.md files)
     - posts: Child pages (_posts)
     - subsections: Child sections (_subsections)
+  
+  Frontmatter options:
+    - show_children: true/false (default: true)
+      Controls whether child pages and subsections are displayed as tiles
 #}
 
 {% block content %}
@@ -34,46 +38,14 @@
     </div>
     {% endif %}
     
-    {# Child content display #}
-    {% if posts or subsections %}
-    <section class="section-children">
-        
-        {# Subsections first #}
-        {% if subsections %}
-        <div class="subsections-grid">
-            <h2 class="section-subtitle">Sections</h2>
-            <div class="subsection-cards">
-                {% for subsection in subsections %}
-                <article class="subsection-card">
-                    <h3><a href="{{ url_for(subsection) }}">{{ subsection.title }}</a></h3>
-                    {% if subsection.metadata.description %}
-                    <p class="subsection-description">{{ subsection.metadata.description }}</p>
-                    {% endif %}
-                    {% if subsection.pages %}
-                    <p class="subsection-meta">{{ subsection.pages | length }} page{{ 's' if subsection.pages | length != 1 }}</p>
-                    {% endif %}
-                </article>
-                {% endfor %}
-            </div>
-        </div>
-        {% endif %}
-        
-        {# Child pages #}
-        {% if posts %}
-        <div class="pages-list">
-            {% if subsections %}<h2 class="section-subtitle">Pages</h2>{% endif %}
-            <div class="page-cards">
-                {% for post in posts %}
-                    {% set article = post %}
-                    {% set show_excerpt = true %}
-                    {% include 'partials/article-card.html' %}
-                {% endfor %}
-            </div>
-        </div>
-        {% endif %}
-        
-    </section>
-    {% else %}
+    {# Child content display - can be disabled via frontmatter: show_children: false #}
+    {% set show_children = page.metadata.get('show_children', true) if page else true %}
+    {% if show_children %}
+        {% include 'partials/child-page-tiles.html' %}
+    {% endif %}
+    
+    {# Empty state if no children to display #}
+    {% if not (posts or subsections) %}
     {# Empty state with helpful guidance #}
     <div class="section-empty">
         <div class="empty-state">

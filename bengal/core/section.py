@@ -121,6 +121,54 @@ class Section:
         return self.subsections
     
     @property
+    def sorted_pages(self) -> List[Page]:
+        """
+        Get pages sorted by weight (ascending), then by title.
+        
+        Pages without a weight field are treated as having weight=0.
+        Lower weights appear first in the list.
+        
+        Returns:
+            List of pages sorted by weight, then title
+            
+        Example:
+            {% for page in section.sorted_pages %}
+              <article>{{ page.title }}</article>
+            {% endfor %}
+        """
+        return sorted(
+            self.pages,
+            key=lambda p: (
+                p.metadata.get('weight', 0),
+                p.title.lower()
+            )
+        )
+    
+    @property
+    def sorted_subsections(self) -> List['Section']:
+        """
+        Get subsections sorted by weight (ascending), then by title.
+        
+        Subsections without a weight field in their index page metadata
+        are treated as having weight=0. Lower weights appear first.
+        
+        Returns:
+            List of subsections sorted by weight, then title
+            
+        Example:
+            {% for subsection in section.sorted_subsections %}
+              <h3>{{ subsection.title }}</h3>
+            {% endfor %}
+        """
+        return sorted(
+            self.subsections,
+            key=lambda s: (
+                s.metadata.get('weight', 0),
+                s.title.lower()
+            )
+        )
+    
+    @property
     def regular_pages_recursive(self) -> List[Page]:
         """
         Get all regular pages recursively (including from subsections).
@@ -221,14 +269,15 @@ class Section:
             else:
                 self.index_page = page
             
-            # Extract cascade metadata from index page for inheritance
-            if 'cascade' in page.metadata:
-                self.metadata['cascade'] = page.metadata['cascade']
-                logger.debug(
-                    "section_cascade_inherited",
-                    section=self.name,
-                    cascade_keys=list(page.metadata['cascade'].keys())
-                )
+            # Copy metadata from index page to section
+            # This allows sections to have weight, description, and other metadata
+            self.metadata.update(page.metadata)
+            
+            logger.debug(
+                "section_metadata_inherited",
+                section=self.name,
+                metadata_keys=list(page.metadata.keys())
+            )
     
     def add_subsection(self, section: 'Section') -> None:
         """
@@ -247,6 +296,39 @@ class Section:
         
         section.parent = self
         self.subsections.append(section)
+    
+    def sort_children_by_weight(self) -> None:
+        """
+        Sort pages and subsections in this section by weight, then by title.
+        
+        This modifies the pages and subsections lists in place.
+        Pages/sections without a weight field are treated as having weight=0.
+        Lower weights appear first in the sorted lists.
+        
+        This is typically called after content discovery is complete.
+        """
+        # Sort pages by weight (ascending), then title (alphabetically)
+        self.pages.sort(
+            key=lambda p: (
+                p.metadata.get('weight', 0),
+                p.title.lower()
+            )
+        )
+        
+        # Sort subsections by weight (ascending), then title (alphabetically)
+        self.subsections.sort(
+            key=lambda s: (
+                s.metadata.get('weight', 0),
+                s.title.lower()
+            )
+        )
+        
+        logger.debug(
+            "section_children_sorted",
+            section=self.name,
+            pages_count=len(self.pages),
+            subsections_count=len(self.subsections)
+        )
     
     def needs_auto_index(self) -> bool:
         """

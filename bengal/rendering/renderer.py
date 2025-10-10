@@ -120,16 +120,23 @@ class Renderer:
         if page.metadata.get('_generated'):
             self._add_generated_page_context(page, context)
         
-        # Add section context for reference documentation types
-        # This allows manual reference pages to access section data
+        # Add section context for reference documentation types, doc types, and index pages
+        # This allows manual reference pages, doc pages, and section index pages to access section data
         page_type = page.metadata.get('type')
-        if page_type in ('api-reference', 'cli-reference', 'tutorial') and hasattr(page, '_section') and page._section:
-            section = page._section
-            context.update({
-                'section': section,
-                'posts': section.pages,
-                'subsections': section.subsections,
-            })
+        is_index_page = page.source_path.stem in ('_index', 'index')
+        
+        if hasattr(page, '_section') and page._section:
+            # Add section context if:
+            # 1. It's a reference documentation type (api-reference, cli-reference, tutorial)
+            # 2. It's a doc type page (for doc/list.html templates)
+            # 3. It's an index page (_index.md or index.md)
+            if page_type in ('api-reference', 'cli-reference', 'tutorial', 'doc') or is_index_page:
+                section = page._section
+                context.update({
+                    'section': section,
+                    'posts': section.pages,
+                    'subsections': section.subsections,
+                })
         
         # Render with template
         try:
