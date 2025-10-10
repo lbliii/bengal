@@ -7,6 +7,8 @@ nested directives, code blocks, and admonitions.
 
 import re
 from mistune.directives import DirectivePlugin
+from bengal.utils.logger import get_logger
+from bengal.rendering.plugins.directives.validator import DirectiveSyntaxValidator
 
 __all__ = [
     'TabsDirective',
@@ -14,6 +16,8 @@ __all__ = [
     'render_tab_title',
     'render_tab_content'
 ]
+
+logger = get_logger(__name__)
 
 # Pre-compiled regex patterns (compiled once, reused for all pages)
 _TAB_SPLIT_PATTERN = re.compile(r'^### Tab: (.+)$', re.MULTILINE)

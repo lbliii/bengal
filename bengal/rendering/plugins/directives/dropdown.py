@@ -6,8 +6,12 @@ nested directives and code blocks.
 """
 
 from mistune.directives import DirectivePlugin
+from bengal.utils.logger import get_logger
+from bengal.rendering.plugins.directives.validator import DirectiveSyntaxValidator
 
 __all__ = ['DropdownDirective', 'render_dropdown']
+
+logger = get_logger(__name__)
 
 
 class DropdownDirective(DirectivePlugin):

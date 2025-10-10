@@ -8,12 +8,16 @@ comparison across programming languages.
 import re
 import html as html_lib
 from mistune.directives import DirectivePlugin
+from bengal.utils.logger import get_logger
+from bengal.rendering.plugins.directives.validator import DirectiveSyntaxValidator
 
 __all__ = [
     'CodeTabsDirective',
     'render_code_tabs',
     'render_code_tab_item'
 ]
+
+logger = get_logger(__name__)
 
 # Pre-compiled regex patterns (compiled once, reused for all pages)
 _CODE_TAB_SPLIT_PATTERN = re.compile(r'^### Tab: (.+)$', re.MULTILINE)

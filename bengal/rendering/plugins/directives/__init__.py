@@ -14,6 +14,7 @@ from bengal.rendering.plugins.directives.admonitions import AdmonitionDirective
 from bengal.rendering.plugins.directives.tabs import TabsDirective
 from bengal.rendering.plugins.directives.dropdown import DropdownDirective
 from bengal.rendering.plugins.directives.code_tabs import CodeTabsDirective
+from bengal.rendering.plugins.directives.rubric import RubricDirective
 from bengal.rendering.plugins.directives.cache import (
     DirectiveCache,
     get_cache,
@@ -48,6 +49,7 @@ def create_documentation_directives():
     - tabs: Tabbed content with full markdown support
     - dropdown: Collapsible sections with markdown
     - code-tabs: Code examples in multiple languages
+    - rubric: Pseudo-headings for API documentation (not in TOC)
     
     Usage:
         from bengal.rendering.plugins.directives import create_documentation_directives
@@ -80,6 +82,7 @@ def create_documentation_directives():
                 TabsDirective(),
                 DropdownDirective(),
                 CodeTabsDirective(),
+                RubricDirective(),  # Pseudo-headings for API docs
             ])
             
             # Apply to markdown instance

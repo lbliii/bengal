@@ -174,12 +174,16 @@
   /**
    * Scroll Spy for Navigation
    * Highlights current section in navigation as user scrolls
+   * 
+   * Note: Only handles docs-nav links. TOC links are handled by toc.js
+   * which has more sophisticated collapse/expand behavior.
    */
   function setupScrollSpy() {
     const sections = document.querySelectorAll('h2[id], h3[id]');
     if (sections.length === 0) return;
     
-    const navLinks = document.querySelectorAll('.toc a, .docs-nav a');
+    // Only select docs-nav links, not TOC links (toc.js handles those)
+    const navLinks = document.querySelectorAll('.docs-nav a');
     if (navLinks.length === 0) return;
     
     let currentSection = '';

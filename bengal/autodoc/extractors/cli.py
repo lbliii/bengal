@@ -208,12 +208,15 @@ class CLIExtractor(Extractor):
         # Combine arguments and options as children
         children = arguments + options
         
-        # Extract examples from callback docstring
+        # Extract examples from callback docstring and strip them from description
         examples = []
+        description_text = cmd.help or ""
         if cmd.callback:
             docstring = inspect.getdoc(cmd.callback)
             if docstring:
                 examples = self._extract_examples_from_docstring(docstring)
+                # Use the docstring without examples as the description
+                description_text = self._strip_examples_from_description(docstring)
         
         # Check for deprecation
         deprecated = None
@@ -221,7 +224,7 @@ class CLIExtractor(Extractor):
             deprecated = "This command is deprecated"
         
         # Clean up description
-        description = sanitize_text(cmd.help)
+        description = sanitize_text(description_text)
         
         return DocElement(
             name=name,
@@ -302,6 +305,30 @@ class CLIExtractor(Extractor):
             see_also=[],
             deprecated=None
         )
+    
+    def _strip_examples_from_description(self, docstring: str) -> str:
+        """
+        Remove example blocks from docstring description.
+        
+        Args:
+            docstring: Full docstring
+            
+        Returns:
+            Description without Examples section
+        """
+        lines = docstring.split('\n')
+        description_lines = []
+        
+        for line in lines:
+            stripped = line.strip()
+            
+            # Stop at Examples section
+            if stripped.lower() in ('example:', 'examples:', 'usage:'):
+                break
+            
+            description_lines.append(line)
+        
+        return '\n'.join(description_lines).strip()
     
     def _extract_examples_from_docstring(self, docstring: str) -> List[str]:
         """

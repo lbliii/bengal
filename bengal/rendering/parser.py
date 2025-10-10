@@ -199,7 +199,7 @@ class MistuneParser(BaseMarkdownParser):
         
         Args:
             content: Markdown content to parse
-            metadata: Page metadata (unused by Mistune but required by interface)
+            metadata: Page metadata (includes source path for validation warnings)
             
         Returns:
             Rendered HTML string
@@ -232,7 +232,7 @@ class MistuneParser(BaseMarkdownParser):
         
         Args:
             content: Markdown content to parse
-            metadata: Page metadata (unused)
+            metadata: Page metadata (includes source path for validation warnings)
             
         Returns:
             Tuple of (HTML with anchored headings, TOC HTML)

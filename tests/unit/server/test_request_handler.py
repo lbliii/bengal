@@ -5,7 +5,8 @@ Tests the helper methods used for HTML detection and live reload injection.
 """
 
 import pytest
-from unittest.mock import Mock, MagicMock
+from unittest.mock import Mock, MagicMock, patch
+from io import BytesIO
 
 from bengal.server.request_handler import BengalRequestHandler
 from bengal.server.live_reload import LIVE_RELOAD_SCRIPT
@@ -16,11 +17,17 @@ class TestMightBeHtml:
     
     def setup_method(self):
         """Set up test handler."""
-        self.handler = BengalRequestHandler(
-            request=Mock(),
-            client_address=('127.0.0.1', 12345),
-            server=Mock()
-        )
+        # Create a mock request that has all the necessary attributes
+        request = Mock()
+        request.makefile = Mock(side_effect=lambda *args, **kwargs: BytesIO(b''))
+        
+        # Patch the handle method to prevent actual request processing
+        with patch.object(BengalRequestHandler, 'handle'):
+            self.handler = BengalRequestHandler(
+                request=request,
+                client_address=('127.0.0.1', 12345),
+                server=Mock()
+            )
     
     def test_html_extensions(self):
         """Test paths with HTML extensions."""
@@ -83,11 +90,17 @@ class TestIsHtmlResponse:
     
     def setup_method(self):
         """Set up test handler."""
-        self.handler = BengalRequestHandler(
-            request=Mock(),
-            client_address=('127.0.0.1', 12345),
-            server=Mock()
-        )
+        # Create a mock request that has all the necessary attributes
+        request = Mock()
+        request.makefile = Mock(side_effect=lambda *args, **kwargs: BytesIO(b''))
+        
+        # Patch the handle method to prevent actual request processing
+        with patch.object(BengalRequestHandler, 'handle'):
+            self.handler = BengalRequestHandler(
+                request=request,
+                client_address=('127.0.0.1', 12345),
+                server=Mock()
+            )
     
     def test_html_with_content_type_header(self):
         """Test HTML detection via Content-Type header."""
@@ -155,11 +168,17 @@ class TestInjectLiveReload:
     
     def setup_method(self):
         """Set up test handler."""
-        self.handler = BengalRequestHandler(
-            request=Mock(),
-            client_address=('127.0.0.1', 12345),
-            server=Mock()
-        )
+        # Create a mock request that has all the necessary attributes
+        request = Mock()
+        request.makefile = Mock(side_effect=lambda *args, **kwargs: BytesIO(b''))
+        
+        # Patch the handle method to prevent actual request processing
+        with patch.object(BengalRequestHandler, 'handle'):
+            self.handler = BengalRequestHandler(
+                request=request,
+                client_address=('127.0.0.1', 12345),
+                server=Mock()
+            )
     
     def test_inject_before_body_tag(self):
         """Test script injection before </body> tag."""
@@ -292,11 +311,17 @@ class TestRequestHandlerIntegration:
     
     def test_complete_html_response_flow(self):
         """Test complete flow: path check -> detection -> injection."""
-        handler = BengalRequestHandler(
-            request=Mock(),
-            client_address=('127.0.0.1', 12345),
-            server=Mock()
-        )
+        # Create a mock request that has all the necessary attributes
+        request = Mock()
+        request.makefile = Mock(side_effect=lambda *args, **kwargs: BytesIO(b''))
+        
+        # Patch the handle method to prevent actual request processing
+        with patch.object(BengalRequestHandler, 'handle'):
+            handler = BengalRequestHandler(
+                request=request,
+                client_address=('127.0.0.1', 12345),
+                server=Mock()
+            )
         
         # Test path that might be HTML
         path = '/docs/guide.html'
@@ -315,11 +340,17 @@ class TestRequestHandlerIntegration:
     
     def test_complete_non_html_flow(self):
         """Test complete flow for non-HTML files."""
-        handler = BengalRequestHandler(
-            request=Mock(),
-            client_address=('127.0.0.1', 12345),
-            server=Mock()
-        )
+        # Create a mock request that has all the necessary attributes
+        request = Mock()
+        request.makefile = Mock(side_effect=lambda *args, **kwargs: BytesIO(b''))
+        
+        # Patch the handle method to prevent actual request processing
+        with patch.object(BengalRequestHandler, 'handle'):
+            handler = BengalRequestHandler(
+                request=request,
+                client_address=('127.0.0.1', 12345),
+                server=Mock()
+            )
         
         # CSS file path
         path = '/assets/style.css'

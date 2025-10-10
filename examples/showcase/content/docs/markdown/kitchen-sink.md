@@ -65,9 +65,7 @@ The `danger` admonition should be reserved for critical warnings about data loss
 ```{error} Common Error
 Users might encounter this error when configuration is incorrect:
 
-```
-Error: Config file not found
-```
+    Error: Config file not found
 
 **Solution:** Create a `bengal.toml` file in your project root.
 ```
@@ -85,7 +83,7 @@ Your site built successfully! All 150 pages generated in 0.3 seconds.
 
 ### Example Admonition
 
-```{example} Code Example
+````{example} Code Example
 Here's how to use the `truncatewords` filter:
 
 ```jinja2
@@ -93,7 +91,7 @@ Here's how to use the `truncatewords` filter:
 ```
 
 This will truncate the content to 50 words with an ellipsis.
-```
+````
 
 ### Caution Admonition
 
@@ -110,9 +108,7 @@ Tabs are perfect for showing platform-specific instructions or alternative appro
 ````{tabs}
 :id: installation-tabs
 
-### Tab: macOS
-
-Install Bengal on macOS using Homebrew:
+### macOS
 
 ```bash
 brew install python3
@@ -610,13 +606,13 @@ Here's a complex nesting example:
 
 ### Tab: With Admonitions
 
-```{note} Nested Note in Tab
+````{note} Nested Note in Tab
 This demonstrates that you can nest directives deeply.
 
 ```{warning} Even Deeper!
 And it still works! 🎉
 ```
-```
+````
 
 ### Tab: With Code
 
@@ -657,7 +653,6 @@ Let's combine multiple features in one section:
 
 ```{note} Quick Reference
 Here are all the directive types:
-```
 
 | Directive | Purpose | Example |
 |-----------|---------|---------|
@@ -668,6 +663,7 @@ Here are all the directive types:
 | tabs | Multi-option | `{tabs}` |
 | dropdown | Collapsible | `{dropdown}` |
 | code-tabs | Code examples | `{code-tabs}` |
+```
 
 ### Tab: Template Functions
 

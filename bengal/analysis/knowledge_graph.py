@@ -33,7 +33,7 @@ class GraphMetrics:
         avg_connectivity: Average connectivity score per page
         hub_count: Number of hub pages (highly connected)
         leaf_count: Number of leaf pages (low connectivity)
-        orphan_count: Number of orphaned pages (no incoming links)
+        orphan_count: Number of orphaned pages (no connections at all)
     """
     total_pages: int
     total_links: int
@@ -55,7 +55,7 @@ class PageConnectivity:
         connectivity_score: Total connectivity (incoming + outgoing)
         is_hub: True if page has many incoming references
         is_leaf: True if page has few connections
-        is_orphan: True if page has no incoming references
+        is_orphan: True if page has no connections at all
     """
     page: 'Page'
     incoming_refs: int
@@ -294,7 +294,7 @@ class KnowledgeGraph:
             if connectivity <= self.leaf_threshold:
                 leaf_count += 1
             
-            if incoming == 0:
+            if incoming == 0 and outgoing == 0:
                 orphan_count += 1
         
         avg_connectivity = total_connectivity / total_pages if total_pages > 0 else 0
@@ -335,7 +335,7 @@ class KnowledgeGraph:
             connectivity_score=connectivity,
             is_hub=incoming >= self.hub_threshold,
             is_leaf=connectivity <= self.leaf_threshold,
-            is_orphan=incoming == 0
+            is_orphan=(incoming == 0 and outgoing == 0)
         )
     
     def get_hubs(self, threshold: int = None) -> List['Page']:
@@ -363,11 +363,11 @@ class KnowledgeGraph:
         
         hubs = [
             page for page in self.site.pages
-            if self.incoming_refs[id(page)] >= threshold
+            if self.incoming_refs[page] >= threshold
         ]
         
         # Sort by incoming refs (descending)
-        hubs.sort(key=lambda p: self.incoming_refs[id(p)], reverse=True)
+        hubs.sort(key=lambda p: self.incoming_refs[p], reverse=True)
         
         return hubs
     
@@ -406,9 +406,9 @@ class KnowledgeGraph:
     
     def get_orphans(self) -> List['Page']:
         """
-        Get orphaned pages (no incoming references).
+        Get orphaned pages (no connections at all).
         
-        Orphans are pages that no other page links to. These might be:
+        Orphans are pages with no incoming or outgoing references. These might be:
         - Forgotten content
         - Draft pages
         - Pages that should be linked from navigation
@@ -424,7 +424,8 @@ class KnowledgeGraph:
         
         orphans = [
             page for page in self.site.pages
-            if self.incoming_refs[id(page)] == 0
+            if self.incoming_refs[page] == 0
+            and len(self.outgoing_refs[page]) == 0
             and not page.metadata.get('_generated')  # Exclude generated pages
         ]
         

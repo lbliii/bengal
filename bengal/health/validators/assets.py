@@ -12,6 +12,7 @@ Validates:
 from typing import List, Dict, Set, TYPE_CHECKING
 from pathlib import Path
 from collections import defaultdict
+import itertools
 
 from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult
@@ -143,7 +144,7 @@ class AssetValidator(BaseValidator):
         
         # Find large images
         large_images = []
-        for img_file in assets_dir.rglob('*.jpg') + assets_dir.rglob('*.jpeg') + assets_dir.rglob('*.png'):
+        for img_file in itertools.chain(assets_dir.rglob('*.jpg'), assets_dir.rglob('*.jpeg'), assets_dir.rglob('*.png')):
             size_kb = img_file.stat().st_size / 1024
             if size_kb > self.LARGE_IMAGE_KB:
                 large_images.append(f"{img_file.name}: {size_kb:.0f} KB")

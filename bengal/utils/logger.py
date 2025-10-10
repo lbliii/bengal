@@ -90,12 +90,15 @@ class LogEvent:
         # Basic format with Rich markup
         base = f"{indent}[{style}]●[/{style}]{phase_marker} {self.message}{metrics_str}"
         
+        # Always show context for warnings and errors (actionable issues)
+        # In verbose mode, show context for all levels
+        show_context = verbose or self.level in ('WARNING', 'ERROR', 'CRITICAL')
+        
+        if show_context and self.context:
+            context_str = " " + " ".join(f"{k}={v}" for k, v in self.context.items())
+            base += f" [{style}]{context_str}[/{style}]"
+        
         if verbose:
-            # Add context in verbose mode
-            if self.context:
-                context_str = " " + " ".join(f"{k}={v}" for k, v in self.context.items())
-                base += f"[dim]{context_str}[/dim]"
-            
             # Add timestamp in verbose mode
             time_str = self.timestamp.split('T')[1].split('.')[0]  # HH:MM:SS
             base = f"[dim]{time_str}[/dim] {base}"
@@ -249,7 +252,10 @@ class BengalLogger:
         self._events.append(event)
         
         # Output to console (unless suppressed for live progress)
-        if not self.quiet_console:
+        # Always show WARNING and above, even if quiet_console is True
+        show_console = not self.quiet_console or level.value >= LogLevel.WARNING.value
+        
+        if show_console:
             try:
                 # Use Rich console for markup rendering
                 from bengal.utils.rich_console import get_console

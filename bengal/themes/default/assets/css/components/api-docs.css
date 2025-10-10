@@ -28,6 +28,26 @@
   font-weight: var(--font-semibold);
 }
 
+/* Code-formatted headers (method/function/class names) */
+.prose.api-content h3 > code,
+.prose.api-content h4 > code {
+  font-size: inherit;
+  font-weight: var(--font-semibold);
+  color: var(--color-primary);
+  background: var(--color-bg-elevated);
+  padding: 0.15em 0.5em;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border-light);
+}
+
+.prose.api-content h3 > code {
+  font-size: 1.5rem;
+}
+
+.prose.api-content h4 > code {
+  font-size: 1.15rem;
+}
+
 /* API content inherits prose list styles but maintains spacing */
 .prose.api-content ul,
 .prose.api-content ol {
@@ -457,6 +477,315 @@
 }
 
 /* ============================================
+   PARAMETER TABLES
+   ============================================ */
+
+/* Parameter table styling - for functions with 5+ parameters */
+.prose.api-content table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--color-bg-elevated);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--elevation-subtle);
+  margin: var(--space-4) 0 var(--space-6) 0;
+  font-size: var(--text-sm);
+}
+
+.prose.api-content table thead {
+  background: var(--color-surface);
+  border-bottom: 2px solid var(--color-border);
+}
+
+.prose.api-content table thead th {
+  padding: var(--space-3) var(--space-4);
+  text-align: left;
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+  font-size: var(--text-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.prose.api-content table tbody tr {
+  border-bottom: 1px solid var(--color-border-light);
+  transition: background-color 0.15s ease;
+}
+
+.prose.api-content table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.prose.api-content table tbody tr:hover {
+  background: var(--color-surface);
+}
+
+.prose.api-content table tbody td {
+  padding: var(--space-3) var(--space-4);
+  vertical-align: top;
+  line-height: 1.6;
+}
+
+/* First column (Name) - monospace and highlighted */
+.prose.api-content table tbody td:first-child {
+  font-family: var(--font-mono);
+  font-weight: var(--font-semibold);
+  color: var(--color-primary);
+  font-size: 0.95em;
+}
+
+/* Second column (Type) - styled as type annotation */
+.prose.api-content table tbody td:nth-child(2) {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  color: var(--color-code-type);
+}
+
+.prose.api-content table tbody td:nth-child(2) code {
+  background: var(--color-code-type-bg);
+  padding: 0.2em 0.5em;
+  border-radius: var(--radius-sm);
+  font-weight: var(--font-medium);
+}
+
+/* Third column (Default) - monospace */
+.prose.api-content table tbody td:nth-child(3) {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  color: var(--color-text-muted);
+}
+
+.prose.api-content table tbody td:nth-child(3) code {
+  background: var(--color-bg-secondary);
+  padding: 0.2em 0.5em;
+  border-radius: var(--radius-sm);
+}
+
+/* Fourth column (Description) - regular text */
+.prose.api-content table tbody td:nth-child(4) {
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+}
+
+/* Responsive table - stack on mobile */
+@media (max-width: 768px) {
+  .prose.api-content table,
+  .prose.api-content table thead,
+  .prose.api-content table tbody,
+  .prose.api-content table tr,
+  .prose.api-content table th,
+  .prose.api-content table td {
+    display: block;
+  }
+  
+  .prose.api-content table thead {
+    display: none; /* Hide header on mobile */
+  }
+  
+  .prose.api-content table tbody tr {
+    margin-bottom: var(--space-4);
+    padding: var(--space-4);
+    background: var(--color-bg-elevated);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border-light);
+  }
+  
+  .prose.api-content table tbody td {
+    padding: var(--space-2) 0;
+    border: none;
+  }
+  
+  /* Add labels on mobile */
+  .prose.api-content table tbody td:before {
+    content: attr(data-label);
+    font-weight: var(--font-semibold);
+    display: block;
+    color: var(--color-text-muted);
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+    margin-bottom: var(--space-1);
+  }
+}
+
+/* ============================================
+   COLLAPSIBLE SECTIONS (details/summary)
+   ============================================ */
+
+/* Collapsible parameter lists (10+ parameters) */
+.prose.api-content details {
+  background: var(--color-bg-elevated);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  margin: var(--space-4) 0;
+  border: 1px solid var(--color-border-light);
+  box-shadow: var(--elevation-subtle);
+}
+
+.prose.api-content details summary {
+  cursor: pointer;
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+  padding: var(--space-2) var(--space-4);
+  margin: calc(-1 * var(--space-4));
+  border-radius: var(--radius-lg);
+  transition: background-color 0.2s ease;
+  user-select: none;
+  list-style: none; /* Remove default marker */
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* Custom arrow indicator */
+.prose.api-content details summary::before {
+  content: '▶';
+  display: inline-block;
+  font-size: 0.75em;
+  transition: transform 0.2s ease;
+  color: var(--color-primary);
+  flex-shrink: 0;
+}
+
+.prose.api-content details[open] summary::before {
+  transform: rotate(90deg);
+}
+
+.prose.api-content details summary:hover {
+  background: var(--color-surface);
+}
+
+.prose.api-content details summary:focus {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Content inside details */
+.prose.api-content details > *:not(summary) {
+  margin-top: var(--space-4);
+}
+
+.prose.api-content details table {
+  margin-top: var(--space-4);
+  margin-bottom: 0;
+}
+
+/* ============================================
+   RUBRIC - Pseudo-headings for API Sections
+   ============================================ */
+
+/* Rubric directive - styled text that looks like a heading but isn't in TOC */
+.prose.api-content .rubric {
+  display: block;
+  margin-top: var(--space-6);
+  margin-bottom: var(--space-3);
+  font-size: 1.1em;
+  font-weight: var(--font-semibold);
+  color: var(--color-primary);
+  letter-spacing: 0.02em;
+  padding-bottom: var(--space-1);
+  border-bottom: 2px solid var(--color-border-light);
+}
+
+/* Specific rubric styles for different API sections */
+.prose.api-content .rubric-parameters {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary-light);
+}
+
+.prose.api-content .rubric-returns {
+  color: var(--color-info);
+  border-bottom-color: var(--color-info-light);
+}
+
+.prose.api-content .rubric-raises {
+  color: var(--color-error);
+  border-bottom-color: var(--color-error-light);
+}
+
+.prose.api-content .rubric-examples {
+  color: var(--color-success);
+  border-bottom-color: var(--color-success-light);
+  margin-top: var(--space-8);
+}
+
+.prose.api-content .rubric-attributes,
+.prose.api-content .rubric-properties,
+.prose.api-content .rubric-methods {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary-light);
+}
+
+/* ============================================
+   SECTION HEADERS (Fallback for non-rubric)
+   ============================================ */
+
+/* Enhanced styling for section headers like "Parameters:", "Returns:", etc. */
+.prose.api-content p > strong {
+  font-weight: var(--font-semibold);
+}
+
+/* Make section headers (Parameters, Returns, etc.) more prominent */
+.prose.api-content p:has(> strong:first-child) {
+  margin-top: var(--space-6);
+  margin-bottom: var(--space-3);
+}
+
+/* Specific styling for common API section headers */
+.prose.api-content strong:first-child {
+  color: var(--color-primary);
+  font-size: 1.05em;
+  letter-spacing: 0.02em;
+}
+
+/* Parameters section header */
+.prose.api-content p > strong:first-child:contains("Parameters:") {
+  color: var(--color-primary);
+  font-size: 1.1em;
+}
+
+/* Returns section header */
+.prose.api-content p > strong:first-child:contains("Returns:") {
+  color: var(--color-info);
+  font-size: 1.1em;
+}
+
+/* Raises section header */
+.prose.api-content p > strong:first-child:contains("Raises:") {
+  color: var(--color-error);
+  font-size: 1.1em;
+}
+
+/* Examples section header */
+.prose.api-content p > strong:first-child:contains("Examples:") {
+  color: var(--color-success);
+  font-size: 1.1em;
+}
+
+/* ============================================
+   ENHANCED EXAMPLE CODE BLOCKS
+   ============================================ */
+
+/* Style for example code blocks - give them special treatment */
+.prose.api-content p:has(> strong:contains("Examples")) ~ pre {
+  border-left: 4px solid var(--color-success);
+  background: var(--color-success-bg);
+  position: relative;
+}
+
+.prose.api-content p:has(> strong:contains("Examples")) ~ pre::before {
+  content: 'Example';
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-4);
+  font-size: var(--text-xs);
+  color: var(--color-success);
+  font-weight: var(--font-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.7;
+}
+
+/* ============================================
    PRINT STYLES
    ============================================ */
 
@@ -475,6 +804,21 @@
   .prose h4 + pre {
     border: 1px solid black;
     box-shadow: none;
+  }
+  
+  /* Expand all collapsible sections when printing */
+  .prose.api-content details {
+    border: 1px solid black;
+  }
+  
+  .prose.api-content details summary::before {
+    content: '';
+  }
+  
+  /* Ensure tables print properly */
+  .prose.api-content table {
+    box-shadow: none;
+    border: 1px solid black;
   }
 }
 

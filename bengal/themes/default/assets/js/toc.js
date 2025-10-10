@@ -116,7 +116,9 @@
         
         // Auto-expand ONLY the active parent group (collapse others)
         const parentGroup = heading.link.closest('.toc-group');
+        
         if (parentGroup) {
+          // Active link is inside a collapsible group
           const groupId = getGroupId(parentGroup);
           
           // Expand the active group
@@ -133,15 +135,24 @@
               }
             }
           });
-          
-          // Scroll into view if needed
-          if (tocScrollContainer) {
-            const linkRect = heading.link.getBoundingClientRect();
-            const containerRect = tocScrollContainer.getBoundingClientRect();
-            
-            if (linkRect.top < containerRect.top || linkRect.bottom > containerRect.bottom) {
-              heading.link.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        } else {
+          // Active link is a standalone item (not in a group)
+          // Collapse ALL groups to keep the minimal view
+          tocGroups.forEach(group => {
+            const groupId = getGroupId(group);
+            if (!group.hasAttribute('data-collapsed')) {
+              collapseGroup(group, groupId);
             }
+          });
+        }
+        
+        // Scroll into view if needed
+        if (tocScrollContainer) {
+          const linkRect = heading.link.getBoundingClientRect();
+          const containerRect = tocScrollContainer.getBoundingClientRect();
+          
+          if (linkRect.top < containerRect.top || linkRect.bottom > containerRect.bottom) {
+            heading.link.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
           }
         }
       } else {

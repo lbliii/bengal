@@ -1,8 +1,47 @@
 {#
   Command Template
   
-  Generates documentation for a single CLI command.
+  Generates documentation for a single CLI command with enhanced formatting.
 #}
+
+{#- Macro: Render options as table or list based on count -#}
+{% macro render_options(options) %}
+{% set option_count = options | length %}
+{% if option_count >= 5 %}
+{#- Use table format for 5+ options -#}
+{% if option_count >= 10 %}
+````{dropdown} Options ({{ option_count }} total)
+:open: false
+
+{% endif %}
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+{% for option in options | sort(attribute='name') %}
+| `{{ option.metadata.opts | join('`, `') }}` | {% if option.metadata.is_flag %}Flag{% elif option.metadata.count %}Counter{% elif option.metadata.type %}`{{ option.metadata.type }}`{% else %}-{% endif %} | {% if option.metadata.default %}`{{ option.metadata.default }}`{% else %}-{% endif %} | {% if option.description %}{{ option.description }}{% else %}-{% endif %}{% if option.metadata.required %} **(Required)**{% endif %}{% if option.metadata.envvar %} <br>*Env: `{{ option.metadata.envvar }}`*{% endif %} |
+{% endfor %}
+{% if option_count >= 10 %}
+
+````
+{% endif %}
+{% else %}
+{#- Use list format for < 5 options -#}
+{% for option in options | sort(attribute='name') %}
+### {{ option.metadata.opts | join(', ') }}
+
+{% if option.description %}{{ option.description }}
+
+{% endif %}{% if option.metadata.type and not option.metadata.is_flag %}**Type:** `{{ option.metadata.type }}`  
+{% endif %}{% if option.metadata.is_flag %}**Type:** Flag (boolean)  
+{% endif %}{% if option.metadata.count %}**Type:** Counter (counts occurrences)  
+{% endif %}{% if option.metadata.default %}**Default:** `{{ option.metadata.default }}`  
+{% endif %}{% if option.metadata.required %}**Required:** Yes  
+{% endif %}{% if option.metadata.multiple %}**Multiple:** Can be specified multiple times  
+{% endif %}{% if option.metadata.envvar %}**Environment variable:** `{{ option.metadata.envvar }}`{% endif %}
+
+{% endfor %}
+{% endif %}
+{% endmacro %}
+
 ---
 title: "{{ element.name }}"
 type: cli-command
@@ -15,9 +54,9 @@ description: "{% set lines = element.description.split('\n') %}{% set desc_lines
 {{ element.description }}
 {% if element.deprecated %}
 
-:::warning Deprecated
+```{warning} Deprecated
 {{ element.deprecated }}
-:::
+```
 {% endif %}
 
 ## Usage
@@ -48,31 +87,27 @@ description: "{% set lines = element.description.split('\n') %}{% set desc_lines
 {% if options %}
 ## Options
 
-{% for option in options | sort(attribute='name') %}
-### {{ option.metadata.opts | join(', ') }}
-
-{% if option.description %}{{ option.description }}
-
-{% endif %}{% if option.metadata.type and not option.metadata.is_flag %}**Type:** `{{ option.metadata.type }}`  
-{% endif %}{% if option.metadata.is_flag %}**Type:** Flag (boolean)  
-{% endif %}{% if option.metadata.count %}**Type:** Counter (counts occurrences)  
-{% endif %}{% if option.metadata.default %}**Default:** `{{ option.metadata.default }}`  
-{% endif %}{% if option.metadata.required %}**Required:** Yes  
-{% endif %}{% if option.metadata.multiple %}**Multiple:** Can be specified multiple times  
-{% endif %}{% if option.metadata.envvar %}**Environment variable:** `{{ option.metadata.envvar }}`{% endif %}
-
-{% endfor %}
+{{ render_options(options) }}
 {% endif %}
-{% if element.examples %}
 
+{% if element.examples %}
 ## Examples
 
 {% for example in element.examples %}
+{% if not example.strip().startswith('```') %}
+```bash
+{% for line in example.split('\n') %}
+{{ line.strip() }}
+{% endfor %}
+```
+{% else %}
 {{ example }}
+{% endif %}
+
 {% endfor %}
 {% endif %}
-{% if element.see_also %}
 
+{% if element.see_also %}
 ## See Also
 
 {% for ref in element.see_also %}

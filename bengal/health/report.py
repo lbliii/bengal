@@ -42,9 +42,10 @@ class CheckResult:
         return cls(CheckStatus.SUCCESS, message, validator=validator)
     
     @classmethod
-    def info(cls, message: str, recommendation: Optional[str] = None, validator: str = "") -> 'CheckResult':
+    def info(cls, message: str, recommendation: Optional[str] = None, 
+             details: Optional[List[str]] = None, validator: str = "") -> 'CheckResult':
         """Create an info result."""
-        return cls(CheckStatus.INFO, message, recommendation, validator=validator)
+        return cls(CheckStatus.INFO, message, recommendation, details, validator=validator)
     
     @classmethod
     def warning(cls, message: str, recommendation: Optional[str] = None, 
