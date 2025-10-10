@@ -16,7 +16,6 @@ draft = false
 parallel = true
 incremental = true
 minify_html = true
-max_workers = 10
 auto_regenerate_autodoc = true  # Auto-regenerate docs when source changes
 
 # Enable all output formats

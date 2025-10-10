@@ -18,6 +18,12 @@
   transition: all var(--transition-base) var(--ease-out);
 }
 
+/* When card is a link, remove underlines */
+a.card {
+  text-decoration: none;
+  color: inherit;
+}
+
 .card:hover {
   box-shadow: var(--shadow-lg);
   transform: translateY(-2px);
@@ -34,6 +40,9 @@
 }
 
 .card-header {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
   padding: var(--space-5) var(--space-6);
   border-bottom: 1px solid var(--color-border-light);
 }
@@ -41,6 +50,25 @@
 .card-body {
   flex: 1;
   padding: var(--space-6);
+}
+
+/* Card body text styling (description content) */
+.card-body p,
+.card-content p {
+  font-size: var(--text-base);
+  line-height: var(--leading-relaxed);
+  color: var(--color-text-secondary);
+  margin: 0.5rem 0;
+}
+
+.card-body p:first-child,
+.card-content p:first-child {
+  margin-top: 0;
+}
+
+.card-body p:last-child,
+.card-content p:last-child {
+  margin-bottom: 0;
 }
 
 /* List styling in card bodies */
@@ -73,10 +101,14 @@
    ============================================ */
 
 .card-title {
-  margin: 0 0 var(--space-3) 0;
+  margin: 0;
   font-size: var(--text-xl);
   font-weight: var(--font-bold);
   line-height: var(--leading-tight);
+  /* Not a semantic heading, just styled text */
+  flex: 1;
+  /* Ensure text wraps nicely next to icon */
+  min-width: 0;
 }
 
 .card-title a {
@@ -430,9 +462,96 @@
 }
 
 /* ============================================
-   CARD GRID LAYOUTS
+   CARD GRID LAYOUTS (New - from card/cards directives)
    ============================================ */
 
+.card-grid {
+  display: grid;
+  gap: var(--card-gap, 1.5rem);
+  margin: 2rem 0;
+  
+  /* Auto-fit: Cards fill available space */
+  grid-template-columns: repeat(
+    var(--card-columns, auto-fit),
+    minmax(min(100%, 280px), 1fr)
+  );
+}
+
+/* Gap Sizes */
+.card-grid[data-gap="small"] { --card-gap: 1rem; }
+.card-grid[data-gap="medium"] { --card-gap: 1.5rem; }
+.card-grid[data-gap="large"] { --card-gap: 2.5rem; }
+
+/* Fixed Columns */
+.card-grid[data-columns="1"] { --card-columns: 1; }
+.card-grid[data-columns="2"] { --card-columns: 2; }
+.card-grid[data-columns="3"] { --card-columns: 3; }
+.card-grid[data-columns="4"] { --card-columns: 4; }
+.card-grid[data-columns="5"] { --card-columns: 5; }
+.card-grid[data-columns="6"] { --card-columns: 6; }
+
+/* Responsive Columns */
+.card-grid[data-columns~="1-2"],
+.card-grid[data-columns~="1-2-3"],
+.card-grid[data-columns~="1-2-3-4"] {
+  --card-columns: 1;
+}
+
+@media (min-width: 640px) {
+  .card-grid[data-columns~="1-2"],
+  .card-grid[data-columns~="1-2-3"],
+  .card-grid[data-columns~="1-2-3-4"] {
+    --card-columns: 2;
+  }
+}
+
+@media (min-width: 1024px) {
+  .card-grid[data-columns~="1-2-3"],
+  .card-grid[data-columns~="1-2-3-4"] {
+    --card-columns: 3;
+  }
+}
+
+@media (min-width: 1280px) {
+  .card-grid[data-columns~="1-2-3-4"] {
+    --card-columns: 4;
+  }
+}
+
+/* Card Colors (for accent borders) */
+.card-color-blue { border-left: 4px solid #3b82f6; }
+.card-color-green { border-left: 4px solid #10b981; }
+.card-color-red { border-left: 4px solid #ef4444; }
+.card-color-yellow { border-left: 4px solid #f59e0b; }
+.card-color-purple { border-left: 4px solid #8b5cf6; }
+.card-color-pink { border-left: 4px solid #ec4899; }
+.card-color-indigo { border-left: 4px solid #6366f1; }
+.card-color-gray { border-left: 4px solid #6b7280; }
+
+/* Card Icon Styling */
+.card-icon {
+  font-size: 1.5rem;
+  line-height: 1;
+  flex-shrink: 0;
+  /* Icon sits side-by-side with title, aligned to top */
+  /* Gap is handled by .card-header flex gap */
+}
+
+/* Card Content Styling */
+.card-content {
+  flex: 1;
+  margin-top: var(--space-5); /* Space after header/divider */
+}
+
+.card-content > *:first-child {
+  margin-top: 0;
+}
+
+.card-content > *:last-child {
+  margin-bottom: 0;
+}
+
+/* Legacy class names (keep for backward compat) */
 .cards-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -464,6 +583,14 @@
   .cards-grid,
   .feature-cards {
     grid-template-columns: 1fr;
+  }
+  
+  .card-grid {
+    gap: 1rem;
+  }
+  
+  .card-icon {
+    font-size: 1.5rem;
   }
 }
 

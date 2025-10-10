@@ -163,11 +163,12 @@ class MistuneParser(BaseMarkdownParser):
             )
         
         # Import our custom plugins
-        from bengal.rendering.plugins import create_documentation_directives
+        from bengal.rendering.plugins import create_documentation_directives, BadgePlugin
         
         # Create markdown instance with built-in + custom plugins
         # Note: Variable substitution is added per-page in parse_with_context()
         # Note: Cross-references added via enable_cross_references() when xref_index available
+        # Note: Badges are post-processed on HTML output (not registered as mistune plugin)
         self.md = mistune.create_markdown(
             plugins=[
                 'table',              # Built-in: GFM tables
@@ -176,7 +177,7 @@ class MistuneParser(BaseMarkdownParser):
                 'url',                # Built-in: autolinks
                 'footnotes',          # Built-in: [^1]
                 'def_list',           # Built-in: Term\n:   Def
-                create_documentation_directives(),  # Custom: admonitions, tabs, dropdowns
+                create_documentation_directives(),  # Custom: admonitions, tabs, dropdowns, cards
             ],
             renderer='html',
         )
@@ -192,6 +193,9 @@ class MistuneParser(BaseMarkdownParser):
         # Cross-reference plugin (added when xref_index is available)
         self._xref_plugin = None
         self._xref_enabled = False
+        
+        # Badge plugin (always enabled for Sphinx-Design compatibility)
+        self._badge_plugin = BadgePlugin()
     
     def parse(self, content: str, metadata: Dict[str, Any]) -> str:
         """
@@ -209,6 +213,8 @@ class MistuneParser(BaseMarkdownParser):
         
         try:
             html = self.md(content)
+            # Post-process for badges (Sphinx-Design compatibility)
+            html = self._badge_plugin._substitute_badges(html)
             # Post-process for cross-references if enabled
             if self._xref_enabled and self._xref_plugin:
                 html = self._xref_plugin._substitute_xrefs(html)
@@ -239,6 +245,9 @@ class MistuneParser(BaseMarkdownParser):
         """
         # Stage 1: Parse markdown
         html = self.md(content)
+        
+        # Stage 1.5: Post-process badges
+        html = self._badge_plugin._substitute_badges(html)
         
         # Stage 2: Inject heading anchors (IDs and ¶ links)
         html = self._inject_heading_anchors(html)
@@ -329,6 +338,9 @@ class MistuneParser(BaseMarkdownParser):
             # Post-process: Restore __BENGAL_ESCAPED_*__ placeholders to literal {{ }}
             html = self._var_plugin.restore_placeholders(html)
             
+            # Post-process for badges (Sphinx-Design compatibility)
+            html = self._badge_plugin._substitute_badges(html)
+            
             # Post-process for cross-references if enabled
             if self._xref_enabled and self._xref_plugin:
                 html = self._xref_plugin._substitute_xrefs(html)
@@ -386,7 +398,7 @@ class MistuneParser(BaseMarkdownParser):
         Returns:
             Tuple of (HTML with anchored headings, TOC HTML)
         """
-        # Parse markdown with variable substitution
+        # Parse markdown with variable substitution (includes badge post-processing)
         html = self.parse_with_context(content, metadata, context)
         
         # Inject heading anchors (IDs and ¶ links)

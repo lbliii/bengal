@@ -5,6 +5,7 @@ Configuration loader supporting TOML and YAML formats.
 from pathlib import Path
 from typing import Any, Dict, Optional, List
 import difflib
+import multiprocessing
 import toml
 import yaml
 
@@ -326,6 +327,11 @@ class ConfigLoader:
         Returns:
             Default configuration dictionary
         """
+        # Auto-detect optimal worker count based on CPU cores
+        # Use CPU count - 1 to leave one core for OS/UI, minimum 4
+        cpu_count = multiprocessing.cpu_count()
+        default_workers = max(4, cpu_count - 1)
+        
         return {
             'title': 'Bengal Site',
             'baseurl': '',
@@ -336,7 +342,7 @@ class ConfigLoader:
             'templates_dir': 'templates',
             'parallel': True,
             'incremental': False,
-            'max_workers': 4,
+            'max_workers': default_workers,  # Auto-detected based on CPU cores
             'pretty_urls': True,
             'minify_assets': True,
             'optimize_assets': True,

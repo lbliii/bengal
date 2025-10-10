@@ -365,3 +365,159 @@ class TestCascadeEdgeCases:
         assert regular_page.metadata['type'] == 'doc'
         assert regular_page.metadata['version'] == '1.0'
 
+
+class TestRootLevelCascade:
+    """Test cascade from root-level pages (like content/index.md)."""
+    
+    def test_root_level_page_cascade_to_sections(self):
+        """Test that cascade from root index.md applies to all top-level sections."""
+        site = Site(root_path=Path("/site"), config={})
+        
+        # Root-level page with cascade (like content/index.md)
+        root_page = Page(
+            source_path=Path("/content/index.md"),
+            metadata={
+                'title': 'Home',
+                'cascade': {
+                    'type': 'doc',
+                    'site_version': '1.0'
+                }
+            }
+        )
+        
+        # Top-level section
+        section = Section(name="docs", path=Path("/content/docs"))
+        
+        # Page in section
+        child_page = Page(
+            source_path=Path("/content/docs/intro.md"),
+            metadata={'title': 'Introduction'}
+        )
+        
+        section.add_page(child_page)
+        
+        # Root page is NOT in any section (top-level)
+        site.sections = [section]
+        site.pages = [root_page, child_page]
+        
+        site._apply_cascades()
+        
+        # Child page should inherit from root cascade
+        assert child_page.metadata['type'] == 'doc'
+        assert child_page.metadata['site_version'] == '1.0'
+        assert child_page.metadata['title'] == 'Introduction'  # Original preserved
+    
+    def test_root_cascade_to_multiple_sections(self):
+        """Test that root cascade applies to all top-level sections."""
+        site = Site(root_path=Path("/site"), config={})
+        
+        # Root-level page with cascade
+        root_page = Page(
+            source_path=Path("/content/index.md"),
+            metadata={
+                'cascade': {
+                    'type': 'doc',
+                    'layout': 'default'
+                }
+            }
+        )
+        
+        # Multiple top-level sections
+        section1 = Section(name="about", path=Path("/content/about"))
+        section2 = Section(name="docs", path=Path("/content/docs"))
+        
+        # Pages in different sections
+        page1 = Page(source_path=Path("/content/about/team.md"), metadata={'title': 'Team'})
+        page2 = Page(source_path=Path("/content/docs/guide.md"), metadata={'title': 'Guide'})
+        
+        section1.add_page(page1)
+        section2.add_page(page2)
+        
+        site.sections = [section1, section2]
+        site.pages = [root_page, page1, page2]
+        
+        site._apply_cascades()
+        
+        # Both pages should inherit root cascade
+        assert page1.metadata['type'] == 'doc'
+        assert page1.metadata['layout'] == 'default'
+        assert page2.metadata['type'] == 'doc'
+        assert page2.metadata['layout'] == 'default'
+    
+    def test_root_cascade_with_section_override(self):
+        """Test that section cascade can override root cascade."""
+        site = Site(root_path=Path("/site"), config={})
+        
+        # Root-level cascade
+        root_page = Page(
+            source_path=Path("/content/index.md"),
+            metadata={
+                'cascade': {
+                    'type': 'doc',
+                    'theme': 'light'
+                }
+            }
+        )
+        
+        # Section with its own cascade that overrides
+        section = Section(name="api", path=Path("/content/api"))
+        section.metadata['cascade'] = {
+            'type': 'api-reference',  # Override
+            'theme': 'dark'           # Override
+        }
+        
+        page = Page(
+            source_path=Path("/content/api/rest.md"),
+            metadata={'title': 'REST API'}
+        )
+        
+        section.add_page(page)
+        
+        site.sections = [section]
+        site.pages = [root_page, page]
+        
+        site._apply_cascades()
+        
+        # Section cascade should override root cascade
+        assert page.metadata['type'] == 'api-reference'
+        assert page.metadata['theme'] == 'dark'
+    
+    def test_root_cascade_to_nested_sections(self):
+        """Test that root cascade propagates through nested sections."""
+        site = Site(root_path=Path("/site"), config={})
+        
+        # Root-level cascade
+        root_page = Page(
+            source_path=Path("/content/index.md"),
+            metadata={
+                'cascade': {
+                    'site_name': 'My Site',
+                    'version': '1.0'
+                }
+            }
+        )
+        
+        # Parent section
+        parent = Section(name="docs", path=Path("/content/docs"))
+        
+        # Nested child section
+        child = Section(name="guides", path=Path("/content/docs/guides"))
+        
+        # Page in deeply nested section
+        page = Page(
+            source_path=Path("/content/docs/guides/intro.md"),
+            metadata={'title': 'Intro'}
+        )
+        
+        parent.add_subsection(child)
+        child.add_page(page)
+        
+        site.sections = [parent, child]
+        site.pages = [root_page, page]
+        
+        site._apply_cascades()
+        
+        # Page should inherit from root cascade even in nested section
+        assert page.metadata['site_name'] == 'My Site'
+        assert page.metadata['version'] == '1.0'
+

@@ -399,7 +399,7 @@ class BuildOrchestrator:
             if memory_optimized:
                 from bengal.orchestration.streaming import StreamingRenderOrchestrator
                 streaming_render = StreamingRenderOrchestrator(self.site)
-                streaming_render.process(pages_to_build, parallel=parallel, quiet=quiet_mode, tracker=tracker, stats=self.stats)
+                streaming_render.process(pages_to_build, parallel=parallel, quiet=quiet_mode, tracker=tracker, stats=self.stats, progress_manager=progress_manager)
             else:
                 self.render.process(pages_to_build, parallel=parallel, quiet=quiet_mode, tracker=tracker, stats=self.stats, progress_manager=progress_manager)
             
