@@ -161,10 +161,9 @@ class MenuBuilder:
         
         if orphaned_items:
             logger.warning(
-                "orphaned_menu_items",
+                f"{len(orphaned_items)} menu items reference missing parents and will be added to root level",
                 count=len(orphaned_items),
-                items=[(name, parent) for name, parent in orphaned_items[:5]],
-                message=f"{len(orphaned_items)} menu items reference missing parents and will be added to root level"
+                items=[(name, parent) for name, parent in orphaned_items[:5]]
             )
         
         # Build tree

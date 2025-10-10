@@ -22,11 +22,22 @@ class OutputFormatsGenerator:
     """
     Generates custom output formats for pages.
     
-    Supports:
-    - Per-page JSON output (page.json next to page.html)
-    - Per-page LLM text output (page.txt next to page.html)
-    - Site-wide index.json (searchable index of all pages)
-    - Site-wide llm-full.txt (full site content for AI)
+    Provides alternative content formats to enable:
+    - Client-side search via JSON index
+    - AI/LLM discovery via plain text
+    - Programmatic API access via JSON
+    
+    Output Formats:
+    - Per-page JSON: page.json next to each page.html (metadata + content)
+    - Per-page LLM text: page.txt next to each page.html (AI-friendly format)
+    - Site-wide index.json: Searchable index of all pages with summaries
+    - Site-wide llm-full.txt: Full site content in single text file
+    
+    Configuration (bengal.toml):
+        [output_formats]
+        enabled = true
+        per_page = ["json", "llm_txt"]
+        site_wide = ["index_json", "llm_full"]
     """
     
     def __init__(self, site: Any, config: Optional[Dict[str, Any]] = None) -> None:
@@ -38,14 +49,83 @@ class OutputFormatsGenerator:
             config: Configuration dict from bengal.toml
         """
         self.site = site
-        self.config = config or self._default_config()
+        self.config = self._normalize_config(config or {})
+    
+    def _normalize_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Normalize configuration to support both simple and advanced formats.
+        
+        Simple format (from [build.output_formats]):
+            {
+                'enabled': True,
+                'json': True,
+                'llm_txt': True,
+                'site_json': True,
+                'site_llm': True
+            }
+        
+        Advanced format (from [output_formats]):
+            {
+                'enabled': True,
+                'per_page': ['json', 'llm_txt'],
+                'site_wide': ['index_json', 'llm_full'],
+                'options': {...}
+            }
+        
+        Args:
+            config: Raw configuration from bengal.toml
+            
+        Returns:
+            Normalized configuration in advanced format
+        """
+        # Start with defaults
+        normalized = self._default_config()
+        
+        # If config is empty or disabled, return defaults
+        if not config:
+            return normalized
+        
+        # Check if it's the advanced format (has per_page or site_wide keys)
+        is_advanced = 'per_page' in config or 'site_wide' in config
+        
+        if is_advanced:
+            # Advanced format - merge with defaults
+            normalized.update(config)
+        else:
+            # Simple format - convert to advanced format
+            per_page = []
+            site_wide = []
+            
+            # Map simple format keys to advanced format
+            if config.get('json', False):
+                per_page.append('json')
+            if config.get('llm_txt', False):
+                per_page.append('llm_txt')
+            if config.get('site_json', False):
+                site_wide.append('index_json')
+            if config.get('site_llm', False):
+                site_wide.append('llm_full')
+            
+            # Update normalized config
+            normalized['per_page'] = per_page if per_page else normalized['per_page']
+            normalized['site_wide'] = site_wide if site_wide else normalized['site_wide']
+            
+            # Copy enabled flag if present
+            if 'enabled' in config:
+                normalized['enabled'] = config['enabled']
+            
+            # Copy options if present
+            if 'options' in config:
+                normalized['options'].update(config['options'])
+        
+        return normalized
     
     def _default_config(self) -> Dict[str, Any]:
         """Return default configuration."""
         return {
             'enabled': True,
-            'per_page': ['json'],  # JSON by default, LLM text opt-in
-            'site_wide': ['index_json'],  # Index by default, llm-full opt-in
+            'per_page': ['json', 'llm_txt'],  # JSON + LLM text by default (AI-native!)
+            'site_wide': ['index_json', 'llm_full'],  # Search index + full LLM text
             'options': {
                 'include_html_content': True,
                 'include_plain_text': True,
@@ -58,7 +138,16 @@ class OutputFormatsGenerator:
         }
     
     def generate(self) -> None:
-        """Generate all enabled output formats."""
+        """
+        Generate all enabled output formats.
+        
+        Checks configuration to determine which formats to generate,
+        filters pages based on exclusion rules, then generates:
+        1. Per-page formats (JSON, LLM text)
+        2. Site-wide formats (index.json, llm-full.txt)
+        
+        All file writes are atomic to prevent corruption during builds.
+        """
         if not self.config.get('enabled', True):
             logger.debug("output_formats_disabled")
             return
@@ -107,7 +196,17 @@ class OutputFormatsGenerator:
             )
     
     def _filter_pages(self) -> List[Any]:
-        """Filter pages based on exclusion rules."""
+        """
+        Filter pages based on exclusion rules.
+        
+        Excludes pages that:
+        - Have no output path (not rendered yet)
+        - Are in excluded sections
+        - Match excluded patterns (e.g., '404.html', 'search.html')
+        
+        Returns:
+            List of pages to include in output formats
+        """
         options = self.config.get('options', {})
         exclude_sections = options.get('exclude_sections', [])
         exclude_patterns = options.get('exclude_patterns', ['404.html', 'search.html'])
@@ -236,8 +335,19 @@ class OutputFormatsGenerator:
         """
         Generate site-wide index.json with all pages.
         
+        Creates a comprehensive JSON index suitable for client-side search.
+        Includes page summaries, sections, and tags with counts.
+        
         Args:
             pages: List of pages to include
+        
+        Output Format:
+            {
+              "site": {"title": "...", "baseurl": "...", ...},
+              "pages": [{...}, {...}],  // Array of page summaries
+              "sections": [{...}],       // Section counts
+              "tags": [{...}]            // Tag counts sorted by popularity
+            }
         """
         logger.debug(
             "generating_site_index_json",
@@ -308,8 +418,17 @@ class OutputFormatsGenerator:
         """
         Generate site-wide llm-full.txt with all pages.
         
+        Creates a single text file containing all site content in an
+        AI/LLM-friendly format. Each page is separated by a clear divider
+        and includes metadata (URL, section, tags, date) followed by content.
+        
         Args:
             pages: List of pages to include
+        
+        Use Cases:
+            - AI assistant training/context
+            - Full-text search indexing
+            - Content analysis and extraction
         """
         options = self.config.get('options', {})
         separator_width = options.get('llm_separator_width', 80)
@@ -452,14 +571,24 @@ class OutputFormatsGenerator:
     
     def _page_to_summary(self, page: Any, excerpt_length: int = 200) -> Dict[str, Any]:
         """
-        Convert page to summary (for site index).
+        Convert page to summary for site index.
+        
+        Creates a search-optimized page summary with enhanced metadata.
+        Includes standard fields (title, URL, excerpt) plus searchable
+        metadata like tags, categories, content type, etc.
         
         Args:
             page: Page object
-            excerpt_length: Length of excerpt
+            excerpt_length: Length of excerpt in characters
             
         Returns:
-            Dictionary with page summary (enhanced for search)
+            Dictionary with page summary including:
+            - objectID: Unique identifier for search
+            - url: Absolute URL with baseurl
+            - title, description, excerpt: Display text
+            - tags, section, category: Taxonomy
+            - word_count, reading_time: Stats
+            - Plus any custom frontmatter fields
         """
         content_text = self._strip_html(page.parsed_ast or page.content)
         

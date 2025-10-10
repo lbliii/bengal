@@ -21,6 +21,32 @@ logger = get_logger(__name__)
 class BuildHandler(FileSystemEventHandler):
     """
     File system event handler that triggers site rebuild with debouncing.
+    
+    Watches for file changes and automatically rebuilds the site when changes
+    are detected. Uses debouncing to batch multiple rapid changes into a single
+    rebuild, preventing excessive rebuilds when multiple files are saved at once.
+    
+    Features:
+    - Debounced rebuilds (0.2s delay to batch changes)
+    - Incremental builds for speed (5-10x faster)
+    - Parallel rendering
+    - Stale object reference prevention (clears ephemeral state)
+    - Build error recovery (errors don't crash server)
+    - Automatic cache invalidation for config/template changes
+    
+    Ignored files:
+    - Output directory (public/)
+    - Build logs (.bengal-build.log)
+    - Cache files (.bengal-cache.json)
+    - Temp files (.tmp, ~, .swp, .swo)
+    - System files (.DS_Store, .git)
+    - Python cache (__pycache__, .pyc)
+    
+    Example:
+        handler = BuildHandler(site, host="localhost", port=5173)
+        observer = Observer()
+        observer.schedule(handler, "content/", recursive=True)
+        observer.start()
     """
     
     # Debounce delay in seconds
@@ -112,7 +138,22 @@ class BuildHandler(FileSystemEventHandler):
         return False
     
     def _trigger_build(self) -> None:
-        """Execute the actual build (called after debounce delay)."""
+        """
+        Execute the actual build (called after debounce delay).
+        
+        This method:
+        1. Clears ephemeral state to prevent stale object references
+        2. Runs an incremental + parallel build for speed
+        3. Displays build statistics
+        4. Notifies connected SSE clients to reload
+        
+        Note:
+            Build errors are caught and logged but don't crash the server.
+            The server continues running even if a build fails.
+        
+        Raises:
+            Exception: Build failures are logged but don't propagate
+        """
         with self.timer_lock:
             self.debounce_timer = None
             
@@ -196,8 +237,18 @@ class BuildHandler(FileSystemEventHandler):
         """
         Handle file modification events with debouncing.
         
+        Multiple rapid file changes are batched together and trigger a single
+        rebuild after a short delay (DEBOUNCE_DELAY seconds).
+        
+        Files in the output directory and matching ignore patterns are skipped
+        to prevent infinite rebuild loops.
+        
         Args:
             event: File system event
+        
+        Note:
+            This method implements debouncing by canceling the previous timer
+            and starting a new one on each file change.
         """
         if event.is_directory:
             return

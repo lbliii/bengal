@@ -215,8 +215,16 @@ class Site:
         """
         Discover all content (pages, sections) in the content directory.
         
+        Scans the content directory recursively, creating Page and Section
+        objects for all markdown files and organizing them into a hierarchy.
+        
         Args:
             content_dir: Content directory path (defaults to root_path/content)
+        
+        Example:
+            >>> site = Site.from_config(Path('/path/to/site'))
+            >>> site.discover_content()
+            >>> print(f"Found {len(site.pages)} pages in {len(site.sections)} sections")
         """
         if content_dir is None:
             content_dir = self.root_path / "content"
@@ -453,7 +461,16 @@ class Site:
         server.start()
     
     def clean(self) -> None:
-        """Clean the output directory."""
+        """
+        Clean the output directory by removing all generated files.
+        
+        Useful for starting fresh or troubleshooting build issues.
+        
+        Example:
+            >>> site = Site.from_config(Path('/path/to/site'))
+            >>> site.clean()  # Remove all files in public/
+            >>> site.build()  # Rebuild from scratch
+        """
         import shutil
         
         if self.output_dir.exists():

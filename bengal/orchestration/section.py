@@ -246,6 +246,12 @@ class SectionOrchestrator:
             
         Returns:
             Page object representing the section index
+        
+        Example:
+            >>> section = Section(path=Path('blog'), name='blog')
+            >>> archive_page = orchestrator._create_archive_index(section)
+            >>> print(archive_page.template)  # 'archive.html'
+            >>> print(archive_page.metadata['type'])  # 'archive'
         """
         from bengal.core.page import Page
         from bengal.utils.pagination import Paginator

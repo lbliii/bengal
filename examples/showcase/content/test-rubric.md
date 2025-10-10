@@ -16,6 +16,13 @@ Some content before.
 ```{rubric} Returns
 :class: rubric-returns
 ```
-
 Something returned.
+
+---
+
+Test without blank line:
+```{rubric} Another Section
+:class: rubric-test
+```
+Immediate content.
 

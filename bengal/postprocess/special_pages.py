@@ -25,6 +25,13 @@ class SpecialPagesGenerator:
     These pages use templates from the theme but don't have corresponding
     markdown source files. They need to be rendered during the build process
     to ensure they have proper styling and navigation.
+    
+    Currently generates:
+    - 404.html: Custom 404 error page with site styling
+    
+    Future:
+    - search.html: Client-side search page
+    - sitemap.html: Human-readable sitemap
     """
     
     def __init__(self, site: 'Site') -> None:
@@ -37,7 +44,12 @@ class SpecialPagesGenerator:
         self.site = site
     
     def generate(self) -> None:
-        """Generate all special pages that are enabled."""
+        """
+        Generate all special pages that are enabled.
+        
+        Currently only generates 404 page if 404.html template exists in theme.
+        Failures are logged but don't stop the build process.
+        """
         pages_generated = []
         
         # Always generate 404 page
@@ -50,10 +62,17 @@ class SpecialPagesGenerator:
     
     def _generate_404(self) -> bool:
         """
-        Generate 404 error page.
+        Generate 404 error page with site styling.
+        
+        Uses 404.html template from theme if it exists. Creates a minimal
+        page context and renders the template with site navigation and styling.
         
         Returns:
-            True if generated successfully, False otherwise
+            True if generated successfully, False if template missing or error occurred
+        
+        Note:
+            Errors are logged but don't fail the build - a missing 404 page
+            is not critical for site functionality
         """
         try:
             from bengal.rendering.template_engine import TemplateEngine

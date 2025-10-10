@@ -102,7 +102,7 @@ class BuildProfile(Enum):
             BuildProfile.DEVELOPER
             
             >>> BuildProfile.from_cli_args(debug=True)
-            BuildProfile.WRITER  # Fast health checks, debug logging
+            BuildProfile.DEVELOPER  # Full dev mode with debug logging
             
             >>> BuildProfile.from_cli_args(verbose=True)
             BuildProfile.THEME_DEV
@@ -123,8 +123,9 @@ class BuildProfile(Enum):
         if verbose:
             return cls.THEME_DEV
         
-        # Priority 5: --debug flag (debug logging only, not comprehensive health checks)
-        # Falls through to default WRITER profile with fast health checks
+        # Priority 5: --debug flag (enables debug logging via DEVELOPER profile)
+        if debug:
+            return cls.DEVELOPER
         
         # Priority 6: Default (WRITER for fast, clean builds)
         return cls.WRITER
@@ -159,6 +160,7 @@ class BuildProfile(Enum):
                     ]
                 },
                 'verbose_build_stats': False,
+                'verbose_console_logs': False,  # Clean output, no log spam
                 'live_progress': {
                     'enabled': True,
                     'show_recent_items': False,
@@ -181,6 +183,7 @@ class BuildProfile(Enum):
                     'disabled': ['performance', 'cache', 'taxonomy']
                 },
                 'verbose_build_stats': True,
+                'verbose_console_logs': False,  # Detailed stats, but no log spam
                 'live_progress': {
                     'enabled': True,
                     'show_recent_items': True,
@@ -200,6 +203,7 @@ class BuildProfile(Enum):
                     'disabled': []
                 },
                 'verbose_build_stats': True,
+                'verbose_console_logs': False,  # Full metrics, but no log spam (use --full-output if needed)
                 'live_progress': {
                     'enabled': True,
                     'show_recent_items': True,

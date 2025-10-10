@@ -68,7 +68,7 @@ class BuildOrchestrator:
         Args:
             parallel: Whether to use parallel processing
             incremental: Whether to perform incremental build (only changed files)
-            verbose: Whether to show detailed build information
+            verbose: Whether to show verbose console logs during build (default: False, logs go to file)
             quiet: Whether to suppress progress output (minimal output mode)
             profile: Build profile (writer, theme-dev, or dev)
             memory_optimized: Use streaming build for memory efficiency (best for 5K+ pages)
@@ -93,7 +93,7 @@ class BuildOrchestrator:
         cli = init_cli_output(profile=profile, quiet=quiet, verbose=verbose)
         
         # Determine if we should use live progress
-        # Disable if: quiet mode, verbose mode, full_output requested, or not a TTY
+        # Disable if: quiet mode, verbose logging mode, full_output requested, or not a TTY
         use_live_progress = (
             not quiet and 
             not verbose and 
@@ -104,7 +104,7 @@ class BuildOrchestrator:
         # Suppress console log noise even when not using live progress
         # (logs still go to file for debugging)
         from bengal.utils.logger import set_console_quiet
-        if not verbose:  # Only suppress if not in verbose mode
+        if not verbose:  # Only suppress console logs if not in verbose logging mode
             set_console_quiet(True)
         
         # Create live progress manager if enabled
@@ -526,6 +526,13 @@ class BuildOrchestrator:
         if not verbose:
             set_console_quiet(False)
         
+        # Log Pygments cache statistics (performance monitoring)
+        try:
+            from bengal.rendering.pygments_cache import log_cache_stats
+            log_cache_stats()
+        except ImportError:
+            pass  # Cache not used
+        
         return self.stats
     
     def _print_rendering_summary(self) -> None:
@@ -552,8 +559,16 @@ class BuildOrchestrator:
         """
         Run health check system with profile-based filtering.
         
+        Different profiles run different sets of validators:
+        - WRITER: Basic checks (broken links, SEO)
+        - THEME_DEV: Extended checks (performance, templates)
+        - DEV: Full checks (all validators)
+        
         Args:
             profile: Build profile to use for filtering validators
+        
+        Raises:
+            Exception: If strict_mode is enabled and health checks fail
         """
         from bengal.health import HealthCheck
         

@@ -13,6 +13,15 @@ from bengal.utils.logger import get_logger
 class RSSGenerator:
     """
     Generates RSS feed for the site.
+    
+    Creates an rss.xml file with the 20 most recent pages that have dates,
+    enabling readers to subscribe to site updates via RSS readers.
+    
+    Features:
+    - Includes title, link, description for each item
+    - Sorted by date (newest first)
+    - Limited to 20 most recent items
+    - RFC 822 date formatting
     """
     
     def __init__(self, site: Any) -> None:
@@ -26,7 +35,15 @@ class RSSGenerator:
         self.logger = get_logger(__name__)
     
     def generate(self) -> None:
-        """Generate and write rss.xml."""
+        """
+        Generate and write rss.xml to output directory.
+        
+        Filters pages with dates, sorts by date (newest first), limits to 20 items,
+        and writes RSS feed atomically to prevent corruption.
+        
+        Raises:
+            Exception: If RSS generation or file writing fails
+        """
         # Add items (pages sorted by date)
         pages_with_dates = [p for p in self.site.pages if p.date]
         sorted_pages = sorted(pages_with_dates, key=lambda p: p.date, reverse=True)

@@ -2,6 +2,24 @@
 Live reload functionality for the dev server.
 
 Provides Server-Sent Events (SSE) endpoint and HTML injection for hot reload.
+
+Architecture:
+- SSE Endpoint (/__bengal_reload__): Maintains persistent connections to clients
+- Live Reload Script: Injected into HTML pages to connect to SSE endpoint
+- Client Queue: Each connected browser gets a queue for messages
+- Reload Notifications: Broadcast to all clients when build completes
+
+SSE Protocol:
+    Client: EventSource('/__bengal_reload__')
+    Server: data: reload\n\n  (triggers page refresh)
+    Server: : keepalive\n\n  (every 30s to prevent timeout)
+
+The live reload system enables automatic browser refresh after file changes
+are detected and the site is rebuilt, providing a seamless development experience.
+
+Note:
+    Live reload currently requires manual implementation in the request handler.
+    See plan/LIVE_RELOAD_ARCHITECTURE_PROPOSAL.md for implementation details.
 """
 
 import os
@@ -48,10 +66,37 @@ class LiveReloadMixin:
     Mixin class providing live reload functionality via SSE.
     
     This class is designed to be mixed into an HTTP request handler.
+    It provides two key methods:
+    - handle_sse(): Handles the SSE endpoint (/__bengal_reload__)
+    - serve_html_with_live_reload(): Injects the live reload script into HTML
+    
+    The SSE connection remains open, sending keepalive comments every 30 seconds
+    and "reload" messages when the site is rebuilt.
+    
+    Example:
+        class CustomHandler(LiveReloadMixin, http.server.SimpleHTTPRequestHandler):
+            def do_GET(self):
+                if self.path == '/__bengal_reload__':
+                    self.handle_sse()
+                elif self.serve_html_with_live_reload():
+                    return  # HTML served with script injected
+                else:
+                    super().do_GET()  # Default file serving
     """
     
     def handle_sse(self) -> None:
-        """Handle Server-Sent Events endpoint for live reload."""
+        """
+        Handle Server-Sent Events endpoint for live reload.
+        
+        Maintains a persistent HTTP connection and sends SSE messages:
+        - Keepalive comments (: keepalive) every 30 seconds
+        - Reload events (data: reload) when site is rebuilt
+        
+        The connection remains open until the client disconnects or an error occurs.
+        
+        Note:
+            This method blocks until the client disconnects
+        """
         # Create a queue for this client
         client_queue: queue.Queue = queue.Queue()
         client_addr = getattr(self, 'client_address', ['unknown', 0])[0]
@@ -116,7 +161,18 @@ class LiveReloadMixin:
                        remaining_clients=remaining_clients)
     
     def serve_html_with_live_reload(self) -> bool:
-        """Serve HTML file with live reload script injected."""
+        """
+        Serve HTML file with live reload script injected.
+        
+        Reads the HTML file, injects the live reload script before </body> or
+        </html>, and serves it with correct Content-Length header.
+        
+        Returns:
+            True if HTML was served (with or without injection), False if not HTML
+            
+        Note:
+            Returns False for non-HTML files so the caller can handle them
+        """
         # Resolve the actual file path
         path = self.translate_path(self.path)
         
@@ -179,7 +235,17 @@ class LiveReloadMixin:
 
 
 def notify_clients_reload() -> None:
-    """Notify all connected SSE clients to reload."""
+    """
+    Notify all connected SSE clients to reload.
+    
+    Sends a "reload" message to all connected clients via their queues.
+    Clients with full queues are skipped to avoid blocking.
+    
+    This is called after a successful build to trigger browser refresh.
+    
+    Note:
+        This is thread-safe and can be called from the build handler thread
+    """
     with _sse_clients_lock:
         client_count = len(_sse_clients)
         notified_count = 0

@@ -18,15 +18,15 @@ def built_site(tmp_path):
     """
     Build a complete site and return the output directory.
     
-    Uses the quickstart example as test data.
+    Uses the showcase example as test data.
     """
-    # Copy quickstart example to tmp
-    quickstart = Path("examples/quickstart")
+    # Copy showcase example to tmp
+    showcase = Path("examples/showcase")
     site_dir = tmp_path / "site"
     
     # Copy content and config
-    shutil.copytree(quickstart / "content", site_dir / "content")
-    shutil.copy(quickstart / "bengal.toml", site_dir / "bengal.toml")
+    shutil.copytree(showcase / "content", site_dir / "content")
+    shutil.copy(showcase / "bengal.toml", site_dir / "bengal.toml")
     
     # Build site in strict mode (fail if rendering broken)
     site = Site.from_config(site_dir)

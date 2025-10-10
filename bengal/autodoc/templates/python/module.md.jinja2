@@ -1,10 +1,9 @@
 {#- Macro: Render parameters as table or list based on count -#}
 {% macro render_parameters(args) %}
 {% set param_count = args | length %}
-{% raw %}```{rubric} Parameters
+:::{rubric} Parameters
 :class: rubric-parameters
-```{% endraw %}
-
+:::
 {% if param_count >= 5 %}
 {#- Use table format for 5+ parameters -#}
 {% if param_count >= 10 %}
@@ -24,7 +23,7 @@
 {% else %}
 {#- Use list format for < 5 parameters -#}
 {% for arg in args %}
-- **`{{ arg.name }}`**{% if arg.annotation %} (`{{ arg.annotation }}`){% endif %}{% if arg.default %} = `{{ arg.default }}`{% endif %}{% if arg.docstring %} - {{ arg.docstring }}{% endif %}
+- **`{{ arg.name }}`**{%- if arg.annotation %} (`{{ arg.annotation }}`){%- endif %}{%- if arg.default %} = `{{ arg.default }}`{%- endif %}{%- if arg.docstring %} - {{ arg.docstring }}{%- endif %}
 
 {% endfor %}
 {% endif %}
@@ -33,10 +32,10 @@
 {#- Macro: Render examples with proper code block wrapping -#}
 {% macro render_examples(examples) %}
 {% if examples %}
-{% raw %}```{rubric} Examples
-:class: rubric-examples
-```{% endraw %}
 
+:::{rubric} Examples
+:class: rubric-examples
+:::
 {% for example in examples %}
 {% if not example.strip().startswith('```') %}
 ```python
@@ -53,13 +52,12 @@
 {#- Macro: Render raises section -#}
 {% macro render_raises(raises) %}
 {% if raises %}
-{% raw %}```{rubric} Raises
+
+:::{rubric} Raises
 :class: rubric-raises
-```{% endraw %}
-
+:::
 {% for exc in raises %}
-- **`{{ exc.type }}`**{% if exc.description %}: {{ exc.description }}{% endif %}
-
+- **`{{ exc.type }}`**{%- if exc.description %}: {{ exc.description }}{%- endif %}
 {% endfor %}
 {% endif %}
 {% endmacro %}
@@ -67,6 +65,7 @@
 {#- Macro: Render notes as admonitions -#}
 {% macro render_notes(notes) %}
 {% if notes %}
+
 {% for note in notes %}
 ```{note}
 {{ note }}
@@ -79,6 +78,7 @@
 {#- Macro: Render warnings as admonitions -#}
 {% macro render_warnings(warnings) %}
 {% if warnings %}
+
 {% for warning in warnings %}
 ```{warning}
 {{ warning }}
@@ -129,21 +129,19 @@ This is a dataclass.
 {% endif %}
 
 {% if cls.children | selectattr('element_type', 'equalto', 'attribute') | list %}
-```{rubric} Attributes
+:::{rubric} Attributes
 :class: rubric-attributes
-```
-
+:::
 {% for attr in cls.children | selectattr('element_type', 'equalto', 'attribute') %}
-- **`{{ attr.name }}`**{% if attr.metadata.annotation %} (`{{ attr.metadata.annotation }}`){% endif %}{% if attr.description %} - {{ attr.description }}{% endif %}
-
+- **`{{ attr.name }}`**{%- if attr.metadata.annotation %} (`{{ attr.metadata.annotation }}`){%- endif %}{%- if attr.description %} - {{ attr.description }}{%- endif %}
 {% endfor %}
+
 {% endif %}
 
 {% if cls.children | selectattr('metadata.is_property', 'equalto', true) | list %}
-{% raw %}```{rubric} Properties
+:::{rubric} Properties
 :class: rubric-properties
-```{% endraw %}
-
+:::
 {% for prop in cls.children | selectattr('metadata.is_property', 'equalto', true) %}
 #### `{{ prop.name }}` @property
 
@@ -159,10 +157,9 @@ This is a dataclass.
 {% endif %}
 
 {% if cls.children | selectattr('element_type', 'equalto', 'method') | list %}
-{% raw %}```{rubric} Methods
+:::{rubric} Methods
 :class: rubric-methods
-```{% endraw %}
-
+:::
 {% for method in cls.children | selectattr('element_type', 'equalto', 'method') %}
 {% if not method.name.startswith('_') or method.name.startswith('__') %}
 #### `{{ method.name }}`{% if method.metadata.is_async %} @async{% endif %}{% if method.metadata.is_classmethod %} @classmethod{% endif %}{% if method.metadata.is_staticmethod %} @staticmethod{% endif %}
@@ -194,29 +191,21 @@ This is an asynchronous method. Use `await` when calling.
 {% if method.metadata.args %}
 {{ render_parameters(method.metadata.args) }}
 {% endif %}
-
 {% if method.metadata.returns %}
-{% raw %}```{rubric} Returns
+:::{rubric} Returns
 :class: rubric-returns
-```{% endraw %}
-
-`{{ method.metadata.returns }}`{% if method.metadata.parsed_doc.returns %} - {{ method.metadata.parsed_doc.returns }}{% endif %}
+:::
+`{{ method.metadata.returns }}`{%- if method.metadata.parsed_doc.returns %} - {{ method.metadata.parsed_doc.returns }}{%- endif %}
 
 {% endif %}
-
 {{ render_raises(method.metadata.parsed_doc.raises) }}
-
 {{ render_notes(method.metadata.parsed_doc.notes) }}
-
 {{ render_warnings(method.metadata.parsed_doc.warnings) }}
-
 {{ render_examples(method.metadata.parsed_doc.examples) }}
-
 {% if method.metadata.parsed_doc.see_also %}
 **See Also:** {% for ref in method.metadata.parsed_doc.see_also %}{{ ref }}{% if not loop.last %}, {% endif %}{% endfor %}
 
 {% endif %}
-
 ---
 {% endif %}
 {% endfor %}
@@ -259,29 +248,21 @@ This is an asynchronous function. Use `await` when calling.
 {% if func.metadata.args %}
 {{ render_parameters(func.metadata.args) }}
 {% endif %}
-
 {% if func.metadata.returns %}
-{% raw %}```{rubric} Returns
+:::{rubric} Returns
 :class: rubric-returns
-```{% endraw %}
-
-`{{ func.metadata.returns }}`{% if func.metadata.parsed_doc.returns %} - {{ func.metadata.parsed_doc.returns }}{% endif %}
+:::
+`{{ func.metadata.returns }}`{%- if func.metadata.parsed_doc.returns %} - {{ func.metadata.parsed_doc.returns }}{%- endif %}
 
 {% endif %}
-
 {{ render_raises(func.metadata.parsed_doc.raises) }}
-
 {{ render_notes(func.metadata.parsed_doc.notes) }}
-
 {{ render_warnings(func.metadata.parsed_doc.warnings) }}
-
 {{ render_examples(func.metadata.parsed_doc.examples) }}
-
 {% if func.metadata.parsed_doc.see_also %}
 **See Also:** {% for ref in func.metadata.parsed_doc.see_also %}{{ ref }}{% if not loop.last %}, {% endif %}{% endfor %}
 
 {% endif %}
-
 ---
 {% endif %}
 {% endfor %}

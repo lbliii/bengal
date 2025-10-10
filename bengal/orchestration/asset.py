@@ -144,6 +144,9 @@ class AssetOrchestrator:
             minify: Whether to minify
             optimize: Whether to optimize (unused for CSS)
             fingerprint: Whether to add hash to filename
+        
+        Raises:
+            Exception: If CSS bundling or minification fails
         """
         try:
             assets_output = self.site.output_dir / "assets"
@@ -184,6 +187,9 @@ class AssetOrchestrator:
             fingerprint: Whether to add fingerprint to filename
             progress_manager: Live progress manager (optional)
             css_entries_processed: Number of CSS entries already processed
+        
+        Note:
+            Errors during asset processing are logged but don't fail the entire build
         """
         assets_output = self.site.output_dir / "assets"
         
@@ -217,6 +223,9 @@ class AssetOrchestrator:
         """
         Process assets in parallel for better performance.
         
+        Uses ThreadPoolExecutor to process multiple assets concurrently.
+        Errors are collected and reported after all tasks complete.
+        
         Args:
             assets: Assets to process
             minify: Whether to minify CSS/JS
@@ -224,6 +233,9 @@ class AssetOrchestrator:
             fingerprint: Whether to add fingerprint to filename
             progress_manager: Live progress manager (optional)
             css_entries_processed: Number of CSS entries already processed
+        
+        Note:
+            max_workers is determined from site config (default: min(8, asset_count/4))
         """
         assets_output = self.site.output_dir / "assets"
         max_workers = self.site.config.get("max_workers", min(8, (len(assets) + 3) // 4))

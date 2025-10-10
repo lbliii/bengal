@@ -1,4 +1,18 @@
 # Bengal SSG Configuration Example
+#
+# Bengal uses sensible defaults - you only need to configure what you want to change!
+#
+# Default settings (no config needed):
+# ✅ parallel = true         - Parallel builds for speed
+# ✅ incremental = true       - Smart rebuilds (18-42x faster!)
+# ✅ minify_html = true       - Smaller pages (15-25% reduction)
+# ✅ minify_assets = true     - Optimized CSS/JS
+# ✅ fingerprint_assets = true - Cache busting
+# ✅ generate_sitemap = true  - SEO ready
+# ✅ generate_rss = true      - RSS feed included
+# ✅ JSON + LLM output = true - AI-native by default!
+# ✅ validate_links = true    - Catch broken links
+# ✅ validate_build = true    - Quality checks
 
 [site]
 title = "My Site"
@@ -6,6 +20,12 @@ baseurl = "https://example.com"
 
 [build]
 output_dir = "public"
+
+# Uncomment to disable default features if needed:
+# incremental = false        # Force full rebuilds every time
+# minify_html = false        # Keep HTML unminified (for debugging)
+# generate_sitemap = false   # Skip sitemap generation
+# generate_rss = false       # Skip RSS feed
 
 # Template caching (10-15% faster builds)
 # Caches compiled Jinja2 templates to .bengal-cache/templates/
@@ -15,6 +35,15 @@ cache_templates = true
 # Automatically regenerates Python/CLI docs if source files are newer than generated docs
 # Only regenerates when needed (smart timestamp checking)
 auto_regenerate_autodoc = false  # Set to true for convenience during development
+
+# Output formats (defaults: JSON + LLM text for all pages)
+# Uncomment to customize:
+# [build.output_formats]
+# enabled = false           # Disable all custom formats
+# json = false              # Disable per-page JSON
+# llm_txt = false           # Disable per-page LLM text
+# site_json = false         # Disable site-wide index.json
+# site_llm = false          # Disable site-wide llm-full.txt
 
 # Font Configuration - Automatically downloads and self-hosts Google Fonts
 # Simple string format: "FontFamily:weight1,weight2,weight3"
