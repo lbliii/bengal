@@ -17,7 +17,7 @@
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 {% for option in options | sort(attribute='name') %}
-| `{{ option.metadata.opts | join('`, `') }}` | {% if option.metadata.is_flag %}Flag{% elif option.metadata.count %}Counter{% elif option.metadata.type %}`{{ option.metadata.type }}`{% else %}-{% endif %} | {% if option.metadata.default %}`{{ option.metadata.default }}`{% else %}-{% endif %} | {% if option.description %}{{ option.description }}{% else %}-{% endif %}{% if option.metadata.required %} **(Required)**{% endif %}{% if option.metadata.envvar %} <br>*Env: `{{ option.metadata.envvar }}`*{% endif %} |
+| `{{ option.metadata.opts | join('`, `') }}` | {%- if option.metadata.is_flag %}Flag{%- elif option.metadata.count %}Counter{%- elif option.metadata.type %}`{{ option.metadata.type }}`{%- else %}-{%- endif %} | {%- if option.metadata.default %}`{{ option.metadata.default }}`{%- else %}-{%- endif %} | {%- if option.description %}{{ option.description }}{%- else %}-{%- endif -%}{%- if option.metadata.required %} **(Required)**{%- endif -%}{%- if option.metadata.envvar %} <br>*Env: `{{ option.metadata.envvar }}`*{%- endif %} |
 {% endfor %}
 {% if option_count >= 10 %}
 
@@ -28,15 +28,31 @@
 {% for option in options | sort(attribute='name') %}
 ### {{ option.metadata.opts | join(', ') }}
 
-{% if option.description %}{{ option.description }}
+{% if option.description %}
+{{ option.description }}
 
-{% endif %}{% if option.metadata.type and not option.metadata.is_flag %}**Type:** `{{ option.metadata.type }}`  
-{% endif %}{% if option.metadata.is_flag %}**Type:** Flag (boolean)  
-{% endif %}{% if option.metadata.count %}**Type:** Counter (counts occurrences)  
-{% endif %}{% if option.metadata.default %}**Default:** `{{ option.metadata.default }}`  
-{% endif %}{% if option.metadata.required %}**Required:** Yes  
-{% endif %}{% if option.metadata.multiple %}**Multiple:** Can be specified multiple times  
-{% endif %}{% if option.metadata.envvar %}**Environment variable:** `{{ option.metadata.envvar }}`{% endif %}
+{% endif %}
+{%- if option.metadata.type and not option.metadata.is_flag %}
+**Type:** `{{ option.metadata.type }}`  
+{% endif -%}
+{%- if option.metadata.is_flag %}
+**Type:** Flag (boolean)  
+{% endif -%}
+{%- if option.metadata.count %}
+**Type:** Counter (counts occurrences)  
+{% endif -%}
+{%- if option.metadata.default %}
+**Default:** `{{ option.metadata.default }}`  
+{% endif -%}
+{%- if option.metadata.required %}
+**Required:** Yes  
+{% endif -%}
+{%- if option.metadata.multiple %}
+**Multiple:** Can be specified multiple times  
+{% endif -%}
+{%- if option.metadata.envvar %}
+**Environment variable:** `{{ option.metadata.envvar }}`
+{% endif %}
 
 {% endfor %}
 {% endif %}
@@ -51,7 +67,12 @@ description: "{% set lines = element.description.split('\n') %}{% set desc_lines
 
 # {{ element.name }}
 
+{% if element.description %}
 {{ element.description }}
+{% else %}
+*No description provided.*
+{% endif %}
+
 {% if element.deprecated %}
 
 ```{warning} Deprecated
@@ -73,12 +94,21 @@ description: "{% set lines = element.description.split('\n') %}{% set desc_lines
 {% for arg in arguments %}
 ### {{ arg.name }}
 
-{% if arg.description %}{{ arg.description }}
+{% if arg.description %}
+{{ arg.description }}
 
-{% endif %}{% if arg.metadata.type %}**Type:** `{{ arg.metadata.type }}`  
-{% endif %}{% if arg.metadata.required %}**Required:** Yes  
-{% else %}**Required:** No  
-{% endif %}{% if arg.metadata.default %}**Default:** `{{ arg.metadata.default }}`{% endif %}
+{% endif %}
+{%- if arg.metadata.type %}
+**Type:** `{{ arg.metadata.type }}`  
+{% endif -%}
+{%- if arg.metadata.required %}
+**Required:** Yes  
+{% else %}
+**Required:** No  
+{% endif -%}
+{%- if arg.metadata.default %}
+**Default:** `{{ arg.metadata.default }}`
+{% endif %}
 
 {% endfor %}
 {% endif %}

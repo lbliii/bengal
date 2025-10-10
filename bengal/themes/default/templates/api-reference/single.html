@@ -33,9 +33,8 @@
           <h1>{{ page.title }}</h1>
         </div>
         
-        {% if page.metadata.description %}
-        <p class="lead">{{ page.metadata.description }}</p>
-        {% endif %}
+        {# Description is in the markdown content itself for autodoc pages #}
+        {# If you need a lead paragraph, add it explicitly in the markdown #}
         
         {# Module/Package metadata #}
         {% if page.metadata.module_path or page.metadata.source_file %}
