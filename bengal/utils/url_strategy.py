@@ -50,7 +50,6 @@ class URLStrategy:
         # i18n configuration (optional)
         i18n = site.config.get('i18n', {}) or {}
         strategy = i18n.get('strategy', 'none')
-        i18n.get('content_structure', 'dir')
         default_lang = i18n.get('default_language', 'en')
         default_in_subdir = bool(i18n.get('default_in_subdir', False))
         
