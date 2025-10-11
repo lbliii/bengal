@@ -125,7 +125,7 @@ class Section:
         """
         Get pages sorted by weight (ascending), then by title.
         
-        Pages without a weight field are treated as having weight=0.
+        Pages without a weight field are treated as having weight=999999 (appear at end).
         Lower weights appear first in the list.
         
         Returns:
@@ -139,7 +139,7 @@ class Section:
         return sorted(
             self.pages,
             key=lambda p: (
-                p.metadata.get('weight', 0),
+                p.metadata.get('weight', 999999),
                 p.title.lower()
             )
         )
@@ -150,7 +150,7 @@ class Section:
         Get subsections sorted by weight (ascending), then by title.
         
         Subsections without a weight field in their index page metadata
-        are treated as having weight=0. Lower weights appear first.
+        are treated as having weight=999999 (appear at end). Lower weights appear first.
         
         Returns:
             List of subsections sorted by weight, then title
@@ -163,7 +163,7 @@ class Section:
         return sorted(
             self.subsections,
             key=lambda s: (
-                s.metadata.get('weight', 0),
+                s.metadata.get('weight', 999999),
                 s.title.lower()
             )
         )

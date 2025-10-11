@@ -5,6 +5,7 @@ type: doc
 template: doc/list.html
 cascade:
   type: doc
+weight: 100
 ---
 
 # Bengal SSG Documentation

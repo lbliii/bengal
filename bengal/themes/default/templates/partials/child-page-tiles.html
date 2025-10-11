@@ -35,7 +35,7 @@
       'title': subsection.title,
       'url': url_for(subsection),
       'description': subsection.metadata.description if subsection.metadata.description else '',
-      'weight': subsection.metadata.weight if subsection.metadata.weight else 0,
+      'weight': subsection.metadata.weight if subsection.metadata.weight else 999999,
       'page_count': subsection.pages | length if subsection.pages else 0
     }) %}
   {% endfor %}
@@ -50,7 +50,7 @@
       'title': post.title,
       'url': url_for(post),
       'description': post.metadata.description if post.metadata.description else (post.content | strip_html | excerpt(120) if post.content else ''),
-      'weight': post.metadata.weight if post.metadata.weight else 0,
+      'weight': post.metadata.weight if post.metadata.weight else 999999,
       'date': post.date if post.date else none
     }) %}
   {% endfor %}
@@ -77,21 +77,21 @@
       </div>
       
       <div class="child-item-content">
-        <h3 class="child-item-title">
+        <span class="child-item-title">
           <a href="{{ item.url }}">{{ item.title }}</a>
-        </h3>
         
         {% if item.description %}
-        <p class="child-item-description">{{ item.description }}</p>
+        <span class="child-item-description">{{ item.description }}</span>
         {% endif %}
         
-        <div class="child-item-meta">
+        <span class="child-item-meta">
           {% if item.type == 'section' and item.page_count > 0 %}
           <span class="meta-item">{{ item.page_count }} page{{ 's' if item.page_count != 1 }}</span>
           {% elif item.type == 'page' and item.date %}
           <span class="meta-item">{{ item.date | time_ago }}</span>
           {% endif %}
-        </div>
+        </span>
+        </span>
       </div>
     </article>
     {% endfor %}
