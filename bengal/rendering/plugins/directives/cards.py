@@ -443,7 +443,7 @@ class GridItemCardDirective(DirectivePlugin):
             'children': children,
         }
     
-    def _extract_octicon(self, title: str) -> tuple[str, str]:
+    def _extract_octicon(self, title: str) -> Tuple[str, str]:
         """
         Extract octicon from title and return clean title.
         
