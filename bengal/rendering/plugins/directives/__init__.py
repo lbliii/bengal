@@ -11,10 +11,17 @@ Also provides:
 
 from bengal.utils.logger import get_logger
 from bengal.rendering.plugins.directives.admonitions import AdmonitionDirective
-from bengal.rendering.plugins.directives.tabs import TabsDirective
+from bengal.rendering.plugins.directives.tabs import TabSetDirective, TabItemDirective, TabsDirective
 from bengal.rendering.plugins.directives.dropdown import DropdownDirective
 from bengal.rendering.plugins.directives.code_tabs import CodeTabsDirective
 from bengal.rendering.plugins.directives.rubric import RubricDirective
+from bengal.rendering.plugins.directives.cards import (
+    CardsDirective,
+    CardDirective,
+    GridDirective,
+    GridItemCardDirective,
+)
+from bengal.rendering.plugins.directives.button import ButtonDirective
 from bengal.rendering.plugins.directives.cache import (
     DirectiveCache,
     get_cache,
@@ -77,13 +84,21 @@ def create_documentation_directives():
         
         try:
             # Create fenced directive with all our custom directives
+            # Support both backtick (`) and colon (:) fences for MyST Markdown compatibility
             directive = FencedDirective([
                 AdmonitionDirective(),  # Supports note, tip, warning, etc.
-                TabsDirective(),
+                TabSetDirective(),  # Modern MyST tab-set
+                TabItemDirective(),  # Modern MyST tab-item
+                TabsDirective(),  # Legacy tabs (backward compat)
                 DropdownDirective(),
                 CodeTabsDirective(),
                 RubricDirective(),  # Pseudo-headings for API docs
-            ])
+                CardsDirective(),  # Modern card grid system
+                CardDirective(),  # Individual cards
+                GridDirective(),  # Sphinx-Design compatibility
+                GridItemCardDirective(),  # Sphinx-Design compatibility
+                ButtonDirective(),  # Simple button links
+            ], markers='`:')
             
             # Apply to markdown instance
             return directive(md)

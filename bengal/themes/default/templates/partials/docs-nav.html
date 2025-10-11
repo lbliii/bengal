@@ -32,13 +32,13 @@
         </a>
       {% endif %}
       
-      {# Show regular pages in the root section (excluding index page and subsection index pages) #}
-      {% for p in root_section.regular_pages %}
+      {# Show regular pages in the root section (excluding index page and subsection index pages) - sorted by weight #}
+      {% for p in root_section.sorted_pages %}
         {# Skip root section index page #}
         {% if p.url != root_section.index_page.url %}
           {# Skip if this page is the index page of any subsection (avoid duplication) #}
           {% set is_subsection_index = namespace(value=false) %}
-          {% for subsection in root_section.sections %}
+          {% for subsection in root_section.sorted_subsections %}
             {% if subsection.index_page and p.url == subsection.index_page.url %}
               {% set is_subsection_index.value = true %}
             {% endif %}
@@ -55,8 +55,8 @@
         {% endif %}
       {% endfor %}
       
-      {# Show subsections #}
-      {% for section in root_section.sections %}
+      {# Show subsections - sorted by weight #}
+      {% for section in root_section.sorted_subsections %}
         {% set depth = 0 %}
         {% include 'partials/docs-nav-section.html' %}
       {% endfor %}

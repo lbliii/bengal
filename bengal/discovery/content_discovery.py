@@ -68,6 +68,9 @@ class ContentDiscovery:
                 if section.pages or section.subsections:
                     self.sections.append(section)
         
+        # Sort all sections by weight
+        self._sort_all_sections()
+        
         # Calculate metrics
         top_level_sections = len([s for s in self.sections if not hasattr(s, 'parent') or s.parent is None])
         top_level_pages = len([p for p in self.pages if not any(p in s.pages for s in self.sections)])
@@ -272,4 +275,46 @@ class ContentDiscovery:
         else:
             # No frontmatter delimiters, return whole file
             return file_content.strip()
+    
+    def _sort_all_sections(self) -> None:
+        """
+        Sort all sections and their children by weight.
+        
+        This recursively sorts:
+        - Pages within each section
+        - Subsections within each section
+        
+        Called after content discovery is complete.
+        """
+        self.logger.debug("sorting_sections_by_weight", 
+                         total_sections=len(self.sections))
+        
+        # Sort all sections recursively
+        for section in self.sections:
+            self._sort_section_recursive(section)
+        
+        # Also sort top-level sections
+        self.sections.sort(
+            key=lambda s: (
+                s.metadata.get('weight', 0),
+                s.title.lower()
+            )
+        )
+        
+        self.logger.debug("sections_sorted", 
+                         total_sections=len(self.sections))
+    
+    def _sort_section_recursive(self, section: Section) -> None:
+        """
+        Recursively sort a section and all its subsections.
+        
+        Args:
+            section: Section to sort
+        """
+        # Sort this section's children
+        section.sort_children_by_weight()
+        
+        # Recursively sort all subsections
+        for subsection in section.subsections:
+            self._sort_section_recursive(subsection)
 

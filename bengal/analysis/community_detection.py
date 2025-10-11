@@ -29,7 +29,19 @@ logger = get_logger(__name__)
 
 @dataclass
 class Community:
-    """A community of related pages."""
+    """
+    A community of related pages discovered through link structure.
+    
+    Represents a group of pages that are densely connected to each other
+    and share similar topics or themes. Useful for understanding content
+    organization and identifying topic clusters.
+    
+    Attributes:
+        id: Unique community identifier
+        pages: Set of pages belonging to this community
+        size: Number of pages in the community
+        density: Internal connection density (0.0-1.0)
+    """
     
     id: int
     pages: Set['Page']
@@ -47,7 +59,17 @@ class Community:
 
 @dataclass
 class CommunityDetectionResults:
-    """Results from community detection."""
+    """
+    Results from community detection analysis.
+    
+    Contains discovered communities and quality metrics. Communities
+    represent natural groupings of related pages based on link structure.
+    
+    Attributes:
+        communities: List of detected communities
+        modularity: Modularity score (quality metric, -1.0 to 1.0, higher is better)
+        num_communities: Total number of communities detected
+    """
     
     communities: List[Community]
     modularity: float

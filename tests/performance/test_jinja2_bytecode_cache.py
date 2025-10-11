@@ -4,6 +4,7 @@ Test Jinja2 bytecode caching implementation (Optimization #1).
 Validates that templates are compiled once and cached for subsequent builds.
 """
 
+import pytest
 import tempfile
 import shutil
 import time
@@ -11,6 +12,7 @@ from pathlib import Path
 from bengal.core.site import Site
 
 
+@pytest.mark.slow
 def test_bytecode_cache_directory_creation():
     """Test that bytecode cache directory is created."""
     temp_dir = Path(tempfile.mkdtemp())
@@ -52,6 +54,7 @@ cache_templates = true
         shutil.rmtree(temp_dir)
 
 
+@pytest.mark.slow
 def test_bytecode_cache_improves_performance():
     """Test that bytecode cache improves build performance."""
     temp_dir = Path(tempfile.mkdtemp())
@@ -59,6 +62,15 @@ def test_bytecode_cache_improves_performance():
     try:
         # Create site with multiple pages
         (temp_dir / "content").mkdir()
+        
+        # Create index page
+        (temp_dir / "content" / "index.md").write_text("""---
+title: Home
+---
+# Home
+Welcome to the test site.
+""")
+        
         for i in range(10):
             (temp_dir / "content" / f"page-{i}.md").write_text(f"""---
 title: Page {i}
@@ -107,6 +119,7 @@ cache_templates = true
         shutil.rmtree(temp_dir)
 
 
+@pytest.mark.slow
 def test_cache_can_be_disabled():
     """Test that cache can be disabled via config."""
     temp_dir = Path(tempfile.mkdtemp())

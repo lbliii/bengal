@@ -39,6 +39,7 @@ import warnings
 
 from bengal.rendering.plugins.variable_substitution import VariableSubstitutionPlugin
 from bengal.rendering.plugins.cross_references import CrossReferencePlugin
+from bengal.rendering.plugins.badges import BadgePlugin
 from bengal.rendering.plugins.directives import create_documentation_directives
 
 
@@ -72,6 +73,7 @@ __all__ = [
     # Core plugins
     'VariableSubstitutionPlugin',
     'CrossReferencePlugin',
+    'BadgePlugin',
     
     # Directive factory
     'create_documentation_directives',

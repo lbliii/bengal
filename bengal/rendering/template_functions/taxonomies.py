@@ -87,10 +87,9 @@ def related_posts(page: Any, all_pages: List[Any] = None, limit: int = 5) -> Lis
     # SLOW PATH: Fallback to runtime computation for backward compatibility
     # (Only happens if related posts weren't pre-computed during build)
     logger.warning(
-        "related_posts_slow_path",
+        "Pre-computed related posts not available, using O(n²) fallback algorithm",
         page=page_slug,
         all_pages=len(all_pages) if all_pages else 0,
-        message="Pre-computed related posts not available, using O(n²) fallback algorithm",
         caller="template"
     )
     

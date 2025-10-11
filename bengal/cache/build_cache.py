@@ -153,6 +153,10 @@ class BuildCache:
         
         Args:
             cache_path: Path to cache file
+        
+        Raises:
+            IOError: If cache file cannot be written
+            json.JSONEncodeError: If cache data cannot be serialized
         """
         # Ensure parent directory exists
         cache_path.parent.mkdir(parents=True, exist_ok=True)

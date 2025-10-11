@@ -1,0 +1,101 @@
+{#
+  Child Page Tiles Component
+  
+  Displays subsections and child pages as compact rows.
+  Used primarily in index templates to show section contents.
+  
+  Variables:
+    - posts: List of child pages to display (pre-sorted by weight during discovery)
+    - subsections: List of child sections to display (pre-sorted by weight during discovery)
+  
+  Features:
+    - Merges sections and pages into unified list
+    - Sorts by weight (lower weight = higher in list)
+    - Compact row-based layout
+    - Shows description and metadata
+  
+  Note:
+    Pages and subsections are pre-sorted by weight during content discovery,
+    but we re-sort the merged list to maintain proper ordering when combining both.
+  
+  Usage:
+    {% include 'partials/child-page-tiles.html' %}
+#}
+
+{% if posts or subsections %}
+{# Merge subsections and pages into unified list #}
+{% set all_items = [] %}
+
+{# Add subsections with metadata #}
+{% if subsections %}
+  {% for subsection in subsections %}
+    {% set _ = all_items.append({
+      'type': 'section',
+      'obj': subsection,
+      'title': subsection.title,
+      'url': url_for(subsection),
+      'description': subsection.metadata.description if subsection.metadata.description else '',
+      'weight': subsection.metadata.weight if subsection.metadata.weight else 999999,
+      'page_count': subsection.pages | length if subsection.pages else 0
+    }) %}
+  {% endfor %}
+{% endif %}
+
+{# Add pages with metadata #}
+{% if posts %}
+  {% for post in posts %}
+    {% set _ = all_items.append({
+      'type': 'page',
+      'obj': post,
+      'title': post.title,
+      'url': url_for(post),
+      'description': post.metadata.description if post.metadata.description else (post.content | strip_html | excerpt(120) if post.content else ''),
+      'weight': post.metadata.weight if post.metadata.weight else 999999,
+      'date': post.date if post.date else none
+    }) %}
+  {% endfor %}
+{% endif %}
+
+{# Sort by weight (ascending), then title #}
+{% set sorted_items = all_items | sort(attribute='weight,title') %}
+
+<section class="child-items">
+  <div class="child-items-list">
+    {% for item in sorted_items %}
+    <article class="child-item">
+      <div class="child-item-icon">
+        {% if item.type == 'section' %}
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+        </svg>
+        {% else %}
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          <polyline points="14 2 14 8 20 8"></polyline>
+        </svg>
+        {% endif %}
+      </div>
+      
+      <div class="child-item-content">
+        <span class="child-item-title">
+          <a href="{{ item.url }}">{{ item.title }}</a>
+        
+        {% if item.description %}
+        <span class="child-item-description">{{ item.description }}</span>
+        {% endif %}
+        
+        <span class="child-item-meta">
+          {% if item.type == 'section' and item.page_count > 0 %}
+          <span class="meta-item">{{ item.page_count }} page{{ 's' if item.page_count != 1 }}</span>
+          {% elif item.type == 'page' and item.date %}
+          <span class="meta-item">{{ item.date | time_ago }}</span>
+          {% endif %}
+        </span>
+        </span>
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+

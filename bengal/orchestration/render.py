@@ -154,6 +154,10 @@ class RenderOrchestrator:
             tracker: Dependency tracker for incremental builds
             quiet: Whether to suppress verbose output
             stats: Build statistics tracker
+            progress_manager: Live progress manager (optional)
+        
+        Raises:
+            Exception: Errors during page rendering are logged but don't fail the build
             
         Note:
             If you're profiling and see N parser/pipeline instances created,

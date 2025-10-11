@@ -46,7 +46,7 @@ htmlcov/
 
 # Bengal SSG
 public/
-.bengal/
+.bengal/          # Development files (profiles, logs)
 .bengal.pid
 
 # Autodoc generated content (regenerate with `bengal autodoc`)
@@ -65,4 +65,11 @@ Thumbs.db
 *.log
 *.bak
 *.tmp
+*.stats
 .env
+
+# Bengal generated files
+.bengal-build.log
+.demo-build.log
+
+experiments/

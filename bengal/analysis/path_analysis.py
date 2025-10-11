@@ -28,7 +28,19 @@ logger = get_logger(__name__)
 
 @dataclass
 class PathAnalysisResults:
-    """Results from path analysis."""
+    """
+    Results from path analysis and centrality computations.
+    
+    Contains centrality metrics that identify important pages in the
+    site's link structure. High betweenness indicates bridge pages,
+    high closeness indicates easily accessible pages.
+    
+    Attributes:
+        betweenness_centrality: Map of pages to betweenness scores (0.0-1.0)
+        closeness_centrality: Map of pages to closeness scores (0.0-1.0)
+        diameter: Network diameter (longest shortest path)
+        avg_path_length: Average shortest path length between all page pairs
+    """
     
     betweenness_centrality: Dict['Page', float]
     closeness_centrality: Dict['Page', float]

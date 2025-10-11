@@ -24,6 +24,32 @@ logger = get_logger(__name__)
 class DevServer:
     """
     Development server with file watching and auto-rebuild.
+    
+    Provides a complete development environment for Bengal sites with:
+    - HTTP server for viewing the site locally
+    - File watching for automatic rebuilds
+    - Graceful shutdown handling
+    - Stale process detection and cleanup
+    - Automatic port fallback
+    - Optional browser auto-open
+    
+    The server performs an initial build, then watches for changes and
+    automatically rebuilds only what's needed using incremental builds.
+    
+    Features:
+    - Incremental + parallel builds (5-10x faster than full builds)
+    - Beautiful, minimal request logging
+    - Custom 404 error pages
+    - PID file tracking for stale process detection
+    - Comprehensive resource cleanup on shutdown
+    
+    Example:
+        from bengal.core import Site
+        from bengal.server import DevServer
+        
+        site = Site.from_config()
+        server = DevServer(site, port=5173, watch=True)
+        server.start()  # Runs until Ctrl+C
     """
     
     def __init__(self, site: Any, host: str = "localhost", port: int = 5173, watch: bool = True, auto_port: bool = True, open_browser: bool = False) -> None:
@@ -46,7 +72,25 @@ class DevServer:
         self.open_browser = open_browser
     
     def start(self) -> None:
-        """Start the development server with robust resource cleanup."""
+        """
+        Start the development server with robust resource cleanup.
+        
+        This method:
+        1. Checks for and handles stale processes
+        2. Performs an initial build
+        3. Creates HTTP server (with port fallback if needed)
+        4. Starts file watcher (if enabled)
+        5. Opens browser (if requested)
+        6. Runs until interrupted (Ctrl+C, SIGTERM, etc.)
+        
+        The server uses ResourceManager for comprehensive cleanup handling,
+        ensuring all resources are properly released on shutdown regardless
+        of how the process exits.
+        
+        Raises:
+            OSError: If no available port can be found
+            KeyboardInterrupt: When user presses Ctrl+C (handled gracefully)
+        """
         # Use debug level to avoid noise in normal output
         logger.debug("dev_server_starting",
                     host=self.host,
@@ -115,7 +159,15 @@ class DevServer:
             # ResourceManager cleanup happens automatically via __exit__
     
     def _get_watched_directories(self) -> list:
-        """Get list of directories that will be watched."""
+        """
+        Get list of directories that will be watched.
+        
+        Returns:
+            List of directory paths (as strings) that exist and will be watched
+            
+        Note:
+            Non-existent directories are filtered out
+        """
         watch_dirs = [
             self.site.root_path / "content",
             self.site.root_path / "assets",
@@ -139,7 +191,15 @@ class DevServer:
         return [str(d) for d in watch_dirs if d.exists()]
     
     def _create_observer(self, actual_port: int) -> Observer:
-        """Create file system observer (does not start it)."""
+        """
+        Create file system observer (does not start it).
+        
+        Args:
+            actual_port: Port number to display in rebuild messages
+            
+        Returns:
+            Configured Observer instance (not yet started)
+        """
         event_handler = BuildHandler(self.site, self.host, actual_port)
         observer = Observer()
         
@@ -197,7 +257,16 @@ class DevServer:
         raise OSError(f"Could not find an available port in range {start_port}-{start_port + max_attempts - 1}")
     
     def _check_stale_processes(self) -> None:
-        """Check for and offer to clean up stale processes."""
+        """
+        Check for and offer to clean up stale processes.
+        
+        Looks for a PID file from a previous Bengal server run. If found,
+        verifies the process is actually a Bengal process and offers to
+        terminate it gracefully.
+        
+        Raises:
+            OSError: If stale process cannot be killed and user chooses not to continue
+        """
         pid_file = PIDManager.get_pid_file(self.site.root_path)
         stale_pid = PIDManager.check_stale_pid(pid_file)
         
@@ -246,7 +315,20 @@ class DevServer:
                               user_choice="continue_anyway")
     
     def _create_server(self):
-        """Create HTTP server (does not start it)."""
+        """
+        Create HTTP server (does not start it).
+        
+        Changes to the output directory and creates a TCP server on the
+        specified port. If the port is unavailable and auto_port is enabled,
+        automatically finds the next available port.
+        
+        Returns:
+            Tuple of (httpd, actual_port) where httpd is the TCPServer instance
+            and actual_port is the port it's bound to
+            
+        Raises:
+            OSError: If no available port can be found
+        """
         # Change to output directory
         os.chdir(self.site.output_dir)
         logger.debug("changed_directory", path=str(self.site.output_dir))
@@ -305,7 +387,18 @@ class DevServer:
         return httpd, actual_port
     
     def _print_startup_message(self, port: int) -> None:
-        """Print server startup message using Rich for stable borders."""
+        """
+        Print server startup message using Rich for stable borders.
+        
+        Displays a beautiful panel with:
+        - Server URL
+        - Output directory being served
+        - File watching status
+        - Shutdown instructions
+        
+        Args:
+            port: Port number the server is listening on
+        """
         from rich.console import Console
         from rich.panel import Panel
         from rich.text import Text
@@ -359,7 +452,14 @@ class DevServer:
         console.print(f"  [dim]{'─' * 8}─┼─{'─' * 6}─┼─{'─' * 3}─┼─{'─' * 60}[/dim]")
     
     def _open_browser_delayed(self, port: int) -> None:
-        """Open browser after a short delay (in background thread)."""
+        """
+        Open browser after a short delay (in background thread).
+        
+        Uses a background thread to avoid blocking server startup.
+        
+        Args:
+            port: Port number to include in the URL
+        """
         import webbrowser
         def open_browser():
             time.sleep(0.5)  # Give server time to start

@@ -28,7 +28,17 @@ logger = get_logger(__name__)
 
 @dataclass
 class PageRankResults:
-    """Results from PageRank computation."""
+    """
+    Results from PageRank computation.
+    
+    Contains importance scores for all pages based on the link structure.
+    Pages linked to by many important pages receive high scores.
+    
+    Attributes:
+        scores: Map of pages to PageRank scores (normalized, sum to 1.0)
+        iterations: Number of iterations until convergence
+        converged: Whether the algorithm converged within max_iterations
+    """
     
     scores: Dict['Page', float]
     iterations: int

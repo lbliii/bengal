@@ -12,7 +12,15 @@ from bengal.utils.logger import get_logger
 
 class SitemapGenerator:
     """
-    Generates XML sitemap for the site.
+    Generates XML sitemap for SEO.
+    
+    Creates a sitemap.xml file listing all pages with metadata like:
+    - URL location
+    - Last modified date
+    - Change frequency
+    - Priority
+    
+    The sitemap helps search engines discover and index site content.
     """
     
     def __init__(self, site: Any) -> None:
@@ -26,7 +34,15 @@ class SitemapGenerator:
         self.logger = get_logger(__name__)
     
     def generate(self) -> None:
-        """Generate and write sitemap.xml."""
+        """
+        Generate and write sitemap.xml to output directory.
+        
+        Iterates through all pages, creates XML entries with URLs and metadata,
+        and writes the sitemap atomically to prevent corruption.
+        
+        Raises:
+            Exception: If sitemap generation or file writing fails
+        """
         self.logger.info("sitemap_generation_start",
                         total_pages=len(self.site.pages))
         

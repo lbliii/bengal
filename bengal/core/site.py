@@ -215,8 +215,16 @@ class Site:
         """
         Discover all content (pages, sections) in the content directory.
         
+        Scans the content directory recursively, creating Page and Section
+        objects for all markdown files and organizing them into a hierarchy.
+        
         Args:
             content_dir: Content directory path (defaults to root_path/content)
+        
+        Example:
+            >>> site = Site.from_config(Path('/path/to/site'))
+            >>> site.discover_content()
+            >>> print(f"Found {len(site.pages)} pages in {len(site.sections)} sections")
         """
         if content_dir is None:
             content_dir = self.root_path / "content"
@@ -329,9 +337,30 @@ class Site:
         All pages under this section will inherit these values unless they
         define their own values (page values take precedence over cascaded values).
         """
-        # Process all top-level sections (they will recurse to subsections)
+        # First, check for root-level cascade from top-level pages (like content/index.md)
+        root_cascade = None
+        for page in self.pages:
+            # Check if this is a top-level page (not in any section)
+            is_top_level = not any(page in section.pages for section in self.sections)
+            if is_top_level and 'cascade' in page.metadata:
+                # Found root-level cascade - merge it
+                if root_cascade is None:
+                    root_cascade = {}
+                root_cascade.update(page.metadata['cascade'])
+        
+        # Process all top-level sections with root cascade (they will recurse to subsections)
         for section in self.sections:
-            self._apply_section_cascade(section, parent_cascade=None)
+            self._apply_section_cascade(section, parent_cascade=root_cascade)
+        
+        # Also apply root cascade to other top-level pages
+        if root_cascade:
+            for page in self.pages:
+                is_top_level = not any(page in section.pages for section in self.sections)
+                # Skip the page that defined the cascade itself
+                if is_top_level and 'cascade' not in page.metadata:
+                    for key, value in root_cascade.items():
+                        if key not in page.metadata:
+                            page.metadata[key] = value
     
     def _apply_section_cascade(self, section: Section, parent_cascade: Optional[Dict[str, Any]] = None) -> None:
         """
@@ -432,7 +461,16 @@ class Site:
         server.start()
     
     def clean(self) -> None:
-        """Clean the output directory."""
+        """
+        Clean the output directory by removing all generated files.
+        
+        Useful for starting fresh or troubleshooting build issues.
+        
+        Example:
+            >>> site = Site.from_config(Path('/path/to/site'))
+            >>> site.clean()  # Remove all files in public/
+            >>> site.build()  # Rebuild from scratch
+        """
         import shutil
         
         if self.output_dir.exists():

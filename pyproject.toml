@@ -3,20 +3,19 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "bengal-ssg"
+name = "bengal"
 version = "0.1.0"
 description = "A high-performance static site generator with modular architecture"
 readme = "README.md"
 requires-python = ">=3.9"
-license = {text = "MIT"}
+license = "MIT"
 authors = [
-    {name = "Bengal Contributors"}
+    {name = "Bengal Contributors", email = "lbeeze@icloud.com"}
 ]
 keywords = ["static-site-generator", "ssg", "documentation", "markdown", "website"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
@@ -56,13 +55,21 @@ dev = [
 bengal = "bengal.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/bengal-ssg/bengal"
-Documentation = "https://bengal-ssg.github.io"
-Repository = "https://github.com/bengal-ssg/bengal"
+Homepage = "https://github.com/lbliii/bengal"
+Documentation = "https://github.com/lbliii/bengal"
+Repository = "https://github.com/lbliii/bengal"
+"Bug Tracker" = "https://github.com/lbliii/bengal/issues"
 
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["bengal*"]
+
+[tool.setuptools.package-data]
+bengal = [
+    "themes/**/*",
+    "autodoc/templates/**/*.jinja2",
+    "py.typed",
+]
 
 [tool.black]
 line-length = 100

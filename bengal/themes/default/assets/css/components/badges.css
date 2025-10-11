@@ -5,10 +5,57 @@
   padding: 0.25rem 0.75rem;
   font-size: 0.75rem;
   font-weight: 600;
+  line-height: 1;
   border-radius: var(--radius-full);
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  white-space: nowrap;
 }
+
+/* Standard Badge Colors (Sphinx-Design compatible) */
+
+.badge-primary {
+  background-color: #3b82f6;
+  color: white;
+}
+
+.badge-secondary {
+  background-color: #6b7280;
+  color: white;
+}
+
+.badge-success {
+  background-color: #10b981;
+  color: white;
+}
+
+.badge-danger {
+  background-color: #ef4444;
+  color: white;
+}
+
+.badge-warning {
+  background-color: #f59e0b;
+  color: #1f2937;
+}
+
+.badge-info {
+  background-color: #3b82f6;
+  color: white;
+}
+
+.badge-light {
+  background-color: #f3f4f6;
+  color: #1f2937;
+  border: 1px solid #d1d5db;
+}
+
+.badge-dark {
+  background-color: #1f2937;
+  color: white;
+}
+
+/* Custom Badge Styles (Bengal-specific) */
 
 .badge-featured {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -23,6 +70,19 @@
 .badge-new {
   background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
   color: white;
+}
+
+/* Dark Mode */
+@media (prefers-color-scheme: dark) {
+  .badge-light {
+    background-color: #374151;
+    color: #f3f4f6;
+    border-color: #4b5563;
+  }
+  
+  .badge-warning {
+    color: #1f2937;
+  }
 }
 
 /* Article Card Badges */

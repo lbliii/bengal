@@ -16,7 +16,7 @@ Bengal SSG follows a modular architecture with clear separation of concerns to a
 ```mermaid
 graph TB
     subgraph "Entry Points"
-        CLI[CLI<br/>bengal/cli.py]
+        CLI[CLI<br/>bengal/cli/]
         Server[Dev Server<br/>bengal/server/]
     end
     
@@ -29,7 +29,7 @@ graph TB
     
     subgraph "Object Model"
         Site[Site<br/>bengal/core/site.py]
-        Pages[Pages<br/>bengal/core/page.py]
+        Pages[Pages<br/>bengal/core/page/]
         Sections[Sections<br/>bengal/core/section.py]
         Assets[Assets<br/>bengal/core/asset.py]
         Menus[Menus<br/>bengal/core/menu.py]
@@ -40,6 +40,8 @@ graph TB
         Health[Health Checks<br/>bengal/health/]
         Autodoc[Autodoc<br/>bengal/autodoc/]
         Config[Config<br/>bengal/config/]
+        Analysis[Analysis<br/>bengal/analysis/]
+        Fonts[Fonts<br/>bengal/fonts/]
     end
     
     CLI --> Site
@@ -57,6 +59,8 @@ graph TB
     Health -.->|"validation"| PostProcess
     Autodoc -.->|"generates"| Pages
     Config -.->|"configuration"| Site
+    Analysis -.->|"analyzes"| Site
+    Fonts -.->|"downloads/generates"| Assets
     
     style Site fill:#ff9999
     style CLI fill:#9999ff
@@ -101,26 +105,43 @@ graph TB
   - `mark_active_menu_items()`: Mark active menu items for current page
 - **Architecture Pattern**: Site is a **data container**, not a "God object" - actual build logic lives in specialized orchestrators
 
-#### Page Object (`bengal/core/page.py`)
+#### Page Object (`bengal/core/page/`)
 
 **Purpose**: Represents a single content page with source, metadata, rendered HTML, and navigation.
 
+**Architecture**: The Page object is split across multiple modules for better organization:
+
+| Module | Purpose | Description |
+|--------|---------|-------------|
+| `__init__.py` | Main class | Core Page class that imports from other modules |
+| `metadata.py` | Metadata | Frontmatter parsing, metadata extraction, property access |
+| `navigation.py` | Navigation | Sequential and hierarchical navigation (next, prev, parent, ancestors) |
+| `relationships.py` | Relationships | Section membership, page comparisons, hierarchical checks |
+| `computed.py` | Computed props | Dynamic properties (URL, kind, type checks, TOC) |
+| `operations.py` | Operations | Rendering, link extraction, validation |
+
 **Key Properties**:
 
-| Category | Property | Description |
-|----------|----------|-------------|
-| **Content** | `title`, `date`, `slug`, `url` | Basic page metadata and URL path (date uses `bengal.utils.dates`) |
-| | `description`, `keywords`, `draft` | SEO and publishing metadata |
-| | `toc`, `toc_items` | Auto-generated table of contents |
-| **Navigation** | `next`, `prev` | Sequential navigation across all pages |
-| | `next_in_section`, `prev_in_section` | Section-specific navigation |
-| | `parent`, `ancestors` | Hierarchical navigation for breadcrumbs |
-| **Type Checking** | `is_home`, `is_section`, `is_page` | Boolean type checks |
-| | `kind` | Type as string ('home', 'section', or 'page') |
-| **Comparison** | `eq()`, `in_section()` | Page equality and section membership |
-| | `is_ancestor()`, `is_descendant()` | Hierarchical relationships |
-| **Rendering** | `render()` | Render page with template |
-| | `validate_links()`, `extract_links()` | Link processing and validation |
+| Category | Property | Module | Description |
+|----------|----------|--------|-------------|
+| **Content** | `title`, `date`, `slug`, `url` | metadata, computed | Basic page metadata and URL path (date uses `bengal.utils.dates`) |
+| | `description`, `keywords`, `draft` | metadata | SEO and publishing metadata |
+| | `toc`, `toc_items` | computed | Auto-generated table of contents |
+| **Navigation** | `next`, `prev` | navigation | Sequential navigation across all pages |
+| | `next_in_section`, `prev_in_section` | navigation | Section-specific navigation |
+| | `parent`, `ancestors` | navigation | Hierarchical navigation for breadcrumbs |
+| **Type Checking** | `is_home`, `is_section`, `is_page` | computed | Boolean type checks |
+| | `kind` | computed | Type as string ('home', 'section', or 'page') |
+| **Comparison** | `eq()`, `in_section()` | relationships | Page equality and section membership |
+| | `is_ancestor()`, `is_descendant()` | relationships | Hierarchical relationships |
+| **Rendering** | `render()` | operations | Render page with template |
+| | `validate_links()`, `extract_links()` | operations | Link processing and validation |
+
+**Design Rationale**: Splitting the Page class into modules provides:
+- **Better maintainability**: Each module has ~100-300 lines vs 1000+ in single file
+- **Clear separation of concerns**: Metadata, navigation, and operations are independent
+- **Easier testing**: Test modules independently
+- **Better code organization**: Related functionality grouped together
 
 #### Section Object (`bengal/core/section.py`)
 
@@ -642,29 +663,44 @@ flowchart TD
 - **Atomic Writes**: Crash-safe file writing with atomic operations
 
 #### Template Functions (`bengal/rendering/template_functions/`)
-- **Purpose**: Provide 80+ custom filters and functions for templates
-- **Organization**: Modular design with self-registering modules across 16 focused modules
-- **Architecture**: Each module has single responsibility (no monolithic classes)
-- **Built on Utilities**: Many functions now delegate to `bengal/utils/` modules for consistent behavior
-- **Testing**: 335+ tests with 71-98% coverage across function modules
-- **Documentation**: See template function modules for detailed documentation
-- **Modules (16 total)**:
-  - **Strings (11 functions)**: `truncatewords`, `slugify`, `markdownify`, `strip_html`, `excerpt`, `reading_time`, etc. (uses `bengal.utils.text`)
-  - **Collections (8 functions)**: `where`, `where_not`, `group_by`, `sort_by`, `limit`, `offset`, `uniq`, `flatten`
-  - **Math (6 functions)**: `percentage`, `times`, `divided_by`, `ceil`, `floor`, `round`
-  - **Dates (3 functions)**: `time_ago`, `date_iso`, `date_rfc822` (uses `bengal.utils.dates`)
-  - **URLs (3 functions)**: `absolute_url`, `url_encode`, `url_decode`
-  - **Content (6 functions)**: `safe_html`, `html_escape`, `html_unescape`, `nl2br`, `smartquotes`, `emojify` (uses `bengal.utils.text`)
-  - **Data (8 functions)**: `get_data`, `jsonify`, `merge`, `has_key`, `get_nested`, `keys`, `values`, `items` (uses `bengal.utils.file_io`)
-  - **Advanced Strings (5 functions)**: `camelize`, `underscore`, `titleize`, `wrap_text`, `indent_text`
-  - **Files (3 functions)**: `read_file`, `file_exists`, `file_size` (uses `bengal.utils.file_io`)
-  - **Advanced Collections (3 functions)**: `sample`, `shuffle`, `chunk`
-  - **Images (6 functions)**: `image_url`, `image_dimensions`, `image_srcset`, `image_srcset_gen`, `image_alt`, `image_data_uri`
-  - **SEO (4 functions)**: `meta_description`, `meta_keywords`, `canonical_url`, `og_image`
-  - **Debug (3 functions)**: `debug`, `typeof`, `inspect`
-  - **Taxonomies (4 functions)**: `related_posts`, `popular_tags`, `tag_url`, `has_tag` (uses `bengal.utils.text`)
-  - **Pagination (3 functions)**: `paginate`, `page_url`, `page_range`
-  - **Cross-reference (5 functions)**: `ref`, `doc`, `anchor`, `relref`, etc.
+
+**Purpose**: Provide 75+ custom filters and functions for Jinja2 templates
+
+**Organization**: 
+- Modular design with self-registering modules
+- 17 focused modules, each with single responsibility
+- No monolithic classes
+- Comprehensive testing (335+ tests)
+
+**Architecture Principles**:
+- **Built on Utilities**: Many functions delegate to `bengal/utils/` modules for consistent behavior
+- **Type Safety**: Full type hints throughout
+- **Error Handling**: Graceful fallbacks and error messages
+- **Testing**: 71-98% coverage across function modules
+
+**Module Breakdown (17 modules, 75+ functions total)**:
+
+| Module | Functions | Description |
+|--------|-----------|-------------|
+| **strings.py** | 11 | `truncatewords`, `slugify`, `markdownify`, `strip_html`, `excerpt`, `reading_time` (uses `bengal.utils.text`) |
+| **collections.py** | 8 | `where`, `where_not`, `group_by`, `sort_by`, `limit`, `offset`, `uniq`, `flatten` |
+| **math_functions.py** | 6 | `percentage`, `times`, `divided_by`, `ceil`, `floor`, `round` |
+| **dates.py** | 3 | `time_ago`, `date_iso`, `date_rfc822` (uses `bengal.utils.dates`) |
+| **urls.py** | 3 | `absolute_url`, `url_encode`, `url_decode` |
+| **content.py** | 6 | `safe_html`, `html_escape`, `html_unescape`, `nl2br`, `smartquotes`, `emojify` (uses `bengal.utils.text`) |
+| **data.py** | 8 | `get_data`, `jsonify`, `merge`, `has_key`, `get_nested`, `keys`, `values`, `items` (uses `bengal.utils.file_io`) |
+| **advanced_strings.py** | 5 | `camelize`, `underscore`, `titleize`, `wrap_text`, `indent_text` |
+| **files.py** | 3 | `read_file`, `file_exists`, `file_size` (uses `bengal.utils.file_io`) |
+| **advanced_collections.py** | 3 | `sample`, `shuffle`, `chunk` |
+| **images.py** | 6 | `image_url`, `image_dimensions`, `image_srcset`, `image_srcset_gen`, `image_alt`, `image_data_uri` |
+| **seo.py** | 4 | `meta_description`, `meta_keywords`, `canonical_url`, `og_image` |
+| **debug.py** | 3 | `debug`, `typeof`, `inspect` |
+| **taxonomies.py** | 4 | `related_posts`, `popular_tags`, `tag_url`, `has_tag` (uses `bengal.utils.text`) |
+| **pagination_helpers.py** | 3 | `paginate`, `page_url`, `page_range` |
+| **crossref.py** | 5 | `ref`, `doc`, `anchor`, `relref`, internal linking helpers |
+| **navigation.py** | 4 | `breadcrumbs`, `active_menu`, `menu_tree`, navigation helpers |
+
+**Total**: 75+ functions across 17 modules
 
 #### Parser (`bengal/rendering/parser.py`)
 - **Multi-Engine Architecture**: Supports multiple Markdown parsers with unified interface
@@ -682,18 +718,93 @@ flowchart TD
   ```
 
 ##### Mistune Plugins (`bengal/rendering/plugins/`)
-- **Modular Plugin System**: Each plugin in focused ~100-200 line file
-- **Core Plugins**:
-  - `variable_substitution.py`: {{ variable }} in markdown content
-  - `cross_references.py`: [[link]] syntax for internal references
-- **Documentation Directives** (`directives/`):
-  - `admonitions.py`: Callout boxes (note, warning, tip, etc.)
-  - `tabs.py`: Tabbed content sections
-  - `dropdown.py`: Collapsible sections
-  - `code_tabs.py`: Multi-language code examples
-- **Clean API**: Only 3 main exports, rest is internal
-- **Extensible**: Add new plugins without touching existing code
-- **See**: `bengal/rendering/plugins/README.md` for details
+
+**Structure**: Modular plugin package with focused modules (~100-200 lines each)
+
+**Location**: `bengal/rendering/plugins/` directory organized by type
+
+**Core Plugins**:
+
+| Plugin | File | Purpose |
+|--------|------|---------|
+| **Variable Substitution** | `variable_substitution.py` | Substitute `{{ page.metadata.xxx }}` in markdown content |
+| **Cross References** | `cross_references.py` | Resolve `[[docs/page]]` references to internal pages |
+| **Badges** | `badges.py` | Inject badges for API documentation (@async, @property, etc.) |
+
+**Documentation Directives** (`directives/` subdirectory):
+
+| Directive | File | Syntax | Purpose |
+|-----------|------|--------|---------|
+| **Admonitions** | `admonitions.py` | ` ```{note} Title ` | Callout boxes (note, tip, warning, danger, error, info, example, success, caution) |
+| **Tabs** | `tabs.py` | ` ```{tabs} ` | Tabbed content sections with markdown support |
+| **Dropdown** | `dropdown.py` | ` ```{dropdown} Title ` | Collapsible sections with open/closed state |
+| **Code Tabs** | `code_tabs.py` | ` ```{code-tabs} ` | Multi-language code examples with syntax highlighting |
+| **Cards** | `cards.py` | ` ```{cards} ` / ` ```{card} ` | Card layouts with titles, icons, and links |
+| **Grid** | `cards.py` | ` ```{grid} ` / ` ```{grid-item-card} ` | Responsive grid layouts for content |
+| **Button** | `button.py` | ` ```{button} ` | Styled buttons with various types |
+| **Rubric** | `rubric.py` | ` ```{rubric} ` | Rubric headings (minor headings without TOC entries) |
+
+**Supporting Modules**:
+
+| Module | Purpose |
+|--------|---------|
+| `directives/validator.py` | Validation and error checking for directives |
+| `directives/errors.py` | Error formatting and reporting |
+| `directives/cache.py` | Caching for directive parsing (planned) |
+
+**Features**:
+- **Clean API**: Only 3 main exports (`VariableSubstitutionPlugin`, `CrossReferencePlugin`, `create_documentation_directives`)
+- **Modular**: Each directive is self-contained and independently testable
+- **Extensible**: Add new directives without touching existing code
+- **Backward Compatible**: Old imports still work via aliases
+- **Error Handling**: Comprehensive validation and error reporting
+- **Performance**: Efficient parsing with minimal overhead
+
+**Architecture Pattern**:
+```python
+# Old monolithic structure (v0.1.x):
+bengal/rendering/mistune_plugins.py (757 lines)
+
+# New modular structure (v1.0.0+):
+bengal/rendering/plugins/
+├── __init__.py                    # Public API
+├── variable_substitution.py       # Core plugin
+├── cross_references.py            # Core plugin
+├── badges.py                      # API doc enhancement
+└── directives/
+    ├── __init__.py               # Directive factory
+    ├── admonitions.py            # ~150 lines
+    ├── tabs.py                   # ~180 lines
+    ├── dropdown.py               # ~100 lines
+    ├── code_tabs.py              # ~120 lines
+    ├── cards.py                  # ~400 lines (3 directives)
+    ├── button.py                 # ~100 lines
+    ├── rubric.py                 # ~80 lines
+    ├── validator.py              # Validation
+    └── errors.py                 # Error formatting
+```
+
+**Usage**:
+```python
+from bengal.rendering.plugins import (
+    VariableSubstitutionPlugin,
+    CrossReferencePlugin,
+    create_documentation_directives
+)
+import mistune
+
+# Create markdown parser with all plugins
+md = mistune.create_markdown(
+    plugins=[
+        'table',
+        'strikethrough',
+        create_documentation_directives(),
+        VariableSubstitutionPlugin(context),
+    ]
+)
+```
+
+**See**: `bengal/rendering/plugins/README.md` for detailed documentation
 
 ##### Mistune Parser (`MistuneParser`)
 - **Performance**: 52% faster rendering, 42% faster total builds
@@ -1144,7 +1255,202 @@ bengal serve
 - Preserves directory structure
 - Creates Asset objects with metadata
 
-### 6. Configuration System
+### 6. Fonts System (`bengal/fonts/`)
+
+Bengal includes a built-in font management system that automatically downloads and hosts Google Fonts locally, improving performance and privacy.
+
+#### Overview
+
+The fonts system provides:
+- **Automatic font downloading** from Google Fonts (no external dependencies)
+- **Self-hosting** for better performance and GDPR compliance
+- **CSS generation** with @font-face rules and CSS custom properties
+- **Zero configuration** - just specify fonts in bengal.toml
+
+**Benefits**:
+- No external requests to Google Fonts CDN at runtime
+- Faster page loads (fonts served from same domain)
+- GDPR/privacy compliance (no third-party tracking)
+- Offline builds
+- Cache control
+
+#### Font Downloader (`bengal/fonts/downloader.py`)
+
+**Purpose**: Downloads font files from Google Fonts using the public CSS API.
+
+**Key Classes**:
+
+| Class | Description |
+|-------|-------------|
+| `GoogleFontsDownloader` | Downloads fonts from Google Fonts API |
+| `FontVariant` | Represents a specific font variant (family + weight + style) |
+
+**Features**:
+- No API key required
+- Uses stdlib only (urllib)
+- Automatic WOFF2 format selection (modern, smaller files)
+- Supports multiple weights and styles
+- SSL/TLS support
+- Robust error handling
+
+**Usage**:
+```python
+from bengal.fonts import GoogleFontsDownloader
+
+downloader = GoogleFontsDownloader()
+variants = downloader.download_font(
+    family="Inter",
+    weights=[400, 600, 700],
+    styles=["normal", "italic"],
+    output_dir=Path("public/assets/fonts")
+)
+
+# Returns list of FontVariant objects with file info
+```
+
+#### Font CSS Generator (`bengal/fonts/generator.py`)
+
+**Purpose**: Generates @font-face CSS rules for self-hosted fonts.
+
+**Key Classes**:
+
+| Class | Description |
+|-------|-------------|
+| `FontCSSGenerator` | Generates CSS with @font-face rules and custom properties |
+
+**Generated CSS includes**:
+- @font-face declarations for each variant
+- font-display: swap for performance
+- CSS custom properties for easy reference
+
+**Example output**:
+```css
+/* Inter */
+@font-face {
+  font-family: 'Inter';
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  src: url('/fonts/inter-400.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+  src: url('/fonts/inter-700.woff2') format('woff2');
+}
+
+/* CSS Custom Properties */
+:root {
+  --font-primary: 'Inter';
+  --font-heading: 'Playfair Display';
+}
+```
+
+#### Font Helper (`bengal/fonts/__init__.py`)
+
+**Purpose**: Main interface that orchestrates downloading and CSS generation.
+
+**Key Classes**:
+
+| Class | Description |
+|-------|-------------|
+| `FontHelper` | Coordinates font downloading and CSS generation |
+
+**Usage**:
+```python
+from bengal.fonts import FontHelper
+
+helper = FontHelper(config['fonts'])
+css_path = helper.process(assets_dir)
+```
+
+#### Configuration
+
+Configure fonts in `bengal.toml`:
+
+**Simple format** (family:weights):
+```toml
+[fonts]
+primary = "Inter:400,600,700"
+heading = "Playfair Display:700,900"
+mono = "Fira Code:400,500"
+```
+
+**Detailed format** (with styles):
+```toml
+[fonts.primary]
+family = "Inter"
+weights = [400, 600, 700]
+styles = ["normal", "italic"]
+
+[fonts.heading]
+family = "Playfair Display"
+weights = [700, 900]
+styles = ["normal"]
+```
+
+#### Build Integration
+
+Fonts are automatically processed during builds:
+
+1. **Font Helper runs** early in build process
+2. **Downloads fonts** to `public/assets/fonts/`
+3. **Generates fonts.css** in `public/assets/`
+4. **Theme can reference** fonts via CSS custom properties
+
+**In theme CSS**:
+```css
+body {
+  font-family: var(--font-primary), sans-serif;
+}
+
+h1, h2, h3 {
+  font-family: var(--font-heading), serif;
+}
+
+code {
+  font-family: var(--font-mono), monospace;
+}
+```
+
+#### Health Validation
+
+The FontValidator checks:
+- Font files downloaded successfully
+- fonts.css generated correctly
+- File sizes reasonable (< 500KB per variant)
+- All configured fonts present
+
+```bash
+# Font health check runs automatically
+bengal build
+
+# Example output:
+# 🔤 Fonts:
+#    Inter...
+#    Playfair Display...
+#    └─ Generated: fonts.css (5 variants)
+```
+
+#### Performance Characteristics
+
+**Download speed**: ~100-300ms per font family (network dependent)
+**File sizes**: WOFF2 format typically 15-100KB per variant
+**Build overhead**: Minimal - fonts cached locally after first download
+**Runtime performance**: Eliminates external CDN requests
+
+**Comparison to Google Fonts CDN**:
+| Aspect | CDN | Self-hosted |
+|--------|-----|-------------|
+| Initial page load | Slower (DNS lookup + request) | Faster (same domain) |
+| Caching | Shared cache (maybe) | Local cache (guaranteed) |
+| Privacy | Tracks users | No tracking |
+| Offline | Requires connection | Works offline |
+
+### 7. Configuration System
 
 #### Config Loader (`bengal/config/loader.py`)
 - Supports TOML and YAML formats
@@ -1153,7 +1459,7 @@ bengal serve
 - Flattens nested configuration for easy access
 - **Uses Utilities**: Delegates to `bengal.utils.file_io` for robust file loading with error handling
 
-### 7. Post-Processing
+### 8. Post-Processing
 
 #### Sitemap Generator (`bengal/postprocess/sitemap.py`)
 - Generates XML sitemap for SEO
@@ -1170,7 +1476,7 @@ bengal serve
 - Reports broken links
 - Can be extended for comprehensive validation
 
-### 8. Development Server
+### 9. Development Server
 
 #### Dev Server (`bengal/server/dev_server.py`)
 - Built-in HTTP server
@@ -1178,7 +1484,7 @@ bengal serve
 - Automatic rebuild on changes
 - Hot reload support (future enhancement)
 
-### 9. Health Check System (`bengal/health/`)
+### 10. Health Check System (`bengal/health/`)
 
 Bengal includes a comprehensive health check system that validates builds across all components.
 
@@ -1299,21 +1605,492 @@ health = HealthCheck(site)
 report = health.run(build_stats=stats)
 ```
 
-### 10. CLI (`bengal/cli.py`)
-- Click-based command-line interface
-- Commands:
-  - `bengal build`: Build the site
-  - `bengal build --incremental`: Incremental build (only changed files)
-  - `bengal build --parallel`: Parallel build (default)
-  - `bengal build --strict`: Fail on template errors (recommended for CI)
-  - `bengal build --debug`: Show debug output and full tracebacks
-  - `bengal autodoc`: Generate API documentation
-  - `bengal serve`: Start dev server
-  - `bengal clean`: Clean output
-  - `bengal new site/page`: Create new content
-  - `bengal --version`: Show version
+### 11. Analysis System (`bengal/analysis/`)
 
-### 11. Utilities (`bengal/utils/`)
+Bengal includes a comprehensive analysis system that helps understand and optimize site structure, connectivity, and content relationships.
+
+#### Overview
+
+The analysis module provides tools for:
+- **Knowledge Graph Analysis**: Build and analyze page connectivity through links, taxonomies, and menus
+- **PageRank**: Compute page importance scores using Google's PageRank algorithm
+- **Community Detection**: Discover topical clusters using the Louvain method
+- **Path Analysis**: Identify navigation bridges and bottlenecks using centrality metrics
+- **Link Suggestions**: Get smart recommendations for internal linking
+- **Graph Visualization**: Generate interactive visualizations of site structure
+- **Performance Advisor**: Analyze and recommend performance optimizations
+
+#### Knowledge Graph (`bengal/analysis/knowledge_graph.py`)
+
+**Purpose**: Analyzes the connectivity structure of a Bengal site by building a graph of all pages and their connections.
+
+**Tracks connections through**:
+- Internal links (cross-references)
+- Taxonomies (tags, categories)
+- Related posts
+- Menu items
+
+**Key Classes**:
+
+| Class | Description |
+|-------|-------------|
+| `KnowledgeGraph` | Main analyzer that builds and queries the connectivity graph |
+| `GraphMetrics` | Aggregated metrics (total pages, links, hubs, leaves, orphans) |
+| `PageConnectivity` | Per-page connectivity information |
+
+**Usage**:
+```python
+from bengal.analysis import KnowledgeGraph
+
+graph = KnowledgeGraph(site)
+graph.build()
+
+# Find orphaned pages
+orphans = graph.get_orphans()
+print(f"Found {len(orphans)} orphaned pages")
+
+# Find hub pages
+hubs = graph.get_hubs(threshold=10)
+print(f"Found {len(hubs)} hub pages")
+
+# Get metrics
+metrics = graph.metrics
+print(f"Average connectivity: {metrics.avg_connectivity:.2f}")
+```
+
+**Provides insights for**:
+- Content strategy (find orphaned pages)
+- Performance optimization (hub-first streaming)
+- Navigation design (understand structure)
+- SEO improvements (link structure)
+
+#### PageRank (`bengal/analysis/page_rank.py`)
+
+**Purpose**: Computes page importance scores using Google's PageRank algorithm with the iterative power method.
+
+**Algorithm considers**:
+- Number of incoming links (popularity)
+- Importance of pages linking to it (authority)
+- Damping factor for random navigation (user behavior)
+
+**Key Classes**:
+
+| Class | Description |
+|-------|-------------|
+| `PageRankComputer` | Computes PageRank scores iteratively |
+| `PageRankResults` | Results with scores, convergence info, and ranking methods |
+
+**Usage**:
+```python
+from bengal.analysis.page_rank import PageRankComputer
+
+computer = PageRankComputer(knowledge_graph, damping_factor=0.85)
+results = computer.compute(max_iterations=100)
+
+# Get top-ranked pages
+top_pages = results.get_top_pages(limit=20)
+for page, score in top_pages:
+    print(f"{page.title}: {score:.4f}")
+
+# Get pages above 80th percentile
+important_pages = results.get_pages_above_percentile(80)
+```
+
+**Applications**:
+- Prioritize important content
+- Guide content promotion
+- Optimize navigation structure
+- Implement hub-first streaming
+
+#### Community Detection (`bengal/analysis/community_detection.py`)
+
+**Purpose**: Discovers topical clusters in content using the Louvain method for modularity optimization.
+
+**Algorithm**: Two-phase iterative approach
+1. Local optimization: Move nodes to communities that maximize modularity gain
+2. Aggregation: Treat each community as a single node and repeat
+
+**Key Classes**:
+
+| Class | Description |
+|-------|-------------|
+| `LouvainCommunityDetector` | Implements Louvain method for community detection |
+| `Community` | Represents a community of related pages |
+| `CommunityDetectionResults` | Results with communities, modularity score, and query methods |
+
+**Usage**:
+```python
+from bengal.analysis.community_detection import LouvainCommunityDetector
+
+detector = LouvainCommunityDetector(knowledge_graph)
+results = detector.detect()
+
+# Get largest communities
+large_communities = results.get_largest_communities(limit=10)
+for community in large_communities:
+    print(f"Community {community.id}: {community.size} pages")
+    
+# Find which community a page belongs to
+community = results.get_community_for_page(page)
+```
+
+**Applications**:
+- Discover topical organization
+- Guide content categorization
+- Improve internal linking within topics
+- Generate navigation menus
+
+#### Path Analysis (`bengal/analysis/path_analysis.py`)
+
+**Purpose**: Analyze navigation paths and page accessibility using centrality metrics.
+
+**Computes**:
+- **Betweenness centrality**: Pages that connect different parts of the site (bridges)
+- **Closeness centrality**: Pages that are easy to reach from anywhere (accessible)
+- **Shortest paths**: Navigation paths between pages
+
+**Key Classes**:
+
+| Class | Description |
+|-------|-------------|
+| `PathAnalyzer` | Computes centrality metrics using Brandes' algorithm |
+| `PathAnalysisResults` | Results with centrality scores and path queries |
+
+**Usage**:
+```python
+from bengal.analysis.path_analysis import PathAnalyzer
+
+analyzer = PathAnalyzer(knowledge_graph)
+results = analyzer.analyze()
+
+# Find bridge pages (navigation bottlenecks)
+bridges = results.get_top_bridges(10)
+for page, score in bridges:
+    print(f"Bridge: {page.title} (score: {score:.4f})")
+
+# Find shortest path between pages
+path = analyzer.find_shortest_path(source_page, target_page)
+if path:
+    print(" → ".join([p.title for p in path]))
+```
+
+**Applications**:
+- Identify navigation bottlenecks
+- Optimize site structure
+- Find critical pages for user flows
+- Improve site accessibility
+
+#### Link Suggestions (`bengal/analysis/link_suggestions.py`)
+
+**Purpose**: Provides smart cross-linking recommendations based on multiple signals.
+
+**Considers**:
+- Topic similarity (shared tags, categories, keywords)
+- PageRank importance (prioritize linking to high-value pages)
+- Navigation patterns (betweenness, closeness)
+- Current link structure (avoid over-linking, find gaps)
+
+**Key Classes**:
+
+| Class | Description |
+|-------|-------------|
+| `LinkSuggestionEngine` | Generates smart link suggestions |
+| `LinkSuggestion` | A suggested link with score and reasons |
+| `LinkSuggestionResults` | Collection of suggestions with query methods |
+
+**Usage**:
+```python
+from bengal.analysis.link_suggestions import LinkSuggestionEngine
+
+engine = LinkSuggestionEngine(knowledge_graph)
+results = engine.generate_suggestions(min_score=0.5, max_per_page=5)
+
+# Get suggestions for specific page
+suggestions = results.get_suggestions_for_page(page, limit=10)
+for suggestion in suggestions:
+    print(f"Suggest linking to: {suggestion.target.title}")
+    print(f"  Score: {suggestion.score:.3f}")
+    print(f"  Reasons: {', '.join(suggestion.reasons)}")
+```
+
+**Helps improve**:
+- Internal linking structure
+- SEO through better site connectivity
+- Content discoverability
+- User navigation
+
+#### Graph Visualization (`bengal/analysis/graph_visualizer.py`)
+
+**Purpose**: Generate interactive visualizations of site structure using D3.js force-directed graphs.
+
+**Features**:
+- Node sizing by PageRank
+- Node coloring by community
+- Edge thickness by connection strength
+- Interactive zoom and pan
+- Node hover information
+- Responsive design
+
+**Usage**:
+```python
+from bengal.analysis import GraphVisualizer
+
+visualizer = GraphVisualizer(knowledge_graph)
+visualizer.generate(
+    output_path="public/graph.html",
+    include_pagerank=True,
+    include_communities=True
+)
+```
+
+#### Performance Advisor (`bengal/analysis/performance_advisor.py`)
+
+**Purpose**: Analyzes site structure and provides performance optimization recommendations.
+
+**Analyzes**:
+- Hub-first streaming opportunities
+- Parallel rendering candidates
+- Cache hit potential
+- Link structure efficiency
+
+**Usage**:
+```python
+from bengal.analysis.performance_advisor import PerformanceAdvisor
+
+advisor = PerformanceAdvisor(site, knowledge_graph)
+recommendations = advisor.analyze()
+
+for rec in recommendations:
+    print(f"{rec.category}: {rec.message}")
+    print(f"  Impact: {rec.impact}")
+    print(f"  Effort: {rec.effort}")
+```
+
+#### CLI Integration
+
+The analysis system is integrated into the CLI with dedicated commands:
+
+```bash
+# Analyze site structure
+bengal graph
+
+# Show site structure as tree
+bengal graph --tree
+
+# Generate interactive visualization
+bengal graph --output public/graph.html
+
+# Compute PageRank scores
+bengal pagerank --top 20
+
+# Detect communities
+bengal communities --min-size 3
+
+# Find bridge pages
+bengal bridges --top 10
+
+# Get link suggestions
+bengal suggest --min-score 0.5
+```
+
+See "CLI Commands" section for detailed command documentation.
+
+### 12. CLI (`bengal/cli/`)
+
+**Structure**: Modular command-line interface with Click framework
+
+**Location**: `bengal/cli/` directory with organized command modules
+
+**Architecture**:
+- `bengal/cli/__init__.py` - Main CLI group with command registration and typo detection
+- `bengal/cli/commands/` - Individual command modules
+  - `build.py` - Build commands
+  - `serve.py` - Development server
+  - `autodoc.py` - Documentation generation
+  - `graph.py` - Graph analysis commands
+  - `perf.py` - Performance analysis
+  - `clean.py` - Cleanup utilities
+  - `new.py` - Content creation
+
+**Features**:
+- **Typo Detection**: Fuzzy matching for command names with suggestions
+- **Rich Output**: Colored output and progress bars using Rich library
+- **Error Handling**: Beautiful tracebacks with context and locals
+- **Extensibility**: Easy to add new commands in separate modules
+
+#### Core Commands
+
+**Build Commands**:
+```bash
+# Basic build
+bengal build
+
+# Incremental build (18-42x faster)
+bengal build --incremental
+
+# Parallel build (default, 2-4x faster)
+bengal build --parallel
+
+# Strict mode (fail on template errors, recommended for CI)
+bengal build --strict
+
+# Debug mode (full tracebacks)
+bengal build --debug
+
+# Verbose output (show detailed change info)
+bengal build --incremental --verbose
+```
+
+**Development Commands**:
+```bash
+# Start development server with live reload
+bengal serve
+
+# Custom port
+bengal serve --port 8080
+
+# Disable live reload
+bengal serve --no-reload
+```
+
+**Documentation Commands**:
+```bash
+# Generate Python API documentation
+bengal autodoc
+
+# Generate CLI documentation (Click only)
+bengal autodoc-cli --app myapp.cli:main --framework click
+
+# Override source/output
+bengal autodoc --source mylib --output content/api
+
+# Show extraction stats
+bengal autodoc --stats --verbose
+```
+
+**Graph Analysis Commands**:
+```bash
+# Analyze site structure and connectivity
+bengal graph
+
+# Show site structure as tree
+bengal graph --tree
+
+# Generate interactive visualization
+bengal graph --output public/graph.html
+
+# Compute PageRank scores
+bengal pagerank --top 20
+
+# Detect topical communities
+bengal communities --min-size 3
+
+# Find bridge pages (navigation bottlenecks)
+bengal bridges --top 10
+
+# Get link suggestions
+bengal suggest --min-score 0.5
+```
+
+**Performance Commands**:
+```bash
+# Performance analysis
+bengal perf
+
+# Detailed performance breakdown
+bengal perf --verbose
+```
+
+**Utility Commands**:
+```bash
+# Clean output directory
+bengal clean
+
+# Clean cache and output
+bengal cleanup
+
+# Create new site
+bengal new site mysite
+
+# Create new page
+bengal new page content/blog/post.md
+
+# Show version
+bengal --version
+
+# Show help
+bengal --help
+```
+
+#### Command Registration
+
+Commands are registered in `bengal/cli/__init__.py`:
+
+```python
+from bengal.cli.commands.build import build
+from bengal.cli.commands.serve import serve
+from bengal.cli.commands.autodoc import autodoc, autodoc_cli
+from bengal.cli.commands.graph import graph, pagerank, communities, bridges, suggest
+from bengal.cli.commands.perf import perf
+from bengal.cli.commands.clean import clean, cleanup
+from bengal.cli.commands.new import new
+
+@click.group(cls=BengalGroup)
+@click.version_option(version=__version__, prog_name="Bengal SSG")
+def main() -> None:
+    """Bengal SSG - A high-performance static site generator."""
+    pass
+
+# Register commands
+main.add_command(build)
+main.add_command(serve)
+main.add_command(autodoc)
+main.add_command(autodoc_cli)
+main.add_command(graph)
+main.add_command(pagerank)
+main.add_command(communities)
+main.add_command(bridges)
+main.add_command(suggest)
+main.add_command(perf)
+main.add_command(clean)
+main.add_command(cleanup)
+main.add_command(new)
+```
+
+#### Custom Click Group
+
+Bengal uses a custom `BengalGroup` class that provides typo detection:
+
+```python
+class BengalGroup(click.Group):
+    """Custom Click group with typo detection and suggestions."""
+    
+    def resolve_command(self, ctx, args):
+        """Resolve command with fuzzy matching for typos."""
+        try:
+            return super().resolve_command(ctx, args)
+        except click.exceptions.UsageError as e:
+            if "No such command" in str(e) and args:
+                suggestions = self._get_similar_commands(args[0])
+                if suggestions:
+                    # Show suggestions
+                    pass
+            raise
+```
+
+**Example**:
+```bash
+$ bengal bild
+Unknown command 'bild'.
+
+Did you mean one of these?
+  • build
+  • bridges
+
+Run 'bengal --help' to see all commands.
+```
+
+### 13. Utilities (`bengal/utils/`)
 
 Bengal provides a comprehensive set of utility modules that consolidate common operations across the codebase, eliminating duplication and providing consistent, well-tested implementations.
 
@@ -1567,6 +2344,120 @@ Bengal provides a comprehensive set of utility modules that consolidate common o
 1. **Content Caching**: Cache parsed Markdown AST between builds
 2. **Asset Deduplication**: Share common assets across pages
 3. **Build Profiling**: Identify bottlenecks with detailed timing
+
+## File Organization
+
+Bengal maintains a clean and organized directory structure for generated files, separating build outputs, cache data, and development artifacts.
+
+### Directory Structure
+
+```
+mysite/
+├── content/              # Source content (user-managed)
+├── templates/            # Custom templates (user-managed)
+├── assets/               # Static assets (user-managed)
+├── bengal.toml           # Configuration (user-managed)
+│
+├── public/               # Build outputs (generated, .gitignored)
+│   ├── index.html
+│   ├── assets/
+│   ├── .bengal-cache.json           # Build cache (metadata)
+│   └── .bengal-cache/
+│       └── templates/                # Jinja2 bytecode cache
+│
+└── .bengal/              # Development files (generated, .gitignored)
+    ├── profiles/         # Performance profiling data
+    │   ├── profile.stats
+    │   └── build_profile.stats
+    └── logs/             # Build logs (future)
+        └── build.log
+```
+
+### File Categories
+
+Bengal organizes generated files into three categories:
+
+1. **Build Outputs** (`public/`)
+   - Deployable website files
+   - Should be .gitignored
+   - Example: `public/index.html`, `public/assets/`
+
+2. **Build Metadata** (`public/.bengal-cache*`)
+   - Cache files that improve rebuild performance
+   - Stored alongside outputs for atomic cleanup
+   - Should be .gitignored
+   - Examples:
+     - `.bengal-cache.json` - Incremental build cache
+     - `.bengal-cache/templates/` - Jinja2 bytecode cache
+
+3. **Development Files** (`.bengal/`)
+   - Performance profiles, logs, and debugging data
+   - Separate from source and outputs
+   - Should be .gitignored
+   - Examples:
+     - `.bengal/profiles/profile.stats` - Performance profiling data
+     - `.bengal-build.log` - Build logs (currently at root for backward compatibility)
+
+### Usage in Code
+
+The `BengalPaths` utility class (`bengal/utils/paths.py`) provides consistent path management:
+
+```python
+from bengal.utils.paths import BengalPaths
+
+# Get profile directory (creates if needed)
+profile_dir = BengalPaths.get_profile_dir(source_dir)
+
+# Get profile file path with custom or default name
+profile_path = BengalPaths.get_profile_path(
+    source_dir, 
+    custom_path=None,  # or Path("custom.stats")
+    filename='build_profile.stats'
+)
+
+# Get cache paths
+cache_path = BengalPaths.get_cache_path(output_dir)
+template_cache = BengalPaths.get_template_cache_dir(output_dir)
+
+# Get log path
+log_path = BengalPaths.get_build_log_path(source_dir)
+```
+
+### CLI Integration
+
+The CLI automatically uses organized paths:
+
+```bash
+# Default: saves to .bengal/profiles/profile.stats
+bengal build --perf-profile
+
+# Custom path
+bengal build --perf-profile my-profile.stats
+
+# Build log: defaults to .bengal-build.log
+bengal build --log-file custom.log
+```
+
+### Design Rationale
+
+1. **Separation of Concerns**:
+   - Source files (content/) - version controlled
+   - Build outputs (public/) - deployable, .gitignored
+   - Build cache (public/.bengal-cache*) - improves performance, .gitignored
+   - Dev tools (.bengal/) - profiling/debugging, .gitignored
+
+2. **Easy Cleanup**:
+   - `rm -rf public/` removes all build outputs including cache
+   - `rm -rf .bengal/` removes all development artifacts
+   - Source files remain untouched
+
+3. **Backward Compatibility**:
+   - `.bengal-build.log` stays at root for now (may move to `.bengal/logs/` in future)
+   - Cache files in `public/` ensure they're cleaned up with outputs
+
+4. **Git-Friendly**:
+   - All generated files are properly ignored via `.gitignore`
+   - Clear separation between tracked and generated files
 
 ## Extension Points
 

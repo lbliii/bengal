@@ -4,6 +4,7 @@ Test parsed content caching implementation (Optimization #2).
 Validates that parsed HTML is cached and reused when appropriate.
 """
 
+import pytest
 import tempfile
 import shutil
 import time
@@ -11,6 +12,7 @@ from pathlib import Path
 from bengal.core.site import Site
 
 
+@pytest.mark.slow
 def test_parsed_content_cache_speeds_up_builds():
     """
     Test that parsed content cache speeds up repeated full builds.
@@ -22,6 +24,14 @@ def test_parsed_content_cache_speeds_up_builds():
     try:
         # Create site with multiple pages
         (temp_dir / "content" / "posts").mkdir(parents=True)
+        
+        # Create index page
+        (temp_dir / "content" / "index.md").write_text("""---
+title: Home
+---
+# Home
+Welcome to the test site.
+""")
         
         for i in range(15):
             (temp_dir / "content" / "posts" / f"post-{i}.md").write_text(f"""---
@@ -93,6 +103,7 @@ cache_templates = true
         shutil.rmtree(temp_dir)
 
 
+@pytest.mark.slow
 def test_parsed_content_cache_invalidation():
     """Test that parsed content cache is invalidated when content changes."""
     temp_dir = Path(tempfile.mkdtemp())
@@ -149,6 +160,7 @@ This is the MODIFIED content.
         shutil.rmtree(temp_dir)
 
 
+@pytest.mark.slow
 def test_parsed_content_cache_metadata_change():
     """Test that cache is invalidated when metadata changes."""
     temp_dir = Path(tempfile.mkdtemp())

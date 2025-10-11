@@ -1,15 +1,19 @@
 {% extends "base.html" %}
 
 {#
-  Documentation Template
+  Documentation List Template
   
-  Three-column layout optimized for documentation sites:
+  Three-column layout optimized for documentation section index pages:
   - Left sidebar: Navigation tree
-  - Center: Content
+  - Center: Content + Child page tiles
   - Right sidebar: TOC + metadata
   
-  Usage: Set `template: doc.html` in frontmatter
+  Usage: Set `template: doc/list.html` in frontmatter
   Or set `type: doc` to auto-select this template
+  
+  Features:
+  - Automatically displays child pages and subsections as tiles
+  - Disable with `show_children: false` in frontmatter
 #}
 
 {% block content %}
@@ -42,6 +46,14 @@
       <div class="docs-content">
         {{ content | safe }}
       </div>
+      
+      {# Child page tiles - can be disabled via frontmatter: show_children: false #}
+      {% set show_children = page.metadata.get('show_children', true) if page else true %}
+      {% if show_children and (posts or subsections) %}
+      <div class="docs-children">
+        {% include 'partials/child-page-tiles.html' %}
+      </div>
+      {% endif %}
       
       {# Tags #}
       {% if page.tags %}

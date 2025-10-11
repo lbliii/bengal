@@ -5,6 +5,7 @@ Configuration loader supporting TOML and YAML formats.
 from pathlib import Path
 from typing import Any, Dict, Optional, List
 import difflib
+import multiprocessing
 import toml
 import yaml
 
@@ -120,6 +121,8 @@ class ConfigLoader:
             
         Raises:
             ConfigValidationError: If validation fails
+            ValueError: If config format is unsupported
+            FileNotFoundError: If config file doesn't exist
         """
         from bengal.config.validators import ConfigValidator, ConfigValidationError
         
@@ -176,6 +179,10 @@ class ConfigLoader:
             
         Returns:
             Configuration dictionary
+        
+        Raises:
+            FileNotFoundError: If config file doesn't exist
+            toml.TomlDecodeError: If TOML syntax is invalid
         """
         from bengal.utils.file_io import load_toml
         
@@ -194,6 +201,11 @@ class ConfigLoader:
             
         Returns:
             Configuration dictionary
+        
+        Raises:
+            FileNotFoundError: If config file doesn't exist
+            yaml.YAMLError: If YAML syntax is invalid
+            ImportError: If PyYAML is not installed
         """
         from bengal.utils.file_io import load_yaml
         
@@ -326,6 +338,11 @@ class ConfigLoader:
         Returns:
             Default configuration dictionary
         """
+        # Auto-detect optimal worker count based on CPU cores
+        # Use CPU count - 1 to leave one core for OS/UI, minimum 4
+        cpu_count = multiprocessing.cpu_count()
+        default_workers = max(4, cpu_count - 1)
+        
         return {
             'title': 'Bengal Site',
             'baseurl': '',
@@ -335,8 +352,9 @@ class ConfigLoader:
             'assets_dir': 'assets',
             'templates_dir': 'templates',
             'parallel': True,
-            'incremental': False,
-            'max_workers': 4,
+            'incremental': True,        # Fast incremental builds by default (18-42x faster)
+            'minify_html': True,        # Minify HTML output by default (15-25% smaller)
+            'max_workers': default_workers,  # Auto-detected based on CPU cores
             'pretty_urls': True,
             'minify_assets': True,
             'optimize_assets': True,

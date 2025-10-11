@@ -17,26 +17,34 @@ class RubricDirective(DirectivePlugin):
     
     Syntax:
         ```{rubric} Parameters
+        :class: rubric-parameters
         ```
         
+    Or with content (content is ignored, only title/class are used):
         ```{rubric} Returns
-        :class: api-returns
+        :class: rubric-returns
+        
+        Ignored content
         ```
     
     Creates styled text that looks like a heading but doesn't appear in TOC.
+    The rubric renders immediately with no content inside - content after
+    the directive is parsed as separate markdown.
     """
     
     def parse(self, block, m, state):
-        """Parse rubric directive."""
+        """Parse rubric directive.
+        
+        Rubrics are label-only directives - they ignore any content and
+        just render the title as a styled heading.
+        """
         title = self.parse_title(m)
         if not title:
             title = ''
         
         options = dict(self.parse_options(m))
-        content = self.parse_content(m)
-        
-        # Parse any content (should be empty for rubrics)
-        children = self.parse_tokens(block, content, state)
+        # Note: We extract content but don't parse it - rubrics don't contain content
+        # Any content after the rubric directive is separate markdown
         
         return {
             'type': 'rubric',
@@ -44,7 +52,7 @@ class RubricDirective(DirectivePlugin):
                 'title': title,
                 'class': options.get('class', ''),
             },
-            'children': children
+            'children': []  # Rubrics never have children
         }
     
     def __call__(self, directive, md):

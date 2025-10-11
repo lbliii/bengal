@@ -2,6 +2,32 @@
 PID file management for Bengal dev server.
 
 Tracks running server processes and provides recovery from stale processes.
+
+Features:
+- Automatic stale process detection
+- Graceful process termination (SIGTERM then SIGKILL)
+- PID file validation (ensures it's actually a Bengal process)
+- Cross-platform support (psutil optional, falls back to os.kill)
+
+Usage:
+    # Check for stale processes
+    pid_file = PIDManager.get_pid_file(project_root)
+    stale_pid = PIDManager.check_stale_pid(pid_file)
+    
+    if stale_pid:
+        PIDManager.kill_stale_process(stale_pid)
+    
+    # Write current PID
+    PIDManager.write_pid_file(pid_file)
+    
+    # Check port usage
+    port_pid = PIDManager.get_process_on_port(5173)
+    if port_pid:
+        print(f"Port in use by PID {port_pid}")
+
+The PID file (.bengal.pid) is created in the project root and automatically
+cleaned up on normal server shutdown. If the server crashes or is killed,
+the PID file remains and is detected on next startup.
 """
 
 import os
@@ -40,11 +66,18 @@ class PIDManager:
         """
         Check if PID is actually a Bengal serve process.
         
+        Uses psutil if available for accurate process name checking.
+        Falls back to simple existence check if psutil is not installed.
+        
         Args:
             pid: Process ID to check
             
         Returns:
             True if process is Bengal serve, False otherwise
+            
+        Example:
+            if PIDManager.is_bengal_process(12345):
+                print("Process 12345 is a Bengal server")
         """
         try:
             # Try to use psutil for better process info
@@ -67,11 +100,30 @@ class PIDManager:
         """
         Check for stale PID file and return PID if found.
         
+        A stale PID file indicates a previous server instance that didn't
+        shut down cleanly (crash, kill -9, power loss, etc.).
+        
+        This method:
+        1. Reads the PID file
+        2. Checks if the process exists
+        3. Verifies it's actually a Bengal process
+        4. Returns the PID if stale, None otherwise
+        
+        Invalid or empty PID files are automatically cleaned up.
+        
         Args:
             pid_file: Path to PID file
             
         Returns:
             PID of stale process, or None if no stale process
+            
+        Example:
+            pid_file = Path(".bengal.pid")
+            stale_pid = PIDManager.check_stale_pid(pid_file)
+            
+            if stale_pid:
+                print(f"Found stale Bengal server (PID {stale_pid})")
+                PIDManager.kill_stale_process(stale_pid)
         """
         if not pid_file.exists():
             return None
@@ -165,8 +217,15 @@ class PIDManager:
         """
         Write current process PID to file.
         
+        Uses atomic write to ensure the PID file is crash-safe.
+        
         Args:
             pid_file: Path to PID file
+            
+        Example:
+            pid_file = PIDManager.get_pid_file(Path.cwd())
+            PIDManager.write_pid_file(pid_file)
+            # Now .bengal.pid contains the current process ID
         """
         try:
             # Write PID file atomically (crash-safe)
@@ -180,11 +239,25 @@ class PIDManager:
         """
         Get the PID of process listening on a port.
         
+        Uses lsof to find which process is listening on a port.
+        This is useful for detecting port conflicts.
+        
         Args:
             port: Port number to check
             
         Returns:
             PID if found, None otherwise
+            
+        Example:
+            port_pid = PIDManager.get_process_on_port(5173)
+            
+            if port_pid:
+                print(f"Port 5173 is in use by PID {port_pid}")
+                if PIDManager.is_bengal_process(port_pid):
+                    print("It's a stale Bengal server!")
+        
+        Note:
+            Requires lsof command (available on Unix/macOS)
         """
         try:
             import subprocess

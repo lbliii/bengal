@@ -137,32 +137,59 @@ class PostprocessOrchestrator:
                     print(f"    • {task_name}: {error}")
     
     def _generate_special_pages(self) -> None:
-        """Generate special pages like 404 (extracted for parallel execution)."""
+        """
+        Generate special pages like 404 (extracted for parallel execution).
+        
+        Raises:
+            Exception: If special page generation fails
+        """
         from bengal.postprocess.special_pages import SpecialPagesGenerator
         generator = SpecialPagesGenerator(self.site)
         generator.generate()
     
     def _generate_sitemap(self) -> None:
-        """Generate sitemap (extracted for parallel execution)."""
+        """
+        Generate sitemap.xml (extracted for parallel execution).
+        
+        Raises:
+            Exception: If sitemap generation fails
+        """
         from bengal.postprocess.sitemap import SitemapGenerator
         generator = SitemapGenerator(self.site)
         generator.generate()
     
     def _generate_rss(self) -> None:
-        """Generate RSS feed (extracted for parallel execution)."""
+        """
+        Generate RSS feed (extracted for parallel execution).
+        
+        Raises:
+            Exception: If RSS generation fails
+        """
         from bengal.postprocess.rss import RSSGenerator
         generator = RSSGenerator(self.site)
         generator.generate()
     
     def _generate_output_formats(self) -> None:
-        """Generate custom output formats (extracted for parallel execution)."""
+        """
+        Generate custom output formats like JSON, plain text (extracted for parallel execution).
+        
+        Raises:
+            Exception: If output format generation fails
+        """
         from bengal.postprocess.output_formats import OutputFormatsGenerator
         config = self.site.config.get("output_formats", {})
         generator = OutputFormatsGenerator(self.site, config)
         generator.generate()
     
     def _validate_links(self) -> None:
-        """Validate links (extracted for parallel execution)."""
+        """
+        Validate internal links across all pages (extracted for parallel execution).
+        
+        Checks for broken internal links and logs warnings for any found.
+        
+        Raises:
+            Exception: If link validation process fails
+        """
         from bengal.rendering.link_validator import LinkValidator
         validator = LinkValidator()
         broken_links = validator.validate_site(self.site)

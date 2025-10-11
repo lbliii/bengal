@@ -13,17 +13,13 @@ content_dir = "content"
 output_dir = "public"
 theme = "default"
 draft = false
-parallel = true
-incremental = true
-minify_html = true
-max_workers = 10
 auto_regenerate_autodoc = true  # Auto-regenerate docs when source changes
 
-# Enable all output formats
-[build.output_formats]
-html = true
-json = true
-llm_txt = true
+# Note: Most build settings use sensible defaults:
+# ✅ parallel = true (parallel builds)
+# ✅ incremental = true (18-42x faster rebuilds)
+# ✅ minify_html = true (15-25% smaller pages)
+# ✅ All output formats enabled (JSON, LLM text, sitemap, RSS)
 
 [markdown]
 parser = "mistune"
