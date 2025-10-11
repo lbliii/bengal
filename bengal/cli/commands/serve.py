@@ -22,14 +22,14 @@ from bengal.utils.logger import LogLevel, configure_logging
 def serve(host: str, port: int, watch: bool, auto_port: bool, open_browser: bool, verbose: bool, debug: bool, config: str, source: str) -> None:
     """
     🚀 Start development server with hot reload.
-    
+
     Watches for changes in content, assets, and templates,
     automatically rebuilding the site when files are modified.
     """
     # Validate conflicting flags
     if verbose and debug:
         raise click.UsageError("--verbose and --debug cannot be used together (debug includes all verbose output)")
-    
+
     # Configure logging based on flags
     if debug:
         log_level = LogLevel.DEBUG
@@ -37,37 +37,37 @@ def serve(host: str, port: int, watch: bool, auto_port: bool, open_browser: bool
         log_level = LogLevel.INFO
     else:
         log_level = LogLevel.WARNING  # Default: only show warnings/errors
-    
+
     # Determine log file path
     root_path = Path(source).resolve()
     log_path = root_path / '.bengal-serve.log'
-    
+
     configure_logging(
         level=log_level,
         log_file=log_path,
         verbose=verbose or debug,
         track_memory=False  # Memory tracking not needed for dev server
     )
-    
+
     try:
         # Welcome banner removed for consistency with build command
         # The "Building your site..." header is sufficient
-        
+
         config_path = Path(config).resolve() if config else None
-        
+
         # Create site
         site = Site.from_config(root_path, config_path)
-        
+
         # Enable strict mode in development (fail fast on errors)
         site.config["strict_mode"] = True
-        
+
         # Enable debug mode if requested
         if debug:
             site.config["debug"] = True
-        
+
         # Start server (this blocks)
         site.serve(host=host, port=port, watch=watch, auto_port=auto_port, open_browser=open_browser)
-        
+
     except Exception as e:
         show_error(f"Server failed: {e}", show_art=True)
         raise click.Abort()

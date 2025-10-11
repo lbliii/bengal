@@ -8,10 +8,10 @@ Provides three profiles optimized for different user workflows:
 
 Example:
     from bengal.utils.profile import BuildProfile
-    
+
     profile = BuildProfile.from_cli_args(dev=True)
     config = profile.get_config()
-    
+
     if config['track_memory']:
         # Enable memory tracking
         pass
@@ -24,7 +24,7 @@ from typing import Any
 class BuildProfile(Enum):
     """
     Build profiles for different user personas.
-    
+
     Each profile optimizes observability features for a specific workflow:
     - WRITER: Content authors who want fast, clean builds
     - THEME_DEV: Theme developers who need template debugging
@@ -33,25 +33,25 @@ class BuildProfile(Enum):
     WRITER = "writer"
     THEME_DEV = "theme-dev"
     DEVELOPER = "dev"
-    
+
     @classmethod
     def from_string(cls, value: str) -> 'BuildProfile':
         """
         Parse profile from string.
-        
+
         Args:
             value: Profile name (case-insensitive)
-            
+
         Returns:
             BuildProfile enum value
-            
+
         Example:
             >>> BuildProfile.from_string("theme-dev")
             BuildProfile.THEME_DEV
         """
         if not value:
             return cls.WRITER
-        
+
         mapping = {
             'writer': cls.WRITER,
             'theme-dev': cls.THEME_DEV,
@@ -60,10 +60,10 @@ class BuildProfile(Enum):
             'developer': cls.DEVELOPER,
             'debug': cls.DEVELOPER,  # Alias for backward compatibility
         }
-        
+
         normalized = value.lower().strip()
         return mapping.get(normalized, cls.WRITER)
-    
+
     @classmethod
     def from_cli_args(
         cls,
@@ -75,7 +75,7 @@ class BuildProfile(Enum):
     ) -> 'BuildProfile':
         """
         Determine profile from CLI arguments with proper precedence.
-        
+
         Precedence (highest to lowest):
         1. --dev flag (full developer mode)
         2. --theme-dev flag
@@ -83,60 +83,60 @@ class BuildProfile(Enum):
         4. --verbose flag (legacy)
         5. --debug flag (debug logging only, fast health checks)
         6. Default (WRITER)
-        
+
         NOTE: --debug now only enables debug logging, not comprehensive health checks.
         For full validation, use --dev or --profile=dev.
-        
+
         Args:
             profile: Explicit profile name from --profile
             dev: --dev flag (full developer mode)
             theme_dev: --theme-dev flag
             verbose: --verbose flag (legacy)
             debug: --debug flag (debug logging only)
-            
+
         Returns:
             Determined BuildProfile
-            
+
         Example:
             >>> BuildProfile.from_cli_args(dev=True)
             BuildProfile.DEVELOPER
-            
+
             >>> BuildProfile.from_cli_args(debug=True)
             BuildProfile.DEVELOPER  # Full dev mode with debug logging
-            
+
             >>> BuildProfile.from_cli_args(verbose=True)
             BuildProfile.THEME_DEV
         """
         # Priority 1: Explicit dev flag (full developer mode)
         if dev:
             return cls.DEVELOPER
-        
+
         # Priority 2: Theme dev flag
         if theme_dev:
             return cls.THEME_DEV
-        
+
         # Priority 3: Explicit profile option
         if profile:
             return cls.from_string(profile)
-        
+
         # Priority 4: Legacy verbose flag
         if verbose:
             return cls.THEME_DEV
-        
+
         # Priority 5: --debug flag (enables debug logging via DEVELOPER profile)
         if debug:
             return cls.DEVELOPER
-        
+
         # Priority 6: Default (WRITER for fast, clean builds)
         return cls.WRITER
-    
+
     def get_config(self) -> dict[str, Any]:
         """
         Get configuration dictionary for this profile.
-        
+
         Returns:
             Configuration with feature toggles for this profile
-            
+
         Configuration keys:
             show_phase_timing: Show build phase timing
             track_memory: Enable memory profiling (tracemalloc + psutil)
@@ -211,7 +211,7 @@ class BuildProfile(Enum):
                     'max_recent': 5,
                 },
             }
-    
+
     def __str__(self) -> str:
         """String representation of profile."""
         return self.value
@@ -224,10 +224,10 @@ _current_profile: BuildProfile | None = None
 def set_current_profile(profile: BuildProfile) -> None:
     """
     Set the current build profile.
-    
+
     This is used by helper functions to determine behavior without
     passing profile through every function call.
-    
+
     Args:
         profile: BuildProfile to set as current
     """
@@ -238,7 +238,7 @@ def set_current_profile(profile: BuildProfile) -> None:
 def get_current_profile() -> BuildProfile:
     """
     Get the current build profile.
-    
+
     Returns:
         Current profile, or WRITER if not set
     """
@@ -248,13 +248,13 @@ def get_current_profile() -> BuildProfile:
 def should_show_debug() -> bool:
     """
     Check if debug output should be shown.
-    
+
     This is a helper for conditional debug output without passing
     profile through every function.
-    
+
     Returns:
         True if debug output should be shown
-        
+
     Example:
         if should_show_debug():
             print(f"[Debug] Processing {item}", file=sys.stderr)
@@ -267,7 +267,7 @@ def should_show_debug() -> bool:
 def should_track_memory() -> bool:
     """
     Check if memory tracking should be enabled.
-    
+
     Returns:
         True if memory should be tracked
     """
@@ -279,7 +279,7 @@ def should_track_memory() -> bool:
 def should_collect_metrics() -> bool:
     """
     Check if metrics collection should be enabled.
-    
+
     Returns:
         True if metrics should be collected
     """
@@ -291,10 +291,10 @@ def should_collect_metrics() -> bool:
 def get_enabled_health_checks() -> list[str]:
     """
     Get list of enabled health check validators for current profile.
-    
+
     Returns:
         List of validator names that should run, or 'all' string
-        
+
     Example:
         >>> get_enabled_health_checks()
         ['config', 'output', 'links']
@@ -303,37 +303,37 @@ def get_enabled_health_checks() -> list[str]:
     config = profile.get_config()
     health_config = config.get('health_checks', {})
     enabled = health_config.get('enabled', [])
-    
+
     # Return 'all' as a list with single element for easier checking
     if enabled == 'all':
         return ['all']
-    
+
     return enabled
 
 
 def is_validator_enabled(validator_name: str) -> bool:
     """
     Check if a specific validator should run.
-    
+
     Args:
         validator_name: Name of validator (e.g., 'config', 'links')
-        
+
     Returns:
         True if validator should run
-        
+
     Example:
         >>> is_validator_enabled('performance')
         False  # In writer mode
     """
     enabled = get_enabled_health_checks()
-    
+
     # If 'all' is in the list, everything is enabled
     if 'all' in enabled:
         return True
-    
+
     # Normalize validator name (handle spaces and case)
     normalized = validator_name.lower().replace(' ', '_')
     enabled_normalized = [v.lower().replace(' ', '_') for v in enabled]
-    
+
     return normalized in enabled_normalized
 

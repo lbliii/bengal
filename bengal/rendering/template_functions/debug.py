@@ -25,26 +25,26 @@ def register(env: 'Environment', site: 'Site') -> None:
 def debug(var: Any, pretty: bool = True) -> str:
     """
     Pretty-print variable for debugging.
-    
+
     Args:
         var: Variable to debug
         pretty: Use pretty printing (default: True)
-    
+
     Returns:
         String representation of variable
-    
+
     Example:
         {{ page | debug }}
         {{ config | debug(pretty=false) }}
     """
     if var is None:
         return 'None'
-    
+
     # Try to convert to dict if it has __dict__
     if hasattr(var, '__dict__') and not isinstance(var, type):
         var_dict = {k: v for k, v in var.__dict__.items() if not k.startswith('_')}
         var = var_dict
-    
+
     if pretty:
         return pprint.pformat(var, indent=2, width=80)
     else:
@@ -54,13 +54,13 @@ def debug(var: Any, pretty: bool = True) -> str:
 def typeof(var: Any) -> str:
     """
     Get the type of a variable.
-    
+
     Args:
         var: Variable to check
-    
+
     Returns:
         Type name as string
-    
+
     Example:
         {{ page | typeof }}  # "Page"
         {{ "hello" | typeof }}  # "str"
@@ -71,29 +71,29 @@ def typeof(var: Any) -> str:
 def inspect(obj: Any) -> str:
     """
     Inspect object attributes and methods.
-    
+
     Args:
         obj: Object to inspect
-    
+
     Returns:
         List of attributes and methods
-    
+
     Example:
         {{ page | inspect }}
     """
     if obj is None:
         return 'None'
-    
+
     # Get all attributes
     attrs = dir(obj)
-    
+
     # Filter out private attributes
     public_attrs = [attr for attr in attrs if not attr.startswith('_')]
-    
+
     # Separate properties and methods
     properties = []
     methods = []
-    
+
     for attr in public_attrs:
         try:
             value = getattr(obj, attr)
@@ -103,12 +103,12 @@ def inspect(obj: Any) -> str:
                 properties.append(attr)
         except Exception:
             properties.append(attr)
-    
+
     result = []
     if properties:
         result.append("Properties: " + ", ".join(sorted(properties)))
     if methods:
         result.append("Methods: " + ", ".join(sorted(methods)))
-    
+
     return "\n".join(result)
 

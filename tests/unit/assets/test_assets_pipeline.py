@@ -3,7 +3,6 @@ import types
 from pathlib import Path
 
 
-
 class DummySite:
     def __init__(self, root_path: Path, config: dict, theme: str = "default") -> None:
         self.root_path = root_path
@@ -66,6 +65,7 @@ def test_cli_build_flag_overrides_pipeline(tmp_path: Path, monkeypatch):
 
     # Act: invoke build command with --assets-pipeline flag
     from click.testing import CliRunner
+
     from bengal.cli import main
 
     runner = CliRunner()

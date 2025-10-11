@@ -60,7 +60,7 @@ def test_do_get_falls_back_for_non_html(monkeypatch):
 
     with patch('http.server.SimpleHTTPRequestHandler.do_GET', fake_super_do_get):
         handler.do_GET()
-    
+
     data = output.getvalue()
     assert b'console.log("ok");' in data
 

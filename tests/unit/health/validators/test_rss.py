@@ -2,12 +2,13 @@
 Tests for RSS validator.
 """
 
-import pytest
 from datetime import datetime
 from unittest.mock import Mock
 
-from bengal.health.validators.rss import RSSValidator
+import pytest
+
 from bengal.health.report import CheckStatus
+from bengal.health.validators.rss import RSSValidator
 
 
 @pytest.fixture
@@ -25,13 +26,13 @@ def site_with_dated_pages(mock_site):
     """Create a site with dated pages."""
     page1 = Mock()
     page1.date = datetime(2025, 1, 1)
-    
+
     page2 = Mock()
     page2.date = datetime(2025, 1, 2)
-    
+
     page3 = Mock()
     page3.date = None
-    
+
     mock_site.pages = [page1, page2, page3]
     return mock_site
 
@@ -40,7 +41,7 @@ def test_rss_validator_no_dated_content(mock_site):
     """Test validator with no dated content."""
     validator = RSSValidator()
     results = validator.validate(mock_site)
-    
+
     assert len(results) > 0
     assert any(r.status == CheckStatus.INFO for r in results)
     assert any("No dated content" in r.message for r in results)
@@ -50,7 +51,7 @@ def test_rss_validator_missing_file(site_with_dated_pages):
     """Test validator warns when RSS not generated."""
     validator = RSSValidator()
     results = validator.validate(site_with_dated_pages)
-    
+
     assert len(results) > 0
     assert any(r.status == CheckStatus.WARNING for r in results)
     assert any("not generated" in r.message for r in results)
@@ -76,10 +77,10 @@ def test_rss_validator_valid_feed(site_with_dated_pages, tmp_path):
     </channel>
 </rss>'''
     rss_path.write_text(rss_content)
-    
+
     validator = RSSValidator()
     results = validator.validate(site_with_dated_pages)
-    
+
     # Should have success results
     assert any(r.status == CheckStatus.SUCCESS for r in results)
     assert any("RSS file exists" in r.message for r in results)
@@ -92,10 +93,10 @@ def test_rss_validator_malformed_xml(site_with_dated_pages, tmp_path):
     rss_path = tmp_path / 'rss.xml'
     rss_content = '<rss><channel></rss>'  # Unclosed channel
     rss_path.write_text(rss_content)
-    
+
     validator = RSSValidator()
     results = validator.validate(site_with_dated_pages)
-    
+
     assert any(r.status == CheckStatus.ERROR for r in results)
     assert any("malformed" in r.message.lower() for r in results)
 
@@ -112,10 +113,10 @@ def test_rss_validator_wrong_version(site_with_dated_pages, tmp_path):
     </channel>
 </rss>'''
     rss_path.write_text(rss_content)
-    
+
     validator = RSSValidator()
     results = validator.validate(site_with_dated_pages)
-    
+
     assert any(r.status == CheckStatus.WARNING for r in results)
     assert any("version" in r.message.lower() for r in results)
 
@@ -131,10 +132,10 @@ def test_rss_validator_missing_required_elements(site_with_dated_pages, tmp_path
     </channel>
 </rss>'''
     rss_path.write_text(rss_content)
-    
+
     validator = RSSValidator()
     results = validator.validate(site_with_dated_pages)
-    
+
     assert any(r.status == CheckStatus.ERROR for r in results)
     assert any("required" in r.message.lower() for r in results)
 
@@ -151,10 +152,10 @@ def test_rss_validator_no_items(site_with_dated_pages, tmp_path):
     </channel>
 </rss>'''
     rss_path.write_text(rss_content)
-    
+
     validator = RSSValidator()
     results = validator.validate(site_with_dated_pages)
-    
+
     assert any(r.status == CheckStatus.WARNING for r in results)
     assert any("no items" in r.message.lower() for r in results)
 
@@ -176,10 +177,10 @@ def test_rss_validator_relative_urls(site_with_dated_pages, tmp_path):
     </channel>
 </rss>'''
     rss_path.write_text(rss_content)
-    
+
     validator = RSSValidator()
     results = validator.validate(site_with_dated_pages)
-    
+
     assert any(r.status == CheckStatus.ERROR for r in results)
     assert any("relative" in r.message.lower() for r in results)
 
@@ -187,7 +188,7 @@ def test_rss_validator_relative_urls(site_with_dated_pages, tmp_path):
 def test_rss_validator_name_and_description():
     """Test validator metadata."""
     validator = RSSValidator()
-    
+
     assert validator.name == "RSS Feed"
     assert "RSS feed" in validator.description
     assert validator.enabled_by_default is True

@@ -42,10 +42,10 @@ LIVE_RELOAD_SCRIPT = """
     // Bengal Live Reload
     let backoffMs = 1000;
     const maxBackoffMs = 10000;
-    
+
     function connect() {
         const source = new EventSource('/__bengal_reload__');
-        
+
         source.onmessage = function(event) {
             if (event.data === 'reload') {
                 console.log('🔄 Bengal: Reloading page...');
@@ -74,12 +74,12 @@ LIVE_RELOAD_SCRIPT = """
                 location.reload();
             }
         };
-        
+
         source.onopen = function() {
             backoffMs = 1000; // reset on successful connection
             console.log('🚀 Bengal: Live reload connected');
         };
-        
+
         source.onerror = function() {
             console.log('⚠️  Bengal: Live reload disconnected - retrying soon');
             try { source.close(); } catch (e) {}
@@ -87,7 +87,7 @@ LIVE_RELOAD_SCRIPT = """
             backoffMs = Math.min(maxBackoffMs, Math.floor(backoffMs * 1.5));
         };
     }
-    
+
     connect();
 })();
 </script>
@@ -97,15 +97,15 @@ LIVE_RELOAD_SCRIPT = """
 class LiveReloadMixin:
     """
     Mixin class providing live reload functionality via SSE.
-    
+
     This class is designed to be mixed into an HTTP request handler.
     It provides two key methods:
     - handle_sse(): Handles the SSE endpoint (/__bengal_reload__)
     - serve_html_with_live_reload(): Injects the live reload script into HTML
-    
+
     The SSE connection remains open, sending keepalive comments every 30 seconds
     and "reload" messages when the site is rebuilt.
-    
+
     Example:
         class CustomHandler(LiveReloadMixin, http.server.SimpleHTTPRequestHandler):
             def do_GET(self):
@@ -116,24 +116,24 @@ class LiveReloadMixin:
                 else:
                     super().do_GET()  # Default file serving
     """
-    
+
     def handle_sse(self) -> None:
         """
         Handle Server-Sent Events endpoint for live reload.
-        
+
         Maintains a persistent HTTP connection and sends SSE messages:
         - Keepalive comments (: keepalive) every 30 seconds
         - Reload events (data: reload) when site is rebuilt
-        
+
         The connection remains open until the client disconnects or an error occurs.
-        
+
         Note:
             This method blocks until the client disconnects
         """
         client_addr = getattr(self, 'client_address', ['unknown', 0])[0]
         logger.info("sse_client_connected",
                    client_address=client_addr)
-        
+
         try:
             # Send SSE headers
             self.send_response(200)
@@ -147,11 +147,11 @@ class LiveReloadMixin:
             self.wfile.write(b'retry: 2000\n\n')
             self.wfile.write(b': connected\n\n')
             self.wfile.flush()
-            
+
             keepalive_count = 0
             message_count = 0
             last_seen_generation = 0
-            
+
             # Keep connection alive and send messages when generation increments
             while True:
                 try:
@@ -159,7 +159,7 @@ class LiveReloadMixin:
                         # Wait up to 30s for a generation change, then send keepalive
                         _reload_condition.wait(timeout=30)
                         current_generation = _reload_generation
-                    
+
                     if current_generation != last_seen_generation:
                         # Send the last action (e.g., reload, reload-css, reload-page)
                         self.wfile.write(f'data: {_last_action}\n\n'.encode())
@@ -188,23 +188,23 @@ class LiveReloadMixin:
                        client_address=client_addr,
                        messages_sent=message_count,
                        keepalives_sent=keepalive_count)
-    
+
     def serve_html_with_live_reload(self) -> bool:
         """
         Serve HTML file with live reload script injected.
-        
+
         Reads the HTML file, injects the live reload script before </body> or
         </html>, and serves it with correct Content-Length header.
-        
+
         Returns:
             True if HTML was served (with or without injection), False if not HTML
-            
+
         Note:
             Returns False for non-HTML files so the caller can handle them
         """
         # Resolve the actual file path
         path = self.translate_path(self.path)
-        
+
         # If path is a directory, look for index.html
         if os.path.isdir(path):
             for index in ['index.html', 'index.htm']:
@@ -212,20 +212,20 @@ class LiveReloadMixin:
                 if os.path.exists(index_path):
                     path = index_path
                     break
-        
+
         # If not an HTML file at this point, return False to indicate we didn't handle it
         if not path.endswith('.html') and not path.endswith('.htm'):
             return False
-        
+
         try:
             # Read the HTML file
             with open(path, 'rb') as f:
                 content = f.read()
-            
+
             # Try to inject script before </body> or </html> (case-insensitive)
             html_str = content.decode('utf-8')
             script_injected = False
-            
+
             # Try to inject before </body> (case-insensitive)
             html_lower = html_str.lower()
             body_idx = html_lower.rfind('</body>')
@@ -237,11 +237,11 @@ class LiveReloadMixin:
                 html_idx = html_lower.rfind('</html>')
                 html_str = html_str[:html_idx] + LIVE_RELOAD_SCRIPT + html_str[html_idx:]
                 script_injected = True
-            
+
             # If we couldn't inject, just append it
             if not script_injected:
                 html_str += LIVE_RELOAD_SCRIPT
-            
+
             # Send response with injected script
             modified_content = html_str.encode('utf-8')
             self.send_response(200)
@@ -250,7 +250,7 @@ class LiveReloadMixin:
             self.end_headers()
             self.wfile.write(modified_content)
             return True
-            
+
         except (FileNotFoundError, IsADirectoryError):
             self.send_error(404, "File not found")
             return True
@@ -266,12 +266,12 @@ class LiveReloadMixin:
 def notify_clients_reload() -> None:
     """
     Notify all connected SSE clients to reload.
-    
+
     Sends a "reload" message to all connected clients via their queues.
     Clients with full queues are skipped to avoid blocking.
-    
+
     This is called after a successful build to trigger browser refresh.
-    
+
     Note:
         This is thread-safe and can be called from the build handler thread
     """
@@ -286,7 +286,7 @@ def notify_clients_reload() -> None:
 def set_reload_action(action: str) -> None:
     """
     Set the next reload action for SSE clients.
-    
+
     Actions:
         - 'reload'      : full page reload
         - 'reload-css'  : CSS hot-reload (no page refresh)

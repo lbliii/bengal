@@ -17,13 +17,13 @@ Test Characteristics:
 - Plain HTML output
 """
 
-import time
-import tempfile
-import shutil
 import random
+import shutil
+import tempfile
+import time
 from pathlib import Path
-from bengal.core.site import Site
 
+from bengal.core.site import Site
 
 # Lorem ipsum paragraphs for content generation
 PARAGRAPHS = [
@@ -47,19 +47,19 @@ def generate_random_title() -> str:
 def create_minimal_site(num_files: int) -> Path:
     """
     Create a minimal test site matching CSS-Tricks methodology.
-    
+
     Args:
         num_files: Number of markdown files to generate
-    
+
     Returns:
         Path to temporary site directory
     """
     temp_dir = Path(tempfile.mkdtemp())
-    
+
     # Create directory structure
     (temp_dir / "content").mkdir(parents=True)
     (temp_dir / "public").mkdir()
-    
+
     # Create homepage
     homepage_content = f"""---
 title: {generate_random_title()}
@@ -72,7 +72,7 @@ title: {generate_random_title()}
 {random.choice(PARAGRAPHS)}
 """
     (temp_dir / "content" / "index.md").write_text(homepage_content)
-    
+
     # Create content files
     # Note: num_files includes index.md, so we create num_files - 1 additional files
     for i in range(num_files - 1):
@@ -87,7 +87,7 @@ title: {generate_random_title()}
 {random.choice(PARAGRAPHS)}
 """
         (temp_dir / "content" / f"page-{i:05d}.md").write_text(content)
-    
+
     # Create minimal config (all optimizations OFF)
     (temp_dir / "bengal.toml").write_text("""
 title = "SSG Comparison Benchmark"
@@ -102,72 +102,72 @@ fingerprint_assets = false
 generate_sitemap = false
 generate_rss = false
 """)
-    
+
     return temp_dir
 
 
 def benchmark_build(num_files: int, runs: int = 3) -> dict:
     """
     Benchmark Bengal build time for a given number of files.
-    
+
     Args:
         num_files: Number of files to build
         runs: Number of runs to average
-    
+
     Returns:
         Dictionary with timing information
     """
     print(f"\n{'='*60}")
     print(f"Benchmarking {num_files:,} files")
     print(f"{'='*60}")
-    
+
     times = []
-    
+
     for run in range(runs):
         print(f"Run {run + 1}/{runs}...", end=" ", flush=True)
-        
+
         # Create fresh site for each run (cold build)
         site_dir = create_minimal_site(num_files)
-        
+
         try:
             # Initialize site
             site = Site.from_config(site_dir)
-            
+
             # Clean output directory
             if site.output_dir.exists():
                 shutil.rmtree(site.output_dir)
             site.output_dir.mkdir(parents=True)
-            
+
             # Measure build time
             start = time.time()
-            
+
             # Run build (uses BuildOrchestrator internally)
             parallel = site.config.get("parallel", True)
             site.build(parallel=parallel, incremental=False, verbose=False)
-            
+
             elapsed = time.time() - start
             times.append(elapsed)
-            
+
             print(f"{elapsed:.3f}s")
-        
+
         finally:
             # Clean up
             shutil.rmtree(site_dir)
-    
+
     # Calculate statistics
     avg_time = sum(times) / len(times)
     min_time = min(times)
     max_time = max(times)
-    
+
     # Calculate pages per second
     pages_per_sec = num_files / avg_time if avg_time > 0 else 0
-    
+
     print(f"\nResults for {num_files:,} files:")
     print(f"  Average: {avg_time:.3f}s")
     print(f"  Min:     {min_time:.3f}s")
     print(f"  Max:     {max_time:.3f}s")
     print(f"  Rate:    {pages_per_sec:.1f} pages/second")
-    
+
     return {
         'files': num_files,
         'avg': avg_time,
@@ -194,20 +194,20 @@ def run_ssg_comparison_benchmark():
     print("  - Parallel processing enabled")
     print("  - 3 runs per scale, averaged")
     print()
-    
+
     # CSS-Tricks test scales
     # Start with smaller scales, then go bigger
     scales = [1, 16, 64, 256, 1024, 4096, 8192, 16384]
-    
+
     # Option to run smaller test set for quick validation (faster)
     # scales = [1, 16, 64, 256, 1024]  # Uncomment for quick test (~5 minutes)
-    
+
     results = []
-    
+
     for num_files in scales:
         result = benchmark_build(num_files)
         results.append(result)
-    
+
     # Print summary table
     print("\n" + "=" * 80)
     print("BENCHMARK SUMMARY")
@@ -215,16 +215,16 @@ def run_ssg_comparison_benchmark():
     print()
     print(f"{'Files':<10} {'Avg Time':<12} {'Min Time':<12} {'Max Time':<12} {'Pages/sec':<12}")
     print("-" * 80)
-    
+
     for r in results:
         print(f"{r['files']:<10,} {r['avg']:>8.3f}s    {r['min']:>8.3f}s    {r['max']:>8.3f}s    {r['pages_per_sec']:>8.1f}")
-    
+
     # Comparison with other SSGs (from CSS-Tricks article and README)
     print("\n" + "=" * 80)
     print("COMPARISON WITH OTHER SSGs (100 pages)")
     print("=" * 80)
     print()
-    
+
     # Find the result closest to 100 pages for comparison
     comparison_result = None
     for r in results:
@@ -239,7 +239,7 @@ def run_ssg_comparison_benchmark():
             scaled_time = r['avg'] * (100 / 256)
             if comparison_result is None:
                 comparison_result = {'files': 100, 'avg': scaled_time}
-    
+
     if comparison_result:
         print(f"{'SSG':<15} {'Build Time (100 pages)':<25} {'Notes'}")
         print("-" * 80)
@@ -249,28 +249,28 @@ def run_ssg_comparison_benchmark():
         print(f"{'Eleventy':<15} {'~1-3s':<25} {'JavaScript'}")
         print(f"{'Jekyll':<15} {'~3-10s':<25} {'Ruby'}")
         print(f"{'Gatsby':<15} {'~5-15s':<25} {'React framework'}")
-    
+
     # Analysis
     print("\n" + "=" * 80)
     print("ANALYSIS")
     print("=" * 80)
     print()
-    
+
     # Calculate growth rate (how does it scale?)
     if len(results) >= 3:
         # Compare 1 file vs 1024 files
         small = next((r for r in results if r['files'] == 1), None)
         medium = next((r for r in results if r['files'] == 1024), None)
-        
+
         if small and medium:
             growth_factor = medium['avg'] / small['avg']
             theoretical_linear = 1024  # 1024x files should take 1024x time if linear
-            
+
             print("Scaling Analysis (1 file → 1,024 files):")
             print(f"  Time increased: {growth_factor:.1f}x")
             print(f"  Linear scaling: {theoretical_linear}x")
             print(f"  Efficiency:     {(theoretical_linear / growth_factor * 100):.1f}% ")
-            
+
             if growth_factor < theoretical_linear * 1.1:
                 print("  ✅ EXCELLENT: Near-linear scaling!")
             elif growth_factor < theoretical_linear * 1.5:
@@ -278,7 +278,7 @@ def run_ssg_comparison_benchmark():
             else:
                 print("  ⚠️  WARNING: Super-linear scaling detected")
             print()
-    
+
     # Identify sweet spot
     print("Performance Sweet Spots:")
     for r in results:
@@ -288,10 +288,9 @@ def run_ssg_comparison_benchmark():
         elif r['files'] <= 1000:
             if r['avg'] < 5.0:
                 print(f"  ✅ {r['files']:,} files: {r['avg']:.3f}s - Great for blogs")
-        elif r['files'] <= 5000:
-            if r['avg'] < 30.0:
-                print(f"  ✅ {r['files']:,} files: {r['avg']:.3f}s - Viable for large sites")
-    
+        elif r['files'] <= 5000 and r['avg'] < 30.0:
+            print(f"  ✅ {r['files']:,} files: {r['avg']:.3f}s - Viable for large sites")
+
     print()
     print("=" * 80)
     print("BENCHMARK COMPLETE")
@@ -303,14 +302,14 @@ def run_ssg_comparison_benchmark():
     print("  3. Test incremental builds (1 file change)")
     print("  4. Add results to README or documentation")
     print()
-    
+
     return results
 
 
 if __name__ == "__main__":
     # Set random seed for reproducibility
     random.seed(42)
-    
+
     try:
         results = run_ssg_comparison_benchmark()
     except KeyboardInterrupt:

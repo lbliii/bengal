@@ -1,11 +1,11 @@
-from pathlib import Path
 import json
+from pathlib import Path
 
 from click.testing import CliRunner
 
+from bengal.cli import main
 from bengal.core.site import Site
 from bengal.utils.swizzle import SwizzleManager
-from bengal.cli import main
 
 
 def _write(p: Path, text: str) -> None:

@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 class RSSValidator(BaseValidator):
     """
     Validates RSS feed quality.
-    
+
     Checks:
     - RSS file exists (if site has dated content)
     - XML is well-formed
@@ -30,25 +30,25 @@ class RSSValidator(BaseValidator):
     - URLs are properly formatted
     - Feed has reasonable number of items
     """
-    
+
     name = "RSS Feed"
     description = "Validates RSS feed quality and completeness"
     enabled_by_default = True
-    
+
     def validate(self, site: 'Site') -> list[CheckResult]:
         """Run RSS validation checks."""
         results = []
-        
+
         # Check if RSS should exist
         pages_with_dates = [p for p in site.pages if hasattr(p, 'date') and p.date]
-        
+
         if not pages_with_dates:
             results.append(CheckResult.info(
                 "No dated content found - RSS feed not expected",
                 recommendation="Add 'date' frontmatter to pages to enable RSS feed."
             ))
             return results
-        
+
         # Check 1: RSS file exists
         rss_path = site.output_dir / 'rss.xml'
         if not rss_path.exists():
@@ -57,9 +57,9 @@ class RSSValidator(BaseValidator):
                 recommendation="RSS generation may be disabled. Check if RSSGenerator is called in build process."
             ))
             return results
-        
+
         results.append(CheckResult.success("RSS file exists"))
-        
+
         # Check 2: XML is well-formed
         try:
             tree = ET.parse(rss_path)
@@ -70,24 +70,24 @@ class RSSValidator(BaseValidator):
                 recommendation="Check RSS generation logic. XML parsing failed."
             ))
             return results
-        
+
         results.append(CheckResult.success("RSS XML is well-formed"))
-        
+
         # Check 3: Valid RSS 2.0 structure
         results.extend(self._check_rss_structure(root))
-        
+
         # Check 4: Feed items
         results.extend(self._check_feed_items(root, len(pages_with_dates)))
-        
+
         # Check 5: URL validity
         results.extend(self._check_feed_urls(root, site))
-        
+
         return results
-    
+
     def _check_rss_structure(self, root: ET.Element) -> list[CheckResult]:
         """Check RSS 2.0 structure validity."""
         results = []
-        
+
         # Check root element is <rss>
         if root.tag != 'rss':
             results.append(CheckResult.error(
@@ -95,7 +95,7 @@ class RSSValidator(BaseValidator):
                 recommendation="RSS feed must have <rss> as root element."
             ))
             return results
-        
+
         # Check RSS version
         version = root.get('version')
         if version != '2.0':
@@ -103,7 +103,7 @@ class RSSValidator(BaseValidator):
                 f"RSS version is '{version}', expected '2.0'",
                 recommendation="Use RSS 2.0 for maximum compatibility."
             ))
-        
+
         # Check for <channel> element
         channel = root.find('channel')
         if channel is None:
@@ -112,15 +112,15 @@ class RSSValidator(BaseValidator):
                 recommendation="RSS 2.0 requires a <channel> element."
             ))
             return results
-        
+
         # Check required channel elements
         required_elements = ['title', 'link', 'description']
         missing = []
-        
+
         for elem in required_elements:
             if channel.find(elem) is None:
                 missing.append(elem)
-        
+
         if missing:
             results.append(CheckResult.error(
                 f"Missing required channel elements: {', '.join(missing)}",
@@ -130,31 +130,31 @@ class RSSValidator(BaseValidator):
             results.append(CheckResult.success(
                 "RSS structure is valid"
             ))
-        
+
         return results
-    
+
     def _check_feed_items(self, root: ET.Element, total_dated_pages: int) -> list[CheckResult]:
         """Check feed items are present and reasonable."""
         results = []
-        
+
         channel = root.find('channel')
         if channel is None:
             return results
-        
+
         items = channel.findall('item')
         item_count = len(items)
-        
+
         if item_count == 0:
             results.append(CheckResult.warning(
                 "RSS feed has no items",
                 recommendation="Feed should contain recent dated pages. Check RSS generation logic."
             ))
             return results
-        
+
         # Check if we have a reasonable number of items
         # RSS typically includes 10-20 most recent items
         expected_items = min(20, total_dated_pages)
-        
+
         if item_count < expected_items and total_dated_pages > expected_items:
             results.append(CheckResult.info(
                 f"RSS feed has {item_count} items (could include up to {expected_items})",
@@ -164,7 +164,7 @@ class RSSValidator(BaseValidator):
             results.append(CheckResult.success(
                 f"RSS feed contains {item_count} item(s)"
             ))
-        
+
         # Check items have required elements
         invalid_items = []
         for i, item in enumerate(items[:5]):  # Check first 5 items
@@ -172,29 +172,29 @@ class RSSValidator(BaseValidator):
             for elem in ['title', 'link']:
                 if item.find(elem) is None:
                     missing.append(elem)
-            
+
             if missing:
                 invalid_items.append(f"Item {i+1}: missing {', '.join(missing)}")
-        
+
         if invalid_items:
             results.append(CheckResult.error(
                 f"{len(invalid_items)} RSS item(s) missing required elements",
                 recommendation="Each <item> must have <title> and <link>.",
                 details=invalid_items
             ))
-        
+
         return results
-    
+
     def _check_feed_urls(self, root: ET.Element, site: 'Site') -> list[CheckResult]:
         """Check URLs in feed are properly formatted."""
         results = []
-        
+
         channel = root.find('channel')
         if channel is None:
             return results
-        
+
         site.config.get('baseurl', '')
-        
+
         # Check channel link
         channel_link = channel.find('link')
         if channel_link is not None and channel_link.text:
@@ -204,11 +204,11 @@ class RSSValidator(BaseValidator):
                     f"Channel link is relative: {link}",
                     recommendation="RSS channel link should be absolute URL starting with http:// or https://"
                 ))
-        
+
         # Check item links (sample first 10)
         items = channel.findall('item')[:10]
         relative_links = []
-        
+
         for item in items:
             link_elem = item.find('link')
             if link_elem is not None and link_elem.text:
@@ -217,7 +217,7 @@ class RSSValidator(BaseValidator):
                     title = item.find('title')
                     title_text = title.text if title is not None else 'Unknown'
                     relative_links.append(f"{title_text}: {link}")
-        
+
         if relative_links:
             results.append(CheckResult.error(
                 f"{len(relative_links)} item(s) have relative URLs",
@@ -228,6 +228,6 @@ class RSSValidator(BaseValidator):
             results.append(CheckResult.success(
                 "All RSS URLs are properly formatted"
             ))
-        
+
         return results
 

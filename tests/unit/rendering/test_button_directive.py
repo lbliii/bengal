@@ -27,7 +27,7 @@ Get Started
     def test_button_colors(self):
         """Test all button colors."""
         colors = ['primary', 'secondary', 'success', 'danger', 'warning', 'info', 'light', 'dark']
-        
+
         for color in colors:
             markdown = f""":::{{button}} /test/
 :color: {color}
@@ -156,7 +156,7 @@ class TestButtonEdgeCases:
     def test_button_empty_url(self):
         """Test button with empty URL."""
         markdown = """
-        :::{button} 
+        :::{button}
         Test
         :::
         """
@@ -221,7 +221,7 @@ class TestButtonIntegration:
         markdown = """
         :::{card} Get Started
         Learn how to use our platform.
-        
+
         :::{button} /docs/
         :color: primary
         Read Docs
@@ -236,7 +236,7 @@ class TestButtonIntegration:
         """Test button near heading."""
         markdown = """
         ## Quick Actions
-        
+
         :::{button} /start/
         :color: primary
         :style: pill

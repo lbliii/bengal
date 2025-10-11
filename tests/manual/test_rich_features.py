@@ -17,17 +17,18 @@ def test_rich_traceback():
     print("\n" + "="*60)
     print("TEST 1: Rich Traceback Handler")
     print("="*60)
-    
+
     # This would normally be installed by CLI main()
     try:
         from rich.traceback import install
+
         from bengal.utils.rich_console import get_console
         install(console=get_console(), show_locals=True)
         print("✓ Rich traceback handler installed successfully")
     except Exception as e:
         print(f"✗ Failed to install Rich traceback: {e}")
         return False
-    
+
     return True
 
 
@@ -36,30 +37,30 @@ def test_logger_markup():
     print("\n" + "="*60)
     print("TEST 2: Logger with Rich Markup")
     print("="*60)
-    
+
     try:
-        from bengal.utils.logger import get_logger, configure_logging, LogLevel
-        
+        from bengal.utils.logger import LogLevel, configure_logging, get_logger
+
         configure_logging(level=LogLevel.DEBUG, verbose=True)
         logger = get_logger("test")
-        
+
         print("\nTesting log levels:")
         logger.debug("Debug message", detail="debug detail")
         logger.info("Info message", detail="info detail")
         logger.warning("Warning message", detail="warning detail")
         logger.error("Error message", detail="error detail")
-        
+
         print("\nTesting phase tracking:")
         with logger.phase("test_phase", items=100):
             logger.info("Processing items...")
-        
+
         print("\n✓ Logger Rich markup working correctly")
     except Exception as e:
         print(f"✗ Logger test failed: {e}")
         import traceback
         traceback.print_exc()
         return False
-    
+
     return True
 
 
@@ -68,10 +69,10 @@ def test_pretty_print_config():
     print("\n" + "="*60)
     print("TEST 3: Pretty Print Config")
     print("="*60)
-    
+
     try:
         from bengal.config.loader import pretty_print_config
-        
+
         test_config = {
             'site': {
                 'title': 'Bengal Test Site',
@@ -88,7 +89,7 @@ def test_pretty_print_config():
                 'hot_module_replacement': True
             }
         }
-        
+
         pretty_print_config(test_config, title="Test Configuration")
         print("✓ Config pretty printing working correctly")
     except Exception as e:
@@ -96,7 +97,7 @@ def test_pretty_print_config():
         import traceback
         traceback.print_exc()
         return False
-    
+
     return True
 
 
@@ -105,30 +106,31 @@ def test_rich_console():
     print("\n" + "="*60)
     print("TEST 4: Rich Console Features")
     print("="*60)
-    
+
     try:
-        from bengal.utils.rich_console import get_console, should_use_rich, detect_environment
         from rich.panel import Panel
-        from rich.tree import Tree
         from rich.syntax import Syntax
-        
+        from rich.tree import Tree
+
+        from bengal.utils.rich_console import detect_environment, get_console, should_use_rich
+
         console = get_console()
-        
+
         print(f"\nShould use Rich: {should_use_rich()}")
-        
+
         env = detect_environment()
         print("\nEnvironment:")
         print(f"  Terminal: {env['is_terminal']}")
         print(f"  Color system: {env['color_system']}")
         print(f"  Terminal width: {env['width']}")
         print(f"  CI: {env['is_ci']}")
-        
+
         # Test markup
         console.print("\n[bold cyan]Testing Rich markup:[/bold cyan]")
         console.print("  [green]✓ Green success message[/green]")
         console.print("  [yellow]⚠  Yellow warning message[/yellow]")
         console.print("  [red]✗ Red error message[/red]")
-        
+
         # Test panel
         console.print("\n[bold cyan]Testing Rich panel:[/bold cyan]")
         console.print(Panel(
@@ -136,7 +138,7 @@ def test_rich_console():
             title="Test Panel",
             border_style="cyan"
         ))
-        
+
         # Test tree
         console.print("\n[bold cyan]Testing Rich tree:[/bold cyan]")
         tree = Tree("📁 [bold]Root[/bold]")
@@ -146,24 +148,24 @@ def test_rich_console():
         branch2 = tree.add("📁 Section 2")
         branch2.add("📄 Page 3")
         console.print(tree)
-        
+
         # Test syntax highlighting
         console.print("\n[bold cyan]Testing syntax highlighting:[/bold cyan]")
         code = '''def hello_world():
     """Say hello."""
     print("Hello, World!")
     return True'''
-        
+
         syntax = Syntax(code, "python", theme="monokai", line_numbers=True)
         console.print(syntax)
-        
+
         print("\n✓ Rich console features working correctly")
     except Exception as e:
         print(f"✗ Rich console test failed: {e}")
         import traceback
         traceback.print_exc()
         return False
-    
+
     return True
 
 
@@ -172,30 +174,31 @@ def test_status_spinner():
     print("\n" + "="*60)
     print("TEST 5: Status Spinner")
     print("="*60)
-    
+
     try:
-        from bengal.utils.rich_console import get_console, should_use_rich
         import time
-        
+
+        from bengal.utils.rich_console import get_console, should_use_rich
+
         if not should_use_rich():
             print("⚠ Skipping spinner test (no TTY)")
             return True
-        
+
         console = get_console()
-        
+
         print("\nTesting status spinner:")
         with console.status("[bold green]Processing...", spinner="dots") as status:
             time.sleep(1)
             status.update("[bold green]Almost done...")
             time.sleep(1)
-        
+
         console.print("[green]✓ Status spinner working correctly[/green]")
     except Exception as e:
         print(f"✗ Status spinner test failed: {e}")
         import traceback
         traceback.print_exc()
         return False
-    
+
     return True
 
 
@@ -204,14 +207,14 @@ def test_rich_prompt():
     print("\n" + "="*60)
     print("TEST 6: Rich Prompt")
     print("="*60)
-    
+
     try:
         print("✓ Rich prompt imports working correctly")
         print("  (Interactive testing skipped - use 'bengal clean' to test)")
     except Exception as e:
         print(f"✗ Rich prompt test failed: {e}")
         return False
-    
+
     return True
 
 
@@ -220,7 +223,7 @@ def main():
     print("\n" + "="*60)
     print("RICH CLI ENHANCEMENTS TEST SUITE")
     print("="*60)
-    
+
     tests = [
         test_rich_traceback,
         test_logger_markup,
@@ -229,7 +232,7 @@ def main():
         test_status_spinner,
         test_rich_prompt,
     ]
-    
+
     results = []
     for test in tests:
         try:
@@ -240,17 +243,17 @@ def main():
             import traceback
             traceback.print_exc()
             results.append(False)
-    
+
     # Summary
     print("\n" + "="*60)
     print("TEST SUMMARY")
     print("="*60)
-    
+
     passed = sum(results)
     total = len(results)
-    
+
     print(f"\nPassed: {passed}/{total}")
-    
+
     if passed == total:
         print("\n✓ All tests passed! Rich CLI enhancements are working correctly.")
         return 0

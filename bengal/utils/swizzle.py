@@ -58,7 +58,7 @@ class SwizzleManager:
                     template=template_rel_path,
                     theme=self.site.theme or "default",
                     site_root=str(self.root))
-        
+
         source = self._find_theme_template(template_rel_path)
         if not source or not source.exists():
             logger.error("swizzle_template_not_found",
@@ -68,14 +68,14 @@ class SwizzleManager:
             raise FileNotFoundError(f"Template not found in theme chain: {template_rel_path}")
 
         dest = self.root / "templates" / template_rel_path
-        
+
         # Check if re-swizzling (overwriting existing)
         is_reswizzle = dest.exists()
         if is_reswizzle:
             logger.info("swizzle_overwriting_existing",
                        template=template_rel_path,
                        dest=str(dest))
-        
+
         dest.parent.mkdir(parents=True, exist_ok=True)
 
         content = source.read_text(encoding="utf-8")
@@ -114,7 +114,7 @@ class SwizzleManager:
                              error=str(e),
                              error_type=type(e).__name__)
                 continue
-        
+
         logger.debug("swizzle_list",
                     total=len(records),
                     invalid=invalid_count)
@@ -129,7 +129,7 @@ class SwizzleManager:
         records = data.get("records", [])
         logger.info("swizzle_update_start",
                    total_records=len(records))
-        
+
         updated = 0
         skipped_changed = 0
         missing_upstream = 0
@@ -137,7 +137,7 @@ class SwizzleManager:
         for rec in records:
             target_path = self.root / "templates" / rec.get("target", "")
             source_path = Path(rec.get("source", ""))
-            
+
             if not source_path.exists():
                 # Try resolving again (theme might have moved)
                 resolved = self._find_theme_template(rec.get("target", ""))
@@ -160,7 +160,7 @@ class SwizzleManager:
                              target=rec.get("target"),
                              path=str(target_path))
                 continue
-            
+
             current_checksum = _checksum_file(target_path)
             expected_checksum = rec.get("local_checksum")
             if current_checksum != expected_checksum:
@@ -185,7 +185,7 @@ class SwizzleManager:
         # Persist registry updates
         data["records"] = records
         self._write_registry(data)
-        
+
         logger.info("swizzle_update_complete",
                    updated=updated,
                    skipped_changed=skipped_changed,

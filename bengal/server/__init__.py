@@ -24,7 +24,7 @@ Features:
 Usage:
     from bengal.server import DevServer
     from bengal.core import Site
-    
+
     site = Site.from_config()
     server = DevServer(
         site,

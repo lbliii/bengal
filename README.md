@@ -18,6 +18,18 @@ A Python static site generator with incremental builds and modular architecture.
 
 ## Installation
 
+**Using uv (recommended - 10-100x faster):**
+
+```bash
+# Install uv
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Install Bengal
+uv pip install -e .
+```
+
+**Using pip:**
+
 ```bash
 pip install -e .
 ```

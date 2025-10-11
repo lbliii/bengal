@@ -13,10 +13,10 @@ import toml
 def load_autodoc_config(config_path: Path | None = None) -> dict[str, Any]:
     """
     Load autodoc configuration from bengal.toml.
-    
+
     Args:
         config_path: Path to config file (default: ./bengal.toml)
-        
+
     Returns:
         Autodoc configuration dict with defaults
     """
@@ -47,35 +47,35 @@ def load_autodoc_config(config_path: Path | None = None) -> dict[str, Any]:
             'include_hidden': False,
         },
     }
-    
+
     # Try to load from file
     if config_path is None:
         config_path = Path('bengal.toml')
-    
+
     if not config_path.exists():
         return default_config
-    
+
     try:
         file_config = toml.load(config_path)
-        
+
         # Merge with defaults
         if 'autodoc' in file_config:
             autodoc_config = file_config['autodoc']
-            
+
             # Merge Python config
             if 'python' in autodoc_config:
                 default_config['python'].update(autodoc_config['python'])
-            
+
             # Merge OpenAPI config
             if 'openapi' in autodoc_config:
                 default_config['openapi'].update(autodoc_config['openapi'])
-            
+
             # Merge CLI config
             if 'cli' in autodoc_config:
                 default_config['cli'].update(autodoc_config['cli'])
-        
+
         return default_config
-        
+
     except Exception as e:
         print(f"⚠️  Warning: Could not load config from {config_path}: {e}")
         return default_config

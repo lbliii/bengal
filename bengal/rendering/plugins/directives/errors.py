@@ -10,14 +10,14 @@ from pathlib import Path
 class DirectiveError(Exception):
     """
     Rich error for directive parsing failures.
-    
+
     Provides detailed context including:
     - Directive type that failed
     - File path and line number
     - Content snippet showing the problem
     - Helpful suggestions for fixing
     """
-    
+
     def __init__(
         self,
         directive_type: str,
@@ -29,7 +29,7 @@ class DirectiveError(Exception):
     ):
         """
         Initialize directive error.
-        
+
         Args:
             directive_type: Type of directive that failed (e.g., 'tabs', 'note')
             error_message: Human-readable error description
@@ -44,40 +44,40 @@ class DirectiveError(Exception):
         self.line_number = line_number
         self.content_snippet = content_snippet
         self.suggestion = suggestion
-        
+
         # Build the full error message
         super().__init__(self._format_error())
-    
+
     def _format_error(self) -> str:
         """Format a rich error message for display."""
         lines = []
-        
+
         # Header with emoji
         lines.append(f"\n❌ Directive Error: {self.directive_type}")
-        
+
         # Location info
         if self.file_path:
             location = str(self.file_path)
             if self.line_number:
                 location += f":{self.line_number}"
             lines.append(f"   File: {location}")
-        
+
         # Error message
         lines.append(f"   Error: {self.error_message}")
-        
+
         # Content snippet
         if self.content_snippet:
             lines.append("\n   Context:")
             # Indent each line of the snippet
             for line in self.content_snippet.split('\n'):
                 lines.append(f"   │ {line}")
-        
+
         # Suggestion
         if self.suggestion:
             lines.append(f"\n   💡 Suggestion: {self.suggestion}")
-        
+
         return '\n'.join(lines)
-    
+
     def display(self) -> str:
         """Get formatted error message (same as __str__)."""
         return self._format_error()
@@ -94,7 +94,7 @@ def format_directive_error(
 ) -> str:
     """
     Format a directive error message.
-    
+
     Args:
         directive_type: Type of directive
         error_message: Error description
@@ -103,25 +103,25 @@ def format_directive_error(
         content_lines: Lines of content around the error
         error_line_offset: Which line in content_lines has the error (for highlighting)
         suggestion: Helpful suggestion
-        
+
     Returns:
         Formatted error message
     """
     lines = []
-    
+
     # Header
     lines.append(f"\n❌ Directive Error: {{{directive_type}}}")
-    
+
     # Location
     if file_path:
         location = str(file_path)
         if line_number:
             location += f":{line_number}"
         lines.append(f"   File: {location}")
-    
+
     # Error message
     lines.append(f"   Error: {error_message}")
-    
+
     # Content with highlighting
     if content_lines:
         lines.append("\n   Context:")
@@ -131,11 +131,11 @@ def format_directive_error(
                 lines.append(f"   │ {line}  ← ERROR")
             else:
                 lines.append(f"   │ {line}")
-    
+
     # Suggestion
     if suggestion:
         lines.append(f"\n   💡 Suggestion: {suggestion}")
-    
+
     return '\n'.join(lines)
 
 

@@ -13,7 +13,7 @@ Provides comprehensive validation of builds across all systems:
 
 Usage:
     from bengal.health import HealthCheck
-    
+
     health = HealthCheck(site)
     report = health.run()
     print(report.format_console())

@@ -15,11 +15,11 @@ if TYPE_CHECKING:
 
 def register(env: 'Environment', site: 'Site') -> None:
     """Register URL functions with Jinja2 environment."""
-    
+
     # Create closures that have access to site
     def absolute_url_with_site(url: str) -> str:
         return absolute_url(url, site.config.get('baseurl', ''))
-    
+
     env.filters.update({
         'absolute_url': absolute_url_with_site,
         'url_encode': url_encode,
@@ -30,77 +30,74 @@ def register(env: 'Environment', site: 'Site') -> None:
 def absolute_url(url: str, base_url: str) -> str:
     """
     Convert relative URL to absolute URL.
-    
+
     Args:
         url: Relative or absolute URL
         base_url: Base URL to prepend
-    
+
     Returns:
         Absolute URL
-    
+
     Example:
         {{ page.url | absolute_url }}
         # Output: https://example.com/posts/my-post/
     """
     if not url:
         return base_url or ''
-    
+
     # Already absolute
     if url.startswith(('http://', 'https://', '//')):
         return url
-    
+
     # Normalize base URL
-    if base_url:
-        base_url = base_url.rstrip('/')
-    else:
-        base_url = ''
-    
+    base_url = base_url.rstrip('/') if base_url else ''
+
     # Normalize relative URL
     url = '/' + url.lstrip('/')
-    
+
     return base_url + url
 
 
 def url_encode(text: str) -> str:
     """
     URL encode string (percent encoding).
-    
+
     Encodes special characters for safe use in URLs.
-    
+
     Args:
         text: Text to encode
-    
+
     Returns:
         URL-encoded text
-    
+
     Example:
         {{ search_query | url_encode }}
         # "hello world" -> "hello%20world"
     """
     if not text:
         return ''
-    
+
     return quote(str(text))
 
 
 def url_decode(text: str) -> str:
     """
     URL decode string (decode percent encoding).
-    
+
     Decodes percent-encoded characters back to original form.
-    
+
     Args:
         text: Text to decode
-    
+
     Returns:
         URL-decoded text
-    
+
     Example:
         {{ encoded_text | url_decode }}
         # "hello%20world" -> "hello world"
     """
     if not text:
         return ''
-    
+
     return unquote(str(text))
 

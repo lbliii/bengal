@@ -39,7 +39,7 @@ _DEF_FORMATS = {
 
 def register(env: Environment, site: Site) -> None:
     """Register i18n helpers into Jinja2 environment.
-    
+
     Globals:
       - t
       - current_lang

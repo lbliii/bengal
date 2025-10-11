@@ -17,7 +17,7 @@ Orchestrators:
 
 Usage:
     from bengal.orchestration import BuildOrchestrator
-    
+
     orchestrator = BuildOrchestrator(site)
     stats = orchestrator.build(parallel=True, incremental=True)
 """

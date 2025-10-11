@@ -56,22 +56,51 @@ Welcome to Bengal SSG! This guide will help you get up and running.
 
 ## Prerequisites
 
-- Python 3.9 or higher
-- pip (Python package manager)
+- Python 3.12 or higher
+- [uv](https://docs.astral.sh/uv/) (recommended) or pip
 - Basic knowledge of Markdown
 
 ## Installation
 
+### Install uv (Recommended)
+
+**Why uv?** It's 10-100x faster than pip and provides better dependency resolution.
+
+```bash
+# macOS/Linux
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Windows (PowerShell)
+powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
+```
+
 ### Option 1: Install from Source (Current)
+
+**Using uv (recommended):**
 
 ```bash
 cd /Users/llane/Documents/github/python/bengal
+uv venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+uv pip install -e .
+```
+
+**Using pip:**
+
+```bash
+cd /Users/llane/Documents/github/python/bengal
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -e .
 ```
 
 ### Option 2: Install from PyPI (Future)
 
 ```bash
+# With uv (recommended)
+uv pip install bengal-ssg
+
+# With pip
 pip install bengal-ssg
 ```
 
@@ -570,8 +599,11 @@ Make sure templates are in the correct location:
 ### Module Not Found
 
 ```bash
-# Reinstall dependencies
-pip install -r requirements.txt
+# Reinstall dependencies with uv
+uv pip install -e ".[dev]"
+
+# Or with pip
+pip install -e ".[dev]"
 ```
 
 ### Dev Server Won't Start

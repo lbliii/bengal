@@ -39,7 +39,7 @@ class ComponentPreviewServer:
         logger.debug("component_discovery_start",
                     manifest_dirs=len(dirs),
                     paths=[str(d) for d in dirs])
-        
+
         manifests = []
         for base in dirs:
             found_count = 0
@@ -76,7 +76,7 @@ class ComponentPreviewServer:
                 logger.debug("component_discovery_dir_complete",
                            directory=str(base),
                            found=found_count)
-        
+
         # De-duplicate by id (last wins - child theme overrides parent)
         dedup: dict[str, dict[str, Any]] = {}
         order: list[str] = []
@@ -93,7 +93,7 @@ class ComponentPreviewServer:
             else:
                 dedup[cid] = m
                 order.append(cid)
-        
+
         result = [dedup[cid] for cid in order]
         logger.info("component_discovery_complete",
                    total_components=len(result),
@@ -104,29 +104,29 @@ class ComponentPreviewServer:
         logger.debug("component_render_start",
                     template=template_rel,
                     context_keys=list(context.keys()) if context else [])
-        
+
         try:
             from bengal.rendering.template_engine import TemplateEngine
             engine = TemplateEngine(self.site)
             ctx_in: dict[str, Any] = dict(context or {})
-            
+
             # Common alias: if sample uses 'page' but template expects 'article'
             if 'page' in ctx_in and 'article' not in ctx_in:
                 ctx_in['article'] = ctx_in['page']
                 logger.debug("component_context_alias",
                            aliased="page → article")
-            
+
             # Render template as a standalone fragment
             # Provide site and config via engine.render context
             html = engine.render(template_rel, {"site": self.site, **ctx_in})
-            
+
             # Get fingerprinted CSS URL (e.g., style.14d56f49.css)
             css_url = engine._asset_url("css/style.css")
             logger.debug("component_render_success",
                         template=template_rel,
                         css_url=css_url,
                         html_size=len(html))
-            
+
             # Wrap with minimal shell for isolation
             return f"""<!doctype html><html><head><meta charset=\"utf-8\"><title>Component Preview</title>
 <link rel=\"stylesheet\" href=\"{css_url}\"></head><body>
@@ -158,18 +158,18 @@ class ComponentPreviewServer:
         logger.debug("component_view_request",
                     component_id=comp_id,
                     variant_id=variant_id)
-        
+
         comps = {c.get("id"): c for c in self.discover_components()}
         comp = comps.get(comp_id)
-        
+
         if not comp:
             logger.warning("component_not_found",
                           component_id=comp_id,
                           available=list(comps.keys()))
             return f"<h1>Not found</h1><p>Component '{comp_id}' not found.</p>"
-        
+
         variants = comp.get("variants", [])
-        
+
         if variant_id:
             variant = next((v for v in variants if v.get("id") == variant_id), None)
             if not variant:
@@ -183,7 +183,7 @@ class ComponentPreviewServer:
                        variant_id=variant_id,
                        template=comp.get("template"))
             return self.render_component(comp.get("template"), ctx)
-        
+
         # Render a gallery of variants on one page
         logger.info("component_view_all_variants",
                    component_id=comp_id,
@@ -210,14 +210,14 @@ class ComponentPreviewServer:
                           error=str(e),
                           fallback="using_current_theme_only")
             chain = [self.site.theme] if self.site.theme else []
-        
+
         # Ensure active theme is included (including 'default')
         if (not chain) and self.site.theme:
             chain = [self.site.theme]
         # Always include default as a fallback for component manifests
         if 'default' not in chain:
             chain.append('default')
-        
+
         for theme_name in chain:
             site_dir = self.site.root_path / "themes" / theme_name / "dev" / "components"
             if site_dir.exists():
@@ -226,7 +226,7 @@ class ComponentPreviewServer:
                            type="site",
                            theme=theme_name,
                            path=str(site_dir))
-            
+
             # bundled theme support (optional)
             try:
                 import bengal
@@ -241,7 +241,7 @@ class ComponentPreviewServer:
                 logger.debug("component_bundled_theme_check_failed",
                            theme=theme_name,
                            error=str(e))
-        
+
         return dirs
 
     # (No coercion needed; Jinja supports dict attribute/key fallback)

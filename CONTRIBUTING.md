@@ -6,11 +6,29 @@ Thank you for your interest in contributing to Bengal! This document provides gu
 
 ### Prerequisites
 
-- Python 3.9 or higher
-- pip and virtualenv
+- Python 3.12 or higher
+- [uv](https://docs.astral.sh/uv/) (recommended) or pip
 - Git
 
 ### Setup Development Environment
+
+**Using uv (recommended - 10-100x faster):**
+
+```bash
+# Install uv if you haven't already
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Clone the repository
+git clone https://github.com/bengal-ssg/bengal.git
+cd bengal
+
+# Create virtual environment and install dependencies
+uv venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+uv pip install -e ".[dev]"
+```
+
+**Using pip (traditional method):**
 
 ```bash
 # Clone the repository
@@ -97,14 +115,26 @@ mypy bengal/
 
 ### Python Style
 
+Bengal uses **Python 3.12+** features and modern syntax:
+
+**Type Hints:**
+- ✅ Use `X | Y` instead of `Union[X, Y]`
+- ✅ Use `X | None` instead of `Optional[X]`
+- ✅ Use `type` keyword for type aliases
+- ✅ Use PEP 695 generic syntax for generic classes
+- ✅ No quotes needed for type annotations (we use `from __future__ import annotations`)
+- ✅ Use `isinstance(obj, Type1 | Type2)` instead of `isinstance(obj, (Type1, Type2))`
+
+**General:**
 - Follow PEP 8
-- Use type hints where possible
 - Maximum line length: 100 characters
 - Use descriptive variable names
+- Add docstrings to all public functions/classes
 
 Example:
 ```python
-from typing import List, Optional
+from __future__ import annotations
+
 from pathlib import Path
 
 def parse_content(
@@ -123,6 +153,18 @@ def parse_content(
     """
     # Implementation here
     pass
+
+# Type aliases use the 'type' keyword
+type PageID = str | int
+
+# Generic classes use PEP 695 syntax
+class Container[T]:
+    def __init__(self, value: T) -> None:
+        self.value = value
+
+# Modern isinstance syntax
+if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef):
+    handle_function(node)
 ```
 
 ### Documentation

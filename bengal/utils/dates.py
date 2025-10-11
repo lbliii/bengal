@@ -5,12 +5,11 @@ Provides centralized date parsing, formatting, and manipulation functions
 to eliminate duplicate logic across templates and core code.
 """
 
+from datetime import UTC, datetime
 from datetime import date as date_type
-from datetime import datetime, timezone
-from typing import Union
 
 # Type alias for date-like values
-DateLike = Union[datetime, date_type, str, None]
+type DateLike = datetime | date_type | str | None
 
 
 def parse_date(
@@ -20,13 +19,13 @@ def parse_date(
 ) -> datetime | None:
     """
     Parse various date formats into datetime.
-    
+
     Handles:
     - datetime objects (pass through)
     - date objects (convert to datetime at midnight)
     - ISO 8601 strings (with or without timezone)
     - Custom format strings
-    
+
     Args:
         value: Date value in various formats
         formats: Optional list of strptime format strings to try
@@ -34,10 +33,10 @@ def parse_date(
             - 'return_none': Return None (default)
             - 'raise': Raise ValueError
             - 'return_original': Return original value as-is
-    
+
     Returns:
         datetime object or None if parsing fails
-    
+
     Examples:
         >>> parse_date("2025-10-09")
         datetime(2025, 10, 9, 0, 0)
@@ -48,15 +47,15 @@ def parse_date(
     """
     if value is None:
         return None
-    
+
     # Already a datetime - pass through
     if isinstance(value, datetime):
         return value
-    
+
     # date object - convert to datetime at midnight
     if isinstance(value, date_type):
         return datetime.combine(value, datetime.min.time())
-    
+
     # String - try parsing
     if isinstance(value, str):
         # Try ISO format first (most common)
@@ -65,7 +64,7 @@ def parse_date(
             return datetime.fromisoformat(value.replace('Z', '+00:00'))
         except (ValueError, AttributeError):
             pass
-        
+
         # Try custom formats if provided
         if formats:
             for fmt in formats:
@@ -73,7 +72,7 @@ def parse_date(
                     return datetime.strptime(value, fmt)
                 except ValueError:
                     continue
-        
+
         # Try common formats
         default_formats = [
             '%Y-%m-%d',           # 2025-10-09
@@ -85,13 +84,13 @@ def parse_date(
             '%Y-%m-%d %H:%M:%S',  # 2025-10-09 14:30:00
             '%Y/%m/%d %H:%M:%S',  # 2025/10/09 14:30:00
         ]
-        
+
         for fmt in default_formats:
             try:
                 return datetime.strptime(value, fmt)
             except ValueError:
                 continue
-    
+
     # Couldn't parse
     if on_error == 'raise':
         raise ValueError(f"Could not parse date from: {value!r}")
@@ -104,15 +103,15 @@ def parse_date(
 def format_date_iso(date: DateLike) -> str:
     """
     Format date as ISO 8601 string.
-    
+
     Uses parse_date internally for flexible input handling.
-    
+
     Args:
         date: Date value in various formats
-    
+
     Returns:
         ISO 8601 formatted string (YYYY-MM-DDTHH:MM:SS)
-    
+
     Examples:
         >>> format_date_iso(datetime(2025, 10, 9, 14, 30))
         '2025-10-09T14:30:00'
@@ -126,15 +125,15 @@ def format_date_iso(date: DateLike) -> str:
 def format_date_rfc822(date: DateLike) -> str:
     """
     Format date as RFC 822 string (for RSS feeds).
-    
+
     Uses parse_date internally for flexible input handling.
-    
+
     Args:
         date: Date value in various formats
-    
+
     Returns:
         RFC 822 formatted string (e.g., "Fri, 03 Oct 2025 14:30:00 +0000")
-    
+
     Examples:
         >>> format_date_rfc822(datetime(2025, 10, 9, 14, 30))
         'Thu, 09 Oct 2025 14:30:00 '
@@ -149,16 +148,16 @@ def format_date_human(
 ) -> str:
     """
     Format date in human-readable format.
-    
+
     Uses parse_date internally for flexible input handling.
-    
+
     Args:
         date: Date value in various formats
         format: strftime format string (default: "October 09, 2025")
-    
+
     Returns:
         Formatted date string
-    
+
     Examples:
         >>> format_date_human(datetime(2025, 10, 9))
         'October 09, 2025'
@@ -172,16 +171,16 @@ def format_date_human(
 def time_ago(date: DateLike, now: datetime | None = None) -> str:
     """
     Convert date to human-readable "time ago" format.
-    
+
     Uses parse_date internally for flexible input handling.
-    
+
     Args:
         date: Date to convert
         now: Current time (defaults to datetime.now())
-    
+
     Returns:
         Human-readable time ago string
-    
+
     Examples:
         >>> time_ago(datetime.now() - timedelta(minutes=5))
         '5 minutes ago'
@@ -193,24 +192,21 @@ def time_ago(date: DateLike, now: datetime | None = None) -> str:
     dt = parse_date(date)
     if not dt:
         return ''
-    
+
     # Determine current time with timezone awareness matching the input
     if now is None:
-        if dt.tzinfo is not None:
-            now = datetime.now(timezone.utc)
-        else:
-            now = datetime.now()
-    
+        now = datetime.now(UTC) if dt.tzinfo is not None else datetime.now()
+
     # Calculate difference
     diff = now - dt
-    
+
     # Handle future dates
     if diff.total_seconds() < 0:
         return "just now"
-    
+
     # Calculate time components
     seconds = int(diff.total_seconds())
-    
+
     if seconds < 60:
         return "just now"
     elif seconds < 3600:  # Less than 1 hour
@@ -232,12 +228,12 @@ def time_ago(date: DateLike, now: datetime | None = None) -> str:
 def get_current_year() -> int:
     """
     Get current year as integer.
-    
+
     Useful for copyright notices and templates.
-    
+
     Returns:
         Current year
-    
+
     Example:
         >>> get_current_year()
         2025
@@ -252,15 +248,15 @@ def is_recent(
 ) -> bool:
     """
     Check if date is recent (within specified days).
-    
+
     Args:
         date: Date to check
         days: Number of days to consider "recent" (default: 7)
         now: Current time (defaults to datetime.now())
-    
+
     Returns:
         True if date is within the last N days
-    
+
     Examples:
         >>> is_recent(datetime.now() - timedelta(days=3))
         True
@@ -270,13 +266,10 @@ def is_recent(
     dt = parse_date(date)
     if not dt:
         return False
-    
+
     if now is None:
-        if dt.tzinfo is not None:
-            now = datetime.now(timezone.utc)
-        else:
-            now = datetime.now()
-    
+        now = datetime.now(UTC) if dt.tzinfo is not None else datetime.now()
+
     diff = now - dt
     return 0 <= diff.days <= days
 
@@ -289,16 +282,16 @@ def date_range_overlap(
 ) -> bool:
     """
     Check if two date ranges overlap.
-    
+
     Args:
         start1: Start of first range
         end1: End of first range
         start2: Start of second range
         end2: End of second range
-    
+
     Returns:
         True if ranges overlap
-    
+
     Examples:
         >>> date_range_overlap("2025-01-01", "2025-01-10", "2025-01-05", "2025-01-15")
         True
@@ -309,9 +302,9 @@ def date_range_overlap(
     dt_end1 = parse_date(end1)
     dt_start2 = parse_date(start2)
     dt_end2 = parse_date(end2)
-    
+
     if not all([dt_start1, dt_end1, dt_start2, dt_end2]):
         return False
-    
+
     return dt_start1 <= dt_end2 and dt_start2 <= dt_end1  # type: ignore
 

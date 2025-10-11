@@ -1,14 +1,15 @@
 """Shared pytest fixtures for Bengal SSG tests."""
 
-import pytest
-from pathlib import Path
-from typing import Dict, Any
 from datetime import datetime
+from pathlib import Path
+from typing import Any
 
-from bengal.core.site import Site
+import pytest
+
+from bengal.config.loader import ConfigLoader
 from bengal.core.page import Page
 from bengal.core.section import Section
-from bengal.config.loader import ConfigLoader
+from bengal.core.site import Site
 
 
 @pytest.fixture
@@ -16,24 +17,24 @@ def tmp_site(tmp_path: Path) -> Path:
     """Create a temporary site directory with basic structure."""
     site_dir = tmp_path / "test_site"
     site_dir.mkdir()
-    
+
     # Create basic structure
     (site_dir / "content").mkdir()
     (site_dir / "assets").mkdir()
     (site_dir / "templates").mkdir()
-    
+
     # Create minimal config
     config_content = """[site]
 title = "Test Site"
 base_url = "https://example.com"
 """
     (site_dir / "bengal.toml").write_text(config_content)
-    
+
     return site_dir
 
 
 @pytest.fixture
-def sample_config() -> Dict[str, Any]:
+def sample_config() -> dict[str, Any]:
     """Sample configuration dictionary."""
     return {
         "title": "Test Site",
@@ -58,7 +59,7 @@ tags: ["test", "sample"]
 
 This is a test page.
 """)
-    
+
     return Page(
         source_path=content_file,
         content="# Test Content\n\nThis is a test page.",
@@ -75,7 +76,7 @@ def sample_section(tmp_path: Path) -> Section:
     """Create a sample section."""
     section_path = tmp_path / "posts"
     section_path.mkdir()
-    
+
     return Section(
         name="posts",
         title="Posts",
@@ -89,7 +90,7 @@ def site_with_content(tmp_site: Path) -> Site:
     # Create sample pages
     posts_dir = tmp_site / "content" / "posts"
     posts_dir.mkdir()
-    
+
     for i in range(5):
         post_file = posts_dir / f"post-{i}.md"
         post_file.write_text(f"""---
@@ -102,13 +103,13 @@ tags: ["test"]
 
 Content for post {i}.
 """)
-    
+
     # Load site
     loader = ConfigLoader(tmp_site)
     config = loader.load()
     site = Site(root_path=tmp_site, config=config)
     site.discover_content()
-    
+
     return site
 
 

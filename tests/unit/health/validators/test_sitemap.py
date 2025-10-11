@@ -2,11 +2,12 @@
 Tests for Sitemap validator.
 """
 
-import pytest
 from unittest.mock import Mock
 
-from bengal.health.validators.sitemap import SitemapValidator
+import pytest
+
 from bengal.health.report import CheckStatus
+from bengal.health.validators.sitemap import SitemapValidator
 
 
 @pytest.fixture
@@ -15,17 +16,17 @@ def mock_site(tmp_path):
     site = Mock()
     site.output_dir = tmp_path
     site.config = {'baseurl': 'https://example.com'}
-    
+
     # Create mock pages
     page1 = Mock()
     page1.metadata = {'draft': False}
-    
+
     page2 = Mock()
     page2.metadata = {'draft': False}
-    
+
     page3 = Mock()
     page3.metadata = {'draft': True}
-    
+
     site.pages = [page1, page2, page3]
     return site
 
@@ -34,7 +35,7 @@ def test_sitemap_validator_missing_file(mock_site):
     """Test validator warns when sitemap not generated."""
     validator = SitemapValidator()
     results = validator.validate(mock_site)
-    
+
     assert len(results) > 0
     assert any(r.status == CheckStatus.WARNING for r in results)
     assert any("not generated" in r.message.lower() for r in results)
@@ -58,10 +59,10 @@ def test_sitemap_validator_valid_sitemap(mock_site, tmp_path):
     </url>
 </urlset>'''
     sitemap_path.write_text(sitemap_content)
-    
+
     validator = SitemapValidator()
     results = validator.validate(mock_site)
-    
+
     # Should have success results
     assert any(r.status == CheckStatus.SUCCESS for r in results)
     assert any("Sitemap file exists" in r.message for r in results)
@@ -73,10 +74,10 @@ def test_sitemap_validator_malformed_xml(mock_site, tmp_path):
     sitemap_path = tmp_path / 'sitemap.xml'
     sitemap_content = '<urlset><url></urlset>'  # Unclosed url
     sitemap_path.write_text(sitemap_content)
-    
+
     validator = SitemapValidator()
     results = validator.validate(mock_site)
-    
+
     assert any(r.status == CheckStatus.ERROR for r in results)
     assert any("malformed" in r.message.lower() for r in results)
 
@@ -91,10 +92,10 @@ def test_sitemap_validator_wrong_root_element(mock_site, tmp_path):
     </sitemap>
 </sitemapindex>'''
     sitemap_path.write_text(sitemap_content)
-    
+
     validator = SitemapValidator()
     results = validator.validate(mock_site)
-    
+
     assert any(r.status == CheckStatus.ERROR for r in results)
     assert any("urlset" in r.message.lower() for r in results)
 
@@ -106,10 +107,10 @@ def test_sitemap_validator_no_urls(mock_site, tmp_path):
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 </urlset>'''
     sitemap_path.write_text(sitemap_content)
-    
+
     validator = SitemapValidator()
     results = validator.validate(mock_site)
-    
+
     assert any(r.status == CheckStatus.WARNING for r in results)
     assert any("no" in r.message.lower() and "url" in r.message.lower() for r in results)
 
@@ -124,10 +125,10 @@ def test_sitemap_validator_relative_urls(mock_site, tmp_path):
     </url>
 </urlset>'''
     sitemap_path.write_text(sitemap_content)
-    
+
     validator = SitemapValidator()
     results = validator.validate(mock_site)
-    
+
     assert any(r.status == CheckStatus.ERROR for r in results)
     assert any("relative" in r.message.lower() for r in results)
 
@@ -145,10 +146,10 @@ def test_sitemap_validator_duplicate_urls(mock_site, tmp_path):
     </url>
 </urlset>'''
     sitemap_path.write_text(sitemap_content)
-    
+
     validator = SitemapValidator()
     results = validator.validate(mock_site)
-    
+
     assert any(r.status == CheckStatus.ERROR for r in results)
     assert any("duplicate" in r.message.lower() for r in results)
 
@@ -163,10 +164,10 @@ def test_sitemap_validator_missing_loc(mock_site, tmp_path):
     </url>
 </urlset>'''
     sitemap_path.write_text(sitemap_content)
-    
+
     validator = SitemapValidator()
     results = validator.validate(mock_site)
-    
+
     assert any(r.status == CheckStatus.ERROR for r in results)
     assert any("missing" in r.message.lower() and "loc" in r.message.lower() for r in results)
 
@@ -182,10 +183,10 @@ def test_sitemap_validator_coverage_warning(mock_site, tmp_path):
     </url>
 </urlset>'''
     sitemap_path.write_text(sitemap_content)
-    
+
     validator = SitemapValidator()
     results = validator.validate(mock_site)
-    
+
     # Should warn about missing pages
     assert any(r.status == CheckStatus.WARNING for r in results)
     assert any("missing" in r.message.lower() or "publishable" in r.message.lower() for r in results)
@@ -194,7 +195,7 @@ def test_sitemap_validator_coverage_warning(mock_site, tmp_path):
 def test_sitemap_validator_name_and_description():
     """Test validator metadata."""
     validator = SitemapValidator()
-    
+
     assert validator.name == "Sitemap"
     assert "sitemap" in validator.description.lower()
     assert validator.enabled_by_default is True

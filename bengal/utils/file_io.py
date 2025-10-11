@@ -7,13 +7,13 @@ throughout the codebase.
 
 Example:
     from bengal.utils.file_io import read_text_file, load_json, load_yaml
-    
+
     # Read text file with encoding fallback
     content = read_text_file(path, fallback_encoding='latin-1')
-    
+
     # Load JSON with error handling
     data = load_json(path, on_error='return_empty')
-    
+
     # Auto-detect and load data file
     data = load_data_file(path)  # Works for .json, .yaml, .toml
 """
@@ -36,12 +36,12 @@ def read_text_file(
 ) -> str | None:
     """
     Read text file with robust error handling and encoding fallback.
-    
+
     Consolidates patterns from:
     - bengal/discovery/content_discovery.py:192 (UTF-8 with latin-1 fallback)
     - bengal/rendering/template_functions/files.py:78 (file reading with logging)
     - bengal/config/loader.py:137 (config file reading)
-    
+
     Args:
         file_path: Path to file to read
         encoding: Primary encoding to try (default: 'utf-8')
@@ -51,22 +51,22 @@ def read_text_file(
             - 'return_empty': Return empty string on error
             - 'return_none': Return None on error
         caller: Caller identifier for logging context
-        
+
     Returns:
         File contents as string, or None/empty string based on on_error
-        
+
     Raises:
         FileNotFoundError: If file doesn't exist and on_error='raise'
         ValueError: If path is not a file and on_error='raise'
         IOError: If file cannot be read and on_error='raise'
-        
+
     Examples:
         >>> content = read_text_file('config.txt')
         >>> content = read_text_file('data.txt', fallback_encoding='latin-1')
         >>> content = read_text_file('optional.txt', on_error='return_empty')
     """
     file_path = Path(file_path)
-    
+
     # Check if file exists
     if not file_path.exists():
         logger.warning("file_not_found",
@@ -75,7 +75,7 @@ def read_text_file(
         if on_error == 'raise':
             raise FileNotFoundError(f"File not found: {file_path}")
         return '' if on_error == 'return_empty' else None
-    
+
     # Check if path is a file
     if not file_path.is_file():
         logger.warning("path_not_file",
@@ -85,12 +85,12 @@ def read_text_file(
         if on_error == 'raise':
             raise ValueError(f"Path is not a file: {file_path}")
         return '' if on_error == 'return_empty' else None
-    
+
     # Try reading with primary encoding
     try:
         with open(file_path, encoding=encoding) as f:
             content = f.read()
-        
+
         logger.debug("file_read",
                     path=str(file_path),
                     encoding=encoding,
@@ -98,7 +98,7 @@ def read_text_file(
                     lines=content.count('\n') + 1,
                     caller=caller or "file_io")
         return content
-    
+
     except UnicodeDecodeError as e:
         # Try fallback encoding if available
         if fallback_encoding:
@@ -108,18 +108,18 @@ def read_text_file(
                          fallback=fallback_encoding,
                          error=str(e),
                          caller=caller or "file_io")
-            
+
             try:
                 with open(file_path, encoding=fallback_encoding) as f:
                     content = f.read()
-                
+
                 logger.debug("file_read_fallback",
                            path=str(file_path),
                            encoding=fallback_encoding,
                            size_bytes=len(content),
                            caller=caller or "file_io")
                 return content
-            
+
             except Exception as fallback_error:
                 logger.error("encoding_fallback_failed",
                            path=str(file_path),
@@ -127,11 +127,11 @@ def read_text_file(
                            fallback=fallback_encoding,
                            error=str(fallback_error),
                            caller=caller or "file_io")
-        
+
         if on_error == 'raise':
             raise OSError(f"Cannot decode {file_path}: {e}") from e
         return '' if on_error == 'return_empty' else None
-    
+
     except OSError as e:
         logger.error("file_read_error",
                     path=str(file_path),
@@ -150,37 +150,37 @@ def load_json(
 ) -> Any:
     """
     Load JSON file with error handling.
-    
+
     Consolidates patterns from:
     - bengal/rendering/template_functions/data.py:80 (JSON loading)
-    
+
     Args:
         file_path: Path to JSON file
         on_error: Error handling strategy ('raise', 'return_empty', 'return_none')
         caller: Caller identifier for logging
-        
+
     Returns:
         Parsed JSON data, or {} / None based on on_error
-        
+
     Raises:
         FileNotFoundError: If file not found and on_error='raise'
         json.JSONDecodeError: If JSON is invalid and on_error='raise'
-        
+
     Examples:
         >>> data = load_json('config.json')
         >>> data = load_json('optional.json', on_error='return_none')
     """
     file_path = Path(file_path)
-    
+
     # Read file content
     content = read_text_file(file_path, on_error=on_error, caller=caller)
     if not content:
         return {} if on_error == 'return_empty' else None
-    
+
     # Parse JSON
     try:
         data = json.loads(content)
-        
+
         logger.debug("json_loaded",
                     path=str(file_path),
                     size_bytes=len(content),
@@ -188,7 +188,7 @@ def load_json(
                     type=type(data).__name__,
                     caller=caller or "file_io")
         return data
-    
+
     except json.JSONDecodeError as e:
         logger.error("json_parse_error",
                     path=str(file_path),
@@ -196,7 +196,7 @@ def load_json(
                     line=e.lineno,
                     column=e.colno,
                     caller=caller or "file_io")
-        
+
         if on_error == 'raise':
             raise
         return {} if on_error == 'return_empty' else None
@@ -209,30 +209,30 @@ def load_yaml(
 ) -> Any:
     """
     Load YAML file with error handling.
-    
+
     Consolidates patterns from:
     - bengal/config/loader.py:142 (YAML config loading)
     - bengal/rendering/template_functions/data.py:94 (YAML data loading)
-    
+
     Args:
         file_path: Path to YAML file
         on_error: Error handling strategy ('raise', 'return_empty', 'return_none')
         caller: Caller identifier for logging
-        
+
     Returns:
         Parsed YAML data, or {} / None based on on_error
-        
+
     Raises:
         FileNotFoundError: If file not found and on_error='raise'
         yaml.YAMLError: If YAML is invalid and on_error='raise'
         ImportError: If PyYAML not installed and on_error='raise'
-        
+
     Examples:
         >>> data = load_yaml('config.yaml')
         >>> data = load_yaml('optional.yml', on_error='return_none')
     """
     file_path = Path(file_path)
-    
+
     # Check if PyYAML is available
     try:
         import yaml
@@ -244,20 +244,20 @@ def load_yaml(
         if on_error == 'raise':
             raise ImportError("PyYAML is required to load YAML files")
         return {} if on_error == 'return_empty' else None
-    
+
     # Read file content
     content = read_text_file(file_path, on_error=on_error, caller=caller)
     if not content:
         return {} if on_error == 'return_empty' else None
-    
+
     # Parse YAML
     try:
         data = yaml.safe_load(content)
-        
+
         # YAML can return None for empty files
         if data is None:
             data = {}
-        
+
         logger.debug("yaml_loaded",
                     path=str(file_path),
                     size_bytes=len(content),
@@ -265,13 +265,13 @@ def load_yaml(
                     type=type(data).__name__,
                     caller=caller or "file_io")
         return data
-    
+
     except yaml.YAMLError as e:
         logger.error("yaml_parse_error",
                     path=str(file_path),
                     error=str(e),
                     caller=caller or "file_io")
-        
+
         if on_error == 'raise':
             raise
         return {} if on_error == 'return_empty' else None
@@ -284,52 +284,52 @@ def load_toml(
 ) -> Any:
     """
     Load TOML file with error handling.
-    
+
     Consolidates patterns from:
     - bengal/config/loader.py:137 (TOML config loading)
-    
+
     Args:
         file_path: Path to TOML file
         on_error: Error handling strategy ('raise', 'return_empty', 'return_none')
         caller: Caller identifier for logging
-        
+
     Returns:
         Parsed TOML data, or {} / None based on on_error
-        
+
     Raises:
         FileNotFoundError: If file not found and on_error='raise'
         toml.TomlDecodeError: If TOML is invalid and on_error='raise'
-        
+
     Examples:
         >>> data = load_toml('config.toml')
         >>> data = load_toml('optional.toml', on_error='return_none')
     """
     file_path = Path(file_path)
-    
+
     # Read file content
     content = read_text_file(file_path, on_error=on_error, caller=caller)
     if not content:
         return {} if on_error == 'return_empty' else None
-    
+
     # Parse TOML
     try:
         import toml
         data = toml.loads(content)
-        
+
         logger.debug("toml_loaded",
                     path=str(file_path),
                     size_bytes=len(content),
                     keys=len(data) if isinstance(data, dict) else None,
                     caller=caller or "file_io")
         return data
-    
+
     except Exception as e:  # toml.TomlDecodeError or AttributeError
         logger.error("toml_parse_error",
                     path=str(file_path),
                     error=str(e),
                     error_type=type(e).__name__,
                     caller=caller or "file_io")
-        
+
         if on_error == 'raise':
             raise
         return {} if on_error == 'return_empty' else None
@@ -342,21 +342,21 @@ def load_data_file(
 ) -> Any:
     """
     Auto-detect and load JSON/YAML/TOML file.
-    
+
     Consolidates pattern from:
     - bengal/rendering/template_functions/data.py:40 (get_data function)
-    
+
     Args:
         file_path: Path to data file (.json, .yaml, .yml, .toml)
         on_error: Error handling strategy ('raise', 'return_empty', 'return_none')
         caller: Caller identifier for logging
-        
+
     Returns:
         Parsed data, or {} / None based on on_error
-        
+
     Raises:
         ValueError: If file format is unsupported and on_error='raise'
-        
+
     Examples:
         >>> data = load_data_file('config.json')
         >>> data = load_data_file('settings.yaml')
@@ -364,7 +364,7 @@ def load_data_file(
     """
     file_path = Path(file_path)
     suffix = file_path.suffix.lower()
-    
+
     # Route to appropriate loader based on file extension
     if suffix == '.json':
         return load_json(file_path, on_error=on_error, caller=caller)
@@ -378,7 +378,7 @@ def load_data_file(
                       suffix=suffix,
                       supported=['.json', '.yaml', '.yml', '.toml'],
                       caller=caller or "file_io")
-        
+
         if on_error == 'raise':
             raise ValueError(f"Unsupported file format: {suffix}")
         return {} if on_error == 'return_empty' else None
@@ -393,41 +393,41 @@ def write_text_file(
 ) -> None:
     """
     Write text to file with parent directory creation.
-    
+
     Args:
         file_path: Path to file to write
         content: Text content to write
         encoding: Text encoding (default: 'utf-8')
         create_parents: Create parent directories if they don't exist
         caller: Caller identifier for logging
-        
+
     Raises:
         IOError: If write fails
-        
+
     Examples:
         >>> write_text_file('output/data.txt', 'Hello World')
         >>> write_text_file('result.json', json.dumps(data))
     """
     file_path = Path(file_path)
-    
+
     # Create parent directories if needed
     if create_parents and not file_path.parent.exists():
         file_path.parent.mkdir(parents=True, exist_ok=True)
         logger.debug("created_parent_dirs",
                     path=str(file_path.parent),
                     caller=caller or "file_io")
-    
+
     # Write file
     try:
         with open(file_path, 'w', encoding=encoding) as f:
             f.write(content)
-        
+
         logger.debug("file_written",
                     path=str(file_path),
                     size_bytes=len(content),
                     encoding=encoding,
                     caller=caller or "file_io")
-    
+
     except OSError as e:
         logger.error("file_write_error",
                     path=str(file_path),
@@ -445,18 +445,18 @@ def write_json(
 ) -> None:
     """
     Write data as JSON file.
-    
+
     Args:
         file_path: Path to JSON file
         data: Data to serialize as JSON
         indent: JSON indentation (None for compact)
         create_parents: Create parent directories if needed
         caller: Caller identifier for logging
-        
+
     Raises:
         TypeError: If data is not JSON serializable
         IOError: If write fails
-        
+
     Examples:
         >>> write_json('output.json', {'key': 'value'})
         >>> write_json('data.json', data, indent=None)  # Compact
@@ -464,7 +464,7 @@ def write_json(
     try:
         content = json.dumps(data, indent=indent, ensure_ascii=False)
         write_text_file(file_path, content, create_parents=create_parents, caller=caller)
-    
+
     except TypeError as e:
         logger.error("json_serialize_error",
                     path=str(file_path),

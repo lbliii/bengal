@@ -35,18 +35,18 @@ _print_lock = Lock()
 class Site:
     """
     Represents the entire website and orchestrates the build process.
-    
+
     Creation:
         Recommended: Site.from_config(root_path)
             - Loads configuration from bengal.toml
             - Applies all settings automatically
             - Use for production builds and CLI
-        
+
         Direct instantiation: Site(root_path=path, config=config)
             - For unit testing with controlled state
             - For programmatic config manipulation
             - Advanced use case only
-    
+
     Attributes:
         root_path: Root directory of the site
         config: Site configuration dictionary (from bengal.toml or explicit)
@@ -57,15 +57,15 @@ class Site:
         output_dir: Output directory for built site
         build_time: Timestamp of the last build
         taxonomies: Collected taxonomies (tags, categories, etc.)
-    
+
     Examples:
         # Production/CLI (recommended):
         site = Site.from_config(Path('/path/to/site'))
-        
+
         # Unit testing:
         site = Site(root_path=Path('/test'), config={})
         site.pages = [test_page1, test_page2]
-        
+
         # Programmatic config:
         from bengal.config.loader import ConfigLoader
         loader = ConfigLoader(path)
@@ -73,7 +73,7 @@ class Site:
         config['custom_setting'] = 'value'
         site = Site(root_path=path, config=config)
     """
-    
+
     root_path: Path
     config: dict[str, Any] = field(default_factory=dict)
     pages: list[Page] = field(default_factory=list)
@@ -90,47 +90,47 @@ class Site:
     menu_builders_localized: dict[str, dict[str, MenuBuilder]] = field(default_factory=dict)
     # Current language context for rendering (set per page during rendering)
     current_language: str | None = None
-    
+
     # Private caches for expensive properties (invalidated when pages change)
     _regular_pages_cache: list[Page] | None = field(default=None, repr=False, init=False)
-    
+
     def __post_init__(self) -> None:
         """Initialize site from configuration."""
         self.theme = self.config.get("theme", "default")
-        
+
         if "output_dir" in self.config:
             self.output_dir = Path(self.config["output_dir"])
-        
+
         # Make output_dir absolute relative to root_path
         if not self.output_dir.is_absolute():
             self.output_dir = self.root_path / self.output_dir
-    
+
     @property
     def title(self) -> str | None:
         """Get site title from config."""
         return self.config.get('title')
-    
+
     @property
     def baseurl(self) -> str | None:
         """Get site baseurl from config."""
         return self.config.get('baseurl')
-    
+
     @property
     def author(self) -> str | None:
         """Get site author from config."""
         return self.config.get('author')
-    
+
     @property
     def regular_pages(self) -> list[Page]:
         """
         Get only regular content pages (excludes generated taxonomy/archive pages).
-        
+
         PERFORMANCE: This property is cached after first access for O(1) subsequent lookups.
         The cache is automatically invalidated when pages are modified.
-        
+
         Returns:
             List of regular Page objects (excludes tag pages, archive pages, etc.)
-            
+
         Example:
             {% for page in site.regular_pages %}
                 <article>{{ page.title }}</article>
@@ -139,83 +139,83 @@ class Site:
         # Return cached value if available (O(1))
         if self._regular_pages_cache is not None:
             return self._regular_pages_cache
-        
+
         # Compute and cache (O(n), only happens once)
         self._regular_pages_cache = [p for p in self.pages if not p.metadata.get('_generated')]
         return self._regular_pages_cache
-    
+
     def invalidate_regular_pages_cache(self) -> None:
         """
         Invalidate the regular_pages cache.
-        
+
         Call this after modifying the pages list or page metadata that affects
         the _generated flag.
         """
         self._regular_pages_cache = None
-    
+
     @classmethod
-    def from_config(cls, root_path: Path, config_path: Path | None = None) -> 'Site':
+    def from_config(cls, root_path: Path, config_path: Path | None = None) -> Site:
         """
         Create a Site instance from a configuration file.
-        
+
         This is the PREFERRED way to create a Site - it loads configuration
         from bengal.toml (or bengal.yaml) and applies all settings properly.
-        
+
         Config Loading:
             1. Searches for config file: bengal.toml, bengal.yaml, bengal.yml
             2. Parses and validates configuration
             3. Flattens nested sections for easy access
             4. Returns Site with all settings applied
-        
+
         Important Config Sections:
             - [site]: title, baseurl, author, etc.
             - [build]: parallel, max_workers, incremental, etc.
             - [markdown]: parser selection ('mistune' recommended)
             - [features]: syntax_highlighting, search, etc.
             - [taxonomies]: tags, categories, series
-        
+
         Args:
             root_path: Root directory of the site
             config_path: Optional explicit path to config file
                         (auto-detected from root_path if not provided)
-            
+
         Returns:
             Configured Site instance with all settings loaded
-            
+
         Example:
             site = Site.from_config(Path('/path/to/site'))
             # Loads /path/to/site/bengal.toml automatically
-            
+
         Use Cases:
             1. Unit testing: Site(root_path=path, config={})
                - Tests can control exact state without config files
                - Allows isolated testing of specific features
-            
+
             2. Manual config loading: Site(root_path=path, config=loaded_config)
                - When you need to modify config programmatically
                - Advanced use case for custom build scripts
-        
+
         Warning:
             In production/normal builds, use Site.from_config() instead!
             Passing config={} will override bengal.toml settings and use defaults.
         """
         from bengal.config.loader import ConfigLoader
-        
+
         loader = ConfigLoader(root_path)
         config = loader.load(config_path)
-        
+
         return cls(root_path=root_path, config=config)
-    
+
     def discover_content(self, content_dir: Path | None = None) -> None:
         """
         Discover all content (pages, sections) in the content directory.
-        
+
         Scans the content directory recursively, creating Page and Section
         objects for all markdown files and organizing them into a hierarchy.
-        
+
         Args:
             content_dir: Content directory path (defaults to root_path/content)
-        
+
         Example:
             >>> site = Site.from_config(Path('/path/to/site'))
             >>> site.discover_content()
@@ -223,44 +223,44 @@ class Site:
         """
         if content_dir is None:
             content_dir = self.root_path / "content"
-        
+
         if not content_dir.exists():
             logger.warning("content_dir_not_found", path=str(content_dir))
             return
-        
+
         from bengal.discovery.content_discovery import ContentDiscovery
-        
+
         discovery = ContentDiscovery(content_dir, site=self)
         self.sections, self.pages = discovery.discover()
-        
+
         # Set up page references for navigation
         self._setup_page_references()
-        
+
         # Apply cascading frontmatter from sections to pages
         self._apply_cascades()
-    
+
     def discover_assets(self, assets_dir: Path | None = None) -> None:
         """
         Discover all assets in the assets directory and theme assets.
-        
+
         Args:
             assets_dir: Assets directory path (defaults to root_path/assets)
         """
         from bengal.discovery.asset_discovery import AssetDiscovery
-        
+
         self.assets = []
-        
+
         # Discover theme assets first (lower priority), support inheritance chain
         if self.theme:
             for theme_dir in self._get_theme_assets_chain():
                 if theme_dir and theme_dir.exists():
                     theme_discovery = AssetDiscovery(theme_dir)
                     self.assets.extend(theme_discovery.discover())
-        
+
         # Discover site assets (higher priority, can override theme assets)
         if assets_dir is None:
             assets_dir = self.root_path / "assets"
-        
+
         if assets_dir.exists():
             logger.debug("discovering_site_assets", path=str(assets_dir))
             site_discovery = AssetDiscovery(assets_dir)
@@ -268,7 +268,7 @@ class Site:
         elif not self.assets:
             # Only warn if we have no theme assets either
             logger.warning("assets_dir_not_found", path=str(assets_dir))
-        
+
         # Deduplicate by relative output path with precedence: site > child theme > parents
         if self.assets:
             dedup: dict[str, Asset] = {}
@@ -282,56 +282,56 @@ class Site:
                     dedup[key] = asset
                     order.append(key)
             self.assets = [dedup[k] for k in order]
-    
+
     def _setup_page_references(self) -> None:
         """
         Set up page references for navigation (next, prev, parent, etc.).
-        
+
         This method sets _site and _section references on all pages to enable
         navigation properties (next, prev, ancestors, etc.).
         """
         # Set site reference on all pages
         for page in self.pages:
             page._site = self
-        
+
         # Set section references
         for section in self.sections:
             # Set site reference on section
             section._site = self
-            
+
             # Set section reference on all pages in this section
             for page in section.pages:
                 page._section = section
-            
+
             # Recursively set for subsections
             self._setup_section_references(section)
-    
+
     def _setup_section_references(self, section: Section) -> None:
         """
         Recursively set up references for a section and its subsections.
-        
+
         Args:
             section: Section to set up references for
         """
         for subsection in section.subsections:
             subsection._site = self
-            
+
             # Set section reference on pages in subsection
             for page in subsection.pages:
                 page._section = subsection
-            
+
             # Recurse into deeper subsections
             self._setup_section_references(subsection)
-    
+
     def _apply_cascades(self) -> None:
         """
         Apply cascading metadata from sections to their child pages and subsections.
-        
+
         This implements Hugo-style cascade functionality where section _index.md files
         can define metadata that automatically applies to all descendant pages.
-        
+
         Cascade metadata is defined in a section's _index.md frontmatter:
-        
+
         Example:
             ---
             title: "Products"
@@ -340,7 +340,7 @@ class Site:
               version: "2.0"
               show_price: true
             ---
-        
+
         All pages under this section will inherit these values unless they
         define their own values (page values take precedence over cascaded values).
         """
@@ -354,11 +354,11 @@ class Site:
                 if root_cascade is None:
                     root_cascade = {}
                 root_cascade.update(page.metadata['cascade'])
-        
+
         # Process all top-level sections with root cascade (they will recurse to subsections)
         for section in self.sections:
             self._apply_section_cascade(section, parent_cascade=root_cascade)
-        
+
         # Also apply root cascade to other top-level pages
         if root_cascade:
             for page in self.pages:
@@ -368,28 +368,28 @@ class Site:
                     for key, value in root_cascade.items():
                         if key not in page.metadata:
                             page.metadata[key] = value
-    
+
     def _apply_section_cascade(self, section: Section, parent_cascade: dict[str, Any] | None = None) -> None:
         """
         Recursively apply cascade metadata to a section and its descendants.
-        
+
         Cascade metadata accumulates through the hierarchy - child sections inherit
         and can extend parent cascades.
-        
+
         Args:
             section: Section to process
             parent_cascade: Cascade metadata inherited from parent sections
         """
         # Merge parent cascade with this section's cascade
         accumulated_cascade = {}
-        
+
         if parent_cascade:
             accumulated_cascade.update(parent_cascade)
-        
+
         if 'cascade' in section.metadata:
             # Section's cascade extends/overrides parent cascade
             accumulated_cascade.update(section.metadata['cascade'])
-        
+
         # Apply accumulated cascade to all pages in this section
         # (but only for keys not already defined in page metadata)
         for page in section.pages:
@@ -398,33 +398,33 @@ class Site:
                     # Page metadata takes precedence over cascade
                     if key not in page.metadata:
                         page.metadata[key] = value
-        
+
         # Recursively apply to subsections with accumulated cascade
         for subsection in section.subsections:
             self._apply_section_cascade(subsection, accumulated_cascade)
-    
+
     def _get_theme_assets_dir(self) -> Path | None:
         """
         Get the assets directory for the current theme.
-        
+
         Returns:
             Path to theme assets or None if not found
         """
         if not self.theme:
             return None
-        
+
         # Check in site's themes directory first
         site_theme_dir = self.root_path / "themes" / self.theme / "assets"
         if site_theme_dir.exists():
             return site_theme_dir
-        
+
         # Check in Bengal's bundled themes
         import bengal
         bengal_dir = Path(bengal.__file__).parent
         bundled_theme_dir = bengal_dir / "themes" / self.theme / "assets"
         if bundled_theme_dir.exists():
             return bundled_theme_dir
-        
+
         return None
 
     def _get_theme_assets_chain(self) -> list[Path]:
@@ -441,7 +441,7 @@ class Site:
             chain = engine._resolve_theme_chain(self.theme)
         except Exception:
             chain = [self.theme] if self.theme else []
-        
+
         # Build list from parents to child
         for theme_name in reversed(chain):
             # Site theme assets
@@ -459,13 +459,13 @@ class Site:
             except Exception:
                 pass
         return dirs
-    
-    def build(self, parallel: bool = True, incremental: bool = False, verbose: bool = False, quiet: bool = False, profile: 'BuildProfile' = None, memory_optimized: bool = False, strict: bool = False, full_output: bool = False) -> BuildStats:
+
+    def build(self, parallel: bool = True, incremental: bool = False, verbose: bool = False, quiet: bool = False, profile: BuildProfile = None, memory_optimized: bool = False, strict: bool = False, full_output: bool = False) -> BuildStats:
         """
         Build the entire site.
-        
+
         Delegates to BuildOrchestrator for actual build process.
-        
+
         Args:
             parallel: Whether to use parallel processing
             incremental: Whether to perform incremental build (only changed files)
@@ -475,19 +475,19 @@ class Site:
             memory_optimized: Use streaming build for memory efficiency (best for 5K+ pages)
             strict: Whether to fail on warnings
             full_output: Show full traditional output instead of live progress
-            
+
         Returns:
             BuildStats object with build statistics
         """
         from bengal.orchestration import BuildOrchestrator
-        
+
         orchestrator = BuildOrchestrator(self)
         return orchestrator.build(parallel=parallel, incremental=incremental, verbose=verbose, quiet=quiet, profile=profile, memory_optimized=memory_optimized, strict=strict, full_output=full_output)
-    
+
     def serve(self, host: str = "localhost", port: int = 8000, watch: bool = True, auto_port: bool = True, open_browser: bool = False) -> None:
         """
         Start a development server.
-        
+
         Args:
             host: Server host
             port: Server port
@@ -496,23 +496,23 @@ class Site:
             open_browser: Whether to automatically open the browser
         """
         from bengal.server.dev_server import DevServer
-        
+
         server = DevServer(self, host=host, port=port, watch=watch, auto_port=auto_port, open_browser=open_browser)
         server.start()
-    
+
     def clean(self) -> None:
         """
         Clean the output directory by removing all generated files.
-        
+
         Useful for starting fresh or troubleshooting build issues.
-        
+
         Example:
             >>> site = Site.from_config(Path('/path/to/site'))
             >>> site.clean()  # Remove all files in public/
             >>> site.build()  # Rebuild from scratch
         """
         import shutil
-        
+
         if self.output_dir.exists():
             # Use debug level to avoid noise in clean command output
             logger.debug("cleaning_output_dir", path=str(self.output_dir))
@@ -520,7 +520,7 @@ class Site:
             logger.debug("output_dir_cleaned", path=str(self.output_dir))
         else:
             logger.debug("output_dir_does_not_exist", path=str(self.output_dir))
-    
+
     def __repr__(self) -> str:
         return f"Site(pages={len(self.pages)}, sections={len(self.sections)}, assets={len(self.assets)})"
 

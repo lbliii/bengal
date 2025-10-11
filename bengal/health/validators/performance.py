@@ -19,26 +19,26 @@ if TYPE_CHECKING:
 class PerformanceValidator(BaseValidator):
     """
     Validates build performance (basic checks only).
-    
+
     Checks:
     - Build time is reasonable for page count
     - No individual pages are very slow
     - Basic throughput metrics
-    
+
     Skips:
     - Memory profiling (complex)
     - Parallel efficiency analysis (advanced)
     - Build time regression detection (needs history)
     """
-    
+
     name = "Performance"
     description = "Validates build performance metrics"
     enabled_by_default = True
-    
+
     def validate(self, site: 'Site') -> list[CheckResult]:
         """Run performance validation checks."""
         results = []
-        
+
         # Get build stats from config/context
         build_stats = getattr(site, '_last_build_stats', None)
         if not build_stats:
@@ -47,35 +47,35 @@ class PerformanceValidator(BaseValidator):
                 recommendation="Build stats are collected during site.build()"
             ))
             return results
-        
+
         # Check 1: Overall build time
         results.extend(self._check_build_time(site, build_stats))
-        
+
         # Check 2: Throughput
         results.extend(self._check_throughput(site, build_stats))
-        
+
         # Check 3: Slow pages (if available)
         results.extend(self._check_slow_pages(site, build_stats))
-        
+
         return results
-    
+
     def _check_build_time(self, site: 'Site', build_stats: dict) -> list[CheckResult]:
         """Check if overall build time is reasonable."""
         results = []
-        
+
         build_time_ms = build_stats.get('build_time_ms', 0)
         build_time_s = build_time_ms / 1000
         total_pages = build_stats.get('total_pages', 0)
-        
+
         # Calculate expected time (rough heuristic)
         # Parallel: ~50 pages/sec, Sequential: ~20 pages/sec
         parallel = site.config.get('parallel', True)
         expected_rate = 50 if parallel else 20
         expected_time = total_pages / expected_rate
-        
+
         # Allow 2x margin for slower systems
         threshold = expected_time * 2
-        
+
         if total_pages == 0:
             results.append(CheckResult.info(
                 f"Build time: {build_time_s:.2f}s (no pages)"
@@ -93,21 +93,21 @@ class PerformanceValidator(BaseValidator):
             results.append(CheckResult.success(
                 f"Build time: {build_time_s:.2f}s ({total_pages} pages) ⚡"
             ))
-        
+
         return results
-    
+
     def _check_throughput(self, site: 'Site', build_stats: dict) -> list[CheckResult]:
         """Check pages per second throughput."""
         results = []
-        
+
         build_time_ms = build_stats.get('build_time_ms', 0)
         total_pages = build_stats.get('total_pages', 0)
-        
+
         if build_time_ms == 0 or total_pages == 0:
             return results
-        
+
         throughput = (total_pages / build_time_ms) * 1000  # pages/second
-        
+
         # Thresholds
         if throughput > 100:
             results.append(CheckResult.success(
@@ -126,28 +126,28 @@ class PerformanceValidator(BaseValidator):
                 f"Throughput: {throughput:.1f} pages/second (slow)",
                 recommendation="Consider enabling parallel builds or check for performance bottlenecks."
             ))
-        
+
         return results
-    
+
     def _check_slow_pages(self, site: 'Site', build_stats: dict) -> list[CheckResult]:
         """Check for individual slow pages."""
         results = []
-        
+
         # This would require per-page timing data
         # For now, just check rendering time vs total time
         rendering_time_ms = build_stats.get('rendering_time_ms', 0)
         total_time_ms = build_stats.get('build_time_ms', 0)
         total_pages = build_stats.get('total_pages', 1)
-        
+
         if rendering_time_ms == 0 or total_time_ms == 0:
             return results
-        
+
         # Calculate average render time per page
         avg_render_ms = rendering_time_ms / total_pages
-        
+
         # Check if rendering takes disproportionate time
         rendering_pct = (rendering_time_ms / total_time_ms) * 100
-        
+
         if avg_render_ms > 100:  # 100ms+ per page is slow
             results.append(CheckResult.warning(
                 f"Average page render time is high ({avg_render_ms:.0f}ms/page)",
@@ -162,6 +162,6 @@ class PerformanceValidator(BaseValidator):
             results.append(CheckResult.success(
                 f"Average render time: {avg_render_ms:.0f}ms/page (good)"
             ))
-        
+
         return results
 

@@ -52,23 +52,23 @@ __all__ = [
 def create_documentation_directives():
     """
     Create documentation directives plugin for Mistune.
-    
+
     Returns a function that can be passed to mistune.create_markdown(plugins=[...]).
-    
+
     Provides:
     - admonitions: note, tip, warning, danger, error, info, example, success
     - tabs: Tabbed content with full markdown support
     - dropdown: Collapsible sections with markdown
     - code-tabs: Code examples in multiple languages
     - rubric: Pseudo-headings for API documentation (not in TOC)
-    
+
     Usage:
         from bengal.rendering.plugins.directives import create_documentation_directives
-        
+
         md = mistune.create_markdown(
             plugins=[create_documentation_directives()]
         )
-    
+
     Raises:
         RuntimeError: If directive registration fails
         ImportError: If FencedDirective is not available
@@ -85,7 +85,7 @@ def create_documentation_directives():
             raise ImportError(
                 "FencedDirective not found. Ensure mistune>=3.0.0 is installed."
             ) from e
-        
+
         try:
             # Create fenced directive with all our custom directives
             # Support both backtick (`) and colon (:) fences for MyST Markdown compatibility
@@ -103,7 +103,7 @@ def create_documentation_directives():
                 GridItemCardDirective(),  # Sphinx-Design compatibility
                 ButtonDirective(),  # Simple button links
             ], markers='`:')
-            
+
             # Apply to markdown instance
             return directive(md)
         except Exception as e:
@@ -111,6 +111,6 @@ def create_documentation_directives():
                         error=str(e),
                         error_type=type(e).__name__)
             raise RuntimeError(f"Failed to register directives plugin: {e}") from e
-    
+
     return plugin_documentation_directives
 

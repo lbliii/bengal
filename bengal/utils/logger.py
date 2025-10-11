@@ -7,9 +7,9 @@ the 22-phase build pipeline.
 
 Example:
     from bengal.utils.logger import get_logger
-    
+
     logger = get_logger(__name__)
-    
+
     with logger.phase("discovery", page_count=100):
         logger.info("discovered_content", files=len(files))
         logger.debug("parsed_frontmatter", page=page.path, keys=list(metadata.keys()))
@@ -49,15 +49,15 @@ class LogEvent:
     memory_mb: float | None = None  # Memory delta for phase
     peak_memory_mb: float | None = None  # Peak memory during phase
     context: dict[str, Any] = field(default_factory=dict)
-    
+
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
         return {k: v for k, v in asdict(self).items() if v is not None}
-    
+
     def format_console(self, verbose: bool = False) -> str:
         """Format for console output using Rich markup."""
         indent = "  " * self.phase_depth
-        
+
         # Level colors (Rich markup styles)
         level_styles = {
             'DEBUG': 'cyan',
@@ -66,12 +66,12 @@ class LogEvent:
             'ERROR': 'red',
             'CRITICAL': 'magenta',
         }
-        
+
         style = level_styles.get(self.level, 'white')
-        
+
         # Phase markers
         phase_marker = f" [bold]\\[{self.phase}][/bold]" if self.phase else ""
-        
+
         # Timing and memory
         metrics = []
         if self.duration_ms is not None:
@@ -83,37 +83,37 @@ class LogEvent:
                 metrics.append(f"{self.memory_mb:.1f}MB")
         if self.peak_memory_mb is not None:
             metrics.append(f"peak:{self.peak_memory_mb:.1f}MB")
-        
+
         metrics_str = f" [dim]({', '.join(metrics)})[/dim]" if metrics else ""
-        
+
         # Basic format with Rich markup
         base = f"{indent}[{style}]●[/{style}]{phase_marker} {self.message}{metrics_str}"
-        
+
         # Always show context for warnings and errors (actionable issues)
         # In verbose mode, show context for all levels
         show_context = verbose or self.level in ('WARNING', 'ERROR', 'CRITICAL')
-        
+
         if show_context and self.context:
             context_str = " " + " ".join(f"{k}={v}" for k, v in self.context.items())
             base += f" [{style}]{context_str}[/{style}]"
-        
+
         if verbose:
             # Add timestamp in verbose mode
             time_str = self.timestamp.split('T')[1].split('.')[0]  # HH:MM:SS
             base = f"[dim]{time_str}[/dim] {base}"
-        
+
         return base
 
 
 class BengalLogger:
     """
     Phase-aware structured logger for Bengal builds.
-    
+
     Tracks build phases, emits structured events, and provides
     timing information. All logs are written to both console
     and a build log file.
     """
-    
+
     def __init__(
         self,
         name: str,
@@ -124,7 +124,7 @@ class BengalLogger:
     ):
         """
         Initialize logger.
-        
+
         Args:
             name: Logger name (typically __name__)
             level: Minimum log level to emit
@@ -137,43 +137,43 @@ class BengalLogger:
         self.log_file = log_file
         self.verbose = verbose
         self.quiet_console = quiet_console
-        
+
         # Phase tracking
         self._phase_stack: list[tuple[str, float, dict[str, Any]]] = []
         self._events: list[LogEvent] = []
-        
+
         # File handle
         self._file_handle: TextIO | None = None
         if log_file:
             self._file_handle = open(log_file, 'w', encoding='utf-8')
-    
+
     @contextmanager
     def phase(self, name: str, **context):
         """
         Context manager for tracking build phases with timing and memory.
-        
+
         Example:
             with logger.phase("discovery", page_count=100):
                 # ... work ...
                 pass
-        
+
         Args:
             name: Phase name
             **context: Additional context to attach to all events in phase
         """
         start_time = time.time()
-        
+
         # Track memory if tracemalloc is active
         start_memory = None
         memory_tracking = tracemalloc.is_tracing()
         if memory_tracking:
             start_memory = tracemalloc.get_traced_memory()[0]  # current
-        
+
         self._phase_stack.append((name, start_time, context))
-        
+
         # Emit phase start
         self.info("phase_start", phase_name=name, **context)
-        
+
         try:
             yield
         except Exception as e:
@@ -184,7 +184,7 @@ class BengalLogger:
             # Pop phase and calculate metrics
             phase_name, phase_start, phase_context = self._phase_stack.pop()
             duration_ms = (time.time() - phase_start) * 1000
-            
+
             # Calculate memory metrics if tracking
             memory_mb = None
             peak_memory_mb = None
@@ -192,7 +192,7 @@ class BengalLogger:
                 current_memory, peak_memory = tracemalloc.get_traced_memory()
                 memory_mb = (current_memory - start_memory) / 1024 / 1024  # MB
                 peak_memory_mb = peak_memory / 1024 / 1024  # MB
-            
+
             self.info(
                 "phase_complete",
                 phase_name=phase_name,
@@ -201,11 +201,11 @@ class BengalLogger:
                 peak_memory_mb=peak_memory_mb,
                 **phase_context
             )
-    
+
     def _emit(self, level: LogLevel, event_type: str, message: str, **context):
         """
         Emit a log event.
-        
+
         Args:
             level: Log level
             event_type: Event type identifier
@@ -215,23 +215,23 @@ class BengalLogger:
         # Check if we should emit based on level
         if level.value < self.level.value:
             return
-        
+
         # Get current phase context
         phase_name = None
         phase_depth = len(self._phase_stack)
         phase_context = {}
-        
+
         if self._phase_stack:
             phase_name, _, phase_context = self._phase_stack[-1]
-        
+
         # Merge contexts (explicit context overrides phase context)
         merged_context = {**phase_context, **context}
-        
+
         # Extract memory metrics from context if present
         memory_mb = merged_context.pop('memory_mb', None)
         peak_memory_mb = merged_context.pop('peak_memory_mb', None)
         duration_ms = merged_context.pop('duration_ms', None)
-        
+
         # Create event
         event = LogEvent(
             timestamp=datetime.now().isoformat(),
@@ -246,14 +246,14 @@ class BengalLogger:
             peak_memory_mb=peak_memory_mb,
             context=merged_context
         )
-        
+
         # Store event
         self._events.append(event)
-        
+
         # Output to console (unless suppressed for live progress)
         # Always show WARNING and above, even if quiet_console is True
         show_console = not self.quiet_console or level.value >= LogLevel.WARNING.value
-        
+
         if show_console:
             try:
                 # Use Rich console for markup rendering
@@ -268,40 +268,40 @@ class BengalLogger:
                 import re
                 message = re.sub(r'\[/?[^\]]+\]', '', message)
                 print(message)
-        
+
         # Output to file (JSON format)
         if self._file_handle:
             self._file_handle.write(json.dumps(event.to_dict()) + '\n')
             self._file_handle.flush()
-    
+
     def debug(self, message: str, **context):
         """Log debug event."""
         self._emit(LogLevel.DEBUG, "debug", message, **context)
-    
+
     def info(self, message: str, **context):
         """Log info event."""
         self._emit(LogLevel.INFO, "info", message, **context)
-    
+
     def warning(self, message: str, **context):
         """Log warning event."""
         self._emit(LogLevel.WARNING, "warning", message, **context)
-    
+
     def error(self, message: str, **context):
         """Log error event."""
         self._emit(LogLevel.ERROR, "error", message, **context)
-    
+
     def critical(self, message: str, **context):
         """Log critical event."""
         self._emit(LogLevel.CRITICAL, "critical", message, **context)
-    
+
     def get_events(self) -> list[LogEvent]:
         """Get all logged events."""
         return self._events.copy()
-    
+
     def get_phase_timings(self) -> dict[str, float]:
         """
         Extract phase timings from events.
-        
+
         Returns:
             Dict mapping phase names to duration in milliseconds
         """
@@ -312,26 +312,26 @@ class BengalLogger:
                 if phase:
                     timings[phase] = event.duration_ms
         return timings
-    
+
     def print_summary(self):
         """Print timing summary of all phases."""
         timings = self.get_phase_timings()
         if not timings:
             return
-        
+
         try:
             from bengal.utils.rich_console import get_console
             console = get_console()
-            
+
             console.print("\n" + "="*60)
             console.print("Build Phase Timings:")
             console.print("="*60)
-            
+
             total = sum(timings.values())
             for phase, duration in sorted(timings.items(), key=lambda x: x[1], reverse=True):
                 percentage = (duration / total * 100) if total > 0 else 0
                 console.print(f"  {phase:30s} {duration:8.1f}ms ({percentage:5.1f}%)")
-            
+
             console.print("-"*60)
             console.print(f"  {'TOTAL':30s} {total:8.1f}ms (100.0%)")
             console.print("="*60)
@@ -340,26 +340,26 @@ class BengalLogger:
             print("\n" + "="*60)
             print("Build Phase Timings:")
             print("="*60)
-            
+
             total = sum(timings.values())
             for phase, duration in sorted(timings.items(), key=lambda x: x[1], reverse=True):
                 percentage = (duration / total * 100) if total > 0 else 0
                 print(f"  {phase:30s} {duration:8.1f}ms ({percentage:5.1f}%)")
-            
+
             print("-"*60)
             print(f"  {'TOTAL':30s} {total:8.1f}ms (100.0%)")
             print("="*60)
-    
+
     def close(self):
         """Close log file handle."""
         if self._file_handle:
             self._file_handle.close()
             self._file_handle = None
-    
+
     def __enter__(self):
         """Context manager entry."""
         return self
-    
+
     def __exit__(self, exc_type, exc_val, exc_tb):
         """Context manager exit."""
         self.close()
@@ -384,7 +384,7 @@ def configure_logging(
 ):
     """
     Configure global logging settings.
-    
+
     Args:
         level: Minimum log level to emit
         log_file: Path to log file
@@ -394,16 +394,16 @@ def configure_logging(
     _global_config['level'] = level
     _global_config['log_file'] = log_file
     _global_config['verbose'] = verbose
-    
+
     # Enable memory tracking if requested
     if track_memory and not tracemalloc.is_tracing():
         tracemalloc.start()
-    
+
     # Update existing loggers
     for logger in _loggers.values():
         logger.level = level
         logger.verbose = verbose
-        
+
         # Note: We don't update log_file for existing loggers
         # to avoid closing/reopening files mid-build
 
@@ -411,10 +411,10 @@ def configure_logging(
 def get_logger(name: str) -> BengalLogger:
     """
     Get or create a logger instance.
-    
+
     Args:
         name: Logger name (typically __name__)
-    
+
     Returns:
         BengalLogger instance
     """
@@ -426,22 +426,22 @@ def get_logger(name: str) -> BengalLogger:
             verbose=_global_config['verbose'],
             quiet_console=_global_config['quiet_console']
         )
-    
+
     return _loggers[name]
 
 
 def set_console_quiet(quiet: bool = True):
     """
     Enable or disable console output for all loggers.
-    
+
     Used by live progress manager to suppress structured log events
     while preserving file logging for debugging.
-    
+
     Args:
         quiet: If True, suppress console output; if False, enable it
     """
     _global_config['quiet_console'] = quiet
-    
+
     # Update existing loggers
     for logger in _loggers.values():
         logger.quiet_console = quiet
@@ -459,12 +459,12 @@ def print_all_summaries():
     all_events = []
     for logger in _loggers.values():
         all_events.extend(logger.get_events())
-    
+
     # Extract phase timings and memory
     timings = {}
     memory_deltas = {}
     peak_memories = {}
-    
+
     for event in all_events:
         if event.message == "phase_complete":
             phase = event.context.get("phase_name", event.phase)
@@ -475,26 +475,26 @@ def print_all_summaries():
                     memory_deltas[phase] = event.memory_mb
                 if event.peak_memory_mb is not None:
                     peak_memories[phase] = event.peak_memory_mb
-    
+
     if not timings:
         return
-    
+
     try:
         from bengal.utils.rich_console import get_console
         console = get_console()
-        
+
         console.print("\n" + "="*70)
         console.print("[bold cyan]Build Phase Performance:[/bold cyan]")
         console.print("="*70)
-        
+
         # Show timing + memory
         total_time = sum(timings.values())
         for phase in sorted(timings.keys(), key=lambda x: timings[x], reverse=True):
             duration = timings[phase]
             percentage = (duration / total_time * 100) if total_time > 0 else 0
-            
+
             line = f"  {phase:25s} {duration:8.1f}ms ({percentage:5.1f}%)"
-            
+
             # Add memory if available
             if phase in memory_deltas:
                 mem_delta = memory_deltas[phase]
@@ -502,9 +502,9 @@ def print_all_summaries():
             if phase in peak_memories:
                 peak = peak_memories[phase]
                 line += f"  peak:{peak:7.1f}MB"
-            
+
             console.print(line)
-        
+
         console.print("-"*70)
         total_line = f"  {'TOTAL':25s} {total_time:8.1f}ms (100.0%)"
         if memory_deltas:
@@ -517,15 +517,15 @@ def print_all_summaries():
         print("\n" + "="*70)
         print("Build Phase Performance:")
         print("="*70)
-        
+
         # Show timing + memory
         total_time = sum(timings.values())
         for phase in sorted(timings.keys(), key=lambda x: timings[x], reverse=True):
             duration = timings[phase]
             percentage = (duration / total_time * 100) if total_time > 0 else 0
-            
+
             line = f"  {phase:25s} {duration:8.1f}ms ({percentage:5.1f}%)"
-            
+
             # Add memory if available
             if phase in memory_deltas:
                 mem_delta = memory_deltas[phase]
@@ -533,9 +533,9 @@ def print_all_summaries():
             if phase in peak_memories:
                 peak = peak_memories[phase]
                 line += f"  peak:{peak:7.1f}MB"
-            
+
             print(line)
-        
+
         print("-"*70)
         total_line = f"  {'TOTAL':25s} {total_time:8.1f}ms (100.0%)"
         if memory_deltas:

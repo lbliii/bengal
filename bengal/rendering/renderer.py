@@ -18,11 +18,11 @@ class Renderer:
     """
     Renders pages using templates.
     """
-    
+
     def __init__(self, template_engine: Any, build_stats: Any = None) -> None:
         """
         Initialize the renderer.
-        
+
         Args:
             template_engine: Template engine instance
             build_stats: Optional BuildStats object for error collection
@@ -30,52 +30,52 @@ class Renderer:
         self.template_engine = template_engine
         self.site = template_engine.site  # Access to site config for strict mode
         self.build_stats = build_stats  # For collecting template errors
-    
+
     def render_content(self, content: str) -> str:
         """
         Render raw content (already parsed HTML).
-        
+
         Automatically strips the first H1 tag to avoid duplication with
         the template-rendered title.
-        
+
         Args:
             content: Parsed HTML content
-            
+
         Returns:
             Content with first H1 removed
         """
         return self._strip_first_h1(content)
-    
+
     def _strip_first_h1(self, content: str) -> str:
         """
         Remove the first H1 tag from HTML content.
-        
+
         This prevents duplication when templates render {{ page.title }} as H1
         and the markdown also contains an H1 heading.
-        
+
         Args:
             content: HTML content
-            
+
         Returns:
             Content with first H1 tag removed
         """
         # Pattern matches: <h1>...</h1> or <h1 id="...">...</h1>
         # Uses non-greedy matching to get just the first H1
         pattern = r'<h1[^>]*>.*?</h1>'
-        
+
         # Remove only the first occurrence
         result = re.sub(pattern, '', content, count=1, flags=re.DOTALL | re.IGNORECASE)
-        
+
         return result
-    
+
     def render_page(self, page: Page, content: str | None = None) -> str:
         """
         Render a complete page with template.
-        
+
         Args:
             page: Page to render
             content: Optional pre-rendered content (uses page.parsed_ast if not provided)
-            
+
         Returns:
             Fully rendered HTML page
         """
@@ -90,14 +90,14 @@ class Renderer:
                            content_length=len(content),
                            has_badges=has_badges,
                            has_markers=has_markers)
-        
+
         # Mark active menu items for this page
         if hasattr(self.site, 'mark_active_menu_items'):
             self.site.mark_active_menu_items(page)
-        
+
         # Determine which template to use
         template_name = self._get_template_name(page)
-        
+
         # Build base context
         # Note: Content and TOC are marked as safe HTML to prevent auto-escaping
         # (they're already sanitized during markdown parsing)
@@ -108,23 +108,23 @@ class Renderer:
             'metadata': page.metadata,
             'toc': Markup(page.toc) if page.toc else '',  # Mark TOC as safe HTML
             'toc_items': page.toc_items,  # Structured TOC data
-            
+
             # Pre-computed cached properties (computed once, reused in templates)
             # Templates can use these directly or access via page.meta_description, etc.
             'meta_desc': page.meta_description,  # From cached_property
             'reading_time': page.reading_time,   # From cached_property
             'excerpt': page.excerpt,             # From cached_property
         }
-        
+
         # Add special context for generated pages
         if page.metadata.get('_generated'):
             self._add_generated_page_context(page, context)
-        
+
         # Add section context for reference documentation types, doc types, and index pages
         # This allows manual reference pages, doc pages, and section index pages to access section data
         page_type = page.metadata.get('type')
         is_index_page = page.source_path.stem in ('_index', 'index')
-        
+
         if hasattr(page, '_section') and page._section:
             # Add section context if:
             # 1. It's a reference documentation type (api-reference, cli-reference, tutorial)
@@ -137,13 +137,13 @@ class Renderer:
                     'posts': section.pages,
                     'subsections': section.subsections,
                 })
-        
+
         # Render with template
         try:
             return self.template_engine.render(template_name, context)
         except Exception as e:
             from bengal.rendering.errors import TemplateRenderError, display_template_error
-            
+
             # Create rich error object
             rich_error = TemplateRenderError.from_jinja2_error(
                 e,
@@ -151,45 +151,45 @@ class Renderer:
                 page.source_path,
                 self.template_engine
             )
-            
+
             # In strict mode, display and fail immediately
             strict_mode = self.site.config.get("strict_mode", False)
             debug_mode = self.site.config.get("debug", False)
-            
+
             if strict_mode:
                 display_template_error(rich_error)
                 if debug_mode:
                     import traceback
                     traceback.print_exc()
                 raise
-            
+
             # In production mode, collect error and continue
             if self.build_stats:
                 self.build_stats.add_template_error(rich_error)
             else:
                 # No build stats available, display immediately
                 display_template_error(rich_error)
-            
+
             if debug_mode:
                 import traceback
                 traceback.print_exc()
-            
+
             # Fallback to simple HTML
             return self._render_fallback(page, content)
         finally:
             # No global language mutation needed; helpers read from template context
             pass
-    
+
     def _add_generated_page_context(self, page: Page, context: dict[str, Any]) -> None:
         """
         Add special context variables for generated pages (archives, tags, etc.).
-        
+
         Args:
             page: Page being rendered
             context: Template context to update
         """
         page_type = page.metadata.get('type')
-        
+
         if page_type in ('archive', 'api-reference', 'cli-reference', 'tutorial'):
             # Archive/Reference page context
             section = page.metadata.get('_section')
@@ -197,7 +197,7 @@ class Renderer:
             subsections = page.metadata.get('_subsections', [])
             paginator = page.metadata.get('_paginator')
             page_num = page.metadata.get('_page_num', 1)
-            
+
             # Get posts for this page
             if paginator:
                 posts = paginator.page(page_num)
@@ -209,7 +209,7 @@ class Renderer:
                 else:
                     # Archives: sort by date
                     posts = sorted(all_posts, key=lambda p: p.date if p.date else datetime.min, reverse=True)
-                
+
                 pagination = {
                     'current_page': 1,
                     'total_pages': 1,
@@ -217,7 +217,7 @@ class Renderer:
                     'has_prev': False,
                     'base_url': f"/{section.name}/" if section else "/",
                 }
-            
+
             context.update({
                 'section': section,
                 'posts': posts,
@@ -225,7 +225,7 @@ class Renderer:
                 'total_posts': len(all_posts),
                 **pagination
             })
-        
+
         elif page_type == 'tag':
             # Individual tag page context
             tag_name = page.metadata.get('_tag')
@@ -233,7 +233,7 @@ class Renderer:
             all_posts = page.metadata.get('_posts', [])
             paginator = page.metadata.get('_paginator')
             page_num = page.metadata.get('_page_num', 1)
-            
+
             # Get posts for this page
             if paginator:
                 posts = paginator.page(page_num)
@@ -247,7 +247,7 @@ class Renderer:
                     'has_prev': False,
                     'base_url': f"/tags/{tag_slug}/",
                 }
-            
+
             context.update({
                 'tag': tag_name,
                 'tag_slug': tag_slug,
@@ -255,11 +255,11 @@ class Renderer:
                 'total_posts': len(all_posts),
                 **pagination
             })
-        
+
         elif page_type == 'tag-index':
             # Tag index page context
             tags = page.metadata.get('_tags', {})
-            
+
             # Convert to sorted list for template
             tags_list = [
                 {
@@ -272,44 +272,44 @@ class Renderer:
             ]
             # Sort by count (descending) then name
             tags_list.sort(key=lambda t: (-t['count'], t['name'].lower()))
-            
+
             context.update({
                 'tags': tags_list,
                 'total_tags': len(tags_list),
             })
-    
+
     def _get_template_name(self, page: Page) -> str:
         """
         Determine which template to use for a page.
-        
+
         Priority order:
         1. Explicit template in frontmatter (`template: doc.html`)
         2. Type-based template selection (e.g., `type: api-reference`)
         3. Section-based auto-detection (e.g., `docs.html`, `docs/single.html`)
         4. Default fallback (`page.html` or `index.html`)
-        
+
         Note: We intentionally avoid Hugo's confusing type/kind/layout hierarchy.
-        
+
         Args:
             page: Page to get template for
-            
+
         Returns:
             Template name
         """
         # 1. Explicit template (highest priority)
         if 'template' in page.metadata:
             return page.metadata['template']
-        
+
         # 2. Type-based or content_type-based template selection
         # Page's explicit type has priority over section's content_type
         page_type = page.metadata.get('type')
         content_type = None
-        
+
         if hasattr(page, '_section') and page._section and hasattr(page._section, 'metadata'):
             content_type = page._section.metadata.get('content_type')
-        
+
         is_section_index = page.source_path.stem == '_index'
-        
+
         # Try type-based templates (for pages with explicit type) - HIGHER PRIORITY
         if page_type:
             # Map common types to content types
@@ -322,10 +322,10 @@ class Renderer:
                 'tutorial': 'tutorial',
                 'blog': 'blog',
             }
-            
+
             if page_type in type_mappings:
                 mapped_type = type_mappings[page_type]
-                
+
                 if is_section_index:
                     # Index pages: try list-style templates
                     templates_to_try = [
@@ -338,11 +338,11 @@ class Renderer:
                         f"{mapped_type}/single.html",
                         f"{mapped_type}/page.html",
                     ]
-                
+
                 for template_name in templates_to_try:
                     if self._template_exists(template_name):
                         return template_name
-        
+
         # Try content_type-based templates (for autodoc pages) - LOWER PRIORITY
         # Only used if page doesn't have explicit type
         if content_type and not is_section_index and not page_type:
@@ -354,11 +354,11 @@ class Renderer:
             for template_name in templates_to_try:
                 if self._template_exists(template_name):
                     return template_name
-        
+
         # 3. Section-based auto-detection
         if hasattr(page, '_section') and page._section:
             section_name = page._section.name
-            
+
             if is_section_index:
                 # Try section index templates in order of specificity
                 templates_to_try = [
@@ -374,27 +374,27 @@ class Renderer:
                     f"{section_name}/page.html",      # Alternative directory
                     f"{section_name}.html",           # Flat
                 ]
-            
+
             # Check if any template exists
             for template_name in templates_to_try:
                 if self._template_exists(template_name):
                     return template_name
-        
+
         # 4. Simple default fallback (no type/kind complexity)
         if is_section_index:
             # Section index without custom template
             return 'index.html'
-        
+
         # Regular page - just use page.html
         return 'page.html'
-    
+
     def _template_exists(self, template_name: str) -> bool:
         """
         Check if a template exists in any template directory.
-        
+
         Args:
             template_name: Template filename or path
-            
+
         Returns:
             True if template exists, False otherwise
         """
@@ -403,18 +403,18 @@ class Renderer:
             return True
         except Exception:
             return False
-    
+
     def _render_fallback(self, page: Page, content: str) -> str:
         """
         Render a fallback HTML page with basic styling.
-        
+
         When the main template fails, we still try to produce a usable page
         with basic CSS and structure (though without partials/navigation).
-        
+
         Args:
             page: Page to render
             content: Page content
-            
+
         Returns:
             Fallback HTML page with minimal styling
         """
@@ -424,7 +424,7 @@ class Renderer:
             css_file = self.site.output_dir / 'assets' / 'css' / 'style.css'
             if css_file.exists():
                 css_link = '<link rel="stylesheet" href="/assets/css/style.css">'
-        
+
         return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -461,7 +461,7 @@ class Renderer:
 </head>
 <body>
     <div class="fallback-notice">
-        <strong>⚠️ Notice:</strong> This page is displayed in fallback mode due to a template error. 
+        <strong>⚠️ Notice:</strong> This page is displayed in fallback mode due to a template error.
         Some features (navigation, sidebars, etc.) may be missing.
     </div>
     <article>

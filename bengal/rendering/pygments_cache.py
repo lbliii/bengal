@@ -62,38 +62,38 @@ def _normalize_language(language: str) -> str:
 def get_lexer_cached(language: str | None = None, code: str = "") -> any:
     """
     Get a Pygments lexer with aggressive caching.
-    
+
     Strategy:
     1. If language specified: cache by language name (fast path)
     2. If no language: hash code sample and cache guess result
     3. Fallback: return text lexer if all else fails
-    
+
     Args:
         language: Optional language name (e.g., 'python', 'javascript')
         code: Code content (used for guessing if language not specified)
-        
+
     Returns:
         Pygments lexer instance
-        
+
     Performance:
         - Cached lookup: ~0.001ms
         - Uncached lookup: ~30ms (plugin discovery)
         - Cache hit rate: >95% after first few pages
     """
     global _cache_stats
-    
+
     # Fast path: language specified
     if language:
         normalized = _normalize_language(language)
         cache_key = f"lang:{normalized}"
-        
+
         with _cache_lock:
             if cache_key in _lexer_cache:
                 _cache_stats['hits'] += 1
                 return _lexer_cache[cache_key]
-            
+
             _cache_stats['misses'] += 1
-        
+
         # Do not attempt highlighting for known non-highlight languages
         if normalized in _NO_HIGHLIGHT_LANGUAGES:
             try:
@@ -128,27 +128,27 @@ def get_lexer_cached(language: str | None = None, code: str = "") -> any:
             with _cache_lock:
                 _lexer_cache[cache_key] = lexer
             return lexer
-    
+
     # Slow path: guess lexer from code
     # Cache by hash of first 200 chars (representative sample)
     _cache_stats['guess_calls'] += 1
-    
+
     code_sample = code[:200] if len(code) > 200 else code
     cache_key = f"guess:{hash(code_sample)}"
-    
+
     with _cache_lock:
         if cache_key in _lexer_cache:
             _cache_stats['hits'] += 1
             return _lexer_cache[cache_key]
-        
+
         _cache_stats['misses'] += 1
-    
+
     # Expensive guess operation
     try:
         lexer = guess_lexer(code)
         with _cache_lock:
             _lexer_cache[cache_key] = lexer
-        logger.debug("lexer_guessed", 
+        logger.debug("lexer_guessed",
                     guessed_language=lexer.name,
                     cache_key=cache_key[:20])
         return lexer
@@ -176,7 +176,7 @@ def clear_cache():
 def get_cache_stats() -> dict:
     """
     Get cache statistics for monitoring.
-    
+
     Returns:
         Dict with hits, misses, guess_calls, hit_rate
     """
