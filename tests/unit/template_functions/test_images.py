@@ -1,6 +1,5 @@
 """Tests for image processing template functions."""
 
-import pytest
 import tempfile
 from pathlib import Path
 from bengal.rendering.template_functions.images import (

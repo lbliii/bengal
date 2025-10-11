@@ -7,7 +7,6 @@ like the template rendering bug where pages fell back to simple HTML without the
 import pytest
 from pathlib import Path
 from bs4 import BeautifulSoup
-import tempfile
 import shutil
 
 from bengal.core.site import Site
@@ -111,7 +110,6 @@ class TestOutputQuality:
     
     def test_no_unrendered_jinja2_in_output(self, built_site):
         """Verify no unrendered Jinja2 variables leak through."""
-        from bs4 import BeautifulSoup
         
         for html_file in built_site.rglob("*.html"):
             content = html_file.read_text()

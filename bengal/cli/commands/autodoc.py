@@ -1,12 +1,13 @@
 """Autodoc commands for generating API and CLI documentation."""
 
 from pathlib import Path
+
 import click
 
-from bengal.autodoc.extractors.python import PythonExtractor
-from bengal.autodoc.extractors.cli import CLIExtractor
-from bengal.autodoc.generator import DocumentationGenerator
 from bengal.autodoc.config import load_autodoc_config
+from bengal.autodoc.extractors.cli import CLIExtractor
+from bengal.autodoc.extractors.python import PythonExtractor
+from bengal.autodoc.generator import DocumentationGenerator
 
 
 @click.command()
@@ -200,14 +201,14 @@ def _generate_python_docs(source: tuple, output: str, clean: bool, parallel: boo
     click.echo()
     click.echo(click.style("💡 Next steps:", fg='yellow'))
     click.echo(f"   • View docs: ls {output_dir}")
-    click.echo(f"   • Build site: bengal build")
+    click.echo("   • Build site: bengal build")
     click.echo()
 
 
 def _generate_cli_docs(app: str, framework: str, output: str, include_hidden: bool, clean: bool, verbose: bool, cli_config: dict) -> None:
     """Generate CLI documentation."""
-    import time
     import importlib
+    import time
     
     click.echo(click.style("⌨️  CLI Documentation", fg='cyan', bold=True))
     click.echo()
@@ -240,7 +241,7 @@ def _generate_cli_docs(app: str, framework: str, output: str, include_hidden: bo
         raise click.Abort()
     
     # Extract documentation
-    click.echo(click.style(f"📝 Extracting CLI documentation...", fg='blue'))
+    click.echo(click.style("📝 Extracting CLI documentation...", fg='blue'))
     start_time = time.time()
     
     extractor = CLIExtractor(framework=framework, include_hidden=include_hidden)
@@ -298,7 +299,7 @@ def _generate_cli_docs(app: str, framework: str, output: str, include_hidden: bo
     click.echo()
     click.echo(click.style("💡 Next steps:", fg='yellow'))
     click.echo(f"   • View docs: ls {output_dir}")
-    click.echo(f"   • Build site: bengal build")
+    click.echo("   • Build site: bengal build")
     click.echo()
 
 
@@ -320,8 +321,8 @@ def autodoc_cli(app: str, framework: str, output: str, include_hidden: bool, cle
     Example:
         bengal autodoc-cli --app bengal.cli:main --output content/cli
     """
-    import time
     import importlib
+    import time
     
     try:
         click.echo()
@@ -383,7 +384,7 @@ def autodoc_cli(app: str, framework: str, output: str, include_hidden: bool, cle
             raise click.Abort()
         
         # Extract documentation
-        click.echo(click.style(f"📝 Extracting CLI documentation...", fg='blue'))
+        click.echo(click.style("📝 Extracting CLI documentation...", fg='blue'))
         start_time = time.time()
         
         extractor = CLIExtractor(framework=framework, include_hidden=include_hidden)
@@ -427,12 +428,12 @@ def autodoc_cli(app: str, framework: str, output: str, include_hidden: bool, cle
         click.echo()
         click.echo(click.style("✅ CLI Documentation Generated!", fg='green', bold=True))
         click.echo()
-        click.echo(f"   📊 Statistics:")
+        click.echo("   📊 Statistics:")
         click.echo(f"      • Commands: {command_count}")
         click.echo(f"      • Options:  {option_count}")
         click.echo(f"      • Pages:    {len(generated_files)}")
         click.echo()
-        click.echo(f"   ⚡ Performance:")
+        click.echo("   ⚡ Performance:")
         click.echo(f"      • Extraction: {extraction_time:.3f}s")
         click.echo(f"      • Generation: {gen_time:.3f}s")
         click.echo(f"      • Total:      {total_time:.3f}s")
@@ -448,7 +449,7 @@ def autodoc_cli(app: str, framework: str, output: str, include_hidden: bool, cle
         
         click.echo(click.style("💡 Next steps:", fg='yellow'))
         click.echo(f"   • View docs: ls {output_dir}")
-        click.echo(f"   • Build site: bengal build")
+        click.echo("   • Build site: bengal build")
         click.echo()
         
     except click.Abort:

@@ -13,8 +13,9 @@ Usage:
 """
 
 from pathlib import Path
-from typing import Dict, List, Any, Optional
-from bengal.fonts.downloader import GoogleFontsDownloader, FontVariant
+from typing import Any
+
+from bengal.fonts.downloader import FontVariant, GoogleFontsDownloader
 from bengal.fonts.generator import FontCSSGenerator
 
 
@@ -27,7 +28,7 @@ class FontHelper:
         helper.process(output_dir)
     """
     
-    def __init__(self, font_config: Dict[str, Any]):
+    def __init__(self, font_config: dict[str, Any]):
         """
         Initialize font helper with configuration.
         
@@ -38,7 +39,7 @@ class FontHelper:
         self.downloader = GoogleFontsDownloader()
         self.generator = FontCSSGenerator()
     
-    def process(self, assets_dir: Path) -> Optional[Path]:
+    def process(self, assets_dir: Path) -> Path | None:
         """
         Process fonts: download files and generate CSS.
         
@@ -89,7 +90,7 @@ class FontHelper:
         
         return css_path
     
-    def _parse_config(self) -> Dict[str, Dict[str, Any]]:
+    def _parse_config(self) -> dict[str, dict[str, Any]]:
         """
         Parse [fonts] configuration into normalized format.
         
@@ -134,5 +135,5 @@ class FontHelper:
         return fonts
 
 
-__all__ = ['FontHelper', 'GoogleFontsDownloader', 'FontCSSGenerator', 'FontVariant']
+__all__ = ['FontCSSGenerator', 'FontHelper', 'FontVariant', 'GoogleFontsDownloader']
 

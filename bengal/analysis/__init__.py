@@ -4,8 +4,8 @@ Analysis module for Bengal SSG.
 Provides tools for analyzing site structure, connectivity, and relationships.
 """
 
-from .knowledge_graph import KnowledgeGraph
 from .graph_visualizer import GraphVisualizer
+from .knowledge_graph import KnowledgeGraph
 
-__all__ = ['KnowledgeGraph', 'GraphVisualizer']
+__all__ = ['GraphVisualizer', 'KnowledgeGraph']
 

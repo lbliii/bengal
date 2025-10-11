@@ -2,7 +2,6 @@
 Tests for the build profile system.
 """
 
-import pytest
 from bengal.utils.profile import (
     BuildProfile,
     set_current_profile,

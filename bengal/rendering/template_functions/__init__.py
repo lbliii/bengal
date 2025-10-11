@@ -9,30 +9,33 @@ clean separation of concerns.
 """
 
 from typing import TYPE_CHECKING
+
 from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
     from jinja2 import Environment
+
     from bengal.core.site import Site
 
 from . import (
-    strings,
-    collections,
-    math_functions,
-    dates,
-    urls,
-    content,
-    data,
-    advanced_strings,
-    files,
     advanced_collections,
-    images,
-    seo,
-    debug,
-    taxonomies,
-    pagination_helpers,
+    advanced_strings,
+    collections,
+    content,
     crossref,
+    data,
+    dates,
+    debug,
+    files,
+    i18n,
+    images,
+    math_functions,
     navigation,
+    pagination_helpers,
+    seo,
+    strings,
+    taxonomies,
+    urls,
 )
 
 logger = get_logger(__name__)
@@ -71,6 +74,7 @@ def register_all(env: 'Environment', site: 'Site') -> None:
     debug.register(env, site)
     taxonomies.register(env, site)
     pagination_helpers.register(env, site)
+    i18n.register(env, site)
     
     # Phase 4: Cross-reference functions (5 functions)
     crossref.register(env, site)
@@ -82,23 +86,23 @@ def register_all(env: 'Environment', site: 'Site') -> None:
 
 
 __all__ = [
-    'register_all',
-    'strings',
-    'collections',
-    'math_functions',
-    'dates',
-    'urls',
-    'content',
-    'data',
-    'advanced_strings',
-    'files',
     'advanced_collections',
-    'images',
-    'seo',
-    'debug',
-    'taxonomies',
-    'pagination_helpers',
+    'advanced_strings',
+    'collections',
+    'content',
     'crossref',
+    'data',
+    'dates',
+    'debug',
+    'files',
+    'images',
+    'math_functions',
     'navigation',
+    'pagination_helpers',
+    'register_all',
+    'seo',
+    'strings',
+    'taxonomies',
+    'urls',
 ]
 

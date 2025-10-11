@@ -1,6 +1,5 @@
 """Tests for advanced collection template functions."""
 
-import pytest
 from bengal.rendering.template_functions.advanced_collections import (
     sample,
     shuffle,
@@ -59,7 +58,7 @@ class TestShuffle:
     
     def test_original_unchanged(self):
         items = [1, 2, 3]
-        result = shuffle(items)
+        shuffle(items)
         assert items == [1, 2, 3]  # Original not modified
 
 

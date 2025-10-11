@@ -6,8 +6,8 @@ re-parsing of identical directive blocks.
 """
 
 import hashlib
-from typing import Optional, Dict, Any, List
 from collections import OrderedDict
+from typing import Any
 
 
 class DirectiveCache:
@@ -55,7 +55,7 @@ class DirectiveCache:
         # Key format: type:hash
         return f"{directive_type}:{content_hash}"
     
-    def get(self, directive_type: str, content: str) -> Optional[Any]:
+    def get(self, directive_type: str, content: str) -> Any | None:
         """
         Get cached parsed content.
         
@@ -119,7 +119,7 @@ class DirectiveCache:
         """Disable caching."""
         self._enabled = False
     
-    def stats(self) -> Dict[str, Any]:
+    def stats(self) -> dict[str, Any]:
         """
         Get cache statistics.
         
@@ -170,7 +170,7 @@ def get_cache() -> DirectiveCache:
     return _directive_cache
 
 
-def configure_cache(max_size: Optional[int] = None, enabled: Optional[bool] = None) -> None:
+def configure_cache(max_size: int | None = None, enabled: bool | None = None) -> None:
     """
     Configure the global directive cache.
     
@@ -195,7 +195,7 @@ def clear_cache() -> None:
     _directive_cache.clear()
 
 
-def get_cache_stats() -> Dict[str, Any]:
+def get_cache_stats() -> dict[str, Any]:
     """
     Get statistics from the global directive cache.
     

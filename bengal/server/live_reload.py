@@ -23,17 +23,16 @@ Note:
 """
 
 import os
-import queue
 import threading
-from typing import List
 
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
-# Global list to track SSE clients for live reload
-_sse_clients: List[queue.Queue] = []
-_sse_clients_lock = threading.Lock()
+# Global reload generation and condition to wake clients
+_reload_generation: int = 0
+_last_action: str = 'reload'
+_reload_condition = threading.Condition()
 
 
 # Live reload script to inject into HTML pages
@@ -41,21 +40,55 @@ LIVE_RELOAD_SCRIPT = """
 <script>
 (function() {
     // Bengal Live Reload
-    const source = new EventSource('/__bengal_reload__');
+    let backoffMs = 1000;
+    const maxBackoffMs = 10000;
     
-    source.onmessage = function(event) {
-        if (event.data === 'reload') {
-            console.log('🔄 Bengal: Reloading page...');
-            location.reload();
-        }
-    };
+    function connect() {
+        const source = new EventSource('/__bengal_reload__');
+        
+        source.onmessage = function(event) {
+            if (event.data === 'reload') {
+                console.log('🔄 Bengal: Reloading page...');
+                location.reload();
+            } else if (event.data === 'reload-css') {
+                console.log('🎨 Bengal: Reloading CSS...');
+                const links = document.querySelectorAll('link[rel="stylesheet"]');
+                const now = Date.now();
+                links.forEach(link => {
+                    const href = link.getAttribute('href');
+                    if (!href) return;
+                    const url = new URL(href, window.location.origin);
+                    // Bust cache with a version param
+                    url.searchParams.set('v', now.toString());
+                    // Replace the link to trigger reload
+                    const newLink = link.cloneNode();
+                    newLink.href = url.toString();
+                    newLink.onload = () => {
+                        // Remove old link after new CSS loads
+                        link.remove();
+                    };
+                    link.parentNode.insertBefore(newLink, link.nextSibling);
+                });
+            } else if (event.data === 'reload-page') {
+                console.log('📄 Bengal: Reloading current page...');
+                location.reload();
+            }
+        };
+        
+        source.onopen = function() {
+            backoffMs = 1000; // reset on successful connection
+            console.log('🚀 Bengal: Live reload connected');
+        };
+        
+        source.onerror = function() {
+            console.log('⚠️  Bengal: Live reload disconnected - retrying soon');
+            try { source.close(); } catch (e) {}
+            setTimeout(connect, backoffMs);
+            backoffMs = Math.min(maxBackoffMs, Math.floor(backoffMs * 1.5));
+        };
+    }
     
-    source.onerror = function(error) {
-        console.log('⚠️  Bengal: Live reload disconnected');
-        source.close();
-    };
-    
-    console.log('🚀 Bengal: Live reload connected');
+    connect();
 })();
 </script>
 """
@@ -97,18 +130,9 @@ class LiveReloadMixin:
         Note:
             This method blocks until the client disconnects
         """
-        # Create a queue for this client
-        client_queue: queue.Queue = queue.Queue()
         client_addr = getattr(self, 'client_address', ['unknown', 0])[0]
-        
-        # Register client
-        with _sse_clients_lock:
-            _sse_clients.append(client_queue)
-            client_count = len(_sse_clients)
-        
         logger.info("sse_client_connected",
-                   client_address=client_addr,
-                   total_clients=client_count)
+                   client_address=client_addr)
         
         try:
             # Send SSE headers
@@ -116,29 +140,41 @@ class LiveReloadMixin:
             self.send_header('Content-Type', 'text/event-stream')
             self.send_header('Cache-Control', 'no-cache')
             self.send_header('Connection', 'keep-alive')
+            # Allow any origin during local development (dev server only)
+            self.send_header('Access-Control-Allow-Origin', '*')
             self.end_headers()
+            # Advise client on retry delay and send an opening comment to start the stream
+            self.wfile.write(b'retry: 2000\n\n')
+            self.wfile.write(b': connected\n\n')
+            self.wfile.flush()
             
             keepalive_count = 0
             message_count = 0
+            last_seen_generation = 0
             
-            # Keep connection alive and send messages from queue
+            # Keep connection alive and send messages when generation increments
             while True:
                 try:
-                    # Wait for message with timeout to allow checking if connection is still alive
-                    message = client_queue.get(timeout=30)
-                    self.wfile.write(f'data: {message}\n\n'.encode())
-                    self.wfile.flush()
-                    message_count += 1
+                    with _reload_condition:
+                        # Wait up to 30s for a generation change, then send keepalive
+                        _reload_condition.wait(timeout=30)
+                        current_generation = _reload_generation
                     
-                    logger.debug("sse_message_sent",
-                                client_address=client_addr,
-                                message=message,
-                                message_count=message_count)
-                except queue.Empty:
-                    # Send a comment to keep connection alive
-                    self.wfile.write(b': keepalive\n\n')
-                    self.wfile.flush()
-                    keepalive_count += 1
+                    if current_generation != last_seen_generation:
+                        # Send the last action (e.g., reload, reload-css, reload-page)
+                        self.wfile.write(f'data: {_last_action}\n\n'.encode())
+                        self.wfile.flush()
+                        message_count += 1
+                        last_seen_generation = current_generation
+                        logger.debug("sse_message_sent",
+                                    client_address=client_addr,
+                                    event_data=_last_action,
+                                    message_count=message_count)
+                    else:
+                        # Send keepalive comment
+                        self.wfile.write(b': keepalive\n\n')
+                        self.wfile.flush()
+                        keepalive_count += 1
                 except (BrokenPipeError, ConnectionResetError) as e:
                     # Client disconnected
                     logger.debug("sse_client_disconnected_error",
@@ -148,17 +184,10 @@ class LiveReloadMixin:
                                 keepalives_sent=keepalive_count)
                     break
         finally:
-            # Unregister client
-            with _sse_clients_lock:
-                if client_queue in _sse_clients:
-                    _sse_clients.remove(client_queue)
-                remaining_clients = len(_sse_clients)
-            
             logger.info("sse_client_disconnected",
                        client_address=client_addr,
                        messages_sent=message_count,
-                       keepalives_sent=keepalive_count,
-                       remaining_clients=remaining_clients)
+                       keepalives_sent=keepalive_count)
     
     def serve_html_with_live_reload(self) -> bool:
         """
@@ -246,22 +275,26 @@ def notify_clients_reload() -> None:
     Note:
         This is thread-safe and can be called from the build handler thread
     """
-    with _sse_clients_lock:
-        client_count = len(_sse_clients)
-        notified_count = 0
-        failed_count = 0
-        
-        # Send reload message to all connected clients
-        for client_queue in _sse_clients:
-            try:
-                client_queue.put_nowait('reload')
-                notified_count += 1
-            except queue.Full:
-                # Queue is full, skip this client
-                failed_count += 1
-        
-        logger.info("reload_notification_sent",
-                   total_clients=client_count,
-                   notified=notified_count,
-                   failed=failed_count)
+    global _reload_generation
+    with _reload_condition:
+        _reload_generation += 1
+        _reload_condition.notify_all()
+    logger.info("reload_notification_sent",
+               generation=_reload_generation)
+
+
+def set_reload_action(action: str) -> None:
+    """
+    Set the next reload action for SSE clients.
+    
+    Actions:
+        - 'reload'      : full page reload
+        - 'reload-css'  : CSS hot-reload (no page refresh)
+        - 'reload-page' : explicit page reload (alias of 'reload')
+    """
+    global _last_action
+    if action not in ('reload', 'reload-css', 'reload-page'):
+        action = 'reload'
+    _last_action = action
+    logger.debug("reload_action_set", action=_last_action)
 

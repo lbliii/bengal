@@ -5,7 +5,6 @@ Provides consistent path management for temporary files, logs, and profiles.
 """
 
 from pathlib import Path
-from typing import Optional
 
 
 class BengalPaths:
@@ -55,7 +54,7 @@ class BengalPaths:
         return log_dir
     
     @staticmethod
-    def get_build_log_path(source_dir: Path, custom_path: Optional[Path] = None) -> Path:
+    def get_build_log_path(source_dir: Path, custom_path: Path | None = None) -> Path:
         """
         Get the path for the build log file.
         
@@ -74,7 +73,7 @@ class BengalPaths:
         return source_dir / ".bengal-build.log"
     
     @staticmethod
-    def get_profile_path(source_dir: Path, custom_path: Optional[Path] = None, filename: str = "build_profile.stats") -> Path:
+    def get_profile_path(source_dir: Path, custom_path: Path | None = None, filename: str = "build_profile.stats") -> Path:
         """
         Get the path for a performance profile file.
         

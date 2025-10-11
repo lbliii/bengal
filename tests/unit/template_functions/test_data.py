@@ -1,6 +1,5 @@
 """Tests for data manipulation template functions."""
 
-import pytest
 import json
 import tempfile
 from pathlib import Path

@@ -13,15 +13,16 @@ Performance Impact (measured on 826-page site):
 """
 
 import threading
-from typing import Optional, Dict
+
 from pygments.lexers import get_lexer_by_name, guess_lexer
 from pygments.util import ClassNotFound
+
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
 # Thread-safe lexer cache
-_lexer_cache: Dict[str, any] = {}
+_lexer_cache: dict[str, any] = {}
 _cache_lock = threading.Lock()
 
 # Stats for monitoring
@@ -32,7 +33,33 @@ _cache_stats = {
 }
 
 
-def get_lexer_cached(language: Optional[str] = None, code: str = "") -> any:
+# Known language aliases and non-highlight languages
+# Normalize common fence language names that Pygments does not recognize directly
+_LANGUAGE_ALIASES: dict[str, str] = {
+    # Templating
+    'jinja2': 'html+jinja',
+    'jinja': 'html+jinja',
+    # Static site ecosystem aliases
+    'go-html-template': 'html',  # Highlight as HTML rather than warning
+}
+
+# Languages that should not be highlighted by Pygments
+# These are typically handled by client-side libraries (e.g., Mermaid)
+_NO_HIGHLIGHT_LANGUAGES = {
+    'mermaid',
+}
+
+
+def _normalize_language(language: str) -> str:
+    """Normalize a requested language to a Pygments-friendly name.
+
+    Applies alias mapping and lowercases the language name.
+    """
+    lang_lower = language.lower()
+    return _LANGUAGE_ALIASES.get(lang_lower, lang_lower)
+
+
+def get_lexer_cached(language: str | None = None, code: str = "") -> any:
     """
     Get a Pygments lexer with aggressive caching.
     
@@ -57,7 +84,8 @@ def get_lexer_cached(language: Optional[str] = None, code: str = "") -> any:
     
     # Fast path: language specified
     if language:
-        cache_key = f"lang:{language.lower()}"
+        normalized = _normalize_language(language)
+        cache_key = f"lang:{normalized}"
         
         with _cache_lock:
             if cache_key in _lexer_cache:
@@ -66,15 +94,35 @@ def get_lexer_cached(language: Optional[str] = None, code: str = "") -> any:
             
             _cache_stats['misses'] += 1
         
-        # Try to get lexer by name
-        try:
-            lexer = get_lexer_by_name(language.lower())
+        # Do not attempt highlighting for known non-highlight languages
+        if normalized in _NO_HIGHLIGHT_LANGUAGES:
+            try:
+                lexer = get_lexer_by_name('text')
+            except Exception:
+                # Extremely unlikely, but ensure we return something
+                lexer = get_lexer_by_name('text')
             with _cache_lock:
                 _lexer_cache[cache_key] = lexer
-            logger.debug("lexer_cached", language=language, cache_key=cache_key)
+            # Use debug level to avoid noisy warnings for expected cases
+            logger.debug("no_highlight_language", language=language, normalized=normalized)
+            return lexer
+
+        # Try to get lexer by name
+        try:
+            lexer = get_lexer_by_name(normalized)
+            with _cache_lock:
+                _lexer_cache[cache_key] = lexer
+            logger.debug("lexer_cached", language=language, normalized=normalized, cache_key=cache_key)
             return lexer
         except ClassNotFound:
-            logger.warning("unknown_lexer", language=language, fallback="text")
+            # Downgrade noise for common doc-only languages that we alias to text
+            level = 'warning'
+            if normalized in _LANGUAGE_ALIASES or normalized in _NO_HIGHLIGHT_LANGUAGES:
+                level = 'info'
+            if level == 'warning':
+                logger.warning("unknown_lexer", language=language, normalized=normalized, fallback="text")
+            else:
+                logger.info("unknown_lexer", language=language, normalized=normalized, fallback="text")
             # Cache the fallback too
             lexer = get_lexer_by_name('text')
             with _cache_lock:

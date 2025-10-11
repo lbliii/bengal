@@ -6,10 +6,9 @@ Provides text sanitization and common helpers for all extractors.
 
 import re
 import textwrap
-from typing import Optional
 
 
-def sanitize_text(text: Optional[str]) -> str:
+def sanitize_text(text: str | None) -> str:
     """
     Clean user-provided text for markdown generation.
     

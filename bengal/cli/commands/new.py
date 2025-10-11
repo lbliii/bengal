@@ -1,7 +1,8 @@
 """Commands for creating new sites and pages."""
 
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
+
 import click
 
 from bengal.utils.build_stats import show_error
@@ -88,7 +89,7 @@ This is your new Bengal static site. Start editing this file to begin!
         atomic_write_text(site_path / 'content' / 'index.md', index_content)
         click.echo(click.style("   └─ ", fg='cyan') + "Created sample index page")
         
-        click.echo(click.style(f"\n✅ Site created successfully!", fg='green', bold=True))
+        click.echo(click.style("\n✅ Site created successfully!", fg='green', bold=True))
         click.echo(click.style("\n📚 Next steps:", fg='cyan', bold=True))
         click.echo(click.style("   ├─ ", fg='cyan') + f"cd {name}")
         click.echo(click.style("   └─ ", fg='cyan') + "bengal serve")
@@ -141,7 +142,7 @@ Your content goes here.
         from bengal.utils.atomic_write import atomic_write_text
         atomic_write_text(page_path, page_content)
         
-        click.echo(click.style(f"\n✨ Created new page: ", fg='cyan') + 
+        click.echo(click.style("\n✨ Created new page: ", fg='cyan') + 
                   click.style(str(page_path), fg='green', bold=True))
         click.echo()
         

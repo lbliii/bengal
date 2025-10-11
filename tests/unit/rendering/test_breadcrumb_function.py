@@ -2,9 +2,7 @@
 Tests for breadcrumb template function.
 """
 
-from pathlib import Path
 from unittest.mock import Mock
-import pytest
 
 from bengal.rendering.template_functions.navigation import get_breadcrumbs
 
@@ -71,7 +69,7 @@ class TestGetBreadcrumbs:
         assert result[1]['title'] == 'Docs'
         assert result[2]['title'] == 'Markdown'
         assert result[3]['title'] == 'Syntax'
-        assert result[3]['is_current'] == True
+        assert result[3]['is_current']
     
     def test_section_index_page_no_duplication(self):
         """Section index pages don't duplicate the section name."""
@@ -97,7 +95,7 @@ class TestGetBreadcrumbs:
         assert result[0]['title'] == 'Home'
         assert result[1]['title'] == 'Docs'
         assert result[2]['title'] == 'Markdown'
-        assert result[2]['is_current'] == True  # Last item is current
+        assert result[2]['is_current']  # Last item is current
         
         # Verify no duplicate
         titles = [item['title'] for item in result]
@@ -140,9 +138,9 @@ class TestGetBreadcrumbs:
         # Check that only last item is current
         for i, item in enumerate(result):
             if i == len(result) - 1:
-                assert item['is_current'] == True
+                assert item['is_current']
             else:
-                assert item['is_current'] == False
+                assert not item['is_current']
     
     def test_ancestor_without_url_uses_slug(self):
         """Ancestors without url property fall back to slug."""
@@ -192,5 +190,5 @@ class TestGetBreadcrumbs:
         
         assert result[0]['title'] == 'Home'
         assert result[0]['url'] == '/'
-        assert result[0]['is_current'] == False
+        assert not result[0]['is_current']
 

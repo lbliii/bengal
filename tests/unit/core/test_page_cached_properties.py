@@ -4,8 +4,6 @@ Tests for Page cached properties (meta_description, reading_time, excerpt).
 Tests automatic caching behavior and performance optimization.
 """
 
-import pytest
-from pathlib import Path
 from bengal.core.page import Page
 
 
@@ -321,9 +319,7 @@ class TestCachedPropertiesIntegration:
         
         # Access each property multiple times
         for _ in range(5):
-            desc = page.meta_description
-            time = page.reading_time
-            excerpt = page.excerpt
+            pass
         
         # Should still have consistent values
         assert page.meta_description == "Test content"

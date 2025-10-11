@@ -4,16 +4,17 @@ File system event handler for automatic site rebuilds.
 Watches for file changes and triggers incremental rebuilds with debouncing.
 """
 
-from pathlib import Path
-from typing import Any, Optional, Set
 import threading
 import time
 from datetime import datetime
-from watchdog.events import FileSystemEventHandler, FileSystemEvent
+from pathlib import Path
+from typing import Any
 
+from watchdog.events import FileSystemEvent, FileSystemEventHandler
+
+from bengal.server.live_reload import notify_clients_reload
 from bengal.utils.build_stats import display_build_stats, show_building_indicator, show_error
 from bengal.utils.logger import get_logger
-from bengal.server.live_reload import notify_clients_reload
 
 logger = get_logger(__name__)
 
@@ -65,8 +66,8 @@ class BuildHandler(FileSystemEventHandler):
         self.host = host
         self.port = port
         self.building = False
-        self.pending_changes: Set[str] = set()
-        self.debounce_timer: Optional[threading.Timer] = None
+        self.pending_changes: set[str] = set()
+        self.debounce_timer: threading.Timer | None = None
         self.timer_lock = threading.Lock()
     
     def _clear_ephemeral_state(self) -> None:
@@ -216,7 +217,23 @@ class BuildHandler(FileSystemEventHandler):
                            incremental=stats.incremental,
                            parallel=stats.parallel)
                 
-                # Notify all SSE clients to reload
+                # Notify SSE clients: CSS-only changes trigger CSS hot-reload
+                try:
+                    changed_lower = [str(p).lower() for p in changed_files]
+                    only_css = (
+                        len(changed_files) > 0 and
+                        all(path.endswith('.css') for path in changed_lower)
+                    )
+                except Exception:
+                    only_css = False
+                
+                if only_css:
+                    from bengal.server.live_reload import set_reload_action
+                    set_reload_action('reload-css')
+                else:
+                    from bengal.server.live_reload import set_reload_action
+                    set_reload_action('reload')
+                
                 notify_clients_reload()
             except Exception as e:
                 build_duration = time.time() - build_start

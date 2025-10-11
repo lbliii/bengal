@@ -2,17 +2,15 @@
 Configuration loader supporting TOML and YAML formats.
 """
 
-from pathlib import Path
-from typing import Any, Dict, Optional, List
 import difflib
 import multiprocessing
-import toml
-import yaml
+from pathlib import Path
+from typing import Any
 
 from bengal.utils.logger import get_logger
 
 
-def pretty_print_config(config: Dict[str, Any], title: str = "Configuration") -> None:
+def pretty_print_config(config: dict[str, Any], title: str = "Configuration") -> None:
     """
     Pretty print configuration using Rich (if available) or fallback to pprint.
     
@@ -21,11 +19,13 @@ def pretty_print_config(config: Dict[str, Any], title: str = "Configuration") ->
         title: Title for the output
     """
     try:
-        from bengal.utils.rich_console import get_console, should_use_rich
-        from rich.pretty import pprint as rich_pprint
-        from rich.panel import Panel
-        from rich.syntax import Syntax
         import json
+
+        from rich.panel import Panel
+        from rich.pretty import pprint as rich_pprint
+        from rich.syntax import Syntax
+
+        from bengal.utils.rich_console import get_console, should_use_rich
         
         if should_use_rich():
             console = get_console()
@@ -76,10 +76,10 @@ class ConfigLoader:
             root_path: Root directory to look for config files
         """
         self.root_path = root_path
-        self.warnings: List[str] = []
+        self.warnings: list[str] = []
         self.logger = get_logger(__name__)
     
-    def load(self, config_path: Optional[Path] = None) -> Dict[str, Any]:
+    def load(self, config_path: Path | None = None) -> dict[str, Any]:
         """
         Load configuration from file.
         
@@ -109,7 +109,7 @@ class ConfigLoader:
                           action="using_defaults")
         return self._default_config()
     
-    def _load_file(self, config_path: Path) -> Dict[str, Any]:
+    def _load_file(self, config_path: Path) -> dict[str, Any]:
         """
         Load a specific config file with validation.
         
@@ -124,7 +124,7 @@ class ConfigLoader:
             ValueError: If config format is unsupported
             FileNotFoundError: If config file doesn't exist
         """
-        from bengal.config.validators import ConfigValidator, ConfigValidationError
+        from bengal.config.validators import ConfigValidationError, ConfigValidator
         
         suffix = config_path.suffix.lower()
         
@@ -168,7 +168,7 @@ class ConfigLoader:
                             action="using_defaults")
             return self._default_config()
     
-    def _load_toml(self, config_path: Path) -> Dict[str, Any]:
+    def _load_toml(self, config_path: Path) -> dict[str, Any]:
         """
         Load TOML configuration file.
         
@@ -190,7 +190,7 @@ class ConfigLoader:
         
         return self._flatten_config(config)
     
-    def _load_yaml(self, config_path: Path) -> Dict[str, Any]:
+    def _load_yaml(self, config_path: Path) -> dict[str, Any]:
         """
         Load YAML configuration file.
         
@@ -213,7 +213,7 @@ class ConfigLoader:
         
         return self._flatten_config(config or {})
     
-    def _flatten_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
+    def _flatten_config(self, config: dict[str, Any]) -> dict[str, Any]:
         """
         Flatten nested config structure for easier access.
         
@@ -247,7 +247,7 @@ class ConfigLoader:
         
         return flat
     
-    def _normalize_sections(self, config: Dict[str, Any]) -> Dict[str, Any]:
+    def _normalize_sections(self, config: dict[str, Any]) -> dict[str, Any]:
         """
         Normalize config section names using aliases.
         
@@ -315,7 +315,7 @@ class ConfigLoader:
         
         return normalized
     
-    def get_warnings(self) -> List[str]:
+    def get_warnings(self) -> list[str]:
         """Get configuration warnings (aliases used, unknown sections, etc)."""
         return self.warnings
     
@@ -331,7 +331,7 @@ class ConfigLoader:
                 for warning in self.warnings:
                     print(warning)
     
-    def _default_config(self) -> Dict[str, Any]:
+    def _default_config(self) -> dict[str, Any]:
         """
         Get default configuration.
         

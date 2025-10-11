@@ -6,8 +6,7 @@ based on different configuration formats.
 """
 
 import pytest
-from pathlib import Path
-from unittest.mock import Mock, MagicMock
+from unittest.mock import Mock
 
 from bengal.rendering.pipeline import RenderingPipeline
 from bengal.rendering.parser import MistuneParser, PythonMarkdownParser
@@ -203,7 +202,6 @@ class TestConfigIntegration:
     
     def test_showcase_site_uses_mistune(self, tmp_path):
         """Test that a site with [markdown] parser = mistune uses Mistune."""
-        import toml
         from bengal.config.loader import ConfigLoader
         
         # Create a test config like showcase site

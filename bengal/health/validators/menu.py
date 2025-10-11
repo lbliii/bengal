@@ -4,7 +4,7 @@ Menu validator - checks navigation menu integrity.
 Integrates menu validation from MenuBuilder into health check system.
 """
 
-from typing import List, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult
@@ -28,7 +28,7 @@ class MenuValidator(BaseValidator):
     description = "Validates menu structure and links"
     enabled_by_default = True
     
-    def validate(self, site: 'Site') -> List[CheckResult]:
+    def validate(self, site: 'Site') -> list[CheckResult]:
         """Validate menu structure."""
         results = []
         
@@ -46,7 +46,7 @@ class MenuValidator(BaseValidator):
         
         return results
     
-    def _validate_menu(self, site: 'Site', menu_name: str, items: list) -> List[CheckResult]:
+    def _validate_menu(self, site: 'Site', menu_name: str, items: list) -> list[CheckResult]:
         """Validate a single menu."""
         results = []
         
@@ -58,12 +58,10 @@ class MenuValidator(BaseValidator):
             return results
         
         # Check menu structure
-        orphaned_items = []
-        circular_refs = []
         
         # Get the menu builder if available
         if menu_name in site.menu_builders:
-            builder = site.menu_builders[menu_name]
+            site.menu_builders[menu_name]
             
             # Check for issues that MenuBuilder may have found
             # (MenuBuilder already does validation, we just surface it here)
@@ -99,7 +97,7 @@ class MenuValidator(BaseValidator):
                 count += self._count_menu_items(item.children, 0)
         return count
     
-    def _check_menu_urls(self, site: 'Site', items: list) -> List[str]:
+    def _check_menu_urls(self, site: 'Site', items: list) -> list[str]:
         """Check if menu item URLs point to existing pages."""
         broken = []
         

@@ -18,7 +18,7 @@ Example:
 """
 
 from enum import Enum
-from typing import Dict, Any, List, Optional
+from typing import Any
 
 
 class BuildProfile(Enum):
@@ -67,7 +67,7 @@ class BuildProfile(Enum):
     @classmethod
     def from_cli_args(
         cls,
-        profile: Optional[str] = None,
+        profile: str | None = None,
         dev: bool = False,
         theme_dev: bool = False,
         verbose: bool = False,
@@ -130,7 +130,7 @@ class BuildProfile(Enum):
         # Priority 6: Default (WRITER for fast, clean builds)
         return cls.WRITER
     
-    def get_config(self) -> Dict[str, Any]:
+    def get_config(self) -> dict[str, Any]:
         """
         Get configuration dictionary for this profile.
         
@@ -218,7 +218,7 @@ class BuildProfile(Enum):
 
 
 # Global state for current profile (set during build)
-_current_profile: Optional[BuildProfile] = None
+_current_profile: BuildProfile | None = None
 
 
 def set_current_profile(profile: BuildProfile) -> None:
@@ -288,7 +288,7 @@ def should_collect_metrics() -> bool:
     return config.get('collect_metrics', False)
 
 
-def get_enabled_health_checks() -> List[str]:
+def get_enabled_health_checks() -> list[str]:
     """
     Get list of enabled health check validators for current profile.
     

@@ -4,7 +4,7 @@ Configuration validator wrapper.
 Integrates the existing ConfigValidator into the health check system.
 """
 
-from typing import List, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult
@@ -26,7 +26,7 @@ class ConfigValidatorWrapper(BaseValidator):
     description = "Validates site configuration"
     enabled_by_default = True
     
-    def validate(self, site: 'Site') -> List[CheckResult]:
+    def validate(self, site: 'Site') -> list[CheckResult]:
         """Validate configuration."""
         results = []
         
@@ -41,7 +41,7 @@ class ConfigValidatorWrapper(BaseValidator):
         
         return results
     
-    def _check_essential_fields(self, config: dict) -> List[CheckResult]:
+    def _check_essential_fields(self, config: dict) -> list[CheckResult]:
         """Check that essential config fields are present."""
         results = []
         
@@ -62,7 +62,7 @@ class ConfigValidatorWrapper(BaseValidator):
         
         return results
     
-    def _check_common_issues(self, config: dict) -> List[CheckResult]:
+    def _check_common_issues(self, config: dict) -> list[CheckResult]:
         """Check for common configuration issues."""
         results = []
         

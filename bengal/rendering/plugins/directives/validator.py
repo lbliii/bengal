@@ -6,8 +6,8 @@ helpful messages.
 """
 
 import re
-from typing import List, Dict, Any, Optional
 from pathlib import Path
+from typing import Any
 
 
 class DirectiveSyntaxValidator:
@@ -32,7 +32,7 @@ class DirectiveSyntaxValidator:
     }
     
     @staticmethod
-    def validate_tabs_directive(content: str, file_path: Optional[Path] = None, line_number: Optional[int] = None) -> List[str]:
+    def validate_tabs_directive(content: str, file_path: Path | None = None, line_number: int | None = None) -> list[str]:
         """
         Validate tabs directive content.
         
@@ -83,7 +83,7 @@ class DirectiveSyntaxValidator:
         return errors
     
     @staticmethod
-    def validate_code_tabs_directive(content: str, file_path: Optional[Path] = None, line_number: Optional[int] = None) -> List[str]:
+    def validate_code_tabs_directive(content: str, file_path: Path | None = None, line_number: int | None = None) -> list[str]:
         """
         Validate code-tabs directive content.
         
@@ -113,7 +113,7 @@ class DirectiveSyntaxValidator:
         return errors
     
     @staticmethod
-    def validate_dropdown_directive(content: str, title: str = "", file_path: Optional[Path] = None, line_number: Optional[int] = None) -> List[str]:
+    def validate_dropdown_directive(content: str, title: str = "", file_path: Path | None = None, line_number: int | None = None) -> list[str]:
         """
         Validate dropdown directive content.
         
@@ -139,7 +139,7 @@ class DirectiveSyntaxValidator:
         return errors
     
     @staticmethod
-    def validate_admonition_directive(admon_type: str, content: str, file_path: Optional[Path] = None, line_number: Optional[int] = None) -> List[str]:
+    def validate_admonition_directive(admon_type: str, content: str, file_path: Path | None = None, line_number: int | None = None) -> list[str]:
         """
         Validate admonition directive content.
         
@@ -160,7 +160,7 @@ class DirectiveSyntaxValidator:
         return errors
     
     @classmethod
-    def validate_directive(cls, directive_type: str, content: str, title: str = "", options: Dict[str, Any] = None, file_path: Optional[Path] = None, line_number: Optional[int] = None) -> List[str]:
+    def validate_directive(cls, directive_type: str, content: str, title: str = "", options: dict[str, Any] | None = None, file_path: Path | None = None, line_number: int | None = None) -> list[str]:
         """
         Validate any directive type.
         
@@ -202,7 +202,7 @@ class DirectiveSyntaxValidator:
         return errors
     
     @classmethod
-    def validate_directive_block(cls, directive_block: str, file_path: Optional[Path] = None, start_line: Optional[int] = None) -> Dict[str, Any]:
+    def validate_directive_block(cls, directive_block: str, file_path: Path | None = None, start_line: int | None = None) -> dict[str, Any]:
         """
         Validate a complete directive block from markdown.
         
@@ -281,7 +281,7 @@ class DirectiveSyntaxValidator:
         return result
 
 
-def validate_markdown_directives(markdown_content: str, file_path: Optional[Path] = None) -> List[Dict[str, Any]]:
+def validate_markdown_directives(markdown_content: str, file_path: Path | None = None) -> list[dict[str, Any]]:
     """
     Validate all directive blocks in a markdown file.
     
@@ -317,7 +317,7 @@ def validate_markdown_directives(markdown_content: str, file_path: Optional[Path
     return results
 
 
-def get_directive_validation_summary(validation_results: List[Dict[str, Any]]) -> Dict[str, Any]:
+def get_directive_validation_summary(validation_results: list[dict[str, Any]]) -> dict[str, Any]:
     """
     Get a summary of directive validation results.
     

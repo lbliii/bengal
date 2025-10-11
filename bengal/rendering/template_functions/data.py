@@ -5,11 +5,13 @@ Provides 8 functions for working with JSON, YAML, and nested data structures.
 """
 
 import json
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any
+
 from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
     from jinja2 import Environment
+
     from bengal.core.site import Site
 
 logger = get_logger(__name__)
@@ -62,6 +64,7 @@ def get_data(path: str, root_path: Any) -> Any:
         return {}
     
     from pathlib import Path
+
     from bengal.utils.file_io import load_data_file
     
     file_path = Path(root_path) / path
@@ -71,7 +74,7 @@ def get_data(path: str, root_path: Any) -> Any:
     return load_data_file(file_path, on_error='return_empty', caller='template')
 
 
-def jsonify(data: Any, indent: Optional[int] = None) -> str:
+def jsonify(data: Any, indent: int | None = None) -> str:
     """
     Convert data to JSON string.
     
@@ -92,7 +95,7 @@ def jsonify(data: Any, indent: Optional[int] = None) -> str:
         return '{}'
 
 
-def merge(dict1: Dict[str, Any], dict2: Dict[str, Any], deep: bool = True) -> Dict[str, Any]:
+def merge(dict1: dict[str, Any], dict2: dict[str, Any], deep: bool = True) -> dict[str, Any]:
     """
     Merge two dictionaries.
     
@@ -130,7 +133,7 @@ def merge(dict1: Dict[str, Any], dict2: Dict[str, Any], deep: bool = True) -> Di
     return result
 
 
-def has_key(data: Dict[str, Any], key: str) -> bool:
+def has_key(data: dict[str, Any], key: str) -> bool:
     """
     Check if dictionary has a key.
     
@@ -152,7 +155,7 @@ def has_key(data: Dict[str, Any], key: str) -> bool:
     return key in data
 
 
-def get_nested(data: Dict[str, Any], path: str, default: Any = None) -> Any:
+def get_nested(data: dict[str, Any], path: str, default: Any = None) -> Any:
     """
     Access nested data using dot notation.
     
@@ -183,7 +186,7 @@ def get_nested(data: Dict[str, Any], path: str, default: Any = None) -> Any:
     return current
 
 
-def keys_filter(data: Dict[str, Any]) -> List[str]:
+def keys_filter(data: dict[str, Any]) -> list[str]:
     """
     Get dictionary keys as list.
     
@@ -204,7 +207,7 @@ def keys_filter(data: Dict[str, Any]) -> List[str]:
     return list(data.keys())
 
 
-def values_filter(data: Dict[str, Any]) -> List[Any]:
+def values_filter(data: dict[str, Any]) -> list[Any]:
     """
     Get dictionary values as list.
     
@@ -225,7 +228,7 @@ def values_filter(data: Dict[str, Any]) -> List[Any]:
     return list(data.values())
 
 
-def items_filter(data: Dict[str, Any]) -> List[tuple]:
+def items_filter(data: dict[str, Any]) -> list[tuple]:
     """
     Get dictionary items as list of (key, value) tuples.
     

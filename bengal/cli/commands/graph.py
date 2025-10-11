@@ -1,11 +1,12 @@
 """Graph analysis and knowledge graph commands."""
 
-from pathlib import Path
-import click
 import json
+from pathlib import Path
+
+import click
 
 from bengal.core.site import Site
-from bengal.utils.logger import configure_logging, LogLevel, close_all_loggers
+from bengal.utils.logger import LogLevel, close_all_loggers, configure_logging
 
 
 @click.command()
@@ -49,8 +50,9 @@ def graph(show_stats: bool, tree: bool, output: str, config: str, source: str) -
         # We need to discover content to analyze it
         # This also builds the xref_index for link analysis
         try:
-            from bengal.utils.rich_console import get_console, should_use_rich
             from rich.status import Status
+
+            from bengal.utils.rich_console import get_console, should_use_rich
             
             if should_use_rich():
                 console = get_console()
@@ -89,6 +91,7 @@ def graph(show_stats: bool, tree: bool, output: str, config: str, source: str) -
         if tree:
             try:
                 from rich.tree import Tree
+
                 from bengal.utils.rich_console import get_console, should_use_rich
                 
                 if should_use_rich():
@@ -249,8 +252,9 @@ def pagerank(top_n: int, damping: float, format: str, config: str, source: str) 
         
         # Discover content and compute PageRank with status indicator
         try:
-            from bengal.utils.rich_console import get_console, should_use_rich
             from rich.status import Status
+
+            from bengal.utils.rich_console import get_console, should_use_rich
             
             if should_use_rich():
                 console = get_console()
@@ -321,7 +325,7 @@ def pagerank(top_n: int, damping: float, format: str, config: str, source: str) 
         elif format == 'summary':
             # Show summary stats
             click.echo("\n" + "=" * 60)
-            click.echo(f"📈 PageRank Summary")
+            click.echo("📈 PageRank Summary")
             click.echo("=" * 60)
             click.echo(f"Total pages analyzed:    {len(results.scores)}")
             click.echo(f"Iterations to converge:  {results.iterations}")
@@ -498,7 +502,7 @@ def communities(min_size: int, resolution: float, top_n: int, format: str, seed:
         elif format == 'summary':
             # Show summary stats
             click.echo("\n" + "=" * 60)
-            click.echo(f"🔍 Community Detection Summary")
+            click.echo("🔍 Community Detection Summary")
             click.echo("=" * 60)
             click.echo(f"Total communities found:  {len(results.communities)}")
             click.echo(f"Showing communities:      {len(communities_to_show)}")
@@ -518,7 +522,7 @@ def communities(min_size: int, resolution: float, top_n: int, format: str, seed:
                 ]
                 pages_with_refs.sort(key=lambda x: x[1], reverse=True)
                 
-                click.echo(f"  Top pages:")
+                click.echo("  Top pages:")
                 for page, refs in pages_with_refs[:3]:
                     click.echo(f"    • {page.title} ({refs} refs)")
         
@@ -569,11 +573,11 @@ def communities(min_size: int, resolution: float, top_n: int, format: str, seed:
             click.echo(f"• Communities >= {min_size} pages:      {len(communities_to_show)}")
             
             if results.modularity > 0.3:
-                click.echo(f"• Modularity:                 High (good clustering)")
+                click.echo("• Modularity:                 High (good clustering)")
             elif results.modularity > 0.1:
-                click.echo(f"• Modularity:                 Moderate (some structure)")
+                click.echo("• Modularity:                 Moderate (some structure)")
             else:
-                click.echo(f"• Modularity:                 Low (weak structure)")
+                click.echo("• Modularity:                 Low (weak structure)")
             
             click.echo("\n")
         
@@ -647,7 +651,7 @@ def bridges(top_n: int, metric: str, format: str, config: str, source: str) -> N
         graph_obj.build()
         
         # Analyze paths
-        click.echo(f"🌉 Analyzing navigation paths...")
+        click.echo("🌉 Analyzing navigation paths...")
         results = graph_obj.analyze_paths()
         
         # Output based on format
@@ -688,7 +692,7 @@ def bridges(top_n: int, metric: str, format: str, config: str, source: str) -> N
         elif format == 'summary':
             # Show summary stats
             click.echo("\n" + "=" * 60)
-            click.echo(f"🌉 Path Analysis Summary")
+            click.echo("🌉 Path Analysis Summary")
             click.echo("=" * 60)
             click.echo(f"Total pages analyzed:     {len(results.betweenness_centrality)}")
             click.echo(f"Average path length:      {results.avg_path_length:.2f}")
@@ -696,7 +700,7 @@ def bridges(top_n: int, metric: str, format: str, config: str, source: str) -> N
             click.echo("")
             
             if metric in ['betweenness', 'both']:
-                click.echo(f"\n🔗 Top Bridge Pages (Betweenness Centrality)")
+                click.echo("\n🔗 Top Bridge Pages (Betweenness Centrality)")
                 click.echo("-" * 60)
                 bridges_list = results.get_top_bridges(top_n)
                 for i, (page, score) in enumerate(bridges_list, 1):
@@ -706,7 +710,7 @@ def bridges(top_n: int, metric: str, format: str, config: str, source: str) -> N
                     click.echo(f"     Betweenness: {score:.6f} | {incoming} in, {outgoing} out")
             
             if metric in ['closeness', 'both']:
-                click.echo(f"\n🎯 Most Accessible Pages (Closeness Centrality)")
+                click.echo("\n🎯 Most Accessible Pages (Closeness Centrality)")
                 click.echo("-" * 60)
                 accessible = results.get_most_accessible(top_n)
                 for i, (page, score) in enumerate(accessible, 1):
@@ -716,7 +720,7 @@ def bridges(top_n: int, metric: str, format: str, config: str, source: str) -> N
         
         else:  # table format
             click.echo("\n" + "=" * 100)
-            click.echo(f"🌉 Navigation Path Analysis")
+            click.echo("🌉 Navigation Path Analysis")
             click.echo("=" * 100)
             click.echo(f"Analyzed {len(results.betweenness_centrality)} pages • Avg path: {results.avg_path_length:.2f} • Diameter: {results.diameter}")
             click.echo("=" * 100)
@@ -773,11 +777,11 @@ def bridges(top_n: int, metric: str, format: str, config: str, source: str) -> N
             click.echo(f"• Max betweenness:            {max_betweenness:.6f}")
             
             if results.diameter > 5:
-                click.echo(f"• Structure:                  Deep (consider shortening paths)")
+                click.echo("• Structure:                  Deep (consider shortening paths)")
             elif results.diameter > 3:
-                click.echo(f"• Structure:                  Medium depth")
+                click.echo("• Structure:                  Medium depth")
             else:
-                click.echo(f"• Structure:                  Shallow (well connected)")
+                click.echo("• Structure:                  Shallow (well connected)")
             
             click.echo("\n")
         
@@ -849,7 +853,7 @@ def suggest(top_n: int, min_score: float, format: str, config: str, source: str)
         graph_obj = KnowledgeGraph(site)
         graph_obj.build()
         
-        click.echo(f"💡 Generating link suggestions...")
+        click.echo("💡 Generating link suggestions...")
         results = graph_obj.suggest_links(min_score=min_score)
         
         top_suggestions = results.get_top_suggestions(top_n)
@@ -872,14 +876,14 @@ def suggest(top_n: int, min_score: float, format: str, config: str, source: str)
             click.echo(json.dumps(data, indent=2))
         
         elif format == 'markdown':
-            click.echo(f"# Link Suggestions\n")
+            click.echo("# Link Suggestions\n")
             click.echo(f"Generated {results.total_suggestions} suggestions from {results.pages_analyzed} pages\n")
             click.echo(f"## Top {len(top_suggestions)} Suggestions\n")
             
             for i, suggestion in enumerate(top_suggestions, 1):
                 click.echo(f"### {i}. {suggestion.source.title} → {suggestion.target.title}")
                 click.echo(f"**Score:** {suggestion.score:.3f}\n")
-                click.echo(f"**Reasons:**")
+                click.echo("**Reasons:**")
                 for reason in suggestion.reasons:
                     click.echo(f"- {reason}")
                 click.echo(f"\n**Action:** Add link from `{suggestion.source.source_path}` to `{suggestion.target.source_path}`\n")

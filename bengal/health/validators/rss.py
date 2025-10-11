@@ -10,8 +10,7 @@ Validates:
 """
 
 import xml.etree.ElementTree as ET
-from typing import List, TYPE_CHECKING
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult
@@ -36,7 +35,7 @@ class RSSValidator(BaseValidator):
     description = "Validates RSS feed quality and completeness"
     enabled_by_default = True
     
-    def validate(self, site: 'Site') -> List[CheckResult]:
+    def validate(self, site: 'Site') -> list[CheckResult]:
         """Run RSS validation checks."""
         results = []
         
@@ -85,7 +84,7 @@ class RSSValidator(BaseValidator):
         
         return results
     
-    def _check_rss_structure(self, root: ET.Element) -> List[CheckResult]:
+    def _check_rss_structure(self, root: ET.Element) -> list[CheckResult]:
         """Check RSS 2.0 structure validity."""
         results = []
         
@@ -134,7 +133,7 @@ class RSSValidator(BaseValidator):
         
         return results
     
-    def _check_feed_items(self, root: ET.Element, total_dated_pages: int) -> List[CheckResult]:
+    def _check_feed_items(self, root: ET.Element, total_dated_pages: int) -> list[CheckResult]:
         """Check feed items are present and reasonable."""
         results = []
         
@@ -186,7 +185,7 @@ class RSSValidator(BaseValidator):
         
         return results
     
-    def _check_feed_urls(self, root: ET.Element, site: 'Site') -> List[CheckResult]:
+    def _check_feed_urls(self, root: ET.Element, site: 'Site') -> list[CheckResult]:
         """Check URLs in feed are properly formatted."""
         results = []
         
@@ -194,7 +193,7 @@ class RSSValidator(BaseValidator):
         if channel is None:
             return results
         
-        baseurl = site.config.get('baseurl', '')
+        site.config.get('baseurl', '')
         
         # Check channel link
         channel_link = channel.find('link')

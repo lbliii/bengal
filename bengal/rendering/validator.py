@@ -2,10 +2,11 @@
 Template validation before rendering.
 """
 
-from typing import List, Optional, Any
 from pathlib import Path
-from jinja2 import Environment, TemplateSyntaxError
+from typing import Any
+
 import click
+from jinja2 import TemplateSyntaxError
 
 
 class TemplateValidator:
@@ -23,14 +24,13 @@ class TemplateValidator:
         self.template_engine = template_engine
         self.env = template_engine.env
     
-    def validate_all(self) -> List[Any]:
+    def validate_all(self) -> list[Any]:
         """
         Validate all templates in the theme.
         
         Returns:
             List of errors found
         """
-        from bengal.rendering.errors import TemplateRenderError, TemplateErrorContext
         
         errors = []
         
@@ -56,13 +56,13 @@ class TemplateValidator:
         self,
         template_name: str,
         template_path: Path
-    ) -> List[Any]:
+    ) -> list[Any]:
         """Validate template syntax."""
-        from bengal.rendering.errors import TemplateRenderError, TemplateErrorContext
+        from bengal.rendering.errors import TemplateErrorContext, TemplateRenderError
         
         try:
             # Try to compile the template
-            with open(template_path, 'r', encoding='utf-8') as f:
+            with open(template_path, encoding='utf-8') as f:
                 source = f.read()
             
             self.env.parse(source, template_name, str(template_path))
@@ -102,14 +102,14 @@ class TemplateValidator:
         self,
         template_name: str,
         template_path: Path
-    ) -> List[Any]:
+    ) -> list[Any]:
         """Check if all included templates exist."""
-        from bengal.rendering.errors import TemplateRenderError, TemplateErrorContext
+        from bengal.rendering.errors import TemplateErrorContext, TemplateRenderError
         
         errors = []
         
         # Parse template to find includes
-        with open(template_path, 'r', encoding='utf-8') as f:
+        with open(template_path, encoding='utf-8') as f:
             source = f.read()
         
         # Simple regex to find includes (not perfect but good enough)
@@ -119,7 +119,7 @@ class TemplateValidator:
         for include_name in includes:
             try:
                 self.env.get_template(include_name)
-            except Exception as e:
+            except Exception:
                 # Include not found
                 error = TemplateRenderError(
                     error_type='other',

@@ -117,7 +117,7 @@ def test_rich_console():
         print(f"\nShould use Rich: {should_use_rich()}")
         
         env = detect_environment()
-        print(f"\nEnvironment:")
+        print("\nEnvironment:")
         print(f"  Terminal: {env['is_terminal']}")
         print(f"  Color system: {env['color_system']}")
         print(f"  Terminal width: {env['width']}")
@@ -175,7 +175,6 @@ def test_status_spinner():
     
     try:
         from bengal.utils.rich_console import get_console, should_use_rich
-        from rich.status import Status
         import time
         
         if not should_use_rich():
@@ -207,7 +206,6 @@ def test_rich_prompt():
     print("="*60)
     
     try:
-        from rich.prompt import Confirm, Prompt
         print("✓ Rich prompt imports working correctly")
         print("  (Interactive testing skipped - use 'bengal clean' to test)")
     except Exception as e:

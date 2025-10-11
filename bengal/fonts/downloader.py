@@ -4,13 +4,12 @@ Font downloader using Google Fonts API.
 No external dependencies - uses only Python stdlib.
 """
 
-import urllib.request
-import urllib.error
 import re
 import ssl
-from pathlib import Path
-from typing import Dict, List, Optional
+import urllib.error
+import urllib.request
 from dataclasses import dataclass
+from pathlib import Path
 
 from bengal.utils.logger import get_logger
 
@@ -50,10 +49,10 @@ class GoogleFontsDownloader:
     def download_font(
         self,
         family: str,
-        weights: List[int],
-        styles: Optional[List[str]] = None,
-        output_dir: Optional[Path] = None,
-    ) -> List[FontVariant]:
+        weights: list[int],
+        styles: list[str] | None = None,
+        output_dir: Path | None = None,
+    ) -> list[FontVariant]:
         """
         Download a font family with specified weights.
         
@@ -109,7 +108,7 @@ class GoogleFontsDownloader:
                         error_type=type(e).__name__)
             return []
     
-    def _build_css_url(self, family: str, weights: List[int], styles: List[str]) -> str:
+    def _build_css_url(self, family: str, weights: list[int], styles: list[str]) -> str:
         """Build Google Fonts CSS API URL."""
         # Format: family:wght@400;700 or family:ital,wght@0,400;1,400;0,700;1,700
         family_encoded = family.replace(" ", "+")
@@ -130,7 +129,7 @@ class GoogleFontsDownloader:
         
         return url
     
-    def _extract_font_urls(self, css_url: str) -> Dict[str, str]:
+    def _extract_font_urls(self, css_url: str) -> dict[str, str]:
         """
         Fetch CSS from Google Fonts and extract .woff2 URLs.
         

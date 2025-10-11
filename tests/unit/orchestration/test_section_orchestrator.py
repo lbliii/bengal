@@ -6,8 +6,7 @@ have index pages (either explicit _index.md or auto-generated archives).
 """
 
 import pytest
-from pathlib import Path
-from unittest.mock import Mock, MagicMock
+from unittest.mock import Mock
 
 from bengal.core.page import Page
 from bengal.core.section import Section

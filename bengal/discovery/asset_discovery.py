@@ -3,7 +3,6 @@ Asset discovery - finds and organizes static assets.
 """
 
 from pathlib import Path
-from typing import List
 
 from bengal.core.asset import Asset
 
@@ -24,9 +23,9 @@ class AssetDiscovery:
             assets_dir: Root assets directory
         """
         self.assets_dir = assets_dir
-        self.assets: List[Asset] = []
+        self.assets: list[Asset] = []
     
-    def discover(self) -> List[Asset]:
+    def discover(self) -> list[Asset]:
         """
         Discover all assets in the assets directory.
         

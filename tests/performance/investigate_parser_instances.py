@@ -109,7 +109,6 @@ def main():
     
     # Expected vs actual
     max_workers = 4  # Default
-    expected_min = 1  # If fully cached
     expected_max = max_workers  # One per thread
     actual = len(parser_instances)
     
@@ -119,13 +118,13 @@ def main():
     if actual > expected_max * 2:
         print()
         print("⚠️  WARNING: Creating way more parsers than expected!")
-        print(f"   This suggests thread-local caching isn't working properly.")
+        print("   This suggests thread-local caching isn't working properly.")
         overhead = (actual - expected_max) * 10  # Assume ~10ms per parser
         print(f"   Estimated wasted time: ~{overhead}ms")
     elif actual > expected_max:
         print()
         print("⚠️  Creating more parsers than threads.")
-        print(f"   This might be intentional (e.g., different engines) or a caching issue.")
+        print("   This might be intentional (e.g., different engines) or a caching issue.")
     else:
         print()
         print("✓  Parser creation looks optimal!")

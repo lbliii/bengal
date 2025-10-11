@@ -26,17 +26,19 @@ Legacy (Bengal):
 """
 
 import re
-from typing import Any, Dict
 from re import Match
+from typing import Any
+
 from mistune.directives import DirectivePlugin
+
 from bengal.utils.logger import get_logger
 
 __all__ = [
-    'TabSetDirective',    # Modern MyST syntax
     'TabItemDirective',   # Modern MyST syntax
+    'TabSetDirective',    # Modern MyST syntax
     'TabsDirective',      # Legacy syntax (backward compat)
-    'render_tab_set',
     'render_tab_item',
+    'render_tab_set',
 ]
 
 logger = get_logger(__name__)
@@ -66,7 +68,7 @@ class TabSetDirective(DirectivePlugin):
     This is cleaner and more consistent with MyST Markdown.
     """
     
-    def parse(self, block: Any, m: Match, state: Any) -> Dict[str, Any]:
+    def parse(self, block: Any, m: Match, state: Any) -> dict[str, Any]:
         """Parse tab-set directive."""
         options = dict(self.parse_options(m))
         
@@ -102,7 +104,7 @@ class TabItemDirective(DirectivePlugin):
     Supports all markdown features including nested directives.
     """
     
-    def parse(self, block: Any, m: Match, state: Any) -> Dict[str, Any]:
+    def parse(self, block: Any, m: Match, state: Any) -> dict[str, Any]:
         """Parse tab-item directive."""
         title = self.parse_title(m)
         options = dict(self.parse_options(m))
@@ -144,7 +146,7 @@ class TabsDirective(DirectivePlugin):
     New docs should use the MyST syntax (tab-set/tab-item).
     """
     
-    def parse(self, block: Any, m: Match, state: Any) -> Dict[str, Any]:
+    def parse(self, block: Any, m: Match, state: Any) -> dict[str, Any]:
         """Parse legacy tabs directive with ### Tab: markers."""
         options = dict(self.parse_options(m))
         content = self.parse_content(m)

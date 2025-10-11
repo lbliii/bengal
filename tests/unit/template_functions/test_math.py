@@ -1,6 +1,5 @@
 """Tests for math template functions."""
 
-import pytest
 from bengal.rendering.template_functions.math_functions import (
     percentage,
     times,

@@ -3,11 +3,10 @@ Tests for KnowledgeGraph analysis module.
 """
 
 import pytest
-from pathlib import Path
 
 from bengal.core.site import Site
 from bengal.core.page import Page
-from bengal.analysis.knowledge_graph import KnowledgeGraph, GraphMetrics, PageConnectivity
+from bengal.analysis.knowledge_graph import KnowledgeGraph, PageConnectivity
 
 
 @pytest.fixture

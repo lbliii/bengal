@@ -3,10 +3,9 @@ Build statistics display with colorful output and ASCII art.
 """
 
 from dataclasses import dataclass
-from typing import Dict, Any, Optional
-import time
-import click
+from typing import Any
 
+import click
 
 # Bengal cat ASCII art variations (inspired by ᓚᘏᗢ)
 
@@ -66,7 +65,7 @@ class BuildStats:
     
     # Directive statistics
     total_directives: int = 0
-    directives_by_type: Dict[str, int] = None
+    directives_by_type: dict[str, int] = None
     
     # Phase timings
     discovery_time_ms: float = 0
@@ -125,7 +124,7 @@ class BuildStats:
         return len(self.template_errors) > 0
     
     @property
-    def warnings_by_type(self) -> Dict[str, list]:
+    def warnings_by_type(self) -> dict[str, list]:
         """Group warnings by type."""
         from collections import defaultdict
         grouped = defaultdict(list)
@@ -133,7 +132,7 @@ class BuildStats:
             grouped[warning.warning_type].append(warning)
         return dict(grouped)
     
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert stats to dictionary."""
         return {
             'total_pages': self.total_pages,
@@ -210,7 +209,7 @@ def display_warnings(stats: BuildStats) -> None:
         click.echo()  # Blank line between types
 
 
-def display_simple_build_stats(stats: BuildStats, output_dir: str = None) -> None:
+def display_simple_build_stats(stats: BuildStats, output_dir: str | None = None) -> None:
     """
     Display simple build statistics for writers.
     
@@ -270,7 +269,7 @@ def display_simple_build_stats(stats: BuildStats, output_dir: str = None) -> Non
         click.echo()
 
 
-def display_build_stats(stats: BuildStats, show_art: bool = True, output_dir: str = None) -> None:
+def display_build_stats(stats: BuildStats, show_art: bool = True, output_dir: str | None = None) -> None:
     """
     Display build statistics in a colorful table.
     
@@ -405,9 +404,9 @@ def show_error(message: str, show_art: bool = True) -> None:
 def show_welcome() -> None:
     """Show welcome banner using Rich for stable borders."""
     try:
+        from rich.align import Align
         from rich.console import Console
         from rich.panel import Panel
-        from rich.align import Align
         
         console = Console()
         

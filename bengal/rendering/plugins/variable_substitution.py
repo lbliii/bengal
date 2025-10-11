@@ -6,7 +6,8 @@ code blocks literal and maintaining clear separation from template logic.
 """
 
 import re
-from typing import Any, Dict, Match
+from re import Match
+from typing import Any
 
 __all__ = ['VariableSubstitutionPlugin']
 
@@ -77,7 +78,7 @@ class VariableSubstitutionPlugin:
     # Capture everything between {{/* and */}} without stripping whitespace
     ESCAPE_PATTERN = re.compile(r'\{\{/\*(.+?)\*/\}\}')
     
-    def __init__(self, context: Dict[str, Any]):
+    def __init__(self, context: dict[str, Any]):
         """
         Initialize with rendering context.
         
@@ -88,7 +89,7 @@ class VariableSubstitutionPlugin:
         self.errors = []  # Track substitution errors
         self.escaped_placeholders = {}  # Track escaped template syntax
     
-    def update_context(self, context: Dict[str, Any]) -> None:
+    def update_context(self, context: dict[str, Any]) -> None:
         """
         Update the rendering context (for parser reuse).
         

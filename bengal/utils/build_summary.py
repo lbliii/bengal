@@ -9,16 +9,21 @@ Displays comprehensive build statistics with:
 - Resource usage
 """
 
-from typing import Optional, Dict, Any
-from rich.table import Table
-from rich.panel import Panel
-from rich.text import Text
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any
+
 from rich.console import Group
-from rich.progress import BarColumn, Progress
-from rich.layout import Layout
+from rich.panel import Panel
+from rich.table import Table
+from rich.text import Text
+
+if TYPE_CHECKING:
+    from bengal.analysis.performance_advisor import PerformanceAdvisor
+    from bengal.utils.build_stats import BuildStats
 
 
-def create_timing_breakdown_table(stats: 'BuildStats') -> Table:
+def create_timing_breakdown_table(stats: BuildStats) -> Table:
     """
     Create a detailed timing breakdown table.
     
@@ -114,7 +119,7 @@ def create_timing_breakdown_table(stats: 'BuildStats') -> Table:
     return table
 
 
-def create_performance_panel(stats: 'BuildStats', advisor: 'PerformanceAdvisor') -> Panel:
+def create_performance_panel(stats: BuildStats, advisor: PerformanceAdvisor) -> Panel:
     """
     Create performance grade and insights panel.
     
@@ -168,7 +173,7 @@ def create_performance_panel(stats: 'BuildStats', advisor: 'PerformanceAdvisor')
     )
 
 
-def create_suggestions_panel(advisor: 'PerformanceAdvisor') -> Optional[Panel]:
+def create_suggestions_panel(advisor: PerformanceAdvisor) -> Panel | None:
     """
     Create smart suggestions panel.
     
@@ -224,7 +229,7 @@ def create_suggestions_panel(advisor: 'PerformanceAdvisor') -> Optional[Panel]:
     )
 
 
-def create_cache_stats_panel(stats: 'BuildStats') -> Optional[Panel]:
+def create_cache_stats_panel(stats: BuildStats) -> Panel | None:
     """
     Create cache statistics panel (if available).
     
@@ -284,7 +289,7 @@ def create_cache_stats_panel(stats: 'BuildStats') -> Optional[Panel]:
     )
 
 
-def create_content_stats_table(stats: 'BuildStats') -> Table:
+def create_content_stats_table(stats: BuildStats) -> Table:
     """
     Create content statistics table.
     
@@ -371,7 +376,7 @@ def create_content_stats_table(stats: 'BuildStats') -> Table:
     return table
 
 
-def display_build_summary(stats: 'BuildStats', environment: Optional[Dict[str, Any]] = None) -> None:
+def display_build_summary(stats: BuildStats, environment: dict[str, Any] | None = None) -> None:
     """
     Display comprehensive build summary with rich formatting.
     
@@ -382,8 +387,8 @@ def display_build_summary(stats: 'BuildStats', environment: Optional[Dict[str, A
         stats: Build statistics
         environment: Environment info (from detect_environment())
     """
-    from bengal.utils.rich_console import get_console, should_use_rich
     from bengal.analysis.performance_advisor import PerformanceAdvisor
+    from bengal.utils.rich_console import get_console, should_use_rich
     
     # Check if we should use rich output
     if not should_use_rich():
@@ -440,14 +445,13 @@ def display_build_summary(stats: 'BuildStats', environment: Optional[Dict[str, A
         console.print()
 
 
-def display_simple_summary(stats: 'BuildStats') -> None:
+def display_simple_summary(stats: BuildStats) -> None:
     """
     Display simple summary for writer persona (minimal output).
     
     Args:
         stats: Build statistics
     """
-    import click
     from bengal.utils.build_stats import display_simple_build_stats
     
     # Use existing simple display

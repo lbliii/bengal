@@ -45,6 +45,14 @@ auto_regenerate_autodoc = false  # Set to true for convenience during developmen
 # site_json = false         # Disable site-wide index.json
 # site_llm = false          # Disable site-wide llm-full.txt
 
+# Search Page (special page)
+# Generated at /search/ by default if template exists
+# Uncomment to customize or disable:
+# [search]
+# enabled = true
+# path = "/search/"
+# template = "search.html"
+
 # Font Configuration - Automatically downloads and self-hosts Google Fonts
 # Simple string format: "FontFamily:weight1,weight2,weight3"
 [fonts]

@@ -13,15 +13,15 @@ References:
       Journal of Mathematical Sociology.
 """
 
-from typing import TYPE_CHECKING, Dict, Set, List, Tuple, Optional, Deque
+from collections import deque
 from dataclasses import dataclass
-from collections import deque, defaultdict
+from typing import TYPE_CHECKING
 
 from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.core.page import Page
     from bengal.analysis.knowledge_graph import KnowledgeGraph
+    from bengal.core.page import Page
 
 logger = get_logger(__name__)
 
@@ -42,12 +42,12 @@ class PathAnalysisResults:
         avg_path_length: Average shortest path length between all page pairs
     """
     
-    betweenness_centrality: Dict['Page', float]
-    closeness_centrality: Dict['Page', float]
+    betweenness_centrality: dict['Page', float]
+    closeness_centrality: dict['Page', float]
     avg_path_length: float
     diameter: int  # Longest shortest path
     
-    def get_top_bridges(self, limit: int = 20) -> List[Tuple['Page', float]]:
+    def get_top_bridges(self, limit: int = 20) -> list[tuple['Page', float]]:
         """
         Get pages with highest betweenness centrality (bridge pages).
         
@@ -64,7 +64,7 @@ class PathAnalysisResults:
         )
         return sorted_pages[:limit]
     
-    def get_most_accessible(self, limit: int = 20) -> List[Tuple['Page', float]]:
+    def get_most_accessible(self, limit: int = 20) -> list[tuple['Page', float]]:
         """
         Get most accessible pages (highest closeness centrality).
         
@@ -117,7 +117,7 @@ class PathAnalyzer:
         """
         self.graph = graph
     
-    def find_shortest_path(self, source: 'Page', target: 'Page') -> Optional[List['Page']]:
+    def find_shortest_path(self, source: 'Page', target: 'Page') -> list['Page'] | None:
         """
         Find shortest path between two pages using BFS.
         
@@ -137,9 +137,9 @@ class PathAnalyzer:
             return [source]
         
         # BFS
-        queue: Deque['Page'] = deque([source])
-        visited: Set['Page'] = {source}
-        parent: Dict['Page', 'Page'] = {}
+        queue: deque[Page] = deque([source])
+        visited: set[Page] = {source}
+        parent: dict[Page, Page] = {}
         
         while queue:
             current = queue.popleft()
@@ -206,26 +206,26 @@ class PathAnalyzer:
             diameter=diameter
         )
     
-    def _compute_betweenness_centrality(self, pages: List['Page']) -> Dict['Page', float]:
+    def _compute_betweenness_centrality(self, pages: list['Page']) -> dict['Page', float]:
         """
         Compute betweenness centrality using Brandes' algorithm.
         
         Betweenness measures how often a page appears on shortest paths between
         other pages. High betweenness indicates a "bridge" page.
         """
-        betweenness: Dict['Page', float] = {page: 0.0 for page in pages}
+        betweenness: dict[Page, float] = {page: 0.0 for page in pages}
         
         # For each page as source
         for source in pages:
             # BFS to find shortest paths
-            stack: List['Page'] = []
-            predecessors: Dict['Page', List['Page']] = {p: [] for p in pages}
-            sigma: Dict['Page', int] = {p: 0 for p in pages}
+            stack: list[Page] = []
+            predecessors: dict[Page, list[Page]] = {p: [] for p in pages}
+            sigma: dict[Page, int] = {p: 0 for p in pages}
             sigma[source] = 1
-            distance: Dict['Page', int] = {p: -1 for p in pages}
+            distance: dict[Page, int] = {p: -1 for p in pages}
             distance[source] = 0
             
-            queue: Deque['Page'] = deque([source])
+            queue: deque[Page] = deque([source])
             
             while queue:
                 current = queue.popleft()
@@ -247,7 +247,7 @@ class PathAnalyzer:
                         predecessors[neighbor].append(current)
             
             # Accumulation (back-propagation)
-            delta: Dict['Page', float] = {p: 0.0 for p in pages}
+            delta: dict[Page, float] = {p: 0.0 for p in pages}
             
             while stack:
                 current = stack.pop()
@@ -265,7 +265,7 @@ class PathAnalyzer:
         
         return betweenness
     
-    def _compute_closeness_centrality(self, pages: List['Page']) -> Tuple[Dict['Page', float], float, int]:
+    def _compute_closeness_centrality(self, pages: list['Page']) -> tuple[dict['Page', float], float, int]:
         """
         Compute closeness centrality and network metrics.
         
@@ -275,8 +275,8 @@ class PathAnalyzer:
         Returns:
             Tuple of (closeness_dict, avg_path_length, diameter)
         """
-        closeness: Dict['Page', float] = {}
-        all_distances: List[int] = []
+        closeness: dict[Page, float] = {}
+        all_distances: list[int] = []
         max_distance = 0
         
         for page in pages:
@@ -290,7 +290,7 @@ class PathAnalyzer:
                 avg_distance = sum(reachable_distances) / len(reachable_distances)
                 closeness[page] = 1.0 / avg_distance
                 all_distances.extend(reachable_distances)
-                max_distance = max(max_distance, max(reachable_distances))
+                max_distance = max(max_distance, *reachable_distances)
             else:
                 # Isolated page
                 closeness[page] = 0.0
@@ -301,12 +301,12 @@ class PathAnalyzer:
         
         return closeness, avg_path_length, diameter
     
-    def _bfs_distances(self, source: 'Page', pages: List['Page']) -> Dict['Page', int]:
+    def _bfs_distances(self, source: 'Page', pages: list['Page']) -> dict['Page', int]:
         """Compute shortest path distances from source to all other pages."""
-        distances: Dict['Page', int] = {p: -1 for p in pages}
+        distances: dict[Page, int] = {p: -1 for p in pages}
         distances[source] = 0
         
-        queue: Deque['Page'] = deque([source])
+        queue: deque[Page] = deque([source])
         
         while queue:
             current = queue.popleft()
@@ -323,7 +323,7 @@ class PathAnalyzer:
     def find_all_paths(self, 
                       source: 'Page', 
                       target: 'Page',
-                      max_length: int = 10) -> List[List['Page']]:
+                      max_length: int = 10) -> list[list['Page']]:
         """
         Find all simple paths between two pages (up to max_length).
         
@@ -340,9 +340,9 @@ class PathAnalyzer:
         if source == target:
             return [[source]]
         
-        all_paths: List[List['Page']] = []
+        all_paths: list[list[Page]] = []
         
-        def dfs(current: 'Page', path: List['Page'], visited: Set['Page']) -> None:
+        def dfs(current: 'Page', path: list['Page'], visited: set['Page']) -> None:
             if len(path) > max_length:
                 return
             

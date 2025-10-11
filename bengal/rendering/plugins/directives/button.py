@@ -14,7 +14,9 @@ Provides clean button syntax for CTAs and navigation:
 Replaces Sphinx-Design's complex button-ref syntax with a simpler approach.
 """
 
-from typing import Any, Dict, Match
+from re import Match
+from typing import Any
+
 from mistune.directives import DirectivePlugin
 
 __all__ = ['ButtonDirective']
@@ -66,7 +68,7 @@ class ButtonDirective(DirectivePlugin):
         :::
     """
     
-    def parse(self, block: Any, m: Match, state: Any) -> Dict[str, Any]:
+    def parse(self, block: Any, m: Match, state: Any) -> dict[str, Any]:
         """
         Parse button directive.
         

@@ -19,15 +19,15 @@ Usage:
     print(report.format_console())
 """
 
-from bengal.health.health_check import HealthCheck
-from bengal.health.report import HealthReport, CheckResult, CheckStatus
 from bengal.health.base import BaseValidator
+from bengal.health.health_check import HealthCheck
+from bengal.health.report import CheckResult, CheckStatus, HealthReport
 
 __all__ = [
-    'HealthCheck',
-    'HealthReport',
+    'BaseValidator',
     'CheckResult',
     'CheckStatus',
-    'BaseValidator',
+    'HealthCheck',
+    'HealthReport',
 ]
 

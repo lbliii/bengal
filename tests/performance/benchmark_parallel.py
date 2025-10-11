@@ -8,7 +8,6 @@ import tempfile
 import shutil
 from pathlib import Path
 from bengal.core.site import Site
-from bengal.core.asset import Asset
 
 
 def create_test_site(num_assets: int) -> Path:

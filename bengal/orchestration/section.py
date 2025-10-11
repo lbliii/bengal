@@ -5,19 +5,18 @@ Handles section lifecycle: ensuring all sections have index pages,
 validation, and structural integrity.
 """
 
-from pathlib import Path
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
 
-from bengal.utils.url_strategy import URLStrategy
-from bengal.utils.page_initializer import PageInitializer
 from bengal.utils.logger import get_logger
+from bengal.utils.page_initializer import PageInitializer
+from bengal.utils.url_strategy import URLStrategy
 
 logger = get_logger(__name__)
 
 if TYPE_CHECKING:
-    from bengal.core.site import Site
-    from bengal.core.section import Section
     from bengal.core.page import Page
+    from bengal.core.section import Section
+    from bengal.core.site import Site
 
 
 class SectionOrchestrator:
@@ -310,7 +309,7 @@ class SectionOrchestrator:
         
         return archive_page
     
-    def validate_sections(self) -> List[str]:
+    def validate_sections(self) -> list[str]:
         """
         Validate that all sections have valid index pages.
         
@@ -322,7 +321,7 @@ class SectionOrchestrator:
             errors.extend(self._validate_recursive(section))
         return errors
     
-    def _validate_recursive(self, section: 'Section') -> List[str]:
+    def _validate_recursive(self, section: 'Section') -> list[str]:
         """
         Recursively validate a section and its subsections.
         

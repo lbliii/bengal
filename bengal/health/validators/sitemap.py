@@ -10,8 +10,7 @@ Validates:
 """
 
 import xml.etree.ElementTree as ET
-from typing import List, Set, TYPE_CHECKING
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult
@@ -37,7 +36,7 @@ class SitemapValidator(BaseValidator):
     description = "Validates sitemap.xml for SEO"
     enabled_by_default = True
     
-    def validate(self, site: 'Site') -> List[CheckResult]:
+    def validate(self, site: 'Site') -> list[CheckResult]:
         """Run sitemap validation checks."""
         results = []
         
@@ -79,7 +78,7 @@ class SitemapValidator(BaseValidator):
         
         return results
     
-    def _check_sitemap_structure(self, root: ET.Element) -> List[CheckResult]:
+    def _check_sitemap_structure(self, root: ET.Element) -> list[CheckResult]:
         """Check sitemap structure validity."""
         results = []
         
@@ -106,7 +105,7 @@ class SitemapValidator(BaseValidator):
         
         return results
     
-    def _check_sitemap_urls(self, root: ET.Element, site: 'Site') -> List[CheckResult]:
+    def _check_sitemap_urls(self, root: ET.Element, site: 'Site') -> list[CheckResult]:
         """Check URLs in sitemap are properly formatted."""
         results = []
         
@@ -167,7 +166,7 @@ class SitemapValidator(BaseValidator):
         
         return results
     
-    def _check_duplicate_urls(self, root: ET.Element) -> List[CheckResult]:
+    def _check_duplicate_urls(self, root: ET.Element) -> list[CheckResult]:
         """Check for duplicate URLs in sitemap."""
         results = []
         
@@ -180,7 +179,7 @@ class SitemapValidator(BaseValidator):
             return results
         
         # Collect all URLs
-        seen_urls: Set[str] = set()
+        seen_urls: set[str] = set()
         duplicates = []
         
         for url_elem in urls:
@@ -207,7 +206,7 @@ class SitemapValidator(BaseValidator):
         
         return results
     
-    def _check_sitemap_coverage(self, root: ET.Element, site: 'Site') -> List[CheckResult]:
+    def _check_sitemap_coverage(self, root: ET.Element, site: 'Site') -> list[CheckResult]:
         """Check sitemap includes expected pages."""
         results = []
         
@@ -227,7 +226,7 @@ class SitemapValidator(BaseValidator):
         
         # Calculate coverage
         if total_pages > 0:
-            coverage_pct = (sitemap_count / total_pages) * 100
+            (sitemap_count / total_pages) * 100
             
             if sitemap_count < total_pages:
                 missing = total_pages - sitemap_count

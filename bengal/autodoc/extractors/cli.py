@@ -6,7 +6,7 @@ Extracts documentation from command-line applications built with Click, argparse
 
 import inspect
 from pathlib import Path
-from typing import Any, List, Optional
+from typing import Any
 
 import click
 
@@ -47,7 +47,7 @@ class CLIExtractor(Extractor):
         if framework not in ('click', 'argparse', 'typer'):
             raise ValueError(f"Unsupported framework: {framework}. Use 'click', 'argparse', or 'typer'")
     
-    def extract(self, source: Any) -> List[DocElement]:
+    def extract(self, source: Any) -> list[DocElement]:
         """
         Extract documentation from CLI application.
         
@@ -72,7 +72,7 @@ class CLIExtractor(Extractor):
         else:
             raise ValueError(f"Unknown framework: {self.framework}")
     
-    def _extract_from_click(self, cli: click.Group) -> List[DocElement]:
+    def _extract_from_click(self, cli: click.Group) -> list[DocElement]:
         """
         Extract documentation from Click command group.
         
@@ -90,7 +90,7 @@ class CLIExtractor(Extractor):
         
         # Add each command as a separate top-level element for individual pages
         # Recursively flatten nested command groups
-        def flatten_commands(children: List[DocElement]):
+        def flatten_commands(children: list[DocElement]):
             for child in children:
                 elements.append(child)
                 # If this is a nested command group, also flatten its children
@@ -101,7 +101,7 @@ class CLIExtractor(Extractor):
         
         return elements
     
-    def _extract_click_group(self, group: click.Group, parent_name: str = None) -> DocElement:
+    def _extract_click_group(self, group: click.Group, parent_name: str | None = None) -> DocElement:
         """
         Extract Click command group documentation.
         
@@ -169,7 +169,7 @@ class CLIExtractor(Extractor):
             deprecated=None
         )
     
-    def _extract_click_command(self, cmd: click.Command, parent_name: str = None) -> DocElement:
+    def _extract_click_command(self, cmd: click.Command, parent_name: str | None = None) -> DocElement:
         """
         Extract Click command documentation.
         
@@ -330,7 +330,7 @@ class CLIExtractor(Extractor):
         
         return '\n'.join(description_lines).strip()
     
-    def _extract_examples_from_docstring(self, docstring: str) -> List[str]:
+    def _extract_examples_from_docstring(self, docstring: str) -> list[str]:
         """
         Extract example blocks from docstring.
         
@@ -372,7 +372,7 @@ class CLIExtractor(Extractor):
         
         return examples
     
-    def _extract_from_argparse(self, parser: Any) -> List[DocElement]:
+    def _extract_from_argparse(self, parser: Any) -> list[DocElement]:
         """
         Extract documentation from argparse ArgumentParser.
         
@@ -387,7 +387,7 @@ class CLIExtractor(Extractor):
         """
         raise NotImplementedError("argparse support is planned but not yet implemented")
     
-    def _extract_from_typer(self, app: Any) -> List[DocElement]:
+    def _extract_from_typer(self, app: Any) -> list[DocElement]:
         """
         Extract documentation from Typer app.
         

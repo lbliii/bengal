@@ -1,6 +1,7 @@
 """Build command for generating the static site."""
 
 from pathlib import Path
+
 import click
 
 from bengal.core.site import Site
@@ -9,7 +10,7 @@ from bengal.utils.build_stats import (
     show_building_indicator,
     show_error,
 )
-from bengal.utils.logger import configure_logging, LogLevel, close_all_loggers, print_all_summaries
+from bengal.utils.logger import LogLevel, close_all_loggers, configure_logging, print_all_summaries
 
 
 def _should_regenerate_autodoc(autodoc_flag: bool, config_path: Path, root_path: Path, quiet: bool) -> bool:
@@ -45,7 +46,6 @@ def _check_autodoc_needs_regeneration(autodoc_config: dict, root_path: Path, qui
     Returns True if regeneration is needed.
     """
     import os
-    from pathlib import Path
     
     python_config = autodoc_config.get('python', {})
     cli_config = autodoc_config.get('cli', {})
@@ -99,7 +99,7 @@ def _check_autodoc_needs_regeneration(autodoc_config: dict, root_path: Path, qui
 def _run_autodoc_before_build(config_path: Path, root_path: Path, quiet: bool) -> None:
     """Run autodoc generation before build."""
     from bengal.autodoc.config import load_autodoc_config
-    from bengal.cli.commands.autodoc import _generate_python_docs, _generate_cli_docs
+    from bengal.cli.commands.autodoc import _generate_cli_docs, _generate_python_docs
     
     if not quiet:
         click.echo()
@@ -165,13 +165,14 @@ def _run_autodoc_before_build(config_path: Path, root_path: Path, quiet: bool) -
 @click.option('--strict', is_flag=True, help='Fail on template errors (recommended for CI/CD)')
 @click.option('--debug', is_flag=True, help='Show debug output and full tracebacks (maps to dev profile)')
 @click.option('--validate', is_flag=True, help='Validate templates before building (catch errors early)')
+@click.option('--assets-pipeline/--no-assets-pipeline', default=None, help='Enable/disable Node-based assets pipeline (overrides config)')
 @click.option('--autodoc/--no-autodoc', default=None, help='Force regenerate autodoc before building (overrides config)')
 @click.option('--config', type=click.Path(exists=True), help='Path to config file (default: bengal.toml)')
 @click.option('--quiet', '-q', is_flag=True, help='Minimal output - only show errors and summary')
 @click.option('--full-output', is_flag=True, help='Show full traditional output instead of live progress (useful for debugging)')
 @click.option('--log-file', type=click.Path(), help='Write detailed logs to file (default: .bengal-build.log)')
 @click.argument('source', type=click.Path(exists=True), default='.')
-def build(parallel: bool, incremental: bool, memory_optimized: bool, profile: str, perf_profile: str, use_theme_dev: bool, use_dev: bool, verbose: bool, strict: bool, debug: bool, validate: bool, autodoc: bool, config: str, quiet: bool, full_output: bool, log_file: str, source: str) -> None:
+def build(parallel: bool, incremental: bool, memory_optimized: bool, profile: str, perf_profile: str, use_theme_dev: bool, use_dev: bool, verbose: bool, strict: bool, debug: bool, validate: bool, assets_pipeline: bool, autodoc: bool, config: str, quiet: bool, full_output: bool, log_file: str, source: str) -> None:
     """
     🔨 Build the static site.
     
@@ -244,6 +245,14 @@ def build(parallel: bool, incremental: bool, memory_optimized: bool, profile: st
         if debug:
             site.config["debug"] = True
         
+        # Override asset pipeline toggle if provided
+        if assets_pipeline is not None:
+            assets_cfg = site.config.get('assets') if isinstance(site.config.get('assets'), dict) else {}
+            if not assets_cfg:
+                assets_cfg = {}
+            assets_cfg['pipeline'] = bool(assets_pipeline)
+            site.config['assets'] = assets_cfg
+
         # Handle autodoc regeneration
         should_regenerate_autodoc = _should_regenerate_autodoc(
             autodoc_flag=autodoc,
@@ -257,8 +266,8 @@ def build(parallel: bool, incremental: bool, memory_optimized: bool, profile: st
         
         # Validate templates if requested
         if validate:
-            from bengal.rendering.validator import validate_templates
             from bengal.rendering.template_engine import TemplateEngine
+            from bengal.rendering.validator import validate_templates
             
             template_engine = TemplateEngine(site)
             error_count = validate_templates(template_engine)
@@ -310,6 +319,7 @@ def build(parallel: bool, incremental: bool, memory_optimized: bool, profile: st
             import cProfile
             import pstats
             from io import StringIO
+
             from bengal.utils.paths import BengalPaths
             
             profiler = cProfile.Profile()

@@ -366,18 +366,18 @@ class TestMemoryProfiling:
         
         delta = profiler.get_delta(top_n=20)
         
-        print(f"\nBuild Statistics:")
+        print("\nBuild Statistics:")
         print(f"  Regular pages: {stats.regular_pages}")
         print(f"  Total pages:   {stats.total_pages}")
         
-        print(f"\nMemory Usage:")
+        print("\nMemory Usage:")
         print(f"  Python heap:   Δ{delta.python_heap_delta_mb:+.1f}MB "
               f"(peak: {delta.python_heap_peak_mb:.1f}MB)")
         print(f"  Process RSS:   Δ{delta.rss_delta_mb:+.1f}MB")
         print(f"  Per page:      {delta.rss_delta_mb/stats.regular_pages:.3f}MB RSS")
         
         if delta.top_allocators:
-            print(f"\nTop 20 Memory Allocators:")
+            print("\nTop 20 Memory Allocators:")
             for i, alloc in enumerate(delta.top_allocators, 1):
                 print(f"  {i:2d}. {alloc}")
         
@@ -398,7 +398,7 @@ class TestMemoryEdgeCases:
         
         with profile_memory("Empty site build", verbose=False) as prof:
             site = Site.from_config(site_root)
-            stats = site.build(parallel=False)
+            site.build(parallel=False)
         
         delta = prof.get_delta()
         
@@ -419,7 +419,7 @@ class TestMemoryEdgeCases:
         configure_logging(level=LogLevel.WARNING)
         
         with profile_memory("Config load only", verbose=False) as prof:
-            site = Site.from_config(site_root)
+            Site.from_config(site_root)
             # Don't build, just load config
         
         delta = prof.get_delta()

@@ -2,8 +2,8 @@
 Pagination utility for splitting long lists into pages.
 """
 
-from typing import List, Generic, TypeVar, Dict, Any
 from math import ceil
+from typing import Any, Generic, TypeVar
 
 T = TypeVar('T')
 
@@ -22,7 +22,7 @@ class Paginator(Generic[T]):
         num_pages: Total number of pages
     """
     
-    def __init__(self, items: List[T], per_page: int = 10) -> None:
+    def __init__(self, items: list[T], per_page: int = 10) -> None:
         """
         Initialize the paginator.
         
@@ -34,7 +34,7 @@ class Paginator(Generic[T]):
         self.per_page = max(1, per_page)  # Ensure at least 1 item per page
         self.num_pages = ceil(len(items) / self.per_page) if items else 1
     
-    def page(self, number: int) -> List[T]:
+    def page(self, number: int) -> list[T]:
         """
         Get items for a specific page.
         
@@ -55,7 +55,7 @@ class Paginator(Generic[T]):
         
         return self.items[start_index:end_index]
     
-    def page_context(self, page_number: int, base_url: str) -> Dict[str, Any]:
+    def page_context(self, page_number: int, base_url: str) -> dict[str, Any]:
         """
         Get template context for a specific page.
         
@@ -84,7 +84,7 @@ class Paginator(Generic[T]):
             'page_range': self._get_page_range(page_number),
         }
     
-    def _get_page_range(self, current_page: int, window: int = 2) -> List[int]:
+    def _get_page_range(self, current_page: int, window: int = 2) -> list[int]:
         """
         Get a range of page numbers to display.
         

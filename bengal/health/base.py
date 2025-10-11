@@ -5,7 +5,7 @@ All validators should inherit from BaseValidator and implement the validate() me
 """
 
 from abc import ABC, abstractmethod
-from typing import List, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from bengal.core.site import Site
@@ -50,7 +50,7 @@ class BaseValidator(ABC):
     enabled_by_default: bool = True
     
     @abstractmethod
-    def validate(self, site: 'Site') -> List['CheckResult']:
+    def validate(self, site: 'Site') -> list['CheckResult']:
         """
         Run validation checks and return results.
         

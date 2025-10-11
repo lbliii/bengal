@@ -3,7 +3,6 @@ Tests for CLI documentation extractor.
 """
 
 from pathlib import Path
-from textwrap import dedent
 
 import click
 import pytest

@@ -9,10 +9,10 @@ Validates:
 - Reasonable asset sizes
 """
 
-from typing import List, Dict, Set, TYPE_CHECKING
-from pathlib import Path
-from collections import defaultdict
 import itertools
+from collections import defaultdict
+from pathlib import Path
+from typing import TYPE_CHECKING
 
 from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult
@@ -42,7 +42,7 @@ class AssetValidator(BaseValidator):
     LARGE_JS_KB = 500
     LARGE_IMAGE_KB = 1000
     
-    def validate(self, site: 'Site') -> List[CheckResult]:
+    def validate(self, site: 'Site') -> list[CheckResult]:
         """Run asset validation checks."""
         results = []
         
@@ -71,7 +71,7 @@ class AssetValidator(BaseValidator):
         
         return results
     
-    def _check_asset_types(self, assets_dir: Path) -> List[CheckResult]:
+    def _check_asset_types(self, assets_dir: Path) -> list[CheckResult]:
         """Check expected asset types are present."""
         results = []
         
@@ -110,7 +110,7 @@ class AssetValidator(BaseValidator):
         
         return results
     
-    def _check_asset_sizes(self, assets_dir: Path, site: 'Site') -> List[CheckResult]:
+    def _check_asset_sizes(self, assets_dir: Path, site: 'Site') -> list[CheckResult]:
         """Check asset sizes are reasonable."""
         results = []
         
@@ -175,7 +175,7 @@ class AssetValidator(BaseValidator):
         
         return results
     
-    def _check_duplicate_assets(self, assets_dir: Path) -> List[CheckResult]:
+    def _check_duplicate_assets(self, assets_dir: Path) -> list[CheckResult]:
         """Check for duplicate assets (same size and name pattern)."""
         results = []
         
@@ -186,13 +186,13 @@ class AssetValidator(BaseValidator):
         js_files = list(assets_dir.rglob('*.js'))
         
         # Check for multiple versions of same file
-        css_base_names: Dict[str, List[Path]] = defaultdict(list)
+        css_base_names: dict[str, list[Path]] = defaultdict(list)
         for css_file in css_files:
             # Remove hash-like patterns (e.g., .abc123 before extension)
             base_name = css_file.stem.split('.')[0]
             css_base_names[base_name].append(css_file)
         
-        js_base_names: Dict[str, List[Path]] = defaultdict(list)
+        js_base_names: dict[str, list[Path]] = defaultdict(list)
         for js_file in js_files:
             base_name = js_file.stem.split('.')[0]
             js_base_names[base_name].append(js_file)
@@ -219,7 +219,7 @@ class AssetValidator(BaseValidator):
         
         return results
     
-    def _check_minification_hints(self, assets_dir: Path, site: 'Site') -> List[CheckResult]:
+    def _check_minification_hints(self, assets_dir: Path, site: 'Site') -> list[CheckResult]:
         """Check if assets appear to be minified based on file size patterns."""
         results = []
         

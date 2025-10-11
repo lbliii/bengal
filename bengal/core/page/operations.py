@@ -2,8 +2,8 @@
 Page Operations Mixin - Operations and transformations on pages.
 """
 
-from typing import Any, Dict, List, Optional
 import re
+from typing import Any
 
 
 class PageOperationsMixin:
@@ -32,7 +32,7 @@ class PageOperationsMixin:
         self.rendered_html = renderer.render_page(self)
         return self.rendered_html
     
-    def validate_links(self) -> List[str]:
+    def validate_links(self) -> list[str]:
         """
         Validate all links in the page.
         
@@ -45,7 +45,7 @@ class PageOperationsMixin:
         broken_links = validator.validate_page_links(self)
         return broken_links
     
-    def apply_template(self, template_name: str, context: Optional[Dict[str, Any]] = None) -> str:
+    def apply_template(self, template_name: str, context: dict[str, Any] | None = None) -> str:
         """
         Apply a specific template to this page.
         
@@ -56,18 +56,11 @@ class PageOperationsMixin:
         Returns:
             Rendered content with template applied
         """
-        full_context = {
-            "page": self,
-            "content": self.rendered_html or self.content,
-            "title": self.title,
-            "metadata": self.metadata,
-            **(context or {})
-        }
         
         # Template application will be handled by the template engine
         return self.rendered_html
     
-    def extract_links(self) -> List[str]:
+    def extract_links(self) -> list[str]:
         """
         Extract all links from the page content.
         

@@ -2,7 +2,7 @@
 Page Relationships Mixin - Relationship checking and comparisons.
 """
 
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from . import Page

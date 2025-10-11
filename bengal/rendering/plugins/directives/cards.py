@@ -39,16 +39,18 @@ Examples:
     ::::
 """
 
-from typing import Any, Dict, Match
+from re import Match
+from typing import Any
+
 from mistune.directives import DirectivePlugin
 
 __all__ = [
-    'CardsDirective',
     'CardDirective',
+    'CardsDirective',
     'GridDirective',
     'GridItemCardDirective',
-    'render_cards_grid',
     'render_card',
+    'render_cards_grid',
 ]
 
 
@@ -60,7 +62,7 @@ class CardsDirective(DirectivePlugin):
     Uses modern CSS Grid for layout.
     """
     
-    def parse(self, block: Any, m: Match, state: Any) -> Dict[str, Any]:
+    def parse(self, block: Any, m: Match, state: Any) -> dict[str, Any]:
         """
         Parse cards directive.
         
@@ -166,7 +168,7 @@ class CardDirective(DirectivePlugin):
         :::
     """
     
-    def parse(self, block: Any, m: Match, state: Any) -> Dict[str, Any]:
+    def parse(self, block: Any, m: Match, state: Any) -> dict[str, Any]:
         """
         Parse card directive.
         
@@ -249,7 +251,7 @@ class GridDirective(DirectivePlugin):
         :::
     """
     
-    def parse(self, block: Any, m: Match, state: Any) -> Dict[str, Any]:
+    def parse(self, block: Any, m: Match, state: Any) -> dict[str, Any]:
         """
         Parse grid directive (compatibility mode).
         
@@ -374,7 +376,7 @@ class GridItemCardDirective(DirectivePlugin):
         :::
     """
     
-    def parse(self, block: Any, m: Match, state: Any) -> Dict[str, Any]:
+    def parse(self, block: Any, m: Match, state: Any) -> dict[str, Any]:
         """
         Parse grid-item-card directive (compatibility mode).
         
@@ -408,8 +410,6 @@ class GridItemCardDirective(DirectivePlugin):
             if footer_content:
                 footer_children = self.parse_tokens(block, footer_content, state)
                 # Render footer children to get the HTML
-                import io
-                footer_parts = []
                 for child in footer_children:
                     if isinstance(child, dict) and 'type' in child:
                         # Will be rendered later - just note we have footer
@@ -443,7 +443,7 @@ class GridItemCardDirective(DirectivePlugin):
             'children': children,
         }
     
-    def _extract_octicon(self, title: str) -> Tuple[str, str]:
+    def _extract_octicon(self, title: str) -> tuple[str, str]:
         """
         Extract octicon from title and return clean title.
         
@@ -550,43 +550,43 @@ def render_card(renderer, text: str, **attrs) -> str:
     
     # Optional header image
     if image:
-        parts.append(f'  <div class="card-image">')
+        parts.append('  <div class="card-image">')
         parts.append(f'    <img src="{_escape_html(image)}" alt="{_escape_html(title)}" loading="lazy">')
-        parts.append(f'  </div>')
+        parts.append('  </div>')
     
     # Card body
-    parts.append(f'  <div class="card-body">')
+    parts.append('  <div class="card-body">')
     
     # Icon and title
     if icon or title:
-        parts.append(f'    <div class="card-header">')
+        parts.append('    <div class="card-header">')
         if icon:
             # Only render icon if it actually produces output
             rendered_icon = _render_icon(icon)
             if rendered_icon:
                 parts.append(f'      <span class="card-icon" data-icon="{_escape_html(icon)}">')
                 parts.append(rendered_icon)
-                parts.append(f'      </span>')
+                parts.append('      </span>')
         if title:
             # Use div, not h3, so it doesn't appear in TOC
             # Styled to look like a heading but not a semantic heading
             parts.append(f'      <div class="card-title">{_escape_html(title)}</div>')
-        parts.append(f'    </div>')
+        parts.append('    </div>')
     
     # Card content
     if text:
-        parts.append(f'    <div class="card-content">')
+        parts.append('    <div class="card-content">')
         parts.append(f'{text}')  # Already rendered markdown
-        parts.append(f'    </div>')
+        parts.append('    </div>')
     
-    parts.append(f'  </div>')
+    parts.append('  </div>')
     
     # Optional footer (may contain markdown like badges)
     if footer:
-        parts.append(f'  <div class="card-footer">')
+        parts.append('  <div class="card-footer">')
         # Footer might have markdown (badges, links, etc), don't escape
         parts.append(f'    {footer}')
-        parts.append(f'  </div>')
+        parts.append('  </div>')
     
     parts.append(f'</{card_tag}>')
     

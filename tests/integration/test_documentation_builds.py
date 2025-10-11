@@ -6,8 +6,6 @@ can be built without errors, addressing the showcase site issues.
 """
 
 import pytest
-from pathlib import Path
-import tempfile
 import shutil
 from bengal.core.site import Site
 from bengal.orchestration.build import BuildOrchestrator

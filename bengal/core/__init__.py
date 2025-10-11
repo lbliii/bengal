@@ -35,11 +35,11 @@ Example:
     >>> page = Page(source_path=Path('content/post.md'))
 """
 
-from bengal.core.site import Site
+from bengal.core.asset import Asset
+from bengal.core.menu import MenuBuilder, MenuItem
 from bengal.core.page import Page
 from bengal.core.section import Section
-from bengal.core.asset import Asset
-from bengal.core.menu import MenuItem, MenuBuilder
+from bengal.core.site import Site
 
-__all__ = ["Site", "Page", "Section", "Asset", "MenuItem", "MenuBuilder"]
+__all__ = ["Asset", "MenuBuilder", "MenuItem", "Page", "Section", "Site"]
 

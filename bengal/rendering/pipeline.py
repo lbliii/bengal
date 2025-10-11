@@ -4,13 +4,14 @@ Rendering Pipeline - Orchestrates the parsing, AST building, templating, and out
 
 import threading
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from bengal.core.page import Page
-from bengal.rendering.parser import create_markdown_parser, BaseMarkdownParser
-from bengal.rendering.template_engine import TemplateEngine
+from bengal.rendering.parser import BaseMarkdownParser, create_markdown_parser
 from bengal.rendering.renderer import Renderer
+from bengal.rendering.template_engine import TemplateEngine
 from bengal.utils.logger import get_logger
+from bengal.utils.url_strategy import URLStrategy
 
 logger = get_logger(__name__)
 
@@ -23,7 +24,7 @@ _created_dirs = set()
 _created_dirs_lock = threading.Lock()
 
 
-def _get_thread_parser(engine: Optional[str] = None) -> BaseMarkdownParser:
+def _get_thread_parser(engine: str | None = None) -> BaseMarkdownParser:
     """
     Get or create a MarkdownParser instance for the current thread.
     
@@ -338,27 +339,8 @@ class RenderingPipeline:
         Returns:
             Output path
         """
-        # Get relative path from content directory
-        content_dir = self.site.root_path / "content"
-        
-        try:
-            rel_path = page.source_path.relative_to(content_dir)
-        except ValueError:
-            # If not under content_dir, use just the filename
-            rel_path = Path(page.source_path.name)
-        
-        # Change extension to .html
-        output_rel_path = rel_path.with_suffix('.html')
-        
-        # Handle index pages specially (index.md and _index.md → index.html)
-        # Others can optionally use pretty URLs (about.md → about/index.html)
-        if self.site.config.get("pretty_urls", True) and output_rel_path.stem not in ("index", "_index"):
-            output_rel_path = output_rel_path.parent / output_rel_path.stem / "index.html"
-        elif output_rel_path.stem == "_index":
-            # _index.md should become index.html in the same directory
-            output_rel_path = output_rel_path.parent / "index.html"
-        
-        return self.site.output_dir / output_rel_path
+        # Delegate path computation to centralized URLStrategy (i18n-aware)
+        return URLStrategy.compute_regular_page_output_path(page, self.site)
     
     def _determine_template(self, page: Page) -> str:
         """

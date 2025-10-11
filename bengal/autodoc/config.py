@@ -5,11 +5,12 @@ Loads autodoc settings from bengal.toml or provides sensible defaults.
 """
 
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
+
 import toml
 
 
-def load_autodoc_config(config_path: Optional[Path] = None) -> Dict[str, Any]:
+def load_autodoc_config(config_path: Path | None = None) -> dict[str, Any]:
     """
     Load autodoc configuration from bengal.toml.
     
@@ -80,17 +81,17 @@ def load_autodoc_config(config_path: Optional[Path] = None) -> Dict[str, Any]:
         return default_config
 
 
-def get_python_config(config: Dict[str, Any]) -> Dict[str, Any]:
+def get_python_config(config: dict[str, Any]) -> dict[str, Any]:
     """Get Python autodoc configuration."""
     return config.get('python', {})
 
 
-def get_openapi_config(config: Dict[str, Any]) -> Dict[str, Any]:
+def get_openapi_config(config: dict[str, Any]) -> dict[str, Any]:
     """Get OpenAPI autodoc configuration."""
     return config.get('openapi', {})
 
 
-def get_cli_config(config: Dict[str, Any]) -> Dict[str, Any]:
+def get_cli_config(config: dict[str, Any]) -> dict[str, Any]:
     """Get CLI autodoc configuration."""
     return config.get('cli', {})
 

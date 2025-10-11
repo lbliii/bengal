@@ -2,7 +2,6 @@
 Unit tests for path analysis algorithms.
 """
 
-import pytest
 from unittest.mock import Mock
 from pathlib import Path
 from collections import defaultdict

@@ -2,7 +2,6 @@
 Tests for the menu system.
 """
 
-import pytest
 from bengal.core.menu import MenuItem, MenuBuilder
 
 

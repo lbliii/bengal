@@ -4,23 +4,26 @@ Build orchestration for Bengal SSG.
 Main coordinator that delegates build phases to specialized orchestrators.
 """
 
+from __future__ import annotations
+
 import time
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from bengal.utils.build_stats import BuildStats
-from bengal.utils.logger import get_logger
+from bengal.orchestration.asset import AssetOrchestrator
 from bengal.orchestration.content import ContentOrchestrator
+from bengal.orchestration.incremental import IncrementalOrchestrator
+from bengal.orchestration.menu import MenuOrchestrator
+from bengal.orchestration.postprocess import PostprocessOrchestrator
+from bengal.orchestration.render import RenderOrchestrator
 from bengal.orchestration.section import SectionOrchestrator
 from bengal.orchestration.taxonomy import TaxonomyOrchestrator
-from bengal.orchestration.menu import MenuOrchestrator
-from bengal.orchestration.render import RenderOrchestrator
-from bengal.orchestration.asset import AssetOrchestrator
-from bengal.orchestration.postprocess import PostprocessOrchestrator
-from bengal.orchestration.incremental import IncrementalOrchestrator
+from bengal.utils.build_stats import BuildStats
+from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.core.site import Site
+    from bengal.utils.profile import BuildProfile
 
 
 class BuildOrchestrator:
@@ -79,8 +82,8 @@ class BuildOrchestrator:
             BuildStats object with build statistics
         """
         # Import profile utilities
-        from bengal.utils.profile import BuildProfile, should_collect_metrics
         from bengal.utils.cli_output import init_cli_output
+        from bengal.utils.profile import BuildProfile
         
         # Use default profile if not provided
         if profile is None:
@@ -165,7 +168,7 @@ class BuildOrchestrator:
                     
                     # Process fonts (download + generate CSS)
                     font_helper = FontHelper(self.site.config['fonts'])
-                    fonts_css = font_helper.process(assets_dir)
+                    font_helper.process(assets_dir)
                     
                     self.stats.fonts_time_ms = (time.time() - fonts_start) * 1000
                     self.logger.info("fonts_complete")
@@ -593,10 +596,9 @@ class BuildOrchestrator:
         
         if health_config.get('verbose', False):
             cli.info(report.format_console(verbose=True))
-        else:
-            # Only print if there are issues
-            if report.has_errors() or report.has_warnings():
-                cli.info(report.format_console(verbose=False))
+        # Only print if there are issues
+        elif report.has_errors() or report.has_warnings():
+            cli.info(report.format_console(verbose=False))
         
         # Store report in stats
         self.stats.health_report = report

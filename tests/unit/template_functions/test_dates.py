@@ -1,6 +1,5 @@
 """Tests for date template functions."""
 
-import pytest
 from datetime import datetime, timedelta
 from bengal.rendering.template_functions.dates import (
     time_ago,

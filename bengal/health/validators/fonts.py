@@ -9,9 +9,9 @@ Validates:
 - Reasonable font file sizes
 """
 
-from typing import List, Dict, Any, TYPE_CHECKING
-from pathlib import Path
 import re
+from pathlib import Path
+from typing import TYPE_CHECKING, Any
 
 from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult
@@ -39,7 +39,7 @@ class FontValidator(BaseValidator):
     # Max font file size (500 KB is reasonable for a single font variant)
     MAX_FONT_SIZE_KB = 500
     
-    def validate(self, site: 'Site') -> List[CheckResult]:
+    def validate(self, site: 'Site') -> list[CheckResult]:
         """Run font validation checks."""
         results = []
         
@@ -76,7 +76,7 @@ class FontValidator(BaseValidator):
         
         return results
     
-    def _check_font_files(self, fonts_dir: Path, font_config: Dict[str, Any]) -> List[CheckResult]:
+    def _check_font_files(self, fonts_dir: Path, font_config: dict[str, Any]) -> list[CheckResult]:
         """Check font files are downloaded."""
         results = []
         
@@ -114,7 +114,7 @@ class FontValidator(BaseValidator):
         
         return results
     
-    def _check_font_css(self, fonts_css_path: Path, fonts_dir: Path) -> List[CheckResult]:
+    def _check_font_css(self, fonts_css_path: Path, fonts_dir: Path) -> list[CheckResult]:
         """Check font CSS structure and references."""
         results = []
         
@@ -157,7 +157,7 @@ class FontValidator(BaseValidator):
         
         return results
     
-    def _check_font_references(self, css_content: str, fonts_dir: Path) -> List[str]:
+    def _check_font_references(self, css_content: str, fonts_dir: Path) -> list[str]:
         """Check if font files referenced in CSS exist."""
         broken = []
         
@@ -174,7 +174,7 @@ class FontValidator(BaseValidator):
         
         return broken
     
-    def _check_font_sizes(self, fonts_dir: Path) -> List[CheckResult]:
+    def _check_font_sizes(self, fonts_dir: Path) -> list[CheckResult]:
         """Check font file sizes are reasonable."""
         results = []
         

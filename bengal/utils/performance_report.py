@@ -6,10 +6,10 @@ visualization, and trend detection.
 """
 
 import json
-from pathlib import Path
-from datetime import datetime
-from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
+from datetime import datetime
+from pathlib import Path
+from typing import Any
 
 
 @dataclass
@@ -57,7 +57,7 @@ class BuildMetric:
         return datetime.fromisoformat(self.timestamp.replace('Z', '+00:00'))
     
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'BuildMetric':
+    def from_dict(cls, data: dict[str, Any]) -> 'BuildMetric':
         """Create from dictionary."""
         return cls(
             timestamp=data.get('timestamp', ''),
@@ -86,7 +86,7 @@ class PerformanceReport:
         report.show(last=10, format='table')
     """
     
-    def __init__(self, metrics_dir: Optional[Path] = None):
+    def __init__(self, metrics_dir: Path | None = None):
         """
         Initialize report generator.
         
@@ -95,7 +95,7 @@ class PerformanceReport:
         """
         self.metrics_dir = metrics_dir or Path(".bengal-metrics")
     
-    def load_metrics(self, last: Optional[int] = None) -> List[BuildMetric]:
+    def load_metrics(self, last: int | None = None) -> list[BuildMetric]:
         """
         Load metrics from history file.
         
@@ -111,7 +111,7 @@ class PerformanceReport:
             return []
         
         metrics = []
-        with open(history_file, 'r', encoding='utf-8') as f:
+        with open(history_file, encoding='utf-8') as f:
             for line in f:
                 try:
                     data = json.loads(line.strip())
@@ -151,7 +151,7 @@ class PerformanceReport:
         else:
             print(f"Unknown format: {format}")
     
-    def _print_table(self, metrics: List[BuildMetric]):
+    def _print_table(self, metrics: list[BuildMetric]):
         """Print as ASCII table."""
         print("\n📊 Performance History")
         print(f"   Showing {len(metrics)} most recent builds\n")
@@ -186,7 +186,7 @@ class PerformanceReport:
         if len(metrics) >= 2:
             self._print_trends(metrics)
     
-    def _print_trends(self, metrics: List[BuildMetric]):
+    def _print_trends(self, metrics: list[BuildMetric]):
         """Print trend analysis."""
         # Filter out skipped builds for trend analysis
         valid_metrics = [m for m in metrics if not m.skipped]
@@ -210,7 +210,7 @@ class PerformanceReport:
         print(f"   Time:       {time_change:+.1f}%")
         print(f"   Memory:     {mem_change:+.1f}%")
         
-        print(f"\n📊 Averages")
+        print("\n📊 Averages")
         print(f"   Build time: {avg_time:.2f}s")
         print(f"   Memory:     {avg_memory:.1f}MB")
         print(f"   Throughput: {avg_throughput:.1f} pages/s")
@@ -221,7 +221,7 @@ class PerformanceReport:
         if abs(mem_change) > 15:
             print(f"⚠️  Significant memory change: {mem_change:+.1f}%")
     
-    def _print_json(self, metrics: List[BuildMetric]):
+    def _print_json(self, metrics: list[BuildMetric]):
         """Print as JSON array."""
         data = [
             {
@@ -238,7 +238,7 @@ class PerformanceReport:
         ]
         print(json.dumps(data, indent=2))
     
-    def _print_summary(self, metrics: List[BuildMetric]):
+    def _print_summary(self, metrics: list[BuildMetric]):
         """Print summary statistics."""
         if not metrics:
             return
@@ -269,7 +269,7 @@ class PerformanceReport:
         
         # Phase breakdown if available
         if latest.rendering_time_ms > 0:
-            print(f"\n⏱️  Phase Breakdown")
+            print("\n⏱️  Phase Breakdown")
             print(f"   Discovery:  {latest.discovery_time_ms:>6.0f}ms")
             print(f"   Taxonomies: {latest.taxonomy_time_ms:>6.0f}ms")
             print(f"   Rendering:  {latest.rendering_time_ms:>6.0f}ms")
@@ -297,7 +297,7 @@ class PerformanceReport:
         b1 = metrics[build1_idx]
         b2 = metrics[build2_idx]
         
-        print(f"\n📊 Build Comparison")
+        print("\n📊 Build Comparison")
         print(f"\n   Build 1: {b1.datetime.strftime('%Y-%m-%d %H:%M')}")
         print(f"   Build 2: {b2.datetime.strftime('%Y-%m-%d %H:%M')}")
         
@@ -322,5 +322,5 @@ class PerformanceReport:
         else:
             change_str = "-"
         
-        print(f"{name:<20} {str(val1):>12} {str(val2):>12} {change_str:>12}")
+        print(f"{name:<20} {val1!s:>12} {val2!s:>12} {change_str:>12}")
 

@@ -4,18 +4,18 @@ Menu orchestration for Bengal SSG.
 Handles navigation menu building from config and page frontmatter.
 """
 
-from typing import TYPE_CHECKING, Set, Optional
-from pathlib import Path
 import hashlib
 import json
+from pathlib import Path
+from typing import TYPE_CHECKING
 
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
 if TYPE_CHECKING:
-    from bengal.core.site import Site
     from bengal.core.page import Page
+    from bengal.core.site import Site
 
 
 class MenuOrchestrator:
@@ -37,9 +37,9 @@ class MenuOrchestrator:
             site: Site instance containing menu configuration
         """
         self.site = site
-        self._menu_cache_key: Optional[str] = None
+        self._menu_cache_key: str | None = None
     
-    def build(self, changed_pages: Optional[Set[Path]] = None, config_changed: bool = False) -> bool:
+    def build(self, changed_pages: set[Path] | None = None, config_changed: bool = False) -> bool:
         """
         Build all menus from config and page frontmatter.
         
@@ -65,7 +65,7 @@ class MenuOrchestrator:
         # Full menu rebuild needed
         return self._build_full()
     
-    def _can_skip_rebuild(self, changed_pages: Set[Path]) -> bool:
+    def _can_skip_rebuild(self, changed_pages: set[Path]) -> bool:
         """
         Check if menu rebuild can be skipped (incremental optimization).
         
@@ -154,6 +154,19 @@ class MenuOrchestrator:
         
         # Get menu definitions from config
         menu_config = self.site.config.get('menu', {})
+        i18n = self.site.config.get('i18n', {}) or {}
+        strategy = i18n.get('strategy', 'none')
+        # When i18n enabled, build per-locale menus keyed by site.menu_localized[lang]
+        languages: set[str] = set()
+        if strategy != 'none':
+            langs_cfg = i18n.get('languages') or []
+            for entry in langs_cfg:
+                if isinstance(entry, dict) and 'code' in entry:
+                    languages.add(entry['code'])
+                elif isinstance(entry, str):
+                    languages.add(entry)
+            default_lang = i18n.get('default_language', 'en')
+            languages.add(default_lang)
         
         if not menu_config:
             # No menus defined, skip
@@ -162,27 +175,49 @@ class MenuOrchestrator:
         logger.info("menu_build_start", menu_count=len(menu_config))
         
         for menu_name, items in menu_config.items():
-            builder = MenuBuilder()
-            
-            # Add config-defined items
-            if isinstance(items, list):
-                builder.add_from_config(items)
-            
-            # Add items from page frontmatter
-            for page in self.site.pages:
-                page_menu = page.metadata.get('menu', {})
-                if menu_name in page_menu:
-                    builder.add_from_page(page, menu_name, page_menu[menu_name])
-            
-            # Build hierarchy
-            self.site.menu[menu_name] = builder.build_hierarchy()
-            self.site.menu_builders[menu_name] = builder
-            
-            logger.info(
-                "menu_built",
-                menu_name=menu_name,
-                item_count=len(self.site.menu[menu_name])
-            )
+            if strategy == 'none':
+                builder = MenuBuilder()
+                if isinstance(items, list):
+                    builder.add_from_config(items)
+                for page in self.site.pages:
+                    page_menu = page.metadata.get('menu', {})
+                    if menu_name in page_menu:
+                        builder.add_from_page(page, menu_name, page_menu[menu_name])
+                self.site.menu[menu_name] = builder.build_hierarchy()
+                self.site.menu_builders[menu_name] = builder
+                logger.info(
+                    "menu_built",
+                    menu_name=menu_name,
+                    item_count=len(self.site.menu[menu_name])
+                )
+            else:
+                # Build per-locale
+                self.site.menu_localized.setdefault(menu_name, {})
+                for lang in sorted(languages):
+                    builder = MenuBuilder()
+                    # Config-defined items may have optional 'lang'
+                    if isinstance(items, list):
+                        filtered_items = []
+                        for it in items:
+                            if isinstance(it, dict) and 'lang' in it and it['lang'] not in (lang, '*'):
+                                continue
+                            filtered_items.append(it)
+                        builder.add_from_config(filtered_items)
+                    # Pages in this language
+                    for page in self.site.pages:
+                        if getattr(page, 'lang', None) and page.lang != lang:
+                            continue
+                        page_menu = page.metadata.get('menu', {})
+                        if menu_name in page_menu:
+                            builder.add_from_page(page, menu_name, page_menu[menu_name])
+                    menu_tree = builder.build_hierarchy()
+                    self.site.menu_localized[menu_name][lang] = menu_tree
+                    self.site.menu_builders_localized.setdefault(menu_name, {})[lang] = builder
+                logger.info(
+                    "menu_built_localized",
+                    menu_name=menu_name,
+                    languages=len(languages)
+                )
         
         # Update cache key
         self._menu_cache_key = self._compute_menu_cache_key()

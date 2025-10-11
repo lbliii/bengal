@@ -4,16 +4,15 @@ Related Posts orchestration for Bengal SSG.
 Builds related posts index during build phase for O(1) template access.
 """
 
-from typing import TYPE_CHECKING, List, Dict, Set
-from collections import defaultdict
+from typing import TYPE_CHECKING
 
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
 if TYPE_CHECKING:
-    from bengal.core.site import Site
     from bengal.core.page import Page
+    from bengal.core.site import Site
 
 
 class RelatedPostsOrchestrator:
@@ -96,7 +95,7 @@ class RelatedPostsOrchestrator:
         for page in self.site.pages:
             page.related_posts = []
     
-    def _build_page_tags_map(self) -> Dict['Page', Set[str]]:
+    def _build_page_tags_map(self) -> dict['Page', set[str]]:
         """
         Build mapping of page -> set of tag slugs.
         
@@ -119,10 +118,10 @@ class RelatedPostsOrchestrator:
     def _find_related_posts(
         self, 
         page: 'Page',
-        page_tags_map: Dict['Page', Set[str]],
-        tags_dict: Dict[str, Dict],
+        page_tags_map: dict['Page', set[str]],
+        tags_dict: dict[str, dict],
         limit: int
-    ) -> List['Page']:
+    ) -> list['Page']:
         """
         Find related posts for a single page using tag overlap scoring.
         

@@ -8,7 +8,7 @@ Supports:
 """
 
 import re
-from typing import Dict, List, Any, Optional
+from typing import Any
 
 
 class ParsedDocstring:
@@ -17,18 +17,18 @@ class ParsedDocstring:
     def __init__(self):
         self.summary: str = ""
         self.description: str = ""
-        self.args: Dict[str, str] = {}
+        self.args: dict[str, str] = {}
         self.returns: str = ""
-        self.return_type: Optional[str] = None
-        self.raises: List[Dict[str, str]] = []
-        self.examples: List[str] = []
-        self.see_also: List[str] = []
-        self.notes: List[str] = []
-        self.warnings: List[str] = []
-        self.deprecated: Optional[str] = None
-        self.version_added: Optional[str] = None
+        self.return_type: str | None = None
+        self.raises: list[dict[str, str]] = []
+        self.examples: list[str] = []
+        self.see_also: list[str] = []
+        self.notes: list[str] = []
+        self.warnings: list[str] = []
+        self.deprecated: str | None = None
+        self.version_added: str | None = None
     
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return {
             'summary': self.summary,
@@ -46,7 +46,7 @@ class ParsedDocstring:
         }
 
 
-def parse_docstring(docstring: Optional[str], style: str = 'auto') -> ParsedDocstring:
+def parse_docstring(docstring: str | None, style: str = 'auto') -> ParsedDocstring:
     """
     Parse docstring and extract structured information.
     
@@ -156,7 +156,7 @@ class GoogleDocstringParser:
         
         return result
     
-    def _split_sections(self, docstring: str) -> Dict[str, str]:
+    def _split_sections(self, docstring: str) -> dict[str, str]:
         """Split docstring into sections."""
         sections = {}
         lines = docstring.split('\n')
@@ -202,7 +202,7 @@ class GoogleDocstringParser:
         
         return sections
     
-    def _parse_args_section(self, section: str) -> Dict[str, str]:
+    def _parse_args_section(self, section: str) -> dict[str, str]:
         """
         Parse Args section.
         
@@ -241,7 +241,7 @@ class GoogleDocstringParser:
         
         return args
     
-    def _parse_raises_section(self, section: str) -> List[Dict[str, str]]:
+    def _parse_raises_section(self, section: str) -> list[dict[str, str]]:
         """
         Parse Raises section.
         
@@ -282,7 +282,7 @@ class GoogleDocstringParser:
         
         return raises
     
-    def _parse_examples_section(self, section: str) -> List[str]:
+    def _parse_examples_section(self, section: str) -> list[str]:
         """Extract code examples."""
         examples = []
         if not section:
@@ -312,7 +312,7 @@ class GoogleDocstringParser:
         
         return examples
     
-    def _parse_see_also_section(self, section: str) -> List[str]:
+    def _parse_see_also_section(self, section: str) -> list[str]:
         """Extract cross-references."""
         see_also = []
         if not section:
@@ -326,7 +326,7 @@ class GoogleDocstringParser:
         
         return see_also
     
-    def _parse_note_section(self, section: str) -> List[str]:
+    def _parse_note_section(self, section: str) -> list[str]:
         """Extract notes or warnings."""
         notes = []
         if not section:
@@ -389,7 +389,7 @@ class NumpyDocstringParser:
         
         return result
     
-    def _split_sections(self, docstring: str) -> Dict[str, str]:
+    def _split_sections(self, docstring: str) -> dict[str, str]:
         """Split NumPy docstring into sections."""
         sections = {}
         lines = docstring.split('\n')
@@ -430,7 +430,7 @@ class NumpyDocstringParser:
         
         return sections
     
-    def _parse_parameters_section(self, section: str) -> Dict[str, str]:
+    def _parse_parameters_section(self, section: str) -> dict[str, str]:
         """
         Parse Parameters section.
         
@@ -467,7 +467,7 @@ class NumpyDocstringParser:
         
         return params
     
-    def _parse_raises_section(self, section: str) -> List[Dict[str, str]]:
+    def _parse_raises_section(self, section: str) -> list[dict[str, str]]:
         """Parse Raises section (similar to Parameters)."""
         raises = []
         if not section:
@@ -501,19 +501,19 @@ class NumpyDocstringParser:
         
         return raises
     
-    def _parse_examples_section(self, section: str) -> List[str]:
+    def _parse_examples_section(self, section: str) -> list[str]:
         """Extract examples (usually code blocks)."""
         if not section:
             return []
         return [section.strip()]
     
-    def _parse_see_also_section(self, section: str) -> List[str]:
+    def _parse_see_also_section(self, section: str) -> list[str]:
         """Extract cross-references."""
         if not section:
             return []
         return [line.strip() for line in section.split('\n') if line.strip()]
     
-    def _parse_note_section(self, section: str) -> List[str]:
+    def _parse_note_section(self, section: str) -> list[str]:
         """Extract notes."""
         if not section:
             return []

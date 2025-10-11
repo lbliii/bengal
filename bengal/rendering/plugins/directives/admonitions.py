@@ -6,8 +6,8 @@ full markdown support.
 """
 
 from mistune.directives import DirectivePlugin
+
 from bengal.utils.logger import get_logger
-from bengal.rendering.plugins.directives.validator import DirectiveSyntaxValidator
 
 __all__ = ['AdmonitionDirective', 'render_admonition']
 

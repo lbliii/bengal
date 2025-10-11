@@ -9,6 +9,7 @@ from urllib.parse import quote, unquote
 
 if TYPE_CHECKING:
     from jinja2 import Environment
+
     from bengal.core.site import Site
 
 

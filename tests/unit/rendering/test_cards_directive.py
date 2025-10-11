@@ -2,7 +2,6 @@
 Test cards directive system (modern and Sphinx-Design compatibility).
 """
 
-import pytest
 from bengal.rendering.parser import MistuneParser
 
 

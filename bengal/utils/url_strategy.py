@@ -9,9 +9,9 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from bengal.core.site import Site
-    from bengal.core.section import Section
     from bengal.core.page import Page
+    from bengal.core.section import Section
+    from bengal.core.site import Site
 
 
 class URLStrategy:
@@ -47,6 +47,11 @@ class URLStrategy:
         """
         content_dir = site.root_path / "content"
         pretty_urls = site.config.get('pretty_urls', True)
+        # i18n configuration (optional)
+        i18n = site.config.get('i18n', {}) or {}
+        strategy = i18n.get('strategy', 'none')
+        default_lang = i18n.get('default_language', 'en')
+        default_in_subdir = bool(i18n.get('default_in_subdir', False))
         
         # Get relative path from content directory
         try:
@@ -66,11 +71,18 @@ class URLStrategy:
             else:
                 # about.md → about/index.html (directory structure)
                 output_rel_path = output_rel_path.parent / output_rel_path.stem / "index.html"
-        else:
-            # Flat URLs: about.md → about.html
-            if output_rel_path.stem == "_index":
-                output_rel_path = output_rel_path.parent / "index.html"
+        # Flat URLs: about.md → about.html
+        elif output_rel_path.stem == "_index":
+            output_rel_path = output_rel_path.parent / "index.html"
         
+        # Apply i18n URL strategy (prefix)
+        if strategy == 'prefix':
+            lang: str | None = getattr(page, 'lang', None)
+            if lang:
+                # If default language should be under subdir or non-default language: prefix
+                if default_in_subdir or lang != default_lang:
+                    output_rel_path = Path(lang) / output_rel_path
+        # strategy 'domain' or 'none' → no path prefixing here
         return site.output_dir / output_rel_path
     
     @staticmethod
@@ -130,7 +142,19 @@ class URLStrategy:
             tag='python', page=1 → public/tags/python/index.html
             tag='python', page=2 → public/tags/python/page/2/index.html
         """
-        path = site.output_dir / "tags" / tag_slug
+        # i18n prefix support using site's current language context
+        i18n = site.config.get('i18n', {}) or {}
+        strategy = i18n.get('strategy', 'none')
+        default_lang = i18n.get('default_language', 'en')
+        default_in_subdir = bool(i18n.get('default_in_subdir', False))
+        lang = getattr(site, 'current_language', None)
+
+        base_path = site.output_dir
+        if strategy == 'prefix' and lang:
+            if default_in_subdir or lang != default_lang:
+                base_path = base_path / lang
+
+        path = base_path / "tags" / tag_slug
         
         # Add pagination if needed
         if page_num > 1:
@@ -152,7 +176,19 @@ class URLStrategy:
         Example:
             public/tags/index.html
         """
-        return site.output_dir / "tags" / "index.html"
+        # i18n prefix support using site's current language context
+        i18n = site.config.get('i18n', {}) or {}
+        strategy = i18n.get('strategy', 'none')
+        default_lang = i18n.get('default_language', 'en')
+        default_in_subdir = bool(i18n.get('default_in_subdir', False))
+        lang = getattr(site, 'current_language', None)
+
+        base_path = site.output_dir
+        if strategy == 'prefix' and lang:
+            if default_in_subdir or lang != default_lang:
+                base_path = base_path / lang
+
+        return base_path / "tags" / "index.html"
     
     @staticmethod
     def url_from_output_path(output_path: Path, site: 'Site') -> str:

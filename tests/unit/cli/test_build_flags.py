@@ -2,7 +2,6 @@
 Tests for build flag validation and propagation in CLI.
 """
 
-import pytest
 from click.testing import CliRunner
 from bengal.cli import main
 
@@ -140,8 +139,6 @@ class TestFlagPropagation:
     def test_quiet_flag_structure(self):
         """Test that quiet parameter exists in build signature."""
         from bengal.orchestration.build import BuildOrchestrator
-        from bengal.core.site import Site
-        from pathlib import Path
         import inspect
         
         # Check method signature

@@ -1,6 +1,5 @@
 """Tests for string template functions."""
 
-import pytest
 from bengal.rendering.template_functions.strings import (
     truncatewords,
     slugify,

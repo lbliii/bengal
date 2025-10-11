@@ -4,10 +4,11 @@ Pagination helper functions for templates.
 Provides 3 functions for building pagination controls.
 """
 
-from typing import TYPE_CHECKING, List, Optional, Any
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from jinja2 import Environment
+
     from bengal.core.site import Site
 
 
@@ -23,7 +24,7 @@ def register(env: 'Environment', site: 'Site') -> None:
     })
 
 
-def paginate_items(items: List[Any], per_page: int = 10, current_page: int = 1) -> dict:
+def paginate_items(items: list[Any], per_page: int = 10, current_page: int = 1) -> dict:
     """
     Paginate a list of items.
     
@@ -93,7 +94,7 @@ def page_url(base_path: str, page_num: int) -> str:
     return f"{base_path}/page/{page_num}/"
 
 
-def page_range(current_page: int, total_pages: int, window: int = 2) -> List[Optional[int]]:
+def page_range(current_page: int, total_pages: int, window: int = 2) -> list[int | None]:
     """
     Generate page range with ellipsis for pagination controls.
     

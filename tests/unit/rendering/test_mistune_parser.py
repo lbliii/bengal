@@ -307,7 +307,6 @@ class TestErrorHandling:
     def test_missing_mistune_raises_import_error(self, monkeypatch):
         """Test that missing mistune raises clear error."""
         # Mock mistune import to fail
-        import sys
         import builtins
         
         original_import = builtins.__import__
@@ -471,6 +470,6 @@ Final content.
         
         # h3 should be indented (2 spaces)
         lines = toc.split('\n')
-        h3_line = [l for l in lines if 'H3 Nested' in l][0]
+        h3_line = [line for line in lines if 'H3 Nested' in line][0]
         assert h3_line.startswith('  <li>')  # 2 space indent
 

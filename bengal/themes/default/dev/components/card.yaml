@@ -1,0 +1,25 @@
+name: "Article Card"
+template: "partials/article-card.html"
+variants:
+  - id: "default"
+    name: "Default"
+    context:
+      article:
+        title: "Hello Bengal"
+        slug: "hello-bengal"
+        metadata:
+          description: "A friendly introduction to Bengal SSG."
+          author: "Bengal Docs"
+        tags: ["featured"]
+  - id: "long-title"
+    name: "Long Title"
+    context:
+      article:
+        title: "This is a very long article title to test wrapping and layout behavior in the card component"
+        slug: "long-title"
+        metadata:
+          description: "Testing long titles."
+          author: "Bengal Docs"
+        tags: ["tutorial"]
+
+

@@ -4,14 +4,14 @@ Custom HTTP request handler for the dev server.
 Provides beautiful logging, custom 404 pages, and live reload support.
 """
 
-from pathlib import Path
 import http.server
 import re
+from pathlib import Path
 
-from bengal.utils.logger import get_logger
+from bengal.server.component_preview import ComponentPreviewServer
+from bengal.server.live_reload import LIVE_RELOAD_SCRIPT, LiveReloadMixin
 from bengal.server.request_logger import RequestLogger
-from bengal.server.live_reload import LiveReloadMixin, LIVE_RELOAD_SCRIPT
-from bengal.server.response_wrapper import ResponseBuffer
+from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -40,18 +40,63 @@ class BengalRequestHandler(RequestLogger, LiveReloadMixin, http.server.SimpleHTT
     
     def do_GET(self) -> None:
         """
-        Override GET handler for potential future enhancements.
+        Override GET to support SSE and safe HTML injection via mixin.
         
-        NOTE: Live reload is currently DISABLED due to implementation issues.
-        The Response Wrapper Pattern implementation is complete but needs
-        more testing before re-enabling. See:
-        - plan/LIVE_RELOAD_ARCHITECTURE_PROPOSAL.md for the proper solution
-        - plan/LIVE_RELOAD_QUICK_START.md for implementation guide
-        
-        For now, just use default file serving behavior.
+        Request flow:
+        - Serve SSE endpoint at /__bengal_reload__ (long-lived connection)
+        - Try to serve HTML with injected live-reload script
+        - Fallback to default file serving for non-HTML
         """
-        # Live reload DISABLED - just use default handler
+        # Component preview routes
+        if self.path.startswith('/__bengal_components__/') or self.path.startswith('/__bengal_components__'):
+            self._handle_component_preview()
+            return
+        
+        # Handle SSE endpoint first (long-lived stream)
+        if self.path == '/__bengal_reload__':
+            self.handle_sse()
+            return
+        
+        # Serve HTML with injected live-reload if applicable
+        if self.serve_html_with_live_reload():
+            return
+        
+        # Non-HTML or injection failed - use default handler
         super().do_GET()
+
+    def _handle_component_preview(self) -> None:
+        try:
+            # Site is bound at server creation via directory chdir; fetch from env on demand
+            # We reconstruct Site from output_dir parent as a safe default.
+            from bengal.core.site import Site
+            site_root = Path(self.directory).parent  # output_dir -> site root
+            site = Site.from_config(site_root)
+            cps = ComponentPreviewServer(site)
+            
+            # Routing
+            if self.path.startswith('/__bengal_components__/view'):
+                from urllib.parse import parse_qs, urlparse
+                q = parse_qs(urlparse(self.path).query)
+                comp_id = (q.get('c') or [''])[0]
+                variant_id = (q.get('v') or [None])[0]
+                html = cps.view_page(comp_id, variant_id)
+            else:
+                html = cps.list_page()
+            
+            body = html.encode('utf-8')
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+        except Exception as e:
+            logger.error("component_preview_failed", error=str(e), error_type=type(e).__name__)
+            self.send_response(500)
+            msg = f"<h1>Component Preview Error</h1><pre>{e!s}</pre>".encode()
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(msg)))
+            self.end_headers()
+            self.wfile.write(msg)
     
     def _might_be_html(self, path: str) -> bool:
         """
@@ -205,7 +250,7 @@ class BengalRequestHandler(RequestLogger, LiveReloadMixin, http.server.SimpleHTT
                         error_type=type(e).__name__)
             return response_data
     
-    def send_error(self, code: int, message: str = None, explain: str = None) -> None:
+    def send_error(self, code: int, message: str | None = None, explain: str | None = None) -> None:
         """
         Override send_error to serve custom 404 page.
         

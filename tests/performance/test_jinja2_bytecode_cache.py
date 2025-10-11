@@ -106,7 +106,7 @@ cache_templates = true
         # Calculate speedup
         speedup = time1 / time2 if time2 > 0 else 1.0
         
-        print(f"\nBytecode Cache Performance:")
+        print("\nBytecode Cache Performance:")
         print(f"  First build (compile templates):  {time1:.3f}s")
         print(f"  Second build (cached templates):  {time2:.3f}s")
         print(f"  Speedup:                          {speedup:.2f}x")

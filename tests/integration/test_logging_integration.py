@@ -6,9 +6,6 @@ all the expected events and phases.
 """
 
 import pytest
-from pathlib import Path
-import tempfile
-import shutil
 
 from bengal.core.site import Site
 from bengal.utils.logger import (
@@ -102,7 +99,7 @@ class TestLoggingIntegration:
         
         # Build site
         site = Site.from_config(temp_site)
-        stats = site.build(parallel=False, incremental=False, verbose=True)
+        site.build(parallel=False, incremental=False, verbose=True)
         
         # Get logged events
         logger = get_logger("bengal.orchestration.build")
@@ -123,8 +120,8 @@ class TestLoggingIntegration:
         build_start = build_start_events[0]
         assert "parallel" in build_start.context
         assert "incremental" in build_start.context
-        assert build_start.context["parallel"] == False
-        assert build_start.context["incremental"] == False
+        assert not build_start.context["parallel"]
+        assert not build_start.context["incremental"]
         
         # Verify build_complete has stats
         build_complete = build_complete_events[0]

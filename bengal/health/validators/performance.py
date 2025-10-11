@@ -7,7 +7,7 @@ Validates:
 - Reports basic throughput metrics
 """
 
-from typing import List, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult
@@ -35,7 +35,7 @@ class PerformanceValidator(BaseValidator):
     description = "Validates build performance metrics"
     enabled_by_default = True
     
-    def validate(self, site: 'Site') -> List[CheckResult]:
+    def validate(self, site: 'Site') -> list[CheckResult]:
         """Run performance validation checks."""
         results = []
         
@@ -59,7 +59,7 @@ class PerformanceValidator(BaseValidator):
         
         return results
     
-    def _check_build_time(self, site: 'Site', build_stats: dict) -> List[CheckResult]:
+    def _check_build_time(self, site: 'Site', build_stats: dict) -> list[CheckResult]:
         """Check if overall build time is reasonable."""
         results = []
         
@@ -96,7 +96,7 @@ class PerformanceValidator(BaseValidator):
         
         return results
     
-    def _check_throughput(self, site: 'Site', build_stats: dict) -> List[CheckResult]:
+    def _check_throughput(self, site: 'Site', build_stats: dict) -> list[CheckResult]:
         """Check pages per second throughput."""
         results = []
         
@@ -129,7 +129,7 @@ class PerformanceValidator(BaseValidator):
         
         return results
     
-    def _check_slow_pages(self, site: 'Site', build_stats: dict) -> List[CheckResult]:
+    def _check_slow_pages(self, site: 'Site', build_stats: dict) -> list[CheckResult]:
         """Check for individual slow pages."""
         results = []
         

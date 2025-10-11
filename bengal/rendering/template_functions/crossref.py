@@ -4,14 +4,17 @@ Cross-reference functions for templates.
 Provides 4 functions for Sphinx-style cross-referencing with O(1) performance.
 """
 
-from typing import TYPE_CHECKING, Optional, List
+from typing import TYPE_CHECKING, Optional
+
 from markupsafe import Markup
+
 from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
     from jinja2 import Environment
-    from bengal.core.site import Site
+
     from bengal.core.page import Page
+    from bengal.core.site import Site
 
 logger = get_logger(__name__)
 
@@ -20,13 +23,13 @@ def register(env: 'Environment', site: 'Site') -> None:
     """Register cross-reference functions with Jinja2 environment."""
     
     # Create closures that have access to site's xref_index
-    def ref_with_site(path: str, text: str = None) -> Markup:
+    def ref_with_site(path: str, text: str | None = None) -> Markup:
         return ref(path, site.xref_index, text)
     
     def doc_with_site(path: str) -> Optional['Page']:
         return doc(path, site.xref_index)
     
-    def anchor_with_site(heading: str, page_path: str = None) -> Markup:
+    def anchor_with_site(heading: str, page_path: str | None = None) -> Markup:
         return anchor(heading, site.xref_index, page_path)
     
     def relref_with_site(path: str) -> str:
@@ -41,7 +44,7 @@ def register(env: 'Environment', site: 'Site') -> None:
     })
 
 
-def ref(path: str, index: dict, text: str = None) -> Markup:
+def ref(path: str, index: dict, text: str | None = None) -> Markup:
     """
     Generate cross-reference link (like Sphinx :doc: or :ref:).
     
@@ -211,7 +214,7 @@ def doc(path: str, index: dict) -> Optional['Page']:
     return page
 
 
-def anchor(heading: str, index: dict, page_path: str = None) -> Markup:
+def anchor(heading: str, index: dict, page_path: str | None = None) -> Markup:
     """
     Link to a heading (anchor) in a page.
     

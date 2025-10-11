@@ -6,19 +6,15 @@ while showing appropriate detail for each user profile.
 """
 
 import time
-from enum import Enum
-from typing import Optional, List, Dict, Any
 from dataclasses import dataclass, field
+from enum import Enum
 
 from rich.console import Console, Group, RenderableType
 from rich.live import Live
-from rich.progress import Progress, BarColumn, TextColumn, TaskProgressColumn, TimeRemainingColumn
-from rich.table import Table
 from rich.text import Text
-from rich.panel import Panel
 
-from bengal.utils.rich_console import get_console, should_use_rich
 from bengal.utils.profile import BuildProfile
+from bengal.utils.rich_console import get_console, should_use_rich
 
 
 class PhaseStatus(Enum):
@@ -35,14 +31,14 @@ class PhaseProgress:
     name: str
     status: PhaseStatus = PhaseStatus.PENDING
     current: int = 0
-    total: Optional[int] = None
+    total: int | None = None
     current_item: str = ""
     elapsed_ms: float = 0
-    start_time: Optional[float] = None
+    start_time: float | None = None
     metadata: dict = field(default_factory=dict)
-    recent_items: List[str] = field(default_factory=list)
+    recent_items: list[str] = field(default_factory=list)
     
-    def get_percentage(self) -> Optional[float]:
+    def get_percentage(self) -> float | None:
         """Get completion percentage."""
         if self.total and self.total > 0:
             return (self.current / self.total) * 100
@@ -81,7 +77,7 @@ class LiveProgressManager:
             progress.complete_phase('rendering', elapsed_ms=1234)
     """
     
-    def __init__(self, profile: BuildProfile, console: Optional[Console] = None, 
+    def __init__(self, profile: BuildProfile, console: Console | None = None, 
                  enabled: bool = True):
         """
         Initialize live progress manager.
@@ -93,9 +89,9 @@ class LiveProgressManager:
         """
         self.profile = profile
         self.console = console or get_console()
-        self.phases: Dict[str, PhaseProgress] = {}
-        self.phase_order: List[str] = []  # Preserve insertion order
-        self.live: Optional[Live] = None
+        self.phases: dict[str, PhaseProgress] = {}
+        self.phase_order: list[str] = []  # Preserve insertion order
+        self.live: Live | None = None
         self.enabled = enabled
         
         # Determine if we should use live updates
@@ -120,7 +116,7 @@ class LiveProgressManager:
             self.use_live = False
         
         # Track last printed state for fallback
-        self._last_fallback_phase: Optional[str] = None
+        self._last_fallback_phase: str | None = None
     
     def __enter__(self):
         """Enter context manager."""
@@ -142,7 +138,7 @@ class LiveProgressManager:
             self._update_display()
             self.live.__exit__(*args)
     
-    def add_phase(self, phase_id: str, name: str, total: Optional[int] = None):
+    def add_phase(self, phase_id: str, name: str, total: int | None = None):
         """
         Register a new phase.
         
@@ -169,8 +165,8 @@ class LiveProgressManager:
             phase.start_time = time.time()
             self._update_display()
     
-    def update_phase(self, phase_id: str, current: Optional[int] = None, 
-                     current_item: Optional[str] = None, **metadata):
+    def update_phase(self, phase_id: str, current: int | None = None, 
+                     current_item: str | None = None, **metadata):
         """
         Update phase progress.
         
@@ -206,7 +202,7 @@ class LiveProgressManager:
         
         self._update_display()
     
-    def complete_phase(self, phase_id: str, elapsed_ms: Optional[float] = None):
+    def complete_phase(self, phase_id: str, elapsed_ms: float | None = None):
         """
         Mark phase as complete.
         

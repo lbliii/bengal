@@ -6,10 +6,7 @@ across all termination scenarios.
 """
 
 import os
-import signal
 import subprocess
-import time
-from pathlib import Path
 import pytest
 
 
@@ -68,7 +65,7 @@ class TestPIDManager:
         # Should return the PID since process exists
         # (though it's not actually a Bengal serve process)
         # This tests the existence check, not the Bengal-specific check
-        stale_pid = PIDManager.check_stale_pid(pid_file)
+        PIDManager.check_stale_pid(pid_file)
         
         # May or may not return PID depending on psutil availability
         # and whether it detects this isn't a Bengal process

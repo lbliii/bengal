@@ -8,11 +8,13 @@ to avoid code duplication and ensure consistency.
 """
 
 import re
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
+
 from bengal.utils import text as text_utils
 
 if TYPE_CHECKING:
     from jinja2 import Environment
+
     from bengal.core.site import Site
 
 
@@ -30,7 +32,21 @@ def register(env: 'Environment', site: 'Site') -> None:
         'reading_time': reading_time,
         'excerpt': excerpt,
         'strip_whitespace': strip_whitespace,
+        'get': dict_get,
     })
+
+
+def dict_get(obj, key, default=None):
+    """Safe get supporting dict-like objects for component preview contexts."""
+    try:
+        if isinstance(obj, dict):
+            return obj.get(key, default)
+        # Allow attribute access as fallback
+        if hasattr(obj, key):
+            return getattr(obj, key)
+    except Exception:
+        pass
+    return default
 
 
 def truncatewords(text: str, count: int, suffix: str = "...") -> str:
@@ -202,7 +218,7 @@ def replace_regex(text: str, pattern: str, replacement: str) -> str:
         return text
 
 
-def pluralize(count: int, singular: str, plural: Optional[str] = None) -> str:
+def pluralize(count: int, singular: str, plural: str | None = None) -> str:
     """
     Return singular or plural form based on count.
     

@@ -1,6 +1,5 @@
 """Tests for navigation functionality including breadcrumbs and section URLs."""
 
-import pytest
 from pathlib import Path
 from bengal.core.page import Page
 from bengal.core.section import Section

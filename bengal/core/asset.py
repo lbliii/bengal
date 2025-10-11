@@ -2,11 +2,10 @@
 Asset Object - Handles images, CSS, JS, and other static files.
 """
 
-from dataclasses import dataclass
-from pathlib import Path
-from typing import Optional
 import hashlib
 import shutil
+from dataclasses import dataclass
+from pathlib import Path
 
 from bengal.utils.logger import get_logger
 
@@ -32,9 +31,9 @@ class Asset:
     """
     
     source_path: Path
-    output_path: Optional[Path] = None
-    asset_type: Optional[str] = None
-    fingerprint: Optional[str] = None
+    output_path: Path | None = None
+    asset_type: str | None = None
+    fingerprint: str | None = None
     minified: bool = False
     optimized: bool = False
     bundled: bool = False
@@ -156,7 +155,7 @@ class Asset:
             return re.sub(import_pattern, resolve_import, css_content)
         
         # Read the CSS file
-        with open(self.source_path, 'r', encoding='utf-8') as f:
+        with open(self.source_path, encoding='utf-8') as f:
             css_content = f.read()
         
         # Bundle all @import statements
@@ -175,7 +174,7 @@ class Asset:
         if hasattr(self, '_bundled_content'):
             css_content = self._bundled_content
         else:
-            with open(self.source_path, 'r', encoding='utf-8') as f:
+            with open(self.source_path, encoding='utf-8') as f:
                 css_content = f.read()
         
         # Try Lightning CSS for minification + autoprefixing
@@ -237,7 +236,7 @@ class Asset:
         try:
             from jsmin import jsmin
             
-            with open(self.source_path, 'r', encoding='utf-8') as f:
+            with open(self.source_path, encoding='utf-8') as f:
                 js_content = f.read()
             
             minified_content = jsmin(js_content)
@@ -314,19 +313,28 @@ class Asset:
         """
         # Generate fingerprint if requested and not already done
         if use_fingerprint and not self.fingerprint:
-            self.hash()
+            # Prefer hashing minified content when available to keep URLs stable with output
+            if hasattr(self, '_minified_content') and isinstance(self._minified_content, str):
+                import hashlib as _hashlib
+                hasher = _hashlib.sha256()
+                hasher.update(self._minified_content.encode('utf-8'))
+                self.fingerprint = hasher.hexdigest()[:8]
+            else:
+                self.hash()
         
         # Determine output filename
         if use_fingerprint and self.fingerprint:
-            filename = f"{self.source_path.stem}.{self.fingerprint}{self.source_path.suffix}"
+            out_name = f"{self.source_path.stem}.{self.fingerprint}{self.source_path.suffix}"
         else:
-            filename = self.source_path.name
+            out_name = self.source_path.name
         
         # Determine output path maintaining directory structure
         if self.output_path:
-            output_path = output_dir / self.output_path
+            # Insert fingerprint into filename while preserving directory structure
+            parent = (output_dir / self.output_path).parent
+            output_path = parent / out_name
         else:
-            output_path = output_dir / filename
+            output_path = output_dir / out_name
         
         # Create parent directories
         output_path.parent.mkdir(parents=True, exist_ok=True)

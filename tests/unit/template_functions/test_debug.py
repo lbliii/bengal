@@ -1,6 +1,5 @@
 """Tests for debug utility template functions."""
 
-import pytest
 from bengal.rendering.template_functions.debug import (
     debug,
     typeof,

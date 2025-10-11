@@ -3,7 +3,7 @@ Tests for bengal.utils.dates module.
 """
 
 import pytest
-from datetime import datetime, date, timedelta, timezone
+from datetime import datetime, date, timezone
 from bengal.utils.dates import (
     parse_date, format_date_iso, format_date_rfc822, format_date_human,
     time_ago, get_current_year, is_recent, date_range_overlap

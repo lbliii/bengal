@@ -2,8 +2,8 @@
 Page Computed Properties Mixin - Cached expensive computations.
 """
 
-from functools import cached_property
 import re
+from functools import cached_property
 
 
 class PageComputedMixin:

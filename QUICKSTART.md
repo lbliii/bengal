@@ -201,6 +201,12 @@ bengal serve --host 0.0.0.0 --port 3000
 # Disable file watching
 bengal serve --no-watch
 
+# Show detailed server activity
+bengal serve --verbose
+
+# Show debug output (port checks, file changes, etc.)
+bengal serve --debug
+
 # Use custom config file
 bengal serve --config custom-config.toml
 ```

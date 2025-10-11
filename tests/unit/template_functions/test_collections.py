@@ -1,6 +1,5 @@
 """Tests for collection template functions."""
 
-import pytest
 from bengal.rendering.template_functions.collections import (
     where,
     where_not,

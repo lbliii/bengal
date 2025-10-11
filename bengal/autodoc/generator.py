@@ -3,11 +3,12 @@ Documentation generator - renders DocElements to markdown using templates.
 """
 
 import concurrent.futures
+import hashlib
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
+
 from jinja2 import Environment, FileSystemLoader, TemplateNotFound
-import hashlib
 
 from bengal.autodoc.base import DocElement, Extractor
 from bengal.utils.logger import get_logger
@@ -19,8 +20,8 @@ class TemplateCache:
     """Cache rendered templates for performance."""
     
     def __init__(self):
-        self.cache: Dict[str, str] = {}
-        self.template_hashes: Dict[str, str] = {}
+        self.cache: dict[str, str] = {}
+        self.template_hashes: dict[str, str] = {}
     
     def get_cache_key(self, template_name: str, element: DocElement) -> str:
         """Generate cache key from template + data."""
@@ -31,7 +32,7 @@ class TemplateCache:
         
         return f"{template_name}:{element_hash}:{template_hash}"
     
-    def get(self, key: str) -> Optional[str]:
+    def get(self, key: str) -> str | None:
         """Get cached rendered template."""
         return self.cache.get(key)
     
@@ -54,9 +55,9 @@ class DocumentationGenerator:
     def __init__(
         self,
         extractor: Extractor,
-        config: Dict[str, Any],
-        template_cache: Optional[TemplateCache] = None,
-        max_workers: Optional[int] = None
+        config: dict[str, Any],
+        template_cache: TemplateCache | None = None,
+        max_workers: int | None = None
     ):
         """
         Initialize generator.
@@ -119,10 +120,10 @@ class DocumentationGenerator:
     
     def generate_all(
         self,
-        elements: List[DocElement],
+        elements: list[DocElement],
         output_dir: Path,
         parallel: bool = True
-    ) -> List[Path]:
+    ) -> list[Path]:
         """
         Generate documentation for all elements.
         
@@ -158,9 +159,9 @@ class DocumentationGenerator:
     
     def _generate_sequential(
         self,
-        elements: List[DocElement],
+        elements: list[DocElement],
         output_dir: Path
-    ) -> List[Path]:
+    ) -> list[Path]:
         """Generate documentation sequentially."""
         logger.debug(
             "autodoc_sequential_generation",
@@ -184,9 +185,9 @@ class DocumentationGenerator:
     
     def _generate_parallel(
         self,
-        elements: List[DocElement],
+        elements: list[DocElement],
         output_dir: Path
-    ) -> List[Path]:
+    ) -> list[Path]:
         """Generate documentation in parallel."""
         logger.debug(
             "autodoc_parallel_generation",

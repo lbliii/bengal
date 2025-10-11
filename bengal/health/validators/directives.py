@@ -10,16 +10,15 @@ Validates:
 """
 
 import re
-from typing import List, Dict, Any, Tuple, Optional, TYPE_CHECKING
-from pathlib import Path
 from collections import defaultdict
+from pathlib import Path
+from typing import TYPE_CHECKING, Any
 
 from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult
 
 if TYPE_CHECKING:
     from bengal.core.site import Site
-    from bengal.core.page import Page
 
 
 class DirectiveValidator(BaseValidator):
@@ -50,7 +49,7 @@ class DirectiveValidator(BaseValidator):
     MAX_NESTING_DEPTH = 5  # Warn if nesting deeper than this
     MAX_TABS_PER_BLOCK = 10  # Warn if single tabs block has more than this
     
-    def validate(self, site: 'Site') -> List[CheckResult]:
+    def validate(self, site: 'Site') -> list[CheckResult]:
         """Run directive validation checks."""
         results = []
         
@@ -71,7 +70,7 @@ class DirectiveValidator(BaseValidator):
         
         return results
     
-    def _analyze_directives(self, site: 'Site') -> Dict[str, Any]:
+    def _analyze_directives(self, site: 'Site') -> dict[str, Any]:
         """
         Analyze all directives in site source files.
         
@@ -133,7 +132,7 @@ class DirectiveValidator(BaseValidator):
                             'warning': directive['fence_nesting_warning']
                         })
                     
-            except Exception as e:
+            except Exception:
                 # Skip files we can't read
                 pass
         
@@ -162,7 +161,7 @@ class DirectiveValidator(BaseValidator):
         
         return data
     
-    def _extract_directives(self, content: str, file_path: Path) -> List[Dict[str, Any]]:
+    def _extract_directives(self, content: str, file_path: Path) -> list[dict[str, Any]]:
         """
         Extract all directive blocks from markdown content.
         
@@ -183,7 +182,7 @@ class DirectiveValidator(BaseValidator):
         # Capture fence markers to detect nesting issues
         pattern = r'(`{3,})\{(\w+(?:-\w+)?)\}([^\n]*)\n(.*?)\1'
         
-        lines = content.split('\n')
+        content.split('\n')
         
         for match in re.finditer(pattern, content, re.DOTALL):
             fence_marker = match.group(1)  # e.g., ``` or ````
@@ -223,7 +222,7 @@ class DirectiveValidator(BaseValidator):
         
         return directives
     
-    def _validate_tabs_directive(self, directive: Dict[str, Any]) -> None:
+    def _validate_tabs_directive(self, directive: dict[str, Any]) -> None:
         """Validate tabs directive content."""
         content = directive['content']
         
@@ -235,7 +234,7 @@ class DirectiveValidator(BaseValidator):
             # Check if there's a malformed marker
             bad_markers = re.findall(r'^###\s*Ta[^b]', content, re.MULTILINE)
             if bad_markers:
-                directive['syntax_error'] = f'Malformed tab marker (use "### Tab: Title")'
+                directive['syntax_error'] = 'Malformed tab marker (use "### Tab: Title")'
             else:
                 # Single tab or no tabs - might be intentional, just note it
                 directive['completeness_error'] = 'Tabs directive has no tab markers (### Tab: Title)'
@@ -246,7 +245,7 @@ class DirectiveValidator(BaseValidator):
         if not content.strip():
             directive['completeness_error'] = 'Tabs directive has no content'
     
-    def _validate_code_tabs_directive(self, directive: Dict[str, Any]) -> None:
+    def _validate_code_tabs_directive(self, directive: dict[str, Any]) -> None:
         """Validate code-tabs directive content."""
         content = directive['content']
         
@@ -261,7 +260,7 @@ class DirectiveValidator(BaseValidator):
         if not content.strip():
             directive['completeness_error'] = 'Code-tabs directive has no content'
     
-    def _validate_dropdown_directive(self, directive: Dict[str, Any]) -> None:
+    def _validate_dropdown_directive(self, directive: dict[str, Any]) -> None:
         """Validate dropdown directive content."""
         content = directive['content']
         
@@ -274,7 +273,7 @@ class DirectiveValidator(BaseValidator):
             # Title is optional but recommended
             pass
     
-    def _check_fence_nesting(self, directive: Dict[str, Any]) -> None:
+    def _check_fence_nesting(self, directive: dict[str, Any]) -> None:
         """
         Check for fence nesting issues - when a directive uses 3 backticks
         but contains code blocks that also use 3 backticks.
@@ -311,8 +310,8 @@ class DirectiveValidator(BaseValidator):
         
         if has_code_blocks:
             directive['fence_nesting_warning'] = (
-                f'Directive uses 3 backticks (```) but contains 3-backtick code blocks. '
-                f'Use 4+ backticks (````) for the directive to avoid parsing issues.'
+                'Directive uses 3 backticks (```) but contains 3-backtick code blocks. '
+                'Use 4+ backticks (````) for the directive to avoid parsing issues.'
             )
             return
         
@@ -322,7 +321,7 @@ class DirectiveValidator(BaseValidator):
         if directive_type in ('tabs', 'code-tabs', 'code_tabs'):
             # Count tab markers
             tab_count = len(re.findall(r'^### Tab:', content, re.MULTILINE))
-            content_lines = len([l for l in lines if l.strip()])
+            content_lines = len([line for line in lines if line.strip()])
             
             # If we have tab markers but very little content, might be truncated
             if tab_count > 0 and content_lines < (tab_count * 3):
@@ -332,7 +331,7 @@ class DirectiveValidator(BaseValidator):
                     f'If tabs contain code blocks, use 4+ backticks (````) for the directive fence.'
                 )
     
-    def _check_directive_syntax(self, data: Dict[str, Any]) -> List[CheckResult]:
+    def _check_directive_syntax(self, data: dict[str, Any]) -> list[CheckResult]:
         """Check directive syntax is valid."""
         results = []
         errors = data['syntax_errors']
@@ -371,7 +370,7 @@ class DirectiveValidator(BaseValidator):
         
         return results
     
-    def _check_directive_completeness(self, data: Dict[str, Any]) -> List[CheckResult]:
+    def _check_directive_completeness(self, data: dict[str, Any]) -> list[CheckResult]:
         """Check directives are complete (have required content, options, etc)."""
         results = []
         errors = data['completeness_errors']
@@ -410,7 +409,7 @@ class DirectiveValidator(BaseValidator):
         
         return results
     
-    def _check_directive_performance(self, data: Dict[str, Any]) -> List[CheckResult]:
+    def _check_directive_performance(self, data: dict[str, Any]) -> list[CheckResult]:
         """Check for performance issues with directive usage."""
         results = []
         warnings = data['performance_warnings']
@@ -453,7 +452,7 @@ class DirectiveValidator(BaseValidator):
         
         return results
     
-    def _check_directive_rendering(self, site: 'Site', data: Dict[str, Any]) -> List[CheckResult]:
+    def _check_directive_rendering(self, site: 'Site', data: dict[str, Any]) -> list[CheckResult]:
         """Check that directives rendered properly in output HTML."""
         results = []
         issues = []
@@ -485,11 +484,10 @@ class DirectiveValidator(BaseValidator):
                 recommendation="Check for directive syntax errors or missing directive plugins.",
                 details=issues[:5]
             ))
-        else:
-            if data['total_directives'] > 0:
-                results.append(CheckResult.success(
-                    f"All directive(s) rendered successfully (checked {len(pages_to_check)} pages)"
-                ))
+        elif data['total_directives'] > 0:
+            results.append(CheckResult.success(
+                f"All directive(s) rendered successfully (checked {len(pages_to_check)} pages)"
+            ))
         
         return results
     

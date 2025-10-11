@@ -7,7 +7,7 @@ Provides common interfaces for all documentation extractors.
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 @dataclass
@@ -36,15 +36,15 @@ class DocElement:
     qualified_name: str
     description: str
     element_type: str
-    source_file: Optional[Path] = None
-    line_number: Optional[int] = None
-    metadata: Dict[str, Any] = field(default_factory=dict)
-    children: List['DocElement'] = field(default_factory=list)
-    examples: List[str] = field(default_factory=list)
-    see_also: List[str] = field(default_factory=list)
-    deprecated: Optional[str] = None
+    source_file: Path | None = None
+    line_number: int | None = None
+    metadata: dict[str, Any] = field(default_factory=dict)
+    children: list['DocElement'] = field(default_factory=list)
+    examples: list[str] = field(default_factory=list)
+    see_also: list[str] = field(default_factory=list)
+    deprecated: str | None = None
     
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for caching/serialization."""
         return {
             'name': self.name,
@@ -61,7 +61,7 @@ class DocElement:
         }
     
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'DocElement':
+    def from_dict(cls, data: dict[str, Any]) -> 'DocElement':
         """Create from dictionary (for cache loading)."""
         children = [cls.from_dict(child) for child in data.get('children', [])]
         source_file = Path(data['source_file']) if data.get('source_file') else None
@@ -99,7 +99,7 @@ class Extractor(ABC):
     """
     
     @abstractmethod
-    def extract(self, source: Any) -> List[DocElement]:
+    def extract(self, source: Any) -> list[DocElement]:
         """
         Extract documentation elements from source.
         

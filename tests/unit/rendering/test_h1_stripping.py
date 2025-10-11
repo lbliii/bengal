@@ -1,6 +1,5 @@
 """Tests for automatic H1 stripping in rendered content."""
 
-import pytest
 from bengal.rendering.renderer import Renderer
 from unittest.mock import Mock
 

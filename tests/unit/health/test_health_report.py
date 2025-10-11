@@ -2,8 +2,6 @@
 Tests for health check report formatting.
 """
 
-import pytest
-from datetime import datetime
 
 from bengal.health.report import (
     CheckStatus, CheckResult, ValidatorReport, HealthReport

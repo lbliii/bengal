@@ -2,10 +2,8 @@
 Sitemap generation for SEO.
 """
 
-from pathlib import Path
-from typing import Any
-from datetime import datetime
 import xml.etree.ElementTree as ET
+from typing import Any
 
 from bengal.utils.logger import get_logger
 
@@ -46,9 +44,10 @@ class SitemapGenerator:
         self.logger.info("sitemap_generation_start",
                         total_pages=len(self.site.pages))
         
-        # Create root element
+        # Create root element with xhtml namespace for hreflang alternates
         urlset = ET.Element('urlset')
         urlset.set('xmlns', 'http://www.sitemaps.org/schemas/sitemap/0.9')
+        urlset.set('xmlns:xhtml', 'http://www.w3.org/1999/xhtml')
         
         baseurl = self.site.config.get('baseurl', '')
         
@@ -74,6 +73,42 @@ class SitemapGenerator:
             loc = loc.replace('/index.html', '/')
             
             ET.SubElement(url_elem, 'loc').text = loc
+
+            # Add hreflang alternates when translation_key present
+            try:
+                if getattr(page, 'translation_key', None):
+                    key = page.translation_key
+                    # Collect alternates
+                    seen = set()
+                    for p in self.site.pages:
+                        if getattr(p, 'translation_key', None) == key and p.output_path:
+                            try:
+                                rel = p.output_path.relative_to(self.site.output_dir)
+                                href = f"{baseurl}/{rel}".replace('\\', '/')
+                                href = href.replace('/index.html', '/')
+                            except ValueError:
+                                # Skip pages not under output_dir
+                                continue
+                            lang = getattr(p, 'lang', None) or self.site.config.get('i18n', {}).get('default_language', 'en')
+                            if (lang, href) in seen:
+                                continue
+                            link = ET.SubElement(url_elem, '{http://www.w3.org/1999/xhtml}link')
+                            link.set('rel', 'alternate')
+                            link.set('hreflang', lang)
+                            link.set('href', href)
+                            seen.add((lang, href))
+                    # Add x-default if default language exists among alternates
+                    default_lang = self.site.config.get('i18n', {}).get('default_language', 'en')
+                    for child in list(url_elem):
+                        if child.tag.endswith('link') and child.get('hreflang') == default_lang:
+                            link = ET.SubElement(url_elem, '{http://www.w3.org/1999/xhtml}link')
+                            link.set('rel', 'alternate')
+                            link.set('hreflang', 'x-default')
+                            link.set('href', child.get('href'))
+                            break
+            except Exception:
+                # Keep sitemap resilient
+                pass
             included_count += 1
             
             # Add lastmod if available
@@ -132,7 +167,6 @@ class SitemapGenerator:
                 self._indent(child, level + 1)
             if not child.tail or not child.tail.strip():
                 child.tail = indent
-        else:
-            if level and (not elem.tail or not elem.tail.strip()):
-                elem.tail = indent
+        elif level and (not elem.tail or not elem.tail.strip()):
+            elem.tail = indent
 

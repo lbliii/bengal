@@ -4,11 +4,10 @@ Tests for TaxonomyOrchestrator including conditional generation.
 
 import pytest
 from pathlib import Path
-from unittest.mock import Mock, MagicMock, patch
+from unittest.mock import Mock, patch
 from datetime import datetime
 from bengal.orchestration.taxonomy import TaxonomyOrchestrator
 from bengal.core.page import Page
-from bengal.core.section import Section
 
 
 @pytest.fixture

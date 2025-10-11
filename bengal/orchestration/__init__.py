@@ -22,23 +22,23 @@ Usage:
     stats = orchestrator.build(parallel=True, incremental=True)
 """
 
-from bengal.orchestration.menu import MenuOrchestrator
-from bengal.orchestration.postprocess import PostprocessOrchestrator
 from bengal.orchestration.asset import AssetOrchestrator
-from bengal.orchestration.taxonomy import TaxonomyOrchestrator
-from bengal.orchestration.render import RenderOrchestrator
+from bengal.orchestration.build import BuildOrchestrator
 from bengal.orchestration.content import ContentOrchestrator
 from bengal.orchestration.incremental import IncrementalOrchestrator
-from bengal.orchestration.build import BuildOrchestrator
+from bengal.orchestration.menu import MenuOrchestrator
+from bengal.orchestration.postprocess import PostprocessOrchestrator
+from bengal.orchestration.render import RenderOrchestrator
+from bengal.orchestration.taxonomy import TaxonomyOrchestrator
 
 __all__ = [
+    'AssetOrchestrator',
     'BuildOrchestrator',
     'ContentOrchestrator',
-    'TaxonomyOrchestrator',
-    'MenuOrchestrator',
-    'RenderOrchestrator',
-    'AssetOrchestrator',
-    'PostprocessOrchestrator',
     'IncrementalOrchestrator',
+    'MenuOrchestrator',
+    'PostprocessOrchestrator',
+    'RenderOrchestrator',
+    'TaxonomyOrchestrator',
 ]
 

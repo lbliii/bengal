@@ -8,8 +8,7 @@ Validates:
 - SEO metadata present
 """
 
-from typing import List, TYPE_CHECKING
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult
@@ -33,7 +32,7 @@ class RenderingValidator(BaseValidator):
     description = "Validates HTML output quality and completeness"
     enabled_by_default = True
     
-    def validate(self, site: 'Site') -> List[CheckResult]:
+    def validate(self, site: 'Site') -> list[CheckResult]:
         """Run rendering validation checks."""
         results = []
         
@@ -51,7 +50,7 @@ class RenderingValidator(BaseValidator):
         
         return results
     
-    def _check_html_structure(self, site: 'Site') -> List[CheckResult]:
+    def _check_html_structure(self, site: 'Site') -> list[CheckResult]:
         """Check basic HTML structure in output pages."""
         results = []
         issues = []
@@ -91,7 +90,7 @@ class RenderingValidator(BaseValidator):
         
         return results
     
-    def _check_unrendered_jinja2(self, site: 'Site') -> List[CheckResult]:
+    def _check_unrendered_jinja2(self, site: 'Site') -> list[CheckResult]:
         """Check for unrendered Jinja2 syntax in output."""
         results = []
         issues = []
@@ -174,7 +173,7 @@ class RenderingValidator(BaseValidator):
             # On any parsing error, assume it's ok to avoid false positives
             return False
     
-    def _check_template_functions(self, site: 'Site') -> List[CheckResult]:
+    def _check_template_functions(self, site: 'Site') -> list[CheckResult]:
         """Check that template functions are registered."""
         results = []
         
@@ -215,7 +214,7 @@ class RenderingValidator(BaseValidator):
         
         return results
     
-    def _check_seo_metadata(self, site: 'Site') -> List[CheckResult]:
+    def _check_seo_metadata(self, site: 'Site') -> list[CheckResult]:
         """Check for basic SEO metadata in pages."""
         results = []
         issues = []

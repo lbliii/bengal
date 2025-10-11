@@ -2,21 +2,22 @@
 Development server with file watching and hot reload.
 """
 
-from pathlib import Path
-from typing import Any
-import socketserver
+import os
 import socket
+import socketserver
 import threading
 import time
-import os
+from pathlib import Path
+from typing import Any
+
 from watchdog.observers import Observer
 
-from bengal.utils.build_stats import display_build_stats, show_building_indicator
-from bengal.utils.logger import get_logger
-from bengal.server.resource_manager import ResourceManager
+from bengal.server.build_handler import BuildHandler
 from bengal.server.pid_manager import PIDManager
 from bengal.server.request_handler import BengalRequestHandler
-from bengal.server.build_handler import BuildHandler
+from bengal.server.resource_manager import ResourceManager
+from bengal.utils.build_stats import display_build_stats, show_building_indicator
+from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -174,6 +175,10 @@ class DevServer:
             self.site.root_path / "templates",
             self.site.root_path / "data",
         ]
+        # Watch i18n directory for translation file changes (hot reload)
+        i18n_dir = self.site.root_path / "i18n"
+        if i18n_dir.exists():
+            watch_dirs.append(i18n_dir)
         
         # Add theme directories if they exist
         if self.site.theme:
@@ -302,7 +307,7 @@ class DevServer:
                     logger.info("stale_process_killed", pid=stale_pid)
                     time.sleep(1)  # Give OS time to release resources
                 else:
-                    print(f"  ❌ Failed to kill process")
+                    print("  ❌ Failed to kill process")
                     print(f"     Try manually: kill {stale_pid}")
                     logger.error("stale_process_kill_failed",
                                 pid=stale_pid,
@@ -353,9 +358,9 @@ class DevServer:
                                actual_port=actual_port)
                 except OSError as e:
                     print(f"❌ Port {self.port} is already in use and no alternative ports are available.")
-                    print(f"\nTo fix this issue:")
+                    print("\nTo fix this issue:")
                     print(f"  1. Stop the process using port {self.port}, or")
-                    print(f"  2. Specify a different port with: bengal serve --port <PORT>")
+                    print("  2. Specify a different port with: bengal serve --port <PORT>")
                     print(f"  3. Find the blocking process with: lsof -ti:{self.port}")
                     logger.error("no_ports_available",
                                 requested_port=self.port,
@@ -364,9 +369,9 @@ class DevServer:
                     raise OSError(f"Port {self.port} is already in use") from e
             else:
                 print(f"❌ Port {self.port} is already in use.")
-                print(f"\nTo fix this issue:")
+                print("\nTo fix this issue:")
                 print(f"  1. Stop the process using port {self.port}, or")
-                print(f"  2. Specify a different port with: bengal serve --port <PORT>")
+                print("  2. Specify a different port with: bengal serve --port <PORT>")
                 print(f"  3. Find the blocking process with: lsof -ti:{self.port}")
                 logger.error("port_unavailable_no_fallback",
                             port=self.port,
@@ -376,13 +381,16 @@ class DevServer:
         # Allow address reuse to prevent "address already in use" errors on restart
         socketserver.TCPServer.allow_reuse_address = True
         
-        # Create server (don't use context manager - ResourceManager handles cleanup)
-        httpd = socketserver.TCPServer((self.host, actual_port), BengalRequestHandler)
+        # Create threaded server so SSE long-poll connections don't block other requests
+        # (don't use context manager - ResourceManager handles cleanup)
+        httpd = socketserver.ThreadingTCPServer((self.host, actual_port), BengalRequestHandler)
+        httpd.daemon_threads = True  # Ensure worker threads don't block shutdown
         
         logger.info("http_server_created",
                    host=self.host,
                    port=actual_port,
-                   handler_class="BengalRequestHandler")
+                   handler_class="BengalRequestHandler",
+                   threaded=True)
         
         return httpd, actual_port
     
@@ -401,7 +409,6 @@ class DevServer:
         """
         from rich.console import Console
         from rich.panel import Panel
-        from rich.text import Text
         
         console = Console()
         
@@ -425,7 +432,7 @@ class DevServer:
         # Watching status
         if self.watch:
             lines.append("   [yellow]⚠[/yellow]  File watching enabled (auto-reload on changes)")
-            lines.append("      [dim](Live reload disabled - refresh browser manually)[/dim]")
+            lines.append("      [dim](Live reload enabled - browser refreshes after rebuild)[/dim]")
         else:
             lines.append("   [dim]○  File watching disabled[/dim]")
         

@@ -4,7 +4,7 @@ Tests for RenderOrchestrator including performance optimizations.
 
 import pytest
 from pathlib import Path
-from unittest.mock import Mock, MagicMock, patch
+from unittest.mock import Mock, patch
 from bengal.orchestration.render import RenderOrchestrator
 from bengal.core.page import Page
 
@@ -240,7 +240,6 @@ class TestPerformanceOptimization:
         # overhead which is ~10-20ms per batch
         
         # Verify the threshold constant
-        from bengal.orchestration.render import _thread_local
         # The threshold is in the process() method
         pass  # This test documents the optimization
     

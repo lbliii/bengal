@@ -2,8 +2,6 @@
 Unit tests for DependencyTracker.
 """
 
-import pytest
-from pathlib import Path
 from bengal.cache.build_cache import BuildCache
 from bengal.cache.dependency_tracker import DependencyTracker
 

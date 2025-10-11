@@ -70,6 +70,7 @@ Thumbs.db
 
 # Bengal generated files
 .bengal-build.log
+.bengal-serve.log
 .demo-build.log
 
 experiments/

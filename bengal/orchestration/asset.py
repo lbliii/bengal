@@ -8,13 +8,13 @@ import concurrent.futures
 import time
 from pathlib import Path
 from threading import Lock
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
 
 from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.core.site import Site
     from bengal.core.asset import Asset
+    from bengal.core.site import Site
 
 # Thread-safe output lock for parallel processing
 _print_lock = Lock()
@@ -42,7 +42,7 @@ class AssetOrchestrator:
         self.site = site
         self.logger = get_logger(__name__)
     
-    def process(self, assets: List['Asset'], parallel: bool = True, 
+    def process(self, assets: list['Asset'], parallel: bool = True, 
                 progress_manager=None) -> None:
         """
         Process and copy assets to output directory.
@@ -56,6 +56,28 @@ class AssetOrchestrator:
             parallel: Whether to use parallel processing
             progress_manager: Live progress manager (optional)
         """
+        # Optional Node-based pipeline: compile SCSS/PostCSS and bundle JS/TS first
+        try:
+            from bengal.assets.pipeline import from_site as pipeline_from_site
+            pipeline = pipeline_from_site(self.site)
+            compiled = pipeline.build()
+            if compiled:
+                from bengal.core.asset import Asset
+                for out_path in compiled:
+                    if out_path.is_file():
+                        # Register path relative to temp pipeline root; we want output under public/assets/**
+                        # Compute a path relative to the temp_out_dir/assets prefix if present
+                        rel = out_path
+                        # Best-effort normalization: look for '/assets/' marker
+                        parts = list(out_path.parts)
+                        if 'assets' in parts:
+                            idx = parts.index('assets')
+                            rel = Path(*parts[idx+1:])
+                        assets.append(Asset(source_path=out_path, output_path=rel))
+        except Exception as e:
+            # Log and continue with normal asset processing
+            self.logger.warning("asset_pipeline_failed", error=str(e))
+
         if not assets:
             self.logger.info("asset_processing_skipped", reason="no_assets")
             return
@@ -67,11 +89,17 @@ class AssetOrchestrator:
         css_modules = [a for a in assets if a.is_css_module()]
         other_assets = [a for a in assets if a.asset_type != 'css']
         
+        # If pipeline is enabled, skip raw sources that should not be copied
+        assets_cfg = self.site.config.get("assets", {}) if isinstance(self.site.config.get("assets"), dict) else {}
+        if assets_cfg.get("pipeline", False):
+            skip_exts = {'.scss', '.sass', '.ts', '.tsx'}
+            other_assets = [a for a in other_assets if a.source_path.suffix.lower() not in skip_exts]
+        
         # Report discovery (skip if using progress manager)
         total_discovered = len(assets)
         total_output = len(css_entries) + len(other_assets)
         if not progress_manager:
-            print(f"\n📦 Assets:")
+            print("\n📦 Assets:")
             print(f"   └─ Discovered: {total_discovered} files")
             if css_modules:
                 print(f"   └─ CSS bundling: {len(css_entries)} entry point(s), {len(css_modules)} module(s) bundled")
@@ -140,13 +168,13 @@ class AssetOrchestrator:
         3. Output to public directory
         
         Args:
-            css_entry: CSS entry point asset
-            minify: Whether to minify
-            optimize: Whether to optimize (unused for CSS)
-            fingerprint: Whether to add hash to filename
+        css_entry: CSS entry point asset
+        minify: Whether to minify
+        optimize: Whether to optimize (unused for CSS)
+        fingerprint: Whether to add hash to filename
         
         Raises:
-            Exception: If CSS bundling or minification fails
+        Exception: If CSS bundling or minification fails
         """
         try:
             assets_output = self.site.output_dir / "assets"
@@ -174,7 +202,7 @@ class AssetOrchestrator:
                             error_type=type(e).__name__,
                             stage="bundle_or_minify")
     
-    def _process_sequential(self, assets: List['Asset'], minify: bool, 
+    def _process_sequential(self, assets: list['Asset'], minify: bool, 
                            optimize: bool, fingerprint: bool, progress_manager=None, 
                            css_entries_processed: int = 0) -> None:
         """
@@ -217,7 +245,7 @@ class AssetOrchestrator:
                                 error_type=type(e).__name__,
                                 mode="sequential")
     
-    def _process_parallel(self, assets: List['Asset'], minify: bool, 
+    def _process_parallel(self, assets: list['Asset'], minify: bool, 
                          optimize: bool, fingerprint: bool, progress_manager=None,
                          css_entries_processed: int = 0) -> None:
         """

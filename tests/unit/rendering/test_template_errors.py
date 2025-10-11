@@ -132,7 +132,7 @@ class TestTemplateRenderError:
         """Test creating rich error from unknown filter."""
         try:
             env = Environment()
-            template = env.from_string("{{ value | unknown_filter }}")
+            env.from_string("{{ value | unknown_filter }}")
         except TemplateAssertionError as e:
             mock_engine = MockTemplateEngine()
             rich_error = TemplateRenderError.from_jinja2_error(

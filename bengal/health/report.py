@@ -5,9 +5,9 @@ Provides structured reporting of health check results with multiple output forma
 """
 
 from dataclasses import dataclass, field
-from enum import Enum
-from typing import List, Optional, Dict, Any
 from datetime import datetime
+from enum import Enum
+from typing import Any
 
 
 class CheckStatus(Enum):
@@ -32,8 +32,8 @@ class CheckResult:
     """
     status: CheckStatus
     message: str
-    recommendation: Optional[str] = None
-    details: Optional[List[str]] = None
+    recommendation: str | None = None
+    details: list[str] | None = None
     validator: str = ""
     
     @classmethod
@@ -42,20 +42,20 @@ class CheckResult:
         return cls(CheckStatus.SUCCESS, message, validator=validator)
     
     @classmethod
-    def info(cls, message: str, recommendation: Optional[str] = None, 
-             details: Optional[List[str]] = None, validator: str = "") -> 'CheckResult':
+    def info(cls, message: str, recommendation: str | None = None, 
+             details: list[str] | None = None, validator: str = "") -> 'CheckResult':
         """Create an info result."""
         return cls(CheckStatus.INFO, message, recommendation, details, validator=validator)
     
     @classmethod
-    def warning(cls, message: str, recommendation: Optional[str] = None, 
-                details: Optional[List[str]] = None, validator: str = "") -> 'CheckResult':
+    def warning(cls, message: str, recommendation: str | None = None, 
+                details: list[str] | None = None, validator: str = "") -> 'CheckResult':
         """Create a warning result."""
         return cls(CheckStatus.WARNING, message, recommendation, details, validator=validator)
     
     @classmethod
-    def error(cls, message: str, recommendation: Optional[str] = None, 
-              details: Optional[List[str]] = None, validator: str = "") -> 'CheckResult':
+    def error(cls, message: str, recommendation: str | None = None, 
+              details: list[str] | None = None, validator: str = "") -> 'CheckResult':
         """Create an error result."""
         return cls(CheckStatus.ERROR, message, recommendation, details, validator=validator)
     
@@ -75,7 +75,7 @@ class ValidatorReport:
         duration_ms: How long the validator took to run
     """
     validator_name: str
-    results: List[CheckResult] = field(default_factory=list)
+    results: list[CheckResult] = field(default_factory=list)
     duration_ms: float = 0.0
     
     @property
@@ -126,9 +126,9 @@ class HealthReport:
         timestamp: When the health check was run
         build_stats: Optional build statistics
     """
-    validator_reports: List[ValidatorReport] = field(default_factory=list)
+    validator_reports: list[ValidatorReport] = field(default_factory=list)
     timestamp: datetime = field(default_factory=datetime.now)
-    build_stats: Optional[Dict[str, Any]] = None
+    build_stats: dict[str, Any] | None = None
     
     @property
     def total_passed(self) -> int:
@@ -403,7 +403,7 @@ class HealthReport:
         
         return "\n".join(lines)
     
-    def format_json(self) -> Dict[str, Any]:
+    def format_json(self) -> dict[str, Any]:
         """
         Format report as JSON-serializable dictionary.
         

@@ -5,11 +5,14 @@ Validates that pages have all required references set before use.
 Helps prevent bugs like missing _site references or output_paths.
 """
 
+from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from bengal.core.site import Site
     from bengal.core.page import Page
+    from bengal.core.section import Section
+    from bengal.core.site import Site
 
 
 class PageInitializer:
