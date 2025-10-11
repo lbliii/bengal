@@ -26,7 +26,8 @@ Legacy (Bengal):
 """
 
 import re
-from typing import Any, Dict, Match
+from typing import Any, Dict
+from re import Match
 from mistune.directives import DirectivePlugin
 from bengal.utils.logger import get_logger
 
