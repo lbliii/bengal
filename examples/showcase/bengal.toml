@@ -61,6 +61,20 @@ weight = 4
 # Custom site parameters
 version = "1.0.0"
 github_url = "https://github.com/yourusername/bengal"
+# Assets
+[assets]
+minify = true
+fingerprint = true
+
+# Optional Node-based pipeline (requires Node v22 LTS and npm devDependencies)
+# pipeline = true
+# scss = true
+# postcss = true
+# postcss_config = "postcss.config.cjs"
+# bundle_js = true
+# esbuild_target = "es2018"
+# sourcemaps = true
+
 show_reading_time = true
 show_toc = true
 show_breadcrumbs = true
@@ -92,3 +106,22 @@ enabled = true
 app_module = "bengal.cli:main"
 framework = "click"
 output_dir = "content/cli"
+
+
+# Internationalization (i18n)
+[i18n]
+strategy = "prefix"            # url structure: /en/..., /fr/...
+content_structure = "dir"      # content/en/... and content/fr/...
+default_language = "en"
+default_in_subdir = false       # put default lang under /en/ only if true
+share_taxonomies = false        # per-locale tag pages
+
+[[i18n.languages]]
+code = "en"
+name = "English"
+hreflang = "en"
+
+[[i18n.languages]]
+code = "fr"
+name = "Français"
+hreflang = "fr"

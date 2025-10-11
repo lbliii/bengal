@@ -7,7 +7,6 @@ Covers:
 - Mistune [[link]] plugin
 """
 
-import pytest
 from pathlib import Path
 from bengal.core.site import Site
 from bengal.core.page import Page

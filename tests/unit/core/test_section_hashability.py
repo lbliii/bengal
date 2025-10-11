@@ -5,8 +5,6 @@ Tests that Section objects are properly hashable based on path,
 enabling set storage, dictionary keys, and O(1) membership tests.
 """
 
-import pytest
-from pathlib import Path
 from bengal.core.section import Section
 from bengal.core.page import Page
 
@@ -127,7 +125,7 @@ class TestSectionHashability:
         
         assert section != str(tmp_path / "blog")
         assert section != tmp_path / "blog"
-        assert section != None
+        assert section is not None
         assert section != 42
         assert section != {'name': 'blog', 'path': tmp_path / "blog"}
 

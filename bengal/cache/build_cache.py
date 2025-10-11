@@ -2,12 +2,12 @@
 Build Cache - Tracks file changes and dependencies for incremental builds.
 """
 
-from dataclasses import dataclass, field, asdict
-from pathlib import Path
-from typing import Dict, Set, Optional, List, Any
 import hashlib
 import json
+from dataclasses import dataclass, field
 from datetime import datetime
+from pathlib import Path
+from typing import Any
 
 from bengal.utils.logger import get_logger
 
@@ -24,7 +24,7 @@ class ParsedContentCache:
     """
     html: str                     # Rendered HTML (post-markdown, pre-template)
     toc: str                      # Table of contents HTML
-    toc_items: List[Dict[str, Any]]  # Structured TOC data
+    toc_items: list[dict[str, Any]]  # Structured TOC data
     metadata_hash: str            # SHA256 of frontmatter (detect metadata changes)
     template: str                 # Template name used
     parser_version: str           # Parser version (e.g., "mistune-3.0")
@@ -54,18 +54,18 @@ class BuildCache:
         last_build: Timestamp of last successful build
     """
     
-    file_hashes: Dict[str, str] = field(default_factory=dict)
-    dependencies: Dict[str, Set[str]] = field(default_factory=dict)
-    output_sources: Dict[str, str] = field(default_factory=dict)
-    taxonomy_deps: Dict[str, Set[str]] = field(default_factory=dict)
-    page_tags: Dict[str, Set[str]] = field(default_factory=dict)
+    file_hashes: dict[str, str] = field(default_factory=dict)
+    dependencies: dict[str, set[str]] = field(default_factory=dict)
+    output_sources: dict[str, str] = field(default_factory=dict)
+    taxonomy_deps: dict[str, set[str]] = field(default_factory=dict)
+    page_tags: dict[str, set[str]] = field(default_factory=dict)
     
     # Inverted index for fast taxonomy reconstruction (NEW)
-    tag_to_pages: Dict[str, Set[str]] = field(default_factory=dict)
-    known_tags: Set[str] = field(default_factory=set)
+    tag_to_pages: dict[str, set[str]] = field(default_factory=dict)
+    known_tags: set[str] = field(default_factory=set)
     
-    parsed_content: Dict[str, Dict[str, Any]] = field(default_factory=dict)
-    last_build: Optional[str] = None
+    parsed_content: dict[str, dict[str, Any]] = field(default_factory=dict)
+    last_build: str | None = None
     
     def __post_init__(self) -> None:
         """Convert sets from lists after JSON deserialization."""
@@ -109,7 +109,7 @@ class BuildCache:
             return cls()
         
         try:
-            with open(cache_path, 'r', encoding='utf-8') as f:
+            with open(cache_path, encoding='utf-8') as f:
                 data = json.load(f)
             
             # Convert lists back to sets in dependencies
@@ -278,7 +278,7 @@ class BuildCache:
         
         self.taxonomy_deps[taxonomy_term].add(str(page))
     
-    def get_affected_pages(self, changed_file: Path) -> Set[str]:
+    def get_affected_pages(self, changed_file: Path) -> set[str]:
         """
         Find all pages that depend on a changed file.
         
@@ -302,7 +302,7 @@ class BuildCache:
         
         return affected
     
-    def get_previous_tags(self, page_path: Path) -> Set[str]:
+    def get_previous_tags(self, page_path: Path) -> set[str]:
         """
         Get tags from previous build for a page.
         
@@ -314,7 +314,7 @@ class BuildCache:
         """
         return self.page_tags.get(str(page_path), set())
     
-    def update_tags(self, page_path: Path, tags: Set[str]) -> None:
+    def update_tags(self, page_path: Path, tags: set[str]) -> None:
         """
         Store current tags for a page (for next build's comparison).
         
@@ -324,7 +324,7 @@ class BuildCache:
         """
         self.page_tags[str(page_path)] = tags
     
-    def update_page_tags(self, page_path: Path, tags: Set[str]) -> Set[str]:
+    def update_page_tags(self, page_path: Path, tags: set[str]) -> set[str]:
         """
         Update tag index when a page's tags change.
         
@@ -379,7 +379,7 @@ class BuildCache:
         
         return affected_tags
     
-    def get_pages_for_tag(self, tag_slug: str) -> Set[str]:
+    def get_pages_for_tag(self, tag_slug: str) -> set[str]:
         """
         Get all page paths for a given tag.
         
@@ -391,7 +391,7 @@ class BuildCache:
         """
         return self.tag_to_pages.get(tag_slug, set()).copy()
     
-    def get_all_tags(self) -> Set[str]:
+    def get_all_tags(self) -> set[str]:
         """
         Get all known tag slugs from previous build.
         
@@ -433,7 +433,7 @@ class BuildCache:
         # Remove page tags
         self.page_tags.pop(file_key, None)
     
-    def get_stats(self) -> Dict[str, int]:
+    def get_stats(self) -> dict[str, int]:
         """
         Get cache statistics with logging.
         
@@ -465,8 +465,8 @@ class BuildCache:
         file_path: Path,
         html: str,
         toc: str,
-        toc_items: List[Dict[str, Any]],
-        metadata: Dict[str, Any],
+        toc_items: list[dict[str, Any]],
+        metadata: dict[str, Any],
         template: str,
         parser_version: str
     ) -> None:
@@ -507,10 +507,10 @@ class BuildCache:
     def get_parsed_content(
         self,
         file_path: Path,
-        metadata: Dict[str, Any],
+        metadata: dict[str, Any],
         template: str,
         parser_version: str
-    ) -> Optional[Dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         """
         Get cached parsed content if valid (Optimization #2).
         
@@ -576,7 +576,7 @@ class BuildCache:
         """
         self.parsed_content.pop(str(file_path), None)
     
-    def get_parsed_content_stats(self) -> Dict[str, Any]:
+    def get_parsed_content_stats(self) -> dict[str, Any]:
         """
         Get parsed content cache statistics.
         

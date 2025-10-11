@@ -2,9 +2,8 @@
 Tests for index file collision detection (_index.md vs index.md).
 """
 
-import pytest
 from pathlib import Path
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 from bengal.core.section import Section
 from bengal.core.page import Page

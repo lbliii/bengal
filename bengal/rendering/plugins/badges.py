@@ -7,7 +7,6 @@ Supports badge colors that map to Bengal's design system.
 """
 
 import re
-from typing import Dict, Any
 
 from bengal.utils.logger import get_logger
 

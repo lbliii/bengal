@@ -5,10 +5,15 @@ Analyzes build statistics and provides context-aware recommendations
 for improving build speed, resource usage, and developer experience.
 """
 
-from dataclasses import dataclass
-from typing import List, Optional, Dict, Any
-from enum import Enum
+from __future__ import annotations
+
 import multiprocessing
+from dataclasses import dataclass
+from enum import Enum
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from bengal.utils.build_stats import BuildStats
 
 
 class SuggestionType(Enum):
@@ -52,7 +57,7 @@ class PerformanceSuggestion:
     description: str
     impact: str  # e.g., "Could save ~2.5s" or "Would improve by 30%"
     action: str  # What the user should do
-    config_example: Optional[str] = None  # Example config change
+    config_example: str | None = None  # Example config change
     
     def __str__(self) -> str:
         """Format suggestion for display."""
@@ -190,7 +195,7 @@ class PerformanceAdvisor:
     optimizations tailored to the specific project.
     """
     
-    def __init__(self, stats: 'BuildStats', environment: Optional[Dict[str, Any]] = None):
+    def __init__(self, stats: 'BuildStats', environment: dict[str, Any] | None = None):
         """
         Initialize performance advisor.
         
@@ -200,9 +205,9 @@ class PerformanceAdvisor:
         """
         self.stats = stats
         self.environment = environment or {}
-        self.suggestions: List[PerformanceSuggestion] = []
+        self.suggestions: list[PerformanceSuggestion] = []
     
-    def analyze(self) -> List[PerformanceSuggestion]:
+    def analyze(self) -> list[PerformanceSuggestion]:
         """
         Analyze build and generate suggestions.
         
@@ -393,7 +398,7 @@ class PerformanceAdvisor:
         """
         return PerformanceGrade.calculate(self.stats)
     
-    def get_bottleneck(self) -> Optional[str]:
+    def get_bottleneck(self) -> str | None:
         """
         Identify the primary bottleneck phase.
         
@@ -421,7 +426,7 @@ class PerformanceAdvisor:
         
         return None
     
-    def get_top_suggestions(self, limit: int = 3) -> List[PerformanceSuggestion]:
+    def get_top_suggestions(self, limit: int = 3) -> list[PerformanceSuggestion]:
         """
         Get top N suggestions.
         
@@ -464,7 +469,7 @@ class PerformanceAdvisor:
 
 
 # Convenience function for quick analysis
-def analyze_build(stats: 'BuildStats', environment: Optional[Dict[str, Any]] = None) -> PerformanceAdvisor:
+def analyze_build(stats: 'BuildStats', environment: dict[str, Any] | None = None) -> PerformanceAdvisor:
     """
     Quick analysis of build statistics.
     

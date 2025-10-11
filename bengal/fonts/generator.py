@@ -2,7 +2,7 @@
 Generate CSS for self-hosted fonts.
 """
 
-from typing import List, Dict
+
 from bengal.fonts.downloader import FontVariant
 
 
@@ -13,7 +13,7 @@ class FontCSSGenerator:
     
     def generate(
         self,
-        font_mapping: Dict[str, List[FontVariant]],
+        font_mapping: dict[str, list[FontVariant]],
         font_path_prefix: str = "/fonts",
     ) -> str:
         """
@@ -54,7 +54,7 @@ class FontCSSGenerator:
                 css_parts.append(f"  font-family: '{variant.family}';")
                 css_parts.append(f"  font-weight: {variant.weight};")
                 css_parts.append(f"  font-style: {variant.style};")
-                css_parts.append(f"  font-display: swap;")
+                css_parts.append("  font-display: swap;")
                 css_parts.append(f"  src: url('{url}') format('{font_format}');")
                 css_parts.append("}")
                 css_parts.append("")

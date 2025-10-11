@@ -2,7 +2,12 @@
 Page Navigation Mixin - Navigation and hierarchy relationships.
 """
 
-from typing import Any, List, Optional
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from bengal.core.page import Page
 
 
 class PageNavigationMixin:
@@ -16,7 +21,7 @@ class PageNavigationMixin:
     """
     
     @property
-    def next(self) -> Optional['Page']:
+    def next(self) -> Page | None:
         """
         Get the next page in the site's collection of pages.
         
@@ -42,7 +47,7 @@ class PageNavigationMixin:
         return None
     
     @property
-    def prev(self) -> Optional['Page']:
+    def prev(self) -> Page | None:
         """
         Get the previous page in the site's collection of pages.
         
@@ -68,7 +73,7 @@ class PageNavigationMixin:
         return None
     
     @property
-    def next_in_section(self) -> Optional['Page']:
+    def next_in_section(self) -> Page | None:
         """
         Get the next page within the same section.
         
@@ -94,7 +99,7 @@ class PageNavigationMixin:
         return None
     
     @property
-    def prev_in_section(self) -> Optional['Page']:
+    def prev_in_section(self) -> Page | None:
         """
         Get the previous page within the same section.
         
@@ -120,7 +125,7 @@ class PageNavigationMixin:
         return None
     
     @property
-    def parent(self) -> Optional[Any]:
+    def parent(self) -> Any | None:
         """
         Get the parent section of this page.
         
@@ -135,7 +140,7 @@ class PageNavigationMixin:
         return self._section
     
     @property
-    def ancestors(self) -> List[Any]:
+    def ancestors(self) -> list[Any]:
         """
         Get all ancestor sections of this page.
         

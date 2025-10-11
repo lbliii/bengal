@@ -266,17 +266,17 @@ def run_ssg_comparison_benchmark():
             growth_factor = medium['avg'] / small['avg']
             theoretical_linear = 1024  # 1024x files should take 1024x time if linear
             
-            print(f"Scaling Analysis (1 file → 1,024 files):")
+            print("Scaling Analysis (1 file → 1,024 files):")
             print(f"  Time increased: {growth_factor:.1f}x")
             print(f"  Linear scaling: {theoretical_linear}x")
             print(f"  Efficiency:     {(theoretical_linear / growth_factor * 100):.1f}% ")
             
             if growth_factor < theoretical_linear * 1.1:
-                print(f"  ✅ EXCELLENT: Near-linear scaling!")
+                print("  ✅ EXCELLENT: Near-linear scaling!")
             elif growth_factor < theoretical_linear * 1.5:
-                print(f"  ✅ GOOD: Sub-linear scaling")
+                print("  ✅ GOOD: Sub-linear scaling")
             else:
-                print(f"  ⚠️  WARNING: Super-linear scaling detected")
+                print("  ⚠️  WARNING: Super-linear scaling detected")
             print()
     
     # Identify sweet spot

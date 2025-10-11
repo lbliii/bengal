@@ -5,16 +5,17 @@ Provides multi-language code examples with tabbed interface for easy
 comparison across programming languages.
 """
 
-import re
 import html as html_lib
+import re
+
 from mistune.directives import DirectivePlugin
+
 from bengal.utils.logger import get_logger
-from bengal.rendering.plugins.directives.validator import DirectiveSyntaxValidator
 
 __all__ = [
     'CodeTabsDirective',
-    'render_code_tabs',
-    'render_code_tab_item'
+    'render_code_tab_item',
+    'render_code_tabs'
 ]
 
 logger = get_logger(__name__)

@@ -3,7 +3,6 @@ Tests for RSS validator.
 """
 
 import pytest
-from pathlib import Path
 from datetime import datetime
 from unittest.mock import Mock
 

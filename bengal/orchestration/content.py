@@ -6,13 +6,13 @@ and cascading frontmatter.
 """
 
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, Optional
+from typing import TYPE_CHECKING, Any
 
 from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.core.site import Site
     from bengal.core.section import Section
+    from bengal.core.site import Site
 
 
 class ContentOrchestrator:
@@ -44,7 +44,7 @@ class ContentOrchestrator:
         self.discover_content()
         self.discover_assets()
     
-    def discover_content(self, content_dir: Optional[Path] = None) -> None:
+    def discover_content(self, content_dir: Path | None = None) -> None:
         """
         Discover all content (pages, sections) in the content directory.
         
@@ -82,7 +82,7 @@ class ContentOrchestrator:
         self.logger.debug("xref_index_built", 
                          index_size=len(self.site.xref_index.get('by_path', {})))
     
-    def discover_assets(self, assets_dir: Optional[Path] = None) -> None:
+    def discover_assets(self, assets_dir: Path | None = None) -> None:
         """
         Discover all assets in the assets directory and theme assets.
         
@@ -226,7 +226,7 @@ class ContentOrchestrator:
                             page.metadata[key] = value
     
     def _apply_section_cascade(self, section: 'Section', 
-                              parent_cascade: Optional[Dict[str, Any]] = None) -> None:
+                              parent_cascade: dict[str, Any] | None = None) -> None:
         """
         Recursively apply cascade metadata to a section and its descendants.
         
@@ -319,7 +319,7 @@ class ContentOrchestrator:
                             heading_text, []
                         ).append((page, anchor_id))
     
-    def _get_theme_assets_dir(self) -> Optional[Path]:
+    def _get_theme_assets_dir(self) -> Path | None:
         """
         Get the assets directory for the current theme.
         

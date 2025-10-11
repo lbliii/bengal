@@ -197,7 +197,7 @@ def run_incremental_benchmarks():
         
         try:
             # Run full build first (creates cache)
-            print(f"Running full build...")
+            print("Running full build...")
             full_build_times = []
             for run in range(3):
                 full_time = benchmark_full_build(site_dir)
@@ -207,7 +207,7 @@ def run_incremental_benchmarks():
             print(f"  Full build:        {avg_full:.3f}s")
             
             # Test incremental build with content change
-            print(f"\nTesting incremental build (single content change)...")
+            print("\nTesting incremental build (single content change)...")
             incremental_times = []
             for run in range(3):
                 # Restore original state
@@ -238,7 +238,7 @@ def run_incremental_benchmarks():
                 print(f"  ❌ FAIL: Only {speedup:.1f}x speedup (target: 50x+)")
             
             # Test asset change
-            print(f"\nTesting incremental build (single asset change)...")
+            print("\nTesting incremental build (single asset change)...")
             asset_times = []
             for run in range(3):
                 asset_time = benchmark_incremental_build(site_dir, change_type='asset')

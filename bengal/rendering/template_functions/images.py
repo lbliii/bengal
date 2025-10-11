@@ -5,13 +5,15 @@ Provides 6 functions for working with images in templates.
 Note: Some functions are stubs for future PIL/Pillow integration.
 """
 
-from pathlib import Path
-from typing import TYPE_CHECKING, Tuple, Optional, List
 import base64
+from pathlib import Path
+from typing import TYPE_CHECKING
+
 from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
     from jinja2 import Environment
+
     from bengal.core.site import Site
 
 logger = get_logger(__name__)
@@ -24,7 +26,7 @@ def register(env: 'Environment', site: 'Site') -> None:
     def image_url_with_site(path: str, **params) -> str:
         return image_url(path, site.config.get('baseurl', ''), **params)
     
-    def image_dimensions_with_site(path: str) -> Optional[Tuple[int, int]]:
+    def image_dimensions_with_site(path: str) -> tuple[int, int] | None:
         return image_dimensions(path, site.root_path)
     
     def image_data_uri_with_site(path: str) -> str:
@@ -43,8 +45,8 @@ def register(env: 'Environment', site: 'Site') -> None:
     })
 
 
-def image_url(path: str, base_url: str, width: Optional[int] = None, 
-              height: Optional[int] = None, quality: Optional[int] = None) -> str:
+def image_url(path: str, base_url: str, width: int | None = None, 
+              height: int | None = None, quality: int | None = None) -> str:
     """
     Generate image URL with optional parameters.
     
@@ -88,7 +90,7 @@ def image_url(path: str, base_url: str, width: Optional[int] = None,
     return url
 
 
-def image_dimensions(path: str, root_path: Path) -> Optional[Tuple[int, int]]:
+def image_dimensions(path: str, root_path: Path) -> tuple[int, int] | None:
     """
     Get image dimensions (width, height).
     
@@ -160,7 +162,7 @@ def image_dimensions(path: str, root_path: Path) -> Optional[Tuple[int, int]]:
         return None
 
 
-def image_srcset(image_path: str, sizes: List[int]) -> str:
+def image_srcset(image_path: str, sizes: list[int]) -> str:
     """
     Generate srcset attribute for responsive images.
     
@@ -186,7 +188,7 @@ def image_srcset(image_path: str, sizes: List[int]) -> str:
     return ", ".join(srcset_parts)
 
 
-def image_srcset_gen(image_path: str, sizes: List[int] = None) -> str:
+def image_srcset_gen(image_path: str, sizes: list[int] | None = None) -> str:
     """
     Generate srcset attribute with default sizes.
     
@@ -320,7 +322,7 @@ def image_data_uri(path: str, root_path: Path) -> str:
         )
         return data_uri
         
-    except IOError as e:
+    except OSError as e:
         logger.error(
             "image_read_error",
             path=path,

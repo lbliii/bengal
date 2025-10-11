@@ -8,13 +8,12 @@ Provides a unified interface for all CLI messaging with:
 - Rich/fallback rendering
 """
 
-from typing import Optional, Dict, Any, List
 from enum import Enum
-from rich.console import Console
-from rich.text import Text
-from rich.panel import Panel
-from rich.table import Table
+from typing import Any
+
 import click
+from rich.console import Console
+from rich.table import Table
 
 
 class MessageLevel(Enum):
@@ -57,10 +56,10 @@ class CLIOutput:
     
     def __init__(
         self,
-        profile: Optional[Any] = None,
+        profile: Any | None = None,
         quiet: bool = False,
         verbose: bool = False,
-        use_rich: Optional[bool] = None
+        use_rich: bool | None = None
     ):
         """
         Initialize CLI output manager.
@@ -122,8 +121,8 @@ class CLIOutput:
         self,
         name: str,
         status: str = "Done",
-        duration_ms: Optional[float] = None,
-        details: Optional[str] = None,
+        duration_ms: float | None = None,
+        details: str | None = None,
         icon: str = "✓"
     ) -> None:
         """
@@ -160,7 +159,7 @@ class CLIOutput:
         self,
         text: str,
         indent: int = 1,
-        icon: Optional[str] = None
+        icon: str | None = None
     ) -> None:
         """
         Print a detail/sub-item.
@@ -197,7 +196,7 @@ class CLIOutput:
         else:
             click.echo(f"\n{icon} {text}\n", color=True)
     
-    def info(self, text: str, icon: Optional[str] = None) -> None:
+    def info(self, text: str, icon: str | None = None) -> None:
         """Print an info message."""
         if not self.should_show(MessageLevel.INFO):
             return
@@ -254,7 +253,7 @@ class CLIOutput:
         self,
         label: str,
         value: Any,
-        unit: Optional[str] = None,
+        unit: str | None = None,
         indent: int = 0
     ) -> None:
         """
@@ -277,7 +276,7 @@ class CLIOutput:
         else:
             click.echo(line)
     
-    def table(self, data: List[Dict[str, str]], headers: List[str]) -> None:
+    def table(self, data: list[dict[str, str]], headers: list[str]) -> None:
         """Print a table (rich only, falls back to simple list)."""
         if not self.should_show(MessageLevel.INFO):
             return
@@ -325,7 +324,7 @@ class CLIOutput:
         # All profiles can show details (but format may differ)
         return True
     
-    def _format_phase_line(self, parts: List[str]) -> str:
+    def _format_phase_line(self, parts: list[str]) -> str:
         """
         Format a phase line with consistent spacing.
         
@@ -375,7 +374,7 @@ class CLIOutput:
 
 # === Global instance ===
 
-_cli_output: Optional[CLIOutput] = None
+_cli_output: CLIOutput | None = None
 
 
 def get_cli_output() -> CLIOutput:
@@ -386,7 +385,7 @@ def get_cli_output() -> CLIOutput:
     return _cli_output
 
 
-def init_cli_output(profile: Optional[Any] = None, quiet: bool = False, verbose: bool = False) -> CLIOutput:
+def init_cli_output(profile: Any | None = None, quiet: bool = False, verbose: bool = False) -> CLIOutput:
     """Initialize the global CLI output instance with settings."""
     global _cli_output
     _cli_output = CLIOutput(profile=profile, quiet=quiet, verbose=verbose)

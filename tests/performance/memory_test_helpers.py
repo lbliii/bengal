@@ -191,7 +191,7 @@ def profile_memory(name: str = "Operation", verbose: bool = True):
         print(f"\n{name}:")
         print(f"  {delta}")
         if delta.top_allocators:
-            print(f"  Top allocators:")
+            print("  Top allocators:")
             for alloc in delta.top_allocators:
                 print(f"    {alloc}")
 

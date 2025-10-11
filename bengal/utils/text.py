@@ -15,13 +15,12 @@ Example:
 
 import html as html_module
 import re
-from typing import Optional
 
 
 def slugify(
     text: str,
     unescape_html: bool = True,
-    max_length: Optional[int] = None,
+    max_length: int | None = None,
     separator: str = '-'
 ) -> str:
     """
@@ -343,7 +342,7 @@ def unescape_html(text: str) -> str:
 def pluralize(
     count: int,
     singular: str,
-    plural: Optional[str] = None
+    plural: str | None = None
 ) -> str:
     """
     Return singular or plural form based on count.

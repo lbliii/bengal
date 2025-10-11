@@ -15,7 +15,6 @@ from pathlib import Path
 from unittest.mock import Mock
 
 from bengal.utils.url_strategy import URLStrategy
-from bengal.core.page import Page
 from bengal.core.section import Section
 from bengal.core.site import Site
 

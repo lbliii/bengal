@@ -11,92 +11,65 @@ toc: true
 
 This page demonstrates **every single feature** that Bengal SSG offers. It's a living showcase of markdown capabilities, directives, template functions, and more.
 
+```{tip} Using This Page
+This is a **reference and showcase**. For learning how to use these features, see the detailed guides below.
+```
+
+## 📚 Detailed Documentation
+
+Each feature shown here has complete documentation:
+
+**Writing Guides:**
+- [Getting Started](writing/getting-started.md) - Create your first page
+- [Markdown Basics](writing/markdown-basics.md) - Essential syntax
+- [Extended Markdown](writing/markdown-extended.md) - Tables, footnotes, task lists
+
+**Directive Guides:**
+- [Admonitions](directives/admonitions.md) - Note, tip, warning, and more
+- [Tabs](directives/tabs.md) - Tabbed content views
+- [Dropdown](directives/dropdown.md) - Collapsible sections
+- [Code Tabs](directives/code-tabs.md) - Multi-language examples
+- [Cards](directives/cards.md) - Visual card grids
+- [Buttons](directives/buttons.md) - Call-to-action buttons
+- [Quick Reference](directives/quick-reference.md) - All directive syntax
+
+**Other Resources:**
+- [Content Types](content-types/) - Page layouts
+- [Advanced Features](advanced/) - Variables, SEO, publishing
+- [Frontmatter Standard](frontmatter-standard.md) - Complete metadata reference
+
 ---
 
-## 🎯 Admonitions (9 Types)
+## 🎯 Admonitions
 
-Bengal supports 9 different admonition types for highlighting important information.
+Bengal supports 9 admonition types: `note`, `tip`, `info`, `warning`, `danger`, `error`, `success`, `example`, and `caution`.
 
-### Note Admonition
-
-```{note} This is a Note
-This is useful for highlighting important information without urgency.
-
-You can include **markdown** formatting, `code snippets`, and even:
-
-- Bullet points
-- Multiple lines
-- [Links](https://example.com)
+```{note} Note
+Highlights important information without urgency. Supports **markdown**, `code`, and [links](https://example.com).
 ```
 
-### Tip Admonition
-
-```{tip} Pro Tip!
-Use admonitions sparingly for maximum impact. Too many callouts can overwhelm readers.
+```{tip} Tip
+Use admonitions sparingly for maximum impact.
 ```
 
-### Info Admonition
-
-```{info} Information
-The `info` admonition is great for providing additional context or background information.
+```{warning} Warning
+Important caveats or potential issues users should be careful about.
 ```
 
-### Warning Admonition
-
-````{warning} Pay Attention!
-Warnings should be used for important caveats, potential issues, or things users need to be careful about.
-
-```python
-# Be careful with this code!
-dangerous_operation()
-```
-````
-
-### Danger Admonition
-
-```{danger} Critical Warning!
-The `danger` admonition should be reserved for critical warnings about data loss, security issues, or breaking changes.
-
-**Use this sparingly and only for serious matters.**
+```{danger} Danger
+Reserved for critical warnings about data loss, security issues, or breaking changes.
 ```
 
-### Error Admonition
-
-```{error} Common Error
-Users might encounter this error when configuration is incorrect:
-
-    Error: Config file not found
-
-**Solution:** Create a `bengal.toml` file in your project root.
+```{error} Error
+Common errors and their solutions. Example: `Config file not found` → Create `bengal.toml` in project root.
 ```
 
-### Success Admonition
-
-```{success} Great Job!
-Your site built successfully! All 150 pages generated in 0.3 seconds.
-
-✨ Build metrics:
-- Pages: 150
-- Assets: 42
-- Total time: 0.3s
+```{success} Success
+Confirmation messages for successful operations.
 ```
 
-### Example Admonition
-
-````{example} Code Example
-Here's how to use the `truncatewords` filter:
-
-```jinja2
-{{/* post.content | truncatewords(50) */}}
-```
-
-This will truncate the content to 50 words with an ellipsis.
-````
-
-### Caution Admonition
-
-```{caution} Proceed with Caution
-This feature is experimental and may change in future versions. Use at your own risk.
+```{caution} Caution
+Experimental features or things that may change in future versions.
 ```
 
 ---
@@ -105,85 +78,54 @@ This feature is experimental and may change in future versions. Use at your own 
 
 Tabs are perfect for showing platform-specific instructions or alternative approaches.
 
-````{tabs}
-:id: installation-tabs
+::::{tab-set}
 
-### macOS
-
+:::{tab-item} macOS
 ```bash
 brew install python3
 pip3 install bengal-ssg
 ```
+:::
 
-Or using pip directly:
-
-```bash
-python3 -m pip install bengal-ssg
-```
-
-### Tab: Linux
-
-Install Bengal on Linux:
-
+:::{tab-item} Linux
 ```bash
 sudo apt update
 sudo apt install python3 python3-pip
 pip3 install bengal-ssg
 ```
+:::
 
-For Arch Linux:
-
-```bash
-pacman -S python python-pip
-pip install bengal-ssg
-```
-
-### Tab: Windows
-
-Install Bengal on Windows:
-
+:::{tab-item} Windows
 ```powershell
-# Using pip
 python -m pip install bengal-ssg
 ```
+:::
 
-Or download from [PyPI](https://pypi.org/project/bengal-ssg/)
-````
+::::
 
-### Nested Tabs Example
+### Nested Content Example
 
-````{tabs}
-:id: framework-examples
+::::{tab-set}
 
-### Tab: Python
-
+:::{tab-item} Python
 ```python
-# Bengal build script
 from bengal.core.site import Site
 
 site = Site(".")
 site.build()
 print(f"Built {len(site.pages)} pages!")
 ```
+:::
 
-**Key features:**
-- Type hints
-- Clean API
-- Fast builds
-
-### Tab: CLI
-
+:::{tab-item} CLI
 ```bash
-# Using Bengal CLI
 bengal build
 bengal serve
 bengal new my-site
 ```
+:::
 
-Simple and intuitive commands!
-
-### Tab: Configuration
-
+:::{tab-item} Configuration
 ```toml
 [site]
 title = "My Site"
@@ -193,9 +135,9 @@ baseurl = "https://example.com"
 parallel = true
 incremental = true
 ```
+:::
 
-TOML configuration is clean and readable.
-````
+::::
 
 ---
 
@@ -255,15 +197,17 @@ You can nest almost anything in dropdowns:
 This is a note inside a dropdown! 🎉
 ```
 
-```{tabs}
-:id: nested-tabs-in-dropdown
+::::{tab-set}
 
-### Tab: Option 1
+:::{tab-item} Option 1
 Content for option 1
+:::
 
-### Tab: Option 2
+:::{tab-item} Option 2
 Content for option 2
-```
+:::
+
+::::
 
 Even nested tabs work!
 ````
@@ -323,34 +267,6 @@ func main() {
 ```
 ````
 
-### Another Code-Tabs Example
-
-````{code-tabs}
-:id: api-example
-
-### Tab: Python
-```python
-import requests
-
-response = requests.get("https://api.example.com/data")
-data = response.json()
-print(data)
-```
-
-### Tab: JavaScript
-```javascript
-fetch("https://api.example.com/data")
-  .then(response => response.json())
-  .then(data => console.log(data));
-```
-
-### Tab: cURL
-```bash
-curl -X GET "https://api.example.com/data" \
-  -H "Accept: application/json"
-```
-````
-
 ---
 
 ## 🔗 Cross-References
@@ -358,23 +274,22 @@ curl -X GET "https://api.example.com/data" \
 Bengal supports wiki-style cross-references using `[[link]]` syntax.
 
 **Examples:**
-- Link to another doc: [[docs/templates/function-reference]]
-- Link with custom text: [[docs/templates/strings|String Functions]]
-- Link to homepage: [[index|Go Home]]
-
-*(Note: Cross-reference rendering depends on your content structure)*
+- Link to another doc: [[docs/frontmatter-standard]]
+- Link with custom text: [[docs/health-checks|Health Check Guide]]
+- Link to homepage: [[_index|Go Home]]
+- Link to about page: [[about]]
 
 ---
 
 ## 🔤 Variable Substitution
 
-You can use template variables directly in markdown:
+Bengal supports `{{ variable }}` syntax in markdown content. This page's title is: **{{ page.title }}**
 
-- **Page Title:** {{/* page.title */}}
-- **Site Title:** {{/* site.title */}}
-- **Build Date:** {{/* page.date */}}
-- **Reading Time:** {{/* page.content | reading_time */}} min read
-*(Note: Actual substitution depends on your template configuration)*
+You can access:
+- `{{ page.title }}` - Page title from frontmatter
+- `{{ page.date }}` - Page date
+- `{{ site.title }}` - Site configuration
+- `{{ page.metadata.custom_field }}` - Any frontmatter field
 
 ---
 
@@ -557,11 +472,13 @@ bengal serve --watch
 
 You can create horizontal rules with different syntax:
 
+```
 ---
 
 ***
 
 ___
+```
 
 ---
 
@@ -601,10 +518,9 @@ Here's a complex nesting example:
 `````{dropdown} Complex Nesting Example
 :open: true
 
-````{tabs}
-:id: complex-nesting
+::::{tab-set}
 
-### Tab: With Admonitions
+:::{tab-item} With Admonitions
 
 ````{note} Nested Note in Tab
 This demonstrates that you can nest directives deeply.
@@ -614,7 +530,9 @@ And it still works! 🎉
 ```
 ````
 
-### Tab: With Code
+:::
+
+:::{tab-item} With Code
 
 ```python
 # Code in a tab, in a dropdown!
@@ -626,7 +544,9 @@ def factorial(n):
 print(factorial(5))  # 120
 ```
 
-### Tab: With Lists
+:::
+
+:::{tab-item} With Lists
 
 **Features demonstrated:**
 1. Tabs inside dropdown
@@ -637,151 +557,9 @@ print(factorial(5))  # 120
 ```{success} It Works!
 Bengal handles complex nesting gracefully.
 ```
-````
+
+:::
+
+::::
 `````
 
----
-
-## 🎯 Everything Combined
-
-Let's combine multiple features in one section:
-
-`````{tabs}
-:id: ultimate-example
-
-### Tab: Directives Reference
-
-```{note} Quick Reference
-Here are all the directive types:
-
-| Directive | Purpose | Example |
-|-----------|---------|---------|
-| note | General info | `{note}` |
-| tip | Helpful hints | `{tip}` |
-| warning | Cautions | `{warning}` |
-| danger | Critical | `{danger}` |
-| tabs | Multi-option | `{tabs}` |
-| dropdown | Collapsible | `{dropdown}` |
-| code-tabs | Code examples | `{code-tabs}` |
-```
-
-### Tab: Template Functions
-
-Bengal provides **75+ template functions**:
-
-```{dropdown} String Functions (11)
-
-- `truncatewords` - Truncate to word count
-- `slugify` - Create URL slugs  
-- `strip_html` - Remove HTML tags
-- `markdownify` - Render markdown
-- `reading_time` - Calculate read time
-- `excerpt` - Extract excerpt
-- And more...
-
-[Full reference →](../templates/function-reference/strings.md)
-```
-
-```{dropdown} Collection Functions (8)
-
-- `where` - Filter collections
-- `group_by` - Group items
-- `sort_by` - Sort by field
-- `unique` - Remove duplicates
-- `first` / `last` - Get items
-- And more...
-
-[Full reference →](../templates/function-reference/collections.md)
-```
-
-### Tab: Performance
-
-```{success} Performance Metrics
-**Bengal SSG Benchmarks:**
-
-- ⚡ **0.3s** to build 100 pages
-- 🚀 **18-42x** faster incremental builds
-- 💪 **2-4x** speedup with parallel processing
-- ✅ **9** health check validators
-- 📦 **75+** template functions
-```
-
-````{code-tabs}
-:id: performance-comparison
-
-### Tab: Bash
-```bash
-# Bengal build time
-$ time bengal build
-✅ Built 1000 pages in 2.8s
-
-# Incremental rebuild
-$ time bengal build
-✅ Built 3 pages in 0.07s (42x faster!)
-```
-
-### Tab: Python
-```python
-from bengal.utils.build_stats import BuildStats
-
-stats = BuildStats()
-stats.record_build()
-print(f"Pages: {stats.pages_built}")
-print(f"Time: {stats.build_time}s")
-print(f"Speed: {stats.pages_per_second} pages/s")
-```
-````
-`````
-
----
-
-## 🎉 Conclusion
-
-This page demonstrates **every major feature** of Bengal SSG:
-
-✅ **9 admonition types** - note, tip, info, warning, danger, error, success, example, caution
-✅ **Tabs directive** - multi-platform instructions, nested content
-✅ **Dropdown directive** - collapsible sections, open/closed states
-✅ **Code-tabs directive** - multi-language code examples
-✅ **Cross-references** - wiki-style links
-✅ **Variable substitution** - dynamic content
-✅ **GFM features** - tables, task lists, footnotes, strikethrough
-✅ **Syntax highlighting** - 100+ languages supported
-✅ **Complex nesting** - directives within directives
-✅ **Rich content** - images, lists, quotes, horizontal rules
-
-**This is what makes Bengal powerful!** 🚀
-
----
-
-## 📚 Next Steps
-
-Want to learn more? Check out these resources:
-
-````{tabs}
-:id: next-steps
-
-### Tab: For Beginners
-
-1. [[docs/getting-started/installation|Installation Guide]]
-2. [[docs/getting-started/quick-start|Quick Start Tutorial]]
-3. [[docs/getting-started/first-site|Build Your First Site]]
-
-### Tab: For Advanced Users
-
-1. [[docs/templates/function-reference|Template Functions Reference]]
-2. [[docs/advanced/plugin-development|Plugin Development]]
-3. [[docs/performance/optimization-tips|Performance Optimization]]
-
-### Tab: For Migrators
-
-1. [[tutorials/migration/from-hugo|Migrating from Hugo]]
-2. [[tutorials/migration/from-jekyll|Migrating from Jekyll]]
-3. [[tutorials/migration/from-eleventy|Migrating from Eleventy]]
-````
-
----
-
-**Last Updated:** October 4, 2025  
-**Version:** 1.0.0  
-**Build Time:** {{/* page.content | reading_time */}} min read

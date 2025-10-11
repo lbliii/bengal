@@ -5,18 +5,18 @@ Handles cache management, change detection, and determining what needs rebuildin
 """
 
 from pathlib import Path
-from typing import TYPE_CHECKING, Dict, List, Set, Tuple, Optional, Any
+from typing import TYPE_CHECKING
 
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
 if TYPE_CHECKING:
-    from bengal.core.site import Site
+    from bengal.cache import BuildCache, DependencyTracker
+    from bengal.core.asset import Asset
     from bengal.core.page import Page
     from bengal.core.section import Section
-    from bengal.core.asset import Asset
-    from bengal.cache import BuildCache, DependencyTracker
+    from bengal.core.site import Site
 
 
 class IncrementalOrchestrator:
@@ -39,10 +39,10 @@ class IncrementalOrchestrator:
             site: Site instance for incremental builds
         """
         self.site = site
-        self.cache: Optional['BuildCache'] = None
-        self.tracker: Optional['DependencyTracker'] = None
+        self.cache: BuildCache | None = None
+        self.tracker: DependencyTracker | None = None
     
-    def initialize(self, enabled: bool = False) -> Tuple['BuildCache', 'DependencyTracker']:
+    def initialize(self, enabled: bool = False) -> tuple['BuildCache', 'DependencyTracker']:
         """
         Initialize cache and tracker.
         
@@ -106,7 +106,7 @@ class IncrementalOrchestrator:
         
         return False
     
-    def find_work_early(self, verbose: bool = False) -> Tuple[List['Page'], List['Asset'], Dict[str, List]]:
+    def find_work_early(self, verbose: bool = False) -> tuple[list['Page'], list['Asset'], dict[str, list]]:
         """
         Find pages/assets that need rebuilding (early version - before taxonomy generation).
         
@@ -122,9 +122,9 @@ class IncrementalOrchestrator:
         if not self.cache or not self.tracker:
             raise RuntimeError("Cache not initialized - call initialize() first")
         
-        pages_to_rebuild: Set[Path] = set()
-        assets_to_process: List['Asset'] = []
-        change_summary: Dict[str, List] = {
+        pages_to_rebuild: set[Path] = set()
+        assets_to_process: list[Asset] = []
+        change_summary: dict[str, list] = {
             'Modified content': [],
             'Modified assets': [],
             'Modified templates': [],
@@ -182,7 +182,7 @@ class IncrementalOrchestrator:
         
         return pages_to_build_list, assets_to_process, change_summary
     
-    def find_work(self, verbose: bool = False) -> Tuple[List['Page'], List['Asset'], Dict[str, List]]:
+    def find_work(self, verbose: bool = False) -> tuple[list['Page'], list['Asset'], dict[str, list]]:
         """
         Find pages/assets that need rebuilding (legacy version - after taxonomy generation).
         
@@ -198,9 +198,9 @@ class IncrementalOrchestrator:
         if not self.cache or not self.tracker:
             raise RuntimeError("Cache not initialized - call initialize() first")
         
-        pages_to_rebuild: Set[Path] = set()
-        assets_to_process: List['Asset'] = []
-        change_summary: Dict[str, List] = {
+        pages_to_rebuild: set[Path] = set()
+        assets_to_process: list[Asset] = []
+        change_summary: dict[str, list] = {
             'Modified content': [],
             'Modified assets': [],
             'Modified templates': [],
@@ -245,8 +245,8 @@ class IncrementalOrchestrator:
         
         # Check for SPECIFIC taxonomy changes (which exact tags were added/removed)
         # Only rebuild tag pages for tags that actually changed
-        affected_tags: Set[str] = set()
-        affected_sections: Set['Section'] = set()  # Type-safe with hashable sections
+        affected_tags: set[str] = set()
+        affected_sections: set[Section] = set()  # Type-safe with hashable sections
         
         for page in self.site.pages:
             # Skip generated pages - they don't have real source files
@@ -306,7 +306,7 @@ class IncrementalOrchestrator:
         
         return pages_to_build, assets_to_process, change_summary
     
-    def save_cache(self, pages_built: List['Page'], assets_processed: List['Asset']) -> None:
+    def save_cache(self, pages_built: list['Page'], assets_processed: list['Asset']) -> None:
         """
         Update cache with processed files.
         
@@ -342,7 +342,7 @@ class IncrementalOrchestrator:
         # Save cache
         self.cache.save(cache_path)
     
-    def _get_theme_templates_dir(self) -> Optional[Path]:
+    def _get_theme_templates_dir(self) -> Path | None:
         """
         Get the templates directory for the current theme.
         

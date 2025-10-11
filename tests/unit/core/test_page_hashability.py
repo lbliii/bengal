@@ -5,7 +5,6 @@ Tests that Page objects are properly hashable based on source_path,
 enabling set storage, dictionary keys, and O(1) membership tests.
 """
 
-import pytest
 from pathlib import Path
 from bengal.core.page import Page
 
@@ -134,7 +133,7 @@ class TestPageHashability:
         
         assert page != str(tmp_path / "content/post.md")
         assert page != tmp_path / "content/post.md"
-        assert page != None
+        assert page is not None
         assert page != 42
         assert page != {'source_path': tmp_path / "content/post.md"}
 

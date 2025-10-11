@@ -4,8 +4,7 @@ Page Metadata Mixin - Basic properties and type checking.
 
 from datetime import datetime
 from functools import cached_property
-from typing import Any, Dict, List, Optional
-import re
+from typing import Any
 
 from bengal.utils.logger import get_logger
 
@@ -29,7 +28,7 @@ class PageMetadataMixin:
         return self.metadata.get("title", self.source_path.stem.replace("-", " ").title())
     
     @property
-    def date(self) -> Optional[datetime]:
+    def date(self) -> datetime | None:
         """
         Get page date from metadata.
         
@@ -128,7 +127,7 @@ class PageMetadataMixin:
         return f"/{self.slug}/"
     
     @property
-    def toc_items(self) -> List[Dict[str, Any]]:
+    def toc_items(self) -> list[dict[str, Any]]:
         """
         Get structured TOC data (lazy evaluation).
         
@@ -240,7 +239,7 @@ class PageMetadataMixin:
         return self.metadata.get('draft', False)
     
     @property
-    def keywords(self) -> List[str]:
+    def keywords(self) -> list[str]:
         """
         Get page keywords from metadata.
         

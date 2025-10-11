@@ -2,9 +2,6 @@
 Unit tests for BuildCache.
 """
 
-import pytest
-from pathlib import Path
-import json
 from bengal.cache.build_cache import BuildCache
 
 

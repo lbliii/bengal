@@ -251,17 +251,17 @@ def run_realistic_scale_benchmark():
             theoretical_linear = 1024
             efficiency = (theoretical_linear / growth_factor * 100)
             
-            print(f"Scaling (1 → 1,024 files):")
+            print("Scaling (1 → 1,024 files):")
             print(f"  Time growth:  {growth_factor:.1f}x")
             print(f"  Linear:       {theoretical_linear}x")
             print(f"  Efficiency:   {efficiency:.1f}%")
             
             if growth_factor < theoretical_linear * 1.2:
-                print(f"  ✅ EXCELLENT: Near-linear scaling with realistic content!")
+                print("  ✅ EXCELLENT: Near-linear scaling with realistic content!")
             elif growth_factor < theoretical_linear * 1.5:
-                print(f"  ✅ GOOD: Sub-linear scaling maintained")
+                print("  ✅ GOOD: Sub-linear scaling maintained")
             else:
-                print(f"  ⚠️  WARNING: Features causing super-linear growth")
+                print("  ⚠️  WARNING: Features causing super-linear growth")
     
     print()
     print("=" * 80)

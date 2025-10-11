@@ -2,36 +2,26 @@
 Site Object - Represents the entire website and orchestrates the build.
 """
 
-from dataclasses import dataclass, field
-from pathlib import Path
-from typing import Any, Dict, List, Optional
-import concurrent.futures
-import threading
-from datetime import datetime
-from threading import Lock
+from __future__ import annotations
 
+import threading
+from dataclasses import dataclass, field
+from datetime import datetime
+from pathlib import Path
+from threading import Lock
+from typing import TYPE_CHECKING, Any
+
+from bengal.core.asset import Asset
+from bengal.core.menu import MenuBuilder, MenuItem
 from bengal.core.page import Page
 from bengal.core.section import Section
-from bengal.core.asset import Asset
-from bengal.core.menu import MenuItem, MenuBuilder
-from bengal.utils.pagination import Paginator
-from bengal.rendering.pipeline import RenderingPipeline
 from bengal.utils.build_stats import BuildStats
 from bengal.utils.logger import get_logger
-from bengal.health import HealthCheck
+
+if TYPE_CHECKING:
+    from bengal.utils.profile import BuildProfile
 
 logger = get_logger(__name__)
-from bengal.health.validators import (
-    OutputValidator,
-    ConfigValidatorWrapper,
-    MenuValidator,
-    LinkValidatorWrapper,
-    NavigationValidator,
-    TaxonomyValidator,
-    RenderingValidator,
-    CacheValidator,
-    PerformanceValidator,
-)
 
 # Thread-local storage for pipelines (reuse per thread, not per page!)
 _thread_local = threading.local()
@@ -85,19 +75,24 @@ class Site:
     """
     
     root_path: Path
-    config: Dict[str, Any] = field(default_factory=dict)
-    pages: List[Page] = field(default_factory=list)
-    sections: List[Section] = field(default_factory=list)
-    assets: List[Asset] = field(default_factory=list)
-    theme: Optional[str] = None
+    config: dict[str, Any] = field(default_factory=dict)
+    pages: list[Page] = field(default_factory=list)
+    sections: list[Section] = field(default_factory=list)
+    assets: list[Asset] = field(default_factory=list)
+    theme: str | None = None
     output_dir: Path = field(default_factory=lambda: Path("public"))
-    build_time: Optional[datetime] = None
-    taxonomies: Dict[str, Dict[str, List[Page]]] = field(default_factory=dict)
-    menu: Dict[str, List[MenuItem]] = field(default_factory=dict)
-    menu_builders: Dict[str, MenuBuilder] = field(default_factory=dict)
+    build_time: datetime | None = None
+    taxonomies: dict[str, dict[str, list[Page]]] = field(default_factory=dict)
+    menu: dict[str, list[MenuItem]] = field(default_factory=dict)
+    menu_builders: dict[str, MenuBuilder] = field(default_factory=dict)
+    # Localized menus when i18n is enabled: {lang: {menu_name: [MenuItem]}}
+    menu_localized: dict[str, dict[str, list[MenuItem]]] = field(default_factory=dict)
+    menu_builders_localized: dict[str, dict[str, MenuBuilder]] = field(default_factory=dict)
+    # Current language context for rendering (set per page during rendering)
+    current_language: str | None = None
     
     # Private caches for expensive properties (invalidated when pages change)
-    _regular_pages_cache: Optional[List[Page]] = field(default=None, repr=False, init=False)
+    _regular_pages_cache: list[Page] | None = field(default=None, repr=False, init=False)
     
     def __post_init__(self) -> None:
         """Initialize site from configuration."""
@@ -111,22 +106,22 @@ class Site:
             self.output_dir = self.root_path / self.output_dir
     
     @property
-    def title(self) -> Optional[str]:
+    def title(self) -> str | None:
         """Get site title from config."""
         return self.config.get('title')
     
     @property
-    def baseurl(self) -> Optional[str]:
+    def baseurl(self) -> str | None:
         """Get site baseurl from config."""
         return self.config.get('baseurl')
     
     @property
-    def author(self) -> Optional[str]:
+    def author(self) -> str | None:
         """Get site author from config."""
         return self.config.get('author')
     
     @property
-    def regular_pages(self) -> List[Page]:
+    def regular_pages(self) -> list[Page]:
         """
         Get only regular content pages (excludes generated taxonomy/archive pages).
         
@@ -159,7 +154,7 @@ class Site:
         self._regular_pages_cache = None
     
     @classmethod
-    def from_config(cls, root_path: Path, config_path: Optional[Path] = None) -> 'Site':
+    def from_config(cls, root_path: Path, config_path: Path | None = None) -> 'Site':
         """
         Create a Site instance from a configuration file.
         
@@ -211,7 +206,7 @@ class Site:
         
         return cls(root_path=root_path, config=config)
     
-    def discover_content(self, content_dir: Optional[Path] = None) -> None:
+    def discover_content(self, content_dir: Path | None = None) -> None:
         """
         Discover all content (pages, sections) in the content directory.
         
@@ -235,7 +230,7 @@ class Site:
         
         from bengal.discovery.content_discovery import ContentDiscovery
         
-        discovery = ContentDiscovery(content_dir)
+        discovery = ContentDiscovery(content_dir, site=self)
         self.sections, self.pages = discovery.discover()
         
         # Set up page references for navigation
@@ -244,7 +239,7 @@ class Site:
         # Apply cascading frontmatter from sections to pages
         self._apply_cascades()
     
-    def discover_assets(self, assets_dir: Optional[Path] = None) -> None:
+    def discover_assets(self, assets_dir: Path | None = None) -> None:
         """
         Discover all assets in the assets directory and theme assets.
         
@@ -255,14 +250,12 @@ class Site:
         
         self.assets = []
         
-        # Discover theme assets first (lower priority)
+        # Discover theme assets first (lower priority), support inheritance chain
         if self.theme:
-            theme_assets_dir = self._get_theme_assets_dir()
-            if theme_assets_dir and theme_assets_dir.exists():
-                # Removed verbose message - shown in stats instead
-                pass
-                theme_discovery = AssetDiscovery(theme_assets_dir)
-                self.assets.extend(theme_discovery.discover())
+            for theme_dir in self._get_theme_assets_chain():
+                if theme_dir and theme_dir.exists():
+                    theme_discovery = AssetDiscovery(theme_dir)
+                    self.assets.extend(theme_discovery.discover())
         
         # Discover site assets (higher priority, can override theme assets)
         if assets_dir is None:
@@ -275,6 +268,20 @@ class Site:
         elif not self.assets:
             # Only warn if we have no theme assets either
             logger.warning("assets_dir_not_found", path=str(assets_dir))
+        
+        # Deduplicate by relative output path with precedence: site > child theme > parents
+        if self.assets:
+            dedup: dict[str, Asset] = {}
+            order: list[str] = []
+            for asset in self.assets:
+                key = str(asset.output_path) if asset.output_path else str(asset.source_path.name)
+                # Keep the latest occurrence (later entries override earlier)
+                if key in dedup:
+                    dedup[key] = asset
+                else:
+                    dedup[key] = asset
+                    order.append(key)
+            self.assets = [dedup[k] for k in order]
     
     def _setup_page_references(self) -> None:
         """
@@ -362,7 +369,7 @@ class Site:
                         if key not in page.metadata:
                             page.metadata[key] = value
     
-    def _apply_section_cascade(self, section: Section, parent_cascade: Optional[Dict[str, Any]] = None) -> None:
+    def _apply_section_cascade(self, section: Section, parent_cascade: dict[str, Any] | None = None) -> None:
         """
         Recursively apply cascade metadata to a section and its descendants.
         
@@ -396,7 +403,7 @@ class Site:
         for subsection in section.subsections:
             self._apply_section_cascade(subsection, accumulated_cascade)
     
-    def _get_theme_assets_dir(self) -> Optional[Path]:
+    def _get_theme_assets_dir(self) -> Path | None:
         """
         Get the assets directory for the current theme.
         
@@ -419,6 +426,39 @@ class Site:
             return bundled_theme_dir
         
         return None
+
+    def _get_theme_assets_chain(self) -> list[Path]:
+        """
+        Return list of theme asset dirs from parents to child (low → high priority).
+        Site assets will still override these.
+        """
+        dirs: list[Path] = []
+        try:
+            # Reuse resolver from template engine semantics
+            from bengal.rendering.template_engine import TemplateEngine
+            # Build a temporary engine with this site to resolve chain
+            engine = TemplateEngine(self)
+            chain = engine._resolve_theme_chain(self.theme)
+        except Exception:
+            chain = [self.theme] if self.theme else []
+        
+        # Build list from parents to child
+        for theme_name in reversed(chain):
+            # Site theme assets
+            site_dir = self.root_path / "themes" / theme_name / "assets"
+            if site_dir.exists():
+                dirs.append(site_dir)
+                continue
+            # Bundled theme assets
+            try:
+                import bengal
+                bengal_dir = Path(bengal.__file__).parent
+                bundled_dir = bengal_dir / "themes" / theme_name / "assets"
+                if bundled_dir.exists():
+                    dirs.append(bundled_dir)
+            except Exception:
+                pass
+        return dirs
     
     def build(self, parallel: bool = True, incremental: bool = False, verbose: bool = False, quiet: bool = False, profile: 'BuildProfile' = None, memory_optimized: bool = False, strict: bool = False, full_output: bool = False) -> BuildStats:
         """

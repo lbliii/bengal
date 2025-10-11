@@ -7,11 +7,10 @@ Provides a singleton console instance that respects:
 - CI/CD environments
 """
 
+import os
+
 from rich.console import Console
 from rich.theme import Theme
-from typing import Optional
-import os
-import sys
 
 # Bengal theme
 bengal_theme = Theme({
@@ -24,7 +23,7 @@ bengal_theme = Theme({
     'bengal': 'yellow bold',  # For the cat mascot
 })
 
-_console: Optional[Console] = None
+_console: Console | None = None
 
 
 def get_console() -> Console:

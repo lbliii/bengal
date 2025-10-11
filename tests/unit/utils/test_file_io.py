@@ -4,9 +4,6 @@ Tests for file I/O utilities.
 
 import json
 import pytest
-from pathlib import Path
-import tempfile
-import shutil
 
 from bengal.utils.file_io import (
     read_text_file,

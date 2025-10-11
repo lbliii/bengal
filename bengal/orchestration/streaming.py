@@ -5,15 +5,18 @@ Uses knowledge graph analysis to process pages in optimal order for memory effic
 Hub-first strategy: Keep highly connected pages in memory, stream leaves.
 """
 
-from typing import Any, List, Optional, TYPE_CHECKING
+from __future__ import annotations
+
 import gc
+from typing import TYPE_CHECKING, Any, Optional
 
 from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
+    from bengal.cache import DependencyTracker
     from bengal.core.page import Page
     from bengal.core.site import Site
-    from bengal.cache import DependencyTracker
+    from bengal.orchestration.render import RenderOrchestrator
     from bengal.utils.build_stats import BuildStats
 
 logger = get_logger(__name__)
@@ -42,13 +45,13 @@ class StreamingRenderOrchestrator:
         self.site = site
     
     def process(self, 
-                pages: List['Page'], 
+                pages: list['Page'], 
                 parallel: bool = True,
                 quiet: bool = False,
                 tracker: Optional['DependencyTracker'] = None,
                 stats: Optional['BuildStats'] = None,
                 batch_size: int = 100,
-                progress_manager: Optional[Any] = None) -> None:
+                progress_manager: Any | None = None) -> None:
         """
         Render pages in memory-optimized batches using connectivity analysis.
         
@@ -68,9 +71,9 @@ class StreamingRenderOrchestrator:
         WARNING_THRESHOLD = 1000
         
         if total_pages < WARNING_THRESHOLD:
-            print(f"  ⚠️  Memory optimization is designed for large sites (5K+ pages)")
+            print("  ⚠️  Memory optimization is designed for large sites (5K+ pages)")
             print(f"     Your site has {total_pages} pages - standard build is likely faster.")
-            print(f"     Continuing anyway for testing/profiling purposes...")
+            print("     Continuing anyway for testing/profiling purposes...")
         elif total_pages < RECOMMENDED_THRESHOLD:
             print(f"  ℹ️  Site has {total_pages} pages - memory optimization may have marginal benefit.")
         
@@ -163,11 +166,11 @@ class StreamingRenderOrchestrator:
             leaves=total_leaves
         )
         
-        print(f"  ✓ Memory-optimized render complete!")
+        print("  ✓ Memory-optimized render complete!")
     
     def _render_batches(self,
                        renderer: 'RenderOrchestrator',
-                       pages: List['Page'],
+                       pages: list['Page'],
                        batch_size: int,
                        parallel: bool,
                        quiet: bool,
@@ -175,7 +178,7 @@ class StreamingRenderOrchestrator:
                        stats: Optional['BuildStats'],
                        batch_label: str = "pages",
                        release_memory: bool = False,
-                       progress_manager: Optional[Any] = None) -> None:
+                       progress_manager: Any | None = None) -> None:
         """
         Render pages in batches with optional memory release.
         

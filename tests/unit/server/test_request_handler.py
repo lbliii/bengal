@@ -5,11 +5,12 @@ Tests the helper methods used for HTML detection and live reload injection.
 """
 
 import pytest
-from unittest.mock import Mock, MagicMock, patch
+from unittest.mock import Mock, patch
 from io import BytesIO
+import http
+import http.server
 
 from bengal.server.request_handler import BengalRequestHandler
-from bengal.server.live_reload import LIVE_RELOAD_SCRIPT
 
 
 class TestMightBeHtml:
@@ -359,6 +360,69 @@ class TestRequestHandlerIntegration:
         # CSS response (wouldn't be checked, but test anyway)
         response = b'HTTP/1.1 200 OK\r\nContent-Type: text/css\r\n\r\nbody { margin: 0; }'
         assert handler._is_html_response(response) is False
+
+
+class TestDoGetIntegrationMinimal:
+    """Minimal integration around do_GET buffering and injection."""
+    
+    def _make_handler(self):
+        from unittest.mock import Mock
+        from io import BytesIO
+        request = Mock()
+        request.makefile = Mock(side_effect=lambda *args, **kwargs: BytesIO(b''))
+        with patch.object(BengalRequestHandler, 'handle'):
+            handler = BengalRequestHandler(
+                request=request,
+                client_address=('127.0.0.1', 12345),
+                server=Mock()
+            )
+        return handler
+    
+    def test_do_get_injects_for_html(self, monkeypatch):
+        """HTML responses should be injected with live reload script."""
+        handler = self._make_handler()
+        handler.path = '/index.html'
+        output = BytesIO()
+        handler.wfile = output
+        
+        def fake_do_get(self):
+            # Simulate base handler writing a valid HTTP response
+            self.wfile.write(b'HTTP/1.1 200 OK\r\n')
+            self.wfile.write(b'Content-Type: text/html; charset=utf-8\r\n')
+            self.wfile.write(b'Content-Length: 13\r\n')
+            self.wfile.write(b'\r\n')
+            self.wfile.write(b'<html></html>')
+        
+        monkeypatch.setattr(http.server.SimpleHTTPRequestHandler, 'do_GET', fake_do_get, raising=True)
+        
+        # Execute
+        handler.do_GET()
+        result = output.getvalue().decode('utf-8', errors='replace')
+        
+        assert '__bengal_reload__' in result
+        assert 'EventSource' in result
+    
+    def test_do_get_bypasses_non_html(self, monkeypatch):
+        """Non-HTML responses should not be modified or injected."""
+        handler = self._make_handler()
+        handler.path = '/assets/app.js'
+        output = BytesIO()
+        handler.wfile = output
+        
+        def fake_do_get(self):
+            # Simulate JS asset response
+            self.wfile.write(b'HTTP/1.1 200 OK\r\n')
+            self.wfile.write(b'Content-Type: application/javascript\r\n')
+            self.wfile.write(b'\r\n')
+            self.wfile.write(b'console.log("ok");')
+        
+        monkeypatch.setattr(http.server.SimpleHTTPRequestHandler, 'do_GET', fake_do_get, raising=True)
+        
+        # Execute
+        handler.do_GET()
+        result = output.getvalue().decode('utf-8', errors='replace')
+        
+        assert '__bengal_reload__' not in result
 
 
 if __name__ == '__main__':

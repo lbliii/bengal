@@ -14,15 +14,14 @@ Helps improve:
 - User navigation
 """
 
-from typing import TYPE_CHECKING, Dict, Set, List, Tuple, Optional
 from dataclasses import dataclass, field
-from collections import defaultdict
+from typing import TYPE_CHECKING
 
 from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.core.page import Page
     from bengal.analysis.knowledge_graph import KnowledgeGraph
+    from bengal.core.page import Page
 
 logger = get_logger(__name__)
 
@@ -45,7 +44,7 @@ class LinkSuggestion:
     source: 'Page'
     target: 'Page'
     score: float
-    reasons: List[str] = field(default_factory=list)
+    reasons: list[str] = field(default_factory=list)
     
     def __repr__(self) -> str:
         return f"LinkSuggestion({self.source.title} -> {self.target.title}, score={self.score:.3f})"
@@ -64,11 +63,11 @@ class LinkSuggestionResults:
         total_suggestions: Total number of suggestions generated
     """
     
-    suggestions: List[LinkSuggestion]
+    suggestions: list[LinkSuggestion]
     total_suggestions: int
     pages_analyzed: int
     
-    def get_suggestions_for_page(self, page: 'Page', limit: int = 10) -> List[LinkSuggestion]:
+    def get_suggestions_for_page(self, page: 'Page', limit: int = 10) -> list[LinkSuggestion]:
         """
         Get link suggestions for a specific page.
         
@@ -85,11 +84,11 @@ class LinkSuggestionResults:
         ]
         return sorted(page_suggestions, key=lambda x: x.score, reverse=True)[:limit]
     
-    def get_top_suggestions(self, limit: int = 50) -> List[LinkSuggestion]:
+    def get_top_suggestions(self, limit: int = 50) -> list[LinkSuggestion]:
         """Get top N suggestions across all pages."""
         return sorted(self.suggestions, key=lambda x: x.score, reverse=True)[:limit]
     
-    def get_suggestions_by_target(self, target: 'Page') -> List[LinkSuggestion]:
+    def get_suggestions_by_target(self, target: 'Page') -> list[LinkSuggestion]:
         """Get all suggestions that point to a specific target page."""
         return [s for s in self.suggestions if s.target == target]
 
@@ -167,7 +166,7 @@ class LinkSuggestionEngine:
             pass
         
         # Generate suggestions
-        all_suggestions: List[LinkSuggestion] = []
+        all_suggestions: list[LinkSuggestion] = []
         
         for source_page in pages:
             suggestions = self._generate_suggestions_for_page(
@@ -192,16 +191,16 @@ class LinkSuggestionEngine:
     
     def _generate_suggestions_for_page(self,
                                       source: 'Page',
-                                      all_pages: List['Page'],
-                                      page_tags: Dict['Page', Set[str]],
-                                      page_categories: Dict['Page', Set[str]],
-                                      pagerank_scores: Dict['Page', float],
-                                      betweenness_scores: Dict['Page', float]) -> List[LinkSuggestion]:
+                                      all_pages: list['Page'],
+                                      page_tags: dict['Page', set[str]],
+                                      page_categories: dict['Page', set[str]],
+                                      pagerank_scores: dict['Page', float],
+                                      betweenness_scores: dict['Page', float]) -> list[LinkSuggestion]:
         """Generate link suggestions for a single page."""
         # Get existing links from this page
         existing_links = self.graph.outgoing_refs.get(source, set())
         
-        candidates: List[Tuple['Page', float, List[str]]] = []
+        candidates: list[tuple[Page, float, list[str]]] = []
         
         for target in all_pages:
             # Skip self-links and existing links
@@ -236,10 +235,10 @@ class LinkSuggestionEngine:
     def _calculate_link_score(self,
                              source: 'Page',
                              target: 'Page',
-                             page_tags: Dict['Page', Set[str]],
-                             page_categories: Dict['Page', Set[str]],
-                             pagerank_scores: Dict['Page', float],
-                             betweenness_scores: Dict['Page', float]) -> Tuple[float, List[str]]:
+                             page_tags: dict['Page', set[str]],
+                             page_categories: dict['Page', set[str]],
+                             pagerank_scores: dict['Page', float],
+                             betweenness_scores: dict['Page', float]) -> tuple[float, list[str]]:
         """
         Calculate link score between two pages.
         
@@ -301,7 +300,7 @@ class LinkSuggestionEngine:
         
         return score, reasons
     
-    def _build_tag_map(self, pages: List['Page']) -> Dict['Page', Set[str]]:
+    def _build_tag_map(self, pages: list['Page']) -> dict['Page', set[str]]:
         """Build mapping of page -> set of tags."""
         tag_map = {}
         for page in pages:
@@ -311,7 +310,7 @@ class LinkSuggestionEngine:
             tag_map[page] = tags
         return tag_map
     
-    def _build_category_map(self, pages: List['Page']) -> Dict['Page', Set[str]]:
+    def _build_category_map(self, pages: list['Page']) -> dict['Page', set[str]]:
         """Build mapping of page -> set of categories."""
         category_map = {}
         for page in pages:

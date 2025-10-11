@@ -1,0 +1,15 @@
+// Example SCSS (optional pipeline)
+$primary: #3b82f6;
+
+body {
+  color: #111827;
+}
+
+.btn-primary {
+  background: $primary;
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+}
+
+

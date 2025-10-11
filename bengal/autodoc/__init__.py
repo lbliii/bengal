@@ -10,13 +10,13 @@ All with shared templates, cross-references, and incremental builds.
 """
 
 from bengal.autodoc.base import DocElement, Extractor
-from bengal.autodoc.generator import DocumentationGenerator
 from bengal.autodoc.extractors.cli import CLIExtractor
+from bengal.autodoc.generator import DocumentationGenerator
 
 __all__ = [
-    'DocElement',
-    'Extractor',
-    'DocumentationGenerator',
     'CLIExtractor',
+    'DocElement',
+    'DocumentationGenerator',
+    'Extractor',
 ]
 

@@ -6,14 +6,14 @@ Inspired by Obsidian's graph view.
 """
 
 import json
-from typing import TYPE_CHECKING, Dict, List, Any
-from dataclasses import dataclass, asdict
+from dataclasses import asdict, dataclass
+from typing import TYPE_CHECKING, Any
 
 from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.core.site import Site
     from bengal.analysis.knowledge_graph import KnowledgeGraph
+    from bengal.core.site import Site
 
 logger = get_logger(__name__)
 
@@ -39,7 +39,7 @@ class GraphNode:
     label: str
     url: str
     type: str
-    tags: List[str]
+    tags: list[str]
     incoming_refs: int
     outgoing_refs: int
     connectivity: int
@@ -93,7 +93,7 @@ class GraphVisualizer:
         if not graph._built:
             raise ValueError("KnowledgeGraph must be built before visualization")
     
-    def generate_graph_data(self) -> Dict[str, Any]:
+    def generate_graph_data(self) -> dict[str, Any]:
         """
         Generate D3.js-compatible graph data.
         
@@ -182,7 +182,7 @@ class GraphVisualizer:
         else:
             return '#6b7280'  # Gray for regular pages
     
-    def generate_html(self, title: str = None) -> str:
+    def generate_html(self, title: str | None = None) -> str:
         """
         Generate complete standalone HTML visualization.
         

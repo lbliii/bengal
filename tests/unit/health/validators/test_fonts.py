@@ -3,7 +3,6 @@ Tests for Font validator.
 """
 
 import pytest
-from pathlib import Path
 from unittest.mock import Mock
 
 from bengal.health.validators.fonts import FontValidator

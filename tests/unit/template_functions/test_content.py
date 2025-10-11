@@ -1,6 +1,5 @@
 """Tests for content transformation template functions."""
 
-import pytest
 from bengal.rendering.template_functions.content import (
     safe_html,
     html_escape,

@@ -5,8 +5,6 @@ Verifies that expensive properties like regular_pages are cached
 to prevent O(n²) performance issues.
 """
 
-import pytest
-from pathlib import Path
 from bengal.core.site import Site
 from bengal.core.page import Page
 

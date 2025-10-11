@@ -7,9 +7,6 @@ without those examples being processed by the template engine.
 
 import pytest
 from bengal.rendering.plugins.variable_substitution import VariableSubstitutionPlugin
-from bengal.core.page import Page
-from bengal.core.site import Site
-from pathlib import Path
 from datetime import datetime
 
 

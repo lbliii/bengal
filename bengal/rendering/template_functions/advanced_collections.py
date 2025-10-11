@@ -5,10 +5,11 @@ Provides 3 advanced functions for working with lists.
 """
 
 import random
-from typing import TYPE_CHECKING, List, Any
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from jinja2 import Environment
+
     from bengal.core.site import Site
 
 
@@ -21,7 +22,7 @@ def register(env: 'Environment', site: 'Site') -> None:
     })
 
 
-def sample(items: List[Any], count: int = 1, seed: int = None) -> List[Any]:
+def sample(items: list[Any], count: int = 1, seed: int | None = None) -> list[Any]:
     """
     Get random sample of items.
     
@@ -51,7 +52,7 @@ def sample(items: List[Any], count: int = 1, seed: int = None) -> List[Any]:
     return random.sample(items, min(count, len(items)))
 
 
-def shuffle(items: List[Any], seed: int = None) -> List[Any]:
+def shuffle(items: list[Any], seed: int | None = None) -> list[Any]:
     """
     Shuffle items randomly.
     
@@ -77,7 +78,7 @@ def shuffle(items: List[Any], seed: int = None) -> List[Any]:
     return result
 
 
-def chunk(items: List[Any], size: int) -> List[List[Any]]:
+def chunk(items: list[Any], size: int) -> list[list[Any]]:
     """
     Split list into chunks of specified size.
     

@@ -274,7 +274,7 @@ def benchmark_site_build(num_pages: int, num_assets: int, label: str) -> dict:
         
         # Print results
         print(f"  Total build time:     {avg_times['total']:.3f}s")
-        print(f"  Breakdown:")
+        print("  Breakdown:")
         print(f"    Discovery:          {avg_times['discovery']:.3f}s ({avg_times['discovery']/avg_times['total']*100:.1f}%)")
         print(f"    Taxonomy:           {avg_times['taxonomy']:.3f}s ({avg_times['taxonomy']/avg_times['total']*100:.1f}%)")
         print(f"    Rendering:          {avg_times['rendering']:.3f}s ({avg_times['rendering']/avg_times['total']*100:.1f}%)")

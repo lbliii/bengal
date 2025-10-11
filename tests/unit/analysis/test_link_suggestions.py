@@ -2,7 +2,6 @@
 Unit tests for link suggestion engine.
 """
 
-import pytest
 from unittest.mock import Mock
 from pathlib import Path
 from collections import defaultdict

@@ -1,6 +1,7 @@
 """Clean commands for removing generated files."""
 
 from pathlib import Path
+
 import click
 
 from bengal.core.site import Site
@@ -36,8 +37,9 @@ def clean(force: bool, config: str, source: str) -> None:
         if not force:
             # Interactive mode: ask for confirmation (with warning icon for destructive operation)
             try:
-                from bengal.utils.rich_console import get_console, should_use_rich
                 from rich.prompt import Confirm
+
+                from bengal.utils.rich_console import get_console, should_use_rich
                 
                 if should_use_rich():
                     console = get_console()
@@ -102,7 +104,7 @@ def cleanup(force: bool, port: int, source: str) -> None:
                 if port_pid:
                     click.echo(click.style(f"\n⚠️  However, port {port} is in use by PID {port_pid}", fg='yellow'))
                     if PIDManager.is_bengal_process(port_pid):
-                        click.echo(f"   This appears to be a Bengal process not tracked by PID file")
+                        click.echo("   This appears to be a Bengal process not tracked by PID file")
                         if not force and not click.confirm(f"  Kill process {port_pid}?"):
                             click.echo("Cancelled")
                             return
@@ -112,12 +114,12 @@ def cleanup(force: bool, port: int, source: str) -> None:
                             click.echo(click.style(f"❌ Failed to kill process {port_pid}", fg='red'))
                             raise click.Abort()
                     else:
-                        click.echo(f"   This is not a Bengal process")
+                        click.echo("   This is not a Bengal process")
                         click.echo(f"   Try manually: kill {port_pid}")
             return
         
         # Found stale process
-        click.echo(click.style(f"⚠️  Found stale Bengal server process", fg='yellow'))
+        click.echo(click.style("⚠️  Found stale Bengal server process", fg='yellow'))
         click.echo(f"   PID: {stale_pid}")
         
         # Check if it's holding a port
@@ -129,18 +131,18 @@ def cleanup(force: bool, port: int, source: str) -> None:
         # Confirm unless --force
         if not force:
             try:
-                from bengal.utils.rich_console import get_console, should_use_rich
                 from rich.prompt import Confirm
+
+                from bengal.utils.rich_console import get_console, should_use_rich
                 
                 if should_use_rich():
                     console = get_console()
                     if not Confirm.ask("  Kill this process", console=console, default=False):
                         console.print("Cancelled")
                         return
-                else:
-                    if not click.confirm("  Kill this process?"):
-                        click.echo("Cancelled")
-                        return
+                elif not click.confirm("  Kill this process?"):
+                    click.echo("Cancelled")
+                    return
             except ImportError:
                 if not click.confirm("  Kill this process?"):
                     click.echo("Cancelled")
@@ -150,7 +152,7 @@ def cleanup(force: bool, port: int, source: str) -> None:
         if PIDManager.kill_stale_process(stale_pid):
             click.echo(click.style("✅ Stale process terminated successfully", fg='green'))
         else:
-            click.echo(click.style(f"❌ Failed to terminate process", fg='red'))
+            click.echo(click.style("❌ Failed to terminate process", fg='red'))
             click.echo(f"   Try manually: kill {stale_pid}")
             raise click.Abort()
             

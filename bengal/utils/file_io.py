@@ -20,7 +20,7 @@ Example:
 
 import json
 from pathlib import Path
-from typing import Any, Callable, Optional, Union
+from typing import Any
 
 from bengal.utils.logger import get_logger
 
@@ -28,12 +28,12 @@ logger = get_logger(__name__)
 
 
 def read_text_file(
-    file_path: Union[Path, str],
+    file_path: Path | str,
     encoding: str = 'utf-8',
-    fallback_encoding: Optional[str] = 'latin-1',
+    fallback_encoding: str | None = 'latin-1',
     on_error: str = 'raise',
-    caller: Optional[str] = None
-) -> Optional[str]:
+    caller: str | None = None
+) -> str | None:
     """
     Read text file with robust error handling and encoding fallback.
     
@@ -88,7 +88,7 @@ def read_text_file(
     
     # Try reading with primary encoding
     try:
-        with open(file_path, 'r', encoding=encoding) as f:
+        with open(file_path, encoding=encoding) as f:
             content = f.read()
         
         logger.debug("file_read",
@@ -110,7 +110,7 @@ def read_text_file(
                          caller=caller or "file_io")
             
             try:
-                with open(file_path, 'r', encoding=fallback_encoding) as f:
+                with open(file_path, encoding=fallback_encoding) as f:
                     content = f.read()
                 
                 logger.debug("file_read_fallback",
@@ -129,10 +129,10 @@ def read_text_file(
                            caller=caller or "file_io")
         
         if on_error == 'raise':
-            raise IOError(f"Cannot decode {file_path}: {e}") from e
+            raise OSError(f"Cannot decode {file_path}: {e}") from e
         return '' if on_error == 'return_empty' else None
     
-    except IOError as e:
+    except OSError as e:
         logger.error("file_read_error",
                     path=str(file_path),
                     error=str(e),
@@ -144,9 +144,9 @@ def read_text_file(
 
 
 def load_json(
-    file_path: Union[Path, str],
+    file_path: Path | str,
     on_error: str = 'return_empty',
-    caller: Optional[str] = None
+    caller: str | None = None
 ) -> Any:
     """
     Load JSON file with error handling.
@@ -203,9 +203,9 @@ def load_json(
 
 
 def load_yaml(
-    file_path: Union[Path, str],
+    file_path: Path | str,
     on_error: str = 'return_empty',
-    caller: Optional[str] = None
+    caller: str | None = None
 ) -> Any:
     """
     Load YAML file with error handling.
@@ -278,9 +278,9 @@ def load_yaml(
 
 
 def load_toml(
-    file_path: Union[Path, str],
+    file_path: Path | str,
     on_error: str = 'return_empty',
-    caller: Optional[str] = None
+    caller: str | None = None
 ) -> Any:
     """
     Load TOML file with error handling.
@@ -336,9 +336,9 @@ def load_toml(
 
 
 def load_data_file(
-    file_path: Union[Path, str],
+    file_path: Path | str,
     on_error: str = 'return_empty',
-    caller: Optional[str] = None
+    caller: str | None = None
 ) -> Any:
     """
     Auto-detect and load JSON/YAML/TOML file.
@@ -385,11 +385,11 @@ def load_data_file(
 
 
 def write_text_file(
-    file_path: Union[Path, str],
+    file_path: Path | str,
     content: str,
     encoding: str = 'utf-8',
     create_parents: bool = True,
-    caller: Optional[str] = None
+    caller: str | None = None
 ) -> None:
     """
     Write text to file with parent directory creation.
@@ -428,7 +428,7 @@ def write_text_file(
                     encoding=encoding,
                     caller=caller or "file_io")
     
-    except IOError as e:
+    except OSError as e:
         logger.error("file_write_error",
                     path=str(file_path),
                     error=str(e),
@@ -437,11 +437,11 @@ def write_text_file(
 
 
 def write_json(
-    file_path: Union[Path, str],
+    file_path: Path | str,
     data: Any,
-    indent: Optional[int] = 2,
+    indent: int | None = 2,
     create_parents: bool = True,
-    caller: Optional[str] = None
+    caller: str | None = None
 ) -> None:
     """
     Write data as JSON file.

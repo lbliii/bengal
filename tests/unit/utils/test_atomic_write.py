@@ -5,9 +5,7 @@ These tests verify that file writes are crash-safe and never leave
 files in a partially written state.
 """
 
-import os
 import json
-from pathlib import Path
 import pytest
 
 

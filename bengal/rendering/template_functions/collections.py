@@ -4,12 +4,12 @@ Collection manipulation functions for templates.
 Provides 8 functions for filtering, sorting, and transforming lists and dicts.
 """
 
-from typing import TYPE_CHECKING, Any, List, Dict, Callable, Iterator
 from itertools import groupby
-from operator import itemgetter
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from jinja2 import Environment
+
     from bengal.core.site import Site
 
 
@@ -27,7 +27,7 @@ def register(env: 'Environment', site: 'Site') -> None:
     })
 
 
-def where(items: List[Dict[str, Any]], key: str, value: Any) -> List[Dict[str, Any]]:
+def where(items: list[dict[str, Any]], key: str, value: Any) -> list[dict[str, Any]]:
     """
     Filter items where key equals value.
     
@@ -52,14 +52,13 @@ def where(items: List[Dict[str, Any]], key: str, value: Any) -> List[Dict[str, A
         if isinstance(item, dict):
             if item.get(key) == value:
                 result.append(item)
-        else:
-            if getattr(item, key, None) == value:
-                result.append(item)
+        elif getattr(item, key, None) == value:
+            result.append(item)
     
     return result
 
 
-def where_not(items: List[Dict[str, Any]], key: str, value: Any) -> List[Dict[str, Any]]:
+def where_not(items: list[dict[str, Any]], key: str, value: Any) -> list[dict[str, Any]]:
     """
     Filter items where key does not equal value.
     
@@ -83,14 +82,13 @@ def where_not(items: List[Dict[str, Any]], key: str, value: Any) -> List[Dict[st
         if isinstance(item, dict):
             if item.get(key) != value:
                 result.append(item)
-        else:
-            if getattr(item, key, None) != value:
-                result.append(item)
+        elif getattr(item, key, None) != value:
+            result.append(item)
     
     return result
 
 
-def group_by(items: List[Dict[str, Any]], key: str) -> Dict[Any, List[Dict[str, Any]]]:
+def group_by(items: list[dict[str, Any]], key: str) -> dict[Any, list[dict[str, Any]]]:
     """
     Group items by key value.
     
@@ -128,7 +126,7 @@ def group_by(items: List[Dict[str, Any]], key: str) -> Dict[Any, List[Dict[str, 
     return result
 
 
-def sort_by(items: List[Any], key: str, reverse: bool = False) -> List[Any]:
+def sort_by(items: list[Any], key: str, reverse: bool = False) -> list[Any]:
     """
     Sort items by key.
     
@@ -159,7 +157,7 @@ def sort_by(items: List[Any], key: str, reverse: bool = False) -> List[Any]:
         return items
 
 
-def limit(items: List[Any], count: int) -> List[Any]:
+def limit(items: list[Any], count: int) -> list[Any]:
     """
     Limit items to specified count.
     
@@ -179,7 +177,7 @@ def limit(items: List[Any], count: int) -> List[Any]:
     return items[:count]
 
 
-def offset(items: List[Any], count: int) -> List[Any]:
+def offset(items: list[Any], count: int) -> list[Any]:
     """
     Skip first N items.
     
@@ -199,7 +197,7 @@ def offset(items: List[Any], count: int) -> List[Any]:
     return items[count:]
 
 
-def uniq(items: List[Any]) -> List[Any]:
+def uniq(items: list[Any]) -> list[Any]:
     """
     Remove duplicate items while preserving order.
     
@@ -232,7 +230,7 @@ def uniq(items: List[Any]) -> List[Any]:
     return result
 
 
-def flatten(items: List[List[Any]]) -> List[Any]:
+def flatten(items: list[list[Any]]) -> list[Any]:
     """
     Flatten nested lists into single list.
     

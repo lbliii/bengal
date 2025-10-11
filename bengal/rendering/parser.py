@@ -6,9 +6,9 @@ Supports multiple parser engines:
 - mistune: Fast, subset of features
 """
 
-from abc import ABC, abstractmethod
-from typing import Any, Dict, Optional
 import re
+from abc import ABC, abstractmethod
+from typing import Any
 
 from bengal.utils.logger import get_logger
 
@@ -22,7 +22,7 @@ class BaseMarkdownParser(ABC):
     """
     
     @abstractmethod
-    def parse(self, content: str, metadata: Dict[str, Any]) -> str:
+    def parse(self, content: str, metadata: dict[str, Any]) -> str:
         """
         Parse Markdown content into HTML.
         
@@ -36,7 +36,7 @@ class BaseMarkdownParser(ABC):
         pass
     
     @abstractmethod
-    def parse_with_toc(self, content: str, metadata: Dict[str, Any]) -> tuple[str, str]:
+    def parse_with_toc(self, content: str, metadata: dict[str, Any]) -> tuple[str, str]:
         """
         Parse Markdown content and extract table of contents.
         
@@ -107,6 +107,7 @@ class PythonMarkdownParser(BaseMarkdownParser):
         try:
             from markdown.extensions import codehilite
             from pygments.lexers import get_lexer_by_name, guess_lexer
+
             from bengal.rendering.pygments_cache import get_lexer_cached
             
             # Patch at module level - replace pygments functions used by CodeHilite
@@ -138,12 +139,12 @@ class PythonMarkdownParser(BaseMarkdownParser):
         except Exception as e:
             logger.warning("pygments_patch_failed", error=str(e))
     
-    def parse(self, content: str, metadata: Dict[str, Any]) -> str:
+    def parse(self, content: str, metadata: dict[str, Any]) -> str:
         """Parse Markdown content into HTML."""
         self.md.reset()
         return self.md.convert(content)
     
-    def parse_with_toc(self, content: str, metadata: Dict[str, Any]) -> tuple[str, str]:
+    def parse_with_toc(self, content: str, metadata: dict[str, Any]) -> tuple[str, str]:
         """Parse Markdown content and extract table of contents."""
         self.md.reset()
         html = self.md.convert(content)
@@ -184,9 +185,13 @@ class MistuneParser(BaseMarkdownParser):
     # Pattern to strip HTML tags from text
     _HTML_TAG_PATTERN = re.compile(r'<[^>]+>')
     
-    def __init__(self) -> None:
+    def __init__(self, enable_highlighting: bool = True) -> None:
         """
         Initialize the mistune parser with plugins.
+        
+        Args:
+            enable_highlighting: Enable Pygments syntax highlighting for code blocks
+                                (defaults to True for backward compatibility)
         
         Parser Instances:
             This parser is typically created via thread-local caching.
@@ -216,23 +221,32 @@ class MistuneParser(BaseMarkdownParser):
                 "mistune is not installed. Install it with: pip install mistune"
             )
         
+        self.enable_highlighting = enable_highlighting
+        
         # Import our custom plugins
-        from bengal.rendering.plugins import create_documentation_directives, BadgePlugin
+        from bengal.rendering.plugins import BadgePlugin, create_documentation_directives
+        
+        # Build plugins list
+        plugins = [
+            'table',              # Built-in: GFM tables
+            'strikethrough',      # Built-in: ~~text~~
+            'task_lists',         # Built-in: - [ ] tasks
+            'url',                # Built-in: autolinks
+            'footnotes',          # Built-in: [^1]
+            'def_list',           # Built-in: Term\n:   Def
+            create_documentation_directives(),  # Custom: admonitions, tabs, dropdowns, cards
+        ]
+        
+        # Add syntax highlighting plugin if enabled
+        if self.enable_highlighting:
+            plugins.append(self._create_syntax_highlighting_plugin())
         
         # Create markdown instance with built-in + custom plugins
         # Note: Variable substitution is added per-page in parse_with_context()
         # Note: Cross-references added via enable_cross_references() when xref_index available
         # Note: Badges are post-processed on HTML output (not registered as mistune plugin)
         self.md = mistune.create_markdown(
-            plugins=[
-                'table',              # Built-in: GFM tables
-                'strikethrough',      # Built-in: ~~text~~
-                'task_lists',         # Built-in: - [ ] tasks
-                'url',                # Built-in: autolinks
-                'footnotes',          # Built-in: [^1]
-                'def_list',           # Built-in: Term\n:   Def
-                create_documentation_directives(),  # Custom: admonitions, tabs, dropdowns, cards
-            ],
+            plugins=plugins,
             renderer='html',
         )
         
@@ -251,7 +265,81 @@ class MistuneParser(BaseMarkdownParser):
         # Badge plugin (always enabled for Sphinx-Design compatibility)
         self._badge_plugin = BadgePlugin()
     
-    def parse(self, content: str, metadata: Dict[str, Any]) -> str:
+    def _create_syntax_highlighting_plugin(self):
+        """
+        Create a Mistune plugin that adds Pygments syntax highlighting to code blocks.
+        
+        Returns:
+            Plugin function that modifies the renderer to add syntax highlighting
+        """
+        from pygments import highlight
+        from pygments.formatters.html import HtmlFormatter
+
+        from bengal.rendering.pygments_cache import get_lexer_cached
+        
+        def plugin_syntax_highlighting(md):
+            """Plugin function to add syntax highlighting to Mistune renderer."""
+            # Get the original block_code renderer
+            original_block_code = md.renderer.block_code
+            
+            def highlighted_block_code(code, info=None):
+                """Render code block with syntax highlighting."""
+                # If no language specified, use original renderer
+                if not info:
+                    return original_block_code(code, info)
+                
+                # Skip directive blocks (e.g., {info}, {rubric}, {note}, etc.)
+                # These should be handled by the FencedDirective plugin
+                info_stripped = info.strip()
+                if info_stripped.startswith('{') and '}' in info_stripped:
+                    return original_block_code(code, info)
+
+                # Special handling: client-side rendered languages (e.g., Mermaid)
+                lang_lower = info_stripped.lower()
+                if lang_lower == 'mermaid':
+                    # Escape HTML so browsers don't interpret it; Mermaid will read textContent
+                    escaped_code = (code
+                        .replace('&', '&amp;')
+                        .replace('<', '&lt;')
+                        .replace('>', '&gt;')
+                        .replace('"', '&quot;'))
+                    return f'<div class="mermaid">{escaped_code}</div>\n'
+                
+                try:
+                    # Get cached lexer for the language
+                    lexer = get_lexer_cached(language=info_stripped)
+                    
+                    # Format with Pygments using 'highlight' CSS class (matches python-markdown)
+                    formatter = HtmlFormatter(
+                        cssclass='highlight',
+                        wrapcode=True,
+                        noclasses=False  # Use CSS classes instead of inline styles
+                    )
+                    
+                    # Highlight the code
+                    highlighted = highlight(code, lexer, formatter)
+                    
+                    return highlighted
+                    
+                except Exception as e:
+                    # If highlighting fails, return plain code block
+                    logger.warning("pygments_highlight_failed",
+                                 language=info,
+                                 error=str(e))
+                    # Escape HTML and return plain code block
+                    escaped_code = (code
+                        .replace('&', '&amp;')
+                        .replace('<', '&lt;')
+                        .replace('>', '&gt;')
+                        .replace('"', '&quot;'))
+                    return f'<pre><code class="language-{info}">{escaped_code}</code></pre>\n'
+            
+            # Replace the block_code method
+            md.renderer.block_code = highlighted_block_code
+        
+        return plugin_syntax_highlighting
+    
+    def parse(self, content: str, metadata: dict[str, Any]) -> str:
         """
         Parse Markdown content into HTML.
         
@@ -281,7 +369,7 @@ class MistuneParser(BaseMarkdownParser):
             # Return content wrapped in error message
             return f'<div class="markdown-error"><p><strong>Markdown parsing error:</strong> {e}</p><pre>{content}</pre></div>'
     
-    def parse_with_toc(self, content: str, metadata: Dict[str, Any]) -> tuple[str, str]:
+    def parse_with_toc(self, content: str, metadata: dict[str, Any]) -> tuple[str, str]:
         """
         Parse Markdown content and extract table of contents.
         
@@ -311,7 +399,7 @@ class MistuneParser(BaseMarkdownParser):
         
         return html, toc
     
-    def parse_with_context(self, content: str, metadata: Dict[str, Any], context: Dict[str, Any]) -> str:
+    def parse_with_context(self, content: str, metadata: dict[str, Any], context: dict[str, Any]) -> str:
         """
         Parse Markdown with variable substitution support.
         
@@ -358,24 +446,32 @@ class MistuneParser(BaseMarkdownParser):
         
         from bengal.rendering.plugins import (
             VariableSubstitutionPlugin,
-            create_documentation_directives
+            create_documentation_directives,
         )
         
         # Create parser once, reuse thereafter (saves ~150ms per build!)
         if self._md_with_vars is None:
             self._var_plugin = VariableSubstitutionPlugin(context)
+            
+            # Build plugins list
+            var_plugins = [
+                'table',
+                'strikethrough',
+                'task_lists',
+                'url',
+                'footnotes',
+                'def_list',
+                create_documentation_directives(),
+            ]
+            
+            # Add syntax highlighting if enabled
+            if self.enable_highlighting:
+                var_plugins.append(self._create_syntax_highlighting_plugin())
+            
             self._md_with_vars = self._mistune.create_markdown(
-                plugins=[
-                    'table',
-                    'strikethrough',
-                    'task_lists',
-                    'url',
-                    'footnotes',
-                    'def_list',
-                    create_documentation_directives(),
-                    # NOTE: Don't register _var_plugin here - we do preprocessing before Mistune
-                    # Registering it would cause double-processing and create placeholders that never get restored
-                ],
+                plugins=var_plugins,
+                # NOTE: Don't register _var_plugin here - we do preprocessing before Mistune
+                # Registering it would cause double-processing and create placeholders that never get restored
                 renderer='html',
             )
         else:
@@ -406,7 +502,7 @@ class MistuneParser(BaseMarkdownParser):
                           error_type=type(e).__name__)
             return f'<div class="markdown-error"><p><strong>Markdown parsing error:</strong> {e}</p><pre>{content}</pre></div>'
     
-    def parse_with_toc_and_context(self, content: str, metadata: Dict[str, Any], context: Dict[str, Any]) -> tuple[str, str]:
+    def parse_with_toc_and_context(self, content: str, metadata: dict[str, Any], context: dict[str, Any]) -> tuple[str, str]:
         """
         Parse Markdown with variable substitution and extract TOC.
         
@@ -463,7 +559,7 @@ class MistuneParser(BaseMarkdownParser):
         
         return html, toc
     
-    def enable_cross_references(self, xref_index: Dict[str, Any]) -> None:
+    def enable_cross_references(self, xref_index: dict[str, Any]) -> None:
         """
         Enable cross-reference support with [[link]] syntax.
         
@@ -706,7 +802,7 @@ class MistuneParser(BaseMarkdownParser):
 MarkdownParser = PythonMarkdownParser
 
 
-def create_markdown_parser(engine: Optional[str] = None) -> BaseMarkdownParser:
+def create_markdown_parser(engine: str | None = None) -> BaseMarkdownParser:
     """
     Factory function to create a markdown parser instance.
     

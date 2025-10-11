@@ -4,12 +4,12 @@ Debug utility functions for templates.
 Provides 3 functions for debugging templates during development.
 """
 
-from typing import TYPE_CHECKING, Any
-import json
 import pprint
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from jinja2 import Environment
+
     from bengal.core.site import Site
 
 

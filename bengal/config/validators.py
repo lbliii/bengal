@@ -5,8 +5,8 @@ Provides type-safe configuration validation with helpful error messages,
 following Bengal's minimal dependencies and single-responsibility principles.
 """
 
-from typing import Dict, Any, List, Optional
 from pathlib import Path
+from typing import Any
 
 from bengal.utils.logger import get_logger
 
@@ -47,7 +47,7 @@ class ConfigValidator:
         'output_dir', 'content_dir', 'assets_dir', 'templates_dir', 'host'
     }
     
-    def validate(self, config: Dict[str, Any], source_file: Optional[Path] = None) -> Dict[str, Any]:
+    def validate(self, config: dict[str, Any], source_file: Path | None = None) -> dict[str, Any]:
         """
         Validate configuration and return normalized version.
         
@@ -81,7 +81,7 @@ class ConfigValidator:
         
         return flat_config
     
-    def _flatten_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
+    def _flatten_config(self, config: dict[str, Any]) -> dict[str, Any]:
         """
         Flatten nested configuration for validation.
         
@@ -110,7 +110,7 @@ class ConfigValidator:
         
         return flat
     
-    def _validate_types(self, config: Dict[str, Any]) -> List[str]:
+    def _validate_types(self, config: dict[str, Any]) -> list[str]:
         """Validate and coerce config value types."""
         errors = []
         
@@ -170,7 +170,7 @@ class ConfigValidator:
         
         return errors
     
-    def _validate_ranges(self, config: Dict[str, Any]) -> List[str]:
+    def _validate_ranges(self, config: dict[str, Any]) -> list[str]:
         """Validate numeric ranges."""
         errors = []
         
@@ -208,7 +208,7 @@ class ConfigValidator:
         
         return errors
     
-    def _validate_dependencies(self, config: Dict[str, Any]) -> List[str]:
+    def _validate_dependencies(self, config: dict[str, Any]) -> list[str]:
         """Validate field dependencies and logical consistency."""
         errors = []
         
@@ -217,7 +217,7 @@ class ConfigValidator:
         
         return errors
     
-    def _print_errors(self, errors: List[str], source_file: Optional[Path] = None) -> None:
+    def _print_errors(self, errors: list[str], source_file: Path | None = None) -> None:
         """Print formatted validation errors."""
         source_info = f" in {source_file}" if source_file else ""
         

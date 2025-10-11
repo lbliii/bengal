@@ -5,8 +5,6 @@ Tests the sorting functionality that orders pages and sections
 by their frontmatter weight field (ascending), with title as secondary sort.
 """
 
-import pytest
-from pathlib import Path
 from bengal.core.section import Section
 from bengal.core.page import Page
 

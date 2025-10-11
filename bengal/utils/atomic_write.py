@@ -18,14 +18,13 @@ Example:
 
 import os
 from pathlib import Path
-from typing import Union, Optional
 
 
 def atomic_write_text(
-    path: Union[Path, str],
+    path: Path | str,
     content: str,
     encoding: str = 'utf-8',
-    mode: Optional[int] = None
+    mode: int | None = None
 ) -> None:
     """
     Write text to a file atomically.
@@ -73,9 +72,9 @@ def atomic_write_text(
 
 
 def atomic_write_bytes(
-    path: Union[Path, str],
+    path: Path | str,
     content: bytes,
-    mode: Optional[int] = None
+    mode: int | None = None
 ) -> None:
     """
     Write binary data to a file atomically.
@@ -129,9 +128,9 @@ class AtomicFile:
     
     def __init__(
         self,
-        path: Union[Path, str],
+        path: Path | str,
         mode: str = 'w',
-        encoding: Optional[str] = 'utf-8',
+        encoding: str | None = 'utf-8',
         **kwargs
     ):
         """

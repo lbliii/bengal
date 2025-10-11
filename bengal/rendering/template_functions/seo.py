@@ -4,11 +4,12 @@ SEO helper functions for templates.
 Provides 4 functions for generating SEO-friendly meta tags and content.
 """
 
-from typing import TYPE_CHECKING, Optional, List
 import re
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from jinja2 import Environment
+
     from bengal.core.site import Site
 
 
@@ -85,7 +86,7 @@ def meta_description(text: str, length: int = 160) -> str:
     return truncated + '…'
 
 
-def meta_keywords(tags: List[str], max_count: int = 10) -> str:
+def meta_keywords(tags: list[str], max_count: int = 10) -> str:
     """
     Generate meta keywords from tags.
     

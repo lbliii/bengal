@@ -1,6 +1,5 @@
 """Tests for pagination helper template functions."""
 
-import pytest
 from bengal.rendering.template_functions.pagination_helpers import (
     paginate_items,
     page_url,

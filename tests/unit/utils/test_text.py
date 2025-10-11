@@ -2,7 +2,6 @@
 Tests for text processing utilities.
 """
 
-import pytest
 from bengal.utils.text import (
     slugify,
     strip_html,

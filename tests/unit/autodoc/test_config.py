@@ -5,7 +5,6 @@ Tests for autodoc configuration loader.
 from pathlib import Path
 from textwrap import dedent
 
-import pytest
 
 from bengal.autodoc.config import load_autodoc_config, get_python_config
 

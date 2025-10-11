@@ -258,7 +258,7 @@ def test_incremental_collection_sorting(mock_site, mock_cache):
     
     # Run incremental collection
     orchestrator = TaxonomyOrchestrator(mock_site)
-    affected_tags = orchestrator.collect_and_generate_incremental([page1_modified], mock_cache)
+    orchestrator.collect_and_generate_incremental([page1_modified], mock_cache)
     
     # Verify: Pages are sorted by date (newest first)
     pages = mock_site.taxonomies['tags']['python']['pages']

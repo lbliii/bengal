@@ -4,11 +4,18 @@ Taxonomy helper functions for templates.
 Provides 4 functions for working with tags, categories, and related content.
 """
 
-from typing import TYPE_CHECKING, List, Dict, Any, Optional
+from typing import TYPE_CHECKING, Any
+
+try:
+    from jinja2 import pass_context
+except Exception:  # pragma: no cover
+    def pass_context(fn):
+        return fn
 from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
     from jinja2 import Environment
+
     from bengal.core.site import Site
 
 logger = get_logger(__name__)
@@ -18,10 +25,10 @@ def register(env: 'Environment', site: 'Site') -> None:
     """Register taxonomy helper functions with Jinja2 environment."""
     
     # Create closures that have access to site
-    def related_posts_with_site(page: Any, limit: int = 5) -> List[Any]:
+    def related_posts_with_site(page: Any, limit: int = 5) -> list[Any]:
         return related_posts(page, site.pages, limit)
     
-    def popular_tags_with_site(limit: int = 10) -> List[tuple]:
+    def popular_tags_with_site(limit: int = 10) -> list[tuple]:
         # Transform tags dict to extract pages lists from nested structure
         raw_tags = site.taxonomies.get('tags', {})
         tags_with_pages = {
@@ -30,8 +37,19 @@ def register(env: 'Environment', site: 'Site') -> None:
         }
         return popular_tags(tags_with_pages, limit)
     
-    def tag_url_with_site(tag: str) -> str:
-        return tag_url(tag)
+    @pass_context
+    def tag_url_with_site(ctx, tag: str) -> str:
+        page = ctx.get('page') if hasattr(ctx, 'get') else None
+        # Locale-aware prefix for i18n prefix strategy
+        i18n = site.config.get('i18n', {}) or {}
+        strategy = i18n.get('strategy', 'none')
+        default_lang = i18n.get('default_language', 'en')
+        default_in_subdir = bool(i18n.get('default_in_subdir', False))
+        lang = getattr(page, 'lang', None)
+        prefix = ''
+        if strategy == 'prefix' and lang and (default_in_subdir or lang != default_lang):
+            prefix = f'/{lang}'
+        return f"{prefix}{tag_url(tag)}"
     
     env.filters.update({
         'has_tag': has_tag,
@@ -44,7 +62,7 @@ def register(env: 'Environment', site: 'Site') -> None:
     })
 
 
-def related_posts(page: Any, all_pages: List[Any] = None, limit: int = 5) -> List[Any]:
+def related_posts(page: Any, all_pages: list[Any] | None = None, limit: int = 5) -> list[Any]:
     """
     Find related posts based on shared tags.
     
@@ -141,7 +159,7 @@ def related_posts(page: Any, all_pages: List[Any] = None, limit: int = 5) -> Lis
     return result
 
 
-def popular_tags(tags_dict: Dict[str, List[Any]], limit: int = 10) -> List[tuple]:
+def popular_tags(tags_dict: dict[str, list[Any]], limit: int = 10) -> list[tuple]:
     """
     Get most popular tags sorted by count.
     

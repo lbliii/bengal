@@ -34,7 +34,6 @@ import os
 import signal
 import time
 from pathlib import Path
-from typing import Optional
 
 
 class PIDManager:
@@ -96,7 +95,7 @@ class PIDManager:
             return False
     
     @staticmethod
-    def check_stale_pid(pid_file: Path) -> Optional[int]:
+    def check_stale_pid(pid_file: Path) -> int | None:
         """
         Check for stale PID file and return PID if found.
         
@@ -235,7 +234,7 @@ class PIDManager:
             print(f"  ⚠️  Warning: Could not write PID file: {e}")
     
     @staticmethod
-    def get_process_on_port(port: int) -> Optional[int]:
+    def get_process_on_port(port: int) -> int | None:
         """
         Get the PID of process listening on a port.
         
@@ -263,7 +262,7 @@ class PIDManager:
             import subprocess
             result = subprocess.run(
                 ['lsof', '-ti', f':{port}'],
-                capture_output=True,
+                check=False, capture_output=True,
                 text=True,
                 timeout=2
             )

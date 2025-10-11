@@ -4,8 +4,8 @@ Request logging utilities for the dev server.
 Provides beautiful, minimal logging for HTTP requests with color-coded output.
 """
 
-from typing import Any
 from datetime import datetime
+from typing import Any
 
 from bengal.utils.logger import get_logger
 

@@ -4,14 +4,17 @@ Main health check orchestrator.
 Coordinates all validators and produces unified health reports.
 """
 
+from __future__ import annotations
+
 import time
-from typing import List, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 from bengal.health.base import BaseValidator
 from bengal.health.report import HealthReport, ValidatorReport
 
 if TYPE_CHECKING:
     from bengal.core.site import Site
+    from bengal.utils.profile import BuildProfile
 
 
 class HealthCheck:
@@ -43,7 +46,7 @@ class HealthCheck:
             auto_register: Whether to automatically register all default validators
         """
         self.site = site
-        self.validators: List[BaseValidator] = []
+        self.validators: list[BaseValidator] = []
         
         if auto_register:
             self._register_default_validators()
@@ -51,21 +54,21 @@ class HealthCheck:
     def _register_default_validators(self) -> None:
         """Register all default validators."""
         from bengal.health.validators import (
-            ConfigValidatorWrapper,
-            OutputValidator,
-            MenuValidator,
-            LinkValidatorWrapper,
-            NavigationValidator,
-            TaxonomyValidator,
-            RenderingValidator,
-            DirectiveValidator,
+            AssetValidator,
             CacheValidator,
+            ConfigValidatorWrapper,
+            ConnectivityValidator,
+            DirectiveValidator,
+            FontValidator,
+            LinkValidatorWrapper,
+            MenuValidator,
+            NavigationValidator,
+            OutputValidator,
             PerformanceValidator,
+            RenderingValidator,
             RSSValidator,
             SitemapValidator,
-            FontValidator,
-            AssetValidator,
-            ConnectivityValidator,
+            TaxonomyValidator,
         )
         
         # Register in logical order (fast validators first)
@@ -103,7 +106,7 @@ class HealthCheck:
         """
         self.validators.append(validator)
     
-    def run(self, build_stats: dict = None, verbose: bool = False, profile: 'BuildProfile' = None) -> HealthReport:
+    def run(self, build_stats: dict | None = None, verbose: bool = False, profile: 'BuildProfile' = None) -> HealthReport:
         """
         Run all registered validators and produce a health report.
         
@@ -171,7 +174,7 @@ class HealthCheck:
         
         return report
     
-    def run_and_print(self, build_stats: dict = None, verbose: bool = False) -> HealthReport:
+    def run_and_print(self, build_stats: dict | None = None, verbose: bool = False) -> HealthReport:
         """
         Run health checks and print console output.
         

@@ -10,7 +10,6 @@ to slug-based URLs without section prefix when accessed from navigation template
 Fix: Pre-set output_path for all pages before rendering starts.
 """
 
-import pytest
 from pathlib import Path
 from bengal.core.page import Page
 from bengal.core.section import Section

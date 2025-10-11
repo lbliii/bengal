@@ -8,14 +8,13 @@ Validates:
 - No broken navigation references
 """
 
-from typing import List, TYPE_CHECKING, Set
+from typing import TYPE_CHECKING
 
 from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult
 
 if TYPE_CHECKING:
     from bengal.core.site import Site
-    from bengal.core.page import Page
 
 
 class NavigationValidator(BaseValidator):
@@ -33,7 +32,7 @@ class NavigationValidator(BaseValidator):
     description = "Validates page navigation (next/prev, breadcrumbs, sections)"
     enabled_by_default = True
     
-    def validate(self, site: 'Site') -> List[CheckResult]:
+    def validate(self, site: 'Site') -> list[CheckResult]:
         """Run navigation validation checks."""
         results = []
         
@@ -51,7 +50,7 @@ class NavigationValidator(BaseValidator):
         
         return results
     
-    def _check_next_prev_chains(self, site: 'Site') -> List[CheckResult]:
+    def _check_next_prev_chains(self, site: 'Site') -> list[CheckResult]:
         """Check that next/prev links form valid chains."""
         results = []
         issues = []
@@ -87,7 +86,7 @@ class NavigationValidator(BaseValidator):
         
         return results
     
-    def _check_breadcrumbs(self, site: 'Site') -> List[CheckResult]:
+    def _check_breadcrumbs(self, site: 'Site') -> list[CheckResult]:
         """Check that breadcrumb trails (ancestors) are valid."""
         results = []
         issues = []
@@ -123,7 +122,7 @@ class NavigationValidator(BaseValidator):
         
         return results
     
-    def _check_section_navigation(self, site: 'Site') -> List[CheckResult]:
+    def _check_section_navigation(self, site: 'Site') -> list[CheckResult]:
         """Check section-level navigation consistency."""
         results = []
         issues = []
@@ -159,7 +158,7 @@ class NavigationValidator(BaseValidator):
         
         return results
     
-    def _check_navigation_coverage(self, site: 'Site') -> List[CheckResult]:
+    def _check_navigation_coverage(self, site: 'Site') -> list[CheckResult]:
         """Check how many pages are reachable through navigation."""
         results = []
         

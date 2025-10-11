@@ -2,11 +2,8 @@
 Tests for Python AST-based extractor.
 """
 
-import ast
-from pathlib import Path
 from textwrap import dedent
 
-import pytest
 
 from bengal.autodoc.extractors.python import PythonExtractor
 

@@ -3,7 +3,6 @@ Tests for Sitemap validator.
 """
 
 import pytest
-from pathlib import Path
 from unittest.mock import Mock
 
 from bengal.health.validators.sitemap import SitemapValidator

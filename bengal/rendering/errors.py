@@ -3,10 +3,11 @@ Rich template error objects with line numbers, context, and suggestions.
 """
 
 from dataclasses import dataclass
-from typing import Optional, List, Tuple, Any
 from pathlib import Path
-from jinja2 import TemplateError, TemplateSyntaxError, UndefinedError
-from jinja2.exceptions import TemplateRuntimeError, TemplateAssertionError
+from typing import Any
+
+from jinja2 import TemplateSyntaxError, UndefinedError
+from jinja2.exceptions import TemplateAssertionError, TemplateRuntimeError
 
 
 @dataclass
@@ -14,18 +15,18 @@ class TemplateErrorContext:
     """Context around an error in a template."""
     
     template_name: str
-    line_number: Optional[int]
-    column: Optional[int]
-    source_line: Optional[str]
-    surrounding_lines: List[Tuple[int, str]]  # (line_num, line_content)
-    template_path: Optional[Path]
+    line_number: int | None
+    column: int | None
+    source_line: str | None
+    surrounding_lines: list[tuple[int, str]]  # (line_num, line_content)
+    template_path: Path | None
 
 
 @dataclass
 class InclusionChain:
     """Represents the template inclusion chain."""
     
-    entries: List[Tuple[str, Optional[int]]]  # [(template_name, line_num), ...]
+    entries: list[tuple[str, int | None]]  # [(template_name, line_num), ...]
     
     def __str__(self) -> str:
         """Format as readable chain."""
@@ -52,17 +53,17 @@ class TemplateRenderError:
     error_type: str  # 'syntax', 'undefined', 'filter', 'runtime'
     message: str
     template_context: TemplateErrorContext
-    inclusion_chain: Optional[InclusionChain]
-    page_source: Optional[Path]
-    suggestion: Optional[str]
-    available_alternatives: List[str]  # For unknown filters/variables
+    inclusion_chain: InclusionChain | None
+    page_source: Path | None
+    suggestion: str | None
+    available_alternatives: list[str]  # For unknown filters/variables
     
     @classmethod
     def from_jinja2_error(
         cls,
         error: Exception,
         template_name: str,
-        page_source: Optional[Path],
+        page_source: Path | None,
         template_engine: Any
     ) -> 'TemplateRenderError':
         """
@@ -108,7 +109,7 @@ class TemplateRenderError:
         error_str = str(error).lower()
         
         # Check for filter errors first (can be TemplateAssertionError or part of other errors)
-        if 'no filter named' in error_str or 'filter' in error_str and ('unknown' in error_str or 'not found' in error_str):
+        if 'no filter named' in error_str or ('filter' in error_str and ('unknown' in error_str or 'not found' in error_str)):
             return 'filter'
         
         if isinstance(error, TemplateSyntaxError):
@@ -144,7 +145,7 @@ class TemplateRenderError:
         
         if template_path and template_path.exists():
             try:
-                with open(template_path, 'r', encoding='utf-8') as f:
+                with open(template_path, encoding='utf-8') as f:
                     lines = f.readlines()
                 
                 if line_number and 1 <= line_number <= len(lines):
@@ -157,7 +158,7 @@ class TemplateRenderError:
                     
                     for i in range(start, end):
                         surrounding_lines.append((i + 1, lines[i].rstrip()))
-            except (IOError, IndexError):
+            except (OSError, IndexError):
                 pass
         
         return TemplateErrorContext(
@@ -173,7 +174,7 @@ class TemplateRenderError:
     def _build_inclusion_chain(
         error: Exception,
         template_engine: Any
-    ) -> Optional[InclusionChain]:
+    ) -> InclusionChain | None:
         """Build template inclusion chain from traceback."""
         # Parse Python traceback to find template includes
         import traceback
@@ -193,7 +194,7 @@ class TemplateRenderError:
         error: Exception,
         error_type: str,
         template_engine: Any
-    ) -> Optional[str]:
+    ) -> str | None:
         """Generate helpful suggestion based on error."""
         error_str = str(error).lower()
         
@@ -220,7 +221,7 @@ class TemplateRenderError:
         error: Exception,
         error_type: str,
         template_engine: Any
-    ) -> List[str]:
+    ) -> list[str]:
         """Find alternative filters/variables that might work."""
         if error_type != 'filter':
             return []
@@ -266,11 +267,10 @@ def display_template_error(error: TemplateRenderError, use_color: bool = True) -
 
 def _display_template_error_rich(error: TemplateRenderError) -> None:
     """Display template error with rich formatting."""
-    from bengal.utils.rich_console import get_console
-    from rich.syntax import Syntax
     from rich.panel import Panel
-    from rich.text import Text
-    from rich.table import Table
+    from rich.syntax import Syntax
+
+    from bengal.utils.rich_console import get_console
     
     console = get_console()
     
@@ -290,12 +290,11 @@ def _display_template_error_rich(error: TemplateRenderError) -> None:
     if ctx.surrounding_lines:
         # Extract code around error
         code_lines = []
-        error_line_in_display = None
         
         for i, (line_num, line_content) in enumerate(ctx.surrounding_lines):
             code_lines.append(line_content)
             if line_num == ctx.line_number:
-                error_line_in_display = i + 1  # Syntax uses 1-based indexing
+                i + 1  # Syntax uses 1-based indexing
         
         code_text = '\n'.join(code_lines)
         
@@ -384,7 +383,7 @@ def _display_template_error_rich(error: TemplateRenderError) -> None:
     console.print()
 
 
-def _generate_enhanced_suggestions(error: TemplateRenderError) -> List[str]:
+def _generate_enhanced_suggestions(error: TemplateRenderError) -> list[str]:
     """Generate context-aware suggestions for template errors."""
     suggestions = []
     
@@ -467,7 +466,7 @@ def _generate_enhanced_suggestions(error: TemplateRenderError) -> List[str]:
     return suggestions
 
 
-def _extract_variable_name(error_message: str) -> Optional[str]:
+def _extract_variable_name(error_message: str) -> str | None:
     """Extract variable name from undefined variable error."""
     import re
     
@@ -486,7 +485,7 @@ def _extract_variable_name(error_message: str) -> Optional[str]:
     return None
 
 
-def _extract_filter_name(error_message: str) -> Optional[str]:
+def _extract_filter_name(error_message: str) -> str | None:
     """Extract filter name from filter error."""
     import re
     
@@ -516,12 +515,12 @@ def _display_template_error_click(error: TemplateRenderError, use_color: bool = 
     # File and line
     ctx = error.template_context
     if ctx.template_path:
-        click.echo(click.style(f"\n  File: ", fg='cyan') + str(ctx.template_path))
+        click.echo(click.style("\n  File: ", fg='cyan') + str(ctx.template_path))
     else:
-        click.echo(click.style(f"\n  Template: ", fg='cyan') + ctx.template_name)
+        click.echo(click.style("\n  Template: ", fg='cyan') + ctx.template_name)
     
     if ctx.line_number:
-        click.echo(click.style(f"  Line: ", fg='cyan') + str(ctx.line_number))
+        click.echo(click.style("  Line: ", fg='cyan') + str(ctx.line_number))
     
     # Source code context
     if ctx.surrounding_lines:
@@ -541,26 +540,26 @@ def _display_template_error_click(error: TemplateRenderError, use_color: bool = 
                 click.echo(click.style(pointer, fg='red', bold=True))
     
     # Error message
-    click.echo(click.style(f"\n  Error: ", fg='red', bold=True) + error.message)
+    click.echo(click.style("\n  Error: ", fg='red', bold=True) + error.message)
     
     # Suggestion
     if error.suggestion:
-        click.echo(click.style(f"\n  Suggestion: ", fg='yellow', bold=True) + error.suggestion)
+        click.echo(click.style("\n  Suggestion: ", fg='yellow', bold=True) + error.suggestion)
     
     # Alternatives
     if error.available_alternatives:
-        click.echo(click.style(f"\n  Did you mean: ", fg='yellow', bold=True) + 
+        click.echo(click.style("\n  Did you mean: ", fg='yellow', bold=True) + 
                   ", ".join(f"'{alt}'" for alt in error.available_alternatives))
     
     # Inclusion chain
     if error.inclusion_chain:
-        click.echo(click.style(f"\n  Template Chain:", fg='cyan'))
+        click.echo(click.style("\n  Template Chain:", fg='cyan'))
         for line in str(error.inclusion_chain).split('\n'):
             click.echo(f"  {line}")
     
     # Page source
     if error.page_source:
-        click.echo(click.style(f"\n  Used by page: ", fg='cyan') + str(error.page_source))
+        click.echo(click.style("\n  Used by page: ", fg='cyan') + str(error.page_source))
     
     click.echo()
 

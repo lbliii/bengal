@@ -16,17 +16,16 @@ Example:
     collector.save(stats)
 """
 
-import time
 import json
+import sys
+import time
+import tracemalloc
+from datetime import datetime
+from pathlib import Path
 
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
-import tracemalloc
-import sys
-from pathlib import Path
-from datetime import datetime
-from typing import Optional
 
 try:
     import psutil
@@ -52,7 +51,7 @@ class PerformanceCollector:
         collector.save(stats)
     """
     
-    def __init__(self, metrics_dir: Optional[Path] = None):
+    def __init__(self, metrics_dir: Path | None = None):
         """
         Initialize performance collector.
         

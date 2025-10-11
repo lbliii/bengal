@@ -1,6 +1,5 @@
 """Tests for URL template functions."""
 
-import pytest
 from bengal.rendering.template_functions.urls import (
     absolute_url,
     url_encode,

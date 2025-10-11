@@ -26,7 +26,7 @@ def profile_build(site_path, parallel=True, max_workers=None):
     
     # Load site
     print(f"\n{'='*60}")
-    print(f"Profiling Bengal Build")
+    print("Profiling Bengal Build")
     print(f"{'='*60}")
     print(f"Site: {site_path}")
     print(f"Parallel: {parallel}")
@@ -53,7 +53,7 @@ def profile_build(site_path, parallel=True, max_workers=None):
     # Print build stats
     build_time = end_time - start_time
     print(f"\n{'='*60}")
-    print(f"Build Complete")
+    print("Build Complete")
     print(f"{'='*60}")
     print(f"Total pages: {stats.total_pages}")
     print(f"Build time: {build_time:.2f}s")

@@ -4,11 +4,12 @@ Date and time functions for templates.
 Provides 3 functions for date formatting and display.
 """
 
-from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Optional, Union
+from datetime import datetime
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from jinja2 import Environment
+
     from bengal.core.site import Site
 
 
@@ -21,7 +22,7 @@ def register(env: 'Environment', site: 'Site') -> None:
     })
 
 
-def time_ago(date: Union[datetime, str, None]) -> str:
+def time_ago(date: datetime | str | None) -> str:
     """
     Convert date to human-readable "time ago" format.
     
@@ -40,7 +41,7 @@ def time_ago(date: Union[datetime, str, None]) -> str:
     return time_ago_util(date)
 
 
-def date_iso(date: Union[datetime, str, None]) -> str:
+def date_iso(date: datetime | str | None) -> str:
     """
     Format date as ISO 8601 string.
     
@@ -60,7 +61,7 @@ def date_iso(date: Union[datetime, str, None]) -> str:
     return format_date_iso(date)
 
 
-def date_rfc822(date: Union[datetime, str, None]) -> str:
+def date_rfc822(date: datetime | str | None) -> str:
     """
     Format date as RFC 822 string (for RSS feeds).
     

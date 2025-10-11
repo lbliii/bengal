@@ -2,9 +2,8 @@
 Unit tests for Renderer template selection logic.
 """
 
-import pytest
 from pathlib import Path
-from unittest.mock import Mock, MagicMock
+from unittest.mock import Mock
 
 from bengal.core.page import Page
 from bengal.rendering.renderer import Renderer

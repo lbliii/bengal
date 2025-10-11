@@ -7,7 +7,6 @@ No imports required - fast and reliable.
 
 import ast
 from pathlib import Path
-from typing import List, Optional, Set, Union
 
 from bengal.autodoc.base import DocElement, Extractor
 from bengal.autodoc.docstring_parser import parse_docstring
@@ -31,7 +30,7 @@ class PythonExtractor(Extractor):
     - No side effects
     """
     
-    def __init__(self, exclude_patterns: Optional[List[str]] = None):
+    def __init__(self, exclude_patterns: list[str] | None = None):
         """
         Initialize extractor.
         
@@ -44,7 +43,7 @@ class PythonExtractor(Extractor):
             "*/__pycache__/*",
         ]
     
-    def extract(self, source: Path) -> List[DocElement]:
+    def extract(self, source: Path) -> list[DocElement]:
         """
         Extract documentation from Python source.
         
@@ -61,7 +60,7 @@ class PythonExtractor(Extractor):
         else:
             raise ValueError(f"Source must be a file or directory: {source}")
     
-    def _extract_directory(self, directory: Path) -> List[DocElement]:
+    def _extract_directory(self, directory: Path) -> list[DocElement]:
         """Extract from all Python files in directory."""
         elements = []
         
@@ -92,7 +91,7 @@ class PythonExtractor(Extractor):
         
         return False
     
-    def _extract_file(self, file_path: Path) -> List[DocElement]:
+    def _extract_file(self, file_path: Path) -> list[DocElement]:
         """Extract documentation from a single Python file."""
         source = file_path.read_text(encoding='utf-8')
         
@@ -106,7 +105,7 @@ class PythonExtractor(Extractor):
         
         return [module_element] if module_element else []
     
-    def _extract_module(self, tree: ast.Module, file_path: Path, source: str) -> Optional[DocElement]:
+    def _extract_module(self, tree: ast.Module, file_path: Path, source: str) -> DocElement | None:
         """Extract module documentation."""
         module_name = self._infer_module_name(file_path)
         docstring = ast.get_docstring(tree)
@@ -143,7 +142,7 @@ class PythonExtractor(Extractor):
             children=children,
         )
     
-    def _extract_class(self, node: ast.ClassDef, file_path: Path, parent_name: str = "") -> Optional[DocElement]:
+    def _extract_class(self, node: ast.ClassDef, file_path: Path, parent_name: str = "") -> DocElement | None:
         """Extract class documentation."""
         qualified_name = f"{parent_name}.{node.name}" if parent_name else node.name
         docstring = ast.get_docstring(node)
@@ -218,10 +217,10 @@ class PythonExtractor(Extractor):
     
     def _extract_function(
         self,
-        node: Union[ast.FunctionDef, ast.AsyncFunctionDef],
+        node: ast.FunctionDef | ast.AsyncFunctionDef,
         file_path: Path,
         parent_name: str = ""
-    ) -> Optional[DocElement]:
+    ) -> DocElement | None:
         """Extract function/method documentation."""
         qualified_name = f"{parent_name}.{node.name}" if parent_name else node.name
         docstring = ast.get_docstring(node)
@@ -288,7 +287,7 @@ class PythonExtractor(Extractor):
             deprecated=parsed_doc.deprecated if parsed_doc else None,
         )
     
-    def _build_signature(self, node: Union[ast.FunctionDef, ast.AsyncFunctionDef]) -> str:
+    def _build_signature(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> str:
         """Build function signature string."""
         args_parts = []
         
@@ -331,7 +330,7 @@ class PythonExtractor(Extractor):
         
         return signature
     
-    def _extract_arguments(self, node: Union[ast.FunctionDef, ast.AsyncFunctionDef]) -> List[dict]:
+    def _extract_arguments(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> list[dict]:
         """Extract argument information."""
         args = []
         
@@ -352,7 +351,7 @@ class PythonExtractor(Extractor):
         
         return args
     
-    def _annotation_to_string(self, annotation: Optional[ast.expr]) -> Optional[str]:
+    def _annotation_to_string(self, annotation: ast.expr | None) -> str | None:
         """Convert AST annotation to string."""
         if annotation is None:
             return None
@@ -392,7 +391,7 @@ class PythonExtractor(Extractor):
         
         return '.'.join(module_parts)
     
-    def _extract_all_exports(self, tree: ast.Module) -> Optional[List[str]]:
+    def _extract_all_exports(self, tree: ast.Module) -> list[str] | None:
         """Extract __all__ exports if present."""
         for node in tree.body:
             if isinstance(node, ast.Assign):

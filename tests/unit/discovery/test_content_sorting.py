@@ -5,11 +5,7 @@ Tests that content discovery automatically sorts pages and sections
 by weight after discovering content.
 """
 
-import pytest
-from pathlib import Path
 from bengal.discovery.content_discovery import ContentDiscovery
-from bengal.core.section import Section
-from bengal.core.page import Page
 
 
 class TestContentDiscoverySorting:
@@ -220,7 +216,7 @@ Content""")
         # Beginner should come before advanced (weight 1 < weight 100)
         beginner_idx = docs_section.subsections.index(beginner_section)
         advanced_idx = docs_section.subsections.index(advanced_section)
-        assert beginner_idx < advanced_idx, f"beginner(weight=1) should come before advanced(weight=100)"
+        assert beginner_idx < advanced_idx, "beginner(weight=1) should come before advanced(weight=100)"
         
         # Grandchild sections should be sorted within beginner
         assert len(beginner_section.subsections) == 2

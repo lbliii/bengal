@@ -5,15 +5,17 @@ Command-line interface for Bengal SSG.
 import click
 
 from bengal import __version__
+from bengal.cli.commands.assets import assets
+from bengal.cli.commands.autodoc import autodoc, autodoc_cli
+from bengal.cli.commands.build import build
+from bengal.cli.commands.clean import clean, cleanup
+from bengal.cli.commands.graph import bridges, communities, graph, pagerank, suggest
+from bengal.cli.commands.new import new
 
 # Import commands from new modular structure
 from bengal.cli.commands.perf import perf
-from bengal.cli.commands.clean import clean, cleanup
 from bengal.cli.commands.serve import serve
-from bengal.cli.commands.new import new
-from bengal.cli.commands.graph import graph, pagerank, communities, bridges, suggest
-from bengal.cli.commands.autodoc import autodoc, autodoc_cli
-from bengal.cli.commands.build import build
+from bengal.cli.commands.theme import theme
 
 
 class BengalGroup(click.Group):
@@ -70,6 +72,7 @@ def main() -> None:
     if not os.getenv('CI'):
         try:
             from rich.traceback import install
+
             from bengal.utils.rich_console import get_console
             install(
                 console=get_console(),
@@ -97,6 +100,8 @@ main.add_command(bridges)
 main.add_command(suggest)
 main.add_command(autodoc)
 main.add_command(autodoc_cli)
+main.add_command(assets)
+main.add_command(theme)
 
 
 if __name__ == '__main__':

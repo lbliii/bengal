@@ -2,10 +2,10 @@
 Renderer for converting pages to final HTML output.
 """
 
-from typing import Any, Dict, Optional
-from datetime import datetime
-import traceback
 import re
+from datetime import datetime
+from typing import Any
+
 from markupsafe import Markup
 
 from bengal.core.page import Page
@@ -68,7 +68,7 @@ class Renderer:
         
         return result
     
-    def render_page(self, page: Page, content: Optional[str] = None) -> str:
+    def render_page(self, page: Page, content: str | None = None) -> str:
         """
         Render a complete page with template.
         
@@ -176,8 +176,11 @@ class Renderer:
             
             # Fallback to simple HTML
             return self._render_fallback(page, content)
+        finally:
+            # No global language mutation needed; helpers read from template context
+            pass
     
-    def _add_generated_page_context(self, page: Page, context: Dict[str, Any]) -> None:
+    def _add_generated_page_context(self, page: Page, context: dict[str, Any]) -> None:
         """
         Add special context variables for generated pages (archives, tags, etc.).
         

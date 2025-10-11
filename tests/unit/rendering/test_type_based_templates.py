@@ -6,7 +6,7 @@ Verifies that content types correctly map to template families.
 
 import pytest
 from pathlib import Path
-from unittest.mock import Mock, MagicMock
+from unittest.mock import Mock
 from bengal.rendering.renderer import Renderer
 from bengal.core.page import Page
 from bengal.core.section import Section

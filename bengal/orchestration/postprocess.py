@@ -5,9 +5,9 @@ Handles post-build tasks like sitemap generation, RSS feeds, and link validation
 """
 
 import concurrent.futures
-from pathlib import Path
+from collections.abc import Callable
 from threading import Lock
-from typing import TYPE_CHECKING, List, Tuple, Callable
+from typing import TYPE_CHECKING
 
 from bengal.utils.logger import get_logger
 
@@ -81,7 +81,7 @@ class PostprocessOrchestrator:
         else:
             self._run_sequential(tasks, progress_manager)
     
-    def _run_sequential(self, tasks: List[Tuple[str, Callable]], progress_manager=None) -> None:
+    def _run_sequential(self, tasks: list[tuple[str, Callable]], progress_manager=None) -> None:
         """
         Run post-processing tasks sequentially.
         
@@ -101,7 +101,7 @@ class PostprocessOrchestrator:
                     with _print_lock:
                         print(f"  ✗ {task_name}: {e}")
     
-    def _run_parallel(self, tasks: List[Tuple[str, Callable]], progress_manager=None) -> None:
+    def _run_parallel(self, tasks: list[tuple[str, Callable]], progress_manager=None) -> None:
         """
         Run post-processing tasks in parallel.
         

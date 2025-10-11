@@ -2,7 +2,6 @@
 Tests for docstring parser supporting multiple formats.
 """
 
-import pytest
 
 from bengal.autodoc.docstring_parser import parse_docstring
 

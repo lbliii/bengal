@@ -7,13 +7,13 @@ to provide a complete page interface while maintaining separation of concerns.
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
+from .computed import PageComputedMixin
 from .metadata import PageMetadataMixin
 from .navigation import PageNavigationMixin
-from .computed import PageComputedMixin
-from .relationships import PageRelationshipsMixin
 from .operations import PageOperationsMixin
+from .relationships import PageRelationshipsMixin
 
 
 @dataclass
@@ -78,22 +78,28 @@ class Page(
     
     source_path: Path
     content: str = ""
-    metadata: Dict[str, Any] = field(default_factory=dict)
-    parsed_ast: Optional[Any] = None
+    metadata: dict[str, Any] = field(default_factory=dict)
+    parsed_ast: Any | None = None
     rendered_html: str = ""
-    output_path: Optional[Path] = None
-    links: List[str] = field(default_factory=list)
-    tags: List[str] = field(default_factory=list)
-    version: Optional[str] = None
-    toc: Optional[str] = None
-    related_posts: List['Page'] = field(default_factory=list)  # Pre-computed during build
+    output_path: Path | None = None
+    links: list[str] = field(default_factory=list)
+    tags: list[str] = field(default_factory=list)
+    version: str | None = None
+    toc: str | None = None
+    related_posts: list['Page'] = field(default_factory=list)  # Pre-computed during build
+    
+    # Internationalization (i18n)
+    # Language code for this page (e.g., 'en', 'fr'). When i18n is disabled, remains None.
+    lang: str | None = None
+    # Stable key used to link translations across locales (e.g., 'docs/getting-started').
+    translation_key: str | None = None
     
     # References for navigation (set during site building)
-    _site: Optional[Any] = field(default=None, repr=False)
-    _section: Optional[Any] = field(default=None, repr=False)
+    _site: Any | None = field(default=None, repr=False)
+    _section: Any | None = field(default=None, repr=False)
     
     # Private cache for lazy toc_items property
-    _toc_items_cache: Optional[List[Dict[str, Any]]] = field(default=None, repr=False, init=False)
+    _toc_items_cache: list[dict[str, Any]] | None = field(default=None, repr=False, init=False)
     
     def __post_init__(self) -> None:
         """Initialize computed fields."""

@@ -3,7 +3,7 @@ Unit tests for PageRank algorithm.
 """
 
 import pytest
-from unittest.mock import Mock, MagicMock
+from unittest.mock import Mock
 from collections import defaultdict
 
 from bengal.analysis.page_rank import (
@@ -11,7 +11,6 @@ from bengal.analysis.page_rank import (
     PageRankResults,
     analyze_page_importance
 )
-from bengal.analysis.knowledge_graph import KnowledgeGraph
 
 
 class TestPageRankResults:

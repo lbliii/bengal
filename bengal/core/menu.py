@@ -3,7 +3,7 @@ Menu system for navigation.
 """
 
 from dataclasses import dataclass, field
-from typing import List, Optional, Any
+from typing import Any
 
 from bengal.utils.logger import get_logger
 
@@ -23,9 +23,9 @@ class MenuItem:
     name: str
     url: str
     weight: int = 0
-    parent: Optional[str] = None
-    identifier: Optional[str] = None
-    children: List['MenuItem'] = field(default_factory=list)
+    parent: str | None = None
+    identifier: str | None = None
+    children: list['MenuItem'] = field(default_factory=list)
     
     # Runtime state (set during rendering)
     active: bool = False
@@ -96,9 +96,9 @@ class MenuBuilder:
     """
     
     def __init__(self):
-        self.items: List[MenuItem] = []
+        self.items: list[MenuItem] = []
     
-    def add_from_config(self, menu_config: List[dict]) -> None:
+    def add_from_config(self, menu_config: list[dict]) -> None:
         """
         Add menu items from config.
         
@@ -133,7 +133,7 @@ class MenuBuilder:
         )
         self.items.append(item)
     
-    def build_hierarchy(self) -> List[MenuItem]:
+    def build_hierarchy(self) -> list[MenuItem]:
         """
         Build hierarchical tree from flat list with validation.
         Returns list of root items (no parent).
@@ -240,7 +240,7 @@ class MenuBuilder:
             return 1
         return 1 + max(self._get_depth(child) for child in item.children)
     
-    def mark_active_items(self, current_url: str, menu_items: List[MenuItem]) -> None:
+    def mark_active_items(self, current_url: str, menu_items: list[MenuItem]) -> None:
         """
         Mark active items in menu tree.
         

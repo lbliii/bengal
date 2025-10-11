@@ -6,16 +6,17 @@ Handles page rendering in both sequential and parallel modes.
 
 import concurrent.futures
 import threading
-from typing import TYPE_CHECKING, List, Optional, Any
+from typing import TYPE_CHECKING, Any, Optional
 
 from bengal.utils.logger import get_logger
+from bengal.utils.url_strategy import URLStrategy
 
 logger = get_logger(__name__)
 
 if TYPE_CHECKING:
-    from bengal.core.site import Site
-    from bengal.core.page import Page
     from bengal.cache import DependencyTracker
+    from bengal.core.page import Page
+    from bengal.core.site import Site
     from bengal.utils.build_stats import BuildStats
 
 # Thread-local storage for pipelines (reuse per thread, not per page!)
@@ -41,11 +42,11 @@ class RenderOrchestrator:
         """
         self.site = site
     
-    def process(self, pages: List['Page'], parallel: bool = True, 
+    def process(self, pages: list['Page'], parallel: bool = True, 
                 quiet: bool = False,
                 tracker: Optional['DependencyTracker'] = None,
                 stats: Optional['BuildStats'] = None,
-                progress_manager: Optional[Any] = None) -> None:
+                progress_manager: Any | None = None) -> None:
         """
         Render pages (parallel or sequential).
         
@@ -57,7 +58,6 @@ class RenderOrchestrator:
             stats: Build statistics tracker
             progress_manager: Live progress manager (optional)
         """
-        from bengal.rendering.pipeline import RenderingPipeline
         
         # PRE-PROCESS: Set output paths for pages being rendered
         # Note: This only sets paths for pages we're actually rendering.
@@ -71,11 +71,11 @@ class RenderOrchestrator:
         else:
             self._render_sequential(pages, tracker, quiet, stats, progress_manager)
     
-    def _render_sequential(self, pages: List['Page'], 
+    def _render_sequential(self, pages: list['Page'], 
                           tracker: Optional['DependencyTracker'],
                           quiet: bool,
                           stats: Optional['BuildStats'],
-                          progress_manager: Optional[Any] = None) -> None:
+                          progress_manager: Any | None = None) -> None:
         """
         Build pages sequentially.
         
@@ -116,11 +116,11 @@ class RenderOrchestrator:
             for page in pages:
                 pipeline.process_page(page)
     
-    def _render_parallel(self, pages: List['Page'],
+    def _render_parallel(self, pages: list['Page'],
                         tracker: Optional['DependencyTracker'],
                         quiet: bool,
                         stats: Optional['BuildStats'],
-                        progress_manager: Optional[Any] = None) -> None:
+                        progress_manager: Any | None = None) -> None:
         """
         Build pages in parallel for better performance.
         
@@ -180,7 +180,7 @@ class RenderOrchestrator:
         else:
             self._render_parallel_simple(pages, tracker, quiet, stats)
     
-    def _render_parallel_simple(self, pages: List['Page'],
+    def _render_parallel_simple(self, pages: list['Page'],
                                tracker: Optional['DependencyTracker'],
                                quiet: bool,
                                stats: Optional['BuildStats']) -> None:
@@ -212,14 +212,22 @@ class RenderOrchestrator:
                                 error=str(e),
                                 error_type=type(e).__name__)
     
-    def _render_sequential_with_progress(self, pages: List['Page'],
+    def _render_sequential_with_progress(self, pages: list['Page'],
                                         tracker: Optional['DependencyTracker'],
                                         quiet: bool,
                                         stats: Optional['BuildStats']) -> None:
         """Render pages sequentially with rich progress bar."""
+        from rich.progress import (
+            BarColumn,
+            Progress,
+            SpinnerColumn,
+            TaskProgressColumn,
+            TextColumn,
+            TimeElapsedColumn,
+        )
+
         from bengal.rendering.pipeline import RenderingPipeline
         from bengal.utils.rich_console import get_console
-        from rich.progress import Progress, SpinnerColumn, BarColumn, TextColumn, TaskProgressColumn, TimeElapsedColumn
         
         console = get_console()
         pipeline = RenderingPipeline(self.site, tracker, quiet=quiet, build_stats=stats)
@@ -245,7 +253,7 @@ class RenderOrchestrator:
                     logger.error("page_rendering_error", error=str(e), error_type=type(e).__name__)
                 progress.update(task, advance=1)
     
-    def _render_parallel_with_live_progress(self, pages: List['Page'],
+    def _render_parallel_with_live_progress(self, pages: list['Page'],
                                            tracker: Optional['DependencyTracker'],
                                            quiet: bool,
                                            stats: Optional['BuildStats'],
@@ -297,14 +305,22 @@ class RenderOrchestrator:
                 except Exception as e:
                     logger.error("page_rendering_error", error=str(e), error_type=type(e).__name__)
     
-    def _render_parallel_with_progress(self, pages: List['Page'],
+    def _render_parallel_with_progress(self, pages: list['Page'],
                                       tracker: Optional['DependencyTracker'],
                                       quiet: bool,
                                       stats: Optional['BuildStats']) -> None:
         """Render pages in parallel with rich progress bar."""
+        from rich.progress import (
+            BarColumn,
+            Progress,
+            SpinnerColumn,
+            TaskProgressColumn,
+            TextColumn,
+            TimeElapsedColumn,
+        )
+
         from bengal.rendering.pipeline import RenderingPipeline
         from bengal.utils.rich_console import get_console
-        from rich.progress import Progress, SpinnerColumn, BarColumn, TextColumn, TaskProgressColumn, TimeElapsedColumn
         
         console = get_console()
         max_workers = self.site.config.get("max_workers", 4)
@@ -345,39 +361,19 @@ class RenderOrchestrator:
                         logger.error("page_rendering_error", error=str(e), error_type=type(e).__name__)
                     progress.update(task, advance=1)
     
-    def _set_output_paths_for_pages(self, pages: List['Page']) -> None:
+    def _set_output_paths_for_pages(self, pages: list['Page']) -> None:
         """
         Pre-set output paths for specific pages before rendering.
         
         Only processes pages that are being rendered, not all pages in the site.
         This is an optimization for incremental builds where we only render a subset.
         """
-        from pathlib import Path
-        
-        content_dir = self.site.root_path / "content"
         
         for page in pages:
             # Skip if already set (e.g., generated pages)
             if page.output_path:
                 continue
             
-            # Determine output path using same logic as pipeline
-            try:
-                rel_path = page.source_path.relative_to(content_dir)
-            except ValueError:
-                # If not under content_dir, use just the filename
-                rel_path = Path(page.source_path.name)
-            
-            # Change extension to .html
-            output_rel_path = rel_path.with_suffix('.html')
-            
-            # Handle index pages specially (index.md and _index.md → index.html)
-            # Others can optionally use pretty URLs (about.md → about/index.html)
-            if self.site.config.get("pretty_urls", True) and output_rel_path.stem not in ("index", "_index"):
-                output_rel_path = output_rel_path.parent / output_rel_path.stem / "index.html"
-            elif output_rel_path.stem == "_index":
-                # _index.md should become index.html in the same directory
-                output_rel_path = output_rel_path.parent / "index.html"
-            
-            page.output_path = self.site.output_dir / output_rel_path
+            # Determine output path using centralized strategy (kept in sync with pipeline)
+            page.output_path = URLStrategy.compute_regular_page_output_path(page, self.site)
 

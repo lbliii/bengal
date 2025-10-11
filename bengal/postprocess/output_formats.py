@@ -9,9 +9,9 @@ Generates alternative output formats for pages to enable:
 
 import json
 import re
-from pathlib import Path
-from typing import Any, Dict, List, Optional
 from datetime import datetime
+from pathlib import Path
+from typing import Any
 
 from bengal.utils.logger import get_logger
 
@@ -40,7 +40,7 @@ class OutputFormatsGenerator:
         site_wide = ["index_json", "llm_full"]
     """
     
-    def __init__(self, site: Any, config: Optional[Dict[str, Any]] = None) -> None:
+    def __init__(self, site: Any, config: dict[str, Any] | None = None) -> None:
         """
         Initialize output formats generator.
         
@@ -51,7 +51,7 @@ class OutputFormatsGenerator:
         self.site = site
         self.config = self._normalize_config(config or {})
     
-    def _normalize_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
+    def _normalize_config(self, config: dict[str, Any]) -> dict[str, Any]:
         """
         Normalize configuration to support both simple and advanced formats.
         
@@ -120,7 +120,7 @@ class OutputFormatsGenerator:
         
         return normalized
     
-    def _default_config(self) -> Dict[str, Any]:
+    def _default_config(self) -> dict[str, Any]:
         """Return default configuration."""
         return {
             'enabled': True,
@@ -195,7 +195,7 @@ class OutputFormatsGenerator:
                 formats=generated
             )
     
-    def _filter_pages(self) -> List[Any]:
+    def _filter_pages(self) -> list[Any]:
         """
         Filter pages based on exclusion rules.
         
@@ -253,7 +253,7 @@ class OutputFormatsGenerator:
         
         return filtered
     
-    def _generate_page_json(self, pages: List[Any]) -> int:
+    def _generate_page_json(self, pages: list[Any]) -> int:
         """
         Generate JSON file for each page.
         
@@ -296,7 +296,7 @@ class OutputFormatsGenerator:
         
         return count
     
-    def _generate_page_txt(self, pages: List[Any]) -> int:
+    def _generate_page_txt(self, pages: list[Any]) -> int:
         """
         Generate LLM-friendly text file for each page.
         
@@ -331,7 +331,7 @@ class OutputFormatsGenerator:
         
         return count
     
-    def _generate_site_index_json(self, pages: List[Any]) -> None:
+    def _generate_site_index_json(self, pages: list[Any]) -> None:
         """
         Generate site-wide index.json with all pages.
         
@@ -358,7 +358,7 @@ class OutputFormatsGenerator:
         indent = options.get('json_indent')
         excerpt_length = options.get('excerpt_length', 200)
         
-        # Build site metadata
+        # Build site metadata (per-locale when i18n is enabled)
         site_data = {
             'site': {
                 'title': self.site.config.get('title', 'Bengal Site'),
@@ -402,9 +402,18 @@ class OutputFormatsGenerator:
             tags=len(site_data['tags'])
         )
         
-        # Write to root of output directory atomically (crash-safe)
+        # Write to root of output directory or under locale prefix
         from bengal.utils.atomic_write import AtomicFile
-        index_path = self.site.output_dir / 'index.json'
+        i18n = self.site.config.get('i18n', {}) or {}
+        if i18n.get('strategy') == 'prefix':
+            current_lang = getattr(self.site, 'current_language', None) or i18n.get('default_language', 'en')
+            default_in_subdir = bool(i18n.get('default_in_subdir', False))
+            if default_in_subdir or current_lang != i18n.get('default_language', 'en'):
+                index_path = self.site.output_dir / current_lang / 'index.json'
+            else:
+                index_path = self.site.output_dir / 'index.json'
+        else:
+            index_path = self.site.output_dir / 'index.json'
         with AtomicFile(index_path, 'w', encoding='utf-8') as f:
             json.dump(site_data, f, indent=indent, ensure_ascii=False)
         
@@ -414,7 +423,7 @@ class OutputFormatsGenerator:
             size_kb=index_path.stat().st_size / 1024
         )
     
-    def _generate_site_llm_txt(self, pages: List[Any]) -> None:
+    def _generate_site_llm_txt(self, pages: list[Any]) -> None:
         """
         Generate site-wide llm-full.txt with all pages.
         
@@ -479,7 +488,7 @@ class OutputFormatsGenerator:
             f.write('\n'.join(lines))
     
     def _page_to_json(self, page: Any, include_html: bool = True,
-                     include_text: bool = True, excerpt_length: int = 200) -> Dict[str, Any]:
+                     include_text: bool = True, excerpt_length: int = 200) -> dict[str, Any]:
         """
         Convert page to JSON representation.
         
@@ -569,7 +578,7 @@ class OutputFormatsGenerator:
         
         return data
     
-    def _page_to_summary(self, page: Any, excerpt_length: int = 200) -> Dict[str, Any]:
+    def _page_to_summary(self, page: Any, excerpt_length: int = 200) -> dict[str, Any]:
         """
         Convert page to summary for site index.
         
@@ -788,7 +797,7 @@ class OutputFormatsGenerator:
         except ValueError:
             return f"/{getattr(page, 'slug', page.source_path.stem)}/"
     
-    def _get_page_json_path(self, page: Any) -> Optional[Path]:
+    def _get_page_json_path(self, page: Any) -> Path | None:
         """
         Get path for page's JSON file.
         
@@ -808,7 +817,7 @@ class OutputFormatsGenerator:
         # If output is page.html, put page.json next to it
         return page.output_path.with_suffix('.json')
     
-    def _get_page_txt_path(self, page: Any) -> Optional[Path]:
+    def _get_page_txt_path(self, page: Any) -> Path | None:
         """
         Get path for page's text file.
         

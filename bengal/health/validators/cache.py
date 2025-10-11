@@ -8,9 +8,9 @@ Validates:
 - Basic dependency tracking works
 """
 
-from typing import List, TYPE_CHECKING
-from pathlib import Path
 import json
+from pathlib import Path
+from typing import TYPE_CHECKING
 
 from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult
@@ -39,7 +39,7 @@ class CacheValidator(BaseValidator):
     description = "Validates incremental build cache"
     enabled_by_default = True
     
-    def validate(self, site: 'Site') -> List[CheckResult]:
+    def validate(self, site: 'Site') -> list[CheckResult]:
         """Run cache validation checks."""
         results = []
         
@@ -92,7 +92,7 @@ class CacheValidator(BaseValidator):
     def _check_cache_readable(self, cache_path: Path) -> tuple[bool, dict]:
         """Check if cache file is readable and valid JSON."""
         try:
-            with open(cache_path, 'r', encoding='utf-8') as f:
+            with open(cache_path, encoding='utf-8') as f:
                 cache_data = json.load(f)
             return True, cache_data
         except json.JSONDecodeError:
@@ -100,7 +100,7 @@ class CacheValidator(BaseValidator):
         except Exception:
             return False, {}
     
-    def _check_cache_structure(self, cache_data: dict) -> tuple[bool, List[str]]:
+    def _check_cache_structure(self, cache_data: dict) -> tuple[bool, list[str]]:
         """Check if cache has expected structure."""
         issues = []
         
@@ -119,7 +119,7 @@ class CacheValidator(BaseValidator):
         
         return len(issues) == 0, issues
     
-    def _check_cache_size(self, cache_path: Path, cache_data: dict) -> List[CheckResult]:
+    def _check_cache_size(self, cache_path: Path, cache_data: dict) -> list[CheckResult]:
         """Check if cache size is reasonable."""
         results = []
         
@@ -158,7 +158,7 @@ class CacheValidator(BaseValidator):
         
         return results
     
-    def _check_dependencies(self, cache_data: dict) -> List[CheckResult]:
+    def _check_dependencies(self, cache_data: dict) -> list[CheckResult]:
         """Check basic dependency tracking."""
         results = []
         

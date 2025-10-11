@@ -24,7 +24,6 @@ class TestLiveReloadScriptInjection:
     
     def test_inject_before_closing_html_fallback(self):
         """Test fallback injection before </html> when no </body>."""
-        html = "<html><div>No body tag</div></html>"
         
         # Script should be injected before </html>
         expected = f"<html><div>No body tag</div>{LIVE_RELOAD_SCRIPT}</html>"
@@ -80,7 +79,7 @@ class TestLiveReloadMixin:
         """Test that serve_html_with_live_reload returns bool."""
         import inspect
         sig = inspect.signature(LiveReloadMixin.serve_html_with_live_reload)
-        assert sig.return_annotation == bool
+        assert sig.return_annotation is bool
 
 
 # Integration test example (requires more setup)

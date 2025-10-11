@@ -9,13 +9,13 @@ Provides centralized cleanup handling for all termination scenarios:
 - Exceptions (context manager __exit__)
 """
 
-import signal
 import atexit
+import signal
 import sys
-import time
 import threading
-from typing import Callable, List, Optional, Any, Tuple
-from contextlib import contextmanager
+import time
+from collections.abc import Callable
+from typing import Any
 
 
 class ResourceManager:
@@ -40,7 +40,7 @@ class ResourceManager:
     
     def __init__(self):
         """Initialize resource manager."""
-        self._resources: List[Tuple[str, Any, Callable]] = []
+        self._resources: list[tuple[str, Any, Callable]] = []
         self._cleanup_done = False
         self._lock = threading.Lock()
         self._original_signals = {}
@@ -80,7 +80,7 @@ class ResourceManager:
                 shutdown_thread.join(timeout=2.0)
                 
                 if shutdown_thread.is_alive():
-                    print(f"  ⚠️  Server shutdown timed out (press Ctrl+C again to force quit)")
+                    print("  ⚠️  Server shutdown timed out (press Ctrl+C again to force quit)")
                 
                 s.server_close()
             except Exception as e:
@@ -103,7 +103,7 @@ class ResourceManager:
                 # Don't hang forever waiting for observer (reduced from 5s to 2s)
                 o.join(timeout=2.0)
                 if o.is_alive():
-                    print(f"  ⚠️  File observer did not stop cleanly (still running)")
+                    print("  ⚠️  File observer did not stop cleanly (still running)")
             except Exception as e:
                 print(f"  ⚠️  Error stopping observer: {e}")
         return self.register("File Observer", observer, cleanup)
@@ -126,7 +126,7 @@ class ResourceManager:
                 pass
         return self.register("PID File", pidfile_path, cleanup)
     
-    def cleanup(self, signum: Optional[int] = None) -> None:
+    def cleanup(self, signum: int | None = None) -> None:
         """
         Clean up all resources (idempotent).
         
@@ -141,7 +141,7 @@ class ResourceManager:
         if signum:
             sig_name = signal.Signals(signum).name if hasattr(signal.Signals, '__contains__') else str(signum)
             if sig_name == "SIGINT":
-                print(f"\n  👋 Shutting down gracefully... (press Ctrl+C again to force quit)")
+                print("\n  👋 Shutting down gracefully... (press Ctrl+C again to force quit)")
             else:
                 print(f"\n  👋 Received {sig_name}, shutting down...")
         
@@ -159,7 +159,7 @@ class ResourceManager:
         # Show completion message if shutdown was fast enough
         elapsed = time.time() - start_time
         if signum and elapsed < 3.0:  # Only show if cleanup was reasonably quick
-            print(f"  ✅ Server stopped")
+            print("  ✅ Server stopped")
     
     def _signal_handler(self, signum, frame):
         """Handle termination signals."""

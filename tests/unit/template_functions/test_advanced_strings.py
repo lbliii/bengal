@@ -1,6 +1,5 @@
 """Tests for advanced string template functions."""
 
-import pytest
 from bengal.rendering.template_functions.advanced_strings import (
     camelize,
     underscore,

@@ -2,9 +2,6 @@
 
 import json
 import pytest
-from pathlib import Path
-from io import StringIO
-import sys
 
 from bengal.utils.logger import (
     BengalLogger,

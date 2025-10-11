@@ -5,7 +5,7 @@ Section Object - Represents a folder or logical grouping of pages.
 from dataclasses import dataclass, field
 from functools import cached_property
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from bengal.core.page import Page
 from bengal.utils.logger import get_logger
@@ -41,14 +41,14 @@ class Section:
     
     name: str
     path: Path
-    pages: List[Page] = field(default_factory=list)
-    subsections: List['Section'] = field(default_factory=list)
-    metadata: Dict[str, Any] = field(default_factory=dict)
-    index_page: Optional[Page] = None
+    pages: list[Page] = field(default_factory=list)
+    subsections: list['Section'] = field(default_factory=list)
+    metadata: dict[str, Any] = field(default_factory=dict)
+    index_page: Page | None = None
     parent: Optional['Section'] = None
     
     # Reference to site (set during site building)
-    _site: Optional[Any] = field(default=None, repr=False)
+    _site: Any | None = field(default=None, repr=False)
     
     @property
     def title(self) -> str:
@@ -56,7 +56,7 @@ class Section:
         return self.metadata.get("title", self.name.replace("-", " ").title())
     
     @property
-    def hierarchy(self) -> List[str]:
+    def hierarchy(self) -> list[str]:
         """
         Get the full hierarchy path of this section.
         
@@ -64,7 +64,7 @@ class Section:
             List of section names from root to this section
         """
         if self.parent:
-            return self.parent.hierarchy + [self.name]
+            return [*self.parent.hierarchy, self.name]
         return [self.name]
     
     @property
@@ -91,7 +91,7 @@ class Section:
     # Section navigation properties
     
     @property
-    def regular_pages(self) -> List[Page]:
+    def regular_pages(self) -> list[Page]:
         """
         Get only regular pages (non-sections) in this section.
         
@@ -106,7 +106,7 @@ class Section:
         return [p for p in self.pages if not isinstance(p, Section)]
     
     @property
-    def sections(self) -> List['Section']:
+    def sections(self) -> list['Section']:
         """
         Get immediate child sections.
         
@@ -121,7 +121,7 @@ class Section:
         return self.subsections
     
     @property
-    def sorted_pages(self) -> List[Page]:
+    def sorted_pages(self) -> list[Page]:
         """
         Get pages sorted by weight (ascending), then by title.
         
@@ -145,7 +145,7 @@ class Section:
         )
     
     @property
-    def sorted_subsections(self) -> List['Section']:
+    def sorted_subsections(self) -> list['Section']:
         """
         Get subsections sorted by weight (ascending), then by title.
         
@@ -169,7 +169,7 @@ class Section:
         )
     
     @property
-    def regular_pages_recursive(self) -> List[Page]:
+    def regular_pages_recursive(self) -> list[Page]:
         """
         Get all regular pages recursively (including from subsections).
         
@@ -348,7 +348,7 @@ class Section:
         """
         return self.index_page is not None
     
-    def get_all_pages(self, recursive: bool = True) -> List[Page]:
+    def get_all_pages(self, recursive: bool = True) -> list[Page]:
         """
         Get all pages in this section.
         
@@ -366,7 +366,7 @@ class Section:
         
         return all_pages
     
-    def aggregate_content(self) -> Dict[str, Any]:
+    def aggregate_content(self) -> dict[str, Any]:
         """
         Aggregate content from all pages in this section.
         
@@ -409,7 +409,7 @@ class Section:
         Returns:
             Rendered HTML for the section index
         """
-        context = {
+        {
             "section": self,
             "pages": self.pages,
             "subsections": self.subsections,
@@ -424,7 +424,7 @@ class Section:
         # Template rendering will be handled by the template engine
         return ""
     
-    def walk(self) -> List['Section']:
+    def walk(self) -> list['Section']:
         """
         Iteratively walk through all sections in the hierarchy.
         

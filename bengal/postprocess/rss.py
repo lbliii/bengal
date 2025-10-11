@@ -2,10 +2,8 @@
 RSS feed generation.
 """
 
-from pathlib import Path
-from typing import Any
-from datetime import datetime
 import xml.etree.ElementTree as ET
+from typing import Any
 
 from bengal.utils.logger import get_logger
 
@@ -44,93 +42,102 @@ class RSSGenerator:
         Raises:
             Exception: If RSS generation or file writing fails
         """
-        # Add items (pages sorted by date)
-        pages_with_dates = [p for p in self.site.pages if p.date]
-        sorted_pages = sorted(pages_with_dates, key=lambda p: p.date, reverse=True)
-        
-        self.logger.info("rss_generation_start",
-                        total_pages=len(self.site.pages),
-                        pages_with_dates=len(pages_with_dates),
-                        rss_limit=min(20, len(sorted_pages)))
-        
-        # Create root element
-        rss = ET.Element('rss')
-        rss.set('version', '2.0')
-        
-        channel = ET.SubElement(rss, 'channel')
-        
-        # Add channel metadata
-        title = self.site.config.get('title', 'Bengal Site')
-        baseurl = self.site.config.get('baseurl', '')
-        description = self.site.config.get('description', f'{title} RSS Feed')
-        
-        ET.SubElement(channel, 'title').text = title
-        ET.SubElement(channel, 'link').text = baseurl
-        ET.SubElement(channel, 'description').text = description
-        
-        # Limit to most recent 20 items
-        for page in sorted_pages[:20]:
-            item = ET.SubElement(channel, 'item')
-            
-            ET.SubElement(item, 'title').text = page.title
-            
-            # Get page URL
-            if page.output_path:
-                try:
-                    rel_path = page.output_path.relative_to(self.site.output_dir)
-                    link = f"{baseurl}/{rel_path}".replace('\\', '/')
-                    link = link.replace('/index.html', '/')
-                except ValueError:
+        # Per-locale generation (prefix strategy) or single feed
+        i18n = self.site.config.get('i18n', {}) or {}
+        strategy = i18n.get('strategy', 'none')
+        default_lang = i18n.get('default_language', 'en')
+        default_in_subdir = bool(i18n.get('default_in_subdir', False))
+        languages_cfg = i18n.get('languages') or []
+        lang_codes = []
+        for entry in languages_cfg:
+            if isinstance(entry, dict) and 'code' in entry:
+                lang_codes.append(entry['code'])
+            elif isinstance(entry, str):
+                lang_codes.append(entry)
+        if default_lang and default_lang not in lang_codes:
+            lang_codes.append(default_lang)
+        if not lang_codes:
+            lang_codes = [default_lang]
+
+        # Build one RSS per language (for prefix strategy) or single if no i18n
+        for code in sorted(set(lang_codes)):
+            pages_with_dates = [p for p in self.site.pages if p.date and (strategy == 'none' or getattr(p, 'lang', default_lang) == code)]
+            sorted_pages = sorted(pages_with_dates, key=lambda p: p.date, reverse=True)
+
+            self.logger.info("rss_generation_start",
+                            lang=code,
+                            total_pages=len(self.site.pages),
+                            pages_with_dates=len(pages_with_dates),
+                            rss_limit=min(20, len(sorted_pages)))
+
+            # Create root element
+            rss = ET.Element('rss')
+            rss.set('version', '2.0')
+            channel = ET.SubElement(rss, 'channel')
+
+            # Channel metadata
+            title = self.site.config.get('title', 'Bengal Site')
+            baseurl = self.site.config.get('baseurl', '')
+            description = self.site.config.get('description', f'{title} RSS Feed')
+            ET.SubElement(channel, 'title').text = title
+            ET.SubElement(channel, 'link').text = baseurl
+            ET.SubElement(channel, 'description').text = description
+
+            # Items
+            for page in sorted_pages[:20]:
+                item = ET.SubElement(channel, 'item')
+                ET.SubElement(item, 'title').text = page.title
+
+                if page.output_path:
+                    try:
+                        rel_path = page.output_path.relative_to(self.site.output_dir)
+                        link = f"{baseurl}/{rel_path}".replace('\\', '/')
+                        link = link.replace('/index.html', '/')
+                    except ValueError:
+                        link = f"{baseurl}/{page.slug}/"
+                else:
                     link = f"{baseurl}/{page.slug}/"
+                ET.SubElement(item, 'link').text = link
+                ET.SubElement(item, 'guid').text = link
+
+                if 'description' in page.metadata:
+                    desc_text = page.metadata['description']
+                else:
+                    content = page.content[:200] + '...' if len(page.content) > 200 else page.content
+                    desc_text = content
+                ET.SubElement(item, 'description').text = desc_text
+
+                if page.date:
+                    pubdate = page.date.strftime('%a, %d %b %Y %H:%M:%S +0000')
+                    ET.SubElement(item, 'pubDate').text = pubdate
+
+            # Write per-language RSS
+            from bengal.utils.atomic_write import AtomicFile
+            tree = ET.ElementTree(rss)
+            if strategy == 'prefix' and (default_in_subdir or code != default_lang):
+                rss_path = self.site.output_dir / code / 'rss.xml'
             else:
-                link = f"{baseurl}/{page.slug}/"
-            
-            ET.SubElement(item, 'link').text = link
-            ET.SubElement(item, 'guid').text = link
-            
-            # Add description (excerpt or full content)
-            if 'description' in page.metadata:
-                description = page.metadata['description']
-            else:
-                # Use first 200 characters of content as description
-                content = page.content[:200] + '...' if len(page.content) > 200 else page.content
-                description = content
-            
-            ET.SubElement(item, 'description').text = description
-            
-            # Add pubDate
-            if page.date:
-                # Format as RFC 822
-                pubdate = page.date.strftime('%a, %d %b %Y %H:%M:%S +0000')
-                ET.SubElement(item, 'pubDate').text = pubdate
-        
-        # Write RSS to file atomically (crash-safe)
-        from bengal.utils.atomic_write import AtomicFile
-        
-        tree = ET.ElementTree(rss)
-        rss_path = self.site.output_dir / 'rss.xml'
-        
-        # Format XML with indentation
-        self._indent(rss)
-        
-        # Write atomically using context manager
-        try:
-            with AtomicFile(rss_path, 'wb') as f:
-                tree.write(f, encoding='utf-8', xml_declaration=True)
-            
-            self.logger.info("rss_generation_complete",
-                           rss_path=str(rss_path),
-                           items_included=min(20, len(sorted_pages)),
-                           total_pages_with_dates=len(pages_with_dates))
-            
-            # Detailed output removed - postprocess phase summary is sufficient
-            # Individual task output clutters the build log
-        except Exception as e:
-            self.logger.error("rss_generation_failed",
-                            rss_path=str(rss_path),
-                            error=str(e),
-                            error_type=type(e).__name__)
-            raise
+                # For non-i18n or default language without subdir
+                rss_path = self.site.output_dir / 'rss.xml' if code == default_lang else self.site.output_dir / code / 'rss.xml'
+
+            # Ensure directory exists
+            rss_path.parent.mkdir(parents=True, exist_ok=True)
+            self._indent(rss)
+            try:
+                with AtomicFile(rss_path, 'wb') as f:
+                    tree.write(f, encoding='utf-8', xml_declaration=True)
+                self.logger.info("rss_generation_complete",
+                               lang=code,
+                               rss_path=str(rss_path),
+                               items_included=min(20, len(sorted_pages)),
+                               total_pages_with_dates=len(pages_with_dates))
+            except Exception as e:
+                self.logger.error("rss_generation_failed",
+                                lang=code,
+                                rss_path=str(rss_path),
+                                error=str(e),
+                                error_type=type(e).__name__)
+                raise
     
     def _indent(self, elem: ET.Element, level: int = 0) -> None:
         """
@@ -150,7 +157,6 @@ class RSSGenerator:
                 self._indent(child, level + 1)
             if not child.tail or not child.tail.strip():
                 child.tail = indent
-        else:
-            if level and (not elem.tail or not elem.tail.strip()):
-                elem.tail = indent
+        elif level and (not elem.tail or not elem.tail.strip()):
+            elem.tail = indent
 

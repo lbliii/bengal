@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ current_lang() }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -54,8 +54,23 @@
     <link rel="canonical" href="{{ canonical_url(page.url | default('/')) }}">
     {% endif %}
     
-    {# RSS Feed #}
-    <link rel="alternate" type="application/rss+xml" title="{{ site.config.title }} RSS Feed" href="/rss.xml">
+    {# RSS Feed (locale-aware when i18n prefix strategy is enabled) #}
+    {% set _lang = current_lang() %}
+    {% set _i18n = site.config.get('i18n', {}) %}
+    {% set _rss_href = '/rss.xml' %}
+    {% if _i18n and _i18n.get('strategy') == 'prefix' %}
+    {% set _default_lang = _i18n.get('default_language', 'en') %}
+    {% set _default_in_subdir = _i18n.get('default_in_subdir', False) %}
+    {% if _lang and (_default_in_subdir or _lang != _default_lang) %}
+    {% set _rss_href = '/' ~ _lang ~ '/rss.xml' %}
+    {% endif %}
+    {% endif %}
+    <link rel="alternate" type="application/rss+xml" title="{{ site.config.title }} RSS Feed" href="{{ _rss_href }}">
+
+    {# hreflang alternates for translated pages #}
+    {% for alt in alternate_links(page) %}
+    <link rel="alternate" hreflang="{{ alt.hreflang }}" href="{{ alt.href }}">
+    {% endfor %}
     
     {# Favicon - only include if configured #}
     {% if site.config.favicon %}
@@ -89,7 +104,7 @@
                 
                 {# Desktop Navigation #}
                 <div class="nav-main hidden-mobile">
-                    {% set main_menu = get_menu('main') %}
+                    {% set main_menu = get_menu_lang('main', current_lang()) %}
                     {% if main_menu %}
                     <ul>
                         {% for item in main_menu %}
@@ -151,7 +166,7 @@
                 </svg>
             </button>
         </div>
-        {% set main_menu = get_menu('main') %}
+        {% set main_menu = get_menu_lang('main', current_lang()) %}
         {% if main_menu %}
         <ul>
             {% for item in main_menu %}
@@ -189,7 +204,7 @@
             <p class="footer-copyright">
                 &copy; 2025 {{ site.config.title }} | Built with <a href="https://github.com/bengal-ssg/bengal" rel="noopener">Bengal SSG</a>
             </p>
-            {% set footer_menu = get_menu('footer') %}
+            {% set footer_menu = get_menu_lang('footer', current_lang()) %}
             {% if footer_menu %}
             <ul class="footer-links">
                 {% for item in footer_menu %}

@@ -2,9 +2,9 @@
 Dependency Tracker - Tracks dependencies during the build process.
 """
 
-from pathlib import Path
-from typing import Set, Optional
 import threading
+from pathlib import Path
+
 from bengal.cache.build_cache import BuildCache
 from bengal.utils.logger import get_logger
 
@@ -91,7 +91,7 @@ class DependencyTracker:
         """
         self.cache.update_file(asset_path)
     
-    def track_taxonomy(self, page_path: Path, tags: Set[str]) -> None:
+    def track_taxonomy(self, page_path: Path, tags: set[str]) -> None:
         """
         Record taxonomy (tags/categories) dependencies.
         
@@ -111,7 +111,7 @@ class DependencyTracker:
         if hasattr(self.current_page, 'value'):
             del self.current_page.value
     
-    def get_changed_files(self, root_path: Path) -> Set[Path]:
+    def get_changed_files(self, root_path: Path) -> set[Path]:
         """
         Get all files that have changed since the last build.
         
@@ -137,7 +137,7 @@ class DependencyTracker:
         
         return changed
     
-    def find_new_files(self, current_files: Set[Path]) -> Set[Path]:
+    def find_new_files(self, current_files: set[Path]) -> set[Path]:
         """
         Find files that are new (not in cache).
         
@@ -157,7 +157,7 @@ class DependencyTracker:
         
         return new_files
     
-    def find_deleted_files(self, current_files: Set[Path]) -> Set[Path]:
+    def find_deleted_files(self, current_files: set[Path]) -> set[Path]:
         """
         Find files that were deleted (in cache but not on disk).
         

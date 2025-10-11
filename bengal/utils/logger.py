@@ -17,14 +17,13 @@ Example:
 
 import json
 import time
-import sys
 import tracemalloc
 from contextlib import contextmanager
+from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from pathlib import Path
-from typing import Any, Dict, List, Optional, TextIO
-from dataclasses import dataclass, field, asdict
 from enum import Enum
+from pathlib import Path
+from typing import Any, TextIO
 
 
 class LogLevel(Enum):
@@ -44,14 +43,14 @@ class LogEvent:
     logger_name: str
     event_type: str
     message: str
-    phase: Optional[str] = None
+    phase: str | None = None
     phase_depth: int = 0
-    duration_ms: Optional[float] = None
-    memory_mb: Optional[float] = None  # Memory delta for phase
-    peak_memory_mb: Optional[float] = None  # Peak memory during phase
-    context: Dict[str, Any] = field(default_factory=dict)
+    duration_ms: float | None = None
+    memory_mb: float | None = None  # Memory delta for phase
+    peak_memory_mb: float | None = None  # Peak memory during phase
+    context: dict[str, Any] = field(default_factory=dict)
     
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
         return {k: v for k, v in asdict(self).items() if v is not None}
     
@@ -119,7 +118,7 @@ class BengalLogger:
         self,
         name: str,
         level: LogLevel = LogLevel.INFO,
-        log_file: Optional[Path] = None,
+        log_file: Path | None = None,
         verbose: bool = False,
         quiet_console: bool = False
     ):
@@ -140,11 +139,11 @@ class BengalLogger:
         self.quiet_console = quiet_console
         
         # Phase tracking
-        self._phase_stack: List[tuple[str, float, Dict[str, Any]]] = []
-        self._events: List[LogEvent] = []
+        self._phase_stack: list[tuple[str, float, dict[str, Any]]] = []
+        self._events: list[LogEvent] = []
         
         # File handle
-        self._file_handle: Optional[TextIO] = None
+        self._file_handle: TextIO | None = None
         if log_file:
             self._file_handle = open(log_file, 'w', encoding='utf-8')
     
@@ -173,13 +172,13 @@ class BengalLogger:
         self._phase_stack.append((name, start_time, context))
         
         # Emit phase start
-        self.info(f"phase_start", phase_name=name, **context)
+        self.info("phase_start", phase_name=name, **context)
         
         try:
             yield
         except Exception as e:
             # Emit phase error
-            self.error(f"phase_error", phase_name=name, error=str(e), **context)
+            self.error("phase_error", phase_name=name, error=str(e), **context)
             raise
         finally:
             # Pop phase and calculate metrics
@@ -195,7 +194,7 @@ class BengalLogger:
                 peak_memory_mb = peak_memory / 1024 / 1024  # MB
             
             self.info(
-                f"phase_complete",
+                "phase_complete",
                 phase_name=phase_name,
                 duration_ms=duration_ms,
                 memory_mb=memory_mb,
@@ -295,11 +294,11 @@ class BengalLogger:
         """Log critical event."""
         self._emit(LogLevel.CRITICAL, "critical", message, **context)
     
-    def get_events(self) -> List[LogEvent]:
+    def get_events(self) -> list[LogEvent]:
         """Get all logged events."""
         return self._events.copy()
     
-    def get_phase_timings(self) -> Dict[str, float]:
+    def get_phase_timings(self) -> dict[str, float]:
         """
         Extract phase timings from events.
         
@@ -368,7 +367,7 @@ class BengalLogger:
 
 
 # Global logger registry
-_loggers: Dict[str, BengalLogger] = {}
+_loggers: dict[str, BengalLogger] = {}
 _global_config = {
     'level': LogLevel.INFO,
     'log_file': None,
@@ -379,7 +378,7 @@ _global_config = {
 
 def configure_logging(
     level: LogLevel = LogLevel.INFO,
-    log_file: Optional[Path] = None,
+    log_file: Path | None = None,
     verbose: bool = False,
     track_memory: bool = False
 ):

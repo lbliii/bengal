@@ -4,12 +4,13 @@ Navigation helper functions for templates.
 Provides functions for breadcrumbs, navigation trails, and hierarchical navigation.
 """
 
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from jinja2 import Environment
-    from bengal.core.site import Site
+
     from bengal.core.page import Page
+    from bengal.core.site import Site
 
 
 def register(env: 'Environment', site: 'Site') -> None:
@@ -22,7 +23,7 @@ def register(env: 'Environment', site: 'Site') -> None:
     })
 
 
-def get_breadcrumbs(page: 'Page') -> List[Dict[str, Any]]:
+def get_breadcrumbs(page: 'Page') -> list[dict[str, Any]]:
     """
     Get breadcrumb items for a page.
     
@@ -146,9 +147,9 @@ def get_breadcrumbs(page: 'Page') -> List[Dict[str, Any]]:
 
 
 def get_toc_grouped(
-    toc_items: List[Dict[str, Any]],
+    toc_items: list[dict[str, Any]],
     group_by_level: int = 1
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """
     Group TOC items hierarchically for collapsible sections.
     
@@ -255,7 +256,7 @@ def get_pagination_items(
     total_pages: int,
     base_url: str,
     window: int = 2
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Generate pagination data structure with URLs and ellipsis markers.
     
@@ -428,9 +429,9 @@ def get_pagination_items(
 
 def get_nav_tree(
     page: 'Page',
-    root_section: Optional[Any] = None,
+    root_section: Any | None = None,
     mark_active_trail: bool = True
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """
     Build navigation tree with active trail marking.
     
@@ -517,7 +518,7 @@ def get_nav_tree(
     if hasattr(page, 'url'):
         active_trail.add(page.url)
     
-    def build_tree_recursive(section: Any, depth: int = 0) -> List[Dict[str, Any]]:
+    def build_tree_recursive(section: Any, depth: int = 0) -> list[dict[str, Any]]:
         """Recursively build navigation tree."""
         items = []
         

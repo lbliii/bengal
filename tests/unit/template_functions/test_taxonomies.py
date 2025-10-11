@@ -1,6 +1,5 @@
 """Tests for taxonomy helper template functions."""
 
-import pytest
 from bengal.rendering.template_functions.taxonomies import (
     related_posts,
     popular_tags,

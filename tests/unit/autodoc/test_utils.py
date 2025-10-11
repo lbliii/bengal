@@ -4,7 +4,6 @@ Tests for autodoc utility functions.
 
 from textwrap import dedent
 
-import pytest
 
 from bengal.autodoc.utils import sanitize_text, truncate_text
 

@@ -1,6 +1,5 @@
 """Tests for SEO helper template functions."""
 
-import pytest
 from bengal.rendering.template_functions.seo import (
     meta_description,
     meta_keywords,

@@ -5,11 +5,13 @@ Provides 3 functions for reading files and checking file existence.
 """
 
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
+
 from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
     from jinja2 import Environment
+
     from bengal.core.site import Site
 
 logger = get_logger(__name__)
@@ -154,7 +156,7 @@ def file_size(path: str, root_path: Path) -> str:
         logger.debug("file_size_computed", path=path, size_bytes=original_size, human_readable=result)
         return result
         
-    except (OSError, IOError) as e:
+    except OSError as e:
         logger.error(
             "file_stat_error",
             path=path,

@@ -13,16 +13,16 @@ References:
       Journal of Statistical Mechanics: Theory and Experiment.
 """
 
-from typing import TYPE_CHECKING, Dict, Set, List, Tuple, Optional, FrozenSet
-from dataclasses import dataclass
-from collections import defaultdict
 import random
+from collections import defaultdict
+from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.core.page import Page
     from bengal.analysis.knowledge_graph import KnowledgeGraph
+    from bengal.core.page import Page
 
 logger = get_logger(__name__)
 
@@ -44,14 +44,14 @@ class Community:
     """
     
     id: int
-    pages: Set['Page']
+    pages: set['Page']
     
     @property
     def size(self) -> int:
         """Number of pages in this community."""
         return len(self.pages)
     
-    def get_top_pages_by_degree(self, limit: int = 5) -> List['Page']:
+    def get_top_pages_by_degree(self, limit: int = 5) -> list['Page']:
         """Get most connected pages in this community."""
         # Will be populated with degree info from the detector
         return list(self.pages)[:limit]
@@ -71,18 +71,18 @@ class CommunityDetectionResults:
         num_communities: Total number of communities detected
     """
     
-    communities: List[Community]
+    communities: list[Community]
     modularity: float
     iterations: int
     
-    def get_community_for_page(self, page: 'Page') -> Optional[Community]:
+    def get_community_for_page(self, page: 'Page') -> Community | None:
         """Find which community a page belongs to."""
         for community in self.communities:
             if page in community.pages:
                 return community
         return None
     
-    def get_largest_communities(self, limit: int = 10) -> List[Community]:
+    def get_largest_communities(self, limit: int = 10) -> list[Community]:
         """Get largest communities by page count."""
         sorted_communities = sorted(
             self.communities,
@@ -91,7 +91,7 @@ class CommunityDetectionResults:
         )
         return sorted_communities[:limit]
     
-    def get_communities_above_size(self, min_size: int) -> List[Community]:
+    def get_communities_above_size(self, min_size: int) -> list[Community]:
         """Get communities with at least min_size pages."""
         return [c for c in self.communities if c.size >= min_size]
 
@@ -122,7 +122,7 @@ class LouvainCommunityDetector:
     def __init__(self, 
                  graph: 'KnowledgeGraph',
                  resolution: float = 1.0,
-                 random_seed: Optional[int] = None):
+                 random_seed: int | None = None):
         """
         Initialize Louvain community detector.
         
@@ -160,7 +160,7 @@ class LouvainCommunityDetector:
                    resolution=self.resolution)
         
         # Initialize: each page in its own community
-        page_to_community: Dict['Page', int] = {page: i for i, page in enumerate(pages)}
+        page_to_community: dict[Page, int] = {page: i for i, page in enumerate(pages)}
         
         # Build edge weights (use bidirectional edges for undirected graph)
         edge_weights = self._build_edge_weights(pages)
@@ -239,8 +239,7 @@ class LouvainCommunityDetector:
                 total_weight
             )
             
-            if current_modularity > best_modularity:
-                best_modularity = current_modularity
+            best_modularity = max(best_modularity, current_modularity)
             
             logger.debug("community_detection_iteration",
                         iteration=iteration,
@@ -248,7 +247,7 @@ class LouvainCommunityDetector:
                         improvement=improvement)
         
         # Convert to Community objects
-        community_map: Dict[int, Set['Page']] = defaultdict(set)
+        community_map: dict[int, set[Page]] = defaultdict(set)
         for page, community_id in page_to_community.items():
             community_map[community_id].add(page)
         
@@ -269,13 +268,13 @@ class LouvainCommunityDetector:
             iterations=iteration
         )
     
-    def _build_edge_weights(self, pages: List['Page']) -> Dict[FrozenSet['Page'], float]:
+    def _build_edge_weights(self, pages: list['Page']) -> dict[frozenset['Page'], float]:
         """
         Build edge weights from the graph.
         
         Uses frozenset to represent undirected edges.
         """
-        edge_weights: Dict[FrozenSet['Page'], float] = defaultdict(float)
+        edge_weights: dict[frozenset[Page], float] = defaultdict(float)
         
         for page in pages:
             outgoing = self.graph.outgoing_refs.get(page, set())
@@ -287,10 +286,10 @@ class LouvainCommunityDetector:
         return edge_weights
     
     def _compute_node_degrees(self, 
-                             pages: List['Page'],
-                             edge_weights: Dict[FrozenSet['Page'], float]) -> Dict['Page', float]:
+                             pages: list['Page'],
+                             edge_weights: dict[frozenset['Page'], float]) -> dict['Page', float]:
         """Compute weighted degree for each node."""
-        node_degrees: Dict['Page', float] = defaultdict(float)
+        node_degrees: dict[Page, float] = defaultdict(float)
         
         for edge, weight in edge_weights.items():
             edge_list = list(edge)
@@ -306,8 +305,8 @@ class LouvainCommunityDetector:
     
     def _get_neighboring_communities(self,
                                     page: 'Page',
-                                    page_to_community: Dict['Page', int],
-                                    edge_weights: Dict[FrozenSet['Page'], float]) -> Set[int]:
+                                    page_to_community: dict['Page', int],
+                                    edge_weights: dict[frozenset['Page'], float]) -> set[int]:
         """Get communities that are neighbors of this page."""
         neighboring_communities = set()
         
@@ -327,9 +326,9 @@ class LouvainCommunityDetector:
                         page: 'Page',
                         from_community: int,
                         to_community: int,
-                        page_to_community: Dict['Page', int],
-                        edge_weights: Dict[FrozenSet['Page'], float],
-                        node_degrees: Dict['Page', float],
+                        page_to_community: dict['Page', int],
+                        edge_weights: dict[frozenset['Page'], float],
+                        node_degrees: dict['Page', float],
                         total_weight: float) -> float:
         """
         Calculate modularity gain from moving page to new community.
@@ -360,9 +359,9 @@ class LouvainCommunityDetector:
         return gain / total_weight
     
     def _compute_modularity(self,
-                           page_to_community: Dict['Page', int],
-                           edge_weights: Dict[FrozenSet['Page'], float],
-                           node_degrees: Dict['Page', float],
+                           page_to_community: dict['Page', int],
+                           edge_weights: dict[frozenset['Page'], float],
+                           node_degrees: dict['Page', float],
                            total_weight: float) -> float:
         """Compute Newman's modularity Q."""
         if total_weight == 0:
@@ -390,7 +389,7 @@ class LouvainCommunityDetector:
 
 def detect_communities(graph: 'KnowledgeGraph',
                       resolution: float = 1.0,
-                      random_seed: Optional[int] = None) -> CommunityDetectionResults:
+                      random_seed: int | None = None) -> CommunityDetectionResults:
     """
     Convenience function to detect communities.
     

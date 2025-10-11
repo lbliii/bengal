@@ -14,14 +14,14 @@ References:
       web search engine. Computer networks and ISDN systems.
 """
 
-from typing import TYPE_CHECKING, Dict, Set, List, Tuple, Optional
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.core.page import Page
     from bengal.analysis.knowledge_graph import KnowledgeGraph
+    from bengal.core.page import Page
 
 logger = get_logger(__name__)
 
@@ -40,12 +40,12 @@ class PageRankResults:
         converged: Whether the algorithm converged within max_iterations
     """
     
-    scores: Dict['Page', float]
+    scores: dict['Page', float]
     iterations: int
     converged: bool
     damping_factor: float
     
-    def get_top_pages(self, limit: int = 20) -> List[Tuple['Page', float]]:
+    def get_top_pages(self, limit: int = 20) -> list[tuple['Page', float]]:
         """
         Get top-ranked pages.
         
@@ -62,7 +62,7 @@ class PageRankResults:
         )
         return sorted_pages[:limit]
     
-    def get_pages_above_percentile(self, percentile: int) -> Set['Page']:
+    def get_pages_above_percentile(self, percentile: int) -> set['Page']:
         """
         Get pages above a certain percentile.
         
@@ -135,7 +135,7 @@ class PageRankCalculator:
         self.threshold = convergence_threshold
     
     def compute(self, 
-                seed_pages: Optional[Set['Page']] = None,
+                seed_pages: set['Page'] | None = None,
                 personalized: bool = False) -> PageRankResults:
         """
         Compute PageRank scores for all pages.
@@ -238,7 +238,7 @@ class PageRankCalculator:
             damping_factor=self.damping
         )
     
-    def compute_personalized(self, seed_pages: Set['Page']) -> PageRankResults:
+    def compute_personalized(self, seed_pages: set['Page']) -> PageRankResults:
         """
         Compute personalized PageRank from seed pages.
         
@@ -259,7 +259,7 @@ class PageRankCalculator:
 
 def analyze_page_importance(graph: 'KnowledgeGraph',
                            damping: float = 0.85,
-                           top_n: int = 20) -> List[Tuple['Page', float]]:
+                           top_n: int = 20) -> list[tuple['Page', float]]:
     """
     Convenience function to analyze page importance.
     

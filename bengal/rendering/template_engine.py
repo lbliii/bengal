@@ -2,9 +2,12 @@
 Template engine using Jinja2.
 """
 
+from collections.abc import Mapping
 from pathlib import Path
-from typing import Any, Dict, Optional
-from jinja2 import Environment, FileSystemLoader, select_autoescape, Template
+from typing import Any
+
+import toml
+from jinja2 import Environment, FileSystemLoader, select_autoescape
 from jinja2.bccache import FileSystemBytecodeCache
 
 from bengal.rendering.template_functions import register_all
@@ -43,7 +46,7 @@ class TemplateEngine:
         Returns:
             Configured Jinja2 environment
         """
-        # Look for templates in multiple locations
+        # Look for templates in multiple locations with theme inheritance
         template_dirs = []
         
         # Custom templates directory
@@ -51,15 +54,22 @@ class TemplateEngine:
         if custom_templates.exists():
             template_dirs.append(str(custom_templates))
         
-        # Theme templates
-        if self.site.theme:
-            theme_templates = self.site.root_path / "themes" / self.site.theme / "templates"
-            if theme_templates.exists():
-                template_dirs.append(str(theme_templates))
+        # Theme templates with inheritance (child first, then parents)
+        for theme_name in self._resolve_theme_chain(self.site.theme):
+            # Site-level theme directory
+            site_theme_templates = self.site.root_path / "themes" / theme_name / "templates"
+            if site_theme_templates.exists():
+                template_dirs.append(str(site_theme_templates))
+                continue
+            
+            # Bundled theme directory
+            bundled_theme_templates = Path(__file__).parent.parent / "themes" / theme_name / "templates"
+            if bundled_theme_templates.exists():
+                template_dirs.append(str(bundled_theme_templates))
         
-        # Default templates (bundled with Bengal)
+        # Ensure default exists as ultimate fallback
         default_templates = Path(__file__).parent.parent / "themes" / "default" / "templates"
-        if default_templates.exists():
+        if str(default_templates) not in template_dirs and default_templates.exists():
             template_dirs.append(str(default_templates))
         
         # Store for dependency tracking (convert back to Path objects)
@@ -110,13 +120,59 @@ class TemplateEngine:
         env.globals['url_for'] = self._url_for
         env.globals['asset_url'] = self._asset_url
         env.globals['get_menu'] = self._get_menu
+        env.globals['get_menu_lang'] = self._get_menu_lang
         
         # Register all template functions (Phase 1: 30 functions)
         register_all(env, self.site)
         
         return env
+
+    def _resolve_theme_chain(self, active_theme: str | None) -> list:
+        """
+        Resolve theme inheritance chain starting from the active theme.
+        Order: child first → parent → ... (do not duplicate 'default').
+        """
+        chain = []
+        visited = set()
+        current = active_theme or "default"
+        depth = 0
+        MAX_DEPTH = 5
+        
+        while current and current not in visited and depth < MAX_DEPTH:
+            visited.add(current)
+            chain.append(current)
+            extends = self._read_theme_extends(current)
+            if not extends or extends == current:
+                break
+            current = extends
+            depth += 1
+        
+        # Do not include 'default' twice; fallback is added separately
+        return [t for t in chain if t != "default"]
+
+    def _read_theme_extends(self, theme_name: str) -> str | None:
+        """Read theme.toml for 'extends' from site or bundled theme path."""
+        # Site theme manifest
+        site_manifest = self.site.root_path / "themes" / theme_name / "theme.toml"
+        if site_manifest.exists():
+            try:
+                data = toml.load(str(site_manifest))
+                return data.get("extends")
+            except Exception:
+                pass
+        
+        # Bundled theme manifest
+        bundled_manifest = Path(__file__).parent.parent / "themes" / theme_name / "theme.toml"
+        if bundled_manifest.exists():
+            try:
+                data = toml.load(str(bundled_manifest))
+                return data.get("extends")
+            except Exception:
+                pass
+        
+        return None
     
-    def render(self, template_name: str, context: Dict[str, Any]) -> str:
+    def render(self, template_name: str, context: dict[str, Any]) -> str:
         """
         Render a template with the given context.
         
@@ -171,7 +227,7 @@ class TemplateEngine:
             )
             raise
     
-    def render_string(self, template_string: str, context: Dict[str, Any]) -> str:
+    def render_string(self, template_string: str, context: dict[str, Any]) -> str:
         """
         Render a template string with the given context.
         
@@ -218,11 +274,27 @@ class TemplateEngine:
             URL path (clean, without index.html)
         """
         # Use the page's url property if available (clean URLs)
-        if hasattr(page, 'url'):
-            return page.url
+        try:
+            if hasattr(page, 'url'):
+                return page.url
+        except Exception:
+            pass
         
-        # Fallback to slug-based URL
-        return f"/{page.slug}/"
+        # Support dict-like contexts (component preview/demo data)
+        try:
+            if isinstance(page, Mapping):
+                if 'url' in page:
+                    return str(page['url'])
+                if 'slug' in page:
+                    return f"/{page['slug']}/"
+        except Exception:
+            pass
+        
+        # Fallback to slug-based URL for objects
+        try:
+            return f"/{page.slug}/"
+        except Exception:
+            return "/"
     
     def _asset_url(self, asset_path: str) -> str:
         """
@@ -234,6 +306,24 @@ class TemplateEngine:
         Returns:
             Asset URL
         """
+        # Attempt to resolve a fingerprinted file in output_dir/assets
+        try:
+            base = self.site.output_dir / 'assets'
+            # If input includes a directory (e.g., css/style.css), split it
+            p = Path(asset_path)
+            subdir = base / p.parent
+            stem = p.stem
+            suffix = p.suffix
+            if subdir.exists():
+                # Find first matching file with stem.hash.suffix
+                for cand in subdir.glob(f"{stem}.*{suffix}"):
+                    # Ensure pattern looks like fingerprint (dot + 8 hex)
+                    parts = cand.name.split('.')
+                    if len(parts) >= 3 and len(parts[-2]) >= 6:
+                        rel = cand.relative_to(self.site.output_dir)
+                        return f"/{rel.as_posix()}"
+        except Exception:
+            pass
         return f"/assets/{asset_path}"
     
     def _get_menu(self, menu_name: str = 'main') -> list:
@@ -246,10 +336,29 @@ class TemplateEngine:
         Returns:
             List of menu item dicts
         """
+        # If i18n enabled and current_language set, prefer localized menu
+        i18n = self.site.config.get('i18n', {}) or {}
+        lang = getattr(self.site, 'current_language', None)
+        if lang and i18n.get('strategy') != 'none':
+            localized = self.site.menu_localized.get(menu_name, {}).get(lang)
+            if localized is not None:
+                return [item.to_dict() for item in localized]
         menu = self.site.menu.get(menu_name, [])
         return [item.to_dict() for item in menu]
+
+    def _get_menu_lang(self, menu_name: str = 'main', lang: str = '') -> list:
+        """
+        Get menu items for a specific language.
+        """
+        if not lang:
+            return self._get_menu(menu_name)
+        localized = self.site.menu_localized.get(menu_name, {}).get(lang)
+        if localized is None:
+            # Fallback to default
+            return self._get_menu(menu_name)
+        return [item.to_dict() for item in localized]
     
-    def _find_template_path(self, template_name: str) -> Optional[Path]:
+    def _find_template_path(self, template_name: str) -> Path | None:
         """
         Find the full path to a template file.
         

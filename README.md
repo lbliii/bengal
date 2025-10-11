@@ -1,44 +1,20 @@
-# Bengal SSG
+# Bengal
 
-A Python-based static site generator with modular architecture, incremental builds, and comprehensive template functions.
+A Python static site generator with incremental builds and modular architecture.
 
 ## Features
 
-### Performance
-- **Fast Full Builds**: ~0.3s for 100 pages, ~3.5s for 1000 pages (competitive with Eleventy, faster than Jekyll)
-- **Incremental Builds**: 18-42x faster rebuilds on 10-100 page sites (SHA256 change detection, dependency tracking)
-- **Parallel Processing**: 2-4x speedup for asset processing and post-processing tasks
-- **Sub-linear Scaling**: 32x time increase for 1024x more files (excellent scaling efficiency)
-- **Memory Efficient**: ~35MB RSS for 100 pages, linear scaling (~0.03-0.35MB per page)
-- **Multiple Markdown Engines**: Mistune (42% faster) or python-markdown
-
-#### SSG Comparison (100 pages, cold build)
-| SSG | Build Time | Notes |
-|-----|-----------|-------|
-| Hugo | ~0.1-0.5s | Go - fastest |
-| **Bengal** | **~0.3s** | **Python - competitive!** |
-| Eleventy | ~1-3s | JavaScript |
-| Jekyll | ~3-10s | Ruby |
-| Gatsby | ~5-15s | React framework |
-
-*Benchmark methodology: [CSS-Tricks SSG comparison](https://css-tricks.com/comparing-static-site-generator-build-times/)*
-
-### Content & Templates
-- **120+ Template Functions**: Strings, collections, math, dates, URLs, content, data, files, images, SEO, taxonomies, pagination, debug, cross-reference
-- **Autodoc (NEW!)**: AST-based API documentation generation from Python source (175+ pages/sec, no imports needed)
-- **Navigation System**: Automatic next/prev, breadcrumbs, hierarchical navigation
-- **Menu System**: Config-driven hierarchical menus with active state detection
-- **Cascade System**: Frontmatter inheritance from sections to child pages
-- **Taxonomy System**: Automatic tag/category pages with pagination
-
-### Development
-- **Health Checks**: 10 validators for output quality, config, menus, links, navigation, taxonomy, rendering, directives, cache, performance
-- **Dev Server**: File watching with automatic rebuilds
-- **Modular Architecture**: Clean separation of Site, Page, Section, Asset objects
-
-### Output
-- **SEO Features**: Sitemap generation, RSS feeds, link validation
-- **Asset Handling**: Copy and organize static assets
+- Markdown-based content with front matter
+- Incremental builds with dependency tracking
+- Parallel processing support
+- Template engine with Jinja2
+- Automatic navigation and breadcrumbs
+- Taxonomy system (tags, categories)
+- Menu system with hierarchical navigation
+- Development server with file watching
+- API documentation generation from Python source
+- SEO features (sitemap, RSS feeds)
+- Health validation system
 
 ## Installation
 
@@ -65,66 +41,17 @@ bengal serve
 
 ## Build Profiles
 
-Bengal offers three build profiles optimized for different workflows:
+Bengal provides different build profiles for different use cases:
 
-### Writer Profile (Default) 🚀
-Fast, clean builds for content authors. **12% faster, 97% less noise.**
-
-```bash
-bengal build  # Automatically uses writer profile
-```
-
-**Output:**
-- ✨ Build status
-- ⚠️ Errors and broken links
-- 📂 Output location
-- That's it! Clean and fast.
-
-### Theme Developer Profile 🎨
-Template-focused validation with detailed feedback.
-
-```bash
-bengal build --theme-dev
-```
-
-**Output:**
-- Phase timing breakdown
-- Template error details
-- Asset processing info
-- Navigation & directive validation
-- 7 relevant health checks
-
-### Developer Profile 🔧
-Full observability for framework optimization.
-
-```bash
-bengal build --dev
-```
-
-**Output:**
-- Debug messages
-- Memory profiling (tracemalloc)
-- All 10 health checks
-- Per-phase memory deltas
-- Performance metrics saved to `.bengal-metrics/`
-
-**Legacy flags still work:**
-- `--verbose` → maps to `--theme-dev`
-- `--debug` → maps to `--dev`
+- **Default**: Minimal output focused on errors and warnings
+- **Theme Developer** (`--theme-dev`): Extra template and navigation validation
+- **Developer** (`--dev`): Full debug output with memory profiling and performance metrics
 
 ## Architecture
 
-Bengal follows a modular design with clear separation of concerns:
+Bengal uses a modular architecture with clear separation between Site, Page, Section, and Asset objects. The rendering pipeline processes Markdown content through templates and applies post-processing steps. An incremental build system tracks file changes and dependencies to rebuild what's necessary.
 
-- **Site Object**: Orchestrates the entire build process
-- **Page Object**: Represents individual content pages with metadata and rendering
-- **Section Object**: Manages content hierarchy and grouping
-- **Asset Object**: Handles static files
-- **Rendering Pipeline**: Parse → Build AST → Apply Templates → Render → Post-process
-- **Cache System**: Tracks dependencies and file changes for incremental builds
-- **Health System**: Validates build quality across 9 aspects
-
-See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed documentation.
+See [ARCHITECTURE.md](ARCHITECTURE.md) for details.
 
 ## Configuration
 
@@ -144,11 +71,17 @@ parallel = true
 [assets]
 minify = true
 fingerprint = true
+
+# Special search page (optional overrides)
+[search]
+enabled = true
+path = "/search/"
+template = "search.html"
 ```
 
 ## Project Structure
 
-```
+```text
 mysite/
 ├── bengal.toml          # Site configuration
 ├── content/             # Your content files
@@ -165,47 +98,29 @@ mysite/
 └── public/              # Generated output
 ```
 
-## CLI Usage
+## Commands
 
 ```bash
-# Full build
+# Build site
 bengal build
 
-# Incremental build (only changed files)
-bengal build --incremental
+# Build with options
+bengal build --incremental  # Rebuild changed files
+bengal build --strict       # Fail on errors (for CI)
 
-# Parallel build (default)
-bengal build --parallel
-
-# Strict mode (fail on errors, recommended for CI)
-bengal build --strict
-
-# Generate API documentation from Python source
+# Generate API documentation
 bengal autodoc --source mylib --output content/api
 
-# Development server with file watching
+# Development server
 bengal serve --port 5173
 
-# Clean output directory
+# Clean output
 bengal clean
 ```
 
-## API Documentation (Autodoc)
+## API Documentation
 
-Bengal includes a powerful autodoc system for generating API documentation from Python source code:
-
-```bash
-# Generate docs for a module
-bengal autodoc --source src/mylib --output content/api
-
-# Use config file
-bengal autodoc  # reads from bengal.toml
-
-# Show statistics
-bengal autodoc --stats --verbose
-```
-
-**Configuration** (`bengal.toml`):
+Bengal can generate API documentation from Python source code using AST parsing. Configure in `bengal.toml`:
 
 ```toml
 [autodoc.python]
@@ -219,55 +134,18 @@ exclude = [
     "*/__pycache__/*",
 ]
 
-include_private = false  # Include _private methods
-include_special = false  # Include __special__ methods
+include_private = false
+include_special = false
 ```
 
-**Features:**
-- ⚡ **Fast**: AST-based extraction (no imports!) - 175+ pages/sec
-- 🎨 **Flexible**: Fully customizable Jinja2 templates
-- 📝 **Smart**: Parses Google, NumPy, and Sphinx docstring formats
-- 🔒 **Safe**: No code execution, works with any dependencies
-- 📊 **Rich**: Extracts args, returns, raises, examples, type hints, deprecations
-
-See the [showcase site](examples/showcase) for a live example with full Bengal API docs!
+The auto-doc system uses AST-based extraction (no imports required) and supports Google, NumPy, and Sphinx documentation formats.
 
 ## Development Status
 
-Bengal SSG is functional and under active development.
+Bengal is functional and under active development. Current test coverage is about 64% with 900+ passing tests.
 
-**Implemented:**
-- Core object model (Site, Page, Section, Asset)
-- Rendering pipeline with Mistune and python-markdown support
-- Incremental builds with dependency tracking
-- Parallel processing for pages, assets, and post-processing
-- 120+ template functions across 16 modules
-- **Autodoc system (AST-based API documentation generation)** ⭐ NEW
-- Navigation system (next/prev, breadcrumbs, hierarchical)
-- Menu system (config-driven, hierarchical)
-- Cascade system (frontmatter inheritance)
-- Taxonomy system (tags, categories, dynamic pages)
-- Table of contents (auto-generated from headings)
-- Health check system (10 validators)
-- CLI with multiple build modes
-- Development server with file watching
-- SEO features (sitemap, RSS)
-
-**Current Priorities:**
-- Test coverage improvements (current: 64%, target: 85%)
-- Documentation site
-- Enhanced asset pipeline (minification, optimization)
-- Plugin system with build hooks
-
-**Test Coverage:**
-- 900+ passing tests (unit + integration + performance)
-- 64% overall coverage (2,881 of 4,517 lines) - needs update
-- High coverage: Cache (95%), Utils (96%), Postprocess (96%), Navigation (98%)
-- Needs work: CLI (0%), Dev Server (0%), some Health validators
-
-See [ARCHITECTURE.md](ARCHITECTURE.md) for complete roadmap and technical details.
+See [ARCHITECTURE.md](ARCHITECTURE.md) for technical details and roadmap.
 
 ## License
 
 MIT License
-

@@ -67,28 +67,28 @@ cache_templates = true
         site = Site.from_config(temp_dir)
         
         start1 = time.time()
-        stats1 = site.build(parallel=False, incremental=False)
+        site.build(parallel=False, incremental=False)
         time1 = time.time() - start1
         
         # Second build (warm cache - can use parsed content)
         site2 = Site.from_config(temp_dir)
         
         start2 = time.time()
-        stats2 = site2.build(parallel=False, incremental=False)
+        site2.build(parallel=False, incremental=False)
         time2 = time.time() - start2
         
         # Third build (should also be fast)
         site3 = Site.from_config(temp_dir)
         
         start3 = time.time()
-        stats3 = site3.build(parallel=False, incremental=False)
+        site3.build(parallel=False, incremental=False)
         time3 = time.time() - start3
         
         # Average warm build time
         avg_warm = (time2 + time3) / 2
         speedup = time1 / avg_warm if avg_warm > 0 else 1.0
         
-        print(f"\nParsed Content Cache Test:")
+        print("\nParsed Content Cache Test:")
         print(f"  First build (cold):  {time1:.3f}s")
         print(f"  Second build (warm): {time2:.3f}s")
         print(f"  Third build (warm):  {time3:.3f}s")

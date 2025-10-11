@@ -1,5 +1,57 @@
 # Getting Started with Bengal SSG
 
+## Optional Asset Pipeline (Node v22 LTS)
+
+Bengal stays Python-only by default. If you want modern CSS/JS tooling (SCSS → CSS, PostCSS, bundling JS/TS with source maps), you can opt in to a Node-based pipeline.
+
+Prerequisite: Install Node.js v22 LTS and add devDependencies in your project:
+
+```json
+{
+  "devDependencies": {
+    "sass": "^1.77.0",
+    "postcss": "^8.4.35",
+    "postcss-cli": "^11.0.0",
+    "autoprefixer": "^10.4.19",
+    "esbuild": "^0.23.0"
+  }
+}
+```
+
+Then enable the pipeline in `bengal.toml`:
+
+```toml
+[assets]
+pipeline = true          # Enable Node-based pipeline
+scss = true              # Compile SCSS → CSS
+postcss = true           # Run PostCSS (requires postcss.config.cjs)
+postcss_config = "postcss.config.cjs"
+bundle_js = true         # Bundle/minify JS/TS with esbuild
+esbuild_target = "es2018"
+sourcemaps = true        # Emit source maps
+```
+
+You can also toggle at build time:
+
+```bash
+bengal build --assets-pipeline
+# or
+bengal build --no-assets-pipeline
+```
+
+Conventions and outputs:
+- Place SCSS under `assets/scss/*.scss`; outputs appear at `public/assets/scss/*.css` (fingerprinted).
+- Place JS/TS entry files under `assets/js/*.{js,ts}`; outputs appear at `public/assets/js/*.js` (fingerprinted).
+- Use `asset_url('scss/main.css')` or `asset_url('js/main.js')` in templates; Bengal will resolve fingerprinted filenames automatically.
+
+Example PostCSS config (`postcss.config.cjs`):
+
+```js
+module.exports = {
+  plugins: [require('autoprefixer')]
+};
+```
+
 Welcome to Bengal SSG! This guide will help you get up and running.
 
 ## Prerequisites
@@ -570,6 +622,8 @@ bengal build --config path   # Use custom config
 bengal serve                 # Start dev server
 bengal serve --port 3000     # Custom port
 bengal serve --no-watch      # Disable file watching
+bengal serve --verbose       # Show detailed server activity
+bengal serve --debug         # Show debug output
 
 # Management
 bengal clean                 # Clean output directory

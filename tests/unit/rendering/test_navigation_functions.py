@@ -6,10 +6,8 @@ breadcrumbs, pagination, TOC grouping, and navigation trees.
 """
 
 from unittest.mock import Mock
-import pytest
 
 from bengal.rendering.template_functions.navigation import (
-    get_breadcrumbs,
     get_toc_grouped,
     get_pagination_items,
     get_nav_tree,
@@ -35,7 +33,7 @@ class TestGetTocGrouped:
         assert len(result) == 1
         assert result[0]['header'] == toc_items[0]
         assert result[0]['children'] == []
-        assert result[0]['is_group'] == False
+        assert not result[0]['is_group']
     
     def test_group_with_children(self):
         """Item with children creates a group."""
@@ -52,7 +50,7 @@ class TestGetTocGrouped:
         assert len(result[0]['children']) == 2
         assert result[0]['children'][0] == toc_items[1]
         assert result[0]['children'][1] == toc_items[2]
-        assert result[0]['is_group'] == True
+        assert result[0]['is_group']
     
     def test_multiple_groups(self):
         """Multiple H2 sections create multiple groups."""
@@ -69,11 +67,11 @@ class TestGetTocGrouped:
         # First group
         assert result[0]['header']['title'] == 'Section 1'
         assert len(result[0]['children']) == 1
-        assert result[0]['is_group'] == True
+        assert result[0]['is_group']
         # Second group
         assert result[1]['header']['title'] == 'Section 2'
         assert len(result[1]['children']) == 1
-        assert result[1]['is_group'] == True
+        assert result[1]['is_group']
     
     def test_standalone_item_higher_level(self):
         """H1 items when grouping by H2 are standalone."""
@@ -88,10 +86,10 @@ class TestGetTocGrouped:
         assert len(result) == 2
         # H1 is standalone
         assert result[0]['header']['level'] == 0
-        assert result[0]['is_group'] == False
+        assert not result[0]['is_group']
         # H2 with children
         assert result[1]['header']['level'] == 1
-        assert result[1]['is_group'] == True
+        assert result[1]['is_group']
     
     def test_deep_nesting(self):
         """Deep nesting (H3, H4, etc.) all become children."""
@@ -124,9 +122,9 @@ class TestGetTocGrouped:
         
         assert len(result) == 2  # H1 standalone, H2 with H3 child
         assert result[0]['header']['level'] == 1
-        assert result[0]['is_group'] == False
+        assert not result[0]['is_group']
         assert result[1]['header']['level'] == 2
-        assert result[1]['is_group'] == True
+        assert result[1]['is_group']
         assert len(result[1]['children']) == 1
 
 
@@ -139,7 +137,7 @@ class TestGetPaginationItems:
         
         assert len(result['pages']) == 1
         assert result['pages'][0]['num'] == 1
-        assert result['pages'][0]['is_current'] == True
+        assert result['pages'][0]['is_current']
         assert result['prev'] is None
         assert result['next'] is None
     
@@ -151,7 +149,7 @@ class TestGetPaginationItems:
         assert result['next'] is not None
         assert result['next']['num'] == 2
         assert result['next']['url'] == '/blog/page/2/'
-        assert result['pages'][0]['is_current'] == True
+        assert result['pages'][0]['is_current']
     
     def test_last_page_of_many(self):
         """Last page has prev but no next."""
@@ -160,7 +158,7 @@ class TestGetPaginationItems:
         assert result['prev'] is not None
         assert result['prev']['num'] == 9
         assert result['next'] is None
-        assert result['pages'][-1]['is_current'] == True
+        assert result['pages'][-1]['is_current']
     
     def test_middle_page(self):
         """Middle page has both prev and next."""
@@ -189,7 +187,7 @@ class TestGetPaginationItems:
         for item in ellipsis_items:
             assert item['num'] is None
             assert item['url'] is None
-            assert item['is_ellipsis'] == True
+            assert item['is_ellipsis']
     
     def test_window_size(self):
         """Window parameter controls number of pages around current."""
@@ -223,7 +221,7 @@ class TestGetPaginationItems:
         result = get_pagination_items(100, 10, '/blog/')
         
         # Should clamp to page 10
-        assert result['pages'][-1]['is_current'] == True
+        assert result['pages'][-1]['is_current']
         assert result['next'] is None
     
     def test_first_and_last_links(self):
@@ -276,10 +274,10 @@ class TestGetNavTree:
         
         assert len(result) == 2
         assert result[0]['title'] == "Page 1"
-        assert result[0]['is_current'] == True
+        assert result[0]['is_current']
         assert result[0]['depth'] == 0
         assert result[1]['title'] == "Page 2"
-        assert result[1]['is_current'] == False
+        assert not result[1]['is_current']
     
     def test_nested_sections(self):
         """Nested sections create hierarchical tree."""
@@ -321,8 +319,8 @@ class TestGetNavTree:
         
         # Subsection has children
         assert result[1]['title'] == "Advanced"
-        assert result[1]['is_section'] == True
-        assert result[1]['has_children'] == True
+        assert result[1]['is_section']
+        assert result[1]['has_children']
         assert len(result[1]['children']) == 1
         assert result[1]['children'][0]['title'] == "Advanced Topic"
         assert result[1]['children'][0]['depth'] == 1
@@ -360,14 +358,14 @@ class TestGetNavTree:
         result = get_nav_tree(current_page, root_section=section)
         
         # page1 not in trail
-        assert result[0]['is_in_active_trail'] == False
+        assert not result[0]['is_in_active_trail']
         
         # subsection in trail
-        assert result[1]['is_in_active_trail'] == True
+        assert result[1]['is_in_active_trail']
         
         # page2 in trail and current
-        assert result[1]['children'][0]['is_in_active_trail'] == True
-        assert result[1]['children'][0]['is_current'] == True
+        assert result[1]['children'][0]['is_in_active_trail']
+        assert result[1]['children'][0]['is_current']
     
     def test_index_page_included(self):
         """Section index page is included in tree."""

@@ -2,27 +2,27 @@
 Command-line interface for Bengal SSG.
 """
 
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
+
 import click
 
 from bengal import __version__
+from bengal.autodoc.config import load_autodoc_config
+from bengal.autodoc.extractors.cli import CLIExtractor
+from bengal.autodoc.extractors.python import PythonExtractor
+from bengal.autodoc.generator import DocumentationGenerator
+from bengal.cli.commands.clean import clean, cleanup
+
+# Import commands from new modular structure
+from bengal.cli.commands.perf import perf
 from bengal.core.site import Site
 from bengal.utils.build_stats import (
     display_build_stats,
     show_building_indicator,
     show_error,
-    show_clean_success,
 )
-from bengal.utils.logger import configure_logging, LogLevel, close_all_loggers, print_all_summaries
-from bengal.autodoc.extractors.python import PythonExtractor
-from bengal.autodoc.extractors.cli import CLIExtractor
-from bengal.autodoc.generator import DocumentationGenerator
-from bengal.autodoc.config import load_autodoc_config
-
-# Import commands from new modular structure
-from bengal.cli.commands.perf import perf
-from bengal.cli.commands.clean import clean, cleanup
+from bengal.utils.logger import LogLevel, close_all_loggers, configure_logging, print_all_summaries
 
 
 class BengalGroup(click.Group):
@@ -79,6 +79,7 @@ def main() -> None:
     if not os.getenv('CI'):
         try:
             from rich.traceback import install
+
             from bengal.utils.rich_console import get_console
             install(
                 console=get_console(),
@@ -125,7 +126,6 @@ def _check_autodoc_needs_regeneration(autodoc_config: dict, root_path: Path, qui
     Returns True if regeneration is needed.
     """
     import os
-    from pathlib import Path
     
     python_config = autodoc_config.get('python', {})
     cli_config = autodoc_config.get('cli', {})
@@ -336,8 +336,8 @@ def build(parallel: bool, incremental: bool, memory_optimized: bool, profile: st
         
         # Validate templates if requested
         if validate:
-            from bengal.rendering.validator import validate_templates
             from bengal.rendering.template_engine import TemplateEngine
+            from bengal.rendering.validator import validate_templates
             
             template_engine = TemplateEngine(site)
             error_count = validate_templates(template_engine)
@@ -389,6 +389,7 @@ def build(parallel: bool, incremental: bool, memory_optimized: bool, profile: st
             import cProfile
             import pstats
             from io import StringIO
+
             from bengal.utils.paths import BengalPaths
             
             profiler = cProfile.Profile()
@@ -511,7 +512,7 @@ def graph(show_stats: bool, tree: bool, output: str, config: str, source: str) -
         bengal graph --output public/graph.html
     """
     from bengal.analysis.knowledge_graph import KnowledgeGraph
-    from bengal.utils.logger import configure_logging, LogLevel, close_all_loggers
+    from bengal.utils.logger import LogLevel, close_all_loggers, configure_logging
     
     try:
         # Configure minimal logging
@@ -529,8 +530,9 @@ def graph(show_stats: bool, tree: bool, output: str, config: str, source: str) -
         # We need to discover content to analyze it
         # This also builds the xref_index for link analysis
         try:
-            from bengal.utils.rich_console import get_console, should_use_rich
             from rich.status import Status
+
+            from bengal.utils.rich_console import get_console, should_use_rich
             
             if should_use_rich():
                 console = get_console()
@@ -569,6 +571,7 @@ def graph(show_stats: bool, tree: bool, output: str, config: str, source: str) -
         if tree:
             try:
                 from rich.tree import Tree
+
                 from bengal.utils.rich_console import get_console, should_use_rich
                 
                 if should_use_rich():
@@ -707,9 +710,10 @@ def pagerank(top_n: int, damping: float, format: str, config: str, source: str) 
         # Export scores as JSON
         bengal pagerank --format json > pagerank.json
     """
-    from bengal.analysis.knowledge_graph import KnowledgeGraph
-    from bengal.utils.logger import configure_logging, LogLevel, close_all_loggers
     import json
+
+    from bengal.analysis.knowledge_graph import KnowledgeGraph
+    from bengal.utils.logger import LogLevel, close_all_loggers, configure_logging
     
     try:
         # Configure minimal logging
@@ -731,8 +735,9 @@ def pagerank(top_n: int, damping: float, format: str, config: str, source: str) 
         
         # Discover content and compute PageRank with status indicator
         try:
-            from bengal.utils.rich_console import get_console, should_use_rich
             from rich.status import Status
+
+            from bengal.utils.rich_console import get_console, should_use_rich
             
             if should_use_rich():
                 console = get_console()
@@ -803,7 +808,7 @@ def pagerank(top_n: int, damping: float, format: str, config: str, source: str) 
         elif format == 'summary':
             # Show summary stats
             click.echo("\n" + "=" * 60)
-            click.echo(f"📈 PageRank Summary")
+            click.echo("📈 PageRank Summary")
             click.echo("=" * 60)
             click.echo(f"Total pages analyzed:    {len(results.scores)}")
             click.echo(f"Iterations to converge:  {results.iterations}")
@@ -904,9 +909,10 @@ def communities(min_size: int, resolution: float, top_n: int, format: str, seed:
         # Export as JSON
         bengal communities --format json > communities.json
     """
-    from bengal.analysis.knowledge_graph import KnowledgeGraph
-    from bengal.utils.logger import configure_logging, LogLevel, close_all_loggers
     import json
+
+    from bengal.analysis.knowledge_graph import KnowledgeGraph
+    from bengal.utils.logger import LogLevel, close_all_loggers, configure_logging
     
     try:
         # Configure minimal logging
@@ -982,7 +988,7 @@ def communities(min_size: int, resolution: float, top_n: int, format: str, seed:
         elif format == 'summary':
             # Show summary stats
             click.echo("\n" + "=" * 60)
-            click.echo(f"🔍 Community Detection Summary")
+            click.echo("🔍 Community Detection Summary")
             click.echo("=" * 60)
             click.echo(f"Total communities found:  {len(results.communities)}")
             click.echo(f"Showing communities:      {len(communities_to_show)}")
@@ -1002,7 +1008,7 @@ def communities(min_size: int, resolution: float, top_n: int, format: str, seed:
                 ]
                 pages_with_refs.sort(key=lambda x: x[1], reverse=True)
                 
-                click.echo(f"  Top pages:")
+                click.echo("  Top pages:")
                 for page, refs in pages_with_refs[:3]:
                     click.echo(f"    • {page.title} ({refs} refs)")
         
@@ -1053,11 +1059,11 @@ def communities(min_size: int, resolution: float, top_n: int, format: str, seed:
             click.echo(f"• Communities >= {min_size} pages:      {len(communities_to_show)}")
             
             if results.modularity > 0.3:
-                click.echo(f"• Modularity:                 High (good clustering)")
+                click.echo("• Modularity:                 High (good clustering)")
             elif results.modularity > 0.1:
-                click.echo(f"• Modularity:                 Moderate (some structure)")
+                click.echo("• Modularity:                 Moderate (some structure)")
             else:
-                click.echo(f"• Modularity:                 Low (weak structure)")
+                click.echo("• Modularity:                 Low (weak structure)")
             
             click.echo("\n")
         
@@ -1104,9 +1110,10 @@ def bridges(top_n: int, metric: str, format: str, config: str, source: str) -> N
         # Export as JSON
         bengal bridges --format json > bridges.json
     """
-    from bengal.analysis.knowledge_graph import KnowledgeGraph
-    from bengal.utils.logger import configure_logging, LogLevel, close_all_loggers
     import json
+
+    from bengal.analysis.knowledge_graph import KnowledgeGraph
+    from bengal.utils.logger import LogLevel, close_all_loggers, configure_logging
     
     try:
         # Configure minimal logging
@@ -1133,7 +1140,7 @@ def bridges(top_n: int, metric: str, format: str, config: str, source: str) -> N
         graph.build()
         
         # Analyze paths
-        click.echo(f"🌉 Analyzing navigation paths...")
+        click.echo("🌉 Analyzing navigation paths...")
         results = graph.analyze_paths()
         
         # Output based on format
@@ -1174,7 +1181,7 @@ def bridges(top_n: int, metric: str, format: str, config: str, source: str) -> N
         elif format == 'summary':
             # Show summary stats
             click.echo("\n" + "=" * 60)
-            click.echo(f"🌉 Path Analysis Summary")
+            click.echo("🌉 Path Analysis Summary")
             click.echo("=" * 60)
             click.echo(f"Total pages analyzed:     {len(results.betweenness_centrality)}")
             click.echo(f"Average path length:      {results.avg_path_length:.2f}")
@@ -1182,7 +1189,7 @@ def bridges(top_n: int, metric: str, format: str, config: str, source: str) -> N
             click.echo("")
             
             if metric in ['betweenness', 'both']:
-                click.echo(f"\n🔗 Top Bridge Pages (Betweenness Centrality)")
+                click.echo("\n🔗 Top Bridge Pages (Betweenness Centrality)")
                 click.echo("-" * 60)
                 bridges = results.get_top_bridges(top_n)
                 for i, (page, score) in enumerate(bridges, 1):
@@ -1192,7 +1199,7 @@ def bridges(top_n: int, metric: str, format: str, config: str, source: str) -> N
                     click.echo(f"     Betweenness: {score:.6f} | {incoming} in, {outgoing} out")
             
             if metric in ['closeness', 'both']:
-                click.echo(f"\n🎯 Most Accessible Pages (Closeness Centrality)")
+                click.echo("\n🎯 Most Accessible Pages (Closeness Centrality)")
                 click.echo("-" * 60)
                 accessible = results.get_most_accessible(top_n)
                 for i, (page, score) in enumerate(accessible, 1):
@@ -1202,7 +1209,7 @@ def bridges(top_n: int, metric: str, format: str, config: str, source: str) -> N
         
         else:  # table format
             click.echo("\n" + "=" * 100)
-            click.echo(f"🌉 Navigation Path Analysis")
+            click.echo("🌉 Navigation Path Analysis")
             click.echo("=" * 100)
             click.echo(f"Analyzed {len(results.betweenness_centrality)} pages • Avg path: {results.avg_path_length:.2f} • Diameter: {results.diameter}")
             click.echo("=" * 100)
@@ -1259,11 +1266,11 @@ def bridges(top_n: int, metric: str, format: str, config: str, source: str) -> N
             click.echo(f"• Max betweenness:            {max_betweenness:.6f}")
             
             if results.diameter > 5:
-                click.echo(f"• Structure:                  Deep (consider shortening paths)")
+                click.echo("• Structure:                  Deep (consider shortening paths)")
             elif results.diameter > 3:
-                click.echo(f"• Structure:                  Medium depth")
+                click.echo("• Structure:                  Medium depth")
             else:
-                click.echo(f"• Structure:                  Shallow (well connected)")
+                click.echo("• Structure:                  Shallow (well connected)")
             
             click.echo("\n")
         
@@ -1310,9 +1317,10 @@ def suggest(top_n: int, min_score: float, format: str, config: str, source: str)
         # Generate markdown checklist
         bengal suggest --format markdown > TODO.md
     """
-    from bengal.analysis.knowledge_graph import KnowledgeGraph
-    from bengal.utils.logger import configure_logging, LogLevel, close_all_loggers
     import json
+
+    from bengal.analysis.knowledge_graph import KnowledgeGraph
+    from bengal.utils.logger import LogLevel, close_all_loggers, configure_logging
     
     try:
         configure_logging(level=LogLevel.WARNING)
@@ -1337,7 +1345,7 @@ def suggest(top_n: int, min_score: float, format: str, config: str, source: str)
         graph = KnowledgeGraph(site)
         graph.build()
         
-        click.echo(f"💡 Generating link suggestions...")
+        click.echo("💡 Generating link suggestions...")
         results = graph.suggest_links(min_score=min_score)
         
         top_suggestions = results.get_top_suggestions(top_n)
@@ -1360,14 +1368,14 @@ def suggest(top_n: int, min_score: float, format: str, config: str, source: str)
             click.echo(json.dumps(data, indent=2))
         
         elif format == 'markdown':
-            click.echo(f"# Link Suggestions\n")
+            click.echo("# Link Suggestions\n")
             click.echo(f"Generated {results.total_suggestions} suggestions from {results.pages_analyzed} pages\n")
             click.echo(f"## Top {len(top_suggestions)} Suggestions\n")
             
             for i, suggestion in enumerate(top_suggestions, 1):
                 click.echo(f"### {i}. {suggestion.source.title} → {suggestion.target.title}")
                 click.echo(f"**Score:** {suggestion.score:.3f}\n")
-                click.echo(f"**Reasons:**")
+                click.echo("**Reasons:**")
                 for reason in suggestion.reasons:
                     click.echo(f"- {reason}")
                 click.echo(f"\n**Action:** Add link from `{suggestion.source.source_path}` to `{suggestion.target.source_path}`\n")
@@ -1536,7 +1544,7 @@ This is your new Bengal static site. Start editing this file to begin!
         atomic_write_text(site_path / 'content' / 'index.md', index_content)
         click.echo(click.style("   └─ ", fg='cyan') + "Created sample index page")
         
-        click.echo(click.style(f"\n✅ Site created successfully!", fg='green', bold=True))
+        click.echo(click.style("\n✅ Site created successfully!", fg='green', bold=True))
         click.echo(click.style("\n📚 Next steps:", fg='cyan', bold=True))
         click.echo(click.style("   ├─ ", fg='cyan') + f"cd {name}")
         click.echo(click.style("   └─ ", fg='cyan') + "bengal serve")
@@ -1589,7 +1597,7 @@ Your content goes here.
         from bengal.utils.atomic_write import atomic_write_text
         atomic_write_text(page_path, page_content)
         
-        click.echo(click.style(f"\n✨ Created new page: ", fg='cyan') + 
+        click.echo(click.style("\n✨ Created new page: ", fg='cyan') + 
                   click.style(str(page_path), fg='green', bold=True))
         click.echo()
         
@@ -1789,14 +1797,14 @@ def _generate_python_docs(source: tuple, output: str, clean: bool, parallel: boo
     click.echo()
     click.echo(click.style("💡 Next steps:", fg='yellow'))
     click.echo(f"   • View docs: ls {output_dir}")
-    click.echo(f"   • Build site: bengal build")
+    click.echo("   • Build site: bengal build")
     click.echo()
 
 
 def _generate_cli_docs(app: str, framework: str, output: str, include_hidden: bool, clean: bool, verbose: bool, cli_config: dict) -> None:
     """Generate CLI documentation."""
-    import time
     import importlib
+    import time
     
     click.echo(click.style("⌨️  CLI Documentation", fg='cyan', bold=True))
     click.echo()
@@ -1829,7 +1837,7 @@ def _generate_cli_docs(app: str, framework: str, output: str, include_hidden: bo
         raise click.Abort()
     
     # Extract documentation
-    click.echo(click.style(f"📝 Extracting CLI documentation...", fg='blue'))
+    click.echo(click.style("📝 Extracting CLI documentation...", fg='blue'))
     start_time = time.time()
     
     extractor = CLIExtractor(framework=framework, include_hidden=include_hidden)
@@ -1887,7 +1895,7 @@ def _generate_cli_docs(app: str, framework: str, output: str, include_hidden: bo
     click.echo()
     click.echo(click.style("💡 Next steps:", fg='yellow'))
     click.echo(f"   • View docs: ls {output_dir}")
-    click.echo(f"   • Build site: bengal build")
+    click.echo("   • Build site: bengal build")
     click.echo()
 
 
@@ -1909,8 +1917,8 @@ def autodoc_cli(app: str, framework: str, output: str, include_hidden: bool, cle
     Example:
         bengal autodoc-cli --app bengal.cli:main --output content/cli
     """
-    import time
     import importlib
+    import time
     
     try:
         click.echo()
@@ -1972,7 +1980,7 @@ def autodoc_cli(app: str, framework: str, output: str, include_hidden: bool, cle
             raise click.Abort()
         
         # Extract documentation
-        click.echo(click.style(f"📝 Extracting CLI documentation...", fg='blue'))
+        click.echo(click.style("📝 Extracting CLI documentation...", fg='blue'))
         start_time = time.time()
         
         extractor = CLIExtractor(framework=framework, include_hidden=include_hidden)
@@ -2016,12 +2024,12 @@ def autodoc_cli(app: str, framework: str, output: str, include_hidden: bool, cle
         click.echo()
         click.echo(click.style("✅ CLI Documentation Generated!", fg='green', bold=True))
         click.echo()
-        click.echo(f"   📊 Statistics:")
+        click.echo("   📊 Statistics:")
         click.echo(f"      • Commands: {command_count}")
         click.echo(f"      • Options:  {option_count}")
         click.echo(f"      • Pages:    {len(generated_files)}")
         click.echo()
-        click.echo(f"   ⚡ Performance:")
+        click.echo("   ⚡ Performance:")
         click.echo(f"      • Extraction: {extraction_time:.3f}s")
         click.echo(f"      • Generation: {gen_time:.3f}s")
         click.echo(f"      • Total:      {total_time:.3f}s")
@@ -2037,7 +2045,7 @@ def autodoc_cli(app: str, framework: str, output: str, include_hidden: bool, cle
         
         click.echo(click.style("💡 Next steps:", fg='yellow'))
         click.echo(f"   • View docs: ls {output_dir}")
-        click.echo(f"   • Build site: bengal build")
+        click.echo("   • Build site: bengal build")
         click.echo()
         
     except click.Abort:

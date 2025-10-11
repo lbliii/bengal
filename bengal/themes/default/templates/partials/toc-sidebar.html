@@ -64,20 +64,16 @@
             {# Group with children (collapsible section) #}
             <li class="toc-item toc-group" role="treeitem" data-level="1" data-collapsed="true">
               <div class="toc-group-header">
-                <button 
-                  class="toc-group-toggle" 
-                  aria-expanded="false"
-                  aria-label="Toggle section: {{ group.header.title }}">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="toc-chevron">
-                    <polyline points="9 18 15 12 9 6"></polyline>
-                  </svg>
-                </button>
                 <a href="#{{ group.header.id }}" class="toc-link toc-link-h2" data-toc-item="#{{ group.header.id }}">
                   {{ group.header.title }}
                 </a>
-                <span class="toc-count" aria-label="{{ group.children|length }} subsections">
-                  {{ group.children|length }}
-                </span>
+                <button 
+                  class="toc-group-toggle toc-count-toggle" 
+                  aria-expanded="false"
+                  aria-label="Toggle {{ group.children|length }} subsections"
+                  title="Click to expand {{ group.children|length }} subsections">
+                  <span class="toc-count">{{ group.children|length }}</span>
+                </button>
               </div>
               <ul class="toc-subitems" role="group">
                 {% for child in group.children %}

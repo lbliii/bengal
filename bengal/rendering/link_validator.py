@@ -2,9 +2,7 @@
 Link validation for catching broken links.
 """
 
-from typing import Any, List
-from pathlib import Path
-import re
+from typing import Any
 
 from bengal.core.page import Page
 from bengal.utils.logger import get_logger
@@ -20,9 +18,9 @@ class LinkValidator:
     def __init__(self) -> None:
         """Initialize the link validator."""
         self.validated_urls: set = set()
-        self.broken_links: List[tuple] = []
+        self.broken_links: list[tuple] = []
     
-    def validate_page_links(self, page: Page) -> List[str]:
+    def validate_page_links(self, page: Page) -> list[str]:
         """
         Validate all links in a page.
         
@@ -55,7 +53,7 @@ class LinkValidator:
         
         return broken
     
-    def validate_site(self, site: Any) -> List[tuple]:
+    def validate_site(self, site: Any) -> list[tuple]:
         """
         Validate all links in the entire site.
         
@@ -81,7 +79,7 @@ class LinkValidator:
                 "found_broken_links",
                 total_broken=len(self.broken_links),
                 pages_affected=pages_affected,
-                sample_links=[(str(p), l) for p, l in self.broken_links[:10]]
+                sample_links=[(str(p), link) for p, link in self.broken_links[:10]]
             )
         else:
             logger.debug(

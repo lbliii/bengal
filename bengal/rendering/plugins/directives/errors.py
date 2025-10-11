@@ -5,7 +5,6 @@ Provides detailed, helpful error messages when directives fail to parse.
 """
 
 from pathlib import Path
-from typing import Optional
 
 
 class DirectiveError(Exception):
@@ -23,10 +22,10 @@ class DirectiveError(Exception):
         self,
         directive_type: str,
         error_message: str,
-        file_path: Optional[Path] = None,
-        line_number: Optional[int] = None,
-        content_snippet: Optional[str] = None,
-        suggestion: Optional[str] = None
+        file_path: Path | None = None,
+        line_number: int | None = None,
+        content_snippet: str | None = None,
+        suggestion: str | None = None
     ):
         """
         Initialize directive error.
@@ -87,11 +86,11 @@ class DirectiveError(Exception):
 def format_directive_error(
     directive_type: str,
     error_message: str,
-    file_path: Optional[Path] = None,
-    line_number: Optional[int] = None,
-    content_lines: Optional[list] = None,
+    file_path: Path | None = None,
+    line_number: int | None = None,
+    content_lines: list | None = None,
     error_line_offset: int = 0,
-    suggestion: Optional[str] = None
+    suggestion: str | None = None
 ) -> str:
     """
     Format a directive error message.
@@ -154,7 +153,7 @@ DIRECTIVE_SUGGESTIONS = {
 }
 
 
-def get_suggestion(error_key: str) -> Optional[str]:
+def get_suggestion(error_key: str) -> str | None:
     """Get a helpful suggestion for a common error type."""
     return DIRECTIVE_SUGGESTIONS.get(error_key)
 

@@ -2,10 +2,6 @@
 Tests for configuration loader.
 """
 
-import pytest
-from pathlib import Path
-import tempfile
-import toml
 
 from bengal.config.loader import ConfigLoader
 
@@ -81,7 +77,7 @@ title = "Test Site"
 """)
         
         loader = ConfigLoader(tmp_path)
-        config = loader.load(config_file)
+        loader.load(config_file)
         
         warnings = loader.get_warnings()
         assert len(warnings) > 0
@@ -209,7 +205,7 @@ parallel = true
         # Canonical sections should be accessible (flattened)
         # 'site' and 'build' get flattened, so check their values
         assert config.get('title') == "Test"
-        assert config.get('parallel') == True
+        assert config.get('parallel')
         assert 'menu' in config
     
     def test_user_defined_sections_preserved(self, tmp_path):

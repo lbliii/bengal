@@ -5,8 +5,9 @@ Provides centralized date parsing, formatting, and manipulation functions
 to eliminate duplicate logic across templates and core code.
 """
 
-from datetime import datetime, date as date_type, timezone
-from typing import Optional, Union, List
+from datetime import date as date_type
+from datetime import datetime, timezone
+from typing import Union
 
 # Type alias for date-like values
 DateLike = Union[datetime, date_type, str, None]
@@ -14,9 +15,9 @@ DateLike = Union[datetime, date_type, str, None]
 
 def parse_date(
     value: DateLike,
-    formats: Optional[List[str]] = None,
+    formats: list[str] | None = None,
     on_error: str = 'return_none'
-) -> Optional[datetime]:
+) -> datetime | None:
     """
     Parse various date formats into datetime.
     
@@ -168,7 +169,7 @@ def format_date_human(
     return dt.strftime(format) if dt else ''
 
 
-def time_ago(date: DateLike, now: Optional[datetime] = None) -> str:
+def time_ago(date: DateLike, now: datetime | None = None) -> str:
     """
     Convert date to human-readable "time ago" format.
     
@@ -247,7 +248,7 @@ def get_current_year() -> int:
 def is_recent(
     date: DateLike,
     days: int = 7,
-    now: Optional[datetime] = None
+    now: datetime | None = None
 ) -> bool:
     """
     Check if date is recent (within specified days).

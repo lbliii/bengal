@@ -1,8 +1,5 @@
 """Tests for rich console utilities."""
 
-import os
-import pytest
-from unittest.mock import patch, MagicMock
 
 
 class TestGetConsole:

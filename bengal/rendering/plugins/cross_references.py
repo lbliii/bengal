@@ -6,7 +6,8 @@ performance using pre-built xref_index.
 """
 
 import re
-from typing import Any, Dict, Match, Optional
+from re import Match
+from typing import Any
 
 from bengal.utils.logger import get_logger
 
@@ -40,7 +41,7 @@ class CrossReferencePlugin:
     trying to hook into the inline parser which has a complex API.
     """
     
-    def __init__(self, xref_index: Dict[str, Any]):
+    def __init__(self, xref_index: dict[str, Any]):
         """
         Initialize cross-reference plugin.
         
@@ -108,7 +109,7 @@ class CrossReferencePlugin:
         
         return self.pattern.sub(replace_xref, text)
     
-    def _resolve_path(self, path: str, text: Optional[str] = None) -> str:
+    def _resolve_path(self, path: str, text: str | None = None) -> str:
         """
         Resolve path reference to link.
         
@@ -148,7 +149,7 @@ class CrossReferencePlugin:
         url = page.url if hasattr(page, 'url') else f'/{page.slug}/'
         return f'<a href="{url}">{link_text}</a>'
     
-    def _resolve_id(self, ref_id: str, text: Optional[str] = None) -> str:
+    def _resolve_id(self, ref_id: str, text: str | None = None) -> str:
         """
         Resolve ID reference to link.
         
@@ -179,7 +180,7 @@ class CrossReferencePlugin:
         url = page.url if hasattr(page, 'url') else f'/{page.slug}/'
         return f'<a href="{url}">{link_text}</a>'
     
-    def _resolve_heading(self, anchor: str, text: Optional[str] = None) -> str:
+    def _resolve_heading(self, anchor: str, text: str | None = None) -> str:
         """
         Resolve heading anchor reference to link.
         

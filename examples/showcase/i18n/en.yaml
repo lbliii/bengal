@@ -1,0 +1,7 @@
+nav:
+  search: "Search"
+  docs: "Documentation"
+footer:
+  rights: "All rights reserved."
+greeting: "Hello {name}"
+

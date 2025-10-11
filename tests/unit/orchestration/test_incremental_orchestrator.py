@@ -4,9 +4,9 @@ Tests for IncrementalOrchestrator including phase ordering optimizations.
 
 import pytest
 from pathlib import Path
-from unittest.mock import Mock, MagicMock, patch
+from unittest.mock import Mock, patch
 from bengal.orchestration.incremental import IncrementalOrchestrator
-from bengal.cache import BuildCache, DependencyTracker
+from bengal.cache import BuildCache
 from bengal.core.page import Page
 
 

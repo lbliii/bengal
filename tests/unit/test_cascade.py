@@ -1,6 +1,5 @@
 """Tests for cascading frontmatter functionality."""
 
-import pytest
 from pathlib import Path
 from bengal.core.page import Page
 from bengal.core.section import Section

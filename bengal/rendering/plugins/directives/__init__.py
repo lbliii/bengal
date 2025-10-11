@@ -9,39 +9,43 @@ Also provides:
 - Error handling and validation
 """
 
-from bengal.utils.logger import get_logger
 from bengal.rendering.plugins.directives.admonitions import AdmonitionDirective
-from bengal.rendering.plugins.directives.tabs import TabSetDirective, TabItemDirective, TabsDirective
-from bengal.rendering.plugins.directives.dropdown import DropdownDirective
-from bengal.rendering.plugins.directives.code_tabs import CodeTabsDirective
-from bengal.rendering.plugins.directives.rubric import RubricDirective
-from bengal.rendering.plugins.directives.cards import (
-    CardsDirective,
-    CardDirective,
-    GridDirective,
-    GridItemCardDirective,
-)
 from bengal.rendering.plugins.directives.button import ButtonDirective
 from bengal.rendering.plugins.directives.cache import (
     DirectiveCache,
-    get_cache,
-    configure_cache,
     clear_cache,
+    configure_cache,
+    get_cache,
     get_cache_stats,
 )
+from bengal.rendering.plugins.directives.cards import (
+    CardDirective,
+    CardsDirective,
+    GridDirective,
+    GridItemCardDirective,
+)
+from bengal.rendering.plugins.directives.code_tabs import CodeTabsDirective
+from bengal.rendering.plugins.directives.dropdown import DropdownDirective
 from bengal.rendering.plugins.directives.errors import DirectiveError, format_directive_error
+from bengal.rendering.plugins.directives.rubric import RubricDirective
+from bengal.rendering.plugins.directives.tabs import (
+    TabItemDirective,
+    TabsDirective,
+    TabSetDirective,
+)
 from bengal.rendering.plugins.directives.validator import DirectiveSyntaxValidator
+from bengal.utils.logger import get_logger
 
 __all__ = [
-    'create_documentation_directives',
     'DirectiveCache',
-    'get_cache',
-    'configure_cache',
-    'clear_cache',
-    'get_cache_stats',
     'DirectiveError',
-    'format_directive_error',
     'DirectiveSyntaxValidator',
+    'clear_cache',
+    'configure_cache',
+    'create_documentation_directives',
+    'format_directive_error',
+    'get_cache',
+    'get_cache_stats',
 ]
 
 

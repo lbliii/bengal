@@ -18,10 +18,10 @@ Usage:
 """
 
 import re
+
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
-from typing import Optional
 
 
 class APIDocEnhancer:
@@ -85,7 +85,7 @@ class APIDocEnhancer:
             for pattern, replacement in self.BADGE_PATTERNS
         ]
     
-    def should_enhance(self, page_type: Optional[str]) -> bool:
+    def should_enhance(self, page_type: str | None) -> bool:
         """
         Check if a page should be enhanced based on its type.
         
@@ -97,7 +97,7 @@ class APIDocEnhancer:
         """
         return page_type in self.SUPPORTED_PAGE_TYPES
     
-    def enhance(self, html: str, page_type: Optional[str] = None) -> str:
+    def enhance(self, html: str, page_type: str | None = None) -> str:
         """
         Enhance HTML with API documentation badges.
         

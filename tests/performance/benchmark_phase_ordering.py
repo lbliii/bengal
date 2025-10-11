@@ -14,7 +14,6 @@ import time
 import json
 from pathlib import Path
 import shutil
-import sys
 
 def run_command(cmd, cwd=None):
     """Run command and capture output."""
@@ -78,7 +77,7 @@ def benchmark_showcase():
                         print(f"   ℹ Pages built: {page_count}")
                         break
     else:
-        print(f"   ❌ Build failed")
+        print("   ❌ Build failed")
         print(stderr)
         return
     
@@ -99,9 +98,9 @@ def benchmark_showcase():
         results['incremental_no_changes'] = duration
         
         if "No changes detected" in stdout:
-            print(f"   ✓ Correctly detected no changes")
+            print("   ✓ Correctly detected no changes")
     else:
-        print(f"   ❌ Build failed")
+        print("   ❌ Build failed")
         print(stderr)
     
     print()
@@ -133,7 +132,7 @@ def benchmark_showcase():
             if 'Incremental build:' in line:
                 print(f"   ℹ {line.strip()}")
     else:
-        print(f"   ❌ Build failed")
+        print("   ❌ Build failed")
         print(stderr)
     
     # Restore the file

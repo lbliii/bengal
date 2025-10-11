@@ -5,19 +5,19 @@ Analyzes page connectivity, identifies hubs and leaves, finds orphaned pages,
 and provides insights for optimization and content strategy.
 """
 
-from typing import TYPE_CHECKING, Dict, List, Set, Tuple, Optional
 from collections import defaultdict
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.core.site import Site
-    from bengal.core.page import Page
-    from bengal.analysis.page_rank import PageRankResults
     from bengal.analysis.community_detection import CommunityDetectionResults
-    from bengal.analysis.path_analysis import PathAnalysisResults
     from bengal.analysis.link_suggestions import LinkSuggestionResults
+    from bengal.analysis.page_rank import PageRankResults
+    from bengal.analysis.path_analysis import PathAnalysisResults
+    from bengal.core.page import Page
+    from bengal.core.site import Site
 
 logger = get_logger(__name__)
 
@@ -104,8 +104,8 @@ class KnowledgeGraph:
         self.leaf_threshold = leaf_threshold
         
         # Graph data structures - now using pages directly as keys (hashable!)
-        self.incoming_refs: Dict['Page', int] = defaultdict(int)  # page -> count
-        self.outgoing_refs: Dict['Page', Set['Page']] = defaultdict(set)  # page -> target pages
+        self.incoming_refs: dict[Page, int] = defaultdict(int)  # page -> count
+        self.outgoing_refs: dict[Page, set[Page]] = defaultdict(set)  # page -> target pages
         # Note: page_by_id no longer needed - pages are directly hashable
         
         # Analysis results
@@ -113,10 +113,10 @@ class KnowledgeGraph:
         self._built = False
         
         # Analysis results cache
-        self._pagerank_results: Optional['PageRankResults'] = None
-        self._community_results: Optional['CommunityDetectionResults'] = None
-        self._path_results: Optional['PathAnalysisResults'] = None
-        self._link_suggestions: Optional['LinkSuggestionResults'] = None
+        self._pagerank_results: PageRankResults | None = None
+        self._community_results: CommunityDetectionResults | None = None
+        self._path_results: PathAnalysisResults | None = None
+        self._link_suggestions: LinkSuggestionResults | None = None
     
     def build(self) -> None:
         """
@@ -338,7 +338,7 @@ class KnowledgeGraph:
             is_orphan=(incoming == 0 and outgoing == 0)
         )
     
-    def get_hubs(self, threshold: int = None) -> List['Page']:
+    def get_hubs(self, threshold: int | None = None) -> list['Page']:
         """
         Get hub pages (highly connected pages).
         
@@ -371,7 +371,7 @@ class KnowledgeGraph:
         
         return hubs
     
-    def get_leaves(self, threshold: int = None) -> List['Page']:
+    def get_leaves(self, threshold: int | None = None) -> list['Page']:
         """
         Get leaf pages (low connectivity pages).
         
@@ -404,7 +404,7 @@ class KnowledgeGraph:
         
         return leaves
     
-    def get_orphans(self) -> List['Page']:
+    def get_orphans(self) -> list['Page']:
         """
         Get orphaned pages (no connections at all).
         
@@ -454,7 +454,7 @@ class KnowledgeGraph:
         
         return self.incoming_refs[page] + len(self.outgoing_refs[page])  # Direct page lookup
     
-    def get_layers(self) -> Tuple[List['Page'], List['Page'], List['Page']]:
+    def get_layers(self) -> tuple[list['Page'], list['Page'], list['Page']]:
         """
         Partition pages into three layers by connectivity.
         
@@ -615,7 +615,7 @@ class KnowledgeGraph:
         return self._pagerank_results
     
     def compute_personalized_pagerank(self,
-                                     seed_pages: Set['Page'],
+                                     seed_pages: set['Page'],
                                      damping: float = 0.85,
                                      max_iterations: int = 100) -> 'PageRankResults':
         """
@@ -657,7 +657,7 @@ class KnowledgeGraph:
         
         return calculator.compute_personalized(seed_pages)
     
-    def get_top_pages_by_pagerank(self, limit: int = 20) -> List[Tuple['Page', float]]:
+    def get_top_pages_by_pagerank(self, limit: int = 20) -> list[tuple['Page', float]]:
         """
         Get top-ranked pages by PageRank score.
         
@@ -705,7 +705,7 @@ class KnowledgeGraph:
     
     def detect_communities(self,
                           resolution: float = 1.0,
-                          random_seed: Optional[int] = None,
+                          random_seed: int | None = None,
                           force_recompute: bool = False) -> 'CommunityDetectionResults':
         """
         Detect topical communities using Louvain method.
@@ -748,7 +748,7 @@ class KnowledgeGraph:
         self._community_results = detector.detect()
         return self._community_results
     
-    def get_community_for_page(self, page: 'Page') -> Optional[int]:
+    def get_community_for_page(self, page: 'Page') -> int | None:
         """
         Get community ID for a specific page.
         
@@ -890,7 +890,7 @@ class KnowledgeGraph:
         self._link_suggestions = engine.generate_suggestions()
         return self._link_suggestions
     
-    def get_suggestions_for_page(self, page: 'Page', limit: int = 10) -> List[Tuple['Page', float, List[str]]]:
+    def get_suggestions_for_page(self, page: 'Page', limit: int = 10) -> list[tuple['Page', float, list[str]]]:
         """
         Get link suggestions for a specific page.
         
