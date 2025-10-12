@@ -11,7 +11,7 @@ Validates:
 
 import re
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, override
 
 from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult
@@ -39,6 +39,7 @@ class FontValidator(BaseValidator):
     # Max font file size (500 KB is reasonable for a single font variant)
     MAX_FONT_SIZE_KB = 500
 
+    @override
     def validate(self, site: 'Site') -> list[CheckResult]:
         """Run font validation checks."""
         results = []

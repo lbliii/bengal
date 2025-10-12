@@ -409,7 +409,7 @@ def build(parallel: bool, incremental: bool, memory_optimized: bool, profile: st
         show_error(f"Build failed: {e}", show_art=True)
         if debug:
             raise
-        raise click.Abort()
+        raise click.Abort() from e
     finally:
         # Always close log file handles
         close_all_loggers()

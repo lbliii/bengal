@@ -183,12 +183,11 @@ class ResourceManager:
         if hasattr(signal, 'SIGHUP'):
             signals_to_catch.append(signal.SIGHUP)
 
+        import contextlib
         for sig in signals_to_catch:
-            try:
-                self._original_signals[sig] = signal.signal(sig, self._signal_handler)
-            except (OSError, ValueError):
+            with contextlib.suppress(OSError, ValueError):
                 # Some signals can't be caught (e.g., in threads, Windows limitations)
-                pass
+                self._original_signals[sig] = signal.signal(sig, self._signal_handler)
 
     def _restore_signals(self):
         """Restore original signal handlers."""

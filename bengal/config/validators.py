@@ -119,46 +119,48 @@ class ConfigValidator:
             if key in config:
                 value = config[key]
 
-                if isinstance(value, bool):
-                    continue  # Already correct
-                elif isinstance(value, str):
-                    # Coerce string to boolean
-                    lower_val = value.lower()
-                    if lower_val in ('true', 'yes', '1', 'on'):
-                        config[key] = True
-                    elif lower_val in ('false', 'no', '0', 'off'):
-                        config[key] = False
-                    else:
+                match value:
+                    case bool():
+                        continue  # Already correct
+                    case str() as s:
+                        # Coerce string to boolean
+                        match s.lower():
+                            case 'true' | 'yes' | '1' | 'on':
+                                config[key] = True
+                            case 'false' | 'no' | '0' | 'off':
+                                config[key] = False
+                            case _:
+                                errors.append(
+                                    f"'{key}': expected boolean or 'true'/'false', got '{value}'"
+                                )
+                    case int():
+                        # Coerce int to boolean (0=False, non-zero=True)
+                        config[key] = bool(value)
+                    case _:
                         errors.append(
-                            f"'{key}': expected boolean or 'true'/'false', got '{value}'"
+                            f"'{key}': expected boolean, got {type(value).__name__}"
                         )
-                elif isinstance(value, int):
-                    # Coerce int to boolean (0=False, non-zero=True)
-                    config[key] = bool(value)
-                else:
-                    errors.append(
-                        f"'{key}': expected boolean, got {type(value).__name__}"
-                    )
 
         # Integer fields
         for key in self.INTEGER_FIELDS:
             if key in config:
                 value = config[key]
 
-                if isinstance(value, int):
-                    continue  # Already correct
-                elif isinstance(value, str):
-                    # Try to coerce string to int
-                    try:
-                        config[key] = int(value)
-                    except ValueError:
+                match value:
+                    case int():
+                        continue  # Already correct
+                    case str():
+                        # Try to coerce string to int
+                        try:
+                            config[key] = int(value)
+                        except ValueError:
+                            errors.append(
+                                f"'{key}': expected integer, got non-numeric string '{value}'"
+                            )
+                    case _:
                         errors.append(
-                            f"'{key}': expected integer, got non-numeric string '{value}'"
+                            f"'{key}': expected integer, got {type(value).__name__}"
                         )
-                else:
-                    errors.append(
-                        f"'{key}': expected integer, got {type(value).__name__}"
-                    )
 
         # String fields (mostly for type checking, less coercion needed)
         for key in self.STRING_FIELDS:
@@ -184,9 +186,8 @@ class ConfigValidator:
 
         # min_page_size: must be >= 0
         min_page_size = config.get('min_page_size')
-        if min_page_size is not None and isinstance(min_page_size, int):
-            if min_page_size < 0:
-                errors.append("'min_page_size': must be >= 0")
+        if min_page_size is not None and isinstance(min_page_size, int) and min_page_size < 0:
+            errors.append("'min_page_size': must be >= 0")
 
         # Pagination per_page
         pagination = config.get('pagination', {})

@@ -8,7 +8,7 @@ Validates:
 - Pagination works correctly
 """
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, override
 
 from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult
@@ -32,6 +32,7 @@ class TaxonomyValidator(BaseValidator):
     description = "Validates tags, categories, and generated pages"
     enabled_by_default = True
 
+    @override
     def validate(self, site: 'Site') -> list[CheckResult]:
         """Run taxonomy validation checks."""
         results = []
@@ -175,9 +176,8 @@ class TaxonomyValidator(BaseValidator):
                             issues.append(f"Page {page.source_path.name} in tag '{term_slug}' but tag not in page.tags")
 
                     # For categories, check page.metadata
-                    elif taxonomy_type == 'categories':
-                        if not page.metadata.get('category'):
-                            issues.append(f"Page {page.source_path.name} in category '{term_slug}' but has no category")
+                    elif taxonomy_type == 'categories' and not page.metadata.get('category'):
+                        issues.append(f"Page {page.source_path.name} in category '{term_slug}' but has no category")
 
         if issues:
             results.append(CheckResult.error(

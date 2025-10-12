@@ -363,12 +363,15 @@ class RenderingPipeline:
         # Default based on page type
         page_type = page.metadata.get('type', 'page')
 
-        if page_type == 'page':
-            return 'page.html'
-        elif page_type == 'section' or page.metadata.get('is_section'):
-            return 'list.html'
-        else:
-            return 'single.html'
+        match page_type:
+            case 'page':
+                return 'page.html'
+            case 'section':
+                return 'list.html'
+            case _ if page.metadata.get('is_section'):
+                return 'list.html'
+            case _:
+                return 'single.html'
 
     def _get_parser_version(self) -> str:
         """
@@ -383,20 +386,21 @@ class RenderingPipeline:
         parser_name = type(self.parser).__name__
 
         # Try to get actual version
-        if parser_name == 'MistuneParser':
-            try:
-                import mistune
-                base_version = f"mistune-{mistune.__version__}"
-            except (ImportError, AttributeError):
-                base_version = "mistune-unknown"
-        elif parser_name == 'PythonMarkdownParser':
-            try:
-                import markdown
-                base_version = f"markdown-{markdown.__version__}"
-            except (ImportError, AttributeError):
-                base_version = "markdown-unknown"
-        else:
-            base_version = f"{parser_name}-unknown"
+        match parser_name:
+            case 'MistuneParser':
+                try:
+                    import mistune
+                    base_version = f"mistune-{mistune.__version__}"
+                except (ImportError, AttributeError):
+                    base_version = "mistune-unknown"
+            case 'PythonMarkdownParser':
+                try:
+                    import markdown
+                    base_version = f"markdown-{markdown.__version__}"
+                except (ImportError, AttributeError):
+                    base_version = "markdown-unknown"
+            case _:
+                base_version = f"{parser_name}-unknown"
 
         # Add TOC extraction version to invalidate cache when extraction logic changes
         return f"{base_version}-toc{TOC_EXTRACTION_VERSION}"

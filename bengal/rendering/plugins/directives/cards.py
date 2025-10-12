@@ -138,9 +138,8 @@ class CardsDirective(DirectivePlugin):
         if '-' in columns:
             parts = columns.split('-')
             # Validate each part is a digit 1-6
-            if all(p.isdigit() and 1 <= int(p) <= 6 for p in parts):
-                if len(parts) in (2, 3, 4):
-                    return columns
+            if all(p.isdigit() and 1 <= int(p) <= 6 for p in parts) and len(parts) in (2, 3, 4):
+                return columns
 
         # Default to auto if invalid
         return 'auto'

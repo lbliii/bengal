@@ -254,7 +254,7 @@ def display_template_error(error: TemplateRenderError, use_color: bool = True) -
     """
     # Try to use rich for enhanced display
     try:
-        from bengal.utils.rich_console import get_console, should_use_rich
+        from bengal.utils.rich_console import should_use_rich
         if should_use_rich():
             _display_template_error_rich(error)
             return

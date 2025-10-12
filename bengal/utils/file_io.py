@@ -242,7 +242,7 @@ def load_yaml(
                       note="PyYAML not installed, cannot load YAML files",
                       caller=caller or "file_io")
         if on_error == 'raise':
-            raise ImportError("PyYAML is required to load YAML files")
+            raise ImportError("PyYAML is required to load YAML files") from None
         return {} if on_error == 'return_empty' else None
 
     # Read file content

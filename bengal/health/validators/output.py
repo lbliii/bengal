@@ -4,7 +4,7 @@ Output validator - checks generated pages and assets.
 Migrated from Site._validate_build_health() with improvements.
 """
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, override
 
 from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult
@@ -27,6 +27,7 @@ class OutputValidator(BaseValidator):
     description = "Validates generated pages and assets"
     enabled_by_default = True
 
+    @override
     def validate(self, site: 'Site') -> list[CheckResult]:
         """Run output validation checks."""
         results = []

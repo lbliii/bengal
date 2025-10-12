@@ -125,17 +125,16 @@ class Renderer:
         page_type = page.metadata.get('type')
         is_index_page = page.source_path.stem in ('_index', 'index')
 
-        if hasattr(page, '_section') and page._section:
+        if hasattr(page, '_section') and page._section and (page_type in ('api-reference', 'cli-reference', 'tutorial', 'doc') or is_index_page):
             # Add section context if:
             # 1. It's a reference documentation type (api-reference, cli-reference, tutorial)
             # 2. It's a doc type page (for doc/list.html templates)
             # 3. It's an index page (_index.md or index.md)
-            if page_type in ('api-reference', 'cli-reference', 'tutorial', 'doc') or is_index_page:
-                section = page._section
-                context.update({
-                    'section': section,
-                    'posts': section.pages,
-                    'subsections': section.subsections,
+            section = page._section
+            context.update({
+                'section': section,
+                'posts': section.pages,
+                'subsections': section.subsections,
                 })
 
         # Render with template

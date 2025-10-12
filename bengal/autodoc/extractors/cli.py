@@ -6,7 +6,7 @@ Extracts documentation from command-line applications built with Click, argparse
 
 import inspect
 from pathlib import Path
-from typing import Any
+from typing import Any, override
 
 import click
 
@@ -47,6 +47,7 @@ class CLIExtractor(Extractor):
         if framework not in ('click', 'argparse', 'typer'):
             raise ValueError(f"Unsupported framework: {framework}. Use 'click', 'argparse', or 'typer'")
 
+    @override
     def extract(self, source: Any) -> list[DocElement]:
         """
         Extract documentation from CLI application.
@@ -402,6 +403,7 @@ class CLIExtractor(Extractor):
         """
         raise NotImplementedError("Typer support is planned but not yet implemented")
 
+    @override
     def get_template_dir(self) -> str:
         """
         Get template directory name for CLI documentation.
@@ -411,6 +413,7 @@ class CLIExtractor(Extractor):
         """
         return "cli"
 
+    @override
     def get_output_path(self, element: DocElement) -> Path:
         """
         Determine output path for CLI element.

@@ -8,7 +8,7 @@ Supports multiple parser engines:
 
 import re
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, override
 
 from bengal.utils.logger import get_logger
 
@@ -106,7 +106,6 @@ class PythonMarkdownParser(BaseMarkdownParser):
         """
         try:
             from markdown.extensions import codehilite
-            from pygments.lexers import get_lexer_by_name, guess_lexer
 
             from bengal.rendering.pygments_cache import get_lexer_cached
 
@@ -144,6 +143,7 @@ class PythonMarkdownParser(BaseMarkdownParser):
         self.md.reset()
         return self.md.convert(content)
 
+    @override
     def parse_with_toc(self, content: str, metadata: dict[str, Any]) -> tuple[str, str]:
         """Parse Markdown content and extract table of contents."""
         self.md.reset()
@@ -219,7 +219,7 @@ class MistuneParser(BaseMarkdownParser):
         except ImportError:
             raise ImportError(
                 "mistune is not installed. Install it with: pip install mistune"
-            )
+            ) from None
 
         self.enable_highlighting = enable_highlighting
 
@@ -369,6 +369,7 @@ class MistuneParser(BaseMarkdownParser):
             # Return content wrapped in error message
             return f'<div class="markdown-error"><p><strong>Markdown parsing error:</strong> {e}</p><pre>{content}</pre></div>'
 
+    @override
     def parse_with_toc(self, content: str, metadata: dict[str, Any]) -> tuple[str, str]:
         """
         Parse Markdown content and extract table of contents.

@@ -70,7 +70,7 @@ def clean(force: bool, config: str, source: str) -> None:
 
     except Exception as e:
         show_error(f"Clean failed: {e}", show_art=False)
-        raise click.Abort()
+        raise click.Abort() from e
 
 
 @click.command()
@@ -158,8 +158,8 @@ def cleanup(force: bool, port: int, source: str) -> None:
 
     except ImportError:
         show_error("Cleanup command requires server dependencies", show_art=False)
-        raise click.Abort()
+        raise click.Abort() from None
     except Exception as e:
         show_error(f"Cleanup failed: {e}", show_art=False)
-        raise click.Abort()
+        raise click.Abort() from e
 

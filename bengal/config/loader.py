@@ -19,11 +19,7 @@ def pretty_print_config(config: dict[str, Any], title: str = "Configuration") ->
         title: Title for the output
     """
     try:
-        import json
-
-        from rich.panel import Panel
         from rich.pretty import pprint as rich_pprint
-        from rich.syntax import Syntax
 
         from bengal.utils.rich_console import get_console, should_use_rich
 

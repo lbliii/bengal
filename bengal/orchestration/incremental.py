@@ -279,21 +279,19 @@ class IncrementalOrchestrator:
         # Only rebuild specific tag pages that were affected
         if affected_tags:
             for page in self.site.pages:
-                if page.metadata.get('_generated'):
+                if page.metadata.get('_generated') and (page.metadata.get('type') == 'tag' or page.metadata.get('type') == 'tag-index'):
                     # Rebuild tag pages only for affected tags
-                    if page.metadata.get('type') == 'tag' or page.metadata.get('type') == 'tag-index':
-                        tag_slug = page.metadata.get('_tag_slug')
-                        if tag_slug and tag_slug in affected_tags or page.metadata.get('type') == 'tag-index':
-                            pages_to_rebuild.add(page.source_path)
+                    tag_slug = page.metadata.get('_tag_slug')
+                    if tag_slug and tag_slug in affected_tags or page.metadata.get('type') == 'tag-index':
+                        pages_to_rebuild.add(page.source_path)
 
         # Rebuild archive pages only for affected sections
         if affected_sections:
             for page in self.site.pages:
-                if page.metadata.get('_generated'):
-                    if page.metadata.get('type') == 'archive':
-                        page_section = page.metadata.get('_section')
-                        if page_section and page_section in affected_sections:
-                            pages_to_rebuild.add(page.source_path)
+                if page.metadata.get('_generated') and page.metadata.get('type') == 'archive':
+                    page_section = page.metadata.get('_section')
+                    if page_section and page_section in affected_sections:
+                        pages_to_rebuild.add(page.source_path)
 
         # Convert page paths back to Page objects
         pages_to_build = [

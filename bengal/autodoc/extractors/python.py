@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import ast
 from pathlib import Path
+from typing import override
 
 from bengal.autodoc.base import DocElement, Extractor
 from bengal.autodoc.docstring_parser import parse_docstring
@@ -45,6 +46,7 @@ class PythonExtractor(Extractor):
             "*/__pycache__/*",
         ]
 
+    @override
     def extract(self, source: Path) -> list[DocElement]:
         """
         Extract documentation from Python source.
@@ -398,20 +400,21 @@ class PythonExtractor(Extractor):
         for node in tree.body:
             if isinstance(node, ast.Assign):
                 for target in node.targets:
-                    if isinstance(target, ast.Name) and target.id == '__all__':
+                    if isinstance(target, ast.Name) and target.id == '__all__' and isinstance(node.value, ast.List | ast.Tuple):
                         # Try to extract the list
-                        if isinstance(node.value, ast.List | ast.Tuple):
-                            exports = []
-                            for elt in node.value.elts:
-                                if isinstance(elt, ast.Constant) and isinstance(elt.value, str):
-                                    exports.append(elt.value)
-                            return exports
+                        exports = []
+                        for elt in node.value.elts:
+                            if isinstance(elt, ast.Constant) and isinstance(elt.value, str):
+                                exports.append(elt.value)
+                        return exports
         return None
 
+    @override
     def get_template_dir(self) -> str:
         """Get template directory name."""
         return "python"
 
+    @override
     def get_output_path(self, element: DocElement) -> Path:
         """
         Get output path for element.

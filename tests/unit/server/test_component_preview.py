@@ -308,7 +308,7 @@ def test_render_component_error_handling(tmp_path: Path):
     cps = ComponentPreviewServer(site)
 
     # Try to render non-existent template
-    with pytest.raises(Exception):
+    with pytest.raises((FileNotFoundError, LookupError)):
         cps.render_component("nonexistent.html", {})
 
 

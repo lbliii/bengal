@@ -38,7 +38,7 @@ class BengalGroup(click.Group):
                     for _i, suggestion in enumerate(suggestions, 1):
                         msg += f"  • {click.style(suggestion, fg='cyan', bold=True)}\n"
                     msg += f"\nRun '{click.style('bengal --help', fg='yellow')}' to see all commands."
-                    raise click.exceptions.UsageError(msg)
+                    raise click.exceptions.UsageError(msg) from e
 
             # Re-raise original error if no suggestions
             raise

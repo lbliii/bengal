@@ -4,7 +4,7 @@ Menu validator - checks navigation menu integrity.
 Integrates menu validation from MenuBuilder into health check system.
 """
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, override
 
 from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult
@@ -28,6 +28,7 @@ class MenuValidator(BaseValidator):
     description = "Validates menu structure and links"
     enabled_by_default = True
 
+    @override
     def validate(self, site: 'Site') -> list[CheckResult]:
         """Validate menu structure."""
         results = []

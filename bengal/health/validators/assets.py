@@ -12,7 +12,7 @@ Validates:
 import itertools
 from collections import defaultdict
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, override
 
 from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult
@@ -42,6 +42,7 @@ class AssetValidator(BaseValidator):
     LARGE_JS_KB = 500
     LARGE_IMAGE_KB = 1000
 
+    @override
     def validate(self, site: 'Site') -> list[CheckResult]:
         """Run asset validation checks."""
         results = []

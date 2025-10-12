@@ -50,8 +50,6 @@ def graph(show_stats: bool, tree: bool, output: str, config: str, source: str) -
         # We need to discover content to analyze it
         # This also builds the xref_index for link analysis
         try:
-            from rich.status import Status
-
             from bengal.utils.rich_console import get_console, should_use_rich
 
             if should_use_rich():
@@ -192,7 +190,7 @@ def graph(show_stats: bool, tree: bool, output: str, config: str, source: str) -
 
     except Exception as e:
         click.echo(click.style(f"❌ Error: {e}", fg='red', bold=True))
-        raise click.Abort()
+        raise click.Abort() from e
     finally:
         close_all_loggers()
 
@@ -249,8 +247,6 @@ def pagerank(top_n: int, damping: float, format: str, config: str, source: str) 
 
         # Discover content and compute PageRank with status indicator
         try:
-            from rich.status import Status
-
             from bengal.utils.rich_console import get_console, should_use_rich
 
             if should_use_rich():
@@ -383,7 +379,7 @@ def pagerank(top_n: int, damping: float, format: str, config: str, source: str) 
         click.echo(click.style(f"❌ Error: {e}", fg='red', bold=True))
         if '--debug' in click.get_current_context().args:
             raise
-        raise click.Abort()
+        raise click.Abort() from e
     finally:
         close_all_loggers()
 
@@ -580,7 +576,7 @@ def communities(min_size: int, resolution: float, top_n: int, format: str, seed:
 
     except Exception as e:
         click.echo(click.style(f"❌ Error: {e}", fg='red', bold=True))
-        raise click.Abort()
+        raise click.Abort() from e
     finally:
         close_all_loggers()
 
@@ -784,7 +780,7 @@ def bridges(top_n: int, metric: str, format: str, config: str, source: str) -> N
 
     except Exception as e:
         click.echo(click.style(f"❌ Error: {e}", fg='red', bold=True))
-        raise click.Abort()
+        raise click.Abort() from e
     finally:
         close_all_loggers()
 
@@ -927,7 +923,7 @@ def suggest(top_n: int, min_score: float, format: str, config: str, source: str)
 
     except Exception as e:
         click.echo(click.style(f"❌ Error: {e}", fg='red', bold=True))
-        raise click.Abort()
+        raise click.Abort() from e
     finally:
         close_all_loggers()
 

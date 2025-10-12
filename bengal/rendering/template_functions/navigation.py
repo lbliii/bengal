@@ -122,11 +122,7 @@ def get_breadcrumbs(page: 'Page') -> list[dict[str, Any]]:
         is_current_item = is_last and is_section_index
 
         # Get ancestor URL
-        if hasattr(ancestor, 'url'):
-            url = ancestor.url
-        else:
-            # Fallback to slug-based URL
-            url = f"/{getattr(ancestor, 'slug', '')}/"
+        url = ancestor.url if hasattr(ancestor, 'url') else f"/{getattr(ancestor, 'slug', '')}/"
 
         items.append({
             'title': getattr(ancestor, 'title', 'Untitled'),
@@ -544,9 +540,8 @@ def get_nav_tree(
                 p_url = getattr(p, 'url', '')
 
                 # Skip index page (already added above)
-                if hasattr(section, 'index_page') and section.index_page:
-                    if p_url == getattr(section.index_page, 'url', ''):
-                        continue
+                if hasattr(section, 'index_page') and section.index_page and p_url == getattr(section.index_page, 'url', ''):
+                    continue
 
                 items.append({
                     'title': getattr(p, 'title', 'Untitled'),

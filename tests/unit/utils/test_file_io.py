@@ -191,7 +191,7 @@ class TestLoadYaml:
         file_path = tmp_path / "invalid.yaml"
         file_path.write_text('key: [invalid')
 
-        with pytest.raises(Exception):  # yaml.YAMLError
+        with pytest.raises((ValueError, OSError)):  # yaml.YAMLError
             load_yaml(file_path, on_error='raise')
 
     def test_invalid_yaml_return_empty(self, tmp_path):
@@ -257,7 +257,7 @@ class TestLoadToml:
         file_path = tmp_path / "invalid.toml"
         file_path.write_text('[invalid')
 
-        with pytest.raises(Exception):  # toml.TomlDecodeError
+        with pytest.raises((ValueError, OSError)):  # toml.TomlDecodeError
             load_toml(file_path, on_error='raise')
 
     def test_invalid_toml_return_empty(self, tmp_path):

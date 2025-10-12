@@ -10,7 +10,7 @@ Validates:
 """
 
 import xml.etree.ElementTree as ET
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, override
 
 from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult
@@ -35,6 +35,7 @@ class RSSValidator(BaseValidator):
     description = "Validates RSS feed quality and completeness"
     enabled_by_default = True
 
+    @override
     def validate(self, site: 'Site') -> list[CheckResult]:
         """Run RSS validation checks."""
         results = []

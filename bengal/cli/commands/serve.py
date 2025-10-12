@@ -70,5 +70,5 @@ def serve(host: str, port: int, watch: bool, auto_port: bool, open_browser: bool
 
     except Exception as e:
         show_error(f"Server failed: {e}", show_art=True)
-        raise click.Abort()
+        raise click.Abort() from e
 

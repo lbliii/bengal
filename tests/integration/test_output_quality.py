@@ -220,7 +220,7 @@ title = "Test Site"
         site = Site.from_config(site_dir)
         site.config["strict_mode"] = True
 
-        with pytest.raises(Exception):
+        with pytest.raises((RuntimeError, ValueError)):
             site.build()
 
     def test_non_strict_mode_allows_fallback(self, tmp_path):

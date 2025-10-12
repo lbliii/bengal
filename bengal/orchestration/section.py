@@ -138,20 +138,17 @@ class SectionOrchestrator:
         # 3. Convention: section name patterns
         name = section.name.lower()
 
-        if name in ('api', 'reference', 'api-reference', 'api-docs'):
-            return 'api-reference'
+        match name:
+            case 'api' | 'reference' | 'api-reference' | 'api-docs':
+                return 'api-reference'
+            case 'cli' | 'commands' | 'cli-reference' | 'command-line':
+                return 'cli-reference'
+            case 'tutorials' | 'guides' | 'how-to':
+                return 'tutorial'
+            case 'blog' | 'posts' | 'news' | 'articles':  # Blog/news sections (chronological)
+                return 'archive'
 
-        if name in ('cli', 'commands', 'cli-reference', 'command-line'):
-            return 'cli-reference'
-
-        if name in ('tutorials', 'guides', 'how-to'):
-            return 'tutorial'
-
-        # Blog/news sections (chronological)
-        if name in ('blog', 'posts', 'news', 'articles'):
-            return 'archive'
-
-        # 3. Content analysis: check page metadata
+        # 4. Content analysis: check page metadata
         if section.pages:
             # Sample first few pages to detect type
             pages_with_dates = 0

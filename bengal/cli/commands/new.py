@@ -97,7 +97,7 @@ This is your new Bengal static site. Start editing this file to begin!
 
     except Exception as e:
         show_error(f"Failed to create site: {e}", show_art=False)
-        raise click.Abort()
+        raise click.Abort() from e
 
 
 @new.command()
@@ -148,5 +148,5 @@ Your content goes here.
 
     except Exception as e:
         show_error(f"Failed to create page: {e}", show_art=False)
-        raise click.Abort()
+        raise click.Abort() from e
 

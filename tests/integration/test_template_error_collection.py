@@ -187,7 +187,7 @@ Content
         orchestrator = BuildOrchestrator(site)
 
         # Should raise exception in strict mode
-        with pytest.raises(Exception):
+        with pytest.raises((RuntimeError, ValueError)):
             orchestrator.build(parallel=False, verbose=False)
 
     def test_error_contains_rich_information(self, temp_site):

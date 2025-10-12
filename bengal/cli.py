@@ -45,7 +45,7 @@ class BengalGroup(click.Group):
                     for _i, suggestion in enumerate(suggestions, 1):
                         msg += f"  • {click.style(suggestion, fg='cyan', bold=True)}\n"
                     msg += f"\nRun '{click.style('bengal --help', fg='yellow')}' to see all commands."
-                    raise click.exceptions.UsageError(msg)
+                    raise click.exceptions.UsageError(msg) from e
 
             # Re-raise original error if no suggestions
             raise
@@ -479,7 +479,7 @@ def build(parallel: bool, incremental: bool, memory_optimized: bool, profile: st
         show_error(f"Build failed: {e}", show_art=True)
         if debug:
             raise
-        raise click.Abort()
+        raise click.Abort() from e
     finally:
         # Always close log file handles
         close_all_loggers()
@@ -527,8 +527,6 @@ def graph(show_stats: bool, tree: bool, output: str, config: str, source: str) -
         # We need to discover content to analyze it
         # This also builds the xref_index for link analysis
         try:
-            from rich.status import Status
-
             from bengal.utils.rich_console import get_console, should_use_rich
 
             if should_use_rich():
@@ -669,7 +667,7 @@ def graph(show_stats: bool, tree: bool, output: str, config: str, source: str) -
 
     except Exception as e:
         click.echo(click.style(f"❌ Error: {e}", fg='red', bold=True))
-        raise click.Abort()
+        raise click.Abort() from e
     finally:
         close_all_loggers()
 
@@ -729,8 +727,6 @@ def pagerank(top_n: int, damping: float, format: str, config: str, source: str) 
 
         # Discover content and compute PageRank with status indicator
         try:
-            from rich.status import Status
-
             from bengal.utils.rich_console import get_console, should_use_rich
 
             if should_use_rich():
@@ -863,7 +859,7 @@ def pagerank(top_n: int, damping: float, format: str, config: str, source: str) 
         click.echo(click.style(f"❌ Error: {e}", fg='red', bold=True))
         if '--debug' in click.get_current_context().args:
             raise
-        raise click.Abort()
+        raise click.Abort() from e
     finally:
         close_all_loggers()
 
@@ -1063,7 +1059,7 @@ def communities(min_size: int, resolution: float, top_n: int, format: str, seed:
 
     except Exception as e:
         click.echo(click.style(f"❌ Error: {e}", fg='red', bold=True))
-        raise click.Abort()
+        raise click.Abort() from e
     finally:
         close_all_loggers()
 
@@ -1270,7 +1266,7 @@ def bridges(top_n: int, metric: str, format: str, config: str, source: str) -> N
 
     except Exception as e:
         click.echo(click.style(f"❌ Error: {e}", fg='red', bold=True))
-        raise click.Abort()
+        raise click.Abort() from e
     finally:
         close_all_loggers()
 
@@ -1416,7 +1412,7 @@ def suggest(top_n: int, min_score: float, format: str, config: str, source: str)
 
     except Exception as e:
         click.echo(click.style(f"❌ Error: {e}", fg='red', bold=True))
-        raise click.Abort()
+        raise click.Abort() from e
     finally:
         close_all_loggers()
 
@@ -1454,7 +1450,7 @@ def serve(host: str, port: int, watch: bool, auto_port: bool, open_browser: bool
 
     except Exception as e:
         show_error(f"Server failed: {e}", show_art=True)
-        raise click.Abort()
+        raise click.Abort() from e
 
 
 @main.group()
@@ -1546,7 +1542,7 @@ This is your new Bengal static site. Start editing this file to begin!
 
     except Exception as e:
         show_error(f"Failed to create site: {e}", show_art=False)
-        raise click.Abort()
+        raise click.Abort() from e
 
 
 @new.command()
@@ -1597,7 +1593,7 @@ Your content goes here.
 
     except Exception as e:
         show_error(f"Failed to create page: {e}", show_art=False)
-        raise click.Abort()
+        raise click.Abort() from e
 
 
 @main.command()
@@ -1693,14 +1689,14 @@ def autodoc(source: tuple, output: str, clean: bool, parallel: bool, verbose: bo
     except KeyboardInterrupt:
         click.echo()
         click.echo(click.style("⚠️  Cancelled by user", fg='yellow'))
-        raise click.Abort()
+        raise click.Abort() from None
     except Exception as e:
         click.echo()
         click.echo(click.style(f"❌ Error: {e}", fg='red', bold=True))
         if verbose:
             import traceback
             traceback.print_exc()
-        raise click.Abort()
+        raise click.Abort() from e
 
 
 def _generate_python_docs(source: tuple, output: str, clean: bool, parallel: bool, verbose: bool, stats: bool, python_config: dict) -> None:
@@ -1822,7 +1818,7 @@ def _generate_cli_docs(app: str, framework: str, output: str, include_hidden: bo
         click.echo(f"  • Module: {app.split(':')[0]}")
         click.echo(f"  • Attribute: {app.split(':')[1] if ':' in app else '(missing)'}")
         click.echo()
-        raise click.Abort()
+        raise click.Abort() from e
 
     # Extract documentation
     click.echo(click.style("📝 Extracting CLI documentation...", fg='blue'))
@@ -1962,7 +1958,7 @@ def autodoc_cli(app: str, framework: str, output: str, include_hidden: bool, cle
             click.echo(f"  • Module: {app.split(':')[0]}")
             click.echo(f"  • Attribute: {app.split(':')[1] if ':' in app else '(missing)'}")
             click.echo()
-            raise click.Abort()
+            raise click.Abort() from e
 
         # Extract documentation
         click.echo(click.style("📝 Extracting CLI documentation...", fg='blue'))
@@ -2042,7 +2038,7 @@ def autodoc_cli(app: str, framework: str, output: str, include_hidden: bool, cle
             import traceback
             click.echo()
             click.echo(traceback.format_exc())
-        raise click.Abort()
+        raise click.Abort() from e
 
 
 # Register commands from new modular structure

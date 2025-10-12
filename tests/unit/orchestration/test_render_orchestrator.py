@@ -37,14 +37,16 @@ class TestParallelThreshold:
             Page(source_path=Path("/fake/site/content/page1.md"), content="", metadata={})
         ]
 
-        with patch.object(orchestrator, '_render_sequential') as mock_seq:
-            with patch.object(orchestrator, '_render_parallel') as mock_par:
-                with patch.object(orchestrator, '_set_output_paths_for_pages'):
-                    orchestrator.process(pages, parallel=True)
+        with (
+            patch.object(orchestrator, '_render_sequential') as mock_seq,
+            patch.object(orchestrator, '_render_parallel') as mock_par,
+            patch.object(orchestrator, '_set_output_paths_for_pages')
+        ):
+            orchestrator.process(pages, parallel=True)
 
-                # Should use sequential
-                mock_seq.assert_called_once()
-                mock_par.assert_not_called()
+            # Should use sequential
+            mock_seq.assert_called_once()
+            mock_par.assert_not_called()
 
     def test_sequential_for_few_pages(self, orchestrator, mock_site):
         """Test that 2-4 pages use sequential rendering (below threshold)."""
@@ -53,14 +55,16 @@ class TestParallelThreshold:
             for i in range(4)
         ]
 
-        with patch.object(orchestrator, '_render_sequential') as mock_seq:
-            with patch.object(orchestrator, '_render_parallel') as mock_par:
-                with patch.object(orchestrator, '_set_output_paths_for_pages'):
-                    orchestrator.process(pages, parallel=True)
+        with (
+            patch.object(orchestrator, '_render_sequential') as mock_seq,
+            patch.object(orchestrator, '_render_parallel') as mock_par,
+            patch.object(orchestrator, '_set_output_paths_for_pages')
+        ):
+            orchestrator.process(pages, parallel=True)
 
-                # Should use sequential (below threshold of 5)
-                mock_seq.assert_called_once()
-                mock_par.assert_not_called()
+            # Should use sequential (below threshold of 5)
+            mock_seq.assert_called_once()
+            mock_par.assert_not_called()
 
     def test_parallel_for_many_pages(self, orchestrator, mock_site):
         """Test that 5+ pages use parallel rendering (meets threshold)."""
@@ -69,14 +73,16 @@ class TestParallelThreshold:
             for i in range(5)
         ]
 
-        with patch.object(orchestrator, '_render_sequential') as mock_seq:
-            with patch.object(orchestrator, '_render_parallel') as mock_par:
-                with patch.object(orchestrator, '_set_output_paths_for_pages'):
-                    orchestrator.process(pages, parallel=True)
+        with (
+            patch.object(orchestrator, '_render_sequential') as mock_seq,
+            patch.object(orchestrator, '_render_parallel') as mock_par,
+            patch.object(orchestrator, '_set_output_paths_for_pages')
+        ):
+            orchestrator.process(pages, parallel=True)
 
-                # Should use parallel (meets threshold of 5)
-                mock_par.assert_called_once()
-                mock_seq.assert_not_called()
+            # Should use parallel (meets threshold of 5)
+            mock_par.assert_called_once()
+            mock_seq.assert_not_called()
 
     def test_parallel_disabled(self, orchestrator, mock_site):
         """Test that parallel=False always uses sequential."""
@@ -85,14 +91,16 @@ class TestParallelThreshold:
             for i in range(10)
         ]
 
-        with patch.object(orchestrator, '_render_sequential') as mock_seq:
-            with patch.object(orchestrator, '_render_parallel') as mock_par:
-                with patch.object(orchestrator, '_set_output_paths_for_pages'):
-                    orchestrator.process(pages, parallel=False)
+        with (
+            patch.object(orchestrator, '_render_sequential') as mock_seq,
+            patch.object(orchestrator, '_render_parallel') as mock_par,
+            patch.object(orchestrator, '_set_output_paths_for_pages')
+        ):
+            orchestrator.process(pages, parallel=False)
 
-                # Should use sequential even with many pages
-                mock_seq.assert_called_once()
-                mock_par.assert_not_called()
+            # Should use sequential even with many pages
+            mock_seq.assert_called_once()
+            mock_par.assert_not_called()
 
 
 class TestOutputPathOptimization:

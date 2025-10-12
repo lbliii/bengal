@@ -57,10 +57,9 @@ class MenuOrchestrator:
         Called during site.build() after content discovery.
         """
         # Check if we can skip menu rebuild
-        if not config_changed and changed_pages is not None:
-            if self._can_skip_rebuild(changed_pages):
-                logger.debug("menu_rebuild_skipped", reason="cache_valid")
-                return False
+        if not config_changed and changed_pages is not None and self._can_skip_rebuild(changed_pages):
+            logger.debug("menu_rebuild_skipped", reason="cache_valid")
+            return False
 
         # Full menu rebuild needed
         return self._build_full()
@@ -85,11 +84,9 @@ class MenuOrchestrator:
 
         # Check if any changed pages have menu frontmatter
         for page in self.site.pages:
-            if page.source_path in changed_pages:
-                # Check if this page has menu frontmatter
-                if 'menu' in page.metadata:
-                    # Menu-related page changed - need rebuild
-                    return False
+            if page.source_path in changed_pages and 'menu' in page.metadata:
+                # Menu-related page changed - need rebuild
+                return False
 
         # Compute cache key based on menu config and pages with menu frontmatter
         current_key = self._compute_menu_cache_key()

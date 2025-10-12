@@ -8,7 +8,7 @@ Validates:
 - No broken navigation references
 """
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, override
 
 from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult
@@ -32,6 +32,7 @@ class NavigationValidator(BaseValidator):
     description = "Validates page navigation (next/prev, breadcrumbs, sections)"
     enabled_by_default = True
 
+    @override
     def validate(self, site: 'Site') -> list[CheckResult]:
         """Run navigation validation checks."""
         results = []

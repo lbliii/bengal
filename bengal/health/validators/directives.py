@@ -12,7 +12,7 @@ Validates:
 import re
 from collections import defaultdict
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, override
 
 from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult
@@ -49,6 +49,7 @@ class DirectiveValidator(BaseValidator):
     MAX_NESTING_DEPTH = 5  # Warn if nesting deeper than this
     MAX_TABS_PER_BLOCK = 10  # Warn if single tabs block has more than this
 
+    @override
     def validate(self, site: 'Site') -> list[CheckResult]:
         """Run directive validation checks."""
         results = []

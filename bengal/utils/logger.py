@@ -142,10 +142,10 @@ class BengalLogger:
         self._phase_stack: list[tuple[str, float, dict[str, Any]]] = []
         self._events: list[LogEvent] = []
 
-        # File handle
+        # File handle - properly closed in close() method
         self._file_handle: TextIO | None = None
         if log_file:
-            self._file_handle = open(log_file, 'w', encoding='utf-8')
+            self._file_handle = open(log_file, 'w', encoding='utf-8')  # noqa: SIM115
 
     @contextmanager
     def phase(self, name: str, **context):

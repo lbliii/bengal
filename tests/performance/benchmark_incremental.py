@@ -200,7 +200,7 @@ def run_incremental_benchmarks():
             # Run full build first (creates cache)
             print("Running full build...")
             full_build_times = []
-            for run in range(3):
+            for _run in range(3):
                 full_time = benchmark_full_build(site_dir)
                 full_build_times.append(full_time)
 
@@ -241,7 +241,7 @@ def run_incremental_benchmarks():
             # Test asset change
             print("\nTesting incremental build (single asset change)...")
             asset_times = []
-            for run in range(3):
+            for _run in range(3):
                 asset_time = benchmark_incremental_build(site_dir, change_type='asset')
                 asset_times.append(asset_time)
 

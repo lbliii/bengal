@@ -7,6 +7,7 @@ Provides beautiful logging, custom 404 pages, and live reload support.
 import http.server
 import re
 from pathlib import Path
+from typing import override
 
 from bengal.server.component_preview import ComponentPreviewServer
 from bengal.server.live_reload import LIVE_RELOAD_SCRIPT, LiveReloadMixin
@@ -30,14 +31,15 @@ class BengalRequestHandler(RequestLogger, LiveReloadMixin, http.server.SimpleHTT
     server_version = "Bengal/1.0"
     sys_version = ""
 
+    @override
     def handle(self) -> None:
         """Override handle to suppress BrokenPipeError tracebacks."""
-        try:
-            super().handle()
-        except (BrokenPipeError, ConnectionResetError):
+        import contextlib
+        with contextlib.suppress(BrokenPipeError, ConnectionResetError):
             # Client disconnected - don't print traceback
-            pass
+            super().handle()
 
+    @override
     def do_GET(self) -> None:
         """
         Override GET to support SSE and safe HTML injection via mixin.
@@ -134,11 +136,8 @@ class BengalRequestHandler(RequestLogger, LiveReloadMixin, http.server.SimpleHTT
             'txt', 'md', 'csv',
         }
 
-        if extension in non_html_extensions:
-            return False
-
         # Might be HTML (including .html, .htm, or unknown extensions)
-        return True
+        return extension not in non_html_extensions
 
     def _is_html_response(self, response_data: bytes) -> bool:
         """
@@ -166,10 +165,8 @@ class BengalRequestHandler(RequestLogger, LiveReloadMixin, http.server.SimpleHTT
             for line in headers.split('\r\n'):
                 if line.lower().startswith('content-type:'):
                     content_type = line.split(':', 1)[1].strip().lower()
-                    if 'text/html' in content_type:
-                        return True
-                    # If Content-Type is present but not HTML, trust it
-                    return False
+                    # If Content-Type is present, trust it
+                    return 'text/html' in content_type
 
             # No Content-Type header - check body for HTML markers (fallback)
             body_lower = body.lower()

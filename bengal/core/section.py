@@ -210,12 +210,8 @@ class Section:
 
         # Otherwise, construct from section hierarchy
         # This handles the case before pages have output_paths set
-        if self.parent:
-            # Nested section - include parent URL
-            url = f"{self.parent.url}{self.name}/"
-        else:
-            # Top-level section (no parent)
-            url = f"/{self.name}/"
+        # Nested section includes parent URL, top-level section starts with /
+        url = f"{self.parent.url}{self.name}/" if self.parent else f"/{self.name}/"
 
         logger.debug(
             "section_url_constructed",

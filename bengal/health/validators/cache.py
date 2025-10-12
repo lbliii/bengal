@@ -10,7 +10,7 @@ Validates:
 
 import json
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, override
 
 from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult
@@ -39,6 +39,7 @@ class CacheValidator(BaseValidator):
     description = "Validates incremental build cache"
     enabled_by_default = True
 
+    @override
     def validate(self, site: 'Site') -> list[CheckResult]:
         """Run cache validation checks."""
         results = []

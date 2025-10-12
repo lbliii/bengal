@@ -4,7 +4,7 @@ Link validator wrapper.
 Integrates the existing LinkValidator into the health check system.
 """
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, override
 
 from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult
@@ -25,6 +25,7 @@ class LinkValidatorWrapper(BaseValidator):
     description = "Validates internal and external links"
     enabled_by_default = True
 
+    @override
     def validate(self, site: 'Site') -> list[CheckResult]:
         """Validate links in generated pages."""
         results = []

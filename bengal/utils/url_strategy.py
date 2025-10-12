@@ -78,10 +78,9 @@ class URLStrategy:
         # Apply i18n URL strategy (prefix)
         if strategy == 'prefix':
             lang: str | None = getattr(page, 'lang', None)
-            if lang:
-                # If default language should be under subdir or non-default language: prefix
-                if default_in_subdir or lang != default_lang:
-                    output_rel_path = Path(lang) / output_rel_path
+            # If default language should be under subdir or non-default language: prefix
+            if lang and (default_in_subdir or lang != default_lang):
+                output_rel_path = Path(lang) / output_rel_path
         # strategy 'domain' or 'none' → no path prefixing here
         return site.output_dir / output_rel_path
 
@@ -213,7 +212,7 @@ class URLStrategy:
         except ValueError:
             raise ValueError(
                 f"Output path {output_path} is not under output directory {site.output_dir}"
-            )
+            ) from None
 
         # Convert to URL parts
         url_parts = list(rel_path.parts)

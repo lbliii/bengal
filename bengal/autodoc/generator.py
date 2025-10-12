@@ -306,7 +306,7 @@ class DocumentationGenerator:
                 raise TemplateNotFound(
                     f"Template not found: {template_name} or {alt_name}. "
                     f"Create template in templates/autodoc/{self.extractor.get_template_dir()}/"
-                )
+                ) from None
 
     def _render_template(self, template_name: str, element: DocElement) -> str:
         """Render template with element data."""

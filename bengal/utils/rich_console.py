@@ -70,12 +70,9 @@ def should_use_rich() -> bool:
         return False
 
     # Disable if no terminal
-    if not console.is_terminal:
-        return False
-
     # Allow if terminal exists, even if TERM=dumb
     # Rich handles this gracefully with simpler output
-    return True
+    return console.is_terminal
 
 
 def detect_environment() -> dict:

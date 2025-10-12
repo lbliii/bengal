@@ -105,7 +105,7 @@ class RenderOrchestrator:
 
         # Try to use rich progress if available
         try:
-            from bengal.utils.rich_console import get_console, should_use_rich
+            from bengal.utils.rich_console import should_use_rich
             use_rich = should_use_rich() and not quiet and len(pages) > 5
         except ImportError:
             use_rich = False
@@ -172,7 +172,7 @@ class RenderOrchestrator:
 
         # Try to use rich progress if available
         try:
-            from bengal.utils.rich_console import get_console, should_use_rich
+            from bengal.utils.rich_console import should_use_rich
             use_rich = should_use_rich() and not quiet and len(pages) > 5
         except ImportError:
             use_rich = False

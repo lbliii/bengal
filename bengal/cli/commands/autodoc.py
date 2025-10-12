@@ -103,14 +103,14 @@ def autodoc(source: tuple, output: str, clean: bool, parallel: bool, verbose: bo
     except KeyboardInterrupt:
         click.echo()
         click.echo(click.style("⚠️  Cancelled by user", fg='yellow'))
-        raise click.Abort()
+        raise click.Abort() from None
     except Exception as e:
         click.echo()
         click.echo(click.style(f"❌ Error: {e}", fg='red', bold=True))
         if verbose:
             import traceback
             traceback.print_exc()
-        raise click.Abort()
+        raise click.Abort() from e
 
 
 def _generate_python_docs(source: tuple, output: str, clean: bool, parallel: bool, verbose: bool, stats: bool, python_config: dict) -> None:
@@ -232,7 +232,7 @@ def _generate_cli_docs(app: str, framework: str, output: str, include_hidden: bo
         click.echo(f"  • Module: {app.split(':')[0]}")
         click.echo(f"  • Attribute: {app.split(':')[1] if ':' in app else '(missing)'}")
         click.echo()
-        raise click.Abort()
+        raise click.Abort() from e
 
     # Extract documentation
     click.echo(click.style("📝 Extracting CLI documentation...", fg='blue'))
@@ -372,7 +372,7 @@ def autodoc_cli(app: str, framework: str, output: str, include_hidden: bool, cle
             click.echo(f"  • Module: {app.split(':')[0]}")
             click.echo(f"  • Attribute: {app.split(':')[1] if ':' in app else '(missing)'}")
             click.echo()
-            raise click.Abort()
+            raise click.Abort() from e
 
         # Extract documentation
         click.echo(click.style("📝 Extracting CLI documentation...", fg='blue'))
@@ -452,5 +452,5 @@ def autodoc_cli(app: str, framework: str, output: str, include_hidden: bool, cle
             import traceback
             click.echo()
             click.echo(traceback.format_exc())
-        raise click.Abort()
+        raise click.Abort() from e
 
