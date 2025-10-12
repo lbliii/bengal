@@ -381,9 +381,7 @@ def render_data_table(renderer: Any, text: str, **attrs: Any) -> str:
 
     # Initialization script
     html_parts.append(
-        f'  <script type="application/json" data-table-config="{table_id}">'
-        f"{config_json}"
-        f"  </script>"
+        f'  <script type="application/json" data-table-config="{table_id}">{config_json}  </script>'
     )
 
     html_parts.append("</div>")
