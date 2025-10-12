@@ -231,4 +231,3 @@ Based on phase breakdown, future optimization targets:
 ---
 
 **Conclusion:** Bengal SSG is **fast and scales well**. Our optimizations improved the development experience significantly, with no regressions to production builds. Ready for real-world use! 🚀
-

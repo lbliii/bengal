@@ -19,14 +19,14 @@ graph TB
         CLI[CLI<br/>bengal/cli/]
         Server[Dev Server<br/>bengal/server/]
     end
-    
+
     subgraph "Core Build Pipeline"
         Discovery[Discovery<br/>bengal/discovery/]
         Orchestration[Orchestration<br/>bengal/orchestration/]
         Rendering[Rendering<br/>bengal/rendering/]
         PostProcess[Post-Processing<br/>bengal/postprocess/]
     end
-    
+
     subgraph "Object Model"
         Site[Site<br/>bengal/core/site.py]
         Pages[Pages<br/>bengal/core/page/]
@@ -34,7 +34,7 @@ graph TB
         Assets[Assets<br/>bengal/core/asset.py]
         Menus[Menus<br/>bengal/core/menu.py]
     end
-    
+
     subgraph "Supporting Systems"
         Cache[Build Cache<br/>bengal/cache/]
         Health[Health Checks<br/>bengal/health/]
@@ -43,7 +43,7 @@ graph TB
         Analysis[Analysis<br/>bengal/analysis/]
         Fonts[Fonts<br/>bengal/fonts/]
     end
-    
+
     CLI --> Site
     Server --> Site
     Site --> Discovery
@@ -61,7 +61,7 @@ graph TB
     Config -.->|"configuration"| Site
     Analysis -.->|"analyzes"| Site
     Fonts -.->|"downloads/generates"| Assets
-    
+
     style Site fill:#ff9999
     style CLI fill:#9999ff
     style Server fill:#9999ff
@@ -200,12 +200,12 @@ graph TB
   {% if page.prev %}
     <a href="{{ url_for(page.prev) }}">← {{ page.prev.title }}</a>
   {% endif %}
-  
+
   {# Breadcrumbs #}
   {% for ancestor in page.ancestors | reverse %}
     <a href="{{ url_for(ancestor) }}">{{ ancestor.title }}</a> /
   {% endfor %}
-  
+
   {# Section pages #}
   {% if page.is_section %}
     {% for child in page.regular_pages %}
@@ -251,7 +251,7 @@ classDiagram
     Page --> Page : next_in_section/prev_in_section
     Page --> Section : parent
     MenuItem --> MenuItem : children (nested)
-    
+
     class Site {
         +root_path: Path
         +config: Dict
@@ -267,7 +267,7 @@ classDiagram
         +discover_content()
         +discover_assets()
     }
-    
+
     class Page {
         +source_path: Path
         +content: str
@@ -284,7 +284,7 @@ classDiagram
         +ancestors: List~Section~
         +render()
     }
-    
+
     class Section {
         +name: str
         +path: Path
@@ -296,7 +296,7 @@ classDiagram
         +add_page()
         +add_subsection()
     }
-    
+
     class Asset {
         +source_path: Path
         +output_path: Path
@@ -308,14 +308,14 @@ classDiagram
         +optimize()
         +copy_to_output()
     }
-    
+
     class MenuBuilder {
         +items: List~MenuItem~
         +add_from_config()
         +add_from_page()
         +build_hierarchy()
     }
-    
+
     class MenuItem {
         +name: str
         +url: str
@@ -385,31 +385,31 @@ pages_for_tag = [current_page_map[path] for path in cache.get_pages_for_tag('pyt
 flowchart TD
     Start[Start Build] --> LoadCache[Load .bengal-cache.json]
     LoadCache --> CheckConfig{Config<br/>changed?}
-    
+
     CheckConfig -->|Yes| FullRebuild[Full Rebuild]
     CheckConfig -->|No| CheckFiles[Compare SHA256 Hashes]
-    
+
     CheckFiles --> Changed[Identify Changed Files]
     Changed --> DepGraph[Query Dependency Graph]
-    
+
     DepGraph --> Affected{Find Affected Pages}
     Affected --> Templates[Templates changed?]
     Affected --> Content[Content changed?]
     Affected --> Assets[Assets changed?]
-    
+
     Templates -->|Yes| AffectedPages[Rebuild pages<br/>using template]
     Content -->|Yes| ContentPages[Rebuild<br/>changed pages]
     Assets -->|Yes| AssetPages[Process<br/>changed assets]
-    
+
     AffectedPages --> TrackDeps[Track New Dependencies]
     ContentPages --> TrackDeps
     AssetPages --> TrackDeps
     FullRebuild --> TrackDeps
-    
+
     TrackDeps --> UpdateCache[Update Cache<br/>with new hashes]
     UpdateCache --> SaveCache[Save .bengal-cache.json]
     SaveCache --> Done[Build Complete]
-    
+
     style CheckConfig fill:#fff3e0
     style Affected fill:#fff3e0
     style FullRebuild fill:#ffebee
@@ -468,14 +468,14 @@ sequenceDiagram
     participant AssetOrch as AssetOrchestrator
     participant PostprocessOrch as PostprocessOrchestrator
     participant Cache
-    
+
     Note over CLI,Cache: Phase 0: Initialization
     CLI->>Site: build(parallel, incremental)
     Site->>BuildOrch: BuildOrchestrator.build()
     BuildOrch->>IncrementalOrch: initialize(incremental)
     IncrementalOrch->>Cache: load cache
     IncrementalOrch-->>BuildOrch: cache, tracker
-    
+
     Note over BuildOrch,Cache: Phase 1: Content Discovery
     BuildOrch->>ContentOrch: discover()
     ContentOrch->>ContentOrch: discover_content()
@@ -484,11 +484,11 @@ sequenceDiagram
     ContentOrch->>ContentOrch: apply_cascades()
     ContentOrch->>ContentOrch: build_xref_index()
     ContentOrch-->>BuildOrch: content ready
-    
+
     Note over BuildOrch,Cache: Phase 2: Section Finalization
     BuildOrch->>BuildOrch: finalize_sections()
     BuildOrch->>BuildOrch: validate_sections()
-    
+
     Note over BuildOrch,TaxonomyOrch: Phase 3: Taxonomies & Dynamic Pages
     BuildOrch->>TaxonomyOrch: collect_and_generate()
     alt Incremental Build
@@ -501,13 +501,13 @@ sequenceDiagram
         TaxonomyOrch->>Cache: update inverted index
     end
     TaxonomyOrch-->>BuildOrch: taxonomies built
-    
+
     Note over BuildOrch,MenuOrch: Phase 4: Menus
     BuildOrch->>MenuOrch: build()
     MenuOrch->>MenuOrch: build from config
     MenuOrch->>MenuOrch: add from page frontmatter
     MenuOrch-->>BuildOrch: menus ready (stored in site.menu)
-    
+
     Note over BuildOrch,Cache: Phase 5: Incremental Filtering
     alt Incremental Build Enabled
         BuildOrch->>IncrementalOrch: find_work()
@@ -518,7 +518,7 @@ sequenceDiagram
     else Full Build
         BuildOrch->>BuildOrch: build all pages/assets
     end
-    
+
     Note over BuildOrch,RenderOrch: Phase 6: Render Pages
     BuildOrch->>RenderOrch: process(pages_to_build, parallel)
     par Parallel Rendering (if enabled)
@@ -528,7 +528,7 @@ sequenceDiagram
     end
     Note right of RenderOrch: Each page:<br/>1. Parse markdown<br/>2. Apply plugins<br/>3. Get menu data<br/>4. Render template<br/>5. Write output
     RenderOrch-->>BuildOrch: all pages rendered
-    
+
     Note over BuildOrch,AssetOrch: Phase 7: Process Assets
     BuildOrch->>AssetOrch: process(assets_to_process, parallel)
     par Parallel Asset Processing (if enabled)
@@ -537,7 +537,7 @@ sequenceDiagram
         AssetOrch->>AssetOrch: copy asset N
     end
     AssetOrch-->>BuildOrch: assets processed
-    
+
     Note over BuildOrch,PostprocessOrch: Phase 8: Post-processing
     BuildOrch->>PostprocessOrch: run(parallel)
     par Parallel Post-processing (if enabled)
@@ -548,13 +548,13 @@ sequenceDiagram
         PostprocessOrch->>PostprocessOrch: validate_links()
     end
     PostprocessOrch-->>BuildOrch: post-processing complete
-    
+
     Note over BuildOrch,Cache: Phase 9: Update Cache
     BuildOrch->>IncrementalOrch: save_cache(pages_built, assets_processed)
     IncrementalOrch->>Cache: update file hashes
     IncrementalOrch->>Cache: update dependencies
     IncrementalOrch->>Cache: save to disk
-    
+
     Note over BuildOrch,Cache: Phase 10: Health Check
     BuildOrch->>BuildOrch: run_health_check()
     BuildOrch-->>Site: BuildStats
@@ -597,32 +597,32 @@ Parse → Build AST → Apply Templates → Render Output → Post-process
 flowchart TD
     Start[Markdown File] --> VarSub[Variable Substitution<br/>Preprocessing]
     VarSub --> Parse[Parse Markdown<br/>Mistune]
-    
+
     Parse --> Plugins{Mistune Plugins}
     Plugins --> P1[Built-in: table, strikethrough,<br/>task_lists, url, footnotes, def_list]
     Plugins --> P2[Custom: Documentation Directives<br/>admonitions, tabs, dropdowns, code_tabs]
-    
+
     P1 --> AST[Abstract Syntax Tree]
     P2 --> AST
-    
+
     AST --> HTML1[Generate HTML]
     HTML1 --> PostProc[Post-Processing]
     PostProc --> XRef[Cross-Reference Links [[...]]]
     PostProc --> Anchors[Heading Anchors & IDs]
     PostProc --> TOC[TOC Extraction]
-    
+
     XRef --> HTML2[HTML with Links & Anchors]
     Anchors --> HTML2
     TOC --> HTML2
-    
+
     HTML2 --> APIEnhance{API Reference Page?}
     APIEnhance -->|Yes| Badges[Inject Badges<br/>@async, @property, etc.]
     APIEnhance -->|No| HTML3[Enhanced HTML]
     Badges --> HTML3
-    
+
     HTML3 --> Links[Extract Links<br/>for Validation]
     Links --> Context[Build Template Context]
-    
+
     Context --> ContextData{Context Includes}
     ContextData --> Page[page object]
     ContextData --> Site[site object]
@@ -630,19 +630,19 @@ flowchart TD
     ContextData --> Functions[80+ template functions]
     ContextData --> Content[content HTML]
     ContextData --> TOCData[toc, toc_items]
-    
+
     Page --> Jinja[Jinja2 Template Engine]
     Site --> Jinja
     Config --> Jinja
     Functions --> Jinja
     Content --> Jinja
     TOCData --> Jinja
-    
+
     Jinja --> Template[Apply Template]
     Template --> FinalHTML[Final HTML]
-    
+
     FinalHTML --> Output[Atomic Write to public/]
-    
+
     style VarSub fill:#ffe6e6
     style Parse fill:#e1f5ff
     style P1 fill:#fff4e6
@@ -666,7 +666,7 @@ flowchart TD
 
 **Purpose**: Provide 75+ custom filters and functions for Jinja2 templates
 
-**Organization**: 
+**Organization**:
 - Modular design with self-registering modules
 - 17 focused modules, each with single responsibility
 - No monolithic classes
@@ -894,45 +894,45 @@ flowchart LR
         Py[Python Source<br/>*.py files]
         CLI[CLI App<br/>Click/argparse]
     end
-    
+
     subgraph Extraction
         AST[AST Parser]
         PyExt[PythonExtractor]
         CLIExt[CLIExtractor]
     end
-    
+
     subgraph Data Model
         Doc[DocElement<br/>unified model]
     end
-    
+
     subgraph Generation
         Gen[DocumentationGenerator]
         Templates[Jinja2 Templates<br/>module.md.jinja2]
     end
-    
+
     subgraph Output
         MD[Markdown Files<br/>content/api/]
     end
-    
+
     subgraph Bengal Pipeline
         Build[Regular Build]
         HTML[HTML Output]
     end
-    
+
     Py --> AST
     AST --> PyExt
     CLI --> CLIExt
-    
+
     PyExt --> Doc
     CLIExt --> Doc
-    
+
     Doc --> Gen
     Gen --> Templates
     Templates --> MD
-    
+
     MD --> Build
     Build --> HTML
-    
+
     style Py fill:#e3f2fd
     style CLI fill:#e3f2fd
     style PyExt fill:#fff3e0
@@ -985,13 +985,13 @@ flowchart LR
 # Source code
 class Site:
     """Orchestrates website builds."""
-    
+
     def build(self, parallel: bool = True) -> BuildStats:
         """Build the entire site.
-        
+
         Args:
             parallel: Enable parallel processing
-            
+
         Returns:
             BuildStats with timing information
         """
@@ -1024,13 +1024,13 @@ DocElement(
 # Google Style
 def foo(x: int) -> str:
     """Short description.
-    
+
     Args:
         x: Parameter description
-        
+
     Returns:
         Return value description
-        
+
     Raises:
         ValueError: When x is negative
     """
@@ -1039,12 +1039,12 @@ def foo(x: int) -> str:
 def bar(x):
     """
     Short description.
-    
+
     Parameters
     ----------
     x : int
         Parameter description
-        
+
     Returns
     -------
     str
@@ -1055,7 +1055,7 @@ def bar(x):
 def baz(x):
     """
     Short description.
-    
+
     :param x: Parameter description
     :type x: int
     :returns: Return value description
@@ -1499,7 +1499,7 @@ Bengal includes a comprehensive health check system that validates builds across
 - **Usage**:
   ```python
   from bengal.health import HealthCheck
-  
+
   health = HealthCheck(site)
   report = health.run(build_stats=stats)
   print(report.format_console())
@@ -1729,7 +1729,7 @@ results = detector.detect()
 large_communities = results.get_largest_communities(limit=10)
 for community in large_communities:
     print(f"Community {community.id}: {community.size} pages")
-    
+
 # Find which community a page belongs to
 community = results.get_community_for_page(page)
 ```
@@ -2064,7 +2064,7 @@ Bengal uses a custom `BengalGroup` class that provides typo detection:
 ```python
 class BengalGroup(click.Group):
     """Custom Click group with typo detection and suggestions."""
-    
+
     def resolve_command(self, ctx, args):
         """Resolve command with fuzzy matching for typos."""
         try:
@@ -2410,7 +2410,7 @@ profile_dir = BengalPaths.get_profile_dir(source_dir)
 
 # Get profile file path with custom or default name
 profile_path = BengalPaths.get_profile_path(
-    source_dir, 
+    source_dir,
     custom_path=None,  # or Path("custom.stats")
     filename='build_profile.stats'
 )

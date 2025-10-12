@@ -312,22 +312,21 @@
     flex-direction: column;
     gap: 1rem;
   }
-  
+
   .subsection-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .archive-list-featured {
     grid-template-columns: 1fr;
   }
-  
+
   .tag-cloud {
     gap: 0.375rem;
   }
-  
+
   .tag-bubble {
     font-size: 0.8125rem;
     padding: 0.375rem 0.75rem;
   }
 }
-

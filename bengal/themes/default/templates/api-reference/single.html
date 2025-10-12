@@ -2,12 +2,12 @@
 
 {#
   API Reference Single Page Template
-  
+
   Three-column layout for individual API documentation pages:
   - Left sidebar: API navigation tree
   - Center: Content with class/function details
   - Right sidebar: TOC for quick navigation
-  
+
   Usage: Automatically applied to pages in api-reference sections
   Or set `template: api-reference/single.html` in frontmatter
 #}
@@ -19,12 +19,12 @@
   <aside class="docs-sidebar" id="docs-sidebar" role="navigation" aria-label="API navigation">
     {% include 'partials/docs-nav.html' %}
   </aside>
-  
+
   {# Main Content #}
   <div class="docs-main">
     {# Breadcrumbs #}
     {% include 'partials/breadcrumbs.html' %}
-    
+
     {# Article Content #}
     <article class="prose api-reference-page {% if page.metadata.css_class %}{{ page.metadata.css_class }}{% endif %}">
       <header class="docs-header">
@@ -32,10 +32,10 @@
           <span class="api-page-icon">📦</span>
           <h1>{{ page.title }}</h1>
         </div>
-        
+
         {# Description is in the markdown content itself for autodoc pages #}
         {# If you need a lead paragraph, add it explicitly in the markdown #}
-        
+
         {# Module/Package metadata #}
         {% if page.metadata.module_path or page.metadata.source_file %}
         <div class="api-meta">
@@ -45,7 +45,7 @@
             <code>{{ page.metadata.module_path }}</code>
           </div>
           {% endif %}
-          
+
           {% if page.metadata.source_file %}
           <div class="api-meta-item">
             <strong>Source:</strong>
@@ -54,16 +54,16 @@
           {% endif %}
         </div>
         {% endif %}
-        
+
         {# Document metadata (last updated, etc) #}
         {% include 'partials/docs-meta.html' %}
       </header>
-      
+
       {# Main content #}
       <div class="docs-content api-content">
         {{ content | safe }}
       </div>
-      
+
       {# Tags #}
       {% if page.tags %}
       <footer class="docs-footer">
@@ -71,11 +71,11 @@
       </footer>
       {% endif %}
     </article>
-    
+
     {# Page navigation (prev/next module) at bottom #}
     {% include 'partials/page-navigation.html' %}
   </div>
-  
+
   {# Right Sidebar: TOC #}
   {% if toc %}
   <aside class="docs-toc" role="complementary" aria-label="Table of contents">
@@ -85,8 +85,8 @@
 </div>
 
 {# Mobile sidebar toggle button #}
-<button 
-  class="docs-sidebar-toggle" 
+<button
+  class="docs-sidebar-toggle"
   aria-label="Toggle navigation sidebar"
   aria-expanded="false"
   aria-controls="docs-sidebar">
@@ -101,62 +101,4 @@
 <div class="docs-sidebar-overlay" aria-hidden="true"></div>
 {% endblock %}
 
-{% block extra_js %}
-{# Sidebar toggle functionality #}
-<script>
-(function() {
-  'use strict';
-  
-  const sidebar = document.getElementById('docs-sidebar');
-  const toggle = document.querySelector('.docs-sidebar-toggle');
-  const overlay = document.querySelector('.docs-sidebar-overlay');
-  
-  if (!sidebar || !toggle || !overlay) return;
-  
-  function openSidebar() {
-    sidebar.classList.add('open');
-    overlay.classList.add('visible');
-    toggle.setAttribute('aria-expanded', 'true');
-    document.body.style.overflow = 'hidden'; // Prevent scrolling
-  }
-  
-  function closeSidebar() {
-    sidebar.classList.remove('open');
-    overlay.classList.remove('visible');
-    toggle.setAttribute('aria-expanded', 'false');
-    document.body.style.overflow = '';
-  }
-  
-  function toggleSidebar() {
-    if (sidebar.classList.contains('open')) {
-      closeSidebar();
-    } else {
-      openSidebar();
-    }
-  }
-  
-  // Toggle button click
-  toggle.addEventListener('click', toggleSidebar);
-  
-  // Overlay click (close sidebar)
-  overlay.addEventListener('click', closeSidebar);
-  
-  // Close on escape key
-  document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape' && sidebar.classList.contains('open')) {
-      closeSidebar();
-    }
-  });
-  
-  // Close sidebar when clicking a link (mobile)
-  sidebar.querySelectorAll('a').forEach(function(link) {
-    link.addEventListener('click', function() {
-      if (window.innerWidth <= 768) {
-        closeSidebar();
-      }
-    });
-  });
-})();
-</script>
-{% endblock %}
-
+{# Sidebar toggle functionality is handled by interactive.js #}

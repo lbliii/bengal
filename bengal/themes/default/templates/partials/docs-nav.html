@@ -1,18 +1,32 @@
 {#
-  Documentation Navigation Sidebar
-  
-  Displays hierarchical navigation tree for documentation sites.
-  Shows all sections and pages with collapsible groups.
-  
+  Documentation Navigation Component
+
+  Displays full hierarchical sidebar navigation for documentation sites.
+
+  Variables:
+    - page: Current page object (required)
+    - page._section: Current section (for determining root)
+    - page._section.root: Root section to display from
+    - site: Site object (fallback when no section)
+
   Features:
-  - Hierarchical structure
-  - Active page highlighting
-  - Active trail marking
-  - Collapsible sections
-  - Keyboard accessible
+    - Hierarchical tree structure
+    - Active page highlighting
+    - Active trail marking
+    - Scoped to current section tree
+    - Recursive subsection rendering
+    - Keyboard accessible
+
+  Note:
+    Includes 'partials/docs-nav-section.html' for recursive rendering.
+    If page has a section, displays only that section's tree.
+    If no section, falls back to showing all top-level sections.
+
+  Usage:
+    {% include 'partials/docs-nav.html' %}
 #}
 
-<nav class="docs-nav" aria-label="Documentation pages"> 
+<nav class="docs-nav" aria-label="Documentation pages">
   {# Navigation Tree #}
   <div class="docs-nav-tree">
     {# Determine the root section to display #}
@@ -20,18 +34,18 @@
     {# This allows the nav to be scoped to just the docs tree, not the entire site #}
     {# Get the root section to display the navigation tree from the top #}
     {% set root_section = page._section.root if page._section else none %}
-    
+
     {# If we have a root section, show only its tree #}
     {% if root_section %}
       {# Show the section's index page if it exists #}
       {% if root_section.index_page %}
-        <a 
-          href="{{ url_for(root_section.index_page) }}" 
+        <a
+          href="{{ url_for(root_section.index_page) }}"
           class="docs-nav-link {% if page.url == root_section.index_page.url %}active{% endif %}">
           {{ root_section.index_page.title }}
         </a>
       {% endif %}
-      
+
       {# Show regular pages in the root section (excluding index page and subsection index pages) - sorted by weight #}
       {% for p in root_section.sorted_pages %}
         {# Skip root section index page #}
@@ -43,18 +57,18 @@
               {% set is_subsection_index.value = true %}
             {% endif %}
           {% endfor %}
-          
+
           {# Only show if not a subsection index page #}
           {% if not is_subsection_index.value %}
-            <a 
-              href="{{ url_for(p) }}" 
+            <a
+              href="{{ url_for(p) }}"
               class="docs-nav-link {% if page.url == p.url %}active{% endif %}">
               {{ p.title }}
             </a>
           {% endif %}
         {% endif %}
       {% endfor %}
-      
+
       {# Show subsections - sorted by weight #}
       {% for section in root_section.sorted_subsections %}
         {% set depth = 0 %}
@@ -63,17 +77,17 @@
     {% else %}
       {# Fallback: Show all top-level sections (original behavior) #}
       {% set top_sections = site.sections | selectattr('parent', 'none') | list %}
-      
+
       {# Show any top-level pages first (regular pages without a section) #}
       {% set top_pages = site.pages | selectattr('_section', 'none') | rejectattr('metadata._generated', 'defined') | list %}
       {% for p in top_pages %}
-        <a 
-          href="{{ url_for(p) }}" 
+        <a
+          href="{{ url_for(p) }}"
           class="docs-nav-link {% if page.url == p.url %}active{% endif %}">
           {{ p.title }}
         </a>
       {% endfor %}
-      
+
       {# Show all top-level sections #}
       {% for section in top_sections %}
         {% set depth = 0 %}

@@ -340,4 +340,3 @@ Check the **[Kitchen Sink](../kitchen-sink.md)** for live examples of every dire
 - [Markdown Basics](../writing/markdown-basics.md) - Essential markdown syntax
 - [Extended Markdown](../writing/markdown-extended.md) - Tables, footnotes, and more
 - [Content Types](../content-types/) - Different page layouts
-

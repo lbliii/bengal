@@ -48,7 +48,7 @@ def get_data(path: str, root_path: Any) -> Any:
     # ...
     if not file_path.exists():
         return {}  # ❌ Silent failure - user has no idea file is missing
-    
+
     try:
         # ... parse JSON/YAML ...
     except (json.JSONDecodeError, Exception):
@@ -69,7 +69,7 @@ def get_data(path: str, root_path: Any) -> Any:
 def image_dimensions(path: str, root_path: Path) -> Optional[Tuple[int, int]]:
     if not file_path.exists():
         return None  # ❌ Silent failure
-    
+
     try:
         from PIL import Image
         # ...
@@ -89,7 +89,7 @@ def image_dimensions(path: str, root_path: Path) -> Optional[Tuple[int, int]]:
 def doc(path: str, index: dict) -> Optional['Page']:
     if not path:
         return None  # ❌ No logging of failed lookups
-    
+
     # Try different strategies...
     return None  # ❌ User has no idea why reference failed
 ```
@@ -107,7 +107,7 @@ def related_posts(page: Any, all_pages: List[Any] = None, limit: int = 5):
     # FAST PATH: O(1) pre-computed
     if hasattr(page, 'related_posts'):
         return page.related_posts[:limit]  # ❌ No logging of fast path usage
-    
+
     # SLOW PATH: O(n²) runtime computation
     for other_page in all_pages:  # ❌ No warning that slow path is being used
         # ...
@@ -171,9 +171,9 @@ def get_data(path: str, root_path: Any) -> Any:
     if not path:
         logger.debug("get_data_empty_path", caller="template")
         return {}
-    
+
     file_path = Path(root_path) / path
-    
+
     if not file_path.exists():
         logger.warning(
             "data_file_not_found",
@@ -182,18 +182,18 @@ def get_data(path: str, root_path: Any) -> Any:
             caller="template"
         )
         return {}
-    
+
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
             content = f.read()
-        
+
         if path.endswith('.json'):
             data = json.loads(content)
             logger.debug("data_loaded", path=path, type="json", keys=len(data) if isinstance(data, dict) else None)
             return data
-        
+
         # ... similar for YAML ...
-        
+
     except json.JSONDecodeError as e:
         logger.error(
             "data_parse_error",
@@ -222,10 +222,10 @@ def doc(path: str, index: dict) -> Optional['Page']:
     """Get page by path with logging."""
     if not path:
         return None
-    
+
     # Try different strategies...
     page = # ... lookup logic ...
-    
+
     if page:
         logger.debug("xref_resolved", path=path, url=page.url)
     else:
@@ -233,14 +233,14 @@ def doc(path: str, index: dict) -> Optional['Page']:
         all_paths = list(index.get('by_path', {}).keys())
         from difflib import get_close_matches
         suggestions = get_close_matches(path, all_paths, n=3, cutoff=0.6)
-        
+
         logger.warning(
             "xref_not_found",
             path=path,
             suggestions=suggestions,
             caller="template"
         )
-    
+
     return page
 ```
 
@@ -252,7 +252,7 @@ def related_posts(page: Any, all_pages: List[Any] = None, limit: int = 5):
     if hasattr(page, 'related_posts') and page.related_posts:
         logger.debug("related_posts_fast_path", page=page.slug, count=len(page.related_posts))
         return page.related_posts[:limit]
-    
+
     # Slow path warning
     logger.warning(
         "related_posts_slow_path",
@@ -260,15 +260,15 @@ def related_posts(page: Any, all_pages: List[Any] = None, limit: int = 5):
         all_pages=len(all_pages) if all_pages else 0,
         message="Pre-computed related posts not available, falling back to O(n²) algorithm"
     )
-    
+
     import time
     start = time.time()
-    
+
     # ... slow algorithm ...
-    
+
     duration_ms = (time.time() - start) * 1000
     logger.debug("related_posts_computed", page=page.slug, duration_ms=duration_ms, count=len(scored_pages))
-    
+
     return results
 ```
 
@@ -331,9 +331,9 @@ logger = get_logger(__name__)
 def register_all(env: 'Environment', site: 'Site') -> None:
     """Register all template functions with logging."""
     logger.debug("registering_template_functions", count=17)
-    
+
     # ... existing registration ...
-    
+
     logger.debug("template_functions_registered")
 ```
 
@@ -432,4 +432,3 @@ These are the patterns we should follow in template functions.
 2. Prioritize which functions to add logging to first
 3. Implement in phases (can be done incrementally)
 4. Update tests to verify logger usage
-

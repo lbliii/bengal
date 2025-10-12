@@ -53,9 +53,9 @@ the 22-phase build pipeline.
 
 Example:
     from bengal.utils.logger import get_logger
-    
+
     logger = get_logger(__name__)
-    
+
     with logger.phase("discovery", page_count=100):
         logger.info("discovered_content", files=len(files))
 """
@@ -72,7 +72,7 @@ duplicate implementations found throughout the codebase.
 
 Example:
     from bengal.utils.text import slugify, strip_html, truncate_words
-    
+
     slug = slugify("Hello World!")  # "hello-world"
     text = strip_html("<p>Hello</p>")  # "Hello"
     excerpt = truncate_words("Long text here...", 10)
@@ -106,7 +106,7 @@ Creation:
         - Loads configuration from bengal.toml
         - Applies all settings automatically
         - Use for production builds and CLI
-    
+
     Direct instantiation: Site(root_path=path, config=config)
         - For unit testing with controlled state
         - For programmatic config manipulation
@@ -122,7 +122,7 @@ Attributes:
 Examples:
     # Production/CLI (recommended):
     site = Site.from_config(Path('/path/to/site'))
-    
+
     # Unit testing:
     site = Site(root_path=Path('/test'), config={})
     site.pages = [test_page1, test_page2]
@@ -184,21 +184,21 @@ def slugify(
 ) -> str:
     """
     Convert text to URL-safe slug.
-    
+
     Consolidates implementations from:
     - bengal/rendering/parser.py:629 (_slugify)
     - bengal/rendering/template_functions/strings.py:92 (slugify)
     - bengal/rendering/template_functions/taxonomies.py:184 (tag_url pattern)
-    
+
     Args:
         text: Text to slugify
         unescape_html: Whether to decode HTML entities first (e.g., &amp; -> &)
         max_length: Maximum slug length (None = unlimited)
         separator: Character to use between words (default: '-')
-        
+
     Returns:
         URL-safe slug (lowercase, alphanumeric with separators)
-        
+
     Examples:
         >>> slugify("Hello World!")
         'hello-world'
@@ -213,9 +213,9 @@ def slugify(
 def build(self, parallel: bool = True, incremental: bool = False, ...) -> BuildStats:
     """
     Build the entire site.
-    
+
     Delegates to BuildOrchestrator for actual build process.
-    
+
     Args:
         parallel: Whether to use parallel processing
         incremental: Whether to perform incremental build (only changed files)
@@ -225,7 +225,7 @@ def build(self, parallel: bool = True, incremental: bool = False, ...) -> BuildS
         memory_optimized: Use streaming build for memory efficiency (best for 5K+ pages)
         strict: Whether to fail on warnings
         full_output: Show full traditional output instead of live progress
-        
+
     Returns:
         BuildStats object with build statistics
     """
@@ -238,12 +238,12 @@ def build(self, parallel: bool = True, incremental: bool = False, ...) -> BuildS
 # Current (incomplete):
 def load_json(file_path: Union[Path, str], ...) -> Any:
     """Load JSON file with error handling."""
-    
+
 # Should be:
 def load_json(file_path: Union[Path, str], ...) -> Any:
     """
     Load JSON file with error handling.
-    
+
     Raises:
         FileNotFoundError: If file not found and on_error='raise'
         json.JSONDecodeError: If JSON is invalid and on_error='raise'
@@ -253,7 +253,7 @@ def load_json(file_path: Union[Path, str], ...) -> Any:
 2. **Private methods under-documented**: Some internal `_method()` functions lack docstrings
 3. **Inconsistent Examples sections**: Present in ~60% of complex functions, should be higher
 
-**Recommendation:** 
+**Recommendation:**
 - Add "Raises" sections to all methods that can raise exceptions
 - Document private methods that are non-trivial
 - Add Examples to all public API methods with >3 parameters
@@ -276,11 +276,11 @@ def load_json(file_path: Union[Path, str], ...) -> Any:
 def page_context(self, page_number: int, base_url: str) -> Dict[str, Any]:
     """
     Get template context for a specific page.
-    
+
     Args:
         page_number: Current page number (1-indexed)
         base_url: Base URL for pagination links (e.g., '/posts/')
-        
+
     Returns:
         Dictionary with pagination context for templates
     """
@@ -295,12 +295,12 @@ def page_context(self, page_number: int, base_url: str) -> Dict[str, Any]:
 # Current:
 def get_stats(self) -> Dict[str, int]:
     """Get cache statistics."""
-    
+
 # Better:
 def get_stats(self) -> Dict[str, int]:
     """
     Get cache statistics.
-    
+
     Returns:
         Dictionary with the following keys:
         - 'tracked_files': Number of files in cache
@@ -333,7 +333,7 @@ def get_stats(self) -> Dict[str, int]:
 with self.logger.phase("incremental_filtering", enabled=incremental):
     pages_to_build = self.site.pages
     assets_to_process = self.site.assets
-    
+
     if incremental:
         # Find what changed BEFORE generating taxonomies/menus
         pages_to_build, assets_to_process, change_summary = self.incremental.find_work_early(
@@ -371,7 +371,7 @@ with self.logger.phase("incremental_filtering", enabled=incremental):
 class KnowledgeGraph:
     """
     Analyzes the connectivity structure of a Bengal site.
-    
+
     Example:
         >>> graph = KnowledgeGraph(site)
         >>> graph.build()
@@ -385,7 +385,7 @@ class KnowledgeGraph:
 def humanize_bytes(size_bytes: int) -> str:
     """
     Format bytes as human-readable string.
-    
+
     Examples:
         >>> humanize_bytes(1024)
         '1.0 KB'
@@ -454,7 +454,7 @@ def get_affected_pages(self, changed_file: Path) -> Set[str]:
 def from_config(cls, root_path: Path, ...) -> 'Site':
     """
     Create a Site instance from a configuration file.
-    
+
     Warning:
         In production/normal builds, use Site.from_config() instead!
         Passing config={} will override bengal.toml settings and use defaults.
@@ -529,7 +529,7 @@ availability depending on the current phase:
 def slugify(...) -> str:
     """
     Convert text to URL-safe slug.
-    
+
     Consolidates implementations from:
     - bengal/rendering/parser.py:629 (_slugify)
     - bengal/rendering/template_functions/strings.py:92 (slugify)
@@ -702,21 +702,21 @@ After these additions, Bengal would have **industry-leading documentation** comp
 class MyClass:
     """
     One-line summary of what this class does.
-    
+
     Longer description explaining the purpose, use cases, and any important
     design decisions or constraints.
-    
+
     Attributes:
         attr1: Description of attribute1
         attr2: Description of attribute2
         _private_attr: Description of private attribute (optional)
-    
+
     Example:
         >>> obj = MyClass(param1, param2)
         >>> result = obj.do_something()
         >>> print(result)
         'expected output'
-    
+
     Note:
         Any important notes, warnings, or caveats.
     """
@@ -732,11 +732,11 @@ def process_data(
 ) -> Dict[str, int]:
     """
     Process input data according to specified options.
-    
+
     This method performs validation, transformation, and aggregation
     of the input data. In strict mode, invalid data raises an exception.
     In non-strict mode, invalid data is logged and skipped.
-    
+
     Args:
         input_data: List of strings to process
         options: Optional processing options with keys:
@@ -744,27 +744,27 @@ def process_data(
             - 'filter': Filter pattern (regex string)
             - 'limit': Maximum items to process
         strict: Whether to fail on invalid data (default: True)
-    
+
     Returns:
         Dictionary with processing results:
         - 'processed': Number of items processed
         - 'skipped': Number of items skipped
         - 'errors': Number of errors encountered
-    
+
     Raises:
         ValueError: If input_data is empty and strict=True
         TypeError: If input_data contains non-string items
         KeyError: If required options are missing
-    
+
     Example:
         >>> result = obj.process_data(['a', 'b', 'c'])
         >>> result['processed']
         3
-        
+
         >>> result = obj.process_data(['a', 'b'], options={'limit': 1})
         >>> result['processed']
         1
-    
+
     Note:
         Large datasets (>10K items) should use streaming mode for
         better memory efficiency.
@@ -780,18 +780,18 @@ def format_timestamp(
 ) -> str:
     """
     Format timestamp as human-readable string.
-    
+
     Args:
         timestamp: Unix timestamp, datetime object, or ISO string
         format: Output format ('iso', 'short', 'long')
         timezone: Target timezone (default: UTC)
-    
+
     Returns:
         Formatted timestamp string
-    
+
     Raises:
         ValueError: If timestamp is invalid or format is unknown
-    
+
     Examples:
         >>> format_timestamp(1640000000)
         '2021-12-20T13:33:20Z'
@@ -803,4 +803,3 @@ def format_timestamp(
 ---
 
 **End of Analysis**
-

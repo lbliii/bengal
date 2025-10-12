@@ -103,4 +103,3 @@ app_module = "bengal.cli:main"  # module_path:attribute format
 output_dir = "content/cli"
 framework = "click"  # click, argparse, or typer
 include_hidden = false  # Include hidden commands
-

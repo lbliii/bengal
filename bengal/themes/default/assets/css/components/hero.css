@@ -1,7 +1,7 @@
 /**
  * Bengal SSG Default Theme
  * Hero & Page Header Components
- * 
+ *
  * Large, attention-grabbing headers for landing pages
  * and prominent page introductions.
  */
@@ -264,7 +264,7 @@
   right: 0;
   bottom: 0;
   opacity: 0.05;
-  background-image: 
+  background-image:
     radial-gradient(circle at 25% 25%, var(--color-primary) 1px, transparent 1px),
     radial-gradient(circle at 75% 75%, var(--color-secondary) 1px, transparent 1px);
   background-size: 50px 50px;
@@ -283,45 +283,45 @@
   .hero {
     padding: 3rem 0;
   }
-  
+
   .hero__title {
     font-size: var(--text-3xl);
   }
-  
+
   .hero__subtitle {
     font-size: var(--text-body);
   }
-  
+
   .hero--large {
     padding: 4rem 0;
   }
-  
+
   .hero--large .hero__title {
     font-size: var(--text-3xl);
   }
-  
+
   .hero__actions {
     flex-direction: column;
     align-items: stretch;
   }
-  
+
   .hero__button {
     width: 100%;
     justify-content: center;
   }
-  
+
   .page-header {
     padding: 1.5rem 0;
   }
-  
+
   .page-header__title {
     font-size: var(--text-2xl);
   }
-  
+
   .section-header {
     margin: 3rem 0 2rem 0;
   }
-  
+
   .section-header__title {
     font-size: var(--text-2xl);
   }
@@ -331,11 +331,11 @@
   .hero {
     padding: 2rem 0;
   }
-  
+
   .hero__title {
     font-size: var(--text-2xl);
   }
-  
+
   .page-header__meta {
     flex-direction: column;
     gap: 0.5rem;
@@ -352,13 +352,12 @@
     background: none;
     border: none;
   }
-  
+
   .hero__actions {
     display: none;
   }
-  
+
   .hero__background {
     display: none;
   }
 }
-

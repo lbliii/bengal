@@ -454,4 +454,3 @@ Content here
 - [Directives Overview](index.md) - All directives
 - [Quick Reference](quick-reference.md) - Syntax cheatsheet
 - [Content Organization](../writing/content-organization.md) - Site structure
-

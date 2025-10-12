@@ -280,4 +280,3 @@ code here
 - [Markdown Basics](../writing/markdown-basics.md) - Code blocks
 - [Directives Overview](index.md) - All directives
 - [Quick Reference](quick-reference.md) - Syntax cheatsheet
-

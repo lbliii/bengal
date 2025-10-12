@@ -96,7 +96,7 @@ select = ["UP"]  # Enable all upgrade rules
 ```
 
 ### Recommended Rules for Python 3.12+:
-- `UP001` - `useless-metaclass-type` 
+- `UP001` - `useless-metaclass-type`
 - `UP003` - `type-of-primitive`
 - `UP004` - `useless-object-inheritance`
 - `UP005` - `deprecated-unittest-alias`
@@ -150,7 +150,7 @@ Python 3.12 has faster dict/set operations. Look for:
 # Potentially slow (multiple lookups)
 if key in my_dict:
     value = my_dict[key]
-    
+
 # Better (single lookup)
 if (value := my_dict.get(key)) is not None:
     # use value
@@ -355,4 +355,3 @@ pytest tests/integration/ -q
 5. ⏭️ Update CONTRIBUTING.md (Phase 2D)
 
 **Estimated total time**: 20-30 minutes for all phases
-

@@ -2,15 +2,15 @@
 
 {#
   Chronological Archive Template
-  
+
   Used for blog-style sections with dated posts.
   Displays content in reverse chronological order with pagination.
-  
+
   When to use:
   - Blog posts
   - News articles
   - Any time-ordered content
-  
+
   Context variables:
     - section: Section object
     - posts: List of pages (may be paginated)
@@ -31,13 +31,13 @@
 <div class="archive">
     <header class="archive-header">
         <h1>{{ title | default(section.title if section else 'Archive') }}</h1>
-        
+
         {% if description %}
         <p class="archive-description">{{ description }}</p>
         {% elif section and section.metadata.description %}
         <p class="archive-description">{{ section.metadata.description }}</p>
         {% endif %}
-        
+
         {% if total_pages %}
         <p class="archive-count">
             Showing {{ posts | length }} of {{ total_posts }} posts
@@ -45,7 +45,7 @@
         </p>
         {% endif %}
     </header>
-    
+
     {% if posts %}
     {# Show featured posts first - dogfooding where() and where_not() #}
     {% set featured_posts = posts | where('featured', true) %}
@@ -62,7 +62,7 @@
         </div>
     </section>
     {% endif %}
-    
+
     {# Regular posts - dogfooding where_not() #}
     {% set regular_posts = posts | where_not('featured', true) %}
     {% if regular_posts %}
@@ -77,7 +77,7 @@
         </div>
     </section>
     {% endif %}
-    
+
     {# Pagination #}
     {% if total_pages and total_pages > 1 %}
     {% include 'partials/pagination.html' %}
@@ -119,4 +119,3 @@
     {% endif %}
 </div>
 {% endblock %}
-

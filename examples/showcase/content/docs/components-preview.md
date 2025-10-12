@@ -45,5 +45,3 @@ http://localhost:5173/__bengal_components__/view?c=card
 - Live reload applies; edits to templates/styles update previews.
 - Theme inheritance and site overrides are respected.
 - Use this to iterate quickly on partials before wiring them into pages.
-
-

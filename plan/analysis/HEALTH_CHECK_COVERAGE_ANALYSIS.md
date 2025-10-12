@@ -205,7 +205,7 @@ Total:                14 validators
 class RSSValidator(BaseValidator):
     name = "RSS Feed"
     description = "Validates RSS feed quality and completeness"
-    
+
     def validate(self, site):
         # Check RSS exists
         # Validate XML structure
@@ -218,7 +218,7 @@ class RSSValidator(BaseValidator):
 class SitemapValidator(BaseValidator):
     name = "Sitemap"
     description = "Validates sitemap.xml for SEO"
-    
+
     def validate(self, site):
         # Check sitemap exists
         # Validate XML structure
@@ -233,7 +233,7 @@ class SitemapValidator(BaseValidator):
 class FontValidator(BaseValidator):
     name = "Fonts"
     description = "Validates font downloads and CSS generation"
-    
+
     def validate(self, site):
         # Check fonts.css exists (if fonts configured)
         # Verify font files downloaded
@@ -248,7 +248,7 @@ class FontValidator(BaseValidator):
 class AssetValidator(BaseValidator):
     name = "Asset Processing"
     description = "Validates asset optimization and integrity"
-    
+
     def validate(self, site):
         # Check asset hashing works
         # Verify minification (if enabled)
@@ -384,10 +384,10 @@ def test_rss_validator_valid_feed(tmp_path):
     site = create_test_site(tmp_path)
     # Generate valid RSS
     RSSGenerator(site).generate()
-    
+
     validator = RSSValidator()
     results = validator.validate(site)
-    
+
     assert len(results) > 0
     assert all(not r.is_problem() for r in results)
 
@@ -395,10 +395,10 @@ def test_rss_validator_missing_feed(tmp_path):
     """Test validator warns when RSS not generated."""
     site = create_test_site(tmp_path)
     # Don't generate RSS
-    
+
     validator = RSSValidator()
     results = validator.validate(site)
-    
+
     assert any(r.status == CheckStatus.WARNING for r in results)
 
 def test_rss_validator_invalid_xml(tmp_path):
@@ -407,10 +407,10 @@ def test_rss_validator_invalid_xml(tmp_path):
     # Write invalid RSS
     rss_path = site.output_dir / 'rss.xml'
     rss_path.write_text('<rss><channel></rss>')  # Unclosed tag
-    
+
     validator = RSSValidator()
     results = validator.validate(site)
-    
+
     assert any(r.status == CheckStatus.ERROR for r in results)
 ```
 
@@ -469,7 +469,7 @@ from bengal.health import BaseValidator, CheckResult
 
 class MyCustomValidator(BaseValidator):
     name = "Custom Check"
-    
+
     def validate(self, site):
         # Custom validation logic
         return [CheckResult.success("All good!")]
@@ -561,33 +561,33 @@ if TYPE_CHECKING:
 class {Name}Validator(BaseValidator):
     """
     Validates {system name}.
-    
+
     Checks:
     - {Check 1} - {why important}
     - {Check 2} - {why important}
     - {Check 3} - {why important}
     """
-    
+
     name = "{Display Name}"
     description = "{Short description}"
     enabled_by_default = True
-    
+
     def validate(self, site: 'Site') -> List[CheckResult]:
         """Run {name} validation checks."""
         results = []
-        
+
         # Check 1: {Name}
         results.extend(self._check_{name}(site))
-        
+
         # Check 2: {Name}
         results.extend(self._check_{name}(site))
-        
+
         return results
-    
+
     def _check_{name}(self, site: 'Site') -> List[CheckResult]:
         """{Description}."""
         results = []
-        
+
         # Validation logic
         if problem:
             results.append(CheckResult.error(
@@ -599,11 +599,10 @@ class {Name}Validator(BaseValidator):
             results.append(CheckResult.success(
                 "Everything OK"
             ))
-        
+
         return results
 ```
 
 ---
 
 **End of Analysis**
-

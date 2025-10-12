@@ -72,5 +72,3 @@ In templates:
 ```
 
 `asset_url` resolves the fingerprinted filenames automatically.
-
-

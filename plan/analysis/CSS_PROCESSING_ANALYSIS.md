@@ -193,22 +193,22 @@ from pathlib import Path
 
 def bundle_css(entry_file: Path, base_dir: Path) -> str:
     """Bundle CSS by inlining all @import statements."""
-    
+
     def resolve_import(match):
         import_path = match.group(1)
         imported_file = base_dir / import_path
-        
+
         if not imported_file.exists():
             return f"/* Could not find: {import_path} */"
-        
+
         # Recursively process imports in imported file
         content = imported_file.read_text(encoding='utf-8')
         return process_imports(content, imported_file.parent)
-    
+
     def process_imports(content: str, current_dir: Path) -> str:
         # Match: @import url('...')  or  @import '...'
         pattern = r'@import\s+(?:url\()?[\'"]([^\'"]+)[\'"](?:\))?;?'
-        
+
         def resolver(m):
             path = m.group(1)
             full_path = current_dir / path
@@ -217,12 +217,12 @@ def bundle_css(entry_file: Path, base_dir: Path) -> str:
                 # Recursively process nested imports
                 return process_imports(imported, full_path.parent)
             return f"/* Missing: {path} */"
-        
+
         return re.sub(pattern, resolver, content)
-    
+
     entry_content = entry_file.read_text(encoding='utf-8')
     bundled = process_imports(entry_content, entry_file.parent)
-    
+
     return bundled
 
 # In Asset class:
@@ -298,7 +298,7 @@ def _process_css(self) -> None:
     try:
         # Try Lightning CSS first (if installed)
         import lightningcss
-        
+
         minifier = lightningcss.CSSMinifier()
         with open(self.source_path, 'r', encoding='utf-8') as f:
             result = minifier.minify(
@@ -312,10 +312,10 @@ def _process_css(self) -> None:
                     'edge': 90
                 }
             )
-        
+
         self._minified_content = result
         self.bundled = True
-        
+
     except ImportError:
         # Fallback: Basic minification (no bundling)
         print("⚠️  lightningcss not installed, CSS not bundled")
@@ -374,12 +374,12 @@ def _process_css_with_postcss(self) -> None:
     """Process CSS with PostCSS via subprocess."""
     import subprocess
     import shutil
-    
+
     # Check if postcss is available
     if not shutil.which('postcss'):
         self._minify_css_basic()
         return
-    
+
     try:
         # Run postcss with our config
         result = subprocess.run(
@@ -394,10 +394,10 @@ def _process_css_with_postcss(self) -> None:
             check=True,
             cwd=self.source_path.parent
         )
-        
+
         self._minified_content = result.stdout
         self.bundled = True
-        
+
     except subprocess.CalledProcessError:
         print("⚠️  PostCSS failed, falling back to basic minification")
         self._minify_css_basic()
@@ -531,7 +531,7 @@ bundle_css = true  # Default: on
 ## Questions & Answers
 
 ### Q: Do we need Node.js?
-**A**: 
+**A**:
 - Lightning CSS (Python): NO
 - Lightning CSS (CLI): Yes
 - PostCSS: Yes
@@ -542,7 +542,7 @@ bundle_css = true  # Default: on
 **A**: Opt-in via config. No breaking changes.
 
 ### Q: Performance impact on build?
-**A**: 
+**A**:
 - Lightning CSS: ~50-100ms (fast!)
 - PostCSS: ~200-500ms (still fast)
 - Current (no bundling): ~50ms
@@ -578,5 +578,3 @@ bundle_css = true  # Default: on
 6. Update documentation
 7. Benchmark performance improvements
 8. Ship in v0.3.0
-
-

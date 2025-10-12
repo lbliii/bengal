@@ -199,4 +199,3 @@ The legacy `base/variables.css` file has been removed (October 2025). All variab
 ## Questions?
 
 See `plan/completed/CSS_ARCHITECTURE_ANALYSIS.md` for the full migration history and rationale.
-

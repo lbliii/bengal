@@ -274,4 +274,3 @@ To verify scopes are correct:
 ---
 
 **If everything highlights correctly, the extension is working! 🎉**
-

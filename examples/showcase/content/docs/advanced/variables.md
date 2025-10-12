@@ -295,4 +295,3 @@ Use {{ page.title }} to display the title.
 - [Markdown Basics](../writing/markdown-basics.md) - Markdown syntax
 - [Content Types](../content-types/) - Page layouts
 - [Writing Guide](../writing/) - Content creation
-

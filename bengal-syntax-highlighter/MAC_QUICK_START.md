@@ -174,4 +174,3 @@ If yes, it's working! 🎉
 **Total time:** 30 seconds to test, 2 minutes to install
 
 **Ready?** Run `code .` in the extension folder and press `Fn+F5`! 🚀
-

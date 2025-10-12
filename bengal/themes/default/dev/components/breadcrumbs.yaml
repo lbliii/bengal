@@ -1,0 +1,60 @@
+name: "Breadcrumbs"
+template: "partials/breadcrumbs.html"
+description: "Hierarchical navigation showing the current page's location in the site structure"
+variants:
+  - id: "default"
+    name: "Default (Multi-level)"
+    context:
+      page:
+        title: "Getting Started"
+        url: "/docs/guides/getting-started/"
+        _section:
+          title: "Guides"
+          url: "/docs/guides/"
+          parent:
+            title: "Documentation"
+            url: "/docs/"
+            parent: null
+          metadata:
+            breadcrumb_title: "Guides"
+        metadata:
+          breadcrumb_title: null
+      site:
+        config:
+          title: "Bengal SSG"
+
+  - id: "deep"
+    name: "Deep Hierarchy (4+ levels)"
+    context:
+      page:
+        title: "Environment Variables"
+        url: "/docs/reference/api/config/env-vars/"
+        _section:
+          title: "Config"
+          url: "/docs/reference/api/config/"
+          parent:
+            title: "API"
+            url: "/docs/reference/api/"
+            parent:
+              title: "Reference"
+              url: "/docs/reference/"
+              parent:
+                title: "Documentation"
+                url: "/docs/"
+                parent: null
+        metadata: {}
+      site:
+        config:
+          title: "Bengal SSG"
+
+  - id: "single"
+    name: "Single Level (No parents)"
+    context:
+      page:
+        title: "About"
+        url: "/about/"
+        _section: null
+        metadata: {}
+      site:
+        config:
+          title: "Bengal SSG"

@@ -260,4 +260,3 @@ The CSS bug has been fixed and component preview now works correctly with finger
 2. Create more example component manifests
 3. Add these features to CHANGELOG.md
 4. Consider blog post highlighting these features
-

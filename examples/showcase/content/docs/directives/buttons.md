@@ -341,4 +341,3 @@ Buttons use proper `<a>` tags with button styling for best accessibility.
 - [Directives Overview](index.md) - All directives
 - [Quick Reference](quick-reference.md) - Syntax cheatsheet
 - [Content Types](../content-types/) - Page layouts
-

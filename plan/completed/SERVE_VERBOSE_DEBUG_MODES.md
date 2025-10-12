@@ -91,7 +91,7 @@ All modes also write structured JSON logs to `.bengal-serve.log` in the project 
        log_level = LogLevel.INFO
    else:
        log_level = LogLevel.WARNING
-   
+
    configure_logging(
        level=log_level,
        log_file=root_path / '.bengal-serve.log',
@@ -174,4 +174,3 @@ Verified that:
 - This change simply exposes the existing logging via CLI flags
 - Matches the pattern established by `bengal build --verbose` and `bengal build --debug`
 - Log file always written regardless of console output level (good for post-mortem debugging)
-

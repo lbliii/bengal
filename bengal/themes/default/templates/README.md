@@ -155,7 +155,7 @@ templates/
     <p>{{ site.description }}</p>
     <a href="/docs/" class="button-primary">Get Started</a>
   </section>
-  
+
   <!-- Featured posts -->
   <section class="featured">
     {% for post in featured_posts %}
@@ -186,7 +186,7 @@ templates/
     <!-- Content -->
     <!-- Page navigation -->
   </article>
-  
+
   <!-- Optional sidebar with TOC -->
 </div>
 ```
@@ -215,13 +215,13 @@ templates/
   <aside class="docs-sidebar">
     <!-- Docs navigation -->
   </aside>
-  
+
   <main class="docs-main">
     <article class="prose">
       <!-- Content -->
     </article>
   </main>
-  
+
   <aside class="docs-toc">
     <!-- Table of contents -->
   </aside>
@@ -245,14 +245,14 @@ templates/
   <aside class="docs-sidebar">
     <!-- Docs navigation -->
   </aside>
-  
+
   <main class="docs-main">
     <article class="prose">
       <!-- Content -->
       <!-- Child page tiles (auto-displayed) -->
     </article>
   </main>
-  
+
   <aside class="docs-toc">
     <!-- Table of contents (if available) -->
   </aside>
@@ -538,7 +538,7 @@ pagination = {
 
 **Features:**
 - Automatically displays subsection cards with descriptions
-- Shows child pages using `article-card.html` 
+- Shows child pages using `article-card.html`
 - Can be disabled via frontmatter: `show_children: false`
 - Flexible control over what to display
 
@@ -986,4 +986,3 @@ your-project/
 ## License
 
 MIT License - See [LICENSE](../../../../../LICENSE) for details
-

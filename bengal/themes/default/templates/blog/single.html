@@ -2,12 +2,12 @@
 
 {#
   Blog Post Single Page Template
-  
+
   Used for individual blog post pages. Optimized for reading with
   author information, sharing options, and related posts.
-  
+
   Usage: Set `type: blog` in frontmatter or use cascade from section
-  
+
   Context variables:
     - page: Blog post page object
     - content: Rendered post content
@@ -26,13 +26,13 @@
                 <img src="{{ page.metadata.image | default(page.metadata.cover) }}" alt="{{ page.title }}">
             </div>
             {% endif %}
-            
+
             <h1>{{ page.title }}</h1>
-            
+
             {% if page.metadata.description %}
             <p class="lead">{{ page.metadata.description }}</p>
             {% endif %}
-            
+
             {# Post Metadata #}
             <div class="blog-post-meta">
                 {# Author Info #}
@@ -49,7 +49,7 @@
                     </div>
                 </div>
                 {% endif %}
-                
+
                 <div class="blog-post-details">
                     {# Publication Date #}
                     {% if page.date %}
@@ -57,7 +57,7 @@
                         {{ page.date | dateformat('%B %d, %Y') }}
                     </time>
                     {% endif %}
-                    
+
                     {# Reading Time #}
                     {% if page.content %}
                     <span class="reading-time">
@@ -68,7 +68,7 @@
                         {{ (page.content | wordcount / 200) | round }} min read
                     </span>
                     {% endif %}
-                    
+
                     {# View Count (if tracked) #}
                     {% if page.metadata.views %}
                     <span class="view-count">
@@ -81,7 +81,7 @@
                     {% endif %}
                 </div>
             </div>
-            
+
             {# Tags #}
             {% if page.tags %}
             <div class="blog-post-tags">
@@ -91,12 +91,12 @@
             </div>
             {% endif %}
         </header>
-        
+
         {# Main Post Content #}
         <div class="blog-post-content">
             {{ content | safe }}
         </div>
-        
+
         {# Post Footer #}
         <footer class="blog-post-footer">
             {# Updated Date #}
@@ -105,7 +105,7 @@
                 <em>Last updated: {{ page.metadata.updated | dateformat('%B %d, %Y') }}</em>
             </p>
             {% endif %}
-            
+
             {# Author Bio #}
             {% if page.metadata.author and page.metadata.author_bio %}
             <div class="author-bio">
@@ -130,13 +130,13 @@
                 {% endif %}
             </div>
             {% endif %}
-            
+
             {# Social Sharing #}
             <div class="blog-social-share">
                 <h4>Share this post</h4>
                 <div class="share-buttons">
-                    <a href="https://twitter.com/intent/tweet?url={{ page.url | urlencode }}&text={{ page.title | urlencode }}" 
-                       target="_blank" rel="noopener noreferrer" 
+                    <a href="https://twitter.com/intent/tweet?url={{ page.url | urlencode }}&text={{ page.title | urlencode }}"
+                       target="_blank" rel="noopener noreferrer"
                        class="share-button share-twitter"
                        aria-label="Share on Twitter">
                         <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
@@ -144,7 +144,7 @@
                         </svg>
                         Twitter
                     </a>
-                    <a href="https://www.linkedin.com/sharing/share-offsite/?url={{ page.url | urlencode }}" 
+                    <a href="https://www.linkedin.com/sharing/share-offsite/?url={{ page.url | urlencode }}"
                        target="_blank" rel="noopener noreferrer"
                        class="share-button share-linkedin"
                        aria-label="Share on LinkedIn">
@@ -154,7 +154,7 @@
                         </svg>
                         LinkedIn
                     </a>
-                    <a href="https://www.facebook.com/sharer/sharer.php?u={{ page.url | urlencode }}" 
+                    <a href="https://www.facebook.com/sharer/sharer.php?u={{ page.url | urlencode }}"
                        target="_blank" rel="noopener noreferrer"
                        class="share-button share-facebook"
                        aria-label="Share on Facebook">
@@ -163,7 +163,7 @@
                         </svg>
                         Facebook
                     </a>
-                    <button class="share-button share-copy" 
+                    <button class="share-button share-copy"
                             onclick="navigator.clipboard.writeText('{{ page.url }}'); this.innerHTML = '✓ Copied!'"
                             aria-label="Copy link">
                         <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
@@ -176,7 +176,7 @@
             </div>
         </footer>
     </article>
-    
+
     {# Right Sidebar: TOC #}
     {% if toc %}
     <aside class="blog-sidebar">
@@ -186,7 +186,7 @@
                 {{ toc | safe }}
             </div>
         </nav>
-        
+
         {# Newsletter CTA (Optional) #}
         {% if page.metadata.show_newsletter %}
         <div class="newsletter-cta">
@@ -253,4 +253,3 @@
 </div>
 {% endif %}
 {% endblock %}
-

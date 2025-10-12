@@ -285,7 +285,7 @@ code .
 # 4. See the magic! ✨
 ```
 
-**That's it!** 
+**That's it!**
 
 If you see colorful directives, congratulations - your extension works! 🎊
 
@@ -303,4 +303,3 @@ If you see colorful directives, congratulations - your extension works! 🎊
 **Enjoy your new syntax highlighting!** 🎨
 
 Your Bengal markdown files will never look the same again - in a good way! 🚀
-

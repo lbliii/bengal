@@ -136,7 +136,7 @@ echo "/* test styles */" >> themes/default/assets/css/main.css
 ## Issues Found
 
 **Issue 1**:
-- Description: 
+- Description:
 - Severity: Critical / Major / Minor
 - Workaround:
 
@@ -156,4 +156,3 @@ echo "/* test styles */" >> themes/default/assets/css/main.css
 **Recommendation**: _____
 
 **Notes**: _____
-

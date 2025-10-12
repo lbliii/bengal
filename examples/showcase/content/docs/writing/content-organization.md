@@ -455,4 +455,3 @@ Now that you understand content organization:
 - [Getting Started](getting-started.md) - Create your first page
 - [Blog Posts](../content-types/blog-posts.md) - Writing blog content
 - [Documentation](../content-types/documentation.md) - Creating docs
-

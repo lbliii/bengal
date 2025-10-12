@@ -378,4 +378,3 @@ Master these basics, then explore:
 - [Getting Started](getting-started.md) - Create your first page
 - [Frontmatter Guide](frontmatter-guide.md) - Page metadata
 - [Kitchen Sink](../kitchen-sink.md) - See all features in action
-

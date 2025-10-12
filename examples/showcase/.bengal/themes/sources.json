@@ -1,0 +1,12 @@
+{
+  "records": [
+    {
+      "target": "partials/article-card.html",
+      "source": "/Users/llane/Documents/github/python/bengal/bengal/themes/default/templates/partials/article-card.html",
+      "theme": "default",
+      "upstream_checksum": "1a3093b104d58228",
+      "local_checksum": "1a3093b104d58228",
+      "timestamp": 1760230823.567441
+    }
+  ]
+}

@@ -7,7 +7,7 @@
     <article class="page prose {% if page.metadata.css_class %}{{ page.metadata.css_class }}{% endif %}">
         <header class="page-header">
             <h1>{{ page.title }}</h1>
-            
+
             {% if page.date or page.metadata.author %}
             <div class="article-meta">
                 {% if page.date %}
@@ -15,13 +15,13 @@
                     {{ page.date | time_ago }}
                 </time>
                 {% endif %}
-                
+
                 {% if page.metadata.author %}
                 <span class="author">
                     <span>By {{ page.metadata.author }}</span>
                 </span>
                 {% endif %}
-                
+
                 {% if page.content %}
                 <span class="reading-time">
                     {{ reading_time }} min read
@@ -30,11 +30,11 @@
             </div>
             {% endif %}
         </header>
-        
+
         <div class="page-content">
             {{ content | safe }}
         </div>
-        
+
         {% if page.tags %}
         <footer class="page-footer">
             <div class="tags">
@@ -46,7 +46,7 @@
         </footer>
         {% endif %}
     </article>
-    
+
     {% if toc %}
     <aside class="page-sidebar">
         <nav class="toc" aria-label="Table of contents">
@@ -55,7 +55,7 @@
                 {{ toc | safe }}
             </div>
         </nav>
-        
+
         {# Random posts - dogfooding sample() #}
         {% include 'partials/random-posts.html' %}
     </aside>
@@ -88,4 +88,3 @@
 </aside>
 {% endif %}
 {% endblock %}
-

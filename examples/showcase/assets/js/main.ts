@@ -7,5 +7,3 @@ const ready = (fn: () => void) => {
 ready(() => {
   console.log('Bengal pipeline example JS loaded');
 });
-
-

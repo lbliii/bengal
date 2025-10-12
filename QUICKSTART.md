@@ -262,4 +262,3 @@ pip install -r requirements.txt
 - [Documentation](https://bengal-ssg.github.io) - Read the docs
 
 Happy building with Bengal! 🐯
-

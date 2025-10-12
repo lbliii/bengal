@@ -216,9 +216,9 @@ Content""")
         # Beginner should come before advanced (weight 1 < weight 100)
         beginner_idx = docs_section.subsections.index(beginner_section)
         advanced_idx = docs_section.subsections.index(advanced_section)
-        assert beginner_idx < advanced_idx, (
-            "beginner(weight=1) should come before advanced(weight=100)"
-        )
+        assert (
+            beginner_idx < advanced_idx
+        ), "beginner(weight=1) should come before advanced(weight=100)"
 
         # Grandchild sections should be sorted within beginner
         assert len(beginner_section.subsections) == 2

@@ -11,24 +11,24 @@
    */
   function initTabs() {
     const tabContainers = document.querySelectorAll('.tabs, .code-tabs');
-    
+
     tabContainers.forEach(container => {
       const tabLinks = container.querySelectorAll('.tab-nav a');
       const tabPanes = container.querySelectorAll('.tab-pane');
-      
+
       // Add click handlers to tab links
       tabLinks.forEach((link, index) => {
         link.addEventListener('click', (e) => {
           e.preventDefault();
           switchTab(container, index);
         });
-        
+
         // Keyboard navigation
         link.addEventListener('keydown', (e) => {
           handleTabKeyboard(e, tabLinks, index);
         });
       });
-      
+
       // Handle hash-based tab activation
       const hash = window.location.hash;
       if (hash) {
@@ -49,18 +49,18 @@
   function switchTab(container, index) {
     const tabLinks = container.querySelectorAll('.tab-nav li');
     const tabPanes = container.querySelectorAll('.tab-pane');
-    
+
     // Remove active class from all tabs and panes
     tabLinks.forEach(li => li.classList.remove('active'));
     tabPanes.forEach(pane => pane.classList.remove('active'));
-    
+
     // Add active class to selected tab and pane
     if (tabLinks[index]) {
       tabLinks[index].classList.add('active');
     }
     if (tabPanes[index]) {
       tabPanes[index].classList.add('active');
-      
+
       // Trigger custom event for other scripts
       const event = new CustomEvent('tabSwitched', {
         detail: {
@@ -78,7 +78,7 @@
    */
   function handleTabKeyboard(e, tabLinks, currentIndex) {
     let newIndex = currentIndex;
-    
+
     switch(e.key) {
       case 'ArrowLeft':
         e.preventDefault();
@@ -99,7 +99,7 @@
       default:
         return;
     }
-    
+
     tabLinks[newIndex].focus({ preventScroll: true });
     tabLinks[newIndex].click();
   }
@@ -144,4 +144,3 @@
     switchTab: switchTab
   };
 })();
-

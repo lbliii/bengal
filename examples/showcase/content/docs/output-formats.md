@@ -53,7 +53,7 @@ fetch('/index.json')
     const index = lunr(function() {
       this.field('title');
       this.field('content');
-      
+
       data.pages.forEach(page => {
         this.add(page);
       });
@@ -361,7 +361,7 @@ fetch('/index.json')
       keys: ['title', 'excerpt', 'tags'],
       threshold: 0.3
     });
-    
+
     // Search on input
     document.getElementById('search-input').addEventListener('input', (e) => {
       const results = fuse.search(e.target.value);
@@ -405,7 +405,7 @@ response = openai.Embedding.create(
 # Use in RAG system
 def answer_question(question):
     context = search_relevant_content(question, site_content)
-    
+
     response = openai.ChatCompletion.create(
         model="gpt-4",
         messages=[
@@ -413,7 +413,7 @@ def answer_question(question):
             {"role": "user", "content": question}
         ]
     )
-    
+
     return response.choices[0].message.content
 ```
 
@@ -431,15 +431,15 @@ import { useState, useEffect } from 'react';
 
 function DocPage({ slug }) {
   const [page, setPage] = useState(null);
-  
+
   useEffect(() => {
     fetch(`/docs/${slug}/index.json`)
       .then(res => res.json())
       .then(data => setPage(data));
   }, [slug]);
-  
+
   if (!page) return <div>Loading...</div>;
-  
+
   return (
     <article>
       <h1>{page.title}</h1>
@@ -658,19 +658,19 @@ from bengal.postprocess.output_formats import OutputFormatsGenerator
 
 class CustomFormatGenerator(OutputFormatsGenerator):
     """Generate custom XML format."""
-    
+
     def generate_xml(self, pages):
         """Generate XML sitemap-like format."""
         xml = ['<?xml version="1.0" encoding="UTF-8"?>']
         xml.append('<pages>')
-        
+
         for page in pages:
             xml.append(f'  <page>')
             xml.append(f'    <title>{page.title}</title>')
             xml.append(f'    <url>{page.url}</url>')
             xml.append(f'    <date>{page.date}</date>')
             xml.append(f'  </page>')
-        
+
         xml.append('</pages>')
         return '\n'.join(xml)
 
@@ -898,4 +898,3 @@ json_indent = 2          # Pretty-print for developers
 **Last Updated:** October 4, 2025  
 **Version:** 1.0.0  
 **Unique Feature:** First SSG with native LLM output format support
-

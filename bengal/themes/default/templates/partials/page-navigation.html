@@ -1,4 +1,22 @@
-{# Page navigation component - prev/next links #}
+{#
+  Page Navigation Component
+
+  Displays previous/next page links for sequential navigation through content.
+
+  Variables:
+    - page: Current page object with prev and next attributes
+    - page.prev: Previous page object (optional)
+    - page.next: Next page object (optional)
+
+  Features:
+    - Shows both prev/next when available
+    - Gracefully handles missing links
+    - Uses rel="prev" and rel="next" for SEO
+    - Accessible navigation with arrows
+
+  Usage:
+    {% include 'partials/page-navigation.html' %}
+#}
 
 {% if page.prev or page.next %}
 <nav class="page-navigation" aria-label="Page navigation">
@@ -11,7 +29,7 @@
       </a>
     </div>
     {% endif %}
-    
+
     {% if page.next %}
     <div class="nav-next">
       <a href="{{ url_for(page.next) }}" rel="next">
@@ -23,4 +41,3 @@
   </div>
 </nav>
 {% endif %}
-

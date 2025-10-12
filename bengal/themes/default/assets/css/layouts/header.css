@@ -131,7 +131,7 @@ header .container {
   transform: translateY(-8px);
   transition: all var(--transition-fast) var(--ease-out);
   z-index: var(--z-dropdown);
-  
+
   /* Reset flex layout */
   display: block;
 }
@@ -346,4 +346,3 @@ header .container {
 [data-theme="dark"] .theme-toggle .icon-moon {
   display: none;
 }
-

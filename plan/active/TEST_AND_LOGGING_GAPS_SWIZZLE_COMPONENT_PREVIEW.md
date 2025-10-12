@@ -165,7 +165,7 @@ Location: `tests/unit/theme/test_swizzle.py` (4 tests)
 @pytest.fixture
 def component_site(tmp_path):
     """Site with component manifests for testing"""
-    
+
 @pytest.fixture
 def swizzle_site(tmp_path):
     """Site with theme templates for swizzle testing"""
@@ -176,9 +176,9 @@ def swizzle_site(tmp_path):
 ### Structured Logging Format
 ```python
 # Good
-logger.info("swizzle_start", 
-           template=template_path, 
-           theme=theme_name, 
+logger.info("swizzle_start",
+           template=template_path,
+           theme=theme_name,
            source=str(source_path))
 
 # Bad (current)
@@ -243,8 +243,8 @@ def view_page(self, comp_id: str, variant_id: Optional[str]) -> str:
 
 # Should log:
 if not comp:
-    logger.warning("component_not_found", 
-                  component_id=comp_id, 
+    logger.warning("component_not_found",
+                  component_id=comp_id,
                   available=list(comps.keys()))
     return f"<h1>Not found</h1>..."
 ```
@@ -253,8 +253,8 @@ if not comp:
 ```python
 # bengal/server/request_handler.py line 92-99
 except Exception as e:
-    logger.error("component_preview_failed", 
-                error=str(e), 
+    logger.error("component_preview_failed",
+                error=str(e),
                 error_type=type(e).__name__)
     # Good error logging exists!
     # But missing: path, query params, user context
@@ -309,4 +309,3 @@ pytest --cov=bengal.utils.swizzle --cov=bengal.server.component_preview --cov-re
 **Component Preview**: Needs everything (tests + logging)
 
 Both features are production-ready in terms of functionality, but need better observability and reliability through comprehensive testing and logging.
-

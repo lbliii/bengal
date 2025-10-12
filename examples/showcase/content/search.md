@@ -18,4 +18,3 @@ Use the search box above to find content across:
 - Examples
 
 Press **Cmd+K** (Mac) or **Ctrl+K** (Windows/Linux) to focus the search box from anywhere.
-

@@ -74,11 +74,11 @@ class PythonExtractor(Extractor):
     @override
     def extract(self, source: Path) -> list[DocElement]:
         ...
-    
+
     @override
     def get_template_dir(self) -> str:
         ...
-    
+
     @override
     def get_output_path(self, element: DocElement) -> Path:
         ...
@@ -120,7 +120,7 @@ class BengalRequestHandler(RequestLogger, LiveReloadMixin, http.server.SimpleHTT
     @override
     def handle(self) -> None:
         ...
-    
+
     @override
     def do_GET(self) -> None:
         ...
@@ -590,4 +590,3 @@ Bengal SSG is now fully utilizing Python 3.12 features:
 **Status**: ✅ Complete  
 **Date Completed**: 2025-10-12  
 **Next**: Move to `plan/completed/`
-

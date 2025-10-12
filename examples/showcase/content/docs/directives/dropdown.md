@@ -537,4 +537,3 @@ Ensure proper markdown formatting:
 - [Directives Overview](index.md) - All directive types
 - [Quick Reference](quick-reference.md) - Syntax cheatsheet
 - [Markdown Basics](../writing/markdown-basics.md) - Markdown syntax
-

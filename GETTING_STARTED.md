@@ -278,11 +278,11 @@ Create `templates/custom.html`:
         <time>{{ page.date | dateformat('%B %d, %Y') }}</time>
         {% endif %}
     </header>
-    
+
     <div class="content">
         {{ content | safe }}
     </div>
-    
+
     <footer>
         <p>Tags: {{ page.tags | join(', ') }}</p>
     </footer>
@@ -550,8 +550,8 @@ Metadata:
 fetch('/index.json')
   .then(r => r.json())
   .then(data => {
-    const results = data.pages.filter(p => 
-      p.title.includes(searchTerm) || 
+    const results = data.pages.filter(p =>
+      p.title.includes(searchTerm) ||
       p.excerpt.includes(searchTerm)
     );
   });
@@ -672,4 +672,3 @@ bengal new page <name>       # Create new page
 - **Docs**: https://bengal-ssg.github.io
 
 Happy building! 🐯
-

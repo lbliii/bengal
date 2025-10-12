@@ -361,4 +361,3 @@ Phase 2 tasks (future PR):
 ---
 
 **Recommended:** Commit in one go, or use staged approach. Both work!
-

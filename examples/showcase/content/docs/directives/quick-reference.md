@@ -368,4 +368,3 @@ When nesting code blocks, use 4 backticks ```` for the outer fence and 3 ``` for
 - **[Tabs](tabs.md)** - Tabbed content
 - **[Cards](cards.md)** - Card grids
 - **[Kitchen Sink](../kitchen-sink.md)** - Live examples
-

@@ -107,16 +107,16 @@ This is the first sentence. This is the second sentence that might get cut offâ€
 <head>
   {# Title #}
   <title>{{ page.title }} | {{ site.title }}</title>
-  
+
   {# Meta description #}
   {% set description = page.metadata.description or (page.content | meta_description(160)) %}
   <meta name="description" content="{{ description }}">
-  
+
   {# Open Graph #}
   <meta property="og:title" content="{{ page.title }}">
   <meta property="og:description" content="{{ description }}">
   <meta property="og:url" content="{{ canonical_url(page.url) }}">
-  
+
   {# Twitter Card #}
   <meta name="twitter:title" content="{{ page.title }}">
   <meta name="twitter:description" content="{{ description }}">
@@ -319,10 +319,10 @@ Full canonical URL with site base URL.
 ```jinja2
 <head>
   <title>{{ page.title }}</title>
-  
+
   {# Canonical URL #}
   <link rel="canonical" href="{{ canonical_url(page.url) }}">
-  
+
   {# Open Graph URL #}
   <meta property="og:url" content="{{ canonical_url(page.url) }}">
 </head>
@@ -480,7 +480,7 @@ Full absolute URL to image for Open Graph tags.
   <meta property="og:image" content="{{ og_image(page.metadata.image or 'images/default-og.jpg') }}">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
-  
+
   {# Twitter Card #}
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="{{ page.title }}">
@@ -537,27 +537,27 @@ Full absolute URL to image for Open Graph tags.
   <title>{{ page.title }} | {{ site.title }}</title>
   <meta name="description" content="{{/* page.content | meta_description */}}">
   <link rel="canonical" href="{{ canonical_url(page.url) }}">
-  
+
   {# Open Graph (Facebook, LinkedIn) #}
   <meta property="og:site_name" content="{{ site.title }}">
   <meta property="og:type" content="article">
   <meta property="og:title" content="{{ page.title }}">
   <meta property="og:description" content="{{/* page.content | meta_description */}}">
   <meta property="og:url" content="{{ canonical_url(page.url) }}">
-  
+
   {% set og_img = page.metadata.image or 'images/default-share.jpg' %}
   <meta property="og:image" content="{{ og_image(og_img) }}">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta property="og:image:alt" content="{{ page.title }}">
-  
+
   {% if page.date %}
     <meta property="article:published_time" content="{{ page.date | iso_date }}">
   {% endif %}
   {% if page.metadata.author %}
     <meta property="article:author" content="{{ page.metadata.author }}">
   {% endif %}
-  
+
   {# Twitter Card #}
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:site" content="@{{ site.twitter }}">
@@ -605,40 +605,40 @@ Here's a complete head section using all SEO functions:
   {# Character encoding #}
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  
+
   {# Title #}
   <title>{{ page.title }} | {{ site.title }}</title>
-  
+
   {# Meta description #}
   {% set description = page.metadata.description or (page.content | meta_description(160)) %}
   <meta name="description" content="{{ description }}">
-  
+
   {# Meta keywords (optional) #}
   {% if page.tags %}
     <meta name="keywords" content="{{ page.tags | meta_keywords(10) }}">
   {% endif %}
-  
+
   {# Canonical URL #}
   <link rel="canonical" href="{{ canonical_url(page.url) }}">
-  
+
   {# Open Graph #}
   <meta property="og:site_name" content="{{ site.title }}">
   <meta property="og:type" content="website">
   <meta property="og:title" content="{{ page.title }}">
   <meta property="og:description" content="{{ description }}">
   <meta property="og:url" content="{{ canonical_url(page.url) }}">
-  
+
   {% set og_img = page.metadata.image or 'images/og-default.jpg' %}
   <meta property="og:image" content="{{ og_image(og_img) }}">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
-  
+
   {# Twitter Card #}
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="{{ page.title }}">
   <meta name="twitter:description" content="{{ description }}">
   <meta name="twitter:image" content="{{ og_image(og_img) }}">
-  
+
   {# Additional SEO #}
   <meta name="robots" content="index, follow">
   <link rel="alternate" type="application/rss+xml" title="{{ site.title }}" href="/rss.xml">
@@ -805,4 +805,3 @@ Use this checklist to ensure every page is SEO-optimized:
 **Functions:** 4  
 **Last Updated:** October 4, 2025  
 **SEO Impact:** High - These functions directly affect search rankings and social sharing
-

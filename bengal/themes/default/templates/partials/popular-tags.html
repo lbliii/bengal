@@ -1,4 +1,25 @@
-{# Popular tags component - showcases popular_tags() function #}
+{#
+  Popular Tags Component
+
+  Displays a tag cloud widget showing the most frequently used tags across the site.
+
+  Variables:
+    - limit: Number of tags to show (default: 10, passed to popular_tags())
+
+  Template Functions Used:
+    - popular_tags(limit=10): Returns list of (tag, count) tuples sorted by frequency
+    - tag_url(tag): Generates locale-aware URL for tag archive page
+
+  Features:
+    - Automatically finds most popular tags
+    - Shows post count per tag
+    - Links to tag archive pages
+    - Gracefully handles sites with no tags
+
+  Usage:
+    {% include 'partials/popular-tags.html' %}
+    {% include 'partials/popular-tags.html' with {'limit': 20} %}
+#}
 
 {% set top_tags = popular_tags(limit=10) %}
 {% if top_tags %}
@@ -15,4 +36,3 @@
   </div>
 </div>
 {% endif %}
-

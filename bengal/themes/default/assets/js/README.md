@@ -23,10 +23,10 @@ Each JavaScript file uses an IIFE (Immediately Invoked Function Expression) modu
  */
 (function() {
   'use strict';
-  
+
   // Module state
   let state = {};
-  
+
   /**
    * Private helper function
    * @private
@@ -34,7 +34,7 @@ Each JavaScript file uses an IIFE (Immediately Invoked Function Expression) modu
   function privateFunction() {
     // Implementation
   }
-  
+
   /**
    * Public initialization function
    * @public
@@ -42,7 +42,7 @@ Each JavaScript file uses an IIFE (Immediately Invoked Function Expression) modu
   function init() {
     // Setup code
   }
-  
+
   // Auto-initialize on DOM ready
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
@@ -522,7 +522,7 @@ function trapFocus(container) {
   );
   const firstFocusable = focusable[0];
   const lastFocusable = focusable[focusable.length - 1];
-  
+
   container.addEventListener('keydown', (e) => {
     if (e.key === 'Tab') {
       if (e.shiftKey && document.activeElement === firstFocusable) {
@@ -604,7 +604,7 @@ if ('IntersectionObserver' in window) {
  */
 (function() {
   'use strict';
-  
+
   /**
    * Initialize the new feature
    * @public
@@ -612,7 +612,7 @@ if ('IntersectionObserver' in window) {
   function init() {
     console.log('New feature initialized');
   }
-  
+
   // Auto-initialize
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
@@ -656,11 +656,11 @@ class UserManager {}
 ```javascript
 /**
  * Function description
- * 
+ *
  * @param {string} name - Parameter description
  * @param {number} age - Parameter description
  * @returns {Object} Return value description
- * 
+ *
  * @example
  * createUser('John', 30);
  */
@@ -838,4 +838,3 @@ if (typeof Storage !== 'undefined') {
 ## License
 
 MIT License - See [LICENSE](../../../../../LICENSE) for details
-

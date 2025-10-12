@@ -36,9 +36,9 @@ class TestParserSelection:
         pipeline = RenderingPipeline(site, quiet=True)
 
         # Should select MistuneParser
-        assert isinstance(pipeline.parser, MistuneParser), (
-            "Failed to select Mistune parser from nested [markdown] config"
-        )
+        assert isinstance(
+            pipeline.parser, MistuneParser
+        ), "Failed to select Mistune parser from nested [markdown] config"
 
     def test_mistune_parser_selected_from_flat_config(self, tmp_path):
         """Test parser selection when config has top-level markdown_engine."""
@@ -57,9 +57,9 @@ class TestParserSelection:
         pipeline = RenderingPipeline(site, quiet=True)
 
         # Should select MistuneParser
-        assert isinstance(pipeline.parser, MistuneParser), (
-            "Failed to select Mistune parser from flat markdown_engine config"
-        )
+        assert isinstance(
+            pipeline.parser, MistuneParser
+        ), "Failed to select Mistune parser from flat markdown_engine config"
 
     def test_python_markdown_parser_default(self, tmp_path):
         """Test that python-markdown is the default when not specified."""
@@ -76,9 +76,9 @@ class TestParserSelection:
         pipeline = RenderingPipeline(site, quiet=True)
 
         # Should default to PythonMarkdownParser
-        assert isinstance(pipeline.parser, PythonMarkdownParser), (
-            "Failed to default to python-markdown parser"
-        )
+        assert isinstance(
+            pipeline.parser, PythonMarkdownParser
+        ), "Failed to default to python-markdown parser"
 
     def test_flat_config_takes_precedence(self, tmp_path):
         """Test that flat markdown_engine takes precedence over nested."""
@@ -99,9 +99,9 @@ class TestParserSelection:
         pipeline = RenderingPipeline(site, quiet=True)
 
         # Should use flat config (backward compatibility)
-        assert isinstance(pipeline.parser, PythonMarkdownParser), (
-            "Flat markdown_engine should take precedence for backward compatibility"
-        )
+        assert isinstance(
+            pipeline.parser, PythonMarkdownParser
+        ), "Flat markdown_engine should take precedence for backward compatibility"
 
     def test_parser_reuse_across_threads(self, tmp_path):
         """Test that parsers are reused within the same thread."""
@@ -123,9 +123,9 @@ class TestParserSelection:
         pipeline2 = RenderingPipeline(site2, quiet=True)
 
         # Same thread, same engine = same parser instance (thread-local caching)
-        assert pipeline1.parser is pipeline2.parser, (
-            "Parser should be reused within the same thread"
-        )
+        assert (
+            pipeline1.parser is pipeline2.parser
+        ), "Parser should be reused within the same thread"
 
 
 class TestMistuneDirectives:
@@ -175,9 +175,9 @@ Second tab content
         html = parser.parse(markdown, {})
 
         # Should contain tabs HTML
-        assert 'class="tabs"' in html or 'class="tab' in html, (
-            "Mistune parser should process tabs directive"
-        )
+        assert (
+            'class="tabs"' in html or 'class="tab' in html
+        ), "Mistune parser should process tabs directive"
         assert "First" in html
         assert "Second" in html
         # Should NOT contain raw directive syntax
@@ -199,9 +199,9 @@ This is a note directive.
 
         # Python-markdown will treat this as a code block
         # (it doesn't have our custom directives)
-        assert "<code>" in html or "<pre>" in html, (
-            "python-markdown should render directive syntax as code"
-        )
+        assert (
+            "<code>" in html or "<pre>" in html
+        ), "python-markdown should render directive syntax as code"
 
 
 class TestConfigIntegration:
@@ -243,9 +243,9 @@ table_of_contents = true
         pipeline = RenderingPipeline(site, quiet=True)
 
         # CRITICAL: Should use Mistune, not python-markdown
-        assert isinstance(pipeline.parser, MistuneParser), (
-            "Site with [markdown] parser='mistune' should use MistuneParser"
-        )
+        assert isinstance(
+            pipeline.parser, MistuneParser
+        ), "Site with [markdown] parser='mistune' should use MistuneParser"
 
 
 if __name__ == "__main__":

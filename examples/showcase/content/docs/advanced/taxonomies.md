@@ -331,4 +331,3 @@ categories: ["Programming"]
 - [Content Organization](../writing/content-organization.md) - Structure
 - [Internal Links](../writing/internal-links.md) - Cross-references
 - [Blog Posts](../content-types/blog-posts.md) - Post metadata
-

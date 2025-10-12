@@ -1,7 +1,7 @@
 /**
  * Bengal SSG Default Theme
  * Search Component
- * 
+ *
  * Search UI placeholder for future search integration.
  * Works without JavaScript (form submission).
  * Can be enhanced with JS for live search.
@@ -288,11 +288,11 @@
   .search__submit {
     padding: 0.875rem 1rem;
   }
-  
+
   .header-search {
     max-width: 100%;
   }
-  
+
   .search__shortcut {
     display: none; /* Hide keyboard hints on mobile */
   }
@@ -302,16 +302,16 @@
   .search__form {
     flex-direction: column;
   }
-  
+
   .search__submit {
     width: 100%;
   }
-  
+
   .search__input {
     padding: 0.75rem 1rem 0.75rem 2.5rem;
     font-size: var(--text-body-small);
   }
-  
+
   .search__icon {
     width: 18px;
     height: 18px;
@@ -349,4 +349,3 @@
     transform: translateY(-50%) rotate(360deg);
   }
 }
-

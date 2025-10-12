@@ -209,4 +209,3 @@ Check these files:
 - `examples/test.md` - Test all features
 
 Or open an issue on the Bengal SSG repository.
-

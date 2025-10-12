@@ -58,5 +58,3 @@ Key takeaways:
 - Template resolution: project → theme → bundled default.
 - Per-page template selection: explicit → type → section → fallback.
 - Asset precedence: site assets override theme assets.
-
-

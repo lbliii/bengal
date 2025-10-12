@@ -251,4 +251,3 @@ The server module now complements previous improvements:
 - Utils modules (file I/O, caching)
 
 **Result**: The entire Bengal codebase now has professional, comprehensive documentation! ✨
-

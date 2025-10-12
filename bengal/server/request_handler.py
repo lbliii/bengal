@@ -6,6 +6,7 @@ Provides beautiful logging, custom 404 pages, and live reload support.
 
 import http.server
 import re
+import threading
 from pathlib import Path
 from typing import override
 
@@ -30,6 +31,16 @@ class BengalRequestHandler(RequestLogger, LiveReloadMixin, http.server.SimpleHTT
     # Suppress default server version header
     server_version = "Bengal/1.0"
     sys_version = ""
+
+    # Cached Site instance for component preview (avoids expensive reconstruction on every request)
+    _cached_site = None
+    _cached_site_root = None
+
+    # Cache for injected HTML responses (avoids re-reading files on rapid navigation)
+    # Key: (file_path, mtime), Value: (modified_content, headers)
+    _html_cache = {}
+    _html_cache_max_size = 50  # Keep last 50 pages in cache
+    _html_cache_lock = threading.Lock()
 
     @override
     def handle(self) -> None:
@@ -72,11 +83,21 @@ class BengalRequestHandler(RequestLogger, LiveReloadMixin, http.server.SimpleHTT
     def _handle_component_preview(self) -> None:
         try:
             # Site is bound at server creation via directory chdir; fetch from env on demand
-            # We reconstruct Site from output_dir parent as a safe default.
+            # Use cached Site instance to avoid expensive reconstruction on every request
             from bengal.core.site import Site
 
             site_root = Path(self.directory).parent  # output_dir -> site root
-            site = Site.from_config(site_root)
+
+            # Cache the site object to avoid expensive reconstruction
+            if (
+                BengalRequestHandler._cached_site is None
+                or BengalRequestHandler._cached_site_root != site_root
+            ):
+                logger.debug("component_preview_initializing_site", site_root=str(site_root))
+                BengalRequestHandler._cached_site = Site.from_config(site_root)
+                BengalRequestHandler._cached_site_root = site_root
+
+            site = BengalRequestHandler._cached_site
             cps = ComponentPreviewServer(site)
 
             # Routing

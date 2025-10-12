@@ -68,7 +68,7 @@ Bengal follows a clean architectural pattern where:
 
 Let's trace where Page methods actually do their work:
 
-### 1. **page.render(template_engine)** 
+### 1. **page.render(template_engine)**
 
 ```python
 # Page package (NO logging)
@@ -79,7 +79,7 @@ def render(self, template_engine: Any) -> str:
     return self.rendered_html
 ```
 
-**Who logs it?** 
+**Who logs it?**
 - `RenderOrchestrator` logs rendering operations
 - Pipeline logs parsing operations
 - Template functions log template-specific operations
@@ -147,7 +147,7 @@ def extract_links(self) -> List[str]:
    # Easy to test Page without mocking logging
    page = Page(source_path=Path("test.md"))
    assert page.title == "Test"
-   
+
    # vs having to do:
    with patch('bengal.core.page.logger'):
        page = Page(source_path=Path("test.md"))
@@ -200,7 +200,7 @@ logger.info("pages_rendered",
 **Page Operations:**
 ```python
 # Template functions log data access
-logger.debug("loading_file", 
+logger.debug("loading_file",
             path=str(file_path),
             relative_to=str(base_dir))
 ```
@@ -223,7 +223,7 @@ class Page:
     def __init__(self, ...):
         self.logger = get_logger(__name__)
         self.logger.debug("page_created", path=str(source_path))  # NO!
-    
+
     @property
     def title(self):
         self.logger.debug("accessing_title", title=self.metadata.get("title"))  # NO!
@@ -370,4 +370,3 @@ The Page package follows Bengal's architectural pattern:
 - `SERVER_OBSERVABILITY_COMPLETE.md` - Server module observability
 - `OBSERVABILITY_QUICK_WINS_COMPLETE.md` - Cache/discovery logging
 - `PAGE_REFACTORING.md` - Page modularization details
-

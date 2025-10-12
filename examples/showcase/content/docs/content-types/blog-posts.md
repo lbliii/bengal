@@ -341,4 +341,3 @@ toc: true
 - [Content Types Overview](index.md) - All types
 - [Getting Started](../writing/getting-started.md) - Create content
 - [Internal Links](../writing/internal-links.md) - Cross-references
-

@@ -82,10 +82,10 @@ Filtered list containing only items where `item[key] == value`.
 
 ```jinja2
 {# Get 5 most recent published posts #}
-{% set recent = posts 
-    | where('draft', false) 
-    | sort_by('date', reverse=true) 
-    | limit(5) 
+{% set recent = posts
+    | where('draft', false)
+    | sort_by('date', reverse=true)
+    | limit(5)
 %}
 ```
 
@@ -96,7 +96,7 @@ Filtered list containing only items where `item[key] == value`.
 **Filter by multiple criteria:**
 ```jinja2
 {# Published posts in specific category #}
-{% set featured = posts 
+{% set featured = posts
     | where('draft', false)
     | where('featured', true)
     | where('category', 'tutorial')
@@ -523,7 +523,7 @@ First N items from list.
 {% set start = (page_num - 1) * page_size %}
 
 {# Get one page of posts #}
-{% set page_posts = posts 
+{% set page_posts = posts
     | sort_by('date', reverse=true)
     | offset(start)
     | limit(page_size)
@@ -540,7 +540,7 @@ First N items from list.
   {% if page_num > 1 %}
     <a href="?page={{ page_num - 1 }}">Previous</a>
   {% endif %}
-  
+
   {% if posts | length > page_num * page_size %}
     <a href="?page={{ page_num + 1 }}">Next</a>
   {% endif %}
@@ -594,10 +594,10 @@ Items after skipping first N items.
 
 ```jinja2
 {# Second page - skip first 10 #}
-{% set page_2 = posts 
-    | sort_by('date', reverse=true) 
-    | offset(10) 
-    | limit(10) 
+{% set page_2 = posts
+    | sort_by('date', reverse=true)
+    | offset(10)
+    | limit(10)
 %}
 ```
 
@@ -605,9 +605,9 @@ Items after skipping first N items.
 
 ```jinja2
 {# Skip 20 most recent, show older #}
-{% set archive = posts 
-    | sort_by('date', reverse=true) 
-    | offset(20) 
+{% set archive = posts
+    | sort_by('date', reverse=true)
+    | offset(20)
 %}
 
 <div class="archive">
@@ -812,10 +812,10 @@ For deep nesting, apply flatten multiple times or use recursion.
 <aside class="sidebar">
   <h3>Recent Posts</h3>
   <ul>
-    {% for post in posts 
-        | where('draft', false) 
-        | sort_by('date', reverse=true) 
-        | limit(5) 
+    {% for post in posts
+        | where('draft', false)
+        | sort_by('date', reverse=true)
+        | limit(5)
     %}
       <li>
         <a href="{{ post.url }}">{{ post.title }}</a>
@@ -835,7 +835,7 @@ For deep nesting, apply flatten multiple times or use recursion.
   {% for year in by_year.keys() | sort(reverse=true) %}
     <div class="year">
       <h2>{{ year }}</h2>
-      
+
       {% set by_month = by_year[year] | group_by('month') %}
       {% for month in by_month.keys() | sort(reverse=true) %}
         <div class="month">
@@ -867,7 +867,7 @@ For deep nesting, apply flatten multiple times or use recursion.
 {# Display tag cloud #}
 <div class="tag-cloud">
   {% for tag, count in tag_counts.items() | sort %}
-    <a href="/tags/{{ tag | slugify }}/" 
+    <a href="/tags/{{ tag | slugify }}/"
        class="tag tag-size-{{ (count / 5) | int }}">
       {{ tag }} ({{ count }})
     </a>
@@ -879,18 +879,18 @@ For deep nesting, apply flatten multiple times or use recursion.
 
 ```jinja2
 {# Show featured posts differently #}
-{% set featured = posts 
-    | where('featured', true) 
+{% set featured = posts
+    | where('featured', true)
     | where('draft', false)
-    | sort_by('date', reverse=true) 
-    | limit(3) 
+    | sort_by('date', reverse=true)
+    | limit(3)
 %}
 
-{% set recent = posts 
+{% set recent = posts
     | where_not('featured', true)
-    | where('draft', false) 
-    | sort_by('date', reverse=true) 
-    | limit(10) 
+    | where('draft', false)
+    | sort_by('date', reverse=true)
+    | limit(10)
 %}
 
 <section class="featured">
@@ -924,7 +924,7 @@ For deep nesting, apply flatten multiple times or use recursion.
 
 **Good:** Filter early, sort once
 ```jinja2
-{% set results = posts 
+{% set results = posts
     | where('draft', false)      # Filter first (fast)
     | where('category', 'tech')  # Filter more
     | sort_by('date', reverse=true)  # Then sort
@@ -934,7 +934,7 @@ For deep nesting, apply flatten multiple times or use recursion.
 
 **Avoid:** Sorting before filtering
 ```jinja2
-{% set results = posts 
+{% set results = posts
     | sort_by('date', reverse=true)  # Sorting ALL posts
     | where('draft', false)          # Then filtering (wasted work)
 %}
@@ -1017,4 +1017,3 @@ Safe to chain multiple operations on 1000s of items!
 **Module:** `bengal.rendering.template_functions.collections`  
 **Functions:** 8  
 **Last Updated:** October 4, 2025
-

@@ -2,7 +2,7 @@
 
 {#
   Search Results Page
-  
+
   Dedicated page for search functionality with full-screen experience.
   Can be accessed directly at /search/ or used as a fallback.
 #}
@@ -17,14 +17,14 @@
       Search through {{ site.pages | length }} pages of documentation, tutorials, and guides.
     </p>
   </header>
-  
+
   {# Search Component #}
   {% include 'partials/search.html' %}
-  
+
   {# Search Tips #}
   <div class="search-tips">
     <h2>Search Tips</h2>
-    
+
     <div class="tips-grid">
       <div class="tip-card">
         <h3>💡 Keyboard Shortcuts</h3>
@@ -34,7 +34,7 @@
           <li><kbd>Esc</kbd> - Clear search or close</li>
         </ul>
       </div>
-      
+
       <div class="tip-card">
         <h3>🎯 Search Operators</h3>
         <ul>
@@ -44,7 +44,7 @@
           <li><code>title:bengal</code> - Search in title only</li>
         </ul>
       </div>
-      
+
       <div class="tip-card">
         <h3>🔍 Advanced Search</h3>
         <ul>
@@ -54,7 +54,7 @@
           <li>Content includes titles, descriptions, and body text</li>
         </ul>
       </div>
-      
+
       <div class="tip-card">
         <h3>📚 What's Indexed?</h3>
         <ul>
@@ -66,7 +66,7 @@
       </div>
     </div>
   </div>
-  
+
   {# Popular Searches (optional - can be customized) #}
   <div class="popular-searches">
     <h2>Popular Searches</h2>
@@ -86,7 +86,7 @@
 <script>
 (function() {
   'use strict';
-  
+
   // Handle popular search clicks
   document.querySelectorAll('.popular-search-link').forEach(link => {
     link.addEventListener('click', function(e) {
@@ -97,7 +97,7 @@
         searchInput.value = query;
         searchInput.dispatchEvent(new Event('input', { bubbles: true }));
         searchInput.focus();
-        
+
         // Scroll to results
         setTimeout(() => {
           const results = document.getElementById('search-results');
@@ -108,7 +108,7 @@
       }
     });
   });
-  
+
   // Check URL hash for initial query
   if (window.location.hash) {
     const query = decodeURIComponent(window.location.hash.substring(1));
@@ -260,11 +260,11 @@
   .tips-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .search-page-header h1 {
     font-size: var(--text-3xl);
   }
-  
+
   .search-tips h2,
   .popular-searches h2 {
     font-size: var(--text-xl);
@@ -272,4 +272,3 @@
 }
 </style>
 {% endblock %}
-

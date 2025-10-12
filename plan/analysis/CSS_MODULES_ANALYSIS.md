@@ -14,7 +14,7 @@ According to the [Lightning CSS CSS Modules docs](https://lightningcss.dev/css-m
    ```css
    /* Input */
    .logo { background: skyblue; }
-   
+
    /* Output */
    .8h19c6_logo { background: skyblue; }
    ```
@@ -383,4 +383,3 @@ CSS Modules are designed for JavaScript applications with component systems. Ben
 ---
 
 **Conclusion**: Bengal's CSS approach is correct. CSS Modules would be a mistake.
-

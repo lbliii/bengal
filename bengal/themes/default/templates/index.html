@@ -2,16 +2,16 @@
 
 {#
   Generic Section Index Template
-  
+
   Used for non-chronological section landing pages.
   Falls back when no specialized template exists.
-  
+
   Context variables:
     - section: Section object (for auto-generated pages)
     - page: Page object (for explicit _index.md files)
     - posts: Child pages (_posts)
     - subsections: Child sections (_subsections)
-  
+
   Frontmatter options:
     - show_children: true/false (default: true)
       Controls whether child pages and subsections are displayed as tiles
@@ -23,27 +23,27 @@
 <div class="section-index">
     <header class="section-header">
         <h1>{{ page.title if page else section.title if section else site.config.title }}</h1>
-        
+
         {% if page and page.metadata.description %}
         <p class="section-description">{{ page.metadata.description }}</p>
         {% elif section and section.metadata.description %}
         <p class="section-description">{{ section.metadata.description }}</p>
         {% endif %}
     </header>
-    
+
     {# User-provided content (from _index.md) #}
     {% if content %}
     <div class="section-content prose">
         {{ content | safe }}
     </div>
     {% endif %}
-    
+
     {# Child content display - can be disabled via frontmatter: show_children: false #}
     {% set show_children = page.metadata.get('show_children', true) if page else true %}
     {% if show_children %}
         {% include 'partials/child-page-tiles.html' %}
     {% endif %}
-    
+
     {# Empty state if no children to display #}
     {% if not (posts or subsections) %}
     {# Empty state with helpful guidance #}
@@ -65,4 +65,3 @@
     {% endif %}
 </div>
 {% endblock %}
-

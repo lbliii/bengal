@@ -2,12 +2,12 @@
 
 {#
   Documentation Template
-  
+
   Three-column layout optimized for documentation sites:
   - Left sidebar: Navigation tree
   - Center: Content
   - Right sidebar: TOC + metadata
-  
+
   Usage: Set `template: doc.html` in frontmatter
   Or set `type: doc` to auto-select this template
 #}
@@ -19,30 +19,30 @@
   <aside class="docs-sidebar" id="docs-sidebar" role="navigation" aria-label="Documentation navigation">
     {% include 'partials/docs-nav.html' %}
   </aside>
-  
+
   {# Main Content #}
   <div class="docs-main">
     {# Breadcrumbs #}
     {% include 'partials/breadcrumbs.html' %}
-    
+
     {# Article Content #}
     <article class="prose {% if page.metadata.css_class %}{{ page.metadata.css_class }}{% endif %}">
       <header class="docs-header">
         <h1>{{ page.title }}</h1>
-        
+
         {% if page.metadata.description %}
         <p class="lead">{{ page.metadata.description }}</p>
         {% endif %}
-        
+
         {# Document metadata #}
         {% include 'partials/docs-meta.html' %}
       </header>
-      
+
       {# Main content #}
       <div class="docs-content">
         {{ content | safe }}
       </div>
-      
+
       {# Tags #}
       {% if page.tags %}
       <footer class="docs-footer">
@@ -50,11 +50,11 @@
       </footer>
       {% endif %}
     </article>
-    
+
     {# Page navigation (prev/next) at bottom #}
     {% include 'partials/page-navigation.html' %}
   </div>
-  
+
   {# Right Sidebar: TOC + Metadata #}
   {% if toc %}
   <aside class="docs-toc" role="complementary" aria-label="Table of contents">
@@ -64,8 +64,8 @@
 </div>
 
 {# Mobile sidebar toggle button #}
-<button 
-  class="docs-sidebar-toggle" 
+<button
+  class="docs-sidebar-toggle"
   aria-label="Toggle navigation sidebar"
   aria-expanded="false"
   aria-controls="docs-sidebar">
@@ -80,62 +80,4 @@
 <div class="docs-sidebar-overlay" aria-hidden="true"></div>
 {% endblock %}
 
-{% block extra_js %}
-{# Sidebar toggle functionality #}
-<script>
-(function() {
-  'use strict';
-  
-  const sidebar = document.getElementById('docs-sidebar');
-  const toggle = document.querySelector('.docs-sidebar-toggle');
-  const overlay = document.querySelector('.docs-sidebar-overlay');
-  
-  if (!sidebar || !toggle || !overlay) return;
-  
-  function openSidebar() {
-    sidebar.classList.add('open');
-    overlay.classList.add('visible');
-    toggle.setAttribute('aria-expanded', 'true');
-    document.body.style.overflow = 'hidden'; // Prevent scrolling
-  }
-  
-  function closeSidebar() {
-    sidebar.classList.remove('open');
-    overlay.classList.remove('visible');
-    toggle.setAttribute('aria-expanded', 'false');
-    document.body.style.overflow = '';
-  }
-  
-  function toggleSidebar() {
-    if (sidebar.classList.contains('open')) {
-      closeSidebar();
-    } else {
-      openSidebar();
-    }
-  }
-  
-  // Toggle button click
-  toggle.addEventListener('click', toggleSidebar);
-  
-  // Overlay click (close sidebar)
-  overlay.addEventListener('click', closeSidebar);
-  
-  // Close on escape key
-  document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape' && sidebar.classList.contains('open')) {
-      closeSidebar();
-    }
-  });
-  
-  // Close sidebar when clicking a link (mobile)
-  sidebar.querySelectorAll('a').forEach(function(link) {
-    link.addEventListener('click', function() {
-      if (window.innerWidth <= 768) {
-        closeSidebar();
-      }
-    });
-  });
-})();
-</script>
-{% endblock %}
-
+{# Sidebar toggle functionality is handled by interactive.js #}

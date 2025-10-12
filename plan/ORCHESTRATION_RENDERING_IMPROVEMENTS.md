@@ -135,4 +135,3 @@ The orchestration and rendering modules now have:
 - **Clear notes** on error handling and edge cases
 
 Combined with the previous improvements to analysis, cache, and config modules, Bengal now has **consistent, professional-grade documentation** across its entire codebase.
-

@@ -415,12 +415,12 @@ class TestIntegrationScenarios:
 
         # Verify generated indexes for others
         assert docs.index_page.metadata.get("_generated"), "docs should have auto-generated index"
-        assert markdown.index_page.metadata.get("_generated"), (
-            "markdown should have auto-generated index"
-        )
-        assert templates.index_page.metadata.get("_generated"), (
-            "templates should have auto-generated index"
-        )
+        assert markdown.index_page.metadata.get(
+            "_generated"
+        ), "markdown should have auto-generated index"
+        assert templates.index_page.metadata.get(
+            "_generated"
+        ), "templates should have auto-generated index"
 
         # Validate no errors
         errors = orchestrator.validate_sections()

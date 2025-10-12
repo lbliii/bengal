@@ -231,4 +231,3 @@ Now try writing your own programs!
 - [Markdown Basics](markdown-basics.md) - Essential markdown syntax
 - [Content Organization](content-organization.md) - Site structure
 - [Blog Posts](../content-types/blog-posts.md) - Writing blog content
-

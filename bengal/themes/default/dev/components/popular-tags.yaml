@@ -1,0 +1,31 @@
+name: "Popular Tags"
+template: "partials/popular-tags.html"
+description: "Tag cloud widget showing most frequently used tags"
+variants:
+  - id: "default"
+    name: "Default (10 tags)"
+    context:
+      # Note: popular_tags() is a template function that queries the site
+      # For preview, we'll need to mock its return value or accept it won't render fully
+      # This demonstrates the challenge of components that depend on global template functions
+      site:
+        config:
+          title: "Bengal SSG"
+      # Mock data that the template would use if we could inject it
+      _preview_note: "This component uses popular_tags() function which requires full site context"
+
+  - id: "many"
+    name: "Many Tags (20+ tags)"
+    context:
+      site:
+        config:
+          title: "Bengal SSG"
+      _preview_note: "In real usage, set limit parameter: popular_tags(limit=20)"
+
+  - id: "few"
+    name: "Few Tags (3-5 tags)"
+    context:
+      site:
+        config:
+          title: "Bengal SSG"
+      _preview_note: "In real usage, set limit parameter: popular_tags(limit=5)"

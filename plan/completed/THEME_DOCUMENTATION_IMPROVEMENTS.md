@@ -686,4 +686,3 @@ This documentation enables developers to:
 - ✅ Maintain quality (with best practices)
 
 **The Bengal Default Theme documentation is now on par with or exceeds the best SSG themes available!** 🎉
-

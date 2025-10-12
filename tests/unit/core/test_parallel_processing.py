@@ -140,9 +140,9 @@ parallel = true
         # Compare files
         assert parallel_files.keys() == sequential_files.keys()
         for filename in parallel_files:
-            assert parallel_files[filename] == sequential_files[filename], (
-                f"File {filename} differs"
-            )
+            assert (
+                parallel_files[filename] == sequential_files[filename]
+            ), f"File {filename} differs"
 
     def test_asset_processing_with_errors(self, temp_site_dir):
         """Test that errors in one asset don't crash entire build."""

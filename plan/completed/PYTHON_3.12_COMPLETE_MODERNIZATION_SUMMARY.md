@@ -313,4 +313,3 @@ cd examples/showcase && python -c "from bengal.cli import main; main()" build
 
 **Status**: ✅ Complete  
 **Recommendation**: Commit all changes with message: "Complete Python 3.12 modernization (Phases 1 & 2)"
-

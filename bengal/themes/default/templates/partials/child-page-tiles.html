@@ -1,23 +1,23 @@
 {#
   Child Page Tiles Component
-  
-  Displays subsections and child pages as compact rows.
-  Used primarily in index templates to show section contents.
-  
+
+  Displays subsections and child pages as compact row-based items with icons.
+
   Variables:
-    - posts: List of child pages to display (pre-sorted by weight during discovery)
-    - subsections: List of child sections to display (pre-sorted by weight during discovery)
-  
+    - posts: List of child pages to display (optional)
+    - subsections: List of child sections to display (optional)
+
   Features:
-    - Merges sections and pages into unified list
-    - Sorts by weight (lower weight = higher in list)
+    - Merges sections and pages into unified sorted list
+    - Sorts by weight (lower = higher priority), then by title
+    - Shows folder icon for sections, document icon for pages
+    - Displays description and metadata (page count, date)
     - Compact row-based layout
-    - Shows description and metadata
-  
+
   Note:
-    Pages and subsections are pre-sorted by weight during content discovery,
-    but we re-sort the merged list to maintain proper ordering when combining both.
-  
+    This component has complex sorting logic that could be moved to a
+    Python template function: get_child_items(posts, subsections)
+
   Usage:
     {% include 'partials/child-page-tiles.html' %}
 #}
@@ -75,15 +75,15 @@
         </svg>
         {% endif %}
       </div>
-      
+
       <div class="child-item-content">
         <span class="child-item-title">
           <a href="{{ item.url }}">{{ item.title }}</a>
-        
+
         {% if item.description %}
         <span class="child-item-description">{{ item.description }}</span>
         {% endif %}
-        
+
         <span class="child-item-meta">
           {% if item.type == 'section' and item.page_count > 0 %}
           <span class="meta-item">{{ item.page_count }} page{{ 's' if item.page_count != 1 }}</span>
@@ -98,4 +98,3 @@
   </div>
 </section>
 {% endif %}
-

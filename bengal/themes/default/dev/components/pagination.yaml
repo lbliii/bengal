@@ -1,0 +1,24 @@
+name: "Pagination"
+template: "partials/pagination.html"
+description: "Page number controls for paginated content"
+variants:
+  - id: "middle"
+    name: "Middle Page"
+    context:
+      current_page: 5
+      total_pages: 10
+      base_url: "/blog/"
+
+  - id: "first"
+    name: "First Page"
+    context:
+      current_page: 1
+      total_pages: 8
+      base_url: "/blog/"
+
+  - id: "last"
+    name: "Last Page"
+    context:
+      current_page: 8
+      total_pages: 8
+      base_url: "/blog/"

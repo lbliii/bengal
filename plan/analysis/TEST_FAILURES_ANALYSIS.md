@@ -13,7 +13,7 @@
 These are legitimate bugs in the production code that need fixing:
 
 #### 1. **Taxonomy Incremental Updates** (2 tests) - REAL BUG
-- `test_incremental_collection_tag_removed` 
+- `test_incremental_collection_tag_removed`
 - `test_incremental_collection_multiple_pages`
 - **Issue:** Empty tags are not being removed during incremental builds
 - **Evidence:** Tag 'django' persists even after being removed from all pages
@@ -68,7 +68,7 @@ All failing with same root cause:
 
 **Issue:** Mock objects don't properly simulate `site.theme` attribute  
 **Error:** `TypeError: unsupported operand type(s) for /: 'PosixPath' and 'Mock'`  
-**Root Cause:** 
+**Root Cause:**
 ```python
 site.root_path = tmp_path  # ✓ PosixPath
 site.theme = 'default'     # ✓ string in dict
@@ -307,5 +307,3 @@ assert 'flask' not in mock_site.taxonomies['tags'], "Empty flask tag should be r
 - Medium priority fixes: 3-4 hours  
 - Low priority fixes: 2-3 hours
 - **Total:** ~10-13 hours
-
-

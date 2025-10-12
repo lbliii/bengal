@@ -12,6 +12,7 @@ from jinja2.bccache import FileSystemBytecodeCache
 
 from bengal.rendering.template_functions import register_all
 from bengal.utils.logger import get_logger
+from bengal.utils.theme_registry import get_theme_package
 
 logger = get_logger(__name__)
 
@@ -61,6 +62,17 @@ class TemplateEngine:
             if site_theme_templates.exists():
                 template_dirs.append(str(site_theme_templates))
                 continue
+
+            # Installed theme directory (via entry point)
+            try:
+                pkg = get_theme_package(theme_name)
+                if pkg:
+                    resolved = pkg.resolve_resource_path("templates")
+                    if resolved and resolved.exists():
+                        template_dirs.append(str(resolved))
+                        continue
+            except Exception:
+                pass
 
             # Bundled theme directory
             bundled_theme_templates = (
@@ -149,7 +161,7 @@ class TemplateEngine:
         return [t for t in chain if t != "default"]
 
     def _read_theme_extends(self, theme_name: str) -> str | None:
-        """Read theme.toml for 'extends' from site or bundled theme path."""
+        """Read theme.toml for 'extends' from site, installed, or bundled theme path."""
         # Site theme manifest
         site_manifest = self.site.root_path / "themes" / theme_name / "theme.toml"
         if site_manifest.exists():
@@ -158,6 +170,17 @@ class TemplateEngine:
                 return data.get("extends")
             except Exception:
                 pass
+
+        # Installed theme manifest
+        try:
+            pkg = get_theme_package(theme_name)
+            if pkg:
+                manifest_path = pkg.resolve_resource_path("theme.toml")
+                if manifest_path and manifest_path.exists():
+                    data = toml.load(str(manifest_path))
+                    return data.get("extends")
+        except Exception:
+            pass
 
         # Bundled theme manifest
         bundled_manifest = Path(__file__).parent.parent / "themes" / theme_name / "theme.toml"

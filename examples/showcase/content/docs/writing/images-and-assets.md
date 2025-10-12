@@ -195,9 +195,9 @@ Standard markdown doesn't support size attributes:
 Use HTML for size control:
 
 ```html
-<img src="/assets/images/photo.jpg" 
-     alt="Descriptive alt text" 
-     width="600" 
+<img src="/assets/images/photo.jpg"
+     alt="Descriptive alt text"
+     width="600"
      height="400">
 ```
 
@@ -206,8 +206,8 @@ Use HTML for size control:
 For responsive sizing, use CSS (handled by theme):
 
 ```html
-<img src="/assets/images/hero.jpg" 
-     alt="Hero image" 
+<img src="/assets/images/hero.jpg"
+     alt="Hero image"
      class="img-fluid">
 ```
 
@@ -223,7 +223,7 @@ Use HTML for captions:
 
 ```html
 <figure>
-  <img src="/assets/images/chart.png" 
+  <img src="/assets/images/chart.png"
        alt="Performance comparison chart">
   <figcaption>Figure 1: Build time comparison across SSGs</figcaption>
 </figure>
@@ -459,4 +459,3 @@ Master images and assets, then explore:
 - [Markdown Basics](markdown-basics.md) - Essential syntax
 - [Internal Links](internal-links.md) - Link between pages
 - [External Links](external-links.md) - Link to external resources
-

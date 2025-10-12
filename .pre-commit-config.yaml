@@ -30,6 +30,7 @@ repos:
 
       # Check for debugger imports and breakpoints
       - id: debug-statements
+        language_version: python3.12
 
       # Check TOML file syntax
       - id: check-toml
@@ -51,10 +52,4 @@ repos:
       # Check for private keys
       - id: detect-private-key
 
-  - repo: https://github.com/python-poetry/poetry
-    rev: 1.8.0
-    hooks:
-      # Validate pyproject.toml
-      - id: poetry-check
-        args: [--lock]
-        files: ^pyproject\.toml$
+  # Poetry is not used in this repository; removing poetry-check to avoid false failures

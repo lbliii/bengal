@@ -119,4 +119,3 @@ cursor --install-extension bengal-syntax-highlighter-1.0.0.vsix
 ---
 
 **That's it! Your extension is ready to use! 🎉**
-

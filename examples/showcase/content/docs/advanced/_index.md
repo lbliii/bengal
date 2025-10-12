@@ -69,4 +69,3 @@ Follow this path:
 - [Writing Guide](../writing/) - Content basics
 - [Directives](../directives/) - Rich content
 - [Content Types](../content-types/) - Page layouts
-

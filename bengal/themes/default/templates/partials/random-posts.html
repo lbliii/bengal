@@ -1,4 +1,28 @@
-{# Random posts widget - showcases sample() function #}
+{#
+  Random Posts Component
+
+  Displays a widget with randomly selected posts from the site.
+
+  Variables:
+    - count: Number of random posts to show (default: 3)
+    - site: Site object (for accessing pages)
+
+  Template Functions Used:
+    - site.regular_pages | sample(3): Returns random subset of pages
+    - url_for(post): Generates URL for post
+    - time_ago: Formats date as relative time
+
+  Features:
+    - Random selection changes on each build
+    - Shows post title and date
+    - Gracefully handles sites with few posts
+    - Useful for discovery/exploration
+
+  Usage:
+    {% include 'partials/random-posts.html' %}
+    {% set random_posts = site.regular_pages | sample(5) %}
+    {% include 'partials/random-posts.html' %}
+#}
 
 {% set random_posts = site.regular_pages | sample(3) %}
 {% if random_posts %}
@@ -20,4 +44,3 @@
     </div>
 </aside>
 {% endif %}
-

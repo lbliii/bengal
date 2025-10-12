@@ -25,4 +25,3 @@ Test without blank line:
 :class: rubric-test
 ```
 Immediate content.
-

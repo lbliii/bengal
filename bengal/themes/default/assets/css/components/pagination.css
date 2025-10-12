@@ -1,7 +1,7 @@
 /**
  * Bengal SSG Default Theme
  * Pagination Component
- * 
+ *
  * Enhanced pagination with better UX:
  * - Clear visual hierarchy
  * - Hover states
@@ -200,7 +200,7 @@
   .pagination ul {
     gap: 0.25rem;
   }
-  
+
   .pagination a,
   .pagination span {
     min-width: 2rem;
@@ -208,17 +208,17 @@
     padding: 0 0.5rem;
     font-size: var(--text-xs);
   }
-  
+
   .pagination svg {
     width: 14px;
     height: 14px;
   }
-  
+
   /* Hide page numbers on mobile, keep only prev/next */
   .pagination li:not(.pagination__prev):not(.pagination__next):not(.active) {
     display: none;
   }
-  
+
   .pagination .active {
     /* Keep active page visible */
     display: flex;
@@ -244,4 +244,3 @@
     display: none;
   }
 }
-

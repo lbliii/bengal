@@ -60,7 +60,7 @@ Both templates now:
   - `_index.md` - Index page with default behavior
   - `getting-started.md` - Sample child page
   - `advanced-features.md` - Sample child page
-  
+
 - `examples/showcase/content/demo-tiles-hidden/` - Section with hidden child tiles
   - `_index.md` - Index page with `show_children: false`
   - `hidden-page-1.md` - Sample hidden child page
@@ -216,4 +216,3 @@ Possible future improvements:
 - `section-navigation.html` - Alternative section navigation with stats
 - `docs-nav.html` - Hierarchical documentation navigation
 - `breadcrumbs.html` - Breadcrumb navigation
-

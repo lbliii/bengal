@@ -45,6 +45,10 @@ LIVE_RELOAD_SCRIPT = """
 
     function connect() {
         const source = new EventSource('/__bengal_reload__');
+        // Ensure the connection is closed on page unload/navigation to free server threads quickly
+        const closeSource = () => { try { source.close(); } catch (e) {} };
+        window.addEventListener('beforeunload', closeSource, { once: true });
+        window.addEventListener('pagehide', closeSource, { once: true });
 
         source.onmessage = function(event) {
             if (event.data === 'reload') {
@@ -155,8 +159,8 @@ class LiveReloadMixin:
             while True:
                 try:
                     with _reload_condition:
-                        # Wait up to 30s for a generation change, then send keepalive
-                        _reload_condition.wait(timeout=30)
+                        # Wait up to 10s for a generation change, then send keepalive
+                        _reload_condition.wait(timeout=10)
                         current_generation = _reload_generation
 
                     if current_generation != last_seen_generation:
@@ -196,10 +200,10 @@ class LiveReloadMixin:
 
     def serve_html_with_live_reload(self) -> bool:
         """
-        Serve HTML file with live reload script injected.
+        Serve HTML file with live reload script injected (with caching).
 
-        Reads the HTML file, injects the live reload script before </body> or
-        </html>, and serves it with correct Content-Length header.
+        Uses file modification time caching to avoid re-reading/re-injecting
+        unchanged files during rapid navigation.
 
         Returns:
             True if HTML was served (with or without injection), False if not HTML
@@ -223,32 +227,68 @@ class LiveReloadMixin:
             return False
 
         try:
-            # Read the HTML file
-            with open(path, "rb") as f:
-                content = f.read()
+            # Get file modification time for cache key
+            mtime = os.path.getmtime(path)
+            cache_key = (path, mtime)
 
-            # Try to inject script before </body> or </html> (case-insensitive)
-            html_str = content.decode("utf-8")
-            script_injected = False
+            # Check cache (defined in BengalRequestHandler)
+            from bengal.server.request_handler import BengalRequestHandler
 
-            # Try to inject before </body> (case-insensitive)
-            html_lower = html_str.lower()
-            body_idx = html_lower.rfind("</body>")
-            if body_idx != -1:
-                html_str = html_str[:body_idx] + LIVE_RELOAD_SCRIPT + html_str[body_idx:]
-                script_injected = True
-            # Fallback: inject before </html> (case-insensitive)
-            elif html_lower.rfind("</html>") != -1:
-                html_idx = html_lower.rfind("</html>")
-                html_str = html_str[:html_idx] + LIVE_RELOAD_SCRIPT + html_str[html_idx:]
-                script_injected = True
+            # Fast path: try cache under lock
+            with BengalRequestHandler._html_cache_lock:
+                cached = BengalRequestHandler._html_cache.get(cache_key)
+            if cached is not None:
+                modified_content = cached
+                logger.debug("html_cache_hit", path=path)
+            else:
+                # Cache miss - read and inject outside lock
+                with open(path, "rb") as f:
+                    content = f.read()
 
-            # If we couldn't inject, just append it
-            if not script_injected:
-                html_str += LIVE_RELOAD_SCRIPT
+                # Inject script before </body> or </html> (case-insensitive)
+                # Optimize: Search bytes directly instead of converting entire file to string
+                script_bytes = LIVE_RELOAD_SCRIPT.encode("utf-8")
+
+                # Try to find </body> (case-insensitive search in bytes)
+                body_tag_lower = b"</body>"
+                body_tag_upper = b"</BODY>"
+                body_idx = content.rfind(body_tag_lower)
+                if body_idx == -1:
+                    body_idx = content.rfind(body_tag_upper)
+
+                if body_idx != -1:
+                    # Inject before </body>
+                    modified_content = content[:body_idx] + script_bytes + content[body_idx:]
+                else:
+                    # Fallback: try </html>
+                    html_tag_lower = b"</html>"
+                    html_tag_upper = b"</HTML>"
+                    html_idx = content.rfind(html_tag_lower)
+                    if html_idx == -1:
+                        html_idx = content.rfind(html_tag_upper)
+
+                    if html_idx != -1:
+                        modified_content = content[:html_idx] + script_bytes + content[html_idx:]
+                    else:
+                        # Last resort: append at end
+                        modified_content = content + script_bytes
+
+                # Store in cache under lock (with size control)
+                with BengalRequestHandler._html_cache_lock:
+                    # Double-check if another thread populated it while we were working
+                    if cache_key not in BengalRequestHandler._html_cache:
+                        BengalRequestHandler._html_cache[cache_key] = modified_content
+                        # Limit cache size (simple FIFO eviction)
+                        if (
+                            len(BengalRequestHandler._html_cache)
+                            > BengalRequestHandler._html_cache_max_size
+                        ):
+                            first_key = next(iter(BengalRequestHandler._html_cache))
+                            del BengalRequestHandler._html_cache[first_key]
+                    cache_size = len(BengalRequestHandler._html_cache)
+                logger.debug("html_cache_miss", path=path, cache_size=cache_size)
 
             # Send response with injected script
-            modified_content = html_str.encode("utf-8")
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
             self.send_header("Content-Length", str(len(modified_content)))

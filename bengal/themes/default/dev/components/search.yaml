@@ -1,0 +1,27 @@
+name: "Search"
+template: "partials/search.html"
+description: "Full-featured client-side search with Lunr.js, filters, and keyboard shortcuts"
+variants:
+  - id: "default"
+    name: "Default (Empty State)"
+    context:
+      site:
+        config:
+          title: "Bengal SSG"
+      _preview_note: "Search requires full site context and search index. This preview shows the UI structure only."
+
+  - id: "with-placeholder"
+    name: "Search Input Focused"
+    context:
+      site:
+        config:
+          title: "Bengal SSG"
+      _preview_note: "The actual search functionality requires BengalSearch JavaScript module and search index JSON."
+
+  - id: "error-state"
+    name: "Error State (Index Failed)"
+    context:
+      site:
+        config:
+          title: "Bengal SSG"
+      _preview_note: "Shows how the component handles failed index loading. Actual error display is triggered by JavaScript."

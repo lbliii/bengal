@@ -4,4 +4,3 @@ nav:
 footer:
   rights: "All rights reserved."
 greeting: "Hello {name}"
-

@@ -178,4 +178,3 @@ feat: Add weight-based sorting for pages and sections
 
 Closes: #XXX
 ```
-

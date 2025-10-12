@@ -280,4 +280,3 @@ Learn more about each type:
 - [Writing Guide](../writing/) - Content creation basics
 - [Directives](../directives/) - Rich content features
 - [Advanced Features](../advanced/) - Power user tips
-

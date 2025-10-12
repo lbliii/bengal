@@ -1,0 +1,91 @@
+name: "Child Page Tiles"
+template: "partials/child-page-tiles.html"
+description: "Compact row-based display of subsections and child pages with icons"
+variants:
+  - id: "mixed"
+    name: "Mixed (Sections + Pages)"
+    context:
+      subsections:
+        - title: "Getting Started"
+          url: "/docs/getting-started/"
+          metadata:
+            description: "Quick start guide for Bengal SSG"
+            weight: 1
+          pages:
+            - title: "Installation"
+            - title: "Configuration"
+        - title: "Advanced Topics"
+          url: "/docs/advanced/"
+          metadata:
+            description: "Deep dives into advanced features"
+            weight: 2
+          pages:
+            - title: "Performance"
+            - title: "Optimization"
+            - title: "Deployment"
+      posts:
+        - title: "Introduction"
+          url: "/docs/introduction/"
+          metadata:
+            description: "Welcome to Bengal SSG documentation"
+            weight: 0
+          date: "2025-01-15"
+          content: "Bengal is a powerful static site generator..."
+        - title: "FAQ"
+          url: "/docs/faq/"
+          metadata:
+            description: "Frequently asked questions"
+            weight: 99
+          date: null
+          content: "Here are answers to common questions."
+
+  - id: "sections-only"
+    name: "Sections Only"
+    context:
+      subsections:
+        - title: "API Reference"
+          url: "/docs/api/"
+          metadata:
+            description: "Complete API documentation"
+            weight: 1
+          pages: []
+        - title: "CLI Reference"
+          url: "/docs/cli/"
+          metadata:
+            description: "Command-line interface documentation"
+            weight: 2
+          pages: []
+        - title: "Configuration"
+          url: "/docs/config/"
+          metadata:
+            description: "Configuration options"
+            weight: 3
+          pages: []
+      posts: []
+
+  - id: "pages-only"
+    name: "Pages Only"
+    context:
+      subsections: []
+      posts:
+        - title: "Changelog"
+          url: "/docs/changelog/"
+          metadata:
+            description: "What's new in each release"
+            weight: 1
+          date: "2025-10-10"
+          content: "Recent changes and updates."
+        - title: "Contributing"
+          url: "/docs/contributing/"
+          metadata:
+            description: "How to contribute to Bengal"
+            weight: 2
+          date: "2025-09-01"
+          content: "We welcome contributions!"
+        - title: "License"
+          url: "/docs/license/"
+          metadata:
+            description: "MIT License"
+            weight: 3
+          date: null
+          content: "MIT License text."

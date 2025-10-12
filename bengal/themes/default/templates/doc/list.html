@@ -2,15 +2,15 @@
 
 {#
   Documentation List Template
-  
+
   Three-column layout optimized for documentation section index pages:
   - Left sidebar: Navigation tree
   - Center: Content + Child page tiles
   - Right sidebar: TOC + metadata
-  
+
   Usage: Set `template: doc/list.html` in frontmatter
   Or set `type: doc` to auto-select this template
-  
+
   Features:
   - Automatically displays child pages and subsections as tiles
   - Disable with `show_children: false` in frontmatter
@@ -23,30 +23,30 @@
   <aside class="docs-sidebar" id="docs-sidebar" role="navigation" aria-label="Documentation navigation">
     {% include 'partials/docs-nav.html' %}
   </aside>
-  
+
   {# Main Content #}
   <div class="docs-main">
     {# Breadcrumbs #}
     {% include 'partials/breadcrumbs.html' %}
-    
+
     {# Article Content #}
     <article class="prose {% if page.metadata.css_class %}{{ page.metadata.css_class }}{% endif %}">
       <header class="docs-header">
         <h1>{{ page.title }}</h1>
-        
+
         {% if page.metadata.description %}
         <p class="lead">{{ page.metadata.description }}</p>
         {% endif %}
-        
+
         {# Document metadata #}
         {% include 'partials/docs-meta.html' %}
       </header>
-      
+
       {# Main content #}
       <div class="docs-content">
         {{ content | safe }}
       </div>
-      
+
       {# Child page tiles - can be disabled via frontmatter: show_children: false #}
       {% set show_children = page.metadata.get('show_children', true) if page else true %}
       {% if show_children and (posts or subsections) %}
@@ -54,7 +54,7 @@
         {% include 'partials/child-page-tiles.html' %}
       </div>
       {% endif %}
-      
+
       {# Tags #}
       {% if page.tags %}
       <footer class="docs-footer">
@@ -62,11 +62,11 @@
       </footer>
       {% endif %}
     </article>
-    
+
     {# Page navigation (prev/next) at bottom #}
     {% include 'partials/page-navigation.html' %}
   </div>
-  
+
   {# Right Sidebar: TOC + Metadata #}
   {% if toc %}
   <aside class="docs-toc" role="complementary" aria-label="Table of contents">
@@ -76,8 +76,8 @@
 </div>
 
 {# Mobile sidebar toggle button #}
-<button 
-  class="docs-sidebar-toggle" 
+<button
+  class="docs-sidebar-toggle"
   aria-label="Toggle navigation sidebar"
   aria-expanded="false"
   aria-controls="docs-sidebar">
@@ -92,62 +92,4 @@
 <div class="docs-sidebar-overlay" aria-hidden="true"></div>
 {% endblock %}
 
-{% block extra_js %}
-{# Sidebar toggle functionality #}
-<script>
-(function() {
-  'use strict';
-  
-  const sidebar = document.getElementById('docs-sidebar');
-  const toggle = document.querySelector('.docs-sidebar-toggle');
-  const overlay = document.querySelector('.docs-sidebar-overlay');
-  
-  if (!sidebar || !toggle || !overlay) return;
-  
-  function openSidebar() {
-    sidebar.classList.add('open');
-    overlay.classList.add('visible');
-    toggle.setAttribute('aria-expanded', 'true');
-    document.body.style.overflow = 'hidden'; // Prevent scrolling
-  }
-  
-  function closeSidebar() {
-    sidebar.classList.remove('open');
-    overlay.classList.remove('visible');
-    toggle.setAttribute('aria-expanded', 'false');
-    document.body.style.overflow = '';
-  }
-  
-  function toggleSidebar() {
-    if (sidebar.classList.contains('open')) {
-      closeSidebar();
-    } else {
-      openSidebar();
-    }
-  }
-  
-  // Toggle button click
-  toggle.addEventListener('click', toggleSidebar);
-  
-  // Overlay click (close sidebar)
-  overlay.addEventListener('click', closeSidebar);
-  
-  // Close on escape key
-  document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape' && sidebar.classList.contains('open')) {
-      closeSidebar();
-    }
-  });
-  
-  // Close sidebar when clicking a link (mobile)
-  sidebar.querySelectorAll('a').forEach(function(link) {
-    link.addEventListener('click', function() {
-      if (window.innerWidth <= 768) {
-        closeSidebar();
-      }
-    });
-  });
-})();
-</script>
-{% endblock %}
-
+{# Sidebar toggle functionality is handled by interactive.js #}

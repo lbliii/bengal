@@ -261,7 +261,7 @@ ignore_patterns = [       # Patterns to ignore
   ✓ All links resolve successfully
   ✗ Error: /docs/advanced.md links to missing page '/docs/nonexistent.md'
   ⚠ Warning: /blog/post.md has anchor link to #missing-section
-  
+
   📊 Statistics:
     - Internal links: 847
     - Cross-references: 123
@@ -369,12 +369,12 @@ check_consistency = true       # Check naming consistency
   ✓ 45 tags used across site
   ✓ 8 categories defined
   ✓ All taxonomy pages generated
-  
+
   📊 Tag statistics:
     - Most used: 'python' (23 pages)
     - Singleton tags: 7
     - Average per page: 3.2 tags
-  
+
   ⚠ Warnings:
     - Tag 'getting-started' used inconsistently with 'getting_started'
     - 7 singleton tags (consider consolidating)
@@ -484,7 +484,7 @@ clean_stale = true          # Auto-clean stale entries
   ✓ Cache integrity verified
   ✓ Dependency tracking accurate
   ✓ No stale entries
-  
+
   📊 Cache statistics:
     - Cache size: 23.4 MB
     - Cached pages: 147
@@ -539,13 +539,13 @@ max_build_time_sec = 30         # Warn if > 30 seconds
   ✓ Built 147 pages in 2.8 seconds
   ✓ Speed: 52.5 pages/second
   ✓ 18.3x faster than full rebuild
-  
+
   📊 Performance metrics:
     - Parallel speedup: 3.2x
     - Cache hit rate: 94.2%
     - Memory peak: 87 MB
     - Total assets: 42 files
-    
+
   ✓ Performance meets baseline (50 pages/sec)
 ```
 
@@ -619,24 +619,24 @@ on:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    
+
     steps:
       - uses: actions/checkout@v3
-      
+
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
-      
+
       - name: Install Bengal
         run: pip install bengal-ssg
-      
+
       - name: Build Site
         run: bengal build
-      
+
       - name: Run Health Checks
         run: bengal health-check --strict
-      
+
       - name: Deploy
         if: success()
         run: ./deploy.sh
@@ -843,10 +843,10 @@ from bengal.health.report import CheckResult
 class CustomValidator(BaseValidator):
     name = "Custom Checks"
     description = "Project-specific validation"
-    
+
     def validate(self, site):
         results = []
-        
+
         # Check custom requirement
         if not site.config.get('custom_field'):
             results.append(CheckResult.warning(
@@ -857,7 +857,7 @@ class CustomValidator(BaseValidator):
             results.append(CheckResult.success(
                 "Custom field configured"
             ))
-        
+
         return results
 
 # Use it
@@ -988,4 +988,3 @@ Bengal's health check system provides **9 comprehensive validators**:
 **Last Updated:** October 4, 2025  
 **Version:** 1.0.0  
 **Coverage:** All 9 validators documented
-

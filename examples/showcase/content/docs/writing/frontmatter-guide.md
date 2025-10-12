@@ -553,4 +553,3 @@ Master frontmatter, then move on to:
 - [Getting Started](getting-started.md) - Create your first page
 - [Blog Posts](../content-types/blog-posts.md) - Blog-specific frontmatter
 - [Documentation](../content-types/documentation.md) - Doc-specific frontmatter
-

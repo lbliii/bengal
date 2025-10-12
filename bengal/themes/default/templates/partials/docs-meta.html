@@ -1,8 +1,26 @@
 {#
-  Document Metadata - Minimal Design
-  
-  Displays date and reading time in a clean, subtle format
-  matching the minimal TOC aesthetic.
+  Document Metadata Component
+
+  Displays publication date and reading time in a clean, minimal format.
+
+  Variables:
+    - page: Current page object (required)
+    - page.date: Publication/update date (optional)
+    - page.content: Page content (for reading time calculation)
+
+  Template Functions Used:
+    - locale_date(date, 'long', lang): Formats date according to locale
+    - reading_time: Calculates reading time from content
+    - current_lang(): Gets current language
+
+  Features:
+    - Locale-aware date formatting
+    - Reading time estimation
+    - SVG icons
+    - Minimal, clean design
+
+  Usage:
+    {% include 'partials/docs-meta.html' %}
 #}
 
 {% if page.date or page.content %}
@@ -18,7 +36,7 @@
     <span>{{ locale_date(page.date, 'long', current_lang()) }}</span>
   </time>
   {% endif %}
-  
+
   {% if page.content %}
   <span class="docs-meta-item">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -30,4 +48,3 @@
   {% endif %}
 </div>
 {% endif %}
-

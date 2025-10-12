@@ -281,4 +281,3 @@ If you find this useful, consider:
 - ⭐ Starring the Bengal SSG project
 - 🐛 Reporting issues
 - 💡 Suggesting improvements
-

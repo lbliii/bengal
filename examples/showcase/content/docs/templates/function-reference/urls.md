@@ -289,30 +289,30 @@ URL-encoded text with special characters as `%XX` codes.
 
 <div class="share-buttons">
   {# Twitter #}
-  <a href="https://twitter.com/intent/tweet?text={{ share_title | url_encode }}&url={{ share_url | url_encode }}" 
+  <a href="https://twitter.com/intent/tweet?text={{ share_title | url_encode }}&url={{ share_url | url_encode }}"
      target="_blank" rel="noopener">
     Share on Twitter
   </a>
-  
+
   {# Facebook #}
-  <a href="https://www.facebook.com/sharer/sharer.php?u={{ share_url | url_encode }}" 
+  <a href="https://www.facebook.com/sharer/sharer.php?u={{ share_url | url_encode }}"
      target="_blank" rel="noopener">
     Share on Facebook
   </a>
-  
+
   {# LinkedIn #}
-  <a href="https://www.linkedin.com/sharing/share-offsite/?url={{ share_url | url_encode }}" 
+  <a href="https://www.linkedin.com/sharing/share-offsite/?url={{ share_url | url_encode }}"
      target="_blank" rel="noopener">
     Share on LinkedIn
   </a>
-  
+
   {# Email #}
   <a href="mailto:?subject={{ share_title | url_encode }}&body={{ share_desc | url_encode }}%0A%0A{{ share_url | url_encode }}">
     Share via Email
   </a>
-  
+
   {# Reddit #}
-  <a href="https://reddit.com/submit?url={{ share_url | url_encode }}&title={{ share_title | url_encode }}" 
+  <a href="https://reddit.com/submit?url={{ share_url | url_encode }}&title={{ share_title | url_encode }}"
      target="_blank" rel="noopener">
     Share on Reddit
   </a>
@@ -447,14 +447,14 @@ Display: "Searching for: {{ request.args.q | url_decode }}"
 {# Search results with encoded "show more" link #}
 {% if results %}
   <h2>Results for "{{ query }}"</h2>
-  
+
   {% for result in results %}
     <div class="result">
       <h3><a href="{{ result.url }}">{{ result.title }}</a></h3>
       <p>{{ result.excerpt }}</p>
     </div>
   {% endfor %}
-  
+
   {# Pagination with encoded query #}
   {% if has_more %}
     <a href="/search?q={{ query | url_encode }}&page={{ page + 1 }}">
@@ -470,7 +470,7 @@ Display: "Searching for: {{ request.args.q | url_decode }}"
 {# Tag cloud with encoded tag names #}
 <div class="tag-cloud">
   {% for tag in all_tags | uniq | sort %}
-    <a href="/tags/?tag={{ tag | url_encode }}" 
+    <a href="/tags/?tag={{ tag | url_encode }}"
        class="tag tag-{{ tag | slugify }}">
       {{ tag }}
     </a>
@@ -480,7 +480,7 @@ Display: "Searching for: {{ request.args.q | url_decode }}"
 {# Tagged posts page #}
 {% if current_tag %}
   <h1>Posts tagged: {{ current_tag | url_decode }}</h1>
-  
+
   {% for post in posts | where('tags', current_tag) %}
     <article>{{ post.title }}</article>
   {% endfor %}
@@ -494,15 +494,15 @@ Display: "Searching for: {{ request.args.q | url_decode }}"
 <head>
   {# Canonical URL (absolute) #}
   <link rel="canonical" href="{{/* page.url | absolute_url */}}">
-  
+
   {# Open Graph #}
   <meta property="og:url" content="{{/* page.url | absolute_url */}}">
   <meta property="og:image" content="{{/* page.image | absolute_url */}}">
-  
+
   {# Sharing links in head #}
-  <link rel="alternate" type="application/rss+xml" 
+  <link rel="alternate" type="application/rss+xml"
         href="{{/* '/rss.xml' | absolute_url */}}">
-  
+
   {# Prefetch next page #}
   {% if next_page %}
     <link rel="next" href="{{/* next_page.url | absolute_url */}}">
@@ -700,24 +700,24 @@ Here's a complete page using all URL functions:
   {# Absolute URLs for SEO #}
   <link rel="canonical" href="{{/* page.url | absolute_url */}}">
   <meta property="og:url" content="{{/* page.url | absolute_url */}}">
-  
+
   {# RSS feed #}
-  <link rel="alternate" type="application/rss+xml" 
+  <link rel="alternate" type="application/rss+xml"
         href="{{/* '/rss.xml' | absolute_url */}}">
 </head>
 <body>
   {# Search form #}
   <form action="/search" method="get">
-    <input type="text" 
-           name="q" 
-           value="{{ query }}" 
+    <input type="text"
+           name="q"
+           value="{{ query }}"
            placeholder="Search...">
     <button type="submit">Search</button>
   </form>
-  
+
   {% if query %}
     <h1>Results for "{{ query }}"</h1>
-    
+
     {# Search results #}
     {% for result in results %}
       <article>
@@ -725,22 +725,22 @@ Here's a complete page using all URL functions:
         <p>{{ result.excerpt }}</p>
       </article>
     {% endfor %}
-    
+
     {# Pagination with encoded query #}
     <nav class="pagination">
       {% if page > 1 %}
         <a href="?q={{ query | url_encode }}&page={{ page - 1 }}">Previous</a>
       {% endif %}
-      
+
       {% if has_more %}
         <a href="?q={{ query | url_encode }}&page={{ page + 1 }}">Next</a>
       {% endif %}
     </nav>
-    
+
     {# Share search results #}
     {% set share_url = page.url | absolute_url %}
     {% set share_text = "Search results for: " ~ query %}
-    
+
     <div class="share">
       <a href="https://twitter.com/intent/tweet?text={{ share_text | url_encode }}&url={{ share_url | url_encode }}">
         Share on Twitter
@@ -756,4 +756,3 @@ Here's a complete page using all URL functions:
 **Module:** `bengal.rendering.template_functions.urls`  
 **Functions:** 3  
 **Last Updated:** October 4, 2025
-

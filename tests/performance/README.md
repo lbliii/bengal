@@ -155,16 +155,16 @@ def benchmark_something():
     """Benchmark a specific feature."""
     # Setup
     temp_dir = Path(tempfile.mkdtemp())
-    
+
     try:
         # Create test data
         # ...
-        
+
         # Measure
         start = time.time()
         # ... operation to benchmark
         elapsed = time.time() - start
-        
+
         return elapsed
     finally:
         shutil.rmtree(temp_dir)
@@ -259,4 +259,3 @@ pip install -e .
 - Each benchmark runs multiple iterations and reports averages
 - Results are printed to stdout in formatted tables
 - No external dependencies beyond Bengal's requirements
-

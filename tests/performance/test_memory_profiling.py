@@ -155,14 +155,14 @@ class TestMemoryProfiling:
         delta = prof.get_delta()
 
         # Assertions on ACTUAL build memory
-        assert stats.regular_pages >= 100, (
-            f"Should have at least 100 regular pages, got {stats.regular_pages}"
-        )
+        assert (
+            stats.regular_pages >= 100
+        ), f"Should have at least 100 regular pages, got {stats.regular_pages}"
 
         # Use generous threshold initially until we establish real baseline
-        assert delta.rss_delta_mb < 500, (
-            f"Build used {delta.rss_delta_mb:.1f}MB RSS (expected <500MB)"
-        )
+        assert (
+            delta.rss_delta_mb < 500
+        ), f"Build used {delta.rss_delta_mb:.1f}MB RSS (expected <500MB)"
 
         print(f"\nPer-page memory: {delta.rss_delta_mb / 100:.2f}MB RSS")
 
@@ -177,12 +177,12 @@ class TestMemoryProfiling:
 
         delta = prof.get_delta()
 
-        assert stats.regular_pages >= 500, (
-            f"Should have at least 500 regular pages, got {stats.regular_pages}"
-        )
-        assert delta.rss_delta_mb < 1000, (
-            f"Build used {delta.rss_delta_mb:.1f}MB RSS (expected <1000MB)"
-        )
+        assert (
+            stats.regular_pages >= 500
+        ), f"Should have at least 500 regular pages, got {stats.regular_pages}"
+        assert (
+            delta.rss_delta_mb < 1000
+        ), f"Build used {delta.rss_delta_mb:.1f}MB RSS (expected <1000MB)"
 
         print(f"\nPer-page memory: {delta.rss_delta_mb / 500:.3f}MB RSS")
 
@@ -197,12 +197,12 @@ class TestMemoryProfiling:
 
         delta = prof.get_delta()
 
-        assert stats.total_pages >= 1000, (
-            f"Should have at least 1000 total pages, got {stats.total_pages}"
-        )
-        assert delta.rss_delta_mb < 1500, (
-            f"Build used {delta.rss_delta_mb:.1f}MB RSS (expected <1500MB)"
-        )
+        assert (
+            stats.total_pages >= 1000
+        ), f"Should have at least 1000 total pages, got {stats.total_pages}"
+        assert (
+            delta.rss_delta_mb < 1500
+        ), f"Build used {delta.rss_delta_mb:.1f}MB RSS (expected <1500MB)"
 
         print(f"\nPer-page memory: {delta.rss_delta_mb / 1000:.3f}MB RSS")
 
@@ -296,9 +296,9 @@ class TestMemoryProfiling:
 
         # Per-page cost should decrease or stabilize as pages increase (not grow)
         # This confirms we're not leaking or having quadratic behavior
-        assert per_page_costs[-1] <= per_page_costs[1], (
-            f"Per-page cost increased with scale: {per_page_costs[1]:.3f} → {per_page_costs[-1]:.3f}MB/page"
-        )
+        assert (
+            per_page_costs[-1] <= per_page_costs[1]
+        ), f"Per-page cost increased with scale: {per_page_costs[1]:.3f} → {per_page_costs[-1]:.3f}MB/page"
 
     def test_memory_leak_detection(self, site_generator):
         """Test for memory leaks with multiple builds."""
@@ -402,9 +402,9 @@ class TestMemoryProfiling:
 
         assert stats.regular_pages >= 100
         # Check Python heap (more reliable than RSS which can be negative due to GC/OS)
-        assert delta.python_heap_delta_mb > 0, (
-            f"Should use some memory (Python heap: {delta.python_heap_delta_mb:.1f}MB)"
-        )
+        assert (
+            delta.python_heap_delta_mb > 0
+        ), f"Should use some memory (Python heap: {delta.python_heap_delta_mb:.1f}MB)"
 
 
 @pytest.mark.slow
@@ -426,14 +426,14 @@ class TestMemoryEdgeCases:
 
         # Even empty site should use some memory for framework
         # Check Python heap (more reliable than RSS)
-        assert delta.python_heap_delta_mb > 0, (
-            f"Should use some memory (Python heap: {delta.python_heap_delta_mb:.1f}MB)"
-        )
+        assert (
+            delta.python_heap_delta_mb > 0
+        ), f"Should use some memory (Python heap: {delta.python_heap_delta_mb:.1f}MB)"
         # RSS can be 0 or even negative, but if positive, should be reasonable
         if delta.rss_delta_mb > 0:
-            assert delta.rss_delta_mb < 100, (
-                f"Empty site used {delta.rss_delta_mb:.1f}MB RSS (expected <100MB)"
-            )
+            assert (
+                delta.rss_delta_mb < 100
+            ), f"Empty site used {delta.rss_delta_mb:.1f}MB RSS (expected <100MB)"
 
     def test_config_load_memory(self, site_generator):
         """Test memory usage of just loading config (no build)."""
@@ -449,6 +449,6 @@ class TestMemoryEdgeCases:
         print(f"\nConfig load only: {delta}")
 
         # Loading config should be very light
-        assert delta.rss_delta_mb < 50, (
-            f"Config load used {delta.rss_delta_mb:.1f}MB (expected <50MB)"
-        )
+        assert (
+            delta.rss_delta_mb < 50
+        ), f"Config load used {delta.rss_delta_mb:.1f}MB (expected <50MB)"

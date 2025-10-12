@@ -77,10 +77,10 @@ class CacheValidator(BaseValidator):
 class PythonExtractor(Extractor):
     def extract(self, source: Any) -> list[DocElement]:  # Overrides
         ...
-    
+
     def get_template_dir(self) -> str:  # Overrides
         ...
-    
+
     def get_output_path(self, element: DocElement) -> Path:  # Overrides
         ...
 ```
@@ -109,7 +109,7 @@ class BengalRequestHandler(RequestLogger, LiveReloadMixin, http.server.SimpleHTT
     # Multiple methods override SimpleHTTPRequestHandler
     def do_GET(self):  # Overrides
         ...
-    
+
     def end_headers(self):  # Overrides
         ...
 ```
@@ -697,4 +697,3 @@ Bengal has already done **excellent** Python 3.12 modernization work. The remain
 All are low-risk improvements that would further modernize the codebase and provide concrete benefits (type safety, performance, readability).
 
 The choice is yours! 🎉
-

@@ -552,4 +552,3 @@ max_workers = 8        # Auto-detect by default
 5. **SRI hashes** (security)
 
 **Target:** Reach **85-90%** parity with Hugo's most-used features by v0.5.0
-

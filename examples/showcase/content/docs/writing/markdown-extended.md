@@ -338,4 +338,3 @@ You've mastered extended markdown! Now explore:
 - [Markdown Basics](markdown-basics.md) - Essential syntax
 - [Tables](../directives/cards.md) - Alternative to tables with card grids
 - [Internal Links](internal-links.md) - Cross-referencing pages
-

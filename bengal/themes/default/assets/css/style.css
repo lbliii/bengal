@@ -1,7 +1,7 @@
 /**
  * Bengal SSG Default Theme
  * Main Stylesheet
- * 
+ *
  * This file imports all component styles in the correct order.
  * Following CUBE CSS methodology: Composition, Utility, Block, Exception
  */
@@ -295,20 +295,19 @@ main {
   .article-nav {
     display: none !important;
   }
-  
+
   main {
     padding: 0;
   }
-  
+
   a {
     color: var(--color-text-primary) !important;
     text-decoration: underline !important;
   }
-  
+
   .prose a::after {
     content: " (" attr(href) ")";
     font-size: 0.8em;
     color: var(--color-text-muted);
   }
 }
-

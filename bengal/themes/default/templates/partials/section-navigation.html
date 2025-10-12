@@ -1,4 +1,27 @@
-{# Section navigation component - showcases section navigation properties #}
+{#
+  Section Navigation Component
+
+  Displays statistics and subsection cards for exploring a section hierarchy.
+
+  Variables:
+    - page: Current page/section object (required)
+    - page.regular_pages: List of pages in section
+    - page.sections: List of subsections
+    - page.regular_pages_recursive: All pages including subsections
+
+  Features:
+    - Shows section statistics (page counts)
+    - Subsection grid with descriptions
+    - Recursive page counting
+    - Card-based layout
+
+  Note:
+    This component expects a Section object, not a regular Page.
+    The variable name 'page' is misleading - should be 'section'.
+
+  Usage:
+    {% include 'partials/section-navigation.html' %}
+#}
 
 {% if page.regular_pages is defined or page.sections is defined %}
 <div class="section-navigation">
@@ -18,7 +41,7 @@
         </p>
         {% endif %}
     </div>
-    
+
     {# Subsections - dogfooding page.sections #}
     {% if page.sections %}
     <div class="subsections">
@@ -42,4 +65,3 @@
     {% endif %}
 </div>
 {% endif %}
-

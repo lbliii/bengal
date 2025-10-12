@@ -1,0 +1,60 @@
+name: "Documentation Navigation Section"
+template: "partials/docs-nav-section.html"
+description: "Recursive component for rendering individual documentation navigation sections"
+variants:
+  - id: "depth-0"
+    name: "Root Level (Depth 0)"
+    context:
+      section:
+        title: "Guides"
+        url: "/docs/guides/"
+        index_page:
+          title: "Guides Overview"
+          url: "/docs/guides/"
+        sorted_pages:
+          - title: "Installation"
+            url: "/docs/guides/installation/"
+          - title: "Configuration"
+            url: "/docs/guides/configuration/"
+        sorted_subsections: []
+      depth: 0
+      page:
+        url: "/docs/guides/installation/"
+
+  - id: "depth-1"
+    name: "Nested Level (Depth 1)"
+    context:
+      section:
+        title: "Advanced"
+        url: "/docs/guides/advanced/"
+        index_page:
+          title: "Advanced Topics"
+          url: "/docs/guides/advanced/"
+        sorted_pages:
+          - title: "Performance"
+            url: "/docs/guides/advanced/performance/"
+          - title: "Deployment"
+            url: "/docs/guides/advanced/deployment/"
+        sorted_subsections: []
+      depth: 1
+      page:
+        url: "/docs/guides/advanced/performance/"
+
+  - id: "depth-2"
+    name: "Deep Nested (Depth 2)"
+    context:
+      section:
+        title: "Optimization"
+        url: "/docs/guides/advanced/optimization/"
+        index_page:
+          title: "Optimization Techniques"
+          url: "/docs/guides/advanced/optimization/"
+        sorted_pages:
+          - title: "Caching"
+            url: "/docs/guides/advanced/optimization/caching/"
+          - title: "Bundling"
+            url: "/docs/guides/advanced/optimization/bundling/"
+        sorted_subsections: []
+      depth: 2
+      page:
+        url: "/docs/guides/advanced/optimization/caching/"

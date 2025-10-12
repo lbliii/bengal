@@ -41,4 +41,3 @@ echo "  - Initial build:      ~1.2s (full build)"
 echo "  - Incremental build:  < 0.3s (5x faster!)"
 echo ""
 echo "If incremental build was significantly faster, the optimization is working! 🚀"
-

@@ -2,12 +2,12 @@
 
 {#
   Tutorial List Template
-  
+
   Used for tutorial section indexes. Displays tutorials in a grid
   with difficulty levels, time estimates, and visual indicators.
-  
+
   Usage: Set `type: tutorial` in section _index.md
-  
+
   Context variables:
     - section: Section object with tutorials
     - posts: List of tutorial pages
@@ -20,7 +20,7 @@
 <div class="tutorial-container">
     <header class="tutorial-header">
         <h1>📚 {{ section.title if section else title | default('Tutorials') }}</h1>
-        
+
         {% if section and section.metadata.description %}
         <p class="tutorial-description">{{ section.metadata.description }}</p>
         {% elif description %}
@@ -29,7 +29,7 @@
         <p class="tutorial-description">Step-by-step guides to help you learn and master the topics.</p>
         {% endif %}
     </header>
-    
+
     {# Tutorial Statistics #}
     {% if posts %}
     <div class="tutorial-stats">
@@ -37,25 +37,25 @@
             <strong>{{ posts | length }}</strong>
             <span>{{ 'tutorial' if posts | length == 1 else 'tutorials' }}</span>
         </div>
-        
+
         {% set beginner_count = posts | where('difficulty', 'beginner') | length %}
         {% set intermediate_count = posts | where('difficulty', 'intermediate') | length %}
         {% set advanced_count = posts | where('difficulty', 'advanced') | length %}
-        
+
         {% if beginner_count > 0 %}
         <div class="tutorial-stat">
             <strong>{{ beginner_count }}</strong>
             <span>beginner</span>
         </div>
         {% endif %}
-        
+
         {% if intermediate_count > 0 %}
         <div class="tutorial-stat">
             <strong>{{ intermediate_count }}</strong>
             <span>intermediate</span>
         </div>
         {% endif %}
-        
+
         {% if advanced_count > 0 %}
         <div class="tutorial-stat">
             <strong>{{ advanced_count }}</strong>
@@ -64,11 +64,11 @@
         {% endif %}
     </div>
     {% endif %}
-    
+
     {# Tutorial Grid #}
     {% if posts or subsections %}
     <div class="tutorial-content">
-        
+
         {# Subsections (Tutorial Categories) #}
         {% if subsections %}
         <section class="tutorial-section">
@@ -82,14 +82,14 @@
                             <a href="{{ url_for(subsection) }}">{{ subsection.title }}</a>
                         </h3>
                     </div>
-                    
+
                     <div class="tutorial-card-content">
                         {% if subsection.metadata.description %}
                         <p class="tutorial-description">
                             {{ subsection.metadata.description | truncate(150) }}
                         </p>
                         {% endif %}
-                        
+
                         <div class="tutorial-meta">
                             {% if subsection.regular_pages %}
                             {# Count only non-index pages #}
@@ -107,7 +107,7 @@
             </div>
         </section>
         {% endif %}
-        
+
         {# Individual Tutorials #}
         {% if posts %}
         <section class="tutorial-section">
@@ -125,7 +125,7 @@
                             <a href="{{ url_for(tutorial) }}">{{ tutorial.title }}</a>
                         </h3>
                     </div>
-                    
+
                     <div class="tutorial-card-content">
                         {% if tutorial.metadata.description %}
                         <p class="tutorial-description">
@@ -136,7 +136,7 @@
                             {{ tutorial.excerpt | truncate(150) }}
                         </p>
                         {% endif %}
-                        
+
                         <div class="tutorial-meta">
                             {# Difficulty Badge #}
                             {% if tutorial.metadata.difficulty %}
@@ -144,7 +144,7 @@
                                 {{ tutorial.metadata.difficulty | capitalize }}
                             </span>
                             {% endif %}
-                            
+
                             {# Time Estimate #}
                             {% if tutorial.metadata.time or tutorial.metadata.duration %}
                             <span class="tutorial-meta-item">
@@ -155,7 +155,7 @@
                                 {{ tutorial.metadata.time | default(tutorial.metadata.duration) }}
                             </span>
                             {% endif %}
-                            
+
                             {# Prerequisites #}
                             {% if tutorial.metadata.prerequisites %}
                             <span class="tutorial-meta-item">
@@ -167,7 +167,7 @@
                             </span>
                             {% endif %}
                         </div>
-                        
+
                         <a href="{{ url_for(tutorial) }}" class="tutorial-link">
                             Start tutorial →
                         </a>
@@ -177,7 +177,7 @@
             </div>
         </section>
         {% endif %}
-        
+
     </div>
     {% else %}
     {# Empty State #}
@@ -185,6 +185,6 @@
         <p>No tutorials available yet.</p>
     </div>
     {% endif %}
-    
+
 </div>
 {% endblock %}

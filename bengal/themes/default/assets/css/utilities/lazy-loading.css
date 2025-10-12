@@ -64,7 +64,7 @@ img[loading="lazy"].loaded {
   .img-placeholder {
     animation: none;
   }
-  
+
   img[loading="lazy"] {
     transition: none;
   }
@@ -180,4 +180,3 @@ img[loading="lazy"] {
     opacity: 1;
   }
 }
-
