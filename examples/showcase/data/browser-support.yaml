@@ -1,0 +1,75 @@
+# Browser Support Matrix
+# Example data for data-table directive
+
+columns:
+  - title: Feature
+    field: feature
+  - title: Chrome
+    field: chrome
+  - title: Firefox
+    field: firefox
+  - title: Safari
+    field: safari
+  - title: Edge
+    field: edge
+
+data:
+  - feature: CSS Grid
+    chrome: "✓ v57+"
+    firefox: "✓ v52+"
+    safari: "✓ v10.1+"
+    edge: "✓ v16+"
+
+  - feature: CSS Flexbox
+    chrome: "✓ v29+"
+    firefox: "✓ v28+"
+    safari: "✓ v9+"
+    edge: "✓ v12+"
+
+  - feature: Web Components
+    chrome: "✓ v67+"
+    firefox: "✓ v63+"
+    safari: "✓ v13+"
+    edge: "✓ v79+"
+
+  - feature: ES6 Modules
+    chrome: "✓ v61+"
+    firefox: "✓ v60+"
+    safari: "✓ v11+"
+    edge: "✓ v16+"
+
+  - feature: Service Workers
+    chrome: "✓ v40+"
+    firefox: "✓ v44+"
+    safari: "✓ v11.1+"
+    edge: "✓ v17+"
+
+  - feature: WebP Images
+    chrome: "✓ v32+"
+    firefox: "✓ v65+"
+    safari: "✓ v14+"
+    edge: "✓ v18+"
+
+  - feature: CSS Variables
+    chrome: "✓ v49+"
+    firefox: "✓ v31+"
+    safari: "✓ v9.1+"
+    edge: "✓ v15+"
+
+  - feature: Intersection Observer
+    chrome: "✓ v51+"
+    firefox: "✓ v55+"
+    safari: "✓ v12.1+"
+    edge: "✓ v15+"
+
+  - feature: CSS Container Queries
+    chrome: "✓ v105+"
+    firefox: "✓ v110+"
+    safari: "✓ v16+"
+    edge: "✓ v105+"
+
+  - feature: View Transitions API
+    chrome: "✓ v111+"
+    firefox: "⚠️ In development"
+    safari: "⚠️ In development"
+    edge: "✓ v111+"

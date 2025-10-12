@@ -1,0 +1,413 @@
+/**
+ * Bengal Data Table Component
+ *
+ * Styles for interactive data tables with Tabulator integration.
+ * Matches Bengal's design tokens and supports light/dark themes.
+ */
+
+/* ==========================================================================
+   Container & Layout
+   ========================================================================== */
+
+.bengal-data-table-wrapper {
+  margin: var(--space-lg, 2rem) 0;
+  border-radius: var(--radius-md, 8px);
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  overflow: hidden;
+}
+
+.bengal-data-table {
+  font-size: var(--font-size-sm, 0.875rem);
+}
+
+/* Error state */
+.bengal-data-table-error {
+  padding: var(--space-md, 1rem);
+  background: var(--color-error-bg);
+  border: 1px solid var(--color-error-border);
+  border-radius: var(--radius-md, 8px);
+  color: var(--color-error-text);
+  margin: var(--space-lg, 2rem) 0;
+}
+
+.bengal-data-table-error strong {
+  display: block;
+  margin-bottom: var(--space-xs, 0.25rem);
+  font-weight: 600;
+}
+
+.bengal-data-table-error small {
+  font-size: var(--font-size-xs, 0.75rem);
+  opacity: 0.8;
+}
+
+/* ==========================================================================
+   Toolbar & Search
+   ========================================================================== */
+
+.bengal-data-table-toolbar {
+  padding: var(--space-md, 1rem);
+  background: var(--color-bg-secondary);
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm, 0.5rem);
+}
+
+.bengal-data-table-search {
+  flex: 1;
+  padding: var(--space-sm, 0.5rem) var(--space-md, 1rem);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm, 4px);
+  font-size: var(--font-size-sm, 0.875rem);
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.bengal-data-table-search:focus {
+  outline: none;
+  border-color: var(--color-border-focus);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.bengal-data-table-search::placeholder {
+  color: var(--color-text-tertiary);
+}
+
+/* ==========================================================================
+   Tabulator Theme Overrides
+   ========================================================================== */
+
+/* Headers */
+.bengal-data-table .tabulator-header {
+  background: var(--color-bg-secondary);
+  border-bottom: 2px solid var(--color-border);
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.bengal-data-table .tabulator-col {
+  background: transparent;
+  border-right: 1px solid var(--color-border-light);
+}
+
+.bengal-data-table .tabulator-col:last-child {
+  border-right: none;
+}
+
+.bengal-data-table .tabulator-col-content {
+  padding: var(--space-sm, 0.5rem) var(--space-md, 1rem);
+}
+
+/* Sortable columns */
+.bengal-data-table .tabulator-col.tabulator-sortable:hover {
+  background: var(--color-bg-hover);
+}
+
+.bengal-data-table .tabulator-col.tabulator-sortable .tabulator-col-title {
+  padding-right: var(--space-md, 1rem);
+}
+
+/* Sort arrows */
+.bengal-data-table .tabulator-arrow {
+  border-color: var(--color-primary) transparent transparent;
+}
+
+/* Header filters */
+.bengal-data-table .tabulator-header-filter input {
+  padding: var(--space-xs, 0.25rem) var(--space-sm, 0.5rem);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm, 4px);
+  font-size: var(--font-size-xs, 0.75rem);
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+}
+
+.bengal-data-table .tabulator-header-filter input:focus {
+  outline: none;
+  border-color: var(--color-border-focus);
+}
+
+/* Table body */
+.bengal-data-table .tabulator-table {
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+}
+
+/* Rows */
+.bengal-data-table .tabulator-row {
+  border-bottom: 1px solid var(--color-border-light);
+  min-height: 40px;
+}
+
+.bengal-data-table .tabulator-row:hover {
+  background: var(--color-bg-hover);
+}
+
+.bengal-data-table .tabulator-row.tabulator-row-even {
+  background: var(--color-bg-primary);
+}
+
+.bengal-data-table .tabulator-row.tabulator-row-odd {
+  background: var(--color-bg-secondary);
+}
+
+.bengal-data-table .tabulator-row.tabulator-selected {
+  background: var(--color-info-bg);
+}
+
+/* Cells */
+.bengal-data-table .tabulator-cell {
+  padding: var(--space-sm, 0.5rem) var(--space-md, 1rem);
+  border-right: 1px solid var(--color-border-light);
+}
+
+.bengal-data-table .tabulator-cell:last-child {
+  border-right: none;
+}
+
+/* Pagination */
+.bengal-data-table .tabulator-footer {
+  background: var(--color-bg-secondary);
+  border-top: 1px solid var(--color-border);
+  padding: var(--space-sm, 0.5rem) var(--space-md, 1rem);
+  color: var(--color-text-secondary);
+}
+
+.bengal-data-table .tabulator-page {
+  padding: var(--space-xs, 0.25rem) var(--space-sm, 0.5rem);
+  margin: 0 2px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm, 4px);
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.bengal-data-table .tabulator-page:hover:not(.disabled) {
+  background: var(--color-bg-hover);
+  border-color: var(--color-primary);
+}
+
+.bengal-data-table .tabulator-page.active {
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+  border-color: var(--color-primary);
+}
+
+.bengal-data-table .tabulator-page.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Page size selector */
+.bengal-data-table .tabulator-page-size {
+  padding: var(--space-xs, 0.25rem) var(--space-sm, 0.5rem);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm, 4px);
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm, 0.875rem);
+}
+
+/* ==========================================================================
+   Dark Mode Support
+   ========================================================================== */
+
+[data-theme="dark"] .bengal-data-table-wrapper {
+  background: var(--color-bg-primary);
+  border-color: var(--color-border);
+}
+
+[data-theme="dark"] .bengal-data-table-toolbar {
+  background: var(--color-bg-secondary);
+  border-color: var(--color-border);
+}
+
+[data-theme="dark"] .bengal-data-table-search {
+  background: var(--color-bg-primary);
+  border-color: var(--color-border);
+  color: var(--color-text-primary);
+}
+
+[data-theme="dark"] .bengal-data-table-search::placeholder {
+  color: var(--color-text-tertiary);
+}
+
+[data-theme="dark"] .bengal-data-table-search:focus {
+  border-color: var(--color-border-focus);
+}
+
+[data-theme="dark"] .bengal-data-table .tabulator {
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  border-color: var(--color-border);
+}
+
+[data-theme="dark"] .bengal-data-table .tabulator-header {
+  background: var(--color-bg-secondary);
+  border-color: var(--color-border);
+  color: var(--color-text-primary);
+}
+
+[data-theme="dark"] .bengal-data-table .tabulator-col {
+  border-color: var(--color-border-light);
+}
+
+[data-theme="dark"] .bengal-data-table .tabulator-col-content {
+  color: var(--color-text-primary);
+}
+
+[data-theme="dark"] .bengal-data-table .tabulator-arrow {
+  border-bottom-color: var(--color-text-secondary);
+}
+
+[data-theme="dark"] .bengal-data-table .tabulator-table {
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+}
+
+[data-theme="dark"] .bengal-data-table .tabulator-row {
+  background: var(--color-bg-primary);
+  border-color: var(--color-border-light);
+}
+
+[data-theme="dark"] .bengal-data-table .tabulator-row:hover {
+  background: var(--color-bg-hover);
+}
+
+[data-theme="dark"] .bengal-data-table .tabulator-row.tabulator-row-even {
+  background: var(--color-bg-secondary);
+}
+
+[data-theme="dark"] .bengal-data-table .tabulator-row.tabulator-row-even:hover {
+  background: var(--color-bg-hover);
+}
+
+[data-theme="dark"] .bengal-data-table .tabulator-cell {
+  border-color: var(--color-border-light);
+  color: var(--color-text-primary);
+}
+
+[data-theme="dark"] .bengal-data-table .tabulator-footer {
+  background: var(--color-bg-secondary);
+  border-color: var(--color-border);
+  color: var(--color-text-secondary);
+}
+
+[data-theme="dark"] .bengal-data-table .tabulator-page {
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-primary);
+  border-color: var(--color-border);
+}
+
+[data-theme="dark"] .bengal-data-table .tabulator-page:hover:not(.disabled) {
+  background: var(--color-bg-hover);
+}
+
+[data-theme="dark"] .bengal-data-table .tabulator-page.active {
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+}
+
+[data-theme="dark"] .bengal-data-table .tabulator-page-size {
+  background: var(--color-bg-primary);
+  border-color: var(--color-border);
+  color: var(--color-text-primary);
+}
+
+/* Responsive collapse in dark mode */
+[data-theme="dark"] .bengal-data-table .tabulator-responsive-collapse {
+  background: var(--color-bg-secondary);
+  border-color: var(--color-border-light);
+}
+
+[data-theme="dark"] .bengal-data-table .tabulator-responsive-collapse-toggle {
+  color: var(--color-text-secondary);
+}
+
+/* ==========================================================================
+   Responsive Design
+   ========================================================================== */
+
+@media (max-width: 768px) {
+  .bengal-data-table-wrapper {
+    margin: var(--space-md, 1rem) 0;
+  }
+
+  .bengal-data-table-toolbar {
+    padding: var(--space-sm, 0.5rem);
+  }
+
+  .bengal-data-table .tabulator-cell,
+  .bengal-data-table .tabulator-col-content {
+    padding: var(--space-xs, 0.25rem) var(--space-sm, 0.5rem);
+    font-size: var(--font-size-xs, 0.75rem);
+  }
+
+  /* Responsive collapse styles */
+  .bengal-data-table .tabulator-responsive-collapse {
+    background: var(--color-bg-secondary);
+    border-top: 1px solid var(--color-border-light);
+    padding: var(--space-sm, 0.5rem);
+  }
+
+  .bengal-data-table .tabulator-responsive-collapse-toggle {
+    color: var(--color-primary);
+    cursor: pointer;
+  }
+}
+
+/* ==========================================================================
+   Print Styles
+   ========================================================================== */
+
+@media print {
+  .bengal-data-table-wrapper {
+    border: 1px solid #000;
+    page-break-inside: avoid;
+  }
+
+  .bengal-data-table-toolbar {
+    display: none;
+  }
+
+  .bengal-data-table .tabulator-footer {
+    display: none;
+  }
+
+  .bengal-data-table .tabulator-col,
+  .bengal-data-table .tabulator-cell {
+    border: 1px solid #000 !important;
+  }
+
+  .bengal-data-table .tabulator-row:hover {
+    background: transparent !important;
+  }
+}
+
+/* ==========================================================================
+   Accessibility
+   ========================================================================== */
+
+.bengal-data-table .tabulator-cell:focus,
+.bengal-data-table .tabulator-col:focus {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: -2px;
+}
+
+/* Screen reader only text */
+.bengal-data-table .sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}

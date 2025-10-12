@@ -1,4 +1,6 @@
 {% extends "base.html" %}
+{% from 'partials/content-components.html' import article_card %}
+{% from 'partials/navigation-components.html' import pagination %}
 
 {% block content %}
 <div class="tag-page">
@@ -24,15 +26,13 @@
     {% if posts %}
     <div class="archive-list">
         {% for post in posts %}
-            {% set article = post %}
-            {% set show_excerpt = true %}
-            {% include 'partials/article-card.html' %}
+            {{ article_card(post, show_excerpt=True) }}
         {% endfor %}
     </div>
 
     {# Pagination (if needed in future) #}
     {% if total_pages and total_pages > 1 %}
-    {% include 'partials/pagination.html' %}
+    {{ pagination(current_page, total_pages, base_url) }}
     {% endif %}
     {% else %}
     <p>No posts found with this tag.</p>

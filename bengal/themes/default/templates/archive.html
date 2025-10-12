@@ -1,4 +1,6 @@
 {% extends "base.html" %}
+{% from 'partials/navigation-components.html' import breadcrumbs, section_navigation, pagination with context %}
+{% from 'partials/content-components.html' import article_card %}
 
 {#
   Chronological Archive Template
@@ -20,12 +22,11 @@
 #}
 
 {% block content %}
-{% include 'partials/breadcrumbs.html' %}
+{{ breadcrumbs(section if section is defined else page) }}
 
 {# Section navigation for section pages - dogfooding section properties #}
 {% if section %}
-    {% set page = section %}
-    {% include 'partials/section-navigation.html' %}
+    {{ section_navigation(section) }}
 {% endif %}
 
 <div class="archive">
@@ -54,10 +55,7 @@
         <h2 class="section-subtitle">Featured Posts</h2>
         <div class="archive-list archive-list-featured">
             {% for post in featured_posts %}
-                {% set article = post %}
-                {% set show_excerpt = true %}
-                {% set show_image = true %}
-                {% include 'partials/article-card.html' %}
+                {{ article_card(post, show_excerpt=True, show_image=True) }}
             {% endfor %}
         </div>
     </section>
@@ -70,9 +68,7 @@
         {% if featured_posts %}<h2 class="section-subtitle">All Posts</h2>{% endif %}
         <div class="archive-list">
             {% for post in regular_posts %}
-                {% set article = post %}
-                {% set show_excerpt = true %}
-                {% include 'partials/article-card.html' %}
+                {{ article_card(post, show_excerpt=True) }}
             {% endfor %}
         </div>
     </section>
@@ -80,7 +76,7 @@
 
     {# Pagination #}
     {% if total_pages and total_pages > 1 %}
-    {% include 'partials/pagination.html' %}
+    {{ pagination(current_page, total_pages, base_url) }}
     {% endif %}
     {% elif subsections %}
     {# Show subsections if no direct posts #}

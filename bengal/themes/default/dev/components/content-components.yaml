@@ -1,0 +1,188 @@
+# Content Components - Macro-Based Component Library
+# All content-related macros from partials/content-components.html
+
+# Component: Article Card
+# Macro: article_card(article, show_excerpt=True, show_image=False)
+---
+id: article-card
+name: "Article Card"
+macro: "content-components.article_card"
+description: "Rich article preview card with title, excerpt, metadata"
+shared_context:
+  article:
+    title: "Getting Started with Bengal SSG"
+    excerpt: "Learn the basics of building static sites with Bengal. This guide covers installation, configuration, and your first build."
+    url: "/blog/getting-started/"
+    date: "2025-01-15"
+    metadata:
+      author: "John Doe"
+      reading_time: 5
+      image: "/images/getting-started.jpg"
+    tags:
+      - "tutorial"
+      - "beginner"
+variants:
+  - id: "default"
+    name: "Default (with excerpt)"
+    # Uses all defaults
+
+  - id: "with-image"
+    name: "With Image"
+    params:
+      show_image: true
+
+  - id: "minimal"
+    name: "Minimal (no excerpt)"
+    params:
+      show_excerpt: false
+
+  - id: "full"
+    name: "Full (image + excerpt)"
+    params:
+      show_excerpt: true
+      show_image: true
+
+# Component: Child Page Tiles
+# Macro: child_page_tiles(posts=None, subsections=None)
+---
+id: child-page-tiles
+name: "Child Page Tiles"
+macro: "content-components.child_page_tiles"
+description: "Grid of child pages and subsections"
+variants:
+  - id: "posts-only"
+    name: "Posts Only"
+    params:
+      posts:
+        - title: "Introduction"
+          url: "/docs/intro/"
+          metadata:
+            description: "Get started with Bengal SSG"
+        - title: "Installation"
+          url: "/docs/install/"
+          metadata:
+            description: "Install Bengal on your system"
+        - title: "Configuration"
+          url: "/docs/config/"
+          metadata:
+            description: "Configure your site"
+
+  - id: "subsections-only"
+    name: "Subsections Only"
+    params:
+      subsections:
+        - title: "Getting Started"
+          url: "/docs/getting-started/"
+          metadata:
+            description: "Learn the basics"
+            icon: "🚀"
+        - title: "Advanced"
+          url: "/docs/advanced/"
+          metadata:
+            description: "Advanced topics"
+            icon: "⚡"
+
+  - id: "mixed"
+    name: "Mixed (Posts & Sections)"
+    params:
+      posts:
+        - title: "Overview"
+          url: "/docs/overview/"
+          metadata:
+            description: "System overview"
+      subsections:
+        - title: "API Reference"
+          url: "/docs/api/"
+          metadata:
+            description: "Complete API documentation"
+            icon: "📚"
+        - title: "CLI Reference"
+          url: "/docs/cli/"
+          metadata:
+            description: "Command-line tools"
+            icon: "⌨️"
+
+# Component: Tag List
+# Macro: tag_list(tags, small=False, linkable=True)
+---
+id: tag-list
+name: "Tag List"
+macro: "content-components.tag_list"
+description: "List of tag badges"
+shared_context:
+  tags:
+    - "python"
+    - "static-site-generator"
+    - "jinja2"
+    - "markdown"
+variants:
+  - id: "default"
+    name: "Default (linkable)"
+    # Uses all defaults
+
+  - id: "small"
+    name: "Small Size"
+    params:
+      small: true
+
+  - id: "non-linkable"
+    name: "Non-Linkable"
+    params:
+      linkable: false
+
+  - id: "many-tags"
+    name: "Many Tags"
+    params:
+      tags:
+        - "python"
+        - "ssg"
+        - "jinja2"
+        - "markdown"
+        - "themes"
+        - "templates"
+        - "deployment"
+        - "performance"
+
+# Component: Popular Tags Widget
+# Macro: popular_tags_widget(limit=10)
+---
+id: popular-tags-widget
+name: "Popular Tags Widget"
+macro: "content-components.popular_tags_widget"
+description: "Widget displaying popular tags from the site"
+variants:
+  - id: "default"
+    name: "Default (10 tags)"
+    # Uses default limit=10
+
+  - id: "limited"
+    name: "Limited (5 tags)"
+    params:
+      limit: 5
+
+  - id: "many"
+    name: "Many (20 tags)"
+    params:
+      limit: 20
+
+# Component: Random Posts
+# Macro: random_posts(count=3)
+---
+id: random-posts
+name: "Random Posts"
+macro: "content-components.random_posts"
+description: "Suggestions for random posts from the site"
+variants:
+  - id: "default"
+    name: "Default (3 posts)"
+    # Uses default count=3
+
+  - id: "single"
+    name: "Single Post"
+    params:
+      count: 1
+
+  - id: "many"
+    name: "Many Posts (5)"
+    params:
+      count: 5

@@ -383,6 +383,25 @@ def _generate_enhanced_suggestions(error: TemplateRenderError) -> list[str]:
     if error.error_type == "undefined":
         var_name = _extract_variable_name(error.message)
 
+        # ENHANCED: Detect unsafe dict access patterns
+        if "'dict object' has no attribute" in error.message:
+            # This is THE key pattern we just fixed!
+            attr = _extract_dict_attribute(error.message)
+            suggestions.append(
+                "[red bold]Unsafe dict access detected![/red bold] Dict keys should use .get() method"
+            )
+            if attr:
+                suggestions.append(
+                    f"Replace [red]dict.{attr}[/red] with [green]dict.get('{attr}')[/green] or [green]dict.get('{attr}', 'default')[/green]"
+                )
+            suggestions.append(
+                "Common locations: [cyan]page.metadata[/cyan], [cyan]site.config[/cyan], [cyan]section.metadata[/cyan]"
+            )
+            suggestions.append(
+                "[yellow]Note:[/yellow] This error only appears in strict mode (serve). Use [cyan]bengal build --strict[/cyan] to catch in builds."
+            )
+            return suggestions  # Return early with specific guidance
+
         if var_name:
             # Common typos
             typo_map = {
@@ -468,6 +487,18 @@ def _extract_filter_name(error_message: str) -> str | None:
     import re
 
     match = re.search(r"no filter named ['\"]([^'\"]+)['\"]", error_message, re.IGNORECASE)
+    if match:
+        return match.group(1)
+
+    return None
+
+
+def _extract_dict_attribute(error_message: str) -> str | None:
+    """Extract attribute name from dict access error."""
+    import re
+
+    # Pattern: 'dict object' has no attribute 'attr_name'
+    match = re.search(r"'dict object' has no attribute '([^']+)'", error_message)
     if match:
         return match.group(1)
 

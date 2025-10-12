@@ -76,7 +76,7 @@
    RESPONSIVE: TABLET (Hide TOC)
    ============================================ */
 
-@media (max-width: 1280px) {
+@media (max-width: 1024px) {
   .docs-layout {
     grid-template-columns:
       [sidebar-start] minmax(240px, 260px)
@@ -128,7 +128,7 @@
     overflow-y: auto;
   }
 
-  .docs-sidebar.open {
+  .docs-sidebar[data-open] {
     transform: translateX(0);
   }
 

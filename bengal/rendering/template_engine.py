@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 
 import toml
-from jinja2 import Environment, FileSystemLoader, select_autoescape
+from jinja2 import Environment, FileSystemLoader, StrictUndefined, select_autoescape
 from jinja2.bccache import FileSystemBytecodeCache
 
 from bengal.rendering.template_functions import register_all
@@ -114,14 +114,21 @@ class TemplateEngine:
             logger.debug("template_bytecode_cache_enabled", cache_dir=str(cache_dir))
 
         # Create environment
-        env = Environment(
-            loader=FileSystemLoader(template_dirs) if template_dirs else FileSystemLoader("."),
-            autoescape=select_autoescape(["html", "xml"]),
-            trim_blocks=True,
-            lstrip_blocks=True,
-            bytecode_cache=bytecode_cache,
-            auto_reload=False,  # Disable auto-reload for performance
-        )
+        # Use StrictUndefined in strict_mode to catch missing variables
+        env_kwargs = {
+            "loader": FileSystemLoader(template_dirs) if template_dirs else FileSystemLoader("."),
+            "autoescape": select_autoescape(["html", "xml"]),
+            "trim_blocks": True,
+            "lstrip_blocks": True,
+            "bytecode_cache": bytecode_cache,
+            "auto_reload": False,  # Disable auto-reload for performance
+        }
+
+        # Only set undefined if strict_mode is enabled
+        if self.site.config.get("strict_mode", False):
+            env_kwargs["undefined"] = StrictUndefined
+
+        env = Environment(**env_kwargs)
 
         # Add custom filters and functions (core template helpers)
         env.filters["dateformat"] = self._filter_dateformat

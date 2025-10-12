@@ -1,4 +1,7 @@
 {% extends "base.html" %}
+{% from 'partials/reference-components.html' import reference_header, reference_metadata %}
+{% from 'partials/navigation-components.html' import breadcrumbs, page_navigation, toc with context %}
+{% from 'partials/content-components.html' import tag_list %}
 
 {#
   API Reference Single Page Template
@@ -23,63 +26,50 @@
   {# Main Content #}
   <div class="docs-main">
     {# Breadcrumbs #}
-    {% include 'partials/breadcrumbs.html' %}
+    {{ breadcrumbs(page) }}
 
     {# Article Content #}
-    <article class="prose api-reference-page {% if page.metadata.css_class %}{{ page.metadata.css_class }}{% endif %}">
+    <article class="prose api-reference-page reference-page--api {% if page.metadata.get('css_class') %}{{ page.metadata.get('css_class') }}{% endif %}">
       <header class="docs-header">
-        <div class="api-header-top">
-          <span class="api-page-icon">📦</span>
-          <h1>{{ page.title }}</h1>
-        </div>
+        {# Reference header with icon and title #}
+        {{ reference_header(
+          icon='📦',
+          title=page.title,
+          description=page.metadata.get('description', ''),
+          type='api'
+        ) }}
 
-        {# Description is in the markdown content itself for autodoc pages #}
-        {# If you need a lead paragraph, add it explicitly in the markdown #}
-
-        {# Module/Package metadata #}
-        {% if page.metadata.module_path or page.metadata.source_file %}
-        <div class="api-meta">
-          {% if page.metadata.module_path %}
-          <div class="api-meta-item">
-            <strong>Module:</strong>
-            <code>{{ page.metadata.module_path }}</code>
-          </div>
-          {% endif %}
-
-          {% if page.metadata.source_file %}
-          <div class="api-meta-item">
-            <strong>Source:</strong>
-            <code>{{ page.metadata.source_file }}</code>
-          </div>
-          {% endif %}
-        </div>
-        {% endif %}
+        {# Reference metadata box (module, source, etc.) #}
+        {{ reference_metadata({
+          'Module': page.metadata.get('module_path', ''),
+          'Source': page.metadata.get('source_file', '')
+        }) }}
 
         {# Document metadata (last updated, etc) #}
         {% include 'partials/docs-meta.html' %}
       </header>
 
       {# Main content #}
-      <div class="docs-content api-content">
+      <div class="docs-content reference-content api-content">
         {{ content | safe }}
       </div>
 
       {# Tags #}
       {% if page.tags %}
       <footer class="docs-footer">
-        {% include 'partials/tag-list.html' %}
+        {{ tag_list(page.tags) }}
       </footer>
       {% endif %}
     </article>
 
     {# Page navigation (prev/next module) at bottom #}
-    {% include 'partials/page-navigation.html' %}
+    {{ page_navigation(page) }}
   </div>
 
   {# Right Sidebar: TOC #}
-  {% if toc %}
+  {% if toc_items %}
   <aside class="docs-toc" role="complementary" aria-label="Table of contents">
-    {% include 'partials/toc-sidebar.html' %}
+    {{ toc(toc_items=toc_items, toc=toc, page=page) }}
   </aside>
   {% endif %}
 </div>

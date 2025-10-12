@@ -17,15 +17,18 @@
       Controls whether child pages and subsections are displayed as tiles
 #}
 
+{% from 'partials/navigation-components.html' import breadcrumbs %}
+{% from 'partials/content-components.html' import child_page_tiles %}
+
 {% block content %}
-{% include 'partials/breadcrumbs.html' %}
+{{ breadcrumbs(page if page is defined else section) }}
 
 <div class="section-index">
     <header class="section-header">
         <h1>{{ page.title if page else section.title if section else site.config.title }}</h1>
 
-        {% if page and page.metadata.description %}
-        <p class="section-description">{{ page.metadata.description }}</p>
+        {% if page and page.metadata.get('description', '') %}
+        <p class="section-description">{{ page.metadata.get('description', '') }}</p>
         {% elif section and section.metadata.description %}
         <p class="section-description">{{ section.metadata.description }}</p>
         {% endif %}
@@ -41,7 +44,7 @@
     {# Child content display - can be disabled via frontmatter: show_children: false #}
     {% set show_children = page.metadata.get('show_children', true) if page else true %}
     {% if show_children %}
-        {% include 'partials/child-page-tiles.html' %}
+        {{ child_page_tiles(posts=posts, subsections=subsections) }}
     {% endif %}
 
     {# Empty state if no children to display #}

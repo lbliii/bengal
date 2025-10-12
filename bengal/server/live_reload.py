@@ -53,6 +53,9 @@ LIVE_RELOAD_SCRIPT = """
         source.onmessage = function(event) {
             if (event.data === 'reload') {
                 console.log('🔄 Bengal: Reloading page...');
+                // Save scroll position before reload
+                sessionStorage.setItem('bengal_scroll_x', window.scrollX.toString());
+                sessionStorage.setItem('bengal_scroll_y', window.scrollY.toString());
                 location.reload();
             } else if (event.data === 'reload-css') {
                 console.log('🎨 Bengal: Reloading CSS...');
@@ -75,9 +78,24 @@ LIVE_RELOAD_SCRIPT = """
                 });
             } else if (event.data === 'reload-page') {
                 console.log('📄 Bengal: Reloading current page...');
+                // Save scroll position before reload
+                sessionStorage.setItem('bengal_scroll_x', window.scrollX.toString());
+                sessionStorage.setItem('bengal_scroll_y', window.scrollY.toString());
                 location.reload();
             }
         };
+
+        // Restore scroll position after page load
+        window.addEventListener('load', function() {
+            const scrollX = sessionStorage.getItem('bengal_scroll_x');
+            const scrollY = sessionStorage.getItem('bengal_scroll_y');
+            if (scrollX !== null && scrollY !== null) {
+                window.scrollTo(parseInt(scrollX, 10), parseInt(scrollY, 10));
+                // Clear stored position after restoring
+                sessionStorage.removeItem('bengal_scroll_x');
+                sessionStorage.removeItem('bengal_scroll_y');
+            }
+        });
 
         source.onopen = function() {
             backoffMs = 1000; // reset on successful connection

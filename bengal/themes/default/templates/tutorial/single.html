@@ -14,40 +14,42 @@
     - toc: Table of contents
 #}
 
+{% from 'partials/navigation-components.html' import breadcrumbs, page_navigation %}
+
 {% block content %}
-{% include 'partials/breadcrumbs.html' %}
+{{ breadcrumbs(page) }}
 
 <div class="tutorial-page-layout {% if toc %}tutorial-with-toc{% endif %}">
-    <article class="tutorial-page prose {% if page.metadata.css_class %}{{ page.metadata.css_class }}{% endif %}">
+    <article class="tutorial-page prose {% if page.metadata.get('css_class') %}{{ page.metadata.get('css_class') }}{% endif %}">
         <header class="tutorial-page-header">
             {# Tutorial Icon #}
-            {% if page.metadata.icon %}
-            <div class="tutorial-page-icon">{{ page.metadata.icon }}</div>
+            {% if page.metadata.get('icon') %}
+            <div class="tutorial-page-icon">{{ page.metadata.get('icon') }}</div>
             {% endif %}
 
             <h1>{{ page.title }}</h1>
 
-            {% if page.metadata.description %}
-            <p class="lead">{{ page.metadata.description }}</p>
+            {% if page.metadata.get('description', '') %}
+            <p class="lead">{{ page.metadata.get('description', '') }}</p>
             {% endif %}
 
             {# Tutorial Metadata Bar #}
             <div class="tutorial-page-meta">
                 {# Difficulty #}
-                {% if page.metadata.difficulty %}
-                <span class="tutorial-badge tutorial-badge-{{ page.metadata.difficulty }}">
-                    {{ page.metadata.difficulty | capitalize }}
+                {% if page.metadata.get('difficulty') %}
+                <span class="tutorial-badge tutorial-badge-{{ page.metadata.get('difficulty') }}">
+                    {{ page.metadata.get('difficulty') | capitalize }}
                 </span>
                 {% endif %}
 
                 {# Time Estimate #}
-                {% if page.metadata.time or page.metadata.duration %}
+                {% if page.metadata.get('time') or page.metadata.get('duration') %}
                 <span class="tutorial-meta-item">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="10"></circle>
                         <polyline points="12 6 12 12 16 14"></polyline>
                     </svg>
-                    {{ page.metadata.time | default(page.metadata.duration) }}
+                    {{ page.metadata.get('time') | default(page.metadata.get('duration')) }}
                 </span>
                 {% endif %}
 
@@ -66,11 +68,11 @@
             </div>
 
             {# Prerequisites #}
-            {% if page.metadata.prerequisites %}
+            {% if page.metadata.get('prerequisites') %}
             <div class="tutorial-prerequisites">
                 <h4>Prerequisites</h4>
                 <ul>
-                    {% for prereq in page.metadata.prerequisites %}
+                    {% for prereq in page.metadata.get('prerequisites') %}
                     <li>{{ prereq }}</li>
                     {% endfor %}
                 </ul>
@@ -78,11 +80,11 @@
             {% endif %}
 
             {# What You'll Learn #}
-            {% if page.metadata.learning_objectives or page.metadata.objectives %}
+            {% if page.metadata.get('learning_objectives') or page.metadata.get('objectives') %}
             <div class="tutorial-objectives">
                 <h4>What you'll learn</h4>
                 <ul>
-                    {% for objective in (page.metadata.learning_objectives | default(page.metadata.objectives)) %}
+                    {% for objective in (page.metadata.get('learning_objectives') | default(page.metadata.get('objectives'))) %}
                     <li>{{ objective }}</li>
                     {% endfor %}
                 </ul>
@@ -96,24 +98,24 @@
         </div>
 
         {# What's Next / Further Reading #}
-        {% if page.metadata.next_steps or page.metadata.further_reading %}
+        {% if page.metadata.get('next_steps') or page.metadata.get('further_reading') %}
         <footer class="tutorial-footer">
-            {% if page.metadata.next_steps %}
+            {% if page.metadata.get('next_steps') %}
             <div class="tutorial-next-steps">
                 <h3>What's Next?</h3>
                 <ul>
-                    {% for step in page.metadata.next_steps %}
+                    {% for step in page.metadata.get('next_steps') %}
                     <li>{{ step }}</li>
                     {% endfor %}
                 </ul>
             </div>
             {% endif %}
 
-            {% if page.metadata.further_reading %}
+            {% if page.metadata.get('further_reading') %}
             <div class="tutorial-further-reading">
                 <h3>Further Reading</h3>
                 <ul>
-                    {% for resource in page.metadata.further_reading %}
+                    {% for resource in page.metadata.get('further_reading') %}
                     <li>{{ resource }}</li>
                     {% endfor %}
                 </ul>
@@ -138,7 +140,7 @@
 
 {# Prominent Prev/Next Navigation #}
 <div class="tutorial-navigation">
-    {% include 'partials/page-navigation.html' %}
+    {{ page_navigation(page) }}
 </div>
 
 {# Related Tutorials #}
@@ -152,8 +154,8 @@
             {% for tutorial in related %}
             <article class="tutorial-card">
                 <div class="tutorial-card-header">
-                    {% if tutorial.metadata.icon %}
-                    <span class="tutorial-icon">{{ tutorial.metadata.icon }}</span>
+                    {% if tutorial.metadata.get('icon') %}
+                    <span class="tutorial-icon">{{ tutorial.metadata.get('icon') }}</span>
                     {% else %}
                     <span class="tutorial-icon">📖</span>
                     {% endif %}
@@ -162,12 +164,12 @@
                     </h3>
                 </div>
                 <div class="tutorial-card-content">
-                    {% if tutorial.metadata.description %}
-                    <p class="tutorial-description">{{ tutorial.metadata.description | truncate(100) }}</p>
+                    {% if tutorial.metadata.get('description', '') %}
+                    <p class="tutorial-description">{{ tutorial.metadata.get('description', '') | truncate(100) }}</p>
                     {% endif %}
-                    {% if tutorial.metadata.difficulty %}
-                    <span class="tutorial-badge tutorial-badge-{{ tutorial.metadata.difficulty }}">
-                        {{ tutorial.metadata.difficulty | capitalize }}
+                    {% if tutorial.metadata.get('difficulty') %}
+                    <span class="tutorial-badge tutorial-badge-{{ tutorial.metadata.get('difficulty') }}">
+                        {{ tutorial.metadata.get('difficulty') | capitalize }}
                     </span>
                     {% endif %}
                 </div>

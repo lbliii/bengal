@@ -1,14 +1,17 @@
 {% extends "base.html" %}
 
+{% from 'partials/navigation-components.html' import breadcrumbs, page_navigation with context %}
+{% from 'partials/content-components.html' import tag_list, random_posts with context %}
+
 {% block content %}
-{% include 'partials/breadcrumbs.html' %}
+{{ breadcrumbs(page) }}
 
 <div class="page-layout {% if toc %}page-with-toc{% endif %}">
-    <article class="page prose {% if page.metadata.css_class %}{{ page.metadata.css_class }}{% endif %}">
+    <article class="page prose {% if page.metadata.get('css_class') %}{{ page.metadata.get('css_class') }}{% endif %}">
         <header class="page-header">
             <h1>{{ page.title }}</h1>
 
-            {% if page.date or page.metadata.author %}
+            {% if page.date or page.metadata.get('author') %}
             <div class="article-meta">
                 {% if page.date %}
                 <time datetime="{{ page.date | date_iso }}" title="{{ page.date | dateformat('%B %d, %Y') }}">
@@ -16,9 +19,9 @@
                 </time>
                 {% endif %}
 
-                {% if page.metadata.author %}
+                {% if page.metadata.get('author') %}
                 <span class="author">
-                    <span>By {{ page.metadata.author }}</span>
+                    <span>By {{ page.metadata.get('author') }}</span>
                 </span>
                 {% endif %}
 
@@ -39,9 +42,7 @@
         <footer class="page-footer">
             <div class="tags">
                 <strong>Tags:</strong>
-                {% for tag in page.tags %}
-                <a href="{{ tag_url(tag) }}" class="tag">{{ tag }}</a>
-                {% endfor %}
+                {{ tag_list(page.tags) }}
             </div>
         </footer>
         {% endif %}
@@ -57,13 +58,13 @@
         </nav>
 
         {# Random posts - dogfooding sample() #}
-        {% include 'partials/random-posts.html' %}
+        {{ random_posts(count=3) }}
     </aside>
     {% endif %}
 </div>
 
 {# Page Navigation (prev/next) #}
-{% include 'partials/page-navigation.html' %}
+{{ page_navigation(page) }}
 
 {# Related Posts Section (for pages with tags) - Pre-computed during build #}
 {% set related = page.related_posts[:3] %}

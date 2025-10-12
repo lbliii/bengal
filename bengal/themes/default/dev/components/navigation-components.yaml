@@ -1,0 +1,247 @@
+# Navigation Components - Macro-Based Component Library
+# All navigation-related macros from partials/navigation-components.html
+
+# Component: Breadcrumbs
+# Macro: breadcrumbs(page)
+---
+id: breadcrumbs
+name: "Breadcrumbs"
+macro: "navigation-components.breadcrumbs"
+description: "Hierarchical navigation trail showing page ancestry"
+shared_context:
+  page:
+    title: "Current Page"
+    url: "/docs/guides/getting-started/"
+variants:
+  - id: "home"
+    name: "Home (No Breadcrumbs)"
+    params:
+      page:
+        breadcrumbs: []
+        title: "Home"
+        url: "/"
+
+  - id: "nested"
+    name: "Nested Page"
+    params:
+      page:
+        breadcrumbs:
+          - title: "Home"
+            url: "/"
+          - title: "Docs"
+            url: "/docs/"
+          - title: "Guides"
+            url: "/docs/guides/"
+        title: "Getting Started"
+        url: "/docs/guides/getting-started/"
+
+  - id: "deep"
+    name: "Deeply Nested"
+    params:
+      page:
+        breadcrumbs:
+          - title: "Home"
+            url: "/"
+          - title: "Docs"
+            url: "/docs/"
+          - title: "API"
+            url: "/docs/api/"
+          - title: "Core"
+            url: "/docs/api/core/"
+          - title: "Rendering"
+            url: "/docs/api/core/rendering/"
+
+# Component: Pagination
+# Macro: pagination(current_page, total_pages, base_url)
+---
+id: pagination
+name: "Pagination"
+macro: "navigation-components.pagination"
+description: "Page number navigation for multi-page listings"
+shared_context:
+  total_pages: 10
+  base_url: "/blog/"
+variants:
+  - id: "first-page"
+    name: "First Page"
+    params:
+      current_page: 1
+
+  - id: "middle-page"
+    name: "Middle Page"
+    params:
+      current_page: 5
+
+  - id: "last-page"
+    name: "Last Page"
+    params:
+      current_page: 10
+
+  - id: "few-pages"
+    name: "Few Pages (3 total)"
+    params:
+      current_page: 2
+      total_pages: 3
+
+# Component: Page Navigation
+# Macro: page_navigation(page)
+---
+id: page-navigation
+name: "Page Navigation"
+macro: "navigation-components.page_navigation"
+description: "Previous/Next page links for sequential content"
+variants:
+  - id: "both-links"
+    name: "Both Prev & Next"
+    params:
+      page:
+        title: "Current Page"
+        prev_page:
+          title: "Previous Page"
+          url: "/blog/previous-post/"
+        next_page:
+          title: "Next Page"
+          url: "/blog/next-post/"
+
+  - id: "prev-only"
+    name: "Previous Only"
+    params:
+      page:
+        title: "Last Page"
+        prev_page:
+          title: "Previous Page"
+          url: "/blog/previous-post/"
+
+  - id: "next-only"
+    name: "Next Only"
+    params:
+      page:
+        title: "First Page"
+        next_page:
+          title: "Next Page"
+          url: "/blog/next-post/"
+
+  - id: "no-links"
+    name: "No Links (Standalone)"
+    params:
+      page:
+        title: "Standalone Page"
+
+# Component: Section Navigation
+# Macro: section_navigation(page)
+---
+id: section-navigation
+name: "Section Navigation"
+macro: "navigation-components.section_navigation"
+description: "Sibling page links within a section"
+shared_context:
+  page:
+    title: "Current Page"
+    url: "/docs/guides/getting-started/"
+variants:
+  - id: "with-siblings"
+    name: "With Siblings"
+    params:
+      page:
+        section_pages:
+          - title: "Introduction"
+            url: "/docs/guides/intro/"
+            active: false
+          - title: "Getting Started"
+            url: "/docs/guides/getting-started/"
+            active: true
+          - title: "Configuration"
+            url: "/docs/guides/config/"
+            active: false
+          - title: "Deployment"
+            url: "/docs/guides/deploy/"
+            active: false
+
+  - id: "no-siblings"
+    name: "No Siblings (Standalone)"
+    params:
+      page:
+        section_pages: []
+
+# Component: Table of Contents
+# Macro: toc(toc_items, toc, page)
+---
+id: toc
+name: "Table of Contents"
+macro: "navigation-components.toc"
+description: "Hierarchical table of contents for page navigation"
+shared_context:
+  toc:
+    title: "On This Page"
+  page:
+    title: "Current Page"
+variants:
+  - id: "flat"
+    name: "Flat TOC"
+    params:
+      toc_items:
+        - id: "overview"
+          title: "Overview"
+          level: 2
+        - id: "installation"
+          title: "Installation"
+          level: 2
+        - id: "usage"
+          title: "Usage"
+          level: 2
+        - id: "configuration"
+          title: "Configuration"
+          level: 2
+
+  - id: "nested"
+    name: "Nested TOC"
+    params:
+      toc_items:
+        - id: "getting-started"
+          title: "Getting Started"
+          level: 2
+          children:
+            - id: "installation"
+              title: "Installation"
+              level: 3
+            - id: "quick-start"
+              title: "Quick Start"
+              level: 3
+        - id: "configuration"
+          title: "Configuration"
+          level: 2
+          children:
+            - id: "basic"
+              title: "Basic Setup"
+              level: 3
+            - id: "advanced"
+              title: "Advanced Options"
+              level: 3
+        - id: "deployment"
+          title: "Deployment"
+          level: 2
+
+  - id: "deep"
+    name: "Deeply Nested"
+    params:
+      toc_items:
+        - id: "intro"
+          title: "Introduction"
+          level: 2
+        - id: "core-concepts"
+          title: "Core Concepts"
+          level: 2
+          children:
+            - id: "architecture"
+              title: "Architecture"
+              level: 3
+              children:
+                - id: "components"
+                  title: "Components"
+                  level: 4
+                - id: "data-flow"
+                  title: "Data Flow"
+                  level: 4
+            - id: "rendering"
+              title: "Rendering"
+              level: 3

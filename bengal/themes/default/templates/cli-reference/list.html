@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from 'partials/navigation-components.html' import breadcrumbs with context %}
 
 {#
   CLI Reference List Template
@@ -24,14 +25,14 @@
   {# Main Content #}
   <div class="docs-main">
     {# Breadcrumbs #}
-    {% include 'partials/breadcrumbs.html' %}
+    {{ breadcrumbs(section if section is defined else page) }}
 
     <div class="cli-reference-container">
         <header class="cli-reference-header">
             <h1>⌨️  {{ (section.title if section else title) | default('CLI Reference') | upper }}</h1>
 
-            {% if section and section.metadata.description %}
-            <p class="cli-reference-description">{{ section.metadata.description }}</p>
+            {% if section and section.metadata.get('description', '') %}
+            <p class="cli-reference-description">{{ section.metadata.get('description', '') }}</p>
             {% else %}
             <p class="cli-reference-description">Command-line interface reference and documentation</p>
             {% endif %}
@@ -50,58 +51,36 @@
         {% if posts or subsections %}
         <div class="cli-commands">
 
-            {# Collect all commands from direct pages and subsections #}
-            {% set all_commands = posts | list %}
-
-            {# If we have subsections with names like "commands", flatten them #}
-            {% if subsections %}
-                {% for subsection in subsections %}
-                    {# Common pattern: cli/commands/ subdirectory from autodoc-cli #}
-                    {% if subsection.name in ('commands', 'subcommands') and subsection.regular_pages %}
-                        {# Exclude index page from command list #}
-                        {% for page in subsection.regular_pages %}
-                            {% if not subsection.index_page or page.url != subsection.index_page.url %}
-                                {% set _ = all_commands.append(page) %}
-                            {% endif %}
-                        {% endfor %}
-                    {% endif %}
-                {% endfor %}
-            {% endif %}
-
-            {# Show all commands as cards #}
-            {% if all_commands %}
+            {# Show all direct commands (pages in this section) #}
+            {% if posts %}
             <section class="cli-section">
                 <h2 class="cli-section-title">Commands</h2>
-                <div class="cli-grid">
-                    {% for command in all_commands %}
-                    <article class="cli-command-card">
-                        <div class="cli-command-header">
-                            {% if command.metadata.emoji %}
-                            <span class="cli-command-icon">{{ command.metadata.emoji }}</span>
-                            {% endif %}
-                            <h3 class="cli-command-title">
-                                <a href="{{ url_for(command) }}">{{ command.title }}</a>
-                            </h3>
+                <div class="cli-items-list">
+                    {% for command in posts %}
+                    <article class="cli-item">
+                        <div class="cli-item-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="4 17 10 11 4 5"></polyline>
+                                <line x1="12" y1="19" x2="20" y2="19"></line>
+                            </svg>
                         </div>
 
-                        <div class="cli-command-content">
-                            {% if command.metadata.description %}
-                            <p class="cli-command-description">
-                                {{ command.metadata.description | truncate(180) }}
-                            </p>
-                            {% elif command.content %}
-                            <p class="cli-command-description">
-                                {{ command.content | striptags | truncate(180) }}
-                            </p>
-                            {% endif %}
+                        <div class="cli-item-content">
+                            <span class="cli-item-title">
+                                <a href="{{ url_for(command) }}">{{ command.title }}</a>
 
-                            {% if command.metadata.usage %}
-                            <code class="cli-usage">{{ command.metadata.usage }}</code>
-                            {% endif %}
+                                {% if command.metadata.get('description', '') %}
+                                <span class="cli-item-description">{{ command.metadata.get('description', '') }}</span>
+                                {% elif command.content %}
+                                <span class="cli-item-description">{{ command.content | striptags | truncate(120) }}</span>
+                                {% endif %}
 
-                            <a href="{{ url_for(command) }}" class="cli-command-link">
-                                Full documentation →
-                            </a>
+                                {% if command.metadata.get('usage') %}
+                                <span class="cli-item-meta">
+                                    <span class="meta-item meta-usage"><code>{{ command.metadata.get('usage') }}</code></span>
+                                </span>
+                                {% endif %}
+                            </span>
                         </div>
                     </article>
                     {% endfor %}
@@ -109,55 +88,42 @@
             </section>
             {% endif %}
 
-            {# Show other subsections that aren't just command containers #}
+            {# Show command groups (subsections) #}
             {% if subsections %}
-                {% set other_subsections = [] %}
-                {% for subsection in subsections %}
-                    {% if subsection.name not in ('commands', 'subcommands') %}
-                        {% set _ = other_subsections.append(subsection) %}
-                    {% endif %}
-                {% endfor %}
-
-                {% if other_subsections %}
                 <section class="cli-section">
                     <h2 class="cli-section-title">Command Groups</h2>
-                    <div class="cli-grid">
-                        {% for subsection in other_subsections %}
-                        <article class="cli-command-card">
-                            <div class="cli-command-header">
-                                <h3 class="cli-command-title">
-                                    <a href="{{ url_for(subsection) }}">{{ subsection.title }}</a>
-                                </h3>
+                    <div class="cli-items-list">
+                        {% for subsection in subsections %}
+                        <article class="cli-item">
+                            <div class="cli-item-icon">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                                </svg>
                             </div>
 
-                            <div class="cli-command-content">
-                                {% if subsection.metadata.description %}
-                                <p class="cli-command-description">
-                                    {{ subsection.metadata.description }}
-                                </p>
-                                {% endif %}
+                            <div class="cli-item-content">
+                                <span class="cli-item-title">
+                                    <a href="{{ url_for(subsection) }}">{{ subsection.title }}</a>
 
-                                <div class="cli-command-meta">
-                                    {% if subsection.regular_pages %}
-                                    {# Count only non-index pages #}
-                                    {% set content_pages = subsection.regular_pages | rejectattr('url', 'equalto', subsection.index_page.url if subsection.index_page else '') | list %}
-                                    {% if content_pages %}
-                                    <span class="cli-meta-item">
-                                        {{ content_pages | length }} command{{ 's' if content_pages | length != 1 }}
+                                    {% if subsection.metadata.get('description', '') %}
+                                    <span class="cli-item-description">{{ subsection.metadata.get('description', '') }}</span>
+                                    {% endif %}
+
+                                    <span class="cli-item-meta">
+                                        {% if subsection.regular_pages %}
+                                        {# Count only non-index pages #}
+                                        {% set content_pages = subsection.regular_pages | rejectattr('url', 'equalto', subsection.index_page.url if subsection.index_page else '') | list %}
+                                        {% if content_pages %}
+                                        <span class="meta-item">{{ content_pages | length }} command{{ 's' if content_pages | length != 1 }}</span>
+                                        {% endif %}
+                                        {% endif %}
                                     </span>
-                                    {% endif %}
-                                    {% endif %}
-                                </div>
-
-                                <a href="{{ url_for(subsection) }}" class="cli-command-link">
-                                    View commands →
-                                </a>
+                                </span>
                             </div>
                         </article>
                         {% endfor %}
                     </div>
                 </section>
-                {% endif %}
             {% endif %}
 
         </div>

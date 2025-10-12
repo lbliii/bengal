@@ -1,7 +1,10 @@
 {% extends "base.html" %}
 
+{% from 'partials/navigation-components.html' import breadcrumbs %}
+{% from 'partials/content-components.html' import tag_list %}
+
 {% block content %}
-{% include 'partials/breadcrumbs.html' %}
+{{ breadcrumbs(page) }}
 
 <div class="page-layout {% if toc %}page-with-toc{% endif %}">
     <article class="post">
@@ -15,9 +18,9 @@
                 </time>
                 {% endif %}
 
-                {% if page.metadata.author %}
+                {% if page.metadata.get('author') %}
                 <span class="author">
-                    <span>By {{ page.metadata.author }}</span>
+                    <span>By {{ page.metadata.get('author') }}</span>
                 </span>
                 {% endif %}
 
@@ -37,9 +40,7 @@
         <footer class="post-footer">
             <div class="tags">
                 <strong>Tags:</strong>
-                {% for tag in page.tags %}
-                <a href="{{ tag_url(tag) }}" class="tag">{{ tag }}</a>
-                {% endfor %}
+                {{ tag_list(page.tags) }}
             </div>
         </footer>
         {% endif %}

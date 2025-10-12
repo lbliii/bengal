@@ -14,16 +14,18 @@
     - subsections: Tutorial categories/groups
 #}
 
+{% from 'partials/navigation-components.html' import breadcrumbs %}
+
 {% block content %}
-{% include 'partials/breadcrumbs.html' %}
+{{ breadcrumbs(page if page is defined else section) }}
 
 <div class="tutorial-container">
     <header class="tutorial-header">
         <h1>📚 {{ section.title if section else title | default('Tutorials') }}</h1>
 
-        {% if section and section.metadata.description %}
-        <p class="tutorial-description">{{ section.metadata.description }}</p>
-        {% elif description %}
+        {% if section and section.metadata.get('description', '') %}
+        <p class="tutorial-description">{{ section.metadata.get('description', '') }}</p>
+        {% elif description is defined %}
         <p class="tutorial-description">{{ description }}</p>
         {% else %}
         <p class="tutorial-description">Step-by-step guides to help you learn and master the topics.</p>
@@ -84,9 +86,9 @@
                     </div>
 
                     <div class="tutorial-card-content">
-                        {% if subsection.metadata.description %}
+                        {% if subsection.metadata.get('description', '') %}
                         <p class="tutorial-description">
-                            {{ subsection.metadata.description | truncate(150) }}
+                            {{ subsection.metadata.get('description', '') | truncate(150) }}
                         </p>
                         {% endif %}
 
@@ -116,8 +118,8 @@
                 {% for tutorial in posts %}
                 <article class="tutorial-card">
                     <div class="tutorial-card-header">
-                        {% if tutorial.metadata.icon %}
-                        <span class="tutorial-icon">{{ tutorial.metadata.icon }}</span>
+                        {% if tutorial.metadata.get('icon') %}
+                        <span class="tutorial-icon">{{ tutorial.metadata.get('icon') }}</span>
                         {% else %}
                         <span class="tutorial-icon">📖</span>
                         {% endif %}
@@ -127,9 +129,9 @@
                     </div>
 
                     <div class="tutorial-card-content">
-                        {% if tutorial.metadata.description %}
+                        {% if tutorial.metadata.get('description', '') %}
                         <p class="tutorial-description">
-                            {{ tutorial.metadata.description | truncate(150) }}
+                            {{ tutorial.metadata.get('description', '') | truncate(150) }}
                         </p>
                         {% elif tutorial.excerpt %}
                         <p class="tutorial-description">
@@ -139,31 +141,31 @@
 
                         <div class="tutorial-meta">
                             {# Difficulty Badge #}
-                            {% if tutorial.metadata.difficulty %}
-                            <span class="tutorial-badge tutorial-badge-{{ tutorial.metadata.difficulty }}">
-                                {{ tutorial.metadata.difficulty | capitalize }}
+                            {% if tutorial.metadata.get('difficulty') %}
+                            <span class="tutorial-badge tutorial-badge-{{ tutorial.metadata.get('difficulty') }}">
+                                {{ tutorial.metadata.get('difficulty') | capitalize }}
                             </span>
                             {% endif %}
 
                             {# Time Estimate #}
-                            {% if tutorial.metadata.time or tutorial.metadata.duration %}
+                            {% if tutorial.metadata.get('time') or tutorial.metadata.get('duration') %}
                             <span class="tutorial-meta-item">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <circle cx="12" cy="12" r="10"></circle>
                                     <polyline points="12 6 12 12 16 14"></polyline>
                                 </svg>
-                                {{ tutorial.metadata.time | default(tutorial.metadata.duration) }}
+                                {{ tutorial.metadata.get('time') | default(tutorial.metadata.get('duration')) }}
                             </span>
                             {% endif %}
 
                             {# Prerequisites #}
-                            {% if tutorial.metadata.prerequisites %}
+                            {% if tutorial.metadata.get('prerequisites') %}
                             <span class="tutorial-meta-item">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
                                     <polyline points="22 4 12 14.01 9 11.01"></polyline>
                                 </svg>
-                                {{ tutorial.metadata.prerequisites | length }} prerequisite{{ 's' if tutorial.metadata.prerequisites | length != 1 }}
+                                {{ tutorial.metadata.get('prerequisites') | length }} prerequisite{{ 's' if tutorial.metadata.get('prerequisites') | length != 1 }}
                             </span>
                             {% endif %}
                         </div>

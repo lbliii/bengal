@@ -107,6 +107,7 @@ class SpecialPagesGenerator:
                 draft=False,
                 metadata={},
                 tags=[],
+                keywords=[],
                 content="",
             )
 
@@ -201,6 +202,7 @@ class SpecialPagesGenerator:
                 draft=False,
                 metadata={"search_exclude": True},  # never index the search page
                 tags=[],
+                keywords=[],
                 content="",
             )
 

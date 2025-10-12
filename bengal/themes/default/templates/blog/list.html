@@ -16,15 +16,18 @@
     - current_page: Current page number
 #}
 
+{% from 'partials/navigation-components.html' import breadcrumbs, pagination %}
+{% from 'partials/content-components.html' import tag_list %}
+
 {% block content %}
-{% include 'partials/breadcrumbs.html' %}
+{{ breadcrumbs(page if page is defined else section) }}
 
 <div class="blog-container">
     <header class="blog-header">
         <h1>✍️ {{ section.title if section else title | default('Blog') }}</h1>
 
-        {% if section and section.metadata.description %}
-        <p class="blog-description">{{ section.metadata.description }}</p>
+        {% if section and section.metadata.get('description', '') %}
+        <p class="blog-description">{{ section.metadata.get('description', '') }}</p>
         {% elif description %}
         <p class="blog-description">{{ description }}</p>
         {% endif %}
@@ -90,9 +93,7 @@
 
                     {% if post.tags %}
                     <div class="blog-card-tags">
-                        {% for tag in post.tags | limit(3) %}
-                        <a href="{{ tag_url(tag) }}" class="blog-tag">{{ tag }}</a>
-                        {% endfor %}
+                        {{ tag_list(post.tags | limit(3)) }}
                     </div>
                     {% endif %}
                 </div>
@@ -157,9 +158,7 @@
 
                     {% if post.tags %}
                     <div class="blog-card-tags">
-                        {% for tag in post.tags | limit(4) %}
-                        <a href="{{ tag_url(tag) }}" class="blog-tag">{{ tag }}</a>
-                        {% endfor %}
+                        {{ tag_list(post.tags | limit(4)) }}
                     </div>
                     {% endif %}
 
@@ -175,7 +174,7 @@
 
     {# Pagination #}
     {% if total_pages and total_pages > 1 %}
-    {% include 'partials/pagination.html' %}
+    {{ pagination(current_page, total_pages, base_url) }}
     {% endif %}
 
     {% elif subsections %}
@@ -189,8 +188,8 @@
                     <h3 class="blog-card-title">
                         <a href="{{ url_for(subsection) }}">{{ subsection.title }}</a>
                     </h3>
-                    {% if subsection.metadata.description %}
-                    <p class="blog-card-excerpt">{{ subsection.metadata.description }}</p>
+                    {% if subsection.metadata.get('description', '') %}
+                    <p class="blog-card-excerpt">{{ subsection.metadata.get('description', '') }}</p>
                     {% endif %}
                     {% if subsection.regular_pages %}
                     {# Count only non-index pages #}

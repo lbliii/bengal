@@ -63,7 +63,9 @@ title: "{{ element.name }}"
 type: cli-command
 css_class: api-content
 description: "{% set lines = element.description.split('\n') %}{% set desc_lines = [] %}{% for line in lines %}{% if not line.strip().startswith('#') %}{% set _ = desc_lines.append(line) %}{% endif %}{% endfor %}{{ desc_lines | join(' ') | truncate(180, True, '...') }}"
----
+{% if element.source_file %}source_file: "{{ element.source_file | project_relative }}"
+source_line: {{ element.line_number }}
+{% endif %}---
 
 # {{ element.name }}
 
@@ -150,9 +152,3 @@ description: "{% set lines = element.description.split('\n') %}{% set desc_lines
 ```bash
 {{ element.qualified_name | replace('.', ' ') }} --help
 ```
-
-{% if element.source_file %}
----
-
-*Source: {{ element.source_file }}{% if element.line_number %}:{{ element.line_number }}{% endif %}*
-{% endif %}

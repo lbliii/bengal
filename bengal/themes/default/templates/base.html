@@ -15,9 +15,9 @@
     <meta name="description" content="{{ meta_desc }}">
 
     {# Meta Keywords - use page.keywords or fallback to tags #}
-    {% if page and page.keywords %}
+    {% if page and page.keywords is defined and page.keywords %}
     <meta name="keywords" content="{{ page.keywords | join(', ') }}">
-    {% elif page and page.tags %}
+    {% elif page and page.tags is defined and page.tags %}
     <meta name="keywords" content="{{ page.tags | meta_keywords(10) }}">
     {% endif %}
 
@@ -31,10 +31,10 @@
     <meta property="og:url" content="{{ canonical_url(page.url | default('/')) }}">
     {% endif %}
     {# Open Graph Image #}
-    {% if page and page.metadata.image %}
-    <meta property="og:image" content="{{ og_image(page.metadata.image) }}">
-    {% elif site.config.og_image %}
-    <meta property="og:image" content="{{ og_image(site.config.og_image) }}">
+    {% if page and page.metadata is defined and page.metadata.get('image') %}
+    <meta property="og:image" content="{{ og_image(page.metadata.get('image')) }}">
+    {% elif site.config.get('og_image') %}
+    <meta property="og:image" content="{{ og_image(site.config.get('og_image')) }}">
     {% endif %}
 
     {# Twitter Card #}
@@ -43,10 +43,10 @@
     {% if meta_desc %}
     <meta name="twitter:description" content="{{ meta_desc }}">
     {% endif %}
-    {% if page and page.metadata.image %}
-    <meta name="twitter:image" content="{{ og_image(page.metadata.image) }}">
-    {% elif site.config.og_image %}
-    <meta name="twitter:image" content="{{ og_image(site.config.og_image) }}">
+    {% if page and page.metadata is defined and page.metadata.get('image') %}
+    <meta name="twitter:image" content="{{ og_image(page.metadata.get('image')) }}">
+    {% elif site.config.get('og_image') %}
+    <meta name="twitter:image" content="{{ og_image(site.config.get('og_image')) }}">
     {% endif %}
 
     {# Canonical URL #}
@@ -73,8 +73,8 @@
     {% endfor %}
 
     {# Favicon - only include if configured #}
-    {% if site.config.favicon %}
-    <link rel="icon" type="image/png" href="{{ site.config.favicon }}">
+    {% if site.config.get('favicon') %}
+    <link rel="icon" type="image/png" href="{{ site.config.get('favicon') }}">
     {% endif %}
 
     {# Stylesheets #}
@@ -91,7 +91,7 @@
 
     {% block extra_head %}{% endblock %}
 </head>
-<body class="page-kind-{{ page.kind }} {% if page.draft %}draft-page{% endif %} {% if page | has_tag('featured') %}featured-content{% endif %}">
+<body class="page-kind-{{ page.kind if page and page.kind is defined else 'page' }} {% if page and page.draft is defined and page.draft %}draft-page{% endif %} {% if page and page.tags is defined and (page | has_tag('featured')) %}featured-content{% endif %}">
     {# Skip to main content for accessibility #}
     <a href="#main-content" class="skip-link">Skip to main content</a>
 
@@ -199,7 +199,8 @@
     <footer role="contentinfo">
         <div class="container">
             {# Popular Tags Widget - dogfooding popular_tags() function #}
-            {% include 'partials/popular-tags.html' %}
+            {% from 'partials/content-components.html' import popular_tags_widget with context %}
+            {{ popular_tags_widget(limit=10) }}
 
             <p class="footer-copyright">
                 &copy; 2025 {{ site.config.title }} | Built with <a href="https://github.com/bengal-ssg/bengal" rel="noopener">Bengal SSG</a>
