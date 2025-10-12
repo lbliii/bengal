@@ -5,6 +5,7 @@ from pathlib import Path
 
 import click
 
+from bengal.cli.site_templates import get_template
 from bengal.utils.build_stats import show_error
 
 
@@ -19,7 +20,12 @@ def new() -> None:
 @new.command()
 @click.argument("name")
 @click.option("--theme", default="default", help="Theme to use")
-def site(name: str, theme: str) -> None:
+@click.option(
+    "--template",
+    default="default",
+    help="Site template (default, blog, docs, portfolio, resume, landing)",
+)
+def site(name: str, theme: str, template: str) -> None:
     """
     🏗️  Create a new Bengal site.
     """
@@ -30,7 +36,13 @@ def site(name: str, theme: str) -> None:
             show_error(f"Directory {name} already exists!", show_art=False)
             raise click.Abort()
 
-        click.echo(click.style(f"\n🏗️  Creating new Bengal site: {name}", fg="cyan", bold=True))
+        # Get the selected template
+        site_template = get_template(template)
+
+        click.echo(
+            click.style(f"\n🏗️  Creating new Bengal site: {name}", fg="cyan", bold=True)
+            + click.style(f" ({site_template.description})", fg="bright_black")
+        )
 
         # Create directory structure
         site_path.mkdir(parents=True)
@@ -39,6 +51,10 @@ def site(name: str, theme: str) -> None:
         (site_path / "assets" / "js").mkdir()
         (site_path / "assets" / "images").mkdir()
         (site_path / "templates").mkdir()
+
+        # Create any additional directories from template
+        for additional_dir in site_template.additional_dirs:
+            (site_path / "content" / additional_dir).mkdir(parents=True, exist_ok=True)
 
         click.echo(click.style("   ├─ ", fg="cyan") + "Created directory structure")
 
@@ -62,34 +78,29 @@ fingerprint = true
         atomic_write_text(site_path / "bengal.toml", config_content)
         click.echo(click.style("   ├─ ", fg="cyan") + "Created bengal.toml")
 
-        # Create sample index page
-        index_content = """---
-title: Welcome to Bengal
----
+        # Create data files if this template has them (e.g., resume template)
+        from bengal.cli.site_templates import RESUME_DATA
 
-# Welcome to Bengal SSG
+        if template.lower() == "resume" and RESUME_DATA:
+            data_dir = site_path / "data"
+            data_dir.mkdir(exist_ok=True)
+            for filename, content in RESUME_DATA.items():
+                data_path = data_dir / filename
+                atomic_write_text(data_path, content)
+                click.echo(click.style("   ├─ ", fg="cyan") + f"Created data/{filename}")
 
-This is your new Bengal static site. Start editing this file to begin!
+        # Create pages from template
+        pages_created = 0
+        for page_template in site_template.pages:
+            page_path = site_path / "content" / page_template.path
+            page_path.parent.mkdir(parents=True, exist_ok=True)
+            atomic_write_text(page_path, page_template.content)
+            pages_created += 1
 
-## Features
-
-- Fast builds with parallel processing
-- Modular architecture
-- Asset optimization
-- SEO friendly
-
-## Next Steps
-
-1. Edit `content/index.md` (this file)
-2. Create new pages with `bengal new page <name>`
-3. Build your site with `bengal build`
-4. Preview with `bengal serve`
-"""
-        # Write index page atomically (crash-safe)
-        from bengal.utils.atomic_write import atomic_write_text
-
-        atomic_write_text(site_path / "content" / "index.md", index_content)
-        click.echo(click.style("   └─ ", fg="cyan") + "Created sample index page")
+        if pages_created == 1:
+            click.echo(click.style("   └─ ", fg="cyan") + f"Created {pages_created} page")
+        else:
+            click.echo(click.style("   └─ ", fg="cyan") + f"Created {pages_created} pages")
 
         click.echo(click.style("\n✅ Site created successfully!", fg="green", bold=True))
         click.echo(click.style("\n📚 Next steps:", fg="cyan", bold=True))

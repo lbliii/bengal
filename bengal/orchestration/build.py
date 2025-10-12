@@ -419,7 +419,31 @@ class BuildOrchestrator:
             # Convert back to list for rendering (preserves compatibility)
             pages_to_build = list(pages_to_build_set)
 
-        # Phase 7: Render Pages
+        # Phase 7: Process Assets (MOVED BEFORE RENDERING)
+        # Assets must be processed first so asset_url() can find fingerprinted files
+        with self.logger.phase("assets", asset_count=len(assets_to_process), parallel=parallel):
+            assets_start = time.time()
+            original_assets = self.site.assets
+            self.site.assets = assets_to_process  # Temporarily replace with subset
+
+            # Register assets phase
+            if progress_manager:
+                progress_manager.add_phase("assets", "Assets", total=len(assets_to_process))
+                progress_manager.start_phase("assets")
+
+            self.assets.process(
+                assets_to_process, parallel=parallel, progress_manager=progress_manager
+            )
+
+            self.site.assets = original_assets  # Restore full asset list
+            self.stats.assets_time_ms = (time.time() - assets_start) * 1000
+
+            if progress_manager:
+                progress_manager.complete_phase("assets", elapsed_ms=self.stats.assets_time_ms)
+
+            self.logger.info("assets_complete", assets_processed=len(assets_to_process))
+
+        # Phase 8: Render Pages (MOVED AFTER ASSETS)
         # quiet mode: suppress progress when --quiet flag is used (unless verbose overrides)
         quiet_mode = quiet and not verbose
 
@@ -482,29 +506,6 @@ class BuildOrchestrator:
         # Print rendering summary in quiet mode
         if quiet_mode:
             self._print_rendering_summary()
-
-        # Phase 8: Process Assets
-        with self.logger.phase("assets", asset_count=len(assets_to_process), parallel=parallel):
-            assets_start = time.time()
-            original_assets = self.site.assets
-            self.site.assets = assets_to_process  # Temporarily replace with subset
-
-            # Register assets phase
-            if progress_manager:
-                progress_manager.add_phase("assets", "Assets", total=len(assets_to_process))
-                progress_manager.start_phase("assets")
-
-            self.assets.process(
-                assets_to_process, parallel=parallel, progress_manager=progress_manager
-            )
-
-            self.site.assets = original_assets  # Restore full asset list
-            self.stats.assets_time_ms = (time.time() - assets_start) * 1000
-
-            if progress_manager:
-                progress_manager.complete_phase("assets", elapsed_ms=self.stats.assets_time_ms)
-
-            self.logger.info("assets_complete", assets_processed=len(assets_to_process))
 
         # Phase 9: Post-processing
         with self.logger.phase("postprocessing", parallel=parallel):
