@@ -12,6 +12,9 @@
   Or set `type: doc` to auto-select this template
 #}
 
+{% from 'partials/navigation-components.html' import breadcrumbs, page_navigation, toc with context %}
+{% from 'partials/content-components.html' import tag_list with context %}
+
 {% block content %}
 {# Three-column documentation layout #}
 <div class="docs-layout">
@@ -23,15 +26,15 @@
   {# Main Content #}
   <div class="docs-main">
     {# Breadcrumbs #}
-    {% include 'partials/breadcrumbs.html' %}
+    {{ breadcrumbs(page) }}
 
     {# Article Content #}
-    <article class="prose {% if page.metadata.css_class %}{{ page.metadata.css_class }}{% endif %}">
+    <article class="prose {% if page.metadata.get('css_class') %}{{ page.metadata.get('css_class') }}{% endif %}">
       <header class="docs-header">
         <h1>{{ page.title }}</h1>
 
-        {% if page.metadata.description %}
-        <p class="lead">{{ page.metadata.description }}</p>
+        {% if page.metadata.get('description', '') %}
+        <p class="lead">{{ page.metadata.get('description', '') }}</p>
         {% endif %}
 
         {# Document metadata #}
@@ -46,19 +49,19 @@
       {# Tags #}
       {% if page.tags %}
       <footer class="docs-footer">
-        {% include 'partials/tag-list.html' %}
+        {{ tag_list(page.tags) }}
       </footer>
       {% endif %}
     </article>
 
     {# Page navigation (prev/next) at bottom #}
-    {% include 'partials/page-navigation.html' %}
+    {{ page_navigation(page) }}
   </div>
 
   {# Right Sidebar: TOC + Metadata #}
-  {% if toc %}
+  {% if toc_items %}
   <aside class="docs-toc" role="complementary" aria-label="Table of contents">
-    {% include 'partials/toc-sidebar.html' %}
+    {{ toc(toc_items=toc_items, toc=toc, page=page) }}
   </aside>
   {% endif %}
 </div>

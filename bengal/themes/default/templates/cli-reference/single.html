@@ -1,4 +1,7 @@
 {% extends "base.html" %}
+{% from 'partials/reference-components.html' import reference_header, reference_metadata %}
+{% from 'partials/navigation-components.html' import breadcrumbs, page_navigation, toc with context %}
+{% from 'partials/content-components.html' import tag_list %}
 
 {#
   CLI Reference Single Page Template
@@ -23,34 +26,33 @@
   {# Main Content #}
   <div class="docs-main">
     {# Breadcrumbs #}
-    {% include 'partials/breadcrumbs.html' %}
+    {{ breadcrumbs(page) }}
 
     {# Article Content #}
-    <article class="prose cli-reference-page reference-page--cli {% if page.metadata.css_class %}{{ page.metadata.css_class }}{% endif %}">
+    <article class="prose cli-reference-page reference-page--cli {% if page.metadata.get('css_class') %}{{ page.metadata.get('css_class') }}{% endif %}">
       <header class="docs-header">
         {# Reference header with icon and title #}
-        {% set ref_icon = page.metadata.emoji if page.metadata.emoji else '⌨️' %}
-        {% set ref_title = page.title %}
-        {% set ref_description = page.metadata.description %}
-        {% set ref_type = 'cli' %}
-        {% include 'partials/reference-header.html' %}
+        {{ reference_header(
+          icon=page.metadata.get('emoji', '⌨️'),
+          title=page.title,
+          description=page.metadata.get('description', ''),
+          type='cli'
+        ) }}
 
         {# Reference metadata box (source) #}
-        {% set source_with_line = page.metadata.source_file %}
-        {% if page.metadata.source_line %}
-          {% set source_with_line = page.metadata.source_file ~ ':' ~ page.metadata.source_line %}
+        {% set source_with_line = page.metadata.get('source_file', '') %}
+        {% if page.metadata.get('source_line') %}
+          {% set source_with_line = page.metadata.get('source_file', '') ~ ':' ~ page.metadata.get('source_line') %}
         {% endif %}
-
-        {% set metadata = {
+        {{ reference_metadata({
           'Source': source_with_line
-        } %}
-        {% include 'partials/reference-metadata.html' %}
+        }) }}
 
         {# Command usage #}
-        {% if page.metadata.usage %}
+        {% if page.metadata.get('usage') %}
         <div class="cli-usage-header">
           <strong>Usage:</strong>
-          <pre><code>{{ page.metadata.usage }}</code></pre>
+          <pre><code>{{ page.metadata.get('usage') }}</code></pre>
         </div>
         {% endif %}
 
@@ -66,19 +68,19 @@
       {# Tags #}
       {% if page.tags %}
       <footer class="docs-footer">
-        {% include 'partials/tag-list.html' %}
+        {{ tag_list(page.tags) }}
       </footer>
       {% endif %}
     </article>
 
     {# Page navigation (prev/next command) at bottom #}
-    {% include 'partials/page-navigation.html' %}
+    {{ page_navigation(page) }}
   </div>
 
   {# Right Sidebar: TOC #}
-  {% if toc %}
+  {% if toc_items %}
   <aside class="docs-toc" role="complementary" aria-label="Table of contents">
-    {% include 'partials/toc-sidebar.html' %}
+    {{ toc(toc_items=toc_items, toc=toc, page=page) }}
   </aside>
   {% endif %}
 </div>

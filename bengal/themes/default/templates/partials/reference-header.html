@@ -10,19 +10,18 @@
     - type: Reference type for CSS class ('api', 'cli', 'openapi', etc.)
 
   Usage:
-    {% include 'partials/reference-header.html' with {
-      icon: '📦',
-      title: page.title,
-      description: page.metadata.description,
-      type: 'api'
-    } %}
+    {% set icon = '📦' %}
+    {% set title = page.title %}
+    {% set description = page.metadata.get('description', '') %}
+    {% set type = 'api' %}
+    {% include 'partials/reference-header.html' %}
 #}
 
 <div class="reference-header">
-  <span class="reference-icon">{{ ref_icon | default('📄') }}</span>
-  <h1>{{ ref_title }}</h1>
+  <span class="reference-icon">{{ icon | default('📄') }}</span>
+  <h1>{{ title }}</h1>
 </div>
 
-{% if ref_description %}
-<p class="lead">{{ ref_description }}</p>
+{% if description %}
+<p class="lead">{{ description }}</p>
 {% endif %}

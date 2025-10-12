@@ -141,18 +141,16 @@ Each template duplicates 90% of the HTML with only minor variations (icon, class
 Or using includes:
 ```jinja2
 {# Both templates use shared partials #}
-{% include 'partials/reference-header.html' with {
-  icon: '📦',
-  title: page.title,
-  type: 'api'
-} %}
+{% set icon = '📦' %}
+{% set title = page.title %}
+{% set type = 'api' %}
+{% include 'partials/reference-header.html' %}
 
-{% include 'partials/reference-metadata.html' with {
-  metadata: {
-    'Module': page.metadata.module_path,
-    'Source': page.metadata.source_file
-  }
+{% set metadata = {
+  'Module': page.metadata.module_path,
+  'Source': page.metadata.source_file
 } %}
+{% include 'partials/reference-metadata.html' %}
 ```
 
 ## Implementation Plan
@@ -163,6 +161,10 @@ Create new partials without changing existing templates:
 
 1. **`partials/reference-header.html`**
    ```jinja2
+   {# Set variables before including:
+      {% set icon = '📦' %}
+      {% set title = page.title %}
+   #}
    <div class="reference-header">
      <span class="reference-icon">{{ icon | default('📄') }}</span>
      <h1>{{ title }}</h1>
@@ -326,35 +328,31 @@ With this foundation, adding new reference types is trivial:
 
 ```jinja2
 {# openapi-reference/single.html #}
-{% include 'partials/reference-header.html' with {
-  icon: '🔌',
-  title: page.title,
-  type: 'openapi'
-} %}
+{% set icon = '🔌' %}
+{% set title = page.title %}
+{% set type = 'openapi' %}
+{% include 'partials/reference-header.html' %}
 
-{% include 'partials/reference-metadata.html' with {
-  metadata: {
-    'Endpoint': page.metadata.endpoint,
-    'Method': page.metadata.method,
-    'Schema': page.metadata.schema_file
-  }
+{% set metadata = {
+  'Endpoint': page.metadata.endpoint,
+  'Method': page.metadata.method,
+  'Schema': page.metadata.schema_file
 } %}
+{% include 'partials/reference-metadata.html' %}
 ```
 
 ```jinja2
 {# graphql-reference/single.html #}
-{% include 'partials/reference-header.html' with {
-  icon: '⚡',
-  title: page.title,
-  type: 'graphql'
-} %}
+{% set icon = '⚡' %}
+{% set title = page.title %}
+{% set type = 'graphql' %}
+{% include 'partials/reference-header.html' %}
 
-{% include 'partials/reference-metadata.html' with {
-  metadata: {
-    'Type': page.metadata.gql_type,
-    'Schema': page.metadata.schema_file
-  }
+{% set metadata = {
+  'Type': page.metadata.gql_type,
+  'Schema': page.metadata.schema_file
 } %}
+{% include 'partials/reference-metadata.html' %}
 ```
 
 ## Next Steps

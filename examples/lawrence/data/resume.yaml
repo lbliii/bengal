@@ -1,0 +1,252 @@
+# Resume Data
+# This file contains all your resume information in a structured format.
+# Edit this file to update your resume content.
+
+name: Your Full Name
+headline: Software Engineer | Full Stack Developer | Problem Solver
+
+# Contact Information
+contact:
+  email: your.email@example.com
+  phone: "+1 (555) 123-4567"
+  location: "San Francisco, CA"
+  website: https://yourportfolio.com
+  linkedin: https://linkedin.com/in/yourprofile
+  github: https://github.com/yourusername
+
+# Professional Summary
+summary: |
+  Experienced software engineer with 6+ years of building scalable web applications and leading cross-functional teams.
+  Proven track record of delivering high-quality solutions that drive business value. Passionate about clean code,
+  user experience, and mentoring junior developers.
+
+# Work Experience
+experience:
+  - title: Senior Software Engineer
+    company: Tech Company Inc.
+    location: San Francisco, CA
+    start_date: "Jan 2022"
+    end_date: Present
+    description: Leading development of cloud-native applications serving 100k+ users
+    highlights:
+      - Architected and implemented microservices infrastructure, reducing deployment time by 60%
+      - Led team of 5 engineers in developing customer-facing dashboard with React and TypeScript
+      - Improved API response times by 40% through database optimization and caching strategies
+      - Mentored 3 junior developers, helping them advance to mid-level positions
+      - Established CI/CD pipelines using GitHub Actions and automated testing practices
+    technologies:
+      - Python
+      - React
+      - TypeScript
+      - AWS
+      - Docker
+      - PostgreSQL
+      - Redis
+
+  - title: Software Engineer
+    company: Digital Solutions Co.
+    location: San Francisco, CA
+    start_date: "Jun 2019"
+    end_date: "Dec 2021"
+    description: Developed and maintained customer-facing web applications
+    highlights:
+      - Built responsive web applications using modern JavaScript frameworks
+      - Collaborated with design team to implement pixel-perfect UIs
+      - Optimized database queries, improving page load times by 35%
+      - Participated in code reviews and contributed to technical documentation
+      - Implemented A/B testing framework that increased conversion by 15%
+    technologies:
+      - JavaScript
+      - Vue.js
+      - Node.js
+      - MongoDB
+      - Express
+
+  - title: Junior Developer
+    company: StartupXYZ
+    location: Mountain View, CA
+    start_date: "Jul 2017"
+    end_date: "May 2019"
+    description: Built RESTful APIs and contributed to full-stack development
+    highlights:
+      - Developed RESTful APIs for mobile and web applications
+      - Fixed bugs and implemented new features across the stack
+      - Wrote unit and integration tests achieving 85% code coverage
+      - Contributed to open source projects and internal tooling
+    technologies:
+      - Python
+      - Flask
+      - PostgreSQL
+      - jQuery
+
+# Education
+education:
+  - degree: Bachelor of Science in Computer Science
+    institution: University of California
+    location: Berkeley, CA
+    start_date: "2013"
+    end_date: "2017"
+    gpa: "3.8/4.0"
+    honors:
+      - Dean's List - All semesters
+      - Graduated with Honors
+      - Computer Science Department Award for Outstanding Achievement
+    coursework:
+      - Data Structures & Algorithms
+      - Database Systems
+      - Web Development
+      - Software Engineering
+      - Machine Learning
+
+# Skills
+skills:
+  - category: Programming Languages
+    items:
+      - Python
+      - JavaScript
+      - TypeScript
+      - SQL
+      - Go
+      - HTML/CSS
+
+  - category: Frameworks & Libraries
+    items:
+      - React
+      - Vue.js
+      - Django
+      - FastAPI
+      - Node.js
+      - Express
+      - Tailwind CSS
+
+  - category: Databases & Storage
+    items:
+      - PostgreSQL
+      - MongoDB
+      - Redis
+      - MySQL
+      - Elasticsearch
+
+  - category: Cloud & DevOps
+    items:
+      - AWS (EC2, S3, Lambda, RDS)
+      - Docker
+      - Kubernetes
+      - GitHub Actions
+      - Terraform
+      - CI/CD
+
+  - category: Tools & Practices
+    items:
+      - Git
+      - Agile/Scrum
+      - TDD/BDD
+      - REST APIs
+      - GraphQL
+      - Microservices
+
+# Projects
+projects:
+  - name: Open Source Static Site Generator
+    role: Core Contributor
+    date: "2023 - Present"
+    description: Contributing to a modern Python-based static site generator
+    highlights:
+      - Implemented plugin system for extensibility
+      - Added support for incremental builds
+      - Improved documentation and wrote tutorials
+      - Project has 500+ GitHub stars and growing community
+    technologies:
+      - Python
+      - Jinja2
+      - Markdown
+    github: https://github.com/yourusername/project
+    demo: https://project-demo.com
+
+  - name: E-Commerce Platform
+    role: Full Stack Developer
+    date: "2021"
+    description: Built a full-featured e-commerce platform as a side project
+    highlights:
+      - Implemented shopping cart, checkout, and payment processing
+      - Created admin dashboard for inventory management
+      - Deployed to AWS with auto-scaling and load balancing
+    technologies:
+      - React
+      - Node.js
+      - PostgreSQL
+      - Stripe API
+      - AWS
+    github: https://github.com/yourusername/ecommerce
+
+  - name: Real-time Chat Application
+    role: Personal Project
+    date: "2020"
+    description: Real-time chat app with WebSocket support
+    highlights:
+      - Built WebSocket server for real-time messaging
+      - Implemented user authentication and authorization
+      - Added file sharing and emoji support
+    technologies:
+      - Node.js
+      - Socket.io
+      - MongoDB
+      - React
+
+# Certifications
+certifications:
+  - name: AWS Certified Solutions Architect - Associate
+    issuer: Amazon Web Services
+    date: "2023"
+    url: https://aws.amazon.com/certification/
+
+  - name: Certified Kubernetes Administrator (CKA)
+    issuer: Cloud Native Computing Foundation
+    date: "2022"
+    url: https://www.cncf.io/certification/cka/
+
+  - name: Professional Scrum Master I (PSM I)
+    issuer: Scrum.org
+    date: "2021"
+
+# Awards
+awards:
+  - name: Employee of the Quarter
+    issuer: Tech Company Inc.
+    date: Q3 2023
+    description: Recognized for outstanding performance and leadership in Q3 2023
+
+  - name: Hackathon Winner
+    issuer: Tech Company Inc.
+    date: "2022"
+    description: First place in company internal hackathon with AI-powered code review tool
+
+  - name: Best Technical Presentation
+    issuer: Digital Solutions Co.
+    date: "2021"
+    description: Awarded for presentation on modern JavaScript architecture patterns
+
+# Languages
+languages:
+  - language: English
+    proficiency: Native
+
+  - language: Spanish
+    proficiency: Professional Working Proficiency
+
+  - language: French
+    proficiency: Basic
+
+# Volunteer Experience
+volunteer:
+  - role: Coding Mentor
+    organization: Code.org
+    start_date: "2020"
+    end_date: Present
+    description: Mentoring students in web development and computer science fundamentals
+
+  - role: Tech Workshop Instructor
+    organization: Local Community Center
+    start_date: "2019"
+    end_date: "2021"
+    description: Taught intro to programming workshops for underrepresented communities

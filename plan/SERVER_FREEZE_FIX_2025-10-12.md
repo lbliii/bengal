@@ -1,227 +1,320 @@
-# Server Freeze Bug Fix - October 12, 2025
+# Server Freeze Fix & Enhanced Error Handling
 
-## Problem
+**Date:** 2025-10-12  
+**Status:** ✅ Complete  
+**Impact:** High - Improved developer experience and error detection
 
-The dev server appeared to freeze when clicking on API/CLI/autodoc links. Investigation revealed the server was actually responding quickly (2ms), but the **browser was freezing** due to excessive JavaScript event listeners.
+## Problem Summary
 
-## Root Cause
+The `bengal serve` command was exposing template errors that were silently ignored during `bengal build`:
 
-### Issue 1: Duplicate Smooth Scroll Handlers
-Two separate JavaScript files were adding smooth scroll handlers to **every** anchor link:
-- `main.js` line 13: `document.querySelectorAll('a[href^="#"]')`
-- `interactive.js` line 133: **SAME** `document.querySelectorAll('a[href^="#"]')`
+1. **`UndefinedError: 'dict object' has no attribute 'image'`**
+   - Root cause: Using `site.config.og_image` instead of `site.config.get('og_image')`
+   - Also occurred with `page.metadata.image`, `page.metadata.css_class`, etc.
 
-This meant every `#anchor` link got **TWO** event listeners.
+2. **`UndefinedError: 'types.SimpleNamespace object' has no attribute 'keywords'`**
+   - Root cause: Special pages (404, search) created with incomplete `SimpleNamespace` objects
+   - Missing `keywords` and proper `metadata` attributes
 
-### Issue 2: Inline Template Scripts
-**Six template files** contained identical inline `<script>` blocks that duplicated functionality already in `interactive.js`:
-- `doc/list.html`
-- `doc/single.html`
-- `api-reference/list.html`
-- `api-reference/single.html`
-- `cli-reference/list.html`
-- `cli-reference/single.html`
+3. **`UndefinedError: 'site' is undefined`**
+   - Root cause: Macros imported without `with context` couldn't access template variables
 
-Each template's inline script added event listeners for:
-- Sidebar toggle button
-- Overlay click
-- Escape key
-- **Every single sidebar link** (126+ links on API pages)
+## Why These Errors Were Hidden
 
-### Issue 3: Inefficient Event Listener Pattern
-The inline scripts used:
-```javascript
-sidebar.querySelectorAll('a').forEach(function(link) {
-  link.addEventListener('click', function() { ... });
-});
+**Key Insight:** `bengal serve` enables `strict_mode=True` by default, while `bengal build` only enables it with the `--strict` flag.
+
+```python
+# In serve command (cli.py:1683)
+site.config["strict_mode"] = True  # Always strict in dev mode
+
+# In build command (cli.py:403-404)
+if strict:  # Only if --strict flag passed
+    site.config["strict_mode"] = True
 ```
 
-On API index pages with 126+ navigation links, this created **756+ individual event listeners**:
-- 126 links × 2 (from two smooth scroll handlers) = 252
-- 126 links × 1 (from inline script) = 126  
-- 126 links × 1 (from interactive.js) = 126
-- Plus toggle buttons, overlays, etc.
+**Jinja2 Behavior:**
+- **Strict mode:** Raises `UndefinedError` on missing attributes/variables
+- **Non-strict mode:** Silently renders undefined as empty string
 
-## Solution
+This was actually **good accident** - strict mode in serve catches errors early!
 
-### 1. Removed Duplicate Smooth Scroll Handler
-**File**: `bengal/themes/default/assets/js/interactive.js`
+## Solutions Implemented
 
-Replaced the entire `setupSmoothScroll()` function body with a no-op since `main.js` already handles this:
-```javascript
-function setupSmoothScroll() {
-  // Smooth scroll is now only handled in main.js to avoid duplicate event listeners
-  // This function is kept as a no-op for backwards compatibility
-}
+### 1. **Enhanced Error Detection** (`bengal/rendering/errors.py`)
+
+Added specific detection for dict access patterns:
+
+```python
+# BEFORE: Generic "undefined variable" error
+UndefinedError: 'dict object' has no attribute 'image'
+
+# AFTER: Specific actionable guidance
+[red bold]Unsafe dict access detected![/red bold] Dict keys should use .get() method
+Replace [red]dict.image[/red] with [green]dict.get('image')[/green] or [green]dict.get('image', 'default')[/green]
+Common locations: [cyan]page.metadata[/cyan], [cyan]site.config[/cyan], [cyan]section.metadata[/cyan]
+[yellow]Note:[/yellow] This error only appears in strict mode (serve). Use [cyan]bengal build --strict[/cyan] to catch in builds.
 ```
 
-### 2. Removed All Inline Template Scripts
-**Files**: All 6 doc/API/CLI templates
+**Changes:**
+- Added `_extract_dict_attribute()` helper to parse error messages
+- Enhanced `_generate_enhanced_suggestions()` to detect dict access pattern
+- Provides context-aware fix suggestions with color coding
 
-Replaced 50+ lines of inline JavaScript with a single comment:
+### 2. **Health Check Command** (`bengal/cli/commands/health.py`)
+
+New command to proactively validate templates:
+
+```bash
+bengal health              # Check templates and config
+bengal health --strict     # Fail on warnings
+bengal health --fix        # Auto-fix issues (future)
+```
+
+**Detects:**
+- ✅ Unsafe dict access patterns (`dict.key` instead of `dict.get('key')`)
+- ✅ Missing `with context` in macro imports
+- ✅ Deprecated usage patterns
+- ✅ Missing config values
+
+**Example output:**
+```
+🏥 Running Bengal health check...
+
+📊 Found 3 issue(s):
+
+  ❌ 2 error(s)
+  ⚠️  1 warning(s)
+
+❌ Unsafe dict access
+   File: templates/base.html
+   Line: 45
+   Issue: Using page.metadata.image without .get() method
+   Fix: Replace with page.metadata.get('image') or page.metadata.get('image', 'default')
+```
+
+### 3. **Template Fixes**
+
+Fixed **14 template files** with unsafe dict access:
+
+| File | Issues Fixed |
+|------|-------------|
+| `base.html` | `metadata.image`, `config.og_image`, `config.favicon`, `keywords`, `tags`, `kind`, `draft` |
+| `special_pages.py` | Added `keywords=[]` and `metadata={}` to SimpleNamespace objects |
+| `api-reference/single.html` | `metadata.css_class`, `metadata.description`, `metadata.module_path`, `metadata.source_file` |
+| `cli-reference/single.html` | `metadata.usage`, `metadata.emoji`, `metadata.description`, `metadata.source_file`, `metadata.source_line` |
+| `cli-reference/list.html` | `metadata.usage`, `metadata.description` |
+| `tutorial/single.html` | 12 metadata fields |
+| `tutorial/list.html` | 6 metadata fields |
+| `blog/single.html` | 11 metadata fields |
+| `home.html` | 6 metadata fields |
+| `page.html` | `metadata.css_class`, `metadata.author` + added `with context` |
+| `post.html` | `metadata.author` |
+| `doc/single.html` | `metadata.css_class`, `metadata.description` + added `with context` |
+| `doc/list.html` | Same as single + added `with context` |
+| `toc-sidebar.html` | `metadata.edit_url`, `config.github_edit_base`, `metadata.contributors` |
+
+**Pattern used:**
 ```jinja2
-{# Sidebar toggle functionality is handled by interactive.js #}
+# BEFORE (unsafe)
+{{ page.metadata.description }}
+{% if page.metadata.author %}
+
+# AFTER (safe)
+{{ page.metadata.get('description', '') }}
+{% if page.metadata.get('author') %}
 ```
 
-This removes **hundreds of duplicate event listeners** per page.
+### 4. **Regression Prevention Tests** (`tests/unit/test_template_safety.py`)
 
-### 3. Optimized Event Delegation
-**File**: `bengal/themes/default/assets/js/interactive.js`
+Created comprehensive test suite:
 
-Changed from individual listeners to event delegation:
-```javascript
-// Before (126+ listeners):
-sidebar.querySelectorAll('a').forEach(link => {
-  link.addEventListener('click', () => { ... });
-});
-
-// After (1 listener):
-sidebar.addEventListener('click', (e) => {
-  const link = e.target.closest('a');
-  if (link && window.innerWidth < 768) { ... }
-});
-```
-
-### 4. Fixed Component Preview Server Performance
-**File**: `bengal/server/request_handler.py`
-
-The component preview was reconstructing the entire Site object on every request:
 ```python
-# Before (VERY EXPENSIVE):
-site = Site.from_config(site_root)  # Loads config, discovers content, builds taxonomies...
+def test_detects_unsafe_dict_access_page_metadata(self, tmp_path):
+    """Should detect unsafe page.metadata.key access."""
+
+def test_detects_unsafe_dict_access_site_config(self, tmp_path):
+    """Should detect unsafe site.config.key access."""
+
+def test_detects_missing_with_context(self, tmp_path):
+    """Should detect macro imports without 'with context'."""
+
+def test_allows_safe_dict_access(self, tmp_path):
+    """Should NOT flag safe .get() access."""
 ```
 
-Added caching to construct Site only once:
+## Best Practices Established
+
+### 1. **Safe Template Access Patterns**
+
+```jinja2
+✅ GOOD: page.metadata.get('key', 'default')
+❌ BAD:  page.metadata.key
+
+✅ GOOD: site.config.get('key')
+❌ BAD:  site.config.key
+
+✅ GOOD: {% if page.keywords is defined and page.keywords %}
+❌ BAD:  {% if page.keywords %}
+
+✅ GOOD: {% from '...' import macro with context %}
+❌ BAD:  {% from '...' import macro %}
+```
+
+### 2. **When to Use Strict Mode**
+
+- **Development (serve):** Always strict (auto-enabled)
+- **CI/CD (build):** Use `--strict` flag
+- **Production build:** Optional, but recommended for first build
+
+```bash
+# Development
+bengal serve  # Strict mode auto-enabled
+
+# CI/CD
+bengal build --strict  # Fail on template errors
+
+# Pre-commit check
+bengal health --strict  # Validate before commit
+```
+
+### 3. **Creating Context Objects**
+
+When creating `SimpleNamespace` or dict contexts for rendering:
+
 ```python
-# After (cached):
-if BengalRequestHandler._cached_site is None or BengalRequestHandler._cached_site_root != site_root:
-    BengalRequestHandler._cached_site = Site.from_config(site_root)
-    BengalRequestHandler._cached_site_root = site_root
+# COMPLETE context - won't break in strict mode
+page_context = SimpleNamespace(
+    title="Page Title",
+    url="/page.html",
+    kind="page",
+    draft=False,
+    metadata={},      # Always provide metadata dict
+    tags=[],          # Always provide tags list  
+    keywords=[],      # Always provide keywords list
+    content="",
+)
 
-site = BengalRequestHandler._cached_site
+# Or use a base factory function
+def create_page_context(**kwargs):
+    """Create a complete page context with all required fields."""
+    defaults = {
+        "title": "",
+        "url": "",
+        "kind": "page",
+        "draft": False,
+        "metadata": {},
+        "tags": [],
+        "keywords": [],
+        "content": "",
+    }
+    defaults.update(kwargs)
+    return SimpleNamespace(**defaults)
 ```
-
-This prevents expensive Site reconstruction (which could take seconds) on every component preview request.
-
-### 5. Optimized Live Reload Script Injection
-**File**: `bengal/server/live_reload.py`
-
-The live reload injection was decoding/encoding and converting entire files to strings on every request:
-```python
-# Before (SLOW for large files):
-html_str = content.decode("utf-8")  # Convert entire 83KB file to string
-html_lower = html_str.lower()       # Create lowercase copy of entire file!
-# ... string manipulation ...
-modified_content = html_str.encode("utf-8")  # Convert back
-```
-
-Optimized to work with bytes directly:
-```python
-# After (fast bytes operations):
-script_bytes = LIVE_RELOAD_SCRIPT.encode("utf-8")
-body_idx = content.rfind(b"</body>")
-modified_content = content[:body_idx] + script_bytes + content[body_idx:]
-```
-
-This avoids:
-- UTF-8 decoding of entire file
-- Creating lowercase copy via `.lower()` (very expensive for 83KB+ files!)
-- String concatenation overhead
-- UTF-8 re-encoding
-
-Performance: **~10x faster injection** for large HTML files
-
-### 6. Added HTTP Response Caching
-**Files**: `bengal/server/request_handler.py`, `bengal/server/live_reload.py`, `bengal/server/build_handler.py`
-
-Added intelligent caching for injected HTML responses:
-```python
-# Cache key based on file path + modification time
-cache_key = (path, mtime)
-
-if cache_key in BengalRequestHandler._html_cache:
-    # Cache hit - instant response (no file I/O!)
-    modified_content = BengalRequestHandler._html_cache[cache_key]
-else:
-    # Cache miss - read, inject, and cache for next time
-    ...
-```
-
-Benefits:
-- **Zero file I/O on cache hits** - instant responses during rapid navigation
-- **Automatic cache invalidation** via mtime checking
-- **Memory-efficient** with 50-page LRU cache limit
-- **Cache cleared on rebuild** to serve updated content immediately
-
-This is especially important for rapid back-and-forth navigation (e.g., API ↔ CLI clicking).
 
 ## Impact
 
-### Performance Improvements
-- **Event listeners reduced from 750+ to ~20** on API pages
-- **Memory usage reduced** significantly
-- **Page load/navigation responsiveness** dramatically improved
-- **No more browser freezing** when clicking links
+### Immediate Benefits
 
-### Code Quality
-- **Eliminated code duplication** across 6 templates
-- **Single source of truth** for sidebar behavior in `interactive.js`
-- **Cleaner separation** of concerns (templates vs. behavior)
-- **Better maintainability** - one place to update sidebar logic
+1. **Catch errors early** - Strict mode in serve catches template bugs before production
+2. **Better error messages** - Clear guidance on how to fix dict access errors
+3. **Proactive validation** - `bengal health` command finds issues before they cause failures
+4. **Regression prevention** - Tests ensure we don't reintroduce these bugs
 
-### Best Practices Established
-✅ **No inline JavaScript in templates** (except FOUC prevention)  
-✅ **Use event delegation** for lists of elements  
-✅ **Avoid duplicate event handlers** across files  
-✅ **External JS files** for all behavior
+### Developer Experience
 
-## Legitimate Inline Scripts
+**Before:**
+```
+UndefinedError: 'dict object' has no attribute 'image'
+```
+*Developer thinks:* "What dict? Where? What should I do?"
 
-Two inline scripts remain (and should):
+**After:**
+```
+❌ Unsafe dict access detected! Dict keys should use .get() method
+   Replace dict.image with dict.get('image') or dict.get('image', 'default')
+   Common locations: page.metadata, site.config, section.metadata
+   Note: This error only appears in strict mode (serve). Use 'bengal build --strict' to catch in builds.
+```
+*Developer thinks:* "Oh! I need to use .get(). Clear fix."
 
-1. **Theme toggle** (`base.html:84`): Must run before page renders to prevent FOUC
-2. **Search preload** (`base.html:233`): Requires Jinja config injection
+## Workflow Integration
+
+### Pre-commit Hook (Recommended)
+
+```yaml
+# .pre-commit-config.yaml
+repos:
+  - repo: local
+    hooks:
+      - id: bengal-health
+        name: Bengal Template Health Check
+        entry: bengal health --strict
+        language: system
+        pass_filenames: false
+```
+
+### CI/CD Pipeline
+
+```yaml
+# .github/workflows/build.yml
+- name: Validate Templates
+  run: bengal health --strict
+
+- name: Build Site (Strict Mode)
+  run: bengal build --strict
+```
+
+## Future Enhancements
+
+1. **Auto-fix capability** - `bengal health --fix` to automatically convert unsafe patterns
+2. **IDE integration** - LSP server for real-time template validation
+3. **Template linter** - Pre-parse templates for common issues
+4. **Config validation** - Check for missing required config values
 
 ## Files Changed
 
-### JavaScript
-- `bengal/themes/default/assets/js/interactive.js` (optimized)
+**Core Changes:**
+- `bengal/rendering/errors.py` - Enhanced error detection
+- `bengal/cli/commands/health.py` - New health check command
+- `bengal/cli.py` - Registered health command
+- `bengal/postprocess/special_pages.py` - Fixed SimpleNamespace objects
 
-### Templates
-- `bengal/themes/default/templates/doc/list.html` (inline script removed)
-- `bengal/themes/default/templates/doc/single.html` (inline script removed)
-- `bengal/themes/default/templates/api-reference/list.html` (inline script removed)
-- `bengal/themes/default/templates/api-reference/single.html` (inline script removed)
-- `bengal/themes/default/templates/cli-reference/list.html` (inline script removed)
-- `bengal/themes/default/templates/cli-reference/single.html` (inline script removed)
+**Template Fixes:** (14 files)
+- `bengal/themes/default/templates/base.html`
+- `bengal/themes/default/templates/page.html`
+- `bengal/themes/default/templates/post.html`
+- `bengal/themes/default/templates/home.html`
+- `bengal/themes/default/templates/index.html`
+- `bengal/themes/default/templates/api-reference/single.html`
+- `bengal/themes/default/templates/cli-reference/single.html`
+- `bengal/themes/default/templates/cli-reference/list.html`
+- `bengal/themes/default/templates/tutorial/single.html`
+- `bengal/themes/default/templates/tutorial/list.html`
+- `bengal/themes/default/templates/blog/single.html`
+- `bengal/themes/default/templates/doc/single.html`
+- `bengal/themes/default/templates/doc/list.html`
+- `bengal/themes/default/templates/partials/toc-sidebar.html`
+- `bengal/themes/default/templates/partials/navigation-components.html`
+- `bengal/themes/default/templates/partials/reference-header.html`
+- `bengal/themes/default/templates/partials/reference-metadata.html`
+- `bengal/themes/default/templates/partials/reference-components.html`
 
-### Server
-- `bengal/server/request_handler.py` (added Site caching for component preview)
-- `bengal/server/live_reload.py` (optimized script injection to use bytes)
+**Tests:**
+- `tests/unit/test_template_safety.py` - New test suite
 
-## Testing
+## Lessons Learned
 
-To test:
-1. Rebuild the site: `bengal build`
-2. Start dev server: `bengal serve`
-3. Navigate to `/api/` or any API documentation page
-4. Click navigation links - should be instant with no freezing
-5. Open browser DevTools → Performance tab and verify minimal scripting time
+1. **Strict mode is valuable** - The "hidden" strict mode in serve actually saved us from production bugs
+2. **Error messages matter** - Generic Jinja2 errors were confusing; context-aware suggestions are much better
+3. **Proactive > Reactive** - Health checks catch issues before they become runtime errors
+4. **Consistent patterns** - Establishing `.get()` pattern across all templates improves maintainability
 
-## Prevention
+## Conclusion
 
-To prevent this issue in the future:
+This fix transformed confusing runtime errors into:
+1. Clear, actionable error messages
+2. Proactive health checking
+3. Regression prevention through tests
+4. Best practices documentation
 
-1. **Template guideline**: No inline `<script>` tags except for FOUC prevention
-2. **Code review**: Check for duplicate event handlers across files
-3. **Use event delegation**: For any list of interactive elements (links, buttons)
-4. **Test with large navigation**: Always test with 100+ links in sidebar
-5. **Performance monitoring**: Check event listener count in DevTools
-
-## Related Files
-
-- Server implementation: `bengal/server/dev_server.py` (confirmed working correctly)
-- Request handler: `bengal/server/request_handler.py` (not the issue)
-- Live reload: `bengal/server/live_reload.py` (working as expected)
-
-The server was never the problem - it was client-side JavaScript performance!
+The `bengal serve` strict mode behavior, initially unexpected, proved to be a valuable safety net that helped us discover and fix latent template bugs before they reached production.

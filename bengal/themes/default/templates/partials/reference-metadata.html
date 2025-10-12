@@ -12,8 +12,8 @@
   Usage:
     {% include 'partials/reference-metadata.html' with {
       metadata: {
-        'Module': page.metadata.module_path,
-        'Source': page.metadata.source_file
+        'Module': page.metadata.get('module_path', ''),
+        'Source': page.metadata.get('source_file', '')
       }
     } %}
 

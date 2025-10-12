@@ -1,0 +1,60 @@
+# Reference Components - Macro-Based Component Library
+# All reference documentation macros from partials/reference-components.html
+
+# Component: Reference Header
+# Macro: reference_header(icon, title, description, type)
+---
+id: reference-header
+name: "Reference Header"
+macro: "reference-components.reference_header"
+description: "Header for API/CLI reference documentation pages"
+shared_context:
+  title: "TemplateEngine"
+  description: "Core template rendering engine with Jinja2 integration"
+variants:
+  - id: "api"
+    name: "API Reference"
+    params:
+      icon: "📦"
+      type: "api"
+
+  - id: "cli"
+    name: "CLI Reference"
+    params:
+      icon: "⌨️"
+      type: "cli"
+
+  - id: "no-description"
+    name: "No Description"
+    params:
+      icon: "📚"
+      description: ""
+      type: "api"
+
+# Component: Reference Metadata
+# Macro: reference_metadata(items)
+---
+id: reference-metadata
+name: "Reference Metadata"
+macro: "reference-components.reference_metadata"
+description: "Metadata display for API/CLI reference (module, source, etc.)"
+variants:
+  - id: "api-module"
+    name: "API Module"
+    params:
+      items:
+        Module: "bengal.rendering.template_engine"
+        Source: "bengal/rendering/template_engine.py"
+
+  - id: "cli-command"
+    name: "CLI Command"
+    params:
+      items:
+        Command: "bengal build"
+        Source: "bengal/cli/commands/build.py:42"
+
+  - id: "minimal"
+    name: "Minimal (Single Item)"
+    params:
+      items:
+        Source: "bengal/core/page.py"

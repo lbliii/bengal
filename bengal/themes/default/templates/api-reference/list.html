@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from 'partials/navigation-components.html' import breadcrumbs with context %}
 
 {#
   API Reference List Template
@@ -24,14 +25,14 @@
   {# Main Content #}
   <div class="docs-main">
     {# Breadcrumbs #}
-    {% include 'partials/breadcrumbs.html' %}
+    {{ breadcrumbs(section if section is defined else page) }}
 
     <div class="api-reference-container">
         <header class="api-reference-header">
             <h1>📦 {{ section.title if section else title | default('API Reference') }}</h1>
 
-            {% if section and section.metadata.description %}
-            <p class="api-reference-description">{{ section.metadata.description }}</p>
+            {% if section and section.metadata.get('description', '') %}
+            <p class="api-reference-description">{{ section.metadata.get('description', '') }}</p>
             {% else %}
             <p class="api-reference-description">Complete API documentation and reference</p>
             {% endif %}
@@ -85,8 +86,8 @@
                             <span class="api-item-title">
                                 <a href="{{ url_for(subsection) }}">{{ subsection.title }}</a>
 
-                                {% if subsection.metadata.description %}
-                                <span class="api-item-description">{{ subsection.metadata.description }}</span>
+                                {% if subsection.metadata.get('description', '') %}
+                                <span class="api-item-description">{{ subsection.metadata.get('description', '') }}</span>
                                 {% endif %}
 
                                 <span class="api-item-meta">
@@ -124,18 +125,18 @@
                             <span class="api-item-title">
                                 <a href="{{ url_for(post) }}">{{ post.title }}</a>
 
-                                {% if post.metadata.description %}
-                                <span class="api-item-description">{{ post.metadata.description }}</span>
+                                {% if post.metadata.get('description') %}
+                                <span class="api-item-description">{{ post.metadata.get('description') }}</span>
                                 {% elif post.content %}
                                 <span class="api-item-description">{{ post.content | striptags | truncate(120) }}</span>
                                 {% endif %}
 
                                 <span class="api-item-meta">
-                                    {% if post.metadata.classes %}
-                                    <span class="meta-item">{{ post.metadata.classes | length }} class{{ 'es' if post.metadata.classes | length != 1 else '' }}</span>
+                                    {% if post.metadata.get('classes') %}
+                                    <span class="meta-item">{{ post.metadata.get('classes') | length }} class{{ 'es' if post.metadata.get('classes') | length != 1 else '' }}</span>
                                     {% endif %}
-                                    {% if post.metadata.functions %}
-                                    <span class="meta-item">{{ post.metadata.functions | length }} function{{ 's' if post.metadata.functions | length != 1 }}</span>
+                                    {% if post.metadata.get('functions') %}
+                                    <span class="meta-item">{{ post.metadata.get('functions') | length }} function{{ 's' if post.metadata.get('functions') | length != 1 }}</span>
                                     {% endif %}
                                 </span>
                             </span>

@@ -1,4 +1,7 @@
 {% extends "base.html" %}
+{% from 'partials/reference-components.html' import reference_header, reference_metadata %}
+{% from 'partials/navigation-components.html' import breadcrumbs, page_navigation, toc with context %}
+{% from 'partials/content-components.html' import tag_list %}
 
 {#
   API Reference Single Page Template
@@ -23,23 +26,24 @@
   {# Main Content #}
   <div class="docs-main">
     {# Breadcrumbs #}
-    {% include 'partials/breadcrumbs.html' %}
+    {{ breadcrumbs(page) }}
 
     {# Article Content #}
-    <article class="prose api-reference-page reference-page--api {% if page.metadata.css_class %}{{ page.metadata.css_class }}{% endif %}">
+    <article class="prose api-reference-page reference-page--api {% if page.metadata.get('css_class') %}{{ page.metadata.get('css_class') }}{% endif %}">
       <header class="docs-header">
         {# Reference header with icon and title #}
-        {% set ref_icon = '📦' %}
-        {% set ref_title = page.title %}
-        {% set ref_type = 'api' %}
-        {% include 'partials/reference-header.html' %}
+        {{ reference_header(
+          icon='📦',
+          title=page.title,
+          description=page.metadata.get('description', ''),
+          type='api'
+        ) }}
 
         {# Reference metadata box (module, source, etc.) #}
-        {% set metadata = {
-          'Module': page.metadata.module_path,
-          'Source': page.metadata.source_file
-        } %}
-        {% include 'partials/reference-metadata.html' %}
+        {{ reference_metadata({
+          'Module': page.metadata.get('module_path', ''),
+          'Source': page.metadata.get('source_file', '')
+        }) }}
 
         {# Document metadata (last updated, etc) #}
         {% include 'partials/docs-meta.html' %}
@@ -53,19 +57,19 @@
       {# Tags #}
       {% if page.tags %}
       <footer class="docs-footer">
-        {% include 'partials/tag-list.html' %}
+        {{ tag_list(page.tags) }}
       </footer>
       {% endif %}
     </article>
 
     {# Page navigation (prev/next module) at bottom #}
-    {% include 'partials/page-navigation.html' %}
+    {{ page_navigation(page) }}
   </div>
 
   {# Right Sidebar: TOC #}
-  {% if toc %}
+  {% if toc_items %}
   <aside class="docs-toc" role="complementary" aria-label="Table of contents">
-    {% include 'partials/toc-sidebar.html' %}
+    {{ toc(toc_items=toc_items, toc=toc, page=page) }}
   </aside>
   {% endif %}
 </div>

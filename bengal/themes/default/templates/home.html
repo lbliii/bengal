@@ -6,13 +6,13 @@
     <header class="hero">
         <div class="hero-content">
             <h1 class="hero-title">{{ page.title | default(site.config.title) }}</h1>
-            {% if page.metadata.description %}
-            <p class="hero-description">{{ page.metadata.description }}</p>
+            {% if page.metadata.get('description', '') %}
+            <p class="hero-description">{{ page.metadata.get('description', '') }}</p>
             {% endif %}
 
-            {% if page.metadata.cta_buttons %}
+            {% if page.metadata.get('cta_buttons') %}
             <div class="hero-cta">
-                {% for button in page.metadata.cta_buttons %}
+                {% for button in page.metadata.get('cta_buttons') %}
                 <a href="{{ button.url }}" class="btn btn-{{ button.style | default('primary') }}">
                     {{ button.text }}
                 </a>
@@ -23,10 +23,10 @@
     </header>
 
     {# Feature Highlights #}
-    {% if page.metadata.features %}
+    {% if page.metadata.get('features') %}
     <section class="features">
         <div class="features-grid">
-            {% for feature in page.metadata.features %}
+            {% for feature in page.metadata.get('features') %}
             <div class="feature-card">
                 {% if feature.icon %}
                 <div class="feature-icon">{{ feature.icon }}</div>
@@ -50,11 +50,11 @@
     </div>
 
     {# Quick Links Section #}
-    {% if page.metadata.quick_links %}
+    {% if page.metadata.get('quick_links') %}
     <section class="quick-links">
         <h2>Quick Links</h2>
         <div class="quick-links-grid">
-            {% for link in page.metadata.quick_links %}
+            {% for link in page.metadata.get('quick_links') %}
             <a href="{{ link.url }}" class="quick-link-card">
                 {% if link.icon %}
                 <div class="quick-link-icon">{{ link.icon }}</div>
@@ -70,10 +70,10 @@
     {% endif %}
 
     {# Statistics/Metrics Section #}
-    {% if page.metadata.stats %}
+    {% if page.metadata.get('stats') %}
     <section class="stats">
         <div class="stats-grid">
-            {% for stat in page.metadata.stats %}
+            {% for stat in page.metadata.get('stats') %}
             <div class="stat-card">
                 <div class="stat-value">{{ stat.value }}</div>
                 <div class="stat-label">{{ stat.label }}</div>
@@ -84,7 +84,7 @@
     {% endif %}
 
     {# Recent Posts/Updates (if this is a blog-style home) #}
-    {% if page.metadata.show_recent_posts %}
+    {% if page.metadata.get('show_recent_posts') %}
     {% set recent = pages | where('section', 'blog') | sort_by('date', reverse=true) | first(3) %}
     {% if recent %}
     <section class="recent-posts">

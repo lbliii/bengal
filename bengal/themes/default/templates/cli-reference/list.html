@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from 'partials/navigation-components.html' import breadcrumbs with context %}
 
 {#
   CLI Reference List Template
@@ -24,14 +25,14 @@
   {# Main Content #}
   <div class="docs-main">
     {# Breadcrumbs #}
-    {% include 'partials/breadcrumbs.html' %}
+    {{ breadcrumbs(section if section is defined else page) }}
 
     <div class="cli-reference-container">
         <header class="cli-reference-header">
             <h1>⌨️  {{ (section.title if section else title) | default('CLI Reference') | upper }}</h1>
 
-            {% if section and section.metadata.description %}
-            <p class="cli-reference-description">{{ section.metadata.description }}</p>
+            {% if section and section.metadata.get('description', '') %}
+            <p class="cli-reference-description">{{ section.metadata.get('description', '') }}</p>
             {% else %}
             <p class="cli-reference-description">Command-line interface reference and documentation</p>
             {% endif %}
@@ -68,15 +69,15 @@
                             <span class="cli-item-title">
                                 <a href="{{ url_for(command) }}">{{ command.title }}</a>
 
-                                {% if command.metadata.description %}
-                                <span class="cli-item-description">{{ command.metadata.description }}</span>
+                                {% if command.metadata.get('description', '') %}
+                                <span class="cli-item-description">{{ command.metadata.get('description', '') }}</span>
                                 {% elif command.content %}
                                 <span class="cli-item-description">{{ command.content | striptags | truncate(120) }}</span>
                                 {% endif %}
 
-                                {% if command.metadata.usage %}
+                                {% if command.metadata.get('usage') %}
                                 <span class="cli-item-meta">
-                                    <span class="meta-item meta-usage"><code>{{ command.metadata.usage }}</code></span>
+                                    <span class="meta-item meta-usage"><code>{{ command.metadata.get('usage') }}</code></span>
                                 </span>
                                 {% endif %}
                             </span>
@@ -104,8 +105,8 @@
                                 <span class="cli-item-title">
                                     <a href="{{ url_for(subsection) }}">{{ subsection.title }}</a>
 
-                                    {% if subsection.metadata.description %}
-                                    <span class="cli-item-description">{{ subsection.metadata.description }}</span>
+                                    {% if subsection.metadata.get('description', '') %}
+                                    <span class="cli-item-description">{{ subsection.metadata.get('description', '') }}</span>
                                     {% endif %}
 
                                     <span class="cli-item-meta">
