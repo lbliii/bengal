@@ -10,6 +10,7 @@ from bengal.cli.commands.autodoc import autodoc, autodoc_cli
 from bengal.cli.commands.build import build
 from bengal.cli.commands.clean import clean, cleanup
 from bengal.cli.commands.graph import bridges, communities, graph, pagerank, suggest
+from bengal.cli.commands.init import init
 from bengal.cli.commands.new import new
 
 # Import commands from new modular structure
@@ -97,6 +98,7 @@ main.add_command(clean)
 main.add_command(cleanup)
 main.add_command(serve)
 main.add_command(new)
+main.add_command(init)
 main.add_command(graph)
 main.add_command(pagerank)
 main.add_command(communities)

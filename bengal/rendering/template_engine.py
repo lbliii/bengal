@@ -133,6 +133,10 @@ class TemplateEngine:
         # Add custom filters and functions (core template helpers)
         env.filters["dateformat"] = self._filter_dateformat
 
+        # Add global variables (available in all templates and macros)
+        env.globals["site"] = self.site
+        env.globals["config"] = self.site.config
+
         # Add global functions (core template helpers)
         env.globals["url_for"] = self._url_for
         env.globals["asset_url"] = self._asset_url

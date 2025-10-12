@@ -36,7 +36,7 @@ Each feature shown here has complete documentation:
 **Other Resources:**
 - [Content Types](content-types/) - Page layouts
 - [Advanced Features](advanced/) - Variables, SEO, publishing
-- [Frontmatter Standard](frontmatter-standard.md) - Complete metadata reference
+- [Frontmatter Standard](frontmatter-standard/) - Complete metadata reference
 
 ---
 
@@ -172,8 +172,6 @@ table_of_contents = true
 ```
 
 This configuration enables:
-- Parallel processing for faster builds
-- Incremental builds (18-42x faster!)
 - Multiple output formats
 - Strict mode for error checking
 ````
@@ -297,12 +295,12 @@ You can access:
 
 ### Tables
 
-| Feature | Status | Performance | Notes |
-|---------|--------|-------------|-------|
-| Incremental builds | ✅ | 18-42x faster | Best-in-class |
-| Parallel processing | ✅ | 2-4x speedup | Automatic |
-| Health checks | ✅ | Instant | 9 validators |
-| Output formats | ✅ | Negligible | JSON, LLM-txt |
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Incremental builds | ✅ | |
+| Parallel processing | ✅ | Automatic |
+| Health checks | ✅ | 9 validators |
+| Output formats | ✅ | JSON, LLM-txt |
 
 ### Alignment
 

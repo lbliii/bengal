@@ -22,7 +22,7 @@ header[role="banner"] {
 }
 
 header nav {
-  padding: var(--space-4) 0;
+  padding: var(--space-3) 0;
 }
 
 header .container {
@@ -98,12 +98,12 @@ header .container {
   height: 18px;
 }
 
-.nav-main li.active > a {
+.nav-main li.active>a {
   color: var(--color-primary);
   background-color: var(--color-bg-secondary);
 }
 
-.nav-main li.active-trail > a {
+.nav-main li.active-trail>a {
   color: var(--color-primary);
 }
 
@@ -140,8 +140,8 @@ header .container {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
-.nav-main li:hover > .submenu,
-.nav-main li:focus-within > .submenu {
+.nav-main li:hover>.submenu,
+.nav-main li:focus-within>.submenu {
   opacity: 1;
   visibility: visible;
   transform: translateY(0);
@@ -167,7 +167,7 @@ header .container {
   border-radius: 0 0 var(--radius-md) var(--radius-md);
 }
 
-.nav-main .submenu li.active > a {
+.nav-main .submenu li.active>a {
   color: var(--color-primary);
   background-color: var(--color-bg-secondary);
 }
@@ -275,7 +275,7 @@ header .container {
   text-decoration: none;
 }
 
-.mobile-nav li.active > a {
+.mobile-nav li.active>a {
   color: var(--color-primary);
   background-color: var(--color-bg-secondary);
 }
@@ -287,7 +287,7 @@ header .container {
   margin-top: var(--space-2);
 }
 
-.mobile-nav li.has-submenu > a::after {
+.mobile-nav li.has-submenu>a::after {
   content: '▼';
   margin-left: var(--space-2);
   font-size: var(--text-sm);
@@ -295,11 +295,11 @@ header .container {
   transition: transform var(--transition-fast);
 }
 
-.mobile-nav li.has-submenu.submenu-open > a::after {
+.mobile-nav li.has-submenu.submenu-open>a::after {
   transform: rotate(180deg);
 }
 
-.mobile-nav li.has-submenu.submenu-open > .submenu {
+.mobile-nav li.has-submenu.submenu-open>.submenu {
   display: block;
 }
 

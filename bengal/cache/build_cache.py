@@ -159,6 +159,8 @@ class BuildCache:
             "output_sources": self.output_sources,
             "taxonomy_deps": {k: list(v) for k, v in self.taxonomy_deps.items()},
             "page_tags": {k: list(v) for k, v in self.page_tags.items()},
+            "tag_to_pages": {k: list(v) for k, v in self.tag_to_pages.items()},  # Save tag index
+            "known_tags": list(self.known_tags),  # Save known tags
             "parsed_content": self.parsed_content,  # NEW: Already in dict format
             "last_build": datetime.now().isoformat(),
         }

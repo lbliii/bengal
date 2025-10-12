@@ -90,6 +90,8 @@ class Site:
     menu_builders_localized: dict[str, dict[str, MenuBuilder]] = field(default_factory=dict)
     # Current language context for rendering (set per page during rendering)
     current_language: str | None = None
+    # Global data from data/ directory (YAML, JSON, TOML files)
+    data: Any = field(default_factory=dict)
 
     # Private caches for expensive properties (invalidated when pages change)
     _regular_pages_cache: list[Page] | None = field(default=None, repr=False, init=False)
@@ -104,6 +106,9 @@ class Site:
         # Make output_dir absolute relative to root_path
         if not self.output_dir.is_absolute():
             self.output_dir = self.root_path / self.output_dir
+
+        # Load data from data/ directory
+        self.data = self._load_data_directory()
 
     @property
     def title(self) -> str | None:
@@ -565,6 +570,83 @@ class Site:
             logger.debug("output_dir_cleaned", path=str(self.output_dir))
         else:
             logger.debug("output_dir_does_not_exist", path=str(self.output_dir))
+
+    def _load_data_directory(self) -> "DotDict":
+        """
+        Load all data files from the data/ directory into site.data.
+
+        Supports YAML, JSON, and TOML files. Files are loaded into a nested
+        structure based on their path in the data/ directory.
+
+        Example:
+            data/resume.yaml → site.data.resume
+            data/team/members.json → site.data.team.members
+
+        Returns:
+            DotDict with loaded data accessible via dot notation
+        """
+        from bengal.utils.dotdict import DotDict, wrap_data
+        from bengal.utils.file_io import load_data_file
+
+        data_dir = self.root_path / "data"
+
+        if not data_dir.exists():
+            logger.debug("data_directory_not_found", path=str(data_dir))
+            return DotDict()
+
+        logger.debug("loading_data_directory", path=str(data_dir))
+
+        data = {}
+        supported_extensions = [".json", ".yaml", ".yml", ".toml"]
+
+        for file_path in data_dir.rglob("*"):
+            if not file_path.is_file():
+                continue
+
+            if file_path.suffix not in supported_extensions:
+                continue
+
+            relative = file_path.relative_to(data_dir)
+            parts = list(relative.with_suffix("").parts)
+
+            try:
+                content = load_data_file(
+                    file_path, on_error="return_empty", caller="site_data_loader"
+                )
+
+                current = data
+                for part in parts[:-1]:
+                    if part not in current:
+                        current[part] = {}
+                    current = current[part]
+
+                current[parts[-1]] = content
+
+                logger.debug(
+                    "data_file_loaded",
+                    file=str(relative),
+                    key=".".join(parts),
+                    size=len(str(content)) if content else 0,
+                )
+
+            except Exception as e:
+                logger.warning(
+                    "data_file_load_failed",
+                    file=str(relative),
+                    error=str(e),
+                    error_type=type(e).__name__,
+                )
+
+        wrapped_data = wrap_data(data)
+
+        if data:
+            logger.debug(
+                "data_directory_loaded",
+                files_loaded=len(list(data_dir.rglob("*.*"))),
+                top_level_keys=list(data.keys()) if isinstance(data, dict) else [],
+            )
+
+        return wrapped_data
 
     def __repr__(self) -> str:
         return f"Site(pages={len(self.pages)}, sections={len(self.sections)}, assets={len(self.assets)})"

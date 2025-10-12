@@ -1,23 +1,29 @@
 {% extends "base.html" %}
 
 {#
-  Blog List Template
+Blog List Template
 
-  Used for blog section indexes. Displays blog posts in reverse chronological
-  order with featured posts, excerpts, and pagination.
+Used for blog section indexes. Displays blog posts in reverse chronological
+order with featured posts, excerpts, and pagination.
 
-  Usage: Set `type: blog` in section _index.md
+Usage: Set `type: blog` in section _index.md
 
-  Context variables:
-    - section: Section object with blog posts
-    - posts: List of blog post pages (may be paginated)
-    - subsections: Blog categories/archives
-    - total_pages: Total pagination pages
-    - current_page: Current page number
+Context variables:
+- section: Section object with blog posts
+- posts: List of blog post pages (may be paginated)
+- subsections: Blog categories/archives
+- total_pages: Total pagination pages
+- current_page: Current page number
 #}
 
 {% from 'partials/navigation-components.html' import breadcrumbs, pagination %}
 {% from 'partials/content-components.html' import tag_list %}
+
+{# Defensive defaults for pagination variables (safe fallback if not provided) #}
+{% set total_pages = total_pages | default(1) %}
+{% set current_page = current_page | default(1) %}
+{% set total_posts = total_posts | default(posts | length if posts else 0) %}
+{% set base_url = base_url | default(section.url if section else '/blog/') %}
 
 {% block content %}
 {{ breadcrumbs(page if page is defined else section) }}
@@ -49,10 +55,11 @@
         <div class="blog-featured-grid">
             {% for post in featured_posts %}
             <article class="blog-featured-card">
-                {% if post.metadata.image or post.metadata.cover %}
+                {% if post.metadata.get('image') or post.metadata.get('cover') %}
                 <div class="blog-card-image">
                     <a href="{{ url_for(post) }}">
-                        <img src="{{ post.metadata.image | default(post.metadata.cover) }}" alt="{{ post.title }}">
+                        <img src="{{ post.metadata.get('image') | default(post.metadata.get('cover')) }}"
+                            alt="{{ post.title }}">
                     </a>
                 </div>
                 {% endif %}
@@ -62,19 +69,20 @@
                         <a href="{{ url_for(post) }}">{{ post.title }}</a>
                     </h3>
 
-                    {% if post.metadata.description or post.excerpt %}
+                    {% if post.metadata.get('description') or post.excerpt %}
                     <p class="blog-card-excerpt">
-                        {{ post.metadata.description | default(post.excerpt) | truncate(180) }}
+                        {{ post.metadata.get('description') | default(post.excerpt) | truncate(180) }}
                     </p>
                     {% endif %}
 
                     <div class="blog-card-meta">
-                        {% if post.metadata.author %}
+                        {% if post.metadata.get('author') %}
                         <span class="blog-author">
-                            {% if post.metadata.author_avatar %}
-                            <img src="{{ post.metadata.author_avatar }}" alt="{{ post.metadata.author }}" class="author-avatar">
+                            {% if post.metadata.get('author_avatar') %}
+                            <img src="{{ post.metadata.get('author_avatar') }}" alt="{{ post.metadata.get('author') }}"
+                                class="author-avatar">
                             {% endif %}
-                            {{ post.metadata.author }}
+                            {{ post.metadata.get('author') }}
                         </span>
                         {% endif %}
 
@@ -114,10 +122,11 @@
         <div class="blog-post-list">
             {% for post in regular_posts %}
             <article class="blog-post-card">
-                {% if post.metadata.image or post.metadata.cover %}
+                {% if post.metadata.get('image') or post.metadata.get('cover') %}
                 <div class="blog-card-image">
                     <a href="{{ url_for(post) }}">
-                        <img src="{{ post.metadata.image | default(post.metadata.cover) }}" alt="{{ post.title }}">
+                        <img src="{{ post.metadata.get('image') | default(post.metadata.get('cover')) }}"
+                            alt="{{ post.title }}">
                     </a>
                 </div>
                 {% endif %}
@@ -127,19 +136,20 @@
                         <a href="{{ url_for(post) }}">{{ post.title }}</a>
                     </h3>
 
-                    {% if post.metadata.description or post.excerpt %}
+                    {% if post.metadata.get('description') or post.excerpt %}
                     <p class="blog-card-excerpt">
-                        {{ post.metadata.description | default(post.excerpt) | truncate(200) }}
+                        {{ post.metadata.get('description') | default(post.excerpt) | truncate(200) }}
                     </p>
                     {% endif %}
 
                     <div class="blog-card-meta">
-                        {% if post.metadata.author %}
+                        {% if post.metadata.get('author') %}
                         <span class="blog-author">
-                            {% if post.metadata.author_avatar %}
-                            <img src="{{ post.metadata.author_avatar }}" alt="{{ post.metadata.author }}" class="author-avatar">
+                            {% if post.metadata.get('author_avatar') %}
+                            <img src="{{ post.metadata.get('author_avatar') }}" alt="{{ post.metadata.get('author') }}"
+                                class="author-avatar">
                             {% endif %}
-                            {{ post.metadata.author }}
+                            {{ post.metadata.get('author') }}
                         </span>
                         {% endif %}
 
@@ -193,9 +203,11 @@
                     {% endif %}
                     {% if subsection.regular_pages %}
                     {# Count only non-index pages #}
-                    {% set content_pages = subsection.regular_pages | rejectattr('url', 'equalto', subsection.index_page.url if subsection.index_page else '') | list %}
+                    {% set index_url = subsection.index_page.url if subsection.index_page else '' %}
+                    {% set content_pages = subsection.regular_pages | rejectattr('url', 'equalto', index_url) | list %}
                     {% if content_pages %}
-                    <p class="blog-card-meta">{{ content_pages | length }} post{{ 's' if content_pages | length != 1 }}</p>
+                    <p class="blog-card-meta">{{ content_pages | length }} post{{ 's' if content_pages | length != 1 }}
+                    </p>
                     {% endif %}
                     {% endif %}
                 </div>

@@ -71,18 +71,35 @@
 .has-prose-content h4,
 .has-prose-content h5,
 .has-prose-content h6 {
-  margin-top: var(--space-4);
+  margin-top: var(--space-3);
   margin-bottom: var(--space-2);
   font-weight: var(--font-semibold);
   line-height: var(--leading-tight);
 }
 
-.has-prose-content h1 { font-size: var(--text-2xl); }
-.has-prose-content h2 { font-size: var(--text-xl); }
-.has-prose-content h3 { font-size: var(--text-lg); }
-.has-prose-content h4 { font-size: var(--text-base); }
-.has-prose-content h5 { font-size: var(--text-sm); }
-.has-prose-content h6 { font-size: var(--text-sm); }
+.has-prose-content h1 {
+  font-size: var(--text-xl);
+}
+
+.has-prose-content h2 {
+  font-size: var(--text-lg);
+}
+
+.has-prose-content h3 {
+  font-size: var(--text-base);
+}
+
+.has-prose-content h4 {
+  font-size: var(--text-base);
+}
+
+.has-prose-content h5 {
+  font-size: var(--text-sm);
+}
+
+.has-prose-content h6 {
+  font-size: var(--text-sm);
+}
 
 /* ============================================
    INLINE ELEMENTS
@@ -232,6 +249,7 @@
    ============================================ */
 
 @media (max-width: 640px) {
+
   .has-prose-content ul,
   .has-prose-content ol {
     padding-left: var(--space-6);

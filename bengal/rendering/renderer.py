@@ -3,7 +3,6 @@ Renderer for converting pages to final HTML output.
 """
 
 import re
-from datetime import datetime
 from typing import Any
 
 from markupsafe import Markup
@@ -130,19 +129,28 @@ class Renderer:
             hasattr(page, "_section")
             and page._section
             and (
-                page_type in ("api-reference", "cli-reference", "tutorial", "doc") or is_index_page
+                page_type
+                in ("api-reference", "cli-reference", "tutorial", "doc", "blog", "archive")
+                or is_index_page
             )
         ):
             # Add section context if:
             # 1. It's a reference documentation type (api-reference, cli-reference, tutorial)
             # 2. It's a doc type page (for doc/list.html templates)
-            # 3. It's an index page (_index.md or index.md)
+            # 3. It's a blog or archive type page (for blog/list.html templates)
+            # 4. It's an index page (_index.md or index.md)
             section = page._section
+
+            # Use pre-filtered/sorted _posts if available (from SectionOrchestrator),
+            # otherwise fall back to section.pages
+            posts = page.metadata.get("_posts", section.pages)
+            subsections = page.metadata.get("_subsections", section.subsections)
+
             context.update(
                 {
                     "section": section,
-                    "posts": section.pages,
-                    "subsections": section.subsections,
+                    "posts": posts,
+                    "subsections": subsections,
                 }
             )
 
@@ -197,10 +205,12 @@ class Renderer:
         """
         page_type = page.metadata.get("type")
 
-        if page_type in ("archive", "api-reference", "cli-reference", "tutorial"):
-            # Archive/Reference page context
+        if page_type in ("archive", "blog", "api-reference", "cli-reference", "tutorial"):
+            # Archive/Reference/Blog page context
+            # Note: Posts are already filtered and sorted by the content type strategy
+            # in the SectionOrchestrator, so we don't need to re-sort here
             section = page.metadata.get("_section")
-            all_posts = page.metadata.get("_posts", [])
+            all_posts = page.metadata.get("_posts", [])  # Already filtered & sorted!
             subsections = page.metadata.get("_subsections", [])
             paginator = page.metadata.get("_paginator")
             page_num = page.metadata.get("_page_num", 1)
@@ -210,14 +220,8 @@ class Renderer:
                 posts = paginator.page(page_num)
                 pagination = paginator.page_context(page_num, f"/{section.name}/")
             else:
-                # Reference docs: no date sorting (keep original order or alphabetical)
-                if page_type in ("api-reference", "cli-reference", "tutorial"):
-                    posts = all_posts  # Keep original order
-                else:
-                    # Archives: sort by date
-                    posts = sorted(
-                        all_posts, key=lambda p: p.date if p.date else datetime.min, reverse=True
-                    )
+                # Use pre-sorted posts directly (no re-sorting needed)
+                posts = all_posts
 
                 pagination = {
                     "current_page": 1,
@@ -336,6 +340,7 @@ class Renderer:
                 "doc": "doc",
                 "tutorial": "tutorial",
                 "blog": "blog",
+                "changelog": "changelog",
             }
 
             if page_type in type_mappings:

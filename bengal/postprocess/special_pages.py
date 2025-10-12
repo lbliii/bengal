@@ -102,6 +102,7 @@ class SpecialPagesGenerator:
 
             page_context = SimpleNamespace(
                 title="Page Not Found",
+                description="The page you're looking for doesn't exist.",
                 url="/404.html",
                 kind="page",
                 draft=False,
@@ -115,6 +116,13 @@ class SpecialPagesGenerator:
                 "site": self.site,
                 "page": page_context,
                 "config": self.site.config,
+                # Add pre-computed properties that templates expect
+                "meta_desc": page_context.description,
+                "reading_time": 0,
+                "excerpt": "",
+                "content": "",
+                "toc": "",
+                "toc_items": [],
             }
 
             # Render 404 page (template functions are already registered in TemplateEngine.__init__)
@@ -197,6 +205,7 @@ class SpecialPagesGenerator:
 
             page_context = SimpleNamespace(
                 title="Search",
+                description="Search this site for content.",
                 url=raw_path,
                 kind="page",
                 draft=False,
@@ -210,6 +219,13 @@ class SpecialPagesGenerator:
                 "site": self.site,
                 "page": page_context,
                 "config": self.site.config,
+                # Add pre-computed properties that templates expect
+                "meta_desc": page_context.description,
+                "reading_time": 0,
+                "excerpt": "",
+                "content": "",
+                "toc": "",
+                "toc_items": [],
             }
 
             # Render search page

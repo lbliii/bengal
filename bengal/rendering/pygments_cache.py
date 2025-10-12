@@ -45,6 +45,19 @@ _NO_HIGHLIGHT_LANGUAGES = {
     "mermaid",
 }
 
+# Data formats and plain text files that don't have/need lexers
+# These will fall back to text rendering without warnings
+_QUIET_FALLBACK_LANGUAGES = {
+    "csv",
+    "tsv",
+    "txt",
+    "text",
+    "log",
+    "logs",
+    "plain",
+    "plaintext",
+}
+
 
 def _normalize_language(language: str) -> str:
     """Normalize a requested language to a Pygments-friendly name.
@@ -103,6 +116,20 @@ def get_lexer_cached(language: str | None = None, code: str = "") -> any:
             logger.debug("no_highlight_language", language=language, normalized=normalized)
             return lexer
 
+        # Data formats that don't have lexers - use text without warnings
+        if normalized in _QUIET_FALLBACK_LANGUAGES:
+            lexer = get_lexer_by_name("text")
+            with _cache_lock:
+                _lexer_cache[cache_key] = lexer
+            # Debug level - expected behavior, not an issue
+            logger.debug(
+                "data_format_as_text",
+                language=language,
+                normalized=normalized,
+                note="Data format rendered as plain text (expected)",
+            )
+            return lexer
+
         # Try to get lexer by name
         try:
             lexer = get_lexer_by_name(normalized)
@@ -113,18 +140,18 @@ def get_lexer_cached(language: str | None = None, code: str = "") -> any:
             )
             return lexer
         except ClassNotFound:
-            # Downgrade noise for common doc-only languages that we alias to text
-            level = "warning"
-            if normalized in _LANGUAGE_ALIASES or normalized in _NO_HIGHLIGHT_LANGUAGES:
-                level = "info"
-            if level == "warning":
-                logger.warning(
-                    "unknown_lexer", language=language, normalized=normalized, fallback="text"
-                )
-            else:
-                logger.info(
-                    "unknown_lexer", language=language, normalized=normalized, fallback="text"
-                )
+            # Language not recognized by Pygments
+            logger.warning(
+                "unknown_lexer",
+                language=language,
+                normalized=normalized,
+                fallback="text",
+                hint=(
+                    f"Language '{language}' not recognized by Pygments. "
+                    "Rendering as plain text. "
+                    "Check language name spelling or see Pygments docs for supported languages."
+                ),
+            )
             # Cache the fallback too
             lexer = get_lexer_by_name("text")
             with _cache_lock:

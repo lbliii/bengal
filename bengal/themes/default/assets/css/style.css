@@ -40,6 +40,8 @@
 @import url('layouts/grid.css');
 @import url('layouts/header.css');
 @import url('layouts/footer.css');
+@import url('layouts/resume.css');
+@import url('layouts/changelog.css');
 
 /* ============================================
    COMPONENT STYLES
@@ -79,7 +81,8 @@
 
 /* Main Content Area */
 main {
-  min-height: calc(100vh - 300px); /* Adjust based on header/footer height */
+  min-height: calc(100vh - 300px);
+  /* Adjust based on header/footer height */
   padding: var(--space-10) 0;
 }
 
@@ -88,11 +91,9 @@ main {
   margin-bottom: var(--space-12);
   padding: var(--space-16) 0;
   text-align: center;
-  background: linear-gradient(
-    135deg,
-    var(--color-primary) 0%,
-    var(--color-secondary) 100%
-  );
+  background: linear-gradient(135deg,
+      var(--color-primary) 0%,
+      var(--color-secondary) 100%);
   border-radius: var(--radius-xl);
   color: var(--color-text-inverse);
 }
@@ -282,11 +283,14 @@ main {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Print Styles */
 @media print {
+
   header[role="banner"],
   footer[role="contentinfo"],
   .mobile-nav-toggle,

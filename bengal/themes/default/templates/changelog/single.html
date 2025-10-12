@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+
+{#
+Single Release Template
+
+Used for individual release/changelog pages.
+
+Usage: Create markdown files with `type: changelog`
+
+Frontmatter example:
+---
+title: Version 1.2.0
+type: changelog
+date: 2025-10-12
+name: "Feature Release"
+status: stable
+summary: Major new features and improvements
+added:
+- New feature A
+- New feature B
+changed:
+- Updated feature C
+fixed:
+- Fixed bug D
+---
+#}
+
+{% from 'partials/navigation-components.html' import breadcrumbs %}
+
+{% block content %}
+{{ breadcrumbs(page) }}
+
+<article class="changelog-single">
+    <header class="release-header">
+        <h1>{{ page.title }}</h1>
+
+        {% if page.metadata.get('name') %}
+        <p class="release-name">{{ page.metadata.get('name') }}</p>
+        {% endif %}
+
+        <div class="release-meta">
+            {% if page.date %}
+            <time datetime="{{ page.date | date_iso }}" class="release-date">
+                Released {{ page.date | dateformat('%B %d, %Y') }}
+            </time>
+            {% endif %}
+
+            {% if page.metadata.get('status') %}
+            <span class="release-status status-{{ page.metadata.get('status') | lower }}">
+                {{ page.metadata.get('status') }}
+            </span>
+            {% endif %}
+        </div>
+
+        {% if page.metadata.get('summary') %}
+        <p class="release-summary">{{ page.metadata.get('summary') }}</p>
+        {% endif %}
+    </header>
+
+    <div class="release-content">
+        {# Added Features #}
+        {% if page.metadata.get('added') and page.metadata.get('added') is iterable and page.metadata.get('added') is
+        not string %}
+        <section class="changelog-category">
+            <h2 class="category-title">✨ Added</h2>
+            <ul class="changelog-list">
+                {% for item in page.metadata.get('added') %}
+                <li>{{ item }}</li>
+                {% endfor %}
+            </ul>
+        </section>
+        {% endif %}
+
+        {# Changed/Improved #}
+        {% if page.metadata.get('changed') and page.metadata.get('changed') is iterable and page.metadata.get('changed')
+        is not string %}
+        <section class="changelog-category">
+            <h2 class="category-title">🔄 Changed</h2>
+            <ul class="changelog-list">
+                {% for item in page.metadata.get('changed') %}
+                <li>{{ item }}</li>
+                {% endfor %}
+            </ul>
+        </section>
+        {% endif %}
+
+        {# Fixed Bugs #}
+        {% if page.metadata.get('fixed') and page.metadata.get('fixed') is iterable and page.metadata.get('fixed') is
+        not string %}
+        <section class="changelog-category">
+            <h2 class="category-title">🐛 Fixed</h2>
+            <ul class="changelog-list">
+                {% for item in page.metadata.get('fixed') %}
+                <li>{{ item }}</li>
+                {% endfor %}
+            </ul>
+        </section>
+        {% endif %}
+
+        {# Deprecated #}
+        {% if page.metadata.get('deprecated') and page.metadata.get('deprecated') is iterable and
+        page.metadata.get('deprecated') is not string %}
+        <section class="changelog-category">
+            <h2 class="category-title">⚠️ Deprecated</h2>
+            <ul class="changelog-list">
+                {% for item in page.metadata.get('deprecated') %}
+                <li>{{ item }}</li>
+                {% endfor %}
+            </ul>
+        </section>
+        {% endif %}
+
+        {# Removed #}
+        {% if page.metadata.get('removed') and page.metadata.get('removed') is iterable and page.metadata.get('removed')
+        is not string %}
+        <section class="changelog-category">
+            <h2 class="category-title">🗑️ Removed</h2>
+            <ul class="changelog-list">
+                {% for item in page.metadata.get('removed') %}
+                <li>{{ item }}</li>
+                {% endfor %}
+            </ul>
+        </section>
+        {% endif %}
+
+        {# Security #}
+        {% if page.metadata.get('security') and page.metadata.get('security') is iterable and
+        page.metadata.get('security') is not string %}
+        <section class="changelog-category">
+            <h2 class="category-title">🔒 Security</h2>
+            <ul class="changelog-list">
+                {% for item in page.metadata.get('security') %}
+                <li>{{ item }}</li>
+                {% endfor %}
+            </ul>
+        </section>
+        {% endif %}
+
+        {# Breaking Changes #}
+        {% if page.metadata.get('breaking') and page.metadata.get('breaking') is iterable and
+        page.metadata.get('breaking') is not string %}
+        <section class="changelog-category changelog-breaking">
+            <h2 class="category-title">⚡ Breaking Changes</h2>
+            <ul class="changelog-list">
+                {% for item in page.metadata.get('breaking') %}
+                <li>{{ item }}</li>
+                {% endfor %}
+            </ul>
+        </section>
+        {% endif %}
+
+        {# Main content (detailed release notes) #}
+        {% if content and content.strip() %}
+        <section class="release-details">
+            {{ content | safe }}
+        </section>
+        {% endif %}
+
+        {# Links #}
+        {% if page.metadata.get('github_release') or page.metadata.get('download_url') %}
+        <footer class="release-footer">
+            <div class="release-links">
+                {% if page.metadata.get('github_release') %}
+                <a href="{{ page.metadata.get('github_release') }}" class="release-link" target="_blank">
+                    View on GitHub →
+                </a>
+                {% endif %}
+                {% if page.metadata.get('download_url') %}
+                <a href="{{ page.metadata.get('download_url') }}" class="release-link release-download" target="_blank">
+                    Download Release ↓
+                </a>
+                {% endif %}
+            </div>
+        </footer>
+        {% endif %}
+    </div>
+</article>
+{% endblock %}
