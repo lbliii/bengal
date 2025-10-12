@@ -32,9 +32,9 @@
             </span>
             {% endif %}
             {% if contact.get('website') %}
+            {% set website_display = contact.get('website') | replace('https://', '') | replace('http://', '') %}
             <a href="{{ contact.get('website') }}" class="contact-item" target="_blank">
-                <span class="contact-icon">🌐</span> {{ contact.get('website') | replace('https://', '') |
-                replace('http://', '') }}
+                <span class="contact-icon">🌐</span> {{ website_display }}
             </a>
             {% endif %}
             {% if contact.get('linkedin') %}
