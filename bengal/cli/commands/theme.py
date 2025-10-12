@@ -94,7 +94,7 @@ def list_themes(source: str) -> None:
         for t in sorted(installed):
             pkg = get_theme_package(t)
             ver = pkg.version if pkg else None
-            click.echo(f"  - {t}{' '+ver if ver else ''}")
+            click.echo(f"  - {t}{' ' + ver if ver else ''}")
     else:
         click.echo("  (none)")
 

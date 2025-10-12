@@ -114,7 +114,47 @@ class DocumentationGenerator:
             lstrip_blocks=True,
         )
 
+        # Add custom filters for autodoc
+        env.filters["project_relative"] = self._make_path_project_relative
+
         return env
+
+    def _make_path_project_relative(self, path: Path | str | None) -> str:
+        """
+        Convert absolute or relative path to project-relative format.
+
+        Args:
+            path: Path object or string
+
+        Returns:
+            Project-relative path string (e.g., 'bengal/core/site.py')
+        """
+        if not path:
+            return ""
+
+        from pathlib import Path as PathLib
+
+        path_obj = PathLib(path) if not isinstance(path, PathLib) else path
+
+        # Try to make it relative to current working directory (project root)
+        try:
+            cwd = PathLib.cwd()
+            relative = path_obj.relative_to(cwd)
+            return str(relative)
+        except ValueError:
+            # Path is not relative to cwd, try parent directories
+            pass
+
+        # Fallback: return just the filename or the path as-is
+        # Look for common project root indicators
+        parts = path_obj.parts
+        for i, part in enumerate(parts):
+            # If we find a project root indicator, return from there
+            if part in ("bengal", "src", "lib", "app", "backend", "frontend"):
+                return str(PathLib(*parts[i:]))
+
+        # Last resort: return the path as a string
+        return str(path_obj)
 
     def generate_all(
         self, elements: list[DocElement], output_dir: Path, parallel: bool = True

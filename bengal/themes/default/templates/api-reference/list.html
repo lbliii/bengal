@@ -72,38 +72,33 @@
             {% if subsections %}
             <section class="api-section">
                 <h2 class="api-section-title">Packages</h2>
-                <div class="api-grid">
+                <div class="api-items-list">
                     {% for subsection in subsections %}
-                    <article class="api-module-card">
-                        <div class="api-module-header">
-                            <span class="api-module-icon">📁</span>
-                            <h3 class="api-module-title">
-                                <a href="{{ url_for(subsection) }}">{{ subsection.title }}</a>
-                            </h3>
+                    <article class="api-item">
+                        <div class="api-item-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                            </svg>
                         </div>
 
-                        <div class="api-module-content">
-                            {% if subsection.metadata.description %}
-                            <p class="api-module-description">
-                                {{ subsection.metadata.description | truncate(200) }}
-                            </p>
-                            {% endif %}
+                        <div class="api-item-content">
+                            <span class="api-item-title">
+                                <a href="{{ url_for(subsection) }}">{{ subsection.title }}</a>
 
-                            <div class="api-module-meta">
-                                {% if subsection.regular_pages %}
-                                {# Count only non-index pages #}
-                                {% set content_pages = subsection.regular_pages | rejectattr('url', 'equalto', subsection.index_page.url if subsection.index_page else '') | list %}
-                                {% if content_pages %}
-                                <span class="api-meta-item">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
-                                        <polyline points="13 2 13 9 20 9"></polyline>
-                                    </svg>
-                                    {{ content_pages | length }} module{{ 's' if content_pages | length != 1 }}
+                                {% if subsection.metadata.description %}
+                                <span class="api-item-description">{{ subsection.metadata.description }}</span>
+                                {% endif %}
+
+                                <span class="api-item-meta">
+                                    {% if subsection.regular_pages %}
+                                    {# Count only non-index pages #}
+                                    {% set content_pages = subsection.regular_pages | rejectattr('url', 'equalto', subsection.index_page.url if subsection.index_page else '') | list %}
+                                    {% if content_pages %}
+                                    <span class="meta-item">{{ content_pages | length }} module{{ 's' if content_pages | length != 1 }}</span>
+                                    {% endif %}
+                                    {% endif %}
                                 </span>
-                                {% endif %}
-                                {% endif %}
-                            </div>
+                            </span>
                         </div>
                     </article>
                     {% endfor %}
@@ -115,40 +110,35 @@
             {% if posts %}
             <section class="api-section">
                 <h2 class="api-section-title">Modules</h2>
-                <div class="api-grid">
+                <div class="api-items-list">
                     {% for post in posts %}
-                    <article class="api-module-card">
-                        <div class="api-module-header">
-                            <span class="api-module-icon">📄</span>
-                            <h3 class="api-module-title">
-                                <a href="{{ url_for(post) }}">{{ post.title }}</a>
-                            </h3>
+                    <article class="api-item">
+                        <div class="api-item-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                <polyline points="14 2 14 8 20 8"></polyline>
+                            </svg>
                         </div>
 
-                        <div class="api-module-content">
-                            {% if post.metadata.description %}
-                            <p class="api-module-description">
-                                {{ post.metadata.description | truncate(200) }}
-                            </p>
-                            {% elif post.content %}
-                            <p class="api-module-description">
-                                {{ post.content | striptags | truncate(200) }}
-                            </p>
-                            {% endif %}
+                        <div class="api-item-content">
+                            <span class="api-item-title">
+                                <a href="{{ url_for(post) }}">{{ post.title }}</a>
 
-                            <div class="api-module-meta">
-                                {% if post.metadata.classes %}
-                                <span class="api-meta-item">
-                                    {{ post.metadata.classes | length }} class{{ 'es' if post.metadata.classes | length != 1 else '' }}
-                                </span>
+                                {% if post.metadata.description %}
+                                <span class="api-item-description">{{ post.metadata.description }}</span>
+                                {% elif post.content %}
+                                <span class="api-item-description">{{ post.content | striptags | truncate(120) }}</span>
                                 {% endif %}
 
-                                {% if post.metadata.functions %}
-                                <span class="api-meta-item">
-                                    {{ post.metadata.functions | length }} function{{ 's' if post.metadata.functions | length != 1 }}
+                                <span class="api-item-meta">
+                                    {% if post.metadata.classes %}
+                                    <span class="meta-item">{{ post.metadata.classes | length }} class{{ 'es' if post.metadata.classes | length != 1 else '' }}</span>
+                                    {% endif %}
+                                    {% if post.metadata.functions %}
+                                    <span class="meta-item">{{ post.metadata.functions | length }} function{{ 's' if post.metadata.functions | length != 1 }}</span>
+                                    {% endif %}
                                 </span>
-                                {% endif %}
-                            </div>
+                            </span>
                         </div>
                     </article>
                     {% endfor %}

@@ -26,41 +26,27 @@
     {% include 'partials/breadcrumbs.html' %}
 
     {# Article Content #}
-    <article class="prose api-reference-page {% if page.metadata.css_class %}{{ page.metadata.css_class }}{% endif %}">
+    <article class="prose api-reference-page reference-page--api {% if page.metadata.css_class %}{{ page.metadata.css_class }}{% endif %}">
       <header class="docs-header">
-        <div class="api-header-top">
-          <span class="api-page-icon">📦</span>
-          <h1>{{ page.title }}</h1>
-        </div>
+        {# Reference header with icon and title #}
+        {% set ref_icon = '📦' %}
+        {% set ref_title = page.title %}
+        {% set ref_type = 'api' %}
+        {% include 'partials/reference-header.html' %}
 
-        {# Description is in the markdown content itself for autodoc pages #}
-        {# If you need a lead paragraph, add it explicitly in the markdown #}
-
-        {# Module/Package metadata #}
-        {% if page.metadata.module_path or page.metadata.source_file %}
-        <div class="api-meta">
-          {% if page.metadata.module_path %}
-          <div class="api-meta-item">
-            <strong>Module:</strong>
-            <code>{{ page.metadata.module_path }}</code>
-          </div>
-          {% endif %}
-
-          {% if page.metadata.source_file %}
-          <div class="api-meta-item">
-            <strong>Source:</strong>
-            <code>{{ page.metadata.source_file }}</code>
-          </div>
-          {% endif %}
-        </div>
-        {% endif %}
+        {# Reference metadata box (module, source, etc.) #}
+        {% set metadata = {
+          'Module': page.metadata.module_path,
+          'Source': page.metadata.source_file
+        } %}
+        {% include 'partials/reference-metadata.html' %}
 
         {# Document metadata (last updated, etc) #}
         {% include 'partials/docs-meta.html' %}
       </header>
 
       {# Main content #}
-      <div class="docs-content api-content">
+      <div class="docs-content reference-content api-content">
         {{ content | safe }}
       </div>
 

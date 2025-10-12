@@ -91,6 +91,34 @@
   line-height: var(--line-height-relaxed);
 }
 
+/* Explicit lead class for introductory paragraphs */
+.lead,
+.prose .lead {
+  font-size: var(--text-lg);
+  color: var(--color-text-secondary);
+  font-weight: 400;
+  line-height: 1.7;
+  letter-spacing: 0.01em;
+  margin-bottom: var(--space-6);
+}
+
+/* Lead in header contexts - add border for visual separation */
+.docs-header .lead,
+header .lead {
+  padding-bottom: var(--space-6);
+  border-bottom: 1px solid var(--color-border);
+}
+
+/* Responsive lead styles */
+@media (max-width: 768px) {
+  .lead,
+  .prose .lead {
+    font-size: var(--text-base);
+    padding-bottom: var(--space-4);
+    margin-bottom: var(--space-4);
+  }
+}
+
 /* Links */
 .prose a {
   color: var(--color-text-link);

@@ -69,7 +69,7 @@ class BengalGroup(click.Group):
         return matches
 
 
-@click.group(cls=BengalGroup)
+@click.group(cls=BengalGroup, name="bengal")
 @click.version_option(version=__version__, prog_name="Bengal SSG")
 def main() -> None:
     """

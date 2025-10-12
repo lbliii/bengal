@@ -308,8 +308,13 @@
 
 .blog-post-header .lead {
     font-size: var(--text-lg);
-    color: var(--color-text-primary-muted);
-    margin-bottom: var(--space-6);
+    color: var(--color-text-secondary);
+    font-weight: 400;
+    line-height: 1.7;
+    letter-spacing: 0.01em;
+    padding-bottom: var(--space-6);
+    margin-bottom: 0;
+    border-bottom: 1px solid var(--color-border);
 }
 
 /* Blog Post Metadata */
@@ -554,6 +559,11 @@
     .blog-post-header,
     .blog-post-footer {
         padding: var(--space-4) 0;
+    }
+
+    .blog-post-header .lead {
+        font-size: var(--text-base);
+        padding-bottom: var(--space-4);
     }
 
     .blog-card-content {

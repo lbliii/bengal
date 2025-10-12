@@ -26,20 +26,25 @@
     {% include 'partials/breadcrumbs.html' %}
 
     {# Article Content #}
-    <article class="prose cli-reference-page {% if page.metadata.css_class %}{{ page.metadata.css_class }}{% endif %}">
+    <article class="prose cli-reference-page reference-page--cli {% if page.metadata.css_class %}{{ page.metadata.css_class }}{% endif %}">
       <header class="docs-header">
-        <div class="cli-header-top">
-          {% if page.metadata.emoji %}
-          <span class="cli-page-icon">{{ page.metadata.emoji }}</span>
-          {% else %}
-          <span class="cli-page-icon">⌨️</span>
-          {% endif %}
-          <h1>{{ page.title }}</h1>
-        </div>
+        {# Reference header with icon and title #}
+        {% set ref_icon = page.metadata.emoji if page.metadata.emoji else '⌨️' %}
+        {% set ref_title = page.title %}
+        {% set ref_description = page.metadata.description %}
+        {% set ref_type = 'cli' %}
+        {% include 'partials/reference-header.html' %}
 
-        {% if page.metadata.description %}
-        <p class="lead">{{ page.metadata.description }}</p>
+        {# Reference metadata box (source) #}
+        {% set source_with_line = page.metadata.source_file %}
+        {% if page.metadata.source_line %}
+          {% set source_with_line = page.metadata.source_file ~ ':' ~ page.metadata.source_line %}
         {% endif %}
+
+        {% set metadata = {
+          'Source': source_with_line
+        } %}
+        {% include 'partials/reference-metadata.html' %}
 
         {# Command usage #}
         {% if page.metadata.usage %}
@@ -54,7 +59,7 @@
       </header>
 
       {# Main content #}
-      <div class="docs-content cli-content">
+      <div class="docs-content reference-content cli-content">
         {{ content | safe }}
       </div>
 

@@ -60,6 +60,13 @@
    API SECTION HEADERS
    ============================================ */
 
+.api-title-wrap {
+  /* Allow long dotted identifiers to wrap gracefully */
+  overflow-wrap: anywhere; /* modern fallback */
+  word-break: break-word;  /* legacy fallback */
+  hyphens: auto;           /* allow hyphenation when possible */
+}
+
 .api-module-header,
 .api-class-header,
 .api-function-header {

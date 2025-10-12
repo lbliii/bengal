@@ -93,12 +93,20 @@ class CLIExtractor(Extractor):
 
         # Add each command as a separate top-level element for individual pages
         # Recursively flatten nested command groups
-        def flatten_commands(children: list[DocElement]):
+        def flatten_commands(children: list[DocElement], is_root: bool = True):
             for child in children:
-                elements.append(child)
-                # If this is a nested command group, also flatten its children
-                if child.element_type == "command-group" and child.children:
-                    flatten_commands(child.children)
+                # Always add nested command groups (they get _index.md)
+                # Always add regular commands (they get individual pages)
+                # But don't double-add: only add each element once
+                if child.element_type == "command-group":
+                    # Add the group itself (generates _index.md)
+                    elements.append(child)
+                    # Then flatten its children (but don't add them directly to avoid duplicates)
+                    if child.children:
+                        flatten_commands(child.children, is_root=False)
+                elif child.element_type == "command":
+                    # Regular commands get individual pages
+                    elements.append(child)
 
         flatten_commands(main_doc.children)
 
@@ -398,16 +406,109 @@ class CLIExtractor(Extractor):
         """
         Extract documentation from Typer app.
 
+        Typer is built on top of Click, so we can leverage the existing Click
+        extraction logic. Typer apps expose their underlying Click structure
+        through various methods.
+
         Args:
             app: Typer app instance
 
         Returns:
             List of DocElements
 
-        Note:
-            This is a placeholder for future implementation
+        Raises:
+            ValueError: If unable to extract Click app from Typer
         """
-        raise NotImplementedError("Typer support is planned but not yet implemented")
+        import typer
+
+        # Typer apps have multiple ways to expose their Click structure
+        click_app = None
+
+        # Method 1: Try the registered_commands attribute (Typer 0.9+)
+        if hasattr(app, "registered_commands") and hasattr(app, "registered_groups"):
+            # Build a Click group from Typer's commands
+            # Typer stores commands but needs to be converted to Click format
+            # The easiest way is to get the Click app via typer.main
+            try:
+                # Get the Click group by invoking Typer's internal conversion
+                import click
+
+                # Create a Click group that wraps the Typer app
+                @click.group()
+                def typer_wrapper():
+                    pass
+
+                # Typer apps store their info, we can extract via the callback
+                if hasattr(app, "info"):
+                    typer_wrapper.help = app.info.help if app.info.help else ""
+
+                # Add all registered commands
+                for command in app.registered_commands:
+                    if hasattr(command, "callback"):
+                        # Convert Typer command to Click command
+                        click_cmd = typer.main.get_command(command)
+                        if click_cmd:
+                            typer_wrapper.add_command(click_cmd, name=command.name)
+
+                # Add all registered groups
+                for group in app.registered_groups:
+                    if hasattr(group, "typer_instance"):
+                        # Recursively convert nested Typer groups
+                        nested_click = self._typer_to_click_group(group.typer_instance)
+                        if nested_click:
+                            typer_wrapper.add_command(nested_click, name=group.name)
+
+                click_app = typer_wrapper
+
+            except Exception:
+                pass
+
+        # Method 2: Try using Typer's own conversion (most reliable)
+        if click_app is None:
+            try:
+                # Typer can convert itself to Click via typer.main.get_group/get_command
+                if hasattr(typer.main, "get_group"):
+                    click_app = typer.main.get_group(app)
+                elif hasattr(typer.main, "get_command"):
+                    click_app = typer.main.get_command(app)
+            except Exception:
+                pass
+
+        # Method 3: Direct attribute access (older Typer versions)
+        if click_app is None and hasattr(app, "_click_group"):
+            click_app = app._click_group
+
+        # If we successfully got a Click app, extract from it
+        if click_app is not None:
+            return self._extract_from_click(click_app)
+
+        # Fallback: raise error if we couldn't extract
+        raise ValueError(
+            "Unable to extract Click app from Typer instance. "
+            "Make sure you're passing a Typer() app object."
+        )
+
+    def _typer_to_click_group(self, typer_app: Any) -> Any:
+        """
+        Helper to convert a Typer app to a Click group recursively.
+
+        Args:
+            typer_app: Typer app instance
+
+        Returns:
+            Click group or None
+        """
+        try:
+            import typer
+
+            if hasattr(typer.main, "get_group"):
+                return typer.main.get_group(typer_app)
+            elif hasattr(typer.main, "get_command"):
+                return typer.main.get_command(typer_app)
+        except Exception:
+            pass
+
+        return None
 
     @override
     def get_template_dir(self) -> str:
@@ -432,20 +533,30 @@ class CLIExtractor(Extractor):
 
         Example:
             command-group (main) → _index.md (section index)
-            command-group (nested) → commands/{name}.md
-            command → commands/{name}.md
+            command-group (nested) → {name}/_index.md
+            command → {name}.md
         """
         if element.element_type == "command-group":
             # Main CLI group gets _index.md (section index)
-            # Nested command groups (like 'new') get their own page in commands/
+            # Nested command groups should be namespaced by their qualified path
+            # Example: bengal.theme → theme/_index.md
             if "." not in element.qualified_name:
                 return Path("_index.md")
-            else:
-                return Path(f"commands/{element.name}.md")
+            # For nested groups, place an index under <qualified path>/
+            parts = element.qualified_name.split(".")[1:]  # drop root cli name
+            return Path("/".join(parts)) / "_index.md"
         elif element.element_type == "command":
-            # bengal.build → commands/build.md
-            # Just use the command name, not the full qualified name
-            return Path(f"commands/{element.name}.md")
+            # Use the full qualified name (minus root) to preserve hierarchy
+            # Examples:
+            #   bengal.build            → build.md
+            #   bengal.theme.new        → theme/new.md
+            #   bengal.theme.swizzle    → theme/swizzle.md
+            qualified = element.qualified_name
+            parts = qualified.split(".")
+            # drop root cli name if present
+            if len(parts) > 1:
+                parts = parts[1:]
+            return Path("/".join(parts)).with_suffix(".md")
         else:
             # Shouldn't happen, but fallback
             return Path(f"{element.name}.md")

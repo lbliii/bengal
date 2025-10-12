@@ -47,6 +47,9 @@ def atomic_write_text(
     """
     path = Path(path)
 
+    # Ensure parent directory exists (defensive; callers should ensure this but we harden here)
+    path.parent.mkdir(parents=True, exist_ok=True)
+
     # Create temp file in same directory (ensures same filesystem for atomic rename)
     tmp_path = path.with_suffix(path.suffix + ".tmp")
 
@@ -84,6 +87,8 @@ def atomic_write_bytes(path: Path | str, content: bytes, mode: int | None = None
         >>> atomic_write_bytes('image.png', image_data)
     """
     path = Path(path)
+    # Ensure parent directory exists
+    path.parent.mkdir(parents=True, exist_ok=True)
     tmp_path = path.with_suffix(path.suffix + ".tmp")
 
     try:
@@ -138,6 +143,8 @@ class AtomicFile:
 
     def __enter__(self):
         """Open temp file for writing."""
+        # Ensure parent directory exists
+        self.path.parent.mkdir(parents=True, exist_ok=True)
         open_kwargs = {}
         if self.encoding:
             open_kwargs["encoding"] = self.encoding

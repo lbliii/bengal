@@ -4,27 +4,13 @@
   Generates the main CLI index page showing all commands.
 #}
 ---
-title: "{{ element.name }} CLI"
+title: "{{ element.name }}"
 description: "{% if element.description %}{% set lines = element.description.split('\n') %}{% set desc_lines = [] %}{% for line in lines %}{% if not line.strip().startswith('#') %}{% set _ = desc_lines.append(line) %}{% endif %}{% endfor %}{{ desc_lines | join(' ') | truncate(180, True, '...') }}{% else %}Command-line interface reference and documentation{% endif %}"
 type: cli-reference
 template: cli-reference/list.html
 cli_name: {{ element.name }}
 css_class: api-content
 ---
-
-## Quick Start
-
-{{ element.description }}
-
-Get started with the {{ element.name }} command-line interface:
-
-```bash
-# Show help for main command
-{{ element.name }} --help
-
-# Show help for specific command
-{{ element.name }} COMMAND --help
-```
 
 {# Note: Individual commands are automatically shown as cards by the cli-reference/list.html template #}
 {# The template will pull from the commands/ subdirectory and display them nicely #}

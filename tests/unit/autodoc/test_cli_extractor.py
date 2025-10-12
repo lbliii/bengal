@@ -10,6 +10,13 @@ import pytest
 from bengal.autodoc.base import DocElement
 from bengal.autodoc.extractors.cli import CLIExtractor
 
+try:
+    import typer
+
+    TYPER_AVAILABLE = True
+except ImportError:
+    TYPER_AVAILABLE = False
+
 
 @click.group()
 def sample_cli():
@@ -402,15 +409,15 @@ class TestNestedCommandGroups:
         extractor = CLIExtractor()
         elements = extractor.extract(sample_cli)
 
-        # Main group should go to index.md
+        # Main group should go to _index.md (root of CLI section)
         root = elements[0]
-        assert extractor.get_output_path(root) == Path("index.md")
+        assert extractor.get_output_path(root) == Path("_index.md")
 
-        # Nested group should go to commands/{name}.md
+        # Nested group should go to {name}/_index.md to avoid path collision
         manage_group = [
             e for e in elements if e.name == "manage" and e.element_type == "command-group"
         ][0]
-        assert extractor.get_output_path(manage_group) == Path("commands/manage.md")
+        assert extractor.get_output_path(manage_group) == Path("manage/_index.md")
 
     def test_nested_subcommand_output_path(self):
         """Test that nested subcommands get correct output paths."""
@@ -420,5 +427,216 @@ class TestNestedCommandGroups:
         create_cmd = [e for e in elements if e.name == "create"][0]
         delete_cmd = [e for e in elements if e.name == "delete"][0]
 
-        assert extractor.get_output_path(create_cmd) == Path("commands/create.md")
-        assert extractor.get_output_path(delete_cmd) == Path("commands/delete.md")
+        # Nested subcommands should be namespaced under their parent group
+        assert extractor.get_output_path(create_cmd) == Path("manage/create.md")
+        assert extractor.get_output_path(delete_cmd) == Path("manage/delete.md")
+
+    def test_no_duplicate_files_for_nested_groups(self):
+        """Test that nested command groups don't generate both .md and _index.md files."""
+        extractor = CLIExtractor()
+        elements = extractor.extract(sample_cli)
+
+        # Get all element names and types
+        element_paths = {}
+        for e in elements:
+            path = extractor.get_output_path(e)
+            if path in element_paths:
+                # Check if this is a duplicate
+                pytest.fail(
+                    f"Duplicate path detected: {path}\n"
+                    f"  First element: {element_paths[path]} ({element_paths[path].element_type})\n"
+                    f"  Second element: {e.name} ({e.element_type})"
+                )
+            element_paths[path] = e
+
+        # Specifically check that manage group generates _index.md, not both
+        manage_group = [
+            e for e in elements if e.name == "manage" and e.element_type == "command-group"
+        ][0]
+        manage_path = extractor.get_output_path(manage_group)
+
+        # Should generate _index.md for the group
+        assert manage_path == Path("manage/_index.md")
+
+        # Should NOT have a separate manage.md file
+        all_paths = [extractor.get_output_path(e) for e in elements]
+        assert Path("manage.md") not in all_paths
+
+
+# ============================================================================
+# Typer Tests
+# ============================================================================
+
+if TYPER_AVAILABLE:
+    # Create sample Typer app for testing
+    typer_app = typer.Typer(help="A sample Typer application for testing")
+
+    @typer_app.command()
+    def process(
+        filename: str = typer.Argument(..., help="File to process"),
+        verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable verbose output"),
+        count: int = typer.Option(1, "--count", "-c", help="Number of times to process"),
+    ):
+        """
+        Process a file.
+
+        This command processes the specified file with various options.
+        """
+        pass
+
+    @typer_app.command()
+    def clean(force: bool = typer.Option(False, "--force", "-f", help="Force the operation")):
+        """
+        Clean up resources.
+
+        Removes temporary files and caches.
+        """
+        pass
+
+    # Nested Typer app for testing subcommands
+    manage_app = typer.Typer(help="Manage resources and configuration")
+
+    @manage_app.command()
+    def create(
+        name: str = typer.Argument(..., help="Resource name"),
+        description: str = typer.Option(None, "--description", "-d", help="Resource description"),
+    ):
+        """
+        Create a new resource.
+
+        Creates a resource with the given name.
+        """
+        pass
+
+    @manage_app.command()
+    def delete(
+        name: str = typer.Argument(..., help="Resource name"),
+        force: bool = typer.Option(False, "--force", "-f", help="Force deletion"),
+    ):
+        """
+        Delete a resource.
+
+        Removes the specified resource.
+        """
+        pass
+
+    # Add nested app to main app
+    typer_app.add_typer(manage_app, name="manage")
+
+
+@pytest.mark.skipif(not TYPER_AVAILABLE, reason="Typer not installed")
+class TestTyperExtractor:
+    """Tests for Typer CLI extraction."""
+
+    def test_extract_typer_app(self):
+        """Test extracting a Typer app."""
+        extractor = CLIExtractor(framework="typer")
+        elements = extractor.extract(typer_app)
+
+        # Should have root + commands flattened
+        assert len(elements) >= 1
+        root = elements[0]
+
+        assert root.element_type == "command-group"
+        assert "sample Typer application" in root.description
+
+    def test_typer_commands_extracted(self):
+        """Test that Typer commands are extracted."""
+        extractor = CLIExtractor(framework="typer")
+        elements = extractor.extract(typer_app)
+
+        command_names = [e.name for e in elements if e.element_type == "command"]
+        assert "process" in command_names
+        assert "clean" in command_names
+
+    def test_typer_nested_app_extracted(self):
+        """Test that nested Typer apps are extracted."""
+        extractor = CLIExtractor(framework="typer")
+        elements = extractor.extract(typer_app)
+
+        # Should have manage group
+        group_names = [e.name for e in elements if e.element_type == "command-group"]
+        assert "manage" in group_names
+
+    def test_typer_subcommands_extracted(self):
+        """Test that subcommands of nested Typer apps are extracted."""
+        extractor = CLIExtractor(framework="typer")
+        elements = extractor.extract(typer_app)
+
+        command_names = [e.name for e in elements if e.element_type == "command"]
+        assert "create" in command_names
+        assert "delete" in command_names
+
+    def test_typer_command_with_arguments(self):
+        """Test extracting Typer command with arguments."""
+        extractor = CLIExtractor(framework="typer")
+        elements = extractor.extract(typer_app)
+
+        process_cmd = [e for e in elements if e.name == "process" and e.element_type == "command"][
+            0
+        ]
+
+        # Check for filename argument
+        params = process_cmd.children
+        arg_names = [p.name for p in params]
+        assert "filename" in arg_names
+
+    def test_typer_command_with_options(self):
+        """Test extracting Typer command with options."""
+        extractor = CLIExtractor(framework="typer")
+        elements = extractor.extract(typer_app)
+
+        process_cmd = [e for e in elements if e.name == "process" and e.element_type == "command"][
+            0
+        ]
+
+        # Check for options
+        params = process_cmd.children
+        option_names = [p.name for p in params if p.element_type == "option"]
+
+        assert "verbose" in option_names or "count" in option_names
+
+    def test_typer_qualified_names(self):
+        """Test that Typer commands have correct qualified names."""
+        extractor = CLIExtractor(framework="typer")
+        elements = extractor.extract(typer_app)
+
+        # Find nested subcommand
+        create_cmd = [e for e in elements if e.name == "create"][0]
+
+        # Should have hierarchical qualified name
+        assert "manage" in create_cmd.qualified_name
+        assert "create" in create_cmd.qualified_name
+
+    def test_typer_output_paths(self):
+        """Test that Typer commands generate correct output paths."""
+        extractor = CLIExtractor(framework="typer")
+        elements = extractor.extract(typer_app)
+
+        # Get manage group
+        manage_group = [
+            e for e in elements if e.name == "manage" and e.element_type == "command-group"
+        ][0]
+
+        # Should generate _index.md for nested group
+        assert extractor.get_output_path(manage_group) == Path("manage/_index.md")
+
+    def test_typer_no_duplicate_files(self):
+        """Test that Typer extraction doesn't create duplicate output paths."""
+        extractor = CLIExtractor(framework="typer")
+        elements = extractor.extract(typer_app)
+
+        # Collect all output paths
+        paths = {}
+        for e in elements:
+            path = extractor.get_output_path(e)
+            if path in paths:
+                pytest.fail(
+                    f"Duplicate path: {path}\n"
+                    f"  First: {paths[path].name} ({paths[path].element_type})\n"
+                    f"  Second: {e.name} ({e.element_type})"
+                )
+            paths[path] = e
+
+        # Success if we got here without duplicate paths
+        assert len(paths) == len(elements)

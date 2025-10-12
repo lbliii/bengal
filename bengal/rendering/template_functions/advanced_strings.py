@@ -22,6 +22,12 @@ def register(env: "Environment", site: "Site") -> None:
             "titleize": titleize,
             "wrap": wrap_text,
             "indent": indent_text,
+            # Insert zero-width break opportunities into long identifiers
+            # E.g., "cache.dependency_tracker" -> "cache\u200b.\u200bdependency\u200b_\u200btracker"
+            "softwrap_ident": softwrap_identifier,
+            # Extract last segment of dotted or path-like identifiers
+            # E.g., "cache.dependency_tracker" -> "dependency_tracker"
+            "last_segment": last_segment,
         }
     )
 
@@ -200,3 +206,43 @@ def indent_text(text: str, spaces: int = 4, first_line: bool = True) -> str:
         if len(lines) == 0:
             return text
         return lines[0] + "\n" + "\n".join(indent + line for line in lines[1:])
+
+
+def softwrap_identifier(text: str) -> str:
+    """
+    Insert soft wrap opportunities into API identifiers and dotted paths.
+
+    Adds zero-width space (\u200b) after sensible breakpoints like dots, underscores,
+    and before uppercase letters in camelCase/PascalCase to allow titles like
+    "cache.dependency_tracker" to wrap nicely.
+    """
+    if not text:
+        return ""
+
+    # Insert ZWSP after dots and underscores
+    result = re.sub(r"([._])", r"\1\u200b", text)
+
+    # Insert ZWSP before uppercase letters that follow a lowercase or digit (camelCase boundaries)
+    result = re.sub(r"(?<=[a-z0-9])([A-Z])", r"\u200b\1", result)
+
+    return result
+
+
+def last_segment(text: str) -> str:
+    """
+    Return the last segment of a dotted or path-like identifier.
+
+    Examples:
+    - "cache.dependency_tracker" -> "dependency_tracker"
+    - "a.b.c.ClassName" -> "ClassName"
+    - "path/to/module" -> "module"
+    """
+    if not text:
+        return ""
+
+    # Prefer splitting on dots if present; otherwise split on slashes
+    if "." in text:
+        return text.split(".")[-1]
+    if "/" in text:
+        return text.rsplit("/", 1)[-1]
+    return text
