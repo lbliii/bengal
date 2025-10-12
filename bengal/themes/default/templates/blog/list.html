@@ -203,8 +203,8 @@ Context variables:
                     {% endif %}
                     {% if subsection.regular_pages %}
                     {# Count only non-index pages #}
-                    {% set content_pages = subsection.regular_pages | rejectattr('url', 'equalto',
-                    subsection.index_page.url if subsection.index_page else '') | list %}
+                    {% set index_url = subsection.index_page.url if subsection.index_page else '' %}
+                    {% set content_pages = subsection.regular_pages | rejectattr('url', 'equalto', index_url) | list %}
                     {% if content_pages %}
                     <p class="blog-card-meta">{{ content_pages | length }} post{{ 's' if content_pages | length != 1 }}
                     </p>
