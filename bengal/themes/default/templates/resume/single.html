@@ -78,8 +78,7 @@
                         <p class="timeline-company">{{ job.get('company') }}</p>
                     </div>
                     <div class="timeline-meta">
-                        <span class="timeline-date">{{ job.get('start_date') }} - {{ job.get('end_date', 'Present')
-                            }}</span>
+                        <span class="timeline-date">{{ job.get('start_date') }} - {{ job.get('end_date', 'Present') }}</span>
                         {% if job.get('location') %}
                         <span class="timeline-location">{{ job.get('location') }}</span>
                         {% endif %}
