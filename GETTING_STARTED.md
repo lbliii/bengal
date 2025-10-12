@@ -663,6 +663,13 @@ bengal clean                 # Clean output directory
 # Creation
 bengal new site <name>       # Create new site
 bengal new page <name>       # Create new page
+
+# Themes
+bengal theme list            # List project | installed | bundled themes
+bengal theme info <slug>     # Show theme info (paths, version)
+bengal theme discover        # List swizzlable templates/partials
+bengal theme install <name>  # Install theme via uv/pip (warns on name)
+bengal theme new <slug>      # Scaffold a theme (use --mode site|package)
 ```
 
 ## Support

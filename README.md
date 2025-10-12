@@ -130,6 +130,37 @@ bengal serve --port 5173
 bengal clean
 ```
 
+## Themes
+
+```bash
+# List available themes (project | installed | bundled)
+bengal theme list
+
+# Show info about a theme slug (paths, version)
+bengal theme info <slug>
+
+# Discover swizzlable templates/partials in active theme chain
+bengal theme discover
+
+# Install a theme via uv/pip (warns if name is non-canonical)
+bengal theme install bengal-theme-starter
+
+# Scaffold a new theme
+## Site-local theme under themes/<slug>
+bengal theme new mybrand --mode site --output .
+## Installable package scaffold in current directory
+bengal theme new mybrand --mode package --output .
+```
+
+Configuration to select a theme:
+
+```toml
+[site]
+theme = "mybrand"  # Uses project themes/mybrand, installed bengal-theme-mybrand, or bundled
+```
+
+Naming convention for installable themes (recommended): `bengal-theme-<slug>`.
+
 ## API Documentation
 
 Bengal can generate API documentation from Python source code using AST parsing. Configure in `bengal.toml`:
