@@ -42,12 +42,12 @@ class PathAnalysisResults:
         avg_path_length: Average shortest path length between all page pairs
     """
 
-    betweenness_centrality: dict['Page', float]
-    closeness_centrality: dict['Page', float]
+    betweenness_centrality: dict["Page", float]
+    closeness_centrality: dict["Page", float]
     avg_path_length: float
     diameter: int  # Longest shortest path
 
-    def get_top_bridges(self, limit: int = 20) -> list[tuple['Page', float]]:
+    def get_top_bridges(self, limit: int = 20) -> list[tuple["Page", float]]:
         """
         Get pages with highest betweenness centrality (bridge pages).
 
@@ -57,14 +57,10 @@ class PathAnalysisResults:
         Returns:
             List of (page, centrality) tuples sorted by centrality descending
         """
-        sorted_pages = sorted(
-            self.betweenness_centrality.items(),
-            key=lambda x: x[1],
-            reverse=True
-        )
+        sorted_pages = sorted(self.betweenness_centrality.items(), key=lambda x: x[1], reverse=True)
         return sorted_pages[:limit]
 
-    def get_most_accessible(self, limit: int = 20) -> list[tuple['Page', float]]:
+    def get_most_accessible(self, limit: int = 20) -> list[tuple["Page", float]]:
         """
         Get most accessible pages (highest closeness centrality).
 
@@ -74,18 +70,14 @@ class PathAnalysisResults:
         Returns:
             List of (page, centrality) tuples sorted by centrality descending
         """
-        sorted_pages = sorted(
-            self.closeness_centrality.items(),
-            key=lambda x: x[1],
-            reverse=True
-        )
+        sorted_pages = sorted(self.closeness_centrality.items(), key=lambda x: x[1], reverse=True)
         return sorted_pages[:limit]
 
-    def get_betweenness(self, page: 'Page') -> float:
+    def get_betweenness(self, page: "Page") -> float:
         """Get betweenness centrality for specific page."""
         return self.betweenness_centrality.get(page, 0.0)
 
-    def get_closeness(self, page: 'Page') -> float:
+    def get_closeness(self, page: "Page") -> float:
         """Get closeness centrality for specific page."""
         return self.closeness_centrality.get(page, 0.0)
 
@@ -108,7 +100,7 @@ class PathAnalyzer:
         >>> print(f"Top bridge: {bridges[0][0].title}")
     """
 
-    def __init__(self, graph: 'KnowledgeGraph'):
+    def __init__(self, graph: "KnowledgeGraph"):
         """
         Initialize path analyzer.
 
@@ -117,7 +109,7 @@ class PathAnalyzer:
         """
         self.graph = graph
 
-    def find_shortest_path(self, source: 'Page', target: 'Page') -> list['Page'] | None:
+    def find_shortest_path(self, source: "Page", target: "Page") -> list["Page"] | None:
         """
         Find shortest path between two pages using BFS.
 
@@ -176,15 +168,12 @@ class PathAnalyzer:
         Returns:
             PathAnalysisResults with all metrics
         """
-        pages = [p for p in self.graph.site.pages if not p.metadata.get('_generated')]
+        pages = [p for p in self.graph.site.pages if not p.metadata.get("_generated")]
 
         if len(pages) == 0:
             logger.warning("path_analysis_no_pages")
             return PathAnalysisResults(
-                betweenness_centrality={},
-                closeness_centrality={},
-                avg_path_length=0.0,
-                diameter=0
+                betweenness_centrality={}, closeness_centrality={}, avg_path_length=0.0, diameter=0
             )
 
         logger.info("path_analysis_start", total_pages=len(pages))
@@ -195,18 +184,16 @@ class PathAnalyzer:
         # Compute closeness centrality
         closeness, avg_path_length, diameter = self._compute_closeness_centrality(pages)
 
-        logger.info("path_analysis_complete",
-                   avg_path_length=avg_path_length,
-                   diameter=diameter)
+        logger.info("path_analysis_complete", avg_path_length=avg_path_length, diameter=diameter)
 
         return PathAnalysisResults(
             betweenness_centrality=betweenness,
             closeness_centrality=closeness,
             avg_path_length=avg_path_length,
-            diameter=diameter
+            diameter=diameter,
         )
 
-    def _compute_betweenness_centrality(self, pages: list['Page']) -> dict['Page', float]:
+    def _compute_betweenness_centrality(self, pages: list["Page"]) -> dict["Page", float]:
         """
         Compute betweenness centrality using Brandes' algorithm.
 
@@ -265,7 +252,9 @@ class PathAnalyzer:
 
         return betweenness
 
-    def _compute_closeness_centrality(self, pages: list['Page']) -> tuple[dict['Page', float], float, int]:
+    def _compute_closeness_centrality(
+        self, pages: list["Page"]
+    ) -> tuple[dict["Page", float], float, int]:
         """
         Compute closeness centrality and network metrics.
 
@@ -301,7 +290,7 @@ class PathAnalyzer:
 
         return closeness, avg_path_length, diameter
 
-    def _bfs_distances(self, source: 'Page', pages: list['Page']) -> dict['Page', int]:
+    def _bfs_distances(self, source: "Page", pages: list["Page"]) -> dict["Page", int]:
         """Compute shortest path distances from source to all other pages."""
         distances: dict[Page, int] = {p: -1 for p in pages}
         distances[source] = 0
@@ -320,10 +309,9 @@ class PathAnalyzer:
 
         return distances
 
-    def find_all_paths(self,
-                      source: 'Page',
-                      target: 'Page',
-                      max_length: int = 10) -> list[list['Page']]:
+    def find_all_paths(
+        self, source: "Page", target: "Page", max_length: int = 10
+    ) -> list[list["Page"]]:
         """
         Find all simple paths between two pages (up to max_length).
 
@@ -342,7 +330,7 @@ class PathAnalyzer:
 
         all_paths: list[list[Page]] = []
 
-        def dfs(current: 'Page', path: list['Page'], visited: set['Page']) -> None:
+        def dfs(current: "Page", path: list["Page"], visited: set["Page"]) -> None:
             if len(path) > max_length:
                 return
 
@@ -363,7 +351,7 @@ class PathAnalyzer:
         return all_paths
 
 
-def analyze_paths(graph: 'KnowledgeGraph') -> PathAnalysisResults:
+def analyze_paths(graph: "KnowledgeGraph") -> PathAnalysisResults:
     """
     Convenience function for path analysis.
 
@@ -381,4 +369,3 @@ def analyze_paths(graph: 'KnowledgeGraph') -> PathAnalysisResults:
     """
     analyzer = PathAnalyzer(graph)
     return analyzer.analyze()
-

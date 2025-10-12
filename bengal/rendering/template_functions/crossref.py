@@ -37,13 +37,15 @@ def register(env: Environment, site: Site) -> None:
     def relref_with_site(path: str) -> str:
         return relref(path, site.xref_index)
 
-    env.globals.update({
-        'ref': ref_with_site,       # Link with custom text
-        'doc': doc_with_site,       # Get page by path
-        'anchor': anchor_with_site,  # Link to heading
-        'xref': ref_with_site,      # Alias for compatibility
-        'relref': relref_with_site,  # Get relative URL (Hugo-style)
-    })
+    env.globals.update(
+        {
+            "ref": ref_with_site,  # Link with custom text
+            "doc": doc_with_site,  # Get page by path
+            "anchor": anchor_with_site,  # Link to heading
+            "xref": ref_with_site,  # Alias for compatibility
+            "relref": relref_with_site,  # Get relative URL (Hugo-style)
+        }
+    )
 
 
 def ref(path: str, index: dict, text: str | None = None) -> Markup:
@@ -78,21 +80,21 @@ def ref(path: str, index: dict, text: str | None = None) -> Markup:
     lookup_strategy = None
 
     # Strategy 1: Custom ID (id:xxx)
-    if path.startswith('id:'):
+    if path.startswith("id:"):
         ref_id = path[3:]
-        page = index.get('by_id', {}).get(ref_id)
+        page = index.get("by_id", {}).get(ref_id)
         lookup_strategy = "by_id"
 
     # Strategy 2: Path lookup (docs/installation)
-    elif '/' in path or path.endswith('.md'):
+    elif "/" in path or path.endswith(".md"):
         # Normalize path (remove .md extension if present)
-        clean_path = path.replace('.md', '')
-        page = index.get('by_path', {}).get(clean_path)
+        clean_path = path.replace(".md", "")
+        page = index.get("by_path", {}).get(clean_path)
         lookup_strategy = "by_path"
 
     # Strategy 3: Slug lookup (installation)
     else:
-        pages = index.get('by_slug', {}).get(path, [])
+        pages = index.get("by_slug", {}).get(path, [])
         page = pages[0] if pages else None
         lookup_strategy = "by_slug"
 
@@ -102,11 +104,11 @@ def ref(path: str, index: dict, text: str | None = None) -> Markup:
 
         all_refs = []
         if lookup_strategy == "by_id":
-            all_refs = list(index.get('by_id', {}).keys())
+            all_refs = list(index.get("by_id", {}).keys())
         elif lookup_strategy == "by_path":
-            all_refs = list(index.get('by_path', {}).keys())
+            all_refs = list(index.get("by_path", {}).keys())
         else:
-            all_refs = list(index.get('by_slug', {}).keys())
+            all_refs = list(index.get("by_slug", {}).keys())
 
         suggestions = get_close_matches(path, all_refs, n=3, cutoff=0.6)
 
@@ -115,7 +117,7 @@ def ref(path: str, index: dict, text: str | None = None) -> Markup:
             path=path,
             strategy=lookup_strategy,
             suggestions=suggestions,
-            caller="template"
+            caller="template",
         )
 
         # Return broken reference indicator
@@ -126,14 +128,10 @@ def ref(path: str, index: dict, text: str | None = None) -> Markup:
 
     # Generate link
     link_text = text or page.title
-    url = page.url if hasattr(page, 'url') else f'/{page.slug}/'
+    url = page.url if hasattr(page, "url") else f"/{page.slug}/"
 
     logger.debug(
-        "xref_resolved",
-        path=path,
-        strategy=lookup_strategy,
-        url=url,
-        page_title=page.title
+        "xref_resolved", path=path, strategy=lookup_strategy, url=url, page_title=page.title
     )
 
     return Markup(f'<a href="{url}">{link_text}</a>')
@@ -172,36 +170,31 @@ def doc(path: str, index: dict) -> Page | None:
     page = None
     lookup_strategy = None
 
-    if path.startswith('id:'):
-        page = index.get('by_id', {}).get(path[3:])
+    if path.startswith("id:"):
+        page = index.get("by_id", {}).get(path[3:])
         lookup_strategy = "by_id"
-    elif '/' in path or path.endswith('.md'):
-        clean_path = path.replace('.md', '')
-        page = index.get('by_path', {}).get(clean_path)
+    elif "/" in path or path.endswith(".md"):
+        clean_path = path.replace(".md", "")
+        page = index.get("by_path", {}).get(clean_path)
         lookup_strategy = "by_path"
     else:
-        pages = index.get('by_slug', {}).get(path, [])
+        pages = index.get("by_slug", {}).get(path, [])
         page = pages[0] if pages else None
         lookup_strategy = "by_slug"
 
     if page:
-        logger.debug(
-            "doc_found",
-            path=path,
-            strategy=lookup_strategy,
-            page_title=page.title
-        )
+        logger.debug("doc_found", path=path, strategy=lookup_strategy, page_title=page.title)
     else:
         # Find suggestions for failed lookup
         from difflib import get_close_matches
 
         all_refs = []
         if lookup_strategy == "by_id":
-            all_refs = list(index.get('by_id', {}).keys())
+            all_refs = list(index.get("by_id", {}).keys())
         elif lookup_strategy == "by_path":
-            all_refs = list(index.get('by_path', {}).keys())
+            all_refs = list(index.get("by_path", {}).keys())
         else:
-            all_refs = list(index.get('by_slug', {}).keys())
+            all_refs = list(index.get("by_slug", {}).keys())
 
         suggestions = get_close_matches(path, all_refs, n=3, cutoff=0.6)
 
@@ -210,7 +203,7 @@ def doc(path: str, index: dict) -> Page | None:
             path=path,
             strategy=lookup_strategy,
             suggestions=suggestions,
-            caller="template"
+            caller="template",
         )
 
     return page
@@ -240,7 +233,7 @@ def anchor(heading: str, index: dict, page_path: str | None = None) -> Markup:
 
     # Normalize heading text for lookup
     heading_key = heading.lower()
-    results = index.get('by_heading', {}).get(heading_key, [])
+    results = index.get("by_heading", {}).get(heading_key, [])
 
     if not results:
         return Markup(
@@ -262,7 +255,7 @@ def anchor(heading: str, index: dict, page_path: str | None = None) -> Markup:
 
     # Use first match
     page, anchor_id = results[0]
-    url = page.url if hasattr(page, 'url') else f'/{page.slug}/'
+    url = page.url if hasattr(page, "url") else f"/{page.slug}/"
 
     return Markup(f'<a href="{url}#{anchor_id}">{heading}</a>')
 
@@ -291,7 +284,6 @@ def relref(path: str, index: dict) -> str:
     """
     page = doc(path, index)
     if not page:
-        return ''
+        return ""
 
-    return page.url if hasattr(page, 'url') else f'/{page.slug}/'
-
+    return page.url if hasattr(page, "url") else f"/{page.slug}/"

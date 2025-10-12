@@ -53,7 +53,15 @@ class DevServer:
         server.start()  # Runs until Ctrl+C
     """
 
-    def __init__(self, site: Any, host: str = "localhost", port: int = 5173, watch: bool = True, auto_port: bool = True, open_browser: bool = False) -> None:
+    def __init__(
+        self,
+        site: Any,
+        host: str = "localhost",
+        port: int = 5173,
+        watch: bool = True,
+        auto_port: bool = True,
+        open_browser: bool = False,
+    ) -> None:
         """
         Initialize the dev server.
 
@@ -93,13 +101,15 @@ class DevServer:
             KeyboardInterrupt: When user presses Ctrl+C (handled gracefully)
         """
         # Use debug level to avoid noise in normal output
-        logger.debug("dev_server_starting",
-                    host=self.host,
-                    port=self.port,
-                    watch_enabled=self.watch,
-                   auto_port=self.auto_port,
-                   open_browser=self.open_browser,
-                   site_root=str(self.site.root_path))
+        logger.debug(
+            "dev_server_starting",
+            host=self.host,
+            port=self.port,
+            watch_enabled=self.watch,
+            auto_port=self.auto_port,
+            open_browser=self.open_browser,
+            site_root=str(self.site.root_path),
+        )
 
         # Check for and handle stale processes
         self._check_stale_processes()
@@ -114,9 +124,11 @@ class DevServer:
             stats = self.site.build(profile=BuildProfile.WRITER)
             display_build_stats(stats, show_art=False, output_dir=str(self.site.output_dir))
 
-            logger.debug("initial_build_complete",
-                        pages_built=stats.total_pages,
-                        duration_ms=stats.build_time_ms)
+            logger.debug(
+                "initial_build_complete",
+                pages_built=stats.total_pages,
+                duration_ms=stats.build_time_ms,
+            )
 
             # Create and register PID file for this process
             pid_file = PIDManager.get_pid_file(self.site.root_path)
@@ -132,23 +144,23 @@ class DevServer:
                 observer = self._create_observer(actual_port)
                 rm.register_observer(observer)
                 observer.start()
-                logger.info("file_watcher_started",
-                           watch_dirs=self._get_watched_directories())
+                logger.info("file_watcher_started", watch_dirs=self._get_watched_directories())
 
             # Open browser if requested
             if self.open_browser:
                 self._open_browser_delayed(actual_port)
-                logger.debug("browser_opening",
-                            url=f'http://{self.host}:{actual_port}/')
+                logger.debug("browser_opening", url=f"http://{self.host}:{actual_port}/")
 
             # Print startup message (keep for UX)
             self._print_startup_message(actual_port)
 
-            logger.info("dev_server_started",
-                       host=self.host,
-                       port=actual_port,
-                       output_dir=str(self.site.output_dir),
-                       watch_enabled=self.watch)
+            logger.info(
+                "dev_server_started",
+                host=self.host,
+                port=actual_port,
+                output_dir=str(self.site.output_dir),
+                watch_enabled=self.watch,
+            )
 
             # Run until interrupted (cleanup happens automatically via ResourceManager)
             try:
@@ -187,6 +199,7 @@ class DevServer:
                 watch_dirs.append(project_theme_dir)
 
             import bengal
+
             bengal_dir = Path(bengal.__file__).parent
             bundled_theme_dir = bengal_dir / "themes" / self.site.theme
             if bundled_theme_dir.exists():
@@ -218,10 +231,12 @@ class DevServer:
         # Watch bengal.toml for config changes
         # Use non-recursive watching for the root directory to only catch bengal.toml
         observer.schedule(event_handler, str(self.site.root_path), recursive=False)
-        logger.debug("watching_directory",
-                    path=str(self.site.root_path),
-                    recursive=False,
-                    reason="config_file_changes")
+        logger.debug(
+            "watching_directory",
+            path=str(self.site.root_path),
+            recursive=False,
+            reason="config_file_changes",
+        )
 
         return observer
 
@@ -259,7 +274,9 @@ class DevServer:
         for port in range(start_port, start_port + max_attempts):
             if self._is_port_available(port):
                 return port
-        raise OSError(f"Could not find an available port in range {start_port}-{start_port + max_attempts - 1}")
+        raise OSError(
+            f"Could not find an available port in range {start_port}-{start_port + max_attempts - 1}"
+        )
 
     def _check_stale_processes(self) -> None:
         """
@@ -279,11 +296,13 @@ class DevServer:
             port_pid = PIDManager.get_process_on_port(self.port)
             is_holding_port = port_pid == stale_pid
 
-            logger.warning("stale_process_detected",
-                          pid=stale_pid,
-                          pid_file=str(pid_file),
-                          holding_port=is_holding_port,
-                          port=self.port if is_holding_port else None)
+            logger.warning(
+                "stale_process_detected",
+                pid=stale_pid,
+                pid_file=str(pid_file),
+                holding_port=is_holding_port,
+                port=self.port if is_holding_port else None,
+            )
 
             print(f"\n⚠️  Found stale Bengal server process (PID {stale_pid})")
 
@@ -293,13 +312,14 @@ class DevServer:
             # Try to import click for confirmation, fall back to input
             try:
                 import click
+
                 if click.confirm("  Kill stale process?", default=True):
                     should_kill = True
                 else:
                     should_kill = False
             except ImportError:
                 response = input("  Kill stale process? [Y/n]: ").strip().lower()
-                should_kill = response in ('', 'y', 'yes')
+                should_kill = response in ("", "y", "yes")
 
             if should_kill:
                 if PIDManager.kill_stale_process(stale_pid):
@@ -309,15 +329,15 @@ class DevServer:
                 else:
                     print("  ❌ Failed to kill process")
                     print(f"     Try manually: kill {stale_pid}")
-                    logger.error("stale_process_kill_failed",
-                                pid=stale_pid,
-                                user_action="kill_manually")
+                    logger.error(
+                        "stale_process_kill_failed", pid=stale_pid, user_action="kill_manually"
+                    )
                     raise OSError(f"Cannot start: stale process {stale_pid} is still running")
             else:
                 print("  Continuing anyway (may encounter port conflicts)...")
-                logger.warning("stale_process_ignored",
-                              pid=stale_pid,
-                              user_choice="continue_anyway")
+                logger.warning(
+                    "stale_process_ignored", pid=stale_pid, user_choice="continue_anyway"
+                )
 
     def _create_server(self):
         """
@@ -343,9 +363,7 @@ class DevServer:
 
         # Check if requested port is available
         if not self._is_port_available(self.port):
-            logger.warning("port_unavailable",
-                          port=self.port,
-                          auto_port_enabled=self.auto_port)
+            logger.warning("port_unavailable", port=self.port, auto_port_enabled=self.auto_port)
 
             if self.auto_port:
                 # Try to find an available port
@@ -353,19 +371,21 @@ class DevServer:
                     actual_port = self._find_available_port(self.port + 1)
                     print(f"⚠️  Port {self.port} is already in use")
                     print(f"🔄 Using port {actual_port} instead")
-                    logger.info("port_fallback",
-                               requested_port=self.port,
-                               actual_port=actual_port)
+                    logger.info("port_fallback", requested_port=self.port, actual_port=actual_port)
                 except OSError as e:
-                    print(f"❌ Port {self.port} is already in use and no alternative ports are available.")
+                    print(
+                        f"❌ Port {self.port} is already in use and no alternative ports are available."
+                    )
                     print("\nTo fix this issue:")
                     print(f"  1. Stop the process using port {self.port}, or")
                     print("  2. Specify a different port with: bengal serve --port <PORT>")
                     print(f"  3. Find the blocking process with: lsof -ti:{self.port}")
-                    logger.error("no_ports_available",
-                                requested_port=self.port,
-                                search_range=(self.port + 1, self.port + 10),
-                                user_action="check_running_processes")
+                    logger.error(
+                        "no_ports_available",
+                        requested_port=self.port,
+                        search_range=(self.port + 1, self.port + 10),
+                        user_action="check_running_processes",
+                    )
                     raise OSError(f"Port {self.port} is already in use") from e
             else:
                 print(f"❌ Port {self.port} is already in use.")
@@ -373,9 +393,11 @@ class DevServer:
                 print(f"  1. Stop the process using port {self.port}, or")
                 print("  2. Specify a different port with: bengal serve --port <PORT>")
                 print(f"  3. Find the blocking process with: lsof -ti:{self.port}")
-                logger.error("port_unavailable_no_fallback",
-                            port=self.port,
-                            user_action="specify_different_port")
+                logger.error(
+                    "port_unavailable_no_fallback",
+                    port=self.port,
+                    user_action="specify_different_port",
+                )
                 raise OSError(f"Port {self.port} is already in use")
 
         # Allow address reuse to prevent "address already in use" errors on restart
@@ -386,11 +408,13 @@ class DevServer:
         httpd = socketserver.ThreadingTCPServer((self.host, actual_port), BengalRequestHandler)
         httpd.daemon_threads = True  # Ensure worker threads don't block shutdown
 
-        logger.info("http_server_created",
-                   host=self.host,
-                   port=actual_port,
-                   handler_class="BengalRequestHandler",
-                   threaded=True)
+        logger.info(
+            "http_server_created",
+            host=self.host,
+            port=actual_port,
+            handler_class="BengalRequestHandler",
+            threaded=True,
+        )
 
         return httpd, actual_port
 
@@ -447,7 +471,7 @@ class DevServer:
             border_style="cyan",
             padding=(0, 1),
             expand=False,  # Don't expand to full terminal width
-            width=80  # Fixed width that works well
+            width=80,  # Fixed width that works well
         )
 
         console.print()
@@ -468,7 +492,9 @@ class DevServer:
             port: Port number to include in the URL
         """
         import webbrowser
+
         def open_browser():
             time.sleep(0.5)  # Give server time to start
-            webbrowser.open(f'http://{self.host}:{port}/')
+            webbrowser.open(f"http://{self.host}:{port}/")
+
         threading.Thread(target=open_browser, daemon=True).start()

@@ -26,20 +26,27 @@ def instrumented_init(self):
     original_mistune_parser_init(self)
 
     import traceback
+
     with parser_lock:
-        parser_instances.append({
-            'id': id(self),
-            'thread': threading.current_thread().name,
-            'stack': traceback.format_stack(limit=8)
-        })
-        print(f"[PARSER #{len(parser_instances)}] Created in thread '{threading.current_thread().name}' "
-              f"(instance id: {id(self)})", file=sys.stderr)
+        parser_instances.append(
+            {
+                "id": id(self),
+                "thread": threading.current_thread().name,
+                "stack": traceback.format_stack(limit=8),
+            }
+        )
+        print(
+            f"[PARSER #{len(parser_instances)}] Created in thread '{threading.current_thread().name}' "
+            f"(instance id: {id(self)})",
+            file=sys.stderr,
+        )
 
 
 def main():
     """Run instrumented build."""
     # Apply monkey patch
     from bengal.rendering import parser
+
     global original_mistune_parser_init
     original_mistune_parser_init = parser.MistuneParser.__init__
     parser.MistuneParser.__init__ = instrumented_init
@@ -68,6 +75,7 @@ def main():
     except Exception as e:
         print(f"Build failed: {e}", file=sys.stderr)
         import traceback
+
         traceback.print_exc()
 
     # Report results
@@ -84,7 +92,7 @@ def main():
         # Count by thread
         by_thread = {}
         for p in parser_instances:
-            thread = p['thread']
+            thread = p["thread"]
             by_thread[thread] = by_thread.get(thread, 0) + 1
 
         print("By thread:")
@@ -95,8 +103,8 @@ def main():
         # Show stack traces for first few
         print("Creation stack traces (first 3):")
         for i, p in enumerate(parser_instances[:3]):
-            print(f"\n[PARSER #{i+1}] Thread: {p['thread']}")
-            print("".join(p['stack'][-5:]))  # Last 5 frames
+            print(f"\n[PARSER #{i + 1}] Thread: {p['thread']}")
+            print("".join(p["stack"][-5:]))  # Last 5 frames
 
         if len(parser_instances) > 3:
             print(f"\n... and {len(parser_instances) - 3} more")
@@ -134,4 +142,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

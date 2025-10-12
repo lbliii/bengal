@@ -77,7 +77,7 @@ class TestParseDate:
 
     def test_custom_formats(self):
         """Test custom format strings."""
-        result = parse_date("09.10.2025", formats=['%d.%m.%Y'])
+        result = parse_date("09.10.2025", formats=["%d.%m.%Y"])
         assert result == datetime(2025, 10, 9, 0, 0)
 
     def test_invalid_string_return_none(self):
@@ -88,11 +88,11 @@ class TestParseDate:
     def test_invalid_string_raise(self):
         """Test invalid string raises ValueError when on_error='raise'."""
         with pytest.raises(ValueError, match="Could not parse date"):
-            parse_date("not a date", on_error='raise')
+            parse_date("not a date", on_error="raise")
 
     def test_invalid_string_return_original(self):
         """Test invalid string returns original when on_error='return_original'."""
-        result = parse_date("not a date", on_error='return_original')
+        result = parse_date("not a date", on_error="return_original")
         assert result == "not a date"
 
     def test_datetime_with_microseconds(self):
@@ -167,7 +167,7 @@ class TestFormatDateHuman:
     def test_custom_format(self):
         """Test custom format string."""
         dt = datetime(2025, 10, 9, 14, 30, 0)
-        result = format_date_human(dt, format='%Y-%m-%d')
+        result = format_date_human(dt, format="%Y-%m-%d")
         assert result == "2025-10-09"
 
     def test_string_input(self):
@@ -376,22 +376,17 @@ class TestDateRangeOverlap:
 
     def test_string_inputs(self):
         """Test string inputs."""
-        result = date_range_overlap(
-            "2025-01-01", "2025-01-10",
-            "2025-01-05", "2025-01-15"
-        )
+        result = date_range_overlap("2025-01-01", "2025-01-10", "2025-01-05", "2025-01-15")
         assert result is True
 
     def test_invalid_dates_return_false(self):
         """Test invalid dates return False."""
-        result = date_range_overlap(
-            "not a date", "2025-01-10",
-            "2025-01-05", "2025-01-15"
-        )
+        result = date_range_overlap("not a date", "2025-01-10", "2025-01-05", "2025-01-15")
         assert result is False
 
     def test_none_returns_false(self):
         """Test None dates return False."""
-        result = date_range_overlap(None, datetime(2025, 1, 10), datetime(2025, 1, 5), datetime(2025, 1, 15))
+        result = date_range_overlap(
+            None, datetime(2025, 1, 10), datetime(2025, 1, 5), datetime(2025, 1, 15)
+        )
         assert result is False
-

@@ -91,11 +91,7 @@ class TestLoggingIntegration:
         """Test that logging captures events during a basic build."""
         # Configure logging
         log_file = temp_site / "test.log"
-        configure_logging(
-            level=LogLevel.DEBUG,
-            log_file=log_file,
-            verbose=True
-        )
+        configure_logging(level=LogLevel.DEBUG, log_file=log_file, verbose=True)
 
         # Build site
         site = Site.from_config(temp_site)
@@ -403,5 +399,4 @@ class TestLoggingPerformance:
 
         # Logging overhead should be minimal (< 20%)
         overhead = (duration2 - duration1) / duration1 if duration1 > 0 else 0
-        assert overhead < 0.5, f"Logging overhead should be < 50%, got {overhead*100:.1f}%"
-
+        assert overhead < 0.5, f"Logging overhead should be < 50%, got {overhead * 100:.1f}%"

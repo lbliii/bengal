@@ -30,14 +30,33 @@ PARAGRAPHS = [
 ]
 
 TITLES = [
-    "Understanding", "Exploring", "Deep Dive into", "Introduction to", "Guide to",
-    "Advanced", "Beginner's Guide to", "Mastering", "Quick Start with", "Tutorial:"
+    "Understanding",
+    "Exploring",
+    "Deep Dive into",
+    "Introduction to",
+    "Guide to",
+    "Advanced",
+    "Beginner's Guide to",
+    "Mastering",
+    "Quick Start with",
+    "Tutorial:",
 ]
 
 NOUNS = [
-    "Python Programming", "Web Development", "Data Science", "Machine Learning",
-    "API Design", "Database Management", "Cloud Computing", "DevOps", "Security",
-    "Performance", "Testing", "Documentation", "Architecture", "Best Practices"
+    "Python Programming",
+    "Web Development",
+    "Data Science",
+    "Machine Learning",
+    "API Design",
+    "Database Management",
+    "Cloud Computing",
+    "DevOps",
+    "Security",
+    "Performance",
+    "Testing",
+    "Documentation",
+    "Architecture",
+    "Best Practices",
 ]
 
 
@@ -117,7 +136,7 @@ def profile_build(site_path: Path):
 
     s = io.StringIO()
     ps = pstats.Stats(profiler, stream=s)
-    ps.sort_stats('cumulative')
+    ps.sort_stats("cumulative")
     ps.print_stats(30)
     print(s.getvalue())
 
@@ -127,7 +146,7 @@ def profile_build(site_path: Path):
 
     s = io.StringIO()
     ps = pstats.Stats(profiler, stream=s)
-    ps.sort_stats('tottime')
+    ps.sort_stats("tottime")
     ps.print_stats(30)
     print(s.getvalue())
 
@@ -137,7 +156,7 @@ def profile_build(site_path: Path):
 
     s = io.StringIO()
     ps = pstats.Stats(profiler, stream=s)
-    ps.print_stats('regular_pages')
+    ps.print_stats("regular_pages")
     print(s.getvalue())
 
     print("\n" + "=" * 60)
@@ -146,7 +165,7 @@ def profile_build(site_path: Path):
 
     s = io.StringIO()
     ps = pstats.Stats(profiler, stream=s)
-    ps.print_stats('sample')
+    ps.print_stats("sample")
     print(s.getvalue())
 
     # Save full profile for detailed analysis
@@ -173,4 +192,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

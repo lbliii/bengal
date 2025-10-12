@@ -26,7 +26,7 @@ class RelatedPostsOrchestrator:
     to build-time (O(n·t)), resulting in O(1) template access.
     """
 
-    def __init__(self, site: 'Site'):
+    def __init__(self, site: "Site"):
         """
         Initialize related posts orchestrator.
 
@@ -48,12 +48,12 @@ class RelatedPostsOrchestrator:
         logger.info("related_posts_build_start", total_pages=len(self.site.pages))
 
         # Skip if no taxonomies built yet
-        if not hasattr(self.site, 'taxonomies'):
+        if not hasattr(self.site, "taxonomies"):
             self._set_empty_related_posts()
             logger.debug("related_posts_skipped", reason="no_taxonomies")
             return
 
-        tags_dict = self.site.taxonomies.get('tags', {})
+        tags_dict = self.site.taxonomies.get("tags", {})
         if not tags_dict:
             # No tags in site - nothing to relate
             self._set_empty_related_posts()
@@ -69,17 +69,12 @@ class RelatedPostsOrchestrator:
         # In practice, t and p are small constants, so effectively O(n)
         pages_with_related = 0
         for page in self.site.pages:
-            if page.metadata.get('_generated'):
+            if page.metadata.get("_generated"):
                 # Skip generated pages (tag pages, archives, etc.)
                 page.related_posts = []
                 continue
 
-            page.related_posts = self._find_related_posts(
-                page,
-                page_tags_map,
-                tags_dict,
-                limit
-            )
+            page.related_posts = self._find_related_posts(page, page_tags_map, tags_dict, limit)
 
             if page.related_posts:
                 pages_with_related += 1
@@ -87,7 +82,7 @@ class RelatedPostsOrchestrator:
         logger.info(
             "related_posts_build_complete",
             pages_with_related=pages_with_related,
-            total_pages=len(self.site.pages)
+            total_pages=len(self.site.pages),
         )
 
     def _set_empty_related_posts(self) -> None:
@@ -95,7 +90,7 @@ class RelatedPostsOrchestrator:
         for page in self.site.pages:
             page.related_posts = []
 
-    def _build_page_tags_map(self) -> dict['Page', set[str]]:
+    def _build_page_tags_map(self) -> dict["Page", set[str]]:
         """
         Build mapping of page -> set of tag slugs.
 
@@ -107,9 +102,9 @@ class RelatedPostsOrchestrator:
         """
         page_tags = {}
         for page in self.site.pages:
-            if hasattr(page, 'tags') and page.tags:
+            if hasattr(page, "tags") and page.tags:
                 # Convert tags to slugs for consistent matching (same as taxonomy)
-                page_tags[page] = {tag.lower().replace(' ', '-') for tag in page.tags}
+                page_tags[page] = {tag.lower().replace(" ", "-") for tag in page.tags}
             else:
                 page_tags[page] = set()
 
@@ -117,11 +112,11 @@ class RelatedPostsOrchestrator:
 
     def _find_related_posts(
         self,
-        page: 'Page',
-        page_tags_map: dict['Page', set[str]],
+        page: "Page",
+        page_tags_map: dict["Page", set[str]],
         tags_dict: dict[str, dict],
-        limit: int
-    ) -> list['Page']:
+        limit: int,
+    ) -> list["Page"]:
         """
         Find related posts for a single page using tag overlap scoring.
 
@@ -157,7 +152,7 @@ class RelatedPostsOrchestrator:
 
             # Get all pages with this tag from taxonomy index
             tag_data = tags_dict[tag_slug]
-            pages_with_tag = tag_data.get('pages', [])
+            pages_with_tag = tag_data.get("pages", [])
 
             for other_page in pages_with_tag:
                 # Skip self
@@ -165,7 +160,7 @@ class RelatedPostsOrchestrator:
                     continue
 
                 # Skip generated pages (tag indexes, archives, etc.)
-                if other_page.metadata.get('_generated'):
+                if other_page.metadata.get("_generated"):
                     continue
 
                 # Increment score (counts shared tags)
@@ -178,11 +173,6 @@ class RelatedPostsOrchestrator:
 
         # Sort by score (descending) and return top N
         # Higher score = more shared tags = more related
-        sorted_pages = sorted(
-            scored_pages.values(),
-            key=lambda x: x[1],
-            reverse=True
-        )
+        sorted_pages = sorted(scored_pages.values(), key=lambda x: x[1], reverse=True)
 
         return [page for page, score in sorted_pages[:limit]]
-

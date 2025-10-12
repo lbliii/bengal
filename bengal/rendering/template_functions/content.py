@@ -14,16 +14,18 @@ if TYPE_CHECKING:
     from bengal.core.site import Site
 
 
-def register(env: 'Environment', site: 'Site') -> None:
+def register(env: "Environment", site: "Site") -> None:
     """Register content transformation functions with Jinja2 environment."""
-    env.filters.update({
-        'safe_html': safe_html,
-        'html_escape': html_escape,
-        'html_unescape': html_unescape,
-        'nl2br': nl2br,
-        'smartquotes': smartquotes,
-        'emojify': emojify,
-    })
+    env.filters.update(
+        {
+            "safe_html": safe_html,
+            "html_escape": html_escape,
+            "html_unescape": html_unescape,
+            "nl2br": nl2br,
+            "smartquotes": smartquotes,
+            "emojify": emojify,
+        }
+    )
 
 
 def safe_html(text: str) -> str:
@@ -67,7 +69,7 @@ def html_escape(text: str) -> str:
         # "<script>" becomes "&lt;script&gt;"
     """
     if not text:
-        return ''
+        return ""
 
     return html_module.escape(text)
 
@@ -93,7 +95,7 @@ def html_unescape(text: str) -> str:
         # "&lt;Hello&gt;" becomes "<Hello>"
     """
     if not text:
-        return ''
+        return ""
 
     return html_module.unescape(text)
 
@@ -115,9 +117,9 @@ def nl2br(text: str) -> str:
         # "Line 1\nLine 2" becomes "Line 1<br>\nLine 2"
     """
     if not text:
-        return ''
+        return ""
 
-    return text.replace('\n', '<br>\n')
+    return text.replace("\n", "<br>\n")
 
 
 def smartquotes(text: str) -> str:
@@ -141,25 +143,25 @@ def smartquotes(text: str) -> str:
         # "Hello" becomes "Hello"
     """
     if not text:
-        return ''
+        return ""
 
     # Convert triple dash to em-dash
-    text = re.sub(r'---', '—', text)
+    text = re.sub(r"---", "—", text)
 
     # Convert double dash to en-dash
-    text = re.sub(r'--', '–', text)
+    text = re.sub(r"--", "–", text)
 
     # Convert straight quotes to curly quotes
     # This is a simplified implementation
     # Opening double quote (use Unicode escape)
-    text = re.sub(r'(\s|^)"', '\\1\u201c', text)
+    text = re.sub(r'(\s|^)"', "\\1\u201c", text)
     # Closing double quote
-    text = re.sub(r'"', '\u201d', text)
+    text = re.sub(r'"', "\u201d", text)
 
     # Opening single quote
-    text = re.sub(r"(\s|^)'", '\\1\u2018', text)
+    text = re.sub(r"(\s|^)'", "\\1\u2018", text)
     # Closing single quote (including apostrophes)
-    text = re.sub(r"'", '\u2019', text)
+    text = re.sub(r"'", "\u2019", text)
 
     return text
 
@@ -182,35 +184,34 @@ def emojify(text: str) -> str:
         # "I :heart: Python" becomes "I ❤️ Python"
     """
     if not text:
-        return ''
+        return ""
 
     # Common emoji mappings
     emoji_map = {
-        ':smile:': '😊',
-        ':grin:': '😁',
-        ':joy:': '😂',
-        ':heart:': '❤️',
-        ':star:': '⭐',
-        ':fire:': '🔥',
-        ':rocket:': '🚀',
-        ':check:': '✅',
-        ':x:': '❌',
-        ':warning:': '⚠️',
-        ':tada:': '🎉',
-        ':thumbsup:': '👍',
-        ':thumbsdown:': '👎',
-        ':eyes:': '👀',
-        ':bulb:': '💡',
-        ':sparkles:': '✨',
-        ':zap:': '⚡',
-        ':wave:': '👋',
-        ':clap:': '👏',
-        ':raised_hands:': '🙌',
-        ':100:': '💯',
+        ":smile:": "😊",
+        ":grin:": "😁",
+        ":joy:": "😂",
+        ":heart:": "❤️",
+        ":star:": "⭐",
+        ":fire:": "🔥",
+        ":rocket:": "🚀",
+        ":check:": "✅",
+        ":x:": "❌",
+        ":warning:": "⚠️",
+        ":tada:": "🎉",
+        ":thumbsup:": "👍",
+        ":thumbsdown:": "👎",
+        ":eyes:": "👀",
+        ":bulb:": "💡",
+        ":sparkles:": "✨",
+        ":zap:": "⚡",
+        ":wave:": "👋",
+        ":clap:": "👏",
+        ":raised_hands:": "🙌",
+        ":100:": "💯",
     }
 
     for shortcode, emoji in emoji_map.items():
         text = text.replace(shortcode, emoji)
 
     return text
-

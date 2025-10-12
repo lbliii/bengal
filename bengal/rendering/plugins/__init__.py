@@ -64,21 +64,20 @@ def plugin_documentation_directives(md):
         "plugin_documentation_directives() is deprecated and will be removed in Bengal 2.0. "
         "Use create_documentation_directives() instead.",
         DeprecationWarning,
-        stacklevel=2
+        stacklevel=2,
     )
     return create_documentation_directives()(md)
 
 
 __all__ = [
-    'BadgePlugin',
-    'CrossReferencePlugin',
+    "BadgePlugin",
+    "CrossReferencePlugin",
     # Core plugins
-    'VariableSubstitutionPlugin',
+    "VariableSubstitutionPlugin",
     # Directive factory
-    'create_documentation_directives',
+    "create_documentation_directives",
     # Deprecated (will be removed in Bengal 2.0)
-    'plugin_documentation_directives',
+    "plugin_documentation_directives",
 ]
 
-__version__ = '1.0.0'
-
+__version__ = "1.0.0"

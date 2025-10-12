@@ -27,20 +27,70 @@ from bengal.core.site import Site
 
 # Lorem ipsum paragraphs for content generation
 PARAGRAPHS = [
-    "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.",
-    "Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.",
-    "Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo.",
-    "Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt. Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet.",
-    "At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum deleniti atque corrupti quos dolores et quas molestias excepturi sint occaecati cupiditate non provident.",
-    "Temporibus autem quibusdam et aut officiis debitis aut rerum necessitatibus saepe eveniet ut et voluptates repudiandae sint et molestiae non recusandae. Itaque earum rerum hic tenetur a sapiente delectus.",
-    "Nam libero tempore, cum soluta nobis est eligendi optio cumque nihil impedit quo minus id quod maxime placeat facere possimus, omnis voluptas assumenda est, omnis dolor repellendus.",
+    (
+        "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor "
+        "incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud "
+        "exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."
+    ),
+    (
+        "Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat "
+        "nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui "
+        "officia deserunt mollit anim id est laborum."
+    ),
+    (
+        "Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque "
+        "laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi "
+        "architecto beatae vitae dicta sunt explicabo."
+    ),
+    (
+        "Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia "
+        "consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt. Neque porro "
+        "quisquam est, qui dolorem ipsum quia dolor sit amet."
+    ),
+    (
+        "At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium "
+        "voluptatum deleniti atque corrupti quos dolores et quas molestias excepturi sint "
+        "occaecati cupiditate non provident."
+    ),
+    (
+        "Temporibus autem quibusdam et aut officiis debitis aut rerum necessitatibus saepe "
+        "eveniet ut et voluptates repudiandae sint et molestiae non recusandae. Itaque earum "
+        "rerum hic tenetur a sapiente delectus."
+    ),
+    (
+        "Nam libero tempore, cum soluta nobis est eligendi optio cumque nihil impedit quo minus "
+        "id quod maxime placeat facere possimus, omnis voluptas assumenda est, omnis dolor "
+        "repellendus."
+    ),
 ]
 
 
 def generate_random_title() -> str:
     """Generate a random title using common words."""
-    adjectives = ["Amazing", "Incredible", "Fantastic", "Wonderful", "Great", "Perfect", "Beautiful", "Awesome", "Brilliant", "Excellent"]
-    nouns = ["Story", "Article", "Post", "Guide", "Tutorial", "Journey", "Adventure", "Experience", "Discovery", "Insight"]
+    adjectives = [
+        "Amazing",
+        "Incredible",
+        "Fantastic",
+        "Wonderful",
+        "Great",
+        "Perfect",
+        "Beautiful",
+        "Awesome",
+        "Brilliant",
+        "Excellent",
+    ]
+    nouns = [
+        "Story",
+        "Article",
+        "Post",
+        "Guide",
+        "Tutorial",
+        "Journey",
+        "Adventure",
+        "Experience",
+        "Discovery",
+        "Insight",
+    ]
     return f"{random.choice(adjectives)} {random.choice(nouns)} {random.randint(1, 10000)}"
 
 
@@ -117,9 +167,9 @@ def benchmark_build(num_files: int, runs: int = 3) -> dict:
     Returns:
         Dictionary with timing information
     """
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"Benchmarking {num_files:,} files")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
 
     times = []
 
@@ -169,12 +219,12 @@ def benchmark_build(num_files: int, runs: int = 3) -> dict:
     print(f"  Rate:    {pages_per_sec:.1f} pages/second")
 
     return {
-        'files': num_files,
-        'avg': avg_time,
-        'min': min_time,
-        'max': max_time,
-        'pages_per_sec': pages_per_sec,
-        'runs': times
+        "files": num_files,
+        "avg": avg_time,
+        "min": min_time,
+        "max": max_time,
+        "pages_per_sec": pages_per_sec,
+        "runs": times,
     }
 
 
@@ -217,7 +267,9 @@ def run_ssg_comparison_benchmark():
     print("-" * 80)
 
     for r in results:
-        print(f"{r['files']:<10,} {r['avg']:>8.3f}s    {r['min']:>8.3f}s    {r['max']:>8.3f}s    {r['pages_per_sec']:>8.1f}")
+        print(
+            f"{r['files']:<10,} {r['avg']:>8.3f}s    {r['min']:>8.3f}s    {r['max']:>8.3f}s    {r['pages_per_sec']:>8.1f}"
+        )
 
     # Comparison with other SSGs (from CSS-Tricks article and README)
     print("\n" + "=" * 80)
@@ -228,17 +280,17 @@ def run_ssg_comparison_benchmark():
     # Find the result closest to 100 pages for comparison
     comparison_result = None
     for r in results:
-        if r['files'] == 64:
+        if r["files"] == 64:
             # Use 64 as proxy for comparison
             # Scale to 100: multiply by 100/64
-            scaled_time = r['avg'] * (100 / 64)
-            comparison_result = {'files': 100, 'avg': scaled_time}
-        elif r['files'] == 256:
+            scaled_time = r["avg"] * (100 / 64)
+            comparison_result = {"files": 100, "avg": scaled_time}
+        elif r["files"] == 256:
             # Use 256 as proxy
             # Scale to 100: multiply by 100/256
-            scaled_time = r['avg'] * (100 / 256)
+            scaled_time = r["avg"] * (100 / 256)
             if comparison_result is None:
-                comparison_result = {'files': 100, 'avg': scaled_time}
+                comparison_result = {"files": 100, "avg": scaled_time}
 
     if comparison_result:
         print(f"{'SSG':<15} {'Build Time (100 pages)':<25} {'Notes'}")
@@ -259,11 +311,11 @@ def run_ssg_comparison_benchmark():
     # Calculate growth rate (how does it scale?)
     if len(results) >= 3:
         # Compare 1 file vs 1024 files
-        small = next((r for r in results if r['files'] == 1), None)
-        medium = next((r for r in results if r['files'] == 1024), None)
+        small = next((r for r in results if r["files"] == 1), None)
+        medium = next((r for r in results if r["files"] == 1024), None)
 
         if small and medium:
-            growth_factor = medium['avg'] / small['avg']
+            growth_factor = medium["avg"] / small["avg"]
             theoretical_linear = 1024  # 1024x files should take 1024x time if linear
 
             print("Scaling Analysis (1 file → 1,024 files):")
@@ -282,13 +334,13 @@ def run_ssg_comparison_benchmark():
     # Identify sweet spot
     print("Performance Sweet Spots:")
     for r in results:
-        if r['files'] <= 100:
-            if r['avg'] < 1.0:
+        if r["files"] <= 100:
+            if r["avg"] < 1.0:
                 print(f"  ✅ {r['files']:,} files: {r['avg']:.3f}s - Excellent for small sites")
-        elif r['files'] <= 1000:
-            if r['avg'] < 5.0:
+        elif r["files"] <= 1000:
+            if r["avg"] < 5.0:
                 print(f"  ✅ {r['files']:,} files: {r['avg']:.3f}s - Great for blogs")
-        elif r['files'] <= 5000 and r['avg'] < 30.0:
+        elif r["files"] <= 5000 and r["avg"] < 30.0:
             print(f"  ✅ {r['files']:,} files: {r['avg']:.3f}s - Viable for large sites")
 
     print()
@@ -317,5 +369,5 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"\n\nError during benchmark: {e}")
         import traceback
-        traceback.print_exc()
 
+        traceback.print_exc()

@@ -65,21 +65,21 @@ class Paginator[T]:
             Dictionary with pagination context for templates
         """
         # Ensure base_url ends with /
-        if not base_url.endswith('/'):
-            base_url += '/'
+        if not base_url.endswith("/"):
+            base_url += "/"
 
         return {
-            'current_page': page_number,
-            'total_pages': self.num_pages,
-            'per_page': self.per_page,
-            'total_items': len(self.items),
-            'has_previous': page_number > 1,
-            'has_next': page_number < self.num_pages,
-            'has_prev': page_number > 1,  # Alias for has_previous
-            'previous_page': page_number - 1 if page_number > 1 else None,
-            'next_page': page_number + 1 if page_number < self.num_pages else None,
-            'base_url': base_url,
-            'page_range': self._get_page_range(page_number),
+            "current_page": page_number,
+            "total_pages": self.num_pages,
+            "per_page": self.per_page,
+            "total_items": len(self.items),
+            "has_previous": page_number > 1,
+            "has_next": page_number < self.num_pages,
+            "has_prev": page_number > 1,  # Alias for has_previous
+            "previous_page": page_number - 1 if page_number > 1 else None,
+            "next_page": page_number + 1 if page_number < self.num_pages else None,
+            "base_url": base_url,
+            "page_range": self._get_page_range(page_number),
         }
 
     def _get_page_range(self, current_page: int, window: int = 2) -> list[int]:
@@ -99,5 +99,6 @@ class Paginator[T]:
         return list(range(start, end + 1))
 
     def __repr__(self) -> str:
-        return f"Paginator({len(self.items)} items, {self.per_page} per page, {self.num_pages} pages)"
-
+        return (
+            f"Paginator({len(self.items)} items, {self.per_page} per page, {self.num_pages} pages)"
+        )

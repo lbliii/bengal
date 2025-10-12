@@ -10,11 +10,23 @@ from bengal.utils.logger import LogLevel, close_all_loggers, configure_logging
 
 
 @click.command()
-@click.option('--stats', 'show_stats', is_flag=True, default=True, help='Show graph statistics (default: enabled)')
-@click.option('--tree', is_flag=True, help='Show site structure as tree visualization')
-@click.option('--output', type=click.Path(), help='Generate interactive visualization to file (e.g., public/graph.html)')
-@click.option('--config', type=click.Path(exists=True), help='Path to config file (default: bengal.toml)')
-@click.argument('source', type=click.Path(exists=True), default='.')
+@click.option(
+    "--stats",
+    "show_stats",
+    is_flag=True,
+    default=True,
+    help="Show graph statistics (default: enabled)",
+)
+@click.option("--tree", is_flag=True, help="Show site structure as tree visualization")
+@click.option(
+    "--output",
+    type=click.Path(),
+    help="Generate interactive visualization to file (e.g., public/graph.html)",
+)
+@click.option(
+    "--config", type=click.Path(exists=True), help="Path to config file (default: bengal.toml)"
+)
+@click.argument("source", type=click.Path(exists=True), default=".")
 def graph(show_stats: bool, tree: bool, output: str, config: str, source: str) -> None:
     """
     📊 Analyze site structure and connectivity.
@@ -55,8 +67,11 @@ def graph(show_stats: bool, tree: bool, output: str, config: str, source: str) -
             if should_use_rich():
                 console = get_console()
 
-                with console.status("[bold green]Discovering site content...", spinner="dots") as status:
+                with console.status(
+                    "[bold green]Discovering site content...", spinner="dots"
+                ) as status:
                     from bengal.orchestration.content import ContentOrchestrator
+
                     content_orch = ContentOrchestrator(site)
                     content_orch.discover()
 
@@ -68,6 +83,7 @@ def graph(show_stats: bool, tree: bool, output: str, config: str, source: str) -
                 # Fallback to simple messages
                 click.echo("🔍 Discovering site content...")
                 from bengal.orchestration.content import ContentOrchestrator
+
                 content_orch = ContentOrchestrator(site)
                 content_orch.discover()
 
@@ -78,6 +94,7 @@ def graph(show_stats: bool, tree: bool, output: str, config: str, source: str) -
             # Rich not available, use simple messages
             click.echo("🔍 Discovering site content...")
             from bengal.orchestration.content import ContentOrchestrator
+
             content_orch = ContentOrchestrator(site)
             content_orch.discover()
 
@@ -103,7 +120,7 @@ def graph(show_stats: bool, tree: bool, output: str, config: str, source: str) -
                     sections_dict = {}
                     for page in site.pages:
                         # Get section from page path or use root
-                        if hasattr(page, 'section') and page.section:
+                        if hasattr(page, "section") and page.section:
                             section_name = page.section
                         else:
                             # Try to extract from path
@@ -126,9 +143,9 @@ def graph(show_stats: bool, tree: bool, output: str, config: str, source: str) -
                         for page in sorted(pages_in_section, key=lambda p: str(p.source_path))[:15]:
                             # Determine icon
                             icon = "📄"
-                            if hasattr(page, 'is_index') and page.is_index:
+                            if hasattr(page, "is_index") and page.is_index:
                                 icon = "🏠"
-                            elif hasattr(page, 'source_path') and 'blog' in str(page.source_path):
+                            elif hasattr(page, "source_path") and "blog" in str(page.source_path):
                                 icon = "📝"
 
                             # Get incoming/outgoing links
@@ -136,7 +153,7 @@ def graph(show_stats: bool, tree: bool, output: str, config: str, source: str) -
                             outgoing = len(graph_obj.outgoing_refs.get(page, []))
 
                             # Format page entry
-                            title = getattr(page, 'title', str(page.source_path))
+                            title = getattr(page, "title", str(page.source_path))
                             if len(title) > 50:
                                 title = title[:47] + "..."
 
@@ -151,9 +168,13 @@ def graph(show_stats: bool, tree: bool, output: str, config: str, source: str) -
                     console.print(tree_root)
                     console.print()
                 else:
-                    click.echo(click.style("Tree visualization requires a TTY terminal", fg='yellow'))
+                    click.echo(
+                        click.style("Tree visualization requires a TTY terminal", fg="yellow")
+                    )
             except ImportError:
-                click.echo(click.style("⚠️  Tree visualization requires 'rich' library", fg='yellow'))
+                click.echo(
+                    click.style("⚠️  Tree visualization requires 'rich' library", fg="yellow")
+                )
 
         # Show statistics
         if show_stats:
@@ -163,6 +184,7 @@ def graph(show_stats: bool, tree: bool, output: str, config: str, source: str) -
         # Generate visualization if requested
         if output:
             from bengal.utils.cli_output import CLIOutput
+
             cli = CLIOutput()
 
             output_path = Path(output).resolve()
@@ -173,6 +195,7 @@ def graph(show_stats: bool, tree: bool, output: str, config: str, source: str) -
             # Check if visualization module exists
             try:
                 from bengal.analysis.graph_visualizer import GraphVisualizer
+
                 visualizer = GraphVisualizer(site, graph_obj)
                 html = visualizer.generate_html()
 
@@ -180,28 +203,39 @@ def graph(show_stats: bool, tree: bool, output: str, config: str, source: str) -
                 output_path.parent.mkdir(parents=True, exist_ok=True)
 
                 # Write HTML file
-                output_path.write_text(html, encoding='utf-8')
+                output_path.write_text(html, encoding="utf-8")
 
-                click.echo(click.style("✅ Visualization generated!", fg='green', bold=True))
+                click.echo(click.style("✅ Visualization generated!", fg="green", bold=True))
                 click.echo(f"   Open {output_path} in your browser to explore.")
             except ImportError:
-                click.echo(click.style("⚠️  Graph visualization not yet implemented.", fg='yellow'))
+                click.echo(click.style("⚠️  Graph visualization not yet implemented.", fg="yellow"))
                 click.echo("   This feature is coming in Phase 2!")
 
     except Exception as e:
-        click.echo(click.style(f"❌ Error: {e}", fg='red', bold=True))
+        click.echo(click.style(f"❌ Error: {e}", fg="red", bold=True))
         raise click.Abort() from e
     finally:
         close_all_loggers()
 
 
 @click.command()
-@click.option('--top-n', '-n', default=20, type=int, help='Number of top pages to show (default: 20)')
-@click.option('--damping', '-d', default=0.85, type=float, help='PageRank damping factor (default: 0.85)')
-@click.option('--format', '-f', type=click.Choice(['table', 'json', 'summary']),
-              default='table', help='Output format (default: table)')
-@click.option('--config', type=click.Path(exists=True), help='Path to config file (default: bengal.toml)')
-@click.argument('source', type=click.Path(exists=True), default='.')
+@click.option(
+    "--top-n", "-n", default=20, type=int, help="Number of top pages to show (default: 20)"
+)
+@click.option(
+    "--damping", "-d", default=0.85, type=float, help="PageRank damping factor (default: 0.85)"
+)
+@click.option(
+    "--format",
+    "-f",
+    type=click.Choice(["table", "json", "summary"]),
+    default="table",
+    help="Output format (default: table)",
+)
+@click.option(
+    "--config", type=click.Path(exists=True), help="Path to config file (default: bengal.toml)"
+)
+@click.argument("source", type=click.Path(exists=True), default=".")
 def pagerank(top_n: int, damping: float, format: str, config: str, source: str) -> None:
     """
     🏆 Analyze page importance using PageRank algorithm.
@@ -233,7 +267,13 @@ def pagerank(top_n: int, damping: float, format: str, config: str, source: str) 
 
         # Validate damping factor
         if not 0 < damping < 1:
-            click.echo(click.style(f"❌ Error: Damping factor must be between 0 and 1, got {damping}", fg='red', bold=True))
+            click.echo(
+                click.style(
+                    f"❌ Error: Damping factor must be between 0 and 1, got {damping}",
+                    fg="red",
+                    bold=True,
+                )
+            )
             raise click.Abort()
 
         # Load site
@@ -252,12 +292,17 @@ def pagerank(top_n: int, damping: float, format: str, config: str, source: str) 
             if should_use_rich():
                 console = get_console()
 
-                with console.status("[bold green]Discovering site content...", spinner="dots") as status:
+                with console.status(
+                    "[bold green]Discovering site content...", spinner="dots"
+                ) as status:
                     from bengal.orchestration.content import ContentOrchestrator
+
                     content_orch = ContentOrchestrator(site)
                     content_orch.discover()
 
-                    status.update(f"[bold green]Building knowledge graph from {len(site.pages)} pages...")
+                    status.update(
+                        f"[bold green]Building knowledge graph from {len(site.pages)} pages..."
+                    )
                     graph_obj = KnowledgeGraph(site)
                     graph_obj.build()
 
@@ -267,6 +312,7 @@ def pagerank(top_n: int, damping: float, format: str, config: str, source: str) 
                 # Fallback to simple messages
                 click.echo("🔍 Discovering site content...")
                 from bengal.orchestration.content import ContentOrchestrator
+
                 content_orch = ContentOrchestrator(site)
                 content_orch.discover()
 
@@ -280,6 +326,7 @@ def pagerank(top_n: int, damping: float, format: str, config: str, source: str) 
             # Rich not available, use simple messages
             click.echo("🔍 Discovering site content...")
             from bengal.orchestration.content import ContentOrchestrator
+
             content_orch = ContentOrchestrator(site)
             content_orch.discover()
 
@@ -294,28 +341,28 @@ def pagerank(top_n: int, damping: float, format: str, config: str, source: str) 
         top_pages = results.get_top_pages(top_n)
 
         # Output based on format
-        if format == 'json':
+        if format == "json":
             # Export as JSON
             data = {
-                'total_pages': len(results.scores),
-                'iterations': results.iterations,
-                'converged': results.converged,
-                'damping_factor': results.damping_factor,
-                'top_pages': [
+                "total_pages": len(results.scores),
+                "iterations": results.iterations,
+                "converged": results.converged,
+                "damping_factor": results.damping_factor,
+                "top_pages": [
                     {
-                        'rank': i + 1,
-                        'title': page.title,
-                        'url': getattr(page, 'url_path', page.source_path),
-                        'score': score,
-                        'incoming_refs': graph_obj.incoming_refs.get(page, 0),
-                        'outgoing_refs': len(graph_obj.outgoing_refs.get(page, set()))
+                        "rank": i + 1,
+                        "title": page.title,
+                        "url": getattr(page, "url_path", page.source_path),
+                        "score": score,
+                        "incoming_refs": graph_obj.incoming_refs.get(page, 0),
+                        "outgoing_refs": len(graph_obj.outgoing_refs.get(page, set())),
                     }
                     for i, (page, score) in enumerate(top_pages)
-                ]
+                ],
             }
             click.echo(json.dumps(data, indent=2))
 
-        elif format == 'summary':
+        elif format == "summary":
             # Show summary stats
             click.echo("\n" + "=" * 60)
             click.echo("📈 PageRank Summary")
@@ -337,7 +384,9 @@ def pagerank(top_n: int, damping: float, format: str, config: str, source: str) 
             click.echo("\n" + "=" * 100)
             click.echo(f"🏆 Top {min(top_n, len(top_pages))} Pages by PageRank")
             click.echo("=" * 100)
-            click.echo(f"Analyzed {len(results.scores)} pages • Converged in {results.iterations} iterations • Damping: {damping}")
+            click.echo(
+                f"Analyzed {len(results.scores)} pages • Converged in {results.iterations} iterations • Damping: {damping}"
+            )
             click.echo("=" * 100)
             click.echo(f"{'Rank':<6} {'Title':<45} {'Score':<12} {'In':<5} {'Out':<5}")
             click.echo("-" * 100)
@@ -358,7 +407,7 @@ def pagerank(top_n: int, damping: float, format: str, config: str, source: str) 
             click.echo("       Use --top-n to show more/fewer pages\n")
 
         # Show insights
-        if format != 'json' and results.converged:
+        if format != "json" and results.converged:
             click.echo("\n" + "=" * 60)
             click.echo("📊 Insights")
             click.echo("=" * 60)
@@ -371,13 +420,17 @@ def pagerank(top_n: int, damping: float, format: str, config: str, source: str) 
 
             click.echo(f"• Average PageRank score:     {avg_score:.6f}")
             click.echo(f"• Maximum PageRank score:     {max_score:.6f}")
-            click.echo(f"• Top 10% threshold:          {len(top_10_pct)} pages (score ≥ {scores_list[int(len(scores_list)*0.1)]:.6f})")
-            click.echo(f"• Score concentration:        {'High' if max_score > avg_score * 10 else 'Moderate' if max_score > avg_score * 5 else 'Low'}")
+            click.echo(
+                f"• Top 10% threshold:          {len(top_10_pct)} pages (score ≥ {scores_list[int(len(scores_list) * 0.1)]:.6f})"
+            )
+            click.echo(
+                f"• Score concentration:        {'High' if max_score > avg_score * 10 else 'Moderate' if max_score > avg_score * 5 else 'Low'}"
+            )
             click.echo("\n")
 
     except Exception as e:
-        click.echo(click.style(f"❌ Error: {e}", fg='red', bold=True))
-        if '--debug' in click.get_current_context().args:
+        click.echo(click.style(f"❌ Error: {e}", fg="red", bold=True))
+        if "--debug" in click.get_current_context().args:
             raise
         raise click.Abort() from e
     finally:
@@ -385,15 +438,34 @@ def pagerank(top_n: int, damping: float, format: str, config: str, source: str) 
 
 
 @click.command()
-@click.option('--min-size', '-m', default=2, type=int, help='Minimum community size to show (default: 2)')
-@click.option('--resolution', '-r', default=1.0, type=float, help='Resolution parameter (higher = more communities, default: 1.0)')
-@click.option('--top-n', '-n', default=10, type=int, help='Number of communities to show (default: 10)')
-@click.option('--format', '-f', type=click.Choice(['table', 'json', 'summary']),
-              default='table', help='Output format (default: table)')
-@click.option('--seed', type=int, help='Random seed for reproducibility')
-@click.option('--config', type=click.Path(exists=True), help='Path to config file (default: bengal.toml)')
-@click.argument('source', type=click.Path(exists=True), default='.')
-def communities(min_size: int, resolution: float, top_n: int, format: str, seed: int, config: str, source: str) -> None:
+@click.option(
+    "--min-size", "-m", default=2, type=int, help="Minimum community size to show (default: 2)"
+)
+@click.option(
+    "--resolution",
+    "-r",
+    default=1.0,
+    type=float,
+    help="Resolution parameter (higher = more communities, default: 1.0)",
+)
+@click.option(
+    "--top-n", "-n", default=10, type=int, help="Number of communities to show (default: 10)"
+)
+@click.option(
+    "--format",
+    "-f",
+    type=click.Choice(["table", "json", "summary"]),
+    default="table",
+    help="Output format (default: table)",
+)
+@click.option("--seed", type=int, help="Random seed for reproducibility")
+@click.option(
+    "--config", type=click.Path(exists=True), help="Path to config file (default: bengal.toml)"
+)
+@click.argument("source", type=click.Path(exists=True), default=".")
+def communities(
+    min_size: int, resolution: float, top_n: int, format: str, seed: int, config: str, source: str
+) -> None:
     """
     🔍 Discover topical communities in your content.
 
@@ -437,6 +509,7 @@ def communities(min_size: int, resolution: float, top_n: int, format: str, seed:
         # Discover content
         click.echo("🔍 Discovering site content...")
         from bengal.orchestration.content import ContentOrchestrator
+
         content_orch = ContentOrchestrator(site)
         content_orch.discover()
 
@@ -459,40 +532,41 @@ def communities(min_size: int, resolution: float, top_n: int, format: str, seed:
         communities_to_show = communities_to_show[:top_n]
 
         # Output based on format
-        if format == 'json':
+        if format == "json":
             # Export as JSON
             data = {
-                'total_communities': len(results.communities),
-                'modularity': results.modularity,
-                'iterations': results.iterations,
-                'resolution': resolution,
-                'communities': []
+                "total_communities": len(results.communities),
+                "modularity": results.modularity,
+                "iterations": results.iterations,
+                "resolution": resolution,
+                "communities": [],
             }
 
             for community in communities_to_show:
                 # Get top pages by incoming links
                 pages_with_refs = [
-                    (page, graph_obj.incoming_refs.get(page, 0))
-                    for page in community.pages
+                    (page, graph_obj.incoming_refs.get(page, 0)) for page in community.pages
                 ]
                 pages_with_refs.sort(key=lambda x: x[1], reverse=True)
 
-                data['communities'].append({
-                    'id': community.id,
-                    'size': community.size,
-                    'pages': [
-                        {
-                            'title': page.title,
-                            'url': getattr(page, 'url_path', str(page.source_path)),
-                            'incoming_refs': refs
-                        }
-                        for page, refs in pages_with_refs[:5]  # Top 5 pages
-                    ]
-                })
+                data["communities"].append(
+                    {
+                        "id": community.id,
+                        "size": community.size,
+                        "pages": [
+                            {
+                                "title": page.title,
+                                "url": getattr(page, "url_path", str(page.source_path)),
+                                "incoming_refs": refs,
+                            }
+                            for page, refs in pages_with_refs[:5]  # Top 5 pages
+                        ],
+                    }
+                )
 
             click.echo(json.dumps(data, indent=2))
 
-        elif format == 'summary':
+        elif format == "summary":
             # Show summary stats
             click.echo("\n" + "=" * 60)
             click.echo("🔍 Community Detection Summary")
@@ -510,8 +584,7 @@ def communities(min_size: int, resolution: float, top_n: int, format: str, seed:
 
                 # Show top pages
                 pages_with_refs = [
-                    (page, graph_obj.incoming_refs.get(page, 0))
-                    for page in community.pages
+                    (page, graph_obj.incoming_refs.get(page, 0)) for page in community.pages
                 ]
                 pages_with_refs.sort(key=lambda x: x[1], reverse=True)
 
@@ -523,7 +596,9 @@ def communities(min_size: int, resolution: float, top_n: int, format: str, seed:
             click.echo("\n" + "=" * 100)
             click.echo(f"🔍 Top {len(communities_to_show)} Communities")
             click.echo("=" * 100)
-            click.echo(f"Found {len(results.communities)} communities • Modularity: {results.modularity:.4f} • Resolution: {resolution}")
+            click.echo(
+                f"Found {len(results.communities)} communities • Modularity: {results.modularity:.4f} • Resolution: {resolution}"
+            )
             click.echo("=" * 100)
             click.echo(f"{'ID':<5} {'Size':<6} {'Top Pages':<85}")
             click.echo("-" * 100)
@@ -531,15 +606,16 @@ def communities(min_size: int, resolution: float, top_n: int, format: str, seed:
             for community in communities_to_show:
                 # Get top 3 pages by incoming links
                 pages_with_refs = [
-                    (page, graph_obj.incoming_refs.get(page, 0))
-                    for page in community.pages
+                    (page, graph_obj.incoming_refs.get(page, 0)) for page in community.pages
                 ]
                 pages_with_refs.sort(key=lambda x: x[1], reverse=True)
 
-                top_page_titles = ", ".join([
-                    page.title[:25] + "..." if len(page.title) > 25 else page.title
-                    for page, _ in pages_with_refs[:3]
-                ])
+                top_page_titles = ", ".join(
+                    [
+                        page.title[:25] + "..." if len(page.title) > 25 else page.title
+                        for page, _ in pages_with_refs[:3]
+                    ]
+                )
 
                 if len(top_page_titles) > 83:
                     top_page_titles = top_page_titles[:80] + "..."
@@ -552,7 +628,7 @@ def communities(min_size: int, resolution: float, top_n: int, format: str, seed:
             click.echo("       Use --resolution to control granularity\n")
 
         # Show insights
-        if format != 'json':
+        if format != "json":
             click.echo("\n" + "=" * 60)
             click.echo("📊 Insights")
             click.echo("=" * 60)
@@ -575,20 +651,32 @@ def communities(min_size: int, resolution: float, top_n: int, format: str, seed:
             click.echo("\n")
 
     except Exception as e:
-        click.echo(click.style(f"❌ Error: {e}", fg='red', bold=True))
+        click.echo(click.style(f"❌ Error: {e}", fg="red", bold=True))
         raise click.Abort() from e
     finally:
         close_all_loggers()
 
 
 @click.command()
-@click.option('--top-n', '-n', default=20, type=int, help='Number of pages to show (default: 20)')
-@click.option('--metric', '-m', type=click.Choice(['betweenness', 'closeness', 'both']),
-              default='both', help='Centrality metric to display (default: both)')
-@click.option('--format', '-f', type=click.Choice(['table', 'json', 'summary']),
-              default='table', help='Output format (default: table)')
-@click.option('--config', type=click.Path(exists=True), help='Path to config file (default: bengal.toml)')
-@click.argument('source', type=click.Path(exists=True), default='.')
+@click.option("--top-n", "-n", default=20, type=int, help="Number of pages to show (default: 20)")
+@click.option(
+    "--metric",
+    "-m",
+    type=click.Choice(["betweenness", "closeness", "both"]),
+    default="both",
+    help="Centrality metric to display (default: both)",
+)
+@click.option(
+    "--format",
+    "-f",
+    type=click.Choice(["table", "json", "summary"]),
+    default="table",
+    help="Output format (default: table)",
+)
+@click.option(
+    "--config", type=click.Path(exists=True), help="Path to config file (default: bengal.toml)"
+)
+@click.argument("source", type=click.Path(exists=True), default=".")
 def bridges(top_n: int, metric: str, format: str, config: str, source: str) -> None:
     """
     🌉 Identify bridge pages and navigation bottlenecks.
@@ -635,6 +723,7 @@ def bridges(top_n: int, metric: str, format: str, config: str, source: str) -> N
         # Discover content
         click.echo("🔍 Discovering site content...")
         from bengal.orchestration.content import ContentOrchestrator
+
         content_orch = ContentOrchestrator(site)
         content_orch.discover()
 
@@ -648,41 +737,41 @@ def bridges(top_n: int, metric: str, format: str, config: str, source: str) -> N
         results = graph_obj.analyze_paths()
 
         # Output based on format
-        if format == 'json':
+        if format == "json":
             # Export as JSON
             data = {
-                'avg_path_length': results.avg_path_length,
-                'diameter': results.diameter,
-                'total_pages': len(results.betweenness_centrality)
+                "avg_path_length": results.avg_path_length,
+                "diameter": results.diameter,
+                "total_pages": len(results.betweenness_centrality),
             }
 
-            if metric in ['betweenness', 'both']:
+            if metric in ["betweenness", "both"]:
                 bridges_list = results.get_top_bridges(top_n)
-                data['top_bridges'] = [
+                data["top_bridges"] = [
                     {
-                        'title': page.title,
-                        'url': getattr(page, 'url_path', str(page.source_path)),
-                        'betweenness': score,
-                        'incoming_refs': graph_obj.incoming_refs.get(page, 0)
+                        "title": page.title,
+                        "url": getattr(page, "url_path", str(page.source_path)),
+                        "betweenness": score,
+                        "incoming_refs": graph_obj.incoming_refs.get(page, 0),
                     }
                     for page, score in bridges_list
                 ]
 
-            if metric in ['closeness', 'both']:
+            if metric in ["closeness", "both"]:
                 accessible = results.get_most_accessible(top_n)
-                data['most_accessible'] = [
+                data["most_accessible"] = [
                     {
-                        'title': page.title,
-                        'url': getattr(page, 'url_path', str(page.source_path)),
-                        'closeness': score,
-                        'outgoing_refs': len(graph_obj.outgoing_refs.get(page, set()))
+                        "title": page.title,
+                        "url": getattr(page, "url_path", str(page.source_path)),
+                        "closeness": score,
+                        "outgoing_refs": len(graph_obj.outgoing_refs.get(page, set())),
                     }
                     for page, score in accessible
                 ]
 
             click.echo(json.dumps(data, indent=2))
 
-        elif format == 'summary':
+        elif format == "summary":
             # Show summary stats
             click.echo("\n" + "=" * 60)
             click.echo("🌉 Path Analysis Summary")
@@ -692,7 +781,7 @@ def bridges(top_n: int, metric: str, format: str, config: str, source: str) -> N
             click.echo(f"Network diameter:         {results.diameter}")
             click.echo("")
 
-            if metric in ['betweenness', 'both']:
+            if metric in ["betweenness", "both"]:
                 click.echo("\n🔗 Top Bridge Pages (Betweenness Centrality)")
                 click.echo("-" * 60)
                 bridges_list = results.get_top_bridges(top_n)
@@ -702,7 +791,7 @@ def bridges(top_n: int, metric: str, format: str, config: str, source: str) -> N
                     click.echo(f"{i:3d}. {page.title}")
                     click.echo(f"     Betweenness: {score:.6f} | {incoming} in, {outgoing} out")
 
-            if metric in ['closeness', 'both']:
+            if metric in ["closeness", "both"]:
                 click.echo("\n🎯 Most Accessible Pages (Closeness Centrality)")
                 click.echo("-" * 60)
                 accessible = results.get_most_accessible(top_n)
@@ -715,10 +804,12 @@ def bridges(top_n: int, metric: str, format: str, config: str, source: str) -> N
             click.echo("\n" + "=" * 100)
             click.echo("🌉 Navigation Path Analysis")
             click.echo("=" * 100)
-            click.echo(f"Analyzed {len(results.betweenness_centrality)} pages • Avg path: {results.avg_path_length:.2f} • Diameter: {results.diameter}")
+            click.echo(
+                f"Analyzed {len(results.betweenness_centrality)} pages • Avg path: {results.avg_path_length:.2f} • Diameter: {results.diameter}"
+            )
             click.echo("=" * 100)
 
-            if metric in ['betweenness', 'both']:
+            if metric in ["betweenness", "both"]:
                 click.echo(f"\n🔗 Top {top_n} Bridge Pages (Betweenness Centrality)")
                 click.echo("-" * 100)
                 click.echo(f"{'Rank':<6} {'Title':<50} {'Betweenness':<14} {'In':<5} {'Out':<5}")
@@ -735,7 +826,7 @@ def bridges(top_n: int, metric: str, format: str, config: str, source: str) -> N
 
                     click.echo(f"{i:<6} {title:<50} {score:.10f}  {incoming:<5} {outgoing:<5}")
 
-            if metric in ['closeness', 'both']:
+            if metric in ["closeness", "both"]:
                 click.echo(f"\n🎯 Top {top_n} Most Accessible Pages (Closeness Centrality)")
                 click.echo("-" * 100)
                 click.echo(f"{'Rank':<6} {'Title':<50} {'Closeness':<14} {'Out':<5}")
@@ -756,13 +847,21 @@ def bridges(top_n: int, metric: str, format: str, config: str, source: str) -> N
             click.echo("       Use --format json to export for analysis\n")
 
         # Show insights
-        if format != 'json':
+        if format != "json":
             click.echo("\n" + "=" * 60)
             click.echo("📊 Insights")
             click.echo("=" * 60)
 
-            avg_betweenness = sum(results.betweenness_centrality.values()) / len(results.betweenness_centrality) if results.betweenness_centrality else 0
-            max_betweenness = max(results.betweenness_centrality.values()) if results.betweenness_centrality else 0
+            avg_betweenness = (
+                sum(results.betweenness_centrality.values()) / len(results.betweenness_centrality)
+                if results.betweenness_centrality
+                else 0
+            )
+            max_betweenness = (
+                max(results.betweenness_centrality.values())
+                if results.betweenness_centrality
+                else 0
+            )
 
             click.echo(f"• Average path length:        {results.avg_path_length:.2f} hops")
             click.echo(f"• Network diameter:           {results.diameter} hops")
@@ -779,19 +878,30 @@ def bridges(top_n: int, metric: str, format: str, config: str, source: str) -> N
             click.echo("\n")
 
     except Exception as e:
-        click.echo(click.style(f"❌ Error: {e}", fg='red', bold=True))
+        click.echo(click.style(f"❌ Error: {e}", fg="red", bold=True))
         raise click.Abort() from e
     finally:
         close_all_loggers()
 
 
 @click.command()
-@click.option('--top-n', '-n', default=50, type=int, help='Number of suggestions to show (default: 50)')
-@click.option('--min-score', '-s', default=0.3, type=float, help='Minimum score threshold (default: 0.3)')
-@click.option('--format', '-f', type=click.Choice(['table', 'json', 'markdown']),
-              default='table', help='Output format (default: table)')
-@click.option('--config', type=click.Path(exists=True), help='Path to config file (default: bengal.toml)')
-@click.argument('source', type=click.Path(exists=True), default='.')
+@click.option(
+    "--top-n", "-n", default=50, type=int, help="Number of suggestions to show (default: 50)"
+)
+@click.option(
+    "--min-score", "-s", default=0.3, type=float, help="Minimum score threshold (default: 0.3)"
+)
+@click.option(
+    "--format",
+    "-f",
+    type=click.Choice(["table", "json", "markdown"]),
+    default="table",
+    help="Output format (default: table)",
+)
+@click.option(
+    "--config", type=click.Path(exists=True), help="Path to config file (default: bengal.toml)"
+)
+@click.argument("source", type=click.Path(exists=True), default=".")
 def suggest(top_n: int, min_score: float, format: str, config: str, source: str) -> None:
     """
     💡 Generate smart link suggestions to improve internal linking.
@@ -836,10 +946,12 @@ def suggest(top_n: int, min_score: float, format: str, config: str, source: str)
 
         click.echo("🔍 Discovering site content...")
         from bengal.orchestration.content import ContentOrchestrator
+
         content_orch = ContentOrchestrator(site)
         content_orch.discover()
 
         from bengal.utils.cli_output import CLIOutput
+
         cli = CLIOutput()
 
         cli.header(f"Building knowledge graph from {len(site.pages)} pages...")
@@ -851,26 +963,28 @@ def suggest(top_n: int, min_score: float, format: str, config: str, source: str)
 
         top_suggestions = results.get_top_suggestions(top_n)
 
-        if format == 'json':
+        if format == "json":
             data = {
-                'total_suggestions': results.total_suggestions,
-                'pages_analyzed': results.pages_analyzed,
-                'min_score': min_score,
-                'suggestions': [
+                "total_suggestions": results.total_suggestions,
+                "pages_analyzed": results.pages_analyzed,
+                "min_score": min_score,
+                "suggestions": [
                     {
-                        'source': {'title': s.source.title, 'path': str(s.source.source_path)},
-                        'target': {'title': s.target.title, 'path': str(s.target.source_path)},
-                        'score': s.score,
-                        'reasons': s.reasons
+                        "source": {"title": s.source.title, "path": str(s.source.source_path)},
+                        "target": {"title": s.target.title, "path": str(s.target.source_path)},
+                        "score": s.score,
+                        "reasons": s.reasons,
                     }
                     for s in top_suggestions
-                ]
+                ],
             }
             click.echo(json.dumps(data, indent=2))
 
-        elif format == 'markdown':
+        elif format == "markdown":
             click.echo("# Link Suggestions\n")
-            click.echo(f"Generated {results.total_suggestions} suggestions from {results.pages_analyzed} pages\n")
+            click.echo(
+                f"Generated {results.total_suggestions} suggestions from {results.pages_analyzed} pages\n"
+            )
             click.echo(f"## Top {len(top_suggestions)} Suggestions\n")
 
             for i, suggestion in enumerate(top_suggestions, 1):
@@ -879,14 +993,18 @@ def suggest(top_n: int, min_score: float, format: str, config: str, source: str)
                 click.echo("**Reasons:**")
                 for reason in suggestion.reasons:
                     click.echo(f"- {reason}")
-                click.echo(f"\n**Action:** Add link from `{suggestion.source.source_path}` to `{suggestion.target.source_path}`\n")
+                click.echo(
+                    f"\n**Action:** Add link from `{suggestion.source.source_path}` to `{suggestion.target.source_path}`\n"
+                )
                 click.echo("---\n")
 
         else:  # table format
             click.echo("\n" + "=" * 120)
             click.echo(f"💡 Top {len(top_suggestions)} Link Suggestions")
             click.echo("=" * 120)
-            click.echo(f"Generated {results.total_suggestions} suggestions from {results.pages_analyzed} pages (min score: {min_score})")
+            click.echo(
+                f"Generated {results.total_suggestions} suggestions from {results.pages_analyzed} pages (min score: {min_score})"
+            )
             click.echo("=" * 120)
             click.echo(f"{'#':<4} {'From':<35} {'To':<35} {'Score':<8} {'Reasons':<35}")
             click.echo("-" * 120)
@@ -904,26 +1022,29 @@ def suggest(top_n: int, min_score: float, format: str, config: str, source: str)
                 if len(reasons_str) > 33:
                     reasons_str = reasons_str[:30] + "..."
 
-                click.echo(f"{i:<4} {source_title:<35} {target_title:<35} {suggestion.score:.4f}  {reasons_str:<35}")
+                click.echo(
+                    f"{i:<4} {source_title:<35} {target_title:<35} {suggestion.score:.4f}  {reasons_str:<35}"
+                )
 
             click.echo("=" * 120)
             click.echo("\n💡 Tip: Use --format markdown to generate implementation checklist")
             click.echo("       Use --format json to export for programmatic processing")
             click.echo("       Use --min-score to filter low-confidence suggestions\n")
 
-        if format != 'json':
+        if format != "json":
             click.echo("\n" + "=" * 60)
             click.echo("📊 Summary")
             click.echo("=" * 60)
             click.echo(f"• Total suggestions:          {results.total_suggestions}")
             click.echo(f"• Above threshold ({min_score}):      {len(top_suggestions)}")
             click.echo(f"• Pages analyzed:             {results.pages_analyzed}")
-            click.echo(f"• Avg suggestions per page:   {results.total_suggestions / results.pages_analyzed:.1f}")
+            click.echo(
+                f"• Avg suggestions per page:   {results.total_suggestions / results.pages_analyzed:.1f}"
+            )
             click.echo("\n")
 
     except Exception as e:
-        click.echo(click.style(f"❌ Error: {e}", fg='red', bold=True))
+        click.echo(click.style(f"❌ Error: {e}", fg="red", bold=True))
         raise click.Abort() from e
     finally:
         close_all_loggers()
-

@@ -31,23 +31,19 @@ class TestParallelAssetProcessing:
 
         # Create test assets
         for i in range(10):
-            (temp_dir / "assets" / "css" / f"style{i}.css").write_text(
-                f"body {{ color: red{i}; }}"
-            )
+            (temp_dir / "assets" / "css" / f"style{i}.css").write_text(f"body {{ color: red{i}; }}")
 
         for i in range(5):
-            (temp_dir / "assets" / "js" / f"script{i}.js").write_text(
-                f"console.log('test{i}');"
-            )
+            (temp_dir / "assets" / "js" / f"script{i}.js").write_text(f"console.log('test{i}');")
 
         # Create small test images (1x1 pixel)
         for i in range(3):
             # Create a minimal valid PNG
             png_data = (
-                b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01'
-                b'\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89'
-                b'\x00\x00\x00\nIDATx\x9cc\x00\x01\x00\x00\x05\x00\x01'
-                b'\r\n-\xb4\x00\x00\x00\x00IEND\xaeB`\x82'
+                b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01"
+                b"\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89"
+                b"\x00\x00\x00\nIDATx\x9cc\x00\x01\x00\x00\x05\x00\x01"
+                b"\r\n-\xb4\x00\x00\x00\x00IEND\xaeB`\x82"
             )
             (temp_dir / "assets" / "images" / f"image{i}.png").write_bytes(png_data)
 
@@ -121,7 +117,9 @@ parallel = true
         asset_orchestrator1.process(site1.assets, parallel=True)
 
         parallel_output = temp_site_dir / "public" / "assets"
-        parallel_files = {f.name: f.read_bytes() for f in parallel_output.rglob("*.*") if f.is_file()}
+        parallel_files = {
+            f.name: f.read_bytes() for f in parallel_output.rglob("*.*") if f.is_file()
+        }
 
         # Clean output directory
         shutil.rmtree(temp_site_dir / "public")
@@ -135,12 +133,16 @@ parallel = true
         asset_orchestrator2.process(site2.assets, parallel=False)
 
         sequential_output = temp_site_dir / "public" / "assets"
-        sequential_files = {f.name: f.read_bytes() for f in sequential_output.rglob("*.*") if f.is_file()}
+        sequential_files = {
+            f.name: f.read_bytes() for f in sequential_output.rglob("*.*") if f.is_file()
+        }
 
         # Compare files
         assert parallel_files.keys() == sequential_files.keys()
         for filename in parallel_files:
-            assert parallel_files[filename] == sequential_files[filename], f"File {filename} differs"
+            assert parallel_files[filename] == sequential_files[filename], (
+                f"File {filename} differs"
+            )
 
     def test_asset_processing_with_errors(self, temp_site_dir):
         """Test that errors in one asset don't crash entire build."""
@@ -177,7 +179,7 @@ class TestParallelPostProcessing:
         for i in range(5):
             (temp_dir / "content" / f"post{i}.md").write_text(f"""---
 title: Post {i}
-date: 2025-01-0{i+1}
+date: 2025-01-0{i + 1}
 tags: [test, python]
 ---
 
@@ -361,4 +363,3 @@ class TestThreadSafety:
             assert file_path.read_text() == f"Content {i}"
 
         shutil.rmtree(temp_dir)
-

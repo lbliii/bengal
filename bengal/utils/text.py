@@ -18,10 +18,7 @@ import re
 
 
 def slugify(
-    text: str,
-    unescape_html: bool = True,
-    max_length: int | None = None,
-    separator: str = '-'
+    text: str, unescape_html: bool = True, max_length: int | None = None, separator: str = "-"
 ) -> str:
     """
     Convert text to URL-safe slug.
@@ -53,7 +50,7 @@ def slugify(
         'hello_world'
     """
     if not text:
-        return ''
+        return ""
 
     # Decode HTML entities if requested
     # This handles cases like "Test &amp; Code" which Mistune renders with entities
@@ -65,10 +62,10 @@ def slugify(
 
     # Remove non-word characters (except spaces and hyphens)
     # Keep Unicode word characters (\w includes non-ASCII)
-    text = re.sub(r'[^\w\s-]', '', text)
+    text = re.sub(r"[^\w\s-]", "", text)
 
     # Replace multiple spaces/hyphens with separator
-    text = re.sub(r'[-\s]+', separator, text)
+    text = re.sub(r"[-\s]+", separator, text)
 
     # Remove leading/trailing separators
     text = text.strip(separator)
@@ -110,11 +107,11 @@ def strip_html(text: str, decode_entities: bool = True) -> str:
         '&lt;script&gt;'
     """
     if not text:
-        return ''
+        return ""
 
     # Remove HTML tags using regex
     # Matches <...> including self-closing tags and tags with attributes
-    text = re.sub(r'<[^>]+>', '', text)
+    text = re.sub(r"<[^>]+>", "", text)
 
     # Decode HTML entities if requested
     if decode_entities:
@@ -147,14 +144,14 @@ def truncate_words(text: str, word_count: int, suffix: str = "...") -> str:
         'One two three…'
     """
     if not text:
-        return ''
+        return ""
 
     words = text.split()
 
     if len(words) <= word_count:
         return text
 
-    return ' '.join(words[:word_count]) + suffix
+    return " ".join(words[:word_count]) + suffix
 
 
 def truncate_chars(text: str, length: int, suffix: str = "...") -> str:
@@ -176,7 +173,7 @@ def truncate_chars(text: str, length: int, suffix: str = "...") -> str:
         'Short'
     """
     if not text:
-        return ''
+        return ""
 
     if len(text) <= length:
         return text
@@ -186,7 +183,7 @@ def truncate_chars(text: str, length: int, suffix: str = "...") -> str:
     return text[:length].rstrip() + suffix
 
 
-def truncate_middle(text: str, max_length: int, separator: str = '...') -> str:
+def truncate_middle(text: str, max_length: int, separator: str = "...") -> str:
     """
     Truncate text in the middle (useful for file paths).
 
@@ -205,7 +202,7 @@ def truncate_middle(text: str, max_length: int, separator: str = '...') -> str:
         'short.txt'
     """
     if not text:
-        return ''
+        return ""
 
     if len(text) <= max_length:
         return text
@@ -222,11 +219,7 @@ def truncate_middle(text: str, max_length: int, separator: str = '...') -> str:
     return text[:left] + separator + text[-right:]
 
 
-def generate_excerpt(
-    html: str,
-    word_count: int = 50,
-    suffix: str = "..."
-) -> str:
+def generate_excerpt(html: str, word_count: int = 50, suffix: str = "...") -> str:
     """
     Generate plain text excerpt from HTML content.
 
@@ -272,11 +265,11 @@ def normalize_whitespace(text: str, collapse: bool = True) -> str:
         'line1 line2'
     """
     if not text:
-        return ''
+        return ""
 
     if collapse:
         # Collapse all whitespace (including newlines) to single space
-        text = re.sub(r'\s+', ' ', text)
+        text = re.sub(r"\s+", " ", text)
         # Strip leading/trailing whitespace
         text = text.strip()
     else:
@@ -308,7 +301,7 @@ def escape_html(text: str) -> str:
         "&lt;script&gt;alert('xss')&lt;/script&gt;"
     """
     if not text:
-        return ''
+        return ""
 
     return html_module.escape(text)
 
@@ -334,16 +327,12 @@ def unescape_html(text: str) -> str:
         '<Hello>'
     """
     if not text:
-        return ''
+        return ""
 
     return html_module.unescape(text)
 
 
-def pluralize(
-    count: int,
-    singular: str,
-    plural: str | None = None
-) -> str:
+def pluralize(count: int, singular: str, plural: str | None = None) -> str:
     """
     Return singular or plural form based on count.
 
@@ -367,7 +356,7 @@ def pluralize(
     """
     if count == 1:
         return singular
-    return plural if plural else singular + 's'
+    return plural if plural else singular + "s"
 
 
 def humanize_bytes(size_bytes: int) -> str:
@@ -388,7 +377,7 @@ def humanize_bytes(size_bytes: int) -> str:
         >>> humanize_bytes(1048576)
         '1.0 MB'
     """
-    units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB']
+    units = ["B", "KB", "MB", "GB", "TB", "PB"]
     size = float(size_bytes)
     unit_index = 0
 
@@ -420,4 +409,3 @@ def humanize_number(num: int) -> str:
         '1,000'
     """
     return f"{num:,}"
-

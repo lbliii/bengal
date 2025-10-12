@@ -1,2 +1,1 @@
 """Bengal CLI commands."""
-

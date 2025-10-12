@@ -59,7 +59,7 @@ class PIDManager:
         Returns:
             Path to .bengal.pid file
         """
-        return project_root / '.bengal.pid'
+        return project_root / ".bengal.pid"
 
     @staticmethod
     def is_bengal_process(pid: int) -> bool:
@@ -82,9 +82,10 @@ class PIDManager:
         try:
             # Try to use psutil for better process info
             import psutil
+
             proc = psutil.Process(pid)
-            cmdline = ' '.join(proc.cmdline()).lower()
-            return 'bengal' in cmdline and 'serve' in cmdline
+            cmdline = " ".join(proc.cmdline()).lower()
+            return "bengal" in cmdline and "serve" in cmdline
         except ImportError:
             # psutil not available, assume valid if process exists
             try:
@@ -228,6 +229,7 @@ class PIDManager:
         try:
             # Write PID file atomically (crash-safe)
             from bengal.utils.atomic_write import atomic_write_text
+
             atomic_write_text(pid_file, str(os.getpid()))
         except OSError as e:
             print(f"  ⚠️  Warning: Could not write PID file: {e}")
@@ -259,15 +261,12 @@ class PIDManager:
         """
         try:
             import subprocess
+
             result = subprocess.run(
-                ['lsof', '-ti', f':{port}'],
-                check=False, capture_output=True,
-                text=True,
-                timeout=2
+                ["lsof", "-ti", f":{port}"], check=False, capture_output=True, text=True, timeout=2
             )
             if result.returncode == 0 and result.stdout.strip():
                 return int(result.stdout.strip().split()[0])
         except (subprocess.SubprocessError, ValueError, FileNotFoundError):
             pass
         return None
-

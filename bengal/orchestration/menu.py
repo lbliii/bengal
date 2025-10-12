@@ -29,7 +29,7 @@ class MenuOrchestrator:
         - Cache menus when config/pages unchanged (incremental optimization)
     """
 
-    def __init__(self, site: 'Site'):
+    def __init__(self, site: "Site"):
         """
         Initialize menu orchestrator.
 
@@ -57,7 +57,11 @@ class MenuOrchestrator:
         Called during site.build() after content discovery.
         """
         # Check if we can skip menu rebuild
-        if not config_changed and changed_pages is not None and self._can_skip_rebuild(changed_pages):
+        if (
+            not config_changed
+            and changed_pages is not None
+            and self._can_skip_rebuild(changed_pages)
+        ):
             logger.debug("menu_rebuild_skipped", reason="cache_valid")
             return False
 
@@ -84,7 +88,7 @@ class MenuOrchestrator:
 
         # Check if any changed pages have menu frontmatter
         for page in self.site.pages:
-            if page.source_path in changed_pages and 'menu' in page.metadata:
+            if page.source_path in changed_pages and "menu" in page.metadata:
                 # Menu-related page changed - need rebuild
                 return False
 
@@ -117,24 +121,23 @@ class MenuOrchestrator:
             SHA256 hash of menu-related data
         """
         # Get menu config
-        menu_config = self.site.config.get('menu', {})
+        menu_config = self.site.config.get("menu", {})
 
         # Get pages with menu frontmatter
         menu_pages = []
         for page in self.site.pages:
-            if 'menu' in page.metadata:
-                menu_pages.append({
-                    'path': str(page.source_path),
-                    'menu': page.metadata['menu'],
-                    'title': page.title,
-                    'url': page.url
-                })
+            if "menu" in page.metadata:
+                menu_pages.append(
+                    {
+                        "path": str(page.source_path),
+                        "menu": page.metadata["menu"],
+                        "title": page.title,
+                        "url": page.url,
+                    }
+                )
 
         # Create cache key data
-        cache_data = {
-            'config': menu_config,
-            'pages': menu_pages
-        }
+        cache_data = {"config": menu_config, "pages": menu_pages}
 
         # Hash to create cache key
         data_str = json.dumps(cache_data, sort_keys=True)
@@ -150,19 +153,19 @@ class MenuOrchestrator:
         from bengal.core.menu import MenuBuilder
 
         # Get menu definitions from config
-        menu_config = self.site.config.get('menu', {})
-        i18n = self.site.config.get('i18n', {}) or {}
-        strategy = i18n.get('strategy', 'none')
+        menu_config = self.site.config.get("menu", {})
+        i18n = self.site.config.get("i18n", {}) or {}
+        strategy = i18n.get("strategy", "none")
         # When i18n enabled, build per-locale menus keyed by site.menu_localized[lang]
         languages: set[str] = set()
-        if strategy != 'none':
-            langs_cfg = i18n.get('languages') or []
+        if strategy != "none":
+            langs_cfg = i18n.get("languages") or []
             for entry in langs_cfg:
-                if isinstance(entry, dict) and 'code' in entry:
-                    languages.add(entry['code'])
+                if isinstance(entry, dict) and "code" in entry:
+                    languages.add(entry["code"])
                 elif isinstance(entry, str):
                     languages.add(entry)
-            default_lang = i18n.get('default_language', 'en')
+            default_lang = i18n.get("default_language", "en")
             languages.add(default_lang)
 
         if not menu_config:
@@ -172,20 +175,18 @@ class MenuOrchestrator:
         logger.info("menu_build_start", menu_count=len(menu_config))
 
         for menu_name, items in menu_config.items():
-            if strategy == 'none':
+            if strategy == "none":
                 builder = MenuBuilder()
                 if isinstance(items, list):
                     builder.add_from_config(items)
                 for page in self.site.pages:
-                    page_menu = page.metadata.get('menu', {})
+                    page_menu = page.metadata.get("menu", {})
                     if menu_name in page_menu:
                         builder.add_from_page(page, menu_name, page_menu[menu_name])
                 self.site.menu[menu_name] = builder.build_hierarchy()
                 self.site.menu_builders[menu_name] = builder
                 logger.info(
-                    "menu_built",
-                    menu_name=menu_name,
-                    item_count=len(self.site.menu[menu_name])
+                    "menu_built", menu_name=menu_name, item_count=len(self.site.menu[menu_name])
                 )
             else:
                 # Build per-locale
@@ -196,32 +197,32 @@ class MenuOrchestrator:
                     if isinstance(items, list):
                         filtered_items = []
                         for it in items:
-                            if isinstance(it, dict) and 'lang' in it and it['lang'] not in (lang, '*'):
+                            if (
+                                isinstance(it, dict)
+                                and "lang" in it
+                                and it["lang"] not in (lang, "*")
+                            ):
                                 continue
                             filtered_items.append(it)
                         builder.add_from_config(filtered_items)
                     # Pages in this language
                     for page in self.site.pages:
-                        if getattr(page, 'lang', None) and page.lang != lang:
+                        if getattr(page, "lang", None) and page.lang != lang:
                             continue
-                        page_menu = page.metadata.get('menu', {})
+                        page_menu = page.metadata.get("menu", {})
                         if menu_name in page_menu:
                             builder.add_from_page(page, menu_name, page_menu[menu_name])
                     menu_tree = builder.build_hierarchy()
                     self.site.menu_localized[menu_name][lang] = menu_tree
                     self.site.menu_builders_localized.setdefault(menu_name, {})[lang] = builder
-                logger.info(
-                    "menu_built_localized",
-                    menu_name=menu_name,
-                    languages=len(languages)
-                )
+                logger.info("menu_built_localized", menu_name=menu_name, languages=len(languages))
 
         # Update cache key
         self._menu_cache_key = self._compute_menu_cache_key()
 
         return True
 
-    def mark_active(self, current_page: 'Page') -> None:
+    def mark_active(self, current_page: "Page") -> None:
         """
         Mark active menu items for the current page being rendered.
         Called during rendering for each page.
@@ -232,4 +233,3 @@ class MenuOrchestrator:
         current_url = current_page.url
         for menu_name, builder in self.site.menu_builders.items():
             builder.mark_active_items(current_url, self.site.menu[menu_name])
-

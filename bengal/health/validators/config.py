@@ -27,7 +27,7 @@ class ConfigValidatorWrapper(BaseValidator):
     enabled_by_default = True
 
     @override
-    def validate(self, site: 'Site') -> list[CheckResult]:
+    def validate(self, site: "Site") -> list[CheckResult]:
         """Validate configuration."""
         results = []
 
@@ -47,19 +47,19 @@ class ConfigValidatorWrapper(BaseValidator):
         results = []
 
         # These fields should always be present (with defaults)
-        essential_fields = ['output_dir', 'theme']
+        essential_fields = ["output_dir", "theme"]
 
         missing = [f for f in essential_fields if f not in config]
 
         if missing:
-            results.append(CheckResult.warning(
-                f"Missing configuration fields: {', '.join(missing)}",
-                recommendation="Add these fields to your bengal.toml for better control."
-            ))
+            results.append(
+                CheckResult.warning(
+                    f"Missing configuration fields: {', '.join(missing)}",
+                    recommendation="Add these fields to your bengal.toml for better control.",
+                )
+            )
         else:
-            results.append(CheckResult.success(
-                "All essential configuration fields present"
-            ))
+            results.append(CheckResult.success("All essential configuration fields present"))
 
         return results
 
@@ -68,33 +68,36 @@ class ConfigValidatorWrapper(BaseValidator):
         results = []
 
         # Check if baseurl has trailing slash (common mistake)
-        baseurl = config.get('baseurl', '')
-        if baseurl and baseurl.endswith('/'):
-            results.append(CheckResult.info(
-                "Base URL has trailing slash",
-                recommendation="Trailing slashes in baseurl can cause double-slash issues in URLs. Consider removing it."
-            ))
+        baseurl = config.get("baseurl", "")
+        if baseurl and baseurl.endswith("/"):
+            results.append(
+                CheckResult.info(
+                    "Base URL has trailing slash",
+                    recommendation="Trailing slashes in baseurl can cause double-slash issues in URLs. Consider removing it.",
+                )
+            )
 
         # Check if max_workers is very high
-        max_workers = config.get('max_workers', 4)
+        max_workers = config.get("max_workers", 4)
         if max_workers > 20:
-            results.append(CheckResult.warning(
-                f"max_workers is very high ({max_workers})",
-                recommendation="Very high worker counts may cause resource exhaustion. Consider reducing to 8-12."
-            ))
+            results.append(
+                CheckResult.warning(
+                    f"max_workers is very high ({max_workers})",
+                    recommendation="Very high worker counts may cause resource exhaustion. Consider reducing to 8-12.",
+                )
+            )
 
         # Check if incremental build is enabled without parallel
-        if config.get('incremental') and not config.get('parallel', True):
-            results.append(CheckResult.info(
-                "Incremental builds work best with parallel processing",
-                recommendation="Consider enabling parallel=true for faster incremental builds."
-            ))
+        if config.get("incremental") and not config.get("parallel", True):
+            results.append(
+                CheckResult.info(
+                    "Incremental builds work best with parallel processing",
+                    recommendation="Consider enabling parallel=true for faster incremental builds.",
+                )
+            )
 
         # All checks passed
         if not any(r.is_problem() for r in results):
-            results.append(CheckResult.success(
-                "Configuration validated successfully"
-            ))
+            results.append(CheckResult.success("Configuration validated successfully"))
 
         return results
-

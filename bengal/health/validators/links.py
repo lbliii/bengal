@@ -26,15 +26,13 @@ class LinkValidatorWrapper(BaseValidator):
     enabled_by_default = True
 
     @override
-    def validate(self, site: 'Site') -> list[CheckResult]:
+    def validate(self, site: "Site") -> list[CheckResult]:
         """Validate links in generated pages."""
         results = []
 
         # Only run if link validation is enabled
-        if not site.config.get('validate_links', True):
-            results.append(CheckResult.info(
-                "Link validation disabled in config"
-            ))
+        if not site.config.get("validate_links", True):
+            results.append(CheckResult.info("Link validation disabled in config"))
             return results
 
         # Run link validator
@@ -45,26 +43,31 @@ class LinkValidatorWrapper(BaseValidator):
 
         if broken_links:
             # Group by type
-            internal_broken = [link for link in broken_links if not link.startswith(('http://', 'https://'))]
-            external_broken = [link for link in broken_links if link.startswith(('http://', 'https://'))]
+            internal_broken = [
+                link for link in broken_links if not link.startswith(("http://", "https://"))
+            ]
+            external_broken = [
+                link for link in broken_links if link.startswith(("http://", "https://"))
+            ]
 
             if internal_broken:
-                results.append(CheckResult.error(
-                    f"{len(internal_broken)} broken internal link(s)",
-                    recommendation="Fix broken internal links. They point to pages that don't exist.",
-                    details=internal_broken[:5]
-                ))
+                results.append(
+                    CheckResult.error(
+                        f"{len(internal_broken)} broken internal link(s)",
+                        recommendation="Fix broken internal links. They point to pages that don't exist.",
+                        details=internal_broken[:5],
+                    )
+                )
 
             if external_broken:
-                results.append(CheckResult.warning(
-                    f"{len(external_broken)} broken external link(s)",
-                    recommendation="External links may be temporarily unavailable or incorrect.",
-                    details=external_broken[:5]
-                ))
+                results.append(
+                    CheckResult.warning(
+                        f"{len(external_broken)} broken external link(s)",
+                        recommendation="External links may be temporarily unavailable or incorrect.",
+                        details=external_broken[:5],
+                    )
+                )
         else:
-            results.append(CheckResult.success(
-                "All links are valid"
-            ))
+            results.append(CheckResult.success("All links are valid"))
 
         return results
-

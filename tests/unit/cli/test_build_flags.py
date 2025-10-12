@@ -14,7 +14,7 @@ class TestFlagValidation:
         """Test that --quiet and --verbose cannot be used together."""
         runner = CliRunner()
         with runner.isolated_filesystem():
-            result = runner.invoke(main, ['build', '--quiet', '--verbose', '.'])
+            result = runner.invoke(main, ["build", "--quiet", "--verbose", "."])
 
             assert result.exit_code != 0
             assert "--quiet and --verbose cannot be used together" in result.output
@@ -23,7 +23,7 @@ class TestFlagValidation:
         """Test that --quiet and --dev cannot be used together."""
         runner = CliRunner()
         with runner.isolated_filesystem():
-            result = runner.invoke(main, ['build', '--quiet', '--dev', '.'])
+            result = runner.invoke(main, ["build", "--quiet", "--dev", "."])
 
             assert result.exit_code != 0
             assert "--quiet cannot be used with --dev" in result.output
@@ -32,7 +32,7 @@ class TestFlagValidation:
         """Test that --quiet and --theme-dev cannot be used together."""
         runner = CliRunner()
         with runner.isolated_filesystem():
-            result = runner.invoke(main, ['build', '--quiet', '--theme-dev', '.'])
+            result = runner.invoke(main, ["build", "--quiet", "--theme-dev", "."])
 
             assert result.exit_code != 0
             assert "--quiet cannot be used with --dev or --theme-dev" in result.output
@@ -41,12 +41,9 @@ class TestFlagValidation:
         """Test that --memory-optimized and --perf-profile cannot be used together."""
         runner = CliRunner()
         with runner.isolated_filesystem():
-            result = runner.invoke(main, [
-                'build',
-                '--memory-optimized',
-                '--perf-profile', 'test.stats',
-                '.'
-            ])
+            result = runner.invoke(
+                main, ["build", "--memory-optimized", "--perf-profile", "test.stats", "."]
+            )
 
             assert result.exit_code != 0
             assert "cannot be used together" in result.output
@@ -57,10 +54,14 @@ class TestFlagValidation:
         runner = CliRunner()
         with runner.isolated_filesystem():
             # This will fail at site creation but should show the warning first
-            result = runner.invoke(main, ['build', '--memory-optimized', '--incremental', '.'])
+            result = runner.invoke(main, ["build", "--memory-optimized", "--incremental", "."])
 
             # Warning should appear in output
-            assert "Warning:" in result.output or "⚠️" in result.output or "warning" in result.output.lower()
+            assert (
+                "Warning:" in result.output
+                or "⚠️" in result.output
+                or "warning" in result.output.lower()
+            )
 
 
 class TestProfilePrecedence:
@@ -72,10 +73,7 @@ class TestProfilePrecedence:
         from bengal.utils.profile import BuildProfile
 
         profile = BuildProfile.from_cli_args(
-            dev=True,
-            theme_dev=True,
-            profile='writer',
-            verbose=True
+            dev=True, theme_dev=True, profile="writer", verbose=True
         )
 
         assert profile == BuildProfile.DEVELOPER
@@ -85,10 +83,7 @@ class TestProfilePrecedence:
         from bengal.utils.profile import BuildProfile
 
         profile = BuildProfile.from_cli_args(
-            dev=False,
-            theme_dev=True,
-            profile='writer',
-            verbose=False
+            dev=False, theme_dev=True, profile="writer", verbose=False
         )
 
         assert profile == BuildProfile.THEME_DEV
@@ -98,10 +93,7 @@ class TestProfilePrecedence:
         from bengal.utils.profile import BuildProfile
 
         profile = BuildProfile.from_cli_args(
-            profile='writer',
-            verbose=True,
-            dev=False,
-            theme_dev=False
+            profile="writer", verbose=True, dev=False, theme_dev=False
         )
 
         assert profile == BuildProfile.WRITER
@@ -110,12 +102,7 @@ class TestProfilePrecedence:
         """Test that --verbose maps to theme-dev profile."""
         from bengal.utils.profile import BuildProfile
 
-        profile = BuildProfile.from_cli_args(
-            verbose=True,
-            dev=False,
-            theme_dev=False,
-            profile=None
-        )
+        profile = BuildProfile.from_cli_args(verbose=True, dev=False, theme_dev=False, profile=None)
 
         assert profile == BuildProfile.THEME_DEV
 
@@ -124,11 +111,7 @@ class TestProfilePrecedence:
         from bengal.utils.profile import BuildProfile
 
         profile = BuildProfile.from_cli_args(
-            dev=False,
-            theme_dev=False,
-            verbose=False,
-            profile=None,
-            debug=False
+            dev=False, theme_dev=False, verbose=False, profile=None, debug=False
         )
 
         assert profile == BuildProfile.WRITER
@@ -147,8 +130,8 @@ class TestFlagPropagation:
         sig = inspect.signature(BuildOrchestrator.build)
         params = sig.parameters
 
-        assert 'quiet' in params
-        assert params['quiet'].default is False  # Should default to False
+        assert "quiet" in params
+        assert params["quiet"].default is False  # Should default to False
 
     def test_strict_flag_structure(self):
         """Test that strict parameter exists in build signature."""
@@ -159,8 +142,8 @@ class TestFlagPropagation:
         sig = inspect.signature(BuildOrchestrator.build)
         params = sig.parameters
 
-        assert 'strict' in params
-        assert params['strict'].default is False  # Should default to False
+        assert "strict" in params
+        assert params["strict"].default is False  # Should default to False
 
     def test_render_orchestrator_accepts_quiet(self):
         """Test that RenderOrchestrator.process accepts quiet parameter."""
@@ -171,8 +154,8 @@ class TestFlagPropagation:
         sig = inspect.signature(RenderOrchestrator.process)
         params = sig.parameters
 
-        assert 'quiet' in params
-        assert params['quiet'].default is False
+        assert "quiet" in params
+        assert params["quiet"].default is False
 
     def test_streaming_orchestrator_accepts_quiet(self):
         """Test that StreamingRenderOrchestrator.process accepts quiet parameter."""
@@ -183,8 +166,8 @@ class TestFlagPropagation:
         sig = inspect.signature(StreamingRenderOrchestrator.process)
         params = sig.parameters
 
-        assert 'quiet' in params
-        assert params['quiet'].default is False
+        assert "quiet" in params
+        assert params["quiet"].default is False
 
 
 class TestValidateFlag:
@@ -193,10 +176,10 @@ class TestValidateFlag:
     def test_validate_flag_exists(self):
         """Test that --validate flag is recognized."""
         runner = CliRunner()
-        result = runner.invoke(main, ['build', '--help'])
+        result = runner.invoke(main, ["build", "--help"])
 
-        assert '--validate' in result.output
-        assert 'Validate templates' in result.output or 'validate' in result.output.lower()
+        assert "--validate" in result.output
+        assert "Validate templates" in result.output or "validate" in result.output.lower()
 
     # Note: Full integration test would require a test site with templates
     # This is covered by integration tests
@@ -208,11 +191,10 @@ class TestStrictMode:
     def test_strict_flag_exists(self):
         """Test that --strict flag is recognized."""
         runner = CliRunner()
-        result = runner.invoke(main, ['build', '--help'])
+        result = runner.invoke(main, ["build", "--help"])
 
-        assert '--strict' in result.output
-        assert 'strict' in result.output.lower()
+        assert "--strict" in result.output
+        assert "strict" in result.output.lower()
 
     # Note: Full functionality test requires integration with health checks
     # This is covered by integration tests
-

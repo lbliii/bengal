@@ -73,7 +73,9 @@ class BengalPaths:
         return source_dir / ".bengal-build.log"
 
     @staticmethod
-    def get_profile_path(source_dir: Path, custom_path: Path | None = None, filename: str = "build_profile.stats") -> Path:
+    def get_profile_path(
+        source_dir: Path, custom_path: Path | None = None, filename: str = "build_profile.stats"
+    ) -> Path:
         """
         Get the path for a performance profile file.
 
@@ -118,4 +120,3 @@ class BengalPaths:
         cache_dir = output_dir / ".bengal-cache" / "templates"
         cache_dir.mkdir(parents=True, exist_ok=True)
         return cache_dir
-

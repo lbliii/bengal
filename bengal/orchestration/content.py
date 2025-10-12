@@ -26,7 +26,7 @@ class ContentOrchestrator:
         - Apply cascading frontmatter from sections to pages
     """
 
-    def __init__(self, site: 'Site'):
+    def __init__(self, site: "Site"):
         """
         Initialize content orchestrator.
 
@@ -65,9 +65,9 @@ class ContentOrchestrator:
         discovery = ContentDiscovery(content_dir)
         self.site.sections, self.site.pages = discovery.discover()
 
-        self.logger.debug("raw_content_discovered",
-                         pages=len(self.site.pages),
-                         sections=len(self.site.sections))
+        self.logger.debug(
+            "raw_content_discovered", pages=len(self.site.pages), sections=len(self.site.sections)
+        )
 
         # Set up page references for navigation
         self._setup_page_references()
@@ -79,8 +79,9 @@ class ContentOrchestrator:
 
         # Build cross-reference index for O(1) lookups
         self._build_xref_index()
-        self.logger.debug("xref_index_built",
-                         index_size=len(self.site.xref_index.get('by_path', {})))
+        self.logger.debug(
+            "xref_index_built", index_size=len(self.site.xref_index.get("by_path", {}))
+        )
 
     def discover_assets(self, assets_dir: Path | None = None) -> None:
         """
@@ -99,9 +100,9 @@ class ContentOrchestrator:
         if self.site.theme:
             theme_assets_dir = self._get_theme_assets_dir()
             if theme_assets_dir and theme_assets_dir.exists():
-                self.logger.debug("discovering_theme_assets",
-                                theme=self.site.theme,
-                                path=str(theme_assets_dir))
+                self.logger.debug(
+                    "discovering_theme_assets", theme=self.site.theme, path=str(theme_assets_dir)
+                )
                 theme_discovery = AssetDiscovery(theme_assets_dir)
                 theme_assets = theme_discovery.discover()
                 self.site.assets.extend(theme_assets)
@@ -121,10 +122,12 @@ class ContentOrchestrator:
             # Only warn if we have no theme assets either
             self.logger.warning("assets_dir_not_found", path=str(assets_dir))
 
-        self.logger.debug("assets_discovered",
-                         theme_assets=theme_asset_count,
-                         site_assets=site_asset_count,
-                         total=len(self.site.assets))
+        self.logger.debug(
+            "assets_discovered",
+            theme_assets=theme_asset_count,
+            site_assets=site_asset_count,
+            total=len(self.site.assets),
+        )
 
     def _setup_page_references(self) -> None:
         """
@@ -139,7 +142,7 @@ class ContentOrchestrator:
         for page in self.site.pages:
             page._site = self.site
             # Initialize _section to None for pages not yet assigned
-            if not hasattr(page, '_section'):
+            if not hasattr(page, "_section"):
                 page._section = None
 
         # Set section references
@@ -158,7 +161,7 @@ class ContentOrchestrator:
             # Recursively set for subsections
             self._setup_section_references(section)
 
-    def _setup_section_references(self, section: 'Section') -> None:
+    def _setup_section_references(self, section: "Section") -> None:
         """
         Recursively set up references for a section and its subsections.
 
@@ -205,11 +208,11 @@ class ContentOrchestrator:
         for page in self.site.pages:
             # Check if this is a top-level page (not in any section)
             is_top_level = not any(page in section.pages for section in self.site.sections)
-            if is_top_level and 'cascade' in page.metadata:
+            if is_top_level and "cascade" in page.metadata:
                 # Found root-level cascade - merge it
                 if root_cascade is None:
                     root_cascade = {}
-                root_cascade.update(page.metadata['cascade'])
+                root_cascade.update(page.metadata["cascade"])
 
         # Process all top-level sections with root cascade (they will recurse to subsections)
         for section in self.site.sections:
@@ -220,13 +223,14 @@ class ContentOrchestrator:
             for page in self.site.pages:
                 is_top_level = not any(page in section.pages for section in self.site.sections)
                 # Skip the page that defined the cascade itself
-                if is_top_level and 'cascade' not in page.metadata:
+                if is_top_level and "cascade" not in page.metadata:
                     for key, value in root_cascade.items():
                         if key not in page.metadata:
                             page.metadata[key] = value
 
-    def _apply_section_cascade(self, section: 'Section',
-                              parent_cascade: dict[str, Any] | None = None) -> None:
+    def _apply_section_cascade(
+        self, section: "Section", parent_cascade: dict[str, Any] | None = None
+    ) -> None:
         """
         Recursively apply cascade metadata to a section and its descendants.
 
@@ -243,9 +247,9 @@ class ContentOrchestrator:
         if parent_cascade:
             accumulated_cascade.update(parent_cascade)
 
-        if 'cascade' in section.metadata:
+        if "cascade" in section.metadata:
             # Section's cascade extends/overrides parent cascade
-            accumulated_cascade.update(section.metadata['cascade'])
+            accumulated_cascade.update(section.metadata["cascade"])
 
         # Apply accumulated cascade to all pages in this section
         # (but only for keys not already defined in page metadata)
@@ -274,10 +278,10 @@ class ContentOrchestrator:
         Thread-safe: Read-only after building, safe for parallel rendering
         """
         self.site.xref_index = {
-            'by_path': {},      # 'docs/getting-started' -> Page
-            'by_slug': {},      # 'getting-started' -> [Pages]
-            'by_id': {},        # Custom IDs from frontmatter -> Page
-            'by_heading': {},   # Heading text -> [(Page, anchor)]
+            "by_path": {},  # 'docs/getting-started' -> Page
+            "by_slug": {},  # 'getting-started' -> [Pages]
+            "by_id": {},  # Custom IDs from frontmatter -> Page
+            "by_heading": {},  # Heading text -> [(Page, anchor)]
         }
 
         content_dir = self.site.root_path / "content"
@@ -287,37 +291,37 @@ class ContentOrchestrator:
             try:
                 rel_path = page.source_path.relative_to(content_dir)
                 # Remove extension and normalize path separators
-                path_key = str(rel_path.with_suffix('')).replace('\\', '/')
+                path_key = str(rel_path.with_suffix("")).replace("\\", "/")
                 # Also handle _index.md -> directory path
-                if path_key.endswith('/_index'):
+                if path_key.endswith("/_index"):
                     path_key = path_key[:-7]  # Remove '/_index'
-                self.site.xref_index['by_path'][path_key] = page
+                self.site.xref_index["by_path"][path_key] = page
             except ValueError:
                 # Page is not relative to content_dir (e.g., generated page)
                 pass
 
             # Index by slug (multiple pages can have same slug)
-            if hasattr(page, 'slug') and page.slug:
-                self.site.xref_index['by_slug'].setdefault(page.slug, []).append(page)
+            if hasattr(page, "slug") and page.slug:
+                self.site.xref_index["by_slug"].setdefault(page.slug, []).append(page)
 
             # Index custom IDs from frontmatter
-            if 'id' in page.metadata:
-                ref_id = page.metadata['id']
-                self.site.xref_index['by_id'][ref_id] = page
+            if "id" in page.metadata:
+                ref_id = page.metadata["id"]
+                self.site.xref_index["by_id"][ref_id] = page
 
             # Index headings from TOC (for anchor links)
             # NOTE: This accesses toc_items BEFORE parsing (during discovery phase).
             # This is safe because toc_items property returns [] when toc is not set,
             # and importantly does NOT cache the empty result. After parsing, when
             # toc is set, the property will extract and cache the real structure.
-            if hasattr(page, 'toc_items') and page.toc_items:
+            if hasattr(page, "toc_items") and page.toc_items:
                 for toc_item in page.toc_items:
-                    heading_text = toc_item.get('title', '').lower()
-                    anchor_id = toc_item.get('id', '')
+                    heading_text = toc_item.get("title", "").lower()
+                    anchor_id = toc_item.get("id", "")
                     if heading_text and anchor_id:
-                        self.site.xref_index['by_heading'].setdefault(
-                            heading_text, []
-                        ).append((page, anchor_id))
+                        self.site.xref_index["by_heading"].setdefault(heading_text, []).append(
+                            (page, anchor_id)
+                        )
 
     def _get_theme_assets_dir(self) -> Path | None:
         """
@@ -336,10 +340,10 @@ class ContentOrchestrator:
 
         # Check in Bengal's bundled themes
         import bengal
+
         bengal_dir = Path(bengal.__file__).parent
         bundled_theme_dir = bengal_dir / "themes" / self.site.theme / "assets"
         if bundled_theme_dir.exists():
             return bundled_theme_dir
 
         return None
-

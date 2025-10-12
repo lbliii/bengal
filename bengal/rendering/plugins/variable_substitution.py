@@ -9,7 +9,7 @@ import re
 from re import Match
 from typing import Any
 
-__all__ = ['VariableSubstitutionPlugin']
+__all__ = ["VariableSubstitutionPlugin"]
 
 
 class VariableSubstitutionPlugin:
@@ -74,9 +74,9 @@ class VariableSubstitutionPlugin:
     - Clear separation: content (markdown) vs logic (templates)
     """
 
-    VARIABLE_PATTERN = re.compile(r'\{\{\s*([^}]+)\s*\}\}')
+    VARIABLE_PATTERN = re.compile(r"\{\{\s*([^}]+)\s*\}\}")
     # Capture everything between {{/* and */}} without stripping whitespace
-    ESCAPE_PATTERN = re.compile(r'\{\{/\*(.+?)\*/\}\}')
+    ESCAPE_PATTERN = re.compile(r"\{\{/\*(.+?)\*/\}\}")
 
     def __init__(self, context: dict[str, Any]):
         """
@@ -102,7 +102,7 @@ class VariableSubstitutionPlugin:
 
     def __call__(self, md):
         """Register the plugin with Mistune."""
-        if md.renderer and md.renderer.NAME == 'html':
+        if md.renderer and md.renderer.NAME == "html":
             # Store original text renderer
             original_text = md.renderer.text
 
@@ -149,7 +149,13 @@ class VariableSubstitutionPlugin:
             # If expression contains filter syntax (|), control flow ({%), or other
             # Jinja2 syntax, keep as literal {{ }} for documentation
             # This prevents docs showing "{{ text | filter }}" from being processed by Jinja2
-            if '|' in expr or '{%' in expr or expr.startswith('#') or ' if ' in expr or ' for ' in expr:
+            if (
+                "|" in expr
+                or "{%" in expr
+                or expr.startswith("#")
+                or " if " in expr
+                or " for " in expr
+            ):
                 # Keep as placeholder - will be restored after Mistune
                 placeholder = f"BENGALESCAPED{len(self.escaped_placeholders)}ENDESC"
                 self.escaped_placeholders[placeholder] = f"{{{{ {expr} }}}}"
@@ -197,7 +203,7 @@ class VariableSubstitutionPlugin:
         """
         for placeholder, literal in self.escaped_placeholders.items():
             # Convert {{ and }} to HTML entities so Jinja2 doesn't process them
-            html_escaped = literal.replace('{', '&#123;').replace('}', '&#125;')
+            html_escaped = literal.replace("{", "&#123;").replace("}", "&#125;")
             html = html.replace(placeholder, html_escaped)
         return html
 
@@ -217,7 +223,7 @@ class VariableSubstitutionPlugin:
             Exception: If evaluation fails
         """
         # Support simple dot notation: page.metadata.title
-        parts = expr.split('.')
+        parts = expr.split(".")
         result = self.context
 
         for part in parts:
@@ -231,4 +237,3 @@ class VariableSubstitutionPlugin:
                 raise ValueError(f"Cannot access '{part}' in expression '{expr}'")
 
         return result
-

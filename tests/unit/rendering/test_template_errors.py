@@ -23,9 +23,9 @@ class MockTemplateEngine:
         self.template_dirs = template_dirs or [Path("/tmp/templates")]
         self.env = Environment()
         # Add some mock filters
-        self.env.filters['markdown'] = lambda x: x
-        self.env.filters['dateformat'] = lambda x, y: x
-        self.env.filters['truncate'] = lambda x, y: x
+        self.env.filters["markdown"] = lambda x: x
+        self.env.filters["dateformat"] = lambda x, y: x
+        self.env.filters["truncate"] = lambda x, y: x
 
     def _find_template_path(self, template_name):
         """Find template path (mock)."""
@@ -47,7 +47,7 @@ class TestTemplateErrorContext:
             column=5,
             source_line="{{ page.title }}",
             surrounding_lines=[(9, "line 9"), (10, "line 10"), (11, "line 11")],
-            template_path=Path("/tmp/test.html")
+            template_path=Path("/tmp/test.html"),
         )
 
         assert context.template_name == "test.html"
@@ -74,11 +74,7 @@ class TestInclusionChain:
 
     def test_multiple_entries(self):
         """Test inclusion chain with multiple entries."""
-        chain = InclusionChain([
-            ("base.html", None),
-            ("page.html", 20),
-            ("partials/nav.html", 15)
-        ])
+        chain = InclusionChain([("base.html", None), ("page.html", 20), ("partials/nav.html", 15)])
 
         chain_str = str(chain)
         assert "base.html" in chain_str
@@ -95,19 +91,19 @@ class TestTemplateRenderError:
         """Test classification of syntax errors."""
         error = TemplateSyntaxError("Unexpected end of template", 1)
         error_type = TemplateRenderError._classify_error(error)
-        assert error_type == 'syntax'
+        assert error_type == "syntax"
 
     def test_error_classification_filter(self):
         """Test classification of filter errors."""
         error = TemplateAssertionError("No filter named 'unknown_filter'", 1)
         error_type = TemplateRenderError._classify_error(error)
-        assert error_type == 'filter'
+        assert error_type == "filter"
 
     def test_error_classification_undefined(self):
         """Test classification of undefined variable errors."""
         error = UndefinedError("'page' is undefined")
         error_type = TemplateRenderError._classify_error(error)
-        assert error_type == 'undefined'
+        assert error_type == "undefined"
 
     def test_from_jinja2_error_syntax(self):
         """Test creating rich error from Jinja2 syntax error."""
@@ -118,13 +114,10 @@ class TestTemplateRenderError:
         except TemplateSyntaxError as e:
             mock_engine = MockTemplateEngine()
             rich_error = TemplateRenderError.from_jinja2_error(
-                e,
-                "test.html",
-                Path("/tmp/content/page.md"),
-                mock_engine
+                e, "test.html", Path("/tmp/content/page.md"), mock_engine
             )
 
-            assert rich_error.error_type == 'syntax'
+            assert rich_error.error_type == "syntax"
             assert rich_error.message
             assert rich_error.template_context.template_name == "test.html"
             assert rich_error.page_source == Path("/tmp/content/page.md")
@@ -137,47 +130,38 @@ class TestTemplateRenderError:
         except TemplateAssertionError as e:
             mock_engine = MockTemplateEngine()
             rich_error = TemplateRenderError.from_jinja2_error(
-                e,
-                "test.html",
-                Path("/tmp/content/page.md"),
-                mock_engine
+                e, "test.html", Path("/tmp/content/page.md"), mock_engine
             )
 
-            assert rich_error.error_type == 'filter'
-            assert 'unknown_filter' in rich_error.message
+            assert rich_error.error_type == "filter"
+            assert "unknown_filter" in rich_error.message
 
     def test_suggestion_generation_filter(self):
         """Test generating suggestions for filter errors."""
         error = TemplateAssertionError("No filter named 'in_section'", 1)
         mock_engine = MockTemplateEngine()
 
-        suggestion = TemplateRenderError._generate_suggestion(
-            error, 'filter', mock_engine
-        )
+        suggestion = TemplateRenderError._generate_suggestion(error, "filter", mock_engine)
 
         assert suggestion is not None
-        assert 'page.parent' in suggestion
+        assert "page.parent" in suggestion
 
     def test_find_alternatives_filter(self):
         """Test finding alternative filters."""
         error = TemplateAssertionError("No filter named 'markdwn'", 1)
         mock_engine = MockTemplateEngine()
 
-        alternatives = TemplateRenderError._find_alternatives(
-            error, 'filter', mock_engine
-        )
+        alternatives = TemplateRenderError._find_alternatives(error, "filter", mock_engine)
 
         # Should suggest 'markdown' as it's similar
-        assert 'markdown' in alternatives
+        assert "markdown" in alternatives
 
     def test_find_alternatives_no_match(self):
         """Test finding alternatives when no close match."""
         error = TemplateAssertionError("No filter named 'xyz123'", 1)
         mock_engine = MockTemplateEngine()
 
-        alternatives = TemplateRenderError._find_alternatives(
-            error, 'filter', mock_engine
-        )
+        alternatives = TemplateRenderError._find_alternatives(error, "filter", mock_engine)
 
         # Should return empty or very poor matches
         assert len(alternatives) <= 3
@@ -189,55 +173,55 @@ class TestErrorDisplay:
     def test_display_template_error_basic(self, capsys):
         """Test basic error display."""
         error = TemplateRenderError(
-            error_type='syntax',
-            message='Test error message',
+            error_type="syntax",
+            message="Test error message",
             template_context=TemplateErrorContext(
-                template_name='test.html',
+                template_name="test.html",
                 line_number=10,
                 column=None,
-                source_line='{{ page.title }}',
+                source_line="{{ page.title }}",
                 surrounding_lines=[],
-                template_path=None
+                template_path=None,
             ),
             inclusion_chain=None,
             page_source=None,
             suggestion=None,
-            available_alternatives=[]
+            available_alternatives=[],
         )
 
         # This should not raise an exception
         display_template_error(error, use_color=False)
 
         captured = capsys.readouterr()
-        assert 'Template Syntax Error' in captured.out
-        assert 'test.html' in captured.out
-        assert 'Test error message' in captured.out
+        assert "Template Syntax Error" in captured.out
+        assert "test.html" in captured.out
+        assert "Test error message" in captured.out
 
     def test_display_with_suggestion(self, capsys):
         """Test error display with suggestion."""
         error = TemplateRenderError(
-            error_type='filter',
-            message='No filter named unknown_filter',
+            error_type="filter",
+            message="No filter named unknown_filter",
             template_context=TemplateErrorContext(
-                template_name='test.html',
+                template_name="test.html",
                 line_number=10,
                 column=None,
-                source_line='',
+                source_line="",
                 surrounding_lines=[],
-                template_path=None
+                template_path=None,
             ),
             inclusion_chain=None,
             page_source=None,
-            suggestion='Try using the markdown filter instead',
-            available_alternatives=['markdown', 'truncate']
+            suggestion="Try using the markdown filter instead",
+            available_alternatives=["markdown", "truncate"],
         )
 
         display_template_error(error, use_color=False)
 
         captured = capsys.readouterr()
-        assert 'Suggestion' in captured.out
-        assert 'Did you mean' in captured.out
-        assert 'markdown' in captured.out
+        assert "Suggestion" in captured.out
+        assert "Did you mean" in captured.out
+        assert "markdown" in captured.out
 
 
 class TestIntegration:
@@ -262,20 +246,16 @@ class TestIntegration:
             # Create rich error
             mock_engine = MockTemplateEngine(template_dirs=[tmp_path])
             rich_error = TemplateRenderError.from_jinja2_error(
-                e,
-                "broken.html",
-                tmp_path / "content" / "page.md",
-                mock_engine
+                e, "broken.html", tmp_path / "content" / "page.md", mock_engine
             )
 
             # Verify error properties
-            assert rich_error.error_type == 'syntax'
+            assert rich_error.error_type == "syntax"
             # Template name may be full path or just filename
             assert rich_error.template_context.template_name.endswith("broken.html")
             assert rich_error.template_context.line_number is not None
             assert rich_error.page_source == tmp_path / "content" / "page.md"
 
 
-if __name__ == '__main__':
-    pytest.main([__file__, '-v'])
-
+if __name__ == "__main__":
+    pytest.main([__file__, "-v"])

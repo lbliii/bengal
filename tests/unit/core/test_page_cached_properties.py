@@ -15,17 +15,17 @@ class TestPageMetaDescription:
         page = Page(
             source_path=tmp_path / "test.md",
             content="Some long content here that would be truncated",
-            metadata={'description': 'Custom description'}
+            metadata={"description": "Custom description"},
         )
 
-        assert page.meta_description == 'Custom description'
+        assert page.meta_description == "Custom description"
 
     def test_meta_description_from_content(self, tmp_path):
         """Description generated from content when not in metadata."""
         page = Page(
             source_path=tmp_path / "test.md",
             content="This is the content of the page with some text.",
-            metadata={}
+            metadata={},
         )
 
         desc = page.meta_description
@@ -37,7 +37,7 @@ class TestPageMetaDescription:
         page = Page(
             source_path=tmp_path / "test.md",
             content="<p>This is <strong>bold</strong> text.</p>",
-            metadata={}
+            metadata={},
         )
 
         assert page.meta_description == "This is bold text."
@@ -45,37 +45,25 @@ class TestPageMetaDescription:
     def test_meta_description_truncates_long_content(self, tmp_path):
         """Long content is truncated to 160 chars."""
         long_content = "This is a very long piece of content. " * 20
-        page = Page(
-            source_path=tmp_path / "test.md",
-            content=long_content,
-            metadata={}
-        )
+        page = Page(source_path=tmp_path / "test.md", content=long_content, metadata={})
 
         desc = page.meta_description
         assert len(desc) <= 160
         # Should end with sentence boundary (.) or word boundary (…)
-        assert desc.endswith('.') or desc.endswith('…')
+        assert desc.endswith(".") or desc.endswith("…")
 
     def test_meta_description_sentence_boundary(self, tmp_path):
         """Tries to end at sentence boundary."""
         content = "First sentence. Second sentence. Third sentence. " * 10
-        page = Page(
-            source_path=tmp_path / "test.md",
-            content=content,
-            metadata={}
-        )
+        page = Page(source_path=tmp_path / "test.md", content=content, metadata={})
 
         desc = page.meta_description
         # Should end at a sentence boundary (period)
-        assert desc.endswith('.') or desc.endswith('…')
+        assert desc.endswith(".") or desc.endswith("…")
 
     def test_meta_description_caching(self, tmp_path):
         """Result is cached after first access."""
-        page = Page(
-            source_path=tmp_path / "test.md",
-            content="Original content",
-            metadata={}
-        )
+        page = Page(source_path=tmp_path / "test.md", content="Original content", metadata={})
 
         # First access computes
         desc1 = page.meta_description
@@ -91,20 +79,14 @@ class TestPageMetaDescription:
 
     def test_meta_description_empty_content(self, tmp_path):
         """Empty content returns empty string."""
-        page = Page(
-            source_path=tmp_path / "test.md",
-            content="",
-            metadata={}
-        )
+        page = Page(source_path=tmp_path / "test.md", content="", metadata={})
 
-        assert page.meta_description == ''
+        assert page.meta_description == ""
 
     def test_meta_description_whitespace_normalization(self, tmp_path):
         """Multiple spaces are normalized."""
         page = Page(
-            source_path=tmp_path / "test.md",
-            content="This  has    multiple   spaces",
-            metadata={}
+            source_path=tmp_path / "test.md", content="This  has    multiple   spaces", metadata={}
         )
 
         assert page.meta_description == "This has multiple spaces"
@@ -119,21 +101,13 @@ class TestPageReadingTime:
         words = ["word"] * 400
         content = " ".join(words)
 
-        page = Page(
-            source_path=tmp_path / "test.md",
-            content=content,
-            metadata={}
-        )
+        page = Page(source_path=tmp_path / "test.md", content=content, metadata={})
 
         assert page.reading_time == 2
 
     def test_reading_time_minimum_one(self, tmp_path):
         """Minimum reading time is 1 minute."""
-        page = Page(
-            source_path=tmp_path / "test.md",
-            content="Just a few words",
-            metadata={}
-        )
+        page = Page(source_path=tmp_path / "test.md", content="Just a few words", metadata={})
 
         assert page.reading_time >= 1
 
@@ -142,7 +116,7 @@ class TestPageReadingTime:
         page = Page(
             source_path=tmp_path / "test.md",
             content="<p>This is <strong>bold</strong> text.</p>",
-            metadata={}
+            metadata={},
         )
 
         # Should count 4 words (HTML tags stripped)
@@ -154,11 +128,7 @@ class TestPageReadingTime:
         words = ["word"] * 250
         content = " ".join(words)
 
-        page = Page(
-            source_path=tmp_path / "test.md",
-            content=content,
-            metadata={}
-        )
+        page = Page(source_path=tmp_path / "test.md", content=content, metadata={})
 
         assert page.reading_time == 1
 
@@ -166,21 +136,13 @@ class TestPageReadingTime:
         words = ["word"] * 350
         content = " ".join(words)
 
-        page2 = Page(
-            source_path=tmp_path / "test2.md",
-            content=content,
-            metadata={}
-        )
+        page2 = Page(source_path=tmp_path / "test2.md", content=content, metadata={})
 
         assert page2.reading_time == 2
 
     def test_reading_time_caching(self, tmp_path):
         """Result is cached after first access."""
-        page = Page(
-            source_path=tmp_path / "test.md",
-            content=" ".join(["word"] * 400),
-            metadata={}
-        )
+        page = Page(source_path=tmp_path / "test.md", content=" ".join(["word"] * 400), metadata={})
 
         # First access computes
         time1 = page.reading_time
@@ -195,11 +157,7 @@ class TestPageReadingTime:
 
     def test_reading_time_empty_content(self, tmp_path):
         """Empty content returns 1 minute."""
-        page = Page(
-            source_path=tmp_path / "test.md",
-            content="",
-            metadata={}
-        )
+        page = Page(source_path=tmp_path / "test.md", content="", metadata={})
 
         assert page.reading_time == 1
 
@@ -209,22 +167,14 @@ class TestPageExcerpt:
 
     def test_excerpt_short_content(self, tmp_path):
         """Short content is returned as-is."""
-        page = Page(
-            source_path=tmp_path / "test.md",
-            content="Short content here.",
-            metadata={}
-        )
+        page = Page(source_path=tmp_path / "test.md", content="Short content here.", metadata={})
 
         assert page.excerpt == "Short content here."
 
     def test_excerpt_long_content_truncated(self, tmp_path):
         """Long content is truncated to 200 chars."""
         long_content = "This is a long piece of content. " * 20
-        page = Page(
-            source_path=tmp_path / "test.md",
-            content=long_content,
-            metadata={}
-        )
+        page = Page(source_path=tmp_path / "test.md", content=long_content, metadata={})
 
         excerpt = page.excerpt
         assert len(excerpt) <= 203  # 200 + "..."
@@ -235,7 +185,7 @@ class TestPageExcerpt:
         page = Page(
             source_path=tmp_path / "test.md",
             content="<p>This is <strong>bold</strong> text.</p>",
-            metadata={}
+            metadata={},
         )
 
         assert page.excerpt == "This is bold text."
@@ -244,11 +194,7 @@ class TestPageExcerpt:
         """Respects word boundaries (doesn't cut words)."""
         # Create content that would normally be cut mid-word
         content = "A" * 195 + " word that would be cut"
-        page = Page(
-            source_path=tmp_path / "test.md",
-            content=content,
-            metadata={}
-        )
+        page = Page(source_path=tmp_path / "test.md", content=content, metadata={})
 
         excerpt = page.excerpt
         # Should not cut the word "that"
@@ -257,11 +203,7 @@ class TestPageExcerpt:
 
     def test_excerpt_caching(self, tmp_path):
         """Result is cached after first access."""
-        page = Page(
-            source_path=tmp_path / "test.md",
-            content="Original content here",
-            metadata={}
-        )
+        page = Page(source_path=tmp_path / "test.md", content="Original content here", metadata={})
 
         # First access computes
         excerpt1 = page.excerpt
@@ -277,13 +219,9 @@ class TestPageExcerpt:
 
     def test_excerpt_empty_content(self, tmp_path):
         """Empty content returns empty string."""
-        page = Page(
-            source_path=tmp_path / "test.md",
-            content="",
-            metadata={}
-        )
+        page = Page(source_path=tmp_path / "test.md", content="", metadata={})
 
-        assert page.excerpt == ''
+        assert page.excerpt == ""
 
 
 class TestCachedPropertiesIntegration:
@@ -291,16 +229,8 @@ class TestCachedPropertiesIntegration:
 
     def test_multiple_pages_independent_caches(self, tmp_path):
         """Each page has its own independent cache."""
-        page1 = Page(
-            source_path=tmp_path / "page1.md",
-            content="Content for page one",
-            metadata={}
-        )
-        page2 = Page(
-            source_path=tmp_path / "page2.md",
-            content="Content for page two",
-            metadata={}
-        )
+        page1 = Page(source_path=tmp_path / "page1.md", content="Content for page one", metadata={})
+        page2 = Page(source_path=tmp_path / "page2.md", content="Content for page two", metadata={})
 
         desc1 = page1.meta_description
         desc2 = page2.meta_description
@@ -311,11 +241,7 @@ class TestCachedPropertiesIntegration:
 
     def test_cached_properties_persist_across_accesses(self, tmp_path):
         """Cached properties can be accessed multiple times efficiently."""
-        page = Page(
-            source_path=tmp_path / "test.md",
-            content="Test content",
-            metadata={}
-        )
+        page = Page(source_path=tmp_path / "test.md", content="Test content", metadata={})
 
         # Access each property multiple times
         for _ in range(5):
@@ -329,11 +255,7 @@ class TestCachedPropertiesIntegration:
     def test_all_cached_properties_together(self, tmp_path):
         """All three cached properties work together."""
         content = "This is test content. " * 50
-        page = Page(
-            source_path=tmp_path / "test.md",
-            content=content,
-            metadata={}
-        )
+        page = Page(source_path=tmp_path / "test.md", content=content, metadata={})
 
         # All should be computable
         desc = page.meta_description
@@ -348,4 +270,3 @@ class TestCachedPropertiesIntegration:
         assert page.meta_description is desc
         assert page.reading_time is time
         assert page.excerpt is excerpt
-

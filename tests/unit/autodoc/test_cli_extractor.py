@@ -22,9 +22,9 @@ def sample_cli():
 
 
 @sample_cli.command()
-@click.argument('filename', type=click.Path())
-@click.option('--verbose', '-v', is_flag=True, help='Enable verbose output')
-@click.option('--count', '-c', type=int, default=1, help='Number of times to process')
+@click.argument("filename", type=click.Path())
+@click.option("--verbose", "-v", is_flag=True, help="Enable verbose output")
+@click.option("--count", "-c", type=int, default=1, help="Number of times to process")
 def process(filename, verbose, count):
     """
     Process a file.
@@ -35,7 +35,7 @@ def process(filename, verbose, count):
 
 
 @sample_cli.command()
-@click.option('--force', '-f', is_flag=True, help='Force the operation')
+@click.option("--force", "-f", is_flag=True, help="Force the operation")
 def clean(force):
     """
     Clean up resources.
@@ -57,8 +57,8 @@ def manage():
 
 
 @manage.command()
-@click.argument('name')
-@click.option('--description', '-d', help='Resource description')
+@click.argument("name")
+@click.option("--description", "-d", help="Resource description")
 def create(name, description):
     """
     Create a new resource.
@@ -69,8 +69,8 @@ def create(name, description):
 
 
 @manage.command()
-@click.argument('name')
-@click.option('--force', '-f', is_flag=True, help='Force deletion')
+@click.argument("name")
+@click.option("--force", "-f", is_flag=True, help="Force deletion")
 def delete(name, force):
     """
     Delete a resource.
@@ -94,9 +94,9 @@ class TestCLIExtractor:
         root = elements[0]
 
         # Click normalizes names to use dashes
-        assert root.name == 'sample-cli'
-        assert root.element_type == 'command-group'
-        assert 'sample CLI application' in root.description
+        assert root.name == "sample-cli"
+        assert root.element_type == "command-group"
+        assert "sample CLI application" in root.description
         assert len(root.children) == 3  # process, clean, and manage commands
 
     def test_extract_commands(self):
@@ -107,9 +107,9 @@ class TestCLIExtractor:
         root = elements[0]
         command_names = [child.name for child in root.children]
 
-        assert 'process' in command_names
-        assert 'clean' in command_names
-        assert 'manage' in command_names
+        assert "process" in command_names
+        assert "clean" in command_names
+        assert "manage" in command_names
 
     def test_extract_command_with_arguments(self):
         """Test extracting a command with arguments."""
@@ -117,15 +117,15 @@ class TestCLIExtractor:
         elements = extractor.extract(sample_cli)
 
         root = elements[0]
-        process_cmd = [c for c in root.children if c.name == 'process'][0]
+        process_cmd = [c for c in root.children if c.name == "process"][0]
 
-        assert process_cmd.element_type == 'command'
-        assert 'Process a file' in process_cmd.description
+        assert process_cmd.element_type == "command"
+        assert "Process a file" in process_cmd.description
 
         # Check for filename argument
         params = process_cmd.children
         arg_names = [p.name for p in params]
-        assert 'filename' in arg_names
+        assert "filename" in arg_names
 
     def test_extract_command_with_options(self):
         """Test extracting a command with options."""
@@ -133,14 +133,18 @@ class TestCLIExtractor:
         elements = extractor.extract(sample_cli)
 
         root = elements[0]
-        process_cmd = [c for c in root.children if c.name == 'process'][0]
+        process_cmd = [c for c in root.children if c.name == "process"][0]
 
         # Check for options
         params = process_cmd.children
-        option_names = [p.name for p in params if p.element_type == 'option']
+        option_names = [p.name for p in params if p.element_type == "option"]
 
-        assert 'verbose' in option_names or '--verbose' in [p.metadata.get('names', [''])[0] for p in params]
-        assert 'count' in option_names or '--count' in [p.metadata.get('names', [''])[0] for p in params]
+        assert "verbose" in option_names or "--verbose" in [
+            p.metadata.get("names", [""])[0] for p in params
+        ]
+        assert "count" in option_names or "--count" in [
+            p.metadata.get("names", [""])[0] for p in params
+        ]
 
     def test_extract_parameter_metadata(self):
         """Test that parameter metadata is extracted."""
@@ -148,17 +152,17 @@ class TestCLIExtractor:
         elements = extractor.extract(sample_cli)
 
         root = elements[0]
-        process_cmd = [c for c in root.children if c.name == 'process'][0]
+        process_cmd = [c for c in root.children if c.name == "process"][0]
 
         # Find the count option
-        count_params = [p for p in process_cmd.children if 'count' in p.name.lower()]
+        count_params = [p for p in process_cmd.children if "count" in p.name.lower()]
 
         if count_params:
             count_param = count_params[0]
-            assert 'type' in count_param.metadata
-            assert 'default' in count_param.metadata
+            assert "type" in count_param.metadata
+            assert "default" in count_param.metadata
             # Default values are stored as strings
-            assert count_param.metadata['default'] == '1' or count_param.metadata['default'] == 1
+            assert count_param.metadata["default"] == "1" or count_param.metadata["default"] == 1
 
     def test_sanitizes_descriptions(self):
         """Test that descriptions are sanitized (no leading indentation)."""
@@ -168,12 +172,12 @@ class TestCLIExtractor:
         root = elements[0]
 
         # Description should not have leading spaces
-        assert not root.description.startswith(' ')
-        assert not root.description.startswith('\n')
+        assert not root.description.startswith(" ")
+        assert not root.description.startswith("\n")
 
         # Commands should also have sanitized descriptions
         for cmd in root.children:
-            assert not cmd.description.startswith(' ')
+            assert not cmd.description.startswith(" ")
 
     def test_qualified_names(self):
         """Test that qualified names are built correctly."""
@@ -182,15 +186,15 @@ class TestCLIExtractor:
 
         root = elements[0]
         # Click normalizes names to use dashes
-        assert root.qualified_name == 'sample-cli'
+        assert root.qualified_name == "sample-cli"
 
-        process_cmd = [c for c in root.children if c.name == 'process'][0]
-        assert process_cmd.qualified_name == 'sample-cli.process'
+        process_cmd = [c for c in root.children if c.name == "process"][0]
+        assert process_cmd.qualified_name == "sample-cli.process"
 
     def test_get_template_dir(self):
         """Test that template directory is correct."""
         extractor = CLIExtractor()
-        assert extractor.get_template_dir() == 'cli'
+        assert extractor.get_template_dir() == "cli"
 
     def test_get_output_path(self):
         """Test that output paths are generated correctly."""
@@ -198,15 +202,12 @@ class TestCLIExtractor:
 
         # Mock element
         element = DocElement(
-            name='process',
-            qualified_name='cli.process',
-            description='Test',
-            element_type='command'
+            name="process", qualified_name="cli.process", description="Test", element_type="command"
         )
 
         path = extractor.get_output_path(element)
-        assert 'process' in str(path)
-        assert str(path).endswith('.md')
+        assert "process" in str(path)
+        assert str(path).endswith(".md")
 
 
 class TestCLIExtractorEdgeCases:
@@ -214,6 +215,7 @@ class TestCLIExtractorEdgeCases:
 
     def test_extract_command_without_docstring(self):
         """Test extracting a command without a docstring."""
+
         @click.command()
         def undocumented():
             pass
@@ -223,12 +225,13 @@ class TestCLIExtractorEdgeCases:
 
         assert len(elements) == 1
         cmd = elements[0]
-        assert cmd.description == ''  # Empty, not None
+        assert cmd.description == ""  # Empty, not None
 
     def test_extract_argument_without_help(self):
         """Test extracting an argument (which has no help attribute)."""
+
         @click.command()
-        @click.argument('name')
+        @click.argument("name")
         def cmd_with_arg(name):
             """Command with argument."""
             pass
@@ -239,23 +242,30 @@ class TestCLIExtractorEdgeCases:
         # Single command gets treated as top-level element
         assert len(elements) >= 1
         # First element could be either the command itself or a wrapper group
-        cmd = elements[0] if elements[0].element_type == 'command' else elements[1] if len(elements) > 1 else elements[0]
+        cmd = (
+            elements[0]
+            if elements[0].element_type == "command"
+            else elements[1]
+            if len(elements) > 1
+            else elements[0]
+        )
 
         # If it's a group with no children, skip test (framework limitation)
-        if cmd.element_type == 'command-group' and not cmd.children:
+        if cmd.element_type == "command-group" and not cmd.children:
             pytest.skip("Single command without group wrapper")
 
-        args = [p for p in cmd.children if p.element_type == 'argument']
+        args = [p for p in cmd.children if p.element_type == "argument"]
 
         assert len(args) == 1
-        assert args[0].name == 'name'
+        assert args[0].name == "name"
         # Description should be empty string, not cause error
         assert isinstance(args[0].description, str)
 
     def test_extract_hidden_option(self):
         """Test that hidden options can be tracked."""
+
         @click.command()
-        @click.option('--hidden', hidden=True, help='Hidden option')
+        @click.option("--hidden", hidden=True, help="Hidden option")
         def cmd_with_hidden(hidden):
             """Command with hidden option."""
             pass
@@ -266,10 +276,16 @@ class TestCLIExtractorEdgeCases:
         # Single command gets treated as top-level element
         assert len(elements) >= 1
         # First element could be either the command itself or a wrapper group
-        cmd = elements[0] if elements[0].element_type == 'command' else elements[1] if len(elements) > 1 else elements[0]
+        cmd = (
+            elements[0]
+            if elements[0].element_type == "command"
+            else elements[1]
+            if len(elements) > 1
+            else elements[0]
+        )
 
         # If it's a group with no children, skip test (framework limitation)
-        if cmd.element_type == 'command-group' and not cmd.children:
+        if cmd.element_type == "command-group" and not cmd.children:
             pytest.skip("Single command without group wrapper")
 
         # By default extracts all options
@@ -286,8 +302,8 @@ class TestCLIExtractorMetadata:
         elements = extractor.extract(sample_cli)
 
         root = elements[0]
-        assert 'command_count' in root.metadata
-        assert root.metadata['command_count'] == 3  # process + clean + manage
+        assert "command_count" in root.metadata
+        assert root.metadata["command_count"] == 3  # process + clean + manage
 
     def test_parameter_type_metadata(self):
         """Test that parameter types are extracted."""
@@ -295,12 +311,12 @@ class TestCLIExtractorMetadata:
         elements = extractor.extract(sample_cli)
 
         root = elements[0]
-        process_cmd = [c for c in root.children if c.name == 'process'][0]
+        process_cmd = [c for c in root.children if c.name == "process"][0]
 
         # Check parameter types
         for param in process_cmd.children:
-            assert 'type' in param.metadata
-            assert 'param_type' in param.metadata
+            assert "type" in param.metadata
+            assert "param_type" in param.metadata
 
 
 class TestNestedCommandGroups:
@@ -312,19 +328,21 @@ class TestNestedCommandGroups:
         elements = extractor.extract(sample_cli)
 
         # Should have the main group + nested group in the flattened list
-        group_names = [e.name for e in elements if e.element_type == 'command-group']
+        group_names = [e.name for e in elements if e.element_type == "command-group"]
         # Click normalizes names to use dashes
-        assert 'sample-cli' in group_names
-        assert 'manage' in group_names
+        assert "sample-cli" in group_names
+        assert "manage" in group_names
 
     def test_nested_group_has_correct_parent(self):
         """Test that nested groups have correct qualified names."""
         extractor = CLIExtractor()
         elements = extractor.extract(sample_cli)
 
-        manage_group = [e for e in elements if e.name == 'manage' and e.element_type == 'command-group'][0]
+        manage_group = [
+            e for e in elements if e.name == "manage" and e.element_type == "command-group"
+        ][0]
         # Click normalizes names to use dashes
-        assert manage_group.qualified_name == 'sample-cli.manage'
+        assert manage_group.qualified_name == "sample-cli.manage"
 
     def test_nested_group_subcommands_are_extracted(self):
         """Test that subcommands of nested groups are extracted."""
@@ -332,21 +350,21 @@ class TestNestedCommandGroups:
         elements = extractor.extract(sample_cli)
 
         # Should have create and delete commands in the flattened list
-        command_names = [e.name for e in elements if e.element_type == 'command']
-        assert 'create' in command_names
-        assert 'delete' in command_names
+        command_names = [e.name for e in elements if e.element_type == "command"]
+        assert "create" in command_names
+        assert "delete" in command_names
 
     def test_nested_subcommand_qualified_names(self):
         """Test that nested subcommands have correct qualified names."""
         extractor = CLIExtractor()
         elements = extractor.extract(sample_cli)
 
-        create_cmd = [e for e in elements if e.name == 'create'][0]
-        delete_cmd = [e for e in elements if e.name == 'delete'][0]
+        create_cmd = [e for e in elements if e.name == "create"][0]
+        delete_cmd = [e for e in elements if e.name == "delete"][0]
 
         # Click normalizes names to use dashes
-        assert create_cmd.qualified_name == 'sample-cli.manage.create'
-        assert delete_cmd.qualified_name == 'sample-cli.manage.delete'
+        assert create_cmd.qualified_name == "sample-cli.manage.create"
+        assert delete_cmd.qualified_name == "sample-cli.manage.delete"
 
     def test_nested_group_children_in_hierarchy(self):
         """Test that nested group contains its children in the hierarchy."""
@@ -355,15 +373,15 @@ class TestNestedCommandGroups:
 
         # Root should have manage as a child
         root = elements[0]
-        manage_in_root = [c for c in root.children if c.name == 'manage']
+        manage_in_root = [c for c in root.children if c.name == "manage"]
         assert len(manage_in_root) == 1
 
         # Manage group should have create and delete as children
         manage_group = manage_in_root[0]
-        assert manage_group.element_type == 'command-group'
+        assert manage_group.element_type == "command-group"
         child_names = [c.name for c in manage_group.children]
-        assert 'create' in child_names
-        assert 'delete' in child_names
+        assert "create" in child_names
+        assert "delete" in child_names
 
     def test_flattened_elements_count(self):
         """Test that all elements are flattened correctly."""
@@ -389,7 +407,9 @@ class TestNestedCommandGroups:
         assert extractor.get_output_path(root) == Path("index.md")
 
         # Nested group should go to commands/{name}.md
-        manage_group = [e for e in elements if e.name == 'manage' and e.element_type == 'command-group'][0]
+        manage_group = [
+            e for e in elements if e.name == "manage" and e.element_type == "command-group"
+        ][0]
         assert extractor.get_output_path(manage_group) == Path("commands/manage.md")
 
     def test_nested_subcommand_output_path(self):
@@ -397,9 +417,8 @@ class TestNestedCommandGroups:
         extractor = CLIExtractor()
         elements = extractor.extract(sample_cli)
 
-        create_cmd = [e for e in elements if e.name == 'create'][0]
-        delete_cmd = [e for e in elements if e.name == 'delete'][0]
+        create_cmd = [e for e in elements if e.name == "create"][0]
+        delete_cmd = [e for e in elements if e.name == "delete"][0]
 
         assert extractor.get_output_path(create_cmd) == Path("commands/create.md")
         assert extractor.get_output_path(delete_cmd) == Path("commands/delete.md")
-

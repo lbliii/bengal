@@ -13,9 +13,7 @@ type DateLike = datetime | date_type | str | None
 
 
 def parse_date(
-    value: DateLike,
-    formats: list[str] | None = None,
-    on_error: str = 'return_none'
+    value: DateLike, formats: list[str] | None = None, on_error: str = "return_none"
 ) -> datetime | None:
     """
     Parse various date formats into datetime.
@@ -61,7 +59,7 @@ def parse_date(
         # Try ISO format first (most common)
         try:
             # Handle 'Z' timezone suffix
-            return datetime.fromisoformat(value.replace('Z', '+00:00'))
+            return datetime.fromisoformat(value.replace("Z", "+00:00"))
         except (ValueError, AttributeError):
             pass
 
@@ -75,14 +73,14 @@ def parse_date(
 
         # Try common formats
         default_formats = [
-            '%Y-%m-%d',           # 2025-10-09
-            '%Y/%m/%d',           # 2025/10/09
-            '%d-%m-%Y',           # 09-10-2025
-            '%d/%m/%Y',           # 09/10/2025
-            '%B %d, %Y',          # October 09, 2025
-            '%b %d, %Y',          # Oct 09, 2025
-            '%Y-%m-%d %H:%M:%S',  # 2025-10-09 14:30:00
-            '%Y/%m/%d %H:%M:%S',  # 2025/10/09 14:30:00
+            "%Y-%m-%d",  # 2025-10-09
+            "%Y/%m/%d",  # 2025/10/09
+            "%d-%m-%Y",  # 09-10-2025
+            "%d/%m/%Y",  # 09/10/2025
+            "%B %d, %Y",  # October 09, 2025
+            "%b %d, %Y",  # Oct 09, 2025
+            "%Y-%m-%d %H:%M:%S",  # 2025-10-09 14:30:00
+            "%Y/%m/%d %H:%M:%S",  # 2025/10/09 14:30:00
         ]
 
         for fmt in default_formats:
@@ -92,9 +90,9 @@ def parse_date(
                 continue
 
     # Couldn't parse
-    if on_error == 'raise':
+    if on_error == "raise":
         raise ValueError(f"Could not parse date from: {value!r}")
-    elif on_error == 'return_original':
+    elif on_error == "return_original":
         return value  # type: ignore
     else:  # 'return_none'
         return None
@@ -119,7 +117,7 @@ def format_date_iso(date: DateLike) -> str:
         '2025-10-09T00:00:00'
     """
     dt = parse_date(date)
-    return dt.isoformat() if dt else ''
+    return dt.isoformat() if dt else ""
 
 
 def format_date_rfc822(date: DateLike) -> str:
@@ -139,13 +137,10 @@ def format_date_rfc822(date: DateLike) -> str:
         'Thu, 09 Oct 2025 14:30:00 '
     """
     dt = parse_date(date)
-    return dt.strftime("%a, %d %b %Y %H:%M:%S %z") if dt else ''
+    return dt.strftime("%a, %d %b %Y %H:%M:%S %z") if dt else ""
 
 
-def format_date_human(
-    date: DateLike,
-    format: str = '%B %d, %Y'
-) -> str:
+def format_date_human(date: DateLike, format: str = "%B %d, %Y") -> str:
     """
     Format date in human-readable format.
 
@@ -165,7 +160,7 @@ def format_date_human(
         '2025-10-09'
     """
     dt = parse_date(date)
-    return dt.strftime(format) if dt else ''
+    return dt.strftime(format) if dt else ""
 
 
 def time_ago(date: DateLike, now: datetime | None = None) -> str:
@@ -191,7 +186,7 @@ def time_ago(date: DateLike, now: datetime | None = None) -> str:
     """
     dt = parse_date(date)
     if not dt:
-        return ''
+        return ""
 
     # Determine current time with timezone awareness matching the input
     if now is None:
@@ -241,11 +236,7 @@ def get_current_year() -> int:
     return datetime.now().year
 
 
-def is_recent(
-    date: DateLike,
-    days: int = 7,
-    now: datetime | None = None
-) -> bool:
+def is_recent(date: DateLike, days: int = 7, now: datetime | None = None) -> bool:
     """
     Check if date is recent (within specified days).
 
@@ -274,12 +265,7 @@ def is_recent(
     return 0 <= diff.days <= days
 
 
-def date_range_overlap(
-    start1: DateLike,
-    end1: DateLike,
-    start2: DateLike,
-    end2: DateLike
-) -> bool:
+def date_range_overlap(start1: DateLike, end1: DateLike, start2: DateLike, end2: DateLike) -> bool:
     """
     Check if two date ranges overlap.
 
@@ -307,4 +293,3 @@ def date_range_overlap(
         return False
 
     return dt_start1 <= dt_end2 and dt_start2 <= dt_end1  # type: ignore
-

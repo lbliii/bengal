@@ -31,9 +31,7 @@ class LinkValidator:
             List of broken link URLs
         """
         logger.debug(
-            "validating_page_links",
-            page=str(page.source_path),
-            link_count=len(page.links)
+            "validating_page_links", page=str(page.source_path), link_count=len(page.links)
         )
 
         broken = []
@@ -48,7 +46,7 @@ class LinkValidator:
                 "found_broken_links_in_page",
                 page=str(page.source_path),
                 broken_count=len(broken),
-                broken_links=broken[:5]
+                broken_links=broken[:5],
             )
 
         return broken
@@ -63,10 +61,7 @@ class LinkValidator:
         Returns:
             List of (page_path, broken_link) tuples
         """
-        logger.debug(
-            "validating_site_links",
-            page_count=len(site.pages)
-        )
+        logger.debug("validating_site_links", page_count=len(site.pages))
 
         self.broken_links = []
 
@@ -79,13 +74,13 @@ class LinkValidator:
                 "found_broken_links",
                 total_broken=len(self.broken_links),
                 pages_affected=pages_affected,
-                sample_links=[(str(p), link) for p, link in self.broken_links[:10]]
+                sample_links=[(str(p), link) for p, link in self.broken_links[:10]],
             )
         else:
             logger.debug(
                 "link_validation_complete",
                 total_links_checked=len(self.validated_urls),
-                broken_links=0
+                broken_links=0,
             )
 
         return self.broken_links
@@ -102,16 +97,16 @@ class LinkValidator:
             True if link is valid, False otherwise
         """
         # Skip external links (http/https)
-        if link.startswith(('http://', 'https://', 'mailto:', 'tel:', '#')):
+        if link.startswith(("http://", "https://", "mailto:", "tel:", "#")):
             logger.debug(
                 "skipping_external_link",
                 link=link[:100],
-                type="external" if link.startswith('http') else "special"
+                type="external" if link.startswith("http") else "special",
             )
             return True
 
         # Skip data URLs
-        if link.startswith('data:'):
+        if link.startswith("data:"):
             return True
 
         # Check if it's a relative link to another page
@@ -125,11 +120,7 @@ class LinkValidator:
         # 3. Handle anchors (#sections)
 
         logger.debug(
-            "validating_internal_link",
-            link=link,
-            page=str(page.source_path),
-            result="valid"
+            "validating_internal_link", link=link, page=str(page.source_path), result="valid"
         )
 
         return True
-

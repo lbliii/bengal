@@ -117,8 +117,9 @@ Meta descriptions:
         # Extract just the body content to check for escape markers
         # Meta tags may contain raw markdown (that's OK), but the body should be clean
         from bs4 import BeautifulSoup
-        soup = BeautifulSoup(output_content, 'html.parser')
-        body_content = soup.find('body')
+
+        soup = BeautifulSoup(output_content, "html.parser")
+        body_content = soup.find("body")
         if body_content:
             body_text = str(body_content)
             # Escape markers should NOT be in visible page body
@@ -183,7 +184,7 @@ Use {{/* content | meta_description(160) */}} for meta tags.
 
         # Verify all pages built
         for filename in pages_content:
-            output_file = site_dir / "public" / "docs" / filename.replace('.md', '') / "index.html"
+            output_file = site_dir / "public" / "docs" / filename.replace(".md", "") / "index.html"
             assert output_file.exists(), f"{filename} was not built"
 
     def test_mixed_real_and_example_variables(self, tmp_path):
@@ -279,4 +280,3 @@ parser = "mistune"
     # Cleanup
     if site_dir.exists():
         shutil.rmtree(site_dir)
-

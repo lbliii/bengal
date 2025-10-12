@@ -52,7 +52,7 @@ def connected_site():
     site.pages = all_pages
     site.sections = []
     site.menus = {}
-    site.config = {'taxonomies': {}}
+    site.config = {"taxonomies": {}}
 
     # Build graph with bridge structure
     graph = KnowledgeGraph(site)
@@ -120,7 +120,9 @@ class TestPathAnalysisIntegration:
         bridge_betweenness = results.get_betweenness(bridge)
 
         # Bridge betweenness should be higher than most pages
-        avg_betweenness = sum(results.betweenness_centrality.values()) / len(results.betweenness_centrality)
+        avg_betweenness = sum(results.betweenness_centrality.values()) / len(
+            results.betweenness_centrality
+        )
         assert bridge_betweenness > avg_betweenness
 
     def test_identify_accessible_pages(self, connected_site):
@@ -133,7 +135,9 @@ class TestPathAnalysisIntegration:
         hub_closeness = results.get_closeness(hub)
 
         # Hub should be more accessible than average
-        avg_closeness = sum(results.closeness_centrality.values()) / len(results.closeness_centrality)
+        avg_closeness = sum(results.closeness_centrality.values()) / len(
+            results.closeness_centrality
+        )
         assert hub_closeness > avg_closeness
 
     def test_path_analysis_caching(self, connected_site):
@@ -245,7 +249,7 @@ class TestPathAnalysisScalability:
         site.pages = all_pages
         site.sections = []
         site.menus = {}
-        site.config = {'taxonomies': {}}
+        site.config = {"taxonomies": {}}
 
         # Build graph with connections
         graph = KnowledgeGraph(site)
@@ -277,7 +281,9 @@ class TestPathAnalysisScalability:
 
         # Bridge pages (first in each group) should have higher betweenness
         bridge_pages = [group[0] for group in groups]
-        avg_betweenness = sum(results.betweenness_centrality.values()) / len(results.betweenness_centrality)
+        avg_betweenness = sum(results.betweenness_centrality.values()) / len(
+            results.betweenness_centrality
+        )
 
         for bridge in bridge_pages:
             assert results.betweenness_centrality[bridge] >= avg_betweenness
@@ -286,15 +292,14 @@ class TestPathAnalysisScalability:
         """Test path analysis on sparse graph (few connections)."""
         # Create 20 pages with minimal connections
         pages = [
-            Mock(source_path=Path(f"page{i}.md"), title=f"Page {i}", metadata={})
-            for i in range(20)
+            Mock(source_path=Path(f"page{i}.md"), title=f"Page {i}", metadata={}) for i in range(20)
         ]
 
         site = Mock()
         site.pages = pages
         site.sections = []
         site.menus = {}
-        site.config = {'taxonomies': {}}
+        site.config = {"taxonomies": {}}
 
         # Build sparse graph - only sequential connections
         graph = KnowledgeGraph(site)
@@ -304,8 +309,8 @@ class TestPathAnalysisScalability:
 
         # Chain: 0 -> 1 -> 2 -> ... -> 19
         for i in range(len(pages) - 1):
-            graph.outgoing_refs[pages[i]].add(pages[i+1])
-            graph.incoming_refs[pages[i+1]] += 1
+            graph.outgoing_refs[pages[i]].add(pages[i + 1])
+            graph.incoming_refs[pages[i + 1]] += 1
 
         # Analyze paths
         results = graph.analyze_paths()
@@ -319,20 +324,22 @@ class TestPathAnalysisScalability:
         first_page = pages[0]
         last_page = pages[-1]
 
-        assert results.betweenness_centrality[middle_page] > results.betweenness_centrality[first_page]
-        assert results.betweenness_centrality[middle_page] > results.betweenness_centrality[last_page]
+        assert (
+            results.betweenness_centrality[middle_page] > results.betweenness_centrality[first_page]
+        )
+        assert (
+            results.betweenness_centrality[middle_page] > results.betweenness_centrality[last_page]
+        )
 
     def test_disconnected_components(self):
         """Test path analysis with disconnected components."""
         # Create two separate components
         component1 = [
-            Mock(source_path=Path(f"c1_{i}.md"), title=f"C1 {i}", metadata={})
-            for i in range(5)
+            Mock(source_path=Path(f"c1_{i}.md"), title=f"C1 {i}", metadata={}) for i in range(5)
         ]
 
         component2 = [
-            Mock(source_path=Path(f"c2_{i}.md"), title=f"C2 {i}", metadata={})
-            for i in range(5)
+            Mock(source_path=Path(f"c2_{i}.md"), title=f"C2 {i}", metadata={}) for i in range(5)
         ]
 
         all_pages = component1 + component2
@@ -341,7 +348,7 @@ class TestPathAnalysisScalability:
         site.pages = all_pages
         site.sections = []
         site.menus = {}
-        site.config = {'taxonomies': {}}
+        site.config = {"taxonomies": {}}
 
         # Build graph with two disconnected components
         graph = KnowledgeGraph(site)
@@ -351,13 +358,13 @@ class TestPathAnalysisScalability:
 
         # Connect within component 1
         for i in range(len(component1) - 1):
-            graph.outgoing_refs[component1[i]].add(component1[i+1])
-            graph.incoming_refs[component1[i+1]] += 1
+            graph.outgoing_refs[component1[i]].add(component1[i + 1])
+            graph.incoming_refs[component1[i + 1]] += 1
 
         # Connect within component 2
         for i in range(len(component2) - 1):
-            graph.outgoing_refs[component2[i]].add(component2[i+1])
-            graph.incoming_refs[component2[i+1]] += 1
+            graph.outgoing_refs[component2[i]].add(component2[i + 1])
+            graph.incoming_refs[component2[i + 1]] += 1
 
         # Analyze paths
         results = graph.analyze_paths()
@@ -372,4 +379,3 @@ class TestPathAnalysisScalability:
         # Last pages in chains have no outgoing edges, so 0 closeness
         assert results.closeness_centrality[component1[-1]] == 0
         assert results.closeness_centrality[component2[-1]] == 0
-

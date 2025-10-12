@@ -16,7 +16,7 @@ def mock_site(tmp_path):
     """Create a mock site for testing."""
     site = Mock()
     site.output_dir = tmp_path
-    site.config = {'baseurl': 'https://example.com'}
+    site.config = {"baseurl": "https://example.com"}
     site.pages = []
     return site
 
@@ -60,8 +60,8 @@ def test_rss_validator_missing_file(site_with_dated_pages):
 def test_rss_validator_valid_feed(site_with_dated_pages, tmp_path):
     """Test validator passes for valid RSS feed."""
     # Create valid RSS
-    rss_path = tmp_path / 'rss.xml'
-    rss_content = '''<?xml version="1.0" encoding="UTF-8"?>
+    rss_path = tmp_path / "rss.xml"
+    rss_content = """<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0">
     <channel>
         <title>Test Site</title>
@@ -75,7 +75,7 @@ def test_rss_validator_valid_feed(site_with_dated_pages, tmp_path):
             <pubDate>Mon, 01 Jan 2025 00:00:00 +0000</pubDate>
         </item>
     </channel>
-</rss>'''
+</rss>"""
     rss_path.write_text(rss_content)
 
     validator = RSSValidator()
@@ -90,8 +90,8 @@ def test_rss_validator_valid_feed(site_with_dated_pages, tmp_path):
 def test_rss_validator_malformed_xml(site_with_dated_pages, tmp_path):
     """Test validator catches malformed XML."""
     # Create malformed RSS
-    rss_path = tmp_path / 'rss.xml'
-    rss_content = '<rss><channel></rss>'  # Unclosed channel
+    rss_path = tmp_path / "rss.xml"
+    rss_content = "<rss><channel></rss>"  # Unclosed channel
     rss_path.write_text(rss_content)
 
     validator = RSSValidator()
@@ -103,15 +103,15 @@ def test_rss_validator_malformed_xml(site_with_dated_pages, tmp_path):
 
 def test_rss_validator_wrong_version(site_with_dated_pages, tmp_path):
     """Test validator warns about wrong RSS version."""
-    rss_path = tmp_path / 'rss.xml'
-    rss_content = '''<?xml version="1.0"?>
+    rss_path = tmp_path / "rss.xml"
+    rss_content = """<?xml version="1.0"?>
 <rss version="1.0">
     <channel>
         <title>Test</title>
         <link>https://example.com</link>
         <description>Test</description>
     </channel>
-</rss>'''
+</rss>"""
     rss_path.write_text(rss_content)
 
     validator = RSSValidator()
@@ -123,14 +123,14 @@ def test_rss_validator_wrong_version(site_with_dated_pages, tmp_path):
 
 def test_rss_validator_missing_required_elements(site_with_dated_pages, tmp_path):
     """Test validator catches missing required elements."""
-    rss_path = tmp_path / 'rss.xml'
-    rss_content = '''<?xml version="1.0"?>
+    rss_path = tmp_path / "rss.xml"
+    rss_content = """<?xml version="1.0"?>
 <rss version="2.0">
     <channel>
         <title>Test</title>
         <!-- Missing link and description -->
     </channel>
-</rss>'''
+</rss>"""
     rss_path.write_text(rss_content)
 
     validator = RSSValidator()
@@ -142,15 +142,15 @@ def test_rss_validator_missing_required_elements(site_with_dated_pages, tmp_path
 
 def test_rss_validator_no_items(site_with_dated_pages, tmp_path):
     """Test validator warns when feed has no items."""
-    rss_path = tmp_path / 'rss.xml'
-    rss_content = '''<?xml version="1.0"?>
+    rss_path = tmp_path / "rss.xml"
+    rss_content = """<?xml version="1.0"?>
 <rss version="2.0">
     <channel>
         <title>Test</title>
         <link>https://example.com</link>
         <description>Test</description>
     </channel>
-</rss>'''
+</rss>"""
     rss_path.write_text(rss_content)
 
     validator = RSSValidator()
@@ -162,8 +162,8 @@ def test_rss_validator_no_items(site_with_dated_pages, tmp_path):
 
 def test_rss_validator_relative_urls(site_with_dated_pages, tmp_path):
     """Test validator catches relative URLs."""
-    rss_path = tmp_path / 'rss.xml'
-    rss_content = '''<?xml version="1.0"?>
+    rss_path = tmp_path / "rss.xml"
+    rss_content = """<?xml version="1.0"?>
 <rss version="2.0">
     <channel>
         <title>Test</title>
@@ -175,7 +175,7 @@ def test_rss_validator_relative_urls(site_with_dated_pages, tmp_path):
             <guid>/post1/</guid>
         </item>
     </channel>
-</rss>'''
+</rss>"""
     rss_path.write_text(rss_content)
 
     validator = RSSValidator()
@@ -192,4 +192,3 @@ def test_rss_validator_name_and_description():
     assert validator.name == "RSS Feed"
     assert "RSS feed" in validator.description
     assert validator.enabled_by_default is True
-

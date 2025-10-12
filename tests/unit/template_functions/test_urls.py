@@ -87,4 +87,3 @@ class TestUrlDecode:
     def test_no_encoding(self):
         result = url_decode("hello")
         assert result == "hello"
-

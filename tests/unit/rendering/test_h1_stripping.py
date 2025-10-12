@@ -126,4 +126,3 @@ class TestH1Stripping:
         assert "<h1>" not in result
         assert "</h1>" not in result
         assert "<p>Content</p>" in result
-

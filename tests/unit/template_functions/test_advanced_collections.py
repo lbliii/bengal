@@ -92,4 +92,3 @@ class TestChunk:
         items = [1, 2, 3]
         result = chunk(items, 1)
         assert result == [[1], [2], [3]]
-

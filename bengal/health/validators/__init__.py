@@ -46,25 +46,24 @@ from bengal.health.validators.sitemap import SitemapValidator
 from bengal.health.validators.taxonomy import TaxonomyValidator
 
 __all__ = [
-    'AssetValidator',
+    "AssetValidator",
     # Phase 3
-    'CacheValidator',
-    'ConfigValidatorWrapper',
+    "CacheValidator",
+    "ConfigValidatorWrapper",
     # Phase 5
-    'ConnectivityValidator',
-    'DirectiveValidator',
-    'FontValidator',
-    'LinkValidatorWrapper',
-    'MenuValidator',
+    "ConnectivityValidator",
+    "DirectiveValidator",
+    "FontValidator",
+    "LinkValidatorWrapper",
+    "MenuValidator",
     # Phase 2
-    'NavigationValidator',
+    "NavigationValidator",
     # Phase 1
-    'OutputValidator',
-    'PerformanceValidator',
+    "OutputValidator",
+    "PerformanceValidator",
     # Phase 4
-    'RSSValidator',
-    'RenderingValidator',
-    'SitemapValidator',
-    'TaxonomyValidator',
+    "RSSValidator",
+    "RenderingValidator",
+    "SitemapValidator",
+    "TaxonomyValidator",
 ]
-

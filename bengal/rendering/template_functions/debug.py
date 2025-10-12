@@ -13,13 +13,15 @@ if TYPE_CHECKING:
     from bengal.core.site import Site
 
 
-def register(env: 'Environment', site: 'Site') -> None:
+def register(env: "Environment", site: "Site") -> None:
     """Register debug utility functions with Jinja2 environment."""
-    env.filters.update({
-        'debug': debug,
-        'typeof': typeof,
-        'inspect': inspect,
-    })
+    env.filters.update(
+        {
+            "debug": debug,
+            "typeof": typeof,
+            "inspect": inspect,
+        }
+    )
 
 
 def debug(var: Any, pretty: bool = True) -> str:
@@ -38,11 +40,11 @@ def debug(var: Any, pretty: bool = True) -> str:
         {{ config | debug(pretty=false) }}
     """
     if var is None:
-        return 'None'
+        return "None"
 
     # Try to convert to dict if it has __dict__
-    if hasattr(var, '__dict__') and not isinstance(var, type):
-        var_dict = {k: v for k, v in var.__dict__.items() if not k.startswith('_')}
+    if hasattr(var, "__dict__") and not isinstance(var, type):
+        var_dict = {k: v for k, v in var.__dict__.items() if not k.startswith("_")}
         var = var_dict
 
     if pretty:
@@ -82,13 +84,13 @@ def inspect(obj: Any) -> str:
         {{ page | inspect }}
     """
     if obj is None:
-        return 'None'
+        return "None"
 
     # Get all attributes
     attrs = dir(obj)
 
     # Filter out private attributes
-    public_attrs = [attr for attr in attrs if not attr.startswith('_')]
+    public_attrs = [attr for attr in attrs if not attr.startswith("_")]
 
     # Separate properties and methods
     properties = []
@@ -111,4 +113,3 @@ def inspect(obj: Any) -> str:
         result.append("Methods: " + ", ".join(sorted(methods)))
 
     return "\n".join(result)
-

@@ -23,10 +23,7 @@ class TestLinkSuggestion:
         target = Mock(title="Target Page", source_path=Path("target.md"))
 
         suggestion = LinkSuggestion(
-            source=source,
-            target=target,
-            score=0.75,
-            reasons=["Shared tags: python, testing"]
+            source=source, target=target, score=0.75, reasons=["Shared tags: python, testing"]
         )
 
         assert suggestion.source == source
@@ -63,9 +60,7 @@ class TestLinkSuggestionResults:
         ]
 
         results = LinkSuggestionResults(
-            suggestions=suggestions,
-            total_suggestions=3,
-            pages_analyzed=2
+            suggestions=suggestions, total_suggestions=3, pages_analyzed=2
         )
 
         source1_suggestions = results.get_suggestions_for_page(source1, limit=10)
@@ -333,7 +328,9 @@ class TestLinkSuggestionEngine:
         graph.incoming_refs = defaultdict(int)
 
         max_suggestions = 5
-        engine = LinkSuggestionEngine(graph, min_score=0.0, max_suggestions_per_page=max_suggestions)
+        engine = LinkSuggestionEngine(
+            graph, min_score=0.0, max_suggestions_per_page=max_suggestions
+        )
         results = engine.generate_suggestions()
 
         source_suggestions = results.get_suggestions_for_page(source, limit=100)
@@ -348,7 +345,7 @@ class TestLinkSuggestionEngine:
         real_page.category = None
         del real_page.categories
 
-        generated = Mock(source_path=Path("generated.md"), metadata={'_generated': True})
+        generated = Mock(source_path=Path("generated.md"), metadata={"_generated": True})
         generated.tags = ["python"]
         generated.category = None
         del generated.categories
@@ -395,4 +392,3 @@ class TestSuggestLinksFunction:
 
         assert isinstance(results, LinkSuggestionResults)
         assert results.pages_analyzed == 3
-

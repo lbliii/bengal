@@ -21,8 +21,8 @@ class MockTemplateEngine:
         # Create environment with FileSystemLoader so templates can be found
         loader = FileSystemLoader([str(d) for d in self.template_dirs])
         self.env = Environment(loader=loader)
-        self.env.filters['markdown'] = lambda x: x
-        self.env.filters['dateformat'] = lambda x, y: x
+        self.env.filters["markdown"] = lambda x: x
+        self.env.filters["dateformat"] = lambda x, y: x
 
     def _find_template_path(self, template_name):
         """Find template path."""
@@ -54,9 +54,7 @@ class TestTemplateValidator:
 
     def test_validate_all_nonexistent_dir(self):
         """Test validation with non-existent directory."""
-        mock_engine = MockTemplateEngine(
-            template_dirs=[Path("/nonexistent/path")]
-        )
+        mock_engine = MockTemplateEngine(template_dirs=[Path("/nonexistent/path")])
         validator = TemplateValidator(mock_engine)
 
         errors = validator.validate_all()
@@ -106,7 +104,7 @@ class TestTemplateValidator:
 
         errors = validator._validate_syntax("invalid.html", template_file)
         assert len(errors) == 1
-        assert errors[0].error_type == 'syntax'
+        assert errors[0].error_type == "syntax"
 
     def test_validate_includes_all_exist(self, tmp_path):
         """Test include validation when all includes exist."""
@@ -314,6 +312,5 @@ class TestEdgeCases:
         assert isinstance(errors, list)
 
 
-if __name__ == '__main__':
-    pytest.main([__file__, '-v'])
-
+if __name__ == "__main__":
+    pytest.main([__file__, "-v"])

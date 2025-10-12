@@ -44,11 +44,15 @@ class RenderOrchestrator:
         """
         self.site = site
 
-    def process(self, pages: list[Page], parallel: bool = True,
-                quiet: bool = False,
-                tracker: DependencyTracker | None = None,
-                stats: BuildStats | None = None,
-                progress_manager: Any | None = None) -> None:
+    def process(
+        self,
+        pages: list[Page],
+        parallel: bool = True,
+        quiet: bool = False,
+        tracker: DependencyTracker | None = None,
+        stats: BuildStats | None = None,
+        progress_manager: Any | None = None,
+    ) -> None:
         """
         Render pages (parallel or sequential).
 
@@ -73,11 +77,14 @@ class RenderOrchestrator:
         else:
             self._render_sequential(pages, tracker, quiet, stats, progress_manager)
 
-    def _render_sequential(self, pages: list[Page],
-                          tracker: DependencyTracker | None,
-                          quiet: bool,
-                          stats: BuildStats | None,
-                          progress_manager: Any | None = None) -> None:
+    def _render_sequential(
+        self,
+        pages: list[Page],
+        tracker: DependencyTracker | None,
+        quiet: bool,
+        stats: BuildStats | None,
+        progress_manager: Any | None = None,
+    ) -> None:
         """
         Build pages sequentially.
 
@@ -100,12 +107,13 @@ class RenderOrchestrator:
                     current_item = str(page.output_path.relative_to(self.site.output_dir))
                 else:
                     current_item = page.source_path.name
-                progress_manager.update_phase('rendering', current=i+1, current_item=current_item)
+                progress_manager.update_phase("rendering", current=i + 1, current_item=current_item)
             return
 
         # Try to use rich progress if available
         try:
             from bengal.utils.rich_console import should_use_rich
+
             use_rich = should_use_rich() and not quiet and len(pages) > 5
         except ImportError:
             use_rich = False
@@ -118,11 +126,14 @@ class RenderOrchestrator:
             for page in pages:
                 pipeline.process_page(page)
 
-    def _render_parallel(self, pages: list[Page],
-                        tracker: DependencyTracker | None,
-                        quiet: bool,
-                        stats: BuildStats | None,
-                        progress_manager: Any | None = None) -> None:
+    def _render_parallel(
+        self,
+        pages: list[Page],
+        tracker: DependencyTracker | None,
+        quiet: bool,
+        stats: BuildStats | None,
+        progress_manager: Any | None = None,
+    ) -> None:
         """
         Build pages in parallel for better performance.
 
@@ -173,6 +184,7 @@ class RenderOrchestrator:
         # Try to use rich progress if available
         try:
             from bengal.utils.rich_console import should_use_rich
+
             use_rich = should_use_rich() and not quiet and len(pages) > 5
         except ImportError:
             use_rich = False
@@ -182,10 +194,13 @@ class RenderOrchestrator:
         else:
             self._render_parallel_simple(pages, tracker, quiet, stats)
 
-    def _render_parallel_simple(self, pages: list[Page],
-                               tracker: DependencyTracker | None,
-                               quiet: bool,
-                               stats: BuildStats | None) -> None:
+    def _render_parallel_simple(
+        self,
+        pages: list[Page],
+        tracker: DependencyTracker | None,
+        quiet: bool,
+        stats: BuildStats | None,
+    ) -> None:
         """Parallel rendering without progress (traditional)."""
         from bengal.rendering.pipeline import RenderingPipeline
 
@@ -193,31 +208,29 @@ class RenderOrchestrator:
 
         def process_page_with_pipeline(page):
             """Process a page with a thread-local pipeline instance (thread-safe)."""
-            if not hasattr(_thread_local, 'pipeline'):
+            if not hasattr(_thread_local, "pipeline"):
                 _thread_local.pipeline = RenderingPipeline(
                     self.site, tracker, quiet=quiet, build_stats=stats
                 )
             _thread_local.pipeline.process_page(page)
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-            futures = [
-                executor.submit(process_page_with_pipeline, page)
-                for page in pages
-            ]
+            futures = [executor.submit(process_page_with_pipeline, page) for page in pages]
 
             # Wait for all to complete
             for future in concurrent.futures.as_completed(futures):
                 try:
                     future.result()
                 except Exception as e:
-                    logger.error("page_rendering_error",
-                                error=str(e),
-                                error_type=type(e).__name__)
+                    logger.error("page_rendering_error", error=str(e), error_type=type(e).__name__)
 
-    def _render_sequential_with_progress(self, pages: list[Page],
-                                        tracker: DependencyTracker | None,
-                                        quiet: bool,
-                                        stats: BuildStats | None) -> None:
+    def _render_sequential_with_progress(
+        self,
+        pages: list[Page],
+        tracker: DependencyTracker | None,
+        quiet: bool,
+        stats: BuildStats | None,
+    ) -> None:
         """Render pages sequentially with rich progress bar."""
         from rich.progress import (
             BarColumn,
@@ -244,7 +257,7 @@ class RenderOrchestrator:
             TextColumn("•"),
             TimeElapsedColumn(),
             console=console,
-            transient=False
+            transient=False,
         ) as progress:
             task = progress.add_task("[cyan]Rendering pages...", total=len(pages))
 
@@ -255,11 +268,14 @@ class RenderOrchestrator:
                     logger.error("page_rendering_error", error=str(e), error_type=type(e).__name__)
                 progress.update(task, advance=1)
 
-    def _render_parallel_with_live_progress(self, pages: list[Page],
-                                           tracker: DependencyTracker | None,
-                                           quiet: bool,
-                                           stats: BuildStats | None,
-                                           progress_manager: Any) -> None:
+    def _render_parallel_with_live_progress(
+        self,
+        pages: list[Page],
+        tracker: DependencyTracker | None,
+        quiet: bool,
+        stats: BuildStats | None,
+        progress_manager: Any,
+    ) -> None:
         """Render pages in parallel with live progress manager."""
         from bengal.rendering.pipeline import RenderingPipeline
 
@@ -271,7 +287,7 @@ class RenderOrchestrator:
             """Process a page with a thread-local pipeline instance (thread-safe)."""
             nonlocal completed_count
 
-            if not hasattr(_thread_local, 'pipeline'):
+            if not hasattr(_thread_local, "pipeline"):
                 # When using progress manager, suppress individual page output
                 _thread_local.pipeline = RenderingPipeline(
                     self.site, tracker, quiet=True, build_stats=stats
@@ -288,17 +304,14 @@ class RenderOrchestrator:
 
                 # Add thread count to metadata for dev profile
                 progress_manager.update_phase(
-                    'rendering',
+                    "rendering",
                     current=completed_count,
                     current_item=current_item,
-                    threads=max_workers
+                    threads=max_workers,
                 )
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-            futures = [
-                executor.submit(process_page_with_pipeline, page)
-                for page in pages
-            ]
+            futures = [executor.submit(process_page_with_pipeline, page) for page in pages]
 
             # Wait for all to complete
             for future in concurrent.futures.as_completed(futures):
@@ -307,10 +320,13 @@ class RenderOrchestrator:
                 except Exception as e:
                     logger.error("page_rendering_error", error=str(e), error_type=type(e).__name__)
 
-    def _render_parallel_with_progress(self, pages: list[Page],
-                                      tracker: DependencyTracker | None,
-                                      quiet: bool,
-                                      stats: BuildStats | None) -> None:
+    def _render_parallel_with_progress(
+        self,
+        pages: list[Page],
+        tracker: DependencyTracker | None,
+        quiet: bool,
+        stats: BuildStats | None,
+    ) -> None:
         """Render pages in parallel with rich progress bar."""
         from rich.progress import (
             BarColumn,
@@ -329,7 +345,7 @@ class RenderOrchestrator:
 
         def process_page_with_pipeline(page):
             """Process a page with a thread-local pipeline instance (thread-safe)."""
-            if not hasattr(_thread_local, 'pipeline'):
+            if not hasattr(_thread_local, "pipeline"):
                 _thread_local.pipeline = RenderingPipeline(
                     self.site, tracker, quiet=quiet, build_stats=stats
                 )
@@ -345,22 +361,21 @@ class RenderOrchestrator:
             TextColumn("•"),
             TimeElapsedColumn(),
             console=console,
-            transient=False
+            transient=False,
         ) as progress:
             task = progress.add_task("[cyan]Rendering pages...", total=len(pages))
 
             with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-                futures = [
-                    executor.submit(process_page_with_pipeline, page)
-                    for page in pages
-                ]
+                futures = [executor.submit(process_page_with_pipeline, page) for page in pages]
 
                 # Wait for all to complete and update progress
                 for future in concurrent.futures.as_completed(futures):
                     try:
                         future.result()
                     except Exception as e:
-                        logger.error("page_rendering_error", error=str(e), error_type=type(e).__name__)
+                        logger.error(
+                            "page_rendering_error", error=str(e), error_type=type(e).__name__
+                        )
                     progress.update(task, advance=1)
 
     def _set_output_paths_for_pages(self, pages: list[Page]) -> None:
@@ -378,4 +393,3 @@ class RenderOrchestrator:
 
             # Determine output path using centralized strategy (kept in sync with pipeline)
             page.output_path = URLStrategy.compute_regular_page_output_path(page, self.site)
-

@@ -19,6 +19,7 @@ from bengal.utils.rich_console import get_console, should_use_rich
 
 class PhaseStatus(Enum):
     """Status of a build phase."""
+
     PENDING = "pending"
     RUNNING = "running"
     COMPLETE = "complete"
@@ -28,6 +29,7 @@ class PhaseStatus(Enum):
 @dataclass
 class PhaseProgress:
     """Track progress for a single build phase."""
+
     name: str
     status: PhaseStatus = PhaseStatus.PENDING
     current: int = 0
@@ -77,8 +79,7 @@ class LiveProgressManager:
             progress.complete_phase('rendering', elapsed_ms=1234)
     """
 
-    def __init__(self, profile: BuildProfile, console: Console | None = None,
-                 enabled: bool = True):
+    def __init__(self, profile: BuildProfile, console: Console | None = None, enabled: bool = True):
         """
         Initialize live progress manager.
 
@@ -96,23 +97,26 @@ class LiveProgressManager:
 
         # Determine if we should use live updates
         self.use_live = (
-            enabled and
-            should_use_rich() and
-            self.console.is_terminal and
-            not self.console.is_jupyter
+            enabled
+            and should_use_rich()
+            and self.console.is_terminal
+            and not self.console.is_jupyter
         )
 
         # Get profile configuration
         profile_config = profile.get_config()
-        self.live_config = profile_config.get('live_progress', {
-            'enabled': True,
-            'show_recent_items': False,
-            'show_metrics': False,
-            'max_recent': 0,
-        })
+        self.live_config = profile_config.get(
+            "live_progress",
+            {
+                "enabled": True,
+                "show_recent_items": False,
+                "show_metrics": False,
+                "max_recent": 0,
+            },
+        )
 
         # Override with profile setting
-        if not self.live_config.get('enabled', True):
+        if not self.live_config.get("enabled", True):
             self.use_live = False
 
         # Track last printed state for fallback
@@ -126,7 +130,7 @@ class LiveProgressManager:
                 self._render(),
                 console=self.console,
                 refresh_per_second=4,
-                transient=False  # Keep final output
+                transient=False,  # Keep final output
             )
             self.live.__enter__()
         return self
@@ -165,8 +169,9 @@ class LiveProgressManager:
             phase.start_time = time.time()
             self._update_display()
 
-    def update_phase(self, phase_id: str, current: int | None = None,
-                     current_item: str | None = None, **metadata):
+    def update_phase(
+        self, phase_id: str, current: int | None = None, current_item: str | None = None, **metadata
+    ):
         """
         Update phase progress.
 
@@ -187,7 +192,7 @@ class LiveProgressManager:
         if current_item is not None:
             phase.current_item = current_item
             # Add to recent items for theme-dev/dev profiles
-            max_recent = self.live_config.get('max_recent', 0)
+            max_recent = self.live_config.get("max_recent", 0)
             if max_recent > 0:
                 phase.recent_items.append(current_item)
                 # Keep only last N items
@@ -237,7 +242,7 @@ class LiveProgressManager:
         if phase_id in self.phases:
             phase = self.phases[phase_id]
             phase.status = PhaseStatus.FAILED
-            phase.metadata['error'] = error
+            phase.metadata["error"] = error
             self._update_display()
 
     def _update_display(self):
@@ -280,13 +285,21 @@ class LiveProgressManager:
                     # Show progress bar
                     bar_width = 20
                     filled = int((phase.current / phase.total) * bar_width)
-                    bar = "━" * filled + "╸" + "─" * (bar_width - filled - 1) if filled < bar_width else "━" * bar_width
+                    bar = (
+                        "━" * filled + "╸" + "─" * (bar_width - filled - 1)
+                        if filled < bar_width
+                        else "━" * bar_width
+                    )
 
                     line = f"{status_icon} [cyan]{phase.name:<13}[/cyan] [{bar}] [bold]{phase.current}/{phase.total}[/bold]"
 
                     # Add current item (truncated)
                     if phase.current_item:
-                        item = phase.current_item[:50] + "..." if len(phase.current_item) > 50 else phase.current_item
+                        item = (
+                            phase.current_item[:50] + "..."
+                            if len(phase.current_item) > 50
+                            else phase.current_item
+                        )
                         line += f"  [dim]{item}[/dim]"
                 else:
                     # No total: just show current item
@@ -324,13 +337,21 @@ class LiveProgressManager:
                 if phase.total:
                     bar_width = 20
                     filled = int((phase.current / phase.total) * bar_width)
-                    bar = "━" * filled + "╸" + "─" * (bar_width - filled - 1) if filled < bar_width else "━" * bar_width
+                    bar = (
+                        "━" * filled + "╸" + "─" * (bar_width - filled - 1)
+                        if filled < bar_width
+                        else "━" * bar_width
+                    )
 
                     line = f"{status_icon} [cyan]{phase.name:<13}[/cyan] [{bar}] [bold]{phase.current}/{phase.total}[/bold]"
 
                     # Add current item
                     if phase.current_item:
-                        item = phase.current_item[:40] + "..." if len(phase.current_item) > 40 else phase.current_item
+                        item = (
+                            phase.current_item[:40] + "..."
+                            if len(phase.current_item) > 40
+                            else phase.current_item
+                        )
                         line += f"  [dim]{item}[/dim]"
 
                     # Add elapsed time
@@ -341,11 +362,13 @@ class LiveProgressManager:
                     lines.append(Text.from_markup(line))
 
                     # Show recent items
-                    if phase.recent_items and self.live_config.get('show_recent_items', False):
+                    if phase.recent_items and self.live_config.get("show_recent_items", False):
                         lines.append(Text.from_markup("  [dim]Recent:[/dim]"))
                         for item in phase.recent_items[-3:]:
                             short_item = item[:60] + "..." if len(item) > 60 else item
-                            lines.append(Text.from_markup(f"    [green]✓[/green] [dim]{short_item}[/dim]"))
+                            lines.append(
+                                Text.from_markup(f"    [green]✓[/green] [dim]{short_item}[/dim]")
+                            )
                 else:
                     line = f"{status_icon} [cyan]{phase.name:<13}[/cyan] {phase.current_item}"
                     lines.append(Text.from_markup(line))
@@ -379,7 +402,7 @@ class LiveProgressManager:
                 if phase.metadata:
                     meta_parts = []
                     for key, value in phase.metadata.items():
-                        if key != 'error':
+                        if key != "error":
                             meta_parts.append(f"{key}={value}")
                     if meta_parts:
                         line += f"  [dim]{', '.join(meta_parts)}[/dim]"
@@ -390,13 +413,21 @@ class LiveProgressManager:
                 if phase.total:
                     bar_width = 20
                     filled = int((phase.current / phase.total) * bar_width)
-                    bar = "━" * filled + "╸" + "─" * (bar_width - filled - 1) if filled < bar_width else "━" * bar_width
+                    bar = (
+                        "━" * filled + "╸" + "─" * (bar_width - filled - 1)
+                        if filled < bar_width
+                        else "━" * bar_width
+                    )
 
                     line = f"{status_icon} [cyan]{phase.name:<13}[/cyan] [{bar}] [bold]{phase.current}/{phase.total}[/bold]"
 
                     # Add current item
                     if phase.current_item:
-                        item = phase.current_item[:40] + "..." if len(phase.current_item) > 40 else phase.current_item
+                        item = (
+                            phase.current_item[:40] + "..."
+                            if len(phase.current_item) > 40
+                            else phase.current_item
+                        )
                         line += f"  [dim]{item}[/dim]"
 
                     # Add elapsed time
@@ -407,7 +438,7 @@ class LiveProgressManager:
                     lines.append(Text.from_markup(line))
 
                     # Show metrics
-                    if phase.metadata and self.live_config.get('show_metrics', False):
+                    if phase.metadata and self.live_config.get("show_metrics", False):
                         metric_parts = []
 
                         # Calculate throughput
@@ -417,17 +448,19 @@ class LiveProgressManager:
 
                         # Add other metadata
                         for key, value in phase.metadata.items():
-                            if key not in ['error', 'throughput']:
+                            if key not in ["error", "throughput"]:
                                 metric_parts.append(f"{key}: {value}")
 
                         if metric_parts:
-                            lines.append(Text.from_markup(f"  [dim]{' | '.join(metric_parts)}[/dim]"))
+                            lines.append(
+                                Text.from_markup(f"  [dim]{' | '.join(metric_parts)}[/dim]")
+                            )
                 else:
                     line = f"{status_icon} [cyan]{phase.name:<13}[/cyan] {phase.current_item}"
                     lines.append(Text.from_markup(line))
 
             elif phase.status == PhaseStatus.FAILED:
-                error = phase.metadata.get('error', 'Unknown error')
+                error = phase.metadata.get("error", "Unknown error")
                 line = f"✗ [red]{phase.name:<13}[/red] [red]{error}[/red]"
                 lines.append(Text.from_markup(line))
             else:
@@ -475,7 +508,6 @@ class LiveProgressManager:
                     self._last_fallback_phase = None
 
             elif phase.status == PhaseStatus.FAILED:
-                error = phase.metadata.get('error', 'Unknown error')
+                error = phase.metadata.get("error", "Unknown error")
                 print(f"  ✗ {phase.name}: {error}")
                 self._last_fallback_phase = None
-

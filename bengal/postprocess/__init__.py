@@ -23,4 +23,3 @@ from bengal.postprocess.sitemap import SitemapGenerator
 from bengal.postprocess.special_pages import SpecialPagesGenerator
 
 __all__ = ["OutputFormatsGenerator", "RSSGenerator", "SitemapGenerator", "SpecialPagesGenerator"]
-

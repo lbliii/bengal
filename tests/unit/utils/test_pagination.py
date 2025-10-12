@@ -51,13 +51,13 @@ class TestPaginator:
 
         context = paginator.page_context(2, "/posts/")
 
-        assert context['current_page'] == 2
-        assert context['total_pages'] == 3
-        assert context['has_previous'] is True
-        assert context['has_next'] is True
-        assert context['previous_page'] == 1
-        assert context['next_page'] == 3
-        assert context['base_url'] == "/posts/"
+        assert context["current_page"] == 2
+        assert context["total_pages"] == 3
+        assert context["has_previous"] is True
+        assert context["has_next"] is True
+        assert context["previous_page"] == 1
+        assert context["next_page"] == 3
+        assert context["base_url"] == "/posts/"
 
     def test_page_context_first_page(self):
         """Test page_context for first page."""
@@ -66,9 +66,9 @@ class TestPaginator:
 
         context = paginator.page_context(1, "/posts/")
 
-        assert context['has_previous'] is False
-        assert context['has_next'] is True
-        assert context['previous_page'] is None
+        assert context["has_previous"] is False
+        assert context["has_next"] is True
+        assert context["previous_page"] is None
 
     def test_page_context_last_page(self):
         """Test page_context for last page."""
@@ -77,9 +77,9 @@ class TestPaginator:
 
         context = paginator.page_context(3, "/posts/")
 
-        assert context['has_previous'] is True
-        assert context['has_next'] is False
-        assert context['next_page'] is None
+        assert context["has_previous"] is True
+        assert context["has_next"] is False
+        assert context["next_page"] is None
 
     def test_per_page_minimum(self):
         """Test per_page is minimum 1."""
@@ -96,7 +96,7 @@ class TestPaginator:
 
         # Should show ±2 pages around current
         context = paginator.page_context(5, "/posts/")
-        assert context['page_range'] == [3, 4, 5, 6, 7]
+        assert context["page_range"] == [3, 4, 5, 6, 7]
 
     def test_base_url_trailing_slash(self):
         """Test base_url gets trailing slash if missing."""
@@ -104,5 +104,4 @@ class TestPaginator:
         paginator = Paginator(items, per_page=5)
 
         context = paginator.page_context(1, "/posts")
-        assert context['base_url'] == "/posts/"
-
+        assert context["base_url"] == "/posts/"

@@ -24,10 +24,9 @@ from bengal.health.health_check import HealthCheck
 from bengal.health.report import CheckResult, CheckStatus, HealthReport
 
 __all__ = [
-    'BaseValidator',
-    'CheckResult',
-    'CheckStatus',
-    'HealthCheck',
-    'HealthReport',
+    "BaseValidator",
+    "CheckResult",
+    "CheckStatus",
+    "HealthCheck",
+    "HealthReport",
 ]
-

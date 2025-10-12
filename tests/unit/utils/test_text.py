@@ -46,8 +46,8 @@ class TestSlugify:
 
     def test_custom_separator(self):
         """Test custom separator."""
-        assert slugify("hello world", separator='_') == "hello_world"
-        assert slugify("a b c", separator='.') == "a.b.c"
+        assert slugify("hello world", separator="_") == "hello_world"
+        assert slugify("a b c", separator=".") == "a.b.c"
 
     def test_multiple_spaces_and_hyphens(self):
         """Test collapsing multiple spaces and hyphens."""
@@ -167,25 +167,25 @@ class TestTruncateMiddle:
 
     def test_basic_truncation(self):
         """Test basic middle truncation."""
-        result = truncate_middle('/very/long/path/to/file.txt', 20)
+        result = truncate_middle("/very/long/path/to/file.txt", 20)
         assert len(result) == 20
-        assert result.startswith('/very')
-        assert result.endswith('file.txt')
-        assert '...' in result
+        assert result.startswith("/very")
+        assert result.endswith("file.txt")
+        assert "..." in result
 
     def test_no_truncation_needed(self):
         """Test when text is shorter than max_length."""
-        assert truncate_middle('short.txt', 20) == 'short.txt'
+        assert truncate_middle("short.txt", 20) == "short.txt"
 
     def test_custom_separator(self):
         """Test custom separator."""
-        result = truncate_middle('abcdefghijklmnop', 10, separator='…')
-        assert '…' in result
+        result = truncate_middle("abcdefghijklmnop", 10, separator="…")
+        assert "…" in result
         assert len(result) == 10
 
     def test_empty_string(self):
         """Test empty string."""
-        assert truncate_middle('', 10) == ''
+        assert truncate_middle("", 10) == ""
 
 
 class TestGenerateExcerpt:
@@ -273,23 +273,23 @@ class TestPluralize:
 
     def test_singular(self):
         """Test singular form."""
-        assert pluralize(1, 'page') == 'page'
-        assert pluralize(1, 'item') == 'item'
+        assert pluralize(1, "page") == "page"
+        assert pluralize(1, "item") == "item"
 
     def test_plural_default(self):
         """Test default plural form (singular + 's')."""
-        assert pluralize(0, 'page') == 'pages'
-        assert pluralize(2, 'item') == 'items'
-        assert pluralize(100, 'file') == 'files'
+        assert pluralize(0, "page") == "pages"
+        assert pluralize(2, "item") == "items"
+        assert pluralize(100, "file") == "files"
 
     def test_plural_custom(self):
         """Test custom plural form."""
-        assert pluralize(2, 'box', 'boxes') == 'boxes'
-        assert pluralize(0, 'child', 'children') == 'children'
+        assert pluralize(2, "box", "boxes") == "boxes"
+        assert pluralize(0, "child", "children") == "children"
 
     def test_edge_cases(self):
         """Test edge cases."""
-        assert pluralize(-1, 'item') == 'items'  # Negative counts are plural
+        assert pluralize(-1, "item") == "items"  # Negative counts are plural
 
 
 class TestHumanizeBytes:
@@ -343,4 +343,3 @@ class TestHumanizeNumber:
     def test_negative(self):
         """Test negative numbers."""
         assert humanize_number(-1000) == "-1,000"
-

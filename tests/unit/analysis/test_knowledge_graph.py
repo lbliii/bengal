@@ -16,21 +16,19 @@ def simple_site(tmp_path):
 
     # Create pages (slug is auto-derived from title)
     page1 = Page(
-        source_path=tmp_path / "page1.md",
-        content="# Page 1",
-        metadata={'title': 'Page 1'}
+        source_path=tmp_path / "page1.md", content="# Page 1", metadata={"title": "Page 1"}
     )
 
     page2 = Page(
         source_path=tmp_path / "page2.md",
         content="# Page 2",
-        metadata={'title': 'Page 2', 'tags': ['python']}
+        metadata={"title": "Page 2", "tags": ["python"]},
     )
 
     page3 = Page(
         source_path=tmp_path / "page3.md",
         content="# Page 3",
-        metadata={'title': 'Page 3', 'tags': ['python', 'tutorial']}
+        metadata={"title": "Page 3", "tags": ["python", "tutorial"]},
     )
 
     site.pages = [page1, page2, page3]
@@ -44,32 +42,22 @@ def site_with_links(tmp_path):
     site = Site(root_path=tmp_path, config={})
 
     # Create hub page (slug is auto-derived from title)
-    hub = Page(
-        source_path=tmp_path / "hub.md",
-        content="# Hub Page",
-        metadata={'title': 'Hub'}
-    )
+    hub = Page(source_path=tmp_path / "hub.md", content="# Hub Page", metadata={"title": "Hub"})
 
     # Create leaf pages that link to hub
     leaf1 = Page(
-        source_path=tmp_path / "leaf1.md",
-        content="# Leaf 1",
-        metadata={'title': 'Leaf 1'}
+        source_path=tmp_path / "leaf1.md", content="# Leaf 1", metadata={"title": "Leaf 1"}
     )
     leaf1.related_posts = [hub]  # Simulates link
 
     leaf2 = Page(
-        source_path=tmp_path / "leaf2.md",
-        content="# Leaf 2",
-        metadata={'title': 'Leaf 2'}
+        source_path=tmp_path / "leaf2.md", content="# Leaf 2", metadata={"title": "Leaf 2"}
     )
     leaf2.related_posts = [hub]  # Simulates link
 
     # Create orphan (no connections)
     orphan = Page(
-        source_path=tmp_path / "orphan.md",
-        content="# Orphan",
-        metadata={'title': 'Orphan'}
+        source_path=tmp_path / "orphan.md", content="# Orphan", metadata={"title": "Orphan"}
     )
 
     site.pages = [hub, leaf1, leaf2, orphan]
@@ -143,7 +131,7 @@ class TestHubsAndLeaves:
 
         orphans = graph.get_orphans()
         assert len(orphans) == 1
-        assert orphans[0].slug == 'orphan'
+        assert orphans[0].slug == "orphan"
 
     def test_get_hubs(self, site_with_links):
         """Test hub page identification."""
@@ -153,7 +141,7 @@ class TestHubsAndLeaves:
 
         hubs = graph.get_hubs()
         assert len(hubs) == 1
-        assert hubs[0].slug == 'hub'
+        assert hubs[0].slug == "hub"
 
     def test_get_leaves(self, site_with_links):
         """Test leaf page identification."""
@@ -173,7 +161,7 @@ class TestConnectivity:
         graph = KnowledgeGraph(site_with_links)
         graph.build()
 
-        hub = [p for p in site_with_links.pages if p.slug == 'hub'][0]
+        hub = [p for p in site_with_links.pages if p.slug == "hub"][0]
         score = graph.get_connectivity_score(hub)
 
         # Hub has 2 incoming refs (from leaf1 and leaf2)
@@ -184,7 +172,7 @@ class TestConnectivity:
         graph = KnowledgeGraph(site_with_links)
         graph.build()
 
-        hub = [p for p in site_with_links.pages if p.slug == 'hub'][0]
+        hub = [p for p in site_with_links.pages if p.slug == "hub"][0]
         conn = graph.get_connectivity(hub)
 
         assert isinstance(conn, PageConnectivity)
@@ -198,7 +186,7 @@ class TestConnectivity:
         graph = KnowledgeGraph(site_with_links)
         graph.build()
 
-        orphan = [p for p in site_with_links.pages if p.slug == 'orphan'][0]
+        orphan = [p for p in site_with_links.pages if p.slug == "orphan"][0]
         conn = graph.get_connectivity(orphan)
 
         assert conn.is_orphan is True
@@ -297,8 +285,8 @@ class TestFormatStats:
         site = Site(root_path=tmp_path, config={})
 
         # Create pages that all reference each other
-        page1 = Page(source_path=tmp_path / "p1.md", content="", metadata={'title': 'Page 1'})
-        page2 = Page(source_path=tmp_path / "p2.md", content="", metadata={'title': 'Page 2'})
+        page1 = Page(source_path=tmp_path / "p1.md", content="", metadata={"title": "Page 1"})
+        page2 = Page(source_path=tmp_path / "p2.md", content="", metadata={"title": "Page 2"})
         page1.related_posts = [page2]
         page2.related_posts = [page1]
 
@@ -318,9 +306,9 @@ class TestTaxonomyAnalysis:
         """Test that pages with tags get connectivity boost."""
         # Add taxonomies to site
         simple_site.taxonomies = {
-            'tags': {
-                'python': {
-                    'pages': [simple_site.pages[1], simple_site.pages[2]]  # page2, page3
+            "tags": {
+                "python": {
+                    "pages": [simple_site.pages[1], simple_site.pages[2]]  # page2, page3
                 }
             }
         }
@@ -334,4 +322,3 @@ class TestTaxonomyAnalysis:
 
         assert page2_score > 0
         assert page3_score > 0
-

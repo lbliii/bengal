@@ -1,7 +1,6 @@
 """Tests for rich console utilities."""
 
 
-
 class TestGetConsole:
     """Tests for get_console() function."""
 
@@ -20,7 +19,7 @@ class TestGetConsole:
         """Test that NO_COLOR environment variable is respected."""
         from bengal.utils.rich_console import get_console, reset_console
 
-        monkeypatch.setenv('NO_COLOR', '1')
+        monkeypatch.setenv("NO_COLOR", "1")
         reset_console()
 
         console = get_console()
@@ -30,7 +29,7 @@ class TestGetConsole:
         """Test that CI mode is detected and disables color."""
         from bengal.utils.rich_console import get_console, reset_console
 
-        monkeypatch.setenv('CI', 'true')
+        monkeypatch.setenv("CI", "true")
         reset_console()
 
         console = get_console()
@@ -46,7 +45,7 @@ class TestShouldUseRich:
         """Test that rich is disabled in CI environments."""
         from bengal.utils.rich_console import reset_console, should_use_rich
 
-        monkeypatch.setenv('CI', 'true')
+        monkeypatch.setenv("CI", "true")
         reset_console()
 
         assert should_use_rich() is False
@@ -55,8 +54,8 @@ class TestShouldUseRich:
         """Test that rich is disabled with TERM=dumb."""
         from bengal.utils.rich_console import reset_console, should_use_rich
 
-        monkeypatch.setenv('TERM', 'dumb')
-        monkeypatch.delenv('CI', raising=False)
+        monkeypatch.setenv("TERM", "dumb")
+        monkeypatch.delenv("CI", raising=False)
         reset_console()
 
         assert should_use_rich() is False
@@ -66,9 +65,9 @@ class TestShouldUseRich:
         from bengal.utils.rich_console import reset_console, should_use_rich
 
         # Clean environment
-        monkeypatch.delenv('CI', raising=False)
-        monkeypatch.delenv('TERM', raising=False)
-        monkeypatch.setenv('TERM', 'xterm')
+        monkeypatch.delenv("CI", raising=False)
+        monkeypatch.delenv("TERM", raising=False)
+        monkeypatch.setenv("TERM", "xterm")
         reset_console()
 
         # When running in pytest, is_terminal is typically False
@@ -84,22 +83,22 @@ class TestDetectEnvironment:
         """Test that CI environments are detected."""
         from bengal.utils.rich_console import detect_environment, reset_console
 
-        monkeypatch.setenv('CI', 'true')
+        monkeypatch.setenv("CI", "true")
         reset_console()
 
         env = detect_environment()
-        assert env['is_ci'] is True
+        assert env["is_ci"] is True
 
     def test_detects_github_actions(self, monkeypatch):
         """Test that GitHub Actions is detected as CI."""
         from bengal.utils.rich_console import detect_environment, reset_console
 
-        monkeypatch.delenv('CI', raising=False)
-        monkeypatch.setenv('GITHUB_ACTIONS', 'true')
+        monkeypatch.delenv("CI", raising=False)
+        monkeypatch.setenv("GITHUB_ACTIONS", "true")
         reset_console()
 
         env = detect_environment()
-        assert env['is_ci'] is True
+        assert env["is_ci"] is True
 
     def test_detects_docker(self, tmp_path):
         """Test that Docker containers are detected."""
@@ -109,7 +108,7 @@ class TestDetectEnvironment:
         env = detect_environment()
 
         # This will be False in normal test environment
-        assert isinstance(env['is_docker'], bool)
+        assert isinstance(env["is_docker"], bool)
 
     def test_detects_git_repo(self, tmp_path, monkeypatch):
         """Test that Git repositories are detected."""
@@ -120,14 +119,14 @@ class TestDetectEnvironment:
         reset_console()
 
         env = detect_environment()
-        assert env['is_git_repo'] is False
+        assert env["is_git_repo"] is False
 
         # Create .git directory
-        (tmp_path / '.git').mkdir()
+        (tmp_path / ".git").mkdir()
         reset_console()
 
         env = detect_environment()
-        assert env['is_git_repo'] is True
+        assert env["is_git_repo"] is True
 
     def test_returns_cpu_count(self):
         """Test that CPU count is returned."""
@@ -136,9 +135,9 @@ class TestDetectEnvironment:
         reset_console()
         env = detect_environment()
 
-        assert 'cpu_count' in env
-        assert env['cpu_count'] > 0
-        assert isinstance(env['cpu_count'], int)
+        assert "cpu_count" in env
+        assert env["cpu_count"] > 0
+        assert isinstance(env["cpu_count"], int)
 
     def test_returns_terminal_info(self):
         """Test that terminal info is returned."""
@@ -147,15 +146,15 @@ class TestDetectEnvironment:
         reset_console()
         env = detect_environment()
 
-        assert 'is_terminal' in env
-        assert 'color_system' in env
-        assert 'width' in env
-        assert 'height' in env
-        assert 'terminal_app' in env
+        assert "is_terminal" in env
+        assert "color_system" in env
+        assert "width" in env
+        assert "height" in env
+        assert "terminal_app" in env
 
-        assert isinstance(env['is_terminal'], bool)
-        assert isinstance(env['width'], int)
-        assert isinstance(env['height'], int)
+        assert isinstance(env["is_terminal"], bool)
+        assert isinstance(env["width"], int)
+        assert isinstance(env["height"], int)
 
 
 class TestResetConsole:
@@ -171,4 +170,3 @@ class TestResetConsole:
 
         # Should be different instances after reset
         assert console1 is not console2
-

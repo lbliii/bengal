@@ -70,27 +70,27 @@ class PythonMarkdownParser(BaseMarkdownParser):
 
         self.md = markdown.Markdown(
             extensions=[
-                'extra',
-                'codehilite',
-                'fenced_code',
-                'tables',
-                'toc',
-                'meta',
-                'attr_list',
-                'def_list',
-                'footnotes',
-                'admonition',
+                "extra",
+                "codehilite",
+                "fenced_code",
+                "tables",
+                "toc",
+                "meta",
+                "attr_list",
+                "def_list",
+                "footnotes",
+                "admonition",
             ],
             extension_configs={
-                'codehilite': {
-                    'css_class': 'highlight',
-                    'linenums': False,
+                "codehilite": {
+                    "css_class": "highlight",
+                    "linenums": False,
                 },
-                'toc': {
-                    'permalink': False,  # Permalink handled by JavaScript copy-link
-                    'toc_depth': '2-4',
-                }
-            }
+                "toc": {
+                    "permalink": False,  # Permalink handled by JavaScript copy-link
+                    "toc_depth": "2-4",
+                },
+            },
         )
 
     def _patch_pygments_for_cache(self) -> None:
@@ -110,7 +110,7 @@ class PythonMarkdownParser(BaseMarkdownParser):
             from bengal.rendering.pygments_cache import get_lexer_cached
 
             # Patch at module level - replace pygments functions used by CodeHilite
-            if not hasattr(codehilite, '_pygments_patched'):
+            if not hasattr(codehilite, "_pygments_patched"):
                 # Save originals
                 codehilite._original_get_lexer_by_name = codehilite.get_lexer_by_name
                 codehilite._original_guess_lexer = codehilite.guess_lexer
@@ -129,9 +129,11 @@ class PythonMarkdownParser(BaseMarkdownParser):
                 codehilite.guess_lexer = cached_guess_lexer
                 codehilite._pygments_patched = True
 
-                logger.debug("pygments_cache_patched",
-                           target="markdown.extensions.codehilite",
-                           patched=["get_lexer_by_name", "guess_lexer"])
+                logger.debug(
+                    "pygments_cache_patched",
+                    target="markdown.extensions.codehilite",
+                    patched=["get_lexer_by_name", "guess_lexer"],
+                )
         except ImportError:
             # codehilite not available, skip patching
             pass
@@ -148,7 +150,7 @@ class PythonMarkdownParser(BaseMarkdownParser):
         """Parse Markdown content and extract table of contents."""
         self.md.reset()
         html = self.md.convert(content)
-        toc = getattr(self.md, 'toc', '')
+        toc = getattr(self.md, "toc", "")
         return html, toc
 
 
@@ -171,19 +173,15 @@ class MistuneParser(BaseMarkdownParser):
     """
 
     # Pre-compiled regex patterns for heading anchor injection (5-10x faster than BeautifulSoup)
-    _HEADING_PATTERN = re.compile(
-        r'<(h[234])([^>]*)>(.*?)</\1>',
-        re.IGNORECASE | re.DOTALL
-    )
+    _HEADING_PATTERN = re.compile(r"<(h[234])([^>]*)>(.*?)</\1>", re.IGNORECASE | re.DOTALL)
 
     # Pattern for extracting TOC from anchored headings
     _TOC_HEADING_PATTERN = re.compile(
-        r'<(h[234])\s+id="([^"]+)"[^>]*>(.*?)</\1>',
-        re.IGNORECASE | re.DOTALL
+        r'<(h[234])\s+id="([^"]+)"[^>]*>(.*?)</\1>', re.IGNORECASE | re.DOTALL
     )
 
     # Pattern to strip HTML tags from text
-    _HTML_TAG_PATTERN = re.compile(r'<[^>]+>')
+    _HTML_TAG_PATTERN = re.compile(r"<[^>]+>")
 
     def __init__(self, enable_highlighting: bool = True) -> None:
         """
@@ -228,12 +226,12 @@ class MistuneParser(BaseMarkdownParser):
 
         # Build plugins list
         plugins = [
-            'table',              # Built-in: GFM tables
-            'strikethrough',      # Built-in: ~~text~~
-            'task_lists',         # Built-in: - [ ] tasks
-            'url',                # Built-in: autolinks
-            'footnotes',          # Built-in: [^1]
-            'def_list',           # Built-in: Term\n:   Def
+            "table",  # Built-in: GFM tables
+            "strikethrough",  # Built-in: ~~text~~
+            "task_lists",  # Built-in: - [ ] tasks
+            "url",  # Built-in: autolinks
+            "footnotes",  # Built-in: [^1]
+            "def_list",  # Built-in: Term\n:   Def
             create_documentation_directives(),  # Custom: admonitions, tabs, dropdowns, cards
         ]
 
@@ -247,11 +245,12 @@ class MistuneParser(BaseMarkdownParser):
         # Note: Badges are post-processed on HTML output (not registered as mistune plugin)
         self.md = mistune.create_markdown(
             plugins=plugins,
-            renderer='html',
+            renderer="html",
         )
 
         # Cache for mistune library (import on first use)
         import mistune
+
         self._mistune = mistune
 
         # Cache parser with variable substitution (created lazily in parse_with_context)
@@ -291,18 +290,19 @@ class MistuneParser(BaseMarkdownParser):
                 # Skip directive blocks (e.g., {info}, {rubric}, {note}, etc.)
                 # These should be handled by the FencedDirective plugin
                 info_stripped = info.strip()
-                if info_stripped.startswith('{') and '}' in info_stripped:
+                if info_stripped.startswith("{") and "}" in info_stripped:
                     return original_block_code(code, info)
 
                 # Special handling: client-side rendered languages (e.g., Mermaid)
                 lang_lower = info_stripped.lower()
-                if lang_lower == 'mermaid':
+                if lang_lower == "mermaid":
                     # Escape HTML so browsers don't interpret it; Mermaid will read textContent
-                    escaped_code = (code
-                        .replace('&', '&amp;')
-                        .replace('<', '&lt;')
-                        .replace('>', '&gt;')
-                        .replace('"', '&quot;'))
+                    escaped_code = (
+                        code.replace("&", "&amp;")
+                        .replace("<", "&lt;")
+                        .replace(">", "&gt;")
+                        .replace('"', "&quot;")
+                    )
                     return f'<div class="mermaid">{escaped_code}</div>\n'
 
                 try:
@@ -311,9 +311,9 @@ class MistuneParser(BaseMarkdownParser):
 
                     # Format with Pygments using 'highlight' CSS class (matches python-markdown)
                     formatter = HtmlFormatter(
-                        cssclass='highlight',
+                        cssclass="highlight",
                         wrapcode=True,
-                        noclasses=False  # Use CSS classes instead of inline styles
+                        noclasses=False,  # Use CSS classes instead of inline styles
                     )
 
                     # Highlight the code
@@ -323,15 +323,14 @@ class MistuneParser(BaseMarkdownParser):
 
                 except Exception as e:
                     # If highlighting fails, return plain code block
-                    logger.warning("pygments_highlight_failed",
-                                 language=info,
-                                 error=str(e))
+                    logger.warning("pygments_highlight_failed", language=info, error=str(e))
                     # Escape HTML and return plain code block
-                    escaped_code = (code
-                        .replace('&', '&amp;')
-                        .replace('<', '&lt;')
-                        .replace('>', '&gt;')
-                        .replace('"', '&quot;'))
+                    escaped_code = (
+                        code.replace("&", "&amp;")
+                        .replace("<", "&lt;")
+                        .replace(">", "&gt;")
+                        .replace('"', "&quot;")
+                    )
                     return f'<pre><code class="language-{info}">{escaped_code}</code></pre>\n'
 
             # Replace the block_code method
@@ -363,9 +362,7 @@ class MistuneParser(BaseMarkdownParser):
             return html
         except Exception as e:
             # Log error but don't fail the entire build
-            logger.warning("mistune_parsing_error",
-                          error=str(e),
-                          error_type=type(e).__name__)
+            logger.warning("mistune_parsing_error", error=str(e), error_type=type(e).__name__)
             # Return content wrapped in error message
             return f'<div class="markdown-error"><p><strong>Markdown parsing error:</strong> {e}</p><pre>{content}</pre></div>'
 
@@ -400,7 +397,9 @@ class MistuneParser(BaseMarkdownParser):
 
         return html, toc
 
-    def parse_with_context(self, content: str, metadata: dict[str, Any], context: dict[str, Any]) -> str:
+    def parse_with_context(
+        self, content: str, metadata: dict[str, Any], context: dict[str, Any]
+    ) -> str:
         """
         Parse Markdown with variable substitution support.
 
@@ -443,6 +442,7 @@ class MistuneParser(BaseMarkdownParser):
         # Import on demand
         if self._mistune is None:
             import mistune
+
             self._mistune = mistune
 
         from bengal.rendering.plugins import (
@@ -456,12 +456,12 @@ class MistuneParser(BaseMarkdownParser):
 
             # Build plugins list
             var_plugins = [
-                'table',
-                'strikethrough',
-                'task_lists',
-                'url',
-                'footnotes',
-                'def_list',
+                "table",
+                "strikethrough",
+                "task_lists",
+                "url",
+                "footnotes",
+                "def_list",
                 create_documentation_directives(),
             ]
 
@@ -473,7 +473,7 @@ class MistuneParser(BaseMarkdownParser):
                 plugins=var_plugins,
                 # NOTE: Don't register _var_plugin here - we do preprocessing before Mistune
                 # Registering it would cause double-processing and create placeholders that never get restored
-                renderer='html',
+                renderer="html",
             )
         else:
             # Just update the context on existing plugin (fast!)
@@ -498,12 +498,14 @@ class MistuneParser(BaseMarkdownParser):
             return html
         except Exception as e:
             # Log error but don't fail the entire build
-            logger.warning("mistune_parsing_error_with_toc",
-                          error=str(e),
-                          error_type=type(e).__name__)
+            logger.warning(
+                "mistune_parsing_error_with_toc", error=str(e), error_type=type(e).__name__
+            )
             return f'<div class="markdown-error"><p><strong>Markdown parsing error:</strong> {e}</p><pre>{content}</pre></div>'
 
-    def parse_with_toc_and_context(self, content: str, metadata: dict[str, Any], context: dict[str, Any]) -> tuple[str, str]:
+    def parse_with_toc_and_context(
+        self, content: str, metadata: dict[str, Any], context: dict[str, Any]
+    ) -> tuple[str, str]:
         """
         Parse Markdown with variable substitution and extract TOC.
 
@@ -615,11 +617,12 @@ class MistuneParser(BaseMarkdownParser):
             HTML with heading IDs and headerlinks added (except those in blockquotes)
         """
         # Quick rejection: skip if no headings
-        if not html or not ('<h2' in html or '<h3' in html or '<h4' in html):
+        if not html or not ("<h2" in html or "<h3" in html or "<h4" in html):
             return html
 
         # If no blockquotes, use fast path
-        if '<blockquote' not in html:
+        if "<blockquote" not in html:
+
             def replace_heading(match):
                 """Replace heading with ID and headerlink anchor."""
                 tag = match.group(1)  # 'h2', 'h3', or 'h4'
@@ -627,11 +630,11 @@ class MistuneParser(BaseMarkdownParser):
                 content = match.group(3)  # Heading content
 
                 # Skip if already has id= attribute
-                if 'id=' in attrs or 'id =' in attrs:
+                if "id=" in attrs or "id =" in attrs:
                     return match.group(0)
 
                 # Extract text for slug (strip any HTML tags from content)
-                text = self._HTML_TAG_PATTERN.sub('', content).strip()
+                text = self._HTML_TAG_PATTERN.sub("", content).strip()
                 if not text:
                     return match.group(0)
 
@@ -644,24 +647,25 @@ class MistuneParser(BaseMarkdownParser):
                 return self._HEADING_PATTERN.sub(replace_heading, html)
             except Exception as e:
                 # On any error, return original HTML (safe fallback)
-                logger.warning("heading_anchor_injection_error",
-                              error=str(e),
-                              error_type=type(e).__name__)
+                logger.warning(
+                    "heading_anchor_injection_error", error=str(e), error_type=type(e).__name__
+                )
                 return html
 
         # Slow path: need to skip headings inside blockquotes
         try:
             import re
+
             parts = []
             in_blockquote = 0  # Track nesting level
             current_pos = 0
 
             # Find all blockquote open/close tags
-            blockquote_pattern = re.compile(r'<(/?)blockquote[^>]*>', re.IGNORECASE)
+            blockquote_pattern = re.compile(r"<(/?)blockquote[^>]*>", re.IGNORECASE)
 
             for match in blockquote_pattern.finditer(html):
                 # Process content before this tag
-                before = html[current_pos:match.start()]
+                before = html[current_pos : match.start()]
 
                 if in_blockquote == 0:
                     # Outside blockquote: add anchors
@@ -670,10 +674,10 @@ class MistuneParser(BaseMarkdownParser):
                         attrs = m.group(2)
                         content = m.group(3)
 
-                        if 'id=' in attrs or 'id =' in attrs:
+                        if "id=" in attrs or "id =" in attrs:
                             return m.group(0)
 
-                        text = self._HTML_TAG_PATTERN.sub('', content).strip()
+                        text = self._HTML_TAG_PATTERN.sub("", content).strip()
                         if not text:
                             return m.group(0)
 
@@ -689,7 +693,7 @@ class MistuneParser(BaseMarkdownParser):
                 parts.append(match.group(0))
 
                 # Update nesting level
-                if match.group(1) == '/':
+                if match.group(1) == "/":
                     in_blockquote = max(0, in_blockquote - 1)
                 else:
                     in_blockquote += 1
@@ -699,15 +703,16 @@ class MistuneParser(BaseMarkdownParser):
             # Process remaining content
             remaining = html[current_pos:]
             if in_blockquote == 0:
+
                 def replace_heading(m):
                     tag = m.group(1)
                     attrs = m.group(2)
                     content = m.group(3)
 
-                    if 'id=' in attrs or 'id =' in attrs:
+                    if "id=" in attrs or "id =" in attrs:
                         return m.group(0)
 
-                    text = self._HTML_TAG_PATTERN.sub('', content).strip()
+                    text = self._HTML_TAG_PATTERN.sub("", content).strip()
                     if not text:
                         return m.group(0)
 
@@ -718,13 +723,15 @@ class MistuneParser(BaseMarkdownParser):
             else:
                 parts.append(remaining)
 
-            return ''.join(parts)
+            return "".join(parts)
 
         except Exception as e:
             # On any error, return original HTML (safe fallback)
-            logger.warning("heading_anchor_injection_error_blockquote",
-                          error=str(e),
-                          error_type=type(e).__name__)
+            logger.warning(
+                "heading_anchor_injection_error_blockquote",
+                error=str(e),
+                error_type=type(e).__name__,
+            )
             return html
 
     def _extract_toc(self, html: str) -> str:
@@ -741,8 +748,8 @@ class MistuneParser(BaseMarkdownParser):
             TOC as HTML (div.toc > ul > li > a structure)
         """
         # Quick rejection: skip if no headings
-        if not html or not ('<h2' in html or '<h3' in html or '<h4' in html):
-            return ''
+        if not html or not ("<h2" in html or "<h3" in html or "<h4" in html):
+            return ""
 
         try:
             toc_items = []
@@ -754,33 +761,23 @@ class MistuneParser(BaseMarkdownParser):
                 title_html = match.group(3).strip()  # Title with possible HTML
 
                 # Strip HTML tags to get clean title text
-                title = self._HTML_TAG_PATTERN.sub('', title_html).strip()
+                title = self._HTML_TAG_PATTERN.sub("", title_html).strip()
                 if not title:
                     continue
 
                 # Build indented list item
-                indent = '  ' * (level - 2)
-                toc_items.append(
-                    f'{indent}<li><a href="#{heading_id}">{title}</a></li>'
-                )
+                indent = "  " * (level - 2)
+                toc_items.append(f'{indent}<li><a href="#{heading_id}">{title}</a></li>')
 
             if toc_items:
-                return (
-                    '<div class="toc">\n'
-                    '<ul>\n'
-                    + '\n'.join(toc_items) + '\n'
-                    '</ul>\n'
-                    '</div>'
-                )
+                return '<div class="toc">\n<ul>\n' + "\n".join(toc_items) + "\n</ul>\n</div>"
 
-            return ''
+            return ""
 
         except Exception as e:
             # On any error, return empty TOC (safe fallback)
-            logger.warning("toc_extraction_error",
-                          error=str(e),
-                          error_type=type(e).__name__)
-            return ''
+            logger.warning("toc_extraction_error", error=str(e), error_type=type(e).__name__)
+            return ""
 
     def _slugify(self, text: str) -> str:
         """
@@ -796,6 +793,7 @@ class MistuneParser(BaseMarkdownParser):
             Slugified text
         """
         from bengal.utils.text import slugify
+
         return slugify(text, unescape_html=True)
 
 
@@ -816,15 +814,13 @@ def create_markdown_parser(engine: str | None = None) -> BaseMarkdownParser:
     Raises:
         ValueError: If engine is not supported
     """
-    engine = (engine or 'python-markdown').lower()
+    engine = (engine or "python-markdown").lower()
 
-    if engine in ('python-markdown', 'python_markdown', 'markdown'):
+    if engine in ("python-markdown", "python_markdown", "markdown"):
         return PythonMarkdownParser()
-    elif engine == 'mistune':
+    elif engine == "mistune":
         return MistuneParser()
     else:
         raise ValueError(
-            f"Unsupported markdown engine: {engine}. "
-            f"Choose from: 'python-markdown', 'mistune'"
+            f"Unsupported markdown engine: {engine}. Choose from: 'python-markdown', 'mistune'"
         )
-

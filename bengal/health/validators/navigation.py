@@ -33,7 +33,7 @@ class NavigationValidator(BaseValidator):
     enabled_by_default = True
 
     @override
-    def validate(self, site: 'Site') -> list[CheckResult]:
+    def validate(self, site: "Site") -> list[CheckResult]:
         """Run navigation validation checks."""
         results = []
 
@@ -51,79 +51,99 @@ class NavigationValidator(BaseValidator):
 
         return results
 
-    def _check_next_prev_chains(self, site: 'Site') -> list[CheckResult]:
+    def _check_next_prev_chains(self, site: "Site") -> list[CheckResult]:
         """Check that next/prev links form valid chains."""
         results = []
         issues = []
 
         # Skip generated pages (they don't have next/prev in site collection)
-        regular_pages = [p for p in site.pages if not p.metadata.get('_generated')]
+        regular_pages = [p for p in site.pages if not p.metadata.get("_generated")]
 
         for page in regular_pages:
             # Check if next exists and points to valid page
-            if hasattr(page, 'next') and page.next:
+            if hasattr(page, "next") and page.next:
                 if page.next not in site.pages:
                     issues.append(f"{page.source_path.name}: page.next points to non-existent page")
                 elif not page.next.output_path or not page.next.output_path.exists():
-                    issues.append(f"{page.source_path.name}: page.next points to page without output")
+                    issues.append(
+                        f"{page.source_path.name}: page.next points to page without output"
+                    )
 
             # Check if prev exists and points to valid page
-            if hasattr(page, 'prev') and page.prev:
+            if hasattr(page, "prev") and page.prev:
                 if page.prev not in site.pages:
                     issues.append(f"{page.source_path.name}: page.prev points to non-existent page")
                 elif not page.prev.output_path or not page.prev.output_path.exists():
-                    issues.append(f"{page.source_path.name}: page.prev points to page without output")
+                    issues.append(
+                        f"{page.source_path.name}: page.prev points to page without output"
+                    )
 
         if issues:
-            results.append(CheckResult.error(
-                f"{len(issues)} page(s) have broken next/prev links",
-                recommendation="Check page navigation setup. This may indicate a bug in navigation system.",
-                details=issues[:5]
-            ))
+            results.append(
+                CheckResult.error(
+                    f"{len(issues)} page(s) have broken next/prev links",
+                    recommendation="Check page navigation setup. This may indicate a bug in navigation system.",
+                    details=issues[:5],
+                )
+            )
         else:
-            results.append(CheckResult.success(
-                f"Next/prev navigation validated ({len(regular_pages)} pages)"
-            ))
+            results.append(
+                CheckResult.success(f"Next/prev navigation validated ({len(regular_pages)} pages)")
+            )
 
         return results
 
-    def _check_breadcrumbs(self, site: 'Site') -> list[CheckResult]:
+    def _check_breadcrumbs(self, site: "Site") -> list[CheckResult]:
         """Check that breadcrumb trails (ancestors) are valid."""
         results = []
         issues = []
 
         for page in site.pages:
             # Skip pages without ancestors
-            if not hasattr(page, 'ancestors') or not page.ancestors:
+            if not hasattr(page, "ancestors") or not page.ancestors:
                 continue
 
             # Check each ancestor in the breadcrumb trail
             for i, ancestor in enumerate(page.ancestors):
                 # Verify ancestor is a valid Section or Page
                 # Sections don't have output_path, but they have 'name' and 'url' properties
-                if not (hasattr(ancestor, 'url') and hasattr(ancestor, 'title')):
-                    issues.append(f"{page.source_path.name}: ancestor {i} is not a valid page/section")
+                if not (hasattr(ancestor, "url") and hasattr(ancestor, "title")):
+                    issues.append(
+                        f"{page.source_path.name}: ancestor {i} is not a valid page/section"
+                    )
                     continue
 
                 # For Page ancestors (not Sections), check if they have output
-                if hasattr(ancestor, 'output_path') and ancestor.output_path and not ancestor.output_path.exists():
-                    issues.append(f"{page.source_path.name}: ancestor '{ancestor.title}' has no output")
+                if (
+                    hasattr(ancestor, "output_path")
+                    and ancestor.output_path
+                    and not ancestor.output_path.exists()
+                ):
+                    issues.append(
+                        f"{page.source_path.name}: ancestor '{ancestor.title}' has no output"
+                    )
 
         if issues:
-            results.append(CheckResult.warning(
-                f"{len(issues)} page(s) have invalid breadcrumb trails",
-                recommendation="Check section hierarchy and index pages.",
-                details=issues[:5]
-            ))
+            results.append(
+                CheckResult.warning(
+                    f"{len(issues)} page(s) have invalid breadcrumb trails",
+                    recommendation="Check section hierarchy and index pages.",
+                    details=issues[:5],
+                )
+            )
         else:
-            pages_with_breadcrumbs = sum(1 for p in site.pages if hasattr(p, 'ancestors') and p.ancestors)
-            results.append(CheckResult.success(
-                f"Breadcrumbs validated ({pages_with_breadcrumbs} pages with breadcrumbs)"
-            ))
+            pages_with_breadcrumbs = sum(
+                1 for p in site.pages if hasattr(p, "ancestors") and p.ancestors
+            )
+            results.append(
+                CheckResult.success(
+                    f"Breadcrumbs validated ({pages_with_breadcrumbs} pages with breadcrumbs)"
+                )
+            )
 
         return results
 
-    def _check_section_navigation(self, site: 'Site') -> list[CheckResult]:
+    def _check_section_navigation(self, site: "Site") -> list[CheckResult]:
         """Check section-level navigation consistency."""
         results = []
         issues = []
@@ -132,43 +152,51 @@ class NavigationValidator(BaseValidator):
             # Check if section has an index page or generated archive
             has_index = section.index_page is not None
             has_archive = any(
-                p.metadata.get('_generated') and
-                p.metadata.get('type') == 'archive' and
-                p.metadata.get('_section') == section
+                p.metadata.get("_generated")
+                and p.metadata.get("type") == "archive"
+                and p.metadata.get("_section") == section
                 for p in site.pages
             )
 
             if not has_index and not has_archive and section.pages:
-                issues.append(f"Section '{section.name}' has {len(section.pages)} pages but no index/archive")
+                issues.append(
+                    f"Section '{section.name}' has {len(section.pages)} pages but no index/archive"
+                )
 
             # Check if section pages have proper parent reference
             for page in section.pages:
-                if hasattr(page, '_section') and page._section != section:
+                if hasattr(page, "_section") and page._section != section:
                     issues.append(f"Page {page.source_path.name} has wrong section reference")
 
         if issues:
-            results.append(CheckResult.warning(
-                f"{len(issues)} section navigation issue(s)",
-                recommendation="Sections with pages should have an _index.md or auto-generated archive page.",
-                details=issues[:5]
-            ))
+            results.append(
+                CheckResult.warning(
+                    f"{len(issues)} section navigation issue(s)",
+                    recommendation="Sections with pages should have an _index.md or auto-generated archive page.",
+                    details=issues[:5],
+                )
+            )
         else:
-            results.append(CheckResult.success(
-                f"Section navigation validated ({len(site.sections)} sections)"
-            ))
+            results.append(
+                CheckResult.success(f"Section navigation validated ({len(site.sections)} sections)")
+            )
 
         return results
 
-    def _check_navigation_coverage(self, site: 'Site') -> list[CheckResult]:
+    def _check_navigation_coverage(self, site: "Site") -> list[CheckResult]:
         """Check how many pages are reachable through navigation."""
         results = []
 
         # Count pages with navigation features
-        regular_pages = [p for p in site.pages if not p.metadata.get('_generated')]
+        regular_pages = [p for p in site.pages if not p.metadata.get("_generated")]
 
-        with_next_prev = sum(1 for p in regular_pages if (hasattr(p, 'next') and p.next) or (hasattr(p, 'prev') and p.prev))
-        with_breadcrumbs = sum(1 for p in regular_pages if hasattr(p, 'ancestors') and p.ancestors)
-        in_sections = sum(1 for p in regular_pages if hasattr(p, '_section') and p._section)
+        with_next_prev = sum(
+            1
+            for p in regular_pages
+            if (hasattr(p, "next") and p.next) or (hasattr(p, "prev") and p.prev)
+        )
+        with_breadcrumbs = sum(1 for p in regular_pages if hasattr(p, "ancestors") and p.ancestors)
+        in_sections = sum(1 for p in regular_pages if hasattr(p, "_section") and p._section)
 
         # Calculate coverage
         total = len(regular_pages)
@@ -177,12 +205,15 @@ class NavigationValidator(BaseValidator):
             breadcrumb_pct = (with_breadcrumbs / total) * 100
             section_pct = (in_sections / total) * 100
 
-            results.append(CheckResult.info(
-                f"Navigation coverage: {next_prev_pct:.0f}% next/prev, {breadcrumb_pct:.0f}% breadcrumbs, {section_pct:.0f}% in sections",
-                recommendation="High navigation coverage improves site usability." if next_prev_pct < 80 else None
-            ))
+            results.append(
+                CheckResult.info(
+                    f"Navigation coverage: {next_prev_pct:.0f}% next/prev, {breadcrumb_pct:.0f}% breadcrumbs, {section_pct:.0f}% in sections",
+                    recommendation="High navigation coverage improves site usability."
+                    if next_prev_pct < 80
+                    else None,
+                )
+            )
         else:
             results.append(CheckResult.info("No regular pages to validate navigation coverage"))
 
         return results
-

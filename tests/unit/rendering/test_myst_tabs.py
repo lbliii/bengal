@@ -25,11 +25,11 @@ JavaScript content here
         result = parser.parse(content, {})
 
         assert '<div class="tabs"' in result
-        assert 'tab-nav' in result
-        assert 'Python' in result
-        assert 'JavaScript' in result
-        assert 'Python content here' in result
-        assert 'JavaScript content here' in result
+        assert "tab-nav" in result
+        assert "Python" in result
+        assert "JavaScript" in result
+        assert "Python content here" in result
+        assert "JavaScript content here" in result
 
     def test_tab_with_markdown(self):
         """Test tabs with markdown content."""
@@ -47,9 +47,9 @@ This has **bold** and *italic* text.
 """
         result = parser.parse(content, {})
 
-        assert '<strong>bold</strong>' in result
-        assert '<em>italic</em>' in result
-        assert '<li>List item 1</li>' in result
+        assert "<strong>bold</strong>" in result
+        assert "<em>italic</em>" in result
+        assert "<li>List item 1</li>" in result
 
     def test_tab_with_code_blocks(self):
         """Test tabs with code blocks."""
@@ -72,8 +72,8 @@ console.log("hello");
 """
         result = parser.parse(content, {})
 
-        assert 'def hello' in result or 'hello()' in result
-        assert 'console.log' in result
+        assert "def hello" in result or "hello()" in result
+        assert "console.log" in result
 
     def test_tab_with_selected_option(self):
         """Test tab with :selected: option."""
@@ -129,8 +129,8 @@ This is a note inside a tab.
 """
         result = parser.parse(content, {})
 
-        assert 'admonition note' in result
-        assert 'This is a note inside a tab' in result
+        assert "admonition note" in result
+        assert "This is a note inside a tab" in result
 
     def test_multiple_tab_sets(self):
         """Test multiple tab-sets on one page."""
@@ -173,10 +173,10 @@ JavaScript content
         result = parser.parse(content, {})
 
         assert '<div class="tabs"' in result
-        assert 'Python' in result
-        assert 'JavaScript' in result
-        assert 'Python content' in result
-        assert 'JavaScript content' in result
+        assert "Python" in result
+        assert "JavaScript" in result
+        assert "Python content" in result
+        assert "JavaScript content" in result
 
     def test_legacy_with_markdown(self):
         """Test legacy tabs with markdown content."""
@@ -190,7 +190,7 @@ This has **bold** text.
 """
         result = parser.parse(content, {})
 
-        assert '<strong>bold</strong>' in result
+        assert "<strong>bold</strong>" in result
 
 
 class TestTabEdgeCases:
@@ -207,7 +207,7 @@ class TestTabEdgeCases:
         result = parser.parse(content, {})
 
         # Should not crash
-        assert 'tabs' in result
+        assert "tabs" in result
 
     def test_single_tab(self):
         """Test tab-set with only one tab."""
@@ -222,8 +222,8 @@ Content
 """
         result = parser.parse(content, {})
 
-        assert 'Only One' in result
-        assert 'Content' in result
+        assert "Only One" in result
+        assert "Content" in result
 
     def test_tab_without_title(self):
         """Test tab-item with no title."""
@@ -239,7 +239,7 @@ Content without title
         result = parser.parse(content, {})
 
         # Should default to "Tab"
-        assert 'Content without title' in result
+        assert "Content without title" in result
 
 
 class TestTabComparison:
@@ -277,8 +277,7 @@ Content B
         assert 'class="tabs"' in legacy_result
 
         # Both should have the content
-        assert 'Content A' in modern_result
-        assert 'Content A' in legacy_result
-        assert 'Content B' in modern_result
-        assert 'Content B' in legacy_result
-
+        assert "Content A" in modern_result
+        assert "Content A" in legacy_result
+        assert "Content B" in modern_result
+        assert "Content B" in legacy_result

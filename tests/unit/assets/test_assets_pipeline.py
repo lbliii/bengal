@@ -31,8 +31,9 @@ def test_asset_orchestrator_runs_pipeline_when_enabled(monkeypatch, tmp_path: Pa
     def dummy_from_site(_site):
         return DummyPipeline()
 
-    monkeypatch.setitem(sys.modules, 'bengal.assets.pipeline', types.ModuleType('pipeline'))
+    monkeypatch.setitem(sys.modules, "bengal.assets.pipeline", types.ModuleType("pipeline"))
     import bengal.assets.pipeline as pipeline_mod
+
     pipeline_mod.from_site = dummy_from_site
 
     # Import orchestrator after monkeypatching
@@ -49,19 +50,20 @@ def test_asset_orchestrator_runs_pipeline_when_enabled(monkeypatch, tmp_path: Pa
 
 def test_cli_build_flag_overrides_pipeline(tmp_path: Path, monkeypatch):
     # Arrange: create a minimal site directory
-    (tmp_path / 'content').mkdir()
-    (tmp_path / 'assets').mkdir()
+    (tmp_path / "content").mkdir()
+    (tmp_path / "assets").mkdir()
 
     # Ensure Site.from_config returns controlled site
     from bengal.core.site import Site
+
     real_from_config = Site.from_config
 
     def fake_from_config(root_path: Path, config_path=None):
         site = real_from_config(root_path, config_path)
-        site.config['assets'] = {'pipeline': False}
+        site.config["assets"] = {"pipeline": False}
         return site
 
-    monkeypatch.setattr(Site, 'from_config', staticmethod(fake_from_config))
+    monkeypatch.setattr(Site, "from_config", staticmethod(fake_from_config))
 
     # Act: invoke build command with --assets-pipeline flag
     from click.testing import CliRunner
@@ -77,4 +79,3 @@ def test_cli_build_flag_overrides_pipeline(tmp_path: Path, monkeypatch):
 
     # Assert: command succeeded
     assert result.exit_code == 0
-

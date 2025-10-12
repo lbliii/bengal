@@ -22,24 +22,32 @@ def instrumented_mistune_init(self):
     """Instrumented MistuneParser.__init__."""
     original_mistune_init(self)
     with parser_lock:
-        mistune_instances.append({
-            'id': id(self),
-            'thread': threading.current_thread().name,
-        })
-        print(f"[MISTUNE #{len(mistune_instances)}] Created in thread '{threading.current_thread().name}'",
-              file=sys.stderr)
+        mistune_instances.append(
+            {
+                "id": id(self),
+                "thread": threading.current_thread().name,
+            }
+        )
+        print(
+            f"[MISTUNE #{len(mistune_instances)}] Created in thread '{threading.current_thread().name}'",
+            file=sys.stderr,
+        )
 
 
 def instrumented_python_markdown_init(self):
     """Instrumented PythonMarkdownParser.__init__."""
     original_python_markdown_init(self)
     with parser_lock:
-        python_markdown_instances.append({
-            'id': id(self),
-            'thread': threading.current_thread().name,
-        })
-        print(f"[PYTHON-MARKDOWN #{len(python_markdown_instances)}] Created in thread '{threading.current_thread().name}'",
-              file=sys.stderr)
+        python_markdown_instances.append(
+            {
+                "id": id(self),
+                "thread": threading.current_thread().name,
+            }
+        )
+        print(
+            f"[PYTHON-MARKDOWN #{len(python_markdown_instances)}] Created in thread '{threading.current_thread().name}'",
+            file=sys.stderr,
+        )
 
 
 def main():
@@ -75,6 +83,7 @@ def main():
     except Exception as e:
         print(f"Build failed: {e}", file=sys.stderr)
         import traceback
+
         traceback.print_exc()
 
     # Report results
@@ -92,18 +101,16 @@ def main():
         print()
 
         # Count by thread
-        all_instances = [
-            ('Mistune', p) for p in mistune_instances
-        ] + [
-            ('PythonMarkdown', p) for p in python_markdown_instances
+        all_instances = [("Mistune", p) for p in mistune_instances] + [
+            ("PythonMarkdown", p) for p in python_markdown_instances
         ]
 
         if all_instances:
             by_thread = {}
             for parser_type, p in all_instances:
-                thread = p['thread']
+                thread = p["thread"]
                 if thread not in by_thread:
-                    by_thread[thread] = {'Mistune': 0, 'PythonMarkdown': 0}
+                    by_thread[thread] = {"Mistune": 0, "PythonMarkdown": 0}
                 by_thread[thread][parser_type] += 1
 
             print("By thread:")

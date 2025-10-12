@@ -25,7 +25,7 @@ class TemplateCache:
 
     def get_cache_key(self, template_name: str, element: DocElement) -> str:
         """Generate cache key from template + data."""
-        template_hash = self.template_hashes.get(template_name, '')
+        template_hash = self.template_hashes.get(template_name, "")
         element_hash = hashlib.sha256(
             json.dumps(element.to_dict(), sort_keys=True).encode()
         ).hexdigest()[:8]
@@ -57,7 +57,7 @@ class DocumentationGenerator:
         extractor: Extractor,
         config: dict[str, Any],
         template_cache: TemplateCache | None = None,
-        max_workers: int | None = None
+        max_workers: int | None = None,
     ):
         """
         Initialize generator.
@@ -71,7 +71,7 @@ class DocumentationGenerator:
         logger.debug(
             "initializing_autodoc_generator",
             extractor_type=extractor.__class__.__name__,
-            max_workers=max_workers
+            max_workers=max_workers,
         )
 
         self.extractor = extractor
@@ -87,25 +87,23 @@ class DocumentationGenerator:
         template_dirs = []
 
         # User templates (highest priority)
-        user_template_dir = Path('templates/autodoc') / self.extractor.get_template_dir()
+        user_template_dir = Path("templates/autodoc") / self.extractor.get_template_dir()
         if user_template_dir.exists():
             template_dirs.append(str(user_template_dir))
 
         # Alternative user locations
-        for alt_dir in ['templates/api', 'templates/sdk']:
+        for alt_dir in ["templates/api", "templates/sdk"]:
             alt_path = Path(alt_dir)
             if alt_path.exists():
                 template_dirs.append(str(alt_path))
 
         # Built-in templates (fallback)
-        builtin_dir = Path(__file__).parent / 'templates' / self.extractor.get_template_dir()
+        builtin_dir = Path(__file__).parent / "templates" / self.extractor.get_template_dir()
         if builtin_dir.exists():
             template_dirs.append(str(builtin_dir))
 
         logger.debug(
-            "autodoc_template_env_setup",
-            template_dirs=template_dirs,
-            dir_count=len(template_dirs)
+            "autodoc_template_env_setup", template_dirs=template_dirs, dir_count=len(template_dirs)
         )
 
         # Create Jinja2 environment
@@ -119,10 +117,7 @@ class DocumentationGenerator:
         return env
 
     def generate_all(
-        self,
-        elements: list[DocElement],
-        output_dir: Path,
-        parallel: bool = True
+        self, elements: list[DocElement], output_dir: Path, parallel: bool = True
     ) -> list[Path]:
         """
         Generate documentation for all elements.
@@ -139,7 +134,7 @@ class DocumentationGenerator:
             "generating_autodoc",
             element_count=len(elements),
             output_dir=str(output_dir),
-            parallel=parallel
+            parallel=parallel,
         )
 
         output_dir.mkdir(parents=True, exist_ok=True)
@@ -150,23 +145,14 @@ class DocumentationGenerator:
             result = self._generate_sequential(elements, output_dir)
 
         logger.info(
-            "autodoc_generation_complete",
-            files_generated=len(result),
-            output_dir=str(output_dir)
+            "autodoc_generation_complete", files_generated=len(result), output_dir=str(output_dir)
         )
 
         return result
 
-    def _generate_sequential(
-        self,
-        elements: list[DocElement],
-        output_dir: Path
-    ) -> list[Path]:
+    def _generate_sequential(self, elements: list[DocElement], output_dir: Path) -> list[Path]:
         """Generate documentation sequentially."""
-        logger.debug(
-            "autodoc_sequential_generation",
-            element_count=len(elements)
-        )
+        logger.debug("autodoc_sequential_generation", element_count=len(elements))
 
         generated = []
 
@@ -176,23 +162,15 @@ class DocumentationGenerator:
                 generated.append(path)
             except Exception as e:
                 logger.error(
-                    "autodoc_generation_failed",
-                    element=element.qualified_name,
-                    error=str(e)[:200]
+                    "autodoc_generation_failed", element=element.qualified_name, error=str(e)[:200]
                 )
 
         return generated
 
-    def _generate_parallel(
-        self,
-        elements: list[DocElement],
-        output_dir: Path
-    ) -> list[Path]:
+    def _generate_parallel(self, elements: list[DocElement], output_dir: Path) -> list[Path]:
         """Generate documentation in parallel."""
         logger.debug(
-            "autodoc_parallel_generation",
-            element_count=len(elements),
-            max_workers=self.max_workers
+            "autodoc_parallel_generation", element_count=len(elements), max_workers=self.max_workers
         )
 
         generated = []
@@ -212,7 +190,7 @@ class DocumentationGenerator:
                     logger.error(
                         "autodoc_parallel_generation_failed",
                         element=element.qualified_name,
-                        error=str(e)[:200]
+                        error=str(e)[:200],
                     )
 
         return generated
@@ -231,7 +209,7 @@ class DocumentationGenerator:
         logger.debug(
             "generating_autodoc_element",
             element=element.qualified_name,
-            element_type=element.element_type
+            element_type=element.element_type,
         )
 
         # Get template name based on element type
@@ -243,17 +221,13 @@ class DocumentationGenerator:
 
         if cached:
             logger.debug(
-                "autodoc_template_cache_hit",
-                element=element.qualified_name,
-                template=template_name
+                "autodoc_template_cache_hit", element=element.qualified_name, template=template_name
             )
             content = cached
         else:
             # Render template
             logger.debug(
-                "autodoc_rendering_template",
-                element=element.qualified_name,
-                template=template_name
+                "autodoc_rendering_template", element=element.qualified_name, template=template_name
             )
             content = self._render_template(template_name, element)
 
@@ -265,13 +239,13 @@ class DocumentationGenerator:
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
         # Write file
-        output_path.write_text(content, encoding='utf-8')
+        output_path.write_text(content, encoding="utf-8")
 
         logger.debug(
             "autodoc_element_generated",
             element=element.qualified_name,
             output_path=str(output_path),
-            size_kb=len(content) / 1024
+            size_kb=len(content) / 1024,
         )
 
         return output_path
@@ -280,14 +254,14 @@ class DocumentationGenerator:
         """Get template filename for element type."""
         # Map element types to template files
         type_map = {
-            'module': 'module.md.jinja2',
-            'class': 'class.md.jinja2',
-            'function': 'function.md.jinja2',
-            'method': 'function.md.jinja2',  # Methods use function template
-            'endpoint': 'endpoint.md.jinja2',
-            'schema': 'schema.md.jinja2',
-            'command': 'command.md.jinja2',
-            'command-group': 'command-group.md.jinja2',
+            "module": "module.md.jinja2",
+            "class": "class.md.jinja2",
+            "function": "function.md.jinja2",
+            "method": "function.md.jinja2",  # Methods use function template
+            "endpoint": "endpoint.md.jinja2",
+            "schema": "schema.md.jinja2",
+            "command": "command.md.jinja2",
+            "command-group": "command-group.md.jinja2",
         }
 
         template_name = type_map.get(element.element_type, f"{element.element_type}.md.jinja2")
@@ -298,7 +272,7 @@ class DocumentationGenerator:
             return template_name
         except TemplateNotFound:
             # Try without .jinja2
-            alt_name = template_name.replace('.jinja2', '')
+            alt_name = template_name.replace(".jinja2", "")
             try:
                 self.env.get_template(alt_name)
                 return alt_name
@@ -314,11 +288,10 @@ class DocumentationGenerator:
 
         # Build template context
         context = {
-            'element': element,
-            'config': self.config,
-            'autodoc_config': self.config.get('autodoc', {}),
+            "element": element,
+            "config": self.config,
+            "autodoc_config": self.config.get("autodoc", {}),
         }
 
         # Render
         return template.render(**context)
-

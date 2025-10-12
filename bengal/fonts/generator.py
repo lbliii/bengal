@@ -2,7 +2,6 @@
 Generate CSS for self-hosted fonts.
 """
 
-
 from bengal.fonts.downloader import FontVariant
 
 
@@ -48,7 +47,7 @@ class FontCSSGenerator:
                 url = f"{font_path_prefix}/{variant.filename}"
 
                 # Determine format from file extension
-                font_format = 'woff2' if '.woff2' in url else 'truetype'
+                font_format = "woff2" if ".woff2" in url else "truetype"
 
                 css_parts.append("@font-face {")
                 css_parts.append(f"  font-family: '{variant.family}';")
@@ -72,4 +71,3 @@ class FontCSSGenerator:
         css_parts.append("")
 
         return "\n".join(css_parts)
-

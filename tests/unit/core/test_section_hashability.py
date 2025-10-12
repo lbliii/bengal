@@ -42,7 +42,7 @@ class TestSectionHashability:
         page1 = Page(source_path=tmp_path / "blog/post1.md")
         page2 = Page(source_path=tmp_path / "blog/post2.md")
         section.pages.extend([page1, page2])
-        section.metadata = {'title': 'Blog Section', 'description': 'My blog'}
+        section.metadata = {"title": "Blog Section", "description": "My blog"}
         section.index_page = page1
 
         # Add subsection
@@ -71,10 +71,7 @@ class TestSectionHashability:
         section1 = Section(name="blog", path=tmp_path / "blog")
         section2 = Section(name="docs", path=tmp_path / "docs")
 
-        data = {
-            section1: "blog data",
-            section2: "docs data"
-        }
+        data = {section1: "blog data", section2: "docs data"}
 
         assert data[section1] == "blog data"
         assert data[section2] == "docs data"
@@ -90,7 +87,7 @@ class TestSectionHashability:
 
         # Mutate the section
         section.pages.append(Page(source_path=tmp_path / "blog/post.md"))
-        section.metadata = {'updated': True}
+        section.metadata = {"updated": True}
 
         # Should still be findable
         assert section in sections
@@ -127,7 +124,7 @@ class TestSectionHashability:
         assert section != tmp_path / "blog"
         assert section is not None
         assert section != 42
-        assert section != {'name': 'blog', 'path': tmp_path / "blog"}
+        assert section != {"name": "blog", "path": tmp_path / "blog"}
 
 
 class TestSectionSetOperations:
@@ -222,12 +219,10 @@ class TestSectionHashStability:
         # Populate all fields
         section.pages = [
             Page(source_path=tmp_path / "blog/post1.md"),
-            Page(source_path=tmp_path / "blog/post2.md")
+            Page(source_path=tmp_path / "blog/post2.md"),
         ]
-        section.subsections = [
-            Section(name="tutorials", path=tmp_path / "blog/tutorials")
-        ]
-        section.metadata = {'title': 'Blog', 'description': 'My blog'}
+        section.subsections = [Section(name="tutorials", path=tmp_path / "blog/tutorials")]
+        section.metadata = {"title": "Blog", "description": "My blog"}
         section.index_page = section.pages[0]
         section.parent = Section(name="root", path=tmp_path)
 
@@ -271,7 +266,7 @@ class TestSectionPageIntegration:
         # Track affected sections (simulating incremental build)
         affected_sections = set()
         for page in pages:
-            if hasattr(page, '_section') and page._section:
+            if hasattr(page, "_section") and page._section:
                 affected_sections.add(page._section)
 
         # Should have 2 unique sections
@@ -289,13 +284,9 @@ class TestSectionPageIntegration:
         page3 = Page(source_path=tmp_path / "docs/guide.md")
 
         # Build mapping
-        section_pages = {
-            section1: [page1, page2],
-            section2: [page3]
-        }
+        section_pages = {section1: [page1, page2], section2: [page3]}
 
         assert len(section_pages[section1]) == 2
         assert len(section_pages[section2]) == 1
         assert page1 in section_pages[section1]
         assert page3 in section_pages[section2]
-

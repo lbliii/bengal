@@ -26,20 +26,20 @@ def profile_build(site_path, parallel=True, max_workers=None):
     configure_logging(level=LogLevel.WARNING, track_memory=False)
 
     # Load site
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print("Profiling Bengal Build")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
     print(f"Site: {site_path}")
     print(f"Parallel: {parallel}")
     if max_workers:
         print(f"Max Workers: {max_workers}")
-    print(f"{'='*60}\n")
+    print(f"{'=' * 60}\n")
 
     site = Site.from_config(Path(site_path).resolve())
 
     # Override max_workers if specified
     if max_workers:
-        site.config['max_workers'] = max_workers
+        site.config["max_workers"] = max_workers
 
     # Profile the build
     profiler = cProfile.Profile()
@@ -53,21 +53,21 @@ def profile_build(site_path, parallel=True, max_workers=None):
 
     # Print build stats
     build_time = end_time - start_time
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print("Build Complete")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
     print(f"Total pages: {stats.total_pages}")
     print(f"Build time: {build_time:.2f}s")
     print(f"Pages/sec: {stats.total_pages / build_time:.1f}")
-    print(f"{'='*60}\n")
+    print(f"{'=' * 60}\n")
 
     # Analyze profiling data
     s = io.StringIO()
     ps = pstats.Stats(profiler, stream=s)
 
-    print("="*60)
+    print("=" * 60)
     print("TOP 30 FUNCTIONS BY CUMULATIVE TIME")
-    print("="*60)
+    print("=" * 60)
     ps.sort_stats(SortKey.CUMULATIVE)
     ps.print_stats(30)
     print(s.getvalue())
@@ -75,16 +75,16 @@ def profile_build(site_path, parallel=True, max_workers=None):
     s = io.StringIO()
     ps = pstats.Stats(profiler, stream=s)
 
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("TOP 30 FUNCTIONS BY INTERNAL TIME")
-    print("="*60)
+    print("=" * 60)
     ps.sort_stats(SortKey.TIME)
     ps.print_stats(30)
     print(s.getvalue())
 
     # Save full profile for detailed analysis using organized directory structure
     site_path_obj = Path(site_path).resolve()
-    profile_file = BengalPaths.get_profile_path(site_path_obj, filename='build_profile.stats')
+    profile_file = BengalPaths.get_profile_path(site_path_obj, filename="build_profile.stats")
     profiler.dump_stats(profile_file)
     print(f"\n✓ Full profile saved to: {profile_file}")
     print(f"  Analyze with: python -m pstats {profile_file}")
@@ -95,9 +95,9 @@ def profile_build(site_path, parallel=True, max_workers=None):
 
 def compare_parallel_vs_sequential(site_path):
     """Compare parallel vs sequential builds."""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("PARALLEL VS SEQUENTIAL COMPARISON")
-    print("="*60 + "\n")
+    print("=" * 60 + "\n")
 
     # Sequential build
     print("Running SEQUENTIAL build...")
@@ -115,7 +115,9 @@ def compare_parallel_vs_sequential(site_path):
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         print("Usage: python profile_site.py /path/to/site [--parallel] [--compare]")
-        print("       python profile_site.py /path/to/site --compare  (compare parallel vs sequential)")
+        print(
+            "       python profile_site.py /path/to/site --compare  (compare parallel vs sequential)"
+        )
         sys.exit(1)
 
     site_path = sys.argv[1]
@@ -125,4 +127,3 @@ if __name__ == "__main__":
     else:
         parallel = "--parallel" in sys.argv or "--no-parallel" not in sys.argv
         profile_build(site_path, parallel=parallel)
-

@@ -36,7 +36,7 @@ def sanitize_text(text: str | None) -> str:
         'Indented docstring text.\\n\\nMore content here.'
     """
     if not text:
-        return ''
+        return ""
 
     # Dedent to remove common leading whitespace
     # This prevents "    text" from becoming a code block in markdown
@@ -46,16 +46,16 @@ def sanitize_text(text: str | None) -> str:
     text = text.strip()
 
     # Normalize line endings (Windows → Unix)
-    text = text.replace('\r\n', '\n')
+    text = text.replace("\r\n", "\n")
 
     # Collapse multiple blank lines to maximum of 2
     # (2 blank lines = paragraph break in markdown, more is excessive)
-    text = re.sub(r'\n{3,}', '\n\n', text)
+    text = re.sub(r"\n{3,}", "\n\n", text)
 
     return text
 
 
-def truncate_text(text: str, max_length: int = 200, suffix: str = '...') -> str:
+def truncate_text(text: str, max_length: int = 200, suffix: str = "...") -> str:
     """
     Truncate text to a maximum length, adding suffix if truncated.
 
@@ -75,9 +75,8 @@ def truncate_text(text: str, max_length: int = 200, suffix: str = '...') -> str:
         return text
 
     # Find last space before max_length to avoid breaking words
-    truncate_at = text.rfind(' ', 0, max_length - len(suffix))
+    truncate_at = text.rfind(" ", 0, max_length - len(suffix))
     if truncate_at == -1:
         truncate_at = max_length - len(suffix)
 
     return text[:truncate_at].rstrip() + suffix
-

@@ -15,6 +15,7 @@ from typing import Any
 @dataclass
 class BuildMetric:
     """Single build metric record."""
+
     timestamp: str
     total_pages: int
     build_time_ms: float
@@ -54,26 +55,26 @@ class BuildMetric:
     @property
     def datetime(self) -> datetime:
         """Parse timestamp to datetime."""
-        return datetime.fromisoformat(self.timestamp.replace('Z', '+00:00'))
+        return datetime.fromisoformat(self.timestamp.replace("Z", "+00:00"))
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> 'BuildMetric':
+    def from_dict(cls, data: dict[str, Any]) -> "BuildMetric":
         """Create from dictionary."""
         return cls(
-            timestamp=data.get('timestamp', ''),
-            total_pages=data.get('total_pages', 0),
-            build_time_ms=data.get('build_time_ms', 0),
-            memory_rss_mb=data.get('memory_rss_mb', 0),
-            memory_heap_mb=data.get('memory_heap_mb', 0),
-            memory_peak_mb=data.get('memory_peak_mb', 0),
-            parallel=data.get('parallel', False),
-            incremental=data.get('incremental', False),
-            skipped=data.get('skipped', False),
-            discovery_time_ms=data.get('discovery_time_ms', 0),
-            taxonomy_time_ms=data.get('taxonomy_time_ms', 0),
-            rendering_time_ms=data.get('rendering_time_ms', 0),
-            assets_time_ms=data.get('assets_time_ms', 0),
-            postprocess_time_ms=data.get('postprocess_time_ms', 0),
+            timestamp=data.get("timestamp", ""),
+            total_pages=data.get("total_pages", 0),
+            build_time_ms=data.get("build_time_ms", 0),
+            memory_rss_mb=data.get("memory_rss_mb", 0),
+            memory_heap_mb=data.get("memory_heap_mb", 0),
+            memory_peak_mb=data.get("memory_peak_mb", 0),
+            parallel=data.get("parallel", False),
+            incremental=data.get("incremental", False),
+            skipped=data.get("skipped", False),
+            discovery_time_ms=data.get("discovery_time_ms", 0),
+            taxonomy_time_ms=data.get("taxonomy_time_ms", 0),
+            rendering_time_ms=data.get("rendering_time_ms", 0),
+            assets_time_ms=data.get("assets_time_ms", 0),
+            postprocess_time_ms=data.get("postprocess_time_ms", 0),
         )
 
 
@@ -111,7 +112,7 @@ class PerformanceReport:
             return []
 
         metrics = []
-        with open(history_file, encoding='utf-8') as f:
+        with open(history_file, encoding="utf-8") as f:
             for line in f:
                 try:
                     data = json.loads(line.strip())
@@ -127,7 +128,7 @@ class PerformanceReport:
 
         return metrics
 
-    def show(self, last: int = 10, format: str = 'table'):
+    def show(self, last: int = 10, format: str = "table"):
         """
         Show performance report.
 
@@ -142,11 +143,11 @@ class PerformanceReport:
             print(f"Metrics will be collected in: {self.metrics_dir}/")
             return
 
-        if format == 'table':
+        if format == "table":
             self._print_table(metrics)
-        elif format == 'json':
+        elif format == "json":
             self._print_json(metrics)
-        elif format == 'summary':
+        elif format == "summary":
             self._print_summary(metrics)
         else:
             print(f"Unknown format: {format}")
@@ -162,7 +163,7 @@ class PerformanceReport:
 
         # Rows
         for m in metrics:
-            date = m.datetime.strftime('%Y-%m-%d %H:%M')
+            date = m.datetime.strftime("%Y-%m-%d %H:%M")
 
             # Build type
             if m.skipped:
@@ -195,11 +196,19 @@ class PerformanceReport:
             return
 
         first = valid_metrics[-1]  # Oldest
-        last = valid_metrics[0]    # Newest
+        last = valid_metrics[0]  # Newest
 
         # Calculate changes
-        time_change = ((last.build_time_ms - first.build_time_ms) / first.build_time_ms * 100) if first.build_time_ms > 0 else 0
-        mem_change = ((last.memory_rss_mb - first.memory_rss_mb) / first.memory_rss_mb * 100) if first.memory_rss_mb > 0 else 0
+        time_change = (
+            ((last.build_time_ms - first.build_time_ms) / first.build_time_ms * 100)
+            if first.build_time_ms > 0
+            else 0
+        )
+        mem_change = (
+            ((last.memory_rss_mb - first.memory_rss_mb) / first.memory_rss_mb * 100)
+            if first.memory_rss_mb > 0
+            else 0
+        )
 
         # Average metrics
         avg_time = sum(m.build_time_ms for m in valid_metrics) / len(valid_metrics) / 1000
@@ -225,14 +234,14 @@ class PerformanceReport:
         """Print as JSON array."""
         data = [
             {
-                'timestamp': m.timestamp,
-                'pages': m.total_pages,
-                'build_time_s': m.build_time_s,
-                'memory_rss_mb': m.memory_rss_mb,
-                'memory_heap_mb': m.memory_heap_mb,
-                'throughput': m.pages_per_second,
-                'incremental': m.incremental,
-                'parallel': m.parallel,
+                "timestamp": m.timestamp,
+                "pages": m.total_pages,
+                "build_time_s": m.build_time_s,
+                "memory_rss_mb": m.memory_rss_mb,
+                "memory_heap_mb": m.memory_heap_mb,
+                "throughput": m.pages_per_second,
+                "incremental": m.incremental,
+                "parallel": m.parallel,
             }
             for m in metrics
         ]
@@ -251,7 +260,9 @@ class PerformanceReport:
         print(f"   Time:       {latest.build_time_s:.2f}s")
         print(f"   Memory:     {latest.memory_rss_mb:.1f}MB RSS")
         print(f"   Throughput: {latest.pages_per_second:.1f} pages/s")
-        print(f"   Type:       {'incremental' if latest.incremental else 'full'} / {'parallel' if latest.parallel else 'sequential'}")
+        print(
+            f"   Type:       {'incremental' if latest.incremental else 'full'} / {'parallel' if latest.parallel else 'sequential'}"
+        )
 
         if len(metrics) > 1:
             # Compare to average
@@ -264,8 +275,8 @@ class PerformanceReport:
                 mem_diff = latest.memory_rss_mb - avg_memory
 
                 print(f"\n📈 vs. Average ({len(valid_metrics)} builds)")
-                print(f"   Time:       {time_diff:+.2f}s ({(time_diff/avg_time*100):+.1f}%)")
-                print(f"   Memory:     {mem_diff:+.1f}MB ({(mem_diff/avg_memory*100):+.1f}%)")
+                print(f"   Time:       {time_diff:+.2f}s ({(time_diff / avg_time * 100):+.1f}%)")
+                print(f"   Memory:     {mem_diff:+.1f}MB ({(mem_diff / avg_memory * 100):+.1f}%)")
 
         # Phase breakdown if available
         if latest.rendering_time_ms > 0:
@@ -305,14 +316,34 @@ class PerformanceReport:
         print("─" * 60)
 
         self._compare_metric("Pages", b1.total_pages, b2.total_pages)
-        self._compare_metric("Build time", f"{b1.build_time_s:.2f}s", f"{b2.build_time_s:.2f}s",
-                           b1.build_time_s, b2.build_time_s)
-        self._compare_metric("Memory (RSS)", f"{b1.memory_rss_mb:.1f}MB", f"{b2.memory_rss_mb:.1f}MB",
-                           b1.memory_rss_mb, b2.memory_rss_mb)
-        self._compare_metric("Memory (heap)", f"{b1.memory_heap_mb:.1f}MB", f"{b2.memory_heap_mb:.1f}MB",
-                           b1.memory_heap_mb, b2.memory_heap_mb)
-        self._compare_metric("Throughput", f"{b1.pages_per_second:.1f}/s", f"{b2.pages_per_second:.1f}/s",
-                           b1.pages_per_second, b2.pages_per_second)
+        self._compare_metric(
+            "Build time",
+            f"{b1.build_time_s:.2f}s",
+            f"{b2.build_time_s:.2f}s",
+            b1.build_time_s,
+            b2.build_time_s,
+        )
+        self._compare_metric(
+            "Memory (RSS)",
+            f"{b1.memory_rss_mb:.1f}MB",
+            f"{b2.memory_rss_mb:.1f}MB",
+            b1.memory_rss_mb,
+            b2.memory_rss_mb,
+        )
+        self._compare_metric(
+            "Memory (heap)",
+            f"{b1.memory_heap_mb:.1f}MB",
+            f"{b2.memory_heap_mb:.1f}MB",
+            b1.memory_heap_mb,
+            b2.memory_heap_mb,
+        )
+        self._compare_metric(
+            "Throughput",
+            f"{b1.pages_per_second:.1f}/s",
+            f"{b2.pages_per_second:.1f}/s",
+            b1.pages_per_second,
+            b2.pages_per_second,
+        )
 
     def _compare_metric(self, name: str, val1, val2, num1=None, num2=None):
         """Print comparison row."""
@@ -323,4 +354,3 @@ class PerformanceReport:
             change_str = "-"
 
         print(f"{name:<20} {val1!s:>12} {val2!s:>12} {change_str:>12}")
-

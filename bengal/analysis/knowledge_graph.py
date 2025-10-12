@@ -35,6 +35,7 @@ class GraphMetrics:
         leaf_count: Number of leaf pages (low connectivity)
         orphan_count: Number of orphaned pages (no connections at all)
     """
+
     total_pages: int
     total_links: int
     avg_connectivity: float
@@ -57,7 +58,8 @@ class PageConnectivity:
         is_leaf: True if page has few connections
         is_orphan: True if page has no connections at all
     """
-    page: 'Page'
+
+    page: "Page"
     incoming_refs: int
     outgoing_refs: int
     connectivity_score: int
@@ -90,7 +92,7 @@ class KnowledgeGraph:
         >>> print(f"Found {len(orphans)} orphaned pages")
     """
 
-    def __init__(self, site: 'Site', hub_threshold: int = 10, leaf_threshold: int = 2):
+    def __init__(self, site: "Site", hub_threshold: int = 10, leaf_threshold: int = 2):
         """
         Initialize knowledge graph analyzer.
 
@@ -155,7 +157,7 @@ class KnowledgeGraph:
             total_links=self.metrics.total_links,
             hubs=self.metrics.hub_count,
             leaves=self.metrics.leaf_count,
-            orphans=self.metrics.orphan_count
+            orphans=self.metrics.orphan_count,
         )
 
     def _analyze_cross_references(self) -> None:
@@ -164,7 +166,7 @@ class KnowledgeGraph:
 
         Uses the site's xref_index to find all internal links.
         """
-        if not hasattr(self.site, 'xref_index') or not self.site.xref_index:
+        if not hasattr(self.site, "xref_index") or not self.site.xref_index:
             logger.debug("knowledge_graph_no_xref_index", action="skipping cross-ref analysis")
             return
 
@@ -172,14 +174,14 @@ class KnowledgeGraph:
         # We need to analyze which pages link to which
         for page in self.site.pages:
             # Analyze outgoing links from this page
-            for link in getattr(page, 'links', []):
+            for link in getattr(page, "links", []):
                 # Try to resolve the link to a target page
                 target = self._resolve_link(link)
                 if target and target != page:
                     self.incoming_refs[target] += 1  # Direct page reference
                     self.outgoing_refs[page].add(target)  # Direct page reference
 
-    def _resolve_link(self, link: str) -> 'Page':
+    def _resolve_link(self, link: str) -> "Page":
         """
         Resolve a link string to a target page.
 
@@ -189,23 +191,23 @@ class KnowledgeGraph:
         Returns:
             Target page or None if not found
         """
-        if not hasattr(self.site, 'xref_index') or not self.site.xref_index:
+        if not hasattr(self.site, "xref_index") or not self.site.xref_index:
             return None
 
         # Try different lookup strategies
         xref = self.site.xref_index
 
         # Try by ID
-        if link.startswith('id:'):
-            return xref.get('by_id', {}).get(link[3:])
+        if link.startswith("id:"):
+            return xref.get("by_id", {}).get(link[3:])
 
         # Try by path
-        if '/' in link or link.endswith('.md'):
-            clean_link = link.replace('.md', '').strip('/')
-            return xref.get('by_path', {}).get(clean_link)
+        if "/" in link or link.endswith(".md"):
+            clean_link = link.replace(".md", "").strip("/")
+            return xref.get("by_path", {}).get(clean_link)
 
         # Try by slug
-        pages = xref.get('by_slug', {}).get(link, [])
+        pages = xref.get("by_slug", {}).get(link, [])
         return pages[0] if pages else None
 
     def _analyze_taxonomies(self) -> None:
@@ -214,7 +216,7 @@ class KnowledgeGraph:
 
         Pages in the same taxonomy group reference each other implicitly.
         """
-        if not hasattr(self.site, 'taxonomies') or not self.site.taxonomies:
+        if not hasattr(self.site, "taxonomies") or not self.site.taxonomies:
             logger.debug("knowledge_graph_no_taxonomies", action="skipping taxonomy analysis")
             return
 
@@ -223,7 +225,7 @@ class KnowledgeGraph:
             # For each term in the taxonomy (e.g., 'python', 'tutorial')
             for _term_slug, term_data in taxonomy_dict.items():
                 # Get pages with this term
-                pages = term_data.get('pages', [])
+                pages = term_data.get("pages", [])
 
                 # Each page in the group has incoming refs from the taxonomy
                 for page in pages:
@@ -238,7 +240,7 @@ class KnowledgeGraph:
         Related posts are pages that share tags or other criteria.
         """
         for page in self.site.pages:
-            if not hasattr(page, 'related_posts') or not page.related_posts:
+            if not hasattr(page, "related_posts") or not page.related_posts:
                 continue
 
             # Each related post is an outgoing reference
@@ -253,7 +255,7 @@ class KnowledgeGraph:
 
         Pages in menus get a significant boost in importance.
         """
-        if not hasattr(self.site, 'menu') or not self.site.menu:
+        if not hasattr(self.site, "menu") or not self.site.menu:
             logger.debug("knowledge_graph_no_menus", action="skipping menu analysis")
             return
 
@@ -261,7 +263,7 @@ class KnowledgeGraph:
         for _menu_name, menu_items in self.site.menu.items():
             for item in menu_items:
                 # Check if menu item has a page reference
-                if hasattr(item, 'page') and item.page:
+                if hasattr(item, "page") and item.page:
                     # Menu items get a significant boost (10 points)
                     self.incoming_refs[item.page] += 10  # Direct page reference
 
@@ -305,10 +307,10 @@ class KnowledgeGraph:
             avg_connectivity=avg_connectivity,
             hub_count=hub_count,
             leaf_count=leaf_count,
-            orphan_count=orphan_count
+            orphan_count=orphan_count,
         )
 
-    def get_connectivity(self, page: 'Page') -> PageConnectivity:
+    def get_connectivity(self, page: "Page") -> PageConnectivity:
         """
         Get connectivity information for a specific page.
 
@@ -335,10 +337,10 @@ class KnowledgeGraph:
             connectivity_score=connectivity,
             is_hub=incoming >= self.hub_threshold,
             is_leaf=connectivity <= self.leaf_threshold,
-            is_orphan=(incoming == 0 and outgoing == 0)
+            is_orphan=(incoming == 0 and outgoing == 0),
         )
 
-    def get_hubs(self, threshold: int | None = None) -> list['Page']:
+    def get_hubs(self, threshold: int | None = None) -> list["Page"]:
         """
         Get hub pages (highly connected pages).
 
@@ -361,17 +363,14 @@ class KnowledgeGraph:
 
         threshold = threshold if threshold is not None else self.hub_threshold
 
-        hubs = [
-            page for page in self.site.pages
-            if self.incoming_refs[page] >= threshold
-        ]
+        hubs = [page for page in self.site.pages if self.incoming_refs[page] >= threshold]
 
         # Sort by incoming refs (descending)
         hubs.sort(key=lambda p: self.incoming_refs[p], reverse=True)
 
         return hubs
 
-    def get_leaves(self, threshold: int | None = None) -> list['Page']:
+    def get_leaves(self, threshold: int | None = None) -> list["Page"]:
         """
         Get leaf pages (low connectivity pages).
 
@@ -395,8 +394,7 @@ class KnowledgeGraph:
         threshold = threshold if threshold is not None else self.leaf_threshold
 
         leaves = [
-            page for page in self.site.pages
-            if self.get_connectivity_score(page) <= threshold
+            page for page in self.site.pages if self.get_connectivity_score(page) <= threshold
         ]
 
         # Sort by connectivity (ascending)
@@ -404,7 +402,7 @@ class KnowledgeGraph:
 
         return leaves
 
-    def get_orphans(self) -> list['Page']:
+    def get_orphans(self) -> list["Page"]:
         """
         Get orphaned pages (no connections at all).
 
@@ -423,10 +421,11 @@ class KnowledgeGraph:
             raise ValueError("Must call build() before getting orphans")
 
         orphans = [
-            page for page in self.site.pages
+            page
+            for page in self.site.pages
             if self.incoming_refs[page] == 0
             and len(self.outgoing_refs[page]) == 0
-            and not page.metadata.get('_generated')  # Exclude generated pages
+            and not page.metadata.get("_generated")  # Exclude generated pages
         ]
 
         # Sort by slug for consistent ordering
@@ -434,7 +433,7 @@ class KnowledgeGraph:
 
         return orphans
 
-    def get_connectivity_score(self, page: 'Page') -> int:
+    def get_connectivity_score(self, page: "Page") -> int:
         """
         Get total connectivity score for a page.
 
@@ -454,7 +453,7 @@ class KnowledgeGraph:
 
         return self.incoming_refs[page] + len(self.outgoing_refs[page])  # Direct page lookup
 
-    def get_layers(self) -> tuple[list['Page'], list['Page'], list['Page']]:
+    def get_layers(self) -> tuple[list["Page"], list["Page"], list["Page"]]:
         """
         Partition pages into three layers by connectivity.
 
@@ -474,9 +473,7 @@ class KnowledgeGraph:
 
         # Sort all pages by connectivity (descending)
         sorted_pages = sorted(
-            self.site.pages,
-            key=lambda p: self.get_connectivity_score(p),
-            reverse=True
+            self.site.pages, key=lambda p: self.get_connectivity_score(p), reverse=True
         )
 
         total = len(sorted_pages)
@@ -531,10 +528,16 @@ class KnowledgeGraph:
         output.append(f"Average links:      {m.avg_connectivity:.1f} per page")
         output.append("")
         output.append("Connectivity Distribution:")
-        output.append(f"  Hubs (>{self.hub_threshold} refs):  {m.hub_count} pages ({m.hub_count/m.total_pages*100:.1f}%)")
+        output.append(
+            f"  Hubs (>{self.hub_threshold} refs):  {m.hub_count} pages ({m.hub_count / m.total_pages * 100:.1f}%)"
+        )
         mid_count = m.total_pages - m.hub_count - m.leaf_count
-        output.append(f"  Mid-tier (3-{self.hub_threshold}):  {mid_count} pages ({mid_count/m.total_pages*100:.1f}%)")
-        output.append(f"  Leaves (≤{self.leaf_threshold}):    {m.leaf_count} pages ({m.leaf_count/m.total_pages*100:.1f}%)")
+        output.append(
+            f"  Mid-tier (3-{self.hub_threshold}):  {mid_count} pages ({mid_count / m.total_pages * 100:.1f}%)"
+        )
+        output.append(
+            f"  Leaves (≤{self.leaf_threshold}):    {m.leaf_count} pages ({m.leaf_count / m.total_pages * 100:.1f}%)"
+        )
         output.append("")
 
         # Show top hubs
@@ -564,16 +567,17 @@ class KnowledgeGraph:
         output.append(f"  • {leaf_pct:.0f}% of pages are leaves (could stream for memory savings)")
 
         if orphans:
-            output.append(f"  • {len(orphans)} pages have no incoming links (consider adding navigation)")
+            output.append(
+                f"  • {len(orphans)} pages have no incoming links (consider adding navigation)"
+            )
 
         output.append("")
 
         return "\n".join(output)
 
-    def compute_pagerank(self,
-                        damping: float = 0.85,
-                        max_iterations: int = 100,
-                        force_recompute: bool = False) -> 'PageRankResults':
+    def compute_pagerank(
+        self, damping: float = 0.85, max_iterations: int = 100, force_recompute: bool = False
+    ) -> "PageRankResults":
         """
         Compute PageRank scores for all pages in the graph.
 
@@ -605,19 +609,14 @@ class KnowledgeGraph:
         # Import here to avoid circular dependency
         from bengal.analysis.page_rank import PageRankCalculator
 
-        calculator = PageRankCalculator(
-            graph=self,
-            damping=damping,
-            max_iterations=max_iterations
-        )
+        calculator = PageRankCalculator(graph=self, damping=damping, max_iterations=max_iterations)
 
         self._pagerank_results = calculator.compute()
         return self._pagerank_results
 
-    def compute_personalized_pagerank(self,
-                                     seed_pages: set['Page'],
-                                     damping: float = 0.85,
-                                     max_iterations: int = 100) -> 'PageRankResults':
+    def compute_personalized_pagerank(
+        self, seed_pages: set["Page"], damping: float = 0.85, max_iterations: int = 100
+    ) -> "PageRankResults":
         """
         Compute personalized PageRank from seed pages.
 
@@ -649,15 +648,11 @@ class KnowledgeGraph:
         # Import here to avoid circular dependency
         from bengal.analysis.page_rank import PageRankCalculator
 
-        calculator = PageRankCalculator(
-            graph=self,
-            damping=damping,
-            max_iterations=max_iterations
-        )
+        calculator = PageRankCalculator(graph=self, damping=damping, max_iterations=max_iterations)
 
         return calculator.compute_personalized(seed_pages)
 
-    def get_top_pages_by_pagerank(self, limit: int = 20) -> list[tuple['Page', float]]:
+    def get_top_pages_by_pagerank(self, limit: int = 20) -> list[tuple["Page", float]]:
         """
         Get top-ranked pages by PageRank score.
 
@@ -680,7 +675,7 @@ class KnowledgeGraph:
 
         return self._pagerank_results.get_top_pages(limit)
 
-    def get_pagerank_score(self, page: 'Page') -> float:
+    def get_pagerank_score(self, page: "Page") -> float:
         """
         Get PageRank score for a specific page.
 
@@ -703,10 +698,9 @@ class KnowledgeGraph:
 
         return self._pagerank_results.get_score(page)
 
-    def detect_communities(self,
-                          resolution: float = 1.0,
-                          random_seed: int | None = None,
-                          force_recompute: bool = False) -> 'CommunityDetectionResults':
+    def detect_communities(
+        self, resolution: float = 1.0, random_seed: int | None = None, force_recompute: bool = False
+    ) -> "CommunityDetectionResults":
         """
         Detect topical communities using Louvain method.
 
@@ -740,15 +734,13 @@ class KnowledgeGraph:
         from bengal.analysis.community_detection import LouvainCommunityDetector
 
         detector = LouvainCommunityDetector(
-            graph=self,
-            resolution=resolution,
-            random_seed=random_seed
+            graph=self, resolution=resolution, random_seed=random_seed
         )
 
         self._community_results = detector.detect()
         return self._community_results
 
-    def get_community_for_page(self, page: 'Page') -> int | None:
+    def get_community_for_page(self, page: "Page") -> int | None:
         """
         Get community ID for a specific page.
 
@@ -772,7 +764,7 @@ class KnowledgeGraph:
         community = self._community_results.get_community_for_page(page)
         return community.id if community else None
 
-    def analyze_paths(self, force_recompute: bool = False) -> 'PathAnalysisResults':
+    def analyze_paths(self, force_recompute: bool = False) -> "PathAnalysisResults":
         """
         Analyze navigation paths and centrality metrics.
 
@@ -808,7 +800,7 @@ class KnowledgeGraph:
         self._path_results = analyzer.analyze()
         return self._path_results
 
-    def get_betweenness_centrality(self, page: 'Page') -> float:
+    def get_betweenness_centrality(self, page: "Page") -> float:
         """
         Get betweenness centrality for a specific page.
 
@@ -825,7 +817,7 @@ class KnowledgeGraph:
 
         return self._path_results.get_betweenness(page)
 
-    def get_closeness_centrality(self, page: 'Page') -> float:
+    def get_closeness_centrality(self, page: "Page") -> float:
         """
         Get closeness centrality for a specific page.
 
@@ -842,10 +834,12 @@ class KnowledgeGraph:
 
         return self._path_results.get_closeness(page)
 
-    def suggest_links(self,
-                     min_score: float = 0.3,
-                     max_suggestions_per_page: int = 10,
-                     force_recompute: bool = False) -> 'LinkSuggestionResults':
+    def suggest_links(
+        self,
+        min_score: float = 0.3,
+        max_suggestions_per_page: int = 10,
+        force_recompute: bool = False,
+    ) -> "LinkSuggestionResults":
         """
         Generate smart link suggestions to improve site connectivity.
 
@@ -882,15 +876,15 @@ class KnowledgeGraph:
         from bengal.analysis.link_suggestions import LinkSuggestionEngine
 
         engine = LinkSuggestionEngine(
-            graph=self,
-            min_score=min_score,
-            max_suggestions_per_page=max_suggestions_per_page
+            graph=self, min_score=min_score, max_suggestions_per_page=max_suggestions_per_page
         )
 
         self._link_suggestions = engine.generate_suggestions()
         return self._link_suggestions
 
-    def get_suggestions_for_page(self, page: 'Page', limit: int = 10) -> list[tuple['Page', float, list[str]]]:
+    def get_suggestions_for_page(
+        self, page: "Page", limit: int = 10
+    ) -> list[tuple["Page", float, list[str]]]:
         """
         Get link suggestions for a specific page.
 
@@ -908,4 +902,3 @@ class KnowledgeGraph:
 
         suggestions = self._link_suggestions.get_suggestions_for_page(page, limit)
         return [(s.target, s.score, s.reasons) for s in suggestions]
-

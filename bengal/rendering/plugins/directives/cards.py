@@ -45,12 +45,12 @@ from typing import Any
 from mistune.directives import DirectivePlugin
 
 __all__ = [
-    'CardDirective',
-    'CardsDirective',
-    'GridDirective',
-    'GridItemCardDirective',
-    'render_card',
-    'render_cards_grid',
+    "CardDirective",
+    "CardsDirective",
+    "GridDirective",
+    "GridItemCardDirective",
+    "render_card",
+    "render_cards_grid",
 ]
 
 
@@ -82,28 +82,28 @@ class CardsDirective(DirectivePlugin):
         children = self.parse_tokens(block, content, state)
 
         # Normalize columns option
-        columns = options.get('columns', 'auto')
+        columns = options.get("columns", "auto")
         if not columns:
-            columns = 'auto'
+            columns = "auto"
 
         # Normalize gap option
-        gap = options.get('gap', 'medium')
-        if gap not in ('small', 'medium', 'large'):
-            gap = 'medium'
+        gap = options.get("gap", "medium")
+        if gap not in ("small", "medium", "large"):
+            gap = "medium"
 
         # Normalize style option
-        style = options.get('style', 'default')
-        if style not in ('default', 'minimal', 'bordered'):
-            style = 'default'
+        style = options.get("style", "default")
+        if style not in ("default", "minimal", "bordered"):
+            style = "default"
 
         return {
-            'type': 'cards_grid',
-            'attrs': {
-                'columns': self._normalize_columns(columns),
-                'gap': gap,
-                'style': style,
+            "type": "cards_grid",
+            "attrs": {
+                "columns": self._normalize_columns(columns),
+                "gap": gap,
+                "style": style,
             },
-            'children': children,
+            "children": children,
         }
 
     def _normalize_columns(self, columns: str) -> str:
@@ -124,32 +124,32 @@ class CardsDirective(DirectivePlugin):
         columns = str(columns).strip()
 
         # Auto layout
-        if columns in ('auto', ''):
-            return 'auto'
+        if columns in ("auto", ""):
+            return "auto"
 
         # Fixed columns (1-6)
         if columns.isdigit():
             num = int(columns)
             if 1 <= num <= 6:
                 return str(num)
-            return 'auto'
+            return "auto"
 
         # Responsive columns (e.g., "1-2-3-4")
-        if '-' in columns:
-            parts = columns.split('-')
+        if "-" in columns:
+            parts = columns.split("-")
             # Validate each part is a digit 1-6
             if all(p.isdigit() and 1 <= int(p) <= 6 for p in parts) and len(parts) in (2, 3, 4):
                 return columns
 
         # Default to auto if invalid
-        return 'auto'
+        return "auto"
 
     def __call__(self, directive, md):
         """Register the directive with mistune."""
-        directive.register('cards', self.parse)
+        directive.register("cards", self.parse)
 
-        if md.renderer and md.renderer.NAME == 'html':
-            md.renderer.register('cards_grid', render_cards_grid)
+        if md.renderer and md.renderer.NAME == "html":
+            md.renderer.register("cards_grid", render_cards_grid)
 
 
 class CardDirective(DirectivePlugin):
@@ -190,46 +190,46 @@ class CardDirective(DirectivePlugin):
 
         # Check for +++ footer separator (Sphinx-Design convention)
         # Can use either :footer: option or +++ separator
-        footer = options.get('footer', '').strip()
-        if not footer and ('+++' in raw_content):
-            parts = raw_content.split('+++', 1)
+        footer = options.get("footer", "").strip()
+        if not footer and ("+++" in raw_content):
+            parts = raw_content.split("+++", 1)
             content = parts[0].strip()
-            footer = parts[1].strip() if len(parts) > 1 else ''
+            footer = parts[1].strip() if len(parts) > 1 else ""
         else:
             content = raw_content
 
         children = self.parse_tokens(block, content, state)
 
         # Extract and normalize options
-        icon = options.get('icon', '').strip()
-        link = options.get('link', '').strip()
-        color = options.get('color', '').strip()
-        image = options.get('image', '').strip()
+        icon = options.get("icon", "").strip()
+        link = options.get("link", "").strip()
+        color = options.get("color", "").strip()
+        image = options.get("image", "").strip()
 
         # Validate color (optional)
-        valid_colors = ('blue', 'green', 'red', 'yellow', 'purple', 'gray', 'pink', 'indigo')
+        valid_colors = ("blue", "green", "red", "yellow", "purple", "gray", "pink", "indigo")
         if color and color not in valid_colors:
-            color = ''
+            color = ""
 
         return {
-            'type': 'card',
-            'attrs': {
-                'title': title,
-                'icon': icon,
-                'link': link,
-                'color': color,
-                'image': image,
-                'footer': footer,
+            "type": "card",
+            "attrs": {
+                "title": title,
+                "icon": icon,
+                "link": link,
+                "color": color,
+                "image": image,
+                "footer": footer,
             },
-            'children': children,
+            "children": children,
         }
 
     def __call__(self, directive, md):
         """Register the directive with mistune."""
-        directive.register('card', self.parse)
+        directive.register("card", self.parse)
 
-        if md.renderer and md.renderer.NAME == 'html':
-            md.renderer.register('card', render_card)
+        if md.renderer and md.renderer.NAME == "html":
+            md.renderer.register("card", render_card)
 
 
 class GridDirective(DirectivePlugin):
@@ -270,20 +270,20 @@ class GridDirective(DirectivePlugin):
         columns = self._convert_sphinx_columns(title)
 
         # Convert gutter to gap
-        gap = self._convert_sphinx_gutter(options.get('gutter', ''))
+        gap = self._convert_sphinx_gutter(options.get("gutter", ""))
 
         # Parse content
         content = self.parse_content(m)
         children = self.parse_tokens(block, content, state)
 
         return {
-            'type': 'cards_grid',
-            'attrs': {
-                'columns': columns,
-                'gap': gap,
-                'style': 'default',
+            "type": "cards_grid",
+            "attrs": {
+                "columns": columns,
+                "gap": gap,
+                "style": "default",
             },
-            'children': children,
+            "children": children,
         }
 
     def _convert_sphinx_columns(self, title: str) -> str:
@@ -301,7 +301,7 @@ class GridDirective(DirectivePlugin):
             Normalized column string
         """
         if not title:
-            return 'auto'
+            return "auto"
 
         parts = title.strip().split()
 
@@ -314,9 +314,9 @@ class GridDirective(DirectivePlugin):
             # Filter valid numbers
             valid_parts = [p for p in parts if p.isdigit() and 1 <= int(p) <= 6]
             if valid_parts:
-                return '-'.join(valid_parts[:4])  # Max 4 breakpoints
+                return "-".join(valid_parts[:4])  # Max 4 breakpoints
 
-        return 'auto'
+        return "auto"
 
     def _convert_sphinx_gutter(self, gutter: str) -> str:
         """
@@ -332,26 +332,26 @@ class GridDirective(DirectivePlugin):
             Gap value (small/medium/large)
         """
         if not gutter:
-            return 'medium'
+            return "medium"
 
         # Extract first number
         parts = str(gutter).strip().split()
         if parts and parts[0].isdigit():
             num = int(parts[0])
             if num <= 1:
-                return 'small'
+                return "small"
             elif num >= 3:
-                return 'large'
+                return "large"
 
-        return 'medium'
+        return "medium"
 
     def __call__(self, directive, md):
         """Register the directive with mistune."""
-        directive.register('grid', self.parse)
+        directive.register("grid", self.parse)
 
         # Uses the same renderer as CardsDirective
-        if md.renderer and md.renderer.NAME == 'html':
-            md.renderer.register('cards_grid', render_cards_grid)
+        if md.renderer and md.renderer.NAME == "html":
+            md.renderer.register("cards_grid", render_cards_grid)
 
 
 class GridItemCardDirective(DirectivePlugin):
@@ -400,17 +400,17 @@ class GridItemCardDirective(DirectivePlugin):
         raw_content = self.parse_content(m)
 
         # Check for +++ footer separator (Sphinx-Design convention)
-        footer_text = ''
-        if '\n+++\n' in raw_content or '\n+++' in raw_content:
-            parts = raw_content.split('+++', 1)
+        footer_text = ""
+        if "\n+++\n" in raw_content or "\n+++" in raw_content:
+            parts = raw_content.split("+++", 1)
             content = parts[0].strip()
-            footer_content = parts[1].strip() if len(parts) > 1 else ''
+            footer_content = parts[1].strip() if len(parts) > 1 else ""
             # Parse footer markdown to plain text (for badges, etc)
             if footer_content:
                 footer_children = self.parse_tokens(block, footer_content, state)
                 # Render footer children to get the HTML
                 for child in footer_children:
-                    if isinstance(child, dict) and 'type' in child:
+                    if isinstance(child, dict) and "type" in child:
                         # Will be rendered later - just note we have footer
                         footer_text = footer_content  # Keep raw for now
                     else:
@@ -424,22 +424,22 @@ class GridItemCardDirective(DirectivePlugin):
         icon, clean_title = self._extract_octicon(title)
 
         # Convert options
-        link = options.get('link', '').strip()
+        link = options.get("link", "").strip()
 
         # Ignore link-type (not needed in our implementation)
         # Sphinx uses :link-type: doc|url|ref, we auto-detect
 
         return {
-            'type': 'card',
-            'attrs': {
-                'title': clean_title,
-                'icon': icon,
-                'link': link,
-                'color': '',
-                'image': '',
-                'footer': footer_text,  # Footer from +++ separator
+            "type": "card",
+            "attrs": {
+                "title": clean_title,
+                "icon": icon,
+                "link": link,
+                "color": "",
+                "image": "",
+                "footer": footer_text,  # Footer from +++ separator
             },
-            'children': children,
+            "children": children,
         }
 
     def _extract_octicon(self, title: str) -> tuple[str, str]:
@@ -458,27 +458,28 @@ class GridItemCardDirective(DirectivePlugin):
         import re
 
         # Pattern: {octicon}`icon-name;size;classes`
-        pattern = r'\{octicon\}`([^;`]+)(?:;[^`]*)?`\s*'
+        pattern = r"\{octicon\}`([^;`]+)(?:;[^`]*)?`\s*"
         match = re.search(pattern, title)
 
         if match:
             icon_name = match.group(1).strip()
             # Remove octicon syntax from title
-            clean_title = re.sub(pattern, '', title).strip()
+            clean_title = re.sub(pattern, "", title).strip()
             return icon_name, clean_title
 
-        return '', title
+        return "", title
 
     def __call__(self, directive, md):
         """Register the directive with mistune."""
-        directive.register('grid-item-card', self.parse)
+        directive.register("grid-item-card", self.parse)
 
         # Uses the same renderer as CardDirective
-        if md.renderer and md.renderer.NAME == 'html':
-            md.renderer.register('card', render_card)
+        if md.renderer and md.renderer.NAME == "html":
+            md.renderer.register("card", render_card)
 
 
 # Render functions
+
 
 def render_cards_grid(renderer, text: str, **attrs) -> str:
     """
@@ -492,9 +493,9 @@ def render_cards_grid(renderer, text: str, **attrs) -> str:
     Returns:
         HTML string for card grid
     """
-    columns = attrs.get('columns', 'auto')
-    gap = attrs.get('gap', 'medium')
-    style = attrs.get('style', 'default')
+    columns = attrs.get("columns", "auto")
+    gap = attrs.get("gap", "medium")
+    style = attrs.get("style", "default")
 
     # Build data attributes for CSS
     html = (
@@ -502,8 +503,8 @@ def render_cards_grid(renderer, text: str, **attrs) -> str:
         f'data-columns="{columns}" '
         f'data-gap="{gap}" '
         f'data-style="{style}">\n'
-        f'{text}'
-        f'</div>\n'
+        f"{text}"
+        f"</div>\n"
     )
     return html
 
@@ -520,38 +521,38 @@ def render_card(renderer, text: str, **attrs) -> str:
     Returns:
         HTML string for card
     """
-    title = attrs.get('title', '')
-    icon = attrs.get('icon', '')
-    link = attrs.get('link', '')
-    color = attrs.get('color', '')
-    image = attrs.get('image', '')
-    footer = attrs.get('footer', '')
+    title = attrs.get("title", "")
+    icon = attrs.get("icon", "")
+    link = attrs.get("link", "")
+    color = attrs.get("color", "")
+    image = attrs.get("image", "")
+    footer = attrs.get("footer", "")
 
     # Card wrapper (either <a> or <div>)
     if link:
-        card_tag = 'a'
+        card_tag = "a"
         card_attrs_str = f' href="{_escape_html(link)}"'
     else:
-        card_tag = 'div'
-        card_attrs_str = ''
+        card_tag = "div"
+        card_attrs_str = ""
 
     # Build class list
-    classes = ['card']
+    classes = ["card"]
     if color:
-        classes.append(f'card-color-{color}')
+        classes.append(f"card-color-{color}")
 
-    class_str = ' '.join(classes)
+    class_str = " ".join(classes)
 
     # Build card HTML
-    parts = [
-        f'<{card_tag} class="{class_str}"{card_attrs_str}>'
-    ]
+    parts = [f'<{card_tag} class="{class_str}"{card_attrs_str}>']
 
     # Optional header image
     if image:
         parts.append('  <div class="card-image">')
-        parts.append(f'    <img src="{_escape_html(image)}" alt="{_escape_html(title)}" loading="lazy">')
-        parts.append('  </div>')
+        parts.append(
+            f'    <img src="{_escape_html(image)}" alt="{_escape_html(title)}" loading="lazy">'
+        )
+        parts.append("  </div>")
 
     # Card body
     parts.append('  <div class="card-body">')
@@ -565,31 +566,31 @@ def render_card(renderer, text: str, **attrs) -> str:
             if rendered_icon:
                 parts.append(f'      <span class="card-icon" data-icon="{_escape_html(icon)}">')
                 parts.append(rendered_icon)
-                parts.append('      </span>')
+                parts.append("      </span>")
         if title:
             # Use div, not h3, so it doesn't appear in TOC
             # Styled to look like a heading but not a semantic heading
             parts.append(f'      <div class="card-title">{_escape_html(title)}</div>')
-        parts.append('    </div>')
+        parts.append("    </div>")
 
     # Card content
     if text:
         parts.append('    <div class="card-content">')
-        parts.append(f'{text}')  # Already rendered markdown
-        parts.append('    </div>')
+        parts.append(f"{text}")  # Already rendered markdown
+        parts.append("    </div>")
 
-    parts.append('  </div>')
+    parts.append("  </div>")
 
     # Optional footer (may contain markdown like badges)
     if footer:
         parts.append('  <div class="card-footer">')
         # Footer might have markdown (badges, links, etc), don't escape
-        parts.append(f'    {footer}')
-        parts.append('  </div>')
+        parts.append(f"    {footer}")
+        parts.append("  </div>")
 
-    parts.append(f'</{card_tag}>')
+    parts.append(f"</{card_tag}>")
 
-    return '\n'.join(parts) + '\n'
+    return "\n".join(parts) + "\n"
 
 
 def _render_icon(icon_name: str) -> str:
@@ -607,27 +608,27 @@ def _render_icon(icon_name: str) -> str:
     """
     # Simple icon mapping (temporary - will be replaced with Lucide icons)
     icon_map = {
-        'book': '📖',
-        'code': '💻',
-        'rocket': '🚀',
-        'users': '👥',
-        'star': '⭐',
-        'info': 'ℹ️',
-        'warning': '⚠️',
-        'check': '✓',
-        'database': '🗄️',
-        'tools': '🔧',
-        'shield': '🛡️',
-        'graduation-cap': '🎓',
-        'mortar-board': '🎓',
-        'package': '📦',
-        'pin': '📌',
-        'graph': '📊',
-        'shield-lock': '🔒',
+        "book": "📖",
+        "code": "💻",
+        "rocket": "🚀",
+        "users": "👥",
+        "star": "⭐",
+        "info": "ℹ️",
+        "warning": "⚠️",
+        "check": "✓",
+        "database": "🗄️",
+        "tools": "🔧",
+        "shield": "🛡️",
+        "graduation-cap": "🎓",
+        "mortar-board": "🎓",
+        "package": "📦",
+        "pin": "📌",
+        "graph": "📊",
+        "shield-lock": "🔒",
     }
 
     # Return the emoji if found, empty string if not (no fallback bullet)
-    return icon_map.get(icon_name, '')
+    return icon_map.get(icon_name, "")
 
 
 def _escape_html(text: str) -> str:
@@ -641,12 +642,12 @@ def _escape_html(text: str) -> str:
         Escaped text
     """
     if not text:
-        return ''
+        return ""
 
-    return (text
-            .replace('&', '&amp;')
-            .replace('<', '&lt;')
-            .replace('>', '&gt;')
-            .replace('"', '&quot;')
-            .replace("'", '&#x27;'))
-
+    return (
+        text.replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace('"', "&quot;")
+        .replace("'", "&#x27;")
+    )

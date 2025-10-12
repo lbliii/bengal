@@ -22,8 +22,7 @@ class TestSectionURLGeneration:
         section = Section(name="docs", path=Path("/content/docs"))
 
         index_page = Page(
-            source_path=Path("/content/docs/index.md"),
-            metadata={'title': 'Documentation'}
+            source_path=Path("/content/docs/index.md"), metadata={"title": "Documentation"}
         )
         section.add_page(index_page)
 
@@ -40,8 +39,8 @@ class TestSectionURLGeneration:
 
         index_page = Page(
             source_path=Path("/content/docs/index.md"),
-            metadata={'title': 'Documentation'},
-            output_path=Path("/site/public/docs/index.html")
+            metadata={"title": "Documentation"},
+            output_path=Path("/site/public/docs/index.html"),
         )
         index_page._site = site
         section.add_page(index_page)
@@ -89,10 +88,7 @@ class TestPageAncestors:
 
     def test_page_with_no_section(self):
         """Test page with no section has empty ancestors."""
-        page = Page(
-            source_path=Path("/content/page.md"),
-            metadata={'title': 'Page'}
-        )
+        page = Page(source_path=Path("/content/page.md"), metadata={"title": "Page"})
 
         assert page.ancestors == []
 
@@ -101,10 +97,7 @@ class TestPageAncestors:
         site = Site(root_path=Path("/site"), config={})
         section = Section(name="docs", path=Path("/content/docs"))
 
-        page = Page(
-            source_path=Path("/content/docs/intro.md"),
-            metadata={'title': 'Introduction'}
-        )
+        page = Page(source_path=Path("/content/docs/intro.md"), metadata={"title": "Introduction"})
 
         section.add_page(page)
         section._site = site
@@ -124,7 +117,7 @@ class TestPageAncestors:
 
         page = Page(
             source_path=Path("/content/docs/guides/intro.md"),
-            metadata={'title': 'Guide Introduction'}
+            metadata={"title": "Guide Introduction"},
         )
 
         parent.add_subsection(child)
@@ -148,10 +141,7 @@ class TestPageAncestors:
         root = Section(name="root", path=Path("/content"))
         section = Section(name="docs", path=Path("/content/docs"))
 
-        page = Page(
-            source_path=Path("/content/docs/page.md"),
-            metadata={'title': 'Page'}
-        )
+        page = Page(source_path=Path("/content/docs/page.md"), metadata={"title": "Page"})
 
         root.add_subsection(section)
         section.add_page(page)
@@ -168,7 +158,7 @@ class TestPageAncestors:
         assert ancestors[1] == root  # root
 
         # Template should filter out root by checking ancestor.name != 'root'
-        filtered_ancestors = [a for a in ancestors if a.name != 'root']
+        filtered_ancestors = [a for a in ancestors if a.name != "root"]
         assert len(filtered_ancestors) == 1
         assert filtered_ancestors[0] == section
 
@@ -180,10 +170,7 @@ class TestPageAncestors:
         level2 = Section(name="v2", path=Path("/content/api/v2"))
         level3 = Section(name="auth", path=Path("/content/api/v2/auth"))
 
-        page = Page(
-            source_path=Path("/content/api/v2/auth/oauth.md"),
-            metadata={'title': 'OAuth'}
-        )
+        page = Page(source_path=Path("/content/api/v2/auth/oauth.md"), metadata={"title": "OAuth"})
 
         level1.add_subsection(level2)
         level2.add_subsection(level3)
@@ -213,8 +200,7 @@ class TestBreadcrumbLogic:
         docs = Section(name="docs", path=Path("/content/docs"))
 
         page = Page(
-            source_path=Path("/content/docs/advanced.md"),
-            metadata={'title': 'Advanced Topics'}
+            source_path=Path("/content/docs/advanced.md"), metadata={"title": "Advanced Topics"}
         )
 
         docs.add_page(page)
@@ -228,15 +214,12 @@ class TestBreadcrumbLogic:
         breadcrumb_items = []
 
         for ancestor in reversed(ancestors):
-            breadcrumb_items.append({
-                'title': ancestor.title,
-                'url': ancestor.url
-            })
+            breadcrumb_items.append({"title": ancestor.title, "url": ancestor.url})
 
         # Should only have docs (no root)
         assert len(breadcrumb_items) == 1
-        assert breadcrumb_items[0]['title'] == 'Docs'
-        assert breadcrumb_items[0]['url'] == '/docs/'
+        assert breadcrumb_items[0]["title"] == "Docs"
+        assert breadcrumb_items[0]["url"] == "/docs/"
 
     def test_breadcrumb_with_nested_sections(self):
         """Test breadcrumb generation with nested sections."""
@@ -247,8 +230,7 @@ class TestBreadcrumbLogic:
         v2 = Section(name="v2", path=Path("/content/api/v2"))
 
         page = Page(
-            source_path=Path("/content/api/v2/users.md"),
-            metadata={'title': 'User Management'}
+            source_path=Path("/content/api/v2/users.md"), metadata={"title": "User Management"}
         )
 
         api.add_subsection(v2)
@@ -264,17 +246,14 @@ class TestBreadcrumbLogic:
         breadcrumb_items = []
 
         for ancestor in reversed(ancestors):
-            breadcrumb_items.append({
-                'title': ancestor.title,
-                'url': ancestor.url
-            })
+            breadcrumb_items.append({"title": ancestor.title, "url": ancestor.url})
 
         # Should have: Api → V2 (no root)
         assert len(breadcrumb_items) == 2
-        assert breadcrumb_items[0]['title'] == 'Api'
-        assert breadcrumb_items[0]['url'] == '/api/'
-        assert breadcrumb_items[1]['title'] == 'V2'
-        assert breadcrumb_items[1]['url'] == '/api/v2/'
+        assert breadcrumb_items[0]["title"] == "Api"
+        assert breadcrumb_items[0]["url"] == "/api/"
+        assert breadcrumb_items[1]["title"] == "V2"
+        assert breadcrumb_items[1]["url"] == "/api/v2/"
 
 
 class TestNavigationEdgeCases:
@@ -290,10 +269,7 @@ class TestNavigationEdgeCases:
     def test_page_parent_property(self):
         """Test that page.parent returns the section."""
         section = Section(name="docs", path=Path("/content/docs"))
-        page = Page(
-            source_path=Path("/content/docs/page.md"),
-            metadata={'title': 'Page'}
-        )
+        page = Page(source_path=Path("/content/docs/page.md"), metadata={"title": "Page"})
 
         section.add_page(page)
         page._section = section
@@ -331,4 +307,3 @@ class TestNavigationEdgeCases:
         assert parent.root == parent
         assert child.root == parent
         assert grandchild.root == parent
-

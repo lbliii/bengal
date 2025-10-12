@@ -86,7 +86,7 @@ class PageInitializer:
         # Verify URL generation works
         try:
             url = page.url
-            if not url.startswith('/'):
+            if not url.startswith("/"):
                 raise ValueError(f"Generated URL doesn't start with '/': {url}")
         except Exception as e:
             raise ValueError(
@@ -115,4 +115,3 @@ class PageInitializer:
         # Set section reference
         if not page._section:
             page._section = section
-

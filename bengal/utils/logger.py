@@ -28,6 +28,7 @@ from typing import Any, TextIO
 
 class LogLevel(Enum):
     """Log levels in order of severity."""
+
     DEBUG = 10
     INFO = 20
     WARNING = 30
@@ -38,6 +39,7 @@ class LogLevel(Enum):
 @dataclass
 class LogEvent:
     """Structured log event with context."""
+
     timestamp: str
     level: str
     logger_name: str
@@ -60,14 +62,14 @@ class LogEvent:
 
         # Level colors (Rich markup styles)
         level_styles = {
-            'DEBUG': 'cyan',
-            'INFO': 'green',
-            'WARNING': 'yellow',
-            'ERROR': 'red',
-            'CRITICAL': 'magenta',
+            "DEBUG": "cyan",
+            "INFO": "green",
+            "WARNING": "yellow",
+            "ERROR": "red",
+            "CRITICAL": "magenta",
         }
 
-        style = level_styles.get(self.level, 'white')
+        style = level_styles.get(self.level, "white")
 
         # Phase markers
         phase_marker = f" [bold]\\[{self.phase}][/bold]" if self.phase else ""
@@ -91,7 +93,7 @@ class LogEvent:
 
         # Always show context for warnings and errors (actionable issues)
         # In verbose mode, show context for all levels
-        show_context = verbose or self.level in ('WARNING', 'ERROR', 'CRITICAL')
+        show_context = verbose or self.level in ("WARNING", "ERROR", "CRITICAL")
 
         if show_context and self.context:
             context_str = " " + " ".join(f"{k}={v}" for k, v in self.context.items())
@@ -99,7 +101,7 @@ class LogEvent:
 
         if verbose:
             # Add timestamp in verbose mode
-            time_str = self.timestamp.split('T')[1].split('.')[0]  # HH:MM:SS
+            time_str = self.timestamp.split("T")[1].split(".")[0]  # HH:MM:SS
             base = f"[dim]{time_str}[/dim] {base}"
 
         return base
@@ -120,7 +122,7 @@ class BengalLogger:
         level: LogLevel = LogLevel.INFO,
         log_file: Path | None = None,
         verbose: bool = False,
-        quiet_console: bool = False
+        quiet_console: bool = False,
     ):
         """
         Initialize logger.
@@ -145,7 +147,7 @@ class BengalLogger:
         # File handle - properly closed in close() method
         self._file_handle: TextIO | None = None
         if log_file:
-            self._file_handle = open(log_file, 'w', encoding='utf-8')  # noqa: SIM115
+            self._file_handle = open(log_file, "w", encoding="utf-8")  # noqa: SIM115
 
     @contextmanager
     def phase(self, name: str, **context):
@@ -199,7 +201,7 @@ class BengalLogger:
                 duration_ms=duration_ms,
                 memory_mb=memory_mb,
                 peak_memory_mb=peak_memory_mb,
-                **phase_context
+                **phase_context,
             )
 
     def _emit(self, level: LogLevel, event_type: str, message: str, **context):
@@ -228,9 +230,9 @@ class BengalLogger:
         merged_context = {**phase_context, **context}
 
         # Extract memory metrics from context if present
-        memory_mb = merged_context.pop('memory_mb', None)
-        peak_memory_mb = merged_context.pop('peak_memory_mb', None)
-        duration_ms = merged_context.pop('duration_ms', None)
+        memory_mb = merged_context.pop("memory_mb", None)
+        peak_memory_mb = merged_context.pop("peak_memory_mb", None)
+        duration_ms = merged_context.pop("duration_ms", None)
 
         # Create event
         event = LogEvent(
@@ -244,7 +246,7 @@ class BengalLogger:
             duration_ms=duration_ms,
             memory_mb=memory_mb,
             peak_memory_mb=peak_memory_mb,
-            context=merged_context
+            context=merged_context,
         )
 
         # Store event
@@ -258,6 +260,7 @@ class BengalLogger:
             try:
                 # Use Rich console for markup rendering
                 from bengal.utils.rich_console import get_console
+
                 console = get_console()
                 console.print(event.format_console(verbose=self.verbose))
             except ImportError:
@@ -266,12 +269,13 @@ class BengalLogger:
                 message = event.format_console(verbose=self.verbose)
                 # Simple markup stripping (remove [style]...[/style])
                 import re
-                message = re.sub(r'\[/?[^\]]+\]', '', message)
+
+                message = re.sub(r"\[/?[^\]]+\]", "", message)
                 print(message)
 
         # Output to file (JSON format)
         if self._file_handle:
-            self._file_handle.write(json.dumps(event.to_dict()) + '\n')
+            self._file_handle.write(json.dumps(event.to_dict()) + "\n")
             self._file_handle.flush()
 
     def debug(self, message: str, **context):
@@ -321,34 +325,35 @@ class BengalLogger:
 
         try:
             from bengal.utils.rich_console import get_console
+
             console = get_console()
 
-            console.print("\n" + "="*60)
+            console.print("\n" + "=" * 60)
             console.print("Build Phase Timings:")
-            console.print("="*60)
+            console.print("=" * 60)
 
             total = sum(timings.values())
             for phase, duration in sorted(timings.items(), key=lambda x: x[1], reverse=True):
                 percentage = (duration / total * 100) if total > 0 else 0
                 console.print(f"  {phase:30s} {duration:8.1f}ms ({percentage:5.1f}%)")
 
-            console.print("-"*60)
+            console.print("-" * 60)
             console.print(f"  {'TOTAL':30s} {total:8.1f}ms (100.0%)")
-            console.print("="*60)
+            console.print("=" * 60)
         except ImportError:
             # Fallback to plain print
-            print("\n" + "="*60)
+            print("\n" + "=" * 60)
             print("Build Phase Timings:")
-            print("="*60)
+            print("=" * 60)
 
             total = sum(timings.values())
             for phase, duration in sorted(timings.items(), key=lambda x: x[1], reverse=True):
                 percentage = (duration / total * 100) if total > 0 else 0
                 print(f"  {phase:30s} {duration:8.1f}ms ({percentage:5.1f}%)")
 
-            print("-"*60)
+            print("-" * 60)
             print(f"  {'TOTAL':30s} {total:8.1f}ms (100.0%)")
-            print("="*60)
+            print("=" * 60)
 
     def close(self):
         """Close log file handle."""
@@ -369,10 +374,10 @@ class BengalLogger:
 # Global logger registry
 _loggers: dict[str, BengalLogger] = {}
 _global_config = {
-    'level': LogLevel.INFO,
-    'log_file': None,
-    'verbose': False,
-    'quiet_console': False,
+    "level": LogLevel.INFO,
+    "log_file": None,
+    "verbose": False,
+    "quiet_console": False,
 }
 
 
@@ -380,7 +385,7 @@ def configure_logging(
     level: LogLevel = LogLevel.INFO,
     log_file: Path | None = None,
     verbose: bool = False,
-    track_memory: bool = False
+    track_memory: bool = False,
 ):
     """
     Configure global logging settings.
@@ -391,9 +396,9 @@ def configure_logging(
         verbose: Show verbose output
         track_memory: Enable memory profiling (adds overhead)
     """
-    _global_config['level'] = level
-    _global_config['log_file'] = log_file
-    _global_config['verbose'] = verbose
+    _global_config["level"] = level
+    _global_config["log_file"] = log_file
+    _global_config["verbose"] = verbose
 
     # Enable memory tracking if requested
     if track_memory and not tracemalloc.is_tracing():
@@ -421,10 +426,10 @@ def get_logger(name: str) -> BengalLogger:
     if name not in _loggers:
         _loggers[name] = BengalLogger(
             name=name,
-            level=_global_config['level'],
-            log_file=_global_config['log_file'],
-            verbose=_global_config['verbose'],
-            quiet_console=_global_config['quiet_console']
+            level=_global_config["level"],
+            log_file=_global_config["log_file"],
+            verbose=_global_config["verbose"],
+            quiet_console=_global_config["quiet_console"],
         )
 
     return _loggers[name]
@@ -440,7 +445,7 @@ def set_console_quiet(quiet: bool = True):
     Args:
         quiet: If True, suppress console output; if False, enable it
     """
-    _global_config['quiet_console'] = quiet
+    _global_config["quiet_console"] = quiet
 
     # Update existing loggers
     for logger in _loggers.values():
@@ -481,11 +486,12 @@ def print_all_summaries():
 
     try:
         from bengal.utils.rich_console import get_console
+
         console = get_console()
 
-        console.print("\n" + "="*70)
+        console.print("\n" + "=" * 70)
         console.print("[bold cyan]Build Phase Performance:[/bold cyan]")
-        console.print("="*70)
+        console.print("=" * 70)
 
         # Show timing + memory
         total_time = sum(timings.values())
@@ -505,18 +511,18 @@ def print_all_summaries():
 
             console.print(line)
 
-        console.print("-"*70)
+        console.print("-" * 70)
         total_line = f"  {'TOTAL':25s} {total_time:8.1f}ms (100.0%)"
         if memory_deltas:
             total_mem = sum(memory_deltas.values())
             total_line += f"  Δ{total_mem:+7.1f}MB"
         console.print(total_line)
-        console.print("="*70)
+        console.print("=" * 70)
     except ImportError:
         # Fallback to plain print
-        print("\n" + "="*70)
+        print("\n" + "=" * 70)
         print("Build Phase Performance:")
-        print("="*70)
+        print("=" * 70)
 
         # Show timing + memory
         total_time = sum(timings.values())
@@ -536,11 +542,10 @@ def print_all_summaries():
 
             print(line)
 
-        print("-"*70)
+        print("-" * 70)
         total_line = f"  {'TOTAL':25s} {total_time:8.1f}ms (100.0%)"
         if memory_deltas:
             total_mem = sum(memory_deltas.values())
             total_line += f"  Δ{total_mem:+7.1f}MB"
         print(total_line)
-        print("="*70)
-
+        print("=" * 70)

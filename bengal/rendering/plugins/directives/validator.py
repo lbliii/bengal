@@ -20,19 +20,39 @@ class DirectiveSyntaxValidator:
 
     # Known directive types
     KNOWN_DIRECTIVES = {
-        'tabs', 'note', 'tip', 'warning', 'danger', 'error',
-        'info', 'example', 'success', 'caution', 'dropdown',
-        'details', 'code-tabs', 'code_tabs'
+        "tabs",
+        "note",
+        "tip",
+        "warning",
+        "danger",
+        "error",
+        "info",
+        "example",
+        "success",
+        "caution",
+        "dropdown",
+        "details",
+        "code-tabs",
+        "code_tabs",
     }
 
     # Admonition types (subset of known directives)
     ADMONITION_TYPES = {
-        'note', 'tip', 'warning', 'danger', 'error',
-        'info', 'example', 'success', 'caution'
+        "note",
+        "tip",
+        "warning",
+        "danger",
+        "error",
+        "info",
+        "example",
+        "success",
+        "caution",
     }
 
     @staticmethod
-    def validate_tabs_directive(content: str, file_path: Path | None = None, line_number: int | None = None) -> list[str]:
+    def validate_tabs_directive(
+        content: str, file_path: Path | None = None, line_number: int | None = None
+    ) -> list[str]:
         """
         Validate tabs directive content.
 
@@ -51,11 +71,11 @@ class DirectiveSyntaxValidator:
             return errors
 
         # Check for tab markers: ### Tab: Title
-        tab_markers = re.findall(r'^### Tab: (.+)$', content, re.MULTILINE)
+        tab_markers = re.findall(r"^### Tab: (.+)$", content, re.MULTILINE)
 
         if len(tab_markers) == 0:
             # Check for common typos
-            bad_markers = re.findall(r'^###\s*Ta[^b]', content, re.MULTILINE)
+            bad_markers = re.findall(r"^###\s*Ta[^b]", content, re.MULTILINE)
             if bad_markers:
                 errors.append(
                     "Malformed tab marker found. "
@@ -63,8 +83,7 @@ class DirectiveSyntaxValidator:
                 )
             else:
                 errors.append(
-                    "Tabs directive has no tab markers. "
-                    "Use ### Tab: Title to create tabs"
+                    "Tabs directive has no tab markers. Use ### Tab: Title to create tabs"
                 )
 
         elif len(tab_markers) == 1:
@@ -83,7 +102,9 @@ class DirectiveSyntaxValidator:
         return errors
 
     @staticmethod
-    def validate_code_tabs_directive(content: str, file_path: Path | None = None, line_number: int | None = None) -> list[str]:
+    def validate_code_tabs_directive(
+        content: str, file_path: Path | None = None, line_number: int | None = None
+    ) -> list[str]:
         """
         Validate code-tabs directive content.
 
@@ -102,18 +123,19 @@ class DirectiveSyntaxValidator:
             return errors
 
         # Check for tab markers
-        tab_markers = re.findall(r'^### Tab: (.+)$', content, re.MULTILINE)
+        tab_markers = re.findall(r"^### Tab: (.+)$", content, re.MULTILINE)
 
         if len(tab_markers) == 0:
             errors.append(
-                "Code-tabs directive has no tab markers. "
-                "Use ### Tab: Language to create code tabs"
+                "Code-tabs directive has no tab markers. Use ### Tab: Language to create code tabs"
             )
 
         return errors
 
     @staticmethod
-    def validate_dropdown_directive(content: str, title: str = "", file_path: Path | None = None, line_number: int | None = None) -> list[str]:
+    def validate_dropdown_directive(
+        content: str, title: str = "", file_path: Path | None = None, line_number: int | None = None
+    ) -> list[str]:
         """
         Validate dropdown directive content.
 
@@ -139,7 +161,9 @@ class DirectiveSyntaxValidator:
         return errors
 
     @staticmethod
-    def validate_admonition_directive(admon_type: str, content: str, file_path: Path | None = None, line_number: int | None = None) -> list[str]:
+    def validate_admonition_directive(
+        admon_type: str, content: str, file_path: Path | None = None, line_number: int | None = None
+    ) -> list[str]:
         """
         Validate admonition directive content.
 
@@ -160,7 +184,15 @@ class DirectiveSyntaxValidator:
         return errors
 
     @classmethod
-    def validate_directive(cls, directive_type: str, content: str, title: str = "", options: dict[str, Any] | None = None, file_path: Path | None = None, line_number: int | None = None) -> list[str]:
+    def validate_directive(
+        cls,
+        directive_type: str,
+        content: str,
+        title: str = "",
+        options: dict[str, Any] | None = None,
+        file_path: Path | None = None,
+        line_number: int | None = None,
+    ) -> list[str]:
         """
         Validate any directive type.
 
@@ -187,22 +219,26 @@ class DirectiveSyntaxValidator:
             return errors  # Don't validate further if type is unknown
 
         # Validate based on type
-        if directive_type == 'tabs':
+        if directive_type == "tabs":
             errors.extend(cls.validate_tabs_directive(content, file_path, line_number))
 
-        elif directive_type in ('code-tabs', 'code_tabs'):
+        elif directive_type in ("code-tabs", "code_tabs"):
             errors.extend(cls.validate_code_tabs_directive(content, file_path, line_number))
 
-        elif directive_type in ('dropdown', 'details'):
+        elif directive_type in ("dropdown", "details"):
             errors.extend(cls.validate_dropdown_directive(content, title, file_path, line_number))
 
         elif directive_type in cls.ADMONITION_TYPES:
-            errors.extend(cls.validate_admonition_directive(directive_type, content, file_path, line_number))
+            errors.extend(
+                cls.validate_admonition_directive(directive_type, content, file_path, line_number)
+            )
 
         return errors
 
     @classmethod
-    def validate_directive_block(cls, directive_block: str, file_path: Path | None = None, start_line: int | None = None) -> dict[str, Any]:
+    def validate_directive_block(
+        cls, directive_block: str, file_path: Path | None = None, start_line: int | None = None
+    ) -> dict[str, Any]:
         """
         Validate a complete directive block from markdown.
 
@@ -223,12 +259,12 @@ class DirectiveSyntaxValidator:
             }
         """
         result = {
-            'valid': True,
-            'errors': [],
-            'directive_type': None,
-            'content': '',
-            'title': '',
-            'options': {}
+            "valid": True,
+            "errors": [],
+            "directive_type": None,
+            "content": "",
+            "title": "",
+            "options": {},
         }
 
         # Parse directive block
@@ -237,32 +273,32 @@ class DirectiveSyntaxValidator:
         #
         #          content
         #          ```
-        pattern = r'```\{(\w+(?:-\w+)?)\}([^\n]*)\n(.*?)```'
+        pattern = r"```\{(\w+(?:-\w+)?)\}([^\n]*)\n(.*?)```"
         match = re.search(pattern, directive_block, re.DOTALL)
 
         if not match:
-            result['valid'] = False
-            result['errors'].append("Malformed directive block: could not parse")
+            result["valid"] = False
+            result["errors"].append("Malformed directive block: could not parse")
             return result
 
         directive_type = match.group(1)
         title = match.group(2).strip()
         content = match.group(3)
 
-        result['directive_type'] = directive_type
-        result['title'] = title
-        result['content'] = content
+        result["directive_type"] = directive_type
+        result["title"] = title
+        result["content"] = content
 
         # Parse options (lines starting with :key:)
         options = {}
-        option_pattern = r'^:(\w+):\s*(.*)$'
-        for line in content.split('\n'):
+        option_pattern = r"^:(\w+):\s*(.*)$"
+        for line in content.split("\n"):
             opt_match = re.match(option_pattern, line.strip())
             if opt_match:
                 key = opt_match.group(1)
                 value = opt_match.group(2).strip()
                 options[key] = value
-        result['options'] = options
+        result["options"] = options
 
         # Validate the directive
         errors = cls.validate_directive(
@@ -271,17 +307,19 @@ class DirectiveSyntaxValidator:
             title=title,
             options=options,
             file_path=file_path,
-            line_number=start_line
+            line_number=start_line,
         )
 
         if errors:
-            result['valid'] = False
-            result['errors'] = errors
+            result["valid"] = False
+            result["errors"] = errors
 
         return result
 
 
-def validate_markdown_directives(markdown_content: str, file_path: Path | None = None) -> list[dict[str, Any]]:
+def validate_markdown_directives(
+    markdown_content: str, file_path: Path | None = None
+) -> list[dict[str, Any]]:
     """
     Validate all directive blocks in a markdown file.
 
@@ -296,20 +334,18 @@ def validate_markdown_directives(markdown_content: str, file_path: Path | None =
     validator = DirectiveSyntaxValidator()
 
     # Find all directive blocks
-    pattern = r'```\{(\w+(?:-\w+)?)\}[^\n]*\n.*?```'
+    pattern = r"```\{(\w+(?:-\w+)?)\}[^\n]*\n.*?```"
 
     for match in re.finditer(pattern, markdown_content, re.DOTALL):
         directive_block = match.group(0)
         start_pos = match.start()
 
         # Calculate line number
-        line_number = markdown_content[:start_pos].count('\n') + 1
+        line_number = markdown_content[:start_pos].count("\n") + 1
 
         # Validate the block
         result = validator.validate_directive_block(
-            directive_block=directive_block,
-            file_path=file_path,
-            start_line=line_number
+            directive_block=directive_block, file_path=file_path, start_line=line_number
         )
 
         results.append(result)
@@ -328,23 +364,19 @@ def get_directive_validation_summary(validation_results: list[dict[str, Any]]) -
         Summary dictionary with counts and error lists
     """
     total = len(validation_results)
-    valid = sum(1 for r in validation_results if r['valid'])
+    valid = sum(1 for r in validation_results if r["valid"])
     invalid = total - valid
 
     all_errors = []
     for result in validation_results:
-        if not result['valid']:
-            for error in result['errors']:
-                all_errors.append({
-                    'directive_type': result['directive_type'],
-                    'error': error
-                })
+        if not result["valid"]:
+            for error in result["errors"]:
+                all_errors.append({"directive_type": result["directive_type"], "error": error})
 
     return {
-        'total_directives': total,
-        'valid': valid,
-        'invalid': invalid,
-        'errors': all_errors,
-        'has_errors': invalid > 0
+        "total_directives": total,
+        "valid": valid,
+        "invalid": invalid,
+        "errors": all_errors,
+        "has_errors": invalid > 0,
     }
-

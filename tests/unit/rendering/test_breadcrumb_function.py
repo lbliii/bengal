@@ -21,7 +21,7 @@ class TestGetBreadcrumbs:
 
     def test_no_ancestors_attribute_returns_empty(self):
         """Pages without ancestors attribute return empty list."""
-        page = Mock(spec=['title', 'url'])
+        page = Mock(spec=["title", "url"])
 
         result = get_breadcrumbs(page)
 
@@ -42,9 +42,13 @@ class TestGetBreadcrumbs:
         result = get_breadcrumbs(page)
 
         assert len(result) == 3
-        assert result[0] == {'title': 'Home', 'url': '/', 'is_current': False}
-        assert result[1] == {'title': 'Docs', 'url': '/docs/', 'is_current': False}
-        assert result[2] == {'title': 'Getting Started', 'url': '/docs/getting-started/', 'is_current': True}
+        assert result[0] == {"title": "Home", "url": "/", "is_current": False}
+        assert result[1] == {"title": "Docs", "url": "/docs/", "is_current": False}
+        assert result[2] == {
+            "title": "Getting Started",
+            "url": "/docs/getting-started/",
+            "is_current": True,
+        }
 
     def test_nested_breadcrumbs(self):
         """Multiple levels of nesting."""
@@ -65,11 +69,11 @@ class TestGetBreadcrumbs:
         result = get_breadcrumbs(page)
 
         assert len(result) == 4
-        assert result[0]['title'] == 'Home'
-        assert result[1]['title'] == 'Docs'
-        assert result[2]['title'] == 'Markdown'
-        assert result[3]['title'] == 'Syntax'
-        assert result[3]['is_current']
+        assert result[0]["title"] == "Home"
+        assert result[1]["title"] == "Docs"
+        assert result[2]["title"] == "Markdown"
+        assert result[3]["title"] == "Syntax"
+        assert result[3]["is_current"]
 
     def test_section_index_page_no_duplication(self):
         """Section index pages don't duplicate the section name."""
@@ -92,14 +96,14 @@ class TestGetBreadcrumbs:
 
         # Should NOT have duplicate "Markdown" at the end
         assert len(result) == 3
-        assert result[0]['title'] == 'Home'
-        assert result[1]['title'] == 'Docs'
-        assert result[2]['title'] == 'Markdown'
-        assert result[2]['is_current']  # Last item is current
+        assert result[0]["title"] == "Home"
+        assert result[1]["title"] == "Docs"
+        assert result[2]["title"] == "Markdown"
+        assert result[2]["is_current"]  # Last item is current
 
         # Verify no duplicate
-        titles = [item['title'] for item in result]
-        assert titles.count('Markdown') == 1
+        titles = [item["title"] for item in result]
+        assert titles.count("Markdown") == 1
 
     def test_all_items_have_required_fields(self):
         """All breadcrumb items have title, url, and is_current."""
@@ -115,12 +119,12 @@ class TestGetBreadcrumbs:
         result = get_breadcrumbs(page)
 
         for item in result:
-            assert 'title' in item
-            assert 'url' in item
-            assert 'is_current' in item
-            assert isinstance(item['title'], str)
-            assert isinstance(item['url'], str)
-            assert isinstance(item['is_current'], bool)
+            assert "title" in item
+            assert "url" in item
+            assert "is_current" in item
+            assert isinstance(item["title"], str)
+            assert isinstance(item["url"], str)
+            assert isinstance(item["is_current"], bool)
 
     def test_only_last_item_is_current(self):
         """Only the last breadcrumb item is marked as current."""
@@ -138,9 +142,9 @@ class TestGetBreadcrumbs:
         # Check that only last item is current
         for i, item in enumerate(result):
             if i == len(result) - 1:
-                assert item['is_current']
+                assert item["is_current"]
             else:
-                assert not item['is_current']
+                assert not item["is_current"]
 
     def test_ancestor_without_url_uses_slug(self):
         """Ancestors without url property fall back to slug."""
@@ -158,7 +162,7 @@ class TestGetBreadcrumbs:
         result = get_breadcrumbs(page)
 
         # Should construct URL from slug
-        assert result[1]['url'] == "/docs/"
+        assert result[1]["url"] == "/docs/"
 
     def test_page_without_title_shows_untitled(self):
         """Pages without title show 'Untitled'."""
@@ -173,7 +177,7 @@ class TestGetBreadcrumbs:
 
         result = get_breadcrumbs(page)
 
-        assert result[1]['title'] == "Untitled"
+        assert result[1]["title"] == "Untitled"
 
     def test_home_is_always_first(self):
         """Home is always the first breadcrumb."""
@@ -188,7 +192,6 @@ class TestGetBreadcrumbs:
 
         result = get_breadcrumbs(page)
 
-        assert result[0]['title'] == 'Home'
-        assert result[0]['url'] == '/'
-        assert not result[0]['is_current']
-
+        assert result[0]["title"] == "Home"
+        assert result[0]["url"] == "/"
+        assert not result[0]["is_current"]

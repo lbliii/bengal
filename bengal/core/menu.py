@@ -20,12 +20,13 @@ class MenuItem:
     2. Page frontmatter (page registers itself in menu)
     3. Section structure (auto-generated)
     """
+
     name: str
     url: str
     weight: int = 0
     parent: str | None = None
     identifier: str | None = None
-    children: list['MenuItem'] = field(default_factory=list)
+    children: list["MenuItem"] = field(default_factory=list)
 
     # Runtime state (set during rendering)
     active: bool = False
@@ -35,9 +36,9 @@ class MenuItem:
         """Set identifier from name if not provided."""
         if self.identifier is None:
             # Convert name to slug-like identifier
-            self.identifier = self.name.lower().replace(' ', '-').replace('_', '-')
+            self.identifier = self.name.lower().replace(" ", "-").replace("_", "-")
 
-    def add_child(self, child: 'MenuItem') -> None:
+    def add_child(self, child: "MenuItem") -> None:
         """Add a child menu item and sort by weight."""
         self.children.append(child)
         self.children.sort(key=lambda x: x.weight)
@@ -54,8 +55,8 @@ class MenuItem:
             True if this item or any child is active
         """
         # Normalize URLs for comparison
-        item_url = self.url.rstrip('/')
-        check_url = current_url.rstrip('/')
+        item_url = self.url.rstrip("/")
+        check_url = current_url.rstrip("/")
 
         if item_url == check_url:
             self.active = True
@@ -82,11 +83,11 @@ class MenuItem:
     def to_dict(self) -> dict:
         """Convert to dict for template access."""
         return {
-            'name': self.name,
-            'url': self.url,
-            'active': self.active,
-            'active_trail': self.active_trail,
-            'children': [child.to_dict() for child in self.children]
+            "name": self.name,
+            "url": self.url,
+            "active": self.active,
+            "active_trail": self.active_trail,
+            "children": [child.to_dict() for child in self.children],
         }
 
 
@@ -107,11 +108,11 @@ class MenuBuilder:
         """
         for item_config in menu_config:
             item = MenuItem(
-                name=item_config['name'],
-                url=item_config['url'],
-                weight=item_config.get('weight', 0),
-                parent=item_config.get('parent'),
-                identifier=item_config.get('identifier')
+                name=item_config["name"],
+                url=item_config["url"],
+                weight=item_config.get("weight", 0),
+                parent=item_config.get("parent"),
+                identifier=item_config.get("identifier"),
             )
             self.items.append(item)
 
@@ -125,11 +126,11 @@ class MenuBuilder:
             menu_config: Menu configuration from page frontmatter
         """
         item = MenuItem(
-            name=menu_config.get('name', page.title),
+            name=menu_config.get("name", page.title),
             url=page.url,
-            weight=menu_config.get('weight', 0),
-            parent=menu_config.get('parent'),
-            identifier=menu_config.get('identifier')
+            weight=menu_config.get("weight", 0),
+            parent=menu_config.get("parent"),
+            identifier=menu_config.get("identifier"),
         )
         self.items.append(item)
 
@@ -147,7 +148,7 @@ class MenuBuilder:
         logger.debug(
             "building_menu_hierarchy",
             total_items=len(self.items),
-            items_with_parents=sum(1 for i in self.items if i.parent)
+            items_with_parents=sum(1 for i in self.items if i.parent),
         )
 
         # Create lookup by identifier
@@ -163,7 +164,7 @@ class MenuBuilder:
             logger.warning(
                 f"{len(orphaned_items)} menu items reference missing parents and will be added to root level",
                 count=len(orphaned_items),
-                items=[(name, parent) for name, parent in orphaned_items[:5]]
+                items=[(name, parent) for name, parent in orphaned_items[:5]],
             )
 
         # Build tree
@@ -184,9 +185,7 @@ class MenuBuilder:
         for root in roots:
             if self._has_cycle(root, visited, set()):
                 logger.error(
-                    "menu_cycle_detected",
-                    root_item=root.name,
-                    root_identifier=root.identifier
+                    "menu_cycle_detected", root_item=root.name, root_identifier=root.identifier
                 )
                 raise ValueError(f"Menu has circular reference involving '{root.name}'")
 
@@ -197,7 +196,7 @@ class MenuBuilder:
             "menu_hierarchy_built",
             root_items=len(roots),
             total_items=len(self.items),
-            max_depth=max((self._get_depth(r) for r in roots), default=0)
+            max_depth=max((self._get_depth(r) for r in roots), default=0),
         )
 
         return roots
@@ -245,9 +244,7 @@ class MenuBuilder:
             menu_items: List of menu items to process
         """
         logger.debug(
-            "marking_active_menu_items",
-            current_url=current_url,
-            menu_item_count=len(menu_items)
+            "marking_active_menu_items", current_url=current_url, menu_item_count=len(menu_items)
         )
 
         # Reset all items first
@@ -260,8 +257,4 @@ class MenuBuilder:
             if item.mark_active(current_url):
                 active_count += 1
 
-        logger.debug(
-            "menu_active_items_marked",
-            active_items=active_count
-        )
-
+        logger.debug("menu_active_items_marked", active_items=active_count)

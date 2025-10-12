@@ -22,14 +22,15 @@ class ParsedContentCache:
     This allows skipping markdown parsing when only templates change.
     Optimization #2: Saves 20-30% time on template changes.
     """
-    html: str                     # Rendered HTML (post-markdown, pre-template)
-    toc: str                      # Table of contents HTML
+
+    html: str  # Rendered HTML (post-markdown, pre-template)
+    toc: str  # Table of contents HTML
     toc_items: list[dict[str, Any]]  # Structured TOC data
-    metadata_hash: str            # SHA256 of frontmatter (detect metadata changes)
-    template: str                 # Template name used
-    parser_version: str           # Parser version (e.g., "mistune-3.0")
-    timestamp: str                # When cached (ISO format)
-    size_bytes: int               # Size for cache management
+    metadata_hash: str  # SHA256 of frontmatter (detect metadata changes)
+    template: str  # Template name used
+    parser_version: str  # Parser version (e.g., "mistune-3.0")
+    timestamp: str  # When cached (ISO format)
+    size_bytes: int  # Size for cache management
 
 
 @dataclass
@@ -71,23 +72,19 @@ class BuildCache:
         """Convert sets from lists after JSON deserialization."""
         # Convert dependency lists back to sets
         self.dependencies = {
-            k: set(v) if isinstance(v, list) else v
-            for k, v in self.dependencies.items()
+            k: set(v) if isinstance(v, list) else v for k, v in self.dependencies.items()
         }
         # Convert taxonomy dependency lists back to sets
         self.taxonomy_deps = {
-            k: set(v) if isinstance(v, list) else v
-            for k, v in self.taxonomy_deps.items()
+            k: set(v) if isinstance(v, list) else v for k, v in self.taxonomy_deps.items()
         }
         # Convert page tags lists back to sets
         self.page_tags = {
-            k: set(v) if isinstance(v, list) else v
-            for k, v in self.page_tags.items()
+            k: set(v) if isinstance(v, list) else v for k, v in self.page_tags.items()
         }
         # Convert tag_to_pages lists back to sets
         self.tag_to_pages = {
-            k: set(v) if isinstance(v, list) else v
-            for k, v in self.tag_to_pages.items()
+            k: set(v) if isinstance(v, list) else v for k, v in self.tag_to_pages.items()
         }
         # Convert known_tags list back to set
         if isinstance(self.known_tags, list):
@@ -95,7 +92,7 @@ class BuildCache:
         # Parsed content is already in dict format (no conversion needed)
 
     @classmethod
-    def load(cls, cache_path: Path) -> 'BuildCache':
+    def load(cls, cache_path: Path) -> "BuildCache":
         """
         Load build cache from disk.
 
@@ -109,42 +106,36 @@ class BuildCache:
             return cls()
 
         try:
-            with open(cache_path, encoding='utf-8') as f:
+            with open(cache_path, encoding="utf-8") as f:
                 data = json.load(f)
 
             # Convert lists back to sets in dependencies
-            if 'dependencies' in data:
-                data['dependencies'] = {
-                    k: set(v) for k, v in data['dependencies'].items()
-                }
+            if "dependencies" in data:
+                data["dependencies"] = {k: set(v) for k, v in data["dependencies"].items()}
 
             # Convert lists back to sets in tag_to_pages
-            if 'tag_to_pages' in data:
-                data['tag_to_pages'] = {
-                    k: set(v) for k, v in data['tag_to_pages'].items()
-                }
+            if "tag_to_pages" in data:
+                data["tag_to_pages"] = {k: set(v) for k, v in data["tag_to_pages"].items()}
 
             # Convert list back to set in known_tags
-            if 'known_tags' in data and isinstance(data['known_tags'], list):
-                data['known_tags'] = set(data['known_tags'])
+            if "known_tags" in data and isinstance(data["known_tags"], list):
+                data["known_tags"] = set(data["known_tags"])
 
-            if 'taxonomy_deps' in data:
-                data['taxonomy_deps'] = {
-                    k: set(v) for k, v in data['taxonomy_deps'].items()
-                }
+            if "taxonomy_deps" in data:
+                data["taxonomy_deps"] = {k: set(v) for k, v in data["taxonomy_deps"].items()}
 
-            if 'page_tags' in data:
-                data['page_tags'] = {
-                    k: set(v) for k, v in data['page_tags'].items()
-                }
+            if "page_tags" in data:
+                data["page_tags"] = {k: set(v) for k, v in data["page_tags"].items()}
 
             return cls(**data)
         except (json.JSONDecodeError, KeyError, TypeError) as e:
-            logger.warning("cache_load_failed",
-                          cache_path=str(cache_path),
-                          error=str(e),
-                          error_type=type(e).__name__,
-                          action="using_fresh_cache")
+            logger.warning(
+                "cache_load_failed",
+                cache_path=str(cache_path),
+                error=str(e),
+                error_type=type(e).__name__,
+                action="using_fresh_cache",
+            )
             return cls()
 
     def save(self, cache_path: Path) -> None:
@@ -163,32 +154,37 @@ class BuildCache:
 
         # Convert sets to lists for JSON serialization
         data = {
-            'file_hashes': self.file_hashes,
-            'dependencies': {k: list(v) for k, v in self.dependencies.items()},
-            'output_sources': self.output_sources,
-            'taxonomy_deps': {k: list(v) for k, v in self.taxonomy_deps.items()},
-            'page_tags': {k: list(v) for k, v in self.page_tags.items()},
-            'parsed_content': self.parsed_content,  # NEW: Already in dict format
-            'last_build': datetime.now().isoformat()
+            "file_hashes": self.file_hashes,
+            "dependencies": {k: list(v) for k, v in self.dependencies.items()},
+            "output_sources": self.output_sources,
+            "taxonomy_deps": {k: list(v) for k, v in self.taxonomy_deps.items()},
+            "page_tags": {k: list(v) for k, v in self.page_tags.items()},
+            "parsed_content": self.parsed_content,  # NEW: Already in dict format
+            "last_build": datetime.now().isoformat(),
         }
 
         try:
             # Write cache atomically (crash-safe)
             from bengal.utils.atomic_write import AtomicFile
-            with AtomicFile(cache_path, 'w', encoding='utf-8') as f:
+
+            with AtomicFile(cache_path, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2)
 
-            logger.debug("cache_saved",
-                        cache_path=str(cache_path),
-                        tracked_files=len(self.file_hashes),
-                        dependencies=len(self.dependencies),
-                        cached_content=len(self.parsed_content))
+            logger.debug(
+                "cache_saved",
+                cache_path=str(cache_path),
+                tracked_files=len(self.file_hashes),
+                dependencies=len(self.dependencies),
+                cached_content=len(self.parsed_content),
+            )
         except Exception as e:
-            logger.error("cache_save_failed",
-                        cache_path=str(cache_path),
-                        error=str(e),
-                        error_type=type(e).__name__,
-                        impact="incremental_builds_disabled")
+            logger.error(
+                "cache_save_failed",
+                cache_path=str(cache_path),
+                error=str(e),
+                error_type=type(e).__name__,
+                impact="incremental_builds_disabled",
+            )
 
     def hash_file(self, file_path: Path) -> str:
         """
@@ -203,16 +199,18 @@ class BuildCache:
         hasher = hashlib.sha256()
 
         try:
-            with open(file_path, 'rb') as f:
+            with open(file_path, "rb") as f:
                 while chunk := f.read(8192):
                     hasher.update(chunk)
             return hasher.hexdigest()
         except Exception as e:
-            logger.warning("file_hash_failed",
-                          file_path=str(file_path),
-                          error=str(e),
-                          error_type=type(e).__name__,
-                          fallback="empty_hash")
+            logger.warning(
+                "file_hash_failed",
+                file_path=str(file_path),
+                error=str(e),
+                error_type=type(e).__name__,
+                fallback="empty_hash",
+            )
             return ""
 
     def is_changed(self, file_path: Path) -> bool:
@@ -346,8 +344,8 @@ class BuildCache:
 
         # Get old tags for this page
         old_tags = self.page_tags.get(page_path_str, set())
-        old_slugs = {tag.lower().replace(' ', '-') for tag in old_tags}
-        new_slugs = {tag.lower().replace(' ', '-') for tag in tags}
+        old_slugs = {tag.lower().replace(" ", "-") for tag in old_tags}
+        new_slugs = {tag.lower().replace(" ", "-") for tag in tags}
 
         # Find changes
         removed_slugs = old_slugs - new_slugs
@@ -441,10 +439,10 @@ class BuildCache:
             Dictionary with cache stats
         """
         stats = {
-            'tracked_files': len(self.file_hashes),
-            'dependencies': sum(len(deps) for deps in self.dependencies.values()),
-            'taxonomy_terms': len(self.taxonomy_deps),
-            'cached_content_pages': len(self.parsed_content),
+            "tracked_files": len(self.file_hashes),
+            "dependencies": sum(len(deps) for deps in self.dependencies.values()),
+            "taxonomy_terms": len(self.taxonomy_deps),
+            "cached_content_pages": len(self.parsed_content),
         }
 
         logger.debug("cache_stats", **stats)
@@ -452,9 +450,11 @@ class BuildCache:
 
     def __repr__(self) -> str:
         stats = self.get_stats()
-        return (f"BuildCache(files={stats['tracked_files']}, "
-                f"deps={stats['dependencies']}, "
-                f"taxonomies={stats['taxonomy_terms']})")
+        return (
+            f"BuildCache(files={stats['tracked_files']}, "
+            f"deps={stats['dependencies']}, "
+            f"taxonomies={stats['taxonomy_terms']})"
+        )
 
     # ========================================================================
     # OPTIMIZATION #2: Parsed Content Caching
@@ -468,7 +468,7 @@ class BuildCache:
         toc_items: list[dict[str, Any]],
         metadata: dict[str, Any],
         template: str,
-        parser_version: str
+        parser_version: str,
     ) -> None:
         """
         Store parsed content in cache (Optimization #2).
@@ -490,26 +490,22 @@ class BuildCache:
         metadata_hash = hashlib.sha256(metadata_str.encode()).hexdigest()
 
         # Calculate size for cache management
-        size_bytes = len(html.encode('utf-8')) + len(toc.encode('utf-8'))
+        size_bytes = len(html.encode("utf-8")) + len(toc.encode("utf-8"))
 
         # Store as dict (will be serialized to JSON)
         self.parsed_content[str(file_path)] = {
-            'html': html,
-            'toc': toc,
-            'toc_items': toc_items,
-            'metadata_hash': metadata_hash,
-            'template': template,
-            'parser_version': parser_version,
-            'timestamp': datetime.now().isoformat(),
-            'size_bytes': size_bytes
+            "html": html,
+            "toc": toc,
+            "toc_items": toc_items,
+            "metadata_hash": metadata_hash,
+            "template": template,
+            "parser_version": parser_version,
+            "timestamp": datetime.now().isoformat(),
+            "size_bytes": size_bytes,
         }
 
     def get_parsed_content(
-        self,
-        file_path: Path,
-        metadata: dict[str, Any],
-        template: str,
-        parser_version: str
+        self, file_path: Path, metadata: dict[str, Any], template: str, parser_version: str
     ) -> dict[str, Any] | None:
         """
         Get cached parsed content if valid (Optimization #2).
@@ -545,15 +541,15 @@ class BuildCache:
         # Validate metadata hasn't changed
         metadata_str = json.dumps(metadata, sort_keys=True, default=str)
         metadata_hash = hashlib.sha256(metadata_str.encode()).hexdigest()
-        if cached.get('metadata_hash') != metadata_hash:
+        if cached.get("metadata_hash") != metadata_hash:
             return None
 
         # Validate template hasn't changed (name)
-        if cached.get('template') != template:
+        if cached.get("template") != template:
             return None
 
         # Validate parser version (invalidate on upgrades)
-        if cached.get('parser_version') != parser_version:
+        if cached.get("parser_version") != parser_version:
             return None
 
         # Validate template file hasn't changed (via dependencies)
@@ -584,16 +580,13 @@ class BuildCache:
             Dictionary with cache stats
         """
         if not self.parsed_content:
-            return {
-                'cached_pages': 0,
-                'total_size_mb': 0,
-                'avg_size_kb': 0
-            }
+            return {"cached_pages": 0, "total_size_mb": 0, "avg_size_kb": 0}
 
-        total_size = sum(c.get('size_bytes', 0) for c in self.parsed_content.values())
+        total_size = sum(c.get("size_bytes", 0) for c in self.parsed_content.values())
         return {
-            'cached_pages': len(self.parsed_content),
-            'total_size_mb': total_size / 1024 / 1024,
-            'avg_size_kb': (total_size / len(self.parsed_content) / 1024) if self.parsed_content else 0
+            "cached_pages": len(self.parsed_content),
+            "total_size_mb": total_size / 1024 / 1024,
+            "avg_size_kb": (total_size / len(self.parsed_content) / 1024)
+            if self.parsed_content
+            else 0,
         }
-

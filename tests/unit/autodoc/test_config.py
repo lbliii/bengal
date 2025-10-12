@@ -23,14 +23,16 @@ def test_load_default_config_when_no_file(tmp_path):
 def test_load_config_from_file(tmp_path):
     """Test loading config from TOML file."""
     config_path = tmp_path / "bengal.toml"
-    config_path.write_text(dedent("""
+    config_path.write_text(
+        dedent("""
         [autodoc.python]
         enabled = true
         source_dirs = ["src", "lib"]
         output_dir = "docs/api"
         docstring_style = "google"
         include_private = true
-    """))
+    """)
+    )
 
     config = load_autodoc_config(config_path)
 
@@ -43,10 +45,12 @@ def test_load_config_from_file(tmp_path):
 def test_config_merges_with_defaults(tmp_path):
     """Test that file config merges with defaults."""
     config_path = tmp_path / "bengal.toml"
-    config_path.write_text(dedent("""
+    config_path.write_text(
+        dedent("""
         [autodoc.python]
         output_dir = "custom/api"
-    """))
+    """)
+    )
 
     config = load_autodoc_config(config_path)
 
@@ -74,10 +78,12 @@ def test_config_has_default_excludes(tmp_path):
 def test_config_override_excludes(tmp_path):
     """Test overriding exclude patterns."""
     config_path = tmp_path / "bengal.toml"
-    config_path.write_text(dedent("""
+    config_path.write_text(
+        dedent("""
         [autodoc.python]
         exclude = ["custom/pattern/*"]
-    """))
+    """)
+    )
 
     config = load_autodoc_config(config_path)
 
@@ -86,10 +92,7 @@ def test_config_override_excludes(tmp_path):
 
 def test_get_python_config():
     """Test getting Python-specific config."""
-    config = {
-        "python": {"enabled": True, "output_dir": "api"},
-        "openapi": {"enabled": False}
-    }
+    config = {"python": {"enabled": True, "output_dir": "api"}, "openapi": {"enabled": False}}
 
     py_config = get_python_config(config)
 
@@ -112,10 +115,12 @@ def test_config_handles_invalid_toml(tmp_path):
 def test_config_supports_multiple_source_dirs(tmp_path):
     """Test config with multiple source directories."""
     config_path = tmp_path / "bengal.toml"
-    config_path.write_text(dedent("""
+    config_path.write_text(
+        dedent("""
         [autodoc.python]
         source_dirs = ["src", "lib", "vendor"]
-    """))
+    """)
+    )
 
     config = load_autodoc_config(config_path)
 
@@ -135,4 +140,3 @@ def test_config_cli_disabled_by_default():
     config = load_autodoc_config(Path("nonexistent.toml"))
 
     assert config["cli"]["enabled"] is False
-

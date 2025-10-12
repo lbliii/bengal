@@ -18,7 +18,7 @@ class PageRelationshipsMixin:
     - Ancestor/descendant relationships
     """
 
-    def eq(self, other: 'Page') -> bool:
+    def eq(self, other: "Page") -> bool:
         """
         Check if two pages are equal.
 
@@ -57,7 +57,7 @@ class PageRelationshipsMixin:
         """
         return self._section == section
 
-    def is_ancestor(self, other: 'Page') -> bool:
+    def is_ancestor(self, other: "Page") -> bool:
         """
         Check if this page is an ancestor of another page.
 
@@ -76,9 +76,9 @@ class PageRelationshipsMixin:
             return False
 
         # Check if other page is in this section or subsections
-        return other._section in self.walk() if hasattr(self, 'walk') else False
+        return other._section in self.walk() if hasattr(self, "walk") else False
 
-    def is_descendant(self, other: 'Page') -> bool:
+    def is_descendant(self, other: "Page") -> bool:
         """
         Check if this page is a descendant of another page.
 
@@ -93,5 +93,4 @@ class PageRelationshipsMixin:
               <p>Part of {{ section.title }}</p>
             {% endif %}
         """
-        return other.is_ancestor(self) if hasattr(other, 'is_ancestor') else False
-
+        return other.is_ancestor(self) if hasattr(other, "is_ancestor") else False

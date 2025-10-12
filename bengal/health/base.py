@@ -50,7 +50,7 @@ class BaseValidator(ABC):
     enabled_by_default: bool = True
 
     @abstractmethod
-    def validate(self, site: 'Site') -> list['CheckResult']:
+    def validate(self, site: "Site") -> list["CheckResult"]:
         """
         Run validation checks and return results.
 
@@ -91,17 +91,16 @@ class BaseValidator(ABC):
             True if validator should run
         """
         # Check if health checks are globally enabled
-        if not config.get('validate_build', True):
+        if not config.get("validate_build", True):
             return False
 
         # Check if this specific validator is enabled
-        health_config = config.get('health_check', {})
-        validators_config = health_config.get('validators', {})
+        health_config = config.get("health_check", {})
+        validators_config = health_config.get("validators", {})
 
         # Look for validator-specific config using lowercase name
-        validator_key = self.name.lower().replace(' ', '_')
+        validator_key = self.name.lower().replace(" ", "_")
         return validators_config.get(validator_key, self.enabled_by_default)
 
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__}: {self.name}>"
-

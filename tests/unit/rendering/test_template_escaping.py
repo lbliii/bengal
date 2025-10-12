@@ -17,7 +17,7 @@ class TestVariableSubstitutionEscaping:
 
     def test_basic_escape_pattern(self):
         """Test that {{/* expression */}} becomes HTML-escaped {{ expression }}."""
-        context = {'page': type('obj', (), {'title': 'Test'})}
+        context = {"page": type("obj", (), {"title": "Test"})}
         plugin = VariableSubstitutionPlugin(context)
 
         text = "Use {{/* page.title */}} to display the title."
@@ -48,12 +48,14 @@ class TestVariableSubstitutionEscaping:
         result = plugin._substitute_variables(text)
         result = plugin.restore_placeholders(result)
 
-        assert result == "Use &#123;&#123; page.date | format_date('%Y-%m-%d') &#125;&#125; for dates."
+        assert (
+            result == "Use &#123;&#123; page.date | format_date('%Y-%m-%d') &#125;&#125; for dates."
+        )
 
     def test_normal_variables_still_work(self):
         """Test that normal variable substitution still works alongside escaping."""
-        page = type('obj', (), {'title': 'My Page'})
-        context = {'page': page}
+        page = type("obj", (), {"title": "My Page"})
+        context = {"page": page}
         plugin = VariableSubstitutionPlugin(context)
 
         text = "Title: {{ page.title }}. Show syntax: {{/* page.title */}}"
@@ -206,11 +208,10 @@ To show dates, use {{/* page.date | format_date */}}.
 """)
 
         # Simulate processing
-        page = type('obj', (), {
-            'metadata': {'author': 'Bengal Team'},
-            'date': datetime(2025, 10, 4)
-        })
-        context = {'page': page}
+        page = type(
+            "obj", (), {"metadata": {"author": "Bengal Team"}, "date": datetime(2025, 10, 4)}
+        )
+        context = {"page": page}
         plugin = VariableSubstitutionPlugin(context)
 
         content = doc_page.read_text()
@@ -254,7 +255,7 @@ class TestRegressionPrevention:
         plugin = VariableSubstitutionPlugin(context)
 
         # The problematic JSX from output-formats.md
-        text = '<div dangerouslySetInnerHTML={{/* __html: page.content_html */}} />'
+        text = "<div dangerouslySetInnerHTML={{/* __html: page.content_html */}} />"
         result = plugin._substitute_variables(text)
         result = plugin.restore_placeholders(result)
 
@@ -288,25 +289,23 @@ class TestRegressionPrevention:
 @pytest.fixture
 def mock_page():
     """Create a mock page for testing."""
-    return type('Page', (), {
-        'title': 'Test Page',
-        'content': 'Test content',
-        'date': datetime(2025, 10, 4),
-        'metadata': {
-            'author': 'Test Author',
-            'description': 'Test description'
-        }
-    })
+    return type(
+        "Page",
+        (),
+        {
+            "title": "Test Page",
+            "content": "Test content",
+            "date": datetime(2025, 10, 4),
+            "metadata": {"author": "Test Author", "description": "Test description"},
+        },
+    )
 
 
 @pytest.fixture
 def mock_site():
     """Create a mock site for testing."""
-    return type('Site', (), {
-        'title': 'Test Site',
-        'baseurl': 'https://example.com',
-        'config': {
-            'title': 'Test Site'
-        }
-    })
-
+    return type(
+        "Site",
+        (),
+        {"title": "Test Site", "baseurl": "https://example.com", "config": {"title": "Test Site"}},
+    )

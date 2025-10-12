@@ -138,8 +138,8 @@ Content""")
 
         # Top-level sections should be sorted by weight
         assert len(sections) == 3
-        assert sections[0].metadata["weight"] == 1    # alpha
-        assert sections[1].metadata["weight"] == 50   # moose
+        assert sections[0].metadata["weight"] == 1  # alpha
+        assert sections[1].metadata["weight"] == 50  # moose
         assert sections[2].metadata["weight"] == 100  # zebra
 
     def test_discover_sorts_nested_sections_recursively(self, tmp_path):
@@ -216,11 +216,13 @@ Content""")
         # Beginner should come before advanced (weight 1 < weight 100)
         beginner_idx = docs_section.subsections.index(beginner_section)
         advanced_idx = docs_section.subsections.index(advanced_section)
-        assert beginner_idx < advanced_idx, "beginner(weight=1) should come before advanced(weight=100)"
+        assert beginner_idx < advanced_idx, (
+            "beginner(weight=1) should come before advanced(weight=100)"
+        )
 
         # Grandchild sections should be sorted within beginner
         assert len(beginner_section.subsections) == 2
-        assert beginner_section.subsections[0].metadata["weight"] == 1   # tutorial-a
+        assert beginner_section.subsections[0].metadata["weight"] == 1  # tutorial-a
         assert beginner_section.subsections[1].metadata["weight"] == 50  # tutorial-z
 
     def test_discover_handles_missing_weights(self, tmp_path):
@@ -318,8 +320,8 @@ Content""")
 
         # Should have all pages including index, sorted by weight
         assert len(docs_section.pages) == 3
-        assert docs_section.pages[0].metadata["weight"] == 1   # page1
-        assert docs_section.pages[1].metadata["weight"] == 5   # _index
+        assert docs_section.pages[0].metadata["weight"] == 1  # page1
+        assert docs_section.pages[1].metadata["weight"] == 5  # _index
         assert docs_section.pages[2].metadata["weight"] == 10  # page2
 
 
@@ -395,4 +397,3 @@ Content""")
         # _index(1), installation(1), quickstart(2)
         # When weights are equal, sorted by title
         assert len(gs_section.pages) == 3
-

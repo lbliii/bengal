@@ -19,12 +19,12 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
-def register(env: 'Environment', site: 'Site') -> None:
+def register(env: "Environment", site: "Site") -> None:
     """Register image processing functions with Jinja2 environment."""
 
     # Create closures that have access to site
     def image_url_with_site(path: str, **params) -> str:
-        return image_url(path, site.config.get('baseurl', ''), **params)
+        return image_url(path, site.config.get("baseurl", ""), **params)
 
     def image_dimensions_with_site(path: str) -> tuple[int, int] | None:
         return image_dimensions(path, site.root_path)
@@ -32,21 +32,30 @@ def register(env: 'Environment', site: 'Site') -> None:
     def image_data_uri_with_site(path: str) -> str:
         return image_data_uri(path, site.root_path)
 
-    env.filters.update({
-        'image_srcset': image_srcset,
-        'image_alt': image_alt,
-    })
+    env.filters.update(
+        {
+            "image_srcset": image_srcset,
+            "image_alt": image_alt,
+        }
+    )
 
-    env.globals.update({
-        'image_url': image_url_with_site,
-        'image_dimensions': image_dimensions_with_site,
-        'image_srcset_gen': image_srcset_gen,
-        'image_data_uri': image_data_uri_with_site,
-    })
+    env.globals.update(
+        {
+            "image_url": image_url_with_site,
+            "image_dimensions": image_dimensions_with_site,
+            "image_srcset_gen": image_srcset_gen,
+            "image_data_uri": image_data_uri_with_site,
+        }
+    )
 
 
-def image_url(path: str, base_url: str, width: int | None = None,
-              height: int | None = None, quality: int | None = None) -> str:
+def image_url(
+    path: str,
+    base_url: str,
+    width: int | None = None,
+    height: int | None = None,
+    quality: int | None = None,
+) -> str:
     """
     Generate image URL with optional parameters.
 
@@ -65,10 +74,10 @@ def image_url(path: str, base_url: str, width: int | None = None,
         # /assets/photos/hero.jpg?w=800
     """
     if not path:
-        return ''
+        return ""
 
     # Normalize path
-    if not path.startswith('/'):
+    if not path.startswith("/"):
         path = f"/assets/{path}"
 
     # Build query string
@@ -85,7 +94,7 @@ def image_url(path: str, base_url: str, width: int | None = None,
         url += "?" + "&".join(params)
 
     if base_url:
-        url = base_url.rstrip('/') + url
+        url = base_url.rstrip("/") + url
 
     return url
 
@@ -118,19 +127,15 @@ def image_dimensions(path: str, root_path: Path) -> tuple[int, int] | None:
 
     if not file_path.exists():
         # Try in assets directory
-        file_path = Path(root_path) / 'assets' / path
+        file_path = Path(root_path) / "assets" / path
         tried_paths.append(str(file_path))
         if not file_path.exists():
-            logger.warning(
-                "image_not_found",
-                path=path,
-                tried_paths=tried_paths,
-                caller="template"
-            )
+            logger.warning("image_not_found", path=path, tried_paths=tried_paths, caller="template")
             return None
 
     try:
         from PIL import Image
+
         with Image.open(file_path) as img:
             dimensions = img.size
             logger.debug(
@@ -138,7 +143,7 @@ def image_dimensions(path: str, root_path: Path) -> tuple[int, int] | None:
                 path=path,
                 width=dimensions[0],
                 height=dimensions[1],
-                format=img.format
+                format=img.format,
             )
             return dimensions
     except ImportError:
@@ -147,7 +152,7 @@ def image_dimensions(path: str, root_path: Path) -> tuple[int, int] | None:
             path=path,
             message="Pillow library not installed, cannot get image dimensions",
             suggestion="Install with: pip install Pillow",
-            caller="template"
+            caller="template",
         )
         return None
     except Exception as e:
@@ -157,7 +162,7 @@ def image_dimensions(path: str, root_path: Path) -> tuple[int, int] | None:
             file_path=str(file_path),
             error=str(e),
             error_type=type(e).__name__,
-            caller="template"
+            caller="template",
         )
         return None
 
@@ -178,11 +183,11 @@ def image_srcset(image_path: str, sizes: list[int]) -> str:
         # hero.jpg?w=400 400w, hero.jpg?w=800 800w, hero.jpg?w=1200 1200w
     """
     if not image_path or not sizes:
-        return ''
+        return ""
 
     srcset_parts = []
     for size in sizes:
-        url = f"{image_path}?w={size}" if '?' not in image_path else f"{image_path}&w={size}"
+        url = f"{image_path}?w={size}" if "?" not in image_path else f"{image_path}&w={size}"
         srcset_parts.append(f"{url} {size}w")
 
     return ", ".join(srcset_parts)
@@ -228,13 +233,13 @@ def image_alt(filename: str) -> str:
         # "Mountain Sunset"
     """
     if not filename:
-        return ''
+        return ""
 
     # Remove extension
     name = Path(filename).stem
 
     # Replace separators with spaces
-    name = name.replace('-', ' ').replace('_', ' ')
+    name = name.replace("-", " ").replace("_", " ")
 
     # Capitalize words
     return name.title()
@@ -256,7 +261,7 @@ def image_data_uri(path: str, root_path: Path) -> str:
     """
     if not path:
         logger.debug("image_data_uri_empty_path", caller="template")
-        return ''
+        return ""
 
     # Try multiple paths
     tried_paths = []
@@ -264,53 +269,49 @@ def image_data_uri(path: str, root_path: Path) -> str:
     tried_paths.append(str(file_path))
 
     if not file_path.exists():
-        file_path = Path(root_path) / 'assets' / path
+        file_path = Path(root_path) / "assets" / path
         tried_paths.append(str(file_path))
         if not file_path.exists():
-            logger.warning(
-                "image_not_found",
-                path=path,
-                tried_paths=tried_paths,
-                caller="template"
-            )
-            return ''
+            logger.warning("image_not_found", path=path, tried_paths=tried_paths, caller="template")
+            return ""
 
     try:
-        with open(file_path, 'rb') as f:
+        with open(file_path, "rb") as f:
             data = f.read()
 
         # Determine MIME type
         suffix = file_path.suffix.lower()
         mime_types = {
-            '.jpg': 'image/jpeg',
-            '.jpeg': 'image/jpeg',
-            '.png': 'image/png',
-            '.gif': 'image/gif',
-            '.svg': 'image/svg+xml',
-            '.webp': 'image/webp',
+            ".jpg": "image/jpeg",
+            ".jpeg": "image/jpeg",
+            ".png": "image/png",
+            ".gif": "image/gif",
+            ".svg": "image/svg+xml",
+            ".webp": "image/webp",
         }
-        mime_type = mime_types.get(suffix, 'application/octet-stream')
+        mime_type = mime_types.get(suffix, "application/octet-stream")
 
         # For SVG, we can use text encoding
-        if suffix == '.svg':
+        if suffix == ".svg":
             try:
-                svg_text = data.decode('utf-8')
+                svg_text = data.decode("utf-8")
                 # URL encode for data URI
                 from urllib.parse import quote
+
                 data_uri = f"data:{mime_type};utf8,{quote(svg_text)}"
                 logger.debug(
                     "image_data_uri_created",
                     path=path,
                     format="svg",
                     encoding="utf8",
-                    size_bytes=len(data)
+                    size_bytes=len(data),
                 )
                 return data_uri
             except UnicodeDecodeError:
                 pass
 
         # Base64 encode for other images
-        encoded = base64.b64encode(data).decode('ascii')
+        encoded = base64.b64encode(data).decode("ascii")
         data_uri = f"data:{mime_type};base64,{encoded}"
         logger.debug(
             "image_data_uri_created",
@@ -318,7 +319,7 @@ def image_data_uri(path: str, root_path: Path) -> str:
             mime_type=mime_type,
             encoding="base64",
             size_bytes=len(data),
-            encoded_length=len(encoded)
+            encoded_length=len(encoded),
         )
         return data_uri
 
@@ -329,9 +330,9 @@ def image_data_uri(path: str, root_path: Path) -> str:
             file_path=str(file_path),
             error=str(e),
             error_type="IOError",
-            caller="template"
+            caller="template",
         )
-        return ''
+        return ""
     except Exception as e:
         logger.error(
             "image_encoding_error",
@@ -339,7 +340,6 @@ def image_data_uri(path: str, root_path: Path) -> str:
             file_path=str(file_path),
             error=str(e),
             error_type=type(e).__name__,
-            caller="template"
+            caller="template",
         )
-        return ''
-
+        return ""

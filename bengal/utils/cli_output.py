@@ -18,16 +18,18 @@ from rich.table import Table
 
 class MessageLevel(Enum):
     """Message importance levels."""
-    DEBUG = 0      # Only in --verbose
-    INFO = 1       # Normal operations
-    SUCCESS = 2    # Successful operations
-    WARNING = 3    # Non-critical issues
-    ERROR = 4      # Errors
-    CRITICAL = 5   # Fatal errors
+
+    DEBUG = 0  # Only in --verbose
+    INFO = 1  # Normal operations
+    SUCCESS = 2  # Successful operations
+    WARNING = 3  # Non-critical issues
+    ERROR = 4  # Errors
+    CRITICAL = 5  # Fatal errors
 
 
 class OutputStyle(Enum):
     """Visual styles for messages."""
+
     PLAIN = "plain"
     HEADER = "header"
     PHASE = "phase"
@@ -59,7 +61,7 @@ class CLIOutput:
         profile: Any | None = None,
         quiet: bool = False,
         verbose: bool = False,
-        use_rich: bool | None = None
+        use_rich: bool | None = None,
     ):
         """
         Initialize CLI output manager.
@@ -77,6 +79,7 @@ class CLIOutput:
         # Auto-detect rich support
         if use_rich is None:
             from bengal.utils.rich_console import should_use_rich
+
             use_rich = should_use_rich()
 
         self.use_rich = use_rich
@@ -121,7 +124,7 @@ class CLIOutput:
         status: str = "Done",
         duration_ms: float | None = None,
         details: str | None = None,
-        icon: str = "✓"
+        icon: str = "✓",
     ) -> None:
         """
         Print a phase status line.
@@ -151,14 +154,9 @@ class CLIOutput:
         if self.use_rich:
             self.console.print(line)
         else:
-            click.echo(click.style(line, fg='green'))
+            click.echo(click.style(line, fg="green"))
 
-    def detail(
-        self,
-        text: str,
-        indent: int = 1,
-        icon: str | None = None
-    ) -> None:
+    def detail(self, text: str, indent: int = 1, icon: str | None = None) -> None:
         """
         Print a detail/sub-item.
 
@@ -214,7 +212,7 @@ class CLIOutput:
         if self.use_rich:
             self.console.print(f"{icon}  [yellow]{text}[/yellow]")
         else:
-            click.echo(click.style(f"{icon}  {text}", fg='yellow'))
+            click.echo(click.style(f"{icon}  {text}", fg="yellow"))
 
     def error(self, text: str, icon: str = "❌") -> None:
         """Print an error message."""
@@ -224,7 +222,7 @@ class CLIOutput:
         if self.use_rich:
             self.console.print(f"{icon} [bold red]{text}[/bold red]")
         else:
-            click.echo(click.style(f"{icon} {text}", fg='red', bold=True))
+            click.echo(click.style(f"{icon} {text}", fg="red", bold=True))
 
     def path(self, path: str, icon: str = "📂", label: str = "Output") -> None:
         """
@@ -245,15 +243,9 @@ class CLIOutput:
             self.console.print(f"   ↪ [cyan]{display_path}[/cyan]")
         else:
             click.echo(f"{icon} {label}:")
-            click.echo(click.style(f"   ↪ {display_path}", fg='cyan'))
+            click.echo(click.style(f"   ↪ {display_path}", fg="cyan"))
 
-    def metric(
-        self,
-        label: str,
-        value: Any,
-        unit: str | None = None,
-        indent: int = 0
-    ) -> None:
+    def metric(self, label: str, value: Any, unit: str | None = None, indent: int = 0) -> None:
         """
         Print a metric.
 
@@ -309,10 +301,14 @@ class CLIOutput:
         if not self.profile:
             return False
 
-        profile_name = self.profile.__class__.__name__ if hasattr(self.profile, '__class__') else str(self.profile)
+        profile_name = (
+            self.profile.__class__.__name__
+            if hasattr(self.profile, "__class__")
+            else str(self.profile)
+        )
 
         # Writer: no timing, Theme-Dev: yes, Developer: yes
-        return 'WRITER' not in profile_name
+        return "WRITER" not in profile_name
 
     def _show_details(self) -> bool:
         """Should we show detailed info based on profile?"""
@@ -352,16 +348,21 @@ class CLIOutput:
         if not self.profile:
             return path
 
-        profile_name = self.profile.__class__.__name__ if hasattr(self.profile, '__class__') else str(self.profile)
+        profile_name = (
+            self.profile.__class__.__name__
+            if hasattr(self.profile, "__class__")
+            else str(self.profile)
+        )
 
         # Writer: just show "public/" or last segment
-        if 'WRITER' in profile_name:
+        if "WRITER" in profile_name:
             from pathlib import Path
+
             return Path(path).name or path
 
         # Theme-Dev: abbreviate middle
-        if 'THEME' in profile_name and len(path) > 60:
-            parts = path.split('/')
+        if "THEME" in profile_name and len(path) > 60:
+            parts = path.split("/")
             if len(parts) > 3:
                 return f"{parts[0]}/.../{'/'.join(parts[-2:])}"
 
@@ -382,9 +383,10 @@ def get_cli_output() -> CLIOutput:
     return _cli_output
 
 
-def init_cli_output(profile: Any | None = None, quiet: bool = False, verbose: bool = False) -> CLIOutput:
+def init_cli_output(
+    profile: Any | None = None, quiet: bool = False, verbose: bool = False
+) -> CLIOutput:
     """Initialize the global CLI output instance with settings."""
     global _cli_output
     _cli_output = CLIOutput(profile=profile, quiet=quiet, verbose=verbose)
     return _cli_output
-

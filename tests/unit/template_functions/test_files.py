@@ -88,4 +88,3 @@ class TestFileSize:
     def test_empty_path(self):
         result = file_size("", Path("/tmp"))
         assert result == "0 B"
-

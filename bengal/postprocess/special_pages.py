@@ -33,7 +33,7 @@ class SpecialPagesGenerator:
     - sitemap.html: Human-readable sitemap
     """
 
-    def __init__(self, site: 'Site') -> None:
+    def __init__(self, site: "Site") -> None:
         """
         Initialize special pages generator.
 
@@ -55,11 +55,11 @@ class SpecialPagesGenerator:
 
         # Always generate 404 page
         if self._generate_404():
-            pages_generated.append('404')
+            pages_generated.append("404")
 
         # Generate search page when enabled
         if self._generate_search():
-            pages_generated.append('search')
+            pages_generated.append("search")
 
         # Detailed output removed - postprocess phase summary is sufficient
         # Individual task output clutters the build log
@@ -83,7 +83,7 @@ class SpecialPagesGenerator:
             from bengal.rendering.template_engine import TemplateEngine
 
             # Get template engine (reuse site's if available)
-            if hasattr(self.site, 'template_engine'):
+            if hasattr(self.site, "template_engine"):
                 template_engine = self.site.template_engine
             else:
                 # Create new template engine for rendering
@@ -91,7 +91,7 @@ class SpecialPagesGenerator:
 
             # Check if 404.html template exists
             try:
-                template_engine.env.get_template('404.html')
+                template_engine.env.get_template("404.html")
             except Exception:
                 # No 404 template in theme, skip generation
                 return False
@@ -101,37 +101,35 @@ class SpecialPagesGenerator:
             from types import SimpleNamespace
 
             page_context = SimpleNamespace(
-                title='Page Not Found',
-                url='/404.html',
-                kind='page',
+                title="Page Not Found",
+                url="/404.html",
+                kind="page",
                 draft=False,
                 metadata={},
                 tags=[],
-                content='',
+                content="",
             )
 
             context = {
-                'site': self.site,
-                'page': page_context,
-                'config': self.site.config,
+                "site": self.site,
+                "page": page_context,
+                "config": self.site.config,
             }
 
             # Render 404 page (template functions are already registered in TemplateEngine.__init__)
-            rendered_html = template_engine.render('404.html', context)
+            rendered_html = template_engine.render("404.html", context)
 
             # Write to output directory
-            output_path = self.site.output_dir / '404.html'
+            output_path = self.site.output_dir / "404.html"
             output_path.parent.mkdir(parents=True, exist_ok=True)
 
-            with open(output_path, 'w', encoding='utf-8') as f:
+            with open(output_path, "w", encoding="utf-8") as f:
                 f.write(rendered_html)
 
             return True
 
         except Exception as e:
-            logger.error("404_page_generation_failed",
-                        error=str(e),
-                        error_type=type(e).__name__)
+            logger.error("404_page_generation_failed", error=str(e), error_type=type(e).__name__)
             return False
 
     def _generate_search(self) -> bool:
@@ -146,43 +144,43 @@ class SpecialPagesGenerator:
         """
         try:
             # Read config with sensible defaults
-            raw_cfg = self.site.config.get('search', True)
+            raw_cfg = self.site.config.get("search", True)
             # Support both boolean (search = true/false) and table ([search]) forms
             if isinstance(raw_cfg, bool):
                 enabled = raw_cfg
-                path_cfg = '/search/'
-                template_name = 'search.html'
+                path_cfg = "/search/"
+                template_name = "search.html"
             elif isinstance(raw_cfg, dict):
-                enabled = raw_cfg.get('enabled', True)
-                path_cfg = raw_cfg.get('path', '/search/') or '/search/'
-                template_name = raw_cfg.get('template', 'search.html') or 'search.html'
+                enabled = raw_cfg.get("enabled", True)
+                path_cfg = raw_cfg.get("path", "/search/") or "/search/"
+                template_name = raw_cfg.get("template", "search.html") or "search.html"
             else:
                 # Unknown type → fall back to defaults and enable
                 enabled = True
-                path_cfg = '/search/'
-                template_name = 'search.html'
+                path_cfg = "/search/"
+                template_name = "search.html"
             if not enabled:
                 return False
 
             # Path normalization: default '/search/'
             raw_path = path_cfg
-            if not raw_path.startswith('/'):
-                raw_path = '/' + raw_path
-            if not raw_path.endswith('/'):
-                raw_path = raw_path + '/'
+            if not raw_path.startswith("/"):
+                raw_path = "/" + raw_path
+            if not raw_path.endswith("/"):
+                raw_path = raw_path + "/"
 
             # If a user-authored page exists (content/search.md or matching slug), skip generation
             # Basic check: common override file at content/search.md
-            content_dir = getattr(self.site, 'content_dir', None)
+            content_dir = getattr(self.site, "content_dir", None)
             if content_dir:
-                user_search_md = content_dir / 'search.md'
+                user_search_md = content_dir / "search.md"
                 if user_search_md.exists():
                     return False
 
             from bengal.rendering.template_engine import TemplateEngine
 
             # Get template engine (reuse site's if available)
-            if hasattr(self.site, 'template_engine'):
+            if hasattr(self.site, "template_engine"):
                 template_engine = self.site.template_engine
             else:
                 template_engine = TemplateEngine(self.site)
@@ -195,20 +193,21 @@ class SpecialPagesGenerator:
 
             # Build minimal page-like context
             from types import SimpleNamespace
+
             page_context = SimpleNamespace(
-                title='Search',
+                title="Search",
                 url=raw_path,
-                kind='page',
+                kind="page",
                 draft=False,
-                metadata={'search_exclude': True},  # never index the search page
+                metadata={"search_exclude": True},  # never index the search page
                 tags=[],
-                content='',
+                content="",
             )
 
             context = {
-                'site': self.site,
-                'page': page_context,
-                'config': self.site.config,
+                "site": self.site,
+                "page": page_context,
+                "config": self.site.config,
             }
 
             # Render search page
@@ -216,9 +215,9 @@ class SpecialPagesGenerator:
 
             # Determine output path: /search/index.html by default
             # raw_path always ends with '/'
-            output_path = self.site.output_dir / raw_path.strip('/') / 'index.html'
+            output_path = self.site.output_dir / raw_path.strip("/") / "index.html"
             output_path.parent.mkdir(parents=True, exist_ok=True)
-            with open(output_path, 'w', encoding='utf-8') as f:
+            with open(output_path, "w", encoding="utf-8") as f:
                 f.write(rendered_html)
 
             return True
@@ -229,4 +228,3 @@ class SpecialPagesGenerator:
                 error_type=type(e).__name__,
             )
             return False
-

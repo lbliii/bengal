@@ -14,15 +14,16 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 def test_rich_traceback():
     """Test Rich traceback handler."""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("TEST 1: Rich Traceback Handler")
-    print("="*60)
+    print("=" * 60)
 
     # This would normally be installed by CLI main()
     try:
         from rich.traceback import install
 
         from bengal.utils.rich_console import get_console
+
         install(console=get_console(), show_locals=True)
         print("✓ Rich traceback handler installed successfully")
     except Exception as e:
@@ -34,9 +35,9 @@ def test_rich_traceback():
 
 def test_logger_markup():
     """Test logger with Rich markup."""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("TEST 2: Logger with Rich Markup")
-    print("="*60)
+    print("=" * 60)
 
     try:
         from bengal.utils.logger import LogLevel, configure_logging, get_logger
@@ -58,6 +59,7 @@ def test_logger_markup():
     except Exception as e:
         print(f"✗ Logger test failed: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 
@@ -66,28 +68,21 @@ def test_logger_markup():
 
 def test_pretty_print_config():
     """Test config pretty printing."""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("TEST 3: Pretty Print Config")
-    print("="*60)
+    print("=" * 60)
 
     try:
         from bengal.config.loader import pretty_print_config
 
         test_config = {
-            'site': {
-                'title': 'Bengal Test Site',
-                'baseurl': 'https://example.com',
-                'theme': 'default'
+            "site": {
+                "title": "Bengal Test Site",
+                "baseurl": "https://example.com",
+                "theme": "default",
             },
-            'build': {
-                'parallel': True,
-                'incremental': False,
-                'output_dir': 'public'
-            },
-            'features': {
-                'live_reload': True,
-                'hot_module_replacement': True
-            }
+            "build": {"parallel": True, "incremental": False, "output_dir": "public"},
+            "features": {"live_reload": True, "hot_module_replacement": True},
         }
 
         pretty_print_config(test_config, title="Test Configuration")
@@ -95,6 +90,7 @@ def test_pretty_print_config():
     except Exception as e:
         print(f"✗ Pretty print config test failed: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 
@@ -103,9 +99,9 @@ def test_pretty_print_config():
 
 def test_rich_console():
     """Test Rich console features."""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("TEST 4: Rich Console Features")
-    print("="*60)
+    print("=" * 60)
 
     try:
         from rich.panel import Panel
@@ -133,11 +129,13 @@ def test_rich_console():
 
         # Test panel
         console.print("\n[bold cyan]Testing Rich panel:[/bold cyan]")
-        console.print(Panel(
-            "[green]This is a test panel with border[/green]",
-            title="Test Panel",
-            border_style="cyan"
-        ))
+        console.print(
+            Panel(
+                "[green]This is a test panel with border[/green]",
+                title="Test Panel",
+                border_style="cyan",
+            )
+        )
 
         # Test tree
         console.print("\n[bold cyan]Testing Rich tree:[/bold cyan]")
@@ -163,6 +161,7 @@ def test_rich_console():
     except Exception as e:
         print(f"✗ Rich console test failed: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 
@@ -171,9 +170,9 @@ def test_rich_console():
 
 def test_status_spinner():
     """Test status spinner."""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("TEST 5: Status Spinner")
-    print("="*60)
+    print("=" * 60)
 
     try:
         import time
@@ -196,6 +195,7 @@ def test_status_spinner():
     except Exception as e:
         print(f"✗ Status spinner test failed: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 
@@ -204,9 +204,9 @@ def test_status_spinner():
 
 def test_rich_prompt():
     """Test Rich prompt (non-interactive test)."""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("TEST 6: Rich Prompt")
-    print("="*60)
+    print("=" * 60)
 
     try:
         print("✓ Rich prompt imports working correctly")
@@ -220,9 +220,9 @@ def test_rich_prompt():
 
 def main():
     """Run all tests."""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("RICH CLI ENHANCEMENTS TEST SUITE")
-    print("="*60)
+    print("=" * 60)
 
     tests = [
         test_rich_traceback,
@@ -241,13 +241,14 @@ def main():
         except Exception as e:
             print(f"\n✗ Test failed with exception: {e}")
             import traceback
+
             traceback.print_exc()
             results.append(False)
 
     # Summary
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("TEST SUMMARY")
-    print("="*60)
+    print("=" * 60)
 
     passed = sum(results)
     total = len(results)
@@ -264,4 +265,3 @@ def main():
 
 if __name__ == "__main__":
     sys.exit(main())
-

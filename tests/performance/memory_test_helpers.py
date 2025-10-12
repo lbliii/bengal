@@ -119,7 +119,7 @@ class MemoryProfiler:
             python_peak_bytes=peak,
             rss_bytes=mem_info.rss,
             vms_bytes=mem_info.vms,
-            tracemalloc_snapshot=snapshot
+            tracemalloc_snapshot=snapshot,
         )
 
     def get_delta(self, top_n: int = 10) -> MemoryDelta:
@@ -136,12 +136,8 @@ class MemoryProfiler:
             raise RuntimeError("Must use as context manager")
 
         # Calculate deltas
-        python_delta_bytes = (
-            self.after.python_current_bytes - self.before.python_current_bytes
-        )
-        python_peak_bytes = (
-            self.after.python_peak_bytes - self.before.python_peak_bytes
-        )
+        python_delta_bytes = self.after.python_current_bytes - self.before.python_current_bytes
+        python_peak_bytes = self.after.python_peak_bytes - self.before.python_peak_bytes
         rss_delta_bytes = self.after.rss_bytes - self.before.rss_bytes
         vms_delta_bytes = self.after.vms_bytes - self.before.vms_bytes
 
@@ -149,8 +145,7 @@ class MemoryProfiler:
         top_allocators = []
         if self.track_allocations and self.before.tracemalloc_snapshot:
             top_stats = self.after.tracemalloc_snapshot.compare_to(
-                self.before.tracemalloc_snapshot,
-                'lineno'
+                self.before.tracemalloc_snapshot, "lineno"
             )
 
             for stat in top_stats[:top_n]:
@@ -165,7 +160,7 @@ class MemoryProfiler:
             python_heap_peak_mb=python_peak_bytes / 1024 / 1024,
             rss_delta_mb=rss_delta_bytes / 1024 / 1024,
             vms_delta_mb=vms_delta_bytes / 1024 / 1024,
-            top_allocators=top_allocators
+            top_allocators=top_allocators,
         )
 
 
@@ -194,4 +189,3 @@ def profile_memory(name: str = "Operation", verbose: bool = True):
             print("  Top allocators:")
             for alloc in delta.top_allocators:
                 print(f"    {alloc}")
-

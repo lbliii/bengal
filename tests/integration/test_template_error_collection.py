@@ -115,9 +115,9 @@ Test content.
 
         # Error should be a rich error object
         error = stats.template_errors[0]
-        assert hasattr(error, 'error_type')
-        assert hasattr(error, 'message')
-        assert hasattr(error, 'template_context')
+        assert hasattr(error, "error_type")
+        assert hasattr(error, "message")
+        assert hasattr(error, "template_context")
 
     def test_build_collects_multiple_errors(self, temp_site):
         """Test that build collects multiple template errors."""
@@ -230,7 +230,7 @@ Content
             assert error.page_source is not None
 
             # Should have error type
-            assert error.error_type in ['syntax', 'filter', 'undefined', 'runtime', 'other']
+            assert error.error_type in ["syntax", "filter", "undefined", "runtime", "other"]
 
             # Should have message
             assert error.message is not None and len(error.message) > 0
@@ -296,6 +296,5 @@ Content {i}
         assert len(stats.template_errors) >= 1
 
 
-if __name__ == '__main__':
-    pytest.main([__file__, '-v'])
-
+if __name__ == "__main__":
+    pytest.main([__file__, "-v"])

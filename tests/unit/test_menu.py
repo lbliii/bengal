@@ -20,10 +20,7 @@ class TestMenuItem:
     def test_menu_item_with_parent(self):
         """Test menu item with parent relationship."""
         item = MenuItem(
-            name="Getting Started",
-            url="/docs/getting-started/",
-            parent="docs",
-            weight=1
+            name="Getting Started", url="/docs/getting-started/", parent="docs", weight=1
         )
         assert item.parent == "docs"
         assert item.weight == 1
@@ -84,12 +81,12 @@ class TestMenuItem:
         parent.add_child(child)
 
         data = parent.to_dict()
-        assert data['name'] == "Docs"
-        assert data['url'] == "/docs/"
-        assert data['active'] is False
-        assert data['active_trail'] is False
-        assert len(data['children']) == 1
-        assert data['children'][0]['name'] == "Guide"
+        assert data["name"] == "Docs"
+        assert data["url"] == "/docs/"
+        assert data["active"] is False
+        assert data["active_trail"] is False
+        assert len(data["children"]) == 1
+        assert data["children"][0]["name"] == "Guide"
 
 
 class TestMenuBuilder:
@@ -99,8 +96,8 @@ class TestMenuBuilder:
         """Test adding menu items from config."""
         builder = MenuBuilder()
         config = [
-            {'name': 'Home', 'url': '/', 'weight': 1},
-            {'name': 'About', 'url': '/about/', 'weight': 2}
+            {"name": "Home", "url": "/", "weight": 1},
+            {"name": "About", "url": "/about/", "weight": 2},
         ]
 
         builder.add_from_config(config)
@@ -114,9 +111,9 @@ class TestMenuBuilder:
         """Test building hierarchical menu structure."""
         builder = MenuBuilder()
         config = [
-            {'name': 'Docs', 'url': '/docs/', 'identifier': 'docs', 'weight': 1},
-            {'name': 'Getting Started', 'url': '/docs/intro/', 'parent': 'docs', 'weight': 1},
-            {'name': 'Advanced', 'url': '/docs/advanced/', 'parent': 'docs', 'weight': 2}
+            {"name": "Docs", "url": "/docs/", "identifier": "docs", "weight": 1},
+            {"name": "Getting Started", "url": "/docs/intro/", "parent": "docs", "weight": 1},
+            {"name": "Advanced", "url": "/docs/advanced/", "parent": "docs", "weight": 2},
         ]
 
         builder.add_from_config(config)
@@ -135,21 +132,22 @@ class TestMenuBuilder:
         """Test marking active items in a menu."""
         builder = MenuBuilder()
         config = [
-            {'name': 'Home', 'url': '/', 'weight': 1},
-            {'name': 'About', 'url': '/about/', 'weight': 2}
+            {"name": "Home", "url": "/", "weight": 1},
+            {"name": "About", "url": "/about/", "weight": 2},
         ]
 
         builder.add_from_config(config)
         menu = builder.build_hierarchy()
 
         # Mark /about/ as active
-        builder.mark_active_items('/about/', menu)
+        builder.mark_active_items("/about/", menu)
 
         assert menu[0].active is False
         assert menu[1].active is True
 
     def test_add_from_page(self):
         """Test adding menu items from page frontmatter."""
+
         # Create a mock page
         class MockPage:
             title = "Contact Page"
@@ -159,11 +157,8 @@ class TestMenuBuilder:
         page = MockPage()
 
         # Test with explicit name
-        menu_data = {
-            'name': 'Contact',
-            'weight': 5
-        }
-        builder.add_from_page(page, 'main', menu_data)
+        menu_data = {"name": "Contact", "weight": 5}
+        builder.add_from_page(page, "main", menu_data)
         menu = builder.build_hierarchy()
 
         assert len(menu) == 1
@@ -173,15 +168,16 @@ class TestMenuBuilder:
 
     def test_add_from_page_uses_title_fallback(self):
         """Test that page title is used if name not provided."""
+
         class MockPage:
             title = "My Page Title"
             url = "/my-page/"
 
         builder = MenuBuilder()
         page = MockPage()
-        menu_data = {'weight': 10}  # No name provided
+        menu_data = {"weight": 10}  # No name provided
 
-        builder.add_from_page(page, 'main', menu_data)
+        builder.add_from_page(page, "main", menu_data)
         menu = builder.build_hierarchy()
 
         assert len(menu) == 1
@@ -190,9 +186,7 @@ class TestMenuBuilder:
     def test_orphaned_children_go_to_root(self):
         """Test that children with missing parents go to root level."""
         builder = MenuBuilder()
-        config = [
-            {'name': 'Lost Child', 'url': '/lost/', 'parent': 'nonexistent'}
-        ]
+        config = [{"name": "Lost Child", "url": "/lost/", "parent": "nonexistent"}]
 
         builder.add_from_config(config)
         menu = builder.build_hierarchy()
@@ -200,4 +194,3 @@ class TestMenuBuilder:
         # Should appear at root level since parent doesn't exist
         assert len(menu) == 1
         assert menu[0].name == "Lost Child"
-

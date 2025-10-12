@@ -63,49 +63,49 @@ class TestBuildProfile:
         """Test writer profile configuration."""
         config = BuildProfile.WRITER.get_config()
 
-        assert config['show_phase_timing'] is False
-        assert config['track_memory'] is False
-        assert config['enable_debug_output'] is False
-        assert config['collect_metrics'] is False
-        assert config['verbose_build_stats'] is False
+        assert config["show_phase_timing"] is False
+        assert config["track_memory"] is False
+        assert config["enable_debug_output"] is False
+        assert config["collect_metrics"] is False
+        assert config["verbose_build_stats"] is False
 
         # Only critical health checks
-        health_checks = config['health_checks']['enabled']
-        assert 'config' in health_checks
-        assert 'output' in health_checks
-        assert 'links' in health_checks
-        assert 'performance' not in health_checks
+        health_checks = config["health_checks"]["enabled"]
+        assert "config" in health_checks
+        assert "output" in health_checks
+        assert "links" in health_checks
+        assert "performance" not in health_checks
 
     def test_theme_dev_config(self):
         """Test theme-dev profile configuration."""
         config = BuildProfile.THEME_DEV.get_config()
 
-        assert config['show_phase_timing'] is True
-        assert config['track_memory'] is False
-        assert config['enable_debug_output'] is False
-        assert config['collect_metrics'] is True
-        assert config['verbose_build_stats'] is True
+        assert config["show_phase_timing"] is True
+        assert config["track_memory"] is False
+        assert config["enable_debug_output"] is False
+        assert config["collect_metrics"] is True
+        assert config["verbose_build_stats"] is True
 
         # Theme-focused health checks
-        health_checks = config['health_checks']['enabled']
-        assert 'rendering' in health_checks
-        assert 'directives' in health_checks
-        assert 'navigation' in health_checks
-        assert 'performance' not in health_checks
-        assert 'cache' not in health_checks
+        health_checks = config["health_checks"]["enabled"]
+        assert "rendering" in health_checks
+        assert "directives" in health_checks
+        assert "navigation" in health_checks
+        assert "performance" not in health_checks
+        assert "cache" not in health_checks
 
     def test_developer_config(self):
         """Test developer profile configuration."""
         config = BuildProfile.DEVELOPER.get_config()
 
-        assert config['show_phase_timing'] is True
-        assert config['track_memory'] is True
-        assert config['enable_debug_output'] is True
-        assert config['collect_metrics'] is True
-        assert config['verbose_build_stats'] is True
+        assert config["show_phase_timing"] is True
+        assert config["track_memory"] is True
+        assert config["enable_debug_output"] is True
+        assert config["collect_metrics"] is True
+        assert config["verbose_build_stats"] is True
 
         # All health checks
-        assert config['health_checks']['enabled'] == 'all'
+        assert config["health_checks"]["enabled"] == "all"
 
 
 class TestProfileHelpers:
@@ -156,37 +156,36 @@ class TestProfileHelpers:
         """Test getting enabled health checks."""
         set_current_profile(BuildProfile.WRITER)
         enabled = get_enabled_health_checks()
-        assert 'config' in enabled or 'all' not in enabled
+        assert "config" in enabled or "all" not in enabled
 
         set_current_profile(BuildProfile.DEVELOPER)
         enabled = get_enabled_health_checks()
-        assert enabled == ['all']
+        assert enabled == ["all"]
 
     def test_is_validator_enabled(self):
         """Test validator enabled check."""
         set_current_profile(BuildProfile.WRITER)
-        assert is_validator_enabled('config') is True
-        assert is_validator_enabled('links') is True
-        assert is_validator_enabled('performance') is False
-        assert is_validator_enabled('cache') is False
+        assert is_validator_enabled("config") is True
+        assert is_validator_enabled("links") is True
+        assert is_validator_enabled("performance") is False
+        assert is_validator_enabled("cache") is False
 
         set_current_profile(BuildProfile.THEME_DEV)
-        assert is_validator_enabled('rendering') is True
-        assert is_validator_enabled('directives') is True
-        assert is_validator_enabled('performance') is False
+        assert is_validator_enabled("rendering") is True
+        assert is_validator_enabled("directives") is True
+        assert is_validator_enabled("performance") is False
 
         set_current_profile(BuildProfile.DEVELOPER)
-        assert is_validator_enabled('performance') is True
-        assert is_validator_enabled('cache') is True
-        assert is_validator_enabled('anything') is True  # 'all' enables everything
+        assert is_validator_enabled("performance") is True
+        assert is_validator_enabled("cache") is True
+        assert is_validator_enabled("anything") is True  # 'all' enables everything
 
     def test_validator_name_normalization(self):
         """Test validator name normalization (spaces and case)."""
         set_current_profile(BuildProfile.WRITER)
 
         # These should all work
-        assert is_validator_enabled('config') is True
-        assert is_validator_enabled('Config') is True
-        assert is_validator_enabled('output') is True
-        assert is_validator_enabled('Output') is True
-
+        assert is_validator_enabled("config") is True
+        assert is_validator_enabled("Config") is True
+        assert is_validator_enabled("output") is True
+        assert is_validator_enabled("Output") is True

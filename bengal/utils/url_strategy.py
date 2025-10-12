@@ -29,7 +29,7 @@ class URLStrategy:
     """
 
     @staticmethod
-    def compute_regular_page_output_path(page: 'Page', site: 'Site') -> Path:
+    def compute_regular_page_output_path(page: "Page", site: "Site") -> Path:
         """
         Compute output path for a regular content page.
 
@@ -46,12 +46,12 @@ class URLStrategy:
             content/docs/_index.md → public/docs/index.html
         """
         content_dir = site.root_path / "content"
-        pretty_urls = site.config.get('pretty_urls', True)
+        pretty_urls = site.config.get("pretty_urls", True)
         # i18n configuration (optional)
-        i18n = site.config.get('i18n', {}) or {}
-        strategy = i18n.get('strategy', 'none')
-        default_lang = i18n.get('default_language', 'en')
-        default_in_subdir = bool(i18n.get('default_in_subdir', False))
+        i18n = site.config.get("i18n", {}) or {}
+        strategy = i18n.get("strategy", "none")
+        default_lang = i18n.get("default_language", "en")
+        default_in_subdir = bool(i18n.get("default_in_subdir", False))
 
         # Get relative path from content directory
         try:
@@ -61,7 +61,7 @@ class URLStrategy:
             rel_path = Path(page.source_path.name)
 
         # Change extension to .html
-        output_rel_path = rel_path.with_suffix('.html')
+        output_rel_path = rel_path.with_suffix(".html")
 
         # Apply URL rules
         if pretty_urls:
@@ -76,8 +76,8 @@ class URLStrategy:
             output_rel_path = output_rel_path.parent / "index.html"
 
         # Apply i18n URL strategy (prefix)
-        if strategy == 'prefix':
-            lang: str | None = getattr(page, 'lang', None)
+        if strategy == "prefix":
+            lang: str | None = getattr(page, "lang", None)
             # If default language should be under subdir or non-default language: prefix
             if lang and (default_in_subdir or lang != default_lang):
                 output_rel_path = Path(lang) / output_rel_path
@@ -85,11 +85,7 @@ class URLStrategy:
         return site.output_dir / output_rel_path
 
     @staticmethod
-    def compute_archive_output_path(
-        section: 'Section',
-        page_num: int,
-        site: 'Site'
-    ) -> Path:
+    def compute_archive_output_path(section: "Section", page_num: int, site: "Site") -> Path:
         """
         Compute output path for a section archive page.
 
@@ -107,7 +103,7 @@ class URLStrategy:
             section='docs/markdown', page=1 → public/docs/markdown/index.html
         """
         # Get full hierarchy (excluding 'root')
-        hierarchy = [h for h in section.hierarchy if h != 'root']
+        hierarchy = [h for h in section.hierarchy if h != "root"]
 
         # Build base path
         path = site.output_dir
@@ -121,11 +117,7 @@ class URLStrategy:
         return path / "index.html"
 
     @staticmethod
-    def compute_tag_output_path(
-        tag_slug: str,
-        page_num: int,
-        site: 'Site'
-    ) -> Path:
+    def compute_tag_output_path(tag_slug: str, page_num: int, site: "Site") -> Path:
         """
         Compute output path for a tag listing page.
 
@@ -142,14 +134,14 @@ class URLStrategy:
             tag='python', page=2 → public/tags/python/page/2/index.html
         """
         # i18n prefix support using site's current language context
-        i18n = site.config.get('i18n', {}) or {}
-        strategy = i18n.get('strategy', 'none')
-        default_lang = i18n.get('default_language', 'en')
-        default_in_subdir = bool(i18n.get('default_in_subdir', False))
-        lang = getattr(site, 'current_language', None)
+        i18n = site.config.get("i18n", {}) or {}
+        strategy = i18n.get("strategy", "none")
+        default_lang = i18n.get("default_language", "en")
+        default_in_subdir = bool(i18n.get("default_in_subdir", False))
+        lang = getattr(site, "current_language", None)
 
         base_path = site.output_dir
-        if strategy == 'prefix' and lang and (default_in_subdir or lang != default_lang):
+        if strategy == "prefix" and lang and (default_in_subdir or lang != default_lang):
             base_path = base_path / lang
 
         path = base_path / "tags" / tag_slug
@@ -161,7 +153,7 @@ class URLStrategy:
         return path / "index.html"
 
     @staticmethod
-    def compute_tag_index_output_path(site: 'Site') -> Path:
+    def compute_tag_index_output_path(site: "Site") -> Path:
         """
         Compute output path for the main tags index page.
 
@@ -175,20 +167,20 @@ class URLStrategy:
             public/tags/index.html
         """
         # i18n prefix support using site's current language context
-        i18n = site.config.get('i18n', {}) or {}
-        strategy = i18n.get('strategy', 'none')
-        default_lang = i18n.get('default_language', 'en')
-        default_in_subdir = bool(i18n.get('default_in_subdir', False))
-        lang = getattr(site, 'current_language', None)
+        i18n = site.config.get("i18n", {}) or {}
+        strategy = i18n.get("strategy", "none")
+        default_lang = i18n.get("default_language", "en")
+        default_in_subdir = bool(i18n.get("default_in_subdir", False))
+        lang = getattr(site, "current_language", None)
 
         base_path = site.output_dir
-        if strategy == 'prefix' and lang and (default_in_subdir or lang != default_lang):
+        if strategy == "prefix" and lang and (default_in_subdir or lang != default_lang):
             base_path = base_path / lang
 
         return base_path / "tags" / "index.html"
 
     @staticmethod
-    def url_from_output_path(output_path: Path, site: 'Site') -> str:
+    def url_from_output_path(output_path: Path, site: "Site") -> str:
         """
         Generate clean URL from output path.
 
@@ -218,26 +210,26 @@ class URLStrategy:
         url_parts = list(rel_path.parts)
 
         # Remove index.html (implicit in URLs)
-        if url_parts and url_parts[-1] == 'index.html':
+        if url_parts and url_parts[-1] == "index.html":
             url_parts = url_parts[:-1]
-        elif url_parts and url_parts[-1].endswith('.html'):
+        elif url_parts and url_parts[-1].endswith(".html"):
             # Non-index: remove .html extension
             url_parts[-1] = url_parts[-1][:-5]
 
         # Build URL
         if not url_parts:
-            return '/'
+            return "/"
 
-        url = '/' + '/'.join(url_parts)
+        url = "/" + "/".join(url_parts)
 
         # Ensure trailing slash
-        if not url.endswith('/'):
-            url += '/'
+        if not url.endswith("/"):
+            url += "/"
 
         return url
 
     @staticmethod
-    def make_virtual_path(site: 'Site', *parts: str) -> Path:
+    def make_virtual_path(site: "Site", *parts: str) -> Path:
         """
         Create virtual source path for generated pages.
 
@@ -258,11 +250,4 @@ class URLStrategy:
             make_virtual_path(site, 'tags', 'python')
             → /path/to/site/.bengal/generated/tags/python/index.md
         """
-        return (
-            site.root_path /
-            ".bengal" /
-            "generated" /
-            Path(*parts) /
-            "index.md"
-        )
-
+        return site.root_path / ".bengal" / "generated" / Path(*parts) / "index.md"

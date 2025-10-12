@@ -33,14 +33,12 @@ class TestParallelThreshold:
 
     def test_sequential_for_single_page(self, orchestrator, mock_site):
         """Test that single page uses sequential rendering."""
-        pages = [
-            Page(source_path=Path("/fake/site/content/page1.md"), content="", metadata={})
-        ]
+        pages = [Page(source_path=Path("/fake/site/content/page1.md"), content="", metadata={})]
 
         with (
-            patch.object(orchestrator, '_render_sequential') as mock_seq,
-            patch.object(orchestrator, '_render_parallel') as mock_par,
-            patch.object(orchestrator, '_set_output_paths_for_pages')
+            patch.object(orchestrator, "_render_sequential") as mock_seq,
+            patch.object(orchestrator, "_render_parallel") as mock_par,
+            patch.object(orchestrator, "_set_output_paths_for_pages"),
         ):
             orchestrator.process(pages, parallel=True)
 
@@ -56,9 +54,9 @@ class TestParallelThreshold:
         ]
 
         with (
-            patch.object(orchestrator, '_render_sequential') as mock_seq,
-            patch.object(orchestrator, '_render_parallel') as mock_par,
-            patch.object(orchestrator, '_set_output_paths_for_pages')
+            patch.object(orchestrator, "_render_sequential") as mock_seq,
+            patch.object(orchestrator, "_render_parallel") as mock_par,
+            patch.object(orchestrator, "_set_output_paths_for_pages"),
         ):
             orchestrator.process(pages, parallel=True)
 
@@ -74,9 +72,9 @@ class TestParallelThreshold:
         ]
 
         with (
-            patch.object(orchestrator, '_render_sequential') as mock_seq,
-            patch.object(orchestrator, '_render_parallel') as mock_par,
-            patch.object(orchestrator, '_set_output_paths_for_pages')
+            patch.object(orchestrator, "_render_sequential") as mock_seq,
+            patch.object(orchestrator, "_render_parallel") as mock_par,
+            patch.object(orchestrator, "_set_output_paths_for_pages"),
         ):
             orchestrator.process(pages, parallel=True)
 
@@ -92,9 +90,9 @@ class TestParallelThreshold:
         ]
 
         with (
-            patch.object(orchestrator, '_render_sequential') as mock_seq,
-            patch.object(orchestrator, '_render_parallel') as mock_par,
-            patch.object(orchestrator, '_set_output_paths_for_pages')
+            patch.object(orchestrator, "_render_sequential") as mock_seq,
+            patch.object(orchestrator, "_render_parallel") as mock_par,
+            patch.object(orchestrator, "_set_output_paths_for_pages"),
         ):
             orchestrator.process(pages, parallel=False)
 
@@ -132,7 +130,7 @@ class TestOutputPathOptimization:
                 source_path=Path("/fake/site/content/page1.md"),
                 content="",
                 metadata={},
-                output_path=existing_path
+                output_path=existing_path,
             ),
         ]
 
@@ -161,11 +159,7 @@ class TestOutputPathOptimization:
 
     def test_output_path_computation(self, orchestrator, mock_site):
         """Test that output paths are computed correctly."""
-        page = Page(
-            source_path=Path("/fake/site/content/blog/post.md"),
-            content="",
-            metadata={}
-        )
+        page = Page(source_path=Path("/fake/site/content/blog/post.md"), content="", metadata={})
 
         orchestrator._set_output_paths_for_pages([page])
 
@@ -176,11 +170,7 @@ class TestOutputPathOptimization:
 
     def test_output_path_for_index_file(self, orchestrator, mock_site):
         """Test output path for _index.md files."""
-        page = Page(
-            source_path=Path("/fake/site/content/blog/_index.md"),
-            content="",
-            metadata={}
-        )
+        page = Page(source_path=Path("/fake/site/content/blog/_index.md"), content="", metadata={})
 
         orchestrator._set_output_paths_for_pages([page])
 
@@ -195,12 +185,10 @@ class TestProcessMethod:
 
     def test_process_calls_set_output_paths(self, orchestrator, mock_site):
         """Test that process() calls _set_output_paths_for_pages."""
-        pages = [
-            Page(source_path=Path("/fake/site/content/page1.md"), content="", metadata={})
-        ]
+        pages = [Page(source_path=Path("/fake/site/content/page1.md"), content="", metadata={})]
 
-        with patch.object(orchestrator, '_set_output_paths_for_pages') as mock_set:
-            with patch.object(orchestrator, '_render_sequential'):
+        with patch.object(orchestrator, "_set_output_paths_for_pages") as mock_set:
+            with patch.object(orchestrator, "_render_sequential"):
                 orchestrator.process(pages, parallel=False)
 
             # Should call _set_output_paths_for_pages with the pages
@@ -208,13 +196,11 @@ class TestProcessMethod:
 
     def test_process_passes_tracker_to_sequential(self, orchestrator, mock_site):
         """Test that process passes tracker to sequential rendering."""
-        pages = [
-            Page(source_path=Path("/fake/site/content/page1.md"), content="", metadata={})
-        ]
+        pages = [Page(source_path=Path("/fake/site/content/page1.md"), content="", metadata={})]
         mock_tracker = Mock()
 
-        with patch.object(orchestrator, '_set_output_paths_for_pages'):
-            with patch.object(orchestrator, '_render_sequential') as mock_seq:
+        with patch.object(orchestrator, "_set_output_paths_for_pages"):
+            with patch.object(orchestrator, "_render_sequential") as mock_seq:
                 orchestrator.process(pages, parallel=False, tracker=mock_tracker)
 
             # Should pass tracker
@@ -229,8 +215,8 @@ class TestProcessMethod:
         ]
         mock_stats = Mock()
 
-        with patch.object(orchestrator, '_set_output_paths_for_pages'):
-            with patch.object(orchestrator, '_render_parallel') as mock_par:
+        with patch.object(orchestrator, "_set_output_paths_for_pages"):
+            with patch.object(orchestrator, "_render_parallel") as mock_par:
                 orchestrator.process(pages, parallel=True, stats=mock_stats)
 
             # Should pass stats
@@ -274,4 +260,3 @@ class TestPerformanceOptimization:
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
-

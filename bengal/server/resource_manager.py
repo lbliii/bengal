@@ -72,6 +72,7 @@ class ResourceManager:
         Returns:
             The server
         """
+
         def cleanup(s):
             try:
                 # Shutdown in a thread with timeout to avoid hanging
@@ -86,6 +87,7 @@ class ResourceManager:
                 s.server_close()
             except Exception as e:
                 print(f"  ⚠️  Error closing server: {e}")
+
         return self.register("HTTP Server", server, cleanup)
 
     def register_observer(self, observer: Any) -> Any:
@@ -98,6 +100,7 @@ class ResourceManager:
         Returns:
             The observer
         """
+
         def cleanup(o):
             try:
                 o.stop()
@@ -107,6 +110,7 @@ class ResourceManager:
                     print("  ⚠️  File observer did not stop cleanly (still running)")
             except Exception as e:
                 print(f"  ⚠️  Error stopping observer: {e}")
+
         return self.register("File Observer", observer, cleanup)
 
     def register_pidfile(self, pidfile_path) -> Any:
@@ -119,12 +123,14 @@ class ResourceManager:
         Returns:
             The path
         """
+
         def cleanup(path):
             try:
                 if path.exists():
                     path.unlink()
             except Exception:
                 pass
+
         return self.register("PID File", pidfile_path, cleanup)
 
     def cleanup(self, signum: int | None = None) -> None:
@@ -140,7 +146,11 @@ class ResourceManager:
             self._cleanup_done = True
 
         if signum:
-            sig_name = signal.Signals(signum).name if hasattr(signal.Signals, '__contains__') else str(signum)
+            sig_name = (
+                signal.Signals(signum).name
+                if hasattr(signal.Signals, "__contains__")
+                else str(signum)
+            )
             if sig_name == "SIGINT":
                 print("\n  👋 Shutting down gracefully... (press Ctrl+C again to force quit)")
             else:
@@ -180,10 +190,11 @@ class ResourceManager:
         signals_to_catch = [signal.SIGINT, signal.SIGTERM]
 
         # SIGHUP only exists on Unix
-        if hasattr(signal, 'SIGHUP'):
+        if hasattr(signal, "SIGHUP"):
             signals_to_catch.append(signal.SIGHUP)
 
         import contextlib
+
         for sig in signals_to_catch:
             with contextlib.suppress(OSError, ValueError):
                 # Some signals can't be caught (e.g., in threads, Windows limitations)
@@ -205,4 +216,3 @@ class ResourceManager:
         """Context manager exit - ensure cleanup runs."""
         self.cleanup()
         return False  # Don't suppress exceptions
-

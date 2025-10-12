@@ -12,25 +12,25 @@ class TestDebug:
 
     def test_none_value(self):
         result = debug(None)
-        assert result == 'None'
+        assert result == "None"
 
     def test_simple_value(self):
         result = debug("hello")
         assert "hello" in result
 
     def test_dict(self):
-        result = debug({'a': 1, 'b': 2})
-        assert 'a' in result
-        assert 'b' in result
+        result = debug({"a": 1, "b": 2})
+        assert "a" in result
+        assert "b" in result
 
     def test_object_with_dict(self):
         class TestObj:
             def __init__(self):
-                self.name = 'test'
+                self.name = "test"
                 self.value = 42
 
         result = debug(TestObj())
-        assert 'name' in result or 'test' in result
+        assert "name" in result or "test" in result
 
 
 class TestTypeof:
@@ -46,7 +46,7 @@ class TestTypeof:
         assert typeof([1, 2, 3]) == "list"
 
     def test_dict(self):
-        assert typeof({'a': 1}) == "dict"
+        assert typeof({"a": 1}) == "dict"
 
     def test_none(self):
         assert typeof(None) == "NoneType"
@@ -57,21 +57,20 @@ class TestInspect:
 
     def test_none(self):
         result = inspect(None)
-        assert result == 'None'
+        assert result == "None"
 
     def test_object_with_properties(self):
         class TestObj:
             def __init__(self):
-                self.name = 'test'
+                self.name = "test"
                 self.value = 42
 
             def get_name(self):
                 return self.name
 
         result = inspect(TestObj())
-        assert 'Properties:' in result or 'name' in result.lower()
+        assert "Properties:" in result or "name" in result.lower()
 
     def test_filters_private_attrs(self):
-        result = inspect({'a': 1})
-        assert '_' not in result or 'Properties' in result  # No private attributes shown
-
+        result = inspect({"a": 1})
+        assert "_" not in result or "Properties" in result  # No private attributes shown

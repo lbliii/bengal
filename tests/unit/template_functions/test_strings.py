@@ -37,7 +37,7 @@ class TestTruncatewords:
         assert result == "This is a [more]"
 
     def test_empty_string(self):
-        assert truncatewords('', 5) == ''
+        assert truncatewords("", 5) == ""
 
     def test_zero_count(self):
         text = "Some text here"
@@ -70,10 +70,10 @@ class TestSlugify:
         assert slugify("hello_world") == "hello_world"
 
     def test_empty_string(self):
-        assert slugify('') == ''
+        assert slugify("") == ""
 
     def test_only_special_chars(self):
-        assert slugify("!!!") == ''
+        assert slugify("!!!") == ""
 
 
 class TestStripHtml:
@@ -93,7 +93,7 @@ class TestStripHtml:
         assert strip_html("Hello<br/>World") == "HelloWorld"
 
     def test_empty_string(self):
-        assert strip_html('') == ''
+        assert strip_html("") == ""
 
     def test_html_entities(self):
         # Should decode entities
@@ -125,50 +125,50 @@ class TestTruncateChars:
         assert result == "This is…"
 
     def test_empty_string(self):
-        assert truncate_chars('', 10) == ''
+        assert truncate_chars("", 10) == ""
 
 
 class TestReplaceRegex:
     """Tests for replace_regex filter."""
 
     def test_simple_pattern(self):
-        result = replace_regex("hello123world", r'\d+', 'XXX')
+        result = replace_regex("hello123world", r"\d+", "XXX")
         assert result == "helloXXXworld"
 
     def test_multiple_matches(self):
-        result = replace_regex("a1b2c3", r'\d', 'X')
+        result = replace_regex("a1b2c3", r"\d", "X")
         assert result == "aXbXcX"
 
     def test_no_match(self):
-        result = replace_regex("hello", r'\d+', 'XXX')
+        result = replace_regex("hello", r"\d+", "XXX")
         assert result == "hello"
 
     def test_invalid_regex(self):
         # Should return original text on error
-        result = replace_regex("hello", r'[', 'XXX')
+        result = replace_regex("hello", r"[", "XXX")
         assert result == "hello"
 
     def test_empty_string(self):
-        assert replace_regex('', r'\d+', 'X') == ''
+        assert replace_regex("", r"\d+", "X") == ""
 
 
 class TestPluralize:
     """Tests for pluralize filter."""
 
     def test_singular(self):
-        assert pluralize(1, 'item') == 'item'
+        assert pluralize(1, "item") == "item"
 
     def test_plural_auto(self):
-        assert pluralize(2, 'item') == 'items'
+        assert pluralize(2, "item") == "items"
 
     def test_plural_custom(self):
-        assert pluralize(2, 'box', 'boxes') == 'boxes'
+        assert pluralize(2, "box", "boxes") == "boxes"
 
     def test_zero(self):
-        assert pluralize(0, 'item') == 'items'
+        assert pluralize(0, "item") == "items"
 
     def test_irregular(self):
-        assert pluralize(3, 'person', 'people') == 'people'
+        assert pluralize(3, "person", "people") == "people"
 
 
 class TestReadingTime:
@@ -187,7 +187,7 @@ class TestReadingTime:
         assert reading_time(text, wpm=250) == 2
 
     def test_empty_text(self):
-        assert reading_time('') == 1
+        assert reading_time("") == 1
 
     def test_html_text(self):
         html = "<p>" + (" ".join(["word"] * 400)) + "</p>"
@@ -215,7 +215,7 @@ class TestExcerpt:
         assert result == "This is a ..."
 
     def test_empty_text(self):
-        assert excerpt('') == ''
+        assert excerpt("") == ""
 
     def test_html_text(self):
         html = "<p>This is a long piece of HTML text that should be excerpted</p>"
@@ -240,8 +240,7 @@ class TestStripWhitespace:
         assert strip_whitespace("  hello \n\t world  ") == "hello world"
 
     def test_empty_string(self):
-        assert strip_whitespace('') == ''
+        assert strip_whitespace("") == ""
 
     def test_already_clean(self):
         assert strip_whitespace("hello world") == "hello world"
-

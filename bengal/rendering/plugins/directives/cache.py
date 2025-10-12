@@ -50,7 +50,7 @@ class DirectiveCache:
         combined = f"{directive_type}:{content}"
 
         # Hash it
-        content_hash = hashlib.sha256(combined.encode('utf-8')).hexdigest()[:16]
+        content_hash = hashlib.sha256(combined.encode("utf-8")).hexdigest()[:16]
 
         # Key format: type:hash
         return f"{directive_type}:{content_hash}"
@@ -136,12 +136,12 @@ class DirectiveCache:
         hit_rate = self._hits / total_requests if total_requests > 0 else 0.0
 
         return {
-            'hits': self._hits,
-            'misses': self._misses,
-            'hit_rate': hit_rate,
-            'size': len(self._cache),
-            'max_size': self._max_size,
-            'enabled': self._enabled,
+            "hits": self._hits,
+            "misses": self._misses,
+            "hit_rate": hit_rate,
+            "size": len(self._cache),
+            "max_size": self._max_size,
+            "enabled": self._enabled,
         }
 
     def reset_stats(self) -> None:
@@ -203,4 +203,3 @@ def get_cache_stats() -> dict[str, Any]:
         Cache statistics dictionary
     """
     return _directive_cache.stats()
-

@@ -180,7 +180,12 @@ class NodePipeline:
             for p in base.rglob("*"):
                 if p.is_file() and p.suffix.lower() in exts:
                     files.append(p)
-        logger.debug("pipeline_sources_found", count=len(files), dirs=[str(d) for d in checked_dirs], exts=exts)
+        logger.debug(
+            "pipeline_sources_found",
+            count=len(files),
+            dirs=[str(d) for d in checked_dirs],
+            exts=exts,
+        )
         return files
 
     def _find_js_entries(self) -> list[Path]:
@@ -220,14 +225,21 @@ class NodePipeline:
             return theme_dir
         try:
             import bengal as bengal_pkg
-            bundled = Path(bengal_pkg.__file__).parent / "themes" / self.config.theme_name / "assets"
+
+            bundled = (
+                Path(bengal_pkg.__file__).parent / "themes" / self.config.theme_name / "assets"
+            )
             return bundled if bundled.exists() else None
         except Exception:
             return None
 
     def _theme_assets_subdir(self) -> str | None:
         d = self._theme_assets_dir()
-        return str(d.relative_to(self.config.root_path)) if d and str(d).startswith(str(self.config.root_path)) else None
+        return (
+            str(d.relative_to(self.config.root_path))
+            if d and str(d).startswith(str(self.config.root_path))
+            else None
+        )
 
     # Subprocess helpers
 
@@ -243,7 +255,9 @@ class NodePipeline:
 
 def from_site(site: Site) -> NodePipeline:
     """Factory to create pipeline from site config."""
-    assets_cfg = site.config.get("assets", {}) if isinstance(site.config.get("assets"), dict) else {}
+    assets_cfg = (
+        site.config.get("assets", {}) if isinstance(site.config.get("assets"), dict) else {}
+    )
     pc = PipelineConfig(
         root_path=site.root_path,
         theme_name=site.theme,
@@ -256,5 +270,3 @@ def from_site(site: Site) -> NodePipeline:
         sourcemaps=bool(assets_cfg.get("sourcemaps", True)),
     )
     return NodePipeline(pc)
-
-

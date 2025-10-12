@@ -61,10 +61,17 @@ class BuildOrchestrator:
         self.postprocess = PostprocessOrchestrator(site)
         self.incremental = IncrementalOrchestrator(site)
 
-    def build(self, parallel: bool = True, incremental: bool = False,
-              verbose: bool = False, quiet: bool = False, profile: BuildProfile = None,
-              memory_optimized: bool = False, strict: bool = False,
-              full_output: bool = False) -> BuildStats:
+    def build(
+        self,
+        parallel: bool = True,
+        incremental: bool = False,
+        verbose: bool = False,
+        quiet: bool = False,
+        profile: BuildProfile = None,
+        memory_optimized: bool = False,
+        strict: bool = False,
+        full_output: bool = False,
+    ) -> BuildStats:
         """
         Execute full build pipeline.
 
@@ -98,15 +105,16 @@ class BuildOrchestrator:
         # Determine if we should use live progress
         # Disable if: quiet mode, verbose logging mode, full_output requested, or not a TTY
         use_live_progress = (
-            not quiet and
-            not verbose and
-            not full_output and
-            profile_config.get('live_progress', {}).get('enabled', True)
+            not quiet
+            and not verbose
+            and not full_output
+            and profile_config.get("live_progress", {}).get("enabled", True)
         )
 
         # Suppress console log noise even when not using live progress
         # (logs still go to file for debugging)
         from bengal.utils.logger import set_console_quiet
+
         if not verbose:  # Only suppress console logs if not in verbose logging mode
             set_console_quiet(True)
 
@@ -130,8 +138,9 @@ class BuildOrchestrator:
 
         # Initialize performance collection only if profile enables it
         collector = None
-        if profile_config.get('collect_metrics', False):
+        if profile_config.get("collect_metrics", False):
             from bengal.utils.performance_collector import PerformanceCollector
+
             collector = PerformanceCollector()
             collector.start_build()
 
@@ -139,8 +148,12 @@ class BuildOrchestrator:
         self.stats = BuildStats(parallel=parallel, incremental=incremental)
         self.stats.strict_mode = strict
 
-        self.logger.info("build_start", parallel=parallel, incremental=incremental,
-                        root_path=str(self.site.root_path))
+        self.logger.info(
+            "build_start",
+            parallel=parallel,
+            incremental=incremental,
+            root_path=str(self.site.root_path),
+        )
 
         # Show build header (unless using live progress which handles its own display)
         if not progress_manager:
@@ -156,7 +169,7 @@ class BuildOrchestrator:
 
         # Phase 0.5: Font Processing (before asset discovery)
         # Download Google Fonts and generate CSS if configured
-        if 'fonts' in self.site.config:
+        if "fonts" in self.site.config:
             with self.logger.phase("fonts"):
                 fonts_start = time.time()
                 try:
@@ -167,7 +180,7 @@ class BuildOrchestrator:
                     assets_dir.mkdir(parents=True, exist_ok=True)
 
                     # Process fonts (download + generate CSS)
-                    font_helper = FontHelper(self.site.config['fonts'])
+                    font_helper = FontHelper(self.site.config["fonts"])
                     font_helper.process(assets_dir)
 
                     self.stats.fonts_time_ms = (time.time() - fonts_start) * 1000
@@ -183,22 +196,24 @@ class BuildOrchestrator:
             discovery_start = time.time()
 
             if progress_manager:
-                progress_manager.add_phase('discovery', 'Discovery')
-                progress_manager.start_phase('discovery')
+                progress_manager.add_phase("discovery", "Discovery")
+                progress_manager.start_phase("discovery")
 
             self.content.discover()
 
             self.stats.discovery_time_ms = (time.time() - discovery_start) * 1000
 
             if progress_manager:
-                progress_manager.complete_phase('discovery', elapsed_ms=self.stats.discovery_time_ms)
-                progress_manager.update_phase('discovery',
-                                             pages=len(self.site.pages),
-                                             sections=len(self.site.sections))
+                progress_manager.complete_phase(
+                    "discovery", elapsed_ms=self.stats.discovery_time_ms
+                )
+                progress_manager.update_phase(
+                    "discovery", pages=len(self.site.pages), sections=len(self.site.sections)
+                )
 
-            self.logger.info("discovery_complete",
-                           pages=len(self.site.pages),
-                           sections=len(self.site.sections))
+            self.logger.info(
+                "discovery_complete", pages=len(self.site.pages), sections=len(self.site.sections)
+            )
 
         # Check if config changed (forces full rebuild)
         if incremental and self.incremental.check_config_changed():
@@ -216,18 +231,20 @@ class BuildOrchestrator:
 
             if incremental:
                 # Find what changed BEFORE generating taxonomies/menus
-                pages_to_build, assets_to_process, change_summary = self.incremental.find_work_early(
-                    verbose=verbose
+                pages_to_build, assets_to_process, change_summary = (
+                    self.incremental.find_work_early(verbose=verbose)
                 )
 
                 # Track which pages changed (for taxonomy updates)
-                changed_page_paths = {p.source_path for p in pages_to_build if not p.metadata.get('_generated')}
+                changed_page_paths = {
+                    p.source_path for p in pages_to_build if not p.metadata.get("_generated")
+                }
 
                 # Determine affected tags from changed pages
                 for page in pages_to_build:
-                    if page.tags and not page.metadata.get('_generated'):
+                    if page.tags and not page.metadata.get("_generated"):
                         for tag in page.tags:
-                            affected_tags.add(tag.lower().replace(' ', '-'))
+                            affected_tags.add(tag.lower().replace(" ", "-"))
 
                 # Track cache statistics (Phase 2)
                 total_pages = len(self.site.pages)
@@ -239,14 +256,20 @@ class BuildOrchestrator:
 
                 # Estimate time saved (approximate: 80% of rendering time for cached pages)
                 if pages_rebuilt > 0 and total_pages > 0:
-                    avg_time_per_page = (self.stats.rendering_time_ms / total_pages) if hasattr(self.stats, 'rendering_time_ms') else 50
+                    avg_time_per_page = (
+                        (self.stats.rendering_time_ms / total_pages)
+                        if hasattr(self.stats, "rendering_time_ms")
+                        else 50
+                    )
                     self.stats.time_saved_ms = pages_cached * avg_time_per_page * 0.8
 
-                self.logger.info("incremental_work_identified",
-                               pages_to_build=len(pages_to_build),
-                               assets_to_process=len(assets_to_process),
-                               skipped_pages=len(self.site.pages) - len(pages_to_build),
-                               cache_hit_rate=f"{(pages_cached/total_pages*100) if total_pages > 0 else 0:.1f}%")
+                self.logger.info(
+                    "incremental_work_identified",
+                    pages_to_build=len(pages_to_build),
+                    assets_to_process=len(assets_to_process),
+                    skipped_pages=len(self.site.pages) - len(pages_to_build),
+                    cache_hit_rate=f"{(pages_cached / total_pages * 100) if total_pages > 0 else 0:.1f}%",
+                )
 
                 if not pages_to_build and not assets_to_process:
                     cli.success("No changes detected - skipping build")
@@ -255,8 +278,10 @@ class BuildOrchestrator:
                     self.stats.build_time_ms = (time.time() - build_start) * 1000
                     return self.stats
 
-                cli.info(f"  Incremental build: {len(pages_to_build)} pages, "
-                        f"{len(assets_to_process)} assets")
+                cli.info(
+                    f"  Incremental build: {len(pages_to_build)} pages, "
+                    f"{len(assets_to_process)} assets"
+                )
 
                 if verbose and change_summary:
                     cli.blank()
@@ -281,16 +306,20 @@ class BuildOrchestrator:
             # Validate section structure
             section_errors = self.sections.validate_sections()
             if section_errors:
-                self.logger.warning("section_validation_errors",
-                                  error_count=len(section_errors),
-                                  errors=section_errors[:3])
-                strict_mode = self.site.config.get('strict_mode', False)
+                self.logger.warning(
+                    "section_validation_errors",
+                    error_count=len(section_errors),
+                    errors=section_errors[:3],
+                )
+                strict_mode = self.site.config.get("strict_mode", False)
                 if strict_mode:
                     cli.blank()
                     cli.error("Section validation errors:")
                     for error in section_errors:
                         cli.detail(str(error), indent=1, icon="•")
-                    raise Exception(f"Build failed: {len(section_errors)} section validation error(s)")
+                    raise Exception(
+                        f"Build failed: {len(section_errors)} section validation error(s)"
+                    )
                 else:
                     # Warn but continue in non-strict mode
                     for error in section_errors[:3]:  # Show first 3
@@ -306,8 +335,7 @@ class BuildOrchestrator:
                 # Incremental: Only update taxonomies for changed pages
                 # This is O(changed) instead of O(all) - major optimization!
                 affected_tags = self.taxonomy.collect_and_generate_incremental(
-                    pages_to_build,
-                    cache
+                    pages_to_build, cache
                 )
 
                 # Store affected tags for later use (related posts, etc.)
@@ -319,15 +347,17 @@ class BuildOrchestrator:
 
                 # Update cache with full taxonomy data (for next incremental build)
                 for page in self.site.pages:
-                    if not page.metadata.get('_generated') and page.tags:
+                    if not page.metadata.get("_generated") and page.tags:
                         cache.update_page_tags(page.source_path, set(page.tags))
             # else: No pages changed, skip taxonomy updates
 
             self.stats.taxonomy_time_ms = (time.time() - taxonomy_start) * 1000
-            if hasattr(self.site, 'taxonomies'):
-                self.logger.info("taxonomies_built",
-                               taxonomy_count=len(self.site.taxonomies),
-                               total_terms=sum(len(terms) for terms in self.site.taxonomies.values()))
+            if hasattr(self.site, "taxonomies"):
+                self.logger.info(
+                    "taxonomies_built",
+                    taxonomy_count=len(self.site.taxonomies),
+                    total_terms=sum(len(terms) for terms in self.site.taxonomies.values()),
+                )
 
             # Invalidate regular_pages cache (taxonomy generation adds tag/category pages)
             self.site.invalidate_regular_pages_cache()
@@ -341,13 +371,11 @@ class BuildOrchestrator:
             # Build menus (or reuse cached if unchanged)
             menu_rebuilt = self.menu.build(
                 changed_pages=changed_page_paths if incremental else None,
-                config_changed=config_changed
+                config_changed=config_changed,
             )
 
             self.stats.menu_time_ms = (time.time() - menu_start) * 1000
-            self.logger.info("menus_built",
-                           menu_count=len(self.site.menu),
-                           rebuilt=menu_rebuilt)
+            self.logger.info("menus_built", menu_count=len(self.site.menu), rebuilt=menu_rebuilt)
 
         # Phase 5.5: Related Posts Index (NEW - Pre-compute for O(1) template access)
         with self.logger.phase("related_posts_index"):
@@ -359,13 +387,18 @@ class BuildOrchestrator:
 
             # Log statistics
             pages_with_related = sum(
-                1 for p in self.site.pages
-                if hasattr(p, 'related_posts') and p.related_posts and not p.metadata.get('_generated')
+                1
+                for p in self.site.pages
+                if hasattr(p, "related_posts")
+                and p.related_posts
+                and not p.metadata.get("_generated")
             )
             self.stats.related_posts_time_ms = (time.time() - related_posts_start) * 1000
-            self.logger.info("related_posts_built",
-                           pages_with_related=pages_with_related,
-                           total_pages=len([p for p in self.site.pages if not p.metadata.get('_generated')]))
+            self.logger.info(
+                "related_posts_built",
+                pages_with_related=pages_with_related,
+                total_pages=len([p for p in self.site.pages if not p.metadata.get("_generated")]),
+            )
 
         # Phase 6: Update filtered pages list (add generated pages)
         # Now that we've generated tag pages, update pages_to_build if needed
@@ -375,9 +408,12 @@ class BuildOrchestrator:
 
             # Add newly generated tag pages to rebuild set
             for page in self.site.pages:
-                if page.metadata.get('_generated') and page.metadata.get('type') in ('tag', 'tag-index'):
-                    tag_slug = page.metadata.get('_tag_slug')
-                    if tag_slug in affected_tags or page.metadata.get('type') == 'tag-index':
+                if page.metadata.get("_generated") and page.metadata.get("type") in (
+                    "tag",
+                    "tag-index",
+                ):
+                    tag_slug = page.metadata.get("_tag_slug")
+                    if tag_slug in affected_tags or page.metadata.get("type") == "tag-index":
                         pages_to_build_set.add(page)  # O(1) + automatic dedup
 
             # Convert back to list for rendering (preserves compatibility)
@@ -388,34 +424,60 @@ class BuildOrchestrator:
         quiet_mode = quiet and not verbose
 
         # Rendering phase header removed - phases are now shown via progress manager or final summary
-        with self.logger.phase("rendering", page_count=len(pages_to_build), parallel=parallel, memory_optimized=memory_optimized):
+        with self.logger.phase(
+            "rendering",
+            page_count=len(pages_to_build),
+            parallel=parallel,
+            memory_optimized=memory_optimized,
+        ):
             rendering_start = time.time()
             original_pages = self.site.pages
             self.site.pages = pages_to_build  # Temporarily replace with subset
 
             # Register rendering phase
             if progress_manager:
-                progress_manager.add_phase('rendering', 'Rendering', total=len(pages_to_build))
-                progress_manager.start_phase('rendering')
+                progress_manager.add_phase("rendering", "Rendering", total=len(pages_to_build))
+                progress_manager.start_phase("rendering")
 
             # Use memory-optimized streaming if requested
             if memory_optimized:
                 from bengal.orchestration.streaming import StreamingRenderOrchestrator
+
                 streaming_render = StreamingRenderOrchestrator(self.site)
-                streaming_render.process(pages_to_build, parallel=parallel, quiet=quiet_mode, tracker=tracker, stats=self.stats, progress_manager=progress_manager)
+                streaming_render.process(
+                    pages_to_build,
+                    parallel=parallel,
+                    quiet=quiet_mode,
+                    tracker=tracker,
+                    stats=self.stats,
+                    progress_manager=progress_manager,
+                )
             else:
-                self.render.process(pages_to_build, parallel=parallel, quiet=quiet_mode, tracker=tracker, stats=self.stats, progress_manager=progress_manager)
+                self.render.process(
+                    pages_to_build,
+                    parallel=parallel,
+                    quiet=quiet_mode,
+                    tracker=tracker,
+                    stats=self.stats,
+                    progress_manager=progress_manager,
+                )
 
             self.site.pages = original_pages  # Restore full page list
             self.stats.rendering_time_ms = (time.time() - rendering_start) * 1000
 
             if progress_manager:
-                progress_manager.complete_phase('rendering', elapsed_ms=self.stats.rendering_time_ms)
+                progress_manager.complete_phase(
+                    "rendering", elapsed_ms=self.stats.rendering_time_ms
+                )
 
-            self.logger.info("rendering_complete",
-                           pages_rendered=len(pages_to_build),
-                           errors=len(self.stats.template_errors) if hasattr(self.stats, 'template_errors') else 0,
-                           memory_optimized=memory_optimized)
+            self.logger.info(
+                "rendering_complete",
+                pages_rendered=len(pages_to_build),
+                errors=len(self.stats.template_errors)
+                if hasattr(self.stats, "template_errors")
+                else 0,
+                memory_optimized=memory_optimized,
+            )
 
         # Print rendering summary in quiet mode
         if quiet_mode:
@@ -429,16 +491,18 @@ class BuildOrchestrator:
 
             # Register assets phase
             if progress_manager:
-                progress_manager.add_phase('assets', 'Assets', total=len(assets_to_process))
-                progress_manager.start_phase('assets')
+                progress_manager.add_phase("assets", "Assets", total=len(assets_to_process))
+                progress_manager.start_phase("assets")
 
-            self.assets.process(assets_to_process, parallel=parallel, progress_manager=progress_manager)
+            self.assets.process(
+                assets_to_process, parallel=parallel, progress_manager=progress_manager
+            )
 
             self.site.assets = original_assets  # Restore full asset list
             self.stats.assets_time_ms = (time.time() - assets_start) * 1000
 
             if progress_manager:
-                progress_manager.complete_phase('assets', elapsed_ms=self.stats.assets_time_ms)
+                progress_manager.complete_phase("assets", elapsed_ms=self.stats.assets_time_ms)
 
             self.logger.info("assets_complete", assets_processed=len(assets_to_process))
 
@@ -459,15 +523,19 @@ class BuildOrchestrator:
             postprocess_task_count += 1  # special pages always run
 
             if progress_manager:
-                progress_manager.add_phase('postprocess', 'Post-process', total=postprocess_task_count)
-                progress_manager.start_phase('postprocess')
+                progress_manager.add_phase(
+                    "postprocess", "Post-process", total=postprocess_task_count
+                )
+                progress_manager.start_phase("postprocess")
 
             self.postprocess.run(parallel=parallel, progress_manager=progress_manager)
 
             self.stats.postprocess_time_ms = (time.time() - postprocess_start) * 1000
 
             if progress_manager:
-                progress_manager.complete_phase('postprocess', elapsed_ms=self.stats.postprocess_time_ms)
+                progress_manager.complete_phase(
+                    "postprocess", elapsed_ms=self.stats.postprocess_time_ms
+                )
 
             self.logger.info("postprocessing_complete")
 
@@ -479,8 +547,12 @@ class BuildOrchestrator:
 
         # Collect final stats (before health check so we can include them in report)
         self.stats.total_pages = len(self.site.pages)
-        self.stats.regular_pages = len([p for p in self.site.pages if not p.metadata.get('_generated')])
-        self.stats.generated_pages = len([p for p in self.site.pages if p.metadata.get('_generated')])
+        self.stats.regular_pages = len(
+            [p for p in self.site.pages if not p.metadata.get("_generated")]
+        )
+        self.stats.generated_pages = len(
+            [p for p in self.site.pages if p.metadata.get("_generated")]
+        )
         self.stats.total_assets = len(self.site.assets)
         self.stats.total_sections = len(self.site.sections)
         self.stats.taxonomies_count = sum(len(terms) for terms in self.site.taxonomies.values())
@@ -488,10 +560,10 @@ class BuildOrchestrator:
 
         # Store stats for health check validators to access
         self.site._last_build_stats = {
-            'build_time_ms': self.stats.build_time_ms,
-            'rendering_time_ms': self.stats.rendering_time_ms,
-            'total_pages': self.stats.total_pages,
-            'total_assets': self.stats.total_assets,
+            "build_time_ms": self.stats.build_time_ms,
+            "rendering_time_ms": self.stats.rendering_time_ms,
+            "total_pages": self.stats.total_pages,
+            "total_assets": self.stats.total_assets,
         }
 
         # Phase 10: Health Check (with profile filtering)
@@ -505,16 +577,16 @@ class BuildOrchestrator:
 
         # Log build completion
         log_data = {
-            'duration_ms': self.stats.build_time_ms,
-            'total_pages': self.stats.total_pages,
-            'total_assets': self.stats.total_assets,
-            'success': True
+            "duration_ms": self.stats.build_time_ms,
+            "total_pages": self.stats.total_pages,
+            "total_assets": self.stats.total_assets,
+            "success": True,
         }
 
         # Only add memory metrics if they were collected
         if self.stats.memory_rss_mb > 0:
-            log_data['memory_rss_mb'] = self.stats.memory_rss_mb
-            log_data['memory_heap_mb'] = self.stats.memory_heap_mb
+            log_data["memory_rss_mb"] = self.stats.memory_rss_mb
+            log_data["memory_heap_mb"] = self.stats.memory_heap_mb
 
         self.logger.info("build_complete", **log_data)
 
@@ -532,6 +604,7 @@ class BuildOrchestrator:
         # Log Pygments cache statistics (performance monitoring)
         try:
             from bengal.rendering.pygments_cache import log_cache_stats
+
             log_cache_stats()
         except ImportError:
             pass  # Cache not used
@@ -541,13 +614,26 @@ class BuildOrchestrator:
     def _print_rendering_summary(self) -> None:
         """Print summary of rendered pages (quiet mode)."""
         from bengal.utils.cli_output import get_cli_output
+
         cli = get_cli_output()
 
         # Count page types
-        tag_pages = sum(1 for p in self.site.pages if p.metadata.get('_generated') and 'tag' in p.output_path.parts)
-        archive_pages = sum(1 for p in self.site.pages if p.metadata.get('_generated') and p.metadata.get('template') == 'archive.html')
-        pagination_pages = sum(1 for p in self.site.pages if p.metadata.get('_generated') and '/page/' in str(p.output_path))
-        regular_pages = sum(1 for p in self.site.pages if not p.metadata.get('_generated'))
+        tag_pages = sum(
+            1
+            for p in self.site.pages
+            if p.metadata.get("_generated") and "tag" in p.output_path.parts
+        )
+        archive_pages = sum(
+            1
+            for p in self.site.pages
+            if p.metadata.get("_generated") and p.metadata.get("template") == "archive.html"
+        )
+        pagination_pages = sum(
+            1
+            for p in self.site.pages
+            if p.metadata.get("_generated") and "/page/" in str(p.output_path)
+        )
+        regular_pages = sum(1 for p in self.site.pages if not p.metadata.get("_generated"))
 
         cli.detail(f"Regular pages:    {regular_pages}", indent=1, icon="├─")
         if tag_pages:
@@ -575,13 +661,13 @@ class BuildOrchestrator:
         """
         from bengal.health import HealthCheck
 
-        health_config = self.site.config.get('health_check', {})
+        health_config = self.site.config.get("health_check", {})
 
         # Check if health checks are enabled
         if isinstance(health_config, bool):
             enabled = health_config
         else:
-            enabled = health_config.get('enabled', True)
+            enabled = health_config.get("enabled", True)
 
         if not enabled:
             return
@@ -592,9 +678,10 @@ class BuildOrchestrator:
 
         # Print report using CLI output
         from bengal.utils.cli_output import get_cli_output
+
         cli = get_cli_output()
 
-        if health_config.get('verbose', False):
+        if health_config.get("verbose", False):
             cli.info(report.format_console(verbose=True))
         # Only print if there are issues
         elif report.has_errors() or report.has_warnings():
@@ -604,10 +691,9 @@ class BuildOrchestrator:
         self.stats.health_report = report
 
         # Fail build in strict mode if there are errors
-        strict_mode = health_config.get('strict_mode', False)
+        strict_mode = health_config.get("strict_mode", False)
         if strict_mode and report.has_errors():
             raise Exception(
                 f"Build failed health checks: {report.error_count} error(s) found. "
                 "Review output or disable strict_mode."
             )
-

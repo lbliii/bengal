@@ -31,7 +31,7 @@ class PostprocessOrchestrator:
         - Parallel/sequential execution of tasks
     """
 
-    def __init__(self, site: 'Site'):
+    def __init__(self, site: "Site"):
         """
         Initialize postprocess orchestrator.
 
@@ -55,21 +55,21 @@ class PostprocessOrchestrator:
         tasks = []
 
         # Always generate special pages (404, etc.) - important for deployment
-        tasks.append(('special pages', self._generate_special_pages))
+        tasks.append(("special pages", self._generate_special_pages))
 
         if self.site.config.get("generate_sitemap", True):
-            tasks.append(('sitemap', self._generate_sitemap))
+            tasks.append(("sitemap", self._generate_sitemap))
 
         if self.site.config.get("generate_rss", True):
-            tasks.append(('rss', self._generate_rss))
+            tasks.append(("rss", self._generate_rss))
 
         # Custom output formats (JSON, LLM text, etc.)
         output_formats_config = self.site.config.get("output_formats", {})
         if output_formats_config.get("enabled", True):
-            tasks.append(('output formats', self._generate_output_formats))
+            tasks.append(("output formats", self._generate_output_formats))
 
         if self.site.config.get("validate_links", True):
-            tasks.append(('link validation', self._validate_links))
+            tasks.append(("link validation", self._validate_links))
 
         if not tasks:
             return
@@ -92,7 +92,9 @@ class PostprocessOrchestrator:
         for i, (task_name, task_fn) in enumerate(tasks):
             try:
                 if progress_manager:
-                    progress_manager.update_phase('postprocess', current=i+1, current_item=task_name)
+                    progress_manager.update_phase(
+                        "postprocess", current=i + 1, current_item=task_name
+                    )
                 task_fn()
             except Exception as e:
                 if progress_manager:
@@ -123,7 +125,9 @@ class PostprocessOrchestrator:
                     if progress_manager:
                         with lock:
                             completed_count += 1
-                            progress_manager.update_phase('postprocess', current=completed_count, current_item=task_name)
+                            progress_manager.update_phase(
+                                "postprocess", current=completed_count, current_item=task_name
+                            )
                 except Exception as e:
                     errors.append((task_name, str(e)))
                     if progress_manager:
@@ -144,6 +148,7 @@ class PostprocessOrchestrator:
             Exception: If special page generation fails
         """
         from bengal.postprocess.special_pages import SpecialPagesGenerator
+
         generator = SpecialPagesGenerator(self.site)
         generator.generate()
 
@@ -155,6 +160,7 @@ class PostprocessOrchestrator:
             Exception: If sitemap generation fails
         """
         from bengal.postprocess.sitemap import SitemapGenerator
+
         generator = SitemapGenerator(self.site)
         generator.generate()
 
@@ -166,6 +172,7 @@ class PostprocessOrchestrator:
             Exception: If RSS generation fails
         """
         from bengal.postprocess.rss import RSSGenerator
+
         generator = RSSGenerator(self.site)
         generator.generate()
 
@@ -177,6 +184,7 @@ class PostprocessOrchestrator:
             Exception: If output format generation fails
         """
         from bengal.postprocess.output_formats import OutputFormatsGenerator
+
         config = self.site.config.get("output_formats", {})
         generator = OutputFormatsGenerator(self.site, config)
         generator.generate()
@@ -191,8 +199,8 @@ class PostprocessOrchestrator:
             Exception: If link validation process fails
         """
         from bengal.rendering.link_validator import LinkValidator
+
         validator = LinkValidator()
         broken_links = validator.validate_site(self.site)
         if broken_links:
             logger.warning("broken_links_found", count=len(broken_links))
-

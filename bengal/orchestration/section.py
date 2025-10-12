@@ -33,7 +33,7 @@ class SectionOrchestrator:
     separate from cross-cutting concerns like taxonomies (tags, categories).
     """
 
-    def __init__(self, site: 'Site'):
+    def __init__(self, site: "Site"):
         """
         Initialize section orchestrator.
 
@@ -64,7 +64,7 @@ class SectionOrchestrator:
 
         logger.info("section_finalization_complete", archives_created=archive_count)
 
-    def _finalize_recursive(self, section: 'Section') -> int:
+    def _finalize_recursive(self, section: "Section") -> int:
         """
         Recursively finalize a section and its subsections.
 
@@ -77,7 +77,7 @@ class SectionOrchestrator:
         archive_count = 0
 
         # Skip root section (no index needed)
-        if section.name == 'root':
+        if section.name == "root":
             # Still process subsections
             for subsection in section.subsections:
                 archive_count += self._finalize_recursive(subsection)
@@ -95,7 +95,7 @@ class SectionOrchestrator:
                 "section_archive_created",
                 section_name=section.name,
                 section_path=str(section.path),
-                page_count=len(section.pages)
+                page_count=len(section.pages),
             )
 
         # Recursively finalize subsections
@@ -104,7 +104,7 @@ class SectionOrchestrator:
 
         return archive_count
 
-    def _detect_content_type(self, section: 'Section') -> str:
+    def _detect_content_type(self, section: "Section") -> str:
         """
         Detect what kind of content this section contains.
 
@@ -123,30 +123,30 @@ class SectionOrchestrator:
             Content type: 'api-reference', 'cli-reference', 'tutorial', 'archive', or 'list'
         """
         # 1. Explicit override (highest priority)
-        if 'content_type' in section.metadata:
-            return section.metadata['content_type']
+        if "content_type" in section.metadata:
+            return section.metadata["content_type"]
 
         # 2. Check for cascaded type from parent section
         # This ensures subsections inherit the parent's type (e.g., /docs/markdown/ inherits 'doc' from /docs/)
-        if section.parent and hasattr(section.parent, 'metadata'):
-            parent_cascade = section.parent.metadata.get('cascade', {})
-            if 'type' in parent_cascade:
+        if section.parent and hasattr(section.parent, "metadata"):
+            parent_cascade = section.parent.metadata.get("cascade", {})
+            if "type" in parent_cascade:
                 # Just return the cascaded type directly
                 # The template map will handle finding the right template
-                return parent_cascade['type']
+                return parent_cascade["type"]
 
         # 3. Convention: section name patterns
         name = section.name.lower()
 
         match name:
-            case 'api' | 'reference' | 'api-reference' | 'api-docs':
-                return 'api-reference'
-            case 'cli' | 'commands' | 'cli-reference' | 'command-line':
-                return 'cli-reference'
-            case 'tutorials' | 'guides' | 'how-to':
-                return 'tutorial'
-            case 'blog' | 'posts' | 'news' | 'articles':  # Blog/news sections (chronological)
-                return 'archive'
+            case "api" | "reference" | "api-reference" | "api-docs":
+                return "api-reference"
+            case "cli" | "commands" | "cli-reference" | "command-line":
+                return "cli-reference"
+            case "tutorials" | "guides" | "how-to":
+                return "tutorial"
+            case "blog" | "posts" | "news" | "articles":  # Blog/news sections (chronological)
+                return "archive"
 
         # 4. Content analysis: check page metadata
         if section.pages:
@@ -154,26 +154,26 @@ class SectionOrchestrator:
             pages_with_dates = 0
 
             for page in section.pages[:5]:
-                page_type = page.metadata.get('type', '')
+                page_type = page.metadata.get("type", "")
 
-                if 'python-module' in page_type or 'api-reference' in page_type:
-                    return 'api-reference'
+                if "python-module" in page_type or "api-reference" in page_type:
+                    return "api-reference"
 
-                if 'cli-' in page_type or page_type == 'command':
-                    return 'cli-reference'
+                if "cli-" in page_type or page_type == "command":
+                    return "cli-reference"
 
                 # Check if page has a date (blog/archive indicator)
-                if page.metadata.get('date') or page.date:
+                if page.metadata.get("date") or page.date:
                     pages_with_dates += 1
 
             # 4. If most pages have dates, treat as chronological archive
             if pages_with_dates >= len(section.pages[:5]) * 0.6:
-                return 'archive'
+                return "archive"
 
         # 5. Default: generic list page (not chronological archive)
-        return 'list'
+        return "list"
 
-    def _should_paginate(self, section: 'Section', content_type: str) -> bool:
+    def _should_paginate(self, section: "Section", content_type: str) -> bool:
         """
         Determine if section should have pagination.
 
@@ -188,17 +188,17 @@ class SectionOrchestrator:
             True if section should have pagination
         """
         # Reference docs and documentation: NEVER paginate
-        if content_type in ('api-reference', 'cli-reference', 'tutorial', 'doc'):
+        if content_type in ("api-reference", "cli-reference", "tutorial", "doc"):
             return False
 
         # Archives: paginate if many items
-        if content_type == 'archive':
+        if content_type == "archive":
             page_count = len(section.pages)
-            threshold = self.site.config.get('pagination', {}).get('threshold', 20)
+            threshold = self.site.config.get("pagination", {}).get("threshold", 20)
             return page_count > threshold
 
         # Explicit pagination control
-        return section.metadata.get('paginate', False)
+        return section.metadata.get("paginate", False)
 
     def _get_template_for_content_type(self, content_type: str) -> str:
         """
@@ -216,17 +216,17 @@ class SectionOrchestrator:
             Template name
         """
         template_map = {
-            'api-reference': 'api-reference/list.html',
-            'cli-reference': 'cli-reference/list.html',
-            'tutorial': 'tutorial/list.html',
-            'doc': 'doc/list.html',
-            'blog': 'blog/list.html',
-            'archive': 'archive.html',
-            'list': 'index.html',  # Generic fallback for non-chronological sections
+            "api-reference": "api-reference/list.html",
+            "cli-reference": "cli-reference/list.html",
+            "tutorial": "tutorial/list.html",
+            "doc": "doc/list.html",
+            "blog": "blog/list.html",
+            "archive": "archive.html",
+            "list": "index.html",  # Generic fallback for non-chronological sections
         }
-        return template_map.get(content_type, 'index.html')
+        return template_map.get(content_type, "index.html")
 
-    def _create_archive_index(self, section: 'Section') -> 'Page':
+    def _create_archive_index(self, section: "Section") -> "Page":
         """
         Create an auto-generated index page for a section.
 
@@ -253,9 +253,7 @@ class SectionOrchestrator:
         from bengal.utils.pagination import Paginator
 
         # Create virtual path for generated archive (delegate to utility)
-        virtual_path = self.url_strategy.make_virtual_path(
-            self.site, 'archives', section.name
-        )
+        virtual_path = self.url_strategy.make_virtual_path(self.site, "archives", section.name)
 
         # Detect content type
         content_type = self._detect_content_type(section)
@@ -265,40 +263,36 @@ class SectionOrchestrator:
 
         # Base metadata
         metadata = {
-            'title': section.title,
-            'template': template,
-            'type': content_type,
-            '_generated': True,
-            '_virtual': True,
-            '_section': section,
-            '_posts': section.pages,
-            '_subsections': section.subsections,
-            '_content_type': content_type,
+            "title": section.title,
+            "template": template,
+            "type": content_type,
+            "_generated": True,
+            "_virtual": True,
+            "_section": section,
+            "_posts": section.pages,
+            "_subsections": section.subsections,
+            "_content_type": content_type,
         }
 
         # Add pagination only if appropriate
         if self._should_paginate(section, content_type):
             paginator = Paginator(
                 items=section.pages,
-                per_page=self.site.config.get('pagination', {}).get('per_page', 10)
+                per_page=self.site.config.get("pagination", {}).get("per_page", 10),
             )
-            metadata.update({
-                '_paginator': paginator,
-                '_page_num': 1,
-            })
+            metadata.update(
+                {
+                    "_paginator": paginator,
+                    "_page_num": 1,
+                }
+            )
 
         # Create archive page
-        archive_page = Page(
-            source_path=virtual_path,
-            content="",
-            metadata=metadata
-        )
+        archive_page = Page(source_path=virtual_path, content="", metadata=metadata)
 
         # Compute output path using centralized logic
         archive_page.output_path = self.url_strategy.compute_archive_output_path(
-            section=section,
-            page_num=1,
-            site=self.site
+            section=section, page_num=1, site=self.site
         )
 
         # Ensure page is correctly initialized (sets _site, validates)
@@ -318,7 +312,7 @@ class SectionOrchestrator:
             errors.extend(self._validate_recursive(section))
         return errors
 
-    def _validate_recursive(self, section: 'Section') -> list[str]:
+    def _validate_recursive(self, section: "Section") -> list[str]:
         """
         Recursively validate a section and its subsections.
 
@@ -331,7 +325,7 @@ class SectionOrchestrator:
         errors = []
 
         # Skip root section
-        if section.name == 'root':
+        if section.name == "root":
             # Still validate subsections
             for subsection in section.subsections:
                 errors.extend(self._validate_recursive(subsection))
@@ -353,4 +347,3 @@ class SectionOrchestrator:
             errors.extend(self._validate_recursive(subsection))
 
         return errors
-

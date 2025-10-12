@@ -29,10 +29,10 @@ logger = get_logger(__name__)
 
 def read_text_file(
     file_path: Path | str,
-    encoding: str = 'utf-8',
-    fallback_encoding: str | None = 'latin-1',
-    on_error: str = 'raise',
-    caller: str | None = None
+    encoding: str = "utf-8",
+    fallback_encoding: str | None = "latin-1",
+    on_error: str = "raise",
+    caller: str | None = None,
 ) -> str | None:
     """
     Read text file with robust error handling and encoding fallback.
@@ -69,84 +69,92 @@ def read_text_file(
 
     # Check if file exists
     if not file_path.exists():
-        logger.warning("file_not_found",
-                      path=str(file_path),
-                      caller=caller or "file_io")
-        if on_error == 'raise':
+        logger.warning("file_not_found", path=str(file_path), caller=caller or "file_io")
+        if on_error == "raise":
             raise FileNotFoundError(f"File not found: {file_path}")
-        return '' if on_error == 'return_empty' else None
+        return "" if on_error == "return_empty" else None
 
     # Check if path is a file
     if not file_path.is_file():
-        logger.warning("path_not_file",
-                      path=str(file_path),
-                      note="Path exists but is not a file",
-                      caller=caller or "file_io")
-        if on_error == 'raise':
+        logger.warning(
+            "path_not_file",
+            path=str(file_path),
+            note="Path exists but is not a file",
+            caller=caller or "file_io",
+        )
+        if on_error == "raise":
             raise ValueError(f"Path is not a file: {file_path}")
-        return '' if on_error == 'return_empty' else None
+        return "" if on_error == "return_empty" else None
 
     # Try reading with primary encoding
     try:
         with open(file_path, encoding=encoding) as f:
             content = f.read()
 
-        logger.debug("file_read",
-                    path=str(file_path),
-                    encoding=encoding,
-                    size_bytes=len(content),
-                    lines=content.count('\n') + 1,
-                    caller=caller or "file_io")
+        logger.debug(
+            "file_read",
+            path=str(file_path),
+            encoding=encoding,
+            size_bytes=len(content),
+            lines=content.count("\n") + 1,
+            caller=caller or "file_io",
+        )
         return content
 
     except UnicodeDecodeError as e:
         # Try fallback encoding if available
         if fallback_encoding:
-            logger.warning("encoding_fallback",
-                         path=str(file_path),
-                         primary=encoding,
-                         fallback=fallback_encoding,
-                         error=str(e),
-                         caller=caller or "file_io")
+            logger.warning(
+                "encoding_fallback",
+                path=str(file_path),
+                primary=encoding,
+                fallback=fallback_encoding,
+                error=str(e),
+                caller=caller or "file_io",
+            )
 
             try:
                 with open(file_path, encoding=fallback_encoding) as f:
                     content = f.read()
 
-                logger.debug("file_read_fallback",
-                           path=str(file_path),
-                           encoding=fallback_encoding,
-                           size_bytes=len(content),
-                           caller=caller or "file_io")
+                logger.debug(
+                    "file_read_fallback",
+                    path=str(file_path),
+                    encoding=fallback_encoding,
+                    size_bytes=len(content),
+                    caller=caller or "file_io",
+                )
                 return content
 
             except Exception as fallback_error:
-                logger.error("encoding_fallback_failed",
-                           path=str(file_path),
-                           primary=encoding,
-                           fallback=fallback_encoding,
-                           error=str(fallback_error),
-                           caller=caller or "file_io")
+                logger.error(
+                    "encoding_fallback_failed",
+                    path=str(file_path),
+                    primary=encoding,
+                    fallback=fallback_encoding,
+                    error=str(fallback_error),
+                    caller=caller or "file_io",
+                )
 
-        if on_error == 'raise':
+        if on_error == "raise":
             raise OSError(f"Cannot decode {file_path}: {e}") from e
-        return '' if on_error == 'return_empty' else None
+        return "" if on_error == "return_empty" else None
 
     except OSError as e:
-        logger.error("file_read_error",
-                    path=str(file_path),
-                    error=str(e),
-                    error_type=type(e).__name__,
-                    caller=caller or "file_io")
-        if on_error == 'raise':
+        logger.error(
+            "file_read_error",
+            path=str(file_path),
+            error=str(e),
+            error_type=type(e).__name__,
+            caller=caller or "file_io",
+        )
+        if on_error == "raise":
             raise
-        return '' if on_error == 'return_empty' else None
+        return "" if on_error == "return_empty" else None
 
 
 def load_json(
-    file_path: Path | str,
-    on_error: str = 'return_empty',
-    caller: str | None = None
+    file_path: Path | str, on_error: str = "return_empty", caller: str | None = None
 ) -> Any:
     """
     Load JSON file with error handling.
@@ -175,37 +183,39 @@ def load_json(
     # Read file content
     content = read_text_file(file_path, on_error=on_error, caller=caller)
     if not content:
-        return {} if on_error == 'return_empty' else None
+        return {} if on_error == "return_empty" else None
 
     # Parse JSON
     try:
         data = json.loads(content)
 
-        logger.debug("json_loaded",
-                    path=str(file_path),
-                    size_bytes=len(content),
-                    keys=len(data) if isinstance(data, dict) else None,
-                    type=type(data).__name__,
-                    caller=caller or "file_io")
+        logger.debug(
+            "json_loaded",
+            path=str(file_path),
+            size_bytes=len(content),
+            keys=len(data) if isinstance(data, dict) else None,
+            type=type(data).__name__,
+            caller=caller or "file_io",
+        )
         return data
 
     except json.JSONDecodeError as e:
-        logger.error("json_parse_error",
-                    path=str(file_path),
-                    error=str(e),
-                    line=e.lineno,
-                    column=e.colno,
-                    caller=caller or "file_io")
+        logger.error(
+            "json_parse_error",
+            path=str(file_path),
+            error=str(e),
+            line=e.lineno,
+            column=e.colno,
+            caller=caller or "file_io",
+        )
 
-        if on_error == 'raise':
+        if on_error == "raise":
             raise
-        return {} if on_error == 'return_empty' else None
+        return {} if on_error == "return_empty" else None
 
 
 def load_yaml(
-    file_path: Path | str,
-    on_error: str = 'return_empty',
-    caller: str | None = None
+    file_path: Path | str, on_error: str = "return_empty", caller: str | None = None
 ) -> Any:
     """
     Load YAML file with error handling.
@@ -237,18 +247,20 @@ def load_yaml(
     try:
         import yaml
     except ImportError:
-        logger.warning("yaml_not_available",
-                      path=str(file_path),
-                      note="PyYAML not installed, cannot load YAML files",
-                      caller=caller or "file_io")
-        if on_error == 'raise':
+        logger.warning(
+            "yaml_not_available",
+            path=str(file_path),
+            note="PyYAML not installed, cannot load YAML files",
+            caller=caller or "file_io",
+        )
+        if on_error == "raise":
             raise ImportError("PyYAML is required to load YAML files") from None
-        return {} if on_error == 'return_empty' else None
+        return {} if on_error == "return_empty" else None
 
     # Read file content
     content = read_text_file(file_path, on_error=on_error, caller=caller)
     if not content:
-        return {} if on_error == 'return_empty' else None
+        return {} if on_error == "return_empty" else None
 
     # Parse YAML
     try:
@@ -258,29 +270,28 @@ def load_yaml(
         if data is None:
             data = {}
 
-        logger.debug("yaml_loaded",
-                    path=str(file_path),
-                    size_bytes=len(content),
-                    keys=len(data) if isinstance(data, dict) else None,
-                    type=type(data).__name__,
-                    caller=caller or "file_io")
+        logger.debug(
+            "yaml_loaded",
+            path=str(file_path),
+            size_bytes=len(content),
+            keys=len(data) if isinstance(data, dict) else None,
+            type=type(data).__name__,
+            caller=caller or "file_io",
+        )
         return data
 
     except yaml.YAMLError as e:
-        logger.error("yaml_parse_error",
-                    path=str(file_path),
-                    error=str(e),
-                    caller=caller or "file_io")
+        logger.error(
+            "yaml_parse_error", path=str(file_path), error=str(e), caller=caller or "file_io"
+        )
 
-        if on_error == 'raise':
+        if on_error == "raise":
             raise
-        return {} if on_error == 'return_empty' else None
+        return {} if on_error == "return_empty" else None
 
 
 def load_toml(
-    file_path: Path | str,
-    on_error: str = 'return_empty',
-    caller: str | None = None
+    file_path: Path | str, on_error: str = "return_empty", caller: str | None = None
 ) -> Any:
     """
     Load TOML file with error handling.
@@ -309,36 +320,39 @@ def load_toml(
     # Read file content
     content = read_text_file(file_path, on_error=on_error, caller=caller)
     if not content:
-        return {} if on_error == 'return_empty' else None
+        return {} if on_error == "return_empty" else None
 
     # Parse TOML
     try:
         import toml
+
         data = toml.loads(content)
 
-        logger.debug("toml_loaded",
-                    path=str(file_path),
-                    size_bytes=len(content),
-                    keys=len(data) if isinstance(data, dict) else None,
-                    caller=caller or "file_io")
+        logger.debug(
+            "toml_loaded",
+            path=str(file_path),
+            size_bytes=len(content),
+            keys=len(data) if isinstance(data, dict) else None,
+            caller=caller or "file_io",
+        )
         return data
 
     except Exception as e:  # toml.TomlDecodeError or AttributeError
-        logger.error("toml_parse_error",
-                    path=str(file_path),
-                    error=str(e),
-                    error_type=type(e).__name__,
-                    caller=caller or "file_io")
+        logger.error(
+            "toml_parse_error",
+            path=str(file_path),
+            error=str(e),
+            error_type=type(e).__name__,
+            caller=caller or "file_io",
+        )
 
-        if on_error == 'raise':
+        if on_error == "raise":
             raise
-        return {} if on_error == 'return_empty' else None
+        return {} if on_error == "return_empty" else None
 
 
 def load_data_file(
-    file_path: Path | str,
-    on_error: str = 'return_empty',
-    caller: str | None = None
+    file_path: Path | str, on_error: str = "return_empty", caller: str | None = None
 ) -> Any:
     """
     Auto-detect and load JSON/YAML/TOML file.
@@ -366,30 +380,32 @@ def load_data_file(
     suffix = file_path.suffix.lower()
 
     # Route to appropriate loader based on file extension
-    if suffix == '.json':
+    if suffix == ".json":
         return load_json(file_path, on_error=on_error, caller=caller)
-    elif suffix in ('.yaml', '.yml'):
+    elif suffix in (".yaml", ".yml"):
         return load_yaml(file_path, on_error=on_error, caller=caller)
-    elif suffix == '.toml':
+    elif suffix == ".toml":
         return load_toml(file_path, on_error=on_error, caller=caller)
     else:
-        logger.warning("unsupported_format",
-                      path=str(file_path),
-                      suffix=suffix,
-                      supported=['.json', '.yaml', '.yml', '.toml'],
-                      caller=caller or "file_io")
+        logger.warning(
+            "unsupported_format",
+            path=str(file_path),
+            suffix=suffix,
+            supported=[".json", ".yaml", ".yml", ".toml"],
+            caller=caller or "file_io",
+        )
 
-        if on_error == 'raise':
+        if on_error == "raise":
             raise ValueError(f"Unsupported file format: {suffix}")
-        return {} if on_error == 'return_empty' else None
+        return {} if on_error == "return_empty" else None
 
 
 def write_text_file(
     file_path: Path | str,
     content: str,
-    encoding: str = 'utf-8',
+    encoding: str = "utf-8",
     create_parents: bool = True,
-    caller: str | None = None
+    caller: str | None = None,
 ) -> None:
     """
     Write text to file with parent directory creation.
@@ -413,26 +429,25 @@ def write_text_file(
     # Create parent directories if needed
     if create_parents and not file_path.parent.exists():
         file_path.parent.mkdir(parents=True, exist_ok=True)
-        logger.debug("created_parent_dirs",
-                    path=str(file_path.parent),
-                    caller=caller or "file_io")
+        logger.debug("created_parent_dirs", path=str(file_path.parent), caller=caller or "file_io")
 
     # Write file
     try:
-        with open(file_path, 'w', encoding=encoding) as f:
+        with open(file_path, "w", encoding=encoding) as f:
             f.write(content)
 
-        logger.debug("file_written",
-                    path=str(file_path),
-                    size_bytes=len(content),
-                    encoding=encoding,
-                    caller=caller or "file_io")
+        logger.debug(
+            "file_written",
+            path=str(file_path),
+            size_bytes=len(content),
+            encoding=encoding,
+            caller=caller or "file_io",
+        )
 
     except OSError as e:
-        logger.error("file_write_error",
-                    path=str(file_path),
-                    error=str(e),
-                    caller=caller or "file_io")
+        logger.error(
+            "file_write_error", path=str(file_path), error=str(e), caller=caller or "file_io"
+        )
         raise
 
 
@@ -441,7 +456,7 @@ def write_json(
     data: Any,
     indent: int | None = 2,
     create_parents: bool = True,
-    caller: str | None = None
+    caller: str | None = None,
 ) -> None:
     """
     Write data as JSON file.
@@ -466,9 +481,7 @@ def write_json(
         write_text_file(file_path, content, create_parents=create_parents, caller=caller)
 
     except TypeError as e:
-        logger.error("json_serialize_error",
-                    path=str(file_path),
-                    error=str(e),
-                    caller=caller or "file_io")
+        logger.error(
+            "json_serialize_error", path=str(file_path), error=str(e), caller=caller or "file_io"
+        )
         raise
-

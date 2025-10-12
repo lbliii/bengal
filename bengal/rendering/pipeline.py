@@ -61,7 +61,7 @@ def _get_thread_parser(engine: str | None = None) -> BaseMarkdownParser:
         this is OPTIMAL behavior, not a bug!
     """
     # Store parser per engine type
-    cache_key = f'parser_{engine or "default"}'
+    cache_key = f"parser_{engine or 'default'}"
     if not hasattr(_thread_local, cache_key):
         setattr(_thread_local, cache_key, create_markdown_parser(engine))
     return getattr(_thread_local, cache_key)
@@ -79,7 +79,13 @@ class RenderingPipeline:
     5. Write to output directory
     """
 
-    def __init__(self, site: Any, dependency_tracker: Any = None, quiet: bool = False, build_stats: Any = None) -> None:
+    def __init__(
+        self,
+        site: Any,
+        dependency_tracker: Any = None,
+        quiet: bool = False,
+        build_stats: Any = None,
+    ) -> None:
         """
         Initialize the rendering pipeline.
 
@@ -121,16 +127,16 @@ class RenderingPipeline:
         self.site = site
         # Get markdown engine from config (default: python-markdown)
         # Check both old location (markdown_engine) and new nested location (markdown.parser)
-        markdown_engine = site.config.get('markdown_engine')
+        markdown_engine = site.config.get("markdown_engine")
         if not markdown_engine:
             # Check nested markdown section
-            markdown_config = site.config.get('markdown', {})
-            markdown_engine = markdown_config.get('parser', 'python-markdown')
+            markdown_config = site.config.get("markdown", {})
+            markdown_engine = markdown_config.get("parser", "python-markdown")
         # Use thread-local parser to avoid re-initialization overhead
         self.parser = _get_thread_parser(markdown_engine)
 
         # Enable cross-references if xref_index is available
-        if hasattr(site, 'xref_index') and hasattr(self.parser, 'enable_cross_references'):
+        if hasattr(site, "xref_index") and hasattr(self.parser, "enable_cross_references"):
             self.parser.enable_cross_references(site.xref_index)
 
         self.dependency_tracker = dependency_tracker
@@ -149,7 +155,7 @@ class RenderingPipeline:
             page: Page to process
         """
         # Track this page if we have a dependency tracker
-        if self.dependency_tracker and not page.metadata.get('_generated'):
+        if self.dependency_tracker and not page.metadata.get("_generated"):
             self.dependency_tracker.start_page(page.source_path)
 
         # Stage 0: Determine output path early so page.url works correctly
@@ -161,31 +167,28 @@ class RenderingPipeline:
         template = self._determine_template(page)
         parser_version = self._get_parser_version()
 
-        if self.dependency_tracker and hasattr(self.dependency_tracker, '_cache'):
+        if self.dependency_tracker and hasattr(self.dependency_tracker, "_cache"):
             cache = self.dependency_tracker._cache
-            if cache and not page.metadata.get('_generated'):
+            if cache and not page.metadata.get("_generated"):
                 cached = cache.get_parsed_content(
-                    page.source_path,
-                    page.metadata,
-                    template,
-                    parser_version
+                    page.source_path, page.metadata, template, parser_version
                 )
 
                 if cached:
                     # Cache HIT - skip markdown parsing!
-                    page.parsed_ast = cached['html']
-                    page.toc = cached['toc']
-                    page._toc_items_cache = cached.get('toc_items', [])
+                    page.parsed_ast = cached["html"]
+                    page.toc = cached["toc"]
+                    page._toc_items_cache = cached.get("toc_items", [])
 
                     # Track cache hit for statistics
                     if self.build_stats:
-                        if not hasattr(self.build_stats, 'parsed_cache_hits'):
+                        if not hasattr(self.build_stats, "parsed_cache_hits"):
                             self.build_stats.parsed_cache_hits = 0
                         self.build_stats.parsed_cache_hits += 1
 
                     # Continue to template rendering (skipped parsing, will apply current template)
                     # Note: We don't return early - we need to apply the template
-                    parsed_content = cached['html']
+                    parsed_content = cached["html"]
 
                     # Skip to stage 3 (template rendering)
                     page.extract_links()
@@ -193,7 +196,7 @@ class RenderingPipeline:
                     page.rendered_html = self.renderer.render_page(page, html_content)
                     self._write_output(page)
 
-                    if self.dependency_tracker and not page.metadata.get('_generated'):
+                    if self.dependency_tracker and not page.metadata.get("_generated"):
                         self.dependency_tracker.end_page()
 
                     return  # EARLY RETURN - parsing skipped, template applied!
@@ -208,26 +211,17 @@ class RenderingPipeline:
         # Pages can disable preprocessing by setting `preprocess: false` in frontmatter.
         # This is useful for documentation pages that show template syntax examples.
         #
-        if hasattr(self.parser, 'parse_with_toc_and_context'):
+        if hasattr(self.parser, "parse_with_toc_and_context"):
             # Mistune with VariableSubstitutionPlugin (recommended)
             # Check if preprocessing is disabled
-            if page.metadata.get('preprocess') is False:
+            if page.metadata.get("preprocess") is False:
                 # Parse without variable substitution (for docs showing template syntax)
-                parsed_content, toc = self.parser.parse_with_toc(
-                    page.content,
-                    page.metadata
-                )
+                parsed_content, toc = self.parser.parse_with_toc(page.content, page.metadata)
             else:
                 # Single-pass parsing with variable substitution - fast and simple!
-                context = {
-                    'page': page,
-                    'site': self.site,
-                    'config': self.site.config
-                }
+                context = {"page": page, "site": self.site, "config": self.site.config}
                 parsed_content, toc = self.parser.parse_with_toc_and_context(
-                    page.content,
-                    page.metadata,
-                    context
+                    page.content, page.metadata, context
                 )
         else:
             # FALLBACK: python-markdown (legacy)
@@ -240,21 +234,30 @@ class RenderingPipeline:
         # Post-process: Enhance API documentation with badges
         # (inject HTML badges for @async, @property, etc. markers)
         from bengal.rendering.api_doc_enhancer import get_enhancer
+
         enhancer = get_enhancer()
-        page_type = page.metadata.get('type')
+        page_type = page.metadata.get("type")
         if enhancer.should_enhance(page_type):
             before_enhancement = page.parsed_ast
             page.parsed_ast = enhancer.enhance(page.parsed_ast, page_type)
 
             # Debug output only in dev mode
             from bengal.utils.profile import should_show_debug
-            if should_show_debug() and '@property' in before_enhancement and 'page.md' in str(page.source_path) and 'core' in str(page.source_path):
-                logger.debug("api_doc_enhancement",
-                            source_path=str(page.source_path),
-                            before_chars=len(before_enhancement),
-                            after_chars=len(page.parsed_ast),
-                            has_markers=('@property' in before_enhancement),
-                            has_badges=('api-badge' in page.parsed_ast))
+
+            if (
+                should_show_debug()
+                and "@property" in before_enhancement
+                and "page.md" in str(page.source_path)
+                and "core" in str(page.source_path)
+            ):
+                logger.debug(
+                    "api_doc_enhancement",
+                    source_path=str(page.source_path),
+                    before_chars=len(before_enhancement),
+                    after_chars=len(page.parsed_ast),
+                    has_markers=("@property" in before_enhancement),
+                    has_badges=("api-badge" in page.parsed_ast),
+                )
 
         # ============================================================================
         # Build Phase: PARSING COMPLETE
@@ -271,9 +274,9 @@ class RenderingPipeline:
         page.toc = toc
 
         # OPTIMIZATION #2: Store parsed content in cache for next build
-        if self.dependency_tracker and hasattr(self.dependency_tracker, '_cache'):
+        if self.dependency_tracker and hasattr(self.dependency_tracker, "_cache"):
             cache = self.dependency_tracker._cache
-            if cache and not page.metadata.get('_generated'):
+            if cache and not page.metadata.get("_generated"):
                 # Extract TOC items for caching
                 toc_items = extract_toc_structure(toc)
 
@@ -284,7 +287,7 @@ class RenderingPipeline:
                     toc_items,
                     page.metadata,
                     template,
-                    parser_version
+                    parser_version,
                 )
 
         # Stage 3: Extract links for validation
@@ -300,7 +303,7 @@ class RenderingPipeline:
         self._write_output(page)
 
         # End page tracking
-        if self.dependency_tracker and not page.metadata.get('_generated'):
+        if self.dependency_tracker and not page.metadata.get("_generated"):
             self.dependency_tracker.end_page()
 
     def _write_output(self, page: Page) -> None:
@@ -323,7 +326,8 @@ class RenderingPipeline:
 
         # Write rendered HTML atomically (crash-safe)
         from bengal.utils.atomic_write import atomic_write_text
-        atomic_write_text(page.output_path, page.rendered_html, encoding='utf-8')
+
+        atomic_write_text(page.output_path, page.rendered_html, encoding="utf-8")
 
         # Only print in verbose mode
         if not self.quiet:
@@ -353,25 +357,25 @@ class RenderingPipeline:
             Template name (e.g., 'single.html', 'page.html')
         """
         # Check page-specific template first
-        if hasattr(page, 'template') and page.template:
+        if hasattr(page, "template") and page.template:
             return page.template
 
         # Check metadata
-        if 'template' in page.metadata:
-            return page.metadata['template']
+        if "template" in page.metadata:
+            return page.metadata["template"]
 
         # Default based on page type
-        page_type = page.metadata.get('type', 'page')
+        page_type = page.metadata.get("type", "page")
 
         match page_type:
-            case 'page':
-                return 'page.html'
-            case 'section':
-                return 'list.html'
-            case _ if page.metadata.get('is_section'):
-                return 'list.html'
+            case "page":
+                return "page.html"
+            case "section":
+                return "list.html"
+            case _ if page.metadata.get("is_section"):
+                return "list.html"
             case _:
-                return 'single.html'
+                return "single.html"
 
     def _get_parser_version(self) -> str:
         """
@@ -387,15 +391,17 @@ class RenderingPipeline:
 
         # Try to get actual version
         match parser_name:
-            case 'MistuneParser':
+            case "MistuneParser":
                 try:
                     import mistune
+
                     base_version = f"mistune-{mistune.__version__}"
                 except (ImportError, AttributeError):
                     base_version = "mistune-unknown"
-            case 'PythonMarkdownParser':
+            case "PythonMarkdownParser":
                 try:
                     import markdown
+
                     base_version = f"markdown-{markdown.__version__}"
                 except (ImportError, AttributeError):
                     base_version = "markdown-unknown"
@@ -427,7 +433,7 @@ class RenderingPipeline:
             version {{ page.metadata.version }}.
         """
         # Skip preprocessing if disabled in frontmatter
-        if page.metadata.get('preprocess') is False:
+        if page.metadata.get("preprocess") is False:
             return page.content
 
         from jinja2 import Template, TemplateSyntaxError
@@ -437,35 +443,35 @@ class RenderingPipeline:
             template = Template(page.content)
 
             # Render with page and site context
-            rendered_content = template.render(
-                page=page,
-                site=self.site,
-                config=self.site.config
-            )
+            rendered_content = template.render(page=page, site=self.site, config=self.site.config)
 
             return rendered_content
 
         except TemplateSyntaxError as e:
             # If there's a syntax error, warn but continue with original content
             if self.build_stats:
-                self.build_stats.add_warning(str(page.source_path), str(e), 'jinja2')
+                self.build_stats.add_warning(str(page.source_path), str(e), "jinja2")
             else:
-                logger.warning("jinja2_syntax_error",
-                              source_path=str(page.source_path),
-                              error=str(e),
-                              error_type=type(e).__name__)
+                logger.warning(
+                    "jinja2_syntax_error",
+                    source_path=str(page.source_path),
+                    error=str(e),
+                    error_type=type(e).__name__,
+                )
             if not self.quiet and not self.build_stats:
                 print(f"  ⚠️  Jinja2 syntax error in {page.source_path}: {e}")
             return page.content
         except Exception as e:
             # For any other error, warn but continue
             if self.build_stats:
-                self.build_stats.add_warning(str(page.source_path), str(e), 'preprocessing')
+                self.build_stats.add_warning(str(page.source_path), str(e), "preprocessing")
             else:
-                logger.warning("preprocessing_error",
-                              source_path=str(page.source_path),
-                              error=str(e),
-                              error_type=type(e).__name__)
+                logger.warning(
+                    "preprocessing_error",
+                    source_path=str(page.source_path),
+                    error=str(e),
+                    error_type=type(e).__name__,
+                )
             if not self.quiet and not self.build_stats:
                 print(f"  ⚠️  Error pre-processing {page.source_path}: {e}")
             return page.content
@@ -473,6 +479,7 @@ class RenderingPipeline:
 
 # TOC extraction version - increment when extract_toc_structure() logic changes
 TOC_EXTRACTION_VERSION = "2"  # v2: Added regex-based indentation parsing for mistune
+
 
 def extract_toc_structure(toc_html: str) -> list:
     """
@@ -501,19 +508,17 @@ def extract_toc_structure(toc_html: str) -> list:
         pattern = r'^(\s*)<li><a href="#([^"]+)">([^<]+)</a></li>'
 
         items = []
-        for line in toc_html.split('\n'):
+        for line in toc_html.split("\n"):
             match = re.match(pattern, line)
             if match:
                 indent_str, anchor_id, title = match.groups()
                 # Count spaces to determine level (mistune uses 2 spaces per level)
                 indent_level = len(indent_str)
-                level = (indent_level // 2) + 1  # 0 spaces = level 1 (H2), 2 spaces = level 2 (H3), etc.
+                level = (
+                    indent_level // 2
+                ) + 1  # 0 spaces = level 1 (H2), 2 spaces = level 2 (H3), etc.
 
-                items.append({
-                    'id': anchor_id,
-                    'title': title,
-                    'level': level
-                })
+                items.append({"id": anchor_id, "title": title, "level": level})
 
         if items:
             return items
@@ -529,25 +534,25 @@ def extract_toc_structure(toc_html: str) -> list:
                 self.depth = 0
 
             def handle_starttag(self, tag, attrs):
-                if tag == 'ul':
+                if tag == "ul":
                     self.depth += 1
-                elif tag == 'a':
+                elif tag == "a":
                     attrs_dict = dict(attrs)
                     self.current_item = {
-                        'id': attrs_dict.get('href', '').lstrip('#'),
-                        'title': '',
-                        'level': self.depth
+                        "id": attrs_dict.get("href", "").lstrip("#"),
+                        "title": "",
+                        "level": self.depth,
                     }
 
             def handle_data(self, data):
                 if self.current_item is not None:
-                    self.current_item['title'] += data.strip()
+                    self.current_item["title"] += data.strip()
 
             def handle_endtag(self, tag):
-                if tag == 'ul':
+                if tag == "ul":
                     self.depth -= 1
-                elif tag == 'a' and self.current_item:
-                    if self.current_item['title']:
+                elif tag == "a" and self.current_item:
+                    if self.current_item["title"]:
                         self.items.append(self.current_item)
                     self.current_item = None
 
@@ -558,4 +563,3 @@ def extract_toc_structure(toc_html: str) -> list:
     except Exception:
         # If parsing fails, return empty list
         return []
-

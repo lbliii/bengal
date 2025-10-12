@@ -49,7 +49,7 @@ class TestTimeAgo:
         assert time_ago(time) == "1 year ago"
 
     def test_empty_date(self):
-        assert time_ago(None) == ''
+        assert time_ago(None) == ""
 
     def test_future_date(self):
         future = datetime.now() + timedelta(days=1)
@@ -71,7 +71,7 @@ class TestDateIso:
         assert "14:30:00" in result
 
     def test_empty_date(self):
-        assert date_iso(None) == ''
+        assert date_iso(None) == ""
 
     def test_parse_string(self):
         date_str = "2025-10-03T14:30:00"
@@ -95,10 +95,9 @@ class TestDateRfc822:
         assert "14:30:00" in result
 
     def test_empty_date(self):
-        assert date_rfc822(None) == ''
+        assert date_rfc822(None) == ""
 
     def test_parse_string(self):
         date_str = "2025-10-03T14:30:00"
         result = date_rfc822(date_str)
         assert "Oct 2025" in result
-

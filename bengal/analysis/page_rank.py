@@ -40,12 +40,12 @@ class PageRankResults:
         converged: Whether the algorithm converged within max_iterations
     """
 
-    scores: dict['Page', float]
+    scores: dict["Page", float]
     iterations: int
     converged: bool
     damping_factor: float
 
-    def get_top_pages(self, limit: int = 20) -> list[tuple['Page', float]]:
+    def get_top_pages(self, limit: int = 20) -> list[tuple["Page", float]]:
         """
         Get top-ranked pages.
 
@@ -55,14 +55,10 @@ class PageRankResults:
         Returns:
             List of (page, score) tuples sorted by score descending
         """
-        sorted_pages = sorted(
-            self.scores.items(),
-            key=lambda x: x[1],
-            reverse=True
-        )
+        sorted_pages = sorted(self.scores.items(), key=lambda x: x[1], reverse=True)
         return sorted_pages[:limit]
 
-    def get_pages_above_percentile(self, percentile: int) -> set['Page']:
+    def get_pages_above_percentile(self, percentile: int) -> set["Page"]:
         """
         Get pages above a certain percentile.
 
@@ -83,7 +79,7 @@ class PageRankResults:
 
         return {page for page, score in self.scores.items() if score >= threshold_score}
 
-    def get_score(self, page: 'Page') -> float:
+    def get_score(self, page: "Page") -> float:
         """Get PageRank score for a specific page."""
         return self.scores.get(page, 0.0)
 
@@ -108,11 +104,13 @@ class PageRankCalculator:
         >>> print(f"Most important page: {top_pages[0][0].title}")
     """
 
-    def __init__(self,
-                 graph: 'KnowledgeGraph',
-                 damping: float = 0.85,
-                 max_iterations: int = 100,
-                 convergence_threshold: float = 1e-6):
+    def __init__(
+        self,
+        graph: "KnowledgeGraph",
+        damping: float = 0.85,
+        max_iterations: int = 100,
+        convergence_threshold: float = 1e-6,
+    ):
         """
         Initialize PageRank calculator.
 
@@ -134,9 +132,9 @@ class PageRankCalculator:
         self.max_iterations = max_iterations
         self.threshold = convergence_threshold
 
-    def compute(self,
-                seed_pages: set['Page'] | None = None,
-                personalized: bool = False) -> PageRankResults:
+    def compute(
+        self, seed_pages: set["Page"] | None = None, personalized: bool = False
+    ) -> PageRankResults:
         """
         Compute PageRank scores for all pages.
 
@@ -148,30 +146,27 @@ class PageRankCalculator:
         Returns:
             PageRankResults with scores and metadata
         """
-        pages = [p for p in self.graph.site.pages if not p.metadata.get('_generated')]
+        pages = [p for p in self.graph.site.pages if not p.metadata.get("_generated")]
         N = len(pages)
 
         if N == 0:
             logger.warning("pagerank_no_pages")
             return PageRankResults(
-                scores={},
-                iterations=0,
-                converged=True,
-                damping_factor=self.damping
+                scores={}, iterations=0, converged=True, damping_factor=self.damping
             )
 
-        logger.info("pagerank_start",
-                   total_pages=N,
-                   damping=self.damping,
-                   personalized=personalized)
+        logger.info(
+            "pagerank_start", total_pages=N, damping=self.damping, personalized=personalized
+        )
 
         # Initialize: equal probability for all pages
         scores = {page: 1.0 / N for page in pages}
 
         # For personalized PageRank
         if personalized and seed_pages:
-            personalization = {page: (1.0 / len(seed_pages) if page in seed_pages else 0.0)
-                             for page in pages}
+            personalization = {
+                page: (1.0 / len(seed_pages) if page in seed_pages else 0.0) for page in pages
+            }
         else:
             personalization = {page: 1.0 / N for page in pages}
 
@@ -216,29 +211,27 @@ class PageRankCalculator:
             # Check convergence
             if max_diff < self.threshold:
                 converged = True
-                logger.info("pagerank_converged",
-                           iterations=iterations_run,
-                           max_diff=max_diff)
+                logger.info("pagerank_converged", iterations=iterations_run, max_diff=max_diff)
                 break
 
         if not converged:
-            logger.warning("pagerank_max_iterations",
-                          iterations=iterations_run,
-                          max_diff=max_diff)
+            logger.warning("pagerank_max_iterations", iterations=iterations_run, max_diff=max_diff)
 
-        logger.info("pagerank_complete",
-                   iterations=iterations_run,
-                   converged=converged,
-                   top_score=max(scores.values()) if scores else 0)
+        logger.info(
+            "pagerank_complete",
+            iterations=iterations_run,
+            converged=converged,
+            top_score=max(scores.values()) if scores else 0,
+        )
 
         return PageRankResults(
             scores=scores,
             iterations=iterations_run,
             converged=converged,
-            damping_factor=self.damping
+            damping_factor=self.damping,
         )
 
-    def compute_personalized(self, seed_pages: set['Page']) -> PageRankResults:
+    def compute_personalized(self, seed_pages: set["Page"]) -> PageRankResults:
         """
         Compute personalized PageRank from seed pages.
 
@@ -257,9 +250,9 @@ class PageRankCalculator:
         return self.compute(seed_pages=seed_pages, personalized=True)
 
 
-def analyze_page_importance(graph: 'KnowledgeGraph',
-                           damping: float = 0.85,
-                           top_n: int = 20) -> list[tuple['Page', float]]:
+def analyze_page_importance(
+    graph: "KnowledgeGraph", damping: float = 0.85, top_n: int = 20
+) -> list[tuple["Page", float]]:
     """
     Convenience function to analyze page importance.
 
@@ -281,4 +274,3 @@ def analyze_page_importance(graph: 'KnowledgeGraph',
     calculator = PageRankCalculator(graph, damping=damping)
     results = calculator.compute()
     return results.get_top_pages(top_n)
-

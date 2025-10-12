@@ -27,11 +27,11 @@ Second card content.
 """
         result = parser.parse(content, {})
 
-        assert 'card-grid' in result
-        assert 'Card One' in result
-        assert 'Card Two' in result
-        assert 'First card content' in result
-        assert 'Second card content' in result
+        assert "card-grid" in result
+        assert "Card One" in result
+        assert "Card Two" in result
+        assert "First card content" in result
+        assert "Second card content" in result
 
     def test_card_with_icon(self):
         """Test card with icon."""
@@ -48,9 +48,9 @@ Complete docs here.
 """
         result = parser.parse(content, {})
 
-        assert 'card-icon' in result
+        assert "card-icon" in result
         assert 'data-icon="book"' in result
-        assert 'Documentation' in result
+        assert "Documentation" in result
 
     def test_card_with_link(self):
         """Test card that's a clickable link."""
@@ -67,9 +67,9 @@ Check out the API.
 """
         result = parser.parse(content, {})
 
-        assert '<a' in result
+        assert "<a" in result
         assert 'href="/api/"' in result
-        assert 'API Reference' in result
+        assert "API Reference" in result
 
     def test_card_with_color(self):
         """Test card with color accent."""
@@ -86,7 +86,7 @@ This is important.
 """
         result = parser.parse(content, {})
 
-        assert 'card-color-blue' in result
+        assert "card-color-blue" in result
 
     def test_responsive_columns(self):
         """Test responsive column specification."""
@@ -151,12 +151,12 @@ Amazing new feature with **markdown** support!
 
         assert 'data-columns="2"' in result
         assert 'data-gap="large"' in result
-        assert 'card-icon' in result
+        assert "card-icon" in result
         assert 'href="/feature/"' in result
-        assert 'card-color-purple' in result
-        assert 'card-footer' in result
-        assert 'Updated 2025' in result
-        assert '<strong>markdown</strong>' in result
+        assert "card-color-purple" in result
+        assert "card-footer" in result
+        assert "Updated 2025" in result
+        assert "<strong>markdown</strong>" in result
 
 
 class TestSphinxDesignCompatibility:
@@ -179,9 +179,9 @@ Card content here.
         result = parser.parse(content, {})
 
         # Should render as card-grid
-        assert 'card-grid' in result
-        assert 'My Card' in result
-        assert 'Card content here' in result
+        assert "card-grid" in result
+        assert "My Card" in result
+        assert "Card content here" in result
 
     def test_grid_with_octicon(self):
         """Test grid-item-card with octicon syntax."""
@@ -200,12 +200,12 @@ Learn more about our docs.
         result = parser.parse(content, {})
 
         # Should extract icon from octicon syntax
-        assert 'card-icon' in result
+        assert "card-icon" in result
         assert 'data-icon="book"' in result
         # Title should be clean (no octicon syntax)
-        assert 'Documentation' in result
+        assert "Documentation" in result
         # Octicon syntax should be removed
-        assert '{octicon}' not in result
+        assert "{octicon}" not in result
 
     def test_grid_column_conversion(self):
         """Test that Sphinx breakpoints are converted correctly."""
@@ -260,8 +260,8 @@ Second content.
 """
         result = parser.parse(content, {})
 
-        assert 'First' in result
-        assert 'Second' in result
+        assert "First" in result
+        assert "Second" in result
         assert 'data-icon="star"' in result
         assert 'data-icon="rocket"' in result
         assert 'href="first/"' in result
@@ -290,9 +290,9 @@ This has **bold** and *italic* text.
 """
         result = parser.parse(content, {})
 
-        assert '<strong>bold</strong>' in result
-        assert '<em>italic</em>' in result
-        assert '<li>List item 1</li>' in result
+        assert "<strong>bold</strong>" in result
+        assert "<em>italic</em>" in result
+        assert "<li>List item 1</li>" in result
         assert 'href="/page/"' in result
 
     def test_code_in_card(self):
@@ -312,8 +312,8 @@ def hello():
 """
         result = parser.parse(content, {})
 
-        assert 'def hello' in result or 'hello()' in result
-        assert '<code' in result or '<pre' in result
+        assert "def hello" in result or "hello()" in result
+        assert "<code" in result or "<pre" in result
 
 
 class TestEdgeCases:
@@ -330,7 +330,7 @@ class TestEdgeCases:
         result = parser.parse(content, {})
 
         # Should not crash
-        assert 'card-grid' in result
+        assert "card-grid" in result
 
     def test_card_without_title(self):
         """Test card with no title."""
@@ -345,7 +345,7 @@ Content only, no title.
 """
         result = parser.parse(content, {})
 
-        assert 'Content only' in result
+        assert "Content only" in result
 
     def test_invalid_column_value(self):
         """Test that invalid columns default to auto."""
@@ -380,5 +380,4 @@ Content
         result = parser.parse(content, {})
 
         # Should not have a color class
-        assert 'card-color-notacolor' not in result
-
+        assert "card-color-notacolor" not in result

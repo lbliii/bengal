@@ -44,8 +44,8 @@ class TestPageHashability:
         # Mutate various fields
         page.content = "New content"
         page.rendered_html = "<p>Rendered</p>"
-        page.metadata = {'title': 'New Title', 'tags': ['python']}
-        page.tags = ['python', 'tutorial']
+        page.metadata = {"title": "New Title", "tags": ["python"]}
+        page.tags = ["python", "tutorial"]
         page.toc = "<nav>TOC</nav>"
         page.output_path = tmp_path / "public/post/index.html"
 
@@ -71,10 +71,7 @@ class TestPageHashability:
         page1 = Page(source_path=tmp_path / "content/post1.md")
         page2 = Page(source_path=tmp_path / "content/post2.md")
 
-        data = {
-            page1: "data for page 1",
-            page2: "data for page 2"
-        }
+        data = {page1: "data for page 1", page2: "data for page 2"}
 
         assert data[page1] == "data for page 1"
         assert data[page2] == "data for page 2"
@@ -90,8 +87,8 @@ class TestPageHashability:
 
         # Mutate the page
         page.content = "Changed"
-        page.tags = ['new-tag']
-        page.metadata = {'updated': True}
+        page.tags = ["new-tag"]
+        page.metadata = {"updated": True}
 
         # Should still be findable
         assert page in pages
@@ -99,14 +96,8 @@ class TestPageHashability:
     def test_page_equality_ignores_content(self, tmp_path):
         """Pages are equal based on path, not content."""
         path = tmp_path / "content/post.md"
-        page1 = Page(
-            source_path=path,
-            content="Content A"
-        )
-        page2 = Page(
-            source_path=path,
-            content="Content B"
-        )
+        page1 = Page(source_path=path, content="Content A")
+        page2 = Page(source_path=path, content="Content B")
 
         # Equal despite different content
         assert page1 == page2
@@ -115,14 +106,8 @@ class TestPageHashability:
     def test_page_equality_ignores_metadata(self, tmp_path):
         """Pages are equal based on path, not metadata."""
         path = tmp_path / "content/post.md"
-        page1 = Page(
-            source_path=path,
-            metadata={'title': 'First Title', 'tags': ['a']}
-        )
-        page2 = Page(
-            source_path=path,
-            metadata={'title': 'Second Title', 'tags': ['b', 'c']}
-        )
+        page1 = Page(source_path=path, metadata={"title": "First Title", "tags": ["a"]})
+        page2 = Page(source_path=path, metadata={"title": "Second Title", "tags": ["b", "c"]})
 
         # Equal despite different metadata
         assert page1 == page2
@@ -136,7 +121,7 @@ class TestPageHashability:
         assert page != tmp_path / "content/post.md"
         assert page is not None
         assert page != 42
-        assert page != {'source_path': tmp_path / "content/post.md"}
+        assert page != {"source_path": tmp_path / "content/post.md"}
 
 
 class TestPageSetOperations:
@@ -273,7 +258,7 @@ class TestPageDictionaryOperations:
 
         # Mutate the page
         page.content = "New content"
-        page.tags = ['new']
+        page.tags = ["new"]
 
         # Should still be findable
         assert page in data
@@ -298,11 +283,11 @@ class TestPageHashStability:
         page = Page(
             source_path=tmp_path / "content/post.md",
             content="# Title\n\nContent here",
-            metadata={'title': 'Test', 'tags': ['a', 'b']},
+            metadata={"title": "Test", "tags": ["a", "b"]},
             rendered_html="<h1>Title</h1><p>Content</p>",
             output_path=tmp_path / "public/post/index.html",
-            tags=['a', 'b'],
-            toc="<nav>TOC</nav>"
+            tags=["a", "b"],
+            toc="<nav>TOC</nav>",
         )
 
         hash1 = hash(page)
@@ -324,4 +309,3 @@ class TestPageHashStability:
 
         assert hash(tag_page1) != hash(tag_page2)
         assert tag_page1 != tag_page2
-

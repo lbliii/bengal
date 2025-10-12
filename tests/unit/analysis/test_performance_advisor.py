@@ -183,7 +183,11 @@ class TestPerformanceAdvisor:
 
         suggestion = template_suggestions[0]
         assert suggestion.priority == SuggestionPriority.HIGH
-        assert "template" in suggestion.title.lower() or "rendering" in suggestion.title.lower() or "optimize" in suggestion.title.lower()
+        assert (
+            "template" in suggestion.title.lower()
+            or "rendering" in suggestion.title.lower()
+            or "optimize" in suggestion.title.lower()
+        )
 
     def test_get_bottleneck(self, slow_build_stats):
         """Test bottleneck identification."""
@@ -213,10 +217,10 @@ class TestPerformanceAdvisor:
             priority_values = {
                 SuggestionPriority.HIGH: 0,
                 SuggestionPriority.MEDIUM: 1,
-                SuggestionPriority.LOW: 2
+                SuggestionPriority.LOW: 2,
             }
             for i in range(len(top_3) - 1):
-                assert priority_values[top_3[i].priority] <= priority_values[top_3[i+1].priority]
+                assert priority_values[top_3[i].priority] <= priority_values[top_3[i + 1].priority]
 
     def test_skipped_build_analysis(self):
         """Test that skipped builds return no suggestions."""
@@ -294,7 +298,7 @@ class TestSuggestionFormatting:
             title="Enable parallel rendering",
             description="Your pages are rendered sequentially",
             impact="Could save 5s",
-            action="Run: bengal build --parallel"
+            action="Run: bengal build --parallel",
         )
 
         str_repr = str(suggestion)
@@ -311,7 +315,7 @@ class TestSuggestionFormatting:
             title="Try incremental builds",
             description="Rebuild only changed files",
             impact="Could save 2s",
-            action="Run: bengal build --incremental"
+            action="Run: bengal build --incremental",
         )
 
         str_repr = str(suggestion)
@@ -328,10 +332,9 @@ class TestSuggestionFormatting:
             title="Consider code splitting",
             description="Reduce bundle size",
             impact="Minor improvement",
-            action="Review asset bundling config"
+            action="Review asset bundling config",
         )
 
         str_repr = str(suggestion)
         assert "ℹ️" in str_repr
         assert "Consider code splitting" in str_repr
-

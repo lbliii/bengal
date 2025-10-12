@@ -17,26 +17,30 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
-def register(env: 'Environment', site: 'Site') -> None:
+def register(env: "Environment", site: "Site") -> None:
     """Register data manipulation functions with Jinja2 environment."""
 
     # Create closures that have access to site
     def get_data_with_site(path: str) -> Any:
         return get_data(path, site.root_path)
 
-    env.filters.update({
-        'jsonify': jsonify,
-        'merge': merge,
-        'has_key': has_key,
-        'get_nested': get_nested,
-        'keys': keys_filter,
-        'values': values_filter,
-        'items': items_filter,
-    })
+    env.filters.update(
+        {
+            "jsonify": jsonify,
+            "merge": merge,
+            "has_key": has_key,
+            "get_nested": get_nested,
+            "keys": keys_filter,
+            "values": values_filter,
+            "items": items_filter,
+        }
+    )
 
-    env.globals.update({
-        'get_data': get_data_with_site,
-    })
+    env.globals.update(
+        {
+            "get_data": get_data_with_site,
+        }
+    )
 
 
 def get_data(path: str, root_path: Any) -> Any:
@@ -71,7 +75,7 @@ def get_data(path: str, root_path: Any) -> Any:
 
     # Use file_io utility for robust loading with error handling
     # on_error='return_empty' returns {} for missing/invalid files
-    return load_data_file(file_path, on_error='return_empty', caller='template')
+    return load_data_file(file_path, on_error="return_empty", caller="template")
 
 
 def jsonify(data: Any, indent: int | None = None) -> str:
@@ -92,7 +96,7 @@ def jsonify(data: Any, indent: int | None = None) -> str:
     try:
         return json.dumps(data, indent=indent, ensure_ascii=False)
     except (TypeError, ValueError):
-        return '{}'
+        return "{}"
 
 
 def merge(dict1: dict[str, Any], dict2: dict[str, Any], deep: bool = True) -> dict[str, Any]:
@@ -174,7 +178,7 @@ def get_nested(data: dict[str, Any], path: str, default: Any = None) -> Any:
     if not isinstance(data, dict) or not path:
         return default
 
-    keys = path.split('.')
+    keys = path.split(".")
     current = data
 
     for key in keys:
@@ -247,4 +251,3 @@ def items_filter(data: dict[str, Any]) -> list[tuple]:
         return []
 
     return list(data.items())
-

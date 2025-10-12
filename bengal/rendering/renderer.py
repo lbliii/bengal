@@ -61,10 +61,10 @@ class Renderer:
         """
         # Pattern matches: <h1>...</h1> or <h1 id="...">...</h1>
         # Uses non-greedy matching to get just the first H1
-        pattern = r'<h1[^>]*>.*?</h1>'
+        pattern = r"<h1[^>]*>.*?</h1>"
 
         # Remove only the first occurrence
-        result = re.sub(pattern, '', content, count=1, flags=re.DOTALL | re.IGNORECASE)
+        result = re.sub(pattern, "", content, count=1, flags=re.DOTALL | re.IGNORECASE)
 
         return result
 
@@ -82,17 +82,19 @@ class Renderer:
         if content is None:
             content = page.parsed_ast or ""
             # Debug: Check core/page specifically
-            if hasattr(page, 'source_path') and 'core/page.md' in str(page.source_path):
-                has_badges = 'api-badge' in content
-                has_markers = '@property' in content
-                logger.debug("renderer_content_check",
-                           source_path=str(page.source_path),
-                           content_length=len(content),
-                           has_badges=has_badges,
-                           has_markers=has_markers)
+            if hasattr(page, "source_path") and "core/page.md" in str(page.source_path):
+                has_badges = "api-badge" in content
+                has_markers = "@property" in content
+                logger.debug(
+                    "renderer_content_check",
+                    source_path=str(page.source_path),
+                    content_length=len(content),
+                    has_badges=has_badges,
+                    has_markers=has_markers,
+                )
 
         # Mark active menu items for this page
-        if hasattr(self.site, 'mark_active_menu_items'):
+        if hasattr(self.site, "mark_active_menu_items"):
             self.site.mark_active_menu_items(page)
 
         # Determine which template to use
@@ -102,40 +104,47 @@ class Renderer:
         # Note: Content and TOC are marked as safe HTML to prevent auto-escaping
         # (they're already sanitized during markdown parsing)
         context = {
-            'page': page,
-            'content': Markup(content),  # Mark as safe HTML
-            'title': page.title,
-            'metadata': page.metadata,
-            'toc': Markup(page.toc) if page.toc else '',  # Mark TOC as safe HTML
-            'toc_items': page.toc_items,  # Structured TOC data
-
+            "page": page,
+            "content": Markup(content),  # Mark as safe HTML
+            "title": page.title,
+            "metadata": page.metadata,
+            "toc": Markup(page.toc) if page.toc else "",  # Mark TOC as safe HTML
+            "toc_items": page.toc_items,  # Structured TOC data
             # Pre-computed cached properties (computed once, reused in templates)
             # Templates can use these directly or access via page.meta_description, etc.
-            'meta_desc': page.meta_description,  # From cached_property
-            'reading_time': page.reading_time,   # From cached_property
-            'excerpt': page.excerpt,             # From cached_property
+            "meta_desc": page.meta_description,  # From cached_property
+            "reading_time": page.reading_time,  # From cached_property
+            "excerpt": page.excerpt,  # From cached_property
         }
 
         # Add special context for generated pages
-        if page.metadata.get('_generated'):
+        if page.metadata.get("_generated"):
             self._add_generated_page_context(page, context)
 
         # Add section context for reference documentation types, doc types, and index pages
         # This allows manual reference pages, doc pages, and section index pages to access section data
-        page_type = page.metadata.get('type')
-        is_index_page = page.source_path.stem in ('_index', 'index')
+        page_type = page.metadata.get("type")
+        is_index_page = page.source_path.stem in ("_index", "index")
 
-        if hasattr(page, '_section') and page._section and (page_type in ('api-reference', 'cli-reference', 'tutorial', 'doc') or is_index_page):
+        if (
+            hasattr(page, "_section")
+            and page._section
+            and (
+                page_type in ("api-reference", "cli-reference", "tutorial", "doc") or is_index_page
+            )
+        ):
             # Add section context if:
             # 1. It's a reference documentation type (api-reference, cli-reference, tutorial)
             # 2. It's a doc type page (for doc/list.html templates)
             # 3. It's an index page (_index.md or index.md)
             section = page._section
-            context.update({
-                'section': section,
-                'posts': section.pages,
-                'subsections': section.subsections,
-                })
+            context.update(
+                {
+                    "section": section,
+                    "posts": section.pages,
+                    "subsections": section.subsections,
+                }
+            )
 
         # Render with template
         try:
@@ -145,10 +154,7 @@ class Renderer:
 
             # Create rich error object
             rich_error = TemplateRenderError.from_jinja2_error(
-                e,
-                template_name,
-                page.source_path,
-                self.template_engine
+                e, template_name, page.source_path, self.template_engine
             )
 
             # In strict mode, display and fail immediately
@@ -159,6 +165,7 @@ class Renderer:
                 display_template_error(rich_error)
                 if debug_mode:
                     import traceback
+
                     traceback.print_exc()
                 raise
 
@@ -171,6 +178,7 @@ class Renderer:
 
             if debug_mode:
                 import traceback
+
                 traceback.print_exc()
 
             # Fallback to simple HTML
@@ -187,15 +195,15 @@ class Renderer:
             page: Page being rendered
             context: Template context to update
         """
-        page_type = page.metadata.get('type')
+        page_type = page.metadata.get("type")
 
-        if page_type in ('archive', 'api-reference', 'cli-reference', 'tutorial'):
+        if page_type in ("archive", "api-reference", "cli-reference", "tutorial"):
             # Archive/Reference page context
-            section = page.metadata.get('_section')
-            all_posts = page.metadata.get('_posts', [])
-            subsections = page.metadata.get('_subsections', [])
-            paginator = page.metadata.get('_paginator')
-            page_num = page.metadata.get('_page_num', 1)
+            section = page.metadata.get("_section")
+            all_posts = page.metadata.get("_posts", [])
+            subsections = page.metadata.get("_subsections", [])
+            paginator = page.metadata.get("_paginator")
+            page_num = page.metadata.get("_page_num", 1)
 
             # Get posts for this page
             if paginator:
@@ -203,35 +211,39 @@ class Renderer:
                 pagination = paginator.page_context(page_num, f"/{section.name}/")
             else:
                 # Reference docs: no date sorting (keep original order or alphabetical)
-                if page_type in ('api-reference', 'cli-reference', 'tutorial'):
+                if page_type in ("api-reference", "cli-reference", "tutorial"):
                     posts = all_posts  # Keep original order
                 else:
                     # Archives: sort by date
-                    posts = sorted(all_posts, key=lambda p: p.date if p.date else datetime.min, reverse=True)
+                    posts = sorted(
+                        all_posts, key=lambda p: p.date if p.date else datetime.min, reverse=True
+                    )
 
                 pagination = {
-                    'current_page': 1,
-                    'total_pages': 1,
-                    'has_next': False,
-                    'has_prev': False,
-                    'base_url': f"/{section.name}/" if section else "/",
+                    "current_page": 1,
+                    "total_pages": 1,
+                    "has_next": False,
+                    "has_prev": False,
+                    "base_url": f"/{section.name}/" if section else "/",
                 }
 
-            context.update({
-                'section': section,
-                'posts': posts,
-                'subsections': subsections,
-                'total_posts': len(all_posts),
-                **pagination
-            })
+            context.update(
+                {
+                    "section": section,
+                    "posts": posts,
+                    "subsections": subsections,
+                    "total_posts": len(all_posts),
+                    **pagination,
+                }
+            )
 
-        elif page_type == 'tag':
+        elif page_type == "tag":
             # Individual tag page context
-            tag_name = page.metadata.get('_tag')
-            tag_slug = page.metadata.get('_tag_slug')
-            all_posts = page.metadata.get('_posts', [])
-            paginator = page.metadata.get('_paginator')
-            page_num = page.metadata.get('_page_num', 1)
+            tag_name = page.metadata.get("_tag")
+            tag_slug = page.metadata.get("_tag_slug")
+            all_posts = page.metadata.get("_posts", [])
+            paginator = page.metadata.get("_paginator")
+            page_num = page.metadata.get("_page_num", 1)
 
             # Get posts for this page
             if paginator:
@@ -240,42 +252,46 @@ class Renderer:
             else:
                 posts = all_posts
                 pagination = {
-                    'current_page': 1,
-                    'total_pages': 1,
-                    'has_next': False,
-                    'has_prev': False,
-                    'base_url': f"/tags/{tag_slug}/",
+                    "current_page": 1,
+                    "total_pages": 1,
+                    "has_next": False,
+                    "has_prev": False,
+                    "base_url": f"/tags/{tag_slug}/",
                 }
 
-            context.update({
-                'tag': tag_name,
-                'tag_slug': tag_slug,
-                'posts': posts,
-                'total_posts': len(all_posts),
-                **pagination
-            })
+            context.update(
+                {
+                    "tag": tag_name,
+                    "tag_slug": tag_slug,
+                    "posts": posts,
+                    "total_posts": len(all_posts),
+                    **pagination,
+                }
+            )
 
-        elif page_type == 'tag-index':
+        elif page_type == "tag-index":
             # Tag index page context
-            tags = page.metadata.get('_tags', {})
+            tags = page.metadata.get("_tags", {})
 
             # Convert to sorted list for template
             tags_list = [
                 {
-                    'name': data['name'],
-                    'slug': data['slug'],
-                    'count': len(data['pages']),
-                    'pages': data['pages']
+                    "name": data["name"],
+                    "slug": data["slug"],
+                    "count": len(data["pages"]),
+                    "pages": data["pages"],
                 }
                 for data in tags.values()
             ]
             # Sort by count (descending) then name
-            tags_list.sort(key=lambda t: (-t['count'], t['name'].lower()))
+            tags_list.sort(key=lambda t: (-t["count"], t["name"].lower()))
 
-            context.update({
-                'tags': tags_list,
-                'total_tags': len(tags_list),
-            })
+            context.update(
+                {
+                    "tags": tags_list,
+                    "total_tags": len(tags_list),
+                }
+            )
 
     def _get_template_name(self, page: Page) -> str:
         """
@@ -296,30 +312,30 @@ class Renderer:
             Template name
         """
         # 1. Explicit template (highest priority)
-        if 'template' in page.metadata:
-            return page.metadata['template']
+        if "template" in page.metadata:
+            return page.metadata["template"]
 
         # 2. Type-based or content_type-based template selection
         # Page's explicit type has priority over section's content_type
-        page_type = page.metadata.get('type')
+        page_type = page.metadata.get("type")
         content_type = None
 
-        if hasattr(page, '_section') and page._section and hasattr(page._section, 'metadata'):
-            content_type = page._section.metadata.get('content_type')
+        if hasattr(page, "_section") and page._section and hasattr(page._section, "metadata"):
+            content_type = page._section.metadata.get("content_type")
 
-        is_section_index = page.source_path.stem == '_index'
+        is_section_index = page.source_path.stem == "_index"
 
         # Try type-based templates (for pages with explicit type) - HIGHER PRIORITY
         if page_type:
             # Map common types to content types
             type_mappings = {
-                'python-module': 'api-reference',
-                'cli-command': 'cli-reference',
-                'api-reference': 'api-reference',
-                'cli-reference': 'cli-reference',
-                'doc': 'doc',
-                'tutorial': 'tutorial',
-                'blog': 'blog',
+                "python-module": "api-reference",
+                "cli-command": "cli-reference",
+                "api-reference": "api-reference",
+                "cli-reference": "cli-reference",
+                "doc": "doc",
+                "tutorial": "tutorial",
+                "blog": "blog",
             }
 
             if page_type in type_mappings:
@@ -355,23 +371,23 @@ class Renderer:
                     return template_name
 
         # 3. Section-based auto-detection
-        if hasattr(page, '_section') and page._section:
+        if hasattr(page, "_section") and page._section:
             section_name = page._section.name
 
             if is_section_index:
                 # Try section index templates in order of specificity
                 templates_to_try = [
-                    f"{section_name}/list.html",      # Hugo-style directory
-                    f"{section_name}/index.html",     # Alternative directory
-                    f"{section_name}-list.html",      # Flat with suffix
-                    f"{section_name}.html",           # Flat simple
+                    f"{section_name}/list.html",  # Hugo-style directory
+                    f"{section_name}/index.html",  # Alternative directory
+                    f"{section_name}-list.html",  # Flat with suffix
+                    f"{section_name}.html",  # Flat simple
                 ]
             else:
                 # Try section page templates in order of specificity
                 templates_to_try = [
-                    f"{section_name}/single.html",    # Hugo-style directory
-                    f"{section_name}/page.html",      # Alternative directory
-                    f"{section_name}.html",           # Flat
+                    f"{section_name}/single.html",  # Hugo-style directory
+                    f"{section_name}/page.html",  # Alternative directory
+                    f"{section_name}.html",  # Flat
                 ]
 
             # Check if any template exists
@@ -382,10 +398,10 @@ class Renderer:
         # 4. Simple default fallback (no type/kind complexity)
         if is_section_index:
             # Section index without custom template
-            return 'index.html'
+            return "index.html"
 
         # Regular page - just use page.html
-        return 'page.html'
+        return "page.html"
 
     def _template_exists(self, template_name: str) -> bool:
         """
@@ -418,9 +434,9 @@ class Renderer:
             Fallback HTML page with minimal styling
         """
         # Try to include CSS if available
-        css_link = ''
-        if hasattr(self.site, 'output_dir'):
-            css_file = self.site.output_dir / 'assets' / 'css' / 'style.css'
+        css_link = ""
+        if hasattr(self.site, "output_dir"):
+            css_file = self.site.output_dir / "assets" / "css" / "style.css"
             if css_file.exists():
                 css_link = '<link rel="stylesheet" href="/assets/css/style.css">'
 
@@ -429,7 +445,7 @@ class Renderer:
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{page.title} - {self.site.config.get('title', 'Site')}</title>
+    <title>{page.title} - {self.site.config.get("title", "Site")}</title>
     {css_link}
     <style>
         /* Emergency fallback styling */
@@ -470,4 +486,3 @@ class Renderer:
 </body>
 </html>
 """
-

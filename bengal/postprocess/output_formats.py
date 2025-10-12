@@ -88,7 +88,7 @@ class OutputFormatsGenerator:
             return normalized
 
         # Check if it's the advanced format (has per_page or site_wide keys)
-        is_advanced = 'per_page' in config or 'site_wide' in config
+        is_advanced = "per_page" in config or "site_wide" in config
 
         if is_advanced:
             # Advanced format - merge with defaults
@@ -99,44 +99,44 @@ class OutputFormatsGenerator:
             site_wide = []
 
             # Map simple format keys to advanced format
-            if config.get('json', False):
-                per_page.append('json')
-            if config.get('llm_txt', False):
-                per_page.append('llm_txt')
-            if config.get('site_json', False):
-                site_wide.append('index_json')
-            if config.get('site_llm', False):
-                site_wide.append('llm_full')
+            if config.get("json", False):
+                per_page.append("json")
+            if config.get("llm_txt", False):
+                per_page.append("llm_txt")
+            if config.get("site_json", False):
+                site_wide.append("index_json")
+            if config.get("site_llm", False):
+                site_wide.append("llm_full")
 
             # Update normalized config
-            normalized['per_page'] = per_page if per_page else normalized['per_page']
-            normalized['site_wide'] = site_wide if site_wide else normalized['site_wide']
+            normalized["per_page"] = per_page if per_page else normalized["per_page"]
+            normalized["site_wide"] = site_wide if site_wide else normalized["site_wide"]
 
             # Copy enabled flag if present
-            if 'enabled' in config:
-                normalized['enabled'] = config['enabled']
+            if "enabled" in config:
+                normalized["enabled"] = config["enabled"]
 
             # Copy options if present
-            if 'options' in config:
-                normalized['options'].update(config['options'])
+            if "options" in config:
+                normalized["options"].update(config["options"])
 
         return normalized
 
     def _default_config(self) -> dict[str, Any]:
         """Return default configuration."""
         return {
-            'enabled': True,
-            'per_page': ['json', 'llm_txt'],  # JSON + LLM text by default (AI-native!)
-            'site_wide': ['index_json', 'llm_full'],  # Search index + full LLM text
-            'options': {
-                'include_html_content': True,
-                'include_plain_text': True,
-                'excerpt_length': 200,
-                'exclude_sections': [],
-                'exclude_patterns': ['404.html', 'search.html'],
-                'json_indent': None,  # None = compact, 2 = pretty
-                'llm_separator_width': 80,
-            }
+            "enabled": True,
+            "per_page": ["json", "llm_txt"],  # JSON + LLM text by default (AI-native!)
+            "site_wide": ["index_json", "llm_full"],  # Search index + full LLM text
+            "options": {
+                "include_html_content": True,
+                "include_plain_text": True,
+                "excerpt_length": 200,
+                "exclude_sections": [],
+                "exclude_patterns": ["404.html", "search.html"],
+                "json_indent": None,  # None = compact, 2 = pretty
+                "llm_separator_width": 80,
+            },
         }
 
     def generate(self) -> None:
@@ -150,17 +150,15 @@ class OutputFormatsGenerator:
 
         All file writes are atomic to prevent corruption during builds.
         """
-        if not self.config.get('enabled', True):
+        if not self.config.get("enabled", True):
             logger.debug("output_formats_disabled")
             return
 
-        per_page = self.config.get('per_page', ['json'])
-        site_wide = self.config.get('site_wide', ['index_json'])
+        per_page = self.config.get("per_page", ["json"])
+        site_wide = self.config.get("site_wide", ["index_json"])
 
         logger.debug(
-            "generating_output_formats",
-            per_page_formats=per_page,
-            site_wide_formats=site_wide
+            "generating_output_formats", per_page_formats=per_page, site_wide_formats=site_wide
         )
 
         # Filter pages based on exclusions
@@ -170,32 +168,29 @@ class OutputFormatsGenerator:
         generated = []
 
         # Per-page outputs
-        if 'json' in per_page:
+        if "json" in per_page:
             count = self._generate_page_json(pages)
             generated.append(f"JSON ({count} files)")
             logger.debug("generated_page_json", file_count=count)
 
-        if 'llm_txt' in per_page:
+        if "llm_txt" in per_page:
             count = self._generate_page_txt(pages)
             generated.append(f"LLM text ({count} files)")
             logger.debug("generated_page_txt", file_count=count)
 
         # Site-wide outputs
-        if 'index_json' in site_wide:
+        if "index_json" in site_wide:
             self._generate_site_index_json(pages)
             generated.append("index.json")
             logger.debug("generated_site_index_json")
 
-        if 'llm_full' in site_wide:
+        if "llm_full" in site_wide:
             self._generate_site_llm_txt(pages)
             generated.append("llm-full.txt")
             logger.debug("generated_site_llm_full")
 
         if generated:
-            logger.info(
-                "output_formats_complete",
-                formats=generated
-            )
+            logger.info("output_formats_complete", formats=generated)
 
     def _filter_pages(self) -> list[Any]:
         """
@@ -209,15 +204,15 @@ class OutputFormatsGenerator:
         Returns:
             List of pages to include in output formats
         """
-        options = self.config.get('options', {})
-        exclude_sections = options.get('exclude_sections', [])
-        exclude_patterns = options.get('exclude_patterns', ['404.html', 'search.html'])
+        options = self.config.get("options", {})
+        exclude_sections = options.get("exclude_sections", [])
+        exclude_patterns = options.get("exclude_patterns", ["404.html", "search.html"])
 
         logger.debug(
             "filtering_pages_for_output",
             total_pages=len(self.site.pages),
             exclude_sections=exclude_sections,
-            exclude_patterns=exclude_patterns
+            exclude_patterns=exclude_patterns,
         )
 
         filtered = []
@@ -232,7 +227,11 @@ class OutputFormatsGenerator:
                 continue
 
             # Check section exclusions
-            section_name = getattr(page._section, 'name', '') if hasattr(page, '_section') and page._section else ''
+            section_name = (
+                getattr(page._section, "name", "")
+                if hasattr(page, "_section") and page._section
+                else ""
+            )
             if section_name in exclude_sections:
                 excluded_by_section += 1
                 continue
@@ -250,7 +249,7 @@ class OutputFormatsGenerator:
             filtered_pages=len(filtered),
             excluded_no_output=excluded_no_output,
             excluded_by_section=excluded_by_section,
-            excluded_by_pattern=excluded_by_pattern
+            excluded_by_pattern=excluded_by_pattern,
         )
 
         return filtered
@@ -265,11 +264,11 @@ class OutputFormatsGenerator:
         Returns:
             Number of JSON files generated
         """
-        options = self.config.get('options', {})
-        indent = options.get('json_indent')
-        include_html = options.get('include_html_content', True)
-        include_text = options.get('include_plain_text', True)
-        excerpt_length = options.get('excerpt_length', 200)
+        options = self.config.get("options", {})
+        indent = options.get("json_indent")
+        include_html = options.get("include_html_content", True)
+        include_text = options.get("include_plain_text", True)
+        excerpt_length = options.get("excerpt_length", 200)
 
         count = 0
         for page in pages:
@@ -278,7 +277,7 @@ class OutputFormatsGenerator:
                 page,
                 include_html=include_html,
                 include_text=include_text,
-                excerpt_length=excerpt_length
+                excerpt_length=excerpt_length,
             )
 
             # Determine output path (next to HTML file)
@@ -291,7 +290,8 @@ class OutputFormatsGenerator:
 
             # Write JSON atomically (crash-safe)
             from bengal.utils.atomic_write import AtomicFile
-            with AtomicFile(json_path, 'w', encoding='utf-8') as f:
+
+            with AtomicFile(json_path, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=indent, ensure_ascii=False)
 
             count += 1
@@ -308,8 +308,8 @@ class OutputFormatsGenerator:
         Returns:
             Number of text files generated
         """
-        options = self.config.get('options', {})
-        separator_width = options.get('llm_separator_width', 80)
+        options = self.config.get("options", {})
+        separator_width = options.get("llm_separator_width", 80)
 
         count = 0
         for page in pages:
@@ -326,7 +326,8 @@ class OutputFormatsGenerator:
 
             # Write text atomically (crash-safe)
             from bengal.utils.atomic_write import AtomicFile
-            with AtomicFile(txt_path, 'w', encoding='utf-8') as f:
+
+            with AtomicFile(txt_path, "w", encoding="utf-8") as f:
                 f.write(text)
 
             count += 1
@@ -351,78 +352,77 @@ class OutputFormatsGenerator:
               "tags": [{...}]            // Tag counts sorted by popularity
             }
         """
-        logger.debug(
-            "generating_site_index_json",
-            page_count=len(pages)
-        )
+        logger.debug("generating_site_index_json", page_count=len(pages))
 
-        options = self.config.get('options', {})
-        indent = options.get('json_indent')
-        excerpt_length = options.get('excerpt_length', 200)
+        options = self.config.get("options", {})
+        indent = options.get("json_indent")
+        excerpt_length = options.get("excerpt_length", 200)
 
         # Build site metadata (per-locale when i18n is enabled)
         site_data = {
-            'site': {
-                'title': self.site.config.get('title', 'Bengal Site'),
-                'description': self.site.config.get('description', ''),
-                'baseurl': self.site.config.get('baseurl', ''),
-                'build_time': datetime.now().isoformat()
+            "site": {
+                "title": self.site.config.get("title", "Bengal Site"),
+                "description": self.site.config.get("description", ""),
+                "baseurl": self.site.config.get("baseurl", ""),
+                "build_time": datetime.now().isoformat(),
             },
-            'pages': [],
-            'sections': {},
-            'tags': {}
+            "pages": [],
+            "sections": {},
+            "tags": {},
         }
 
         # Add each page (summary only, no full content)
         for page in pages:
             page_summary = self._page_to_summary(page, excerpt_length)
-            site_data['pages'].append(page_summary)
+            site_data["pages"].append(page_summary)
 
             # Count sections
-            section = page_summary.get('section', '')
+            section = page_summary.get("section", "")
             if section:
-                site_data['sections'][section] = site_data['sections'].get(section, 0) + 1
+                site_data["sections"][section] = site_data["sections"].get(section, 0) + 1
 
             # Count tags
-            for tag in page_summary.get('tags', []):
-                site_data['tags'][tag] = site_data['tags'].get(tag, 0) + 1
+            for tag in page_summary.get("tags", []):
+                site_data["tags"][tag] = site_data["tags"].get(tag, 0) + 1
 
         # Convert counts to lists
-        site_data['sections'] = [
-            {'name': name, 'count': count}
-            for name, count in sorted(site_data['sections'].items())
+        site_data["sections"] = [
+            {"name": name, "count": count} for name, count in sorted(site_data["sections"].items())
         ]
-        site_data['tags'] = [
-            {'name': name, 'count': count}
-            for name, count in sorted(site_data['tags'].items(), key=lambda x: -x[1])
+        site_data["tags"] = [
+            {"name": name, "count": count}
+            for name, count in sorted(site_data["tags"].items(), key=lambda x: -x[1])
         ]
 
         logger.debug(
             "site_index_data_aggregated",
-            total_pages=len(site_data['pages']),
-            sections=len(site_data['sections']),
-            tags=len(site_data['tags'])
+            total_pages=len(site_data["pages"]),
+            sections=len(site_data["sections"]),
+            tags=len(site_data["tags"]),
         )
 
         # Write to root of output directory or under locale prefix
         from bengal.utils.atomic_write import AtomicFile
-        i18n = self.site.config.get('i18n', {}) or {}
-        if i18n.get('strategy') == 'prefix':
-            current_lang = getattr(self.site, 'current_language', None) or i18n.get('default_language', 'en')
-            default_in_subdir = bool(i18n.get('default_in_subdir', False))
-            if default_in_subdir or current_lang != i18n.get('default_language', 'en'):
-                index_path = self.site.output_dir / current_lang / 'index.json'
+
+        i18n = self.site.config.get("i18n", {}) or {}
+        if i18n.get("strategy") == "prefix":
+            current_lang = getattr(self.site, "current_language", None) or i18n.get(
+                "default_language", "en"
+            )
+            default_in_subdir = bool(i18n.get("default_in_subdir", False))
+            if default_in_subdir or current_lang != i18n.get("default_language", "en"):
+                index_path = self.site.output_dir / current_lang / "index.json"
             else:
-                index_path = self.site.output_dir / 'index.json'
+                index_path = self.site.output_dir / "index.json"
         else:
-            index_path = self.site.output_dir / 'index.json'
-        with AtomicFile(index_path, 'w', encoding='utf-8') as f:
+            index_path = self.site.output_dir / "index.json"
+        with AtomicFile(index_path, "w", encoding="utf-8") as f:
             json.dump(site_data, f, indent=indent, ensure_ascii=False)
 
         logger.debug(
             "site_index_json_written",
             path=str(index_path),
-            size_kb=index_path.stat().st_size / 1024
+            size_kb=index_path.stat().st_size / 1024,
         )
 
     def _generate_site_llm_txt(self, pages: list[Any]) -> None:
@@ -441,15 +441,15 @@ class OutputFormatsGenerator:
             - Full-text search indexing
             - Content analysis and extraction
         """
-        options = self.config.get('options', {})
-        separator_width = options.get('llm_separator_width', 80)
-        separator = '=' * separator_width
+        options = self.config.get("options", {})
+        separator_width = options.get("llm_separator_width", 80)
+        separator = "=" * separator_width
 
         lines = []
 
         # Site header
-        title = self.site.config.get('title', 'Bengal Site')
-        baseurl = self.site.config.get('baseurl', '')
+        title = self.site.config.get("title", "Bengal Site")
+        baseurl = self.site.config.get("baseurl", "")
         lines.append(f"# {title}\n")
         if baseurl:
             lines.append(f"Site: {baseurl}")
@@ -465,7 +465,11 @@ class OutputFormatsGenerator:
             url = self._get_page_url(page)
             lines.append(f"URL: {url}")
 
-            section_name = getattr(page._section, 'name', '') if hasattr(page, '_section') and page._section else ''
+            section_name = (
+                getattr(page._section, "name", "")
+                if hasattr(page, "_section") and page._section
+                else ""
+            )
             if section_name:
                 lines.append(f"Section: {section_name}")
 
@@ -485,12 +489,18 @@ class OutputFormatsGenerator:
 
         # Write to root of output directory atomically (crash-safe)
         from bengal.utils.atomic_write import AtomicFile
-        llm_path = self.site.output_dir / 'llm-full.txt'
-        with AtomicFile(llm_path, 'w', encoding='utf-8') as f:
-            f.write('\n'.join(lines))
 
-    def _page_to_json(self, page: Any, include_html: bool = True,
-                     include_text: bool = True, excerpt_length: int = 200) -> dict[str, Any]:
+        llm_path = self.site.output_dir / "llm-full.txt"
+        with AtomicFile(llm_path, "w", encoding="utf-8") as f:
+            f.write("\n".join(lines))
+
+    def _page_to_json(
+        self,
+        page: Any,
+        include_html: bool = True,
+        include_text: bool = True,
+        excerpt_length: int = 200,
+    ) -> dict[str, Any]:
         """
         Convert page to JSON representation.
 
@@ -504,45 +514,45 @@ class OutputFormatsGenerator:
             Dictionary suitable for JSON serialization
         """
         data = {
-            'url': self._get_page_url(page),
-            'title': page.title,
-            'description': page.metadata.get('description', ''),
+            "url": self._get_page_url(page),
+            "title": page.title,
+            "description": page.metadata.get("description", ""),
         }
 
         # Date
         if page.date:
-            data['date'] = page.date.isoformat()
+            data["date"] = page.date.isoformat()
 
         # Content
         if include_html and page.parsed_ast:
-            data['content'] = page.parsed_ast
+            data["content"] = page.parsed_ast
 
         # Plain text
         content_text = self._strip_html(page.parsed_ast or page.content)
         if include_text:
-            data['plain_text'] = content_text
+            data["plain_text"] = content_text
 
         # Excerpt
-        data['excerpt'] = self._generate_excerpt(content_text, excerpt_length)
+        data["excerpt"] = self._generate_excerpt(content_text, excerpt_length)
 
         # Metadata (serialize dates and other non-JSON types)
-        data['metadata'] = {}
+        data["metadata"] = {}
         skipped_keys = []
         for k, v in page.metadata.items():
-            if k in ['content', 'parsed_ast', 'rendered_html', '_generated']:
+            if k in ["content", "parsed_ast", "rendered_html", "_generated"]:
                 continue
             # Only include JSON-serializable values
             try:
                 # Convert dates to ISO format strings
-                if isinstance(v, datetime) or hasattr(v, 'isoformat'):
-                    data['metadata'][k] = v.isoformat()
+                if isinstance(v, datetime) or hasattr(v, "isoformat"):
+                    data["metadata"][k] = v.isoformat()
                 # Test if value is JSON serializable
                 elif isinstance(v, str | int | float | bool | type(None)):
-                    data['metadata'][k] = v
+                    data["metadata"][k] = v
                 elif isinstance(v, list | dict):
                     # Try to serialize, skip if it fails
                     json.dumps(v)
-                    data['metadata'][k] = v
+                    data["metadata"][k] = v
                 # Skip complex objects that can't be serialized
             except (TypeError, ValueError) as e:
                 # Skip non-serializable values
@@ -552,7 +562,7 @@ class OutputFormatsGenerator:
                     page=str(page.source_path),
                     key=k,
                     value_type=type(v).__name__,
-                    reason=str(e)[:100]
+                    reason=str(e)[:100],
                 )
 
         if skipped_keys:
@@ -560,21 +570,21 @@ class OutputFormatsGenerator:
                 "metadata_keys_skipped",
                 page=str(page.source_path),
                 skipped_count=len(skipped_keys),
-                keys=skipped_keys
+                keys=skipped_keys,
             )
 
         # Section
-        if hasattr(page, '_section') and page._section:
-            data['section'] = getattr(page._section, 'name', '')
+        if hasattr(page, "_section") and page._section:
+            data["section"] = getattr(page._section, "name", "")
 
         # Tags
         if page.tags:
-            data['tags'] = page.tags
+            data["tags"] = page.tags
 
         # Stats
         word_count = len(content_text.split())
-        data['word_count'] = word_count
-        data['reading_time'] = max(1, round(word_count / 200))  # 200 wpm
+        data["word_count"] = word_count
+        data["reading_time"] = max(1, round(word_count / 200))  # 200 wpm
 
         return data
 
@@ -605,124 +615,126 @@ class OutputFormatsGenerator:
         page_uri = self._get_page_url(page)
 
         # Get baseurl from site config and construct absolute URL
-        baseurl = self.site.config.get('baseurl', '').rstrip('/')
+        baseurl = self.site.config.get("baseurl", "").rstrip("/")
         page_url = f"{baseurl}{page_uri}" if baseurl else page_uri
 
         summary = {
-            'objectID': page_uri,  # Unique identifier (relative path)
-            'url': page_url,       # Absolute URL with baseurl
-            'uri': page_uri,       # Relative path (Hugo convention)
-            'title': page.title,
-            'description': page.metadata.get('description', ''),
-            'excerpt': self._generate_excerpt(content_text, excerpt_length),
+            "objectID": page_uri,  # Unique identifier (relative path)
+            "url": page_url,  # Absolute URL with baseurl
+            "uri": page_uri,  # Relative path (Hugo convention)
+            "title": page.title,
+            "description": page.metadata.get("description", ""),
+            "excerpt": self._generate_excerpt(content_text, excerpt_length),
         }
 
         # Optional fields
         if page.date:
-            summary['date'] = page.date.strftime('%Y-%m-%d')
+            summary["date"] = page.date.strftime("%Y-%m-%d")
 
-        if hasattr(page, '_section') and page._section:
-            summary['section'] = getattr(page._section, 'name', '')
+        if hasattr(page, "_section") and page._section:
+            summary["section"] = getattr(page._section, "name", "")
 
         if page.tags:
-            summary['tags'] = page.tags
+            summary["tags"] = page.tags
 
         # Stats
         word_count = len(content_text.split())
-        summary['word_count'] = word_count
-        summary['reading_time'] = max(1, round(word_count / 200))
+        summary["word_count"] = word_count
+        summary["reading_time"] = max(1, round(word_count / 200))
 
         # Enhanced metadata for search (from standardized frontmatter)
         metadata = page.metadata
 
         # Content type and layout
-        if metadata.get('type'):
-            summary['type'] = metadata['type']
-        if metadata.get('layout'):
-            summary['layout'] = metadata['layout']
+        if metadata.get("type"):
+            summary["type"] = metadata["type"]
+        if metadata.get("layout"):
+            summary["layout"] = metadata["layout"]
 
         # Authorship
-        if metadata.get('author'):
-            summary['author'] = metadata['author']
-        if metadata.get('authors'):
-            summary['authors'] = metadata['authors']
+        if metadata.get("author"):
+            summary["author"] = metadata["author"]
+        if metadata.get("authors"):
+            summary["authors"] = metadata["authors"]
 
         # Categories and taxonomy
-        if metadata.get('category'):
-            summary['category'] = metadata['category']
-        if metadata.get('categories'):
-            summary['categories'] = metadata['categories']
+        if metadata.get("category"):
+            summary["category"] = metadata["category"]
+        if metadata.get("categories"):
+            summary["categories"] = metadata["categories"]
 
         # Weight/order for sorting
-        if metadata.get('weight') is not None:
-            summary['weight'] = metadata['weight']
+        if metadata.get("weight") is not None:
+            summary["weight"] = metadata["weight"]
 
         # Status flags
-        if metadata.get('draft'):
-            summary['draft'] = True
-        if metadata.get('featured'):
-            summary['featured'] = True
+        if metadata.get("draft"):
+            summary["draft"] = True
+        if metadata.get("featured"):
+            summary["featured"] = True
 
         # Search-specific fields
-        if metadata.get('search_keywords'):
-            summary['search_keywords'] = metadata['search_keywords']
-        if metadata.get('search_exclude'):
-            summary['search_exclude'] = True
+        if metadata.get("search_keywords"):
+            summary["search_keywords"] = metadata["search_keywords"]
+        if metadata.get("search_exclude"):
+            summary["search_exclude"] = True
 
         # API/CLI specific
-        if metadata.get('cli_name'):
-            summary['cli_name'] = metadata['cli_name']
-        if metadata.get('api_module'):
-            summary['api_module'] = metadata['api_module']
+        if metadata.get("cli_name"):
+            summary["cli_name"] = metadata["cli_name"]
+        if metadata.get("api_module"):
+            summary["api_module"] = metadata["api_module"]
 
         # Difficulty/level for tutorials
-        if metadata.get('difficulty'):
-            summary['difficulty'] = metadata['difficulty']
-        if metadata.get('level'):
-            summary['level'] = metadata['level']
+        if metadata.get("difficulty"):
+            summary["difficulty"] = metadata["difficulty"]
+        if metadata.get("level"):
+            summary["level"] = metadata["level"]
 
         # Related content
-        if metadata.get('related'):
-            summary['related'] = metadata['related']
+        if metadata.get("related"):
+            summary["related"] = metadata["related"]
 
         # Last modified (if different from date)
-        if metadata.get('lastmod'):
-            lastmod = metadata['lastmod']
+        if metadata.get("lastmod"):
+            lastmod = metadata["lastmod"]
             # Convert date objects to ISO format string
-            if hasattr(lastmod, 'isoformat'):
-                summary['lastmod'] = lastmod.isoformat() if hasattr(lastmod, 'isoformat') else str(lastmod)
+            if hasattr(lastmod, "isoformat"):
+                summary["lastmod"] = (
+                    lastmod.isoformat() if hasattr(lastmod, "isoformat") else str(lastmod)
+                )
             else:
-                summary['lastmod'] = str(lastmod)
+                summary["lastmod"] = str(lastmod)
 
         # Content text for full-text search
         # Check config option for full content vs excerpt
-        options = self.config.get('options', {})
-        include_full_content = options.get('include_full_content_in_index', False)
+        options = self.config.get("options", {})
+        include_full_content = options.get("include_full_content_in_index", False)
 
         if len(content_text) > 0:
             if include_full_content:
                 # Include full content for comprehensive search
-                summary['content'] = content_text
+                summary["content"] = content_text
             else:
                 # Include extended excerpt (3x normal length)
-                summary['content'] = self._generate_excerpt(content_text, excerpt_length * 3)
+                summary["content"] = self._generate_excerpt(content_text, excerpt_length * 3)
 
         # Add source file path if available (useful for docs)
-        if metadata.get('source_file'):
-            summary['source_file'] = metadata['source_file']
+        if metadata.get("source_file"):
+            summary["source_file"] = metadata["source_file"]
 
         # Add directory/path structure for hierarchical navigation
         if page.url:
             # Extract directory path (everything except filename)
-            path_parts = page.url.strip('/').split('/')
+            path_parts = page.url.strip("/").split("/")
             if len(path_parts) > 1:
-                summary['dir'] = '/' + '/'.join(path_parts[:-1]) + '/'
+                summary["dir"] = "/" + "/".join(path_parts[:-1]) + "/"
             else:
-                summary['dir'] = '/'
+                summary["dir"] = "/"
 
         # Add kind/content type for filtering (alternative naming)
-        if result_type := summary.get('type'):
-            summary['kind'] = result_type  # Alias for Hugo compatibility
+        if result_type := summary.get("type"):
+            summary["kind"] = result_type  # Alias for Hugo compatibility
 
         return summary
 
@@ -746,7 +758,11 @@ class OutputFormatsGenerator:
         url = self._get_page_url(page)
         lines.append(f"URL: {url}")
 
-        section_name = getattr(page._section, 'name', '') if hasattr(page, '_section') and page._section else ''
+        section_name = (
+            getattr(page._section, "name", "")
+            if hasattr(page, "_section") and page._section
+            else ""
+        )
         if section_name:
             lines.append(f"Section: {section_name}")
 
@@ -768,12 +784,12 @@ class OutputFormatsGenerator:
 
         lines.append("\n" + ("-" * separator_width))
         lines.append("\nMetadata:")
-        if 'author' in page.metadata:
+        if "author" in page.metadata:
             lines.append(f"- Author: {page.metadata['author']}")
         lines.append(f"- Word Count: {word_count}")
         lines.append(f"- Reading Time: {reading_time} minutes")
 
-        return '\n'.join(lines)
+        return "\n".join(lines)
 
     def _get_page_url(self, page: Any) -> str:
         """
@@ -790,9 +806,9 @@ class OutputFormatsGenerator:
 
         try:
             rel_path = page.output_path.relative_to(self.site.output_dir)
-            url = f"/{rel_path}".replace('\\', '/')
+            url = f"/{rel_path}".replace("\\", "/")
             # Clean up /index.html
-            url = url.replace('/index.html', '/')
+            url = url.replace("/index.html", "/")
             return url
         except ValueError:
             return f"/{getattr(page, 'slug', page.source_path.stem)}/"
@@ -811,11 +827,11 @@ class OutputFormatsGenerator:
             return None
 
         # If output is index.html, put index.json next to it
-        if page.output_path.name == 'index.html':
-            return page.output_path.parent / 'index.json'
+        if page.output_path.name == "index.html":
+            return page.output_path.parent / "index.json"
 
         # If output is page.html, put page.json next to it
-        return page.output_path.with_suffix('.json')
+        return page.output_path.with_suffix(".json")
 
     def _get_page_txt_path(self, page: Any) -> Path | None:
         """
@@ -831,11 +847,11 @@ class OutputFormatsGenerator:
             return None
 
         # If output is index.html, put index.txt next to it
-        if page.output_path.name == 'index.html':
-            return page.output_path.parent / 'index.txt'
+        if page.output_path.name == "index.html":
+            return page.output_path.parent / "index.txt"
 
         # If output is page.html, put page.txt next to it
-        return page.output_path.with_suffix('.txt')
+        return page.output_path.with_suffix(".txt")
 
     def _strip_html(self, text: str) -> str:
         """
@@ -848,20 +864,21 @@ class OutputFormatsGenerator:
             Plain text
         """
         if not text:
-            return ''
+            return ""
 
         # Remove HTML tags
-        text = re.sub(r'<[^>]+>', '', text)
+        text = re.sub(r"<[^>]+>", "", text)
 
         # Decode HTML entities
         try:
             import html
+
             text = html.unescape(text)
         except ImportError:
             pass
 
         # Clean up whitespace
-        text = re.sub(r'\s+', ' ', text)
+        text = re.sub(r"\s+", " ", text)
         return text.strip()
 
     def _generate_excerpt(self, text: str, length: int = 200) -> str:
@@ -876,12 +893,11 @@ class OutputFormatsGenerator:
             Excerpt string
         """
         if not text:
-            return ''
+            return ""
 
         if len(text) <= length:
             return text
 
         # Find last space before limit
-        excerpt = text[:length].rsplit(' ', 1)[0]
+        excerpt = text[:length].rsplit(" ", 1)[0]
         return excerpt + "..."
-

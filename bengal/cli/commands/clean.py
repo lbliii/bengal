@@ -9,9 +9,11 @@ from bengal.utils.build_stats import show_error
 
 
 @click.command()
-@click.option('--force', '-f', is_flag=True, help='Skip confirmation prompt')
-@click.option('--config', type=click.Path(exists=True), help='Path to config file (default: bengal.toml)')
-@click.argument('source', type=click.Path(exists=True), default='.')
+@click.option("--force", "-f", is_flag=True, help="Skip confirmation prompt")
+@click.option(
+    "--config", type=click.Path(exists=True), help="Path to config file (default: bengal.toml)"
+)
+@click.argument("source", type=click.Path(exists=True), default=".")
 def clean(force: bool, config: str, source: str) -> None:
     """
     🧹 Clean the output directory.
@@ -27,6 +29,7 @@ def clean(force: bool, config: str, source: str) -> None:
 
         # Show header (consistent with all other commands)
         from bengal.utils.cli_output import CLIOutput
+
         cli = CLIOutput()
         cli.blank()
         cli.header("Cleaning output directory...")
@@ -49,15 +52,15 @@ def clean(force: bool, config: str, source: str) -> None:
                         return
                 else:
                     # Fallback to click
-                    prompt = click.style("⚠️  Delete all files?", fg='yellow', bold=True)
+                    prompt = click.style("⚠️  Delete all files?", fg="yellow", bold=True)
                     if not click.confirm(prompt, default=False):
-                        click.echo(click.style("Cancelled", fg='yellow'))
+                        click.echo(click.style("Cancelled", fg="yellow"))
                         return
             except ImportError:
                 # Rich not available, use click
-                prompt = click.style("⚠️  Delete all files?", fg='yellow', bold=True)
+                prompt = click.style("⚠️  Delete all files?", fg="yellow", bold=True)
                 if not click.confirm(prompt, default=False):
-                    click.echo(click.style("Cancelled", fg='yellow'))
+                    click.echo(click.style("Cancelled", fg="yellow"))
                     return
 
         # Clean
@@ -74,9 +77,9 @@ def clean(force: bool, config: str, source: str) -> None:
 
 
 @click.command()
-@click.option('--force', '-f', is_flag=True, help='Kill process without confirmation')
-@click.option('--port', '-p', type=int, help='Also check if process is using this port')
-@click.argument('source', type=click.Path(exists=True), default='.')
+@click.option("--force", "-f", is_flag=True, help="Kill process without confirmation")
+@click.option("--port", "-p", type=int, help="Also check if process is using this port")
+@click.argument("source", type=click.Path(exists=True), default=".")
 def cleanup(force: bool, port: int, source: str) -> None:
     """
     🔧 Clean up stale Bengal server processes.
@@ -96,22 +99,28 @@ def cleanup(force: bool, port: int, source: str) -> None:
         stale_pid = PIDManager.check_stale_pid(pid_file)
 
         if not stale_pid:
-            click.echo(click.style("✅ No stale processes found", fg='green'))
+            click.echo(click.style("✅ No stale processes found", fg="green"))
 
             # If port specified, check if something else is using it
             if port:
                 port_pid = PIDManager.get_process_on_port(port)
                 if port_pid:
-                    click.echo(click.style(f"\n⚠️  However, port {port} is in use by PID {port_pid}", fg='yellow'))
+                    click.echo(
+                        click.style(
+                            f"\n⚠️  However, port {port} is in use by PID {port_pid}", fg="yellow"
+                        )
+                    )
                     if PIDManager.is_bengal_process(port_pid):
                         click.echo("   This appears to be a Bengal process not tracked by PID file")
                         if not force and not click.confirm(f"  Kill process {port_pid}?"):
                             click.echo("Cancelled")
                             return
                         if PIDManager.kill_stale_process(port_pid):
-                            click.echo(click.style(f"✅ Process {port_pid} terminated", fg='green'))
+                            click.echo(click.style(f"✅ Process {port_pid} terminated", fg="green"))
                         else:
-                            click.echo(click.style(f"❌ Failed to kill process {port_pid}", fg='red'))
+                            click.echo(
+                                click.style(f"❌ Failed to kill process {port_pid}", fg="red")
+                            )
                             raise click.Abort()
                     else:
                         click.echo("   This is not a Bengal process")
@@ -119,7 +128,7 @@ def cleanup(force: bool, port: int, source: str) -> None:
             return
 
         # Found stale process
-        click.echo(click.style("⚠️  Found stale Bengal server process", fg='yellow'))
+        click.echo(click.style("⚠️  Found stale Bengal server process", fg="yellow"))
         click.echo(f"   PID: {stale_pid}")
 
         # Check if it's holding a port
@@ -150,9 +159,9 @@ def cleanup(force: bool, port: int, source: str) -> None:
 
         # Kill the process
         if PIDManager.kill_stale_process(stale_pid):
-            click.echo(click.style("✅ Stale process terminated successfully", fg='green'))
+            click.echo(click.style("✅ Stale process terminated successfully", fg="green"))
         else:
-            click.echo(click.style("❌ Failed to terminate process", fg='red'))
+            click.echo(click.style("❌ Failed to terminate process", fg="red"))
             click.echo(f"   Try manually: kill {stale_pid}")
             raise click.Abort()
 
@@ -162,4 +171,3 @@ def cleanup(force: bool, port: int, source: str) -> None:
     except Exception as e:
         show_error(f"Cleanup failed: {e}", show_art=False)
         raise click.Abort() from e
-

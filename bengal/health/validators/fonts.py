@@ -40,33 +40,37 @@ class FontValidator(BaseValidator):
     MAX_FONT_SIZE_KB = 500
 
     @override
-    def validate(self, site: 'Site') -> list[CheckResult]:
+    def validate(self, site: "Site") -> list[CheckResult]:
         """Run font validation checks."""
         results = []
 
         # Check if fonts are configured
-        font_config = site.config.get('fonts', {})
+        font_config = site.config.get("fonts", {})
 
         if not font_config:
-            results.append(CheckResult.info(
-                "No fonts configured",
-                recommendation="Add [fonts] section to bengal.toml to use custom fonts."
-            ))
+            results.append(
+                CheckResult.info(
+                    "No fonts configured",
+                    recommendation="Add [fonts] section to bengal.toml to use custom fonts.",
+                )
+            )
             return results
 
         # Check 1: Font CSS exists
-        fonts_css_path = site.output_dir / 'assets' / 'fonts.css'
+        fonts_css_path = site.output_dir / "assets" / "fonts.css"
         if not fonts_css_path.exists():
-            results.append(CheckResult.warning(
-                "fonts.css not generated despite font configuration",
-                recommendation="Check if FontHelper.process() is called during build."
-            ))
+            results.append(
+                CheckResult.warning(
+                    "fonts.css not generated despite font configuration",
+                    recommendation="Check if FontHelper.process() is called during build.",
+                )
+            )
             return results
 
         results.append(CheckResult.success("fonts.css generated"))
 
         # Check 2: Font files exist
-        fonts_dir = site.output_dir / 'assets' / 'fonts'
+        fonts_dir = site.output_dir / "assets" / "fonts"
         results.extend(self._check_font_files(fonts_dir, font_config))
 
         # Check 3: CSS structure
@@ -82,36 +86,40 @@ class FontValidator(BaseValidator):
         results = []
 
         if not fonts_dir.exists():
-            results.append(CheckResult.error(
-                "Fonts directory does not exist",
-                recommendation="Font files should be in assets/fonts/. Check FontHelper.process()."
-            ))
+            results.append(
+                CheckResult.error(
+                    "Fonts directory does not exist",
+                    recommendation="Font files should be in assets/fonts/. Check FontHelper.process().",
+                )
+            )
             return results
 
         # Count font files
-        font_files = list(fonts_dir.glob('*.woff2')) + list(fonts_dir.glob('*.ttf'))
+        font_files = list(fonts_dir.glob("*.woff2")) + list(fonts_dir.glob("*.ttf"))
 
         if not font_files:
-            results.append(CheckResult.error(
-                "No font files found in assets/fonts/",
-                recommendation="Font download may have failed. Check FontHelper and network connectivity."
-            ))
+            results.append(
+                CheckResult.error(
+                    "No font files found in assets/fonts/",
+                    recommendation="Font download may have failed. Check FontHelper and network connectivity.",
+                )
+            )
             return results
 
         # Estimate expected number of font files
         # Each font family typically has 1-4 variants (weights/styles)
-        num_families = len([k for k in font_config if k != 'config'])
+        num_families = len([k for k in font_config if k != "config"])
         expected_min = num_families  # At least 1 file per family
 
         if len(font_files) < expected_min:
-            results.append(CheckResult.warning(
-                f"Found {len(font_files)} font file(s) but configured {num_families} font familie(s)",
-                recommendation="Some fonts may not have downloaded. Check for download errors in logs."
-            ))
+            results.append(
+                CheckResult.warning(
+                    f"Found {len(font_files)} font file(s) but configured {num_families} font familie(s)",
+                    recommendation="Some fonts may not have downloaded. Check for download errors in logs.",
+                )
+            )
         else:
-            results.append(CheckResult.success(
-                f"{len(font_files)} font file(s) downloaded"
-            ))
+            results.append(CheckResult.success(f"{len(font_files)} font file(s) downloaded"))
 
         return results
 
@@ -120,41 +128,45 @@ class FontValidator(BaseValidator):
         results = []
 
         try:
-            css_content = fonts_css_path.read_text(encoding='utf-8')
+            css_content = fonts_css_path.read_text(encoding="utf-8")
         except Exception as e:
-            results.append(CheckResult.error(
-                f"Cannot read fonts.css: {e}",
-                recommendation="Check file permissions and encoding."
-            ))
+            results.append(
+                CheckResult.error(
+                    f"Cannot read fonts.css: {e}",
+                    recommendation="Check file permissions and encoding.",
+                )
+            )
             return results
 
         # Check for @font-face rules
-        font_face_count = css_content.count('@font-face')
+        font_face_count = css_content.count("@font-face")
 
         if font_face_count == 0:
-            results.append(CheckResult.error(
-                "fonts.css has no @font-face rules",
-                recommendation="CSS should contain @font-face declarations. Check FontCSSGenerator."
-            ))
+            results.append(
+                CheckResult.error(
+                    "fonts.css has no @font-face rules",
+                    recommendation="CSS should contain @font-face declarations. Check FontCSSGenerator.",
+                )
+            )
             return results
 
-        results.append(CheckResult.success(
-            f"fonts.css contains {font_face_count} @font-face rule(s)"
-        ))
+        results.append(
+            CheckResult.success(f"fonts.css contains {font_face_count} @font-face rule(s)")
+        )
 
         # Check for broken font references
         broken_refs = self._check_font_references(css_content, fonts_dir)
 
         if broken_refs:
-            results.append(CheckResult.error(
-                f"{len(broken_refs)} font reference(s) point to missing files",
-                recommendation="Font files referenced in CSS don't exist. Check font download.",
-                details=broken_refs[:5]
-            ))
+            results.append(
+                CheckResult.error(
+                    f"{len(broken_refs)} font reference(s) point to missing files",
+                    recommendation="Font files referenced in CSS don't exist. Check font download.",
+                    details=broken_refs[:5],
+                )
+            )
         else:
-            results.append(CheckResult.success(
-                "All font references are valid"
-            ))
+            results.append(CheckResult.success("All font references are valid"))
 
         return results
 
@@ -182,7 +194,7 @@ class FontValidator(BaseValidator):
         if not fonts_dir.exists():
             return results
 
-        font_files = list(fonts_dir.glob('*.woff2')) + list(fonts_dir.glob('*.ttf'))
+        font_files = list(fonts_dir.glob("*.woff2")) + list(fonts_dir.glob("*.ttf"))
 
         if not font_files:
             return results
@@ -199,22 +211,25 @@ class FontValidator(BaseValidator):
                 oversized.append(f"{font_file.name}: {size_kb:.0f} KB")
 
         if oversized:
-            results.append(CheckResult.warning(
-                f"{len(oversized)} font file(s) are very large (>{self.MAX_FONT_SIZE_KB} KB)",
-                recommendation="Large font files slow page load. Consider using fewer weights or variable fonts.",
-                details=oversized[:3]
-            ))
+            results.append(
+                CheckResult.warning(
+                    f"{len(oversized)} font file(s) are very large (>{self.MAX_FONT_SIZE_KB} KB)",
+                    recommendation="Large font files slow page load. Consider using fewer weights or variable fonts.",
+                    details=oversized[:3],
+                )
+            )
 
         # Report total font size
         if total_size_kb > 1000:  # > 1 MB
-            results.append(CheckResult.warning(
-                f"Total font size is {total_size_kb:.0f} KB ({total_size_kb/1024:.1f} MB)",
-                recommendation="Consider reducing number of font weights to improve performance."
-            ))
+            results.append(
+                CheckResult.warning(
+                    f"Total font size is {total_size_kb:.0f} KB ({total_size_kb / 1024:.1f} MB)",
+                    recommendation="Consider reducing number of font weights to improve performance.",
+                )
+            )
         else:
-            results.append(CheckResult.success(
-                f"Font sizes are reasonable (total: {total_size_kb:.0f} KB)"
-            ))
+            results.append(
+                CheckResult.success(f"Font sizes are reasonable (total: {total_size_kb:.0f} KB)")
+            )
 
         return results
-

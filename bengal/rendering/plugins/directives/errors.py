@@ -25,7 +25,7 @@ class DirectiveError(Exception):
         file_path: Path | None = None,
         line_number: int | None = None,
         content_snippet: str | None = None,
-        suggestion: str | None = None
+        suggestion: str | None = None,
     ):
         """
         Initialize directive error.
@@ -69,14 +69,14 @@ class DirectiveError(Exception):
         if self.content_snippet:
             lines.append("\n   Context:")
             # Indent each line of the snippet
-            for line in self.content_snippet.split('\n'):
+            for line in self.content_snippet.split("\n"):
                 lines.append(f"   │ {line}")
 
         # Suggestion
         if self.suggestion:
             lines.append(f"\n   💡 Suggestion: {self.suggestion}")
 
-        return '\n'.join(lines)
+        return "\n".join(lines)
 
     def display(self) -> str:
         """Get formatted error message (same as __str__)."""
@@ -90,7 +90,7 @@ def format_directive_error(
     line_number: int | None = None,
     content_lines: list | None = None,
     error_line_offset: int = 0,
-    suggestion: str | None = None
+    suggestion: str | None = None,
 ) -> str:
     """
     Format a directive error message.
@@ -136,24 +136,26 @@ def format_directive_error(
     if suggestion:
         lines.append(f"\n   💡 Suggestion: {suggestion}")
 
-    return '\n'.join(lines)
+    return "\n".join(lines)
 
 
 # Common directive error messages and suggestions
 
 DIRECTIVE_SUGGESTIONS = {
-    'unknown_type': "Check the directive name. Known directives: tabs, note, tip, warning, danger, error, info, example, success, caution, dropdown, details, code-tabs",
-    'missing_closing': "Make sure your directive has closing backticks (```) on their own line",
-    'malformed_tab_marker': "Tab markers should be: ### Tab: Title (note the space after colon)",
-    'empty_tabs': "Tabs directive needs at least 2 tabs. Use ### Tab: Name to create tabs",
-    'single_tab': "For single items, use an admonition (note, tip) instead of tabs",
-    'empty_content': "Directive content cannot be empty. Add some markdown content between the opening and closing backticks",
-    'too_many_tabs': "Consider splitting large tabs blocks into separate sections or pages. Each tab adds rendering overhead",
-    'deep_nesting': "Avoid nesting directives more than 3-4 levels deep. This impacts build performance",
+    "unknown_type": (
+        "Check the directive name. Known directives: tabs, note, tip, warning, danger, "
+        "error, info, example, success, caution, dropdown, details, code-tabs"
+    ),
+    "missing_closing": "Make sure your directive has closing backticks (```) on their own line",
+    "malformed_tab_marker": "Tab markers should be: ### Tab: Title (note the space after colon)",
+    "empty_tabs": "Tabs directive needs at least 2 tabs. Use ### Tab: Name to create tabs",
+    "single_tab": "For single items, use an admonition (note, tip) instead of tabs",
+    "empty_content": "Directive content cannot be empty. Add some markdown content between the opening and closing backticks",
+    "too_many_tabs": "Consider splitting large tabs blocks into separate sections or pages. Each tab adds rendering overhead",
+    "deep_nesting": "Avoid nesting directives more than 3-4 levels deep. This impacts build performance",
 }
 
 
 def get_suggestion(error_key: str) -> str | None:
     """Get a helpful suggestion for a common error type."""
     return DIRECTIVE_SUGGESTIONS.get(error_key)
-

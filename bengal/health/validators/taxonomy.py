@@ -33,7 +33,7 @@ class TaxonomyValidator(BaseValidator):
     enabled_by_default = True
 
     @override
-    def validate(self, site: 'Site') -> list[CheckResult]:
+    def validate(self, site: "Site") -> list[CheckResult]:
         """Run taxonomy validation checks."""
         results = []
 
@@ -51,76 +51,81 @@ class TaxonomyValidator(BaseValidator):
 
         return results
 
-    def _check_tag_pages(self, site: 'Site') -> list[CheckResult]:
+    def _check_tag_pages(self, site: "Site") -> list[CheckResult]:
         """Check that all tags have corresponding tag pages."""
         results = []
 
-        if not site.taxonomies.get('tags'):
-            results.append(CheckResult.info(
-                "No tags found in site",
-                recommendation="Add tags to page frontmatter to enable tag pages."
-            ))
+        if not site.taxonomies.get("tags"):
+            results.append(
+                CheckResult.info(
+                    "No tags found in site",
+                    recommendation="Add tags to page frontmatter to enable tag pages.",
+                )
+            )
             return results
 
         # Get all tags from taxonomy system
-        tags = site.taxonomies['tags']
+        tags = site.taxonomies["tags"]
 
         # Get all generated tag pages
         tag_pages = [
-            p for p in site.pages
-            if p.metadata.get('_generated') and p.metadata.get('type') == 'tag'
+            p
+            for p in site.pages
+            if p.metadata.get("_generated") and p.metadata.get("type") == "tag"
         ]
 
         # Check if each tag has a page
         missing_tags = []
         for tag_slug, tag_data in tags.items():
-            has_page = any(
-                p.metadata.get('_tag_slug') == tag_slug
-                for p in tag_pages
-            )
+            has_page = any(p.metadata.get("_tag_slug") == tag_slug for p in tag_pages)
             if not has_page:
                 missing_tags.append(f"{tag_data['name']} ({tag_slug})")
 
         # Check for orphaned tag pages
         orphaned_pages = []
         for page in tag_pages:
-            tag_slug = page.metadata.get('_tag_slug')
+            tag_slug = page.metadata.get("_tag_slug")
             if tag_slug and tag_slug not in tags:
                 orphaned_pages.append(tag_slug)
 
         # Report results
         if missing_tags:
-            results.append(CheckResult.error(
-                f"{len(missing_tags)} tag(s) have no generated pages",
-                recommendation="Check dynamic page generation in Site.generate_dynamic_pages()",
-                details=missing_tags[:5]
-            ))
+            results.append(
+                CheckResult.error(
+                    f"{len(missing_tags)} tag(s) have no generated pages",
+                    recommendation="Check dynamic page generation in Site.generate_dynamic_pages()",
+                    details=missing_tags[:5],
+                )
+            )
         elif orphaned_pages:
-            results.append(CheckResult.warning(
-                f"{len(orphaned_pages)} orphaned tag page(s) found",
-                recommendation="These tag pages exist but their tags are not in the taxonomy.",
-                details=orphaned_pages[:5]
-            ))
+            results.append(
+                CheckResult.warning(
+                    f"{len(orphaned_pages)} orphaned tag page(s) found",
+                    recommendation="These tag pages exist but their tags are not in the taxonomy.",
+                    details=orphaned_pages[:5],
+                )
+            )
         else:
-            results.append(CheckResult.success(
-                f"Tag pages validated ({len(tags)} tags, {len(tag_pages)} pages)"
-            ))
+            results.append(
+                CheckResult.success(
+                    f"Tag pages validated ({len(tags)} tags, {len(tag_pages)} pages)"
+                )
+            )
 
         # Check for tag index page
-        has_tag_index = any(
-            p.metadata.get('type') == 'tag-index'
-            for p in site.pages
-        )
+        has_tag_index = any(p.metadata.get("type") == "tag-index" for p in site.pages)
 
         if tags and not has_tag_index:
-            results.append(CheckResult.warning(
-                "No tag index page found",
-                recommendation="Site has tags but no /tags/ index page. Check Site._create_tag_index_page()"
-            ))
+            results.append(
+                CheckResult.warning(
+                    "No tag index page found",
+                    recommendation="Site has tags but no /tags/ index page. Check Site._create_tag_index_page()",
+                )
+            )
 
         return results
 
-    def _check_archive_pages(self, site: 'Site') -> list[CheckResult]:
+    def _check_archive_pages(self, site: "Site") -> list[CheckResult]:
         """Check that sections with content have archive pages."""
         results = []
         issues = []
@@ -133,9 +138,9 @@ class TaxonomyValidator(BaseValidator):
             # Check if section has index page or archive
             has_index = section.index_page is not None
             has_archive = any(
-                p.metadata.get('_generated') and
-                p.metadata.get('type') == 'archive' and
-                p.metadata.get('_section') == section
+                p.metadata.get("_generated")
+                and p.metadata.get("type") == "archive"
+                and p.metadata.get("_section") == section
                 for p in site.pages
             )
 
@@ -143,20 +148,22 @@ class TaxonomyValidator(BaseValidator):
                 issues.append(f"Section '{section.name}' ({len(section.pages)} pages)")
 
         if issues:
-            results.append(CheckResult.warning(
-                f"{len(issues)} section(s) have content but no archive/index page",
-                recommendation="Sections should have _index.md or auto-generated archive pages.",
-                details=issues[:5]
-            ))
+            results.append(
+                CheckResult.warning(
+                    f"{len(issues)} section(s) have content but no archive/index page",
+                    recommendation="Sections should have _index.md or auto-generated archive pages.",
+                    details=issues[:5],
+                )
+            )
         else:
-            sections_with_content = sum(1 for s in site.sections if s.pages and s.name != 'root')
-            results.append(CheckResult.success(
-                f"Archive pages validated ({sections_with_content} sections)"
-            ))
+            sections_with_content = sum(1 for s in site.sections if s.pages and s.name != "root")
+            results.append(
+                CheckResult.success(f"Archive pages validated ({sections_with_content} sections)")
+            )
 
         return results
 
-    def _check_taxonomy_consistency(self, site: 'Site') -> list[CheckResult]:
+    def _check_taxonomy_consistency(self, site: "Site") -> list[CheckResult]:
         """Check taxonomy data consistency."""
         results = []
         issues = []
@@ -165,73 +172,85 @@ class TaxonomyValidator(BaseValidator):
         for taxonomy_type, terms in site.taxonomies.items():
             for term_slug, term_data in terms.items():
                 # Check if pages listed in taxonomy actually have the tag
-                pages_in_term = term_data.get('pages', [])
+                pages_in_term = term_data.get("pages", [])
 
                 for page in pages_in_term:
                     # For tags, check page.tags
-                    if taxonomy_type == 'tags':
-                        if not hasattr(page, 'tags') or not page.tags:
-                            issues.append(f"Page {page.source_path.name} in tag '{term_slug}' but has no tags")
-                        elif term_data['name'] not in page.tags:
-                            issues.append(f"Page {page.source_path.name} in tag '{term_slug}' but tag not in page.tags")
+                    if taxonomy_type == "tags":
+                        if not hasattr(page, "tags") or not page.tags:
+                            issues.append(
+                                f"Page {page.source_path.name} in tag '{term_slug}' but has no tags"
+                            )
+                        elif term_data["name"] not in page.tags:
+                            issues.append(
+                                f"Page {page.source_path.name} in tag '{term_slug}' but tag not in page.tags"
+                            )
 
                     # For categories, check page.metadata
-                    elif taxonomy_type == 'categories' and not page.metadata.get('category'):
-                        issues.append(f"Page {page.source_path.name} in category '{term_slug}' but has no category")
+                    elif taxonomy_type == "categories" and not page.metadata.get("category"):
+                        issues.append(
+                            f"Page {page.source_path.name} in category '{term_slug}' but has no category"
+                        )
 
         if issues:
-            results.append(CheckResult.error(
-                f"{len(issues)} taxonomy consistency issue(s)",
-                recommendation="This indicates a bug in taxonomy collection. Check Site.collect_taxonomies()",
-                details=issues[:5]
-            ))
+            results.append(
+                CheckResult.error(
+                    f"{len(issues)} taxonomy consistency issue(s)",
+                    recommendation="This indicates a bug in taxonomy collection. Check Site.collect_taxonomies()",
+                    details=issues[:5],
+                )
+            )
         else:
             total_terms = sum(len(terms) for terms in site.taxonomies.values())
-            results.append(CheckResult.success(
-                f"Taxonomy consistency validated ({total_terms} terms)"
-            ))
+            results.append(
+                CheckResult.success(f"Taxonomy consistency validated ({total_terms} terms)")
+            )
 
         return results
 
-    def _check_pagination(self, site: 'Site') -> list[CheckResult]:
+    def _check_pagination(self, site: "Site") -> list[CheckResult]:
         """Check pagination integrity."""
         results = []
         issues = []
 
         # Find all pagination pages
         pagination_pages = [
-            p for p in site.pages
-            if p.metadata.get('_generated') and '/page/' in str(p.output_path)
+            p for p in site.pages if p.metadata.get("_generated") and "/page/" in str(p.output_path)
         ]
 
         if not pagination_pages:
-            results.append(CheckResult.info(
-                "No pagination pages found (all lists fit on single page)"
-            ))
+            results.append(
+                CheckResult.info("No pagination pages found (all lists fit on single page)")
+            )
             return results
 
         # Check pagination consistency
         for page in pagination_pages:
-            paginator = page.metadata.get('_paginator')
-            page_num = page.metadata.get('_page_num')
+            paginator = page.metadata.get("_paginator")
+            page_num = page.metadata.get("_page_num")
 
             if not paginator:
                 issues.append(f"{page.output_path.name}: No paginator in metadata")
             elif not page_num:
                 issues.append(f"{page.output_path.name}: No page number in metadata")
             elif page_num > paginator.num_pages:
-                issues.append(f"{page.output_path.name}: Page {page_num} > total pages {paginator.num_pages}")
+                issues.append(
+                    f"{page.output_path.name}: Page {page_num} > total pages {paginator.num_pages}"
+                )
 
         if issues:
-            results.append(CheckResult.error(
-                f"{len(issues)} pagination issue(s)",
-                recommendation="Check pagination generation in Site.generate_dynamic_pages()",
-                details=issues[:5]
-            ))
+            results.append(
+                CheckResult.error(
+                    f"{len(issues)} pagination issue(s)",
+                    recommendation="Check pagination generation in Site.generate_dynamic_pages()",
+                    details=issues[:5],
+                )
+            )
         else:
-            results.append(CheckResult.success(
-                f"Pagination validated ({len(pagination_pages)} pagination pages)"
-            ))
+            results.append(
+                CheckResult.success(
+                    f"Pagination validated ({len(pagination_pages)} pagination pages)"
+                )
+            )
 
         return results
-

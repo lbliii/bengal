@@ -12,6 +12,7 @@ from typing import Any
 
 class CheckStatus(Enum):
     """Status of a health check."""
+
     SUCCESS = "success"
     INFO = "info"
     WARNING = "warning"
@@ -30,6 +31,7 @@ class CheckResult:
         details: Optional additional context (list of strings)
         validator: Name of validator that produced this result
     """
+
     status: CheckStatus
     message: str
     recommendation: str | None = None
@@ -37,25 +39,40 @@ class CheckResult:
     validator: str = ""
 
     @classmethod
-    def success(cls, message: str, validator: str = "") -> 'CheckResult':
+    def success(cls, message: str, validator: str = "") -> "CheckResult":
         """Create a success result."""
         return cls(CheckStatus.SUCCESS, message, validator=validator)
 
     @classmethod
-    def info(cls, message: str, recommendation: str | None = None,
-             details: list[str] | None = None, validator: str = "") -> 'CheckResult':
+    def info(
+        cls,
+        message: str,
+        recommendation: str | None = None,
+        details: list[str] | None = None,
+        validator: str = "",
+    ) -> "CheckResult":
         """Create an info result."""
         return cls(CheckStatus.INFO, message, recommendation, details, validator=validator)
 
     @classmethod
-    def warning(cls, message: str, recommendation: str | None = None,
-                details: list[str] | None = None, validator: str = "") -> 'CheckResult':
+    def warning(
+        cls,
+        message: str,
+        recommendation: str | None = None,
+        details: list[str] | None = None,
+        validator: str = "",
+    ) -> "CheckResult":
         """Create a warning result."""
         return cls(CheckStatus.WARNING, message, recommendation, details, validator=validator)
 
     @classmethod
-    def error(cls, message: str, recommendation: str | None = None,
-              details: list[str] | None = None, validator: str = "") -> 'CheckResult':
+    def error(
+        cls,
+        message: str,
+        recommendation: str | None = None,
+        details: list[str] | None = None,
+        validator: str = "",
+    ) -> "CheckResult":
         """Create an error result."""
         return cls(CheckStatus.ERROR, message, recommendation, details, validator=validator)
 
@@ -74,6 +91,7 @@ class ValidatorReport:
         results: List of check results from this validator
         duration_ms: How long the validator took to run
     """
+
     validator_name: str
     results: list[CheckResult] = field(default_factory=list)
     duration_ms: float = 0.0
@@ -126,6 +144,7 @@ class HealthReport:
         timestamp: When the health check was run
         build_stats: Optional build statistics
     """
+
     validator_reports: list[ValidatorReport] = field(default_factory=list)
     timestamp: datetime = field(default_factory=datetime.now)
     build_stats: dict[str, Any] | None = None
@@ -184,10 +203,10 @@ class HealthReport:
             return 100
 
         points = (
-            self.total_passed * 1.0 +
-            self.total_info * 0.8 +
-            self.total_warnings * 0.5 +
-            self.total_errors * 0.0
+            self.total_passed * 1.0
+            + self.total_info * 0.8
+            + self.total_warnings * 0.5
+            + self.total_errors * 0.0
         )
 
         return int((points / self.total_checks) * 100)
@@ -330,7 +349,9 @@ class HealthReport:
         # Summary
         lines.append("")
         lines.append("━" * 60)
-        lines.append(f"Summary: {self.total_passed} passed, {self.total_warnings} warnings, {self.total_errors} errors")
+        lines.append(
+            f"Summary: {self.total_passed} passed, {self.total_warnings} warnings, {self.total_errors} errors"
+        )
 
         score = self.build_quality_score()
         rating = self.quality_rating()
@@ -385,7 +406,9 @@ class HealthReport:
         # Summary
         lines.append("")
         lines.append("━" * 60)
-        lines.append(f"Summary: {self.total_passed} passed, {self.total_warnings} warnings, {self.total_errors} errors")
+        lines.append(
+            f"Summary: {self.total_passed} passed, {self.total_warnings} warnings, {self.total_errors} errors"
+        )
 
         score = self.build_quality_score()
         rating = self.quality_rating()
@@ -393,7 +416,7 @@ class HealthReport:
 
         # Build stats if available
         if self.build_stats:
-            build_time = self.build_stats.get('build_time_ms', 0) / 1000
+            build_time = self.build_stats.get("build_time_ms", 0) / 1000
             lines.append(f"Build Time: {build_time:.2f}s")
 
         lines.append("")
@@ -436,10 +459,9 @@ class HealthReport:
                             "details": r.details,
                         }
                         for r in vr.results
-                    ]
+                    ],
                 }
                 for vr in self.validator_reports
             ],
             "build_stats": self.build_stats,
         }
-

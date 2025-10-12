@@ -106,7 +106,9 @@ class HealthCheck:
         """
         self.validators.append(validator)
 
-    def run(self, build_stats: dict | None = None, verbose: bool = False, profile: BuildProfile = None) -> HealthReport:
+    def run(
+        self, build_stats: dict | None = None, verbose: bool = False, profile: BuildProfile = None
+    ) -> HealthReport:
         """
         Run all registered validators and produce a health report.
 
@@ -149,11 +151,12 @@ class HealthCheck:
             except Exception as e:
                 # If validator crashes, record as error
                 from bengal.health.report import CheckResult
+
                 results = [
                     CheckResult.error(
                         f"Validator crashed: {e}",
                         recommendation="This is a bug in the health check system. Please report it.",
-                        validator=validator.name
+                        validator=validator.name,
                     )
                 ]
 
@@ -161,9 +164,7 @@ class HealthCheck:
 
             # Add to report
             validator_report = ValidatorReport(
-                validator_name=validator.name,
-                results=results,
-                duration_ms=duration_ms
+                validator_name=validator.name, results=results, duration_ms=duration_ms
             )
             report.validator_reports.append(validator_report)
 
@@ -190,4 +191,3 @@ class HealthCheck:
 
     def __repr__(self) -> str:
         return f"<HealthCheck: {len(self.validators)} validators>"
-

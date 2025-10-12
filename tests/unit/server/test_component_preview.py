@@ -12,7 +12,7 @@ from bengal.server.component_preview import ComponentPreviewServer
 def _write(p: Path, text: str) -> None:
     """Helper to write file with parent directory creation."""
     p.parent.mkdir(parents=True, exist_ok=True)
-    p.write_text(text, encoding='utf-8')
+    p.write_text(text, encoding="utf-8")
 
 
 @pytest.fixture
@@ -20,12 +20,15 @@ def component_site(tmp_path: Path) -> Site:
     """Create a test site with component manifests."""
     # Create a basic bengal.toml
     config = tmp_path / "bengal.toml"
-    _write(config, """
+    _write(
+        config,
+        """
 [site]
 title = "Test Site"
 base_url = "https://example.com"
 theme = "test-theme"
-""")
+""",
+    )
 
     # Create component manifest (use correct path: themes/<theme>/dev/components/)
     manifest = tmp_path / "themes" / "test-theme" / "dev" / "components" / "testcard.yaml"
@@ -33,17 +36,13 @@ theme = "test-theme"
         "name": "Test Card",
         "template": "partials/test-card.html",
         "variants": [
-            {
-                "id": "default",
-                "name": "Default",
-                "context": {"title": "Test Title"}
-            },
+            {"id": "default", "name": "Default", "context": {"title": "Test Title"}},
             {
                 "id": "long-title",
                 "name": "Long Title",
-                "context": {"title": "Very Long Test Title"}
-            }
-        ]
+                "context": {"title": "Very Long Test Title"},
+            },
+        ],
     }
     _write(manifest, yaml.dump(manifest_data))
 
@@ -62,7 +61,10 @@ theme = "test-theme"
 def test_discover_components_empty(tmp_path: Path):
     """Test component discovery with no manifests."""
     config = tmp_path / "bengal.toml"
-    _write(config, '[site]\ntitle = "Test"\nbase_url = "https://example.com"\ntheme = "nonexistent-theme"')
+    _write(
+        config,
+        '[site]\ntitle = "Test"\nbase_url = "https://example.com"\ntheme = "nonexistent-theme"',
+    )
 
     site = Site.from_config(tmp_path)
     cps = ComponentPreviewServer(site)
@@ -88,10 +90,15 @@ def test_discover_components_single(component_site: Site):
 def test_discover_components_invalid_yaml(tmp_path: Path):
     """Test handling of malformed YAML manifests."""
     config = tmp_path / "bengal.toml"
-    _write(config, '[site]\ntitle = "Test"\nbase_url = "https://example.com"\ntheme = "test-theme-unique"')
+    _write(
+        config,
+        '[site]\ntitle = "Test"\nbase_url = "https://example.com"\ntheme = "test-theme-unique"',
+    )
 
     # Create invalid YAML
-    manifest = tmp_path / "bengal" / "themes" / "test-theme-unique" / "dev" / "components" / "invalid.yaml"
+    manifest = (
+        tmp_path / "bengal" / "themes" / "test-theme-unique" / "dev" / "components" / "invalid.yaml"
+    )
     _write(manifest, "invalid: yaml: content: [")
 
     site = Site.from_config(tmp_path)
@@ -106,14 +113,22 @@ def test_discover_components_invalid_yaml(tmp_path: Path):
 def test_discover_components_missing_template_key(tmp_path: Path):
     """Test handling of manifests without template key."""
     config = tmp_path / "bengal.toml"
-    _write(config, '[site]\ntitle = "Test"\nbase_url = "https://example.com"\ntheme = "test-theme-unique2"')
+    _write(
+        config,
+        '[site]\ntitle = "Test"\nbase_url = "https://example.com"\ntheme = "test-theme-unique2"',
+    )
 
     # Create manifest without template key
-    manifest = tmp_path / "bengal" / "themes" / "test-theme-unique2" / "dev" / "components" / "incomplete.yaml"
-    manifest_data = {
-        "name": "Incomplete Component",
-        "variants": []
-    }
+    manifest = (
+        tmp_path
+        / "bengal"
+        / "themes"
+        / "test-theme-unique2"
+        / "dev"
+        / "components"
+        / "incomplete.yaml"
+    )
+    manifest_data = {"name": "Incomplete Component", "variants": []}
     _write(manifest, yaml.dump(manifest_data))
 
     site = Site.from_config(tmp_path)
@@ -128,23 +143,29 @@ def test_discover_components_missing_template_key(tmp_path: Path):
 def test_discover_components_theme_override(tmp_path: Path):
     """Test that child theme overrides parent theme components."""
     config = tmp_path / "bengal.toml"
-    _write(config, '[site]\ntitle = "Test"\nbase_url = "https://example.com"\ntheme = "child-theme"')
+    _write(
+        config, '[site]\ntitle = "Test"\nbase_url = "https://example.com"\ntheme = "child-theme"'
+    )
 
     # Create parent theme component
-    parent_manifest = tmp_path / "bengal" / "themes" / "default" / "dev" / "components" / "button.yaml"
+    parent_manifest = (
+        tmp_path / "bengal" / "themes" / "default" / "dev" / "components" / "button.yaml"
+    )
     parent_data = {
         "name": "Parent Button",
         "template": "partials/button.html",
-        "variants": [{"id": "default", "name": "Default", "context": {}}]
+        "variants": [{"id": "default", "name": "Default", "context": {}}],
     }
     _write(parent_manifest, yaml.dump(parent_data))
 
     # Create child theme component with same ID
-    child_manifest = tmp_path / "bengal" / "themes" / "child-theme" / "dev" / "components" / "button.yaml"
+    child_manifest = (
+        tmp_path / "bengal" / "themes" / "child-theme" / "dev" / "components" / "button.yaml"
+    )
     child_data = {
         "name": "Child Button",
         "template": "partials/custom-button.html",
-        "variants": [{"id": "default", "name": "Default", "context": {}}]
+        "variants": [{"id": "default", "name": "Default", "context": {}}],
     }
     _write(child_manifest, yaml.dump(child_data))
 
@@ -177,14 +198,22 @@ def test_render_component_css_fingerprinting(component_site: Site):
     html = cps.render_component("partials/test-card.html", {})
 
     # Should include fingerprinted CSS URL (not hardcoded /assets/css/style.css)
-    assert '/assets/css/style.abc123.css' in html or '/assets/css/style.' in html
+    assert "/assets/css/style.abc123.css" in html or "/assets/css/style." in html
 
 
 def test_render_component_page_to_article_alias(component_site: Site):
     """Test that 'page' context is aliased to 'article'."""
     # Create template that uses 'article' variable
-    template = component_site.root_path / "bengal" / "themes" / "test-theme" / "templates" / "partials" / "article-card.html"
-    _write(template, '<div>{{ article.title }}</div>')
+    template = (
+        component_site.root_path
+        / "bengal"
+        / "themes"
+        / "test-theme"
+        / "templates"
+        / "partials"
+        / "article-card.html"
+    )
+    _write(template, "<div>{{ article.title }}</div>")
 
     cps = ComponentPreviewServer(component_site)
 
@@ -262,7 +291,7 @@ def test_list_page_with_components(component_site: Site):
     assert "Components" in html
     assert "Test Card" in html
     assert "2 variants" in html
-    assert "href=\"/__bengal_components__/view?c=card\"" in html
+    assert 'href="/__bengal_components__/view?c=card"' in html
 
 
 def test_component_manifest_dirs_theme_chain(component_site: Site):
@@ -284,9 +313,7 @@ def test_component_variant_id_normalization(tmp_path: Path):
     manifest_data = {
         "name": "Test Component",
         "template": "partials/test.html",
-        "variants": [
-            {"name": "Very Long Name", "context": {}}
-        ]
+        "variants": [{"name": "Very Long Name", "context": {}}],
     }
     _write(manifest, yaml.dump(manifest_data))
 
@@ -319,11 +346,19 @@ def test_multiple_components_discovery(tmp_path: Path):
 
     # Create multiple component manifests
     for comp_name in ["button", "card", "nav"]:
-        manifest = tmp_path / "bengal" / "themes" / "test-theme" / "dev" / "components" / f"{comp_name}.yaml"
+        manifest = (
+            tmp_path
+            / "bengal"
+            / "themes"
+            / "test-theme"
+            / "dev"
+            / "components"
+            / f"{comp_name}.yaml"
+        )
         manifest_data = {
             "name": f"Test {comp_name.title()}",
             "template": f"partials/{comp_name}.html",
-            "variants": []
+            "variants": [],
         }
         _write(manifest, yaml.dump(manifest_data))
 
@@ -344,16 +379,14 @@ def test_component_with_no_variants(tmp_path: Path):
     _write(config, '[site]\ntitle = "Test"\nbase_url = "https://example.com"\ntheme = "test-theme"')
 
     manifest = tmp_path / "bengal" / "themes" / "test-theme" / "dev" / "components" / "simple.yaml"
-    manifest_data = {
-        "name": "Simple Component",
-        "template": "partials/simple.html",
-        "variants": []
-    }
+    manifest_data = {"name": "Simple Component", "template": "partials/simple.html", "variants": []}
     _write(manifest, yaml.dump(manifest_data))
 
     # Create template
-    template = tmp_path / "bengal" / "themes" / "test-theme" / "templates" / "partials" / "simple.html"
-    _write(template, '<div>Simple</div>')
+    template = (
+        tmp_path / "bengal" / "themes" / "test-theme" / "templates" / "partials" / "simple.html"
+    )
+    _write(template, "<div>Simple</div>")
 
     site = Site.from_config(tmp_path)
     cps = ComponentPreviewServer(site)
@@ -362,4 +395,3 @@ def test_component_with_no_variants(tmp_path: Path):
 
     # Should render with default variant
     assert "<div>Simple</div>" in html
-

@@ -2,7 +2,6 @@
 Tests for health check report formatting.
 """
 
-
 from bengal.health.report import CheckResult, CheckStatus, HealthReport, ValidatorReport
 
 
@@ -26,9 +25,7 @@ class TestCheckResult:
     def test_create_warning(self):
         """Test creating warning result."""
         result = CheckResult.warning(
-            "Problem found",
-            recommendation="Fix it",
-            details=["detail1", "detail2"]
+            "Problem found", recommendation="Fix it", details=["detail1", "detail2"]
         )
         assert result.status == CheckStatus.WARNING
         assert result.message == "Problem found"
@@ -120,7 +117,7 @@ class TestValidatorReport:
         report.results = [
             CheckResult.success("OK"),
             CheckResult.warning("Warning"),
-            CheckResult.error("Error")
+            CheckResult.error("Error"),
         ]
         assert report.status_emoji == "❌"
 
@@ -203,10 +200,10 @@ class TestHealthReport:
 
         # Mixed results
         vr.results = [
-            CheckResult.success("OK"),      # 1.0 point
-            CheckResult.info("Info"),        # 0.8 points
+            CheckResult.success("OK"),  # 1.0 point
+            CheckResult.info("Info"),  # 0.8 points
             CheckResult.warning("Warning"),  # 0.5 points
-            CheckResult.error("Error"),      # 0.0 points
+            CheckResult.error("Error"),  # 0.0 points
         ]
         # Total: 2.3 / 4 = 57.5% = 57
         score = report.build_quality_score()
@@ -257,7 +254,7 @@ class TestHealthReportFormatting:
         vr = ValidatorReport("Test Validator")
         vr.results = [
             CheckResult.success("OK"),
-            CheckResult.warning("Found issue", recommendation="Fix it")
+            CheckResult.warning("Found issue", recommendation="Fix it"),
         ]
         report.validator_reports = [vr]
 
@@ -315,7 +312,7 @@ class TestHealthReportFormatting:
         vr.results = [
             CheckResult.success("Everything OK"),
             CheckResult.info("FYI message"),
-            CheckResult.warning("Warning message")
+            CheckResult.warning("Warning message"),
         ]
         report.validator_reports = [vr]
 
@@ -355,8 +352,7 @@ class TestHealthReportFormatting:
         vr = ValidatorReport("Validator")
         vr.results = [
             CheckResult.warning(
-                "Many issues",
-                details=["issue1", "issue2", "issue3", "issue4", "issue5"]
+                "Many issues", details=["issue1", "issue2", "issue3", "issue4", "issue5"]
             )
         ]
         report.validator_reports = [vr]
@@ -377,7 +373,7 @@ class TestHealthReportFormatting:
         vr.results = [
             CheckResult.success("OK"),
             CheckResult.warning("Warning"),
-            CheckResult.error("Error")
+            CheckResult.error("Error"),
         ]
         report.validator_reports = [vr]
 
@@ -398,25 +394,21 @@ class TestHealthReportJSON:
         """Test JSON formatting."""
         report = HealthReport()
         vr = ValidatorReport("Test Validator")
-        vr.results = [
-            CheckResult.success("OK"),
-            CheckResult.warning("Warning")
-        ]
+        vr.results = [CheckResult.success("OK"), CheckResult.warning("Warning")]
         report.validator_reports = [vr]
 
         json_data = report.format_json()
 
         assert isinstance(json_data, dict)
-        assert 'timestamp' in json_data
-        assert 'summary' in json_data
-        assert 'validators' in json_data
+        assert "timestamp" in json_data
+        assert "summary" in json_data
+        assert "validators" in json_data
 
         # Check summary
-        assert json_data['summary']['passed'] == 1
-        assert json_data['summary']['warnings'] == 1
-        assert json_data['summary']['quality_score'] > 0
+        assert json_data["summary"]["passed"] == 1
+        assert json_data["summary"]["warnings"] == 1
+        assert json_data["summary"]["quality_score"] > 0
 
         # Check validators
-        assert len(json_data['validators']) == 1
-        assert json_data['validators'][0]['name'] == "Test Validator"
-
+        assert len(json_data["validators"]) == 1
+        assert json_data["validators"][0]["name"] == "Test Validator"

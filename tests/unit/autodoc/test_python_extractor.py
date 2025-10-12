@@ -10,7 +10,8 @@ from bengal.autodoc.extractors.python import PythonExtractor
 def test_extract_simple_function(tmp_path):
     """Test extracting a simple function."""
     source = tmp_path / "test.py"
-    source.write_text(dedent("""
+    source.write_text(
+        dedent("""
         def hello(name: str) -> str:
             '''Say hello to someone.
 
@@ -21,7 +22,8 @@ def test_extract_simple_function(tmp_path):
                 A greeting message
             '''
             return f"Hello, {name}!"
-    """))
+    """)
+    )
 
     extractor = PythonExtractor()
     elements = extractor.extract(source)
@@ -39,13 +41,14 @@ def test_extract_simple_function(tmp_path):
     # Args is a list of dicts, not a dict
     args_list = func.metadata.get("args", [])
     assert len(args_list) > 0
-    assert any(arg['name'] == 'name' for arg in args_list)
+    assert any(arg["name"] == "name" for arg in args_list)
 
 
 def test_extract_class_with_methods(tmp_path):
     """Test extracting a class with methods."""
     source = tmp_path / "test.py"
-    source.write_text(dedent("""
+    source.write_text(
+        dedent("""
         class Calculator:
             '''A simple calculator.'''
 
@@ -56,7 +59,8 @@ def test_extract_class_with_methods(tmp_path):
             def subtract(self, a: int, b: int) -> int:
                 '''Subtract b from a.'''
                 return a - b
-    """))
+    """)
+    )
 
     extractor = PythonExtractor()
     elements = extractor.extract(source)
@@ -80,13 +84,15 @@ def test_extract_class_with_methods(tmp_path):
 def test_extract_with_type_hints(tmp_path):
     """Test extraction preserves type hints."""
     source = tmp_path / "test.py"
-    source.write_text(dedent("""
+    source.write_text(
+        dedent("""
         from typing import List, Optional
 
         def process(items: List[str], default: Optional[str] = None) -> int:
             '''Process items.'''
             return len(items)
-    """))
+    """)
+    )
 
     extractor = PythonExtractor()
     elements = extractor.extract(source)
@@ -94,7 +100,7 @@ def test_extract_with_type_hints(tmp_path):
     func = elements[0].children[0]
     args_list = func.metadata.get("args", [])
 
-    arg_names = [arg['name'] for arg in args_list]
+    arg_names = [arg["name"] for arg in args_list]
     assert "items" in arg_names
     assert "default" in arg_names
 
@@ -102,7 +108,8 @@ def test_extract_with_type_hints(tmp_path):
 def test_extract_excludes_private_by_default(tmp_path):
     """Test that private methods can be filtered."""
     source = tmp_path / "test.py"
-    source.write_text(dedent("""
+    source.write_text(
+        dedent("""
         class MyClass:
             def public_method(self):
                 '''Public method.'''
@@ -111,7 +118,8 @@ def test_extract_excludes_private_by_default(tmp_path):
             def _private_method(self):
                 '''Private method.'''
                 pass
-    """))
+    """)
+    )
 
     extractor = PythonExtractor()
     elements = extractor.extract(source)
@@ -125,7 +133,8 @@ def test_extract_excludes_private_by_default(tmp_path):
 def test_extract_handles_docstring_formats(tmp_path):
     """Test extraction works with different docstring formats."""
     source = tmp_path / "test.py"
-    source.write_text(dedent("""
+    source.write_text(
+        dedent("""
         def google_style(x: int) -> int:
             '''Google style docstring.
 
@@ -151,7 +160,8 @@ def test_extract_handles_docstring_formats(tmp_path):
                 The tripled value
             '''
             return y * 3
-    """))
+    """)
+    )
 
     extractor = PythonExtractor()
     elements = extractor.extract(source)
@@ -171,7 +181,8 @@ def test_extract_handles_docstring_formats(tmp_path):
 def test_extract_handles_decorators(tmp_path):
     """Test extraction handles decorated functions."""
     source = tmp_path / "test.py"
-    source.write_text(dedent("""
+    source.write_text(
+        dedent("""
         def decorator(func):
             return func
 
@@ -179,7 +190,8 @@ def test_extract_handles_decorators(tmp_path):
         def decorated_func():
             '''A decorated function.'''
             pass
-    """))
+    """)
+    )
 
     extractor = PythonExtractor()
     elements = extractor.extract(source)
@@ -230,13 +242,15 @@ def test_extract_handles_syntax_errors_gracefully(tmp_path):
 def test_extract_properties(tmp_path):
     """Test extraction of properties."""
     source = tmp_path / "test.py"
-    source.write_text(dedent("""
+    source.write_text(
+        dedent("""
         class MyClass:
             @property
             def value(self):
                 '''Get the value.'''
                 return self._value
-    """))
+    """)
+    )
 
     extractor = PythonExtractor()
     elements = extractor.extract(source)
@@ -246,4 +260,3 @@ def test_extract_properties(tmp_path):
 
     assert prop.name == "value"
     assert "value" in prop.description.lower()
-

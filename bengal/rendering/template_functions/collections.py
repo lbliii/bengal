@@ -17,16 +17,18 @@ if TYPE_CHECKING:
 
 def register(env: Environment, site: Site) -> None:
     """Register collection functions with Jinja2 environment."""
-    env.filters.update({
-        'where': where,
-        'where_not': where_not,
-        'group_by': group_by,
-        'sort_by': sort_by,
-        'limit': limit,
-        'offset': offset,
-        'uniq': uniq,
-        'flatten': flatten,
-    })
+    env.filters.update(
+        {
+            "where": where,
+            "where_not": where_not,
+            "group_by": group_by,
+            "sort_by": sort_by,
+            "limit": limit,
+            "offset": offset,
+            "uniq": uniq,
+            "flatten": flatten,
+        }
+    )
 
 
 def where(items: list[dict[str, Any]], key: str, value: Any) -> list[dict[str, Any]]:
@@ -258,4 +260,3 @@ def flatten(items: list[list[Any]]) -> list[Any]:
             result.append(item)
 
     return result
-

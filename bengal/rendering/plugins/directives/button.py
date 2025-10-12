@@ -19,7 +19,7 @@ from typing import Any
 
 from mistune.directives import DirectivePlugin
 
-__all__ = ['ButtonDirective']
+__all__ = ["ButtonDirective"]
 
 
 class ButtonDirective(DirectivePlugin):
@@ -90,31 +90,31 @@ class ButtonDirective(DirectivePlugin):
         content = self.parse_content(m).strip()
 
         # Extract options with defaults
-        color = options.get('color', 'primary').strip()
-        style = options.get('style', 'default').strip()
-        size = options.get('size', 'medium').strip()
-        icon = options.get('icon', '').strip()
-        target = options.get('target', '').strip()
+        color = options.get("color", "primary").strip()
+        style = options.get("style", "default").strip()
+        size = options.get("size", "medium").strip()
+        icon = options.get("icon", "").strip()
+        target = options.get("target", "").strip()
 
         return {
-            'type': 'button',
-            'attrs': {
-                'url': url,
-                'text': content,
-                'color': color,
-                'style': style,
-                'size': size,
-                'icon': icon,
-                'target': target,
-            }
+            "type": "button",
+            "attrs": {
+                "url": url,
+                "text": content,
+                "color": color,
+                "style": style,
+                "size": size,
+                "icon": icon,
+                "target": target,
+            },
         }
 
     def __call__(self, directive, md):
         """Register the directive with mistune."""
-        directive.register('button', self.parse)
+        directive.register("button", self.parse)
 
-        if md.renderer and md.renderer.NAME == 'html':
-            md.renderer.register('button', render_button)
+        if md.renderer and md.renderer.NAME == "html":
+            md.renderer.register("button", render_button)
 
 
 def render_button(renderer, text: str, **attrs) -> str:
@@ -129,49 +129,49 @@ def render_button(renderer, text: str, **attrs) -> str:
     Returns:
         HTML string for button
     """
-    url = attrs.get('url', '#')
-    button_text = attrs.get('text', text or 'Button')
-    color = attrs.get('color', 'primary')
-    style = attrs.get('style', 'default')
-    size = attrs.get('size', 'medium')
-    icon = attrs.get('icon', '')
-    target = attrs.get('target', '')
+    url = attrs.get("url", "#")
+    button_text = attrs.get("text", text or "Button")
+    color = attrs.get("color", "primary")
+    style = attrs.get("style", "default")
+    size = attrs.get("size", "medium")
+    icon = attrs.get("icon", "")
+    target = attrs.get("target", "")
 
     # Build CSS classes
-    classes = ['button']
+    classes = ["button"]
 
     # Color class
-    valid_colors = ['primary', 'secondary', 'success', 'danger', 'warning', 'info', 'light', 'dark']
+    valid_colors = ["primary", "secondary", "success", "danger", "warning", "info", "light", "dark"]
     if color in valid_colors:
-        classes.append(f'button-{color}')
+        classes.append(f"button-{color}")
     else:
-        classes.append('button-primary')  # Fallback
+        classes.append("button-primary")  # Fallback
 
     # Style class
-    if style == 'pill':
-        classes.append('button-pill')
-    elif style == 'outline':
-        classes.append('button-outline')
+    if style == "pill":
+        classes.append("button-pill")
+    elif style == "outline":
+        classes.append("button-outline")
     # 'default' style has no extra class
 
     # Size class
-    if size == 'small':
-        classes.append('button-sm')
-    elif size == 'large':
-        classes.append('button-lg')
+    if size == "small":
+        classes.append("button-sm")
+    elif size == "large":
+        classes.append("button-lg")
     # 'medium' is default, no extra class
 
-    class_str = ' '.join(classes)
+    class_str = " ".join(classes)
 
     # Build HTML attributes
     attrs_parts = [f'class="{class_str}"', f'href="{_escape_html(url)}"']
 
     if target:
         attrs_parts.append(f'target="{_escape_html(target)}"')
-        if target == '_blank':
+        if target == "_blank":
             attrs_parts.append('rel="noopener noreferrer"')
 
-    attrs_str = ' '.join(attrs_parts)
+    attrs_str = " ".join(attrs_parts)
 
     # Build button content (optional icon + text)
     content_parts = []
@@ -183,9 +183,9 @@ def render_button(renderer, text: str, **attrs) -> str:
 
     content_parts.append(f'<span class="button-text">{_escape_html(button_text)}</span>')
 
-    content_html = ''.join(content_parts)
+    content_html = "".join(content_parts)
 
-    return f'<a {attrs_str}>{content_html}</a>\n'
+    return f"<a {attrs_str}>{content_html}</a>\n"
 
 
 def _render_icon(icon_name: str) -> str:
@@ -199,22 +199,22 @@ def _render_icon(icon_name: str) -> str:
         HTML for icon, or empty string if not found
     """
     icon_map = {
-        'book': '📖',
-        'code': '💻',
-        'rocket': '🚀',
-        'users': '👥',
-        'star': '⭐',
-        'download': '⬇️',
-        'upload': '⬆️',
-        'external': '🔗',
-        'github': '🐙',
-        'arrow-right': '→',
-        'check': '✓',
-        'info': 'ℹ️',
-        'warning': '⚠️',
+        "book": "📖",
+        "code": "💻",
+        "rocket": "🚀",
+        "users": "👥",
+        "star": "⭐",
+        "download": "⬇️",
+        "upload": "⬆️",
+        "external": "🔗",
+        "github": "🐙",
+        "arrow-right": "→",
+        "check": "✓",
+        "info": "ℹ️",
+        "warning": "⚠️",
     }
 
-    return icon_map.get(icon_name, '')
+    return icon_map.get(icon_name, "")
 
 
 def _escape_html(text: str) -> str:
@@ -228,12 +228,12 @@ def _escape_html(text: str) -> str:
         Escaped text
     """
     if not text:
-        return ''
+        return ""
 
-    return (text
-            .replace('&', '&amp;')
-            .replace('<', '&lt;')
-            .replace('>', '&gt;')
-            .replace('"', '&quot;')
-            .replace("'", '&#x27;'))
-
+    return (
+        text.replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace('"', "&quot;")
+        .replace("'", "&#x27;")
+    )

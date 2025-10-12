@@ -128,4 +128,3 @@ class TestRoundFilter:
 
     def test_invalid_type(self):
         assert round_filter("abc") == 0
-

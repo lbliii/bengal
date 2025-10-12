@@ -15,12 +15,12 @@ class TestBuildStatsAccess:
         stats = BuildStats()
 
         # These should work (attributes)
-        assert hasattr(stats, 'total_pages')
-        assert hasattr(stats, 'build_time_ms')
-        assert hasattr(stats, 'regular_pages')
-        assert hasattr(stats, 'generated_pages')
-        assert hasattr(stats, 'parallel')
-        assert hasattr(stats, 'incremental')
+        assert hasattr(stats, "total_pages")
+        assert hasattr(stats, "build_time_ms")
+        assert hasattr(stats, "regular_pages")
+        assert hasattr(stats, "generated_pages")
+        assert hasattr(stats, "parallel")
+        assert hasattr(stats, "incremental")
 
     def test_buildstats_attribute_access(self):
         """Test accessing BuildStats via attributes."""
@@ -30,7 +30,7 @@ class TestBuildStatsAccess:
             regular_pages=80,
             generated_pages=20,
             parallel=True,
-            incremental=False
+            incremental=False,
         )
 
         # Should be able to access via attributes
@@ -47,21 +47,21 @@ class TestBuildStatsAccess:
 
         # BuildStats should not have .get() method
         # (It's a dataclass, not a dict)
-        assert not hasattr(stats, 'get') or not callable(getattr(stats, 'get', None))
+        assert not hasattr(stats, "get") or not callable(getattr(stats, "get", None))
 
     def test_buildstats_to_dict_method(self):
         """Test that BuildStats has to_dict() method for conversion."""
         stats = BuildStats(total_pages=50, build_time_ms=250.0)
 
         # Should have to_dict() method
-        assert hasattr(stats, 'to_dict')
+        assert hasattr(stats, "to_dict")
         assert callable(stats.to_dict)
 
         # Should return a dict
         result = stats.to_dict()
         assert isinstance(result, dict)
-        assert result['total_pages'] == 50
-        assert result['build_time_ms'] == 250.0
+        assert result["total_pages"] == 50
+        assert result["build_time_ms"] == 250.0
 
     def test_accessing_buildstats_as_dict_fails(self):
         """Test that trying to access BuildStats as dict raises error."""
@@ -69,10 +69,10 @@ class TestBuildStatsAccess:
 
         # These should fail (dict-style access)
         with pytest.raises((TypeError, AttributeError)):
-            _ = stats['total_pages']
+            _ = stats["total_pages"]
 
         with pytest.raises(AttributeError):
-            _ = stats.get('total_pages', 0)
+            _ = stats.get("total_pages", 0)
 
 
 class TestBuildStatsInServerContext:
@@ -94,25 +94,20 @@ class TestBuildStatsInServerContext:
 
     def test_logging_buildstats_correctly(self):
         """Test correct pattern for logging BuildStats data."""
-        stats = BuildStats(
-            total_pages=198,
-            build_time_ms=756.1,
-            parallel=True,
-            incremental=False
-        )
+        stats = BuildStats(total_pages=198, build_time_ms=756.1, parallel=True, incremental=False)
 
         # Correct pattern for logging
         log_data = {
-            'pages_built': stats.total_pages,  # Not stats.get('pages_rendered')
-            'duration_ms': stats.build_time_ms,  # Not stats.get('total_duration_ms')
-            'parallel': stats.parallel,
-            'incremental': stats.incremental,
+            "pages_built": stats.total_pages,  # Not stats.get('pages_rendered')
+            "duration_ms": stats.build_time_ms,  # Not stats.get('total_duration_ms')
+            "parallel": stats.parallel,
+            "incremental": stats.incremental,
         }
 
-        assert log_data['pages_built'] == 198
-        assert log_data['duration_ms'] == 756.1
-        assert log_data['parallel'] is True
-        assert log_data['incremental'] is False
+        assert log_data["pages_built"] == 198
+        assert log_data["duration_ms"] == 756.1
+        assert log_data["parallel"] is True
+        assert log_data["incremental"] is False
 
 
 class TestBuildStatsDefaults:
@@ -132,10 +127,7 @@ class TestBuildStatsDefaults:
 
     def test_buildstats_with_partial_data(self):
         """Test creating BuildStats with partial data."""
-        stats = BuildStats(
-            total_pages=100,
-            build_time_ms=500.0
-        )
+        stats = BuildStats(total_pages=100, build_time_ms=500.0)
 
         # Specified values should be set
         assert stats.total_pages == 100
@@ -144,4 +136,3 @@ class TestBuildStatsDefaults:
         # Unspecified values should use defaults
         assert stats.regular_pages == 0
         assert stats.parallel is True
-

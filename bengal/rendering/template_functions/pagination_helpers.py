@@ -12,16 +12,20 @@ if TYPE_CHECKING:
     from bengal.core.site import Site
 
 
-def register(env: 'Environment', site: 'Site') -> None:
+def register(env: "Environment", site: "Site") -> None:
     """Register pagination helper functions with Jinja2 environment."""
-    env.filters.update({
-        'paginate': paginate_items,
-    })
+    env.filters.update(
+        {
+            "paginate": paginate_items,
+        }
+    )
 
-    env.globals.update({
-        'page_url': page_url,
-        'page_range': page_range,
-    })
+    env.globals.update(
+        {
+            "page_url": page_url,
+            "page_range": page_range,
+        }
+    )
 
 
 def paginate_items(items: list[Any], per_page: int = 10, current_page: int = 1) -> dict:
@@ -44,13 +48,13 @@ def paginate_items(items: list[Any], per_page: int = 10, current_page: int = 1) 
     """
     if not items or per_page <= 0:
         return {
-            'items': [],
-            'total_pages': 0,
-            'current_page': 1,
-            'has_prev': False,
-            'has_next': False,
-            'prev_page': None,
-            'next_page': None,
+            "items": [],
+            "total_pages": 0,
+            "current_page": 1,
+            "has_prev": False,
+            "has_next": False,
+            "prev_page": None,
+            "next_page": None,
         }
 
     total_pages = (len(items) + per_page - 1) // per_page
@@ -60,14 +64,14 @@ def paginate_items(items: list[Any], per_page: int = 10, current_page: int = 1) 
     end_idx = start_idx + per_page
 
     return {
-        'items': items[start_idx:end_idx],
-        'total_pages': total_pages,
-        'current_page': current_page,
-        'has_prev': current_page > 1,
-        'has_next': current_page < total_pages,
-        'prev_page': current_page - 1 if current_page > 1 else None,
-        'next_page': current_page + 1 if current_page < total_pages else None,
-        'total_items': len(items),
+        "items": items[start_idx:end_idx],
+        "total_pages": total_pages,
+        "current_page": current_page,
+        "has_prev": current_page > 1,
+        "has_next": current_page < total_pages,
+        "prev_page": current_page - 1 if current_page > 1 else None,
+        "next_page": current_page + 1 if current_page < total_pages else None,
+        "total_items": len(items),
     }
 
 
@@ -86,10 +90,10 @@ def page_url(base_path: str, page_num: int) -> str:
         <a href="{{ page_url('/posts/', 2) }}">Page 2</a>
         # <a href="/posts/page/2/">Page 2</a>
     """
-    base_path = base_path.rstrip('/')
+    base_path = base_path.rstrip("/")
 
     if page_num <= 1:
-        return base_path + '/'
+        return base_path + "/"
 
     return f"{base_path}/page/{page_num}/"
 
@@ -149,4 +153,3 @@ def page_range(current_page: int, total_pages: int, window: int = 2) -> list[int
         pages.append(total_pages)
 
     return pages
-

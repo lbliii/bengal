@@ -17,14 +17,14 @@ class TestWhere:
 
     def test_filter_dicts(self):
         items = [
-            {'name': 'Alice', 'age': 30},
-            {'name': 'Bob', 'age': 25},
-            {'name': 'Charlie', 'age': 30},
+            {"name": "Alice", "age": 30},
+            {"name": "Bob", "age": 25},
+            {"name": "Charlie", "age": 30},
         ]
-        result = where(items, 'age', 30)
+        result = where(items, "age", 30)
         assert len(result) == 2
-        assert result[0]['name'] == 'Alice'
-        assert result[1]['name'] == 'Charlie'
+        assert result[0]["name"] == "Alice"
+        assert result[1]["name"] == "Charlie"
 
     def test_filter_objects(self):
         class Person:
@@ -33,25 +33,25 @@ class TestWhere:
                 self.age = age
 
         items = [
-            Person('Alice', 30),
-            Person('Bob', 25),
-            Person('Charlie', 30),
+            Person("Alice", 30),
+            Person("Bob", 25),
+            Person("Charlie", 30),
         ]
-        result = where(items, 'age', 30)
+        result = where(items, "age", 30)
         assert len(result) == 2
-        assert result[0].name == 'Alice'
+        assert result[0].name == "Alice"
 
     def test_no_matches(self):
-        items = [{'type': 'a'}, {'type': 'b'}]
-        result = where(items, 'type', 'c')
+        items = [{"type": "a"}, {"type": "b"}]
+        result = where(items, "type", "c")
         assert result == []
 
     def test_empty_list(self):
-        assert where([], 'key', 'value') == []
+        assert where([], "key", "value") == []
 
     def test_missing_key(self):
-        items = [{'name': 'Alice'}, {'name': 'Bob'}]
-        result = where(items, 'age', 30)
+        items = [{"name": "Alice"}, {"name": "Bob"}]
+        result = where(items, "age", 30)
         assert result == []
 
 
@@ -60,16 +60,16 @@ class TestWhereNot:
 
     def test_filter_dicts(self):
         items = [
-            {'status': 'active'},
-            {'status': 'archived'},
-            {'status': 'active'},
+            {"status": "active"},
+            {"status": "archived"},
+            {"status": "active"},
         ]
-        result = where_not(items, 'status', 'archived')
+        result = where_not(items, "status", "archived")
         assert len(result) == 2
-        assert all(item['status'] == 'active' for item in result)
+        assert all(item["status"] == "active" for item in result)
 
     def test_empty_list(self):
-        assert where_not([], 'key', 'value') == []
+        assert where_not([], "key", "value") == []
 
 
 class TestGroupBy:
@@ -77,14 +77,14 @@ class TestGroupBy:
 
     def test_group_dicts(self):
         items = [
-            {'category': 'fruit', 'name': 'apple'},
-            {'category': 'vegetable', 'name': 'carrot'},
-            {'category': 'fruit', 'name': 'banana'},
+            {"category": "fruit", "name": "apple"},
+            {"category": "vegetable", "name": "carrot"},
+            {"category": "fruit", "name": "banana"},
         ]
-        result = group_by(items, 'category')
+        result = group_by(items, "category")
         assert len(result) == 2
-        assert len(result['fruit']) == 2
-        assert len(result['vegetable']) == 1
+        assert len(result["fruit"]) == 2
+        assert len(result["vegetable"]) == 1
 
     def test_group_objects(self):
         class Item:
@@ -93,16 +93,16 @@ class TestGroupBy:
                 self.name = name
 
         items = [
-            Item('A', 'item1'),
-            Item('B', 'item2'),
-            Item('A', 'item3'),
+            Item("A", "item1"),
+            Item("B", "item2"),
+            Item("A", "item3"),
         ]
-        result = group_by(items, 'category')
+        result = group_by(items, "category")
         assert len(result) == 2
-        assert len(result['A']) == 2
+        assert len(result["A"]) == 2
 
     def test_empty_list(self):
-        assert group_by([], 'key') == {}
+        assert group_by([], "key") == {}
 
 
 class TestSortBy:
@@ -110,23 +110,23 @@ class TestSortBy:
 
     def test_sort_dicts_asc(self):
         items = [
-            {'age': 30},
-            {'age': 25},
-            {'age': 35},
+            {"age": 30},
+            {"age": 25},
+            {"age": 35},
         ]
-        result = sort_by(items, 'age')
-        assert result[0]['age'] == 25
-        assert result[2]['age'] == 35
+        result = sort_by(items, "age")
+        assert result[0]["age"] == 25
+        assert result[2]["age"] == 35
 
     def test_sort_dicts_desc(self):
         items = [
-            {'age': 30},
-            {'age': 25},
-            {'age': 35},
+            {"age": 30},
+            {"age": 25},
+            {"age": 35},
         ]
-        result = sort_by(items, 'age', reverse=True)
-        assert result[0]['age'] == 35
-        assert result[2]['age'] == 25
+        result = sort_by(items, "age", reverse=True)
+        assert result[0]["age"] == 35
+        assert result[2]["age"] == 25
 
     def test_sort_objects(self):
         class Item:
@@ -134,16 +134,16 @@ class TestSortBy:
                 self.value = value
 
         items = [Item(3), Item(1), Item(2)]
-        result = sort_by(items, 'value')
+        result = sort_by(items, "value")
         assert result[0].value == 1
 
     def test_empty_list(self):
-        assert sort_by([], 'key') == []
+        assert sort_by([], "key") == []
 
     def test_missing_key(self):
-        items = [{'a': 1}, {'b': 2}]
+        items = [{"a": 1}, {"b": 2}]
         # Should handle gracefully
-        result = sort_by(items, 'c')
+        result = sort_by(items, "c")
         assert len(result) == 2
 
 
@@ -213,7 +213,7 @@ class TestUniq:
         assert uniq([]) == []
 
     def test_unhashable_types(self):
-        items = [{'a': 1}, {'b': 2}, {'a': 1}]
+        items = [{"a": 1}, {"b": 2}, {"a": 1}]
         result = uniq(items)
         assert len(result) == 2  # Correctly removes duplicate dict
 
@@ -243,4 +243,3 @@ class TestFlatten:
 
     def test_empty_list(self):
         assert flatten([]) == []
-

@@ -13,13 +13,15 @@ if TYPE_CHECKING:
     from bengal.core.site import Site
 
 
-def register(env: 'Environment', site: 'Site') -> None:
+def register(env: "Environment", site: "Site") -> None:
     """Register advanced collection functions with Jinja2 environment."""
-    env.filters.update({
-        'sample': sample,
-        'shuffle': shuffle,
-        'chunk': chunk,
-    })
+    env.filters.update(
+        {
+            "sample": sample,
+            "shuffle": shuffle,
+            "chunk": chunk,
+        }
+    )
 
 
 def sample(items: list[Any], count: int = 1, seed: int | None = None) -> list[Any]:
@@ -101,5 +103,4 @@ def chunk(items: list[Any], size: int) -> list[list[Any]]:
     if not items or size <= 0:
         return []
 
-    return [items[i:i + size] for i in range(0, len(items), size)]
-
+    return [items[i : i + size] for i in range(0, len(items), size)]

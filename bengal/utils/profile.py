@@ -30,12 +30,13 @@ class BuildProfile(Enum):
     - THEME_DEV: Theme developers who need template debugging
     - DEVELOPER: Framework contributors who need full observability
     """
+
     WRITER = "writer"
     THEME_DEV = "theme-dev"
     DEVELOPER = "dev"
 
     @classmethod
-    def from_string(cls, value: str) -> 'BuildProfile':
+    def from_string(cls, value: str) -> "BuildProfile":
         """
         Parse profile from string.
 
@@ -53,12 +54,12 @@ class BuildProfile(Enum):
             return cls.WRITER
 
         mapping = {
-            'writer': cls.WRITER,
-            'theme-dev': cls.THEME_DEV,
-            'theme_dev': cls.THEME_DEV,
-            'dev': cls.DEVELOPER,
-            'developer': cls.DEVELOPER,
-            'debug': cls.DEVELOPER,  # Alias for backward compatibility
+            "writer": cls.WRITER,
+            "theme-dev": cls.THEME_DEV,
+            "theme_dev": cls.THEME_DEV,
+            "dev": cls.DEVELOPER,
+            "developer": cls.DEVELOPER,
+            "debug": cls.DEVELOPER,  # Alias for backward compatibility
         }
 
         normalized = value.lower().strip()
@@ -71,8 +72,8 @@ class BuildProfile(Enum):
         dev: bool = False,
         theme_dev: bool = False,
         verbose: bool = False,
-        debug: bool = False
-    ) -> 'BuildProfile':
+        debug: bool = False,
+    ) -> "BuildProfile":
         """
         Determine profile from CLI arguments with proper precedence.
 
@@ -147,68 +148,78 @@ class BuildProfile(Enum):
         """
         if self == BuildProfile.WRITER:
             return {
-                'show_phase_timing': False,
-                'track_memory': False,
-                'enable_debug_output': False,
-                'collect_metrics': False,
-                'health_checks': {
+                "show_phase_timing": False,
+                "track_memory": False,
+                "enable_debug_output": False,
+                "collect_metrics": False,
+                "health_checks": {
                     # Only run critical checks
-                    'enabled': ['config', 'output', 'links'],
-                    'disabled': [
-                        'performance', 'cache', 'directives',
-                        'rendering', 'navigation', 'menu', 'taxonomy'
-                    ]
+                    "enabled": ["config", "output", "links"],
+                    "disabled": [
+                        "performance",
+                        "cache",
+                        "directives",
+                        "rendering",
+                        "navigation",
+                        "menu",
+                        "taxonomy",
+                    ],
                 },
-                'verbose_build_stats': False,
-                'verbose_console_logs': False,  # Clean output, no log spam
-                'live_progress': {
-                    'enabled': True,
-                    'show_recent_items': False,
-                    'show_metrics': False,
-                    'max_recent': 0,
+                "verbose_build_stats": False,
+                "verbose_console_logs": False,  # Clean output, no log spam
+                "live_progress": {
+                    "enabled": True,
+                    "show_recent_items": False,
+                    "show_metrics": False,
+                    "max_recent": 0,
                 },
             }
         elif self == BuildProfile.THEME_DEV:
             return {
-                'show_phase_timing': True,
-                'track_memory': False,
-                'enable_debug_output': False,
-                'collect_metrics': True,  # Basic timing metrics
-                'health_checks': {
+                "show_phase_timing": True,
+                "track_memory": False,
+                "enable_debug_output": False,
+                "collect_metrics": True,  # Basic timing metrics
+                "health_checks": {
                     # Template and theme-focused checks
-                    'enabled': [
-                        'config', 'output', 'links', 'rendering',
-                        'directives', 'navigation', 'menu'
+                    "enabled": [
+                        "config",
+                        "output",
+                        "links",
+                        "rendering",
+                        "directives",
+                        "navigation",
+                        "menu",
                     ],
-                    'disabled': ['performance', 'cache', 'taxonomy']
+                    "disabled": ["performance", "cache", "taxonomy"],
                 },
-                'verbose_build_stats': True,
-                'verbose_console_logs': False,  # Detailed stats, but no log spam
-                'live_progress': {
-                    'enabled': True,
-                    'show_recent_items': True,
-                    'show_metrics': True,
-                    'max_recent': 3,
+                "verbose_build_stats": True,
+                "verbose_console_logs": False,  # Detailed stats, but no log spam
+                "live_progress": {
+                    "enabled": True,
+                    "show_recent_items": True,
+                    "show_metrics": True,
+                    "max_recent": 3,
                 },
             }
         else:  # DEVELOPER
             return {
-                'show_phase_timing': True,
-                'track_memory': True,
-                'enable_debug_output': True,
-                'collect_metrics': True,
-                'health_checks': {
+                "show_phase_timing": True,
+                "track_memory": True,
+                "enable_debug_output": True,
+                "collect_metrics": True,
+                "health_checks": {
                     # Everything
-                    'enabled': 'all',
-                    'disabled': []
+                    "enabled": "all",
+                    "disabled": [],
                 },
-                'verbose_build_stats': True,
-                'verbose_console_logs': False,  # Full metrics, but no log spam (use --full-output if needed)
-                'live_progress': {
-                    'enabled': True,
-                    'show_recent_items': True,
-                    'show_metrics': True,
-                    'max_recent': 5,
+                "verbose_build_stats": True,
+                "verbose_console_logs": False,  # Full metrics, but no log spam (use --full-output if needed)
+                "live_progress": {
+                    "enabled": True,
+                    "show_recent_items": True,
+                    "show_metrics": True,
+                    "max_recent": 5,
                 },
             }
 
@@ -261,7 +272,7 @@ def should_show_debug() -> bool:
     """
     profile = get_current_profile()
     config = profile.get_config()
-    return config.get('enable_debug_output', False)
+    return config.get("enable_debug_output", False)
 
 
 def should_track_memory() -> bool:
@@ -273,7 +284,7 @@ def should_track_memory() -> bool:
     """
     profile = get_current_profile()
     config = profile.get_config()
-    return config.get('track_memory', False)
+    return config.get("track_memory", False)
 
 
 def should_collect_metrics() -> bool:
@@ -285,7 +296,7 @@ def should_collect_metrics() -> bool:
     """
     profile = get_current_profile()
     config = profile.get_config()
-    return config.get('collect_metrics', False)
+    return config.get("collect_metrics", False)
 
 
 def get_enabled_health_checks() -> list[str]:
@@ -301,12 +312,12 @@ def get_enabled_health_checks() -> list[str]:
     """
     profile = get_current_profile()
     config = profile.get_config()
-    health_config = config.get('health_checks', {})
-    enabled = health_config.get('enabled', [])
+    health_config = config.get("health_checks", {})
+    enabled = health_config.get("enabled", [])
 
     # Return 'all' as a list with single element for easier checking
-    if enabled == 'all':
-        return ['all']
+    if enabled == "all":
+        return ["all"]
 
     return enabled
 
@@ -328,12 +339,11 @@ def is_validator_enabled(validator_name: str) -> bool:
     enabled = get_enabled_health_checks()
 
     # If 'all' is in the list, everything is enabled
-    if 'all' in enabled:
+    if "all" in enabled:
         return True
 
     # Normalize validator name (handle spaces and case)
-    normalized = validator_name.lower().replace(' ', '_')
-    enabled_normalized = [v.lower().replace(' ', '_') for v in enabled]
+    normalized = validator_name.lower().replace(" ", "_")
+    enabled_normalized = [v.lower().replace(" ", "_") for v in enabled]
 
     return normalized in enabled_normalized
-

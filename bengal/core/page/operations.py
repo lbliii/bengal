@@ -68,11 +68,10 @@ class PageOperationsMixin:
             List of link URLs found in the page
         """
         # Extract Markdown links [text](url)
-        markdown_links = re.findall(r'\[([^\]]+)\]\(([^)]+)\)', self.content)
+        markdown_links = re.findall(r"\[([^\]]+)\]\(([^)]+)\)", self.content)
 
         # Extract HTML links <a href="url">
         html_links = re.findall(r'<a\s+[^>]*href=["\']([^"\']+)["\']', self.content)
 
         self.links = [url for _, url in markdown_links] + html_links
         return self.links
-

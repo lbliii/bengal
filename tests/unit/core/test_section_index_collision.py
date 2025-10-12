@@ -20,7 +20,7 @@ class TestIndexFileCollision:
         underscore_index = Page(
             source_path=Path("/content/docs/_index.md"),
             content="Content from _index",
-            metadata={"title": "Docs Index"}
+            metadata={"title": "Docs Index"},
         )
 
         section.add_page(underscore_index)
@@ -36,7 +36,7 @@ class TestIndexFileCollision:
         regular_index = Page(
             source_path=Path("/content/docs/index.md"),
             content="Content from index",
-            metadata={"title": "Docs Index"}
+            metadata={"title": "Docs Index"},
         )
 
         section.add_page(regular_index)
@@ -52,7 +52,7 @@ class TestIndexFileCollision:
         regular_index = Page(
             source_path=Path("/content/docs/index.md"),
             content="Content from index",
-            metadata={"title": "Index"}
+            metadata={"title": "Index"},
         )
         section.add_page(regular_index)
 
@@ -60,10 +60,10 @@ class TestIndexFileCollision:
         underscore_index = Page(
             source_path=Path("/content/docs/_index.md"),
             content="Content from _index",
-            metadata={"title": "Underscore Index"}
+            metadata={"title": "Underscore Index"},
         )
 
-        with patch('bengal.core.section.logger') as mock_logger:
+        with patch("bengal.core.section.logger") as mock_logger:
             section.add_page(underscore_index)
 
             # Should log warning about collision
@@ -72,9 +72,9 @@ class TestIndexFileCollision:
             call_args_positional = mock_logger.warning.call_args[0]
             call_args_kwargs = mock_logger.warning.call_args[1]
 
-            assert call_args_positional[0] == 'index_file_collision'
-            assert call_args_kwargs['section'] == 'docs'
-            assert call_args_kwargs['action'] == 'preferring_underscore_version'
+            assert call_args_positional[0] == "index_file_collision"
+            assert call_args_kwargs["section"] == "docs"
+            assert call_args_kwargs["action"] == "preferring_underscore_version"
 
         # _index.md should be the index page
         assert section.index_page == underscore_index
@@ -89,7 +89,7 @@ class TestIndexFileCollision:
         underscore_index = Page(
             source_path=Path("/content/docs/_index.md"),
             content="Content from _index",
-            metadata={"title": "Underscore Index"}
+            metadata={"title": "Underscore Index"},
         )
         section.add_page(underscore_index)
 
@@ -97,16 +97,16 @@ class TestIndexFileCollision:
         regular_index = Page(
             source_path=Path("/content/docs/index.md"),
             content="Content from index",
-            metadata={"title": "Index"}
+            metadata={"title": "Index"},
         )
 
-        with patch('bengal.core.section.logger') as mock_logger:
+        with patch("bengal.core.section.logger") as mock_logger:
             section.add_page(regular_index)
 
             # Should log warning about collision
             mock_logger.warning.assert_called_once()
             call_args_positional = mock_logger.warning.call_args[0]
-            assert call_args_positional[0] == 'index_file_collision'
+            assert call_args_positional[0] == "index_file_collision"
 
         # _index.md should remain the index page
         assert section.index_page == underscore_index
@@ -120,12 +120,12 @@ class TestIndexFileCollision:
         page1 = Page(
             source_path=Path("/content/docs/guide.md"),
             content="Guide content",
-            metadata={"title": "Guide"}
+            metadata={"title": "Guide"},
         )
         page2 = Page(
             source_path=Path("/content/docs/tutorial.md"),
             content="Tutorial content",
-            metadata={"title": "Tutorial"}
+            metadata={"title": "Tutorial"},
         )
 
         section.add_page(page1)
@@ -143,10 +143,7 @@ class TestIndexFileCollision:
         regular_index = Page(
             source_path=Path("/content/docs/index.md"),
             content="Regular index",
-            metadata={
-                "title": "Index",
-                "cascade": {"layout": "doc"}
-            }
+            metadata={"title": "Index", "cascade": {"layout": "doc"}},
         )
         section.add_page(regular_index)
         assert "cascade" in section.metadata
@@ -155,16 +152,12 @@ class TestIndexFileCollision:
         underscore_index = Page(
             source_path=Path("/content/docs/_index.md"),
             content="Underscore index",
-            metadata={
-                "title": "Underscore Index",
-                "cascade": {"layout": "guide"}
-            }
+            metadata={"title": "Underscore Index", "cascade": {"layout": "guide"}},
         )
 
-        with patch('bengal.core.section.logger'):
+        with patch("bengal.core.section.logger"):
             section.add_page(underscore_index)
 
         # _index.md cascade should override
         assert section.metadata["cascade"]["layout"] == "guide"
         assert section.index_page == underscore_index
-

@@ -41,7 +41,7 @@ from . import (
 logger = get_logger(__name__)
 
 
-def register_all(env: 'Environment', site: 'Site') -> None:
+def register_all(env: "Environment", site: "Site") -> None:
     """
     Register all template functions with Jinja2 environment.
 
@@ -86,23 +86,22 @@ def register_all(env: 'Environment', site: 'Site') -> None:
 
 
 __all__ = [
-    'advanced_collections',
-    'advanced_strings',
-    'collections',
-    'content',
-    'crossref',
-    'data',
-    'dates',
-    'debug',
-    'files',
-    'images',
-    'math_functions',
-    'navigation',
-    'pagination_helpers',
-    'register_all',
-    'seo',
-    'strings',
-    'taxonomies',
-    'urls',
+    "advanced_collections",
+    "advanced_strings",
+    "collections",
+    "content",
+    "crossref",
+    "data",
+    "dates",
+    "debug",
+    "files",
+    "images",
+    "math_functions",
+    "navigation",
+    "pagination_helpers",
+    "register_all",
+    "seo",
+    "strings",
+    "taxonomies",
+    "urls",
 ]
-

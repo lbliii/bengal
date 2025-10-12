@@ -4,6 +4,7 @@ Integration tests that validate rendered output quality.
 These tests catch issues where pages render but produce broken/incomplete HTML,
 like the template rendering bug where pages fell back to simple HTML without themes.
 """
+
 import shutil
 from pathlib import Path
 
@@ -43,36 +44,37 @@ class TestOutputQuality:
     def test_pages_include_theme_assets(self, built_site):
         """Verify pages include CSS and JS from theme."""
         index_html = (built_site / "index.html").read_text()
-        soup = BeautifulSoup(index_html, 'html.parser')
+        soup = BeautifulSoup(index_html, "html.parser")
 
         # Must have stylesheet links
-        stylesheets = soup.find_all('link', rel='stylesheet')
+        stylesheets = soup.find_all("link", rel="stylesheet")
         assert len(stylesheets) > 0, "No stylesheets found in output"
 
         # Check for asset_url helper working
-        assert any('assets/css' in str(link.get('href', '')) for link in stylesheets), \
+        assert any("assets/css" in str(link.get("href", "")) for link in stylesheets), (
             "No theme CSS linked"
+        )
 
         # Must have navigation
-        nav = soup.find('nav')
+        nav = soup.find("nav")
         assert nav is not None, "No navigation found in output"
 
     def test_pages_have_proper_html_structure(self, built_site):
         """Verify pages have proper HTML5 structure."""
         index_html = (built_site / "index.html").read_text()
-        soup = BeautifulSoup(index_html, 'html.parser')
+        soup = BeautifulSoup(index_html, "html.parser")
 
         # Must have proper HTML structure
-        assert soup.find('html') is not None, "No <html> tag"
-        assert soup.find('head') is not None, "No <head> tag"
-        assert soup.find('body') is not None, "No <body> tag"
-        assert soup.find('title') is not None, "No <title> tag"
+        assert soup.find("html") is not None, "No <html> tag"
+        assert soup.find("head") is not None, "No <head> tag"
+        assert soup.find("body") is not None, "No <body> tag"
+        assert soup.find("title") is not None, "No <title> tag"
 
         # Must have meta tags
-        charset = soup.find('meta', attrs={'charset': True})
+        charset = soup.find("meta", attrs={"charset": True})
         assert charset is not None, "No charset meta tag"
 
-        viewport = soup.find('meta', attrs={'name': 'viewport'})
+        viewport = soup.find("meta", attrs={"name": "viewport"})
         assert viewport is not None, "No viewport meta tag"
 
     def test_pages_have_reasonable_size(self, built_site):
@@ -86,15 +88,15 @@ class TestOutputQuality:
         size = index_html.stat().st_size
 
         # Full themed pages should be substantial
-        assert size > 3000, \
+        assert size > 3000, (
             f"Page too small ({size} bytes), likely fallback HTML instead of themed output"
+        )
 
         # Check a few other pages too
         about_html = built_site / "about/index.html"
         if about_html.exists():
             about_size = about_html.stat().st_size
-            assert about_size > 2000, \
-                f"About page too small ({about_size} bytes)"
+            assert about_size > 2000, f"About page too small ({about_size} bytes)"
 
     def test_pages_contain_actual_content(self, built_site):
         """Verify pages include the actual markdown content."""
@@ -119,8 +121,11 @@ class TestOutputQuality:
             # Remove code blocks using regex (don't use BeautifulSoup - it decodes HTML entities!)
             # Code blocks are allowed to have Jinja2 syntax for documentation
             import re
-            raw_html_without_code = re.sub(r'<code[^>]*>.*?</code>', '', content, flags=re.DOTALL)
-            raw_html_without_code = re.sub(r'<pre[^>]*>.*?</pre>', '', raw_html_without_code, flags=re.DOTALL)
+
+            raw_html_without_code = re.sub(r"<code[^>]*>.*?</code>", "", content, flags=re.DOTALL)
+            raw_html_without_code = re.sub(
+                r"<pre[^>]*>.*?</pre>", "", raw_html_without_code, flags=re.DOTALL
+            )
 
             # Replace HTML-escaped versions so they don't trigger false positives
             clean_html = raw_html_without_code.replace("&#123;&#123;", "ESCAPED_OPEN")
@@ -153,17 +158,17 @@ class TestOutputQuality:
     def test_pages_have_proper_meta_tags(self, built_site):
         """Verify SEO meta tags are properly rendered."""
         index_html = (built_site / "index.html").read_text()
-        soup = BeautifulSoup(index_html, 'html.parser')
+        soup = BeautifulSoup(index_html, "html.parser")
 
         # Check Open Graph tags
-        og_title = soup.find('meta', property='og:title')
+        og_title = soup.find("meta", property="og:title")
         assert og_title is not None, "Missing og:title meta tag"
 
-        og_type = soup.find('meta', property='og:type')
+        og_type = soup.find("meta", property="og:type")
         assert og_type is not None, "Missing og:type meta tag"
 
         # Check Twitter Card tags
-        twitter_card = soup.find('meta', attrs={'name': 'twitter:card'})
+        twitter_card = soup.find("meta", attrs={"name": "twitter:card"})
         assert twitter_card is not None, "Missing twitter:card meta tag"
 
     def test_rss_feed_generated(self, built_site):
@@ -172,9 +177,9 @@ class TestOutputQuality:
         assert rss_path.exists(), "RSS feed not generated"
 
         rss_content = rss_path.read_text()
-        assert '<?xml' in rss_content, "RSS missing XML declaration"
-        assert '<rss' in rss_content, "RSS missing <rss> tag"
-        assert '<channel>' in rss_content, "RSS missing <channel> tag"
+        assert "<?xml" in rss_content, "RSS missing XML declaration"
+        assert "<rss" in rss_content, "RSS missing <rss> tag"
+        assert "<channel>" in rss_content, "RSS missing <channel> tag"
 
     def test_sitemap_generated(self, built_site):
         """Verify sitemap is generated and valid."""
@@ -182,9 +187,9 @@ class TestOutputQuality:
         assert sitemap_path.exists(), "Sitemap not generated"
 
         sitemap_content = sitemap_path.read_text()
-        assert '<?xml' in sitemap_content, "Sitemap missing XML declaration"
-        assert '<urlset' in sitemap_content, "Sitemap missing <urlset> tag"
-        assert '<url>' in sitemap_content, "Sitemap missing <url> entries"
+        assert "<?xml" in sitemap_content, "Sitemap missing XML declaration"
+        assert "<urlset" in sitemap_content, "Sitemap missing <urlset> tag"
+        assert "<url>" in sitemap_content, "Sitemap missing <url> entries"
 
 
 class TestStrictMode:
@@ -260,4 +265,3 @@ title = "Test Site"
             size = output_file.stat().st_size
             # Fallback HTML should be small
             assert size < 2000, "Expected small fallback HTML in non-strict mode"
-

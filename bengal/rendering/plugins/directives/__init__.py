@@ -37,15 +37,15 @@ from bengal.rendering.plugins.directives.validator import DirectiveSyntaxValidat
 from bengal.utils.logger import get_logger
 
 __all__ = [
-    'DirectiveCache',
-    'DirectiveError',
-    'DirectiveSyntaxValidator',
-    'clear_cache',
-    'configure_cache',
-    'create_documentation_directives',
-    'format_directive_error',
-    'get_cache',
-    'get_cache_stats',
+    "DirectiveCache",
+    "DirectiveError",
+    "DirectiveSyntaxValidator",
+    "clear_cache",
+    "configure_cache",
+    "create_documentation_directives",
+    "format_directive_error",
+    "get_cache",
+    "get_cache_stats",
 ]
 
 
@@ -73,15 +73,14 @@ def create_documentation_directives():
         RuntimeError: If directive registration fails
         ImportError: If FencedDirective is not available
     """
+
     def plugin_documentation_directives(md):
         """Register all documentation directives with Mistune."""
         logger = get_logger(__name__)
         try:
             from mistune.directives import FencedDirective
         except ImportError as e:
-            logger.error("fenced_directive_unavailable",
-                        error=str(e),
-                        error_type=type(e).__name__)
+            logger.error("fenced_directive_unavailable", error=str(e), error_type=type(e).__name__)
             raise ImportError(
                 "FencedDirective not found. Ensure mistune>=3.0.0 is installed."
             ) from e
@@ -89,28 +88,28 @@ def create_documentation_directives():
         try:
             # Create fenced directive with all our custom directives
             # Support both backtick (`) and colon (:) fences for MyST Markdown compatibility
-            directive = FencedDirective([
-                AdmonitionDirective(),  # Supports note, tip, warning, etc.
-                TabSetDirective(),  # Modern MyST tab-set
-                TabItemDirective(),  # Modern MyST tab-item
-                TabsDirective(),  # Legacy tabs (backward compat)
-                DropdownDirective(),
-                CodeTabsDirective(),
-                RubricDirective(),  # Pseudo-headings for API docs
-                CardsDirective(),  # Modern card grid system
-                CardDirective(),  # Individual cards
-                GridDirective(),  # Sphinx-Design compatibility
-                GridItemCardDirective(),  # Sphinx-Design compatibility
-                ButtonDirective(),  # Simple button links
-            ], markers='`:')
+            directive = FencedDirective(
+                [
+                    AdmonitionDirective(),  # Supports note, tip, warning, etc.
+                    TabSetDirective(),  # Modern MyST tab-set
+                    TabItemDirective(),  # Modern MyST tab-item
+                    TabsDirective(),  # Legacy tabs (backward compat)
+                    DropdownDirective(),
+                    CodeTabsDirective(),
+                    RubricDirective(),  # Pseudo-headings for API docs
+                    CardsDirective(),  # Modern card grid system
+                    CardDirective(),  # Individual cards
+                    GridDirective(),  # Sphinx-Design compatibility
+                    GridItemCardDirective(),  # Sphinx-Design compatibility
+                    ButtonDirective(),  # Simple button links
+                ],
+                markers="`:",
+            )
 
             # Apply to markdown instance
             return directive(md)
         except Exception as e:
-            logger.error("directive_registration_error",
-                        error=str(e),
-                        error_type=type(e).__name__)
+            logger.error("directive_registration_error", error=str(e), error_type=type(e).__name__)
             raise RuntimeError(f"Failed to register directives plugin: {e}") from e
 
     return plugin_documentation_directives
-

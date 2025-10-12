@@ -34,17 +34,17 @@ from mistune.directives import DirectivePlugin
 from bengal.utils.logger import get_logger
 
 __all__ = [
-    'TabItemDirective',   # Modern MyST syntax
-    'TabSetDirective',    # Modern MyST syntax
-    'TabsDirective',      # Legacy syntax (backward compat)
-    'render_tab_item',
-    'render_tab_set',
+    "TabItemDirective",  # Modern MyST syntax
+    "TabSetDirective",  # Modern MyST syntax
+    "TabsDirective",  # Legacy syntax (backward compat)
+    "render_tab_item",
+    "render_tab_set",
 ]
 
 logger = get_logger(__name__)
 
 # Pre-compiled regex patterns (compiled once, reused for all pages)
-_TAB_SPLIT_PATTERN = re.compile(r'^### Tab: (.+)$', re.MULTILINE)
+_TAB_SPLIT_PATTERN = re.compile(r"^### Tab: (.+)$", re.MULTILINE)
 
 
 class TabSetDirective(DirectivePlugin):
@@ -77,17 +77,17 @@ class TabSetDirective(DirectivePlugin):
         children = self.parse_tokens(block, content, state)
 
         return {
-            'type': 'tab_set',
-            'attrs': options,
-            'children': children,
+            "type": "tab_set",
+            "attrs": options,
+            "children": children,
         }
 
     def __call__(self, directive, md):
         """Register the directive with mistune."""
-        directive.register('tab-set', self.parse)
+        directive.register("tab-set", self.parse)
 
-        if md.renderer and md.renderer.NAME == 'html':
-            md.renderer.register('tab_set', render_tab_set)
+        if md.renderer and md.renderer.NAME == "html":
+            md.renderer.register("tab_set", render_tab_set)
 
 
 class TabItemDirective(DirectivePlugin):
@@ -114,20 +114,20 @@ class TabItemDirective(DirectivePlugin):
         children = self.parse_tokens(block, content, state)
 
         return {
-            'type': 'tab_item',
-            'attrs': {
-                'title': title,
-                'selected': 'selected' in options,
+            "type": "tab_item",
+            "attrs": {
+                "title": title,
+                "selected": "selected" in options,
             },
-            'children': children,
+            "children": children,
         }
 
     def __call__(self, directive, md):
         """Register the directive with mistune."""
-        directive.register('tab-item', self.parse)
+        directive.register("tab-item", self.parse)
 
-        if md.renderer and md.renderer.NAME == 'html':
-            md.renderer.register('tab_item', render_tab_item)
+        if md.renderer and md.renderer.NAME == "html":
+            md.renderer.register("tab_item", render_tab_item)
 
 
 class TabsDirective(DirectivePlugin):
@@ -162,43 +162,48 @@ class TabsDirective(DirectivePlugin):
                     title = parts[i].strip()
                     tab_content = parts[i + 1].strip()
 
-                    tab_items.append({
-                        'type': 'tab_item',
-                        'attrs': {
-                            'title': title,
-                            'selected': i == 1,  # First tab selected
-                        },
-                        'children': self.parse_tokens(block, tab_content, state)
-                    })
+                    tab_items.append(
+                        {
+                            "type": "tab_item",
+                            "attrs": {
+                                "title": title,
+                                "selected": i == 1,  # First tab selected
+                            },
+                            "children": self.parse_tokens(block, tab_content, state),
+                        }
+                    )
 
         # If no valid tabs found, create single tab
         if not tab_items:
-            tab_items.append({
-                'type': 'tab_item',
-                'attrs': {
-                    'title': options.get('title', 'Content'),
-                    'selected': True,
-                },
-                'children': self.parse_tokens(block, content, state)
-            })
+            tab_items.append(
+                {
+                    "type": "tab_item",
+                    "attrs": {
+                        "title": options.get("title", "Content"),
+                        "selected": True,
+                    },
+                    "children": self.parse_tokens(block, content, state),
+                }
+            )
 
         return {
-            'type': 'tab_set',
-            'attrs': options,
-            'children': tab_items,
+            "type": "tab_set",
+            "attrs": options,
+            "children": tab_items,
         }
 
     def __call__(self, directive, md):
         """Register the directive with mistune."""
-        directive.register('tabs', self.parse)
+        directive.register("tabs", self.parse)
 
         # Uses the same renderer as TabSetDirective
-        if md.renderer and md.renderer.NAME == 'html':
-            md.renderer.register('tab_set', render_tab_set)
-            md.renderer.register('tab_item', render_tab_item)
+        if md.renderer and md.renderer.NAME == "html":
+            md.renderer.register("tab_set", render_tab_set)
+            md.renderer.register("tab_item", render_tab_item)
 
 
 # Render functions
+
 
 def render_tab_set(renderer, text: str, **attrs) -> str:
     """
@@ -215,15 +220,15 @@ def render_tab_set(renderer, text: str, **attrs) -> str:
     Returns:
         HTML string for tab set
     """
-    tab_id = attrs.get('id', f'tabs-{id(text)}')
-    sync_key = attrs.get('sync', '')
+    tab_id = attrs.get("id", f"tabs-{id(text)}")
+    sync_key = attrs.get("sync", "")
 
     # Extract tab items from rendered HTML
     # Pattern: <div class="tab-item" data-title="..." data-selected="...">content</div>
     import re
+
     tab_pattern = re.compile(
-        r'<div class="tab-item" data-title="([^"]*)" data-selected="([^"]*)">(.*?)</div>',
-        re.DOTALL
+        r'<div class="tab-item" data-title="([^"]*)" data-selected="([^"]*)">(.*?)</div>', re.DOTALL
     )
     matches = tab_pattern.findall(text)
 
@@ -238,16 +243,26 @@ def render_tab_set(renderer, text: str, **attrs) -> str:
     nav_html += '>\n  <ul class="tab-nav">\n'
 
     for i, (title, selected, _) in enumerate(matches):
-        active = ' class="active"' if selected == 'true' or (i == 0 and not any(s == 'true' for _, s, _ in matches)) else ''
+        active = (
+            ' class="active"'
+            if selected == "true" or (i == 0 and not any(s == "true" for _, s, _ in matches))
+            else ""
+        )
         nav_html += f'    <li{active}><a href="#" data-tab-target="{tab_id}-{i}">{_escape_html(title)}</a></li>\n'
-    nav_html += '  </ul>\n'
+    nav_html += "  </ul>\n"
 
     # Build content panes
     content_html = '  <div class="tab-content">\n'
     for i, (_, selected, content) in enumerate(matches):
-        active = ' active' if selected == 'true' or (i == 0 and not any(s == 'true' for _, s, _ in matches)) else ''
-        content_html += f'    <div id="{tab_id}-{i}" class="tab-pane{active}">\n{content}    </div>\n'
-    content_html += '  </div>\n</div>\n'
+        active = (
+            " active"
+            if selected == "true" or (i == 0 and not any(s == "true" for _, s, _ in matches))
+            else ""
+        )
+        content_html += (
+            f'    <div id="{tab_id}-{i}" class="tab-pane{active}">\n{content}    </div>\n'
+        )
+    content_html += "  </div>\n</div>\n"
 
     return nav_html + content_html
 
@@ -267,8 +282,8 @@ def render_tab_item(renderer, text: str, **attrs) -> str:
     Returns:
         HTML string for tab item (wrapper for tab-set to parse)
     """
-    title = attrs.get('title', 'Tab')
-    selected = 'true' if attrs.get('selected', False) else 'false'
+    title = attrs.get("title", "Tab")
+    selected = "true" if attrs.get("selected", False) else "false"
 
     # Return wrapper div that tab-set will parse
     # We escape the attributes but not the content (already rendered HTML)
@@ -276,8 +291,8 @@ def render_tab_item(renderer, text: str, **attrs) -> str:
         f'<div class="tab-item" '
         f'data-title="{_escape_html(title)}" '
         f'data-selected="{selected}">'
-        f'{text}'
-        f'</div>'
+        f"{text}"
+        f"</div>"
     )
 
 
@@ -292,12 +307,12 @@ def _escape_html(text: str) -> str:
         Escaped text
     """
     if not text:
-        return ''
+        return ""
 
-    return (text
-            .replace('&', '&amp;')
-            .replace('<', '&lt;')
-            .replace('>', '&gt;')
-            .replace('"', '&quot;')
-            .replace("'", '&#x27;'))
-
+    return (
+        text.replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace('"', "&quot;")
+        .replace("'", "&#x27;")
+    )

@@ -82,7 +82,7 @@ class TestWrapText:
     def test_wrap_long_text(self):
         text = "This is a very long piece of text that should be wrapped at the specified width"
         result = wrap_text(text, width=30)
-        lines = result.split('\n')
+        lines = result.split("\n")
         assert all(len(line) <= 30 for line in lines)
 
     def test_no_wrap_needed(self):
@@ -118,4 +118,3 @@ class TestIndentText:
 
     def test_empty_string(self):
         assert indent_text("") == ""
-

@@ -108,17 +108,17 @@ class Site:
     @property
     def title(self) -> str | None:
         """Get site title from config."""
-        return self.config.get('title')
+        return self.config.get("title")
 
     @property
     def baseurl(self) -> str | None:
         """Get site baseurl from config."""
-        return self.config.get('baseurl')
+        return self.config.get("baseurl")
 
     @property
     def author(self) -> str | None:
         """Get site author from config."""
-        return self.config.get('author')
+        return self.config.get("author")
 
     @property
     def regular_pages(self) -> list[Page]:
@@ -141,7 +141,7 @@ class Site:
             return self._regular_pages_cache
 
         # Compute and cache (O(n), only happens once)
-        self._regular_pages_cache = [p for p in self.pages if not p.metadata.get('_generated')]
+        self._regular_pages_cache = [p for p in self.pages if not p.metadata.get("_generated")]
         return self._regular_pages_cache
 
     def invalidate_regular_pages_cache(self) -> None:
@@ -349,11 +349,11 @@ class Site:
         for page in self.pages:
             # Check if this is a top-level page (not in any section)
             is_top_level = not any(page in section.pages for section in self.sections)
-            if is_top_level and 'cascade' in page.metadata:
+            if is_top_level and "cascade" in page.metadata:
                 # Found root-level cascade - merge it
                 if root_cascade is None:
                     root_cascade = {}
-                root_cascade.update(page.metadata['cascade'])
+                root_cascade.update(page.metadata["cascade"])
 
         # Process all top-level sections with root cascade (they will recurse to subsections)
         for section in self.sections:
@@ -364,12 +364,14 @@ class Site:
             for page in self.pages:
                 is_top_level = not any(page in section.pages for section in self.sections)
                 # Skip the page that defined the cascade itself
-                if is_top_level and 'cascade' not in page.metadata:
+                if is_top_level and "cascade" not in page.metadata:
                     for key, value in root_cascade.items():
                         if key not in page.metadata:
                             page.metadata[key] = value
 
-    def _apply_section_cascade(self, section: Section, parent_cascade: dict[str, Any] | None = None) -> None:
+    def _apply_section_cascade(
+        self, section: Section, parent_cascade: dict[str, Any] | None = None
+    ) -> None:
         """
         Recursively apply cascade metadata to a section and its descendants.
 
@@ -386,9 +388,9 @@ class Site:
         if parent_cascade:
             accumulated_cascade.update(parent_cascade)
 
-        if 'cascade' in section.metadata:
+        if "cascade" in section.metadata:
             # Section's cascade extends/overrides parent cascade
-            accumulated_cascade.update(section.metadata['cascade'])
+            accumulated_cascade.update(section.metadata["cascade"])
 
         # Apply accumulated cascade to all pages in this section
         # (but only for keys not already defined in page metadata)
@@ -420,6 +422,7 @@ class Site:
 
         # Check in Bengal's bundled themes
         import bengal
+
         bengal_dir = Path(bengal.__file__).parent
         bundled_theme_dir = bengal_dir / "themes" / self.theme / "assets"
         if bundled_theme_dir.exists():
@@ -436,6 +439,7 @@ class Site:
         try:
             # Reuse resolver from template engine semantics
             from bengal.rendering.template_engine import TemplateEngine
+
             # Build a temporary engine with this site to resolve chain
             engine = TemplateEngine(self)
             chain = engine._resolve_theme_chain(self.theme)
@@ -452,6 +456,7 @@ class Site:
             # Bundled theme assets
             try:
                 import bengal
+
                 bengal_dir = Path(bengal.__file__).parent
                 bundled_dir = bengal_dir / "themes" / theme_name / "assets"
                 if bundled_dir.exists():
@@ -460,7 +465,17 @@ class Site:
                 pass
         return dirs
 
-    def build(self, parallel: bool = True, incremental: bool = False, verbose: bool = False, quiet: bool = False, profile: BuildProfile = None, memory_optimized: bool = False, strict: bool = False, full_output: bool = False) -> BuildStats:
+    def build(
+        self,
+        parallel: bool = True,
+        incremental: bool = False,
+        verbose: bool = False,
+        quiet: bool = False,
+        profile: BuildProfile = None,
+        memory_optimized: bool = False,
+        strict: bool = False,
+        full_output: bool = False,
+    ) -> BuildStats:
         """
         Build the entire site.
 
@@ -482,9 +497,25 @@ class Site:
         from bengal.orchestration import BuildOrchestrator
 
         orchestrator = BuildOrchestrator(self)
-        return orchestrator.build(parallel=parallel, incremental=incremental, verbose=verbose, quiet=quiet, profile=profile, memory_optimized=memory_optimized, strict=strict, full_output=full_output)
+        return orchestrator.build(
+            parallel=parallel,
+            incremental=incremental,
+            verbose=verbose,
+            quiet=quiet,
+            profile=profile,
+            memory_optimized=memory_optimized,
+            strict=strict,
+            full_output=full_output,
+        )
 
-    def serve(self, host: str = "localhost", port: int = 8000, watch: bool = True, auto_port: bool = True, open_browser: bool = False) -> None:
+    def serve(
+        self,
+        host: str = "localhost",
+        port: int = 8000,
+        watch: bool = True,
+        auto_port: bool = True,
+        open_browser: bool = False,
+    ) -> None:
         """
         Start a development server.
 
@@ -497,7 +528,9 @@ class Site:
         """
         from bengal.server.dev_server import DevServer
 
-        server = DevServer(self, host=host, port=port, watch=watch, auto_port=auto_port, open_browser=open_browser)
+        server = DevServer(
+            self, host=host, port=port, watch=watch, auto_port=auto_port, open_browser=open_browser
+        )
         server.start()
 
     def clean(self) -> None:
@@ -523,4 +556,3 @@ class Site:
 
     def __repr__(self) -> str:
         return f"Site(pages={len(self.pages)}, sections={len(self.sections)}, assets={len(self.assets)})"
-

@@ -44,7 +44,9 @@ class BengalGroup(click.Group):
                     msg += "Did you mean one of these?\n"
                     for _i, suggestion in enumerate(suggestions, 1):
                         msg += f"  • {click.style(suggestion, fg='cyan', bold=True)}\n"
-                    msg += f"\nRun '{click.style('bengal --help', fg='yellow')}' to see all commands."
+                    msg += (
+                        f"\nRun '{click.style('bengal --help', fg='yellow')}' to see all commands."
+                    )
                     raise click.exceptions.UsageError(msg) from e
 
             # Re-raise original error if no suggestions
@@ -61,7 +63,7 @@ class BengalGroup(click.Group):
             unknown_cmd,
             available_commands,
             n=max_suggestions,
-            cutoff=0.6  # 60% similarity threshold
+            cutoff=0.6,  # 60% similarity threshold
         )
 
         return matches
@@ -76,11 +78,13 @@ def main() -> None:
     """
     # Install rich traceback handler for beautiful error messages (unless in CI)
     import os
-    if not os.getenv('CI'):
+
+    if not os.getenv("CI"):
         try:
             from rich.traceback import install
 
             from bengal.utils.rich_console import get_console
+
             install(
                 console=get_console(),
                 show_locals=True,
@@ -93,7 +97,9 @@ def main() -> None:
             pass
 
 
-def _should_regenerate_autodoc(autodoc_flag: bool, config_path: Path, root_path: Path, quiet: bool) -> bool:
+def _should_regenerate_autodoc(
+    autodoc_flag: bool, config_path: Path, root_path: Path, quiet: bool
+) -> bool:
     """
     Determine if autodoc should be regenerated based on:
     1. CLI flag (highest priority)
@@ -106,11 +112,12 @@ def _should_regenerate_autodoc(autodoc_flag: bool, config_path: Path, root_path:
 
     # Check config
     from bengal.autodoc.config import load_autodoc_config
+
     config = load_autodoc_config(config_path)
-    build_config = config.get('build', {})
+    build_config = config.get("build", {})
 
     # Check if auto_regenerate_autodoc is explicitly set in config
-    auto_regen = build_config.get('auto_regenerate_autodoc', False)
+    auto_regen = build_config.get("auto_regenerate_autodoc", False)
 
     if not auto_regen:
         return False
@@ -127,15 +134,15 @@ def _check_autodoc_needs_regeneration(autodoc_config: dict, root_path: Path, qui
     """
     import os
 
-    python_config = autodoc_config.get('python', {})
-    cli_config = autodoc_config.get('cli', {})
+    python_config = autodoc_config.get("python", {})
+    cli_config = autodoc_config.get("cli", {})
 
     needs_regen = False
 
     # Check Python docs
-    if python_config.get('enabled', True):
-        source_dirs = python_config.get('source_dirs', ['.'])
-        output_dir = root_path / python_config.get('output_dir', 'content/api')
+    if python_config.get("enabled", True):
+        source_dirs = python_config.get("source_dirs", ["."])
+        output_dir = root_path / python_config.get("output_dir", "content/api")
 
         if output_dir.exists():
             # Get newest source file
@@ -143,34 +150,38 @@ def _check_autodoc_needs_regeneration(autodoc_config: dict, root_path: Path, qui
             for source_dir in source_dirs:
                 source_path = root_path / source_dir
                 if source_path.exists():
-                    for py_file in source_path.rglob('*.py'):
-                        if '__pycache__' not in str(py_file):
+                    for py_file in source_path.rglob("*.py"):
+                        if "__pycache__" not in str(py_file):
                             mtime = os.path.getmtime(py_file)
                             newest_source = max(newest_source, mtime)
 
             # Get oldest generated file
-            oldest_output = float('inf')
-            for md_file in output_dir.rglob('*.md'):
+            oldest_output = float("inf")
+            for md_file in output_dir.rglob("*.md"):
                 mtime = os.path.getmtime(md_file)
                 oldest_output = min(oldest_output, mtime)
 
             if newest_source > oldest_output:
                 if not quiet:
-                    click.echo(click.style("📝 Python source files changed, regenerating API docs...", fg='yellow'))
+                    click.echo(
+                        click.style(
+                            "📝 Python source files changed, regenerating API docs...", fg="yellow"
+                        )
+                    )
                 needs_regen = True
         else:
             # Output doesn't exist, need to generate
             if not quiet:
-                click.echo(click.style("📝 API docs not found, generating...", fg='yellow'))
+                click.echo(click.style("📝 API docs not found, generating...", fg="yellow"))
             needs_regen = True
 
     # Check CLI docs
-    if cli_config.get('enabled', False) and cli_config.get('app_module'):
-        output_dir = root_path / cli_config.get('output_dir', 'content/cli')
+    if cli_config.get("enabled", False) and cli_config.get("app_module"):
+        output_dir = root_path / cli_config.get("output_dir", "content/cli")
 
-        if not output_dir.exists() or not list(output_dir.rglob('*.md')):
+        if not output_dir.exists() or not list(output_dir.rglob("*.md")):
             if not quiet:
-                click.echo(click.style("📝 CLI docs not found, generating...", fg='yellow'))
+                click.echo(click.style("📝 CLI docs not found, generating...", fg="yellow"))
             needs_regen = True
 
     return needs_regen
@@ -182,75 +193,141 @@ def _run_autodoc_before_build(config_path: Path, root_path: Path, quiet: bool) -
 
     if not quiet:
         click.echo()
-        click.echo(click.style("📚 Regenerating documentation...", fg='cyan', bold=True))
+        click.echo(click.style("📚 Regenerating documentation...", fg="cyan", bold=True))
         click.echo()
 
     autodoc_config = load_autodoc_config(config_path)
-    python_config = autodoc_config.get('python', {})
-    cli_config = autodoc_config.get('cli', {})
+    python_config = autodoc_config.get("python", {})
+    cli_config = autodoc_config.get("cli", {})
 
     # Determine what to generate
-    generate_python = python_config.get('enabled', True)
-    generate_cli = cli_config.get('enabled', False) and cli_config.get('app_module')
+    generate_python = python_config.get("enabled", True)
+    generate_cli = cli_config.get("enabled", False) and cli_config.get("app_module")
 
     # Generate Python docs
     if generate_python:
         try:
             _generate_python_docs(
-                source=tuple(python_config.get('source_dirs', ['.'])),
-                output=python_config.get('output_dir', 'content/api'),
+                source=tuple(python_config.get("source_dirs", ["."])),
+                output=python_config.get("output_dir", "content/api"),
                 clean=False,
                 parallel=True,
                 verbose=False,
                 stats=False,
-                python_config=python_config
+                python_config=python_config,
             )
         except Exception as e:
             if not quiet:
-                click.echo(click.style(f"⚠️  Python autodoc failed: {e}", fg='yellow'))
-                click.echo(click.style("Continuing with build...", fg='yellow'))
+                click.echo(click.style(f"⚠️  Python autodoc failed: {e}", fg="yellow"))
+                click.echo(click.style("Continuing with build...", fg="yellow"))
 
     # Generate CLI docs
     if generate_cli:
         try:
             _generate_cli_docs(
-                app=cli_config.get('app_module'),
-                framework=cli_config.get('framework', 'click'),
-                output=cli_config.get('output_dir', 'content/cli'),
-                include_hidden=cli_config.get('include_hidden', False),
+                app=cli_config.get("app_module"),
+                framework=cli_config.get("framework", "click"),
+                output=cli_config.get("output_dir", "content/cli"),
+                include_hidden=cli_config.get("include_hidden", False),
                 clean=False,
                 verbose=False,
-                cli_config=cli_config
+                cli_config=cli_config,
             )
         except Exception as e:
             if not quiet:
-                click.echo(click.style(f"⚠️  CLI autodoc failed: {e}", fg='yellow'))
-                click.echo(click.style("Continuing with build...", fg='yellow'))
+                click.echo(click.style(f"⚠️  CLI autodoc failed: {e}", fg="yellow"))
+                click.echo(click.style("Continuing with build...", fg="yellow"))
 
     if not quiet:
         click.echo()
 
 
 @main.command()
-@click.option('--parallel/--no-parallel', default=True, help='Enable parallel processing for faster builds (default: enabled)')
-@click.option('--incremental', is_flag=True, help='Perform incremental build (only rebuild changed files)')
-@click.option('--memory-optimized', is_flag=True, help='Use streaming build for memory efficiency (best for 5K+ pages)')
-@click.option('--profile', type=click.Choice(['writer', 'theme-dev', 'dev']),
-              help='Build profile: writer (fast/clean), theme-dev (templates), dev (full debug)')
-@click.option('--perf-profile', type=click.Path(), help='Enable performance profiling and save to file (default: .bengal/profiles/profile.stats)')
-@click.option('--theme-dev', 'use_theme_dev', is_flag=True, help='Use theme developer profile (shorthand for --profile theme-dev)')
-@click.option('--dev', 'use_dev', is_flag=True, help='Use developer profile with full observability (shorthand for --profile dev)')
-@click.option('--verbose', '-v', is_flag=True, help='Show detailed build information (maps to theme-dev profile)')
-@click.option('--strict', is_flag=True, help='Fail on template errors (recommended for CI/CD)')
-@click.option('--debug', is_flag=True, help='Show debug output and full tracebacks (maps to dev profile)')
-@click.option('--validate', is_flag=True, help='Validate templates before building (catch errors early)')
-@click.option('--autodoc/--no-autodoc', default=None, help='Force regenerate autodoc before building (overrides config)')
-@click.option('--config', type=click.Path(exists=True), help='Path to config file (default: bengal.toml)')
-@click.option('--quiet', '-q', is_flag=True, help='Minimal output - only show errors and summary')
-@click.option('--full-output', is_flag=True, help='Show full traditional output instead of live progress (useful for debugging)')
-@click.option('--log-file', type=click.Path(), help='Write detailed logs to file (default: .bengal-build.log)')
-@click.argument('source', type=click.Path(exists=True), default='.')
-def build(parallel: bool, incremental: bool, memory_optimized: bool, profile: str, perf_profile: str, use_theme_dev: bool, use_dev: bool, verbose: bool, strict: bool, debug: bool, validate: bool, autodoc: bool, config: str, quiet: bool, full_output: bool, log_file: str, source: str) -> None:
+@click.option(
+    "--parallel/--no-parallel",
+    default=True,
+    help="Enable parallel processing for faster builds (default: enabled)",
+)
+@click.option(
+    "--incremental", is_flag=True, help="Perform incremental build (only rebuild changed files)"
+)
+@click.option(
+    "--memory-optimized",
+    is_flag=True,
+    help="Use streaming build for memory efficiency (best for 5K+ pages)",
+)
+@click.option(
+    "--profile",
+    type=click.Choice(["writer", "theme-dev", "dev"]),
+    help="Build profile: writer (fast/clean), theme-dev (templates), dev (full debug)",
+)
+@click.option(
+    "--perf-profile",
+    type=click.Path(),
+    help="Enable performance profiling and save to file (default: .bengal/profiles/profile.stats)",
+)
+@click.option(
+    "--theme-dev",
+    "use_theme_dev",
+    is_flag=True,
+    help="Use theme developer profile (shorthand for --profile theme-dev)",
+)
+@click.option(
+    "--dev",
+    "use_dev",
+    is_flag=True,
+    help="Use developer profile with full observability (shorthand for --profile dev)",
+)
+@click.option(
+    "--verbose",
+    "-v",
+    is_flag=True,
+    help="Show detailed build information (maps to theme-dev profile)",
+)
+@click.option("--strict", is_flag=True, help="Fail on template errors (recommended for CI/CD)")
+@click.option(
+    "--debug", is_flag=True, help="Show debug output and full tracebacks (maps to dev profile)"
+)
+@click.option(
+    "--validate", is_flag=True, help="Validate templates before building (catch errors early)"
+)
+@click.option(
+    "--autodoc/--no-autodoc",
+    default=None,
+    help="Force regenerate autodoc before building (overrides config)",
+)
+@click.option(
+    "--config", type=click.Path(exists=True), help="Path to config file (default: bengal.toml)"
+)
+@click.option("--quiet", "-q", is_flag=True, help="Minimal output - only show errors and summary")
+@click.option(
+    "--full-output",
+    is_flag=True,
+    help="Show full traditional output instead of live progress (useful for debugging)",
+)
+@click.option(
+    "--log-file", type=click.Path(), help="Write detailed logs to file (default: .bengal-build.log)"
+)
+@click.argument("source", type=click.Path(exists=True), default=".")
+def build(
+    parallel: bool,
+    incremental: bool,
+    memory_optimized: bool,
+    profile: str,
+    perf_profile: str,
+    use_theme_dev: bool,
+    use_dev: bool,
+    verbose: bool,
+    strict: bool,
+    debug: bool,
+    validate: bool,
+    autodoc: bool,
+    config: str,
+    quiet: bool,
+    full_output: bool,
+    log_file: str,
+    source: str,
+) -> None:
     """
     🔨 Build the static site.
 
@@ -268,19 +345,27 @@ def build(parallel: bool, incremental: bool, memory_optimized: bool, profile: st
 
     # New validations for build flag combinations
     if memory_optimized and perf_profile:
-        raise click.UsageError("--memory-optimized and --perf-profile cannot be used together (profiler doesn't work with streaming)")
+        raise click.UsageError(
+            "--memory-optimized and --perf-profile cannot be used together (profiler doesn't work with streaming)"
+        )
 
     if memory_optimized and incremental:
-        click.echo(click.style("⚠️  Warning: --memory-optimized with --incremental may not fully utilize cache", fg='yellow'))
-        click.echo(click.style("   Streaming build processes pages in batches, limiting incremental benefits.\n", fg='yellow'))
+        click.echo(
+            click.style(
+                "⚠️  Warning: --memory-optimized with --incremental may not fully utilize cache",
+                fg="yellow",
+            )
+        )
+        click.echo(
+            click.style(
+                "   Streaming build processes pages in batches, limiting incremental benefits.\n",
+                fg="yellow",
+            )
+        )
 
     # Determine build profile with proper precedence
     build_profile = BuildProfile.from_cli_args(
-        profile=profile,
-        dev=use_dev,
-        theme_dev=use_theme_dev,
-        verbose=verbose,
-        debug=debug
+        profile=profile, dev=use_dev, theme_dev=use_theme_dev, verbose=verbose, debug=debug
     )
 
     # Set global profile for helper functions
@@ -298,13 +383,13 @@ def build(parallel: bool, incremental: bool, memory_optimized: bool, profile: st
         log_level = LogLevel.WARNING
 
     # Determine log file path
-    log_path = Path(log_file) if log_file else Path(source) / '.bengal-build.log'
+    log_path = Path(log_file) if log_file else Path(source) / ".bengal-build.log"
 
     configure_logging(
         level=log_level,
         log_file=log_path,
-        verbose=profile_config['verbose_build_stats'],
-        track_memory=profile_config['track_memory']
+        verbose=profile_config["verbose_build_stats"],
+        track_memory=profile_config["track_memory"],
     )
 
     try:
@@ -322,10 +407,7 @@ def build(parallel: bool, incremental: bool, memory_optimized: bool, profile: st
 
         # Handle autodoc regeneration
         should_regenerate_autodoc = _should_regenerate_autodoc(
-            autodoc_flag=autodoc,
-            config_path=config_path,
-            root_path=root_path,
-            quiet=quiet
+            autodoc_flag=autodoc, config_path=config_path, root_path=root_path, quiet=quiet
         )
 
         if should_regenerate_autodoc:
@@ -340,9 +422,12 @@ def build(parallel: bool, incremental: bool, memory_optimized: bool, profile: st
             error_count = validate_templates(template_engine)
 
             if error_count > 0:
-                click.echo(click.style(f"\n❌ Validation failed with {error_count} error(s).",
-                                      fg='red', bold=True))
-                click.echo(click.style("Fix errors above, then run 'bengal build'", fg='yellow'))
+                click.echo(
+                    click.style(
+                        f"\n❌ Validation failed with {error_count} error(s).", fg="red", bold=True
+                    )
+                )
+                click.echo(click.style("Fix errors above, then run 'bengal build'", fg="yellow"))
                 raise click.Abort()
 
             click.echo()  # Blank line before build
@@ -350,6 +435,7 @@ def build(parallel: bool, incremental: bool, memory_optimized: bool, profile: st
         # Determine if we should use rich status spinner
         try:
             from bengal.utils.rich_console import get_console, should_use_rich
+
             use_rich_spinner = should_use_rich() and not quiet
         except ImportError:
             use_rich_spinner = False
@@ -366,20 +452,23 @@ def build(parallel: bool, incremental: bool, memory_optimized: bool, profile: st
 
         # Validate templates if requested
         if validate:
-            click.echo(click.style("\n🔍 Validating templates...", fg='cyan'))
+            click.echo(click.style("\n🔍 Validating templates...", fg="cyan"))
             from bengal.rendering.validator import TemplateValidator
+
             validator = TemplateValidator(site)
             errors = validator.validate_all()
 
             if errors:
-                click.echo(click.style(f"\n❌ Found {len(errors)} template error(s):", fg='red', bold=True))
+                click.echo(
+                    click.style(f"\n❌ Found {len(errors)} template error(s):", fg="red", bold=True)
+                )
                 for error in errors[:5]:  # Show first 5
                     click.echo(f"  • {error}")
                 if len(errors) > 5:
                     click.echo(f"  ... and {len(errors) - 5} more")
                 raise click.Abort()
             else:
-                click.echo(click.style("✓ All templates valid\n", fg='green'))
+                click.echo(click.style("✓ All templates valid\n", fg="green"))
 
         # Enable performance profiling if requested
         if perf_profile:
@@ -396,12 +485,12 @@ def build(parallel: bool, incremental: bool, memory_optimized: bool, profile: st
             stats = site.build(
                 parallel=parallel,
                 incremental=incremental,
-                verbose=profile_config['verbose_build_stats'],
+                verbose=profile_config["verbose_build_stats"],
                 quiet=quiet,
                 profile=build_profile,
                 memory_optimized=memory_optimized,
                 strict=strict,
-                full_output=full_output
+                full_output=full_output,
             )
 
             profiler.disable()
@@ -409,7 +498,9 @@ def build(parallel: bool, incremental: bool, memory_optimized: bool, profile: st
             # Determine profile output path (use organized directory structure)
             if perf_profile is True:
                 # Flag set without path - use default organized location
-                perf_profile_path = BengalPaths.get_profile_path(root_path, filename='profile.stats')
+                perf_profile_path = BengalPaths.get_profile_path(
+                    root_path, filename="profile.stats"
+                )
             else:
                 # User specified custom path
                 perf_profile_path = Path(perf_profile)
@@ -419,34 +510,40 @@ def build(parallel: bool, incremental: bool, memory_optimized: bool, profile: st
             # Display summary
             if not quiet:
                 s = StringIO()
-                ps = pstats.Stats(profiler, stream=s).sort_stats('cumulative')
+                ps = pstats.Stats(profiler, stream=s).sort_stats("cumulative")
                 ps.print_stats(20)  # Top 20 functions
 
                 click.echo()
-                click.echo(click.style("📊 Performance Profile (Top 20 by cumulative time):",
-                                      fg='cyan', bold=True))
+                click.echo(
+                    click.style(
+                        "📊 Performance Profile (Top 20 by cumulative time):", fg="cyan", bold=True
+                    )
+                )
                 click.echo(s.getvalue())
-                click.echo(click.style(f"Full profile saved to: {perf_profile_path}",
-                                      fg='green'))
-                click.echo(click.style("Analyze with: python -m pstats " + str(perf_profile_path),
-                                      fg='yellow'))
+                click.echo(click.style(f"Full profile saved to: {perf_profile_path}", fg="green"))
+                click.echo(
+                    click.style(
+                        "Analyze with: python -m pstats " + str(perf_profile_path), fg="yellow"
+                    )
+                )
         else:
             # Pass profile to build
             # When --full-output is used, enable console logs for debugging
             stats = site.build(
                 parallel=parallel,
                 incremental=incremental,
-                verbose=profile_config.get('verbose_console_logs', False) or full_output,
+                verbose=profile_config.get("verbose_console_logs", False) or full_output,
                 quiet=quiet,
                 profile=build_profile,
                 memory_optimized=memory_optimized,
                 strict=strict,
-                full_output=full_output
+                full_output=full_output,
             )
 
         # Display template errors first if we're in theme-dev or dev mode
         if stats.template_errors and build_profile != BuildProfile.WRITER:
             from bengal.utils.build_stats import display_template_errors
+
             display_template_errors(stats)
 
         # Store output directory in stats for display
@@ -457,19 +554,21 @@ def build(parallel: bool, incremental: bool, memory_optimized: bool, profile: st
             if build_profile == BuildProfile.WRITER:
                 # Simple, clean output for writers
                 from bengal.utils.build_stats import display_simple_build_stats
+
                 display_simple_build_stats(stats, output_dir=str(site.output_dir))
             elif build_profile == BuildProfile.DEVELOPER:
                 # Rich intelligent summary with performance insights (Phase 2)
                 from bengal.utils.build_summary import display_build_summary
                 from bengal.utils.rich_console import detect_environment
+
                 environment = detect_environment()
                 display_build_summary(stats, environment=environment)
             else:
                 # Theme-dev: Use existing detailed display
                 display_build_stats(stats, show_art=True, output_dir=str(site.output_dir))
         else:
-            click.echo(click.style("✅ Build complete!", fg='green', bold=True))
-            click.echo(click.style(f"   ↪ {site.output_dir}", fg='cyan'))
+            click.echo(click.style("✅ Build complete!", fg="green", bold=True))
+            click.echo(click.style(f"   ↪ {site.output_dir}", fg="cyan"))
 
         # Print phase timing summary in dev mode only
         if build_profile == BuildProfile.DEVELOPER and not quiet:
@@ -486,11 +585,23 @@ def build(parallel: bool, incremental: bool, memory_optimized: bool, profile: st
 
 
 @main.command()
-@click.option('--stats', 'show_stats', is_flag=True, default=True, help='Show graph statistics (default: enabled)')
-@click.option('--tree', is_flag=True, help='Show site structure as tree visualization')
-@click.option('--output', type=click.Path(), help='Generate interactive visualization to file (e.g., public/graph.html)')
-@click.option('--config', type=click.Path(exists=True), help='Path to config file (default: bengal.toml)')
-@click.argument('source', type=click.Path(exists=True), default='.')
+@click.option(
+    "--stats",
+    "show_stats",
+    is_flag=True,
+    default=True,
+    help="Show graph statistics (default: enabled)",
+)
+@click.option("--tree", is_flag=True, help="Show site structure as tree visualization")
+@click.option(
+    "--output",
+    type=click.Path(),
+    help="Generate interactive visualization to file (e.g., public/graph.html)",
+)
+@click.option(
+    "--config", type=click.Path(exists=True), help="Path to config file (default: bengal.toml)"
+)
+@click.argument("source", type=click.Path(exists=True), default=".")
 def graph(show_stats: bool, tree: bool, output: str, config: str, source: str) -> None:
     """
     📊 Analyze site structure and connectivity.
@@ -532,8 +643,11 @@ def graph(show_stats: bool, tree: bool, output: str, config: str, source: str) -
             if should_use_rich():
                 console = get_console()
 
-                with console.status("[bold green]Discovering site content...", spinner="dots") as status:
+                with console.status(
+                    "[bold green]Discovering site content...", spinner="dots"
+                ) as status:
                     from bengal.orchestration.content import ContentOrchestrator
+
                     content_orch = ContentOrchestrator(site)
                     content_orch.discover()
 
@@ -545,6 +659,7 @@ def graph(show_stats: bool, tree: bool, output: str, config: str, source: str) -
                 # Fallback to simple messages
                 click.echo("🔍 Discovering site content...")
                 from bengal.orchestration.content import ContentOrchestrator
+
                 content_orch = ContentOrchestrator(site)
                 content_orch.discover()
 
@@ -555,6 +670,7 @@ def graph(show_stats: bool, tree: bool, output: str, config: str, source: str) -
             # Rich not available, use simple messages
             click.echo("🔍 Discovering site content...")
             from bengal.orchestration.content import ContentOrchestrator
+
             content_orch = ContentOrchestrator(site)
             content_orch.discover()
 
@@ -580,7 +696,7 @@ def graph(show_stats: bool, tree: bool, output: str, config: str, source: str) -
                     sections_dict = {}
                     for page in site.pages:
                         # Get section from page path or use root
-                        if hasattr(page, 'section') and page.section:
+                        if hasattr(page, "section") and page.section:
                             section_name = page.section
                         else:
                             # Try to extract from path
@@ -603,9 +719,9 @@ def graph(show_stats: bool, tree: bool, output: str, config: str, source: str) -
                         for page in sorted(pages_in_section, key=lambda p: str(p.source_path))[:15]:
                             # Determine icon
                             icon = "📄"
-                            if hasattr(page, 'is_index') and page.is_index:
+                            if hasattr(page, "is_index") and page.is_index:
                                 icon = "🏠"
-                            elif hasattr(page, 'source_path') and 'blog' in str(page.source_path):
+                            elif hasattr(page, "source_path") and "blog" in str(page.source_path):
                                 icon = "📝"
 
                             # Get incoming/outgoing links
@@ -613,7 +729,7 @@ def graph(show_stats: bool, tree: bool, output: str, config: str, source: str) -
                             outgoing = len(graph.outgoing_refs.get(page, []))
 
                             # Format page entry
-                            title = getattr(page, 'title', str(page.source_path))
+                            title = getattr(page, "title", str(page.source_path))
                             if len(title) > 50:
                                 title = title[:47] + "..."
 
@@ -628,9 +744,13 @@ def graph(show_stats: bool, tree: bool, output: str, config: str, source: str) -
                     console.print(tree_root)
                     console.print()
                 else:
-                    click.echo(click.style("Tree visualization requires a TTY terminal", fg='yellow'))
+                    click.echo(
+                        click.style("Tree visualization requires a TTY terminal", fg="yellow")
+                    )
             except ImportError:
-                click.echo(click.style("⚠️  Tree visualization requires 'rich' library", fg='yellow'))
+                click.echo(
+                    click.style("⚠️  Tree visualization requires 'rich' library", fg="yellow")
+                )
 
         # Show statistics
         if show_stats:
@@ -640,6 +760,7 @@ def graph(show_stats: bool, tree: bool, output: str, config: str, source: str) -
         # Generate visualization if requested
         if output:
             from bengal.utils.cli_output import CLIOutput
+
             cli = CLIOutput()
 
             output_path = Path(output).resolve()
@@ -650,6 +771,7 @@ def graph(show_stats: bool, tree: bool, output: str, config: str, source: str) -
             # Check if visualization module exists
             try:
                 from bengal.analysis.graph_visualizer import GraphVisualizer
+
                 visualizer = GraphVisualizer(site, graph)
                 html = visualizer.generate_html()
 
@@ -657,28 +779,39 @@ def graph(show_stats: bool, tree: bool, output: str, config: str, source: str) -
                 output_path.parent.mkdir(parents=True, exist_ok=True)
 
                 # Write HTML file
-                output_path.write_text(html, encoding='utf-8')
+                output_path.write_text(html, encoding="utf-8")
 
-                click.echo(click.style("✅ Visualization generated!", fg='green', bold=True))
+                click.echo(click.style("✅ Visualization generated!", fg="green", bold=True))
                 click.echo(f"   Open {output_path} in your browser to explore.")
             except ImportError:
-                click.echo(click.style("⚠️  Graph visualization not yet implemented.", fg='yellow'))
+                click.echo(click.style("⚠️  Graph visualization not yet implemented.", fg="yellow"))
                 click.echo("   This feature is coming in Phase 2!")
 
     except Exception as e:
-        click.echo(click.style(f"❌ Error: {e}", fg='red', bold=True))
+        click.echo(click.style(f"❌ Error: {e}", fg="red", bold=True))
         raise click.Abort() from e
     finally:
         close_all_loggers()
 
 
 @main.command()
-@click.option('--top-n', '-n', default=20, type=int, help='Number of top pages to show (default: 20)')
-@click.option('--damping', '-d', default=0.85, type=float, help='PageRank damping factor (default: 0.85)')
-@click.option('--format', '-f', type=click.Choice(['table', 'json', 'summary']),
-              default='table', help='Output format (default: table)')
-@click.option('--config', type=click.Path(exists=True), help='Path to config file (default: bengal.toml)')
-@click.argument('source', type=click.Path(exists=True), default='.')
+@click.option(
+    "--top-n", "-n", default=20, type=int, help="Number of top pages to show (default: 20)"
+)
+@click.option(
+    "--damping", "-d", default=0.85, type=float, help="PageRank damping factor (default: 0.85)"
+)
+@click.option(
+    "--format",
+    "-f",
+    type=click.Choice(["table", "json", "summary"]),
+    default="table",
+    help="Output format (default: table)",
+)
+@click.option(
+    "--config", type=click.Path(exists=True), help="Path to config file (default: bengal.toml)"
+)
+@click.argument("source", type=click.Path(exists=True), default=".")
 def pagerank(top_n: int, damping: float, format: str, config: str, source: str) -> None:
     """
     🏆 Analyze page importance using PageRank algorithm.
@@ -713,7 +846,13 @@ def pagerank(top_n: int, damping: float, format: str, config: str, source: str) 
 
         # Validate damping factor
         if not 0 < damping < 1:
-            click.echo(click.style(f"❌ Error: Damping factor must be between 0 and 1, got {damping}", fg='red', bold=True))
+            click.echo(
+                click.style(
+                    f"❌ Error: Damping factor must be between 0 and 1, got {damping}",
+                    fg="red",
+                    bold=True,
+                )
+            )
             raise click.Abort()
 
         # Load site
@@ -732,12 +871,17 @@ def pagerank(top_n: int, damping: float, format: str, config: str, source: str) 
             if should_use_rich():
                 console = get_console()
 
-                with console.status("[bold green]Discovering site content...", spinner="dots") as status:
+                with console.status(
+                    "[bold green]Discovering site content...", spinner="dots"
+                ) as status:
                     from bengal.orchestration.content import ContentOrchestrator
+
                     content_orch = ContentOrchestrator(site)
                     content_orch.discover()
 
-                    status.update(f"[bold green]Building knowledge graph from {len(site.pages)} pages...")
+                    status.update(
+                        f"[bold green]Building knowledge graph from {len(site.pages)} pages..."
+                    )
                     graph = KnowledgeGraph(site)
                     graph.build()
 
@@ -747,6 +891,7 @@ def pagerank(top_n: int, damping: float, format: str, config: str, source: str) 
                 # Fallback to simple messages
                 click.echo("🔍 Discovering site content...")
                 from bengal.orchestration.content import ContentOrchestrator
+
                 content_orch = ContentOrchestrator(site)
                 content_orch.discover()
 
@@ -760,6 +905,7 @@ def pagerank(top_n: int, damping: float, format: str, config: str, source: str) 
             # Rich not available, use simple messages
             click.echo("🔍 Discovering site content...")
             from bengal.orchestration.content import ContentOrchestrator
+
             content_orch = ContentOrchestrator(site)
             content_orch.discover()
 
@@ -774,28 +920,28 @@ def pagerank(top_n: int, damping: float, format: str, config: str, source: str) 
         top_pages = results.get_top_pages(top_n)
 
         # Output based on format
-        if format == 'json':
+        if format == "json":
             # Export as JSON
             data = {
-                'total_pages': len(results.scores),
-                'iterations': results.iterations,
-                'converged': results.converged,
-                'damping_factor': results.damping_factor,
-                'top_pages': [
+                "total_pages": len(results.scores),
+                "iterations": results.iterations,
+                "converged": results.converged,
+                "damping_factor": results.damping_factor,
+                "top_pages": [
                     {
-                        'rank': i + 1,
-                        'title': page.title,
-                        'url': getattr(page, 'url_path', page.source_path),
-                        'score': score,
-                        'incoming_refs': graph.incoming_refs.get(page, 0),
-                        'outgoing_refs': len(graph.outgoing_refs.get(page, set()))
+                        "rank": i + 1,
+                        "title": page.title,
+                        "url": getattr(page, "url_path", page.source_path),
+                        "score": score,
+                        "incoming_refs": graph.incoming_refs.get(page, 0),
+                        "outgoing_refs": len(graph.outgoing_refs.get(page, set())),
                     }
                     for i, (page, score) in enumerate(top_pages)
-                ]
+                ],
             }
             click.echo(json.dumps(data, indent=2))
 
-        elif format == 'summary':
+        elif format == "summary":
             # Show summary stats
             click.echo("\n" + "=" * 60)
             click.echo("📈 PageRank Summary")
@@ -817,7 +963,9 @@ def pagerank(top_n: int, damping: float, format: str, config: str, source: str) 
             click.echo("\n" + "=" * 100)
             click.echo(f"🏆 Top {min(top_n, len(top_pages))} Pages by PageRank")
             click.echo("=" * 100)
-            click.echo(f"Analyzed {len(results.scores)} pages • Converged in {results.iterations} iterations • Damping: {damping}")
+            click.echo(
+                f"Analyzed {len(results.scores)} pages • Converged in {results.iterations} iterations • Damping: {damping}"
+            )
             click.echo("=" * 100)
             click.echo(f"{'Rank':<6} {'Title':<45} {'Score':<12} {'In':<5} {'Out':<5}")
             click.echo("-" * 100)
@@ -838,7 +986,7 @@ def pagerank(top_n: int, damping: float, format: str, config: str, source: str) 
             click.echo("       Use --top-n to show more/fewer pages\n")
 
         # Show insights
-        if format != 'json' and results.converged:
+        if format != "json" and results.converged:
             click.echo("\n" + "=" * 60)
             click.echo("📊 Insights")
             click.echo("=" * 60)
@@ -851,13 +999,17 @@ def pagerank(top_n: int, damping: float, format: str, config: str, source: str) 
 
             click.echo(f"• Average PageRank score:     {avg_score:.6f}")
             click.echo(f"• Maximum PageRank score:     {max_score:.6f}")
-            click.echo(f"• Top 10% threshold:          {len(top_10_pct)} pages (score ≥ {scores_list[int(len(scores_list)*0.1)]:.6f})")
-            click.echo(f"• Score concentration:        {'High' if max_score > avg_score * 10 else 'Moderate' if max_score > avg_score * 5 else 'Low'}")
+            click.echo(
+                f"• Top 10% threshold:          {len(top_10_pct)} pages (score ≥ {scores_list[int(len(scores_list) * 0.1)]:.6f})"
+            )
+            click.echo(
+                f"• Score concentration:        {'High' if max_score > avg_score * 10 else 'Moderate' if max_score > avg_score * 5 else 'Low'}"
+            )
             click.echo("\n")
 
     except Exception as e:
-        click.echo(click.style(f"❌ Error: {e}", fg='red', bold=True))
-        if '--debug' in click.get_current_context().args:
+        click.echo(click.style(f"❌ Error: {e}", fg="red", bold=True))
+        if "--debug" in click.get_current_context().args:
             raise
         raise click.Abort() from e
     finally:
@@ -865,15 +1017,34 @@ def pagerank(top_n: int, damping: float, format: str, config: str, source: str) 
 
 
 @main.command()
-@click.option('--min-size', '-m', default=2, type=int, help='Minimum community size to show (default: 2)')
-@click.option('--resolution', '-r', default=1.0, type=float, help='Resolution parameter (higher = more communities, default: 1.0)')
-@click.option('--top-n', '-n', default=10, type=int, help='Number of communities to show (default: 10)')
-@click.option('--format', '-f', type=click.Choice(['table', 'json', 'summary']),
-              default='table', help='Output format (default: table)')
-@click.option('--seed', type=int, help='Random seed for reproducibility')
-@click.option('--config', type=click.Path(exists=True), help='Path to config file (default: bengal.toml)')
-@click.argument('source', type=click.Path(exists=True), default='.')
-def communities(min_size: int, resolution: float, top_n: int, format: str, seed: int, config: str, source: str) -> None:
+@click.option(
+    "--min-size", "-m", default=2, type=int, help="Minimum community size to show (default: 2)"
+)
+@click.option(
+    "--resolution",
+    "-r",
+    default=1.0,
+    type=float,
+    help="Resolution parameter (higher = more communities, default: 1.0)",
+)
+@click.option(
+    "--top-n", "-n", default=10, type=int, help="Number of communities to show (default: 10)"
+)
+@click.option(
+    "--format",
+    "-f",
+    type=click.Choice(["table", "json", "summary"]),
+    default="table",
+    help="Output format (default: table)",
+)
+@click.option("--seed", type=int, help="Random seed for reproducibility")
+@click.option(
+    "--config", type=click.Path(exists=True), help="Path to config file (default: bengal.toml)"
+)
+@click.argument("source", type=click.Path(exists=True), default=".")
+def communities(
+    min_size: int, resolution: float, top_n: int, format: str, seed: int, config: str, source: str
+) -> None:
     """
     🔍 Discover topical communities in your content.
 
@@ -920,6 +1091,7 @@ def communities(min_size: int, resolution: float, top_n: int, format: str, seed:
         # Discover content
         click.echo("🔍 Discovering site content...")
         from bengal.orchestration.content import ContentOrchestrator
+
         content_orch = ContentOrchestrator(site)
         content_orch.discover()
 
@@ -942,40 +1114,41 @@ def communities(min_size: int, resolution: float, top_n: int, format: str, seed:
         communities_to_show = communities_to_show[:top_n]
 
         # Output based on format
-        if format == 'json':
+        if format == "json":
             # Export as JSON
             data = {
-                'total_communities': len(results.communities),
-                'modularity': results.modularity,
-                'iterations': results.iterations,
-                'resolution': resolution,
-                'communities': []
+                "total_communities": len(results.communities),
+                "modularity": results.modularity,
+                "iterations": results.iterations,
+                "resolution": resolution,
+                "communities": [],
             }
 
             for community in communities_to_show:
                 # Get top pages by incoming links
                 pages_with_refs = [
-                    (page, graph.incoming_refs.get(page, 0))
-                    for page in community.pages
+                    (page, graph.incoming_refs.get(page, 0)) for page in community.pages
                 ]
                 pages_with_refs.sort(key=lambda x: x[1], reverse=True)
 
-                data['communities'].append({
-                    'id': community.id,
-                    'size': community.size,
-                    'pages': [
-                        {
-                            'title': page.title,
-                            'url': getattr(page, 'url_path', str(page.source_path)),
-                            'incoming_refs': refs
-                        }
-                        for page, refs in pages_with_refs[:5]  # Top 5 pages
-                    ]
-                })
+                data["communities"].append(
+                    {
+                        "id": community.id,
+                        "size": community.size,
+                        "pages": [
+                            {
+                                "title": page.title,
+                                "url": getattr(page, "url_path", str(page.source_path)),
+                                "incoming_refs": refs,
+                            }
+                            for page, refs in pages_with_refs[:5]  # Top 5 pages
+                        ],
+                    }
+                )
 
             click.echo(json.dumps(data, indent=2))
 
-        elif format == 'summary':
+        elif format == "summary":
             # Show summary stats
             click.echo("\n" + "=" * 60)
             click.echo("🔍 Community Detection Summary")
@@ -993,8 +1166,7 @@ def communities(min_size: int, resolution: float, top_n: int, format: str, seed:
 
                 # Show top pages
                 pages_with_refs = [
-                    (page, graph.incoming_refs.get(page, 0))
-                    for page in community.pages
+                    (page, graph.incoming_refs.get(page, 0)) for page in community.pages
                 ]
                 pages_with_refs.sort(key=lambda x: x[1], reverse=True)
 
@@ -1006,7 +1178,9 @@ def communities(min_size: int, resolution: float, top_n: int, format: str, seed:
             click.echo("\n" + "=" * 100)
             click.echo(f"🔍 Top {len(communities_to_show)} Communities")
             click.echo("=" * 100)
-            click.echo(f"Found {len(results.communities)} communities • Modularity: {results.modularity:.4f} • Resolution: {resolution}")
+            click.echo(
+                f"Found {len(results.communities)} communities • Modularity: {results.modularity:.4f} • Resolution: {resolution}"
+            )
             click.echo("=" * 100)
             click.echo(f"{'ID':<5} {'Size':<6} {'Top Pages':<85}")
             click.echo("-" * 100)
@@ -1014,15 +1188,16 @@ def communities(min_size: int, resolution: float, top_n: int, format: str, seed:
             for community in communities_to_show:
                 # Get top 3 pages by incoming links
                 pages_with_refs = [
-                    (page, graph.incoming_refs.get(page, 0))
-                    for page in community.pages
+                    (page, graph.incoming_refs.get(page, 0)) for page in community.pages
                 ]
                 pages_with_refs.sort(key=lambda x: x[1], reverse=True)
 
-                top_page_titles = ", ".join([
-                    page.title[:25] + "..." if len(page.title) > 25 else page.title
-                    for page, _ in pages_with_refs[:3]
-                ])
+                top_page_titles = ", ".join(
+                    [
+                        page.title[:25] + "..." if len(page.title) > 25 else page.title
+                        for page, _ in pages_with_refs[:3]
+                    ]
+                )
 
                 if len(top_page_titles) > 83:
                     top_page_titles = top_page_titles[:80] + "..."
@@ -1035,7 +1210,7 @@ def communities(min_size: int, resolution: float, top_n: int, format: str, seed:
             click.echo("       Use --resolution to control granularity\n")
 
         # Show insights
-        if format != 'json':
+        if format != "json":
             click.echo("\n" + "=" * 60)
             click.echo("📊 Insights")
             click.echo("=" * 60)
@@ -1058,20 +1233,32 @@ def communities(min_size: int, resolution: float, top_n: int, format: str, seed:
             click.echo("\n")
 
     except Exception as e:
-        click.echo(click.style(f"❌ Error: {e}", fg='red', bold=True))
+        click.echo(click.style(f"❌ Error: {e}", fg="red", bold=True))
         raise click.Abort() from e
     finally:
         close_all_loggers()
 
 
 @main.command()
-@click.option('--top-n', '-n', default=20, type=int, help='Number of pages to show (default: 20)')
-@click.option('--metric', '-m', type=click.Choice(['betweenness', 'closeness', 'both']),
-              default='both', help='Centrality metric to display (default: both)')
-@click.option('--format', '-f', type=click.Choice(['table', 'json', 'summary']),
-              default='table', help='Output format (default: table)')
-@click.option('--config', type=click.Path(exists=True), help='Path to config file (default: bengal.toml)')
-@click.argument('source', type=click.Path(exists=True), default='.')
+@click.option("--top-n", "-n", default=20, type=int, help="Number of pages to show (default: 20)")
+@click.option(
+    "--metric",
+    "-m",
+    type=click.Choice(["betweenness", "closeness", "both"]),
+    default="both",
+    help="Centrality metric to display (default: both)",
+)
+@click.option(
+    "--format",
+    "-f",
+    type=click.Choice(["table", "json", "summary"]),
+    default="table",
+    help="Output format (default: table)",
+)
+@click.option(
+    "--config", type=click.Path(exists=True), help="Path to config file (default: bengal.toml)"
+)
+@click.argument("source", type=click.Path(exists=True), default=".")
 def bridges(top_n: int, metric: str, format: str, config: str, source: str) -> None:
     """
     🌉 Identify bridge pages and navigation bottlenecks.
@@ -1121,6 +1308,7 @@ def bridges(top_n: int, metric: str, format: str, config: str, source: str) -> N
         # Discover content
         click.echo("🔍 Discovering site content...")
         from bengal.orchestration.content import ContentOrchestrator
+
         content_orch = ContentOrchestrator(site)
         content_orch.discover()
 
@@ -1134,41 +1322,41 @@ def bridges(top_n: int, metric: str, format: str, config: str, source: str) -> N
         results = graph.analyze_paths()
 
         # Output based on format
-        if format == 'json':
+        if format == "json":
             # Export as JSON
             data = {
-                'avg_path_length': results.avg_path_length,
-                'diameter': results.diameter,
-                'total_pages': len(results.betweenness_centrality)
+                "avg_path_length": results.avg_path_length,
+                "diameter": results.diameter,
+                "total_pages": len(results.betweenness_centrality),
             }
 
-            if metric in ['betweenness', 'both']:
+            if metric in ["betweenness", "both"]:
                 bridges = results.get_top_bridges(top_n)
-                data['top_bridges'] = [
+                data["top_bridges"] = [
                     {
-                        'title': page.title,
-                        'url': getattr(page, 'url_path', str(page.source_path)),
-                        'betweenness': score,
-                        'incoming_refs': graph.incoming_refs.get(page, 0)
+                        "title": page.title,
+                        "url": getattr(page, "url_path", str(page.source_path)),
+                        "betweenness": score,
+                        "incoming_refs": graph.incoming_refs.get(page, 0),
                     }
                     for page, score in bridges
                 ]
 
-            if metric in ['closeness', 'both']:
+            if metric in ["closeness", "both"]:
                 accessible = results.get_most_accessible(top_n)
-                data['most_accessible'] = [
+                data["most_accessible"] = [
                     {
-                        'title': page.title,
-                        'url': getattr(page, 'url_path', str(page.source_path)),
-                        'closeness': score,
-                        'outgoing_refs': len(graph.outgoing_refs.get(page, set()))
+                        "title": page.title,
+                        "url": getattr(page, "url_path", str(page.source_path)),
+                        "closeness": score,
+                        "outgoing_refs": len(graph.outgoing_refs.get(page, set())),
                     }
                     for page, score in accessible
                 ]
 
             click.echo(json.dumps(data, indent=2))
 
-        elif format == 'summary':
+        elif format == "summary":
             # Show summary stats
             click.echo("\n" + "=" * 60)
             click.echo("🌉 Path Analysis Summary")
@@ -1178,7 +1366,7 @@ def bridges(top_n: int, metric: str, format: str, config: str, source: str) -> N
             click.echo(f"Network diameter:         {results.diameter}")
             click.echo("")
 
-            if metric in ['betweenness', 'both']:
+            if metric in ["betweenness", "both"]:
                 click.echo("\n🔗 Top Bridge Pages (Betweenness Centrality)")
                 click.echo("-" * 60)
                 bridges = results.get_top_bridges(top_n)
@@ -1188,7 +1376,7 @@ def bridges(top_n: int, metric: str, format: str, config: str, source: str) -> N
                     click.echo(f"{i:3d}. {page.title}")
                     click.echo(f"     Betweenness: {score:.6f} | {incoming} in, {outgoing} out")
 
-            if metric in ['closeness', 'both']:
+            if metric in ["closeness", "both"]:
                 click.echo("\n🎯 Most Accessible Pages (Closeness Centrality)")
                 click.echo("-" * 60)
                 accessible = results.get_most_accessible(top_n)
@@ -1201,10 +1389,12 @@ def bridges(top_n: int, metric: str, format: str, config: str, source: str) -> N
             click.echo("\n" + "=" * 100)
             click.echo("🌉 Navigation Path Analysis")
             click.echo("=" * 100)
-            click.echo(f"Analyzed {len(results.betweenness_centrality)} pages • Avg path: {results.avg_path_length:.2f} • Diameter: {results.diameter}")
+            click.echo(
+                f"Analyzed {len(results.betweenness_centrality)} pages • Avg path: {results.avg_path_length:.2f} • Diameter: {results.diameter}"
+            )
             click.echo("=" * 100)
 
-            if metric in ['betweenness', 'both']:
+            if metric in ["betweenness", "both"]:
                 click.echo(f"\n🔗 Top {top_n} Bridge Pages (Betweenness Centrality)")
                 click.echo("-" * 100)
                 click.echo(f"{'Rank':<6} {'Title':<50} {'Betweenness':<14} {'In':<5} {'Out':<5}")
@@ -1221,7 +1411,7 @@ def bridges(top_n: int, metric: str, format: str, config: str, source: str) -> N
 
                     click.echo(f"{i:<6} {title:<50} {score:.10f}  {incoming:<5} {outgoing:<5}")
 
-            if metric in ['closeness', 'both']:
+            if metric in ["closeness", "both"]:
                 click.echo(f"\n🎯 Top {top_n} Most Accessible Pages (Closeness Centrality)")
                 click.echo("-" * 100)
                 click.echo(f"{'Rank':<6} {'Title':<50} {'Closeness':<14} {'Out':<5}")
@@ -1242,13 +1432,21 @@ def bridges(top_n: int, metric: str, format: str, config: str, source: str) -> N
             click.echo("       Use --format json to export for analysis\n")
 
         # Show insights
-        if format != 'json':
+        if format != "json":
             click.echo("\n" + "=" * 60)
             click.echo("📊 Insights")
             click.echo("=" * 60)
 
-            avg_betweenness = sum(results.betweenness_centrality.values()) / len(results.betweenness_centrality) if results.betweenness_centrality else 0
-            max_betweenness = max(results.betweenness_centrality.values()) if results.betweenness_centrality else 0
+            avg_betweenness = (
+                sum(results.betweenness_centrality.values()) / len(results.betweenness_centrality)
+                if results.betweenness_centrality
+                else 0
+            )
+            max_betweenness = (
+                max(results.betweenness_centrality.values())
+                if results.betweenness_centrality
+                else 0
+            )
 
             click.echo(f"• Average path length:        {results.avg_path_length:.2f} hops")
             click.echo(f"• Network diameter:           {results.diameter} hops")
@@ -1265,19 +1463,30 @@ def bridges(top_n: int, metric: str, format: str, config: str, source: str) -> N
             click.echo("\n")
 
     except Exception as e:
-        click.echo(click.style(f"❌ Error: {e}", fg='red', bold=True))
+        click.echo(click.style(f"❌ Error: {e}", fg="red", bold=True))
         raise click.Abort() from e
     finally:
         close_all_loggers()
 
 
 @main.command()
-@click.option('--top-n', '-n', default=50, type=int, help='Number of suggestions to show (default: 50)')
-@click.option('--min-score', '-s', default=0.3, type=float, help='Minimum score threshold (default: 0.3)')
-@click.option('--format', '-f', type=click.Choice(['table', 'json', 'markdown']),
-              default='table', help='Output format (default: table)')
-@click.option('--config', type=click.Path(exists=True), help='Path to config file (default: bengal.toml)')
-@click.argument('source', type=click.Path(exists=True), default='.')
+@click.option(
+    "--top-n", "-n", default=50, type=int, help="Number of suggestions to show (default: 50)"
+)
+@click.option(
+    "--min-score", "-s", default=0.3, type=float, help="Minimum score threshold (default: 0.3)"
+)
+@click.option(
+    "--format",
+    "-f",
+    type=click.Choice(["table", "json", "markdown"]),
+    default="table",
+    help="Output format (default: table)",
+)
+@click.option(
+    "--config", type=click.Path(exists=True), help="Path to config file (default: bengal.toml)"
+)
+@click.argument("source", type=click.Path(exists=True), default=".")
 def suggest(top_n: int, min_score: float, format: str, config: str, source: str) -> None:
     """
     💡 Generate smart link suggestions to improve internal linking.
@@ -1325,10 +1534,12 @@ def suggest(top_n: int, min_score: float, format: str, config: str, source: str)
 
         click.echo("🔍 Discovering site content...")
         from bengal.orchestration.content import ContentOrchestrator
+
         content_orch = ContentOrchestrator(site)
         content_orch.discover()
 
         from bengal.utils.cli_output import CLIOutput
+
         cli = CLIOutput()
 
         cli.header(f"Building knowledge graph from {len(site.pages)} pages...")
@@ -1340,26 +1551,28 @@ def suggest(top_n: int, min_score: float, format: str, config: str, source: str)
 
         top_suggestions = results.get_top_suggestions(top_n)
 
-        if format == 'json':
+        if format == "json":
             data = {
-                'total_suggestions': results.total_suggestions,
-                'pages_analyzed': results.pages_analyzed,
-                'min_score': min_score,
-                'suggestions': [
+                "total_suggestions": results.total_suggestions,
+                "pages_analyzed": results.pages_analyzed,
+                "min_score": min_score,
+                "suggestions": [
                     {
-                        'source': {'title': s.source.title, 'path': str(s.source.source_path)},
-                        'target': {'title': s.target.title, 'path': str(s.target.source_path)},
-                        'score': s.score,
-                        'reasons': s.reasons
+                        "source": {"title": s.source.title, "path": str(s.source.source_path)},
+                        "target": {"title": s.target.title, "path": str(s.target.source_path)},
+                        "score": s.score,
+                        "reasons": s.reasons,
                     }
                     for s in top_suggestions
-                ]
+                ],
             }
             click.echo(json.dumps(data, indent=2))
 
-        elif format == 'markdown':
+        elif format == "markdown":
             click.echo("# Link Suggestions\n")
-            click.echo(f"Generated {results.total_suggestions} suggestions from {results.pages_analyzed} pages\n")
+            click.echo(
+                f"Generated {results.total_suggestions} suggestions from {results.pages_analyzed} pages\n"
+            )
             click.echo(f"## Top {len(top_suggestions)} Suggestions\n")
 
             for i, suggestion in enumerate(top_suggestions, 1):
@@ -1368,14 +1581,18 @@ def suggest(top_n: int, min_score: float, format: str, config: str, source: str)
                 click.echo("**Reasons:**")
                 for reason in suggestion.reasons:
                     click.echo(f"- {reason}")
-                click.echo(f"\n**Action:** Add link from `{suggestion.source.source_path}` to `{suggestion.target.source_path}`\n")
+                click.echo(
+                    f"\n**Action:** Add link from `{suggestion.source.source_path}` to `{suggestion.target.source_path}`\n"
+                )
                 click.echo("---\n")
 
         else:  # table format
             click.echo("\n" + "=" * 120)
             click.echo(f"💡 Top {len(top_suggestions)} Link Suggestions")
             click.echo("=" * 120)
-            click.echo(f"Generated {results.total_suggestions} suggestions from {results.pages_analyzed} pages (min score: {min_score})")
+            click.echo(
+                f"Generated {results.total_suggestions} suggestions from {results.pages_analyzed} pages (min score: {min_score})"
+            )
             click.echo("=" * 120)
             click.echo(f"{'#':<4} {'From':<35} {'To':<35} {'Score':<8} {'Reasons':<35}")
             click.echo("-" * 120)
@@ -1393,39 +1610,59 @@ def suggest(top_n: int, min_score: float, format: str, config: str, source: str)
                 if len(reasons_str) > 33:
                     reasons_str = reasons_str[:30] + "..."
 
-                click.echo(f"{i:<4} {source_title:<35} {target_title:<35} {suggestion.score:.4f}  {reasons_str:<35}")
+                click.echo(
+                    f"{i:<4} {source_title:<35} {target_title:<35} {suggestion.score:.4f}  {reasons_str:<35}"
+                )
 
             click.echo("=" * 120)
             click.echo("\n💡 Tip: Use --format markdown to generate implementation checklist")
             click.echo("       Use --format json to export for programmatic processing")
             click.echo("       Use --min-score to filter low-confidence suggestions\n")
 
-        if format != 'json':
+        if format != "json":
             click.echo("\n" + "=" * 60)
             click.echo("📊 Summary")
             click.echo("=" * 60)
             click.echo(f"• Total suggestions:          {results.total_suggestions}")
             click.echo(f"• Above threshold ({min_score}):      {len(top_suggestions)}")
             click.echo(f"• Pages analyzed:             {results.pages_analyzed}")
-            click.echo(f"• Avg suggestions per page:   {results.total_suggestions / results.pages_analyzed:.1f}")
+            click.echo(
+                f"• Avg suggestions per page:   {results.total_suggestions / results.pages_analyzed:.1f}"
+            )
             click.echo("\n")
 
     except Exception as e:
-        click.echo(click.style(f"❌ Error: {e}", fg='red', bold=True))
+        click.echo(click.style(f"❌ Error: {e}", fg="red", bold=True))
         raise click.Abort() from e
     finally:
         close_all_loggers()
 
 
 @main.command()
-@click.option('--host', default='localhost', help='Server host address')
-@click.option('--port', '-p', default=5173, type=int, help='Server port number')
-@click.option('--watch/--no-watch', default=True, help='Watch for file changes and rebuild (default: enabled)')
-@click.option('--auto-port/--no-auto-port', default=True, help='Find available port if specified port is taken (default: enabled)')
-@click.option('--open', '-o', 'open_browser', is_flag=True, help='Open browser automatically after server starts')
-@click.option('--config', type=click.Path(exists=True), help='Path to config file (default: bengal.toml)')
-@click.argument('source', type=click.Path(exists=True), default='.')
-def serve(host: str, port: int, watch: bool, auto_port: bool, open_browser: bool, config: str, source: str) -> None:
+@click.option("--host", default="localhost", help="Server host address")
+@click.option("--port", "-p", default=5173, type=int, help="Server port number")
+@click.option(
+    "--watch/--no-watch", default=True, help="Watch for file changes and rebuild (default: enabled)"
+)
+@click.option(
+    "--auto-port/--no-auto-port",
+    default=True,
+    help="Find available port if specified port is taken (default: enabled)",
+)
+@click.option(
+    "--open",
+    "-o",
+    "open_browser",
+    is_flag=True,
+    help="Open browser automatically after server starts",
+)
+@click.option(
+    "--config", type=click.Path(exists=True), help="Path to config file (default: bengal.toml)"
+)
+@click.argument("source", type=click.Path(exists=True), default=".")
+def serve(
+    host: str, port: int, watch: bool, auto_port: bool, open_browser: bool, config: str, source: str
+) -> None:
     """
     🚀 Start development server with hot reload.
 
@@ -1446,7 +1683,9 @@ def serve(host: str, port: int, watch: bool, auto_port: bool, open_browser: bool
         site.config["strict_mode"] = True
 
         # Start server (this blocks)
-        site.serve(host=host, port=port, watch=watch, auto_port=auto_port, open_browser=open_browser)
+        site.serve(
+            host=host, port=port, watch=watch, auto_port=auto_port, open_browser=open_browser
+        )
 
     except Exception as e:
         show_error(f"Server failed: {e}", show_art=True)
@@ -1462,8 +1701,8 @@ def new() -> None:
 
 
 @new.command()
-@click.argument('name')
-@click.option('--theme', default='default', help='Theme to use')
+@click.argument("name")
+@click.option("--theme", default="default", help="Theme to use")
 def site(name: str, theme: str) -> None:
     """
     🏗️  Create a new Bengal site.
@@ -1475,17 +1714,17 @@ def site(name: str, theme: str) -> None:
             show_error(f"Directory {name} already exists!", show_art=False)
             raise click.Abort()
 
-        click.echo(click.style(f"\n🏗️  Creating new Bengal site: {name}", fg='cyan', bold=True))
+        click.echo(click.style(f"\n🏗️  Creating new Bengal site: {name}", fg="cyan", bold=True))
 
         # Create directory structure
         site_path.mkdir(parents=True)
-        (site_path / 'content').mkdir()
-        (site_path / 'assets' / 'css').mkdir(parents=True)
-        (site_path / 'assets' / 'js').mkdir()
-        (site_path / 'assets' / 'images').mkdir()
-        (site_path / 'templates').mkdir()
+        (site_path / "content").mkdir()
+        (site_path / "assets" / "css").mkdir(parents=True)
+        (site_path / "assets" / "js").mkdir()
+        (site_path / "assets" / "images").mkdir()
+        (site_path / "templates").mkdir()
 
-        click.echo(click.style("   ├─ ", fg='cyan') + "Created directory structure")
+        click.echo(click.style("   ├─ ", fg="cyan") + "Created directory structure")
 
         # Create config file
         config_content = f"""[site]
@@ -1503,8 +1742,9 @@ fingerprint = true
 """
         # Write config atomically (crash-safe)
         from bengal.utils.atomic_write import atomic_write_text
-        atomic_write_text(site_path / 'bengal.toml', config_content)
-        click.echo(click.style("   ├─ ", fg='cyan') + "Created bengal.toml")
+
+        atomic_write_text(site_path / "bengal.toml", config_content)
+        click.echo(click.style("   ├─ ", fg="cyan") + "Created bengal.toml")
 
         # Create sample index page
         index_content = """---
@@ -1531,13 +1771,14 @@ This is your new Bengal static site. Start editing this file to begin!
 """
         # Write index page atomically (crash-safe)
         from bengal.utils.atomic_write import atomic_write_text
-        atomic_write_text(site_path / 'content' / 'index.md', index_content)
-        click.echo(click.style("   └─ ", fg='cyan') + "Created sample index page")
 
-        click.echo(click.style("\n✅ Site created successfully!", fg='green', bold=True))
-        click.echo(click.style("\n📚 Next steps:", fg='cyan', bold=True))
-        click.echo(click.style("   ├─ ", fg='cyan') + f"cd {name}")
-        click.echo(click.style("   └─ ", fg='cyan') + "bengal serve")
+        atomic_write_text(site_path / "content" / "index.md", index_content)
+        click.echo(click.style("   └─ ", fg="cyan") + "Created sample index page")
+
+        click.echo(click.style("\n✅ Site created successfully!", fg="green", bold=True))
+        click.echo(click.style("\n📚 Next steps:", fg="cyan", bold=True))
+        click.echo(click.style("   ├─ ", fg="cyan") + f"cd {name}")
+        click.echo(click.style("   └─ ", fg="cyan") + "bengal serve")
         click.echo()
 
     except Exception as e:
@@ -1546,15 +1787,15 @@ This is your new Bengal static site. Start editing this file to begin!
 
 
 @new.command()
-@click.argument('name')
-@click.option('--section', default='', help='Section to create page in')
+@click.argument("name")
+@click.option("--section", default="", help="Section to create page in")
 def page(name: str, section: str) -> None:
     """
     📄 Create a new page.
     """
     try:
         # Ensure we're in a Bengal site
-        content_dir = Path('content')
+        content_dir = Path("content")
         if not content_dir.exists():
             show_error("Not in a Bengal site directory!", show_art=False)
             raise click.Abort()
@@ -1575,20 +1816,23 @@ def page(name: str, section: str) -> None:
 
         # Create page content with current timestamp
         page_content = f"""---
-title: {name.replace('-', ' ').title()}
+title: {name.replace("-", " ").title()}
 date: {datetime.now().isoformat()}
 ---
 
-# {name.replace('-', ' ').title()}
+# {name.replace("-", " ").title()}
 
 Your content goes here.
 """
         # Write new page atomically (crash-safe)
         from bengal.utils.atomic_write import atomic_write_text
+
         atomic_write_text(page_path, page_content)
 
-        click.echo(click.style("\n✨ Created new page: ", fg='cyan') +
-                  click.style(str(page_path), fg='green', bold=True))
+        click.echo(
+            click.style("\n✨ Created new page: ", fg="cyan")
+            + click.style(str(page_path), fg="green", bold=True)
+        )
         click.echo()
 
     except Exception as e:
@@ -1597,16 +1841,41 @@ Your content goes here.
 
 
 @main.command()
-@click.option('--source', '-s', multiple=True, type=click.Path(exists=True), help='Source directory to document (can specify multiple)')
-@click.option('--output', '-o', type=click.Path(), help='Output directory for generated docs (default: from config or content/api)')
-@click.option('--clean', is_flag=True, help='Clean output directory before generating')
-@click.option('--parallel/--no-parallel', default=True, help='Use parallel processing (default: enabled)')
-@click.option('--verbose', '-v', is_flag=True, help='Show detailed progress')
-@click.option('--stats', is_flag=True, help='Show performance statistics')
-@click.option('--config', type=click.Path(exists=True), help='Path to config file (default: bengal.toml)')
-@click.option('--python-only', is_flag=True, help='Only generate Python API docs (skip CLI docs)')
-@click.option('--cli-only', is_flag=True, help='Only generate CLI docs (skip Python API docs)')
-def autodoc(source: tuple, output: str, clean: bool, parallel: bool, verbose: bool, stats: bool, config: str, python_only: bool, cli_only: bool) -> None:
+@click.option(
+    "--source",
+    "-s",
+    multiple=True,
+    type=click.Path(exists=True),
+    help="Source directory to document (can specify multiple)",
+)
+@click.option(
+    "--output",
+    "-o",
+    type=click.Path(),
+    help="Output directory for generated docs (default: from config or content/api)",
+)
+@click.option("--clean", is_flag=True, help="Clean output directory before generating")
+@click.option(
+    "--parallel/--no-parallel", default=True, help="Use parallel processing (default: enabled)"
+)
+@click.option("--verbose", "-v", is_flag=True, help="Show detailed progress")
+@click.option("--stats", is_flag=True, help="Show performance statistics")
+@click.option(
+    "--config", type=click.Path(exists=True), help="Path to config file (default: bengal.toml)"
+)
+@click.option("--python-only", is_flag=True, help="Only generate Python API docs (skip CLI docs)")
+@click.option("--cli-only", is_flag=True, help="Only generate CLI docs (skip Python API docs)")
+def autodoc(
+    source: tuple,
+    output: str,
+    clean: bool,
+    parallel: bool,
+    verbose: bool,
+    stats: bool,
+    config: str,
+    python_only: bool,
+    cli_only: bool,
+) -> None:
     """
     📚 Generate comprehensive API documentation (Python + CLI).
 
@@ -1626,24 +1895,28 @@ def autodoc(source: tuple, output: str, clean: bool, parallel: bool, verbose: bo
         # Load configuration
         config_path = Path(config) if config else None
         autodoc_config = load_autodoc_config(config_path)
-        python_config = autodoc_config.get('python', {})
-        cli_config = autodoc_config.get('cli', {})
+        python_config = autodoc_config.get("python", {})
+        cli_config = autodoc_config.get("cli", {})
 
         # Determine what to generate
-        generate_python = not cli_only and (python_only or python_config.get('enabled', True))
-        generate_cli = not python_only and (cli_only or (cli_config.get('enabled', False) and cli_config.get('app_module')))
+        generate_python = not cli_only and (python_only or python_config.get("enabled", True))
+        generate_cli = not python_only and (
+            cli_only or (cli_config.get("enabled", False) and cli_config.get("app_module"))
+        )
 
         if not generate_python and not generate_cli:
-            click.echo(click.style("⚠️  Nothing to generate", fg='yellow'))
+            click.echo(click.style("⚠️  Nothing to generate", fg="yellow"))
             click.echo()
             click.echo("Either:")
             click.echo("  • Enable Python docs in bengal.toml: [autodoc.python] enabled = true")
-            click.echo("  • Enable CLI docs in bengal.toml: [autodoc.cli] enabled = true, app_module = '...'")
+            click.echo(
+                "  • Enable CLI docs in bengal.toml: [autodoc.cli] enabled = true, app_module = '...'"
+            )
             click.echo("  • Use --python-only or --cli-only flags")
             return
 
         click.echo()
-        click.echo(click.style("📚 Bengal Autodoc", fg='cyan', bold=True))
+        click.echo(click.style("📚 Bengal Autodoc", fg="cyan", bold=True))
         click.echo()
 
         total_start = time.time()
@@ -1657,74 +1930,88 @@ def autodoc(source: tuple, output: str, clean: bool, parallel: bool, verbose: bo
                 parallel=parallel,
                 verbose=verbose,
                 stats=stats,
-                python_config=python_config
+                python_config=python_config,
             )
 
         # ========== CLI DOCUMENTATION ==========
         if generate_cli:
             if generate_python:
                 click.echo()
-                click.echo(click.style("─" * 60, fg='blue'))
+                click.echo(click.style("─" * 60, fg="blue"))
                 click.echo()
 
             _generate_cli_docs(
-                app=cli_config.get('app_module'),
-                framework=cli_config.get('framework', 'click'),
-                output=cli_config.get('output_dir', 'content/cli'),
-                include_hidden=cli_config.get('include_hidden', False),
+                app=cli_config.get("app_module"),
+                framework=cli_config.get("framework", "click"),
+                output=cli_config.get("output_dir", "content/cli"),
+                include_hidden=cli_config.get("include_hidden", False),
                 clean=clean,
                 verbose=verbose,
-                cli_config=cli_config
+                cli_config=cli_config,
             )
 
         # Summary
         if generate_python and generate_cli:
             total_time = time.time() - total_start
             click.echo()
-            click.echo(click.style("─" * 60, fg='blue'))
+            click.echo(click.style("─" * 60, fg="blue"))
             click.echo()
-            click.echo(click.style(f"✅ All documentation generated in {total_time:.2f}s", fg='green', bold=True))
+            click.echo(
+                click.style(
+                    f"✅ All documentation generated in {total_time:.2f}s", fg="green", bold=True
+                )
+            )
             click.echo()
 
     except KeyboardInterrupt:
         click.echo()
-        click.echo(click.style("⚠️  Cancelled by user", fg='yellow'))
+        click.echo(click.style("⚠️  Cancelled by user", fg="yellow"))
         raise click.Abort() from None
     except Exception as e:
         click.echo()
-        click.echo(click.style(f"❌ Error: {e}", fg='red', bold=True))
+        click.echo(click.style(f"❌ Error: {e}", fg="red", bold=True))
         if verbose:
             import traceback
+
             traceback.print_exc()
         raise click.Abort() from e
 
 
-def _generate_python_docs(source: tuple, output: str, clean: bool, parallel: bool, verbose: bool, stats: bool, python_config: dict) -> None:
+def _generate_python_docs(
+    source: tuple,
+    output: str,
+    clean: bool,
+    parallel: bool,
+    verbose: bool,
+    stats: bool,
+    python_config: dict,
+) -> None:
     """Generate Python API documentation."""
     import time
 
-    click.echo(click.style("🐍 Python API Documentation", fg='cyan', bold=True))
+    click.echo(click.style("🐍 Python API Documentation", fg="cyan", bold=True))
     click.echo()
 
     # Use CLI args or fall back to config
-    sources = list(source) if source else python_config.get('source_dirs', ['.'])
+    sources = list(source) if source else python_config.get("source_dirs", ["."])
 
-    output_dir = Path(output) if output else Path(python_config.get('output_dir', 'content/api'))
+    output_dir = Path(output) if output else Path(python_config.get("output_dir", "content/api"))
 
     # Get exclusion patterns from config
-    exclude_patterns = python_config.get('exclude', [])
+    exclude_patterns = python_config.get("exclude", [])
 
     # Clean output directory if requested
     if clean and output_dir.exists():
         import shutil
+
         shutil.rmtree(output_dir)
-        click.echo(click.style(f"🧹 Cleaned {output_dir}", fg='yellow'))
+        click.echo(click.style(f"🧹 Cleaned {output_dir}", fg="yellow"))
 
     # Create output directory
     output_dir.mkdir(parents=True, exist_ok=True)
 
     # Extract documentation
-    click.echo(click.style("🔍 Extracting Python API documentation...", fg='blue'))
+    click.echo(click.style("🔍 Extracting Python API documentation...", fg="blue"))
     start_time = time.time()
 
     extractor = PythonExtractor(exclude_patterns=exclude_patterns)
@@ -1740,26 +2027,37 @@ def _generate_python_docs(source: tuple, output: str, clean: bool, parallel: boo
 
         if verbose:
             module_count = len(elements)
-            class_count = sum(len([c for c in e.children if c.element_type == 'class']) for e in elements)
-            func_count = sum(len([c for c in e.children if c.element_type == 'function']) for e in elements)
-            click.echo(f"   ✓ Found {module_count} modules, {class_count} classes, {func_count} functions")
+            class_count = sum(
+                len([c for c in e.children if c.element_type == "class"]) for e in elements
+            )
+            func_count = sum(
+                len([c for c in e.children if c.element_type == "function"]) for e in elements
+            )
+            click.echo(
+                f"   ✓ Found {module_count} modules, {class_count} classes, {func_count} functions"
+            )
 
     extraction_time = time.time() - start_time
 
     if not all_elements:
-        click.echo(click.style("⚠️  No Python modules found", fg='yellow'))
+        click.echo(click.style("⚠️  No Python modules found", fg="yellow"))
         return
 
-    click.echo(click.style(f"   ✓ Extracted {len(all_elements)} modules in {extraction_time:.2f}s", fg='green'))
+    click.echo(
+        click.style(
+            f"   ✓ Extracted {len(all_elements)} modules in {extraction_time:.2f}s", fg="green"
+        )
+    )
 
     # Generate documentation
     from bengal.utils.cli_output import CLIOutput
+
     cli = CLIOutput()
     cli.blank()
     cli.header("Generating documentation...")
     gen_start = time.time()
 
-    generator = DocumentationGenerator(extractor, {'python': python_config})
+    generator = DocumentationGenerator(extractor, {"python": python_config})
     generated = generator.generate_all(all_elements, output_dir, parallel=parallel)
 
     generation_time = time.time() - gen_start
@@ -1767,30 +2065,40 @@ def _generate_python_docs(source: tuple, output: str, clean: bool, parallel: boo
 
     # Success message
     click.echo()
-    click.echo(click.style(f"✅ Generated {len(generated)} documentation pages", fg='green', bold=True))
-    click.echo(click.style(f"   📁 Output: {output_dir}", fg='cyan'))
+    click.echo(
+        click.style(f"✅ Generated {len(generated)} documentation pages", fg="green", bold=True)
+    )
+    click.echo(click.style(f"   📁 Output: {output_dir}", fg="cyan"))
 
     if stats:
         click.echo()
-        click.echo(click.style("📊 Performance Statistics:", fg='blue'))
+        click.echo(click.style("📊 Performance Statistics:", fg="blue"))
         click.echo(f"   Extraction time:  {extraction_time:.2f}s")
         click.echo(f"   Generation time:  {generation_time:.2f}s")
         click.echo(f"   Total time:       {total_time:.2f}s")
         click.echo(f"   Throughput:       {len(generated) / total_time:.1f} pages/sec")
 
     click.echo()
-    click.echo(click.style("💡 Next steps:", fg='yellow'))
+    click.echo(click.style("💡 Next steps:", fg="yellow"))
     click.echo(f"   • View docs: ls {output_dir}")
     click.echo("   • Build site: bengal build")
     click.echo()
 
 
-def _generate_cli_docs(app: str, framework: str, output: str, include_hidden: bool, clean: bool, verbose: bool, cli_config: dict) -> None:
+def _generate_cli_docs(
+    app: str,
+    framework: str,
+    output: str,
+    include_hidden: bool,
+    clean: bool,
+    verbose: bool,
+    cli_config: dict,
+) -> None:
     """Generate CLI documentation."""
     import importlib
     import time
 
-    click.echo(click.style("⌨️  CLI Documentation", fg='cyan', bold=True))
+    click.echo(click.style("⌨️  CLI Documentation", fg="cyan", bold=True))
     click.echo()
 
     output_dir = Path(output)
@@ -1798,21 +2106,22 @@ def _generate_cli_docs(app: str, framework: str, output: str, include_hidden: bo
     # Clean output directory if requested
     if clean and output_dir.exists():
         import shutil
+
         shutil.rmtree(output_dir)
-        click.echo(click.style(f"🧹 Cleaned {output_dir}", fg='yellow'))
+        click.echo(click.style(f"🧹 Cleaned {output_dir}", fg="yellow"))
 
     # Create output directory
     output_dir.mkdir(parents=True, exist_ok=True)
 
     # Import the CLI app
-    click.echo(click.style(f"🔍 Loading CLI app from {app}...", fg='blue'))
+    click.echo(click.style(f"🔍 Loading CLI app from {app}...", fg="blue"))
 
     try:
-        module_path, attr_name = app.split(':')
+        module_path, attr_name = app.split(":")
         module = importlib.import_module(module_path)
         cli_app = getattr(module, attr_name)
     except Exception as e:
-        click.echo(click.style(f"❌ Failed to load app: {e}", fg='red', bold=True))
+        click.echo(click.style(f"❌ Failed to load app: {e}", fg="red", bold=True))
         click.echo()
         click.echo("Make sure the module path is correct:")
         click.echo(f"  • Module: {app.split(':')[0]}")
@@ -1821,7 +2130,7 @@ def _generate_cli_docs(app: str, framework: str, output: str, include_hidden: bo
         raise click.Abort() from e
 
     # Extract documentation
-    click.echo(click.style("📝 Extracting CLI documentation...", fg='blue'))
+    click.echo(click.style("📝 Extracting CLI documentation...", fg="blue"))
     start_time = time.time()
 
     extractor = CLIExtractor(framework=framework, include_hidden=include_hidden)
@@ -1833,29 +2142,32 @@ def _generate_cli_docs(app: str, framework: str, output: str, include_hidden: bo
     command_count = 0
     option_count = 0
     for element in elements:
-        if element.element_type == 'command-group':
+        if element.element_type == "command-group":
             command_count = len(element.children)
             for cmd in element.children:
-                option_count += cmd.metadata.get('option_count', 0)
+                option_count += cmd.metadata.get("option_count", 0)
 
-    click.echo(click.style(f"   ✓ Extracted {command_count} commands, {option_count} options", fg='green'))
+    click.echo(
+        click.style(f"   ✓ Extracted {command_count} commands, {option_count} options", fg="green")
+    )
 
     if verbose:
         click.echo()
         click.echo("Commands found:")
         for element in elements:
-            if element.element_type == 'command-group':
+            if element.element_type == "command-group":
                 for cmd in element.children:
                     click.echo(f"  • {cmd.name}")
 
     # Generate documentation
     from bengal.utils.cli_output import CLIOutput
+
     cli = CLIOutput()
     cli.blank()
     cli.header("Generating documentation...")
     gen_start = time.time()
 
-    generator = DocumentationGenerator(extractor, {'cli': cli_config})
+    generator = DocumentationGenerator(extractor, {"cli": cli_config})
     generated_files = generator.generate_all(elements, output_dir)
 
     gen_time = time.time() - gen_start
@@ -1863,35 +2175,56 @@ def _generate_cli_docs(app: str, framework: str, output: str, include_hidden: bo
 
     # Display results
     click.echo()
-    click.echo(click.style("✅ CLI Documentation Generated!", fg='green', bold=True))
+    click.echo(click.style("✅ CLI Documentation Generated!", fg="green", bold=True))
     click.echo()
-    click.echo(click.style("   📊 Statistics:", fg='blue'))
+    click.echo(click.style("   📊 Statistics:", fg="blue"))
     click.echo(f"      • Commands: {command_count}")
     click.echo(f"      • Options:  {option_count}")
     click.echo(f"      • Pages:    {len(generated_files)}")
     click.echo()
-    click.echo(click.style("   ⚡ Performance:", fg='blue'))
+    click.echo(click.style("   ⚡ Performance:", fg="blue"))
     click.echo(f"      • Extraction: {extraction_time:.3f}s")
     click.echo(f"      • Generation: {gen_time:.3f}s")
     click.echo(f"      • Total:      {total_time:.3f}s")
     click.echo()
-    click.echo(click.style(f"   📂 Output: {output_dir}", fg='cyan'))
+    click.echo(click.style(f"   📂 Output: {output_dir}", fg="cyan"))
     click.echo()
-    click.echo(click.style("💡 Next steps:", fg='yellow'))
+    click.echo(click.style("💡 Next steps:", fg="yellow"))
     click.echo(f"   • View docs: ls {output_dir}")
     click.echo("   • Build site: bengal build")
     click.echo()
 
 
-@main.command(name='autodoc-cli')
-@click.option('--app', '-a', help='CLI app module (e.g., bengal.cli:main)')
-@click.option('--framework', '-f', type=click.Choice(['click', 'argparse', 'typer']), default='click', help='CLI framework (default: click)')
-@click.option('--output', '-o', type=click.Path(), help='Output directory for generated docs (default: content/cli)')
-@click.option('--include-hidden', is_flag=True, help='Include hidden commands')
-@click.option('--clean', is_flag=True, help='Clean output directory before generating')
-@click.option('--verbose', '-v', is_flag=True, help='Show detailed progress')
-@click.option('--config', type=click.Path(exists=True), help='Path to config file (default: bengal.toml)')
-def autodoc_cli(app: str, framework: str, output: str, include_hidden: bool, clean: bool, verbose: bool, config: str) -> None:
+@main.command(name="autodoc-cli")
+@click.option("--app", "-a", help="CLI app module (e.g., bengal.cli:main)")
+@click.option(
+    "--framework",
+    "-f",
+    type=click.Choice(["click", "argparse", "typer"]),
+    default="click",
+    help="CLI framework (default: click)",
+)
+@click.option(
+    "--output",
+    "-o",
+    type=click.Path(),
+    help="Output directory for generated docs (default: content/cli)",
+)
+@click.option("--include-hidden", is_flag=True, help="Include hidden commands")
+@click.option("--clean", is_flag=True, help="Clean output directory before generating")
+@click.option("--verbose", "-v", is_flag=True, help="Show detailed progress")
+@click.option(
+    "--config", type=click.Path(exists=True), help="Path to config file (default: bengal.toml)"
+)
+def autodoc_cli(
+    app: str,
+    framework: str,
+    output: str,
+    include_hidden: bool,
+    clean: bool,
+    verbose: bool,
+    config: str,
+) -> None:
     """
     ⌨️  Generate CLI documentation from Click/argparse/typer apps.
 
@@ -1906,20 +2239,20 @@ def autodoc_cli(app: str, framework: str, output: str, include_hidden: bool, cle
 
     try:
         click.echo()
-        click.echo(click.style("⌨️  Bengal CLI Autodoc", fg='cyan', bold=True))
+        click.echo(click.style("⌨️  Bengal CLI Autodoc", fg="cyan", bold=True))
         click.echo()
 
         # Load configuration
         config_path = Path(config) if config else None
         autodoc_config = load_autodoc_config(config_path)
-        cli_config = autodoc_config.get('cli', {})
+        cli_config = autodoc_config.get("cli", {})
 
         # Use CLI args or fall back to config
         if not app:
-            app = cli_config.get('app_module')
+            app = cli_config.get("app_module")
 
         if not app:
-            click.echo(click.style("❌ Error: No CLI app specified", fg='red', bold=True))
+            click.echo(click.style("❌ Error: No CLI app specified", fg="red", bold=True))
             click.echo()
             click.echo("Please specify the app module either:")
             click.echo("  • Via command line: --app bengal.cli:main")
@@ -1928,31 +2261,32 @@ def autodoc_cli(app: str, framework: str, output: str, include_hidden: bool, cle
             raise click.Abort()
 
         if not framework:
-            framework = cli_config.get('framework', 'click')
+            framework = cli_config.get("framework", "click")
 
-        output_dir = Path(output) if output else Path(cli_config.get('output_dir', 'content/cli'))
+        output_dir = Path(output) if output else Path(cli_config.get("output_dir", "content/cli"))
 
         if not include_hidden:
-            include_hidden = cli_config.get('include_hidden', False)
+            include_hidden = cli_config.get("include_hidden", False)
 
         # Clean output directory if requested
         if clean and output_dir.exists():
             import shutil
+
             shutil.rmtree(output_dir)
-            click.echo(click.style(f"🧹 Cleaned {output_dir}", fg='yellow'))
+            click.echo(click.style(f"🧹 Cleaned {output_dir}", fg="yellow"))
 
         # Create output directory
         output_dir.mkdir(parents=True, exist_ok=True)
 
         # Import the CLI app
-        click.echo(click.style(f"🔍 Loading CLI app from {app}...", fg='blue'))
+        click.echo(click.style(f"🔍 Loading CLI app from {app}...", fg="blue"))
 
         try:
-            module_path, attr_name = app.split(':')
+            module_path, attr_name = app.split(":")
             module = importlib.import_module(module_path)
             cli_app = getattr(module, attr_name)
         except Exception as e:
-            click.echo(click.style(f"❌ Failed to load app: {e}", fg='red', bold=True))
+            click.echo(click.style(f"❌ Failed to load app: {e}", fg="red", bold=True))
             click.echo()
             click.echo("Make sure the module path is correct:")
             click.echo(f"  • Module: {app.split(':')[0]}")
@@ -1961,7 +2295,7 @@ def autodoc_cli(app: str, framework: str, output: str, include_hidden: bool, cle
             raise click.Abort() from e
 
         # Extract documentation
-        click.echo(click.style("📝 Extracting CLI documentation...", fg='blue'))
+        click.echo(click.style("📝 Extracting CLI documentation...", fg="blue"))
         start_time = time.time()
 
         extractor = CLIExtractor(framework=framework, include_hidden=include_hidden)
@@ -1973,23 +2307,28 @@ def autodoc_cli(app: str, framework: str, output: str, include_hidden: bool, cle
         command_count = 0
         option_count = 0
         for element in elements:
-            if element.element_type == 'command-group':
+            if element.element_type == "command-group":
                 command_count = len(element.children)
                 for cmd in element.children:
-                    option_count += cmd.metadata.get('option_count', 0)
+                    option_count += cmd.metadata.get("option_count", 0)
 
-        click.echo(click.style(f"   ✓ Extracted {command_count} commands, {option_count} options", fg='green'))
+        click.echo(
+            click.style(
+                f"   ✓ Extracted {command_count} commands, {option_count} options", fg="green"
+            )
+        )
 
         if verbose:
             click.echo()
             click.echo("Commands found:")
             for element in elements:
-                if element.element_type == 'command-group':
+                if element.element_type == "command-group":
                     for cmd in element.children:
                         click.echo(f"  • {cmd.name}")
 
         # Generate documentation
         from bengal.utils.cli_output import CLIOutput
+
         cli = CLIOutput()
         cli.blank()
         cli.header("Generating documentation...")
@@ -2003,7 +2342,7 @@ def autodoc_cli(app: str, framework: str, output: str, include_hidden: bool, cle
 
         # Display results
         click.echo()
-        click.echo(click.style("✅ CLI Documentation Generated!", fg='green', bold=True))
+        click.echo(click.style("✅ CLI Documentation Generated!", fg="green", bold=True))
         click.echo()
         click.echo("   📊 Statistics:")
         click.echo(f"      • Commands: {command_count}")
@@ -2024,7 +2363,7 @@ def autodoc_cli(app: str, framework: str, output: str, include_hidden: bool, cle
                 click.echo(f"  • {file}")
             click.echo()
 
-        click.echo(click.style("💡 Next steps:", fg='yellow'))
+        click.echo(click.style("💡 Next steps:", fg="yellow"))
         click.echo(f"   • View docs: ls {output_dir}")
         click.echo("   • Build site: bengal build")
         click.echo()
@@ -2033,9 +2372,10 @@ def autodoc_cli(app: str, framework: str, output: str, include_hidden: bool, cle
         raise
     except Exception as e:
         click.echo()
-        click.echo(click.style(f"❌ Error: {e}", fg='red', bold=True))
+        click.echo(click.style(f"❌ Error: {e}", fg="red", bold=True))
         if verbose:
             import traceback
+
             click.echo()
             click.echo(traceback.format_exc())
         raise click.Abort() from e
@@ -2047,6 +2387,5 @@ main.add_command(clean)
 main.add_command(cleanup)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
-

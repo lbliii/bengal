@@ -277,9 +277,9 @@ class TestBuildCache:
 
         stats = cache.get_stats()
 
-        assert stats['tracked_files'] == 2
-        assert stats['dependencies'] == 2
-        assert stats['taxonomy_terms'] == 1
+        assert stats["tracked_files"] == 2
+        assert stats["dependencies"] == 2
+        assert stats["taxonomy_terms"] == 1
 
     def test_repr(self):
         """Test string representation."""
@@ -289,4 +289,3 @@ class TestBuildCache:
         assert "BuildCache" in repr_str
         assert "files=" in repr_str
         assert "deps=" in repr_str
-

@@ -13,15 +13,17 @@ if TYPE_CHECKING:
     from bengal.core.site import Site
 
 
-def register(env: 'Environment', site: 'Site') -> None:
+def register(env: "Environment", site: "Site") -> None:
     """Register advanced string functions with Jinja2 environment."""
-    env.filters.update({
-        'camelize': camelize,
-        'underscore': underscore,
-        'titleize': titleize,
-        'wrap': wrap_text,
-        'indent': indent_text,
-    })
+    env.filters.update(
+        {
+            "camelize": camelize,
+            "underscore": underscore,
+            "titleize": titleize,
+            "wrap": wrap_text,
+            "indent": indent_text,
+        }
+    )
 
 
 def camelize(text: str) -> str:
@@ -39,10 +41,10 @@ def camelize(text: str) -> str:
         {{ "hello-world" | camelize }}  # "helloWorld"
     """
     if not text:
-        return ''
+        return ""
 
     # Split on underscores, hyphens, or spaces
-    words = re.split(r'[-_\s]+', text)
+    words = re.split(r"[-_\s]+", text)
 
     if not words:
         return text
@@ -71,20 +73,20 @@ def underscore(text: str) -> str:
         {{ "HelloWorld" | underscore }}  # "hello_world"
     """
     if not text:
-        return ''
+        return ""
 
     # Insert underscore before uppercase letters
-    text = re.sub(r'([A-Z]+)([A-Z][a-z])', r'\1_\2', text)
-    text = re.sub(r'([a-z\d])([A-Z])', r'\1_\2', text)
+    text = re.sub(r"([A-Z]+)([A-Z][a-z])", r"\1_\2", text)
+    text = re.sub(r"([a-z\d])([A-Z])", r"\1_\2", text)
 
     # Replace hyphens and spaces with underscores
-    text = text.replace('-', '_').replace(' ', '_')
+    text = text.replace("-", "_").replace(" ", "_")
 
     # Lowercase and remove multiple underscores
     text = text.lower()
-    text = re.sub(r'_+', '_', text)
+    text = re.sub(r"_+", "_", text)
 
-    return text.strip('_')
+    return text.strip("_")
 
 
 def titleize(text: str) -> str:
@@ -105,12 +107,28 @@ def titleize(text: str) -> str:
         # "The Lord of the Rings"
     """
     if not text:
-        return ''
+        return ""
 
     # Words that should stay lowercase (unless first/last word)
     lowercase_words = {
-        'a', 'an', 'and', 'as', 'at', 'but', 'by', 'for', 'in',
-        'nor', 'of', 'on', 'or', 'so', 'the', 'to', 'up', 'yet'
+        "a",
+        "an",
+        "and",
+        "as",
+        "at",
+        "but",
+        "by",
+        "for",
+        "in",
+        "nor",
+        "of",
+        "on",
+        "or",
+        "so",
+        "the",
+        "to",
+        "up",
+        "yet",
     }
 
     words = text.split()
@@ -129,7 +147,7 @@ def titleize(text: str) -> str:
         else:
             result.append(word.capitalize())
 
-    return ' '.join(result)
+    return " ".join(result)
 
 
 def wrap_text(text: str, width: int = 80) -> str:
@@ -150,6 +168,7 @@ def wrap_text(text: str, width: int = 80) -> str:
         return text
 
     import textwrap
+
     return textwrap.fill(text, width=width)
 
 
@@ -170,15 +189,14 @@ def indent_text(text: str, spaces: int = 4, first_line: bool = True) -> str:
         {{ text | indent(4, first_line=false) }}
     """
     if not text:
-        return ''
+        return ""
 
-    indent = ' ' * spaces
-    lines = text.split('\n')
+    indent = " " * spaces
+    lines = text.split("\n")
 
     if first_line:
-        return '\n'.join(indent + line for line in lines)
+        return "\n".join(indent + line for line in lines)
     else:
         if len(lines) == 0:
             return text
-        return lines[0] + '\n' + '\n'.join(indent + line for line in lines[1:])
-
+        return lines[0] + "\n" + "\n".join(indent + line for line in lines[1:])

@@ -33,7 +33,7 @@ class TaxonomyOrchestrator:
     Note: Section archive pages are now handled by SectionOrchestrator
     """
 
-    def __init__(self, site: 'Site'):
+    def __init__(self, site: "Site"):
         """
         Initialize taxonomy orchestrator.
 
@@ -52,7 +52,9 @@ class TaxonomyOrchestrator:
         self.collect_taxonomies()
         self.generate_dynamic_pages()
 
-    def collect_and_generate_incremental(self, changed_pages: list['Page'], cache: 'BuildCache') -> set[str]:
+    def collect_and_generate_incremental(
+        self, changed_pages: list["Page"], cache: "BuildCache"
+    ) -> set[str]:
         """
         Incrementally update taxonomies for changed pages only.
 
@@ -73,16 +75,13 @@ class TaxonomyOrchestrator:
         Returns:
             Set of affected tag slugs (for regenerating tag pages)
         """
-        logger.info(
-            "taxonomy_collection_incremental_start",
-            changed_pages=len(changed_pages)
-        )
+        logger.info("taxonomy_collection_incremental_start", changed_pages=len(changed_pages))
 
         # STEP 1: Determine which tags are affected
         # This is the O(changed) optimization - only look at changed pages
         affected_tags = set()
         for page in changed_pages:
-            if page.metadata.get('_generated'):
+            if page.metadata.get("_generated"):
                 continue
 
             # Update cache and get affected tags
@@ -97,9 +96,9 @@ class TaxonomyOrchestrator:
 
         logger.info(
             "taxonomy_collection_incremental_complete",
-            tags=len(self.site.taxonomies.get('tags', {})),
+            tags=len(self.site.taxonomies.get("tags", {})),
             updated_pages=len(changed_pages),
-            affected_tags=len(affected_tags)
+            affected_tags=len(affected_tags),
         )
 
         # STEP 3: Generate tag pages only for affected tags
@@ -116,56 +115,55 @@ class TaxonomyOrchestrator:
         logger.info("taxonomy_collection_start", total_pages=len(self.site.pages))
 
         # Initialize taxonomy structure
-        self.site.taxonomies = {'tags': {}, 'categories': {}}
+        self.site.taxonomies = {"tags": {}, "categories": {}}
 
         # Collect from all pages, optionally per-locale
-        i18n = self.site.config.get('i18n', {}) or {}
-        share_taxonomies = bool(i18n.get('share_taxonomies', False))
-        current_lang = getattr(self.site, 'current_language', None)
+        i18n = self.site.config.get("i18n", {}) or {}
+        share_taxonomies = bool(i18n.get("share_taxonomies", False))
+        current_lang = getattr(self.site, "current_language", None)
         for page in self.site.pages:
-            if not share_taxonomies and current_lang and getattr(page, 'lang', current_lang) != current_lang:
+            if (
+                not share_taxonomies
+                and current_lang
+                and getattr(page, "lang", current_lang) != current_lang
+            ):
                 continue
             # Collect tags
             if page.tags:
                 for tag in page.tags:
-                    tag_key = tag.lower().replace(' ', '-')
-                    if tag_key not in self.site.taxonomies['tags']:
-                        self.site.taxonomies['tags'][tag_key] = {
-                            'name': tag,
-                            'slug': tag_key,
-                            'pages': []
+                    tag_key = tag.lower().replace(" ", "-")
+                    if tag_key not in self.site.taxonomies["tags"]:
+                        self.site.taxonomies["tags"][tag_key] = {
+                            "name": tag,
+                            "slug": tag_key,
+                            "pages": [],
                         }
-                    self.site.taxonomies['tags'][tag_key]['pages'].append(page)
+                    self.site.taxonomies["tags"][tag_key]["pages"].append(page)
 
             # Collect categories (if present in metadata)
-            if 'category' in page.metadata:
-                category = page.metadata['category']
-                cat_key = category.lower().replace(' ', '-')
-                if cat_key not in self.site.taxonomies['categories']:
-                    self.site.taxonomies['categories'][cat_key] = {
-                        'name': category,
-                        'slug': cat_key,
-                        'pages': []
+            if "category" in page.metadata:
+                category = page.metadata["category"]
+                cat_key = category.lower().replace(" ", "-")
+                if cat_key not in self.site.taxonomies["categories"]:
+                    self.site.taxonomies["categories"][cat_key] = {
+                        "name": category,
+                        "slug": cat_key,
+                        "pages": [],
                     }
-                self.site.taxonomies['categories'][cat_key]['pages'].append(page)
+                self.site.taxonomies["categories"][cat_key]["pages"].append(page)
 
         # Sort pages within each taxonomy by date (newest first)
         for taxonomy_type in self.site.taxonomies:
             for term_data in self.site.taxonomies[taxonomy_type].values():
-                term_data['pages'].sort(
-                    key=lambda p: p.date if p.date else datetime.min,
-                    reverse=True
+                term_data["pages"].sort(
+                    key=lambda p: p.date if p.date else datetime.min, reverse=True
                 )
 
-        tag_count = len(self.site.taxonomies.get('tags', {}))
-        cat_count = len(self.site.taxonomies.get('categories', {}))
-        logger.info(
-            "taxonomy_collection_complete",
-            tags=tag_count,
-            categories=cat_count
-        )
+        tag_count = len(self.site.taxonomies.get("tags", {}))
+        cat_count = len(self.site.taxonomies.get("categories", {}))
+        logger.info("taxonomy_collection_complete", tags=tag_count, categories=cat_count)
 
-    def _rebuild_taxonomy_structure_from_cache(self, cache: 'BuildCache') -> None:
+    def _rebuild_taxonomy_structure_from_cache(self, cache: "BuildCache") -> None:
         """
         Rebuild site.taxonomies from cache using CURRENT Page objects.
 
@@ -180,13 +178,11 @@ class TaxonomyOrchestrator:
         CRITICAL: This always uses current Page objects, never cached references.
         """
         # Initialize fresh structure
-        self.site.taxonomies = {'tags': {}, 'categories': {}}
+        self.site.taxonomies = {"tags": {}, "categories": {}}
 
         # Build lookup map: path → current Page object
         current_page_map = {
-            p.source_path: p
-            for p in self.site.pages
-            if not p.metadata.get('_generated')
+            p.source_path: p for p in self.site.pages if not p.metadata.get("_generated")
         }
 
         # For each tag in cache, map paths to current Page objects
@@ -210,7 +206,7 @@ class TaxonomyOrchestrator:
             for page in current_pages:
                 if page.tags:
                     for tag in page.tags:
-                        if tag.lower().replace(' ', '-') == tag_slug:
+                        if tag.lower().replace(" ", "-") == tag_slug:
                             original_tag = tag
                             break
                 if original_tag:
@@ -220,14 +216,12 @@ class TaxonomyOrchestrator:
                 original_tag = tag_slug  # Fallback
 
             # Create tag entry with CURRENT page objects
-            self.site.taxonomies['tags'][tag_slug] = {
-                'name': original_tag,
-                'slug': tag_slug,
-                'pages': sorted(
-                    current_pages,
-                    key=lambda p: p.date if p.date else datetime.min,
-                    reverse=True
-                )
+            self.site.taxonomies["tags"][tag_slug] = {
+                "name": original_tag,
+                "slug": tag_slug,
+                "pages": sorted(
+                    current_pages, key=lambda p: p.date if p.date else datetime.min, reverse=True
+                ),
             }
 
         # Handle categories (similar pattern if needed in future)
@@ -242,7 +236,7 @@ class TaxonomyOrchestrator:
         generated_count = 0
 
         # Always regenerate tag index (it lists all tags)
-        if self.site.taxonomies.get('tags'):
+        if self.site.taxonomies.get("tags"):
             tag_index = self._create_tag_index_page()
             if tag_index:
                 self.site.pages.append(tag_index)
@@ -250,8 +244,8 @@ class TaxonomyOrchestrator:
 
             # Only generate pages for affected tags
             for tag_slug in affected_tags:
-                if tag_slug in self.site.taxonomies['tags']:
-                    tag_data = self.site.taxonomies['tags'][tag_slug]
+                if tag_slug in self.site.taxonomies["tags"]:
+                    tag_data = self.site.taxonomies["tags"][tag_slug]
                     tag_pages = self._create_tag_pages(tag_slug, tag_data)
                     for page in tag_pages:
                         self.site.pages.append(page)
@@ -262,7 +256,7 @@ class TaxonomyOrchestrator:
                 tag_index=1,
                 tag_pages=generated_count - 1,
                 total=generated_count,
-                affected_tags=len(affected_tags)
+                affected_tags=len(affected_tags),
             )
 
     def generate_dynamic_pages(self) -> None:
@@ -272,43 +266,49 @@ class TaxonomyOrchestrator:
         Note: Section archive pages are now generated by SectionOrchestrator
         """
         generated_count = 0
-        i18n = self.site.config.get('i18n', {}) or {}
-        strategy = i18n.get('strategy', 'none')
-        share_taxonomies = bool(i18n.get('share_taxonomies', False))
-        default_lang = i18n.get('default_language', 'en')
+        i18n = self.site.config.get("i18n", {}) or {}
+        strategy = i18n.get("strategy", "none")
+        share_taxonomies = bool(i18n.get("share_taxonomies", False))
+        default_lang = i18n.get("default_language", "en")
 
         # Determine languages to generate for
         languages = [default_lang]
-        if strategy != 'none':
+        if strategy != "none":
             languages = []
-            langs_cfg = i18n.get('languages') or []
+            langs_cfg = i18n.get("languages") or []
             for entry in langs_cfg:
-                if isinstance(entry, dict) and 'code' in entry:
-                    languages.append(entry['code'])
+                if isinstance(entry, dict) and "code" in entry:
+                    languages.append(entry["code"])
                 elif isinstance(entry, str):
                     languages.append(entry)
             if default_lang not in languages:
                 languages.append(default_lang)
 
         # Generate per-locale tag pages
-        if self.site.taxonomies.get('tags'):
+        if self.site.taxonomies.get("tags"):
             for lang in sorted(set(languages)):
                 # Build per-locale tag mapping
                 locale_tags = {}
-                for tag_slug, tag_data in self.site.taxonomies['tags'].items():
-                    pages_for_lang = tag_data['pages'] if share_taxonomies else [p for p in tag_data['pages'] if getattr(p, 'lang', default_lang) == lang]
+                for tag_slug, tag_data in self.site.taxonomies["tags"].items():
+                    pages_for_lang = (
+                        tag_data["pages"]
+                        if share_taxonomies
+                        else [
+                            p for p in tag_data["pages"] if getattr(p, "lang", default_lang) == lang
+                        ]
+                    )
                     if not pages_for_lang:
                         continue
                     locale_tags[tag_slug] = {
-                        'name': tag_data['name'],
-                        'slug': tag_slug,
-                        'pages': pages_for_lang,
+                        "name": tag_data["name"],
+                        "slug": tag_slug,
+                        "pages": pages_for_lang,
                     }
                 if not locale_tags:
                     continue
 
                 # Temporarily set language context for URL computation
-                prev_lang = getattr(self.site, 'current_language', None)
+                prev_lang = getattr(self.site, "current_language", None)
                 self.site.current_language = lang
                 try:
                     # Tag index for this language
@@ -329,18 +329,26 @@ class TaxonomyOrchestrator:
                     self.site.current_language = prev_lang
 
         # Count types of generated pages
-        tag_count = sum(1 for p in self.site.pages if p.metadata.get('_generated') and p.output_path and 'tag' in p.output_path.parts)
-        pagination_count = sum(1 for p in self.site.pages if p.metadata.get('_generated') and '/page/' in str(p.output_path))
+        tag_count = sum(
+            1
+            for p in self.site.pages
+            if p.metadata.get("_generated") and p.output_path and "tag" in p.output_path.parts
+        )
+        pagination_count = sum(
+            1
+            for p in self.site.pages
+            if p.metadata.get("_generated") and "/page/" in str(p.output_path)
+        )
 
         if generated_count > 0:
             logger.info(
                 "dynamic_pages_generated",
                 tag_pages=tag_count,
                 pagination_pages=pagination_count,
-                total=generated_count
+                total=generated_count,
             )
 
-    def _create_tag_index_page(self) -> 'Page':
+    def _create_tag_index_page(self) -> "Page":
         """
         Create the main tags index page.
 
@@ -350,19 +358,19 @@ class TaxonomyOrchestrator:
         from bengal.core.page import Page
 
         # Create virtual path (delegate to utility)
-        virtual_path = self.url_strategy.make_virtual_path(self.site, 'tags')
+        virtual_path = self.url_strategy.make_virtual_path(self.site, "tags")
 
         tag_index = Page(
             source_path=virtual_path,
             content="",
             metadata={
-                'title': 'All Tags',
-                'template': 'tags.html',
-                'type': 'tag-index',
-                '_generated': True,
-                '_virtual': True,
-                '_tags': self.site.taxonomies['tags']
-            }
+                "title": "All Tags",
+                "template": "tags.html",
+                "type": "tag-index",
+                "_generated": True,
+                "_virtual": True,
+                "_tags": self.site.taxonomies["tags"],
+            },
         )
 
         # Compute output path using centralized logic (i18n-aware via site.current_language)
@@ -373,26 +381,27 @@ class TaxonomyOrchestrator:
 
         return tag_index
 
-    def _create_tag_index_page_for(self, tags: dict[str, Any]) -> 'Page':
+    def _create_tag_index_page_for(self, tags: dict[str, Any]) -> "Page":
         from bengal.core.page import Page
-        virtual_path = self.url_strategy.make_virtual_path(self.site, 'tags')
+
+        virtual_path = self.url_strategy.make_virtual_path(self.site, "tags")
         tag_index = Page(
             source_path=virtual_path,
             content="",
             metadata={
-                'title': 'All Tags',
-                'template': 'tags.html',
-                'type': 'tag-index',
-                '_generated': True,
-                '_virtual': True,
-                '_tags': tags
-            }
+                "title": "All Tags",
+                "template": "tags.html",
+                "type": "tag-index",
+                "_generated": True,
+                "_virtual": True,
+                "_tags": tags,
+            },
         )
         tag_index.output_path = self.url_strategy.compute_tag_index_output_path(self.site)
         self.initializer.ensure_initialized(tag_index)
         return tag_index
 
-    def _create_tag_pages(self, tag_slug: str, tag_data: dict[str, Any]) -> list['Page']:
+    def _create_tag_pages(self, tag_slug: str, tag_data: dict[str, Any]) -> list["Page"]:
         """
         Create pages for an individual tag (with pagination if needed).
 
@@ -407,40 +416,38 @@ class TaxonomyOrchestrator:
         from bengal.utils.pagination import Paginator
 
         pages_to_create = []
-        per_page = self.site.config.get('pagination', {}).get('per_page', 10)
+        per_page = self.site.config.get("pagination", {}).get("per_page", 10)
 
         # Create paginator
-        paginator = Paginator(tag_data['pages'], per_page=per_page)
+        paginator = Paginator(tag_data["pages"], per_page=per_page)
 
         # Create a page for each pagination page
         for page_num in range(1, paginator.num_pages + 1):
             # Create virtual path (delegate to utility)
             virtual_path = self.url_strategy.make_virtual_path(
-                self.site, 'tags', tag_slug, f"page_{page_num}"
+                self.site, "tags", tag_slug, f"page_{page_num}"
             )
 
             tag_page = Page(
                 source_path=virtual_path,
                 content="",
                 metadata={
-                    'title': f"Posts tagged '{tag_data['name']}'",
-                    'template': 'tag.html',
-                    'type': 'tag',
-                    '_generated': True,
-                    '_virtual': True,
-                    '_tag': tag_data['name'],
-                    '_tag_slug': tag_slug,
-                    '_posts': tag_data['pages'],
-                    '_paginator': paginator,
-                    '_page_num': page_num
-                }
+                    "title": f"Posts tagged '{tag_data['name']}'",
+                    "template": "tag.html",
+                    "type": "tag",
+                    "_generated": True,
+                    "_virtual": True,
+                    "_tag": tag_data["name"],
+                    "_tag_slug": tag_slug,
+                    "_posts": tag_data["pages"],
+                    "_paginator": paginator,
+                    "_page_num": page_num,
+                },
             )
 
             # Compute output path using centralized logic (i18n-aware via site.current_language)
             tag_page.output_path = self.url_strategy.compute_tag_output_path(
-                tag_slug=tag_slug,
-                page_num=page_num,
-                site=self.site
+                tag_slug=tag_slug, page_num=page_num, site=self.site
             )
 
             # Ensure page is correctly initialized (sets _site, validates)
@@ -450,32 +457,38 @@ class TaxonomyOrchestrator:
 
         return pages_to_create
 
-    def _create_tag_pages_for_lang(self, tag_slug: str, tag_data: dict[str, Any], lang: str) -> list['Page']:
+    def _create_tag_pages_for_lang(
+        self, tag_slug: str, tag_data: dict[str, Any], lang: str
+    ) -> list["Page"]:
         from bengal.core.page import Page
         from bengal.utils.pagination import Paginator
+
         pages_to_create = []
-        per_page = self.site.config.get('pagination', {}).get('per_page', 10)
-        paginator = Paginator(tag_data['pages'], per_page=per_page)
+        per_page = self.site.config.get("pagination", {}).get("per_page", 10)
+        paginator = Paginator(tag_data["pages"], per_page=per_page)
         for page_num in range(1, paginator.num_pages + 1):
-            virtual_path = self.url_strategy.make_virtual_path(self.site, 'tags', tag_slug, f"page_{page_num}")
+            virtual_path = self.url_strategy.make_virtual_path(
+                self.site, "tags", tag_slug, f"page_{page_num}"
+            )
             tag_page = Page(
                 source_path=virtual_path,
                 content="",
                 metadata={
-                    'title': f"Posts tagged '{tag_data['name']}'",
-                    'template': 'tag.html',
-                    'type': 'tag',
-                    '_generated': True,
-                    '_virtual': True,
-                    '_tag': tag_data['name'],
-                    '_tag_slug': tag_slug,
-                    '_posts': tag_data['pages'],
-                    '_paginator': Paginator(tag_data['pages'], per_page=per_page),
-                    '_page_num': page_num
-                }
+                    "title": f"Posts tagged '{tag_data['name']}'",
+                    "template": "tag.html",
+                    "type": "tag",
+                    "_generated": True,
+                    "_virtual": True,
+                    "_tag": tag_data["name"],
+                    "_tag_slug": tag_slug,
+                    "_posts": tag_data["pages"],
+                    "_paginator": Paginator(tag_data["pages"], per_page=per_page),
+                    "_page_num": page_num,
+                },
             )
-            tag_page.output_path = self.url_strategy.compute_tag_output_path(tag_slug=tag_slug, page_num=page_num, site=self.site)
+            tag_page.output_path = self.url_strategy.compute_tag_output_path(
+                tag_slug=tag_slug, page_num=page_num, site=self.site
+            )
             self.initializer.ensure_initialized(tag_page)
             pages_to_create.append(tag_page)
         return pages_to_create
-

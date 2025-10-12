@@ -42,4 +42,3 @@ from bengal.core.section import Section
 from bengal.core.site import Site
 
 __all__ = ["Asset", "MenuBuilder", "MenuItem", "Page", "Section", "Site"]
-

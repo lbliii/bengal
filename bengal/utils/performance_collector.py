@@ -29,6 +29,7 @@ logger = get_logger(__name__)
 
 try:
     import psutil
+
     HAS_PSUTIL = True
 except ImportError:
     HAS_PSUTIL = False
@@ -124,27 +125,27 @@ class PerformanceCollector:
 
             # Prepare metrics dictionary
             metrics = {
-                'timestamp': datetime.utcnow().isoformat(),
-                'python_version': sys.version.split()[0],
-                'platform': sys.platform,
-                **stats.to_dict()
+                "timestamp": datetime.utcnow().isoformat(),
+                "python_version": sys.version.split()[0],
+                "platform": sys.platform,
+                **stats.to_dict(),
             }
 
             # Append to history file (JSONL format - one JSON object per line)
             history_file = self.metrics_dir / "history.jsonl"
-            with open(history_file, 'a', encoding='utf-8') as f:
-                f.write(json.dumps(metrics) + '\n')
+            with open(history_file, "a", encoding="utf-8") as f:
+                f.write(json.dumps(metrics) + "\n")
 
             # Also save as latest.json for easy access
             latest_file = self.metrics_dir / "latest.json"
-            with open(latest_file, 'w', encoding='utf-8') as f:
+            with open(latest_file, "w", encoding="utf-8") as f:
                 json.dump(metrics, f, indent=2)
 
         except Exception as e:
             # Fail gracefully - don't break the build if metrics can't be saved
-            logger.warning("performance_metrics_save_failed",
-                          error=str(e),
-                          error_type=type(e).__name__)
+            logger.warning(
+                "performance_metrics_save_failed", error=str(e), error_type=type(e).__name__
+            )
 
     def get_summary(self, stats) -> str:
         """
@@ -158,7 +159,7 @@ class PerformanceCollector:
         """
         return (
             f"{stats.total_pages} pages | "
-            f"{stats.build_time_ms/1000:.2f}s | "
+            f"{stats.build_time_ms / 1000:.2f}s | "
             f"{stats.memory_rss_mb:.1f}MB RSS"
         )
 
@@ -179,4 +180,3 @@ def format_memory(mb: float) -> str:
         return f"{mb:.1f} MB"
     else:
         return f"{mb / 1024:.2f} GB"
-

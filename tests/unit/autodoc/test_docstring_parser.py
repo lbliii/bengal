@@ -2,7 +2,6 @@
 Tests for docstring parser supporting multiple formats.
 """
 
-
 from bengal.autodoc.docstring_parser import parse_docstring
 
 
@@ -268,4 +267,3 @@ def test_parse_yields():
 
     # Yields typically stored similar to returns
     assert parsed.returns is not None or "Yields" in parsed.description
-

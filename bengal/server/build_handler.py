@@ -100,7 +100,7 @@ class BuildHandler(FileSystemEventHandler):
         self.site.menu_builders = {}
 
         # Clear indices (rebuilt from pages)
-        if hasattr(self.site, 'xref_index'):
+        if hasattr(self.site, "xref_index"):
             self.site.xref_index = {}
 
         # Clear caches on pages (if any survived somehow)
@@ -117,15 +117,19 @@ class BuildHandler(FileSystemEventHandler):
             True if file should be ignored
         """
         ignore_patterns = [
-            '.swp', '.swo', '.swx',  # Vim swap files
-            '.tmp', '~',              # Temp files
-            '.pyc', '.pyo',           # Python cache
-            '__pycache__',            # Python cache dir
-            '.DS_Store',              # macOS
-            '.git',                   # Git
-            '.bengal-cache.json',     # Bengal cache
-            '.bengal-build.log',      # Build log (would cause infinite rebuild loop!)
-            'public/',                # Default output directory
+            ".swp",
+            ".swo",
+            ".swx",  # Vim swap files
+            ".tmp",
+            "~",  # Temp files
+            ".pyc",
+            ".pyo",  # Python cache
+            "__pycache__",  # Python cache dir
+            ".DS_Store",  # macOS
+            ".git",  # Git
+            ".bengal-cache.json",  # Bengal cache
+            ".bengal-build.log",  # Build log (would cause infinite rebuild loop!)
+            "public/",  # Default output directory
         ]
 
         path = Path(file_path)
@@ -171,10 +175,12 @@ class BuildHandler(FileSystemEventHandler):
                 if file_count > 1:
                     file_name = f"{file_name} (+{file_count - 1} more)"
 
-            logger.info("rebuild_triggered",
-                       changed_file_count=file_count,
-                       changed_files=changed_files[:10],  # Limit to first 10 for readability
-                       trigger_file=str(changed_files[0]) if changed_files else None)
+            logger.info(
+                "rebuild_triggered",
+                changed_file_count=file_count,
+                changed_files=changed_files[:10],  # Limit to first 10 for readability
+                trigger_file=str(changed_files[0]) if changed_files else None,
+            )
 
             self.pending_changes.clear()
 
@@ -196,39 +202,46 @@ class BuildHandler(FileSystemEventHandler):
                 # Use WRITER profile for clean, minimal output during file watching
                 from bengal.utils.profile import BuildProfile
 
-                stats = self.site.build(parallel=True, incremental=True, profile=BuildProfile.WRITER)
+                stats = self.site.build(
+                    parallel=True, incremental=True, profile=BuildProfile.WRITER
+                )
                 build_duration = time.time() - build_start
 
                 display_build_stats(stats, show_art=False, output_dir=str(self.site.output_dir))
 
                 # Show server URL after rebuild for easy access
-                print(f"\n  \033[36m➜\033[0m  Local: \033[1mhttp://{self.host}:{self.port}/\033[0m\n")
+                print(
+                    f"\n  \033[36m➜\033[0m  Local: \033[1mhttp://{self.host}:{self.port}/\033[0m\n"
+                )
 
                 print(f"  \033[90m{'TIME':8} │ {'METHOD':6} │ {'STATUS':3} │ PATH\033[0m")
                 print(f"  \033[90m{'─' * 8}─┼─{'─' * 6}─┼─{'─' * 3}─┼─{'─' * 60}\033[0m")
 
-                logger.info("rebuild_complete",
-                           duration_seconds=round(build_duration, 2),
-                           pages_built=stats.total_pages,
-                           incremental=stats.incremental,
-                           parallel=stats.parallel)
+                logger.info(
+                    "rebuild_complete",
+                    duration_seconds=round(build_duration, 2),
+                    pages_built=stats.total_pages,
+                    incremental=stats.incremental,
+                    parallel=stats.parallel,
+                )
 
                 # Notify SSE clients: CSS-only changes trigger CSS hot-reload
                 try:
                     changed_lower = [str(p).lower() for p in changed_files]
-                    only_css = (
-                        len(changed_files) > 0 and
-                        all(path.endswith('.css') for path in changed_lower)
+                    only_css = len(changed_files) > 0 and all(
+                        path.endswith(".css") for path in changed_lower
                     )
                 except Exception:
                     only_css = False
 
                 if only_css:
                     from bengal.server.live_reload import set_reload_action
-                    set_reload_action('reload-css')
+
+                    set_reload_action("reload-css")
                 else:
                     from bengal.server.live_reload import set_reload_action
-                    set_reload_action('reload')
+
+                    set_reload_action("reload")
 
                 notify_clients_reload()
             except Exception as e:
@@ -238,11 +251,13 @@ class BuildHandler(FileSystemEventHandler):
                 print(f"\n  \033[90m{'TIME':8} │ {'METHOD':6} │ {'STATUS':3} │ PATH\033[0m")
                 print(f"  \033[90m{'─' * 8}─┼─{'─' * 6}─┼─{'─' * 3}─┼─{'─' * 60}\033[0m")
 
-                logger.error("rebuild_failed",
-                            duration_seconds=round(build_duration, 2),
-                            error=str(e),
-                            error_type=type(e).__name__,
-                            changed_files=changed_files[:5])
+                logger.error(
+                    "rebuild_failed",
+                    duration_seconds=round(build_duration, 2),
+                    error=str(e),
+                    error_type=type(e).__name__,
+                    changed_files=changed_files[:5],
+                )
             finally:
                 self.building = False
 
@@ -269,37 +284,33 @@ class BuildHandler(FileSystemEventHandler):
         # Skip files in output directory
         try:
             Path(event.src_path).relative_to(self.site.output_dir)
-            logger.debug("file_change_ignored",
-                        file=event.src_path,
-                        reason="in_output_directory")
+            logger.debug("file_change_ignored", file=event.src_path, reason="in_output_directory")
             return
         except ValueError:
             pass
 
         # Skip temp files and other files that should be ignored
         if self._should_ignore_file(event.src_path):
-            logger.debug("file_change_ignored",
-                        file=event.src_path,
-                        reason="ignored_pattern")
+            logger.debug("file_change_ignored", file=event.src_path, reason="ignored_pattern")
             return
 
         # Add to pending changes
         is_new = event.src_path not in self.pending_changes
         self.pending_changes.add(event.src_path)
 
-        logger.debug("file_change_detected",
-                    file=event.src_path,
-                    pending_count=len(self.pending_changes),
-                    is_new_in_batch=is_new)
+        logger.debug(
+            "file_change_detected",
+            file=event.src_path,
+            pending_count=len(self.pending_changes),
+            is_new_in_batch=is_new,
+        )
 
         # Cancel existing timer and start new one (debouncing)
         with self.timer_lock:
             if self.debounce_timer:
                 self.debounce_timer.cancel()
-                logger.debug("debounce_timer_reset",
-                            delay_ms=self.DEBOUNCE_DELAY * 1000)
+                logger.debug("debounce_timer_reset", delay_ms=self.DEBOUNCE_DELAY * 1000)
 
             self.debounce_timer = threading.Timer(self.DEBOUNCE_DELAY, self._trigger_build)
             self.debounce_timer.daemon = True
             self.debounce_timer.start()
-

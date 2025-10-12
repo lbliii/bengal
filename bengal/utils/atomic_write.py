@@ -21,10 +21,7 @@ from pathlib import Path
 
 
 def atomic_write_text(
-    path: Path | str,
-    content: str,
-    encoding: str = 'utf-8',
-    mode: int | None = None
+    path: Path | str, content: str, encoding: str = "utf-8", mode: int | None = None
 ) -> None:
     """
     Write text to a file atomically.
@@ -51,7 +48,7 @@ def atomic_write_text(
     path = Path(path)
 
     # Create temp file in same directory (ensures same filesystem for atomic rename)
-    tmp_path = path.with_suffix(path.suffix + '.tmp')
+    tmp_path = path.with_suffix(path.suffix + ".tmp")
 
     try:
         # Write to temp file
@@ -71,11 +68,7 @@ def atomic_write_text(
         raise
 
 
-def atomic_write_bytes(
-    path: Path | str,
-    content: bytes,
-    mode: int | None = None
-) -> None:
+def atomic_write_bytes(path: Path | str, content: bytes, mode: int | None = None) -> None:
     """
     Write binary data to a file atomically.
 
@@ -91,7 +84,7 @@ def atomic_write_bytes(
         >>> atomic_write_bytes('image.png', image_data)
     """
     path = Path(path)
-    tmp_path = path.with_suffix(path.suffix + '.tmp')
+    tmp_path = path.with_suffix(path.suffix + ".tmp")
 
     try:
         tmp_path.write_bytes(content)
@@ -126,13 +119,7 @@ class AtomicFile:
         ...     tree.write(f, encoding='utf-8')
     """
 
-    def __init__(
-        self,
-        path: Path | str,
-        mode: str = 'w',
-        encoding: str | None = 'utf-8',
-        **kwargs
-    ):
+    def __init__(self, path: Path | str, mode: str = "w", encoding: str | None = "utf-8", **kwargs):
         """
         Initialize atomic file writer.
 
@@ -144,16 +131,16 @@ class AtomicFile:
         """
         self.path = Path(path)
         self.mode = mode
-        self.encoding = encoding if 'b' not in mode else None
+        self.encoding = encoding if "b" not in mode else None
         self.kwargs = kwargs
-        self.tmp_path = self.path.with_suffix(self.path.suffix + '.tmp')
+        self.tmp_path = self.path.with_suffix(self.path.suffix + ".tmp")
         self.file = None
 
     def __enter__(self):
         """Open temp file for writing."""
         open_kwargs = {}
         if self.encoding:
-            open_kwargs['encoding'] = self.encoding
+            open_kwargs["encoding"] = self.encoding
         open_kwargs.update(self.kwargs)
 
         self.file = open(self.tmp_path, self.mode, **open_kwargs)
@@ -173,4 +160,3 @@ class AtomicFile:
         self.tmp_path.replace(self.path)
 
         return False
-

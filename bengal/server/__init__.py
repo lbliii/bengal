@@ -48,4 +48,3 @@ The server watches for changes in:
 from bengal.server.dev_server import DevServer
 
 __all__ = ["DevServer"]
-

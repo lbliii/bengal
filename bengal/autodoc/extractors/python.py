@@ -88,16 +88,16 @@ class PythonExtractor(Extractor):
 
         for pattern in self.exclude_patterns:
             # Simple pattern matching
-            if pattern.replace('*/', '').replace('/*', '') in path_str:
+            if pattern.replace("*/", "").replace("/*", "") in path_str:
                 return True
-            if pattern.startswith('*/') and path.name.startswith(pattern[2:].replace('*', '')):
+            if pattern.startswith("*/") and path.name.startswith(pattern[2:].replace("*", "")):
                 return True
 
         return False
 
     def _extract_file(self, file_path: Path) -> list[DocElement]:
         """Extract documentation from a single Python file."""
-        source = file_path.read_text(encoding='utf-8')
+        source = file_path.read_text(encoding="utf-8")
 
         try:
             tree = ast.parse(source, filename=str(file_path))
@@ -136,17 +136,19 @@ class PythonExtractor(Extractor):
             name=module_name,
             qualified_name=module_name,
             description=sanitize_text(docstring),
-            element_type='module',
+            element_type="module",
             source_file=file_path,
             line_number=1,
             metadata={
-                'file_path': str(file_path),
-                'has_all': self._extract_all_exports(tree),
+                "file_path": str(file_path),
+                "has_all": self._extract_all_exports(tree),
             },
             children=children,
         )
 
-    def _extract_class(self, node: ast.ClassDef, file_path: Path, parent_name: str = "") -> DocElement | None:
+    def _extract_class(
+        self, node: ast.ClassDef, file_path: Path, parent_name: str = ""
+    ) -> DocElement | None:
         """Extract class documentation."""
         qualified_name = f"{parent_name}.{node.name}" if parent_name else node.name
         docstring = ast.get_docstring(node)
@@ -172,7 +174,7 @@ class PythonExtractor(Extractor):
                 method = self._extract_function(item, file_path, qualified_name)
                 if method:
                     # Check if it's a property
-                    if any('property' in d for d in method.metadata.get('decorators', [])):
+                    if any("property" in d for d in method.metadata.get("decorators", [])):
                         properties.append(method)
                     else:
                         methods.append(method)
@@ -183,11 +185,11 @@ class PythonExtractor(Extractor):
                     name=item.target.id,
                     qualified_name=f"{qualified_name}.{item.target.id}",
                     description="",
-                    element_type='attribute',
+                    element_type="attribute",
                     source_file=file_path,
                     line_number=item.lineno,
                     metadata={
-                        'annotation': self._annotation_to_string(item.annotation),
+                        "annotation": self._annotation_to_string(item.annotation),
                     },
                 )
                 class_vars.append(var_elem)
@@ -203,15 +205,15 @@ class PythonExtractor(Extractor):
             name=node.name,
             qualified_name=qualified_name,
             description=description,
-            element_type='class',
+            element_type="class",
             source_file=file_path,
             line_number=node.lineno,
             metadata={
-                'bases': bases,
-                'decorators': decorators,
-                'is_dataclass': 'dataclass' in decorators,
-                'is_abstract': any('ABC' in base for base in bases),
-                'parsed_doc': parsed_doc.to_dict() if parsed_doc else {},
+                "bases": bases,
+                "decorators": decorators,
+                "is_dataclass": "dataclass" in decorators,
+                "is_abstract": any("ABC" in base for base in bases),
+                "parsed_doc": parsed_doc.to_dict() if parsed_doc else {},
             },
             children=children,
             examples=parsed_doc.examples if parsed_doc else [],
@@ -220,17 +222,14 @@ class PythonExtractor(Extractor):
         )
 
     def _extract_function(
-        self,
-        node: ast.FunctionDef | ast.AsyncFunctionDef,
-        file_path: Path,
-        parent_name: str = ""
+        self, node: ast.FunctionDef | ast.AsyncFunctionDef, file_path: Path, parent_name: str = ""
     ) -> DocElement | None:
         """Extract function/method documentation."""
         qualified_name = f"{parent_name}.{node.name}" if parent_name else node.name
         docstring = ast.get_docstring(node)
 
         # Skip private functions unless they have docstrings
-        if node.name.startswith('_') and not node.name.startswith('__') and not docstring:
+        if node.name.startswith("_") and not node.name.startswith("__") and not docstring:
             return None
 
         # Parse docstring
@@ -249,20 +248,20 @@ class PythonExtractor(Extractor):
         returns = self._annotation_to_string(node.returns) if node.returns else None
 
         # Determine function type
-        is_property = any('property' in d for d in decorators)
-        is_classmethod = any('classmethod' in d for d in decorators)
-        is_staticmethod = any('staticmethod' in d for d in decorators)
+        is_property = any("property" in d for d in decorators)
+        is_classmethod = any("classmethod" in d for d in decorators)
+        is_staticmethod = any("staticmethod" in d for d in decorators)
         is_async = isinstance(node, ast.AsyncFunctionDef)
 
-        element_type = 'method' if parent_name else 'function'
+        element_type = "method" if parent_name else "function"
 
         # Merge parsed docstring args with signature args
         merged_args = args  # Start with signature args
         if parsed_doc and parsed_doc.args:
             # Add descriptions from parsed docstring
             for arg in merged_args:
-                if arg['name'] in parsed_doc.args:
-                    arg['docstring'] = parsed_doc.args[arg['name']]
+                if arg["name"] in parsed_doc.args:
+                    arg["docstring"] = parsed_doc.args[arg["name"]]
 
         # Use parsed description if available
         raw_description = parsed_doc.description if parsed_doc else docstring
@@ -276,15 +275,15 @@ class PythonExtractor(Extractor):
             source_file=file_path,
             line_number=node.lineno,
             metadata={
-                'signature': signature,
-                'args': merged_args,
-                'returns': returns,
-                'decorators': decorators,
-                'is_async': is_async,
-                'is_property': is_property,
-                'is_classmethod': is_classmethod,
-                'is_staticmethod': is_staticmethod,
-                'parsed_doc': parsed_doc.to_dict() if parsed_doc else {},
+                "signature": signature,
+                "args": merged_args,
+                "returns": returns,
+                "decorators": decorators,
+                "is_async": is_async,
+                "is_property": is_property,
+                "is_classmethod": is_classmethod,
+                "is_staticmethod": is_staticmethod,
+                "parsed_doc": parsed_doc.to_dict() if parsed_doc else {},
             },
             examples=parsed_doc.examples if parsed_doc else [],
             see_also=parsed_doc.see_also if parsed_doc else [],
@@ -339,11 +338,15 @@ class PythonExtractor(Extractor):
         args = []
 
         for arg in node.args.args:
-            args.append({
-                'name': arg.arg,
-                'annotation': self._annotation_to_string(arg.annotation) if arg.annotation else None,
-                'default': None,  # Will be filled in with defaults
-            })
+            args.append(
+                {
+                    "name": arg.arg,
+                    "annotation": self._annotation_to_string(arg.annotation)
+                    if arg.annotation
+                    else None,
+                    "default": None,  # Will be filled in with defaults
+                }
+            )
 
         # Add defaults
         defaults = node.args.defaults
@@ -351,7 +354,7 @@ class PythonExtractor(Extractor):
             for i, default in enumerate(defaults):
                 idx = len(args) - len(defaults) + i
                 if idx >= 0:
-                    args[idx]['default'] = self._expr_to_string(default)
+                    args[idx]["default"] = self._expr_to_string(default)
 
         return args
 
@@ -381,26 +384,30 @@ class PythonExtractor(Extractor):
         # Find the start of the package (look for __init__.py)
         package_start = 0
         for i in range(len(parts) - 1, -1, -1):
-            parent = Path(*parts[:i+1])
-            if (parent / '__init__.py').exists():
+            parent = Path(*parts[: i + 1])
+            if (parent / "__init__.py").exists():
                 package_start = i
                 break
 
         # Build module name
         module_parts = parts[package_start:]
-        if module_parts[-1] == '__init__.py':
+        if module_parts[-1] == "__init__.py":
             module_parts = module_parts[:-1]
-        elif module_parts[-1].endswith('.py'):
+        elif module_parts[-1].endswith(".py"):
             module_parts[-1] = module_parts[-1][:-3]
 
-        return '.'.join(module_parts)
+        return ".".join(module_parts)
 
     def _extract_all_exports(self, tree: ast.Module) -> list[str] | None:
         """Extract __all__ exports if present."""
         for node in tree.body:
             if isinstance(node, ast.Assign):
                 for target in node.targets:
-                    if isinstance(target, ast.Name) and target.id == '__all__' and isinstance(node.value, ast.List | ast.Tuple):
+                    if (
+                        isinstance(target, ast.Name)
+                        and target.id == "__all__"
+                        and isinstance(node.value, ast.List | ast.Tuple)
+                    ):
                         # Try to extract the list
                         exports = []
                         for elt in node.value.elts:
@@ -423,12 +430,11 @@ class PythonExtractor(Extractor):
             bengal.core.site (module) → bengal/core/site.md
             bengal.core.site.Site (class) → bengal/core/site.md (part of module)
         """
-        if element.element_type == 'module':
+        if element.element_type == "module":
             # Module gets its own file
-            return Path(element.qualified_name.replace('.', '/') + '.md')
+            return Path(element.qualified_name.replace(".", "/") + ".md")
         else:
             # Classes/functions are part of module file
-            parts = element.qualified_name.split('.')
+            parts = element.qualified_name.split(".")
             module_parts = parts[:-1] if len(parts) > 1 else parts
-            return Path('/'.join(module_parts) + '.md')
-
+            return Path("/".join(module_parts) + ".md")

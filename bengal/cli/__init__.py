@@ -37,7 +37,9 @@ class BengalGroup(click.Group):
                     msg += "Did you mean one of these?\n"
                     for _i, suggestion in enumerate(suggestions, 1):
                         msg += f"  • {click.style(suggestion, fg='cyan', bold=True)}\n"
-                    msg += f"\nRun '{click.style('bengal --help', fg='yellow')}' to see all commands."
+                    msg += (
+                        f"\nRun '{click.style('bengal --help', fg='yellow')}' to see all commands."
+                    )
                     raise click.exceptions.UsageError(msg) from e
 
             # Re-raise original error if no suggestions
@@ -54,7 +56,7 @@ class BengalGroup(click.Group):
             unknown_cmd,
             available_commands,
             n=max_suggestions,
-            cutoff=0.6  # 60% similarity threshold
+            cutoff=0.6,  # 60% similarity threshold
         )
 
         return matches
@@ -69,11 +71,13 @@ def main() -> None:
     """
     # Install rich traceback handler for beautiful error messages (unless in CI)
     import os
-    if not os.getenv('CI'):
+
+    if not os.getenv("CI"):
         try:
             from rich.traceback import install
 
             from bengal.utils.rich_console import get_console
+
             install(
                 console=get_console(),
                 show_locals=True,
@@ -104,6 +108,5 @@ main.add_command(assets)
 main.add_command(theme)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
-

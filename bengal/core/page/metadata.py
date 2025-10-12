@@ -85,19 +85,21 @@ class PageMetadataMixin:
         except ValueError:
             # output_path not under output_dir - should never happen
             # but handle gracefully with warning
-            logger.warning("page_output_path_mismatch",
-                          output_path=str(self.output_path),
-                          output_dir=str(self._site.output_dir),
-                          page_source=str(getattr(self, 'source_path', 'unknown')))
+            logger.warning(
+                "page_output_path_mismatch",
+                output_path=str(self.output_path),
+                output_dir=str(self._site.output_dir),
+                page_source=str(getattr(self, "source_path", "unknown")),
+            )
             return self._fallback_url()
 
         # Convert Path to URL components
         url_parts = list(rel_path.parts)
 
         # Remove 'index.html' from end (it's implicit in URLs)
-        if url_parts and url_parts[-1] == 'index.html':
+        if url_parts and url_parts[-1] == "index.html":
             url_parts = url_parts[:-1]
-        elif url_parts and url_parts[-1].endswith('.html'):
+        elif url_parts and url_parts[-1].endswith(".html"):
             # For non-index pages, remove .html extension
             # e.g., about.html -> about
             url_parts[-1] = url_parts[-1][:-5]
@@ -105,13 +107,13 @@ class PageMetadataMixin:
         # Construct URL with leading and trailing slashes
         if not url_parts:
             # Root index page
-            return '/'
+            return "/"
 
-        url = '/' + '/'.join(url_parts)
+        url = "/" + "/".join(url_parts)
 
         # Ensure trailing slash for directory-like URLs
-        if not url.endswith('/'):
-            url += '/'
+        if not url.endswith("/"):
+            url += "/"
 
         return url
 
@@ -146,6 +148,7 @@ class PageMetadataMixin:
         if self._toc_items_cache is None and self.toc:
             # Import here to avoid circular dependency
             from bengal.rendering.pipeline import extract_toc_structure
+
             self._toc_items_cache = extract_toc_structure(self.toc)
 
         # Return cached value if we have it, otherwise empty list
@@ -165,7 +168,7 @@ class PageMetadataMixin:
               <h1>Welcome to the home page!</h1>
             {% endif %}
         """
-        return self.url == '/' or self.slug in ('index', '_index', 'home')
+        return self.url == "/" or self.slug in ("index", "_index", "home")
 
     @property
     def is_section(self) -> bool:
@@ -182,6 +185,7 @@ class PageMetadataMixin:
         """
         # Import here to avoid circular import
         from bengal.core.section import Section
+
         return isinstance(self, Section)
 
     @property
@@ -213,10 +217,10 @@ class PageMetadataMixin:
             {% endif %}
         """
         if self.is_home:
-            return 'home'
+            return "home"
         elif self.is_section:
-            return 'section'
-        return 'page'
+            return "section"
+        return "page"
 
     @property
     def description(self) -> str:
@@ -226,7 +230,7 @@ class PageMetadataMixin:
         Returns:
             Page description or empty string
         """
-        return self.metadata.get('description', '')
+        return self.metadata.get("description", "")
 
     @property
     def draft(self) -> bool:
@@ -236,7 +240,7 @@ class PageMetadataMixin:
         Returns:
             True if page is a draft
         """
-        return self.metadata.get('draft', False)
+        return self.metadata.get("draft", False)
 
     @property
     def keywords(self) -> list[str]:
@@ -246,9 +250,8 @@ class PageMetadataMixin:
         Returns:
             List of keywords
         """
-        keywords = self.metadata.get('keywords', [])
+        keywords = self.metadata.get("keywords", [])
         if isinstance(keywords, str):
             # Split comma-separated keywords
-            return [k.strip() for k in keywords.split(',')]
+            return [k.strip() for k in keywords.split(",")]
         return keywords if isinstance(keywords, list) else []
-

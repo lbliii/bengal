@@ -4,10 +4,15 @@ import click
 
 
 @click.command()
-@click.option('--last', '-n', default=10, help='Show last N builds (default: 10)')
-@click.option('--format', '-f', type=click.Choice(['table', 'json', 'summary']),
-              default='table', help='Output format')
-@click.option('--compare', '-c', is_flag=True, help='Compare last two builds')
+@click.option("--last", "-n", default=10, help="Show last N builds (default: 10)")
+@click.option(
+    "--format",
+    "-f",
+    type=click.Choice(["table", "json", "summary"]),
+    default="table",
+    help="Output format",
+)
+@click.option("--compare", "-c", is_flag=True, help="Compare last two builds")
 def perf(last, format, compare):
     """Show performance metrics and trends.
 
@@ -29,4 +34,3 @@ def perf(last, format, compare):
         report.compare()
     else:
         report.show(last=last, format=format)
-

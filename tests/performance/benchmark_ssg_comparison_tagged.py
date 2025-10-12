@@ -27,22 +27,59 @@ PARAGRAPHS = [
 ]
 
 TITLES = [
-    "Understanding", "Exploring", "Deep Dive into", "Introduction to", "Guide to",
-    "Advanced", "Beginner's Guide to", "Mastering", "Quick Start with", "Tutorial:"
+    "Understanding",
+    "Exploring",
+    "Deep Dive into",
+    "Introduction to",
+    "Guide to",
+    "Advanced",
+    "Beginner's Guide to",
+    "Mastering",
+    "Quick Start with",
+    "Tutorial:",
 ]
 
 NOUNS = [
-    "Python Programming", "Web Development", "Data Science", "Machine Learning",
-    "API Design", "Database Management", "Cloud Computing", "DevOps", "Security",
-    "Performance", "Testing", "Documentation", "Architecture", "Best Practices"
+    "Python Programming",
+    "Web Development",
+    "Data Science",
+    "Machine Learning",
+    "API Design",
+    "Database Management",
+    "Cloud Computing",
+    "DevOps",
+    "Security",
+    "Performance",
+    "Testing",
+    "Documentation",
+    "Architecture",
+    "Best Practices",
 ]
 
 # Realistic tag pool (like a real blog would have)
 ALL_TAGS = [
-    "python", "tutorial", "web-development", "api", "database",
-    "performance", "testing", "documentation", "security", "devops",
-    "machine-learning", "data-science", "cloud", "architecture", "best-practices",
-    "django", "flask", "fastapi", "react", "vue", "javascript", "typescript"
+    "python",
+    "tutorial",
+    "web-development",
+    "api",
+    "database",
+    "performance",
+    "testing",
+    "documentation",
+    "security",
+    "devops",
+    "machine-learning",
+    "data-science",
+    "cloud",
+    "architecture",
+    "best-practices",
+    "django",
+    "flask",
+    "fastapi",
+    "react",
+    "vue",
+    "javascript",
+    "typescript",
 ]
 
 
@@ -104,9 +141,9 @@ generate_rss = false
 
 def benchmark_bengal(num_files: int, iterations: int = 3) -> dict:
     """Benchmark Bengal SSG with TAGS."""
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"BENGAL SSG - {num_files} files WITH TAGS")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
 
     times = []
 
@@ -130,7 +167,7 @@ def benchmark_bengal(num_files: int, iterations: int = 3) -> dict:
                 cwd=temp_dir,
                 capture_output=True,
                 text=True,
-                timeout=300  # 5 minute timeout
+                timeout=300,  # 5 minute timeout
             )
             elapsed = time.time() - start
 
@@ -139,7 +176,7 @@ def benchmark_bengal(num_files: int, iterations: int = 3) -> dict:
                 return None
 
             times.append(elapsed)
-            print(f"  Iteration {i+1}: {elapsed:.3f}s")
+            print(f"  Iteration {i + 1}: {elapsed:.3f}s")
 
         finally:
             # Cleanup
@@ -161,7 +198,7 @@ def benchmark_bengal(num_files: int, iterations: int = 3) -> dict:
         "avg_time": avg_time,
         "min_time": min_time,
         "max_time": max_time,
-        "times": times
+        "times": times,
     }
 
 
@@ -196,12 +233,14 @@ def main():
     print("-" * 60)
 
     for r in results:
-        ms_per_file = (r['avg_time'] * 1000) / r['files']
-        print(f"{r['files']:<10} {r['avg_time']:>10.3f}s  {r['min_time']:>10.3f}s  {r['max_time']:>10.3f}s  {ms_per_file:>8.2f}ms")
+        ms_per_file = (r["avg_time"] * 1000) / r["files"]
+        print(
+            f"{r['files']:<10} {r['avg_time']:>10.3f}s  {r['min_time']:>10.3f}s  {r['max_time']:>10.3f}s  {ms_per_file:>8.2f}ms"
+        )
 
     # Save results
     output_file = Path(__file__).parent.parent.parent / "plan" / "benchmark_tagged_results.json"
-    with open(output_file, 'w') as f:
+    with open(output_file, "w") as f:
         json.dump(results, f, indent=2)
 
     print(f"\nResults saved to: {output_file}")
@@ -213,11 +252,11 @@ def main():
         print("=" * 60)
 
         for i in range(1, len(results)):
-            prev = results[i-1]
+            prev = results[i - 1]
             curr = results[i]
 
-            file_factor = curr['files'] / prev['files']
-            time_factor = curr['avg_time'] / prev['avg_time']
+            file_factor = curr["files"] / prev["files"]
+            time_factor = curr["avg_time"] / prev["avg_time"]
             efficiency = (file_factor / time_factor) * 100
 
             print(f"{prev['files']} → {curr['files']} files ({file_factor:.1f}x):")
@@ -228,4 +267,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

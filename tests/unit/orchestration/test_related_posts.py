@@ -23,8 +23,12 @@ def mock_site(tmp_path):
 def test_related_posts_with_shared_tags(mock_site):
     """Pages with shared tags should be related."""
     # Create pages with tags
-    page1 = Page(source_path=Path("page1.md"), metadata={"title": "Post 1", "tags": ["python", "django"]})
-    page2 = Page(source_path=Path("page2.md"), metadata={"title": "Post 2", "tags": ["python", "flask"]})
+    page1 = Page(
+        source_path=Path("page1.md"), metadata={"title": "Post 1", "tags": ["python", "django"]}
+    )
+    page2 = Page(
+        source_path=Path("page2.md"), metadata={"title": "Post 2", "tags": ["python", "flask"]}
+    )
     page3 = Page(source_path=Path("page3.md"), metadata={"title": "Post 3", "tags": ["javascript"]})
 
     page1.__post_init__()
@@ -35,11 +39,11 @@ def test_related_posts_with_shared_tags(mock_site):
 
     # Build taxonomy structure
     mock_site.taxonomies = {
-        'tags': {
-            'python': {'name': 'Python', 'slug': 'python', 'pages': [page1, page2]},
-            'django': {'name': 'Django', 'slug': 'django', 'pages': [page1]},
-            'flask': {'name': 'Flask', 'slug': 'flask', 'pages': [page2]},
-            'javascript': {'name': 'JavaScript', 'slug': 'javascript', 'pages': [page3]}
+        "tags": {
+            "python": {"name": "Python", "slug": "python", "pages": [page1, page2]},
+            "django": {"name": "Django", "slug": "django", "pages": [page1]},
+            "flask": {"name": "Flask", "slug": "flask", "pages": [page2]},
+            "javascript": {"name": "JavaScript", "slug": "javascript", "pages": [page3]},
         }
     }
 
@@ -61,10 +65,18 @@ def test_related_posts_with_shared_tags(mock_site):
 def test_related_posts_sorted_by_relevance(mock_site):
     """Related posts should be sorted by number of shared tags."""
     # Create pages with varying tag overlap
-    page1 = Page(source_path=Path("page1.md"), metadata={"title": "Post 1", "tags": ["a", "b", "c"]})
-    page2 = Page(source_path=Path("page2.md"), metadata={"title": "Post 2", "tags": ["a", "b", "c"]})  # 3 shared
-    page3 = Page(source_path=Path("page3.md"), metadata={"title": "Post 3", "tags": ["a", "b"]})       # 2 shared
-    page4 = Page(source_path=Path("page4.md"), metadata={"title": "Post 4", "tags": ["a"]})            # 1 shared
+    page1 = Page(
+        source_path=Path("page1.md"), metadata={"title": "Post 1", "tags": ["a", "b", "c"]}
+    )
+    page2 = Page(
+        source_path=Path("page2.md"), metadata={"title": "Post 2", "tags": ["a", "b", "c"]}
+    )  # 3 shared
+    page3 = Page(
+        source_path=Path("page3.md"), metadata={"title": "Post 3", "tags": ["a", "b"]}
+    )  # 2 shared
+    page4 = Page(
+        source_path=Path("page4.md"), metadata={"title": "Post 4", "tags": ["a"]}
+    )  # 1 shared
 
     for page in [page1, page2, page3, page4]:
         page.__post_init__()
@@ -73,10 +85,10 @@ def test_related_posts_sorted_by_relevance(mock_site):
 
     # Build taxonomy structure
     mock_site.taxonomies = {
-        'tags': {
-            'a': {'name': 'A', 'slug': 'a', 'pages': [page1, page2, page3, page4]},
-            'b': {'name': 'B', 'slug': 'b', 'pages': [page1, page2, page3]},
-            'c': {'name': 'C', 'slug': 'c', 'pages': [page1, page2]}
+        "tags": {
+            "a": {"name": "A", "slug": "a", "pages": [page1, page2, page3, page4]},
+            "b": {"name": "B", "slug": "b", "pages": [page1, page2, page3]},
+            "c": {"name": "C", "slug": "c", "pages": [page1, page2]},
         }
     }
 
@@ -98,17 +110,14 @@ def test_related_posts_respects_limit(mock_site):
     pages = []
     for i in range(10):
         page = Page(
-            source_path=Path(f"page{i}.md"),
-            metadata={"title": f"Post {i}", "tags": ["python"]}
+            source_path=Path(f"page{i}.md"), metadata={"title": f"Post {i}", "tags": ["python"]}
         )
         page.__post_init__()
         pages.append(page)
 
     mock_site.pages = pages
     mock_site.taxonomies = {
-        'tags': {
-            'python': {'name': 'Python', 'slug': 'python', 'pages': pages}
-        }
+        "tags": {"python": {"name": "Python", "slug": "python", "pages": pages}}
     }
 
     # Build with limit of 3
@@ -117,22 +126,25 @@ def test_related_posts_respects_limit(mock_site):
 
     # Each page should have exactly 3 related posts (not all 9 others)
     for page in pages:
-        assert len(page.related_posts) == 3, f"Page should have exactly 3 related posts, got {len(page.related_posts)}"
+        assert len(page.related_posts) == 3, (
+            f"Page should have exactly 3 related posts, got {len(page.related_posts)}"
+        )
 
 
 def test_related_posts_skips_generated_pages(mock_site):
     """Should skip generated pages (tag indexes, archives, etc.)."""
     page1 = Page(source_path=Path("page1.md"), metadata={"title": "Post 1", "tags": ["python"]})
-    page2 = Page(source_path=Path("page2.md"), metadata={"title": "Post 2", "tags": ["python"], "_generated": True})
+    page2 = Page(
+        source_path=Path("page2.md"),
+        metadata={"title": "Post 2", "tags": ["python"], "_generated": True},
+    )
 
     page1.__post_init__()
     page2.__post_init__()
 
     mock_site.pages = [page1, page2]
     mock_site.taxonomies = {
-        'tags': {
-            'python': {'name': 'Python', 'slug': 'python', 'pages': [page1, page2]}
-        }
+        "tags": {"python": {"name": "Python", "slug": "python", "pages": [page1, page2]}}
     }
 
     orchestrator = RelatedPostsOrchestrator(mock_site)
@@ -155,9 +167,7 @@ def test_related_posts_no_tags(mock_site):
 
     mock_site.pages = [page1, page2]
     mock_site.taxonomies = {
-        'tags': {
-            'python': {'name': 'Python', 'slug': 'python', 'pages': [page2]}
-        }
+        "tags": {"python": {"name": "Python", "slug": "python", "pages": [page2]}}
     }
 
     orchestrator = RelatedPostsOrchestrator(mock_site)
@@ -180,4 +190,3 @@ def test_related_posts_no_taxonomies(mock_site):
 
     # Should not crash, just return empty lists
     assert len(page1.related_posts) == 0, "Should handle missing taxonomies gracefully"
-

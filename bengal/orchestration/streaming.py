@@ -44,14 +44,16 @@ class StreamingRenderOrchestrator:
         """
         self.site = site
 
-    def process(self,
-                pages: list[Page],
-                parallel: bool = True,
-                quiet: bool = False,
-                tracker: DependencyTracker | None = None,
-                stats: BuildStats | None = None,
-                batch_size: int = 100,
-                progress_manager: Any | None = None) -> None:
+    def process(
+        self,
+        pages: list[Page],
+        parallel: bool = True,
+        quiet: bool = False,
+        tracker: DependencyTracker | None = None,
+        stats: BuildStats | None = None,
+        batch_size: int = 100,
+        progress_manager: Any | None = None,
+    ) -> None:
         """
         Render pages in memory-optimized batches using connectivity analysis.
 
@@ -75,13 +77,15 @@ class StreamingRenderOrchestrator:
             print(f"     Your site has {total_pages} pages - standard build is likely faster.")
             print("     Continuing anyway for testing/profiling purposes...")
         elif total_pages < RECOMMENDED_THRESHOLD:
-            print(f"  ℹ️  Site has {total_pages} pages - memory optimization may have marginal benefit.")
+            print(
+                f"  ℹ️  Site has {total_pages} pages - memory optimization may have marginal benefit."
+            )
 
         logger.info(
             "streaming_render_start",
             total_pages=total_pages,
             batch_size=batch_size,
-            recommended=total_pages >= RECOMMENDED_THRESHOLD
+            recommended=total_pages >= RECOMMENDED_THRESHOLD,
         )
 
         # Import here to avoid circular dependency
@@ -90,12 +94,15 @@ class StreamingRenderOrchestrator:
         except ImportError:
             logger.warning(
                 "streaming_render_fallback",
-                reason="Knowledge graph not available, using standard rendering"
+                reason="Knowledge graph not available, using standard rendering",
             )
             # Fall back to standard rendering
             from bengal.orchestration.render import RenderOrchestrator
+
             orchestrator = RenderOrchestrator(self.site)
-            orchestrator.process(pages, parallel, quiet, tracker, stats, progress_manager=progress_manager)
+            orchestrator.process(
+                pages, parallel, quiet, tracker, stats, progress_manager=progress_manager
+            )
             return
 
         # Build knowledge graph to analyze connectivity
@@ -117,10 +124,7 @@ class StreamingRenderOrchestrator:
         total_leaves = len(leaves_to_render)
 
         logger.info(
-            "streaming_render_layers",
-            hubs=total_hubs,
-            mid_tier=total_mid,
-            leaves=total_leaves
+            "streaming_render_layers", hubs=total_hubs, mid_tier=total_mid, leaves=total_leaves
         )
 
         print(f"     Hubs: {total_hubs} (keep in memory)")
@@ -129,21 +133,30 @@ class StreamingRenderOrchestrator:
 
         # Import standard renderer for actual processing
         from bengal.orchestration.render import RenderOrchestrator
+
         renderer = RenderOrchestrator(self.site)
 
         # Phase 1: Render hubs (keep in memory - they're referenced often)
         if hubs_to_render:
             print(f"\n  📍 Rendering {total_hubs} hub page(s)...")
-            renderer.process(hubs_to_render, parallel, quiet, tracker, stats, progress_manager=progress_manager)
+            renderer.process(
+                hubs_to_render, parallel, quiet, tracker, stats, progress_manager=progress_manager
+            )
             logger.debug("streaming_render_hubs_complete", count=total_hubs)
 
         # Phase 2: Render mid-tier in batches
         if mid_to_render:
             print(f"  🔗 Rendering {total_mid} mid-tier page(s)...")
             self._render_batches(
-                renderer, mid_to_render, batch_size,
-                parallel, quiet, tracker, stats, "mid-tier",
-                progress_manager=progress_manager
+                renderer,
+                mid_to_render,
+                batch_size,
+                parallel,
+                quiet,
+                tracker,
+                stats,
+                "mid-tier",
+                progress_manager=progress_manager,
             )
             logger.debug("streaming_render_mid_complete", count=total_mid)
 
@@ -151,10 +164,16 @@ class StreamingRenderOrchestrator:
         if leaves_to_render:
             print(f"  🍃 Streaming {total_leaves} leaf page(s)...")
             self._render_batches(
-                renderer, leaves_to_render, batch_size,
-                parallel, quiet, tracker, stats, "leaves",
+                renderer,
+                leaves_to_render,
+                batch_size,
+                parallel,
+                quiet,
+                tracker,
+                stats,
+                "leaves",
                 release_memory=True,
-                progress_manager=progress_manager
+                progress_manager=progress_manager,
             )
             logger.debug("streaming_render_leaves_complete", count=total_leaves)
 
@@ -163,22 +182,24 @@ class StreamingRenderOrchestrator:
             total_rendered=len(pages),
             hubs=total_hubs,
             mid=total_mid,
-            leaves=total_leaves
+            leaves=total_leaves,
         )
 
         print("  ✓ Memory-optimized render complete!")
 
-    def _render_batches(self,
-                       renderer: RenderOrchestrator,
-                       pages: list[Page],
-                       batch_size: int,
-                       parallel: bool,
-                       quiet: bool,
-                       tracker: DependencyTracker | None,
-                       stats: BuildStats | None,
-                       batch_label: str = "pages",
-                       release_memory: bool = False,
-                       progress_manager: Any | None = None) -> None:
+    def _render_batches(
+        self,
+        renderer: RenderOrchestrator,
+        pages: list[Page],
+        batch_size: int,
+        parallel: bool,
+        quiet: bool,
+        tracker: DependencyTracker | None,
+        stats: BuildStats | None,
+        batch_label: str = "pages",
+        release_memory: bool = False,
+        progress_manager: Any | None = None,
+    ) -> None:
         """
         Render pages in batches with optional memory release.
 
@@ -198,18 +219,20 @@ class StreamingRenderOrchestrator:
         batches = (total + batch_size - 1) // batch_size  # Ceiling division
 
         for i in range(0, total, batch_size):
-            batch = pages[i:i + batch_size]
+            batch = pages[i : i + batch_size]
             batch_num = (i // batch_size) + 1
 
             # Render this batch
-            renderer.process(batch, parallel, quiet, tracker, stats, progress_manager=progress_manager)
+            renderer.process(
+                batch, parallel, quiet, tracker, stats, progress_manager=progress_manager
+            )
 
             logger.debug(
                 "streaming_render_batch_complete",
                 batch_type=batch_label,
                 batch_num=batch_num,
                 batch_size=len(batch),
-                total_batches=batches
+                total_batches=batches,
             )
 
             # Release memory if requested (for leaves)
@@ -217,10 +240,10 @@ class StreamingRenderOrchestrator:
                 # Clear references to page content/metadata to free memory
                 for page in batch:
                     # Keep essential metadata but release heavy content
-                    if hasattr(page, '_content_cache'):
-                        delattr(page, '_content_cache')
-                    if hasattr(page, '_html_cache'):
-                        delattr(page, '_html_cache')
+                    if hasattr(page, "_content_cache"):
+                        delattr(page, "_content_cache")
+                    if hasattr(page, "_html_cache"):
+                        delattr(page, "_html_cache")
 
                 # Force garbage collection
                 gc.collect()
@@ -228,6 +251,5 @@ class StreamingRenderOrchestrator:
                 logger.debug(
                     "streaming_render_memory_released",
                     batch_num=batch_num,
-                    pages_released=len(batch)
+                    pages_released=len(batch),
                 )
-

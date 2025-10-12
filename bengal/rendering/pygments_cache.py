@@ -26,27 +26,23 @@ _lexer_cache: dict[str, any] = {}
 _cache_lock = threading.Lock()
 
 # Stats for monitoring
-_cache_stats = {
-    'hits': 0,
-    'misses': 0,
-    'guess_calls': 0
-}
+_cache_stats = {"hits": 0, "misses": 0, "guess_calls": 0}
 
 
 # Known language aliases and non-highlight languages
 # Normalize common fence language names that Pygments does not recognize directly
 _LANGUAGE_ALIASES: dict[str, str] = {
     # Templating
-    'jinja2': 'html+jinja',
-    'jinja': 'html+jinja',
+    "jinja2": "html+jinja",
+    "jinja": "html+jinja",
     # Static site ecosystem aliases
-    'go-html-template': 'html',  # Highlight as HTML rather than warning
+    "go-html-template": "html",  # Highlight as HTML rather than warning
 }
 
 # Languages that should not be highlighted by Pygments
 # These are typically handled by client-side libraries (e.g., Mermaid)
 _NO_HIGHLIGHT_LANGUAGES = {
-    'mermaid',
+    "mermaid",
 }
 
 
@@ -89,18 +85,18 @@ def get_lexer_cached(language: str | None = None, code: str = "") -> any:
 
         with _cache_lock:
             if cache_key in _lexer_cache:
-                _cache_stats['hits'] += 1
+                _cache_stats["hits"] += 1
                 return _lexer_cache[cache_key]
 
-            _cache_stats['misses'] += 1
+            _cache_stats["misses"] += 1
 
         # Do not attempt highlighting for known non-highlight languages
         if normalized in _NO_HIGHLIGHT_LANGUAGES:
             try:
-                lexer = get_lexer_by_name('text')
+                lexer = get_lexer_by_name("text")
             except Exception:
                 # Extremely unlikely, but ensure we return something
-                lexer = get_lexer_by_name('text')
+                lexer = get_lexer_by_name("text")
             with _cache_lock:
                 _lexer_cache[cache_key] = lexer
             # Use debug level to avoid noisy warnings for expected cases
@@ -112,49 +108,53 @@ def get_lexer_cached(language: str | None = None, code: str = "") -> any:
             lexer = get_lexer_by_name(normalized)
             with _cache_lock:
                 _lexer_cache[cache_key] = lexer
-            logger.debug("lexer_cached", language=language, normalized=normalized, cache_key=cache_key)
+            logger.debug(
+                "lexer_cached", language=language, normalized=normalized, cache_key=cache_key
+            )
             return lexer
         except ClassNotFound:
             # Downgrade noise for common doc-only languages that we alias to text
-            level = 'warning'
+            level = "warning"
             if normalized in _LANGUAGE_ALIASES or normalized in _NO_HIGHLIGHT_LANGUAGES:
-                level = 'info'
-            if level == 'warning':
-                logger.warning("unknown_lexer", language=language, normalized=normalized, fallback="text")
+                level = "info"
+            if level == "warning":
+                logger.warning(
+                    "unknown_lexer", language=language, normalized=normalized, fallback="text"
+                )
             else:
-                logger.info("unknown_lexer", language=language, normalized=normalized, fallback="text")
+                logger.info(
+                    "unknown_lexer", language=language, normalized=normalized, fallback="text"
+                )
             # Cache the fallback too
-            lexer = get_lexer_by_name('text')
+            lexer = get_lexer_by_name("text")
             with _cache_lock:
                 _lexer_cache[cache_key] = lexer
             return lexer
 
     # Slow path: guess lexer from code
     # Cache by hash of first 200 chars (representative sample)
-    _cache_stats['guess_calls'] += 1
+    _cache_stats["guess_calls"] += 1
 
     code_sample = code[:200] if len(code) > 200 else code
     cache_key = f"guess:{hash(code_sample)}"
 
     with _cache_lock:
         if cache_key in _lexer_cache:
-            _cache_stats['hits'] += 1
+            _cache_stats["hits"] += 1
             return _lexer_cache[cache_key]
 
-        _cache_stats['misses'] += 1
+        _cache_stats["misses"] += 1
 
     # Expensive guess operation
     try:
         lexer = guess_lexer(code)
         with _cache_lock:
             _lexer_cache[cache_key] = lexer
-        logger.debug("lexer_guessed",
-                    guessed_language=lexer.name,
-                    cache_key=cache_key[:20])
+        logger.debug("lexer_guessed", guessed_language=lexer.name, cache_key=cache_key[:20])
         return lexer
     except Exception as e:
         logger.warning("lexer_guess_failed", error=str(e), fallback="text")
-        lexer = get_lexer_by_name('text')
+        lexer = get_lexer_by_name("text")
         with _cache_lock:
             _lexer_cache[cache_key] = lexer
         return lexer
@@ -165,11 +165,7 @@ def clear_cache():
     global _lexer_cache, _cache_stats
     with _cache_lock:
         _lexer_cache.clear()
-        _cache_stats = {
-            'hits': 0,
-            'misses': 0,
-            'guess_calls': 0
-        }
+        _cache_stats = {"hits": 0, "misses": 0, "guess_calls": 0}
     logger.info("lexer_cache_cleared")
 
 
@@ -182,9 +178,9 @@ def get_cache_stats() -> dict:
     """
     with _cache_lock:
         stats = _cache_stats.copy()
-        total = stats['hits'] + stats['misses']
-        stats['hit_rate'] = stats['hits'] / total if total > 0 else 0
-        stats['cache_size'] = len(_lexer_cache)
+        total = stats["hits"] + stats["misses"]
+        stats["hit_rate"] = stats["hits"] / total if total > 0 else 0
+        stats["cache_size"] = len(_lexer_cache)
     return stats
 
 
@@ -193,10 +189,9 @@ def log_cache_stats():
     stats = get_cache_stats()
     logger.info(
         "pygments_cache_stats",
-        hits=stats['hits'],
-        misses=stats['misses'],
-        guess_calls=stats['guess_calls'],
+        hits=stats["hits"],
+        misses=stats["misses"],
+        guess_calls=stats["guess_calls"],
         hit_rate=f"{stats['hit_rate']:.1%}",
-        cache_size=stats['cache_size']
+        cache_size=stats["cache_size"],
     )
-

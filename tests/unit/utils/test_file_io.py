@@ -24,7 +24,7 @@ class TestReadTextFile:
         """Test reading UTF-8 encoded file."""
         file_path = tmp_path / "test.txt"
         content = "Hello, World! 你好世界"
-        file_path.write_text(content, encoding='utf-8')
+        file_path.write_text(content, encoding="utf-8")
 
         result = read_text_file(file_path)
         assert result == content
@@ -33,46 +33,46 @@ class TestReadTextFile:
         """Test fallback to latin-1 encoding."""
         file_path = tmp_path / "latin1.txt"
         # Write with latin-1 encoding
-        with open(file_path, 'w', encoding='latin-1') as f:
+        with open(file_path, "w", encoding="latin-1") as f:
             f.write("café")
 
         # Should fallback to latin-1 when UTF-8 fails
-        result = read_text_file(file_path, fallback_encoding='latin-1')
+        result = read_text_file(file_path, fallback_encoding="latin-1")
         assert result is not None
         assert "caf" in result
 
     def test_file_not_found_raise(self, tmp_path):
         """Test FileNotFoundError when file doesn't exist."""
         with pytest.raises(FileNotFoundError):
-            read_text_file(tmp_path / "nonexistent.txt", on_error='raise')
+            read_text_file(tmp_path / "nonexistent.txt", on_error="raise")
 
     def test_file_not_found_return_empty(self, tmp_path):
         """Test returning empty string when file not found."""
-        result = read_text_file(tmp_path / "nonexistent.txt", on_error='return_empty')
-        assert result == ''
+        result = read_text_file(tmp_path / "nonexistent.txt", on_error="return_empty")
+        assert result == ""
 
     def test_file_not_found_return_none(self, tmp_path):
         """Test returning None when file not found."""
-        result = read_text_file(tmp_path / "nonexistent.txt", on_error='return_none')
+        result = read_text_file(tmp_path / "nonexistent.txt", on_error="return_none")
         assert result is None
 
     def test_path_is_directory_raise(self, tmp_path):
         """Test ValueError when path is a directory."""
         with pytest.raises(ValueError, match="not a file"):
-            read_text_file(tmp_path, on_error='raise')
+            read_text_file(tmp_path, on_error="raise")
 
     def test_path_is_directory_return_empty(self, tmp_path):
         """Test returning empty string when path is directory."""
-        result = read_text_file(tmp_path, on_error='return_empty')
-        assert result == ''
+        result = read_text_file(tmp_path, on_error="return_empty")
+        assert result == ""
 
     def test_empty_file(self, tmp_path):
         """Test reading empty file."""
         file_path = tmp_path / "empty.txt"
-        file_path.write_text('')
+        file_path.write_text("")
 
         result = read_text_file(file_path)
-        assert result == ''
+        assert result == ""
 
     def test_multiline_content(self, tmp_path):
         """Test reading multiline content."""
@@ -82,7 +82,7 @@ class TestReadTextFile:
 
         result = read_text_file(file_path)
         assert result == content
-        assert result.count('\n') == 2
+        assert result.count("\n") == 2
 
 
 class TestLoadJson:
@@ -100,7 +100,7 @@ class TestLoadJson:
     def test_load_empty_object(self, tmp_path):
         """Test loading empty JSON object."""
         file_path = tmp_path / "empty.json"
-        file_path.write_text('{}')
+        file_path.write_text("{}")
 
         result = load_json(file_path)
         assert result == {}
@@ -120,14 +120,14 @@ class TestLoadJson:
         file_path.write_text('{"invalid": }')
 
         with pytest.raises(json.JSONDecodeError):
-            load_json(file_path, on_error='raise')
+            load_json(file_path, on_error="raise")
 
     def test_invalid_json_return_empty(self, tmp_path):
         """Test returning empty dict on invalid JSON."""
         file_path = tmp_path / "invalid.json"
         file_path.write_text('{"invalid": }')
 
-        result = load_json(file_path, on_error='return_empty')
+        result = load_json(file_path, on_error="return_empty")
         assert result == {}
 
     def test_invalid_json_return_none(self, tmp_path):
@@ -135,12 +135,12 @@ class TestLoadJson:
         file_path = tmp_path / "invalid.json"
         file_path.write_text('{"invalid": }')
 
-        result = load_json(file_path, on_error='return_none')
+        result = load_json(file_path, on_error="return_none")
         assert result is None
 
     def test_file_not_found_return_empty(self, tmp_path):
         """Test returning empty dict when file not found."""
-        result = load_json(tmp_path / "missing.json", on_error='return_empty')
+        result = load_json(tmp_path / "missing.json", on_error="return_empty")
         assert result == {}
 
 
@@ -159,14 +159,14 @@ class TestLoadYaml:
         file_path.write_text(content)
 
         result = load_yaml(file_path)
-        assert result['key'] == 'value'
-        assert result['number'] == 42
-        assert result['nested']['a'] == 1
+        assert result["key"] == "value"
+        assert result["number"] == 42
+        assert result["nested"]["a"] == 1
 
     def test_load_empty_yaml(self, tmp_path):
         """Test loading empty YAML file."""
         file_path = tmp_path / "empty.yaml"
-        file_path.write_text('')
+        file_path.write_text("")
 
         result = load_yaml(file_path)
         assert result == {}
@@ -182,45 +182,46 @@ class TestLoadYaml:
         file_path.write_text(content)
 
         result = load_yaml(file_path)
-        assert result == ['item1', 'item2', 'item3']
+        assert result == ["item1", "item2", "item3"]
 
     def test_invalid_yaml_raise(self, tmp_path):
         """Test YAMLError on invalid YAML."""
-        pytest.importorskip('yaml')  # Skip if yaml not installed
+        pytest.importorskip("yaml")  # Skip if yaml not installed
 
         file_path = tmp_path / "invalid.yaml"
-        file_path.write_text('key: [invalid')
+        file_path.write_text("key: [invalid")
 
         with pytest.raises((ValueError, OSError)):  # yaml.YAMLError
-            load_yaml(file_path, on_error='raise')
+            load_yaml(file_path, on_error="raise")
 
     def test_invalid_yaml_return_empty(self, tmp_path):
         """Test returning empty dict on invalid YAML."""
-        pytest.importorskip('yaml')
+        pytest.importorskip("yaml")
 
         file_path = tmp_path / "invalid.yaml"
-        file_path.write_text('key: [invalid')
+        file_path.write_text("key: [invalid")
 
-        result = load_yaml(file_path, on_error='return_empty')
+        result = load_yaml(file_path, on_error="return_empty")
         assert result == {}
 
     def test_yaml_not_installed_return_empty(self, tmp_path, monkeypatch):
         """Test graceful handling when PyYAML not installed."""
         file_path = tmp_path / "data.yaml"
-        file_path.write_text('key: value')
+        file_path.write_text("key: value")
 
         # Mock yaml import to fail by raising ImportError
         import builtins
+
         original_import = builtins.__import__
 
         def mock_import(name, *args, **kwargs):
-            if name == 'yaml':
+            if name == "yaml":
                 raise ImportError("No module named 'yaml'")
             return original_import(name, *args, **kwargs)
 
-        monkeypatch.setattr(builtins, '__import__', mock_import)
+        monkeypatch.setattr(builtins, "__import__", mock_import)
 
-        result = load_yaml(file_path, on_error='return_empty')
+        result = load_yaml(file_path, on_error="return_empty")
         assert result == {}
 
 
@@ -240,14 +241,14 @@ class TestLoadToml:
         file_path.write_text(content)
 
         result = load_toml(file_path)
-        assert result['key'] == 'value'
-        assert result['number'] == 42
-        assert result['nested']['a'] == 1
+        assert result["key"] == "value"
+        assert result["number"] == 42
+        assert result["nested"]["a"] == 1
 
     def test_load_empty_toml(self, tmp_path):
         """Test loading empty TOML file."""
         file_path = tmp_path / "empty.toml"
-        file_path.write_text('')
+        file_path.write_text("")
 
         result = load_toml(file_path)
         assert result == {}
@@ -255,17 +256,17 @@ class TestLoadToml:
     def test_invalid_toml_raise(self, tmp_path):
         """Test error on invalid TOML."""
         file_path = tmp_path / "invalid.toml"
-        file_path.write_text('[invalid')
+        file_path.write_text("[invalid")
 
         with pytest.raises((ValueError, OSError)):  # toml.TomlDecodeError
-            load_toml(file_path, on_error='raise')
+            load_toml(file_path, on_error="raise")
 
     def test_invalid_toml_return_empty(self, tmp_path):
         """Test returning empty dict on invalid TOML."""
         file_path = tmp_path / "invalid.toml"
-        file_path.write_text('[invalid')
+        file_path.write_text("[invalid")
 
-        result = load_toml(file_path, on_error='return_empty')
+        result = load_toml(file_path, on_error="return_empty")
         assert result == {}
 
 
@@ -288,7 +289,7 @@ class TestLoadDataFile:
         file_path.write_text(content)
 
         result = load_data_file(file_path)
-        assert result['format'] == 'yaml'
+        assert result["format"] == "yaml"
 
     def test_load_yml_extension(self, tmp_path):
         """Test .yml extension recognition."""
@@ -297,7 +298,7 @@ class TestLoadDataFile:
         file_path.write_text(content)
 
         result = load_data_file(file_path)
-        assert result['format'] == 'yml'
+        assert result["format"] == "yml"
 
     def test_load_toml_by_extension(self, tmp_path):
         """Test auto-detection of TOML file."""
@@ -306,22 +307,22 @@ class TestLoadDataFile:
         file_path.write_text(content)
 
         result = load_data_file(file_path)
-        assert result['format'] == 'toml'
+        assert result["format"] == "toml"
 
     def test_unsupported_extension_raise(self, tmp_path):
         """Test ValueError for unsupported format."""
         file_path = tmp_path / "data.xml"
-        file_path.write_text('<data/>')
+        file_path.write_text("<data/>")
 
         with pytest.raises(ValueError, match="Unsupported file format"):
-            load_data_file(file_path, on_error='raise')
+            load_data_file(file_path, on_error="raise")
 
     def test_unsupported_extension_return_empty(self, tmp_path):
         """Test returning empty dict for unsupported format."""
         file_path = tmp_path / "data.xml"
-        file_path.write_text('<data/>')
+        file_path.write_text("<data/>")
 
-        result = load_data_file(file_path, on_error='return_empty')
+        result = load_data_file(file_path, on_error="return_empty")
         assert result == {}
 
 
@@ -372,10 +373,10 @@ class TestWriteTextFile:
         """Test writing empty string."""
         file_path = tmp_path / "empty.txt"
 
-        write_text_file(file_path, '')
+        write_text_file(file_path, "")
 
         assert file_path.exists()
-        assert file_path.read_text() == ''
+        assert file_path.read_text() == ""
 
 
 class TestWriteJson:
@@ -400,7 +401,7 @@ class TestWriteJson:
         write_json(file_path, data, indent=2)
 
         content = file_path.read_text()
-        assert content.count('\n') > 0  # Has newlines from formatting
+        assert content.count("\n") > 0  # Has newlines from formatting
         assert '  "key"' in content  # Has indentation
 
     def test_write_compact_json(self, tmp_path):
@@ -411,18 +412,12 @@ class TestWriteJson:
         write_json(file_path, data, indent=None)
 
         content = file_path.read_text()
-        assert '\n' not in content or content.count('\n') <= 1  # No extra newlines
+        assert "\n" not in content or content.count("\n") <= 1  # No extra newlines
 
     def test_write_nested_structure(self, tmp_path):
         """Test writing nested JSON structure."""
         file_path = tmp_path / "nested.json"
-        data = {
-            "level1": {
-                "level2": {
-                    "level3": "value"
-                }
-            }
-        }
+        data = {"level1": {"level2": {"level3": "value"}}}
 
         write_json(file_path, data)
 
@@ -469,4 +464,3 @@ class TestWriteJson:
 
         with pytest.raises(TypeError):
             write_json(file_path, {"obj": NonSerializable()})
-

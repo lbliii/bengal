@@ -68,9 +68,9 @@ class FontHelper:
         for font_name, font_spec in fonts_to_download.items():
             print(f"   {font_spec['family']}...")
             variants = self.downloader.download_font(
-                family=font_spec['family'],
-                weights=font_spec['weights'],
-                styles=font_spec.get('styles', ['normal']),
+                family=font_spec["family"],
+                weights=font_spec["weights"],
+                styles=font_spec.get("styles", ["normal"]),
                 output_dir=fonts_dir,
             )
             all_variants[font_name] = variants
@@ -83,7 +83,7 @@ class FontHelper:
             return None
 
         css_path = assets_dir / "fonts.css"
-        css_path.write_text(css_content, encoding='utf-8')
+        css_path.write_text(css_content, encoding="utf-8")
 
         total_variants = sum(len(v) for v in all_variants.values())
         print(f"   └─ Generated: fonts.css ({total_variants} variants)")
@@ -119,21 +119,20 @@ class FontHelper:
                     weights = [400]  # Default weight
 
                 fonts[key] = {
-                    'family': family,
-                    'weights': weights,
-                    'styles': ['normal'],
+                    "family": family,
+                    "weights": weights,
+                    "styles": ["normal"],
                 }
 
             elif isinstance(value, dict):
                 # Detailed dict format
                 fonts[key] = {
-                    'family': value['family'],
-                    'weights': value.get('weights', [400]),
-                    'styles': value.get('styles', ['normal']),
+                    "family": value["family"],
+                    "weights": value.get("weights", [400]),
+                    "styles": value.get("styles", ["normal"]),
                 }
 
         return fonts
 
 
-__all__ = ['FontCSSGenerator', 'FontHelper', 'FontVariant', 'GoogleFontsDownloader']
-
+__all__ = ["FontCSSGenerator", "FontHelper", "FontVariant", "GoogleFontsDownloader"]

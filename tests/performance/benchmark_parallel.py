@@ -37,10 +37,10 @@ def create_test_site(num_assets: int) -> Path:
     # Create image assets (minimal PNG)
     img_count = num_assets - css_count - js_count
     png_data = (
-        b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01'
-        b'\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89'
-        b'\x00\x00\x00\nIDATx\x9cc\x00\x01\x00\x00\x05\x00\x01'
-        b'\r\n-\xb4\x00\x00\x00\x00IEND\xaeB`\x82'
+        b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01"
+        b"\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89"
+        b"\x00\x00\x00\nIDATx\x9cc\x00\x01\x00\x00\x05\x00\x01"
+        b"\r\n-\xb4\x00\x00\x00\x00IEND\xaeB`\x82"
     )
     for i in range(img_count):
         (temp_dir / "assets" / "images" / f"image{i}.png").write_bytes(png_data)
@@ -83,7 +83,9 @@ def benchmark_asset_processing(num_assets: int, parallel: bool) -> float:
 
         # Verify we have the right number of assets (approximately, theme assets add more)
         # Just make sure we have at least the requested amount
-        assert len(site.assets) >= num_assets, f"Expected at least {num_assets} assets, got {len(site.assets)}"
+        assert len(site.assets) >= num_assets, (
+            f"Expected at least {num_assets} assets, got {len(site.assets)}"
+        )
 
         # Benchmark asset processing
         start = time.time()
@@ -131,7 +133,7 @@ baseurl = "https://example.com"
 generate_sitemap = true
 generate_rss = true
 validate_links = false
-parallel = {'true' if parallel else 'false'}
+parallel = {"true" if parallel else "false"}
 """
         (temp_dir / "bengal.toml").write_text(config_content)
 
@@ -240,4 +242,3 @@ def run_benchmarks():
 
 if __name__ == "__main__":
     run_benchmarks()
-

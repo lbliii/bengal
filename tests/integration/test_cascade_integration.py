@@ -88,22 +88,22 @@ A customizable widget!
         site.discover_content(content_dir)
 
         # Find the pages
-        super_widget = next(p for p in site.pages if 'super-widget' in str(p.source_path))
-        custom_widget = next(p for p in site.pages if 'custom-widget' in str(p.source_path))
+        super_widget = next(p for p in site.pages if "super-widget" in str(p.source_path))
+        custom_widget = next(p for p in site.pages if "custom-widget" in str(p.source_path))
 
         # Verify cascade applied to super-widget
-        assert super_widget.metadata['type'] == 'product'  # from products cascade
-        assert super_widget.metadata['show_price'] is True  # from products cascade
-        assert super_widget.metadata['product_line'] == 'current'  # from products cascade
-        assert super_widget.metadata['category'] == 'widget'  # from widgets cascade
-        assert super_widget.metadata['warranty'] == '2-year'  # from widgets cascade
-        assert super_widget.metadata['title'] == 'Super Widget'  # own metadata
-        assert super_widget.metadata['price'] == '$99.99'  # own metadata
+        assert super_widget.metadata["type"] == "product"  # from products cascade
+        assert super_widget.metadata["show_price"] is True  # from products cascade
+        assert super_widget.metadata["product_line"] == "current"  # from products cascade
+        assert super_widget.metadata["category"] == "widget"  # from widgets cascade
+        assert super_widget.metadata["warranty"] == "2-year"  # from widgets cascade
+        assert super_widget.metadata["title"] == "Super Widget"  # own metadata
+        assert super_widget.metadata["price"] == "$99.99"  # own metadata
 
         # Verify cascade override in custom-widget
-        assert custom_widget.metadata['type'] == 'custom-product'  # overridden
-        assert custom_widget.metadata['show_price'] is True  # from cascade
-        assert custom_widget.metadata['category'] == 'widget'  # from cascade
+        assert custom_widget.metadata["type"] == "custom-product"  # overridden
+        assert custom_widget.metadata["show_price"] is True  # from cascade
+        assert custom_widget.metadata["category"] == "widget"  # from cascade
 
     def test_cascade_with_nested_sections(self, temp_site):
         """Test cascade through multiple nested sections."""
@@ -157,22 +157,22 @@ title: "Authentication v2"
         site.discover_content(content_dir)
 
         # Find pages
-        v1_auth = next(p for p in site.pages if p.metadata.get('title') == 'Authentication v1')
-        v2_auth = next(p for p in site.pages if p.metadata.get('title') == 'Authentication v2')
+        v1_auth = next(p for p in site.pages if p.metadata.get("title") == "Authentication v1")
+        v2_auth = next(p for p in site.pages if p.metadata.get("title") == "Authentication v2")
 
         # Verify v1 auth has correct cascade
-        assert v1_auth.metadata['type'] == 'api-doc'
-        assert v1_auth.metadata['api_base'] == 'https://api.example.com'
-        assert v1_auth.metadata['version'] == '1.0'
-        assert v1_auth.metadata['deprecated'] is True
-        assert 'stable' not in v1_auth.metadata
+        assert v1_auth.metadata["type"] == "api-doc"
+        assert v1_auth.metadata["api_base"] == "https://api.example.com"
+        assert v1_auth.metadata["version"] == "1.0"
+        assert v1_auth.metadata["deprecated"] is True
+        assert "stable" not in v1_auth.metadata
 
         # Verify v2 auth has correct cascade
-        assert v2_auth.metadata['type'] == 'api-doc'
-        assert v2_auth.metadata['api_base'] == 'https://api.example.com'
-        assert v2_auth.metadata['version'] == '2.0'
-        assert v2_auth.metadata['stable'] is True
-        assert 'deprecated' not in v2_auth.metadata
+        assert v2_auth.metadata["type"] == "api-doc"
+        assert v2_auth.metadata["api_base"] == "https://api.example.com"
+        assert v2_auth.metadata["version"] == "2.0"
+        assert v2_auth.metadata["stable"] is True
+        assert "deprecated" not in v2_auth.metadata
 
     def test_cascade_does_not_affect_other_sections(self, temp_site):
         """Test that cascade only affects pages in the same hierarchy."""
@@ -213,16 +213,16 @@ title: "Guide"
         site.discover_content(content_dir)
 
         # Find pages
-        blog_post = next(p for p in site.pages if p.metadata.get('title') == 'My Post')
-        doc_page = next(p for p in site.pages if p.metadata.get('title') == 'Guide')
+        blog_post = next(p for p in site.pages if p.metadata.get("title") == "My Post")
+        doc_page = next(p for p in site.pages if p.metadata.get("title") == "Guide")
 
         # Blog post should have cascade
-        assert blog_post.metadata['type'] == 'post'
-        assert blog_post.metadata['author'] == 'Blog Team'
+        assert blog_post.metadata["type"] == "post"
+        assert blog_post.metadata["author"] == "Blog Team"
 
         # Doc page should NOT have blog's cascade
-        assert 'type' not in doc_page.metadata
-        assert 'author' not in doc_page.metadata
+        assert "type" not in doc_page.metadata
+        assert "author" not in doc_page.metadata
 
     def test_empty_sections_with_cascade(self, temp_site):
         """Test cascade with sections that have index but no other pages."""
@@ -245,9 +245,8 @@ cascade:
         site.discover_content(content_dir)
 
         # Find the section
-        empty_section = next(s for s in site.sections if s.name == 'empty')
+        empty_section = next(s for s in site.sections if s.name == "empty")
 
         # Should have cascade metadata
-        assert 'cascade' in empty_section.metadata
-        assert empty_section.metadata['cascade']['type'] == 'test'
-
+        assert "cascade" in empty_section.metadata
+        assert empty_section.metadata["cascade"]["type"] == "test"

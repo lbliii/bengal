@@ -15,16 +15,18 @@ if TYPE_CHECKING:
 type Number = int | float
 
 
-def register(env: 'Environment', site: 'Site') -> None:
+def register(env: "Environment", site: "Site") -> None:
     """Register math functions with Jinja2 environment."""
-    env.filters.update({
-        'percentage': percentage,
-        'times': times,
-        'divided_by': divided_by,
-        'ceil': ceil_filter,
-        'floor': floor_filter,
-        'round': round_filter,
-    })
+    env.filters.update(
+        {
+            "percentage": percentage,
+            "times": times,
+            "divided_by": divided_by,
+            "ceil": ceil_filter,
+            "floor": floor_filter,
+            "round": round_filter,
+        }
+    )
 
 
 def percentage(part: Number, total: Number, decimals: int = 0) -> str:
@@ -158,4 +160,3 @@ def round_filter(value: Number, decimals: int = 0) -> Number:
         return round(float(value), decimals)
     except (TypeError, ValueError):
         return 0
-

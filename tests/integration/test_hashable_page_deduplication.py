@@ -26,13 +26,13 @@ class TestPageDeduplicationInBuilds:
         site = Site(root_path=tmp_path, output_dir=tmp_path / "public")
 
         # Create some regular pages
-        page1 = Page(source_path=tmp_path / "content/post1.md", tags=['python'])
-        page2 = Page(source_path=tmp_path / "content/post2.md", tags=['python'])
+        page1 = Page(source_path=tmp_path / "content/post1.md", tags=["python"])
+        page2 = Page(source_path=tmp_path / "content/post2.md", tags=["python"])
 
         # Create generated tag page
         tag_page = Page(
             source_path=Path("_generated/tags/python.md"),
-            metadata={'_generated': True, 'type': 'tag', '_tag_slug': 'python'}
+            metadata={"_generated": True, "type": "tag", "_tag_slug": "python"},
         )
 
         site.pages = [page1, page2, tag_page]
@@ -65,10 +65,7 @@ class TestPageDeduplicationInBuilds:
         import time
 
         # Create 1000 pages
-        all_pages = [
-            Page(source_path=tmp_path / f"content/post{i}.md")
-            for i in range(1000)
-        ]
+        all_pages = [Page(source_path=tmp_path / f"content/post{i}.md") for i in range(1000)]
 
         # Pick 100 pages to "rebuild"
         pages_to_rebuild = set(all_pages[::10])  # Every 10th page
@@ -93,8 +90,9 @@ class TestPageDeduplicationInBuilds:
         assert found_count == found_count_list == 100
 
         # Set should be significantly faster (at least 5x for O(1) vs O(n))
-        assert lookup_time_set < lookup_time_list / 5, \
-            f"Set lookup ({lookup_time_set*1000:.2f}ms) should be much faster than list ({lookup_time_list*1000:.2f}ms)"
+        assert lookup_time_set < lookup_time_list / 5, (
+            f"Set lookup ({lookup_time_set * 1000:.2f}ms) should be much faster than list ({lookup_time_list * 1000:.2f}ms)"
+        )
 
 
 class TestSectionTrackingInBuilds:
@@ -133,7 +131,7 @@ class TestSectionTrackingInBuilds:
         # Using Set[Section] instead of Set[Any] (type-safe!)
         affected_sections = set()
         for page in pages:
-            if hasattr(page, '_section') and page._section:
+            if hasattr(page, "_section") and page._section:
                 affected_sections.add(page._section)
 
         # Should have 3 unique sections
@@ -154,10 +152,7 @@ class TestSectionTrackingInBuilds:
         page3 = Page(source_path=tmp_path / "docs/guide.md")
 
         # Build mapping using sections as keys
-        section_pages = {
-            section1: [page1, page2],
-            section2: [page3]
-        }
+        section_pages = {section1: [page1, page2], section2: [page3]}
 
         # Should work seamlessly
         assert len(section_pages[section1]) == 2
@@ -181,15 +176,15 @@ class TestSetOperationsInPipeline:
         """Test set operations useful for page analysis."""
         # Create pages with different tags
         python_pages = {
-            Page(source_path=tmp_path / "content/python1.md", tags=['python']),
-            Page(source_path=tmp_path / "content/python2.md", tags=['python']),
-            Page(source_path=tmp_path / "content/python3.md", tags=['python']),
+            Page(source_path=tmp_path / "content/python1.md", tags=["python"]),
+            Page(source_path=tmp_path / "content/python2.md", tags=["python"]),
+            Page(source_path=tmp_path / "content/python3.md", tags=["python"]),
         }
 
         web_pages = {
-            Page(source_path=tmp_path / "content/web1.md", tags=['web']),
-            Page(source_path=tmp_path / "content/web2.md", tags=['web']),
-            Page(source_path=tmp_path / "content/python2.md", tags=['python', 'web']),  # Overlap
+            Page(source_path=tmp_path / "content/web1.md", tags=["web"]),
+            Page(source_path=tmp_path / "content/web2.md", tags=["web"]),
+            Page(source_path=tmp_path / "content/python2.md", tags=["python", "web"]),  # Overlap
         }
 
         # Find pages in both categories
@@ -206,7 +201,7 @@ class TestSetOperationsInPipeline:
 
     def test_page_deduplication_across_taxonomies(self, tmp_path):
         """Test deduplication when same page appears in multiple taxonomies."""
-        page1 = Page(source_path=tmp_path / "content/post.md", tags=['python', 'web', 'tutorial'])
+        page1 = Page(source_path=tmp_path / "content/post.md", tags=["python", "web", "tutorial"])
 
         # Simulate page appearing in multiple taxonomy collections
         python_tag_pages = [page1]
@@ -236,10 +231,7 @@ class TestMemoryOptimizations:
         import sys
 
         # Create some pages
-        pages = [
-            Page(source_path=tmp_path / f"content/post{i}.md")
-            for i in range(100)
-        ]
+        pages = [Page(source_path=tmp_path / f"content/post{i}.md") for i in range(100)]
 
         # Old approach: ID-based mapping (knowledge_graph.py before refactor)
         page_by_id = {}
@@ -282,4 +274,3 @@ class TestMemoryOptimizations:
         # Pages should be equal despite different content
         assert page1 == page2
         assert hash(page1) == hash(page2)
-

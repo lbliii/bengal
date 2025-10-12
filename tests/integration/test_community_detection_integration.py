@@ -40,7 +40,7 @@ def clustered_site():
     site.pages = all_pages
     site.sections = []
     site.menus = {}
-    site.config = {'taxonomies': {}}
+    site.config = {"taxonomies": {}}
 
     # Build graph with two clusters
     graph = KnowledgeGraph(site)
@@ -178,7 +178,9 @@ class TestCommunityDetectionIntegration:
         results_low = graph.detect_communities(resolution=0.5, random_seed=42)
 
         # Higher resolution -> more communities
-        results_high = graph.detect_communities(resolution=2.0, random_seed=42, force_recompute=True)
+        results_high = graph.detect_communities(
+            resolution=2.0, random_seed=42, force_recompute=True
+        )
 
         # Higher resolution should produce at least as many communities
         assert len(results_high.communities) >= len(results_low.communities)
@@ -208,7 +210,7 @@ class TestCommunityDetectionScalability:
         site.pages = all_pages
         site.sections = []
         site.menus = {}
-        site.config = {'taxonomies': {}}
+        site.config = {"taxonomies": {}}
 
         # Build graph with 5 clusters
         graph = KnowledgeGraph(site)
@@ -257,7 +259,7 @@ class TestCommunityDetectionScalability:
         site.pages = all_pages
         site.sections = []
         site.menus = {}
-        site.config = {'taxonomies': {}}
+        site.config = {"taxonomies": {}}
 
         # Build graph
         graph = KnowledgeGraph(site)
@@ -293,13 +295,11 @@ class TestCommunityDetectionScalability:
         """Test detection with weak inter-cluster connections."""
         # Two clusters with one weak connection between them
         cluster1 = [
-            Mock(source_path=Path(f"c1_{i}.md"), title=f"C1 {i}", metadata={})
-            for i in range(5)
+            Mock(source_path=Path(f"c1_{i}.md"), title=f"C1 {i}", metadata={}) for i in range(5)
         ]
 
         cluster2 = [
-            Mock(source_path=Path(f"c2_{i}.md"), title=f"C2 {i}", metadata={})
-            for i in range(5)
+            Mock(source_path=Path(f"c2_{i}.md"), title=f"C2 {i}", metadata={}) for i in range(5)
         ]
 
         all_pages = cluster1 + cluster2
@@ -308,7 +308,7 @@ class TestCommunityDetectionScalability:
         site.pages = all_pages
         site.sections = []
         site.menus = {}
-        site.config = {'taxonomies': {}}
+        site.config = {"taxonomies": {}}
 
         # Build graph
         graph = KnowledgeGraph(site)
@@ -342,4 +342,3 @@ class TestCommunityDetectionScalability:
 
         sizes = sorted([c.size for c in results.communities])
         assert sizes == [5, 5]
-

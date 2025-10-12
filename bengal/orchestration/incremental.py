@@ -31,7 +31,7 @@ class IncrementalOrchestrator:
         - Determining what needs rebuilding
     """
 
-    def __init__(self, site: 'Site'):
+    def __init__(self, site: "Site"):
         """
         Initialize incremental orchestrator.
 
@@ -42,7 +42,7 @@ class IncrementalOrchestrator:
         self.cache: BuildCache | None = None
         self.tracker: DependencyTracker | None = None
 
-    def initialize(self, enabled: bool = False) -> tuple['BuildCache', 'DependencyTracker']:
+    def initialize(self, enabled: bool = False) -> tuple["BuildCache", "DependencyTracker"]:
         """
         Initialize cache and tracker.
 
@@ -67,7 +67,7 @@ class IncrementalOrchestrator:
                 "cache_initialized",
                 enabled=True,
                 cache_loaded=cache_exists,
-                cached_files=file_count
+                cached_files=file_count,
             )
         else:
             self.cache = BuildCache()
@@ -90,7 +90,7 @@ class IncrementalOrchestrator:
         config_files = [
             self.site.root_path / "bengal.toml",
             self.site.root_path / "bengal.yaml",
-            self.site.root_path / "bengal.yml"
+            self.site.root_path / "bengal.yml",
         ]
         config_file = next((f for f in config_files if f.exists()), None)
 
@@ -106,7 +106,9 @@ class IncrementalOrchestrator:
 
         return False
 
-    def find_work_early(self, verbose: bool = False) -> tuple[list['Page'], list['Asset'], dict[str, list]]:
+    def find_work_early(
+        self, verbose: bool = False
+    ) -> tuple[list["Page"], list["Asset"], dict[str, list]]:
         """
         Find pages/assets that need rebuilding (early version - before taxonomy generation).
 
@@ -125,22 +127,22 @@ class IncrementalOrchestrator:
         pages_to_rebuild: set[Path] = set()
         assets_to_process: list[Asset] = []
         change_summary: dict[str, list] = {
-            'Modified content': [],
-            'Modified assets': [],
-            'Modified templates': [],
-            'Taxonomy changes': []
+            "Modified content": [],
+            "Modified assets": [],
+            "Modified templates": [],
+            "Taxonomy changes": [],
         }
 
         # Find changed content files (skip generated pages - they don't have real source files)
         for page in self.site.pages:
             # Skip generated pages - they'll be handled separately
-            if page.metadata.get('_generated'):
+            if page.metadata.get("_generated"):
                 continue
 
             if self.cache.is_changed(page.source_path):
                 pages_to_rebuild.add(page.source_path)
                 if verbose:
-                    change_summary['Modified content'].append(page.source_path)
+                    change_summary["Modified content"].append(page.source_path)
                 # Track taxonomy changes
                 if page.tags:
                     self.tracker.track_taxonomy(page.source_path, set(page.tags))
@@ -150,7 +152,7 @@ class IncrementalOrchestrator:
             if self.cache.is_changed(asset.source_path):
                 assets_to_process.append(asset)
                 if verbose:
-                    change_summary['Modified assets'].append(asset.source_path)
+                    change_summary["Modified assets"].append(asset.source_path)
 
         # Check template/theme directory for changes
         theme_templates_dir = self._get_theme_templates_dir()
@@ -158,7 +160,7 @@ class IncrementalOrchestrator:
             for template_file in theme_templates_dir.rglob("*.html"):
                 if self.cache.is_changed(template_file):
                     if verbose:
-                        change_summary['Modified templates'].append(template_file)
+                        change_summary["Modified templates"].append(template_file)
                     # Template changed - find affected pages
                     affected = self.cache.get_affected_pages(template_file)
                     for page_path_str in affected:
@@ -169,20 +171,23 @@ class IncrementalOrchestrator:
 
         # Convert to Page objects
         pages_to_build_list = [
-            page for page in self.site.pages
-            if page.source_path in pages_to_rebuild and not page.metadata.get('_generated')
+            page
+            for page in self.site.pages
+            if page.source_path in pages_to_rebuild and not page.metadata.get("_generated")
         ]
 
         logger.info(
             "incremental_work_detected",
             pages_to_build=len(pages_to_build_list),
             assets_to_process=len(assets_to_process),
-            template_changes=len(change_summary.get('Modified templates', []))
+            template_changes=len(change_summary.get("Modified templates", [])),
         )
 
         return pages_to_build_list, assets_to_process, change_summary
 
-    def find_work(self, verbose: bool = False) -> tuple[list['Page'], list['Asset'], dict[str, list]]:
+    def find_work(
+        self, verbose: bool = False
+    ) -> tuple[list["Page"], list["Asset"], dict[str, list]]:
         """
         Find pages/assets that need rebuilding (legacy version - after taxonomy generation).
 
@@ -201,22 +206,22 @@ class IncrementalOrchestrator:
         pages_to_rebuild: set[Path] = set()
         assets_to_process: list[Asset] = []
         change_summary: dict[str, list] = {
-            'Modified content': [],
-            'Modified assets': [],
-            'Modified templates': [],
-            'Taxonomy changes': []
+            "Modified content": [],
+            "Modified assets": [],
+            "Modified templates": [],
+            "Taxonomy changes": [],
         }
 
         # Find changed content files (skip generated pages - they have virtual paths)
         for page in self.site.pages:
             # Skip generated pages - they'll be handled separately
-            if page.metadata.get('_generated'):
+            if page.metadata.get("_generated"):
                 continue
 
             if self.cache.is_changed(page.source_path):
                 pages_to_rebuild.add(page.source_path)
                 if verbose:
-                    change_summary['Modified content'].append(page.source_path)
+                    change_summary["Modified content"].append(page.source_path)
                 # Track taxonomy changes
                 if page.tags:
                     self.tracker.track_taxonomy(page.source_path, set(page.tags))
@@ -226,7 +231,7 @@ class IncrementalOrchestrator:
             if self.cache.is_changed(asset.source_path):
                 assets_to_process.append(asset)
                 if verbose:
-                    change_summary['Modified assets'].append(asset.source_path)
+                    change_summary["Modified assets"].append(asset.source_path)
 
         # Check template/theme directory for changes
         theme_templates_dir = self._get_theme_templates_dir()
@@ -234,7 +239,7 @@ class IncrementalOrchestrator:
             for template_file in theme_templates_dir.rglob("*.html"):
                 if self.cache.is_changed(template_file):
                     if verbose:
-                        change_summary['Modified templates'].append(template_file)
+                        change_summary["Modified templates"].append(template_file)
                     # Template changed - find affected pages
                     affected = self.cache.get_affected_pages(template_file)
                     for page_path_str in affected:
@@ -250,7 +255,7 @@ class IncrementalOrchestrator:
 
         for page in self.site.pages:
             # Skip generated pages - they don't have real source files
-            if page.metadata.get('_generated'):
+            if page.metadata.get("_generated"):
                 continue
 
             # Check if this page changed
@@ -264,44 +269,47 @@ class IncrementalOrchestrator:
                 removed_tags = old_tags - new_tags
 
                 # Track affected tags
-                for tag in (added_tags | removed_tags):
-                    affected_tags.add(tag.lower().replace(' ', '-'))
+                for tag in added_tags | removed_tags:
+                    affected_tags.add(tag.lower().replace(" ", "-"))
                     if verbose:
-                        change_summary['Taxonomy changes'].append(
+                        change_summary["Taxonomy changes"].append(
                             f"Tag '{tag}' changed on {page.source_path.name}"
                         )
 
                 # Check if page changed sections (affects archive pages)
                 # For now, mark section as affected if page changed
-                if hasattr(page, 'section'):
+                if hasattr(page, "section"):
                     affected_sections.add(page.section)
 
         # Only rebuild specific tag pages that were affected
         if affected_tags:
             for page in self.site.pages:
-                if page.metadata.get('_generated') and (page.metadata.get('type') == 'tag' or page.metadata.get('type') == 'tag-index'):
+                if page.metadata.get("_generated") and (
+                    page.metadata.get("type") == "tag" or page.metadata.get("type") == "tag-index"
+                ):
                     # Rebuild tag pages only for affected tags
-                    tag_slug = page.metadata.get('_tag_slug')
-                    if tag_slug and tag_slug in affected_tags or page.metadata.get('type') == 'tag-index':
+                    tag_slug = page.metadata.get("_tag_slug")
+                    if (
+                        tag_slug
+                        and tag_slug in affected_tags
+                        or page.metadata.get("type") == "tag-index"
+                    ):
                         pages_to_rebuild.add(page.source_path)
 
         # Rebuild archive pages only for affected sections
         if affected_sections:
             for page in self.site.pages:
-                if page.metadata.get('_generated') and page.metadata.get('type') == 'archive':
-                    page_section = page.metadata.get('_section')
+                if page.metadata.get("_generated") and page.metadata.get("type") == "archive":
+                    page_section = page.metadata.get("_section")
                     if page_section and page_section in affected_sections:
                         pages_to_rebuild.add(page.source_path)
 
         # Convert page paths back to Page objects
-        pages_to_build = [
-            page for page in self.site.pages
-            if page.source_path in pages_to_rebuild
-        ]
+        pages_to_build = [page for page in self.site.pages if page.source_path in pages_to_rebuild]
 
         return pages_to_build, assets_to_process, change_summary
 
-    def save_cache(self, pages_built: list['Page'], assets_processed: list['Asset']) -> None:
+    def save_cache(self, pages_built: list["Page"], assets_processed: list["Asset"]) -> None:
         """
         Update cache with processed files.
 
@@ -316,7 +324,7 @@ class IncrementalOrchestrator:
 
         # Update all page hashes and tags (skip generated pages - they have virtual paths)
         for page in pages_built:
-            if not page.metadata.get('_generated'):
+            if not page.metadata.get("_generated"):
                 self.cache.update_file(page.source_path)
                 # Store tags for next build's comparison
                 if page.tags:
@@ -354,10 +362,10 @@ class IncrementalOrchestrator:
 
         # Check in Bengal's bundled themes
         import bengal
+
         bengal_dir = Path(bengal.__file__).parent
         bundled_theme_dir = bengal_dir / "themes" / self.site.theme / "templates"
         if bundled_theme_dir.exists():
             return bundled_theme_dir
 
         return None
-

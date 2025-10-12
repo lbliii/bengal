@@ -44,37 +44,37 @@ class APIDocEnhancer:
     BADGE_PATTERNS = [
         # Async methods/functions (h3 or h4 headings)
         (
-            r'(<h[34][^>]*>)([^<@]+)\s*@async\s*(<a[^>]*headerlink[^>]*>.*?</a>)(\s*</h[34]>)',
-            r'\1\2 <span class="api-badge api-badge-async">async</span>\3\4'
+            r"(<h[34][^>]*>)([^<@]+)\s*@async\s*(<a[^>]*headerlink[^>]*>.*?</a>)(\s*</h[34]>)",
+            r'\1\2 <span class="api-badge api-badge-async">async</span>\3\4',
         ),
         # Properties (h4 headings only)
         (
-            r'(<h4[^>]*>)([^<@]+)\s*@property\s*(<a[^>]*headerlink[^>]*>.*?</a>)(\s*</h4>)',
-            r'\1\2 <span class="api-badge api-badge-property">property</span>\3\4'
+            r"(<h4[^>]*>)([^<@]+)\s*@property\s*(<a[^>]*headerlink[^>]*>.*?</a>)(\s*</h4>)",
+            r'\1\2 <span class="api-badge api-badge-property">property</span>\3\4',
         ),
         # Class methods (h4 headings only)
         (
-            r'(<h4[^>]*>)([^<@]+)\s*@classmethod\s*(<a[^>]*headerlink[^>]*>.*?</a>)(\s*</h4>)',
-            r'\1\2 <span class="api-badge api-badge-classmethod">classmethod</span>\3\4'
+            r"(<h4[^>]*>)([^<@]+)\s*@classmethod\s*(<a[^>]*headerlink[^>]*>.*?</a>)(\s*</h4>)",
+            r'\1\2 <span class="api-badge api-badge-classmethod">classmethod</span>\3\4',
         ),
         # Static methods (h4 headings only)
         (
-            r'(<h4[^>]*>)([^<@]+)\s*@staticmethod\s*(<a[^>]*headerlink[^>]*>.*?</a>)(\s*</h4>)',
-            r'\1\2 <span class="api-badge api-badge-staticmethod">staticmethod</span>\3\4'
+            r"(<h4[^>]*>)([^<@]+)\s*@staticmethod\s*(<a[^>]*headerlink[^>]*>.*?</a>)(\s*</h4>)",
+            r'\1\2 <span class="api-badge api-badge-staticmethod">staticmethod</span>\3\4',
         ),
         # Deprecated (any heading level)
         (
-            r'(<h[2-6][^>]*>)([^<@]+)\s*@deprecated\s*(<a[^>]*headerlink[^>]*>.*?</a>)(\s*</h[2-6]>)',
-            r'\1\2 <span class="api-badge api-badge-deprecated">deprecated</span>\3\4'
+            r"(<h[2-6][^>]*>)([^<@]+)\s*@deprecated\s*(<a[^>]*headerlink[^>]*>.*?</a>)(\s*</h[2-6]>)",
+            r'\1\2 <span class="api-badge api-badge-deprecated">deprecated</span>\3\4',
         ),
     ]
 
     # Page types that should be enhanced
     SUPPORTED_PAGE_TYPES = {
-        'python-module',
-        'api-reference',
-        'cli-command',
-        'cli-reference',
+        "python-module",
+        "api-reference",
+        "cli-command",
+        "cli-reference",
     }
 
     def __init__(self):
@@ -133,9 +133,9 @@ class APIDocEnhancer:
         # Debug: Report if badges were added (only in dev mode)
         if replacements_made > 0:
             from bengal.utils.profile import should_show_debug
+
             if should_show_debug():
-                logger.debug("api_doc_badge_replacements",
-                           replacements_made=replacements_made)
+                logger.debug("api_doc_badge_replacements", replacements_made=replacements_made)
 
         return enhanced
 
@@ -153,8 +153,10 @@ class APIDocEnhancer:
             HTML with markers removed
         """
         # Simple pattern to match all @marker syntax
-        marker_pattern = re.compile(r'\s+@(?:async|property|classmethod|staticmethod|deprecated)\s*')
-        return marker_pattern.sub(' ', html)
+        marker_pattern = re.compile(
+            r"\s+@(?:async|property|classmethod|staticmethod|deprecated)\s*"
+        )
+        return marker_pattern.sub(" ", html)
 
 
 # Singleton instance for reuse across pages
@@ -172,4 +174,3 @@ def get_enhancer() -> APIDocEnhancer:
     if _enhancer is None:
         _enhancer = APIDocEnhancer()
     return _enhancer
-

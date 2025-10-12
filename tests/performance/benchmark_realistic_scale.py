@@ -19,26 +19,43 @@ from bengal.core.site import Site
 
 # Code examples for realism
 CODE_EXAMPLES = [
-    '''```python
+    """```python
 def hello_world():
     print("Hello, World!")
     return True
-```''',
-    '''```javascript
+```""",
+    """```javascript
 function calculate(x, y) {
     return x + y;
 }
-```''',
-    '''```bash
+```""",
+    """```bash
 # Deploy script
 git push origin main
-```''',
+```""",
 ]
 
 # Tags for realism
-TAG_POOL = ['python', 'javascript', 'tutorial', 'guide', 'tips', 'howto',
-            'web', 'api', 'database', 'devops', 'frontend', 'backend',
-            'react', 'vue', 'django', 'flask', 'nodejs', 'docker']
+TAG_POOL = [
+    "python",
+    "javascript",
+    "tutorial",
+    "guide",
+    "tips",
+    "howto",
+    "web",
+    "api",
+    "database",
+    "devops",
+    "frontend",
+    "backend",
+    "react",
+    "vue",
+    "django",
+    "flask",
+    "nodejs",
+    "docker",
+]
 
 
 def generate_realistic_content(index: int) -> str:
@@ -121,9 +138,9 @@ generate_rss = true
 
 def benchmark_build(num_files: int, runs: int = 3) -> dict:
     """Benchmark Bengal with realistic content."""
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"Benchmarking {num_files:,} files (realistic content)")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
 
     times = []
 
@@ -162,12 +179,12 @@ def benchmark_build(num_files: int, runs: int = 3) -> dict:
     print(f"  Rate:    {pages_per_sec:.1f} pages/second")
 
     return {
-        'files': num_files,
-        'avg': avg_time,
-        'min': min_time,
-        'max': max_time,
-        'pages_per_sec': pages_per_sec,
-        'runs': times
+        "files": num_files,
+        "avg": avg_time,
+        "min": min_time,
+        "max": max_time,
+        "pages_per_sec": pages_per_sec,
+        "runs": times,
     }
 
 
@@ -209,7 +226,9 @@ def run_realistic_scale_benchmark():
     print("-" * 80)
 
     for r in results:
-        print(f"{r['files']:<10,} {r['avg']:>8.3f}s    {r['min']:>8.3f}s    {r['max']:>8.3f}s    {r['pages_per_sec']:>8.1f}")
+        print(
+            f"{r['files']:<10,} {r['avg']:>8.3f}s    {r['min']:>8.3f}s    {r['max']:>8.3f}s    {r['pages_per_sec']:>8.1f}"
+        )
 
     # Comparison with minimal content benchmark
     print("\n" + "=" * 80)
@@ -221,19 +240,13 @@ def run_realistic_scale_benchmark():
     print("-" * 80)
 
     # These are from the CSS-Tricks benchmark results
-    minimal_times = {
-        1: 0.108,
-        16: 0.114,
-        64: 0.187,
-        256: 0.582,
-        1024: 3.524
-    }
+    minimal_times = {1: 0.108, 16: 0.114, 64: 0.187, 256: 0.582, 1024: 3.524}
 
     for r in results:
-        if r['files'] in minimal_times:
-            minimal = minimal_times[r['files']]
-            realistic = r['avg']
-            overhead = ((realistic - minimal) / minimal * 100)
+        if r["files"] in minimal_times:
+            minimal = minimal_times[r["files"]]
+            realistic = r["avg"]
+            overhead = (realistic - minimal) / minimal * 100
             print(f"{r['files']:<12,} {minimal:>8.3f}s    {realistic:>8.3f}s    {overhead:>8.1f}%")
 
     # Scaling analysis
@@ -243,13 +256,13 @@ def run_realistic_scale_benchmark():
     print()
 
     if len(results) >= 3:
-        small = next((r for r in results if r['files'] == 1), None)
-        large = next((r for r in results if r['files'] == 1024), None)
+        small = next((r for r in results if r["files"] == 1), None)
+        large = next((r for r in results if r["files"] == 1024), None)
 
         if small and large:
-            growth_factor = large['avg'] / small['avg']
+            growth_factor = large["avg"] / small["avg"]
             theoretical_linear = 1024
-            efficiency = (theoretical_linear / growth_factor * 100)
+            efficiency = theoretical_linear / growth_factor * 100
 
             print("Scaling (1 → 1,024 files):")
             print(f"  Time growth:  {growth_factor:.1f}x")
@@ -293,5 +306,5 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"\n\nError during benchmark: {e}")
         import traceback
-        traceback.print_exc()
 
+        traceback.print_exc()

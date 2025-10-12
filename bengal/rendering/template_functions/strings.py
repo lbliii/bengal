@@ -18,22 +18,24 @@ if TYPE_CHECKING:
     from bengal.core.site import Site
 
 
-def register(env: 'Environment', site: 'Site') -> None:
+def register(env: "Environment", site: "Site") -> None:
     """Register string functions with Jinja2 environment."""
-    env.filters.update({
-        'truncatewords': truncatewords,
-        'truncatewords_html': truncatewords_html,
-        'slugify': slugify,
-        'markdownify': markdownify,
-        'strip_html': strip_html,
-        'truncate_chars': truncate_chars,
-        'replace_regex': replace_regex,
-        'pluralize': pluralize,
-        'reading_time': reading_time,
-        'excerpt': excerpt,
-        'strip_whitespace': strip_whitespace,
-        'get': dict_get,
-    })
+    env.filters.update(
+        {
+            "truncatewords": truncatewords,
+            "truncatewords_html": truncatewords_html,
+            "slugify": slugify,
+            "markdownify": markdownify,
+            "strip_html": strip_html,
+            "truncate_chars": truncate_chars,
+            "replace_regex": replace_regex,
+            "pluralize": pluralize,
+            "reading_time": reading_time,
+            "excerpt": excerpt,
+            "strip_whitespace": strip_whitespace,
+            "get": dict_get,
+        }
+    )
 
 
 def dict_get(obj, key, default=None):
@@ -89,7 +91,7 @@ def truncatewords_html(html: str, count: int, suffix: str = "...") -> str:
         {{ post.html_content | truncatewords_html(50) }}
     """
     if not html:
-        return ''
+        return ""
 
     # Strip HTML to count words
     text_only = strip_html(html)
@@ -100,7 +102,7 @@ def truncatewords_html(html: str, count: int, suffix: str = "...") -> str:
 
     # Simple implementation: strip HTML, truncate, add suffix
     # A more sophisticated version would preserve HTML structure
-    truncated_text = ' '.join(words[:count])
+    truncated_text = " ".join(words[:count])
     return truncated_text + suffix
 
 
@@ -139,16 +141,19 @@ def markdownify(text: str) -> str:
         {{ markdown_text | markdownify | safe }}
     """
     if not text:
-        return ''
+        return ""
 
     try:
         import markdown
-        md = markdown.Markdown(extensions=[
-            'extra',
-            'codehilite',
-            'tables',
-            'fenced_code',
-        ])
+
+        md = markdown.Markdown(
+            extensions=[
+                "extra",
+                "codehilite",
+                "tables",
+                "fenced_code",
+            ]
+        )
         return md.convert(text)
     except ImportError:
         # Fallback if markdown not installed
@@ -209,7 +214,7 @@ def replace_regex(text: str, pattern: str, replacement: str) -> str:
         {{ text | replace_regex('\\d+', 'NUM') }}
     """
     if not text:
-        return ''
+        return ""
 
     try:
         return re.sub(pattern, replacement, text)
@@ -287,7 +292,7 @@ def excerpt(text: str, length: int = 200, respect_word_boundaries: bool = True) 
         {{ post.content | excerpt(150, false) }}  # Can cut words
     """
     if not text:
-        return ''
+        return ""
 
     # Strip HTML first
     clean_text = strip_html(text)
@@ -297,7 +302,7 @@ def excerpt(text: str, length: int = 200, respect_word_boundaries: bool = True) 
 
     if respect_word_boundaries:
         # Find the last space before the limit
-        excerpt_text = clean_text[:length].rsplit(' ', 1)[0]
+        excerpt_text = clean_text[:length].rsplit(" ", 1)[0]
         return excerpt_text + "..."
     else:
         return clean_text[:length] + "..."
@@ -320,4 +325,3 @@ def strip_whitespace(text: str) -> str:
         {{ messy_text | strip_whitespace }}
     """
     return text_utils.normalize_whitespace(text, collapse=True)
-

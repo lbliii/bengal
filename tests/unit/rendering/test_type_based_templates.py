@@ -24,13 +24,13 @@ class TestTypeMappings:
         renderer = Renderer(site)
 
         page = Mock(spec=Page)
-        page.metadata = {'type': 'python-module'}
-        page.source_path = Path('content/api/module.md')
+        page.metadata = {"type": "python-module"}
+        page.source_path = Path("content/api/module.md")
         page._section = None
 
         # Mock template_exists to return True for api-reference
         def template_exists(name):
-            return name == 'api-reference/single.html'
+            return name == "api-reference/single.html"
 
         renderer._template_exists = template_exists
 
@@ -38,7 +38,7 @@ class TestTypeMappings:
         template = renderer._get_template_name(page)
 
         # Verify
-        assert template == 'api-reference/single.html'
+        assert template == "api-reference/single.html"
 
     def test_cli_command_maps_to_cli_reference(self):
         """Test that type: cli-command uses cli-reference templates."""
@@ -46,18 +46,18 @@ class TestTypeMappings:
         renderer = Renderer(site)
 
         page = Mock(spec=Page)
-        page.metadata = {'type': 'cli-command'}
-        page.source_path = Path('content/cli/build.md')
+        page.metadata = {"type": "cli-command"}
+        page.source_path = Path("content/cli/build.md")
         page._section = None
 
         def template_exists(name):
-            return name == 'cli-reference/single.html'
+            return name == "cli-reference/single.html"
 
         renderer._template_exists = template_exists
 
         template = renderer._get_template_name(page)
 
-        assert template == 'cli-reference/single.html'
+        assert template == "cli-reference/single.html"
 
     def test_doc_type_maps_to_doc_templates(self):
         """Test that type: doc uses doc templates."""
@@ -65,18 +65,18 @@ class TestTypeMappings:
         renderer = Renderer(site)
 
         page = Mock(spec=Page)
-        page.metadata = {'type': 'doc'}
-        page.source_path = Path('content/docs/guide.md')
+        page.metadata = {"type": "doc"}
+        page.source_path = Path("content/docs/guide.md")
         page._section = None
 
         def template_exists(name):
-            return name == 'doc/single.html'
+            return name == "doc/single.html"
 
         renderer._template_exists = template_exists
 
         template = renderer._get_template_name(page)
 
-        assert template == 'doc/single.html'
+        assert template == "doc/single.html"
 
     def test_tutorial_type_maps_to_tutorial_templates(self):
         """Test that type: tutorial uses tutorial templates."""
@@ -84,18 +84,18 @@ class TestTypeMappings:
         renderer = Renderer(site)
 
         page = Mock(spec=Page)
-        page.metadata = {'type': 'tutorial'}
-        page.source_path = Path('content/tutorials/intro.md')
+        page.metadata = {"type": "tutorial"}
+        page.source_path = Path("content/tutorials/intro.md")
         page._section = None
 
         def template_exists(name):
-            return name == 'tutorial/single.html'
+            return name == "tutorial/single.html"
 
         renderer._template_exists = template_exists
 
         template = renderer._get_template_name(page)
 
-        assert template == 'tutorial/single.html'
+        assert template == "tutorial/single.html"
 
     def test_blog_type_maps_to_blog_templates(self):
         """Test that type: blog uses blog templates."""
@@ -103,18 +103,18 @@ class TestTypeMappings:
         renderer = Renderer(site)
 
         page = Mock(spec=Page)
-        page.metadata = {'type': 'blog'}
-        page.source_path = Path('content/blog/post.md')
+        page.metadata = {"type": "blog"}
+        page.source_path = Path("content/blog/post.md")
         page._section = None
 
         def template_exists(name):
-            return name == 'blog/single.html'
+            return name == "blog/single.html"
 
         renderer._template_exists = template_exists
 
         template = renderer._get_template_name(page)
 
-        assert template == 'blog/single.html'
+        assert template == "blog/single.html"
 
 
 class TestTypeForIndexPages:
@@ -126,18 +126,18 @@ class TestTypeForIndexPages:
         renderer = Renderer(site)
 
         page = Mock(spec=Page)
-        page.metadata = {'type': 'doc'}
-        page.source_path = Path('content/docs/_index.md')
+        page.metadata = {"type": "doc"}
+        page.source_path = Path("content/docs/_index.md")
         page._section = None
 
         def template_exists(name):
-            return name == 'doc/list.html'
+            return name == "doc/list.html"
 
         renderer._template_exists = template_exists
 
         template = renderer._get_template_name(page)
 
-        assert template == 'doc/list.html'
+        assert template == "doc/list.html"
 
     def test_tutorial_index_uses_list_template(self):
         """Test that _index.md with type: tutorial uses tutorial/list.html."""
@@ -145,18 +145,18 @@ class TestTypeForIndexPages:
         renderer = Renderer(site)
 
         page = Mock(spec=Page)
-        page.metadata = {'type': 'tutorial'}
-        page.source_path = Path('content/tutorials/_index.md')
+        page.metadata = {"type": "tutorial"}
+        page.source_path = Path("content/tutorials/_index.md")
         page._section = None
 
         def template_exists(name):
-            return name == 'tutorial/list.html'
+            return name == "tutorial/list.html"
 
         renderer._template_exists = template_exists
 
         template = renderer._get_template_name(page)
 
-        assert template == 'tutorial/list.html'
+        assert template == "tutorial/list.html"
 
 
 class TestTemplatePriority:
@@ -168,17 +168,14 @@ class TestTemplatePriority:
         renderer = Renderer(site)
 
         page = Mock(spec=Page)
-        page.metadata = {
-            'template': 'custom.html',
-            'type': 'doc'
-        }
-        page.source_path = Path('content/page.md')
+        page.metadata = {"template": "custom.html", "type": "doc"}
+        page.source_path = Path("content/page.md")
         page._section = None
 
         template = renderer._get_template_name(page)
 
         # Should use explicit template, not type
-        assert template == 'custom.html'
+        assert template == "custom.html"
 
     def test_type_beats_section_name(self):
         """Test that type: beats section name patterns."""
@@ -186,24 +183,24 @@ class TestTemplatePriority:
         renderer = Renderer(site)
 
         section = Mock(spec=Section)
-        section.name = 'guides'  # Section name
+        section.name = "guides"  # Section name
         section.metadata = {}
 
         page = Mock(spec=Page)
-        page.metadata = {'type': 'tutorial'}  # Different type
-        page.source_path = Path('content/guides/intro.md')
+        page.metadata = {"type": "tutorial"}  # Different type
+        page.source_path = Path("content/guides/intro.md")
         page._section = section
 
         def template_exists(name):
             # tutorial template exists, guides template doesn't
-            return name == 'tutorial/single.html'
+            return name == "tutorial/single.html"
 
         renderer._template_exists = template_exists
 
         template = renderer._get_template_name(page)
 
         # Should use type-based template
-        assert template == 'tutorial/single.html'
+        assert template == "tutorial/single.html"
 
     def test_fallback_to_section_name_if_type_template_missing(self):
         """Test fallback to section name if type template doesn't exist."""
@@ -211,26 +208,26 @@ class TestTemplatePriority:
         renderer = Renderer(site)
 
         section = Mock(spec=Section)
-        section.name = 'docs'
+        section.name = "docs"
         section.metadata = {}
 
         page = Mock(spec=Page)
-        page.metadata = {'type': 'custom-type'}  # Custom type with no template
-        page.source_path = Path('content/docs/page.md')
+        page.metadata = {"type": "custom-type"}  # Custom type with no template
+        page.source_path = Path("content/docs/page.md")
         page._section = section
 
         def template_exists(name):
             # custom-type templates don't exist, but docs template does
-            if 'custom-type' in name:
+            if "custom-type" in name:
                 return False
-            return name == 'docs/single.html'
+            return name == "docs/single.html"
 
         renderer._template_exists = template_exists
 
         template = renderer._get_template_name(page)
 
         # Should fallback to section name
-        assert template == 'docs/single.html'
+        assert template == "docs/single.html"
 
     def test_ultimate_fallback_to_page_html(self):
         """Test ultimate fallback to page.html."""
@@ -239,7 +236,7 @@ class TestTemplatePriority:
 
         page = Mock(spec=Page)
         page.metadata = {}
-        page.source_path = Path('content/page.md')
+        page.source_path = Path("content/page.md")
         page._section = None
 
         def template_exists(name):
@@ -250,7 +247,7 @@ class TestTemplatePriority:
         template = renderer._get_template_name(page)
 
         # Should fallback to page.html
-        assert template == 'page.html'
+        assert template == "page.html"
 
 
 class TestContentTypeCascade:
@@ -262,23 +259,23 @@ class TestContentTypeCascade:
         renderer = Renderer(site)
 
         section = Mock(spec=Section)
-        section.name = 'api'
-        section.metadata = {'content_type': 'api-reference'}
+        section.name = "api"
+        section.metadata = {"content_type": "api-reference"}
 
         page = Mock(spec=Page)
         page.metadata = {}  # No type set on page
-        page.source_path = Path('content/api/module.md')
+        page.source_path = Path("content/api/module.md")
         page._section = section
 
         def template_exists(name):
-            return name == 'api-reference/single.html'
+            return name == "api-reference/single.html"
 
         renderer._template_exists = template_exists
 
         template = renderer._get_template_name(page)
 
         # Should use section's content_type
-        assert template == 'api-reference/single.html'
+        assert template == "api-reference/single.html"
 
     def test_page_type_overrides_section_content_type(self):
         """Test that page's type overrides section's content_type."""
@@ -286,25 +283,24 @@ class TestContentTypeCascade:
         renderer = Renderer(site)
 
         section = Mock(spec=Section)
-        section.name = 'docs'
-        section.metadata = {'content_type': 'doc'}
+        section.name = "docs"
+        section.metadata = {"content_type": "doc"}
 
         page = Mock(spec=Page)
-        page.metadata = {'type': 'tutorial'}  # Override
-        page.source_path = Path('content/docs/tutorial-page.md')
+        page.metadata = {"type": "tutorial"}  # Override
+        page.source_path = Path("content/docs/tutorial-page.md")
         page._section = section
 
         def template_exists(name):
-            return name in ['tutorial/single.html', 'doc/single.html']
+            return name in ["tutorial/single.html", "doc/single.html"]
 
         renderer._template_exists = template_exists
 
         template = renderer._get_template_name(page)
 
         # Should use page's type, not section's content_type
-        assert template == 'tutorial/single.html'
+        assert template == "tutorial/single.html"
 
 
-if __name__ == '__main__':
-    pytest.main([__file__, '-v'])
-
+if __name__ == "__main__":
+    pytest.main([__file__, "-v"])

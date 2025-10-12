@@ -35,6 +35,7 @@ class GraphNode:
         size: Visual size (based on connectivity)
         color: Node color (based on type or connectivity)
     """
+
     id: str
     label: str
     url: str
@@ -57,6 +58,7 @@ class GraphEdge:
         target: Target node ID
         weight: Edge weight (link strength)
     """
+
     source: str
     target: str
     weight: int = 1
@@ -79,7 +81,7 @@ class GraphVisualizer:
         >>> Path('graph.html').write_text(html)
     """
 
-    def __init__(self, site: 'Site', graph: 'KnowledgeGraph'):
+    def __init__(self, site: "Site", graph: "KnowledgeGraph"):
         """
         Initialize graph visualizer.
 
@@ -119,14 +121,14 @@ class GraphVisualizer:
             node = GraphNode(
                 id=page_id,
                 label=page.title or "Untitled",
-                url=page.url if hasattr(page, 'url') else "#",
-                type=page.metadata.get('type', 'page'),
-                tags=list(page.tags) if hasattr(page, 'tags') else [],
+                url=page.url if hasattr(page, "url") else "#",
+                type=page.metadata.get("type", "page"),
+                tags=list(page.tags) if hasattr(page, "tags") else [],
                 incoming_refs=connectivity.incoming_refs,
                 outgoing_refs=connectivity.outgoing_refs,
                 connectivity=connectivity.connectivity_score,
                 size=size,
-                color=color
+                color=color,
             )
 
             nodes.append(asdict(node))
@@ -138,27 +140,19 @@ class GraphVisualizer:
             # Get outgoing references
             target_ids = self.graph.outgoing_refs.get(id(page), set())
             for target_id in target_ids:
-                edges.append(asdict(GraphEdge(
-                    source=source_id,
-                    target=str(target_id),
-                    weight=1
-                )))
+                edges.append(asdict(GraphEdge(source=source_id, target=str(target_id), weight=1)))
 
-        logger.info(
-            "graph_viz_generate_complete",
-            nodes=len(nodes),
-            edges=len(edges)
-        )
+        logger.info("graph_viz_generate_complete", nodes=len(nodes), edges=len(edges))
 
         return {
-            'nodes': nodes,
-            'edges': edges,
-            'stats': {
-                'total_pages': len(nodes),
-                'total_links': len(edges),
-                'hubs': self.graph.metrics.hub_count,
-                'orphans': self.graph.metrics.orphan_count,
-            }
+            "nodes": nodes,
+            "edges": edges,
+            "stats": {
+                "total_pages": len(nodes),
+                "total_links": len(edges),
+                "hubs": self.graph.metrics.hub_count,
+                "orphans": self.graph.metrics.orphan_count,
+            },
         }
 
     def _get_node_color(self, page: Any, connectivity: Any) -> str:
@@ -174,13 +168,13 @@ class GraphVisualizer:
         """
         # Color by connectivity level
         if connectivity.is_orphan:
-            return '#ef4444'  # Red for orphans
+            return "#ef4444"  # Red for orphans
         elif connectivity.is_hub:
-            return '#3b82f6'  # Blue for hubs
-        elif page.metadata.get('_generated'):
-            return '#8b5cf6'  # Purple for generated pages
+            return "#3b82f6"  # Blue for hubs
+        elif page.metadata.get("_generated"):
+            return "#8b5cf6"  # Purple for generated pages
         else:
-            return '#6b7280'  # Gray for regular pages
+            return "#6b7280"  # Gray for regular pages
 
     def generate_html(self, title: str | None = None) -> str:
         """
@@ -391,10 +385,10 @@ class GraphVisualizer:
                 autocomplete="off"
             />
             <div class="stats">
-                <p><strong>Pages:</strong> {graph_data['stats']['total_pages']}</p>
-                <p><strong>Links:</strong> {graph_data['stats']['total_links']}</p>
-                <p><strong>Hubs:</strong> {graph_data['stats']['hubs']}</p>
-                <p><strong>Orphans:</strong> {graph_data['stats']['orphans']}</p>
+                <p><strong>Pages:</strong> {graph_data["stats"]["total_pages"]}</p>
+                <p><strong>Links:</strong> {graph_data["stats"]["total_links"]}</p>
+                <p><strong>Hubs:</strong> {graph_data["stats"]["hubs"]}</p>
+                <p><strong>Orphans:</strong> {graph_data["stats"]["orphans"]}</p>
             </div>
         </div>
 
@@ -611,4 +605,3 @@ class GraphVisualizer:
 """
 
         return html
-

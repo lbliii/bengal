@@ -9,8 +9,11 @@ from typing import TYPE_CHECKING, Any
 try:
     from jinja2 import pass_context
 except Exception:  # pragma: no cover
+
     def pass_context(fn):
         return fn
+
+
 from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
@@ -21,7 +24,7 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
-def register(env: 'Environment', site: 'Site') -> None:
+def register(env: "Environment", site: "Site") -> None:
     """Register taxonomy helper functions with Jinja2 environment."""
 
     # Create closures that have access to site
@@ -30,36 +33,37 @@ def register(env: 'Environment', site: 'Site') -> None:
 
     def popular_tags_with_site(limit: int = 10) -> list[tuple]:
         # Transform tags dict to extract pages lists from nested structure
-        raw_tags = site.taxonomies.get('tags', {})
-        tags_with_pages = {
-            tag_slug: tag_data['pages']
-            for tag_slug, tag_data in raw_tags.items()
-        }
+        raw_tags = site.taxonomies.get("tags", {})
+        tags_with_pages = {tag_slug: tag_data["pages"] for tag_slug, tag_data in raw_tags.items()}
         return popular_tags(tags_with_pages, limit)
 
     @pass_context
     def tag_url_with_site(ctx, tag: str) -> str:
-        page = ctx.get('page') if hasattr(ctx, 'get') else None
+        page = ctx.get("page") if hasattr(ctx, "get") else None
         # Locale-aware prefix for i18n prefix strategy
-        i18n = site.config.get('i18n', {}) or {}
-        strategy = i18n.get('strategy', 'none')
-        default_lang = i18n.get('default_language', 'en')
-        default_in_subdir = bool(i18n.get('default_in_subdir', False))
-        lang = getattr(page, 'lang', None)
-        prefix = ''
-        if strategy == 'prefix' and lang and (default_in_subdir or lang != default_lang):
-            prefix = f'/{lang}'
+        i18n = site.config.get("i18n", {}) or {}
+        strategy = i18n.get("strategy", "none")
+        default_lang = i18n.get("default_language", "en")
+        default_in_subdir = bool(i18n.get("default_in_subdir", False))
+        lang = getattr(page, "lang", None)
+        prefix = ""
+        if strategy == "prefix" and lang and (default_in_subdir or lang != default_lang):
+            prefix = f"/{lang}"
         return f"{prefix}{tag_url(tag)}"
 
-    env.filters.update({
-        'has_tag': has_tag,
-    })
+    env.filters.update(
+        {
+            "has_tag": has_tag,
+        }
+    )
 
-    env.globals.update({
-        'related_posts': related_posts_with_site,
-        'popular_tags': popular_tags_with_site,
-        'tag_url': tag_url_with_site,
-    })
+    env.globals.update(
+        {
+            "related_posts": related_posts_with_site,
+            "popular_tags": popular_tags_with_site,
+            "tag_url": tag_url_with_site,
+        }
+    )
 
 
 def related_posts(page: Any, all_pages: list[Any] | None = None, limit: int = 5) -> list[Any]:
@@ -90,15 +94,15 @@ def related_posts(page: Any, all_pages: list[Any] | None = None, limit: int = 5)
           <a href="{{ url_for(post) }}">{{ post.title }}</a>
         {% endfor %}
     """
-    page_slug = page.slug if hasattr(page, 'slug') else 'unknown'
+    page_slug = page.slug if hasattr(page, "slug") else "unknown"
 
     # FAST PATH: Use pre-computed related posts (O(1))
-    if hasattr(page, 'related_posts') and page.related_posts:
+    if hasattr(page, "related_posts") and page.related_posts:
         logger.debug(
             "related_posts_fast_path",
             page=page_slug,
             precomputed_count=len(page.related_posts),
-            limit=limit
+            limit=limit,
         )
         return page.related_posts[:limit]
 
@@ -108,7 +112,7 @@ def related_posts(page: Any, all_pages: list[Any] | None = None, limit: int = 5)
         "Pre-computed related posts not available, using O(n²) fallback algorithm",
         page=page_slug,
         all_pages=len(all_pages) if all_pages else 0,
-        caller="template"
+        caller="template",
     )
 
     if all_pages is None:
@@ -116,11 +120,12 @@ def related_posts(page: Any, all_pages: list[Any] | None = None, limit: int = 5)
         logger.debug("related_posts_no_pages", page=page_slug)
         return []
 
-    if not hasattr(page, 'tags') or not page.tags:
+    if not hasattr(page, "tags") or not page.tags:
         logger.debug("related_posts_no_tags", page=page_slug)
         return []
 
     import time
+
     start = time.time()
 
     page_tags = set(page.tags)
@@ -132,7 +137,7 @@ def related_posts(page: Any, all_pages: list[Any] | None = None, limit: int = 5)
             continue
 
         # Skip pages without tags
-        if not hasattr(other_page, 'tags') or not other_page.tags:
+        if not hasattr(other_page, "tags") or not other_page.tags:
             continue
 
         # Calculate relevance score (number of shared tags)
@@ -153,7 +158,7 @@ def related_posts(page: Any, all_pages: list[Any] | None = None, limit: int = 5)
         page=page_slug,
         duration_ms=duration_ms,
         candidates=len(scored_pages),
-        result_count=len(result)
+        result_count=len(result),
     )
 
     return result
@@ -189,10 +194,7 @@ def popular_tags(tags_dict: dict[str, list[Any]], limit: int = 10) -> list[tuple
     result = tag_counts[:limit]
 
     logger.debug(
-        "popular_tags_computed",
-        total_tags=len(tags_dict),
-        limit=limit,
-        result_count=len(result)
+        "popular_tags_computed", total_tags=len(tags_dict), limit=limit, result_count=len(result)
     )
 
     return result
@@ -215,10 +217,11 @@ def tag_url(tag: str) -> str:
         # <a href="/tags/python/">Python</a>
     """
     if not tag:
-        return '/tags/'
+        return "/tags/"
 
     # Convert tag to URL-safe slug
     from bengal.utils.text import slugify
+
     slug = slugify(tag, unescape_html=False)
 
     return f"/tags/{slug}/"
@@ -240,10 +243,9 @@ def has_tag(page: Any, tag: str) -> bool:
           <span class="badge">Tutorial</span>
         {% endif %}
     """
-    if not hasattr(page, 'tags') or not page.tags:
+    if not hasattr(page, "tags") or not page.tags:
         return False
 
     # Case-insensitive comparison
     page_tags = [t.lower() for t in page.tags]
     return tag.lower() in page_tags
-

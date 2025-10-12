@@ -12,7 +12,7 @@ from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
-__all__ = ['BadgePlugin']
+__all__ = ["BadgePlugin"]
 
 
 class BadgePlugin:
@@ -44,14 +44,14 @@ class BadgePlugin:
 
     # Badge color mapping (Sphinx-Design -> Bengal CSS classes)
     COLOR_MAP = {
-        'primary': 'primary',
-        'secondary': 'secondary',
-        'success': 'success',
-        'danger': 'danger',
-        'warning': 'warning',
-        'info': 'info',
-        'light': 'light',
-        'dark': 'dark',
+        "primary": "primary",
+        "secondary": "secondary",
+        "success": "success",
+        "danger": "danger",
+        "warning": "warning",
+        "info": "info",
+        "light": "light",
+        "dark": "dark",
     }
 
     def __init__(self):
@@ -61,14 +61,10 @@ class BadgePlugin:
         # Pattern 1: Match after Mistune has converted to HTML
         # Mistune converts `text` to <code>text</code> BEFORE our plugin runs
         # So we need to match: {bdg-color}<code>text</code>
-        self.html_pattern = re.compile(
-            r'\{bdg-([a-z]+)\}<code>([^<]+)</code>'
-        )
+        self.html_pattern = re.compile(r"\{bdg-([a-z]+)\}<code>([^<]+)</code>")
 
         # Pattern 2: Fallback for any remaining raw patterns (shouldn't happen in practice)
-        self.raw_pattern = re.compile(
-            r'\{bdg-([a-z]+)\}`([^`]+)`'
-        )
+        self.raw_pattern = re.compile(r"\{bdg-([a-z]+)\}`([^`]+)`")
 
     def __call__(self, md):
         """
@@ -95,7 +91,7 @@ class BadgePlugin:
             HTML with badge patterns replaced by badge spans
         """
         # Quick rejection: most HTML doesn't have badge patterns
-        if '{bdg-' not in html:
+        if "{bdg-" not in html:
             return html
 
         def replace_html_badge(match: re.Match) -> str:
@@ -104,15 +100,12 @@ class BadgePlugin:
             badge_text = match.group(2)
 
             # Map color to CSS class
-            css_class = self.COLOR_MAP.get(color, 'secondary')
+            css_class = self.COLOR_MAP.get(color, "secondary")
 
             # Validate color
             if color not in self.COLOR_MAP:
                 logger.debug(
-                    "badge_unknown_color",
-                    color=color,
-                    text=badge_text,
-                    using_fallback='secondary'
+                    "badge_unknown_color", color=color, text=badge_text, using_fallback="secondary"
                 )
 
             # Note: badge_text is already HTML-escaped by Mistune's <code> renderer
@@ -124,7 +117,7 @@ class BadgePlugin:
             color = match.group(1)
             badge_text = match.group(2)
 
-            css_class = self.COLOR_MAP.get(color, 'secondary')
+            css_class = self.COLOR_MAP.get(color, "secondary")
 
             # This text needs escaping since it's not from <code>
             return f'<span class="badge badge-{css_class}">{self._escape_html(badge_text)}</span>'
@@ -148,12 +141,12 @@ class BadgePlugin:
             Escaped text
         """
         if not text:
-            return ''
+            return ""
 
-        return (text
-                .replace('&', '&amp;')
-                .replace('<', '&lt;')
-                .replace('>', '&gt;')
-                .replace('"', '&quot;')
-                .replace("'", '&#x27;'))
-
+        return (
+            text.replace("&", "&amp;")
+            .replace("<", "&lt;")
+            .replace(">", "&gt;")
+            .replace('"', "&quot;")
+            .replace("'", "&#x27;")
+        )

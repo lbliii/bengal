@@ -15,17 +15,17 @@ def mock_site(tmp_path):
     """Create a mock site for testing."""
     site = Mock()
     site.output_dir = tmp_path
-    site.config = {'baseurl': 'https://example.com'}
+    site.config = {"baseurl": "https://example.com"}
 
     # Create mock pages
     page1 = Mock()
-    page1.metadata = {'draft': False}
+    page1.metadata = {"draft": False}
 
     page2 = Mock()
-    page2.metadata = {'draft': False}
+    page2.metadata = {"draft": False}
 
     page3 = Mock()
-    page3.metadata = {'draft': True}
+    page3.metadata = {"draft": True}
 
     site.pages = [page1, page2, page3]
     return site
@@ -43,8 +43,8 @@ def test_sitemap_validator_missing_file(mock_site):
 
 def test_sitemap_validator_valid_sitemap(mock_site, tmp_path):
     """Test validator passes for valid sitemap."""
-    sitemap_path = tmp_path / 'sitemap.xml'
-    sitemap_content = '''<?xml version="1.0" encoding="UTF-8"?>
+    sitemap_path = tmp_path / "sitemap.xml"
+    sitemap_content = """<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
         <loc>https://example.com/page1/</loc>
@@ -57,7 +57,7 @@ def test_sitemap_validator_valid_sitemap(mock_site, tmp_path):
         <changefreq>weekly</changefreq>
         <priority>0.5</priority>
     </url>
-</urlset>'''
+</urlset>"""
     sitemap_path.write_text(sitemap_content)
 
     validator = SitemapValidator()
@@ -71,8 +71,8 @@ def test_sitemap_validator_valid_sitemap(mock_site, tmp_path):
 
 def test_sitemap_validator_malformed_xml(mock_site, tmp_path):
     """Test validator catches malformed XML."""
-    sitemap_path = tmp_path / 'sitemap.xml'
-    sitemap_content = '<urlset><url></urlset>'  # Unclosed url
+    sitemap_path = tmp_path / "sitemap.xml"
+    sitemap_content = "<urlset><url></urlset>"  # Unclosed url
     sitemap_path.write_text(sitemap_content)
 
     validator = SitemapValidator()
@@ -84,13 +84,13 @@ def test_sitemap_validator_malformed_xml(mock_site, tmp_path):
 
 def test_sitemap_validator_wrong_root_element(mock_site, tmp_path):
     """Test validator catches wrong root element."""
-    sitemap_path = tmp_path / 'sitemap.xml'
-    sitemap_content = '''<?xml version="1.0"?>
+    sitemap_path = tmp_path / "sitemap.xml"
+    sitemap_content = """<?xml version="1.0"?>
 <sitemapindex>
     <sitemap>
         <loc>https://example.com/sitemap.xml</loc>
     </sitemap>
-</sitemapindex>'''
+</sitemapindex>"""
     sitemap_path.write_text(sitemap_content)
 
     validator = SitemapValidator()
@@ -102,10 +102,10 @@ def test_sitemap_validator_wrong_root_element(mock_site, tmp_path):
 
 def test_sitemap_validator_no_urls(mock_site, tmp_path):
     """Test validator warns when sitemap has no URLs."""
-    sitemap_path = tmp_path / 'sitemap.xml'
-    sitemap_content = '''<?xml version="1.0"?>
+    sitemap_path = tmp_path / "sitemap.xml"
+    sitemap_content = """<?xml version="1.0"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-</urlset>'''
+</urlset>"""
     sitemap_path.write_text(sitemap_content)
 
     validator = SitemapValidator()
@@ -117,13 +117,13 @@ def test_sitemap_validator_no_urls(mock_site, tmp_path):
 
 def test_sitemap_validator_relative_urls(mock_site, tmp_path):
     """Test validator catches relative URLs."""
-    sitemap_path = tmp_path / 'sitemap.xml'
-    sitemap_content = '''<?xml version="1.0"?>
+    sitemap_path = tmp_path / "sitemap.xml"
+    sitemap_content = """<?xml version="1.0"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
         <loc>/page1/</loc>
     </url>
-</urlset>'''
+</urlset>"""
     sitemap_path.write_text(sitemap_content)
 
     validator = SitemapValidator()
@@ -135,8 +135,8 @@ def test_sitemap_validator_relative_urls(mock_site, tmp_path):
 
 def test_sitemap_validator_duplicate_urls(mock_site, tmp_path):
     """Test validator catches duplicate URLs."""
-    sitemap_path = tmp_path / 'sitemap.xml'
-    sitemap_content = '''<?xml version="1.0"?>
+    sitemap_path = tmp_path / "sitemap.xml"
+    sitemap_content = """<?xml version="1.0"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
         <loc>https://example.com/page1/</loc>
@@ -144,7 +144,7 @@ def test_sitemap_validator_duplicate_urls(mock_site, tmp_path):
     <url>
         <loc>https://example.com/page1/</loc>
     </url>
-</urlset>'''
+</urlset>"""
     sitemap_path.write_text(sitemap_content)
 
     validator = SitemapValidator()
@@ -156,13 +156,13 @@ def test_sitemap_validator_duplicate_urls(mock_site, tmp_path):
 
 def test_sitemap_validator_missing_loc(mock_site, tmp_path):
     """Test validator catches URLs without <loc>."""
-    sitemap_path = tmp_path / 'sitemap.xml'
-    sitemap_content = '''<?xml version="1.0"?>
+    sitemap_path = tmp_path / "sitemap.xml"
+    sitemap_content = """<?xml version="1.0"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
         <changefreq>weekly</changefreq>
     </url>
-</urlset>'''
+</urlset>"""
     sitemap_path.write_text(sitemap_content)
 
     validator = SitemapValidator()
@@ -175,13 +175,13 @@ def test_sitemap_validator_missing_loc(mock_site, tmp_path):
 def test_sitemap_validator_coverage_warning(mock_site, tmp_path):
     """Test validator warns about coverage issues."""
     # Site has 2 publishable pages
-    sitemap_path = tmp_path / 'sitemap.xml'
-    sitemap_content = '''<?xml version="1.0"?>
+    sitemap_path = tmp_path / "sitemap.xml"
+    sitemap_content = """<?xml version="1.0"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
         <loc>https://example.com/page1/</loc>
     </url>
-</urlset>'''
+</urlset>"""
     sitemap_path.write_text(sitemap_content)
 
     validator = SitemapValidator()
@@ -189,7 +189,9 @@ def test_sitemap_validator_coverage_warning(mock_site, tmp_path):
 
     # Should warn about missing pages
     assert any(r.status == CheckStatus.WARNING for r in results)
-    assert any("missing" in r.message.lower() or "publishable" in r.message.lower() for r in results)
+    assert any(
+        "missing" in r.message.lower() or "publishable" in r.message.lower() for r in results
+    )
 
 
 def test_sitemap_validator_name_and_description():
@@ -199,4 +201,3 @@ def test_sitemap_validator_name_and_description():
     assert validator.name == "Sitemap"
     assert "sitemap" in validator.description.lower()
     assert validator.enabled_by_default is True
-

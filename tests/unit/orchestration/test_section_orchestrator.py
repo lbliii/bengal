@@ -26,7 +26,7 @@ class TestSectionOrchestrator:
         site.output_dir = tmp_path / "public"
         site.sections = []
         site.pages = []
-        site.config = {'pagination': {'per_page': 10}}
+        site.config = {"pagination": {"per_page": 10}}
         return site
 
     @pytest.fixture
@@ -54,7 +54,7 @@ class TestSectionOrchestrator:
         section = Section(name="docs", path=tmp_path / "content" / "docs")
         index_page = Page(
             source_path=tmp_path / "content" / "docs" / "_index.md",
-            metadata={'title': 'Documentation'}
+            metadata={"title": "Documentation"},
         )
         section.add_page(index_page)
 
@@ -74,8 +74,7 @@ class TestSectionOrchestrator:
         # Create section without index page
         section = Section(name="blog", path=tmp_path / "content" / "blog")
         page1 = Page(
-            source_path=tmp_path / "content" / "blog" / "post1.md",
-            metadata={'title': 'Post 1'}
+            source_path=tmp_path / "content" / "blog" / "post1.md", metadata={"title": "Post 1"}
         )
         section.add_page(page1)
 
@@ -85,8 +84,8 @@ class TestSectionOrchestrator:
 
         # Should create archive index page
         assert section.index_page is not None
-        assert section.index_page.metadata.get('_generated') is True
-        assert section.index_page.metadata.get('template') == 'archive.html'
+        assert section.index_page.metadata.get("_generated") is True
+        assert section.index_page.metadata.get("template") == "archive.html"
         assert len(mock_site.pages) == 1  # Archive page added
 
     def test_finalize_section_only_subsections(self, orchestrator, mock_site, tmp_path):
@@ -98,7 +97,7 @@ class TestSectionOrchestrator:
         child = Section(name="guides", path=tmp_path / "content" / "docs" / "guides")
         child_page = Page(
             source_path=tmp_path / "content" / "docs" / "guides" / "intro.md",
-            metadata={'title': 'Introduction'}
+            metadata={"title": "Introduction"},
         )
         child.add_page(child_page)
         parent.add_subsection(child)
@@ -109,11 +108,11 @@ class TestSectionOrchestrator:
 
         # Parent should have auto-generated index (even with no direct pages)
         assert parent.index_page is not None
-        assert parent.index_page.metadata.get('_generated') is True
+        assert parent.index_page.metadata.get("_generated") is True
 
         # Child should also have auto-generated index
         assert child.index_page is not None
-        assert child.index_page.metadata.get('_generated') is True
+        assert child.index_page.metadata.get("_generated") is True
 
         # Should have 2 archive pages added (parent + child)
         assert len(mock_site.pages) == 2
@@ -138,8 +137,7 @@ class TestSectionOrchestrator:
         assert bottom.index_page is not None
 
         # All should be auto-generated
-        assert all(s.index_page.metadata.get('_generated')
-                  for s in [top, middle, bottom])
+        assert all(s.index_page.metadata.get("_generated") for s in [top, middle, bottom])
 
         # Should have 3 archive pages
         assert len(mock_site.pages) == 3
@@ -160,8 +158,7 @@ class TestSectionOrchestrator:
         """Test that generated archive pages have correct metadata."""
         section = Section(name="posts", path=tmp_path / "content" / "posts")
         page1 = Page(
-            source_path=tmp_path / "content" / "posts" / "hello.md",
-            metadata={'title': 'Hello'}
+            source_path=tmp_path / "content" / "posts" / "hello.md", metadata={"title": "Hello"}
         )
         section.add_page(page1)
 
@@ -172,17 +169,17 @@ class TestSectionOrchestrator:
         archive = section.index_page
 
         # Check metadata
-        assert archive.metadata['title'] == section.title
-        assert archive.metadata['template'] == 'archive.html'
-        assert archive.metadata['type'] == 'archive'
-        assert archive.metadata['_generated'] is True
-        assert archive.metadata['_virtual'] is True
-        assert archive.metadata['_section'] == section
-        assert archive.metadata['_posts'] == section.pages
-        assert archive.metadata['_subsections'] == section.subsections
+        assert archive.metadata["title"] == section.title
+        assert archive.metadata["template"] == "archive.html"
+        assert archive.metadata["type"] == "archive"
+        assert archive.metadata["_generated"] is True
+        assert archive.metadata["_virtual"] is True
+        assert archive.metadata["_section"] == section
+        assert archive.metadata["_posts"] == section.pages
+        assert archive.metadata["_subsections"] == section.subsections
         # Note: _paginator is only added for sections with >20 pages (pagination threshold)
         # This test has only 1 page, so no pagination
-        assert archive.metadata['_content_type'] == 'archive'
+        assert archive.metadata["_content_type"] == "archive"
 
     def test_archive_output_path(self, orchestrator, mock_site, tmp_path):
         """Test that archive pages have correct output paths."""
@@ -234,8 +231,7 @@ class TestSectionValidation:
         """Test validation with all sections having indexes."""
         section = Section(name="docs", path=tmp_path / "content" / "docs")
         section.index_page = Page(
-            source_path=tmp_path / "content" / "docs" / "_index.md",
-            metadata={'title': 'Docs'}
+            source_path=tmp_path / "content" / "docs" / "_index.md", metadata={"title": "Docs"}
         )
 
         mock_site.sections = [section]
@@ -264,8 +260,7 @@ class TestSectionValidation:
 
         # Parent has index, child doesn't
         parent.index_page = Page(
-            source_path=tmp_path / "content" / "api" / "_index.md",
-            metadata={'title': 'API'}
+            source_path=tmp_path / "content" / "api" / "_index.md", metadata={"title": "API"}
         )
         parent.add_subsection(child)
 
@@ -297,8 +292,7 @@ class TestSectionValidation:
 
         # Only section3 has index
         section3.index_page = Page(
-            source_path=tmp_path / "content" / "api" / "_index.md",
-            metadata={'title': 'API'}
+            source_path=tmp_path / "content" / "api" / "_index.md", metadata={"title": "API"}
         )
 
         mock_site.sections = [section1, section2, section3]
@@ -326,8 +320,7 @@ class TestSectionHelperMethods:
         """Test needs_auto_index returns False when section has index."""
         section = Section(name="docs", path=tmp_path / "content" / "docs")
         section.index_page = Page(
-            source_path=tmp_path / "content" / "docs" / "_index.md",
-            metadata={'title': 'Docs'}
+            source_path=tmp_path / "content" / "docs" / "_index.md", metadata={"title": "Docs"}
         )
 
         assert section.needs_auto_index() is False
@@ -342,8 +335,7 @@ class TestSectionHelperMethods:
         """Test has_index returns True when index page exists."""
         section = Section(name="docs", path=tmp_path / "content" / "docs")
         section.index_page = Page(
-            source_path=tmp_path / "content" / "docs" / "_index.md",
-            metadata={'title': 'Docs'}
+            source_path=tmp_path / "content" / "docs" / "_index.md", metadata={"title": "Docs"}
         )
 
         assert section.has_index() is True
@@ -365,7 +357,7 @@ class TestIntegrationScenarios:
         site.output_dir = tmp_path / "public"
         site.sections = []
         site.pages = []
-        site.config = {'pagination': {'per_page': 10}}
+        site.config = {"pagination": {"per_page": 10}}
         return site
 
     def test_showcase_site_structure(self, site, tmp_path):
@@ -384,7 +376,7 @@ class TestIntegrationScenarios:
         markdown = Section(name="markdown", path=tmp_path / "content" / "docs" / "markdown")
         kitchen_sink = Page(
             source_path=tmp_path / "content" / "docs" / "markdown" / "kitchen-sink.md",
-            metadata={'title': 'Kitchen Sink'}
+            metadata={"title": "Kitchen Sink"},
         )
         markdown.add_page(kitchen_sink)
         docs.add_subsection(markdown)
@@ -392,11 +384,16 @@ class TestIntegrationScenarios:
         templates = Section(name="templates", path=tmp_path / "content" / "docs" / "templates")
         func_ref = Section(
             name="function-reference",
-            path=tmp_path / "content" / "docs" / "templates" / "function-reference"
+            path=tmp_path / "content" / "docs" / "templates" / "function-reference",
         )
         func_ref_index = Page(
-            source_path=tmp_path / "content" / "docs" / "templates" / "function-reference" / "_index.md",
-            metadata={'title': 'Function Reference'}
+            source_path=tmp_path
+            / "content"
+            / "docs"
+            / "templates"
+            / "function-reference"
+            / "_index.md",
+            metadata={"title": "Function Reference"},
         )
         func_ref.add_page(func_ref_index)
         templates.add_subsection(func_ref)
@@ -414,16 +411,16 @@ class TestIntegrationScenarios:
         assert func_ref.has_index(), "function-reference section should have index"
 
         # Verify function-reference still has its explicit index
-        assert func_ref.index_page == func_ref_index, \
-            "Explicit _index.md should not be replaced"
+        assert func_ref.index_page == func_ref_index, "Explicit _index.md should not be replaced"
 
         # Verify generated indexes for others
-        assert docs.index_page.metadata.get('_generated'), \
-            "docs should have auto-generated index"
-        assert markdown.index_page.metadata.get('_generated'), \
+        assert docs.index_page.metadata.get("_generated"), "docs should have auto-generated index"
+        assert markdown.index_page.metadata.get("_generated"), (
             "markdown should have auto-generated index"
-        assert templates.index_page.metadata.get('_generated'), \
+        )
+        assert templates.index_page.metadata.get("_generated"), (
             "templates should have auto-generated index"
+        )
 
         # Validate no errors
         errors = orchestrator.validate_sections()
@@ -435,7 +432,7 @@ class TestIntegrationScenarios:
         docs = Section(name="docs", path=tmp_path / "content" / "docs")
         docs_index = Page(
             source_path=tmp_path / "content" / "docs" / "_index.md",
-            metadata={'title': 'Documentation'}
+            metadata={"title": "Documentation"},
         )
         docs.add_page(docs_index)
 
@@ -443,7 +440,7 @@ class TestIntegrationScenarios:
         guides = Section(name="guides", path=tmp_path / "content" / "docs" / "guides")
         guide_page = Page(
             source_path=tmp_path / "content" / "docs" / "guides" / "intro.md",
-            metadata={'title': 'Introduction'}
+            metadata={"title": "Introduction"},
         )
         guides.add_page(guide_page)
         docs.add_subsection(guides)
@@ -455,13 +452,12 @@ class TestIntegrationScenarios:
 
         # docs should keep explicit index
         assert docs.index_page == docs_index
-        assert not docs.index_page.metadata.get('_generated')
+        assert not docs.index_page.metadata.get("_generated")
 
         # guides should get auto-generated index
         assert guides.index_page is not None
-        assert guides.index_page.metadata.get('_generated')
+        assert guides.index_page.metadata.get("_generated")
 
         # Validate
         errors = orchestrator.validate_sections()
         assert len(errors) == 0
-

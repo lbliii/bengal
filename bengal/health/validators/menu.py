@@ -29,16 +29,18 @@ class MenuValidator(BaseValidator):
     enabled_by_default = True
 
     @override
-    def validate(self, site: 'Site') -> list[CheckResult]:
+    def validate(self, site: "Site") -> list[CheckResult]:
         """Validate menu structure."""
         results = []
 
         # Check if any menus are defined
         if not site.menu:
-            results.append(CheckResult.info(
-                "No navigation menus defined",
-                recommendation="Add menu configuration to bengal.toml to enable navigation menus."
-            ))
+            results.append(
+                CheckResult.info(
+                    "No navigation menus defined",
+                    recommendation="Add menu configuration to bengal.toml to enable navigation menus.",
+                )
+            )
             return results
 
         # Validate each menu
@@ -47,15 +49,17 @@ class MenuValidator(BaseValidator):
 
         return results
 
-    def _validate_menu(self, site: 'Site', menu_name: str, items: list) -> list[CheckResult]:
+    def _validate_menu(self, site: "Site", menu_name: str, items: list) -> list[CheckResult]:
         """Validate a single menu."""
         results = []
 
         if not items:
-            results.append(CheckResult.warning(
-                f"Menu '{menu_name}' is empty",
-                recommendation=f"Add items to the '{menu_name}' menu in your config or page frontmatter."
-            ))
+            results.append(
+                CheckResult.warning(
+                    f"Menu '{menu_name}' is empty",
+                    recommendation=f"Add items to the '{menu_name}' menu in your config or page frontmatter.",
+                )
+            )
             return results
 
         # Check menu structure
@@ -69,24 +73,22 @@ class MenuValidator(BaseValidator):
 
             # Count items
             total_items = self._count_menu_items(items)
-            results.append(CheckResult.success(
-                f"Menu '{menu_name}' has {total_items} item(s)"
-            ))
+            results.append(CheckResult.success(f"Menu '{menu_name}' has {total_items} item(s)"))
 
             # Validate menu item URLs
             broken_links = self._check_menu_urls(site, items)
             if broken_links:
-                results.append(CheckResult.warning(
-                    f"Menu '{menu_name}' has {len(broken_links)} item(s) with potentially broken links",
-                    details=broken_links[:3]
-                ))
+                results.append(
+                    CheckResult.warning(
+                        f"Menu '{menu_name}' has {len(broken_links)} item(s) with potentially broken links",
+                        details=broken_links[:3],
+                    )
+                )
 
         else:
             # Basic validation without builder
             total_items = len(items)
-            results.append(CheckResult.success(
-                f"Menu '{menu_name}' has {total_items} item(s)"
-            ))
+            results.append(CheckResult.success(f"Menu '{menu_name}' has {total_items} item(s)"))
 
         return results
 
@@ -94,21 +96,21 @@ class MenuValidator(BaseValidator):
         """Recursively count menu items including children."""
         count = len(items)
         for item in items:
-            if hasattr(item, 'children') and item.children:
+            if hasattr(item, "children") and item.children:
                 count += self._count_menu_items(item.children, 0)
         return count
 
-    def _check_menu_urls(self, site: 'Site', items: list) -> list[str]:
+    def _check_menu_urls(self, site: "Site", items: list) -> list[str]:
         """Check if menu item URLs point to existing pages."""
         broken = []
 
         for item in items:
             # Check if URL points to a page
-            if hasattr(item, 'url') and item.url:
+            if hasattr(item, "url") and item.url:
                 url = item.url
 
                 # Skip external URLs
-                if url.startswith(('http://', 'https://', '//')):
+                if url.startswith(("http://", "https://", "//")):
                     continue
 
                 # Check if any page has this URL
@@ -118,8 +120,7 @@ class MenuValidator(BaseValidator):
                     broken.append(f"{item.name} → {url}")
 
             # Recurse into children
-            if hasattr(item, 'children') and item.children:
+            if hasattr(item, "children") and item.children:
                 broken.extend(self._check_menu_urls(site, item.children))
 
         return broken
-

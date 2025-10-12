@@ -49,7 +49,7 @@ class DependencyTracker:
         Args:
             template_path: Path to the template file
         """
-        if not hasattr(self.current_page, 'value'):
+        if not hasattr(self.current_page, "value"):
             return
 
         self.cache.add_dependency(self.current_page.value, template_path)
@@ -62,7 +62,7 @@ class DependencyTracker:
         Args:
             partial_path: Path to the partial file
         """
-        if not hasattr(self.current_page, 'value'):
+        if not hasattr(self.current_page, "value"):
             return
 
         self.cache.add_dependency(self.current_page.value, partial_path)
@@ -76,7 +76,7 @@ class DependencyTracker:
         Args:
             config_path: Path to the config file
         """
-        if not hasattr(self.current_page, 'value'):
+        if not hasattr(self.current_page, "value"):
             return
 
         self.cache.add_dependency(self.current_page.value, config_path)
@@ -108,7 +108,7 @@ class DependencyTracker:
 
     def end_page(self) -> None:
         """Mark the end of processing a page (thread-safe)."""
-        if hasattr(self.current_page, 'value'):
+        if hasattr(self.current_page, "value"):
             del self.current_page.value
 
     def get_changed_files(self, root_path: Path) -> set[Path]:
@@ -130,10 +130,12 @@ class DependencyTracker:
                 changed.add(file_path)
 
         if changed:
-            self.logger.info("changed_files_detected",
-                           changed_count=len(changed),
-                           total_tracked=len(self.cache.file_hashes),
-                           change_ratio=f"{len(changed)/len(self.cache.file_hashes)*100:.1f}%")
+            self.logger.info(
+                "changed_files_detected",
+                changed_count=len(changed),
+                total_tracked=len(self.cache.file_hashes),
+                change_ratio=f"{len(changed) / len(self.cache.file_hashes) * 100:.1f}%",
+            )
 
         return changed
 
@@ -151,9 +153,9 @@ class DependencyTracker:
         new_files = current_files - tracked_files
 
         if new_files:
-            self.logger.info("new_files_detected",
-                           new_count=len(new_files),
-                           total_current=len(current_files))
+            self.logger.info(
+                "new_files_detected", new_count=len(new_files), total_current=len(current_files)
+            )
 
         return new_files
 
@@ -171,9 +173,10 @@ class DependencyTracker:
         deleted_files = tracked_files - current_files
 
         if deleted_files:
-            self.logger.info("deleted_files_detected",
-                           deleted_count=len(deleted_files),
-                           total_tracked=len(tracked_files))
+            self.logger.info(
+                "deleted_files_detected",
+                deleted_count=len(deleted_files),
+                total_tracked=len(tracked_files),
+            )
 
         return deleted_files
-

@@ -33,7 +33,7 @@ class CLIExtractor(Extractor):
         >>> # Returns list of DocElements for all commands
     """
 
-    def __init__(self, framework: str = 'click', include_hidden: bool = False):
+    def __init__(self, framework: str = "click", include_hidden: bool = False):
         """
         Initialize CLI extractor.
 
@@ -44,8 +44,10 @@ class CLIExtractor(Extractor):
         self.framework = framework
         self.include_hidden = include_hidden
 
-        if framework not in ('click', 'argparse', 'typer'):
-            raise ValueError(f"Unsupported framework: {framework}. Use 'click', 'argparse', or 'typer'")
+        if framework not in ("click", "argparse", "typer"):
+            raise ValueError(
+                f"Unsupported framework: {framework}. Use 'click', 'argparse', or 'typer'"
+            )
 
     @override
     def extract(self, source: Any) -> list[DocElement]:
@@ -64,11 +66,11 @@ class CLIExtractor(Extractor):
         Raises:
             ValueError: If source type doesn't match framework
         """
-        if self.framework == 'click':
+        if self.framework == "click":
             return self._extract_from_click(source)
-        elif self.framework == 'argparse':
+        elif self.framework == "argparse":
             return self._extract_from_argparse(source)
-        elif self.framework == 'typer':
+        elif self.framework == "typer":
             return self._extract_from_typer(source)
         else:
             raise ValueError(f"Unknown framework: {self.framework}")
@@ -95,14 +97,16 @@ class CLIExtractor(Extractor):
             for child in children:
                 elements.append(child)
                 # If this is a nested command group, also flatten its children
-                if child.element_type == 'command-group' and child.children:
+                if child.element_type == "command-group" and child.children:
                     flatten_commands(child.children)
 
         flatten_commands(main_doc.children)
 
         return elements
 
-    def _extract_click_group(self, group: click.Group, parent_name: str | None = None) -> DocElement:
+    def _extract_click_group(
+        self, group: click.Group, parent_name: str | None = None
+    ) -> DocElement:
         """
         Extract Click command group documentation.
 
@@ -113,7 +117,7 @@ class CLIExtractor(Extractor):
         Returns:
             DocElement representing the command group
         """
-        name = group.name or 'cli'
+        name = group.name or "cli"
         qualified_name = f"{parent_name}.{name}" if parent_name else name
 
         # Get callback source file if available
@@ -131,7 +135,7 @@ class CLIExtractor(Extractor):
         if isinstance(group, click.Group):
             for _cmd_name, cmd in sorted(group.commands.items()):
                 # Skip hidden commands unless requested
-                if hasattr(cmd, 'hidden') and cmd.hidden and not self.include_hidden:
+                if hasattr(cmd, "hidden") and cmd.hidden and not self.include_hidden:
                     continue
 
                 if isinstance(cmd, click.Group):
@@ -157,20 +161,22 @@ class CLIExtractor(Extractor):
             name=name,
             qualified_name=qualified_name,
             description=description,
-            element_type='command-group',
+            element_type="command-group",
             source_file=source_file,
             line_number=line_number,
             metadata={
-                'callback': group.callback.__name__ if group.callback else None,
-                'command_count': len(children),
+                "callback": group.callback.__name__ if group.callback else None,
+                "command_count": len(children),
             },
             children=children,
             examples=examples,
             see_also=[],
-            deprecated=None
+            deprecated=None,
         )
 
-    def _extract_click_command(self, cmd: click.Command, parent_name: str | None = None) -> DocElement:
+    def _extract_click_command(
+        self, cmd: click.Command, parent_name: str | None = None
+    ) -> DocElement:
         """
         Extract Click command documentation.
 
@@ -221,7 +227,7 @@ class CLIExtractor(Extractor):
 
         # Check for deprecation
         deprecated = None
-        if hasattr(cmd, 'deprecated') and cmd.deprecated:
+        if hasattr(cmd, "deprecated") and cmd.deprecated:
             deprecated = "This command is deprecated"
 
         # Clean up description
@@ -231,18 +237,18 @@ class CLIExtractor(Extractor):
             name=name,
             qualified_name=qualified_name,
             description=description,
-            element_type='command',
+            element_type="command",
             source_file=source_file,
             line_number=line_number,
             metadata={
-                'callback': cmd.callback.__name__ if cmd.callback else None,
-                'option_count': len(options),
-                'argument_count': len(arguments),
+                "callback": cmd.callback.__name__ if cmd.callback else None,
+                "option_count": len(options),
+                "argument_count": len(arguments),
             },
             children=children,
             examples=examples,
             see_also=[],
-            deprecated=deprecated
+            deprecated=deprecated,
         )
 
     def _extract_click_parameter(self, param: click.Parameter, parent_name: str) -> DocElement:
@@ -258,40 +264,40 @@ class CLIExtractor(Extractor):
         """
         # Determine element type
         if isinstance(param, click.Argument):
-            element_type = 'argument'
+            element_type = "argument"
         elif isinstance(param, click.Option):
-            element_type = 'option'
+            element_type = "option"
         else:
-            element_type = 'parameter'
+            element_type = "parameter"
 
         # Get parameter names/flags
-        param_decls = getattr(param, 'opts', [param.name])
+        param_decls = getattr(param, "opts", [param.name])
 
         # Get type information
-        type_name = 'any'
-        if hasattr(param.type, 'name'):
+        type_name = "any"
+        if hasattr(param.type, "name"):
             type_name = param.type.name
         else:
             type_name = param.type.__class__.__name__.lower()
 
         # Build description (Arguments don't have help attribute)
-        description = sanitize_text(getattr(param, 'help', None))
+        description = sanitize_text(getattr(param, "help", None))
 
         # Build metadata
         metadata = {
-            'param_type': param.__class__.__name__,
-            'type': type_name,
-            'required': param.required,
-            'default': str(param.default) if param.default is not None else None,
-            'multiple': getattr(param, 'multiple', False),
-            'is_flag': getattr(param, 'is_flag', False),
-            'count': getattr(param, 'count', False),
-            'opts': param_decls,
+            "param_type": param.__class__.__name__,
+            "type": type_name,
+            "required": param.required,
+            "default": str(param.default) if param.default is not None else None,
+            "multiple": getattr(param, "multiple", False),
+            "is_flag": getattr(param, "is_flag", False),
+            "count": getattr(param, "count", False),
+            "opts": param_decls,
         }
 
         # Add envvar if present
-        if hasattr(param, 'envvar') and param.envvar:
-            metadata['envvar'] = param.envvar
+        if hasattr(param, "envvar") and param.envvar:
+            metadata["envvar"] = param.envvar
 
         return DocElement(
             name=param.name,
@@ -304,7 +310,7 @@ class CLIExtractor(Extractor):
             children=[],
             examples=[],
             see_also=[],
-            deprecated=None
+            deprecated=None,
         )
 
     def _strip_examples_from_description(self, docstring: str) -> str:
@@ -317,19 +323,19 @@ class CLIExtractor(Extractor):
         Returns:
             Description without Examples section
         """
-        lines = docstring.split('\n')
+        lines = docstring.split("\n")
         description_lines = []
 
         for line in lines:
             stripped = line.strip()
 
             # Stop at Examples section
-            if stripped.lower() in ('example:', 'examples:', 'usage:'):
+            if stripped.lower() in ("example:", "examples:", "usage:"):
                 break
 
             description_lines.append(line)
 
-        return '\n'.join(description_lines).strip()
+        return "\n".join(description_lines).strip()
 
     def _extract_examples_from_docstring(self, docstring: str) -> list[str]:
         """
@@ -342,7 +348,7 @@ class CLIExtractor(Extractor):
             List of example code blocks
         """
         examples = []
-        lines = docstring.split('\n')
+        lines = docstring.split("\n")
 
         in_example = False
         current_example = []
@@ -351,14 +357,14 @@ class CLIExtractor(Extractor):
             stripped = line.strip()
 
             # Detect example section start
-            if stripped.lower() in ('example:', 'examples:', 'usage:'):
+            if stripped.lower() in ("example:", "examples:", "usage:"):
                 in_example = True
                 continue
 
             # Detect end of example section (next section header)
-            if in_example and stripped and stripped.endswith(':') and not line.startswith(' '):
+            if in_example and stripped and stripped.endswith(":") and not line.startswith(" "):
                 if current_example:
-                    examples.append('\n'.join(current_example))
+                    examples.append("\n".join(current_example))
                     current_example = []
                 in_example = False
                 continue
@@ -369,7 +375,7 @@ class CLIExtractor(Extractor):
 
         # Add final example if any
         if current_example:
-            examples.append('\n'.join(current_example))
+            examples.append("\n".join(current_example))
 
         return examples
 
@@ -429,18 +435,17 @@ class CLIExtractor(Extractor):
             command-group (nested) → commands/{name}.md
             command → commands/{name}.md
         """
-        if element.element_type == 'command-group':
+        if element.element_type == "command-group":
             # Main CLI group gets _index.md (section index)
             # Nested command groups (like 'new') get their own page in commands/
-            if '.' not in element.qualified_name:
+            if "." not in element.qualified_name:
                 return Path("_index.md")
             else:
                 return Path(f"commands/{element.name}.md")
-        elif element.element_type == 'command':
+        elif element.element_type == "command":
             # bengal.build → commands/build.md
             # Just use the command name, not the full qualified name
             return Path(f"commands/{element.name}.md")
         else:
             # Shouldn't happen, but fallback
             return Path(f"{element.name}.md")
-

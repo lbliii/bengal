@@ -19,10 +19,11 @@ logger = get_logger(__name__)
 @dataclass
 class FontVariant:
     """A specific font variant (weight + style)."""
+
     family: str
     weight: int
     style: str  # 'normal' or 'italic'
-    url: str    # Direct URL to font file (.woff2 or .ttf)
+    url: str  # Direct URL to font file (.woff2 or .ttf)
 
     @property
     def filename(self) -> str:
@@ -30,7 +31,7 @@ class FontVariant:
         style_suffix = "-italic" if self.style == "italic" else ""
         safe_name = self.family.lower().replace(" ", "-")
         # Preserve original file extension from URL
-        ext = '.woff2' if '.woff2' in self.url else '.ttf' if '.ttf' in self.url else '.woff2'
+        ext = ".woff2" if ".woff2" in self.url else ".ttf" if ".ttf" in self.url else ".woff2"
         return f"{safe_name}-{self.weight}{style_suffix}{ext}"
 
 
@@ -102,10 +103,9 @@ class GoogleFontsDownloader:
             return variants
 
         except Exception as e:
-            logger.error("font_download_failed",
-                        family=family,
-                        error=str(e),
-                        error_type=type(e).__name__)
+            logger.error(
+                "font_download_failed", family=family, error=str(e), error_type=type(e).__name__
+            )
             return []
 
     def _build_css_url(self, family: str, weights: list[int], styles: list[str]) -> str:
@@ -141,13 +141,13 @@ class GoogleFontsDownloader:
         # Try with standard SSL verification first, fall back to unverified on macOS
         try:
             with urllib.request.urlopen(req, timeout=10) as response:
-                css_content = response.read().decode('utf-8')
+                css_content = response.read().decode("utf-8")
         except (ssl.SSLError, urllib.error.URLError) as e:
             # macOS certificate issue - retry with unverified context
-            if 'certificate verify failed' in str(e) or 'SSL' in str(e):
+            if "certificate verify failed" in str(e) or "SSL" in str(e):
                 ssl_context = ssl._create_unverified_context()
                 with urllib.request.urlopen(req, timeout=10, context=ssl_context) as response:
-                    css_content = response.read().decode('utf-8')
+                    css_content = response.read().decode("utf-8")
             else:
                 raise
 
@@ -164,14 +164,14 @@ class GoogleFontsDownloader:
         font_urls = {}
 
         # Find all @font-face blocks
-        font_face_pattern = r'@font-face\s*{([^}]+)}'
+        font_face_pattern = r"@font-face\s*{([^}]+)}"
         for match in re.finditer(font_face_pattern, css_content):
             block = match.group(1)
 
             # Extract weight, style, and URL (support both woff2 and ttf)
-            weight_match = re.search(r'font-weight:\s*(\d+)', block)
-            style_match = re.search(r'font-style:\s*(\w+)', block)
-            url_match = re.search(r'url\(([^)]+\.(woff2|ttf))', block)
+            weight_match = re.search(r"font-weight:\s*(\d+)", block)
+            style_match = re.search(r"font-style:\s*(\w+)", block)
+            url_match = re.search(r"url\(([^)]+\.(woff2|ttf))", block)
 
             if weight_match and style_match and url_match:
                 weight = weight_match.group(1)
@@ -193,7 +193,7 @@ class GoogleFontsDownloader:
                 data = response.read()
         except (ssl.SSLError, urllib.error.URLError) as e:
             # macOS certificate issue - retry with unverified context
-            if 'certificate verify failed' in str(e) or 'SSL' in str(e):
+            if "certificate verify failed" in str(e) or "SSL" in str(e):
                 ssl_context = ssl._create_unverified_context()
                 with urllib.request.urlopen(req, timeout=30, context=ssl_context) as response:
                     data = response.read()
@@ -201,12 +201,10 @@ class GoogleFontsDownloader:
                 raise
 
         # Atomic write for safety
-        tmp_path = output_path.with_suffix('.tmp')
+        tmp_path = output_path.with_suffix(".tmp")
         try:
             tmp_path.write_bytes(data)
             tmp_path.replace(output_path)
         except Exception:
             tmp_path.unlink(missing_ok=True)
             raise
-
-

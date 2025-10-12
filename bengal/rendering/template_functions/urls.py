@@ -13,18 +13,20 @@ if TYPE_CHECKING:
     from bengal.core.site import Site
 
 
-def register(env: 'Environment', site: 'Site') -> None:
+def register(env: "Environment", site: "Site") -> None:
     """Register URL functions with Jinja2 environment."""
 
     # Create closures that have access to site
     def absolute_url_with_site(url: str) -> str:
-        return absolute_url(url, site.config.get('baseurl', ''))
+        return absolute_url(url, site.config.get("baseurl", ""))
 
-    env.filters.update({
-        'absolute_url': absolute_url_with_site,
-        'url_encode': url_encode,
-        'url_decode': url_decode,
-    })
+    env.filters.update(
+        {
+            "absolute_url": absolute_url_with_site,
+            "url_encode": url_encode,
+            "url_decode": url_decode,
+        }
+    )
 
 
 def absolute_url(url: str, base_url: str) -> str:
@@ -43,17 +45,17 @@ def absolute_url(url: str, base_url: str) -> str:
         # Output: https://example.com/posts/my-post/
     """
     if not url:
-        return base_url or ''
+        return base_url or ""
 
     # Already absolute
-    if url.startswith(('http://', 'https://', '//')):
+    if url.startswith(("http://", "https://", "//")):
         return url
 
     # Normalize base URL
-    base_url = base_url.rstrip('/') if base_url else ''
+    base_url = base_url.rstrip("/") if base_url else ""
 
     # Normalize relative URL
-    url = '/' + url.lstrip('/')
+    url = "/" + url.lstrip("/")
 
     return base_url + url
 
@@ -75,7 +77,7 @@ def url_encode(text: str) -> str:
         # "hello world" -> "hello%20world"
     """
     if not text:
-        return ''
+        return ""
 
     return quote(str(text))
 
@@ -97,7 +99,6 @@ def url_decode(text: str) -> str:
         # "hello%20world" -> "hello world"
     """
     if not text:
-        return ''
+        return ""
 
     return unquote(str(text))
-

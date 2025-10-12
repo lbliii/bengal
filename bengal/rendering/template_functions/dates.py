@@ -13,13 +13,15 @@ if TYPE_CHECKING:
     from bengal.core.site import Site
 
 
-def register(env: 'Environment', site: 'Site') -> None:
+def register(env: "Environment", site: "Site") -> None:
     """Register date functions with Jinja2 environment."""
-    env.filters.update({
-        'time_ago': time_ago,
-        'date_iso': date_iso,
-        'date_rfc822': date_rfc822,
-    })
+    env.filters.update(
+        {
+            "time_ago": time_ago,
+            "date_iso": date_iso,
+            "date_rfc822": date_rfc822,
+        }
+    )
 
 
 def time_ago(date: datetime | str | None) -> str:
@@ -38,6 +40,7 @@ def time_ago(date: datetime | str | None) -> str:
         {{ post.date | time_ago }}  # "2 days ago", "5 hours ago", etc.
     """
     from bengal.utils.dates import time_ago as time_ago_util
+
     return time_ago_util(date)
 
 
@@ -58,6 +61,7 @@ def date_iso(date: datetime | str | None) -> str:
         # Output: 2025-10-03T14:30:00
     """
     from bengal.utils.dates import format_date_iso
+
     return format_date_iso(date)
 
 
@@ -78,5 +82,5 @@ def date_rfc822(date: datetime | str | None) -> str:
         # Output: Fri, 03 Oct 2025 14:30:00 +0000
     """
     from bengal.utils.dates import format_date_rfc822
-    return format_date_rfc822(date)
 
+    return format_date_rfc822(date)

@@ -48,7 +48,7 @@ class RequestLogger:
         request_path = parts[1] if len(parts) > 1 else "/"
 
         # Skip assets unless they're errors or initial loads
-        is_asset = any(request_path.startswith(prefix) for prefix in ['/assets/', '/static/'])
+        is_asset = any(request_path.startswith(prefix) for prefix in ["/assets/", "/static/"])
         is_cached = status_code == "304"
         is_success = status_code.startswith("2")
 
@@ -67,12 +67,14 @@ class RequestLogger:
         elif status_code.startswith("5"):
             log_level = "error"
 
-        getattr(logger, log_level)("http_request",
-                                   method=method,
-                                   path=request_path,
-                                   status=int(status_code) if status_code.isdigit() else 0,
-                                   is_asset=is_asset,
-                                   client_address=getattr(self, 'client_address', ['unknown', 0])[0])
+        getattr(logger, log_level)(
+            "http_request",
+            method=method,
+            path=request_path,
+            status=int(status_code) if status_code.isdigit() else 0,
+            is_asset=is_asset,
+            client_address=getattr(self, "client_address", ["unknown", 0])[0],
+        )
 
         # Colorize status codes
         status_color = self._get_status_color(status_code)
@@ -95,7 +97,9 @@ class RequestLogger:
                 indicator = "❌ "  # Error
 
         # Beautiful output
-        print(f"  {timestamp} │ {method_color}{method:6}{self._reset()} │ {status_color}{status_code:3}{self._reset()} │ {indicator}{display_path}")
+        print(
+            f"  {timestamp} │ {method_color}{method:6}{self._reset()} │ {status_color}{status_code:3}{self._reset()} │ {indicator}{display_path}"
+        )
 
     def log_error(self, format: str, *args: Any) -> None:
         """
@@ -110,9 +114,11 @@ class RequestLogger:
         if args and len(args) > 0:
             error_msg = str(args[0]) if args else ""
             if "Broken pipe" in error_msg or "Connection reset" in error_msg:
-                logger.debug("client_disconnected",
-                            error_type="BrokenPipe" if "Broken pipe" in error_msg else "ConnectionReset",
-                            client_address=getattr(self, 'client_address', ['unknown', 0])[0])
+                logger.debug(
+                    "client_disconnected",
+                    error_type="BrokenPipe" if "Broken pipe" in error_msg else "ConnectionReset",
+                    client_address=getattr(self, "client_address", ["unknown", 0])[0],
+                )
                 return
 
         # All other error logging is handled in log_message with proper filtering
@@ -139,15 +145,14 @@ class RequestLogger:
     def _get_method_color(self, method: str) -> str:
         """Get ANSI color code for HTTP method."""
         colors = {
-            "GET": "\033[36m",     # Cyan
-            "POST": "\033[33m",    # Yellow
-            "PUT": "\033[35m",     # Magenta
+            "GET": "\033[36m",  # Cyan
+            "POST": "\033[33m",  # Yellow
+            "PUT": "\033[35m",  # Magenta
             "DELETE": "\033[31m",  # Red
-            "PATCH": "\033[35m",   # Magenta
+            "PATCH": "\033[35m",  # Magenta
         }
         return colors.get(method, "\033[37m")  # Default white
 
     def _reset(self) -> str:
         """Get ANSI reset code."""
         return "\033[0m"
-

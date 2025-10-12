@@ -109,7 +109,7 @@ def benchmark_full_build(site_dir: Path) -> float:
     return elapsed
 
 
-def benchmark_incremental_build(site_dir: Path, change_type: str = 'content') -> float:
+def benchmark_incremental_build(site_dir: Path, change_type: str = "content") -> float:
     """
     Benchmark an incremental build after making a small change.
 
@@ -123,19 +123,20 @@ def benchmark_incremental_build(site_dir: Path, change_type: str = 'content') ->
     site = Site.from_config(site_dir)
 
     # Make a small change based on type
-    if change_type == 'content':
+    if change_type == "content":
         # Modify one content file
         post_file = site_dir / "content" / "posts" / "post-0.md"
         content = post_file.read_text()
         modified_content = content.replace("This is test post 0", "This is MODIFIED test post 0")
         post_file.write_text(modified_content)
 
-    elif change_type == 'template':
+    elif change_type == "template":
         # Modify a template (this should trigger more rebuilds)
         theme_dir = site_dir / "themes" / "default" / "templates"
         if not theme_dir.exists():
             # Use bundled theme
             import bengal
+
             bengal_dir = Path(bengal.__file__).parent
             theme_dir = bengal_dir / "themes" / "default" / "templates"
 
@@ -158,7 +159,7 @@ def benchmark_incremental_build(site_dir: Path, change_type: str = 'content') ->
 </html>
 """)
 
-    elif change_type == 'asset':
+    elif change_type == "asset":
         # Modify one asset file
         asset_file = site_dir / "assets" / "css" / "style0.css"
         if asset_file.exists():
@@ -220,7 +221,7 @@ def run_incremental_benchmarks():
                         post_file.write_text(content)
                     time.sleep(0.1)
 
-                inc_time = benchmark_incremental_build(site_dir, change_type='content')
+                inc_time = benchmark_incremental_build(site_dir, change_type="content")
                 incremental_times.append(inc_time)
 
             avg_incremental = sum(incremental_times) / len(incremental_times)
@@ -242,7 +243,7 @@ def run_incremental_benchmarks():
             print("\nTesting incremental build (single asset change)...")
             asset_times = []
             for _run in range(3):
-                asset_time = benchmark_incremental_build(site_dir, change_type='asset')
+                asset_time = benchmark_incremental_build(site_dir, change_type="asset")
                 asset_times.append(asset_time)
 
             avg_asset = sum(asset_times) / len(asset_times)
@@ -281,4 +282,3 @@ def run_incremental_benchmarks():
 
 if __name__ == "__main__":
     run_incremental_benchmarks()
-

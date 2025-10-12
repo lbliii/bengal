@@ -18,6 +18,7 @@ if TYPE_CHECKING:
 
 class SuggestionType(Enum):
     """Types of performance suggestions."""
+
     PARALLEL = "parallel"
     CACHING = "caching"
     ASSETS = "assets"
@@ -28,9 +29,10 @@ class SuggestionType(Enum):
 
 class SuggestionPriority(Enum):
     """Priority levels for suggestions."""
-    HIGH = "high"      # >20% potential improvement
+
+    HIGH = "high"  # >20% potential improvement
     MEDIUM = "medium"  # 5-20% potential improvement
-    LOW = "low"        # <5% potential improvement
+    LOW = "low"  # <5% potential improvement
 
 
 @dataclass
@@ -64,7 +66,7 @@ class PerformanceSuggestion:
         priority_emoji = {
             SuggestionPriority.HIGH: "🔥",
             SuggestionPriority.MEDIUM: "💡",
-            SuggestionPriority.LOW: "ℹ️"
+            SuggestionPriority.LOW: "ℹ️",
         }
 
         emoji = priority_emoji.get(self.priority, "ℹ️")
@@ -124,11 +126,11 @@ class PerformanceGrade:
         # Factor 2: Time distribution (30 points)
         # Penalize if one phase takes >60% of time (bottleneck)
         total_phase_time = (
-            stats.discovery_time_ms +
-            stats.taxonomy_time_ms +
-            stats.rendering_time_ms +
-            stats.assets_time_ms +
-            stats.postprocess_time_ms
+            stats.discovery_time_ms
+            + stats.taxonomy_time_ms
+            + stats.rendering_time_ms
+            + stats.assets_time_ms
+            + stats.postprocess_time_ms
         )
 
         if total_phase_time > 0:
@@ -137,7 +139,7 @@ class PerformanceGrade:
                 stats.taxonomy_time_ms / total_phase_time,
                 stats.rendering_time_ms / total_phase_time,
                 stats.assets_time_ms / total_phase_time,
-                stats.postprocess_time_ms / total_phase_time
+                stats.postprocess_time_ms / total_phase_time,
             )
 
             if max_phase_pct < 0.5:
@@ -147,7 +149,7 @@ class PerformanceGrade:
             elif max_phase_pct < 0.7:
                 balance_score = 10  # Clear bottleneck
             else:
-                balance_score = 0   # Severe bottleneck
+                balance_score = 0  # Severe bottleneck
 
             score += balance_score
 
@@ -155,7 +157,7 @@ class PerformanceGrade:
         if stats.parallel:
             score += 15  # Using parallelism
         if stats.incremental:
-            score += 5   # Using caching
+            score += 5  # Using caching
 
         # Convert score to grade
         if score >= 90:
@@ -179,12 +181,7 @@ class PerformanceGrade:
             category = "Critical"
             summary = "Build performance is critically slow"
 
-        return cls(
-            grade=grade,
-            score=score,
-            category=category,
-            summary=summary
-        )
+        return cls(grade=grade, score=score, category=category, summary=summary)
 
 
 class PerformanceAdvisor:
@@ -232,7 +229,7 @@ class PerformanceAdvisor:
         priority_order = {
             SuggestionPriority.HIGH: 0,
             SuggestionPriority.MEDIUM: 1,
-            SuggestionPriority.LOW: 2
+            SuggestionPriority.LOW: 2,
         }
         self.suggestions.sort(key=lambda s: priority_order[s.priority])
 
@@ -243,39 +240,43 @@ class PerformanceAdvisor:
         # Already using parallel?
         if self.stats.parallel:
             # Check if we're using optimal workers
-            cpu_cores = self.environment.get('cpu_cores', multiprocessing.cpu_count())
+            cpu_cores = self.environment.get("cpu_cores", multiprocessing.cpu_count())
 
             # For large page counts, suggest adjusting max_workers
             if self.stats.total_pages > 500 and cpu_cores > 4:
-                self.suggestions.append(PerformanceSuggestion(
-                    type=SuggestionType.PARALLEL,
-                    priority=SuggestionPriority.LOW,
-                    title="Fine-tune parallel workers",
-                    description=f"You have {cpu_cores} CPU cores and {self.stats.total_pages} pages",
-                    impact="Could improve by 10-20% with optimal settings",
-                    action=f"Try setting max_workers to {min(cpu_cores, 8)} in config",
-                    config_example=f"max_workers: {min(cpu_cores, 8)}"
-                ))
+                self.suggestions.append(
+                    PerformanceSuggestion(
+                        type=SuggestionType.PARALLEL,
+                        priority=SuggestionPriority.LOW,
+                        title="Fine-tune parallel workers",
+                        description=f"You have {cpu_cores} CPU cores and {self.stats.total_pages} pages",
+                        impact="Could improve by 10-20% with optimal settings",
+                        action=f"Try setting max_workers to {min(cpu_cores, 8)} in config",
+                        config_example=f"max_workers: {min(cpu_cores, 8)}",
+                    )
+                )
             return
 
         # Not using parallel - would it help?
         if self.stats.total_pages >= 20:
             # Estimate time savings
             estimated_speedup = min(3.0, multiprocessing.cpu_count() / 2)
-            time_saved = self.stats.rendering_time_ms * (1 - 1/estimated_speedup) / 1000
+            time_saved = self.stats.rendering_time_ms * (1 - 1 / estimated_speedup) / 1000
 
             if time_saved > 1.0:  # >1s savings
                 priority = SuggestionPriority.HIGH if time_saved > 5 else SuggestionPriority.MEDIUM
 
-                self.suggestions.append(PerformanceSuggestion(
-                    type=SuggestionType.PARALLEL,
-                    priority=priority,
-                    title="Enable parallel rendering",
-                    description=f"Your {self.stats.total_pages} pages are rendered sequentially",
-                    impact=f"Could save ~{time_saved:.1f}s ({estimated_speedup:.1f}x speedup)",
-                    action="Run: bengal build --parallel",
-                    config_example="parallel: true  # in config.yml"
-                ))
+                self.suggestions.append(
+                    PerformanceSuggestion(
+                        type=SuggestionType.PARALLEL,
+                        priority=priority,
+                        title="Enable parallel rendering",
+                        description=f"Your {self.stats.total_pages} pages are rendered sequentially",
+                        impact=f"Could save ~{time_saved:.1f}s ({estimated_speedup:.1f}x speedup)",
+                        action="Run: bengal build --parallel",
+                        config_example="parallel: true  # in config.yml",
+                    )
+                )
 
     def _check_incremental_opportunity(self) -> None:
         """Check if incremental builds would help."""
@@ -293,24 +294,26 @@ class PerformanceAdvisor:
             time_saved = (estimated_pages_saved * time_per_page) / 1000
 
             if time_saved > 2.0:  # >2s potential savings
-                self.suggestions.append(PerformanceSuggestion(
-                    type=SuggestionType.CACHING,
-                    priority=SuggestionPriority.MEDIUM,
-                    title="Try incremental builds",
-                    description=f"Rebuilding all {self.stats.total_pages} pages each time",
-                    impact=f"Could skip ~{estimated_pages_saved} unchanged pages in dev",
-                    action="Run: bengal build --incremental",
-                    config_example="# Automatically enabled in 'bengal serve'"
-                ))
+                self.suggestions.append(
+                    PerformanceSuggestion(
+                        type=SuggestionType.CACHING,
+                        priority=SuggestionPriority.MEDIUM,
+                        title="Try incremental builds",
+                        description=f"Rebuilding all {self.stats.total_pages} pages each time",
+                        impact=f"Could skip ~{estimated_pages_saved} unchanged pages in dev",
+                        action="Run: bengal build --incremental",
+                        config_example="# Automatically enabled in 'bengal serve'",
+                    )
+                )
 
     def _check_rendering_bottleneck(self) -> None:
         """Check if rendering is a bottleneck."""
         total_phase_time = (
-            self.stats.discovery_time_ms +
-            self.stats.taxonomy_time_ms +
-            self.stats.rendering_time_ms +
-            self.stats.assets_time_ms +
-            self.stats.postprocess_time_ms
+            self.stats.discovery_time_ms
+            + self.stats.taxonomy_time_ms
+            + self.stats.rendering_time_ms
+            + self.stats.assets_time_ms
+            + self.stats.postprocess_time_ms
         )
 
         if total_phase_time == 0:
@@ -324,15 +327,17 @@ class PerformanceAdvisor:
             time_per_page = self.stats.rendering_time_ms / max(self.stats.total_pages, 1)
 
             if time_per_page > 50:  # >50ms per page is slow
-                self.suggestions.append(PerformanceSuggestion(
-                    type=SuggestionType.TEMPLATES,
-                    priority=SuggestionPriority.HIGH,
-                    title="Optimize template rendering",
-                    description=f"Templates take {time_per_page:.0f}ms per page (slow)",
-                    impact="Could improve build time by 30-50%",
-                    action="Check for expensive filters, loops, or includes in templates",
-                    config_example="# Consider simplifying complex template logic"
-                ))
+                self.suggestions.append(
+                    PerformanceSuggestion(
+                        type=SuggestionType.TEMPLATES,
+                        priority=SuggestionPriority.HIGH,
+                        title="Optimize template rendering",
+                        description=f"Templates take {time_per_page:.0f}ms per page (slow)",
+                        impact="Could improve build time by 30-50%",
+                        action="Check for expensive filters, loops, or includes in templates",
+                        config_example="# Consider simplifying complex template logic",
+                    )
+                )
 
     def _check_asset_optimization(self) -> None:
         """Check asset processing performance."""
@@ -344,15 +349,17 @@ class PerformanceAdvisor:
             time_per_asset = self.stats.assets_time_ms / max(self.stats.total_assets, 1)
 
             if time_per_asset > 100:  # >100ms per asset
-                self.suggestions.append(PerformanceSuggestion(
-                    type=SuggestionType.ASSETS,
-                    priority=SuggestionPriority.MEDIUM,
-                    title="Optimize asset processing",
-                    description=f"Assets take {time_per_asset:.0f}ms each to process",
-                    impact="Could save 2-5s with optimization",
-                    action="Check for large images or unoptimized CSS bundles",
-                    config_example="# Consider image optimization or lazy loading"
-                ))
+                self.suggestions.append(
+                    PerformanceSuggestion(
+                        type=SuggestionType.ASSETS,
+                        priority=SuggestionPriority.MEDIUM,
+                        title="Optimize asset processing",
+                        description=f"Assets take {time_per_asset:.0f}ms each to process",
+                        impact="Could save 2-5s with optimization",
+                        action="Check for large images or unoptimized CSS bundles",
+                        config_example="# Consider image optimization or lazy loading",
+                    )
+                )
 
     def _check_memory_usage(self) -> None:
         """Check memory usage and suggest optimizations."""
@@ -361,15 +368,17 @@ class PerformanceAdvisor:
 
         # Is memory usage high?
         if self.stats.memory_peak_mb > 1000:  # >1GB
-            self.suggestions.append(PerformanceSuggestion(
-                type=SuggestionType.MEMORY,
-                priority=SuggestionPriority.MEDIUM,
-                title="High memory usage detected",
-                description=f"Peak memory: {self.stats.memory_peak_mb:.0f}MB",
-                impact="Could reduce memory footprint by 30-50%",
-                action="Consider using --memory-optimized flag for large sites",
-                config_example="memory_optimized: true  # For 5K+ pages"
-            ))
+            self.suggestions.append(
+                PerformanceSuggestion(
+                    type=SuggestionType.MEMORY,
+                    priority=SuggestionPriority.MEDIUM,
+                    title="High memory usage detected",
+                    description=f"Peak memory: {self.stats.memory_peak_mb:.0f}MB",
+                    impact="Could reduce memory footprint by 30-50%",
+                    action="Consider using --memory-optimized flag for large sites",
+                    config_example="memory_optimized: true  # For 5K+ pages",
+                )
+            )
 
     def _check_template_complexity(self) -> None:
         """Check for template complexity issues."""
@@ -379,15 +388,17 @@ class PerformanceAdvisor:
             directives_per_page = self.stats.total_directives / max(self.stats.total_pages, 1)
 
             if directives_per_page > 20:  # >20 directives per page average
-                self.suggestions.append(PerformanceSuggestion(
-                    type=SuggestionType.TEMPLATES,
-                    priority=SuggestionPriority.LOW,
-                    title="Template complexity is high",
-                    description=f"Average {directives_per_page:.0f} directives per page",
-                    impact="Simplified templates render faster",
-                    action="Review templates for unnecessary complexity",
-                    config_example="# Consider extracting reusable components"
-                ))
+                self.suggestions.append(
+                    PerformanceSuggestion(
+                        type=SuggestionType.TEMPLATES,
+                        priority=SuggestionPriority.LOW,
+                        title="Template complexity is high",
+                        description=f"Average {directives_per_page:.0f} directives per page",
+                        impact="Simplified templates render faster",
+                        action="Review templates for unnecessary complexity",
+                        config_example="# Consider extracting reusable components",
+                    )
+                )
 
     def get_grade(self) -> PerformanceGrade:
         """
@@ -406,11 +417,11 @@ class PerformanceAdvisor:
             Name of slowest phase, or None if well-balanced
         """
         phases = {
-            'Discovery': self.stats.discovery_time_ms,
-            'Taxonomies': self.stats.taxonomy_time_ms,
-            'Rendering': self.stats.rendering_time_ms,
-            'Assets': self.stats.assets_time_ms,
-            'Postprocess': self.stats.postprocess_time_ms,
+            "Discovery": self.stats.discovery_time_ms,
+            "Taxonomies": self.stats.taxonomy_time_ms,
+            "Rendering": self.stats.rendering_time_ms,
+            "Assets": self.stats.assets_time_ms,
+            "Postprocess": self.stats.postprocess_time_ms,
         }
 
         total = sum(phases.values())
@@ -469,7 +480,9 @@ class PerformanceAdvisor:
 
 
 # Convenience function for quick analysis
-def analyze_build(stats: BuildStats, environment: dict[str, Any] | None = None) -> PerformanceAdvisor:
+def analyze_build(
+    stats: BuildStats, environment: dict[str, Any] | None = None
+) -> PerformanceAdvisor:
     """
     Quick analysis of build statistics.
 
@@ -483,4 +496,3 @@ def analyze_build(stats: BuildStats, environment: dict[str, Any] | None = None) 
     advisor = PerformanceAdvisor(stats, environment)
     advisor.analyze()
     return advisor
-

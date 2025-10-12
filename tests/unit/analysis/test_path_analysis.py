@@ -28,7 +28,7 @@ class TestPathAnalysisResults:
             betweenness_centrality=betweenness,
             closeness_centrality={},
             avg_path_length=2.5,
-            diameter=5
+            diameter=5,
         )
 
         bridges = results.get_top_bridges(3)
@@ -52,7 +52,7 @@ class TestPathAnalysisResults:
             betweenness_centrality={},
             closeness_centrality=closeness,
             avg_path_length=2.0,
-            diameter=3
+            diameter=3,
         )
 
         accessible = results.get_most_accessible(2)
@@ -70,7 +70,7 @@ class TestPathAnalysisResults:
             betweenness_centrality={page1: 0.5},
             closeness_centrality={},
             avg_path_length=2.0,
-            diameter=3
+            diameter=3,
         )
 
         assert results.get_betweenness(page1) == 0.5
@@ -300,7 +300,7 @@ class TestPathAnalyzer:
         graph.site = site
         graph.outgoing_refs = defaultdict(set)
         for i in range(4):
-            graph.outgoing_refs[pages[i]] = {pages[i+1]}
+            graph.outgoing_refs[pages[i]] = {pages[i + 1]}
 
         analyzer = PathAnalyzer(graph)
 
@@ -316,7 +316,7 @@ class TestPathAnalyzer:
     def test_filters_generated_pages(self):
         """Test that generated pages are excluded from analysis."""
         real_page = Mock(source_path=Path("real.md"), metadata={})
-        generated_page = Mock(source_path=Path("generated.md"), metadata={'_generated': True})
+        generated_page = Mock(source_path=Path("generated.md"), metadata={"_generated": True})
 
         site = Mock()
         site.pages = [real_page, generated_page]
@@ -356,4 +356,3 @@ class TestAnalyzePathsFunction:
         assert len(results.betweenness_centrality) == 3
         assert len(results.closeness_centrality) == 3
         assert results.diameter > 0
-

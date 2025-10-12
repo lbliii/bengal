@@ -42,10 +42,10 @@ class Section:
     name: str
     path: Path
     pages: list[Page] = field(default_factory=list)
-    subsections: list['Section'] = field(default_factory=list)
+    subsections: list["Section"] = field(default_factory=list)
     metadata: dict[str, Any] = field(default_factory=dict)
     index_page: Page | None = None
-    parent: 'Section | None' = None
+    parent: "Section | None" = None
 
     # Reference to site (set during site building)
     _site: Any | None = field(default=None, repr=False)
@@ -73,7 +73,7 @@ class Section:
         return len(self.hierarchy)
 
     @property
-    def root(self) -> 'Section':
+    def root(self) -> "Section":
         """
         Get the root section of this section's hierarchy.
 
@@ -106,7 +106,7 @@ class Section:
         return [p for p in self.pages if not isinstance(p, Section)]
 
     @property
-    def sections(self) -> list['Section']:
+    def sections(self) -> list["Section"]:
         """
         Get immediate child sections.
 
@@ -136,16 +136,10 @@ class Section:
               <article>{{ page.title }}</article>
             {% endfor %}
         """
-        return sorted(
-            self.pages,
-            key=lambda p: (
-                p.metadata.get('weight', 999999),
-                p.title.lower()
-            )
-        )
+        return sorted(self.pages, key=lambda p: (p.metadata.get("weight", 999999), p.title.lower()))
 
     @property
-    def sorted_subsections(self) -> list['Section']:
+    def sorted_subsections(self) -> list["Section"]:
         """
         Get subsections sorted by weight (ascending), then by title.
 
@@ -161,11 +155,7 @@ class Section:
             {% endfor %}
         """
         return sorted(
-            self.subsections,
-            key=lambda s: (
-                s.metadata.get('weight', 999999),
-                s.title.lower()
-            )
+            self.subsections, key=lambda s: (s.metadata.get("weight", 999999), s.title.lower())
         )
 
     @property
@@ -197,15 +187,13 @@ class Section:
             URL path for the section
         """
         # If we have an index page with a proper output_path, use its URL
-        if (self.index_page and
-            hasattr(self.index_page, 'output_path') and
-            self.index_page.output_path):
+        if (
+            self.index_page
+            and hasattr(self.index_page, "output_path")
+            and self.index_page.output_path
+        ):
             url = self.index_page.url
-            logger.debug(
-                "section_url_from_index",
-                section=self.name,
-                url=url
-            )
+            logger.debug("section_url_from_index", section=self.name, url=url)
             return url
 
         # Otherwise, construct from section hierarchy
@@ -214,10 +202,7 @@ class Section:
         url = f"{self.parent.url}{self.name}/" if self.parent else f"/{self.name}/"
 
         logger.debug(
-            "section_url_constructed",
-            section=self.name,
-            url=url,
-            has_parent=bool(self.parent)
+            "section_url_constructed", section=self.name, url=url, has_parent=bool(self.parent)
         )
 
         return url
@@ -236,7 +221,7 @@ class Section:
             section=self.name,
             page=str(page.source_path),
             is_index=is_index,
-            total_pages=len(self.pages) + 1
+            total_pages=len(self.pages) + 1,
         )
 
         self.pages.append(page)
@@ -255,7 +240,7 @@ class Section:
                     existing_file=f"{existing_name}.md",
                     new_file=f"{new_name}.md",
                     action="preferring_underscore_version",
-                    suggestion="Remove one of the index files - only _index.md or index.md should exist"
+                    suggestion="Remove one of the index files - only _index.md or index.md should exist",
                 )
 
                 # Prefer _index.md over index.md (Hugo convention)
@@ -272,10 +257,10 @@ class Section:
             logger.debug(
                 "section_metadata_inherited",
                 section=self.name,
-                metadata_keys=list(page.metadata.keys())
+                metadata_keys=list(page.metadata.keys()),
             )
 
-    def add_subsection(self, section: 'Section') -> None:
+    def add_subsection(self, section: "Section") -> None:
         """
         Add a subsection to this section.
 
@@ -287,7 +272,7 @@ class Section:
             parent_section=self.name,
             child_section=section.name,
             depth=self.depth + 1,
-            total_subsections=len(self.subsections) + 1
+            total_subsections=len(self.subsections) + 1,
         )
 
         section.parent = self
@@ -304,26 +289,16 @@ class Section:
         This is typically called after content discovery is complete.
         """
         # Sort pages by weight (ascending), then title (alphabetically)
-        self.pages.sort(
-            key=lambda p: (
-                p.metadata.get('weight', 0),
-                p.title.lower()
-            )
-        )
+        self.pages.sort(key=lambda p: (p.metadata.get("weight", 0), p.title.lower()))
 
         # Sort subsections by weight (ascending), then title (alphabetically)
-        self.subsections.sort(
-            key=lambda s: (
-                s.metadata.get('weight', 0),
-                s.title.lower()
-            )
-        )
+        self.subsections.sort(key=lambda s: (s.metadata.get("weight", 0), s.title.lower()))
 
         logger.debug(
             "section_children_sorted",
             section=self.name,
             pages_count=len(self.pages),
-            subsections_count=len(self.subsections)
+            subsections_count=len(self.subsections),
         )
 
     def needs_auto_index(self) -> bool:
@@ -333,7 +308,7 @@ class Section:
         Returns:
             True if section needs auto-generated index (no explicit _index.md)
         """
-        return self.name != 'root' and self.index_page is None
+        return self.name != "root" and self.index_page is None
 
     def has_index(self) -> bool:
         """
@@ -390,7 +365,7 @@ class Section:
             section=self.name,
             page_count=result["page_count"],
             total_pages=result["total_page_count"],
-            unique_tags=len(all_tags)
+            unique_tags=len(all_tags),
         )
 
         return result
@@ -420,7 +395,7 @@ class Section:
         # Template rendering will be handled by the template engine
         return ""
 
-    def walk(self) -> list['Section']:
+    def walk(self) -> list["Section"]:
         """
         Iteratively walk through all sections in the hierarchy.
 
@@ -470,4 +445,3 @@ class Section:
 
     def __repr__(self) -> str:
         return f"Section(name='{self.name}', pages={len(self.pages)}, subsections={len(self.subsections)})"
-

@@ -38,7 +38,7 @@ def create_timing_breakdown_table(stats: BuildStats) -> Table:
         show_header=True,
         header_style="bold cyan",
         border_style="cyan",
-        title_style="bold cyan"
+        title_style="bold cyan",
     )
 
     table.add_column("Phase", style="cyan", no_wrap=True)
@@ -48,11 +48,11 @@ def create_timing_breakdown_table(stats: BuildStats) -> Table:
 
     # Calculate total phase time
     total_phase_time = (
-        stats.discovery_time_ms +
-        stats.taxonomy_time_ms +
-        stats.rendering_time_ms +
-        stats.assets_time_ms +
-        stats.postprocess_time_ms
+        stats.discovery_time_ms
+        + stats.taxonomy_time_ms
+        + stats.rendering_time_ms
+        + stats.assets_time_ms
+        + stats.postprocess_time_ms
     )
 
     # Add rows for each phase
@@ -74,7 +74,7 @@ def create_timing_breakdown_table(stats: BuildStats) -> Table:
         elif phase_time < 1000:
             time_str = f"{int(phase_time)}ms"
         else:
-            time_str = f"{phase_time/1000:.2f}s"
+            time_str = f"{phase_time / 1000:.2f}s"
 
         # Calculate percentage
         if total_phase_time > 0:
@@ -97,7 +97,7 @@ def create_timing_breakdown_table(stats: BuildStats) -> Table:
                 phase_name,
                 time_str,
                 f"[{pct_color}]{pct_str}[/{pct_color}]",
-                f"[{pct_color}]{bar}[/{pct_color}]"
+                f"[{pct_color}]{bar}[/{pct_color}]",
             )
         else:
             table.add_row(phase_name, time_str, "-", "")
@@ -110,7 +110,7 @@ def create_timing_breakdown_table(stats: BuildStats) -> Table:
         "[bold]Total[/bold]",
         f"[bold]{total_str}[/bold]",
         "[bold]100%[/bold]",
-        "[bold green]████████████████████[/bold green]"
+        "[bold green]████████████████████[/bold green]",
     )
 
     return table
@@ -130,20 +130,16 @@ def create_performance_panel(stats: BuildStats, advisor: PerformanceAdvisor) -> 
     grade = advisor.get_grade()
 
     # Grade visualization
-    grade_colors = {
-        'A': 'bright_green',
-        'B': 'green',
-        'C': 'yellow',
-        'D': 'orange1',
-        'F': 'red'
-    }
-    grade_color = grade_colors.get(grade.grade, 'white')
+    grade_colors = {"A": "bright_green", "B": "green", "C": "yellow", "D": "orange1", "F": "red"}
+    grade_color = grade_colors.get(grade.grade, "white")
 
     # Create content
     lines = []
 
     # Big grade display
-    lines.append(Text(f"   {grade.grade}   ", style=f"bold {grade_color} on black", justify="center"))
+    lines.append(
+        Text(f"   {grade.grade}   ", style=f"bold {grade_color} on black", justify="center")
+    )
     lines.append(Text(f"{grade.score}/100", style="bold white", justify="center"))
     lines.append(Text())
     lines.append(Text(grade.summary, style="dim", justify="center"))
@@ -166,7 +162,7 @@ def create_performance_panel(stats: BuildStats, advisor: PerformanceAdvisor) -> 
         content,
         title="[bold cyan]⚡ Performance Grade[/bold cyan]",
         border_style="cyan",
-        padding=(1, 2)
+        padding=(1, 2),
     )
 
 
@@ -222,7 +218,7 @@ def create_suggestions_panel(advisor: PerformanceAdvisor) -> Panel | None:
         content,
         title="[bold yellow]💡 Smart Suggestions[/bold yellow]",
         border_style="yellow",
-        padding=(1, 2)
+        padding=(1, 2),
     )
 
 
@@ -237,11 +233,11 @@ def create_cache_stats_panel(stats: BuildStats) -> Panel | None:
         Rich Panel with cache stats, or None if not applicable
     """
     # Check if we have cache data
-    if not hasattr(stats, 'cache_hits') or not stats.incremental:
+    if not hasattr(stats, "cache_hits") or not stats.incremental:
         return None
 
-    cache_hits = getattr(stats, 'cache_hits', 0)
-    cache_misses = getattr(stats, 'cache_misses', 0)
+    cache_hits = getattr(stats, "cache_hits", 0)
+    cache_misses = getattr(stats, "cache_misses", 0)
     cache_total = cache_hits + cache_misses
 
     if cache_total == 0:
@@ -264,14 +260,17 @@ def create_cache_stats_panel(stats: BuildStats) -> Panel | None:
         emoji = "⚠️"
 
     lines = []
-    lines.append(Text(f"{emoji} Cache Hit Rate: ", style="cyan") + Text(f"{hit_rate:.1f}%", style=f"bold {rate_color}"))
+    lines.append(
+        Text(f"{emoji} Cache Hit Rate: ", style="cyan")
+        + Text(f"{hit_rate:.1f}%", style=f"bold {rate_color}")
+    )
     lines.append(Text())
     lines.append(Text(f"   Hits:   {cache_hits:>4}", style="green"))
     lines.append(Text(f"   Misses: {cache_misses:>4}", style="red"))
     lines.append(Text(f"   Total:  {cache_total:>4}", style="white"))
 
     # Time savings estimate
-    if hasattr(stats, 'time_saved_ms'):
+    if hasattr(stats, "time_saved_ms"):
         time_saved = stats.time_saved_ms / 1000
         lines.append(Text())
         lines.append(Text(f"⚡ Time Saved: {time_saved:.2f}s", style="cyan"))
@@ -282,7 +281,7 @@ def create_cache_stats_panel(stats: BuildStats) -> Panel | None:
         content,
         title="[bold cyan]💾 Cache Statistics[/bold cyan]",
         border_style="cyan",
-        padding=(1, 2)
+        padding=(1, 2),
     )
 
 
@@ -300,7 +299,7 @@ def create_content_stats_table(stats: BuildStats) -> Table:
         title="📊 Content Statistics",
         show_header=False,
         border_style="cyan",
-        title_style="bold cyan"
+        title_style="bold cyan",
     )
 
     table.add_column("Metric", style="cyan")
@@ -311,49 +310,31 @@ def create_content_stats_table(stats: BuildStats) -> Table:
     table.add_row(
         "📄 Pages",
         str(stats.total_pages),
-        f"{stats.regular_pages} regular + {stats.generated_pages} generated"
+        f"{stats.regular_pages} regular + {stats.generated_pages} generated",
     )
 
     # Assets
-    table.add_row(
-        "📦 Assets",
-        str(stats.total_assets),
-        ""
-    )
+    table.add_row("📦 Assets", str(stats.total_assets), "")
 
     # Sections
-    table.add_row(
-        "📁 Sections",
-        str(stats.total_sections),
-        ""
-    )
+    table.add_row("📁 Sections", str(stats.total_sections), "")
 
     # Taxonomies
     if stats.taxonomies_count > 0:
-        table.add_row(
-            "🏷️  Taxonomies",
-            str(stats.taxonomies_count),
-            ""
-        )
+        table.add_row("🏷️  Taxonomies", str(stats.taxonomies_count), "")
 
     # Directives (if tracked)
-    if hasattr(stats, 'total_directives') and stats.total_directives > 0:
+    if hasattr(stats, "total_directives") and stats.total_directives > 0:
         # Get top 3 directive types
-        if hasattr(stats, 'directives_by_type') and stats.directives_by_type:
-            top_types = sorted(
-                stats.directives_by_type.items(),
-                key=lambda x: x[1],
-                reverse=True
-            )[:3]
-            type_summary = ', '.join([f"{t}({c})" for t, c in top_types])
+        if hasattr(stats, "directives_by_type") and stats.directives_by_type:
+            top_types = sorted(stats.directives_by_type.items(), key=lambda x: x[1], reverse=True)[
+                :3
+            ]
+            type_summary = ", ".join([f"{t}({c})" for t, c in top_types])
         else:
             type_summary = ""
 
-        table.add_row(
-            "⚙️  Directives",
-            str(stats.total_directives),
-            type_summary
-        )
+        table.add_row("⚙️  Directives", str(stats.total_directives), type_summary)
 
     # Build mode
     mode_parts = []
@@ -364,11 +345,7 @@ def create_content_stats_table(stats: BuildStats) -> Table:
     if not mode_parts:
         mode_parts.append("sequential")
 
-    table.add_row(
-        "🔧 Mode",
-        ", ".join(mode_parts),
-        ""
-    )
+    table.add_row("🔧 Mode", ", ".join(mode_parts), "")
 
     return table
 
@@ -391,6 +368,7 @@ def display_build_summary(stats: BuildStats, environment: dict[str, Any] | None 
     if not should_use_rich():
         # Fall back to simple display
         from bengal.utils.build_stats import display_build_stats
+
         display_build_stats(stats)
         return
 
@@ -436,7 +414,7 @@ def display_build_summary(stats: BuildStats, environment: dict[str, Any] | None 
         console.print()
 
     # Footer: Output location
-    if hasattr(stats, 'output_dir') and stats.output_dir:
+    if hasattr(stats, "output_dir") and stats.output_dir:
         console.print("[cyan bold]📂 Output:[/cyan bold]")
         console.print(f"   [cyan]↪[/cyan] [white bold]{stats.output_dir}[/white bold]")
         console.print()
@@ -453,4 +431,3 @@ def display_simple_summary(stats: BuildStats) -> None:
 
     # Use existing simple display
     display_simple_build_stats(stats)
-

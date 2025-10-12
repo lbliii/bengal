@@ -18,7 +18,7 @@ class TestPIDManager:
         """Test that PID files are created and cleaned up properly."""
         from bengal.server.pid_manager import PIDManager
 
-        pid_file = tmp_path / '.bengal.pid'
+        pid_file = tmp_path / ".bengal.pid"
 
         # Write PID file
         PIDManager.write_pid_file(pid_file)
@@ -34,7 +34,7 @@ class TestPIDManager:
         """Test checking for stale PID when no file exists."""
         from bengal.server.pid_manager import PIDManager
 
-        pid_file = tmp_path / '.bengal.pid'
+        pid_file = tmp_path / ".bengal.pid"
         stale_pid = PIDManager.check_stale_pid(pid_file)
 
         assert stale_pid is None
@@ -43,10 +43,10 @@ class TestPIDManager:
         """Test checking for stale PID when process no longer exists."""
         from bengal.server.pid_manager import PIDManager
 
-        pid_file = tmp_path / '.bengal.pid'
+        pid_file = tmp_path / ".bengal.pid"
 
         # Write a PID that definitely doesn't exist
-        pid_file.write_text('999999')
+        pid_file.write_text("999999")
 
         stale_pid = PIDManager.check_stale_pid(pid_file)
 
@@ -58,7 +58,7 @@ class TestPIDManager:
         """Test checking for stale PID with current process."""
         from bengal.server.pid_manager import PIDManager
 
-        pid_file = tmp_path / '.bengal.pid'
+        pid_file = tmp_path / ".bengal.pid"
 
         # Write current process PID (this test process)
         pid_file.write_text(str(os.getpid()))
@@ -159,8 +159,9 @@ class TestResourceManager:
 class TestDevServerCleanup:
     """Test dev server cleanup integration."""
 
-    @pytest.mark.skipif(not os.path.exists("examples/quickstart"),
-                       reason="Requires quickstart example")
+    @pytest.mark.skipif(
+        not os.path.exists("examples/quickstart"), reason="Requires quickstart example"
+    )
     def test_server_creates_pid_file(self, tmp_path):
         """Test that dev server creates and cleans up PID file."""
         # This is more of a smoke test - we can't easily test signal handling
@@ -168,23 +169,22 @@ class TestDevServerCleanup:
         pass
 
 
-@pytest.mark.skipif(os.name == 'nt', reason="Signal handling differs on Windows")
+@pytest.mark.skipif(os.name == "nt", reason="Signal handling differs on Windows")
 class TestSignalHandling:
     """Test signal handling (Unix-like systems only)."""
 
     def test_cleanup_command_help(self):
         """Test that cleanup command is accessible."""
         result = subprocess.run(
-            ['python', '-m', 'bengal.cli', 'cleanup', '--help'],
+            ["python", "-m", "bengal.cli", "cleanup", "--help"],
             capture_output=True,
             text=True,
-            timeout=5
+            timeout=5,
         )
 
         assert result.returncode == 0
-        assert 'Clean up stale Bengal server processes' in result.stdout
+        assert "Clean up stale Bengal server processes" in result.stdout
 
 
-if __name__ == '__main__':
-    pytest.main([__file__, '-v'])
-
+if __name__ == "__main__":
+    pytest.main([__file__, "-v"])

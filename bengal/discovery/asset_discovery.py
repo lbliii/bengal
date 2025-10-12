@@ -36,14 +36,14 @@ class AssetDiscovery:
             List of Asset objects
         """
         # Walk the assets directory
-        for file_path in self.assets_dir.rglob('*'):
+        for file_path in self.assets_dir.rglob("*"):
             if file_path.is_file():
                 # Skip hidden files
-                if any(part.startswith('.') for part in file_path.parts):
+                if any(part.startswith(".") for part in file_path.parts):
                     continue
 
                 # Skip markdown/documentation files
-                if file_path.suffix.lower() == '.md':
+                if file_path.suffix.lower() == ".md":
                     continue
 
                 # Create asset with relative output path
@@ -57,4 +57,3 @@ class AssetDiscovery:
                 self.assets.append(asset)
 
         return self.assets
-

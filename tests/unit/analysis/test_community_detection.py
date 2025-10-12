@@ -43,9 +43,7 @@ class TestCommunityDetectionResults:
         comm2 = Community(id=1, pages={page3})
 
         results = CommunityDetectionResults(
-            communities=[comm1, comm2],
-            modularity=0.5,
-            iterations=5
+            communities=[comm1, comm2], modularity=0.5, iterations=5
         )
 
         assert results.get_community_for_page(page1) == comm1
@@ -63,9 +61,7 @@ class TestCommunityDetectionResults:
         comm3 = Community(id=2, pages={Mock() for _ in range(15)})
 
         results = CommunityDetectionResults(
-            communities=[comm1, comm2, comm3],
-            modularity=0.5,
-            iterations=5
+            communities=[comm1, comm2, comm3], modularity=0.5, iterations=5
         )
 
         largest = results.get_largest_communities(2)
@@ -81,9 +77,7 @@ class TestCommunityDetectionResults:
         comm3 = Community(id=2, pages={Mock() for _ in range(15)})
 
         results = CommunityDetectionResults(
-            communities=[comm1, comm2, comm3],
-            modularity=0.5,
-            iterations=5
+            communities=[comm1, comm2, comm3], modularity=0.5, iterations=5
         )
 
         # Get communities with at least 10 pages
@@ -234,7 +228,7 @@ class TestLouvainCommunityDetector:
         graph.outgoing_refs = defaultdict(set)
 
         for i in range(len(pages) - 1):
-            graph.outgoing_refs[pages[i]].add(pages[i+1])
+            graph.outgoing_refs[pages[i]].add(pages[i + 1])
 
         detector = LouvainCommunityDetector(graph, random_seed=42)
         results = detector.detect()
@@ -329,7 +323,7 @@ class TestLouvainCommunityDetector:
         graph.outgoing_refs = defaultdict(set)
 
         for i in range(len(pages) - 1):
-            graph.outgoing_refs[pages[i]].add(pages[i+1])
+            graph.outgoing_refs[pages[i]].add(pages[i + 1])
 
         # Run twice with same seed
         detector1 = LouvainCommunityDetector(graph, random_seed=42)
@@ -345,7 +339,7 @@ class TestLouvainCommunityDetector:
     def test_filters_generated_pages(self):
         """Test that generated pages are excluded."""
         real_page = Mock(source_path=Path("real.md"), metadata={})
-        generated_page = Mock(source_path=Path("generated.md"), metadata={'_generated': True})
+        generated_page = Mock(source_path=Path("generated.md"), metadata={"_generated": True})
 
         site = Mock()
         site.pages = [real_page, generated_page]
@@ -379,7 +373,7 @@ class TestDetectCommunitiesFunction:
 
         # Create some connections
         for i in range(len(pages) - 1):
-            graph.outgoing_refs[pages[i]].add(pages[i+1])
+            graph.outgoing_refs[pages[i]].add(pages[i + 1])
 
         # Use convenience function
         results = detect_communities(graph, random_seed=42)
@@ -388,4 +382,3 @@ class TestDetectCommunitiesFunction:
         assert len(results.communities) > 0
         assert results.modularity >= -1.0  # Modularity is in range [-1, 1]
         assert results.modularity <= 1.0
-

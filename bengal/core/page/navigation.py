@@ -33,7 +33,7 @@ class PageNavigationMixin:
               <a href="{{ url_for(page.next) }}">{{ page.next.title }} →</a>
             {% endif %}
         """
-        if not self._site or not hasattr(self._site, 'pages'):
+        if not self._site or not hasattr(self._site, "pages"):
             return None
 
         try:
@@ -59,7 +59,7 @@ class PageNavigationMixin:
               <a href="{{ url_for(page.prev) }}">← {{ page.prev.title }}</a>
             {% endif %}
         """
-        if not self._site or not hasattr(self._site, 'pages'):
+        if not self._site or not hasattr(self._site, "pages"):
             return None
 
         try:
@@ -85,7 +85,7 @@ class PageNavigationMixin:
               <a href="{{ url_for(page.next_in_section) }}">Next in section →</a>
             {% endif %}
         """
-        if not self._section or not hasattr(self._section, 'pages'):
+        if not self._section or not hasattr(self._section, "pages"):
             return None
 
         try:
@@ -111,7 +111,7 @@ class PageNavigationMixin:
               <a href="{{ url_for(page.prev_in_section) }}">← Prev in section</a>
             {% endif %}
         """
-        if not self._section or not hasattr(self._section, 'pages'):
+        if not self._section or not hasattr(self._section, "pages"):
             return None
 
         try:
@@ -157,7 +157,6 @@ class PageNavigationMixin:
 
         while current:
             result.append(current)
-            current = getattr(current, 'parent', None)
+            current = getattr(current, "parent", None)
 
         return result
-

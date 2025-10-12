@@ -41,8 +41,8 @@ class LinkSuggestion:
         reasons: List of reasons why this link is suggested
     """
 
-    source: 'Page'
-    target: 'Page'
+    source: "Page"
+    target: "Page"
     score: float
     reasons: list[str] = field(default_factory=list)
 
@@ -67,7 +67,7 @@ class LinkSuggestionResults:
     total_suggestions: int
     pages_analyzed: int
 
-    def get_suggestions_for_page(self, page: 'Page', limit: int = 10) -> list[LinkSuggestion]:
+    def get_suggestions_for_page(self, page: "Page", limit: int = 10) -> list[LinkSuggestion]:
         """
         Get link suggestions for a specific page.
 
@@ -78,17 +78,14 @@ class LinkSuggestionResults:
         Returns:
             List of LinkSuggestion objects sorted by score
         """
-        page_suggestions = [
-            s for s in self.suggestions
-            if s.source == page
-        ]
+        page_suggestions = [s for s in self.suggestions if s.source == page]
         return sorted(page_suggestions, key=lambda x: x.score, reverse=True)[:limit]
 
     def get_top_suggestions(self, limit: int = 50) -> list[LinkSuggestion]:
         """Get top N suggestions across all pages."""
         return sorted(self.suggestions, key=lambda x: x.score, reverse=True)[:limit]
 
-    def get_suggestions_by_target(self, target: 'Page') -> list[LinkSuggestion]:
+    def get_suggestions_by_target(self, target: "Page") -> list[LinkSuggestion]:
         """Get all suggestions that point to a specific target page."""
         return [s for s in self.suggestions if s.target == target]
 
@@ -110,10 +107,9 @@ class LinkSuggestionEngine:
         ...     print(f"{suggestion.source.title} -> {suggestion.target.title}")
     """
 
-    def __init__(self,
-                 graph: 'KnowledgeGraph',
-                 min_score: float = 0.3,
-                 max_suggestions_per_page: int = 10):
+    def __init__(
+        self, graph: "KnowledgeGraph", min_score: float = 0.3, max_suggestions_per_page: int = 10
+    ):
         """
         Initialize link suggestion engine.
 
@@ -133,15 +129,11 @@ class LinkSuggestionEngine:
         Returns:
             LinkSuggestionResults with all suggestions
         """
-        pages = [p for p in self.graph.site.pages if not p.metadata.get('_generated')]
+        pages = [p for p in self.graph.site.pages if not p.metadata.get("_generated")]
 
         if len(pages) == 0:
             logger.warning("link_suggestions_no_pages")
-            return LinkSuggestionResults(
-                suggestions=[],
-                total_suggestions=0,
-                pages_analyzed=0
-            )
+            return LinkSuggestionResults(suggestions=[], total_suggestions=0, pages_analyzed=0)
 
         logger.info("link_suggestions_start", total_pages=len(pages))
 
@@ -152,7 +144,7 @@ class LinkSuggestionEngine:
         # Get PageRank scores (if available)
         pagerank_scores = {}
         try:
-            if hasattr(self.graph, '_pagerank_results') and self.graph._pagerank_results:
+            if hasattr(self.graph, "_pagerank_results") and self.graph._pagerank_results:
                 pagerank_scores = self.graph._pagerank_results.scores
         except (AttributeError, TypeError):
             pass
@@ -160,7 +152,7 @@ class LinkSuggestionEngine:
         # Get centrality scores (if available)
         betweenness_scores = {}
         try:
-            if hasattr(self.graph, '_path_results') and self.graph._path_results:
+            if hasattr(self.graph, "_path_results") and self.graph._path_results:
                 betweenness_scores = self.graph._path_results.betweenness_centrality
         except (AttributeError, TypeError):
             pass
@@ -170,32 +162,31 @@ class LinkSuggestionEngine:
 
         for source_page in pages:
             suggestions = self._generate_suggestions_for_page(
-                source_page,
-                pages,
-                page_tags,
-                page_categories,
-                pagerank_scores,
-                betweenness_scores
+                source_page, pages, page_tags, page_categories, pagerank_scores, betweenness_scores
             )
             all_suggestions.extend(suggestions)
 
-        logger.info("link_suggestions_complete",
-                   total_suggestions=len(all_suggestions),
-                   pages_analyzed=len(pages))
+        logger.info(
+            "link_suggestions_complete",
+            total_suggestions=len(all_suggestions),
+            pages_analyzed=len(pages),
+        )
 
         return LinkSuggestionResults(
             suggestions=all_suggestions,
             total_suggestions=len(all_suggestions),
-            pages_analyzed=len(pages)
+            pages_analyzed=len(pages),
         )
 
-    def _generate_suggestions_for_page(self,
-                                      source: 'Page',
-                                      all_pages: list['Page'],
-                                      page_tags: dict['Page', set[str]],
-                                      page_categories: dict['Page', set[str]],
-                                      pagerank_scores: dict['Page', float],
-                                      betweenness_scores: dict['Page', float]) -> list[LinkSuggestion]:
+    def _generate_suggestions_for_page(
+        self,
+        source: "Page",
+        all_pages: list["Page"],
+        page_tags: dict["Page", set[str]],
+        page_categories: dict["Page", set[str]],
+        pagerank_scores: dict["Page", float],
+        betweenness_scores: dict["Page", float],
+    ) -> list[LinkSuggestion]:
         """Generate link suggestions for a single page."""
         # Get existing links from this page
         existing_links = self.graph.outgoing_refs.get(source, set())
@@ -209,12 +200,7 @@ class LinkSuggestionEngine:
 
             # Calculate similarity score
             score, reasons = self._calculate_link_score(
-                source,
-                target,
-                page_tags,
-                page_categories,
-                pagerank_scores,
-                betweenness_scores
+                source, target, page_tags, page_categories, pagerank_scores, betweenness_scores
             )
 
             if score >= self.min_score:
@@ -222,7 +208,7 @@ class LinkSuggestionEngine:
 
         # Sort by score and take top N
         candidates.sort(key=lambda x: x[1], reverse=True)
-        top_candidates = candidates[:self.max_suggestions_per_page]
+        top_candidates = candidates[: self.max_suggestions_per_page]
 
         # Convert to LinkSuggestion objects
         suggestions = [
@@ -232,13 +218,15 @@ class LinkSuggestionEngine:
 
         return suggestions
 
-    def _calculate_link_score(self,
-                             source: 'Page',
-                             target: 'Page',
-                             page_tags: dict['Page', set[str]],
-                             page_categories: dict['Page', set[str]],
-                             pagerank_scores: dict['Page', float],
-                             betweenness_scores: dict['Page', float]) -> tuple[float, list[str]]:
+    def _calculate_link_score(
+        self,
+        source: "Page",
+        target: "Page",
+        page_tags: dict["Page", set[str]],
+        page_categories: dict["Page", set[str]],
+        pagerank_scores: dict["Page", float],
+        betweenness_scores: dict["Page", float],
+    ) -> tuple[float, list[str]]:
         """
         Calculate link score between two pages.
 
@@ -280,7 +268,11 @@ class LinkSuggestionEngine:
                 reasons.append(f"High importance (rank: {target_rank:.4f})")
 
         # 4. Target betweenness (link to bridge pages)
-        if betweenness_scores and isinstance(betweenness_scores, dict) and target in betweenness_scores:
+        if (
+            betweenness_scores
+            and isinstance(betweenness_scores, dict)
+            and target in betweenness_scores
+        ):
             target_between = betweenness_scores[target]
             # Normalize (typical betweenness is 0-0.1)
             normalized_between = min(target_between * 10, 1.0)
@@ -300,32 +292,32 @@ class LinkSuggestionEngine:
 
         return score, reasons
 
-    def _build_tag_map(self, pages: list['Page']) -> dict['Page', set[str]]:
+    def _build_tag_map(self, pages: list["Page"]) -> dict["Page", set[str]]:
         """Build mapping of page -> set of tags."""
         tag_map = {}
         for page in pages:
             tags = set()
-            if hasattr(page, 'tags') and page.tags:
-                tags = {tag.lower().replace(' ', '-') for tag in page.tags}
+            if hasattr(page, "tags") and page.tags:
+                tags = {tag.lower().replace(" ", "-") for tag in page.tags}
             tag_map[page] = tags
         return tag_map
 
-    def _build_category_map(self, pages: list['Page']) -> dict['Page', set[str]]:
+    def _build_category_map(self, pages: list["Page"]) -> dict["Page", set[str]]:
         """Build mapping of page -> set of categories."""
         category_map = {}
         for page in pages:
             categories = set()
-            if hasattr(page, 'category') and page.category:
-                categories = {page.category.lower().replace(' ', '-')}
-            elif hasattr(page, 'categories') and page.categories:
-                categories = {cat.lower().replace(' ', '-') for cat in page.categories}
+            if hasattr(page, "category") and page.category:
+                categories = {page.category.lower().replace(" ", "-")}
+            elif hasattr(page, "categories") and page.categories:
+                categories = {cat.lower().replace(" ", "-") for cat in page.categories}
             category_map[page] = categories
         return category_map
 
 
-def suggest_links(graph: 'KnowledgeGraph',
-                 min_score: float = 0.3,
-                 max_suggestions_per_page: int = 10) -> LinkSuggestionResults:
+def suggest_links(
+    graph: "KnowledgeGraph", min_score: float = 0.3, max_suggestions_per_page: int = 10
+) -> LinkSuggestionResults:
     """
     Convenience function for link suggestions.
 
@@ -345,9 +337,6 @@ def suggest_links(graph: 'KnowledgeGraph',
         ...     print(f"{suggestion.source.title} -> {suggestion.target.title}")
     """
     engine = LinkSuggestionEngine(
-        graph,
-        min_score=min_score,
-        max_suggestions_per_page=max_suggestions_per_page
+        graph, min_score=min_score, max_suggestions_per_page=max_suggestions_per_page
     )
     return engine.generate_suggestions()
-

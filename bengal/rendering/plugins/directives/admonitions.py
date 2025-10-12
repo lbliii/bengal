@@ -9,7 +9,7 @@ from mistune.directives import DirectivePlugin
 
 from bengal.utils.logger import get_logger
 
-__all__ = ['AdmonitionDirective', 'render_admonition']
+__all__ = ["AdmonitionDirective", "render_admonition"]
 
 logger = get_logger(__name__)
 
@@ -27,8 +27,15 @@ class AdmonitionDirective(DirectivePlugin):
     """
 
     ADMONITION_TYPES = [
-        'note', 'tip', 'warning', 'danger', 'error',
-        'info', 'example', 'success', 'caution'
+        "note",
+        "tip",
+        "warning",
+        "danger",
+        "error",
+        "info",
+        "example",
+        "success",
+        "caution",
     ]
 
     def parse(self, block, m, state):
@@ -46,12 +53,9 @@ class AdmonitionDirective(DirectivePlugin):
         children = self.parse_tokens(block, content, state)
 
         return {
-            'type': 'admonition',
-            'attrs': {
-                'admon_type': admon_type,
-                'title': title
-            },
-            'children': children
+            "type": "admonition",
+            "attrs": {"admon_type": admon_type, "title": title},
+            "children": children,
         }
 
     def __call__(self, directive, md):
@@ -59,33 +63,32 @@ class AdmonitionDirective(DirectivePlugin):
         for admon_type in self.ADMONITION_TYPES:
             directive.register(admon_type, self.parse)
 
-        if md.renderer and md.renderer.NAME == 'html':
-            md.renderer.register('admonition', render_admonition)
+        if md.renderer and md.renderer.NAME == "html":
+            md.renderer.register("admonition", render_admonition)
 
 
 def render_admonition(renderer, text: str, admon_type: str, title: str) -> str:
     """Render admonition to HTML."""
     # Map types to CSS classes
     type_map = {
-        'note': 'note',
-        'tip': 'tip',
-        'warning': 'warning',
-        'caution': 'warning',
-        'danger': 'danger',
-        'error': 'error',
-        'info': 'info',
-        'example': 'example',
-        'success': 'success',
+        "note": "note",
+        "tip": "tip",
+        "warning": "warning",
+        "caution": "warning",
+        "danger": "danger",
+        "error": "error",
+        "info": "info",
+        "example": "example",
+        "success": "success",
     }
 
-    css_class = type_map.get(admon_type, 'note')
+    css_class = type_map.get(admon_type, "note")
 
     # text contains the rendered children
     html = (
         f'<div class="admonition {css_class}">\n'
         f'  <p class="admonition-title">{title}</p>\n'
-        f'{text}'
-        f'</div>\n'
+        f"{text}"
+        f"</div>\n"
     )
     return html
-

@@ -16,7 +16,7 @@ class TestDependencyTracker:
 
         assert tracker.cache is cache
         # current_page is now a threading.local object, not a simple attribute
-        assert not hasattr(tracker.current_page, 'value')
+        assert not hasattr(tracker.current_page, "value")
 
     def test_start_page(self, tmp_path):
         """Test starting page tracking."""
@@ -44,7 +44,7 @@ class TestDependencyTracker:
         tracker.end_page()
 
         # After end_page(), the thread-local value should be deleted
-        assert not hasattr(tracker.current_page, 'value')
+        assert not hasattr(tracker.current_page, "value")
 
     def test_track_template(self, tmp_path):
         """Test tracking template dependency."""
@@ -246,4 +246,3 @@ class TestDependencyTracker:
 
         assert file2 in deleted
         assert file1 not in deleted
-

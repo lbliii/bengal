@@ -20,17 +20,17 @@ class TestSectionSortedPagesProperty:
         page1 = Page(
             source_path=tmp_path / "docs/page1.md",
             content="Content 1",
-            metadata={"title": "Page 1", "weight": 10}
+            metadata={"title": "Page 1", "weight": 10},
         )
         page2 = Page(
             source_path=tmp_path / "docs/page2.md",
             content="Content 2",
-            metadata={"title": "Page 2", "weight": 1}
+            metadata={"title": "Page 2", "weight": 1},
         )
         page3 = Page(
             source_path=tmp_path / "docs/page3.md",
             content="Content 3",
-            metadata={"title": "Page 3", "weight": 5}
+            metadata={"title": "Page 3", "weight": 5},
         )
 
         section.pages = [page1, page2, page3]
@@ -47,19 +47,13 @@ class TestSectionSortedPagesProperty:
         section = Section(name="docs", path=tmp_path / "docs")
 
         page1 = Page(
-            source_path=tmp_path / "docs/zebra.md",
-            content="Content",
-            metadata={"title": "Zebra"}
+            source_path=tmp_path / "docs/zebra.md", content="Content", metadata={"title": "Zebra"}
         )
         page2 = Page(
-            source_path=tmp_path / "docs/alpha.md",
-            content="Content",
-            metadata={"title": "Alpha"}
+            source_path=tmp_path / "docs/alpha.md", content="Content", metadata={"title": "Alpha"}
         )
         page3 = Page(
-            source_path=tmp_path / "docs/beta.md",
-            content="Content",
-            metadata={"title": "Beta"}
+            source_path=tmp_path / "docs/beta.md", content="Content", metadata={"title": "Beta"}
         )
 
         section.pages = [page1, page2, page3]
@@ -78,17 +72,17 @@ class TestSectionSortedPagesProperty:
         page1 = Page(
             source_path=tmp_path / "docs/page1.md",
             content="Content",
-            metadata={"title": "Zebra", "weight": 10}
+            metadata={"title": "Zebra", "weight": 10},
         )
         page2 = Page(
             source_path=tmp_path / "docs/page2.md",
             content="Content",
-            metadata={"title": "Alpha"}  # No weight = 0
+            metadata={"title": "Alpha"},  # No weight = 0
         )
         page3 = Page(
             source_path=tmp_path / "docs/page3.md",
             content="Content",
-            metadata={"title": "Beta", "weight": 5}
+            metadata={"title": "Beta", "weight": 5},
         )
 
         section.pages = [page1, page2, page3]
@@ -107,17 +101,17 @@ class TestSectionSortedPagesProperty:
         page1 = Page(
             source_path=tmp_path / "docs/page1.md",
             content="Content",
-            metadata={"title": "Zebra", "weight": 5}
+            metadata={"title": "Zebra", "weight": 5},
         )
         page2 = Page(
             source_path=tmp_path / "docs/page2.md",
             content="Content",
-            metadata={"title": "Alpha", "weight": 5}
+            metadata={"title": "Alpha", "weight": 5},
         )
         page3 = Page(
             source_path=tmp_path / "docs/page3.md",
             content="Content",
-            metadata={"title": "Moose", "weight": 5}
+            metadata={"title": "Moose", "weight": 5},
         )
 
         section.pages = [page1, page2, page3]
@@ -136,17 +130,17 @@ class TestSectionSortedPagesProperty:
         page1 = Page(
             source_path=tmp_path / "docs/page1.md",
             content="Content",
-            metadata={"title": "zebra", "weight": 5}
+            metadata={"title": "zebra", "weight": 5},
         )
         page2 = Page(
             source_path=tmp_path / "docs/page2.md",
             content="Content",
-            metadata={"title": "Alpha", "weight": 5}
+            metadata={"title": "Alpha", "weight": 5},
         )
         page3 = Page(
             source_path=tmp_path / "docs/page3.md",
             content="Content",
-            metadata={"title": "MOOSE", "weight": 5}
+            metadata={"title": "MOOSE", "weight": 5},
         )
 
         section.pages = [page1, page2, page3]
@@ -173,7 +167,7 @@ class TestSectionSortedPagesProperty:
         page = Page(
             source_path=tmp_path / "docs/page.md",
             content="Content",
-            metadata={"title": "Page", "weight": 5}
+            metadata={"title": "Page", "weight": 5},
         )
         section.pages = [page]
 
@@ -188,17 +182,17 @@ class TestSectionSortedPagesProperty:
         page1 = Page(
             source_path=tmp_path / "docs/page1.md",
             content="Content",
-            metadata={"title": "Page 1", "weight": 10}
+            metadata={"title": "Page 1", "weight": 10},
         )
         page2 = Page(
             source_path=tmp_path / "docs/page2.md",
             content="Content",
-            metadata={"title": "Page 2", "weight": -5}
+            metadata={"title": "Page 2", "weight": -5},
         )
         page3 = Page(
             source_path=tmp_path / "docs/page3.md",
             content="Content",
-            metadata={"title": "Page 3", "weight": 0}
+            metadata={"title": "Page 3", "weight": 0},
         )
 
         section.pages = [page1, page2, page3]
@@ -295,12 +289,12 @@ class TestSectionSortChildrenByWeight:
         page1 = Page(
             source_path=tmp_path / "docs/page1.md",
             content="Content",
-            metadata={"title": "Page 1", "weight": 10}
+            metadata={"title": "Page 1", "weight": 10},
         )
         page2 = Page(
             source_path=tmp_path / "docs/page2.md",
             content="Content",
-            metadata={"title": "Page 2", "weight": 1}
+            metadata={"title": "Page 2", "weight": 1},
         )
 
         section.pages = [page1, page2]
@@ -342,12 +336,12 @@ class TestSectionSortChildrenByWeight:
         page1 = Page(
             source_path=tmp_path / "docs/page1.md",
             content="Content",
-            metadata={"title": "B", "weight": 2}
+            metadata={"title": "B", "weight": 2},
         )
         page2 = Page(
             source_path=tmp_path / "docs/page2.md",
             content="Content",
-            metadata={"title": "A", "weight": 1}
+            metadata={"title": "A", "weight": 1},
         )
 
         section.pages = [page1, page2]
@@ -383,11 +377,7 @@ class TestSectionMetadataInheritance:
         index_page = Page(
             source_path=tmp_path / "docs/_index.md",
             content="Index content",
-            metadata={
-                "title": "Documentation",
-                "weight": 42,
-                "description": "All the docs"
-            }
+            metadata={"title": "Documentation", "weight": 42, "description": "All the docs"},
         )
 
         section.add_page(index_page)
@@ -404,7 +394,7 @@ class TestSectionMetadataInheritance:
         regular_page = Page(
             source_path=tmp_path / "docs/guide.md",
             content="Guide content",
-            metadata={"title": "Guide", "weight": 100}
+            metadata={"title": "Guide", "weight": 100},
         )
 
         section.add_page(regular_page)
@@ -426,7 +416,7 @@ class TestSortingStability:
             page = Page(
                 source_path=tmp_path / f"docs/page{i}.md",
                 content=f"Content {i}",
-                metadata={"title": f"Page {i}", "weight": i % 3}
+                metadata={"title": f"Page {i}", "weight": i % 3},
             )
             pages.append(page)
 
@@ -453,12 +443,12 @@ class TestSortingStability:
         page1 = Page(
             source_path=tmp_path / "docs/page1.md",
             content="Content",
-            metadata={"title": "B", "weight": 1}
+            metadata={"title": "B", "weight": 1},
         )
         page2 = Page(
             source_path=tmp_path / "docs/page2.md",
             content="Content",
-            metadata={"title": "A", "weight": 1}
+            metadata={"title": "A", "weight": 1},
         )
 
         section.pages = [page1, page2]
@@ -469,4 +459,3 @@ class TestSortingStability:
         result3 = section.sorted_pages
 
         assert result1 == result2 == result3
-

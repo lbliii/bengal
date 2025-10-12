@@ -41,7 +41,7 @@ def sample_site(tmp_path):
     site.pages = [hub_page] + spoke_pages + [orphan_page]
     site.sections = []
     site.menus = {}
-    site.config = {'taxonomies': {}}
+    site.config = {"taxonomies": {}}
 
     # Setup graph manually with connections
     # Spokes link to hub
@@ -218,7 +218,7 @@ class TestPageRankScalability:
             page.source_path = Path(f"page{i}.md")
             page.title = f"Page {i}"
             page.metadata = {}
-            page.links = [f"/page{(i+1) % 50}/"]
+            page.links = [f"/page{(i + 1) % 50}/"]
             pages.append(page)
 
         # Create mock site
@@ -226,7 +226,7 @@ class TestPageRankScalability:
         site.pages = pages
         site.sections = []
         site.menus = {}
-        site.config = {'taxonomies': {}}
+        site.config = {"taxonomies": {}}
 
         # Build graph with circular connections
         graph = KnowledgeGraph(site)
@@ -235,7 +235,7 @@ class TestPageRankScalability:
         graph.outgoing_refs = defaultdict(set)
 
         for i, page in enumerate(pages):
-            next_page = pages[(i+1) % 50]
+            next_page = pages[(i + 1) % 50]
             graph.outgoing_refs[page].add(next_page)
             graph.incoming_refs[next_page] += 1
 
@@ -287,7 +287,7 @@ class TestPageRankScalability:
         site.pages = [page_a, page_b, page_c, page_d]
         site.sections = []
         site.menus = {}
-        site.config = {'taxonomies': {}}
+        site.config = {"taxonomies": {}}
 
         # Build graph with two disconnected components
         graph = KnowledgeGraph(site)
@@ -313,4 +313,3 @@ class TestPageRankScalability:
         score_d = results.get_score(page_d)
 
         assert score_b == pytest.approx(score_d, rel=1e-3)
-
