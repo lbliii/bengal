@@ -91,14 +91,14 @@ pytest --cov=bengal
 pytest tests/test_page.py
 ```
 
-### 4. Format Code
+### 4. Format and Lint Code
 
 ```bash
-# Format with black
-black bengal/
+# Format code with ruff
+ruff format bengal/
 
-# Check with ruff
-ruff check bengal/
+# Lint and auto-fix with ruff
+ruff check --fix bengal/
 
 # Type check with mypy
 mypy bengal/

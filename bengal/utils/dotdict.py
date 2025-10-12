@@ -30,7 +30,7 @@ class DotDict:
     Features:
         - Dot notation: obj.key
         - Bracket notation: obj['key']
-        - Recursive wrapping of nested dicts
+        - Recursive wrapping of nested dicts (with caching for performance)
         - Dict-like interface (but not inheriting from dict)
         - No method name collisions
 
@@ -54,11 +54,18 @@ class DotDict:
         Unlike traditional dict subclasses, DotDict does NOT inherit from dict.
         This avoids method name collisions. We implement the dict interface
         manually to work with Jinja2 and other dict-expecting code.
+
+    Performance:
+        Nested dictionaries are wrapped lazily and cached on first access.
+        This prevents repeatedly creating new DotDict objects for the same
+        nested data, which is especially important for deeply nested structures
+        or when accessed in template loops.
     """
 
     def __init__(self, data: dict[str, Any] | None = None):
-        """Initialize with a dictionary."""
+        """Initialize with a dictionary and a cache for wrapped nested objects."""
         object.__setattr__(self, "_data", data or {})
+        object.__setattr__(self, "_cache", {})
 
     def __getattribute__(self, key: str) -> Any:
         """
@@ -77,17 +84,21 @@ class DotDict:
         Returns:
             The data value if it exists, the attribute, or None
         """
-        # Special case: _data itself and __class__ need normal access
-        if key in ("_data", "__class__", "__dict__"):
+        # Special case: internal attributes need normal access
+        if key in ("_data", "_cache", "__class__", "__dict__"):
             return object.__getattribute__(self, key)
 
         # Check if key exists in data first
         data = object.__getattribute__(self, "_data")
         if key in data:
             value = data[key]
-            # Recursively wrap nested dicts
+            # Recursively wrap nested dicts (with caching)
             if isinstance(value, dict) and not isinstance(value, DotDict):
-                return DotDict(value)
+                cache = object.__getattribute__(self, "_cache")
+                # Check cache first
+                if key not in cache:
+                    cache[key] = DotDict(value)
+                return cache[key]
             return value
 
         # Try to get as a real attribute (methods like .get(), .keys())
@@ -99,34 +110,49 @@ class DotDict:
             return None
 
     def __setattr__(self, key: str, value: Any) -> None:
-        """Allow dot notation assignment."""
-        if key == "_data":
+        """Allow dot notation assignment. Invalidates cache for the key."""
+        if key in ("_data", "_cache"):
             object.__setattr__(self, key, value)
         else:
             self._data[key] = value
+            # Invalidate cached wrapped object if it exists
+            if key in self._cache:
+                del self._cache[key]
 
     def __delattr__(self, key: str) -> None:
-        """Allow dot notation deletion."""
+        """Allow dot notation deletion. Invalidates cache for the key."""
         if key in self._data:
             del self._data[key]
+            # Invalidate cached wrapped object if it exists
+            if key in self._cache:
+                del self._cache[key]
         else:
             raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{key}'")
 
     # Dict interface methods
     def __getitem__(self, key: str) -> Any:
-        """Bracket notation access."""
+        """Bracket notation access with caching."""
         value = self._data[key]
         if isinstance(value, dict) and not isinstance(value, DotDict):
-            return DotDict(value)
+            # Check cache first
+            if key not in self._cache:
+                self._cache[key] = DotDict(value)
+            return self._cache[key]
         return value
 
     def __setitem__(self, key: str, value: Any) -> None:
-        """Bracket notation assignment."""
+        """Bracket notation assignment. Invalidates cache for the key."""
         self._data[key] = value
+        # Invalidate cached wrapped object if it exists
+        if key in self._cache:
+            del self._cache[key]
 
     def __delitem__(self, key: str) -> None:
-        """Bracket notation deletion."""
+        """Bracket notation deletion. Invalidates cache for the key."""
         del self._data[key]
+        # Invalidate cached wrapped object if it exists
+        if key in self._cache:
+            del self._cache[key]
 
     def __contains__(self, key: str) -> bool:
         """Check if key exists."""

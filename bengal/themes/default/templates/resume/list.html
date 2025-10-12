@@ -156,7 +156,7 @@
             <div class="skill-group">
                 <h3 class="skill-category">{{ skill_group.category }}</h3>
                 <div class="skill-tags">
-                    {% for skill in skill_group['items'] %}
+                    {% for skill in skill_group.items %}
                     <span class="skill-tag">{{ skill }}</span>
                     {% endfor %}
                 </div>
