@@ -44,52 +44,59 @@ class DummySite:
 
 
 def test_search_generated_by_default(tmp_path):
-    site = DummySite(tmp_path, config={'search': {'enabled': True}}, available_templates=['search.html', '404.html'])
+    site = DummySite(
+        tmp_path,
+        config={"search": {"enabled": True}},
+        available_templates=["search.html", "404.html"],
+    )
     gen = SpecialPagesGenerator(site)
     gen.generate()
     # search/index.html should exist
-    assert (site.output_dir / 'search' / 'index.html').exists()
+    assert (site.output_dir / "search" / "index.html").exists()
 
 
 def test_search_skips_when_disabled(tmp_path):
-    site = DummySite(tmp_path, config={'search': {'enabled': False}}, available_templates=['search.html'])
+    site = DummySite(
+        tmp_path, config={"search": {"enabled": False}}, available_templates=["search.html"]
+    )
     gen = SpecialPagesGenerator(site)
     gen.generate()
-    assert not (site.output_dir / 'search' / 'index.html').exists()
+    assert not (site.output_dir / "search" / "index.html").exists()
 
 
 def test_search_skips_when_user_page_exists(tmp_path):
-    site = DummySite(tmp_path, config={'search': {'enabled': True}}, available_templates=['search.html'])
+    site = DummySite(
+        tmp_path, config={"search": {"enabled": True}}, available_templates=["search.html"]
+    )
     # create user override content
-    (site.content_dir / 'search.md').write_text("---\ntitle: Search\n---\n")
+    (site.content_dir / "search.md").write_text("---\ntitle: Search\n---\n")
     gen = SpecialPagesGenerator(site)
     gen.generate()
-    assert not (site.output_dir / 'search' / 'index.html').exists()
+    assert not (site.output_dir / "search" / "index.html").exists()
 
 
 def test_search_custom_path_and_template(tmp_path):
     site = DummySite(
         tmp_path,
-        config={'search': {'enabled': True, 'path': '/finder/', 'template': 'search.html'}},
-        available_templates=['search.html']
+        config={"search": {"enabled": True, "path": "/finder/", "template": "search.html"}},
+        available_templates=["search.html"],
     )
     gen = SpecialPagesGenerator(site)
     gen.generate()
-    assert (site.output_dir / 'finder' / 'index.html').exists()
+    assert (site.output_dir / "finder" / "index.html").exists()
 
 
 def test_search_boolean_true_config(tmp_path):
     # search = true (boolean form)
-    site = DummySite(tmp_path, config={'search': True}, available_templates=['search.html'])
+    site = DummySite(tmp_path, config={"search": True}, available_templates=["search.html"])
     gen = SpecialPagesGenerator(site)
     gen.generate()
-    assert (site.output_dir / 'search' / 'index.html').exists()
+    assert (site.output_dir / "search" / "index.html").exists()
 
 
 def test_search_boolean_false_config(tmp_path):
     # search = false (boolean form)
-    site = DummySite(tmp_path, config={'search': False}, available_templates=['search.html'])
+    site = DummySite(tmp_path, config={"search": False}, available_templates=["search.html"])
     gen = SpecialPagesGenerator(site)
     gen.generate()
-    assert not (site.output_dir / 'search' / 'index.html').exists()
-
+    assert not (site.output_dir / "search" / "index.html").exists()

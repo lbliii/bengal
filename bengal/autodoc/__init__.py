@@ -14,9 +14,8 @@ from bengal.autodoc.extractors.cli import CLIExtractor
 from bengal.autodoc.generator import DocumentationGenerator
 
 __all__ = [
-    'CLIExtractor',
-    'DocElement',
-    'DocumentationGenerator',
-    'Extractor',
+    "CLIExtractor",
+    "DocElement",
+    "DocumentationGenerator",
+    "Extractor",
 ]
-

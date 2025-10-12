@@ -15,18 +15,18 @@ def theme() -> None:
 
 
 @theme.command()
-@click.argument('template_path')
-@click.argument('source', type=click.Path(exists=True), default='.')
+@click.argument("template_path")
+@click.argument("source", type=click.Path(exists=True), default=".")
 def swizzle(template_path: str, source: str) -> None:
     """Copy a theme template/partial to project templates/ and track provenance."""
     site = Site.from_config(Path(source).resolve())
     mgr = SwizzleManager(site)
     dest = mgr.swizzle(template_path)
-    click.echo(click.style(f"✓ Swizzled to {dest}", fg='green'))
+    click.echo(click.style(f"✓ Swizzled to {dest}", fg="green"))
 
 
-@theme.command('swizzle-list')
-@click.argument('source', type=click.Path(exists=True), default='.')
+@theme.command("swizzle-list")
+@click.argument("source", type=click.Path(exists=True), default=".")
 def swizzle_list(source: str) -> None:
     """List swizzled templates."""
     site = Site.from_config(Path(source).resolve())
@@ -39,15 +39,16 @@ def swizzle_list(source: str) -> None:
         click.echo(f"- {r.target} (from {r.theme})")
 
 
-@theme.command('swizzle-update')
-@click.argument('source', type=click.Path(exists=True), default='.')
+@theme.command("swizzle-update")
+@click.argument("source", type=click.Path(exists=True), default=".")
 def swizzle_update(source: str) -> None:
     """Update swizzled templates if unchanged locally."""
     site = Site.from_config(Path(source).resolve())
     mgr = SwizzleManager(site)
     summary = mgr.update()
-    click.echo(click.style(
-        f"Updated: {summary['updated']}, Skipped (changed): {summary['skipped_changed']}, Missing upstream: {summary['missing_upstream']}",
-        fg='cyan'))
-
-
+    click.echo(
+        click.style(
+            f"Updated: {summary['updated']}, Skipped (changed): {summary['skipped_changed']}, Missing upstream: {summary['missing_upstream']}",
+            fg="cyan",
+        )
+    )

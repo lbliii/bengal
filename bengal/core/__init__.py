@@ -14,7 +14,7 @@ Data Models:
 Organization Pattern:
     - Simple models (< 400 lines): Single file (e.g., section.py)
     - Complex models (> 400 lines): Package (e.g., page/)
-    
+
     When a model grows beyond 400 lines or requires multiple concerns,
     it should be converted to a package with focused modules/mixins.
 
@@ -42,4 +42,3 @@ from bengal.core.section import Section
 from bengal.core.site import Site
 
 __all__ = ["Asset", "MenuBuilder", "MenuItem", "Page", "Section", "Site"]
-

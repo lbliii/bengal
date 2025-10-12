@@ -17,7 +17,7 @@ Orchestrators:
 
 Usage:
     from bengal.orchestration import BuildOrchestrator
-    
+
     orchestrator = BuildOrchestrator(site)
     stats = orchestrator.build(parallel=True, incremental=True)
 """
@@ -32,13 +32,12 @@ from bengal.orchestration.render import RenderOrchestrator
 from bengal.orchestration.taxonomy import TaxonomyOrchestrator
 
 __all__ = [
-    'AssetOrchestrator',
-    'BuildOrchestrator',
-    'ContentOrchestrator',
-    'IncrementalOrchestrator',
-    'MenuOrchestrator',
-    'PostprocessOrchestrator',
-    'RenderOrchestrator',
-    'TaxonomyOrchestrator',
+    "AssetOrchestrator",
+    "BuildOrchestrator",
+    "ContentOrchestrator",
+    "IncrementalOrchestrator",
+    "MenuOrchestrator",
+    "PostprocessOrchestrator",
+    "RenderOrchestrator",
+    "TaxonomyOrchestrator",
 ]
-

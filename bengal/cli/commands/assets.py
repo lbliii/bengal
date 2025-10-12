@@ -18,8 +18,8 @@ def assets() -> None:
 
 
 @assets.command()
-@click.option('--watch', is_flag=True, help='Watch assets and rebuild on changes')
-@click.argument('source', type=click.Path(exists=True), default='.')
+@click.option("--watch", is_flag=True, help="Watch assets and rebuild on changes")
+@click.argument("source", type=click.Path(exists=True), default=".")
 def build(watch: bool, source: str) -> None:
     """Build assets using the configured pipeline (if enabled)."""
     root = Path(source).resolve()
@@ -28,17 +28,18 @@ def build(watch: bool, source: str) -> None:
     def run_once() -> None:
         try:
             from bengal.assets.pipeline import from_site as pipeline_from_site
+
             pipeline = pipeline_from_site(site)
             outputs = pipeline.build()
-            click.echo(click.style(f"✓ Assets built ({len(outputs)} outputs)", fg='green'))
+            click.echo(click.style(f"✓ Assets built ({len(outputs)} outputs)", fg="green"))
         except Exception as e:
-            click.echo(click.style(f"✗ Asset pipeline failed: {e}", fg='red'))
+            click.echo(click.style(f"✗ Asset pipeline failed: {e}", fg="red"))
 
     if not watch:
         run_once()
         return
 
-    click.echo(click.style("Watching assets... Press Ctrl+C to stop.", fg='cyan'))
+    click.echo(click.style("Watching assets... Press Ctrl+C to stop.", fg="cyan"))
     try:
         last_run = 0.0
         while True:
@@ -50,6 +51,4 @@ def build(watch: bool, source: str) -> None:
             time.sleep(0.5)
     except KeyboardInterrupt:
         click.echo()
-        click.echo(click.style("Stopped asset watcher.", fg='yellow'))
-
-
+        click.echo(click.style("Stopped asset watcher.", fg="yellow"))

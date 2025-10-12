@@ -3,8 +3,6 @@ Tests for syntax highlighting behavior, including language aliasing and
 special handling for client-side rendered languages like Mermaid.
 """
 
-
-
 from bengal.rendering.parser import MistuneParser, PythonMarkdownParser
 
 
@@ -40,7 +38,7 @@ A --> B
         # Mermaid blocks should be wrapped in a div with class mermaid
         assert '<div class="mermaid">' in html
         # Content should be HTML-escaped inside
-        assert '&gt;' in html or 'graph LR' in html
+        assert "&gt;" in html or "graph LR" in html
 
 
 class TestPythonMarkdownHighlightingAliases:
@@ -62,5 +60,3 @@ class TestPythonMarkdownHighlightingAliases:
 """
         html = self.parser.parse(content, {})
         assert '<div class="highlight">' in html or '<span class="nt">' in html
-
-

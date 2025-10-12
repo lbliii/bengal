@@ -22,19 +22,19 @@ Get Started
         result = self.parser.parse(markdown, {})
         assert '<a class="button button-primary"' in result
         assert 'href="/docs/"' in result
-        assert 'Get Started' in result
+        assert "Get Started" in result
 
     def test_button_colors(self):
         """Test all button colors."""
-        colors = ['primary', 'secondary', 'success', 'danger', 'warning', 'info', 'light', 'dark']
-        
+        colors = ["primary", "secondary", "success", "danger", "warning", "info", "light", "dark"]
+
         for color in colors:
             markdown = f""":::{{button}} /test/
 :color: {color}
 Test
 :::"""
             result = self.parser.parse(markdown, {})
-            assert f'button-{color}' in result
+            assert f"button-{color}" in result
 
     def test_button_pill_style(self):
         """Test pill style (fully rounded)."""
@@ -43,7 +43,7 @@ Test
 Test
 :::"""
         result = self.parser.parse(markdown, {})
-        assert 'button-pill' in result
+        assert "button-pill" in result
 
     def test_button_outline_style(self):
         """Test outline style."""
@@ -53,8 +53,8 @@ Test
 Test
 :::"""
         result = self.parser.parse(markdown, {})
-        assert 'button-outline' in result
-        assert 'button-primary' in result
+        assert "button-outline" in result
+        assert "button-primary" in result
 
     def test_button_sizes(self):
         """Test button sizes."""
@@ -63,14 +63,14 @@ Test
 Small
 :::"""
         result_sm = self.parser.parse(markdown_sm, {})
-        assert 'button-sm' in result_sm
+        assert "button-sm" in result_sm
 
         markdown_lg = """:::{button} /test/
 :size: large
 Large
 :::"""
         result_lg = self.parser.parse(markdown_lg, {})
-        assert 'button-lg' in result_lg
+        assert "button-lg" in result_lg
 
     def test_button_with_icon(self):
         """Test button with icon."""
@@ -79,8 +79,8 @@ Large
 Launch
 :::"""
         result = self.parser.parse(markdown, {})
-        assert '🚀' in result
-        assert 'button-icon' in result
+        assert "🚀" in result
+        assert "button-icon" in result
 
     def test_button_external_link(self):
         """Test button with external link and target."""
@@ -103,11 +103,11 @@ GitHub
 Sign Up Free
 :::"""
         result = self.parser.parse(markdown, {})
-        assert 'button-primary' in result
-        assert 'button-pill' in result
-        assert 'button-lg' in result
-        assert '🚀' in result
-        assert 'Sign Up Free' in result
+        assert "button-primary" in result
+        assert "button-pill" in result
+        assert "button-lg" in result
+        assert "🚀" in result
+        assert "Sign Up Free" in result
 
     def test_button_invalid_color_fallback(self):
         """Test button with invalid color falls back to primary."""
@@ -116,7 +116,7 @@ Sign Up Free
 Test
 :::"""
         result = self.parser.parse(markdown, {})
-        assert 'button-primary' in result
+        assert "button-primary" in result
 
     def test_button_no_icon_shows_nothing(self):
         """Test button with invalid icon shows no icon."""
@@ -125,9 +125,9 @@ Test
 Test
 :::"""
         result = self.parser.parse(markdown, {})
-        assert 'button-icon' not in result
+        assert "button-icon" not in result
         # Text should still be there
-        assert 'Test' in result
+        assert "Test" in result
 
     def test_multiple_buttons(self):
         """Test multiple buttons in one document."""
@@ -142,8 +142,8 @@ API
 :::"""
         result = self.parser.parse(markdown, {})
         assert result.count('class="button') == 2
-        assert 'button-primary' in result
-        assert 'button-secondary' in result
+        assert "button-primary" in result
+        assert "button-secondary" in result
 
 
 class TestButtonEdgeCases:
@@ -156,7 +156,7 @@ class TestButtonEdgeCases:
     def test_button_empty_url(self):
         """Test button with empty URL."""
         markdown = """
-        :::{button} 
+        :::{button}
         Test
         :::
         """
@@ -173,8 +173,8 @@ class TestButtonEdgeCases:
         """
         result = self.parser.parse(markdown, {})
         # Should be escaped
-        assert '&lt;script&gt;' in result
-        assert '<script>' not in result
+        assert "&lt;script&gt;" in result
+        assert "<script>" not in result
 
     def test_button_special_chars_in_url(self):
         """Test button with special characters in URL."""
@@ -196,7 +196,7 @@ class TestButtonEdgeCases:
         """
         result = self.parser.parse(markdown, {})
         # Markdown should not be processed, just escaped
-        assert '**Bold**' in result or 'Bold' in result
+        assert "**Bold**" in result or "Bold" in result
 
     def test_button_with_only_icon(self):
         """Test button with only icon, no text."""
@@ -206,7 +206,7 @@ class TestButtonEdgeCases:
         :::
         """
         result = self.parser.parse(markdown, {})
-        assert '→' in result or 'arrow-right' in result
+        assert "→" in result or "arrow-right" in result
 
 
 class TestButtonIntegration:
@@ -221,7 +221,7 @@ class TestButtonIntegration:
         markdown = """
         :::{card} Get Started
         Learn how to use our platform.
-        
+
         :::{button} /docs/
         :color: primary
         Read Docs
@@ -229,14 +229,14 @@ class TestButtonIntegration:
         :::
         """
         result = self.parser.parse(markdown, {})
-        assert 'card' in result
-        assert 'button-primary' in result
+        assert "card" in result
+        assert "button-primary" in result
 
     def test_button_with_heading(self):
         """Test button near heading."""
         markdown = """
         ## Quick Actions
-        
+
         :::{button} /start/
         :color: primary
         :style: pill
@@ -244,8 +244,8 @@ class TestButtonIntegration:
         :::
         """
         result = self.parser.parse(markdown, {})
-        assert '<h2>' in result
-        assert 'button-pill' in result
+        assert "<h2>" in result
+        assert "button-pill" in result
 
     def test_buttons_in_list(self):
         """Test buttons in list items."""
@@ -260,5 +260,4 @@ class TestButtonIntegration:
           :::
         """
         result = self.parser.parse(markdown, {})
-        assert result.count('button-sm') >= 1
-
+        assert result.count("button-sm") >= 1

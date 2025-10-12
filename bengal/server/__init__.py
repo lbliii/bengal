@@ -24,7 +24,7 @@ Features:
 Usage:
     from bengal.server import DevServer
     from bengal.core import Site
-    
+
     site = Site.from_config()
     server = DevServer(
         site,
@@ -48,4 +48,3 @@ The server watches for changes in:
 from bengal.server.dev_server import DevServer
 
 __all__ = ["DevServer"]
-

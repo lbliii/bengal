@@ -20,7 +20,7 @@ Usage:
         CrossReferencePlugin,
         create_documentation_directives
     )
-    
+
     # Use in mistune parser
     md = mistune.create_markdown(
         plugins=[
@@ -46,15 +46,15 @@ from bengal.rendering.plugins.variable_substitution import VariableSubstitutionP
 def plugin_documentation_directives(md):
     """
     DEPRECATED: Use create_documentation_directives() instead.
-    
+
     This function will be removed in Bengal 2.0.
-    
+
     Usage:
         # Old (deprecated):
         md = mistune.create_markdown(
             plugins=[plugin_documentation_directives]
         )
-        
+
         # New (recommended):
         md = mistune.create_markdown(
             plugins=[create_documentation_directives()]
@@ -64,21 +64,20 @@ def plugin_documentation_directives(md):
         "plugin_documentation_directives() is deprecated and will be removed in Bengal 2.0. "
         "Use create_documentation_directives() instead.",
         DeprecationWarning,
-        stacklevel=2
+        stacklevel=2,
     )
     return create_documentation_directives()(md)
 
 
 __all__ = [
-    'BadgePlugin',
-    'CrossReferencePlugin',
+    "BadgePlugin",
+    "CrossReferencePlugin",
     # Core plugins
-    'VariableSubstitutionPlugin',
+    "VariableSubstitutionPlugin",
     # Directive factory
-    'create_documentation_directives',
+    "create_documentation_directives",
     # Deprecated (will be removed in Bengal 2.0)
-    'plugin_documentation_directives',
+    "plugin_documentation_directives",
 ]
 
-__version__ = '1.0.0'
-
+__version__ = "1.0.0"

@@ -19,7 +19,7 @@ class TestBadgePlugin:
         markdown = "This has a {bdg-primary}`primary` badge."
         result = self.parser.parse(markdown, {})
         assert '<span class="badge badge-primary">primary</span>' in result
-        assert 'This has a' in result
+        assert "This has a" in result
 
     def test_badge_secondary(self):
         """Test secondary badge."""
@@ -77,14 +77,14 @@ class TestBadgePlugin:
         result = self.parser.parse(markdown, {})
         assert '<span class="badge badge-success">stable</span>' in result
         assert '<span class="badge badge-info">documented</span>' in result
-        assert 'This feature is' in result
+        assert "This feature is" in result
 
     def test_badge_with_special_chars(self):
         """Test badge with special characters (should be escaped)."""
         markdown = "{bdg-primary}`<script>alert('xss')</script>`"
         result = self.parser.parse(markdown, {})
         assert '<span class="badge badge-primary">&lt;script&gt;' in result
-        assert '<script>' not in result  # Should be escaped
+        assert "<script>" not in result  # Should be escaped
 
     def test_badge_unknown_color_fallback(self):
         """Test badge with unknown color falls back to secondary."""
@@ -117,15 +117,15 @@ class TestBadgePlugin:
         """Test that content without badges is unaffected."""
         markdown = "Just regular text."
         result = self.parser.parse(markdown, {})
-        assert 'badge' not in result or 'badge' not in result.lower()
-        assert 'Just regular text' in result
+        assert "badge" not in result or "badge" not in result.lower()
+        assert "Just regular text" in result
 
     def test_badge_in_heading(self):
         """Test badge in heading."""
         markdown = "# Features {bdg-success}`new`"
         result = self.parser.parse(markdown, {})
         assert '<span class="badge badge-success">new</span>' in result
-        assert '<h1>' in result
+        assert "<h1>" in result
 
     def test_sphinx_design_real_usage(self):
         """Test real usage from Sphinx docs (card footer)."""
@@ -149,7 +149,7 @@ class TestBadgePluginEdgeCases:
         markdown = "{bdg-primary}``"
         result = self.parser.parse(markdown, {})
         # Should handle gracefully
-        assert 'badge-primary' in result or markdown in result
+        assert "badge-primary" in result or markdown in result
 
     def test_badge_multiline_not_supported(self):
         """Test that multiline badge content doesn't break parser."""
@@ -158,7 +158,7 @@ line two`"""
         result = self.parser.parse(markdown, {})
         # Should not crash, but might not render as badge
         # (backtick syntax is single-line only)
-        assert 'line one' in result
+        assert "line one" in result
 
     def test_badge_nested_backticks(self):
         """Test badge with nested backticks (shouldn't work but shouldn't crash)."""
@@ -166,7 +166,7 @@ line two`"""
         result = self.parser.parse(markdown, {})
         # Mistune's backtick handling will resolve this first
         # Just ensure it doesn't crash
-        assert 'outer' in result
+        assert "outer" in result
 
     def test_badge_with_ampersand(self):
         """Test badge with ampersand (should be escaped)."""
@@ -178,5 +178,4 @@ line two`"""
         """Test badge with quotes (should be escaped)."""
         markdown = '{bdg-info}`"quoted"`'
         result = self.parser.parse(markdown, {})
-        assert '&quot;' in result or '"' in result
-
+        assert "&quot;" in result or '"' in result

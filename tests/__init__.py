@@ -1,2 +1,1 @@
 """Bengal SSG test suite."""
-

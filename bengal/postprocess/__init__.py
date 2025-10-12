@@ -9,10 +9,10 @@ Handles generation of files and pages after main rendering:
 
 Usage:
     from bengal.postprocess import SitemapGenerator, RSSGenerator
-    
+
     sitemap = SitemapGenerator(site)
     sitemap.generate()
-    
+
     rss = RSSGenerator(site)
     rss.generate()
 """
@@ -23,4 +23,3 @@ from bengal.postprocess.sitemap import SitemapGenerator
 from bengal.postprocess.special_pages import SpecialPagesGenerator
 
 __all__ = ["OutputFormatsGenerator", "RSSGenerator", "SitemapGenerator", "SpecialPagesGenerator"]
-

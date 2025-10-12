@@ -30,12 +30,12 @@ logger = get_logger(__name__)
 
 @dataclass
 class SwizzleRecord:
-    target: str               # templates-relative path (e.g., "partials/toc.html")
-    source: str               # absolute path to theme file used for swizzle
-    theme: str                # theme name at time of swizzle
-    upstream_checksum: str    # checksum of upstream file when swizzled
-    local_checksum: str       # checksum of copied local file at swizzle time
-    timestamp: float          # epoch seconds
+    target: str  # templates-relative path (e.g., "partials/toc.html")
+    source: str  # absolute path to theme file used for swizzle
+    theme: str  # theme name at time of swizzle
+    upstream_checksum: str  # checksum of upstream file when swizzled
+    local_checksum: str  # checksum of copied local file at swizzle time
+    timestamp: float  # epoch seconds
 
 
 class SwizzleManager:
@@ -54,28 +54,30 @@ class SwizzleManager:
         Returns:
             Path to copied file under project templates/
         """
-        logger.debug("swizzle_start",
-                    template=template_rel_path,
-                    theme=self.site.theme or "default",
-                    site_root=str(self.root))
-        
+        logger.debug(
+            "swizzle_start",
+            template=template_rel_path,
+            theme=self.site.theme or "default",
+            site_root=str(self.root),
+        )
+
         source = self._find_theme_template(template_rel_path)
         if not source or not source.exists():
-            logger.error("swizzle_template_not_found",
-                        template=template_rel_path,
-                        theme=self.site.theme,
-                        resolved_source=str(source) if source else None)
+            logger.error(
+                "swizzle_template_not_found",
+                template=template_rel_path,
+                theme=self.site.theme,
+                resolved_source=str(source) if source else None,
+            )
             raise FileNotFoundError(f"Template not found in theme chain: {template_rel_path}")
 
         dest = self.root / "templates" / template_rel_path
-        
+
         # Check if re-swizzling (overwriting existing)
         is_reswizzle = dest.exists()
         if is_reswizzle:
-            logger.info("swizzle_overwriting_existing",
-                       template=template_rel_path,
-                       dest=str(dest))
-        
+            logger.info("swizzle_overwriting_existing", template=template_rel_path, dest=str(dest))
+
         dest.parent.mkdir(parents=True, exist_ok=True)
 
         content = source.read_text(encoding="utf-8")
@@ -93,11 +95,13 @@ class SwizzleManager:
             timestamp=time.time(),
         )
         self._save_record(record)
-        logger.info("swizzle_copied",
-                   target=record.target,
-                   source=record.source,
-                   theme=record.theme,
-                   is_reswizzle=is_reswizzle)
+        logger.info(
+            "swizzle_copied",
+            target=record.target,
+            source=record.source,
+            theme=record.theme,
+            is_reswizzle=is_reswizzle,
+        )
         return dest
 
     def list(self) -> builtins.list[SwizzleRecord]:
@@ -109,15 +113,12 @@ class SwizzleManager:
                 records.append(SwizzleRecord(**rec))
             except Exception as e:
                 invalid_count += 1
-                logger.warning("swizzle_invalid_record",
-                             record=rec,
-                             error=str(e),
-                             error_type=type(e).__name__)
+                logger.warning(
+                    "swizzle_invalid_record", record=rec, error=str(e), error_type=type(e).__name__
+                )
                 continue
-        
-        logger.debug("swizzle_list",
-                    total=len(records),
-                    invalid=invalid_count)
+
+        logger.debug("swizzle_list", total=len(records), invalid=invalid_count)
         return records
 
     def update(self) -> dict[str, int]:
@@ -127,9 +128,8 @@ class SwizzleManager:
         """
         data = self._load_registry()
         records = data.get("records", [])
-        logger.info("swizzle_update_start",
-                   total_records=len(records))
-        
+        logger.info("swizzle_update_start", total_records=len(records))
+
         updated = 0
         skipped_changed = 0
         missing_upstream = 0
@@ -137,37 +137,43 @@ class SwizzleManager:
         for rec in records:
             target_path = self.root / "templates" / rec.get("target", "")
             source_path = Path(rec.get("source", ""))
-            
+
             if not source_path.exists():
                 # Try resolving again (theme might have moved)
                 resolved = self._find_theme_template(rec.get("target", ""))
                 if not resolved:
                     missing_upstream += 1
-                    logger.warning("swizzle_update_missing_upstream",
-                                 target=rec.get("target"),
-                                 source=str(source_path))
+                    logger.warning(
+                        "swizzle_update_missing_upstream",
+                        target=rec.get("target"),
+                        source=str(source_path),
+                    )
                     continue
                 source_path = resolved
-                logger.debug("swizzle_update_resolved",
-                           target=rec.get("target"),
-                           old_source=rec.get("source"),
-                           new_source=str(resolved))
+                logger.debug(
+                    "swizzle_update_resolved",
+                    target=rec.get("target"),
+                    old_source=rec.get("source"),
+                    new_source=str(resolved),
+                )
 
             # Only overwrite if local file is unchanged since swizzle time
             if not target_path.exists():
                 skipped_changed += 1
-                logger.warning("swizzle_update_local_missing",
-                             target=rec.get("target"),
-                             path=str(target_path))
+                logger.warning(
+                    "swizzle_update_local_missing", target=rec.get("target"), path=str(target_path)
+                )
                 continue
-            
+
             current_checksum = _checksum_file(target_path)
             expected_checksum = rec.get("local_checksum")
             if current_checksum != expected_checksum:
                 skipped_changed += 1
-                logger.info("swizzle_update_skipped_changed",
-                           target=rec.get("target"),
-                           reason="local_modifications_detected")
+                logger.info(
+                    "swizzle_update_skipped_changed",
+                    target=rec.get("target"),
+                    reason="local_modifications_detected",
+                )
                 continue
 
             new_content = source_path.read_text(encoding="utf-8")
@@ -178,25 +184,30 @@ class SwizzleManager:
             rec["local_checksum"] = _checksum_str(new_content)
             rec["timestamp"] = time.time()
             updated += 1
-            logger.info("swizzle_update_success",
-                       target=rec.get("target"),
-                       source=str(source_path))
+            logger.info("swizzle_update_success", target=rec.get("target"), source=str(source_path))
 
         # Persist registry updates
         data["records"] = records
         self._write_registry(data)
-        
-        logger.info("swizzle_update_complete",
-                   updated=updated,
-                   skipped_changed=skipped_changed,
-                   missing_upstream=missing_upstream)
-        return {"updated": updated, "skipped_changed": skipped_changed, "missing_upstream": missing_upstream}
+
+        logger.info(
+            "swizzle_update_complete",
+            updated=updated,
+            skipped_changed=skipped_changed,
+            missing_upstream=missing_upstream,
+        )
+        return {
+            "updated": updated,
+            "skipped_changed": skipped_changed,
+            "missing_upstream": missing_upstream,
+        }
 
     # Internal helpers
 
     def _find_theme_template(self, template_rel_path: str) -> Path | None:
         try:
             from bengal.rendering.template_engine import TemplateEngine
+
             engine = TemplateEngine(self.site)
             return engine._find_template_path(template_rel_path)
         except Exception as e:
@@ -224,34 +235,44 @@ class SwizzleManager:
         try:
             if self.registry_path.exists():
                 data = json.loads(self.registry_path.read_text(encoding="utf-8"))
-                logger.debug("swizzle_registry_loaded",
-                           path=str(self.registry_path),
-                           record_count=len(data.get("records", [])))
+                logger.debug(
+                    "swizzle_registry_loaded",
+                    path=str(self.registry_path),
+                    record_count=len(data.get("records", [])),
+                )
                 return data
         except json.JSONDecodeError as e:
-            logger.error("swizzle_registry_json_invalid",
-                        path=str(self.registry_path),
-                        error=str(e),
-                        error_type="JSONDecodeError")
+            logger.error(
+                "swizzle_registry_json_invalid",
+                path=str(self.registry_path),
+                error=str(e),
+                error_type="JSONDecodeError",
+            )
         except Exception as e:
-            logger.error("swizzle_registry_load_failed",
-                        path=str(self.registry_path),
-                        error=str(e),
-                        error_type=type(e).__name__)
+            logger.error(
+                "swizzle_registry_load_failed",
+                path=str(self.registry_path),
+                error=str(e),
+                error_type=type(e).__name__,
+            )
         return {"records": []}
 
     def _write_registry(self, data: dict[str, object]) -> None:
         try:
             self.registry_path.parent.mkdir(parents=True, exist_ok=True)
             self.registry_path.write_text(json.dumps(data, indent=2), encoding="utf-8")
-            logger.debug("swizzle_registry_saved",
-                        path=str(self.registry_path),
-                        record_count=len(data.get("records", [])))
+            logger.debug(
+                "swizzle_registry_saved",
+                path=str(self.registry_path),
+                record_count=len(data.get("records", [])),
+            )
         except Exception as e:
-            logger.error("swizzle_registry_save_failed",
-                        path=str(self.registry_path),
-                        error=str(e),
-                        error_type=type(e).__name__)
+            logger.error(
+                "swizzle_registry_save_failed",
+                path=str(self.registry_path),
+                error=str(e),
+                error_type=type(e).__name__,
+            )
             raise
 
 
@@ -265,5 +286,3 @@ def _checksum_file(path: Path) -> str:
 
 def _checksum_str(content: str) -> str:
     return sha256(content.encode("utf-8")).hexdigest()[:16]
-
-

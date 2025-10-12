@@ -7,7 +7,7 @@ name = "bengal"
 version = "0.1.0"
 description = "A high-performance static site generator with modular architecture"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 license = "MIT"
 authors = [
     {name = "Bengal Contributors", email = "lbeeze@icloud.com"}
@@ -17,37 +17,38 @@ classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Documentation",
     "Topic :: Software Development :: Documentation",
 ]
 dependencies = [
-    "click>=8.1.0",
+    "click>=8.1.7",
     "markdown>=3.5.0",
+    "mistune>=3.0.0",
     "jinja2>=3.1.0",
     "pyyaml>=6.0",
     "toml>=0.10.0",
     "watchdog>=3.0.0",
-    "pygments>=2.16.0",
+    "pygments>=2.18.0",  # Better Python 3.12 support
     "python-frontmatter>=1.0.0",
     "csscompressor>=0.9.5",
     "jsmin>=3.0.1",
     "pillow>=10.0.0",
     "psutil>=5.9.0",  # For better process management in cleanup
+    "rich>=13.7.0",  # Enhanced terminal output
     "lightningcss>=0.2.0",  # CSS bundling and optimization
 ]
 
 [project.optional-dependencies]
 dev = [
-    "pytest>=7.4.0",
+    "pytest>=8.0.0",      # Python 3.12 compatibility
     "pytest-cov>=4.1.0",
     "pytest-mock>=3.11.0",
     "pytest-xdist>=3.3.0",
-    "black>=23.7.0",
-    "mypy>=1.5.0",
-    "ruff>=0.0.287",
+    "black>=24.0.0",      # Native Python 3.12 syntax support
+    "mypy>=1.11.0",       # Better Python 3.12 type inference
+    "ruff>=0.6.0",        # More Python 3.12 upgrade rules
 ]
 
 [project.scripts]
@@ -72,14 +73,31 @@ bengal = [
 
 [tool.black]
 line-length = 100
-target-version = ['py310']
+target-version = ['py312']
 
 [tool.ruff]
 line-length = 100
-target-version = "py310"
+target-version = "py312"
+
+[tool.ruff.lint]
+# Enable Python upgrade rules and other quality checks
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "UP",   # pyupgrade - Python modernization
+    "B",    # flake8-bugbear - common bugs
+    "SIM",  # flake8-simplify - simplify code
+    "I",    # isort - import sorting
+]
+
+# Per-file ignore rules
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]  # Allow unused imports in __init__ files
+"tests/**/*.py" = ["S101"]  # Allow assert in tests
 
 [tool.mypy]
-python_version = "3.10"
+python_version = "3.12"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true

@@ -11,7 +11,7 @@ from bengal.rendering.pipeline import extract_toc_structure
 
 class TestTOCExtractionMistune:
     """Test TOC extraction from mistune-style flat HTML with indentation."""
-    
+
     def test_simple_h2_headings(self):
         """Test extraction of simple H2 headings (no nesting)."""
         toc_html = """<div class="toc">
@@ -21,14 +21,14 @@ class TestTOCExtractionMistune:
 <li><a href="#installation">Installation</a></li>
 </ul>
 </div>"""
-        
+
         items = extract_toc_structure(toc_html)
-        
+
         assert len(items) == 3
-        assert items[0] == {'id': 'overview', 'title': 'Overview', 'level': 1}
-        assert items[1] == {'id': 'features', 'title': 'Features', 'level': 1}
-        assert items[2] == {'id': 'installation', 'title': 'Installation', 'level': 1}
-    
+        assert items[0] == {"id": "overview", "title": "Overview", "level": 1}
+        assert items[1] == {"id": "features", "title": "Features", "level": 1}
+        assert items[2] == {"id": "installation", "title": "Installation", "level": 1}
+
     def test_h2_with_h3_nesting(self):
         """Test H2 headings with nested H3 headings (2 space indent)."""
         toc_html = """<div class="toc">
@@ -41,17 +41,17 @@ class TestTOCExtractionMistune:
   <li><a href="#flexible">Flexible</a></li>
 </ul>
 </div>"""
-        
+
         items = extract_toc_structure(toc_html)
-        
+
         assert len(items) == 6
-        assert items[0] == {'id': 'overview', 'title': 'Overview', 'level': 1}
-        assert items[1] == {'id': 'what-is-it', 'title': 'What is it?', 'level': 2}
-        assert items[2] == {'id': 'why-use-it', 'title': 'Why use it?', 'level': 2}
-        assert items[3] == {'id': 'features', 'title': 'Features', 'level': 1}
-        assert items[4] == {'id': 'fast', 'title': 'Fast', 'level': 2}
-        assert items[5] == {'id': 'flexible', 'title': 'Flexible', 'level': 2}
-    
+        assert items[0] == {"id": "overview", "title": "Overview", "level": 1}
+        assert items[1] == {"id": "what-is-it", "title": "What is it?", "level": 2}
+        assert items[2] == {"id": "why-use-it", "title": "Why use it?", "level": 2}
+        assert items[3] == {"id": "features", "title": "Features", "level": 1}
+        assert items[4] == {"id": "fast", "title": "Fast", "level": 2}
+        assert items[5] == {"id": "flexible", "title": "Flexible", "level": 2}
+
     def test_deep_nesting(self):
         """Test H2, H3, H4, H5 nesting (0, 2, 4, 6 space indents)."""
         toc_html = """<div class="toc">
@@ -63,16 +63,16 @@ class TestTOCExtractionMistune:
 <li><a href="#h2-2">H2 Another</a></li>
 </ul>
 </div>"""
-        
+
         items = extract_toc_structure(toc_html)
-        
+
         assert len(items) == 5
-        assert items[0]['level'] == 1  # H2
-        assert items[1]['level'] == 2  # H3
-        assert items[2]['level'] == 3  # H4
-        assert items[3]['level'] == 4  # H5
-        assert items[4]['level'] == 1  # H2
-    
+        assert items[0]["level"] == 1  # H2
+        assert items[1]["level"] == 2  # H3
+        assert items[2]["level"] == 3  # H4
+        assert items[3]["level"] == 4  # H5
+        assert items[4]["level"] == 1  # H2
+
     def test_emoji_in_headings(self):
         """Test headings with emoji (common in docs)."""
         toc_html = """<div class="toc">
@@ -83,15 +83,15 @@ class TestTOCExtractionMistune:
   <li><a href="#fast">⚡ Fast</a></li>
 </ul>
 </div>"""
-        
+
         items = extract_toc_structure(toc_html)
-        
+
         assert len(items) == 4
-        assert items[0]['title'] == '🎯 Overview'
-        assert items[1]['title'] == 'What is it?'
-        assert items[2]['title'] == '📊 Features'
-        assert items[3]['title'] == '⚡ Fast'
-    
+        assert items[0]["title"] == "🎯 Overview"
+        assert items[1]["title"] == "What is it?"
+        assert items[2]["title"] == "📊 Features"
+        assert items[3]["title"] == "⚡ Fast"
+
     def test_special_characters_in_titles(self):
         """Test titles with special characters."""
         toc_html = """<div class="toc">
@@ -101,22 +101,22 @@ class TestTOCExtractionMistune:
 <li><a href="#api">API: Functions & Classes</a></li>
 </ul>
 </div>"""
-        
+
         items = extract_toc_structure(toc_html)
-        
+
         assert len(items) == 3
-        assert items[0]['title'] == '1. Configuration'
-        assert items[1]['title'] == '2. Output & Results'
-        assert items[2]['title'] == 'API: Functions & Classes'
-    
+        assert items[0]["title"] == "1. Configuration"
+        assert items[1]["title"] == "2. Output & Results"
+        assert items[2]["title"] == "API: Functions & Classes"
+
     def test_empty_toc(self):
         """Test with empty TOC."""
-        items = extract_toc_structure('')
+        items = extract_toc_structure("")
         assert items == []
-        
+
         items = extract_toc_structure('<div class="toc"><ul></ul></div>')
         assert items == []
-    
+
     def test_single_heading(self):
         """Test with single heading."""
         toc_html = """<div class="toc">
@@ -124,16 +124,16 @@ class TestTOCExtractionMistune:
 <li><a href="#only">Only Heading</a></li>
 </ul>
 </div>"""
-        
+
         items = extract_toc_structure(toc_html)
-        
+
         assert len(items) == 1
-        assert items[0] == {'id': 'only', 'title': 'Only Heading', 'level': 1}
+        assert items[0] == {"id": "only", "title": "Only Heading", "level": 1}
 
 
 class TestTOCExtractionPythonMarkdown:
     """Test TOC extraction from python-markdown nested HTML."""
-    
+
     def test_nested_ul_structure(self):
         """Test extraction from nested <ul> elements (python-markdown style)."""
         # Python-markdown uses nested <ul> tags instead of indentation
@@ -147,18 +147,18 @@ class TestTOCExtractionPythonMarkdown:
 <li><a href="#features">Features</a></li>
 </ul>
 </div>"""
-        
+
         items = extract_toc_structure(toc_html)
-        
+
         # Should handle nested UL structure
         assert len(items) > 0
         # The nested item should have higher level
-        assert any(item['level'] > 1 for item in items)
+        assert any(item["level"] > 1 for item in items)
 
 
 class TestTOCExtractionRealWorld:
     """Test with real-world TOC examples."""
-    
+
     def test_health_checks_doc_structure(self):
         """Test with structure similar to health-checks.md doc."""
         toc_html = """<div class="toc">
@@ -177,26 +177,26 @@ class TestTOCExtractionRealWorld:
   <li><a href="#development-workflow">Development Workflow</a></li>
 </ul>
 </div>"""
-        
+
         items = extract_toc_structure(toc_html)
-        
+
         # Should extract all items
         assert len(items) == 12
-        
+
         # Check H2 sections (level 1)
-        h2_items = [item for item in items if item['level'] == 1]
+        h2_items = [item for item in items if item["level"] == 1]
         assert len(h2_items) == 4
-        assert h2_items[0]['title'] == '🎯 Overview'
-        assert h2_items[1]['title'] == '📊 The 9 Validators'
-        assert h2_items[2]['title'] == '🚀 Usage Examples'
-        assert h2_items[3]['title'] == '🎯 Best Practices'
-        
+        assert h2_items[0]["title"] == "🎯 Overview"
+        assert h2_items[1]["title"] == "📊 The 9 Validators"
+        assert h2_items[2]["title"] == "🚀 Usage Examples"
+        assert h2_items[3]["title"] == "🎯 Best Practices"
+
         # Check H3 sections (level 2)
-        h3_items = [item for item in items if item['level'] == 2]
+        h3_items = [item for item in items if item["level"] == 2]
         assert len(h3_items) == 8
-        assert h3_items[0]['title'] == 'What is the Health Check System?'
-        assert h3_items[2]['title'] == '1. Configuration Validator'
-    
+        assert h3_items[0]["title"] == "What is the Health Check System?"
+        assert h3_items[2]["title"] == "1. Configuration Validator"
+
     def test_complex_nested_doc(self):
         """Test with complex multi-level nesting."""
         toc_html = """<div class="toc">
@@ -210,32 +210,32 @@ class TestTOCExtractionRealWorld:
     <li><a href="#logger">Logger</a></li>
 </ul>
 </div>"""
-        
+
         items = extract_toc_structure(toc_html)
-        
+
         assert len(items) == 7
-        assert items[0]['level'] == 1  # API Reference (H2)
-        assert items[1]['level'] == 2  # Core Functions (H3)
-        assert items[2]['level'] == 3  # build() (H4)
-        assert items[3]['level'] == 4  # Options (H5)
-        assert items[4]['level'] == 3  # serve() (H4)
-        assert items[5]['level'] == 2  # Utilities (H3)
-        assert items[6]['level'] == 3  # Logger (H4)
+        assert items[0]["level"] == 1  # API Reference (H2)
+        assert items[1]["level"] == 2  # Core Functions (H3)
+        assert items[2]["level"] == 3  # build() (H4)
+        assert items[3]["level"] == 4  # Options (H5)
+        assert items[4]["level"] == 3  # serve() (H4)
+        assert items[5]["level"] == 2  # Utilities (H3)
+        assert items[6]["level"] == 3  # Logger (H4)
 
 
 class TestTOCExtractionEdgeCases:
     """Test edge cases and error handling."""
-    
+
     def test_malformed_html(self):
         """Test with malformed HTML (should not crash)."""
         toc_html = """<div class="toc">
 <ul>
 <li><a href="#test">Test"""  # Missing closing tags
-        
+
         items = extract_toc_structure(toc_html)
         # Should return empty list or partial results, but not crash
         assert isinstance(items, list)
-    
+
     def test_no_links(self):
         """Test TOC with no actual links."""
         toc_html = """<div class="toc">
@@ -243,10 +243,10 @@ class TestTOCExtractionEdgeCases:
 <li>Plain text</li>
 </ul>
 </div>"""
-        
+
         items = extract_toc_structure(toc_html)
         assert items == []
-    
+
     def test_inconsistent_indentation(self):
         """Test with inconsistent indentation (3 spaces instead of 2)."""
         toc_html = """<div class="toc">
@@ -255,19 +255,19 @@ class TestTOCExtractionEdgeCases:
    <li><a href="#h3">H3 (3 spaces)</a></li>
 </ul>
 </div>"""
-        
+
         items = extract_toc_structure(toc_html)
-        
+
         # Should still parse, but level might be unexpected
         assert len(items) == 2
-        assert items[0]['level'] == 1
+        assert items[0]["level"] == 1
         # 3 spaces / 2 = 1.5, rounds to 1, + 1 = level 2
-        assert items[1]['level'] == 2
+        assert items[1]["level"] == 2
 
 
 class TestTOCExtractionCaching:
     """Test scenarios related to caching."""
-    
+
     def test_identical_input_returns_same_result(self):
         """Test that same input returns same output (idempotency)."""
         toc_html = """<div class="toc">
@@ -275,12 +275,12 @@ class TestTOCExtractionCaching:
 <li><a href="#test">Test</a></li>
 </ul>
 </div>"""
-        
+
         items1 = extract_toc_structure(toc_html)
         items2 = extract_toc_structure(toc_html)
-        
+
         assert items1 == items2
-    
+
     def test_whitespace_variations(self):
         """Test that whitespace in HTML doesn't affect extraction."""
         toc1 = """<div class="toc">
@@ -288,13 +288,12 @@ class TestTOCExtractionCaching:
 <li><a href="#test">Test</a></li>
 </ul>
 </div>"""
-        
+
         toc2 = """<div class="toc"><ul><li><a href="#test">Test</a></li></ul></div>"""
-        
+
         items1 = extract_toc_structure(toc1)
         items2 = extract_toc_structure(toc2)
-        
+
         # Both should extract the same item
         assert len(items1) == len(items2) == 1
-        assert items1[0]['id'] == items2[0]['id'] == 'test'
-
+        assert items1[0]["id"] == items2[0]["id"] == "test"

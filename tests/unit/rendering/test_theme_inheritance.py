@@ -14,7 +14,9 @@ def write_theme(root: Path, name: str, extends: str | None, with_template: bool 
     tdir = root / "themes" / name
     (tdir / "templates").mkdir(parents=True, exist_ok=True)
     if extends is not None:
-        (tdir / "theme.toml").write_text(f"name = \"{name}\"\nextends = \"{extends}\"\n", encoding="utf-8")
+        (tdir / "theme.toml").write_text(
+            f'name = "{name}"\nextends = "{extends}"\n', encoding="utf-8"
+        )
     if with_template:
         (tdir / "templates" / "marker.html").write_text(f"{name}", encoding="utf-8")
 
@@ -35,4 +37,3 @@ def test_theme_chain_child_overrides_parent(tmp_path: Path):
     parent_dir = str(tmp_path / "themes" / "parent" / "templates")
     assert child_dir in dirs and parent_dir in dirs
     assert dirs.index(child_dir) < dirs.index(parent_dir)
-

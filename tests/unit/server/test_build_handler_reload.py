@@ -21,10 +21,10 @@ class DummySite:
         self.assets = []
         self.config = {}
         self.theme = None
-    
+
     def build(self, *args, **kwargs):
         return DummyStats()
-    
+
     def invalidate_regular_pages_cache(self):
         pass
 
@@ -38,20 +38,23 @@ def _make_handler(tmp_path):
 def test_css_only_triggers_css_reload(tmp_path, monkeypatch):
     handler = _make_handler(tmp_path)
     handler.pending_changes = {str(tmp_path / "assets" / "style.css")}
-    
+
     called = {}
+
     def fake_set_action(action):
-        called['action'] = action
-    
+        called["action"] = action
+
     # Silence display/printing via the symbols actually used by BuildHandler
     monkeypatch.setattr("bengal.server.build_handler.display_build_stats", lambda *a, **k: None)
     monkeypatch.setattr("bengal.server.build_handler.show_building_indicator", lambda *a, **k: None)
-    
-    with patch("bengal.server.live_reload.set_reload_action", fake_set_action):
-        with patch("bengal.server.live_reload.notify_clients_reload", lambda: None):
-            handler._trigger_build()
-    
-    assert called.get('action') == 'reload-css'
+
+    with (
+        patch("bengal.server.live_reload.set_reload_action", fake_set_action),
+        patch("bengal.server.live_reload.notify_clients_reload", lambda: None),
+    ):
+        handler._trigger_build()
+
+    assert called.get("action") == "reload-css"
 
 
 def test_mixed_changes_trigger_full_reload(tmp_path, monkeypatch):
@@ -60,19 +63,20 @@ def test_mixed_changes_trigger_full_reload(tmp_path, monkeypatch):
         str(tmp_path / "assets" / "style.css"),
         str(tmp_path / "content" / "page.md"),
     }
-    
+
     called = {}
+
     def fake_set_action(action):
-        called['action'] = action
-    
+        called["action"] = action
+
     # Silence display/printing via the symbols actually used by BuildHandler
     monkeypatch.setattr("bengal.server.build_handler.display_build_stats", lambda *a, **k: None)
     monkeypatch.setattr("bengal.server.build_handler.show_building_indicator", lambda *a, **k: None)
-    
-    with patch("bengal.server.live_reload.set_reload_action", fake_set_action):
-        with patch("bengal.server.live_reload.notify_clients_reload", lambda: None):
-            handler._trigger_build()
-    
-    assert called.get('action') == 'reload'
 
+    with (
+        patch("bengal.server.live_reload.set_reload_action", fake_set_action),
+        patch("bengal.server.live_reload.notify_clients_reload", lambda: None),
+    ):
+        handler._trigger_build()
 
+    assert called.get("action") == "reload"

@@ -11,4 +11,3 @@ from bengal.core.section import Section
 from bengal.core.site import Site
 
 __all__ = ["Asset", "Page", "Section", "Site", "__version__"]
-

@@ -13,7 +13,7 @@ Provides comprehensive validation of builds across all systems:
 
 Usage:
     from bengal.health import HealthCheck
-    
+
     health = HealthCheck(site)
     report = health.run()
     print(report.format_console())
@@ -24,10 +24,9 @@ from bengal.health.health_check import HealthCheck
 from bengal.health.report import CheckResult, CheckStatus, HealthReport
 
 __all__ = [
-    'BaseValidator',
-    'CheckResult',
-    'CheckStatus',
-    'HealthCheck',
-    'HealthReport',
+    "BaseValidator",
+    "CheckResult",
+    "CheckStatus",
+    "HealthCheck",
+    "HealthReport",
 ]
-

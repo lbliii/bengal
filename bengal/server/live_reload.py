@@ -31,7 +31,7 @@ logger = get_logger(__name__)
 
 # Global reload generation and condition to wake clients
 _reload_generation: int = 0
-_last_action: str = 'reload'
+_last_action: str = "reload"
 _reload_condition = threading.Condition()
 
 
@@ -42,10 +42,10 @@ LIVE_RELOAD_SCRIPT = """
     // Bengal Live Reload
     let backoffMs = 1000;
     const maxBackoffMs = 10000;
-    
+
     function connect() {
         const source = new EventSource('/__bengal_reload__');
-        
+
         source.onmessage = function(event) {
             if (event.data === 'reload') {
                 console.log('🔄 Bengal: Reloading page...');
@@ -74,12 +74,12 @@ LIVE_RELOAD_SCRIPT = """
                 location.reload();
             }
         };
-        
+
         source.onopen = function() {
             backoffMs = 1000; // reset on successful connection
             console.log('🚀 Bengal: Live reload connected');
         };
-        
+
         source.onerror = function() {
             console.log('⚠️  Bengal: Live reload disconnected - retrying soon');
             try { source.close(); } catch (e) {}
@@ -87,7 +87,7 @@ LIVE_RELOAD_SCRIPT = """
             backoffMs = Math.min(maxBackoffMs, Math.floor(backoffMs * 1.5));
         };
     }
-    
+
     connect();
 })();
 </script>
@@ -97,15 +97,15 @@ LIVE_RELOAD_SCRIPT = """
 class LiveReloadMixin:
     """
     Mixin class providing live reload functionality via SSE.
-    
+
     This class is designed to be mixed into an HTTP request handler.
     It provides two key methods:
     - handle_sse(): Handles the SSE endpoint (/__bengal_reload__)
     - serve_html_with_live_reload(): Injects the live reload script into HTML
-    
+
     The SSE connection remains open, sending keepalive comments every 30 seconds
     and "reload" messages when the site is rebuilt.
-    
+
     Example:
         class CustomHandler(LiveReloadMixin, http.server.SimpleHTTPRequestHandler):
             def do_GET(self):
@@ -116,42 +116,41 @@ class LiveReloadMixin:
                 else:
                     super().do_GET()  # Default file serving
     """
-    
+
     def handle_sse(self) -> None:
         """
         Handle Server-Sent Events endpoint for live reload.
-        
+
         Maintains a persistent HTTP connection and sends SSE messages:
         - Keepalive comments (: keepalive) every 30 seconds
         - Reload events (data: reload) when site is rebuilt
-        
+
         The connection remains open until the client disconnects or an error occurs.
-        
+
         Note:
             This method blocks until the client disconnects
         """
-        client_addr = getattr(self, 'client_address', ['unknown', 0])[0]
-        logger.info("sse_client_connected",
-                   client_address=client_addr)
-        
+        client_addr = getattr(self, "client_address", ["unknown", 0])[0]
+        logger.info("sse_client_connected", client_address=client_addr)
+
         try:
             # Send SSE headers
             self.send_response(200)
-            self.send_header('Content-Type', 'text/event-stream')
-            self.send_header('Cache-Control', 'no-cache')
-            self.send_header('Connection', 'keep-alive')
+            self.send_header("Content-Type", "text/event-stream")
+            self.send_header("Cache-Control", "no-cache")
+            self.send_header("Connection", "keep-alive")
             # Allow any origin during local development (dev server only)
-            self.send_header('Access-Control-Allow-Origin', '*')
+            self.send_header("Access-Control-Allow-Origin", "*")
             self.end_headers()
             # Advise client on retry delay and send an opening comment to start the stream
-            self.wfile.write(b'retry: 2000\n\n')
-            self.wfile.write(b': connected\n\n')
+            self.wfile.write(b"retry: 2000\n\n")
+            self.wfile.write(b": connected\n\n")
             self.wfile.flush()
-            
+
             keepalive_count = 0
             message_count = 0
             last_seen_generation = 0
-            
+
             # Keep connection alive and send messages when generation increments
             while True:
                 try:
@@ -159,119 +158,127 @@ class LiveReloadMixin:
                         # Wait up to 30s for a generation change, then send keepalive
                         _reload_condition.wait(timeout=30)
                         current_generation = _reload_generation
-                    
+
                     if current_generation != last_seen_generation:
                         # Send the last action (e.g., reload, reload-css, reload-page)
-                        self.wfile.write(f'data: {_last_action}\n\n'.encode())
+                        self.wfile.write(f"data: {_last_action}\n\n".encode())
                         self.wfile.flush()
                         message_count += 1
                         last_seen_generation = current_generation
-                        logger.debug("sse_message_sent",
-                                    client_address=client_addr,
-                                    event_data=_last_action,
-                                    message_count=message_count)
+                        logger.debug(
+                            "sse_message_sent",
+                            client_address=client_addr,
+                            event_data=_last_action,
+                            message_count=message_count,
+                        )
                     else:
                         # Send keepalive comment
-                        self.wfile.write(b': keepalive\n\n')
+                        self.wfile.write(b": keepalive\n\n")
                         self.wfile.flush()
                         keepalive_count += 1
                 except (BrokenPipeError, ConnectionResetError) as e:
                     # Client disconnected
-                    logger.debug("sse_client_disconnected_error",
-                                client_address=client_addr,
-                                error_type=type(e).__name__,
-                                messages_sent=message_count,
-                                keepalives_sent=keepalive_count)
+                    logger.debug(
+                        "sse_client_disconnected_error",
+                        client_address=client_addr,
+                        error_type=type(e).__name__,
+                        messages_sent=message_count,
+                        keepalives_sent=keepalive_count,
+                    )
                     break
         finally:
-            logger.info("sse_client_disconnected",
-                       client_address=client_addr,
-                       messages_sent=message_count,
-                       keepalives_sent=keepalive_count)
-    
+            logger.info(
+                "sse_client_disconnected",
+                client_address=client_addr,
+                messages_sent=message_count,
+                keepalives_sent=keepalive_count,
+            )
+
     def serve_html_with_live_reload(self) -> bool:
         """
         Serve HTML file with live reload script injected.
-        
+
         Reads the HTML file, injects the live reload script before </body> or
         </html>, and serves it with correct Content-Length header.
-        
+
         Returns:
             True if HTML was served (with or without injection), False if not HTML
-            
+
         Note:
             Returns False for non-HTML files so the caller can handle them
         """
         # Resolve the actual file path
         path = self.translate_path(self.path)
-        
+
         # If path is a directory, look for index.html
         if os.path.isdir(path):
-            for index in ['index.html', 'index.htm']:
+            for index in ["index.html", "index.htm"]:
                 index_path = os.path.join(path, index)
                 if os.path.exists(index_path):
                     path = index_path
                     break
-        
+
         # If not an HTML file at this point, return False to indicate we didn't handle it
-        if not path.endswith('.html') and not path.endswith('.htm'):
+        if not path.endswith(".html") and not path.endswith(".htm"):
             return False
-        
+
         try:
             # Read the HTML file
-            with open(path, 'rb') as f:
+            with open(path, "rb") as f:
                 content = f.read()
-            
+
             # Try to inject script before </body> or </html> (case-insensitive)
-            html_str = content.decode('utf-8')
+            html_str = content.decode("utf-8")
             script_injected = False
-            
+
             # Try to inject before </body> (case-insensitive)
             html_lower = html_str.lower()
-            body_idx = html_lower.rfind('</body>')
+            body_idx = html_lower.rfind("</body>")
             if body_idx != -1:
                 html_str = html_str[:body_idx] + LIVE_RELOAD_SCRIPT + html_str[body_idx:]
                 script_injected = True
             # Fallback: inject before </html> (case-insensitive)
-            elif html_lower.rfind('</html>') != -1:
-                html_idx = html_lower.rfind('</html>')
+            elif html_lower.rfind("</html>") != -1:
+                html_idx = html_lower.rfind("</html>")
                 html_str = html_str[:html_idx] + LIVE_RELOAD_SCRIPT + html_str[html_idx:]
                 script_injected = True
-            
+
             # If we couldn't inject, just append it
             if not script_injected:
                 html_str += LIVE_RELOAD_SCRIPT
-            
+
             # Send response with injected script
-            modified_content = html_str.encode('utf-8')
+            modified_content = html_str.encode("utf-8")
             self.send_response(200)
-            self.send_header('Content-Type', 'text/html; charset=utf-8')
-            self.send_header('Content-Length', str(len(modified_content)))
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(modified_content)))
             self.end_headers()
             self.wfile.write(modified_content)
             return True
-            
+
         except (FileNotFoundError, IsADirectoryError):
             self.send_error(404, "File not found")
             return True
         except Exception as e:
             # If anything goes wrong, log it and return False to fall back to default handling
-            logger.warning("live_reload_injection_failed",
-                          path=self.path,
-                          error=str(e),
-                          error_type=type(e).__name__)
+            logger.warning(
+                "live_reload_injection_failed",
+                path=self.path,
+                error=str(e),
+                error_type=type(e).__name__,
+            )
             return False
 
 
 def notify_clients_reload() -> None:
     """
     Notify all connected SSE clients to reload.
-    
+
     Sends a "reload" message to all connected clients via their queues.
     Clients with full queues are skipped to avoid blocking.
-    
+
     This is called after a successful build to trigger browser refresh.
-    
+
     Note:
         This is thread-safe and can be called from the build handler thread
     """
@@ -279,22 +286,20 @@ def notify_clients_reload() -> None:
     with _reload_condition:
         _reload_generation += 1
         _reload_condition.notify_all()
-    logger.info("reload_notification_sent",
-               generation=_reload_generation)
+    logger.info("reload_notification_sent", generation=_reload_generation)
 
 
 def set_reload_action(action: str) -> None:
     """
     Set the next reload action for SSE clients.
-    
+
     Actions:
         - 'reload'      : full page reload
         - 'reload-css'  : CSS hot-reload (no page refresh)
         - 'reload-page' : explicit page reload (alias of 'reload')
     """
     global _last_action
-    if action not in ('reload', 'reload-css', 'reload-page'):
-        action = 'reload'
+    if action not in ("reload", "reload-css", "reload-page"):
+        action = "reload"
     _last_action = action
     logger.debug("reload_action_set", action=_last_action)
-

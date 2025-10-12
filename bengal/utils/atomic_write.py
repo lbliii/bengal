@@ -21,86 +21,79 @@ from pathlib import Path
 
 
 def atomic_write_text(
-    path: Path | str,
-    content: str,
-    encoding: str = 'utf-8',
-    mode: int | None = None
+    path: Path | str, content: str, encoding: str = "utf-8", mode: int | None = None
 ) -> None:
     """
     Write text to a file atomically.
-    
+
     Uses write-to-temp-then-rename to ensure the file is never partially written.
     If the process crashes during write, the original file (if any) remains intact.
-    
+
     The rename operation is atomic on POSIX systems (Linux, macOS), meaning it
     either completely succeeds or completely fails - there's no partial state.
-    
+
     Args:
         path: Destination file path
         content: Text content to write
         encoding: Text encoding (default: utf-8)
         mode: File permissions (default: None, keeps system default)
-        
+
     Raises:
         OSError: If write or rename fails
-        
+
     Example:
         >>> atomic_write_text('output.html', '<html>...</html>')
         >>> atomic_write_text('data.json', json.dumps(data), encoding='utf-8')
     """
     path = Path(path)
-    
+
     # Create temp file in same directory (ensures same filesystem for atomic rename)
-    tmp_path = path.with_suffix(path.suffix + '.tmp')
-    
+    tmp_path = path.with_suffix(path.suffix + ".tmp")
+
     try:
         # Write to temp file
         tmp_path.write_text(content, encoding=encoding)
-        
+
         # Set permissions if specified
         if mode is not None:
             os.chmod(tmp_path, mode)
-        
+
         # Atomic rename (POSIX guarantees atomicity)
         # On Windows, replace() handles the case where target exists
         tmp_path.replace(path)
-            
+
     except Exception:
         # Clean up temp file on any error
         tmp_path.unlink(missing_ok=True)
         raise
 
 
-def atomic_write_bytes(
-    path: Path | str,
-    content: bytes,
-    mode: int | None = None
-) -> None:
+def atomic_write_bytes(path: Path | str, content: bytes, mode: int | None = None) -> None:
     """
     Write binary data to a file atomically.
-    
+
     Args:
         path: Destination file path
         content: Binary content to write
         mode: File permissions (default: None, keeps system default)
-        
+
     Raises:
         OSError: If write or rename fails
-        
+
     Example:
         >>> atomic_write_bytes('image.png', image_data)
     """
     path = Path(path)
-    tmp_path = path.with_suffix(path.suffix + '.tmp')
-    
+    tmp_path = path.with_suffix(path.suffix + ".tmp")
+
     try:
         tmp_path.write_bytes(content)
-        
+
         if mode is not None:
             os.chmod(tmp_path, mode)
-        
+
         tmp_path.replace(path)
-            
+
     except Exception:
         tmp_path.unlink(missing_ok=True)
         raise
@@ -109,33 +102,27 @@ def atomic_write_bytes(
 class AtomicFile:
     """
     Context manager for atomic file writing.
-    
+
     Useful when you need to write incrementally or use file handle directly
     (e.g., with json.dump(), ElementTree.write(), etc.).
-    
+
     The file is written to a temporary location, then atomically renamed
     on successful completion. If an exception occurs, the temp file is
     cleaned up and the original file remains unchanged.
-    
+
     Example:
         >>> with AtomicFile('output.json', 'w') as f:
         ...     json.dump(data, f)
         # File is atomically renamed on successful __exit__
-        
+
         >>> with AtomicFile('sitemap.xml', 'wb') as f:
         ...     tree.write(f, encoding='utf-8')
     """
-    
-    def __init__(
-        self,
-        path: Path | str,
-        mode: str = 'w',
-        encoding: str | None = 'utf-8',
-        **kwargs
-    ):
+
+    def __init__(self, path: Path | str, mode: str = "w", encoding: str | None = "utf-8", **kwargs):
         """
         Initialize atomic file writer.
-        
+
         Args:
             path: Destination file path
             mode: File open mode ('w', 'wb', 'a', etc.)
@@ -144,33 +131,32 @@ class AtomicFile:
         """
         self.path = Path(path)
         self.mode = mode
-        self.encoding = encoding if 'b' not in mode else None
+        self.encoding = encoding if "b" not in mode else None
         self.kwargs = kwargs
-        self.tmp_path = self.path.with_suffix(self.path.suffix + '.tmp')
+        self.tmp_path = self.path.with_suffix(self.path.suffix + ".tmp")
         self.file = None
-        
+
     def __enter__(self):
         """Open temp file for writing."""
         open_kwargs = {}
         if self.encoding:
-            open_kwargs['encoding'] = self.encoding
+            open_kwargs["encoding"] = self.encoding
         open_kwargs.update(self.kwargs)
-        
+
         self.file = open(self.tmp_path, self.mode, **open_kwargs)
         return self.file
-        
+
     def __exit__(self, exc_type, exc_val, exc_tb):
         """Close temp file and rename atomically if successful."""
         if self.file:
             self.file.close()
-        
+
         # If exception occurred, clean up and don't rename
         if exc_type is not None:
             self.tmp_path.unlink(missing_ok=True)
             return False
-        
+
         # Success - rename atomically
         self.tmp_path.replace(self.path)
-        
-        return False
 
+        return False
