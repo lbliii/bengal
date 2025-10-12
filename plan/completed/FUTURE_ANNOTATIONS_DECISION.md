@@ -51,7 +51,7 @@ None currently - we initially tried but reverted.
 # Would need to quote every reference:
 def __init__(self, site: 'Site'): ...
 def process(self, pages: list['Page'], ...) -> None: ...
-def _render_sequential(self, pages: list['Page'], 
+def _render_sequential(self, pages: list['Page'],
                       tracker: 'DependencyTracker | None',
                       stats: 'BuildStats | None') -> None: ...
 ```
@@ -107,4 +107,3 @@ def func(x: Union[str, int]) -> Optional[Page]:
 - We'll remove it when necessary (2028+)
 
 **Status**: Pragmatic solution, no action needed until 2028.
-

@@ -319,4 +319,3 @@ tags: ["tag1", "tag2"]
 - [Content Types Overview](index.md) - All types
 - [Writing Guide](../writing/) - Content creation
 - [Directives](../directives/) - Rich content features
-

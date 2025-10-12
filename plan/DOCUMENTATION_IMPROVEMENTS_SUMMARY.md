@@ -112,7 +112,7 @@ Added practical examples to key methods:
 @dataclass
 class LinkSuggestion:
     """A suggested link between two pages."""
-    
+
     source: 'Page'
     target: 'Page'
     score: float
@@ -125,17 +125,17 @@ class LinkSuggestion:
 class LinkSuggestion:
     """
     A suggested link between two pages.
-    
+
     Represents a recommendation to add a link from source page to target page
     based on topic similarity, importance, and connectivity analysis.
-    
+
     Attributes:
         source: Page where the link should be added
         target: Page that should be linked to
         score: Recommendation score (0.0-1.0, higher is better)
         reasons: List of reasons why this link is suggested
     """
-    
+
     source: 'Page'
     target: 'Page'
     score: float
@@ -149,7 +149,7 @@ class LinkSuggestion:
 def save(self, cache_path: Path) -> None:
     """
     Save build cache to disk.
-    
+
     Args:
         cache_path: Path to cache file
     """
@@ -160,10 +160,10 @@ def save(self, cache_path: Path) -> None:
 def save(self, cache_path: Path) -> None:
     """
     Save build cache to disk.
-    
+
     Args:
         cache_path: Path to cache file
-    
+
     Raises:
         IOError: If cache file cannot be written
         json.JSONEncodeError: If cache data cannot be serialized
@@ -183,9 +183,9 @@ def clean(self) -> None:
 def clean(self) -> None:
     """
     Clean the output directory by removing all generated files.
-    
+
     Useful for starting fresh or troubleshooting build issues.
-    
+
     Example:
         >>> site = Site.from_config(Path('/path/to/site'))
         >>> site.clean()  # Remove all files in public/
@@ -228,7 +228,7 @@ While all high-priority improvements are complete, there are some low-priority e
 All high-priority documentation improvements have been successfully implemented. The Bengal codebase now has:
 
 - ⭐⭐⭐⭐⭐ **Module Documentation** (Excellent)
-- ⭐⭐⭐⭐⭐ **Class Documentation** (Excellent) 
+- ⭐⭐⭐⭐⭐ **Class Documentation** (Excellent)
 - ⭐⭐⭐⭐½ **Method Documentation** (Very Good → Excellent)
 - ⭐⭐⭐⭐ **Examples** (Good → Very Good)
 
@@ -241,4 +241,3 @@ The documentation quality now exceeds most open-source Python projects and is on
 **Changes**: 8 files modified, 98 lines added, 0 linter errors introduced  
 **Time Invested**: ~2.5 hours  
 **Documentation Quality Improvement**: +0.5 stars (from 4.0 to 4.5)
-

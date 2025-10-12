@@ -2,12 +2,12 @@
 
 {#
   Tutorial Single Page Template
-  
+
   Used for individual tutorial pages. Optimized for step-by-step learning
   with clear navigation, progress indicators, and helpful metadata.
-  
+
   Usage: Set `type: tutorial` in frontmatter or use cascade from section
-  
+
   Context variables:
     - page: Tutorial page object
     - content: Rendered tutorial content
@@ -24,13 +24,13 @@
             {% if page.metadata.icon %}
             <div class="tutorial-page-icon">{{ page.metadata.icon }}</div>
             {% endif %}
-            
+
             <h1>{{ page.title }}</h1>
-            
+
             {% if page.metadata.description %}
             <p class="lead">{{ page.metadata.description }}</p>
             {% endif %}
-            
+
             {# Tutorial Metadata Bar #}
             <div class="tutorial-page-meta">
                 {# Difficulty #}
@@ -39,7 +39,7 @@
                     {{ page.metadata.difficulty | capitalize }}
                 </span>
                 {% endif %}
-                
+
                 {# Time Estimate #}
                 {% if page.metadata.time or page.metadata.duration %}
                 <span class="tutorial-meta-item">
@@ -50,7 +50,7 @@
                     {{ page.metadata.time | default(page.metadata.duration) }}
                 </span>
                 {% endif %}
-                
+
                 {# Last Updated #}
                 {% if page.date %}
                 <span class="tutorial-meta-item">
@@ -64,7 +64,7 @@
                 </span>
                 {% endif %}
             </div>
-            
+
             {# Prerequisites #}
             {% if page.metadata.prerequisites %}
             <div class="tutorial-prerequisites">
@@ -76,7 +76,7 @@
                 </ul>
             </div>
             {% endif %}
-            
+
             {# What You'll Learn #}
             {% if page.metadata.learning_objectives or page.metadata.objectives %}
             <div class="tutorial-objectives">
@@ -89,12 +89,12 @@
             </div>
             {% endif %}
         </header>
-        
+
         {# Main Tutorial Content #}
         <div class="tutorial-content">
             {{ content | safe }}
         </div>
-        
+
         {# What's Next / Further Reading #}
         {% if page.metadata.next_steps or page.metadata.further_reading %}
         <footer class="tutorial-footer">
@@ -108,7 +108,7 @@
                 </ul>
             </div>
             {% endif %}
-            
+
             {% if page.metadata.further_reading %}
             <div class="tutorial-further-reading">
                 <h3>Further Reading</h3>
@@ -122,7 +122,7 @@
         </footer>
         {% endif %}
     </article>
-    
+
     {# Right Sidebar: TOC #}
     {% if toc %}
     <aside class="tutorial-sidebar">
@@ -179,4 +179,3 @@
 {% endif %}
 {% endif %}
 {% endblock %}
-

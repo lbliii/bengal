@@ -89,7 +89,7 @@ Use these on the root `.prose` element:
 .dropdown-content > ol { ... }
 ```
 
-**When to use:** 
+**When to use:**
 - Option A: For general user content (markdown, HTML)
 - Option B: For specific component needs
 
@@ -559,4 +559,3 @@ A: Keep the same scoping:
 ---
 
 **Remember:** When in doubt, scope it! It's easier to loosen scoping later than to fix conflicts.
-

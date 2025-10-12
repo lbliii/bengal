@@ -102,4 +102,3 @@ See [Markdown Basics](markdown-basics.md) for complete syntax.
 ## Next Steps
 
 Start with [Getting Started](getting-started.md) to create your first page!
-

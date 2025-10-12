@@ -1,32 +1,43 @@
 {#
-  Enhanced Table of Contents Sidebar with Intelligent Grouping
-  
-  Displays:
-  - Scroll progress indicator
-  - Hierarchical table of contents with smart grouping
-  - Collapsible sections for better navigation
-  - Page metadata (last updated, edit link, etc.)
-  - Optional: Contributors, tags, etc.
-  
+  Table of Contents Sidebar Component
+
+  Interactive table of contents with progress tracking, collapsible sections, and page metadata.
+
+  Variables:
+    - toc_items: List of TOC items with id, title, level (required)
+    - toc: HTML TOC fallback (optional)
+    - page: Current page object (for metadata)
+    - page.date: Last updated date
+    - page.metadata.edit_url: Custom edit URL
+    - page.metadata.contributors: List of contributor names
+    - page.source_path: Source file path (for GitHub edit)
+    - site.config.github_edit_base: Base URL for GitHub edit links
+
+  Template Functions Used:
+    - get_toc_grouped(toc_items): Groups TOC items into collapsible sections
+
   Features:
-  - Scroll progress bar with position indicator
-  - Active item highlighting with auto-expand
-  - Collapsible H2 sections with nested items
-  - Smart section management (auto-expand active, collapse inactive)
-  - Smooth scroll to sections
-  - Keyboard navigation support
-  - Section item counts
-  - Quick jump navigation (top/bottom)
-  - Compact mode toggle for deeply nested content
-  - Edit on GitHub link (if configured)
+    - Scroll progress indicator
+    - Collapsible H2 sections with item counts
+    - Active item highlighting with auto-expand
+    - Settings menu (expand all, collapse all)
+    - Page metadata display (last updated, contributors)
+    - Edit on GitHub link
+    - Keyboard navigation support
+
+  Usage:
+    {% include 'partials/toc-sidebar.html' %}
+
+  CSS: bengal/themes/default/assets/css/components/toc.css
+  JS: bengal/themes/default/assets/js/toc.js
 #}
 
 <div class="toc-sidebar">
   {# TOC Header - Minimal #}
   <div class="toc-header">
     <h3 class="toc-title">On This Page</h3>
-    <button 
-      class="toc-settings-btn" 
+    <button
+      class="toc-settings-btn"
       data-toc-action="toggle-settings"
       title="TOC settings"
       aria-label="TOC settings"
@@ -43,18 +54,18 @@
       <button data-toc-action="collapse-all">Collapse all</button>
     </div>
   </div>
-  
+
   {# Scroll Progress Indicator - Subtle #}
   <div class="toc-progress" aria-hidden="true">
     <div class="toc-progress-bar"></div>
   </div>
-  
+
   {# Table of Contents #}
   <nav class="toc-nav" aria-label="Table of contents" data-toc-mode="normal">
     {% if toc_items %}
     <div class="toc-scroll-container">
       <ul class="toc-items" role="tree">
-        {# 
+        {#
           Use get_toc_grouped() to handle all grouping logic in Python.
           This replaces 80+ lines of complex template logic with a clean iteration.
           See: bengal/rendering/template_functions/navigation.py
@@ -67,8 +78,8 @@
                 <a href="#{{ group.header.id }}" class="toc-link toc-link-h2" data-toc-item="#{{ group.header.id }}">
                   {{ group.header.title }}
                 </a>
-                <button 
-                  class="toc-group-toggle toc-count-toggle" 
+                <button
+                  class="toc-group-toggle toc-count-toggle"
                   aria-expanded="false"
                   aria-label="Toggle {{ group.children|length }} subsections"
                   title="Click to expand {{ group.children|length }} subsections">
@@ -103,7 +114,7 @@
     </div>
     {% endif %}
   </nav>
-  
+
   {# Page Metadata Section #}
   <div class="toc-metadata">
     {# Last Updated #}
@@ -121,11 +132,11 @@
       </div>
     </div>
     {% endif %}
-    
+
     {# Edit on GitHub (if configured) #}
     {% if page.metadata.edit_url or site.config.github_edit_base %}
-    <a 
-      href="{% if page.metadata.edit_url %}{{ page.metadata.edit_url }}{% else %}{{ site.config.github_edit_base }}{{ page.source_path }}{% endif %}" 
+    <a
+      href="{% if page.metadata.edit_url %}{{ page.metadata.edit_url }}{% else %}{{ site.config.github_edit_base }}{{ page.source_path }}{% endif %}"
       class="toc-edit-link"
       target="_blank"
       rel="noopener noreferrer">
@@ -136,7 +147,7 @@
       <span>Edit this page</span>
     </a>
     {% endif %}
-    
+
     {# Contributors (if configured) #}
     {% if page.metadata.contributors %}
     <div class="toc-meta-item">
@@ -159,4 +170,3 @@
   CSS: bengal/themes/default/assets/css/components/toc.css
   JS:  bengal/themes/default/assets/js/toc.js (loaded via main template)
 #}
-

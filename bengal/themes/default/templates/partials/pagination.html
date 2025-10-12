@@ -1,17 +1,27 @@
 {#
   Pagination Component
-  
-  Usage:
-    {% include 'partials/pagination.html' with pagination_context %}
-  
+
+  Displays page number controls for paginated content with prev/next buttons.
+
   Variables:
-    - current_page: Current page number (1-indexed)
-    - total_pages: Total number of pages
-    - base_url: Base URL for pagination (e.g., '/blog/')
-    
-  Note: Uses get_pagination_items() to handle all pagination logic in Python.
-  This replaces 50+ lines of complex template logic with clean iteration.
-  See: bengal/rendering/template_functions/navigation.py
+    - current_page: Current page number (1-indexed, required)
+    - total_pages: Total number of pages (required)
+    - base_url: Base URL for pagination (e.g., '/blog/', required)
+
+  Template Functions Used:
+    - get_pagination_items(current_page, total_pages, base_url): Returns pagination structure
+      - p.prev: Previous page info (url)
+      - p.next: Next page info (url)
+      - p.pages: List of page items (num, url, is_current, is_ellipsis)
+
+  Features:
+    - Smart ellipsis for large page counts
+    - Accessible with aria-current and aria-label
+    - SVG icons for prev/next
+    - Disabled state for unavailable links
+
+  Usage:
+    {% include 'partials/pagination.html' with {'current_page': 2, 'total_pages': 10, 'base_url': '/blog/'} %}
 #}
 
 {% if total_pages > 1 %}
@@ -37,7 +47,7 @@
                 </span>
             {% endif %}
         </li>
-        
+
         {# Page Numbers #}
         {% for item in p.pages %}
             <li>
@@ -50,7 +60,7 @@
                 {% endif %}
             </li>
         {% endfor %}
-        
+
         {# Next Button #}
         <li>
             {% if p.next %}
@@ -72,4 +82,3 @@
     </ul>
 </nav>
 {% endif %}
-

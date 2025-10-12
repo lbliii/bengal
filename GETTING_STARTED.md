@@ -278,11 +278,11 @@ Create `templates/custom.html`:
         <time>{{ page.date | dateformat('%B %d, %Y') }}</time>
         {% endif %}
     </header>
-    
+
     <div class="content">
         {{ content | safe }}
     </div>
-    
+
     <footer>
         <p>Tags: {{ page.tags | join(', ') }}</p>
     </footer>
@@ -550,8 +550,8 @@ Metadata:
 fetch('/index.json')
   .then(r => r.json())
   .then(data => {
-    const results = data.pages.filter(p => 
-      p.title.includes(searchTerm) || 
+    const results = data.pages.filter(p =>
+      p.title.includes(searchTerm) ||
       p.excerpt.includes(searchTerm)
     );
   });
@@ -663,6 +663,13 @@ bengal clean                 # Clean output directory
 # Creation
 bengal new site <name>       # Create new site
 bengal new page <name>       # Create new page
+
+# Themes
+bengal theme list            # List project | installed | bundled themes
+bengal theme info <slug>     # Show theme info (paths, version)
+bengal theme discover        # List swizzlable templates/partials
+bengal theme install <name>  # Install theme via uv/pip (warns on name)
+bengal theme new <slug>      # Scaffold a theme (use --mode site|package)
 ```
 
 ## Support
@@ -672,4 +679,3 @@ bengal new page <name>       # Create new page
 - **Docs**: https://bengal-ssg.github.io
 
 Happy building! 🐯
-

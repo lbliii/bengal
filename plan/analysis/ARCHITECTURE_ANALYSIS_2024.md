@@ -287,7 +287,7 @@ Code that depends on the ORDER of operations, where accessing data at the wrong 
        page = Page(source_path=..., content=..., metadata=...)
        assert page.title  # Available
        assert page.toc_items == []  # Not cached
-       
+
        # Phase 2: Parsing
        pipeline.process_page(page)
        assert len(page.toc_items) > 0  # Now populated
@@ -303,10 +303,10 @@ Code that depends on the ORDER of operations, where accessing data at the wrong 
        DISCOVERY = auto()
        PARSING = auto()
        RENDERING = auto()
-   
+
    # Add to Page:
    _build_phase: BuildPhase = BuildPhase.DISCOVERY
-   
+
    # Use in properties:
    if self._build_phase < BuildPhase.PARSING:
        logger.warning("toc_items accessed before parsing")
@@ -434,4 +434,3 @@ After comprehensive analysis, the following are confirmed safe:
 **ROI of this analysis**: 🟢 **POSITIVE**
 
 The time spent on this comprehensive analysis and documentation will prevent similar issues in the future and make the codebase easier to maintain and extend.
-

@@ -377,4 +377,3 @@ bengal serve --drafts
 - [Getting Started](../writing/getting-started.md) - Create content
 - [Content Organization](../writing/content-organization.md) - Structure
 - [Frontmatter Guide](../writing/frontmatter-guide.md) - Metadata
-

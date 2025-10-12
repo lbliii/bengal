@@ -453,6 +453,18 @@ class Site:
             if site_dir.exists():
                 dirs.append(site_dir)
                 continue
+            # Installed theme assets
+            try:
+                from bengal.utils.theme_registry import get_theme_package
+
+                pkg = get_theme_package(theme_name)
+                if pkg:
+                    resolved = pkg.resolve_resource_path("assets")
+                    if resolved and resolved.exists():
+                        dirs.append(resolved)
+                        continue
+            except Exception:
+                pass
             # Bundled theme assets
             try:
                 import bengal

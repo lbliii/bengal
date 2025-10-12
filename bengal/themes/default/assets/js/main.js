@@ -5,7 +5,7 @@
 
 (function() {
   'use strict';
-  
+
   /**
    * Smooth scroll for anchor links
    */
@@ -13,12 +13,12 @@
     document.querySelectorAll('a[href^="#"]').forEach(function(anchor) {
       anchor.addEventListener('click', function(e) {
         const href = this.getAttribute('href');
-        
+
         // Skip empty anchors
         if (href === '#') {
           return;
         }
-        
+
         const target = document.querySelector(href);
         if (target) {
           e.preventDefault();
@@ -26,17 +26,17 @@
             behavior: 'smooth',
             block: 'start'
           });
-          
+
           // Update URL without jumping
           history.pushState(null, null, href);
-          
+
           // Focus target for accessibility
           target.focus({ preventScroll: true });
         }
       });
     });
   }
-  
+
   /**
    * Add external link indicators
    */
@@ -44,33 +44,33 @@
     const links = document.querySelectorAll('a[href^="http"]');
     links.forEach(function(link) {
       const href = link.getAttribute('href');
-      
+
       // Check if external (not same domain)
       if (!href.includes(window.location.hostname)) {
         // Add external attribute
         link.setAttribute('rel', 'noopener noreferrer');
         link.setAttribute('target', '_blank');
-        
+
         // Add visual indicator (optional)
         link.setAttribute('aria-label', link.textContent + ' (opens in new tab)');
       }
     });
   }
-  
+
   /**
    * Copy code button for code blocks with language labels
    */
   function setupCodeCopyButtons() {
     const codeBlocks = document.querySelectorAll('pre code');
-    
+
     codeBlocks.forEach(function(codeBlock) {
       const pre = codeBlock.parentElement;
-      
+
       // Skip if already processed
       if (pre.querySelector('.code-copy-button')) {
         return;
       }
-      
+
       // Detect language from class (e.g., language-python, hljs-python)
       let language = '';
       const classList = codeBlock.className;
@@ -78,7 +78,7 @@
       if (matches) {
         language = (matches[1] || matches[2]).toUpperCase();
       }
-      
+
       // Create header container
       const header = document.createElement('div');
       header.className = 'code-header-inline';
@@ -90,7 +90,7 @@
       header.style.justifyContent = 'space-between';
       header.style.alignItems = 'center';
       header.style.pointerEvents = 'none';
-      
+
       // Create language label if detected
       if (language) {
         const langLabel = document.createElement('span');
@@ -107,13 +107,13 @@
         // Empty span to maintain layout
         header.appendChild(document.createElement('span'));
       }
-      
+
       // Create copy button
       const button = document.createElement('button');
       button.className = 'code-copy-button';
       button.setAttribute('aria-label', 'Copy code to clipboard');
       button.style.pointerEvents = 'auto';
-      
+
       // Add copy icon (SVG)
       button.innerHTML = `
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -122,19 +122,19 @@
         </svg>
         <span>Copy</span>
       `;
-      
+
       header.appendChild(button);
-      
+
       // Insert header
       pre.style.position = 'relative';
       pre.style.paddingTop = '2.5rem'; // Make room for header
       pre.insertBefore(header, pre.firstChild);
-      
+
       // Copy functionality
       button.addEventListener('click', function(e) {
         e.preventDefault();
         const code = codeBlock.textContent;
-        
+
         // Use Clipboard API if available
         if (navigator.clipboard && navigator.clipboard.writeText) {
           navigator.clipboard.writeText(code).then(function() {
@@ -146,7 +146,7 @@
               <span>Copied!</span>
             `;
             button.classList.add('copied');
-            
+
             // Reset after 2 seconds
             setTimeout(function() {
               button.innerHTML = `
@@ -161,7 +161,7 @@
           }).catch(function(err) {
             console.error('Failed to copy code:', err);
             button.textContent = 'Failed';
-            
+
             setTimeout(function() {
               button.innerHTML = `
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -180,12 +180,12 @@
           textarea.style.opacity = '0';
           document.body.appendChild(textarea);
           textarea.select();
-          
+
           try {
             document.execCommand('copy');
             button.innerHTML = '<span>Copied!</span>';
             button.classList.add('copied');
-            
+
             setTimeout(function() {
               button.innerHTML = '<span>Copy</span>';
               button.classList.remove('copied');
@@ -199,7 +199,7 @@
       });
     });
   }
-  
+
   /**
    * Lazy load images
    */
@@ -217,7 +217,7 @@
           }
         });
       });
-      
+
       document.querySelectorAll('img[data-src]').forEach(function(img) {
         imageObserver.observe(img);
       });
@@ -228,29 +228,29 @@
       });
     }
   }
-  
+
   /**
    * Table of contents highlighting
    */
   function setupTOCHighlight() {
     const toc = document.querySelector('.toc');
     if (!toc) return;
-    
+
     const headings = document.querySelectorAll('h2[id], h3[id], h4[id]');
     const tocLinks = toc.querySelectorAll('a');
-    
+
     if (headings.length === 0 || tocLinks.length === 0) return;
-    
+
     const observer = new IntersectionObserver(function(entries) {
       entries.forEach(function(entry) {
         if (entry.isIntersecting) {
           const id = entry.target.getAttribute('id');
-          
+
           // Remove active class from all links
           tocLinks.forEach(function(link) {
             link.classList.remove('active');
           });
-          
+
           // Add active class to current link
           const activeLink = toc.querySelector('a[href="#' + id + '"]');
           if (activeLink) {
@@ -261,12 +261,12 @@
     }, {
       rootMargin: '-80px 0px -80% 0px'
     });
-    
+
     headings.forEach(function(heading) {
       observer.observe(heading);
     });
   }
-  
+
   /**
    * Detect keyboard navigation for better focus indicators
    */
@@ -277,13 +277,13 @@
         document.body.classList.add('user-is-tabbing');
       }
     });
-    
+
     // Remove class when user clicks (mouse navigation)
     document.addEventListener('mousedown', function() {
       document.body.classList.remove('user-is-tabbing');
     });
   }
-  
+
   /**
    * Initialize all features
    */
@@ -294,11 +294,11 @@
     setupLazyLoading();
     setupTOCHighlight();
     setupKeyboardDetection();
-    
+
     // Log initialization (optional, remove in production)
     console.log('Bengal theme initialized');
   }
-  
+
   // Initialize after DOM is ready
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
@@ -306,4 +306,3 @@
     init();
   }
 })();
-

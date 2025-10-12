@@ -1,0 +1,48 @@
+name: "Random Posts"
+template: "partials/random-posts.html"
+description: "Widget displaying random posts from the site"
+variants:
+  - id: "default"
+    name: "Default (3 posts with dates)"
+    context:
+      site:
+        regular_pages:
+          - title: "Introduction to Bengal SSG"
+            url: "/blog/intro-to-bengal/"
+            date: "2025-01-15"
+          - title: "Building Fast Static Sites"
+            url: "/blog/fast-static-sites/"
+            date: "2025-02-20"
+          - title: "Theme Customization Guide"
+            url: "/blog/theme-customization/"
+            date: "2025-03-10"
+
+  - id: "with-dates"
+    name: "With Recent Dates"
+    context:
+      site:
+        regular_pages:
+          - title: "New Feature: Component Preview"
+            url: "/blog/component-preview/"
+            date: "2025-10-01"
+          - title: "Swizzle Your Theme"
+            url: "/blog/swizzle-theme/"
+            date: "2025-10-05"
+          - title: "Performance Tips"
+            url: "/blog/performance-tips/"
+            date: "2025-10-10"
+
+  - id: "without-dates"
+    name: "Without Dates"
+    context:
+      site:
+        regular_pages:
+          - title: "About Bengal"
+            url: "/about/"
+            date: null
+          - title: "Documentation Index"
+            url: "/docs/"
+            date: null
+          - title: "API Reference"
+            url: "/api/"
+            date: null

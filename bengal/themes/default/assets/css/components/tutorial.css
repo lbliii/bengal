@@ -1,6 +1,6 @@
 /**
  * Tutorial Styles
- * 
+ *
  * Styles for tutorial list and single page templates.
  * Optimized for learning with clear hierarchy and helpful indicators.
  */
@@ -256,7 +256,7 @@
     .tutorial-page-layout.tutorial-with-toc {
         grid-template-columns: 1fr;
     }
-    
+
     .tutorial-sidebar {
         display: none;
     }
@@ -376,11 +376,10 @@
     .tutorial-page-header {
         padding: var(--space-4);
     }
-    
+
     .tutorial-header,
     .tutorial-footer {
         padding: var(--space-4) 0;
         margin-bottom: var(--space-6);
     }
 }
-

@@ -518,10 +518,10 @@ Use one of these approaches:
 
 **Combine filtering and sorting:**
 ```jinja2
-{% set recent = posts 
-    | where('draft', false) 
+{% set recent = posts
+    | where('draft', false)
     | sort_by('date', reverse=true)
-    | first(10) 
+    | first(10)
 %}
 ```
 ```
@@ -691,7 +691,7 @@ The real power comes from composing functions:
 
 ```jinja2
 {# Get 5 random published posts from last year, sorted by title #}
-{% set featured = posts 
+{% set featured = posts
     | where('draft', false)
     | where('year', 2024)
     | sort_by('title')
@@ -733,4 +733,3 @@ Combine functions in reusable macros:
 **Coverage:** 100% documented with examples  
 **Updated:** October 4, 2025  
 **Version:** 1.0.0
-

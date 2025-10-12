@@ -1,18 +1,38 @@
 {#
-  Recursive Documentation Navigation Section
-  
-  Renders a section with its pages and subsections.
-  Called recursively for nested sections.
-  
-  Parameters:
-  - section: The section object to render
-  - depth: Current nesting depth (for styling)
+  Documentation Navigation Section Component (Recursive)
+
+  Renders an individual section with pages and subsections in the docs nav tree.
+
+  Variables:
+    - section: Section object to render (required)
+    - section.title: Section title
+    - section.url: Section URL
+    - section.index_page: Section index page (optional)
+    - section.sorted_pages: Pages in section (pre-sorted by weight)
+    - section.sorted_subsections: Subsections (pre-sorted by weight)
+    - depth: Current nesting depth for styling (required)
+    - page: Current page object (for active highlighting)
+
+  Features:
+    - Collapsible section with toggle button
+    - Clickable section header (links to index page)
+    - Active page highlighting
+    - Recursive rendering of subsections
+    - Smart title display (extracts short names from dotted titles)
+
+  Note:
+    This component calls itself recursively for subsections.
+    Included by 'partials/docs-nav.html'.
+
+  Usage:
+    {% set depth = 0 %}
+    {% include 'partials/docs-nav-section.html' %}
 #}
 
 <div class="docs-nav-group" data-depth="{{ depth }}">
   {# Section Toggle Button - with link functionality #}
   <div class="docs-nav-group-toggle-wrapper">
-    <button 
+    <button
       class="docs-nav-group-toggle"
       aria-expanded="false"
       aria-controls="nav-section-{{ section.url | slugify }}">
@@ -21,7 +41,7 @@
       </svg>
     </button>
     {% if section.index_page %}
-      <a 
+      <a
         href="{{ url_for(section.index_page) }}"
         class="docs-nav-group-link {% if page.url == section.index_page.url %}active{% endif %}">
         {{ section.title }}
@@ -30,23 +50,23 @@
       <span class="docs-nav-group-link">{{ section.title }}</span>
     {% endif %}
   </div>
-  
+
   {# Section Items #}
   <div class="docs-nav-group-items" id="nav-section-{{ section.url | slugify }}">{# Section index page removed - now handled by toggle button link #}
-    
+
     {# Regular pages in this section (excluding index page) - sorted by weight #}
     {% for p in section.sorted_pages %}
       {% if p.url != section.index_page.url %}
         {# Extract short name for nested items (e.g., "admonitions" from "directives.admonitions") #}
         {% set display_title = p.title.split('.')[-1] if '.' in p.title else p.title %}
-        <a 
-          href="{{ url_for(p) }}" 
+        <a
+          href="{{ url_for(p) }}"
           class="docs-nav-link {% if page.url == p.url %}active{% endif %}">
           {{ display_title }}
         </a>
       {% endif %}
     {% endfor %}
-    
+
     {# Subsections (recursive) - sorted by weight #}
     {% for subsection in section.sorted_subsections %}
       {% set section = subsection %}
@@ -55,4 +75,3 @@
     {% endfor %}
   </div>
 </div>
-

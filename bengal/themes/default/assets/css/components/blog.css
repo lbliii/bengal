@@ -1,6 +1,6 @@
 /**
  * Blog Styles
- * 
+ *
  * Styles for blog list and single post templates.
  * Optimized for content discovery and reading experience.
  */
@@ -278,7 +278,7 @@
     .blog-post-layout.blog-with-toc {
         grid-template-columns: 1fr;
     }
-    
+
     .blog-sidebar {
         display: none;
     }
@@ -555,9 +555,8 @@
     .blog-post-footer {
         padding: var(--space-4) 0;
     }
-    
+
     .blog-card-content {
         padding: var(--space-4);
     }
 }
-

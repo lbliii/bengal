@@ -202,12 +202,12 @@
   .tabs {
     margin: var(--space-4) 0;
   }
-  
+
   .tab-nav a {
     padding: var(--space-2) var(--space-3);
     font-size: var(--text-xs);
   }
-  
+
   .tab-content {
     padding: var(--space-4);
   }
@@ -299,20 +299,19 @@
   .tabs {
     border: none;
   }
-  
+
   .tab-nav {
     display: none;
   }
-  
+
   .tab-pane {
     display: block !important;
     page-break-inside: avoid;
   }
-  
+
   .tab-pane:not(:last-child) {
     border-bottom: 1px solid #ccc;
     padding-bottom: var(--space-4);
     margin-bottom: var(--space-4);
   }
 }
-

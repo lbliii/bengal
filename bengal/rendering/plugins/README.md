@@ -77,7 +77,7 @@ md = mistune.create_markdown(plugins=[directive])
 #### VariableSubstitutionPlugin
 - **File**: `variable_substitution.py`
 - **Purpose**: Substitute `{{ page.metadata.xxx }}` in markdown content
-- **Features**: 
+- **Features**:
   - Code blocks stay literal (no escaping needed)
   - Single-pass parsing
   - Safe evaluation with error handling
@@ -146,7 +146,7 @@ pytest tests/unit/rendering/plugins/ -v
    class MyPlugin:
        def __init__(self, options):
            self.options = options
-       
+
        def __call__(self, md):
            # Register with mistune
            pass
@@ -219,4 +219,3 @@ from bengal.rendering.plugins import (
 
 - **v1.0.0** (Oct 2025): Modular plugin package created from monolithic file
 - **v0.1.x** (Sep 2025): Original `mistune_plugins.py` implementation
-

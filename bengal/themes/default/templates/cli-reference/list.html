@@ -2,10 +2,10 @@
 
 {#
   CLI Reference List Template
-  
+
   Used for CLI documentation section indexes (command overview).
   Shows commands in a clean, scannable reference layout.
-  
+
   Context variables:
     - section: Section object with CLI commands
     - posts: List of command pages
@@ -20,23 +20,23 @@
   <aside class="docs-sidebar" id="docs-sidebar" role="navigation" aria-label="CLI navigation">
     {% include 'partials/docs-nav.html' %}
   </aside>
-  
+
   {# Main Content #}
   <div class="docs-main">
     {# Breadcrumbs #}
     {% include 'partials/breadcrumbs.html' %}
-    
+
     <div class="cli-reference-container">
         <header class="cli-reference-header">
             <h1>⌨️  {{ (section.title if section else title) | default('CLI Reference') | upper }}</h1>
-            
+
             {% if section and section.metadata.description %}
             <p class="cli-reference-description">{{ section.metadata.description }}</p>
             {% else %}
             <p class="cli-reference-description">Command-line interface reference and documentation</p>
             {% endif %}
         </header>
-        
+
         {# Quick Start Section - if index page has content, show it #}
         {% if section is defined and section and section.index_page and section.index_page.parsed_ast %}
         <section class="cli-intro">
@@ -45,14 +45,14 @@
             </div>
         </section>
         {% endif %}
-        
+
         {# Commands Section #}
         {% if posts or subsections %}
         <div class="cli-commands">
-            
+
             {# Collect all commands from direct pages and subsections #}
             {% set all_commands = posts | list %}
-            
+
             {# If we have subsections with names like "commands", flatten them #}
             {% if subsections %}
                 {% for subsection in subsections %}
@@ -67,7 +67,7 @@
                     {% endif %}
                 {% endfor %}
             {% endif %}
-            
+
             {# Show all commands as cards #}
             {% if all_commands %}
             <section class="cli-section">
@@ -83,7 +83,7 @@
                                 <a href="{{ url_for(command) }}">{{ command.title }}</a>
                             </h3>
                         </div>
-                        
+
                         <div class="cli-command-content">
                             {% if command.metadata.description %}
                             <p class="cli-command-description">
@@ -94,11 +94,11 @@
                                 {{ command.content | striptags | truncate(180) }}
                             </p>
                             {% endif %}
-                            
+
                             {% if command.metadata.usage %}
                             <code class="cli-usage">{{ command.metadata.usage }}</code>
                             {% endif %}
-                            
+
                             <a href="{{ url_for(command) }}" class="cli-command-link">
                                 Full documentation →
                             </a>
@@ -108,7 +108,7 @@
                 </div>
             </section>
             {% endif %}
-            
+
             {# Show other subsections that aren't just command containers #}
             {% if subsections %}
                 {% set other_subsections = [] %}
@@ -117,7 +117,7 @@
                         {% set _ = other_subsections.append(subsection) %}
                     {% endif %}
                 {% endfor %}
-                
+
                 {% if other_subsections %}
                 <section class="cli-section">
                     <h2 class="cli-section-title">Command Groups</h2>
@@ -129,14 +129,14 @@
                                     <a href="{{ url_for(subsection) }}">{{ subsection.title }}</a>
                                 </h3>
                             </div>
-                            
+
                             <div class="cli-command-content">
                                 {% if subsection.metadata.description %}
                                 <p class="cli-command-description">
                                     {{ subsection.metadata.description }}
                                 </p>
                                 {% endif %}
-                                
+
                                 <div class="cli-command-meta">
                                     {% if subsection.regular_pages %}
                                     {# Count only non-index pages #}
@@ -148,7 +148,7 @@
                                     {% endif %}
                                     {% endif %}
                                 </div>
-                                
+
                                 <a href="{{ url_for(subsection) }}" class="cli-command-link">
                                     View commands →
                                 </a>
@@ -159,7 +159,7 @@
                 </section>
                 {% endif %}
             {% endif %}
-            
+
         </div>
         {% else %}
         {# Empty state #}
@@ -167,7 +167,7 @@
             <p>No CLI documentation available yet.</p>
         </div>
         {% endif %}
-        
+
         {# Getting Help Section #}
         <section class="cli-help">
             <h2>Getting Help</h2>
@@ -179,18 +179,18 @@
 {{ (section.metadata.cli_name if section is defined and section else 'command') | default('command') }} COMMAND --help</code></pre>
             </div>
         </section>
-        
+
         {# NO PAGINATION - Reference docs should not be paginated #}
-        
+
     </div>
   </div>
-  
+
   {# Right Sidebar: Optional space for future TOC or related content #}
 </div>
 
 {# Mobile sidebar toggle button #}
-<button 
-  class="docs-sidebar-toggle" 
+<button
+  class="docs-sidebar-toggle"
   aria-label="Toggle navigation sidebar"
   aria-expanded="false"
   aria-controls="docs-sidebar">
@@ -205,62 +205,4 @@
 <div class="docs-sidebar-overlay" aria-hidden="true"></div>
 {% endblock %}
 
-{% block extra_js %}
-{# Sidebar toggle functionality #}
-<script>
-(function() {
-  'use strict';
-  
-  const sidebar = document.getElementById('docs-sidebar');
-  const toggle = document.querySelector('.docs-sidebar-toggle');
-  const overlay = document.querySelector('.docs-sidebar-overlay');
-  
-  if (!sidebar || !toggle || !overlay) return;
-  
-  function openSidebar() {
-    sidebar.classList.add('open');
-    overlay.classList.add('visible');
-    toggle.setAttribute('aria-expanded', 'true');
-    document.body.style.overflow = 'hidden'; // Prevent scrolling
-  }
-  
-  function closeSidebar() {
-    sidebar.classList.remove('open');
-    overlay.classList.remove('visible');
-    toggle.setAttribute('aria-expanded', 'false');
-    document.body.style.overflow = '';
-  }
-  
-  function toggleSidebar() {
-    if (sidebar.classList.contains('open')) {
-      closeSidebar();
-    } else {
-      openSidebar();
-    }
-  }
-  
-  // Toggle button click
-  toggle.addEventListener('click', toggleSidebar);
-  
-  // Overlay click (close sidebar)
-  overlay.addEventListener('click', closeSidebar);
-  
-  // Close on escape key
-  document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape' && sidebar.classList.contains('open')) {
-      closeSidebar();
-    }
-  });
-  
-  // Close sidebar when clicking a link (mobile)
-  sidebar.querySelectorAll('a').forEach(function(link) {
-    link.addEventListener('click', function() {
-      if (window.innerWidth <= 768) {
-        closeSidebar();
-      }
-    });
-  });
-})();
-</script>
-{% endblock %}
-
+{# Sidebar toggle functionality is handled by interactive.js #}

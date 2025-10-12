@@ -98,14 +98,13 @@
   .nav-links {
     grid-template-columns: 1fr;
   }
-  
+
   .nav-next {
     text-align: left;
     margin-left: 0;
   }
-  
+
   .breadcrumbs {
     font-size: 0.8125rem;
   }
 }
-

@@ -32,7 +32,7 @@
   letter-spacing: var(--letter-spacing-tight);
 }
 
-.prose h1 { 
+.prose h1 {
   font-size: var(--text-heading-1);
   font-weight: var(--font-extrabold);
   margin-top: 0;
@@ -41,7 +41,7 @@
   letter-spacing: var(--letter-spacing-tighter);
 }
 
-.prose h2 { 
+.prose h2 {
   font-size: var(--text-heading-2);
   font-weight: var(--font-bold);
   margin-top: 2em;
@@ -50,22 +50,22 @@
   letter-spacing: var(--letter-spacing-tight);
 }
 
-.prose h3 { 
+.prose h3 {
   font-size: var(--text-heading-3);
   font-weight: var(--font-semibold);
 }
 
-.prose h4 { 
+.prose h4 {
   font-size: var(--text-heading-4);
   font-weight: var(--font-semibold);
 }
 
-.prose h5 { 
+.prose h5 {
   font-size: var(--text-heading-5);
   font-weight: var(--font-medium);
 }
 
-.prose h6 { 
+.prose h6 {
   font-size: var(--text-heading-6);
   font-weight: var(--font-medium);
   text-transform: uppercase;
@@ -368,4 +368,3 @@
 .font-sans { font-family: var(--font-sans); }
 .font-serif { font-family: var(--font-serif); }
 .font-mono { font-family: var(--font-mono); }
-

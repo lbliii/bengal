@@ -1,7 +1,7 @@
 /**
  * Bengal SSG Default Theme
  * Accessibility & Focus States
- * 
+ *
  * Ensures all interactive elements have visible, accessible focus indicators
  * that meet WCAG 2.1 AA standards.
  */
@@ -215,7 +215,7 @@ select:focus-visible {
     outline-width: 3px;
     outline-offset: 3px;
   }
-  
+
   .skip-link:focus {
     outline-width: 3px;
   }
@@ -229,7 +229,7 @@ select:focus-visible {
   *:focus-visible {
     transition: none;
   }
-  
+
   .skip-link {
     transition: none;
   }
@@ -326,9 +326,8 @@ body.user-is-tabbing *:focus {
   *:focus-visible {
     outline: none;
   }
-  
+
   .skip-link {
     display: none;
   }
 }
-

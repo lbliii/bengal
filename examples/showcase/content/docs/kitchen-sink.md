@@ -356,11 +356,11 @@ https://bengal-ssg.dev
 def build_site(config_path: str) -> None:
     """Build the entire site."""
     from bengal.core.site import Site
-    
+
     site = Site(config_path)
     site.discover_content()
     site.build_all()
-    
+
     print(f"✅ Built {len(site.pages)} pages successfully!")
 ```
 
@@ -410,9 +410,9 @@ bengal serve --watch
 > This is a simple blockquote.
 
 > ### Blockquote with Heading
-> 
+>
 > You can include headings, **formatting**, and even code:
-> 
+>
 > ```python
 > print("Hello from blockquote!")
 > ```
@@ -562,4 +562,3 @@ Bengal handles complex nesting gracefully.
 
 ::::
 `````
-

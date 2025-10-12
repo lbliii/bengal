@@ -29,4 +29,3 @@ All notable changes to the "Bengal SSG Syntax Highlighter" extension will be doc
 - Scopes follow standard naming conventions
 - No performance impact
 - Works with existing `.md` files
-

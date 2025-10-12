@@ -198,7 +198,7 @@ theme = "my-theme"
 [params]
   description = "Site description"
   author = "John Doe"
-  
+
 [taxonomies]
   tag = "tags"
   category = "categories"
@@ -208,7 +208,7 @@ theme = "my-theme"
     name = "Home"
     url = "/"
     weight = 1
-  
+
   [[menu.main]]
     name = "Posts"
     url = "/posts/"
@@ -816,14 +816,14 @@ def migrate_frontmatter(content_dir):
     """Convert Hugo-specific frontmatter."""
     for md_file in Path(content_dir).rglob("*.md"):
         content = md_file.read_text()
-        
+
         # Replace summary with description
         content = content.replace("summary:", "description:")
-        
+
         # Add TOC for docs
         if "/docs/" in str(md_file):
             content = content.replace("---\n", "---\ntoc: true\n", 1)
-        
+
         md_file.write_text(content)
         print(f"Converted: {md_file}")
 
@@ -832,17 +832,17 @@ def convert_config(hugo_config, bengal_config):
     # Read Hugo config
     with open(hugo_config) as f:
         hugo = f.read()
-    
+
     # Menu syntax is identical - no conversion needed!
     bengal = hugo
-    
+
     # Move [params] to [site] section
     # (simplified - add more complex logic as needed)
     bengal = bengal.replace("[params]", "[site]")
-    
+
     with open(bengal_config, 'w') as f:
         f.write(bengal)
-    
+
     print(f"Converted config: {bengal_config}")
 
 if __name__ == "__main__":
@@ -970,4 +970,3 @@ Found issues with this guide? Have questions?
 **Last Updated:** October 4, 2025  
 **Version:** 1.0.0  
 **Covers:** Hugo 0.119.x → Bengal 1.0.0
-

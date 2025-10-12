@@ -265,4 +265,3 @@ name = "API"
 
 - [Frontmatter Guide](../writing/frontmatter-guide.md)  - Metadata
 - [Internal Links](../writing/internal-links.md) - Cross-references
-

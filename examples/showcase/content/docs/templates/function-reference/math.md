@@ -104,12 +104,12 @@ Formatted percentage string with `%` sign (e.g., `"75%"`, `"87.50%"`).
     <span class="label">Pass Rate</span>
     <span class="value">{{ passed | percentage(total, 1) }}</span>
   </div>
-  
+
   <div class="stat">
     <span class="label">Test Coverage</span>
     <span class="value">{{ covered_lines | percentage(total_lines, 2) }}</span>
   </div>
-  
+
   <div class="stat">
     <span class="label">Success Rate</span>
     <span class="value">{{ successful | percentage(attempts, 0) }}</span>
@@ -137,16 +137,16 @@ Always safe to use, even with zero denominators!
 {# Show build statistics #}
 <div class="build-stats">
   <h3>Build Progress</h3>
-  
+
   <p>
     Built {{ pages_complete }} of {{ total_pages }} pages
     ({{ pages_complete | percentage(total_pages) }})
   </p>
-  
+
   <p>
     Cache hit rate: {{ cache_hits | percentage(total_requests, 1) }}
   </p>
-  
+
   <p>
     Test coverage: {{ covered | percentage(total, 2) }}
   </p>
@@ -364,12 +364,12 @@ If you need different behavior, check first:
   <div>
     {{ total_words | divided_by(post_count) | round(0) }} words/post
   </div>
-  
+
   {# Average reading time (1 decimal) #}
   <div>
     {{ total_minutes | divided_by(post_count) | round(1) }} min/post
   </div>
-  
+
   {# Bytes to MB (2 decimals) #}
   <div>
     {{ bytes | divided_by(1048576) | round(2) }} MB
@@ -595,10 +595,10 @@ Rounded value to specified precision.
 <dl class="stats">
   <dt>Average Rating</dt>
   <dd>{{ avg_rating | round(1) }} / 5.0</dd>
-  
+
   <dt>Response Time</dt>
   <dd>{{ response_ms | round(0) }} ms</dd>
-  
+
   <dt>Success Rate</dt>
   <dd>{{ success_rate | round(2) }}%</dd>
 </dl>
@@ -679,12 +679,12 @@ Scientific precision
   <div class="subtotal">
     Subtotal: ${{ subtotal | round(2) }}
   </div>
-  
+
   {% set tax = subtotal | times(0.0825) %}
   <div class="tax">
     Tax (8.25%): ${{ tax | round(2) }}
   </div>
-  
+
   {% set total = subtotal | times(1.0825) %}
   <div class="total">
     Total: ${{ total | round(2) }}
@@ -706,7 +706,7 @@ Scientific precision
       <div style="width: {{ pages_built | percentage(total_pages) }}"></div>
     </div>
   </div>
-  
+
   {# Cache efficiency #}
   <div class="metric">
     <div class="label">Cache Hit Rate</div>
@@ -714,7 +714,7 @@ Scientific precision
       {{ cache_hits | percentage(total_requests, 1) }}
     </div>
   </div>
-  
+
   {# Average build time #}
   <div class="metric">
     <div class="label">Avg Build Time</div>
@@ -737,12 +737,12 @@ Scientific precision
     Page {{ current_page }} of {{ total_pages }}
     ({{ total_items }} total items)
   </div>
-  
+
   <div class="controls">
     {% if current_page > 1 %}
       <a href="?page={{ current_page - 1 }}">Previous</a>
     {% endif %}
-    
+
     {% if current_page < total_pages %}
       <a href="?page={{ current_page + 1 }}">Next</a>
     {% endif %}
@@ -775,19 +775,19 @@ Here's a complete example combining all math functions:
 ```jinja2
 <div class="build-stats">
   <h2>Build Statistics</h2>
-  
+
   {# Basic counts #}
   <div class="stat-grid">
     <div class="stat">
       <span class="label">Total Pages</span>
       <span class="value">{{ total_pages }}</span>
     </div>
-    
+
     <div class="stat">
       <span class="label">Build Time</span>
       <span class="value">{{ build_time | round(2) }}s</span>
     </div>
-    
+
     <div class="stat">
       <span class="label">Pages/Second</span>
       <span class="value">
@@ -795,7 +795,7 @@ Here's a complete example combining all math functions:
       </span>
     </div>
   </div>
-  
+
   {# Progress bars #}
   <div class="progress-section">
     <div class="progress-item">
@@ -807,7 +807,7 @@ Here's a complete example combining all math functions:
         </div>
       </div>
     </div>
-    
+
     <div class="progress-item">
       <label>Test Coverage</label>
       <div class="bar">
@@ -818,24 +818,24 @@ Here's a complete example combining all math functions:
       </div>
     </div>
   </div>
-  
+
   {# Averages #}
   <div class="averages">
     <h3>Averages</h3>
-    
+
     <ul>
       <li>
-        Words per page: 
+        Words per page:
         {{ total_words | divided_by(total_pages) | round(0) }}
       </li>
-      
+
       <li>
-        Reading time: 
+        Reading time:
         {{ total_words | divided_by(200) | divided_by(total_pages) | round(1) }} min
       </li>
-      
+
       <li>
-        Build speed improvement: 
+        Build speed improvement:
         {{ old_time | divided_by(new_time) | round(1) }}x faster
       </li>
     </ul>
@@ -872,7 +872,7 @@ Money should always have exactly 2 decimal places!
 
 ```jinja2
 {# Calculate percentage of average #}
-{% set result = value 
+{% set result = value
     | divided_by(count)  # Get average
     | times(100)         # Convert to percentage
     | round(1)           # One decimal
@@ -916,4 +916,3 @@ For financial calculations, round at the END:
 **Module:** `bengal.rendering.template_functions.math_functions`  
 **Functions:** 6  
 **Last Updated:** October 4, 2025
-

@@ -2,10 +2,10 @@
 
 {#
   API Reference List Template
-  
+
   Used for API documentation section indexes (module/package overview).
   Shows modules and packages in a clean, reference-style layout.
-  
+
   Context variables:
     - section: Section object with API modules
     - posts: List of module pages (may be empty)
@@ -20,41 +20,41 @@
   <aside class="docs-sidebar" id="docs-sidebar" role="navigation" aria-label="API navigation">
     {% include 'partials/docs-nav.html' %}
   </aside>
-  
+
   {# Main Content #}
   <div class="docs-main">
     {# Breadcrumbs #}
     {% include 'partials/breadcrumbs.html' %}
-    
+
     <div class="api-reference-container">
         <header class="api-reference-header">
             <h1>📦 {{ section.title if section else title | default('API Reference') }}</h1>
-            
+
             {% if section and section.metadata.description %}
             <p class="api-reference-description">{{ section.metadata.description }}</p>
             {% else %}
             <p class="api-reference-description">Complete API documentation and reference</p>
             {% endif %}
         </header>
-        
+
         {# API Statistics #}
         {% if section %}
         <div class="api-stats">
             {% set module_count = (posts | length) + (subsections | length) %}
             {% set all_pages = section.regular_pages_recursive %}
-            
+
             <div class="api-stat">
                 <strong>{{ module_count }}</strong>
                 <span>{{ 'module' if module_count == 1 else 'modules' }}</span>
             </div>
-            
+
             {% if subsections %}
             <div class="api-stat">
                 <strong>{{ subsections | length }}</strong>
                 <span>{{ 'package' if subsections | length == 1 else 'packages' }}</span>
             </div>
             {% endif %}
-            
+
             {% if all_pages %}
             <div class="api-stat">
                 <strong>{{ all_pages | length }}</strong>
@@ -63,11 +63,11 @@
             {% endif %}
         </div>
         {% endif %}
-        
+
         {# Package/Module Grid #}
         {% if subsections or posts %}
         <div class="api-modules">
-            
+
             {# Subsections (packages with multiple modules) #}
             {% if subsections %}
             <section class="api-section">
@@ -81,14 +81,14 @@
                                 <a href="{{ url_for(subsection) }}">{{ subsection.title }}</a>
                             </h3>
                         </div>
-                        
+
                         <div class="api-module-content">
                             {% if subsection.metadata.description %}
                             <p class="api-module-description">
                                 {{ subsection.metadata.description | truncate(200) }}
                             </p>
                             {% endif %}
-                            
+
                             <div class="api-module-meta">
                                 {% if subsection.regular_pages %}
                                 {# Count only non-index pages #}
@@ -110,7 +110,7 @@
                 </div>
             </section>
             {% endif %}
-            
+
             {# Direct module pages #}
             {% if posts %}
             <section class="api-section">
@@ -124,7 +124,7 @@
                                 <a href="{{ url_for(post) }}">{{ post.title }}</a>
                             </h3>
                         </div>
-                        
+
                         <div class="api-module-content">
                             {% if post.metadata.description %}
                             <p class="api-module-description">
@@ -135,14 +135,14 @@
                                 {{ post.content | striptags | truncate(200) }}
                             </p>
                             {% endif %}
-                            
+
                             <div class="api-module-meta">
                                 {% if post.metadata.classes %}
                                 <span class="api-meta-item">
                                     {{ post.metadata.classes | length }} class{{ 'es' if post.metadata.classes | length != 1 else '' }}
                                 </span>
                                 {% endif %}
-                                
+
                                 {% if post.metadata.functions %}
                                 <span class="api-meta-item">
                                     {{ post.metadata.functions | length }} function{{ 's' if post.metadata.functions | length != 1 }}
@@ -155,7 +155,7 @@
                 </div>
             </section>
             {% endif %}
-            
+
         </div>
         {% else %}
         {# Empty state #}
@@ -163,18 +163,18 @@
             <p>No API documentation available yet.</p>
         </div>
         {% endif %}
-        
+
         {# NO PAGINATION - Reference docs should not be paginated #}
-        
+
     </div>
   </div>
-  
+
   {# Right Sidebar: Optional space for future TOC or related content #}
 </div>
 
 {# Mobile sidebar toggle button #}
-<button 
-  class="docs-sidebar-toggle" 
+<button
+  class="docs-sidebar-toggle"
   aria-label="Toggle navigation sidebar"
   aria-expanded="false"
   aria-controls="docs-sidebar">
@@ -189,62 +189,4 @@
 <div class="docs-sidebar-overlay" aria-hidden="true"></div>
 {% endblock %}
 
-{% block extra_js %}
-{# Sidebar toggle functionality #}
-<script>
-(function() {
-  'use strict';
-  
-  const sidebar = document.getElementById('docs-sidebar');
-  const toggle = document.querySelector('.docs-sidebar-toggle');
-  const overlay = document.querySelector('.docs-sidebar-overlay');
-  
-  if (!sidebar || !toggle || !overlay) return;
-  
-  function openSidebar() {
-    sidebar.classList.add('open');
-    overlay.classList.add('visible');
-    toggle.setAttribute('aria-expanded', 'true');
-    document.body.style.overflow = 'hidden'; // Prevent scrolling
-  }
-  
-  function closeSidebar() {
-    sidebar.classList.remove('open');
-    overlay.classList.remove('visible');
-    toggle.setAttribute('aria-expanded', 'false');
-    document.body.style.overflow = '';
-  }
-  
-  function toggleSidebar() {
-    if (sidebar.classList.contains('open')) {
-      closeSidebar();
-    } else {
-      openSidebar();
-    }
-  }
-  
-  // Toggle button click
-  toggle.addEventListener('click', toggleSidebar);
-  
-  // Overlay click (close sidebar)
-  overlay.addEventListener('click', closeSidebar);
-  
-  // Close on escape key
-  document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape' && sidebar.classList.contains('open')) {
-      closeSidebar();
-    }
-  });
-  
-  // Close sidebar when clicking a link (mobile)
-  sidebar.querySelectorAll('a').forEach(function(link) {
-    link.addEventListener('click', function() {
-      if (window.innerWidth <= 768) {
-        closeSidebar();
-      }
-    });
-  });
-})();
-</script>
-{% endblock %}
-
+{# Sidebar toggle functionality is handled by interactive.js #}

@@ -1,13 +1,23 @@
 {#
   Tag List Component
-  
-  Usage:
-    {% include 'partials/tag-list.html' with {'tags': page.tags} %}
-  
+
+  Displays tags as styled badges, optionally linkable to tag archive pages.
+
   Variables:
-    - tags: List of tag strings
+    - tags: List of tag strings (required)
     - small: Boolean (default: false) - use smaller size
     - linkable: Boolean (default: true) - make tags clickable
+    - site: Site object (for i18n configuration)
+
+  Features:
+    - Locale-aware tag URLs (respects i18n prefix strategy)
+    - Small variant for compact display
+    - Non-linkable mode for display-only tags
+    - Automatic URL slug generation (lowercase, hyphens)
+
+  Usage:
+    {% include 'partials/tag-list.html' with {'tags': page.tags} %}
+    {% include 'partials/tag-list.html' with {'tags': article.tags, 'small': true} %}
 #}
 
 {% set small = small | default(false) %}
@@ -33,4 +43,3 @@
         {% endif %}
     {% endfor %}
 </div>
-

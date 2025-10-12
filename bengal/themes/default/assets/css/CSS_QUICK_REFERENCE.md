@@ -219,7 +219,7 @@ components/
  * TODO: Refactor when [CONDITION]
  * @see [LINK TO ISSUE]
  */
-.prose ul { 
+.prose ul {
   border: 1px solid red !important;
 }
 ```
@@ -232,4 +232,3 @@ components/
 ---
 
 **Remember:** When in doubt, scope it! 🎯
-

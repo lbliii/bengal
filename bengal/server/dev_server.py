@@ -403,9 +403,14 @@ class DevServer:
         # Allow address reuse to prevent "address already in use" errors on restart
         socketserver.TCPServer.allow_reuse_address = True
 
-        # Create threaded server so SSE long-poll connections don't block other requests
+        # Use a custom server class to increase the socket backlog (request queue size)
+        # which helps avoid temporary stalls under bursts of rapid navigation.
+        class BengalThreadingTCPServer(socketserver.ThreadingTCPServer):
+            request_queue_size = 128
+
+        # Create threaded server so SSE long-lived connections don't block other requests
         # (don't use context manager - ResourceManager handles cleanup)
-        httpd = socketserver.ThreadingTCPServer((self.host, actual_port), BengalRequestHandler)
+        httpd = BengalThreadingTCPServer((self.host, actual_port), BengalRequestHandler)
         httpd.daemon_threads = True  # Ensure worker threads don't block shutdown
 
         logger.info(

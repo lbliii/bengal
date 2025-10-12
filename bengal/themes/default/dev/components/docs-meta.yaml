@@ -1,0 +1,24 @@
+name: "Document Metadata"
+template: "partials/docs-meta.html"
+description: "Displays publication date and reading time in a minimal format"
+variants:
+  - id: "default"
+    name: "Default (Date + Reading Time)"
+    context:
+      page:
+        date: "2025-10-01"
+        content: "This is sample content that would be used to calculate reading time. It needs to be reasonably long to show a meaningful reading time estimate. Bengal SSG is a powerful static site generator with many features."
+
+  - id: "date-only"
+    name: "Date Only"
+    context:
+      page:
+        date: "2025-09-15"
+        content: null
+
+  - id: "reading-time-only"
+    name: "Reading Time Only"
+    context:
+      page:
+        date: null
+        content: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris. Bengal SSG makes it easy to build fast static sites with powerful features and excellent developer experience."

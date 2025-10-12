@@ -99,13 +99,13 @@ uv pip install -e ".[dev]"
 # GitHub Actions
 - name: Install uv
   run: pip install uv
-  
+
 - name: Setup environment
   run: |
     uv venv
     source .venv/bin/activate
     uv pip install -e ".[dev]"
-    
+
 - name: Run tests
   run: pytest
 ```
@@ -148,4 +148,3 @@ uv pip install -e ".[dev]" --resolution=highest
 - [uv Documentation](https://docs.astral.sh/uv/)
 - [Bengal Contributing Guide](CONTRIBUTING.md)
 - [Bengal Getting Started](GETTING_STARTED.md)
-

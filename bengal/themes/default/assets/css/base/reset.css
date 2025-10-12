@@ -147,7 +147,7 @@ ol {
   padding: 0;
   /* NOTE: list-style is NOT removed globally.
    * Semantic lists should have bullets/numbers by default.
-   * Components that need unstyled lists (nav, breadcrumbs, etc.) 
+   * Components that need unstyled lists (nav, breadcrumbs, etc.)
    * should explicitly set list-style: none.
    */
 }
@@ -309,4 +309,3 @@ summary {
 :focus:not(:focus-visible) {
   outline: none;
 }
-

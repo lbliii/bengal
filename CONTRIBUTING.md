@@ -143,11 +143,11 @@ def parse_content(
 ) -> tuple[str, dict]:
     """
     Parse content file and extract frontmatter.
-    
+
     Args:
         file_path: Path to content file
         encoding: File encoding
-        
+
     Returns:
         Tuple of (content, metadata)
     """
@@ -191,10 +191,10 @@ def test_page_extracts_links():
         source_path=Path("test.md"),
         content="[link](https://example.com)"
     )
-    
+
     # Act
     links = page.extract_links()
-    
+
     # Assert
     assert len(links) == 1
     assert links[0] == "https://example.com"
@@ -278,4 +278,3 @@ If you have questions, feel free to:
 - Reach out to maintainers
 
 Thank you for contributing to Bengal! 🎉
-

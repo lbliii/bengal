@@ -327,7 +327,7 @@ RFC 822 formatted date string (e.g., `"Fri, 04 Oct 2025 14:30:00 +0000"`).
     <link>{{ site.baseurl }}</link>
     <description>{{ site.description }}</description>
     <lastBuildDate>{{ now | date_rfc822 }}</lastBuildDate>
-    
+
     {% for post in recent_posts %}
       <item>
         <title>{{ post.title }}</title>
@@ -350,7 +350,7 @@ RFC 822 formatted date string (e.g., `"Fri, 04 Oct 2025 14:30:00 +0000"`).
   <title>{{ site.title }}</title>
   <link href="{{ site.baseurl }}"/>
   <updated>{{ now | date_iso }}</updated>
-  
+
   {% for post in recent_posts %}
     <entry>
       <title>{{ post.title }}</title>
@@ -395,29 +395,29 @@ RFC 822 is used in:
 <article class="blog-post">
   <header>
     <h1>{{ post.title }}</h1>
-    
+
     <div class="post-meta">
       {# Author #}
       <span class="author">
         By {{ post.author }}
       </span>
-      
+
       {# Published date (human-readable) #}
       <time datetime="{{ post.date | date_iso }}">
         {{/* post.date | time_ago */}}
       </time>
-      
+
       {# Reading time #}
       <span class="reading-time">
         {{ post.content | reading_time }} min read
       </span>
     </div>
   </header>
-  
+
   <div class="post-content">
     {{ post.content | safe }}
   </div>
-  
+
   <footer class="post-footer">
     {% if post.modified and post.modified != post.date %}
       <p class="updated">
@@ -441,7 +441,7 @@ RFC 822 is used in:
   {% for year in by_year.keys() | sort(reverse=true) %}
     <section class="year-section">
       <h2>{{ year }}</h2>
-      
+
       {% set year_posts = by_year[year] | sort_by('date', reverse=true) %}
       {% for post in year_posts %}
         <article class="archive-item">
@@ -467,7 +467,7 @@ RFC 822 is used in:
       <div class="timeline-content">
         <h3>{{ item.title }}</h3>
         <p>{{ item.description }}</p>
-        <time datetime="{{ item.timestamp | date_iso }}" 
+        <time datetime="{{ item.timestamp | date_iso }}"
               title="{{ item.timestamp.strftime('%B %d, %Y at %I:%M %p') }}">
           {{/* item.timestamp | time_ago */}}
         </time>
@@ -664,7 +664,7 @@ Complete date handling for a blog:
   <div class="date-primary">
     {% if (now - post.date).days < 30 %}
       {# Recent: Show relative time #}
-      <time datetime="{{ post.date | date_iso }}" 
+      <time datetime="{{ post.date | date_iso }}"
             title="{{ post.date.strftime('%B %d, %Y at %I:%M %p') }}">
         {{/* post.date | time_ago */}}
       </time>
@@ -675,18 +675,18 @@ Complete date handling for a blog:
       </time>
     {% endif %}
   </div>
-  
+
   {# Updated indicator #}
   {% if post.modified and (post.modified - post.date).days > 0 %}
     <div class="date-updated">
       <span class="label">Updated:</span>
-      <time datetime="{{ post.modified | date_iso }}" 
+      <time datetime="{{ post.modified | date_iso }}"
             title="{{ post.modified.strftime('%B %d, %Y at %I:%M %p') }}">
         {{/* post.modified | time_ago */}}
       </time>
     </div>
   {% endif %}
-  
+
   {# Structured data for SEO #}
   <script type="application/ld+json">
   {
@@ -704,4 +704,3 @@ Complete date handling for a blog:
 **Module:** `bengal.rendering.template_functions.dates`  
 **Functions:** 3  
 **Last Updated:** October 4, 2025
-

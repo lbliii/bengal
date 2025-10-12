@@ -1,7 +1,7 @@
 /**
  * Bengal SSG - Layout Compositions
  * Following CUBE CSS methodology
- * 
+ *
  * These are structural compositions that define relationships
  * between elements. They should be layout-agnostic and reusable.
  */
@@ -13,7 +13,7 @@
 /**
  * Main documentation layout with sidebar navigation,
  * content area, and table of contents.
- * 
+ *
  * Usage:
  * <div class="docs-layout">
  *   <aside class="docs-sidebar">...</aside>
@@ -24,10 +24,10 @@
 
 .docs-layout {
   display: grid;
-  grid-template-columns: 
-    [sidebar-start] minmax(240px, 280px) 
-    [content-start] minmax(0, 1fr) 
-    [toc-start] minmax(200px, 260px) 
+  grid-template-columns:
+    [sidebar-start] minmax(240px, 280px)
+    [content-start] minmax(0, 1fr)
+    [toc-start] minmax(200px, 260px)
     [end];
   gap: 2rem;
   max-width: 1600px;
@@ -78,17 +78,17 @@
 
 @media (max-width: 1280px) {
   .docs-layout {
-    grid-template-columns: 
-      [sidebar-start] minmax(240px, 260px) 
-      [content-start] minmax(0, 1fr) 
+    grid-template-columns:
+      [sidebar-start] minmax(240px, 260px)
+      [content-start] minmax(0, 1fr)
       [end];
     gap: 2rem;
   }
-  
+
   .docs-main {
     grid-column: content-start / end;
   }
-  
+
   .docs-toc {
     display: none;
   }
@@ -104,11 +104,11 @@
     padding: 1rem;
     gap: 1rem;
   }
-  
+
   .docs-main {
     grid-column: 1;
   }
-  
+
   .docs-sidebar {
     /* Convert to mobile drawer */
     position: fixed;
@@ -127,11 +127,11 @@
     z-index: var(--z-sticky);
     overflow-y: auto;
   }
-  
+
   .docs-sidebar.open {
     transform: translateX(0);
   }
-  
+
   .docs-toc {
     display: none;
   }
@@ -243,7 +243,7 @@
 
 /**
  * Simple vertical stack with consistent gap
- * 
+ *
  * Usage:
  * <div class="stack">
  *   <div>Item 1</div>
@@ -271,7 +271,7 @@
 
 /**
  * Horizontal layout with wrapping
- * 
+ *
  * Usage:
  * <div class="cluster">
  *   <button>Action 1</button>
@@ -309,7 +309,7 @@
 
 /**
  * Responsive grid that auto-fits items
- * 
+ *
  * Usage:
  * <div class="grid">
  *   <div class="card">...</div>
@@ -320,7 +320,7 @@
 .grid {
   display: grid;
   grid-template-columns: repeat(
-    auto-fit, 
+    auto-fit,
     minmax(var(--grid-min, 280px), 1fr)
   );
   gap: var(--grid-gap, var(--space-component-gap));
@@ -344,7 +344,7 @@
 
 /**
  * Center content with max-width
- * 
+ *
  * Usage:
  * <div class="center">
  *   <article>...</article>
@@ -372,7 +372,7 @@
 
 /**
  * Sidebar layout with flexible content
- * 
+ *
  * Usage:
  * <div class="with-sidebar">
  *   <aside>Sidebar</aside>
@@ -409,15 +409,14 @@
   .docs-layout {
     display: block;
   }
-  
+
   .docs-sidebar,
   .docs-toc,
   .docs-sidebar-toggle {
     display: none !important;
   }
-  
+
   .docs-main {
     max-width: 100%;
   }
 }
-

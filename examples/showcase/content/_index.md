@@ -19,35 +19,35 @@ features:
     link:
       text: "See benchmarks"
       url: "#performance-benchmarks"
-  
+
   - icon: "🎯"
     title: "Feature Complete"
     description: "75+ template functions, 9 admonition types, tabs, dropdowns, code highlighting, and comprehensive health checks."
     link:
       text: "View all features"
       url: "docs/markdown/kitchen-sink"
-  
+
   - icon: "🤖"
     title: "LLM-Friendly"
     description: "First SSG with native AI support. Generate clean plain-text outputs perfect for training, RAG systems, and custom GPTs."
     link:
       text: "Learn more"
       url: "docs/output/output-formats"
-  
+
   - icon: "✅"
     title: "Quality Assurance"
     description: "9 comprehensive health check validators ensure production-ready output with link validation and cache integrity."
     link:
       text: "Explore health checks"
       url: "docs/quality/health-checks"
-  
+
   - icon: "🔄"
     title: "Incremental Builds"
     description: "Smart dependency tracking rebuilds only what changed. Change 1 page, rebuild in 0.067s instead of 2.8s."
     link:
       text: "View details"
       url: "#incremental-builds"
-  
+
   - icon: "🧩"
     title: "Python Ecosystem"
     description: "Easy to extend with Python's rich libraries. Familiar Jinja2 templates and straightforward customization."
@@ -60,27 +60,27 @@ quick_links:
     title: "Documentation"
     description: "Complete guides for all Bengal features"
     url: "docs/"
-  
+
   - icon: "🌟"
     title: "Kitchen Sink"
     description: "See ALL features in one page"
     url: "docs/markdown/kitchen-sink"
-  
+
   - icon: "🔧"
     title: "Template Functions"
     description: "75+ functions documented"
     url: "docs/templates/function-reference/"
-  
+
   - icon: "🚀"
     title: "Quick Start"
     description: "Build your first site"
     url: "docs/getting-started/quick-start"
-  
+
   - icon: "📖"
     title: "Hugo Migration"
     description: "Coming from Hugo? Start here"
     url: "tutorials/migration/from-hugo"
-  
+
   - icon: "✅"
     title: "Health Checks"
     description: "Quality assurance tools"
@@ -89,13 +89,13 @@ quick_links:
 stats:
   - value: "75+"
     label: "Template Functions"
-  
+
   - value: "0.3s"
     label: "Build 100 Pages"
-  
+
   - value: "42x"
     label: "Faster Incremental"
-  
+
   - value: "9"
     label: "Health Validators"
 ---
@@ -136,7 +136,7 @@ $ time bengal build --incremental
 
 **75+ template functions:**
 - Strings (11 functions)
-- Collections (8 functions) 
+- Collections (8 functions)
 - Math, dates, URLs, SEO
 - Images, data, files
 - And much more!
@@ -275,10 +275,10 @@ The **[Kitchen Sink](docs/markdown/kitchen-sink.md)** page is the best place to 
 
 ```jinja2
 {# Filter and sort posts #}
-{% set recent = posts 
-    | where('draft', false) 
+{% set recent = posts
+    | where('draft', false)
     | sort_by('date', reverse=true)
-    | first(5) 
+    | first(5)
 %}
 
 {# Group by category #}
@@ -625,4 +625,3 @@ This showcase is **actively growing**. Coming soon:
 **Version:** 1.0.0  
 **Last Updated:** October 4, 2025  
 **Build:** This site is built with Bengal SSG 🐯
-

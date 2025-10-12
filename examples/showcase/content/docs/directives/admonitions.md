@@ -290,7 +290,7 @@ Never commit API keys or secrets to version control. Use environment variables i
 
 1. Create `bengal.toml` in your project root
 2. Add minimal configuration:
-   
+
    \`\`\`toml
    [site]
    title = "My Site"
@@ -494,4 +494,3 @@ You've completed the Python basics tutorial!
 - [Directives Overview](index.md) - All directive types
 - [Markdown Basics](../writing/markdown-basics.md) - Markdown syntax
 - [Content Types](../content-types/) - Page layouts
-

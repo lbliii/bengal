@@ -372,4 +372,3 @@ Master internal linking, then explore:
 - [Getting Started](getting-started.md) - Create your first page
 - [Markdown Basics](markdown-basics.md) - Essential syntax
 - [Content Organization](content-organization.md) - Site structure
-

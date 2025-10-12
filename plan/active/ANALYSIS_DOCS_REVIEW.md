@@ -252,4 +252,3 @@ The `bengal/analysis/` module has **excellent documentation** overall:
 **Grade**: **A-** (92/100)
 
 The documentation is production-ready but would benefit from the enhancements listed above for long-term maintainability.
-

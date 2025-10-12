@@ -151,4 +151,3 @@ Then check any API documentation file (e.g., `content/api/discovery/asset_discov
 - Rubric directives render properly
 - Parameter lists are compact with single newlines between items
 - No excessive blank lines between sections
-

@@ -58,6 +58,59 @@ The Bengal Default Theme is a modern, accessible, and highly customizable theme 
 - **Copy Links** - Heading anchor link copying
 - **Smooth Scroll** - Enhanced anchor navigation
 
+### 🔧 Component Library & Development Tools
+
+The default theme includes a comprehensive **component library** with development tools for rapid iteration:
+
+#### Component Preview System
+
+All 14 template partials have **component manifests** for isolated testing and development:
+
+```bash
+# Start dev server
+bengal serve
+
+# Preview components in browser
+open http://localhost:5173/__bengal_components__/
+```
+
+**Features:**
+- **Isolated rendering** - Test components without full site build
+- **42 test variants** - Edge cases, empty states, long content
+- **Live reload** - Instant updates on template/style changes
+- **Variant testing** - Multiple scenarios per component
+
+#### Swizzle: Safe Template Customization
+
+Copy theme templates for customization with provenance tracking:
+
+```bash
+# Copy a component to your project
+bengal theme swizzle partials/article-card.html
+
+# List swizzled components
+bengal theme swizzle-list
+
+# Update swizzled files (safe when unchanged)
+bengal theme swizzle-update
+```
+
+Swizzled templates are tracked in `.bengal/themes/sources.json` with checksums for safe updates.
+
+#### Component Catalog
+
+All 14 partials are documented with:
+- **Standardized headers** documenting props and usage
+- **Test manifests** with 2-3 variants each
+- **Component preview** for visual testing
+
+See [Component Library Documentation](dev/components/README.md) for complete details.
+
+**Quick Links:**
+- 📚 [Component Library README](dev/components/README.md)
+- 🎨 [Component Preview](http://localhost:5173/__bengal_components__/) (dev server required)
+- 🔀 [Swizzle Documentation](/plan/SWIZZLE_AND_COMPONENT_PREVIEW_ANALYSIS.md)
+
 ### 📂 File Structure
 
 ```
@@ -97,7 +150,12 @@ default/
 │   ├── api-reference/        # API reference templates
 │   ├── cli-reference/        # CLI reference templates
 │   ├── tutorial/             # Tutorial templates
-│   └── partials/             # Reusable template fragments
+│   └── partials/             # Reusable template fragments (14 components)
+│
+├── dev/
+│   └── components/           # Component manifests (42 variants)
+│       ├── README.md         # Component library documentation
+│       ├── *.yaml            # Component test manifests
 │
 └── README.md                 # This file
 ```
@@ -217,13 +275,13 @@ All JavaScript is vanilla ES6+ with no framework dependencies:
 // Standard module pattern
 (function() {
   'use strict';
-  
+
   // Private functions
   function privateFunction() { }
-  
+
   // Public init
   function init() { }
-  
+
   // Auto-initialize on DOM ready
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
@@ -295,18 +353,37 @@ Bengal uses a template resolution order:
 - `tags.html` - Tags index
 - `search.html` - Search results
 
-### Partials
+### Partials (Component Library)
 
-Reusable template fragments in `partials/`:
+**14 reusable template components** in `partials/` with full documentation:
 
+**Simple Components:**
 - `breadcrumbs.html` - Breadcrumb navigation
-- `pagination.html` - Page number navigation
 - `page-navigation.html` - Prev/Next links
-- `toc-sidebar.html` - Table of contents
-- `docs-nav.html` - Documentation sidebar
-- `article-card.html` - Article preview card
-- `tag-list.html` - Tag cloud
-- `search.html` - Search input
+- `pagination.html` - Page number navigation
+- `tag-list.html` - Tag badges
+- `popular-tags.html` - Tag cloud widget
+- `random-posts.html` - Random post suggestions
+- `docs-meta.html` - Date and reading time
+
+**Complex Components:**
+- `article-card.html` - Article preview card with images
+- `child-page-tiles.html` - Section/page listing
+- `docs-nav.html` - Full documentation sidebar
+- `toc-sidebar.html` - Table of contents with progress
+- `section-navigation.html` - Section statistics
+
+**Special Components:**
+- `search.html` - Full-text search UI
+- `docs-nav-section.html` - Recursive nav renderer
+
+Each component includes:
+- ✅ Standardized header with prop documentation
+- ✅ Test manifests with 2-3 variants
+- ✅ Component preview support
+- ✅ Swizzle compatibility
+
+**Component Library:** See [dev/components/README.md](dev/components/README.md) for detailed documentation
 
 ### Template Variables
 
@@ -501,11 +578,11 @@ cd bengal/themes/default/assets/js
 // ✅ Good: Scoped module
 (function() {
   'use strict';
-  
+
   function myFeature() {
     // Feature code
   }
-  
+
   document.addEventListener('DOMContentLoaded', myFeature);
 })();
 
@@ -683,6 +760,13 @@ MIT License - See [LICENSE](../../../LICENSE) for details
 
 ## Changelog
 
+### v2.1.0 (October 2025)
+- **Component Library** - 14 components with 42 test variants
+- **Component Preview System** - Storybook-like isolated component testing
+- **Swizzle Support** - Safe template overriding with provenance tracking
+- **Standardized Documentation** - All components have comprehensive headers
+- **Component Manifests** - YAML test fixtures for all partials
+
 ### v2.0.0 (October 2025)
 - Semantic design token system
 - Strict CSS scoping rules
@@ -694,4 +778,3 @@ MIT License - See [LICENSE](../../../LICENSE) for details
 - Basic theme structure
 - Core components
 - Responsive design
-

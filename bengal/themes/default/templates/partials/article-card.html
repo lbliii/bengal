@@ -1,13 +1,23 @@
 {#
   Article Card Component
-  
+
+  Displays a rich card preview of an article with metadata, tags, and optional image.
+
+  Variables:
+    - article: Page object to display (required)
+    - show_excerpt: Boolean (default: true) - show description/excerpt
+    - show_image: Boolean (default: false) - show featured image
+
+  Features:
+    - Responsive image with srcset (dogfoods image_srcset())
+    - Dynamic badges for featured/tutorial/new tags
+    - Reading time calculation
+    - Relative time formatting (time_ago)
+    - Accessible with semantic HTML
+
   Usage:
     {% include 'partials/article-card.html' with {'article': page} %}
-  
-  Variables:
-    - article: Page object to display
-    - show_excerpt: Boolean (default: true)
-    - show_image: Boolean (default: false)
+    {% include 'partials/article-card.html' with {'article': post, 'show_image': true} %}
 #}
 
 {% set show_excerpt = show_excerpt | default(true) %}
@@ -16,7 +26,7 @@
 <article class="article-card {% if article | has_tag('featured') %}featured-card{% endif %}">
     {% if show_image and article.metadata.image %}
     {# Responsive image with srcset - dogfooding image_srcset() #}
-    <img 
+    <img
         src="{{ image_url(article.metadata.image, width=800) }}"
         srcset="{{ article.metadata.image | image_srcset([400, 800, 1200]) }}"
         sizes="(max-width: 640px) 400px, (max-width: 1024px) 800px, 1200px"
@@ -25,7 +35,7 @@
         loading="lazy"
     >
     {% endif %}
-    
+
     <div class="article-card-content">
         {# Tag badges - dogfooding has_tag() #}
         <div class="article-card-badges">
@@ -39,29 +49,29 @@
             <span class="badge badge-new">✨ New</span>
             {% endif %}
         </div>
-        
+
         <h2 class="article-card-title">
             <a href="{{ url_for(article) }}">{{ article.title }}</a>
         </h2>
-        
+
         <div class="article-card-meta">
             {% if article.date %}
             <time datetime="{{ article.date | date_iso }}" title="{{ article.date | dateformat('%B %d, %Y') }}">
                 {{ article.date | time_ago }}
             </time>
             {% endif %}
-            
+
             {% if article.metadata.author %}
             <span class="author">{{ article.metadata.author }}</span>
             {% endif %}
-            
+
             {% if article.content %}
             <span class="reading-time">
                 {{ article.content | reading_time }} min read
             </span>
             {% endif %}
         </div>
-        
+
         {% if show_excerpt %}
         <p class="article-card-excerpt">
             {% if article.metadata.description %}
@@ -71,7 +81,7 @@
             {% endif %}
         </p>
         {% endif %}
-        
+
         {% if article.tags %}
         <div class="article-card-footer">
             {% set tags = article.tags %}
@@ -81,4 +91,3 @@
         {% endif %}
     </div>
 </article>
-

@@ -251,6 +251,28 @@ class ComponentPreviewServer:
                     path=str(site_dir),
                 )
 
+            # installed theme support
+            try:
+                from bengal.utils.theme_registry import get_theme_package
+
+                pkg = get_theme_package(theme_name)
+                if pkg:
+                    resolved = pkg.resolve_resource_path("dev/components")
+                    if resolved and resolved.exists():
+                        dirs.append(resolved)
+                        logger.debug(
+                            "component_manifest_dir_found",
+                            type="installed",
+                            theme=theme_name,
+                            path=str(resolved),
+                        )
+            except Exception as e:
+                logger.debug(
+                    "component_installed_theme_check_failed",
+                    theme=theme_name,
+                    error=str(e),
+                )
+
             # bundled theme support (optional)
             try:
                 import bengal

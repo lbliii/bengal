@@ -211,7 +211,7 @@ visitor: {
 }
 ```
 
-**Bengal**: 
+**Bengal**:
 - CSS already has mixins via classes
 - SCSS/SASS if users want preprocessing
 - Not our job to add custom syntax
@@ -228,7 +228,7 @@ visitor: {
 }
 ```
 
-**Bengal**: 
+**Bengal**:
 - Users should write what they want
 - Automatic conversion is surprising
 - Not a common SSG feature
@@ -522,4 +522,3 @@ result = lightningcss.process_stylesheet(
 ---
 
 **Conclusion**: Custom transforms are for framework authors and build tool plugins, not SSGs. Bengal's approach is correct.
-

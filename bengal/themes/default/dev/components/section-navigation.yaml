@@ -1,0 +1,53 @@
+name: "Section Navigation"
+template: "partials/section-navigation.html"
+description: "Navigation component for exploring section hierarchies"
+variants:
+  - id: "default"
+    name: "Default"
+    context:
+      section:
+        title: "Guides"
+        url: "/docs/guides/"
+        sorted_pages:
+          - title: "Installation"
+            url: "/docs/guides/installation/"
+          - title: "Configuration"
+            url: "/docs/guides/configuration/"
+        sorted_subsections:
+          - title: "Advanced"
+            url: "/docs/guides/advanced/"
+          - title: "Tutorials"
+            url: "/docs/guides/tutorials/"
+      _preview_note: "This component's implementation needs to be examined to create accurate test data"
+
+  - id: "no-subsections"
+    name: "No Subsections"
+    context:
+      section:
+        title: "Blog"
+        url: "/blog/"
+        sorted_pages:
+          - title: "Announcing Bengal 1.0"
+            url: "/blog/announcing-bengal-1-0/"
+          - title: "Getting Started Guide"
+            url: "/blog/getting-started-guide/"
+          - title: "Theme Development"
+            url: "/blog/theme-development/"
+        sorted_subsections: []
+
+  - id: "deep-tree"
+    name: "Deep Tree"
+    context:
+      section:
+        title: "API Reference"
+        url: "/docs/api/"
+        sorted_pages: []
+        sorted_subsections:
+          - title: "Core"
+            url: "/docs/api/core/"
+          - title: "Rendering"
+            url: "/docs/api/rendering/"
+          - title: "CLI"
+            url: "/docs/api/cli/"
+          - title: "Utils"
+            url: "/docs/api/utils/"

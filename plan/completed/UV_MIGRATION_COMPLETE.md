@@ -199,4 +199,3 @@ Bengal now uses **uv** as the recommended package manager while maintaining **pi
 **Recommendation**: Start using uv for all development
 
 🚀 **Faster builds, happier developers!**
-

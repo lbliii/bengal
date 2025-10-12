@@ -1,6 +1,6 @@
 /**
  * Enhanced Table of Contents (TOC) with Intelligent Grouping
- * 
+ *
  * Features:
  * - Hierarchical grouping by H2 sections
  * - Collapsible/expandable sections
@@ -533,11 +533,11 @@
     .page-sidebar {
         margin-top: 2rem;
     }
-    
+
     .toc-sidebar {
         max-width: 100%;
     }
-    
+
     /* Simplify on mobile */
     .toc-settings-btn {
         display: none;
@@ -552,7 +552,7 @@
     .page-sidebar {
         display: none;
     }
-    
+
     .page-layout.page-with-toc {
         display: block;
     }
@@ -574,16 +574,16 @@
     .page-sidebar::-webkit-scrollbar {
         width: 6px;
     }
-    
+
     .page-sidebar::-webkit-scrollbar-track {
         background: transparent;
     }
-    
+
     .page-sidebar::-webkit-scrollbar-thumb {
         background: var(--color-border);
         border-radius: 3px;
     }
-    
+
     .page-sidebar::-webkit-scrollbar-thumb:hover {
         background: var(--color-text-tertiary);
     }

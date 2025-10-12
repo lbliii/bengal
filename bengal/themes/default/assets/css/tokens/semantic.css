@@ -1,7 +1,7 @@
 /**
  * Bengal SSG - Design Token System
  * Semantic Tokens (Purpose-Based)
- * 
+ *
  * These map foundation tokens to semantic purposes.
  * Components should ONLY use these tokens, never foundation tokens directly.
  */
@@ -10,28 +10,28 @@
   /* ============================================
      SEMANTIC COLORS
      ============================================ */
-  
+
   /* Primary Brand Color */
   --color-primary: var(--blue-500);
   --color-primary-hover: var(--blue-600);
   --color-primary-active: var(--blue-700);
   --color-primary-light: var(--blue-100);
   --color-primary-dark: var(--blue-800);
-  
+
   /* Secondary Brand Color */
   --color-secondary: var(--green-500);
   --color-secondary-hover: var(--green-600);
   --color-secondary-active: var(--green-700);
   --color-secondary-light: var(--green-300);
   --color-secondary-dark: var(--green-700);
-  
+
   /* Accent Color */
   --color-accent: var(--orange-500);
   --color-accent-hover: var(--orange-600);
   --color-accent-active: var(--orange-700);
   --color-accent-light: var(--orange-300);
   --color-accent-dark: var(--orange-700);
-  
+
   /* Text Colors */
   --color-text-primary: var(--gray-900);
   --color-text-secondary: var(--gray-600);
@@ -40,7 +40,7 @@
   --color-text-inverse: var(--white);
   --color-text-link: var(--blue-600);
   --color-text-link-hover: var(--blue-700);
-  
+
   /* Background Colors */
   --color-bg-primary: var(--white);
   --color-bg-secondary: var(--gray-50);
@@ -50,52 +50,52 @@
   --color-bg-hover: var(--gray-100);
   --color-bg-active: var(--gray-200);
   --color-bg-code: var(--gray-50);
-  
+
   /* Surface Colors */
   --color-surface: var(--white);
-  
+
   /* Border Colors */
   --color-border: var(--gray-300);
   --color-border-light: var(--gray-200);
   --color-border-strong: var(--gray-400);
   --color-border-focus: var(--blue-500);
-  
+
   /* Semantic State Colors */
   --color-success: var(--green-600);
   --color-success-bg: var(--green-50);
   --color-success-border: var(--green-300);
   --color-success-text: var(--green-900);
-  
+
   --color-warning: var(--orange-600);
   --color-warning-bg: var(--orange-50);
   --color-warning-border: var(--orange-300);
   --color-warning-text: var(--orange-900);
-  
+
   --color-error: var(--red-600);
   --color-error-bg: var(--red-50);
   --color-error-border: var(--red-300);
   --color-error-text: var(--red-900);
-  
+
   --color-info: var(--blue-600);
   --color-info-bg: var(--blue-50);
   --color-info-border: var(--blue-300);
   --color-info-text: var(--blue-900);
-  
+
   /* Danger/Error alias (for consistency) */
   --color-danger: var(--red-600);
   --color-danger-bg: var(--red-50);
   --color-danger-border: var(--red-300);
   --color-danger-light: var(--red-300);
-  
+
   /* Success alias (for badge consistency) */
   --color-success-light: var(--green-300);
-  
+
   /* Info alias (for badge consistency) */
   --color-info-light: var(--blue-300);
-  
+
   /* Warning alias (for badge consistency) */
   --color-warning-light: var(--orange-300);
-  
+
   /* API Documentation Colors */
   --color-code-type: var(--blue-700);
   --color-code-type-bg: var(--blue-50);
@@ -103,11 +103,11 @@
   --color-code-string: var(--green-700);
   --color-code-number: var(--orange-600);
   --color-code-text: var(--gray-700);
-  
+
   /* ============================================
      SEMANTIC SPACING
      ============================================ */
-  
+
   /* Spacing scale - aliases for foundation size tokens */
   --space-0: var(--size-0);
   --space-px: var(--size-px);
@@ -133,17 +133,17 @@
   --space-24: var(--size-24);
   --space-28: var(--size-28);
   --space-32: var(--size-32);
-  
+
   /* Semantic spacing purposes */
   --space-component-gap: var(--size-4);      /* Gap within components */
   --space-section-gap: var(--size-12);       /* Gap between sections */
   --space-content-padding: var(--size-6);    /* Content padding */
   --space-container-padding: var(--size-6);  /* Container padding */
-  
+
   /* ============================================
      SEMANTIC TYPOGRAPHY
      ============================================ */
-  
+
   /* Font Families */
   --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Segoe UI Variable',
                'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans',
@@ -151,7 +151,7 @@
   --font-serif: Georgia, Cambria, 'Times New Roman', Times, serif;
   --font-mono: 'SF Mono', 'Monaco', 'Cascadia Code', 'Roboto Mono',
                'Consolas', 'Liberation Mono', 'Courier New', monospace;
-  
+
   /* Font Sizes (Fluid Typography) */
   --text-xs: clamp(var(--font-size-12), 0.7rem + 0.2vw, var(--font-size-12));
   --text-sm: clamp(var(--font-size-14), 0.8rem + 0.3vw, var(--font-size-14));
@@ -162,7 +162,7 @@
   --text-3xl: clamp(var(--font-size-30), 1.5rem + 1.5vw, var(--font-size-36));
   --text-4xl: clamp(var(--font-size-36), 1.8rem + 2vw, var(--font-size-48));
   --text-5xl: clamp(var(--font-size-48), 2.5rem + 2.5vw, var(--font-size-60));
-  
+
   /* Heading Sizes */
   --text-heading-1: var(--text-5xl);
   --text-heading-2: var(--text-4xl);
@@ -170,12 +170,12 @@
   --text-heading-4: var(--text-2xl);
   --text-heading-5: var(--text-xl);
   --text-heading-6: var(--text-lg);
-  
+
   /* Body Text */
   --text-body: var(--text-base);
   --text-body-small: var(--text-sm);
   --text-caption: var(--text-xs);
-  
+
   /* Line Heights (aliases for foundation tokens) */
   --leading-none: var(--line-height-none);
   --leading-tight: var(--line-height-tight);
@@ -183,22 +183,22 @@
   --leading-normal: var(--line-height-normal);
   --leading-relaxed: var(--line-height-relaxed);
   --leading-loose: var(--line-height-loose);
-  
+
   /* Line height semantic alias */
   --line-height-relaxed: var(--line-height-relaxed);
-  
+
   /* Letter Spacing (aliases for foundation tokens) */
   --tracking-tight: var(--letter-spacing-tight);
   --tracking-normal: var(--letter-spacing-normal);
   --tracking-wide: var(--letter-spacing-wide);
   --tracking-wider: var(--letter-spacing-wider);
   --tracking-widest: var(--letter-spacing-widest);
-  
+
   /* Letter spacing semantic aliases */
   --letter-spacing-tighter: var(--letter-spacing-tighter);
   --letter-spacing-tight: var(--letter-spacing-tight);
   --letter-spacing-wide: var(--letter-spacing-wide);
-  
+
   /* Font Weights (aliases for foundation tokens) */
   --font-light: var(--font-weight-light);
   --font-normal: var(--font-weight-normal);
@@ -206,24 +206,24 @@
   --font-semibold: var(--font-weight-semibold);
   --font-bold: var(--font-weight-bold);
   --font-extrabold: var(--font-weight-extrabold);
-  
+
   /* ============================================
      SEMANTIC ELEVATION (Shadows)
      ============================================ */
-  
+
   /* Shadow aliases */
   --shadow-sm: var(--shadow-sm);
   --shadow-md: var(--shadow-md);
   --shadow-lg: var(--shadow-lg);
   --shadow-xl: var(--shadow-xl);
-  
+
   --elevation-none: var(--shadow-none);
   --elevation-subtle: var(--shadow-xs);
   --elevation-low: var(--shadow-sm);
   --elevation-medium: var(--shadow-md);
   --elevation-high: var(--shadow-lg);
   --elevation-highest: var(--shadow-xl);
-  
+
   /* Component-Specific Elevations */
   --elevation-card: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
   --elevation-card-hover: 0 8px 16px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.08);
@@ -231,15 +231,15 @@
   --elevation-dropdown: var(--elevation-high);
   --elevation-modal: var(--elevation-highest);
   --elevation-tooltip: var(--elevation-medium);
-  
+
   /* ============================================
      SEMANTIC BORDERS
      ============================================ */
-  
+
   --border-width-thin: 1px;
   --border-width-medium: 2px;
   --border-width-thick: 4px;
-  
+
   /* Border radius aliases */
   --radius-sm: var(--radius-sm);
   --radius-md: var(--radius-md);
@@ -247,34 +247,34 @@
   --radius-xl: var(--radius-xl);
   --radius-2xl: var(--radius-2xl);
   --radius-full: var(--radius-full);
-  
+
   --border-radius-small: var(--radius-sm);
   --border-radius-medium: var(--radius-md);
   --border-radius-large: var(--radius-lg);
   --border-radius-xlarge: var(--radius-xl);
   --border-radius-round: var(--radius-full);
-  
+
   /* Additional border colors */
   --color-border-dark: var(--color-border-strong);
-  
+
   /* ============================================
      SEMANTIC TRANSITIONS
      ============================================ */
-  
+
   /* Easing function aliases */
   --ease-in: var(--ease-in);
   --ease-out: var(--ease-out);
   --ease-in-out: var(--ease-in-out);
-  
+
   --transition-fast: var(--duration-150) var(--ease-out);
   --transition-base: var(--duration-200) var(--ease-out);
   --transition-slow: var(--duration-300) var(--ease-in-out);
   --transition-slower: var(--duration-500) var(--ease-in-out);
-  
+
   /* ============================================
      SEMANTIC Z-INDEX
      ============================================ */
-  
+
   /* Z-index aliases */
   --z-0: var(--z-0);
   --z-10: var(--z-10);
@@ -282,7 +282,7 @@
   --z-30: var(--z-30);
   --z-40: var(--z-40);
   --z-50: var(--z-50);
-  
+
   --z-base: var(--z-0);
   --z-dropdown: 1000;
   --z-sticky: 1020;
@@ -291,24 +291,24 @@
   --z-modal: 1050;
   --z-popover: 1060;
   --z-tooltip: 1070;
-  
+
   /* ============================================
      LAYOUT CONSTRAINTS
      ============================================ */
-  
+
   --content-max-width: 70ch;   /* Optimal reading width */
   --prose-max-width: 75ch;     /* Prose content width */
-  
+
   /* Legacy aliases for compatibility */
   --content-width: 65ch;
   --prose-width: 75ch;
-  
+
   --container-sm: 640px;
   --container-md: 768px;
   --container-lg: 1024px;
   --container-xl: 1280px;
   --container-2xl: 1536px;
-  
+
   /* Breakpoints (for reference in JS) */
   --breakpoint-sm: 640px;
   --breakpoint-md: 768px;
@@ -330,7 +330,7 @@
   --color-text-inverse: var(--gray-900);
   --color-text-link: var(--blue-400);
   --color-text-link-hover: var(--blue-300);
-  
+
   /* Background Colors */
   --color-bg-primary: #1a1a1a;
   --color-bg-secondary: #2d2d2d;
@@ -340,49 +340,49 @@
   --color-bg-hover: #404040;
   --color-bg-active: #4a4a4a;
   --color-bg-code: #2d2d2d;
-  
+
   /* Border Colors */
   --color-border: #404040;
   --color-border-light: #3a3a3a;
   --color-border-strong: #6c757d;
   --color-border-focus: var(--blue-400);
-  
+
   /* Semantic State Colors (Adjusted for dark mode) */
   --color-success: var(--green-400);
   --color-success-bg: rgba(76, 175, 80, 0.1);
   --color-success-border: var(--green-700);
   --color-success-text: var(--green-300);
-  
+
   --color-warning: var(--orange-400);
   --color-warning-bg: rgba(255, 152, 0, 0.1);
   --color-warning-border: var(--orange-700);
   --color-warning-text: var(--orange-200);
-  
+
   --color-error: var(--red-400);
   --color-error-bg: rgba(244, 67, 54, 0.1);
   --color-error-border: var(--red-700);
   --color-error-text: var(--red-200);
-  
+
   --color-info: var(--blue-400);
   --color-info-bg: rgba(33, 150, 243, 0.1);
   --color-info-border: var(--blue-700);
   --color-info-text: var(--blue-200);
-  
+
   /* Danger/Error alias (for consistency) */
   --color-danger: var(--red-400);
   --color-danger-bg: rgba(239, 68, 68, 0.1);
   --color-danger-border: var(--red-700);
   --color-danger-light: var(--red-700);
-  
+
   /* Success alias (for badge consistency) */
   --color-success-light: var(--green-700);
-  
+
   /* Info alias (for badge consistency) */
   --color-info-light: var(--blue-700);
-  
+
   /* Warning alias (for badge consistency) */
   --color-warning-light: var(--orange-700);
-  
+
   /* API Documentation Colors (dark mode) */
   --color-code-type: var(--blue-400);
   --color-code-type-bg: rgba(59, 130, 246, 0.15);
@@ -390,7 +390,7 @@
   --color-code-string: var(--green-400);
   --color-code-number: var(--orange-400);
   --color-code-text: var(--gray-300);
-  
+
   /* Shadows (Deeper for dark mode) */
   --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
   --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.4), 0 1px 2px 0 rgba(0, 0, 0, 0.2);
@@ -398,15 +398,15 @@
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.6), 0 4px 6px -2px rgba(0, 0, 0, 0.4);
   --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.7), 0 10px 10px -5px rgba(0, 0, 0, 0.5);
   --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
-  
+
   /* Component-Specific Elevations (Dark mode) */
   --elevation-card: 0 2px 4px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
   --elevation-card-hover: 0 12px 24px rgba(0, 0, 0, 0.4), 0 4px 8px rgba(0, 0, 0, 0.3);
   --elevation-subtle: 0 1px 2px rgba(0, 0, 0, 0.25);
-  
+
   /* Surface Colors (Dark mode) */
   --color-surface: #252525;
-  
+
   /* Slightly adjust primary colors for better contrast in dark mode */
   --color-primary: var(--blue-400);
   --color-primary-hover: var(--blue-300);
@@ -429,7 +429,7 @@
     --color-text-inverse: var(--gray-900);
     --color-text-link: var(--blue-400);
     --color-text-link-hover: var(--blue-300);
-    
+
     --color-bg-primary: #1a1a1a;
     --color-bg-secondary: #2d2d2d;
     --color-bg-tertiary: #3a3a3a;
@@ -438,11 +438,11 @@
     --color-bg-hover: #404040;
     --color-bg-active: #4a4a4a;
     --color-bg-code: #2d2d2d;
-    
+
     --color-border: #404040;
     --color-border-light: #3a3a3a;
     --color-border-strong: #6c757d;
-    
+
     --color-primary: var(--blue-400);
     --color-primary-hover: var(--blue-300);
     --color-secondary: var(--green-400);
@@ -464,11 +464,10 @@
     --duration-500: 0ms;
     --duration-700: 0ms;
     --duration-1000: 0ms;
-    
+
     --transition-fast: 0ms;
     --transition-base: 0ms;
     --transition-slow: 0ms;
     --transition-slower: 0ms;
   }
 }
-

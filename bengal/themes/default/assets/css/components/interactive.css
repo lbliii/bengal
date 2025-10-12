@@ -1,7 +1,7 @@
 /**
  * Bengal SSG Default Theme
  * Interactive Components
- * 
+ *
  * Styles for interactive UI elements:
  * - Back to top button
  * - Reading progress bar
@@ -69,7 +69,7 @@
     width: 2.5rem;
     height: 2.5rem;
   }
-  
+
   .back-to-top svg {
     width: 18px;
     height: 18px;
@@ -345,7 +345,7 @@ img[data-lightbox]:hover {
     animation: none !important;
     transition: none !important;
   }
-  
+
   .back-to-top.visible {
     transform: translateY(0) scale(1);
   }
@@ -371,4 +371,3 @@ img[data-lightbox]:hover {
     display: none !important;
   }
 }
-

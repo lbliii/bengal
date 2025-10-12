@@ -156,4 +156,3 @@ type: page
 - [Content Types Overview](index.md) - All types
 - [Getting Started](../writing/getting-started.md) - Create pages
 - [Markdown Basics](../writing/markdown-basics.md) - Formatting
-

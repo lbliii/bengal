@@ -126,9 +126,9 @@ def test_related_posts_respects_limit(mock_site):
 
     # Each page should have exactly 3 related posts (not all 9 others)
     for page in pages:
-        assert len(page.related_posts) == 3, (
-            f"Page should have exactly 3 related posts, got {len(page.related_posts)}"
-        )
+        assert (
+            len(page.related_posts) == 3
+        ), f"Page should have exactly 3 related posts, got {len(page.related_posts)}"
 
 
 def test_related_posts_skips_generated_pages(mock_site):

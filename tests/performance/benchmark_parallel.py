@@ -83,9 +83,9 @@ def benchmark_asset_processing(num_assets: int, parallel: bool) -> float:
 
         # Verify we have the right number of assets (approximately, theme assets add more)
         # Just make sure we have at least the requested amount
-        assert len(site.assets) >= num_assets, (
-            f"Expected at least {num_assets} assets, got {len(site.assets)}"
-        )
+        assert (
+            len(site.assets) >= num_assets
+        ), f"Expected at least {num_assets} assets, got {len(site.assets)}"
 
         # Benchmark asset processing
         start = time.time()

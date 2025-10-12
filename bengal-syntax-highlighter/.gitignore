@@ -2,4 +2,3 @@ node_modules
 *.vsix
 .vscode-test/
 *.log
-

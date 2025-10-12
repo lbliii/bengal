@@ -1,16 +1,23 @@
-{# 
-  Breadcrumbs component - Shows hierarchical navigation
-  
-  Uses get_breadcrumbs() function which handles all the logic:
-  - Building ancestor chain
-  - Detecting section index pages (no duplication)
-  - Determining current page
-  
-  You can customize this template to match your design system.
-  The get_breadcrumbs() function returns a list of items with:
-  - title: Display text
-  - url: Link URL
-  - is_current: Whether this is the current page
+{#
+  Breadcrumbs Component
+
+  Displays hierarchical navigation showing the current page's location in the site structure.
+
+  Variables:
+    - page: Current page object (required)
+    - site: Site object (for home link)
+
+  Template Functions Used:
+    - get_breadcrumbs(page): Returns list of breadcrumb items with title, url, is_current
+
+  Features:
+    - Builds ancestor chain automatically
+    - Detects section index pages (no duplication)
+    - Highlights current page
+    - Accessible with aria-current
+
+  Usage:
+    {% include 'partials/breadcrumbs.html' %}
 #}
 
 {% set breadcrumb_items = get_breadcrumbs(page) %}

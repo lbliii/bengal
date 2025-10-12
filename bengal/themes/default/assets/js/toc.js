@@ -1,6 +1,6 @@
 /**
  * Enhanced Table of Contents (TOC) JavaScript
- * 
+ *
  * Features:
  * - Intelligent grouping with collapsible H2 sections
  * - Active item tracking with auto-scroll
@@ -13,15 +13,15 @@
 
 (function() {
   'use strict';
-  
+
   // ============================================================================
   // State Management
   // ============================================================================
-  
+
   let currentActiveIndex = -1;
   let isCompactMode = false;
   let collapsedGroups = new Set();
-  
+
   // Cache DOM elements
   let tocItems = [];
   let progressBar = null;
@@ -30,7 +30,7 @@
   let tocGroups = [];
   let tocScrollContainer = null;
   let headings = [];
-  
+
   /**
    * Load state from localStorage
    */
@@ -42,7 +42,7 @@
         isCompactMode = state.compact || false;
         // Don't restore collapsed state - start fresh with all collapsed
         collapsedGroups = new Set();
-        
+
         if (isCompactMode && tocNav) {
           tocNav.setAttribute('data-toc-mode', 'compact');
         }
@@ -51,7 +51,7 @@
       // Ignore errors
     }
   }
-  
+
   /**
    * Save state to localStorage
    */
@@ -65,11 +65,11 @@
       // Ignore errors
     }
   }
-  
+
   // ============================================================================
   // Progress Bar & Active Item Tracking
   // ============================================================================
-  
+
   /**
    * Update scroll progress indicator
    */
@@ -77,24 +77,24 @@
     const scrollTop = window.scrollY;
     const docHeight = document.documentElement.scrollHeight - window.innerHeight;
     const progress = Math.min((scrollTop / docHeight) * 100, 100);
-    
+
     // Update progress bar
     if (progressBar) {
       progressBar.style.height = `${progress}%`;
     }
-    
+
     // Update progress position indicator
     if (progressPosition) {
       progressPosition.style.top = `${progress}%`;
     }
   }
-  
+
   /**
    * Update active TOC item based on scroll position
    */
   function updateActiveItem() {
     const scrollTop = window.scrollY;
-    
+
     // Find active heading (closest one above viewport)
     let activeIndex = 0;
     for (let i = headings.length - 1; i >= 0; i--) {
@@ -104,28 +104,28 @@
         break;
       }
     }
-    
+
     // Only update if changed
     if (activeIndex === currentActiveIndex) return;
     currentActiveIndex = activeIndex;
-    
+
     // Update active class on TOC links
     headings.forEach((heading, index) => {
       if (index === activeIndex) {
         heading.link.classList.add('active');
-        
+
         // Auto-expand ONLY the active parent group (collapse others)
         const parentGroup = heading.link.closest('.toc-group');
-        
+
         if (parentGroup) {
           // Active link is inside a collapsible group
           const groupId = getGroupId(parentGroup);
-          
+
           // Expand the active group
           if (parentGroup.hasAttribute('data-collapsed')) {
             expandGroup(parentGroup, groupId);
           }
-          
+
           // Collapse all other groups for minimal view
           tocGroups.forEach(group => {
             if (group !== parentGroup) {
@@ -145,12 +145,12 @@
             }
           });
         }
-        
+
         // Scroll into view if needed
         if (tocScrollContainer) {
           const linkRect = heading.link.getBoundingClientRect();
           const containerRect = tocScrollContainer.getBoundingClientRect();
-          
+
           if (linkRect.top < containerRect.top || linkRect.bottom > containerRect.bottom) {
             heading.link.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
           }
@@ -160,7 +160,7 @@
       }
     });
   }
-  
+
   /**
    * Update on scroll (progress + active item)
    */
@@ -168,11 +168,11 @@
     updateProgress();
     updateActiveItem();
   }
-  
+
   // ============================================================================
   // Collapsible Groups
   // ============================================================================
-  
+
   /**
    * Get unique group ID
    */
@@ -180,7 +180,7 @@
     const link = group.querySelector('[data-toc-item]');
     return link ? link.getAttribute('data-toc-item') : null;
   }
-  
+
   /**
    * Collapse a TOC group
    */
@@ -195,7 +195,7 @@
     }
     saveState();
   }
-  
+
   /**
    * Expand a TOC group
    */
@@ -210,21 +210,21 @@
     }
     saveState();
   }
-  
+
   /**
    * Toggle a TOC group
    */
   function toggleGroup(group) {
     const groupId = getGroupId(group);
     const isCollapsed = group.hasAttribute('data-collapsed');
-    
+
     if (isCollapsed) {
       expandGroup(group, groupId);
     } else {
       collapseGroup(group, groupId);
     }
   }
-  
+
   /**
    * Initialize group toggle handlers
    */
@@ -232,10 +232,10 @@
     tocGroups.forEach(group => {
       const toggle = group.querySelector('.toc-group-toggle');
       const groupId = getGroupId(group);
-      
+
       // All groups start collapsed by default
       // They are already collapsed via data-collapsed="true" in HTML
-      
+
       if (toggle) {
         toggle.addEventListener('click', (e) => {
           e.preventDefault();
@@ -245,11 +245,11 @@
       }
     });
   }
-  
+
   // ============================================================================
   // Control Buttons
   // ============================================================================
-  
+
   /**
    * Initialize control buttons and settings menu
    */
@@ -257,12 +257,12 @@
     // Settings menu toggle
     const settingsBtn = document.querySelector('[data-toc-action="toggle-settings"]');
     const settingsMenu = document.querySelector('.toc-settings-menu');
-    
+
     if (settingsBtn && settingsMenu) {
       settingsBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         const isHidden = settingsMenu.hasAttribute('hidden');
-        
+
         if (isHidden) {
           settingsMenu.removeAttribute('hidden');
           settingsBtn.setAttribute('aria-expanded', 'true');
@@ -271,7 +271,7 @@
           settingsBtn.setAttribute('aria-expanded', 'false');
         }
       });
-      
+
       // Close menu when clicking outside
       document.addEventListener('click', (e) => {
         if (!settingsMenu.contains(e.target) && !settingsBtn.contains(e.target)) {
@@ -280,7 +280,7 @@
         }
       });
     }
-    
+
     // Expand all sections
     const expandAllBtn = document.querySelector('[data-toc-action="expand-all"]');
     if (expandAllBtn) {
@@ -292,7 +292,7 @@
         if (settingsMenu) settingsMenu.setAttribute('hidden', '');
       });
     }
-    
+
     // Collapse all sections
     const collapseAllBtn = document.querySelector('[data-toc-action="collapse-all"]');
     if (collapseAllBtn) {
@@ -305,11 +305,11 @@
       });
     }
   }
-  
+
   // ============================================================================
   // Smooth Scroll to Sections
   // ============================================================================
-  
+
   /**
    * Initialize smooth scroll on TOC links
    */
@@ -319,35 +319,35 @@
         e.preventDefault();
         const id = item.getAttribute('data-toc-item').slice(1);
         const target = document.getElementById(id);
-        
+
         if (target) {
           const offsetTop = target.offsetTop - 100; // Account for fixed header
           window.scrollTo({
             top: offsetTop,
             behavior: 'smooth'
           });
-          
+
           // Update URL without jumping
           history.replaceState(null, '', '#' + id);
         }
       });
     });
   }
-  
+
   // ============================================================================
   // Keyboard Navigation
   // ============================================================================
-  
+
   let focusedIndex = -1;
   let allLinks = [];
-  
+
   /**
    * Handle keyboard navigation in TOC
    */
   function handleKeydown(e) {
     // Only handle if focus is within TOC
     if (!document.querySelector('.toc-sidebar:focus-within')) return;
-    
+
     if (e.key === 'ArrowDown') {
       e.preventDefault();
       focusedIndex = Math.min(focusedIndex + 1, allLinks.length - 1);
@@ -368,29 +368,29 @@
       allLinks[focusedIndex]?.focus();
     }
   }
-  
+
   /**
    * Initialize keyboard navigation
    */
   function initKeyboardNavigation() {
     allLinks = Array.from(tocItems);
-    
+
     // Track focused link
     allLinks.forEach((link, index) => {
       link.addEventListener('focus', () => {
         focusedIndex = index;
       });
     });
-    
+
     document.addEventListener('keydown', handleKeydown);
   }
-  
+
   // ============================================================================
   // Scroll Event Listener (Throttled for Performance)
   // ============================================================================
-  
+
   let ticking = false;
-  
+
   /**
    * Throttled scroll handler
    */
@@ -403,11 +403,11 @@
       ticking = true;
     }
   }
-  
+
   // ============================================================================
   // Initialization
   // ============================================================================
-  
+
   /**
    * Initialize the TOC
    */
@@ -419,36 +419,36 @@
     tocNav = document.querySelector('.toc-nav');
     tocGroups = Array.from(document.querySelectorAll('.toc-group'));
     tocScrollContainer = document.querySelector('.toc-scroll-container');
-    
+
     if (!tocItems.length) return;
-    
+
     // Get all heading targets
     headings = tocItems.map(item => {
       const id = item.getAttribute('data-toc-item').slice(1);
       const element = document.getElementById(id);
       return element ? { id, element, link: item } : null;
     }).filter(Boolean);
-    
+
     if (!headings.length) return;
-    
+
     // Load saved state
     loadState();
-    
+
     // Initialize all features
     initGroupToggles();
     initControlButtons();
     initSmoothScroll();
     initKeyboardNavigation();
-    
+
     // Set up scroll listener
     window.addEventListener('scroll', onScroll, { passive: true });
-    
+
     // Initial update
     updateOnScroll();
-    
+
     // Update on hash change (e.g., clicking links elsewhere)
     window.addEventListener('hashchange', updateActiveItem);
-    
+
     // Update on resize (debounced)
     let resizeTimer;
     window.addEventListener('resize', () => {
@@ -456,7 +456,7 @@
       resizeTimer = setTimeout(updateActiveItem, 250);
     }, { passive: true });
   }
-  
+
   /**
    * Cleanup function
    */
@@ -465,20 +465,20 @@
     window.removeEventListener('hashchange', updateActiveItem);
     document.removeEventListener('keydown', handleKeydown);
   }
-  
+
   // ============================================================================
   // Auto-initialize
   // ============================================================================
-  
+
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initTOC);
   } else {
     initTOC();
   }
-  
+
   // Re-initialize on dynamic content load
   window.addEventListener('contentLoaded', initTOC);
-  
+
   // Export for use by other scripts
   window.BengalTOC = {
     init: initTOC,
@@ -498,4 +498,3 @@
     }
   };
 })();
-

@@ -244,6 +244,15 @@ class BuildHandler(FileSystemEventHandler):
                     set_reload_action("reload")
 
                 notify_clients_reload()
+
+                # Clear HTML cache after successful rebuild (files have changed)
+                from bengal.server.request_handler import BengalRequestHandler
+
+                with BengalRequestHandler._html_cache_lock:
+                    cache_size = len(BengalRequestHandler._html_cache)
+                    BengalRequestHandler._html_cache.clear()
+                if cache_size > 0:
+                    logger.debug("html_cache_cleared", entries_removed=cache_size)
             except Exception as e:
                 build_duration = time.time() - build_start
 

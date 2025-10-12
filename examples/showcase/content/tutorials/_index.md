@@ -32,4 +32,3 @@ New to Bengal? Follow these tutorials in order:
 - **Beginner** - New to Bengal or static site generators
 - **Intermediate** - Familiar with basics, ready to level up
 - **Advanced** - Deep dives into complex topics
-

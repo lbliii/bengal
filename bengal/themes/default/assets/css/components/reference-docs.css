@@ -1,6 +1,6 @@
 /**
  * Reference Documentation Styles
- * 
+ *
  * Styles for API and CLI reference documentation pages.
  * Used by api-reference/ and cli-reference/ templates.
  */
@@ -500,11 +500,10 @@
     .cli-command-card {
         padding: var(--space-4);
     }
-    
+
     .api-reference-header,
     .cli-reference-header {
         margin-bottom: var(--space-6);
         padding: var(--space-6) 0;
     }
 }
-

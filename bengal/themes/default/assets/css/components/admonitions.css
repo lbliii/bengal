@@ -309,9 +309,8 @@
     padding: var(--space-3) var(--space-4);
     margin: var(--space-4) 0;
   }
-  
+
   .admonition-title {
     font-size: var(--text-sm);
   }
 }
-

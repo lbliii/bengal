@@ -1,11 +1,11 @@
 /**
  * Bengal SSG - Prose Content Utility
- * 
+ *
  * Shared styling for components that contain user-generated content
  * (markdown, HTML, rich text, etc.)
- * 
+ *
  * Usage: Add .has-prose-content to any container with user content
- * 
+ *
  * Example:
  * <div class="dropdown-content has-prose-content">
  *   <p>User content...</p>
@@ -236,11 +236,11 @@
   .has-prose-content ol {
     padding-left: var(--space-6);
   }
-  
+
   .has-prose-content table {
     font-size: var(--text-sm);
   }
-  
+
   .has-prose-content pre {
     padding: var(--space-3);
     font-size: var(--text-sm);
@@ -256,11 +256,9 @@
     color: inherit;
     text-decoration: underline;
   }
-  
+
   .has-prose-content a[href]::after {
     content: " (" attr(href) ")";
     font-size: 0.85em;
   }
 }
-
-

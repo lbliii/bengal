@@ -131,4 +131,3 @@ Only strip whitespace if the conditional is truly inline:
 - [ ] Keep `-` only for inline `{%- if ... %}` within content lines
 - [ ] Add explicit blank lines between major sections
 - [ ] Test all outputs
-

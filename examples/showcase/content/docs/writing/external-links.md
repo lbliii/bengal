@@ -67,8 +67,8 @@ Many users prefer to control how links open. Use `target="_blank"` sparingly, ma
 For external links that open in new tabs:
 
 ```html
-<a href="https://example.com" 
-   target="_blank" 
+<a href="https://example.com"
+   target="_blank"
    rel="noopener noreferrer">
   External Site
 </a>
@@ -83,7 +83,7 @@ For external links that open in new tabs:
 For user-generated content or untrusted sources:
 
 ```html
-<a href="https://untrusted.example.com" 
+<a href="https://untrusted.example.com"
    rel="nofollow noopener noreferrer">
   Untrusted Link
 </a>
@@ -359,10 +359,10 @@ Check out [Bengal][bengal] on GitHub.
 ```markdown
 # Static Sites are Growing
 
-According to [Netlify's survey](https://netlify.com/blog/2024-survey), 
+According to [Netlify's survey](https://netlify.com/blog/2024-survey),
 78% of developers use static site generators.
 
-The [Jamstack community](https://jamstack.org) defines modern web 
+The [Jamstack community](https://jamstack.org) defines modern web
 architecture as...
 ```
 
@@ -425,4 +425,3 @@ Now you know how to link externally. Next:
 - [Internal Links](internal-links.md) - Link between pages
 - [Markdown Basics](markdown-basics.md) - Essential syntax
 - [SEO Guide](../advanced/seo.md) - SEO best practices
-

@@ -678,7 +678,7 @@ Appropriate form based on count.
 
 ```jinja2
 <p>
-  Found {{ results|length }} 
+  Found {{ results|length }}
   {{ results|length | pluralize('result') }}
   in {{ categories|length }}
   {{ categories|length | pluralize('category', 'categories') }}.
@@ -1012,16 +1012,16 @@ Text with normalized whitespace.
 {% for post in recent_posts %}
   <article class="post-preview">
     <h2><a href="{{ post.url }}">{{ post.title }}</a></h2>
-    
+
     <div class="meta">
-      {{ post.date | format_date('%B %d, %Y') }} · 
+      {{ post.date | format_date('%B %d, %Y') }} ·
       {{ post.content | reading_time }} min read
     </div>
-    
+
     <div class="excerpt">
       {{/* post.content | strip_html | truncatewords(50) */}}
     </div>
-    
+
     <a href="{{ post.url }}" class="read-more">
       Read more →
     </a>
@@ -1036,11 +1036,11 @@ Text with normalized whitespace.
 <title>{{ page.title | truncate_chars(60, suffix='') }}</title>
 
 {# Meta description (160 chars) #}
-<meta name="description" 
+<meta name="description"
       content="{{ page.content | strip_html | excerpt(160) }}">
 
 {# URL-safe slug #}
-<link rel="canonical" 
+<link rel="canonical"
       href="{{ site.baseurl }}/{{ page.title | slugify }}/">
 ```
 
@@ -1048,11 +1048,11 @@ Text with normalized whitespace.
 
 ```jinja2
 {# Complete cleaning pipeline #}
-{% set clean_content = 
-    post.content 
-    | strip_html 
-    | strip_whitespace 
-    | truncatewords(100) 
+{% set clean_content =
+    post.content
+    | strip_html
+    | strip_whitespace
+    | truncatewords(100)
 %}
 
 <div class="preview">{{ clean_content }}</div>
@@ -1105,4 +1105,3 @@ When rendering HTML:
 **Module:** `bengal.rendering.template_functions.strings`  
 **Functions:** 11  
 **Last Updated:** October 4, 2025
-

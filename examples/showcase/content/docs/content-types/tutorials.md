@@ -421,4 +421,3 @@ tags: ["tutorial", "beginner"]
 - [Content Types Overview](index.md) - All types
 - [Writing Guide](../writing/) - Content basics
 - [Markdown Basics](../writing/markdown-basics.md) - Formatting
-

@@ -291,12 +291,12 @@ details.dropdown.info[open] {
     padding: var(--space-3) var(--space-4);
     margin: var(--space-4) 0;
   }
-  
+
   details.dropdown summary {
     font-size: var(--text-sm);
     padding-right: var(--space-6);
   }
-  
+
   .dropdown-content {
     margin-top: var(--space-3);
     padding-top: var(--space-3);
@@ -311,20 +311,20 @@ details.dropdown.info[open] {
   details.dropdown {
     border: 1px solid #ccc;
   }
-  
+
   details.dropdown summary::after {
     display: none;
   }
-  
+
   /* Force all dropdowns open for printing */
   details.dropdown summary {
     cursor: default;
   }
-  
+
   details.dropdown:not([open]) {
     display: block;
   }
-  
+
   details.dropdown:not([open]) .dropdown-content {
     display: block;
   }
@@ -338,9 +338,8 @@ details.dropdown.info[open] {
   .dropdown-content {
     animation: none;
   }
-  
+
   details.dropdown summary::after {
     transition: none;
   }
 }
-

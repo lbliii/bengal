@@ -1,7 +1,7 @@
 /**
  * Bengal SSG Default Theme
  * Interactive Elements
- * 
+ *
  * Provides smooth, delightful interactions:
  * - Back to top button
  * - Reading progress indicator
@@ -27,22 +27,22 @@
         <polyline points="5 12 12 5 19 12"></polyline>
       </svg>
     `;
-    
+
     // Add to document
     document.body.appendChild(button);
-    
+
     // Show/hide based on scroll position
     let isVisible = false;
     const toggleVisibility = () => {
       const scrolled = window.pageYOffset || document.documentElement.scrollTop;
       const shouldShow = scrolled > 300; // Show after 300px
-      
+
       if (shouldShow !== isVisible) {
         isVisible = shouldShow;
         button.classList.toggle('visible', shouldShow);
       }
     };
-    
+
     // Throttle scroll events for performance
     let ticking = false;
     window.addEventListener('scroll', () => {
@@ -54,7 +54,7 @@
         ticking = true;
       }
     }, { passive: true });
-    
+
     // Scroll to top on click
     button.addEventListener('click', () => {
       window.scrollTo({
@@ -62,7 +62,7 @@
         behavior: 'smooth'
       });
     });
-    
+
     // Initial check
     toggleVisibility();
   }
@@ -79,31 +79,31 @@
     progressBar.setAttribute('aria-label', 'Reading progress');
     progressBar.setAttribute('aria-valuemin', '0');
     progressBar.setAttribute('aria-valuemax', '100');
-    
+
     const progressFill = document.createElement('div');
     progressFill.className = 'reading-progress__fill';
     progressBar.appendChild(progressFill);
-    
+
     // Add to document (at top)
     document.body.insertBefore(progressBar, document.body.firstChild);
-    
+
     // Update progress on scroll
     const updateProgress = () => {
       const windowHeight = window.innerHeight;
       const documentHeight = document.documentElement.scrollHeight;
       const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-      
+
       // Calculate progress (0-100)
       const scrollableHeight = documentHeight - windowHeight;
-      const progress = scrollableHeight > 0 
+      const progress = scrollableHeight > 0
         ? Math.min(100, Math.max(0, (scrollTop / scrollableHeight) * 100))
         : 0;
-      
+
       // Update UI
       progressFill.style.width = `${progress}%`;
       progressBar.setAttribute('aria-valuenow', Math.round(progress));
     };
-    
+
     // Throttle scroll events
     let ticking = false;
     window.addEventListener('scroll', () => {
@@ -115,82 +115,44 @@
         ticking = true;
       }
     }, { passive: true });
-    
+
     // Update on resize
     window.addEventListener('resize', updateProgress, { passive: true });
-    
+
     // Initial update
     updateProgress();
   }
 
   /**
    * Enhanced Smooth Scroll
-   * Better behavior for anchor links
+   * NOTE: Removed - already handled by main.js
+   * Keeping function signature for backwards compatibility
    */
   function setupSmoothScroll() {
-    // Already implemented in main.js, but we can enhance it
-    // Add smooth scroll behavior to all internal links
-    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-      anchor.addEventListener('click', function(e) {
-        const href = this.getAttribute('href');
-        
-        // Skip if href is just "#"
-        if (href === '#' || href === '#!') {
-          return;
-        }
-        
-        const target = document.querySelector(href);
-        if (target) {
-          e.preventDefault();
-          
-          // Calculate offset (account for fixed header)
-          const headerOffset = 80; // Adjust based on your header height
-          const elementPosition = target.getBoundingClientRect().top;
-          const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
-          
-          window.scrollTo({
-            top: offsetPosition,
-            behavior: 'smooth'
-          });
-          
-          // Update URL without jumping
-          if (history.pushState) {
-            history.pushState(null, null, href);
-          }
-          
-          // Focus the target for accessibility
-          target.focus({ preventScroll: true });
-          
-          // If target can't be focused (like a div), add tabindex temporarily
-          if (document.activeElement !== target) {
-            target.setAttribute('tabindex', '-1');
-            target.focus({ preventScroll: true });
-          }
-        }
-      });
-    });
+    // Smooth scroll is now only handled in main.js to avoid duplicate event listeners
+    // This function is kept as a no-op for backwards compatibility
   }
 
   /**
    * Scroll Spy for Navigation
    * Highlights current section in navigation as user scrolls
-   * 
+   *
    * Note: Only handles docs-nav links. TOC links are handled by toc.js
    * which has more sophisticated collapse/expand behavior.
    */
   function setupScrollSpy() {
     const sections = document.querySelectorAll('h2[id], h3[id]');
     if (sections.length === 0) return;
-    
+
     // Only select docs-nav links, not TOC links (toc.js handles those)
     const navLinks = document.querySelectorAll('.docs-nav a');
     if (navLinks.length === 0) return;
-    
+
     let currentSection = '';
-    
+
     const highlightNavigation = () => {
       const scrollPosition = window.pageYOffset || document.documentElement.scrollTop;
-      
+
       // Find current section
       let foundSection = '';
       sections.forEach(section => {
@@ -199,16 +161,16 @@
           foundSection = section.getAttribute('id');
         }
       });
-      
+
       // Update if changed
       if (foundSection !== currentSection) {
         currentSection = foundSection;
-        
+
         // Remove all active classes
         navLinks.forEach(link => {
           link.classList.remove('active');
         });
-        
+
         // Add active class to current section link
         if (currentSection) {
           navLinks.forEach(link => {
@@ -220,7 +182,7 @@
         }
       }
     };
-    
+
     // Throttle scroll events
     let ticking = false;
     window.addEventListener('scroll', () => {
@@ -232,7 +194,7 @@
         ticking = true;
       }
     }, { passive: true });
-    
+
     // Initial highlight
     highlightNavigation();
   }
@@ -243,17 +205,17 @@
    */
   function setupDocsNavigation() {
     const toggleButtons = document.querySelectorAll('.docs-nav-group-toggle');
-    
+
     if (toggleButtons.length === 0) return;
-    
+
     toggleButtons.forEach(button => {
       button.addEventListener('click', (e) => {
         e.preventDefault();
-        
+
         // Toggle aria-expanded state
         const isExpanded = button.getAttribute('aria-expanded') === 'true';
         button.setAttribute('aria-expanded', !isExpanded);
-        
+
         // Get the associated content
         const controlsId = button.getAttribute('aria-controls');
         if (controlsId) {
@@ -266,7 +228,7 @@
         }
       });
     });
-    
+
     // Auto-expand sections that contain the active page
     const activeLink = document.querySelector('.docs-nav-link.active, .docs-nav-group-link.active');
     if (activeLink) {
@@ -282,7 +244,7 @@
           }
         }
       }
-      
+
       // Find all parent nav groups and expand them
       let parent = activeLink.parentElement;
       while (parent) {
@@ -301,7 +263,7 @@
         parent = parent.parentElement;
       }
     }
-    
+
     console.log('Documentation navigation initialized');
   }
 
@@ -312,12 +274,12 @@
   function setupMobileSidebar() {
     const toggleButton = document.querySelector('.docs-sidebar-toggle');
     const sidebar = document.getElementById('docs-sidebar');
-    
+
     if (!toggleButton || !sidebar) return;
-    
+
     toggleButton.addEventListener('click', () => {
       const isOpen = sidebar.hasAttribute('data-open');
-      
+
       if (isOpen) {
         sidebar.removeAttribute('data-open');
         toggleButton.setAttribute('aria-expanded', 'false');
@@ -328,28 +290,27 @@
         document.body.style.overflow = 'hidden';
       }
     });
-    
+
     // Close sidebar when clicking outside on mobile
     document.addEventListener('click', (e) => {
-      if (sidebar.hasAttribute('data-open') && 
-          !sidebar.contains(e.target) && 
+      if (sidebar.hasAttribute('data-open') &&
+          !sidebar.contains(e.target) &&
           !toggleButton.contains(e.target)) {
         sidebar.removeAttribute('data-open');
         toggleButton.setAttribute('aria-expanded', 'false');
         document.body.style.overflow = '';
       }
     });
-    
-    // Close sidebar on navigation (mobile)
-    const navLinks = sidebar.querySelectorAll('a');
-    navLinks.forEach(link => {
-      link.addEventListener('click', () => {
-        if (window.innerWidth < 768) {
-          sidebar.removeAttribute('data-open');
-          toggleButton.setAttribute('aria-expanded', 'false');
-          document.body.style.overflow = '';
-        }
-      });
+
+    // Close sidebar on navigation (mobile) - use event delegation for better performance
+    sidebar.addEventListener('click', (e) => {
+      // Check if clicked element is a link
+      const link = e.target.closest('a');
+      if (link && window.innerWidth < 768) {
+        sidebar.removeAttribute('data-open');
+        toggleButton.setAttribute('aria-expanded', 'false');
+        document.body.style.overflow = '';
+      }
     });
   }
 
@@ -359,12 +320,12 @@
   function init() {
     // Check if user prefers reduced motion
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    
+
     if (prefersReducedMotion) {
       // Disable animations for accessibility
       document.documentElement.classList.add('reduce-motion');
     }
-    
+
     // Setup features
     setupBackToTop();
     setupReadingProgress();
@@ -372,16 +333,15 @@
     setupScrollSpy();
     setupDocsNavigation();
     setupMobileSidebar();
-    
+
     console.log('Interactive elements initialized');
   }
 
   // Initialize when DOM is ready
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
+    document.addEventListener('DOMContentLoaded', init, { once: true });
   } else {
     init();
   }
 
 })();
-

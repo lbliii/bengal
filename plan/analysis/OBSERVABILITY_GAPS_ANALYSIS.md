@@ -24,7 +24,7 @@ Bengal has **excellent observability infrastructure** in place, with structured 
 - LogLevel hierarchy (DEBUG, INFO, WARNING, ERROR, CRITICAL)
 - Global logger registry with `get_logger(__name__)`
 
-### 2. **Performance Metrics** 
+### 2. **Performance Metrics**
 - **PerformanceCollector** (`bengal/utils/performance_collector.py`)
   - Build time tracking
   - Memory profiling (RSS and heap)
@@ -64,7 +64,7 @@ Bengal has **excellent observability infrastructure** in place, with structured 
 ### **Priority 1: Critical Gaps**
 
 #### 1.1 Cache System - No Structured Logging
-**Files:** 
+**Files:**
 - `bengal/cache/build_cache.py`
 - `bengal/cache/dependency_tracker.py`
 
@@ -81,7 +81,7 @@ print(f"Warning: Failed to save cache to {cache_path}: {e}")
 print(f"Warning: Failed to hash file {file_path}: {e}")
 ```
 
-**Impact:** 
+**Impact:**
 - Cache failures are silent in production
 - No visibility into cache performance (hit/miss rates)
 - Can't debug incremental build issues effectively
@@ -93,13 +93,13 @@ from bengal.utils.logger import get_logger
 class BuildCache:
     def __init__(self):
         self.logger = get_logger(__name__)
-    
+
     def load(cls, cache_path: Path) -> 'BuildCache':
         # ...
         except Exception as e:
             logger = get_logger(__name__)
-            logger.warning("cache_load_failed", 
-                          cache_path=str(cache_path), 
+            logger.warning("cache_load_failed",
+                          cache_path=str(cache_path),
                           error=str(e),
                           fallback="fresh_cache")
 ```
@@ -370,15 +370,15 @@ except Exception as e:
 1. ✅ Always use `get_logger(__name__)` instead of `print()`
 2. ✅ Use structured logging with context:
    ```python
-   logger.error("operation_failed", 
-               file=str(path), 
+   logger.error("operation_failed",
+               file=str(path),
                reason="permission_denied",
                user_action="check_file_permissions")
    ```
 3. ✅ Log exceptions with context:
    ```python
    except Exception as e:
-       logger.error("unexpected_error", 
+       logger.error("unexpected_error",
                    operation="render_page",
                    page=page.path,
                    error=str(e),
@@ -456,4 +456,3 @@ Bengal has a **solid observability foundation** that's ahead of most SSGs. The m
 **Time Investment:** ~1 week for comprehensive improvements
 **Maintenance Impact:** Low - mostly additive changes
 **User Impact:** High - better debugging and troubleshooting experience
-

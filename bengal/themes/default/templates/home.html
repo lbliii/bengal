@@ -9,7 +9,7 @@
             {% if page.metadata.description %}
             <p class="hero-description">{{ page.metadata.description }}</p>
             {% endif %}
-            
+
             {% if page.metadata.cta_buttons %}
             <div class="hero-cta">
                 {% for button in page.metadata.cta_buttons %}
@@ -21,7 +21,7 @@
             {% endif %}
         </div>
     </header>
-    
+
     {# Feature Highlights #}
     {% if page.metadata.features %}
     <section class="features">
@@ -43,12 +43,12 @@
         </div>
     </section>
     {% endif %}
-    
+
     {# Main Content #}
     <div class="home-content prose">
         {{ content | safe }}
     </div>
-    
+
     {# Quick Links Section #}
     {% if page.metadata.quick_links %}
     <section class="quick-links">
@@ -68,7 +68,7 @@
         </div>
     </section>
     {% endif %}
-    
+
     {# Statistics/Metrics Section #}
     {% if page.metadata.stats %}
     <section class="stats">
@@ -82,7 +82,7 @@
         </div>
     </section>
     {% endif %}
-    
+
     {# Recent Posts/Updates (if this is a blog-style home) #}
     {% if page.metadata.show_recent_posts %}
     {% set recent = pages | where('section', 'blog') | sort_by('date', reverse=true) | first(3) %}
@@ -387,21 +387,20 @@
     .hero-title {
         font-size: 2rem;
     }
-    
+
     .hero-description {
         font-size: 1rem;
     }
-    
+
     .features-grid,
     .quick-links-grid,
     .posts-grid {
         grid-template-columns: 1fr;
     }
-    
+
     .stats-grid {
         grid-template-columns: repeat(2, 1fr);
     }
 }
 </style>
 {% endblock %}
-

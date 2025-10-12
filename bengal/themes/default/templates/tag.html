@@ -10,17 +10,17 @@
                 <li>{{ tag }}</li>
             </ol>
         </nav>
-        
+
         <h1>
             <span class="tag-icon">#</span>
             {{ tag }}
         </h1>
-        
+
         <p class="page-description">
             {{ total_posts }} post{% if total_posts != 1 %}s{% endif %} tagged with "{{ tag }}"
         </p>
     </header>
-    
+
     {% if posts %}
     <div class="archive-list">
         {% for post in posts %}
@@ -29,7 +29,7 @@
             {% include 'partials/article-card.html' %}
         {% endfor %}
     </div>
-    
+
     {# Pagination (if needed in future) #}
     {% if total_pages and total_pages > 1 %}
     {% include 'partials/pagination.html' %}
@@ -37,7 +37,7 @@
     {% else %}
     <p>No posts found with this tag.</p>
     {% endif %}
-    
+
     <div class="tag-nav">
         <a href="/tags/" class="btn btn-outline">← View all tags</a>
     </div>
@@ -56,4 +56,3 @@
 }
 </style>
 {% endblock %}
-

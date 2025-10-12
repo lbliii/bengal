@@ -465,4 +465,3 @@ Bengal validates frontmatter during build. Common errors:
 
 **Last Updated:** October 8, 2025  
 **Status:** Standard for Bengal Showcase documentation
-

@@ -38,8 +38,8 @@ $ grep -c "section_url_from_index" <(bengal build --debug 2>&1)
 @property
 def url(self) -> str:
     """Get the URL for this section."""
-    if (self.index_page and 
-        hasattr(self.index_page, 'output_path') and 
+    if (self.index_page and
+        hasattr(self.index_page, 'output_path') and
         self.index_page.output_path):
         url = self.index_page.url  # Recalculates every time!
         logger.debug("section_url_from_index", ...)  # 1,016 calls
@@ -146,7 +146,7 @@ class PageMetadataMixin:
         # Fallback if no output path set
         if not self.output_path:
             return self._fallback_url()
-        
+
         # ... existing logic ...
         return url
 ```
@@ -158,17 +158,17 @@ from functools import cached_property
 @dataclass
 class Section:
     # ... existing fields ...
-    
+
     @cached_property  # Changed from @property
     def url(self) -> str:
         """Get the URL for this section (cached)."""
-        if (self.index_page and 
-            hasattr(self.index_page, 'output_path') and 
+        if (self.index_page and
+            hasattr(self.index_page, 'output_path') and
             self.index_page.output_path):
             url = self.index_page.url
             logger.debug("section_url_from_index", section=self.name, url=url)
             return url
-        
+
         # ... existing fallback logic ...
         return url
 ```
@@ -208,8 +208,8 @@ class Section:
 @cached_property
 def url(self) -> str:
     """Get the URL for this section (cached)."""
-    if (self.index_page and 
-        hasattr(self.index_page, 'output_path') and 
+    if (self.index_page and
+        hasattr(self.index_page, 'output_path') and
         self.index_page.output_path):
         url = self.index_page.url
         # Only log once (first computation) thanks to cached_property
@@ -225,7 +225,7 @@ With `cached_property`, the debug log inside only runs once per section.
 def url(self) -> str:
     if hasattr(self, '_url_cache'):
         return self._url_cache
-    
+
     # ... compute URL ...
     self._url_cache = url
     logger.debug("section_url_computed", section=self.name, url=url)  # Only logged once
@@ -262,41 +262,41 @@ if TYPE_CHECKING:
 class HealthCheckContext:
     """
     Pre-computed data for health validators.
-    
+
     Built once in O(n) time, then reused by all validators.
     """
     site: 'Site'
-    
+
     # Pre-categorized pages
     regular_pages: List['Page'] = field(default_factory=list)
     generated_pages: List['Page'] = field(default_factory=list)
     tag_pages: List['Page'] = field(default_factory=list)
     archive_pages: List['Page'] = field(default_factory=list)
-    
+
     # Quick lookups
     pages_by_url: dict = field(default_factory=dict)  # url -> Page
     pages_with_breadcrumbs: Set['Page'] = field(default_factory=set)
     pages_with_next_prev: Set['Page'] = field(default_factory=set)
-    
+
     @classmethod
     def build(cls, site: 'Site') -> 'HealthCheckContext':
         """
         Build context from site in a single O(n) pass.
-        
+
         Args:
             site: Site to analyze
-            
+
         Returns:
             Pre-computed HealthCheckContext
         """
         ctx = cls(site=site)
-        
+
         # Single pass through all pages
         for page in site.pages:
             # Categorize
             if page.metadata.get('_generated'):
                 ctx.generated_pages.append(page)
-                
+
                 page_type = page.metadata.get('type')
                 if page_type == 'tag':
                     ctx.tag_pages.append(page)
@@ -304,16 +304,16 @@ class HealthCheckContext:
                     ctx.archive_pages.append(page)
             else:
                 ctx.regular_pages.append(page)
-            
+
             # Build quick lookups
             ctx.pages_by_url[page.url] = page
-            
+
             if hasattr(page, 'ancestors') and page.ancestors:
                 ctx.pages_with_breadcrumbs.add(page)
-            
+
             if (hasattr(page, 'next') and page.next) or (hasattr(page, 'prev') and page.prev):
                 ctx.pages_with_next_prev.add(page)
-        
+
         return ctx
 ```
 
@@ -325,55 +325,55 @@ class MenuValidator(BaseValidator):
     def validate(self, site: 'Site', ctx: 'HealthCheckContext' = None) -> List[CheckResult]:
         """Validate menu structure."""
         results = []
-        
+
         # Build context if not provided (for backward compatibility)
         if ctx is None:
             from bengal.health.context import HealthCheckContext
             ctx = HealthCheckContext.build(site)
-        
+
         for menu_name, items in site.menu.items():
             broken = self._check_menu_urls(ctx, items)  # Pass context
             # ...
-    
+
     def _check_menu_urls(self, ctx: 'HealthCheckContext', items: list) -> List[str]:
         """Check if menu item URLs point to existing pages."""
         broken = []
-        
+
         for item in items:
             if hasattr(item, 'url') and item.url:
                 url = item.url
-                
+
                 # Skip external URLs
                 if url.startswith(('http://', 'https://', '//')):
                     continue
-                
+
                 # O(1) lookup instead of O(n)!
                 if url not in ctx.pages_by_url:
                     broken.append(f"{item.name} → {url}")
-            
+
             # Recurse
             if hasattr(item, 'children') and item.children:
                 broken.extend(self._check_menu_urls(ctx, item.children))
-        
+
         return broken
 ```
 
 **Update `HealthCheck.run()`:**
 ```python
-def run(self, build_stats: dict = None, verbose: bool = False, 
+def run(self, build_stats: dict = None, verbose: bool = False,
         profile: 'BuildProfile' = None) -> HealthReport:
     """Run all validators with pre-computed context."""
     from bengal.health.context import HealthCheckContext
     from bengal.utils.profile import is_validator_enabled
-    
+
     report = HealthReport(build_stats=build_stats)
-    
+
     # Build context once for all validators
     context = HealthCheckContext.build(self.site)
-    
+
     for validator in self.validators:
         # ... existing enable checks ...
-        
+
         start_time = time.time()
         try:
             # Pass context to validators that support it
@@ -466,7 +466,7 @@ def from_cli_args(
 ) -> 'BuildProfile':
     """
     Determine profile from CLI arguments.
-    
+
     Args:
         separate_logging: If True, --debug only affects logging, not health checks
     """
@@ -475,7 +475,7 @@ def from_cli_args(
         # Return a profile that enables debug logging but uses WRITER health checks
         # This would require splitting the config...
         pass
-    
+
     # Existing logic...
 ```
 
@@ -487,7 +487,7 @@ class BuildConfig:
     """Separates logging from validation."""
     logging_level: str  # 'debug', 'info', 'warning'
     health_check_profile: str  # 'minimal', 'standard', 'comprehensive'
-    
+
     @classmethod
     def from_cli_args(cls, debug: bool = False, health_checks: str = None):
         return cls(
@@ -528,78 +528,78 @@ if TYPE_CHECKING:
 class URLRegistry:
     """
     Centralized URL computation and caching.
-    
+
     Responsibilities:
     - Compute URLs from output paths
     - Cache computed URLs
     - Invalidate cache when needed (e.g., config changes)
     - Provide O(1) lookups by URL
     """
-    
+
     def __init__(self, site: 'Site'):
         self.site = site
         self._page_urls: dict = {}  # Page -> str
         self._section_urls: dict = {}  # Section -> str
         self._url_to_page: dict = {}  # str -> Page (reverse lookup)
-    
+
     def compute_page_url(self, page: 'Page', force: bool = False) -> str:
         """
         Compute URL for a page.
-        
+
         Args:
             page: Page to compute URL for
             force: Force recomputation even if cached
-            
+
         Returns:
             URL string
         """
         # Check cache first
         if not force and page in self._page_urls:
             return self._page_urls[page]
-        
+
         # Compute URL using existing logic
         if not page.output_path:
             url = self._fallback_url(page)
         else:
             url = self._compute_from_output_path(page.output_path)
-        
+
         # Cache and return
         self._page_urls[page] = url
         self._url_to_page[url] = page
         return url
-    
+
     def compute_section_url(self, section: 'Section', force: bool = False) -> str:
         """Compute URL for a section (delegates to index page if available)."""
         if not force and section in self._section_urls:
             return self._section_urls[section]
-        
+
         if section.index_page and section.index_page.output_path:
             url = self.compute_page_url(section.index_page)
         else:
             url = self._compute_from_hierarchy(section)
-        
+
         self._section_urls[section] = url
         return url
-    
+
     def lookup_by_url(self, url: str) -> Optional['Page']:
         """O(1) page lookup by URL."""
         return self._url_to_page.get(url)
-    
+
     def precompute_all(self) -> None:
         """
         Pre-compute all URLs in a single pass.
-        
+
         Called after output_paths are set, before health checks.
         """
         # Compute all page URLs
         for page in self.site.pages:
             if page.output_path:
                 self.compute_page_url(page)
-        
+
         # Compute all section URLs
         for section in self.site.sections:
             self.compute_section_url(section)
-    
+
     # ... helper methods ...
 ```
 
@@ -659,14 +659,14 @@ if TYPE_CHECKING:
 class IncrementalHealthCheck:
     """
     Runs only validators affected by changes.
-    
+
     Examples:
     - Content changed → Run navigation, links validators
     - Config changed → Run config, menu validators
     - Template changed → Run rendering validator
     - Nothing changed → Skip all validators
     """
-    
+
     VALIDATOR_TRIGGERS = {
         'config': ['config_change'],
         'links': ['content_change', 'generated_pages_change'],
@@ -679,52 +679,52 @@ class IncrementalHealthCheck:
         'performance': ['always'],  # Always run to track metrics
         'output': ['always'],  # Always run to check output files
     }
-    
+
     def __init__(self, site: 'Site'):
         self.site = site
-    
+
     def should_run_validator(
-        self, 
-        validator: 'BaseValidator', 
+        self,
+        validator: 'BaseValidator',
         changes: Set[str]
     ) -> bool:
         """
         Determine if validator should run based on changes.
-        
+
         Args:
             validator: Validator to check
             changes: Set of change types (from incremental build)
-            
+
         Returns:
             True if validator should run
         """
         validator_key = validator.name.lower().replace(' ', '_')
         triggers = self.VALIDATOR_TRIGGERS.get(validator_key, ['always'])
-        
+
         # Always run if 'always' in triggers
         if 'always' in triggers:
             return True
-        
+
         # Run if any trigger matches changes
         return bool(set(triggers) & changes)
-    
+
     def filter_validators(
-        self, 
-        validators: List['BaseValidator'], 
+        self,
+        validators: List['BaseValidator'],
         changes: Set[str]
     ) -> List['BaseValidator']:
         """
         Filter validators based on what changed.
-        
+
         Args:
             validators: All registered validators
             changes: Set of change types
-            
+
         Returns:
             Validators that should run
         """
         return [
-            v for v in validators 
+            v for v in validators
             if self.should_run_validator(v, changes)
         ]
 ```
@@ -737,7 +737,7 @@ class IncrementalOrchestrator:
     def find_work(self, verbose: bool = False) -> Tuple[...]:
         """Find what needs to be rebuilt."""
         # ... existing change detection ...
-        
+
         # Track what types of changes occurred
         change_types = set()
         if source_pages_changed:
@@ -749,7 +749,7 @@ class IncrementalOrchestrator:
         if any(p.tags != old_tags for p in pages_changed):
             change_types.add('tags_change')
         # ...
-        
+
         return pages_to_build, assets_to_process, change_summary, change_types
 ```
 
@@ -804,36 +804,36 @@ if TYPE_CHECKING:
 class ParallelHealthCheck:
     """
     Run validators in parallel for faster health checks.
-    
+
     Each validator is independent, so they can run concurrently.
     """
-    
+
     def __init__(self, site: 'Site', max_workers: int = 4):
         self.site = site
         self.max_workers = max_workers
-    
+
     def run_parallel(
-        self, 
+        self,
         validators: List['BaseValidator']
     ) -> List['ValidatorReport']:
         """
         Run validators in parallel.
-        
+
         Args:
             validators: List of validators to run
-            
+
         Returns:
             List of ValidatorReport objects
         """
         reports = []
-        
+
         with concurrent.futures.ThreadPoolExecutor(max_workers=self.max_workers) as executor:
             # Submit all validators
             future_to_validator = {
-                executor.submit(self._run_validator, v): v 
+                executor.submit(self._run_validator, v): v
                 for v in validators
             }
-            
+
             # Collect results as they complete
             for future in concurrent.futures.as_completed(future_to_validator):
                 validator = future_to_validator[future]
@@ -843,9 +843,9 @@ class ParallelHealthCheck:
                 except Exception as e:
                     # Handle validator failure
                     reports.append(self._create_error_report(validator, e))
-        
+
         return reports
-    
+
     def _run_validator(self, validator: 'BaseValidator') -> 'ValidatorReport':
         """Run a single validator (called in thread)."""
         # ... validator execution logic ...
@@ -857,8 +857,8 @@ class ParallelHealthCheck:
 # bengal/health/health_check.py
 class HealthCheck:
     def run(
-        self, 
-        build_stats: dict = None, 
+        self,
+        build_stats: dict = None,
         verbose: bool = False,
         parallel: bool = True  # New parameter
     ) -> HealthReport:
@@ -870,7 +870,7 @@ class HealthCheck:
         else:
             # Sequential execution (current behavior)
             validator_reports = [self._run_validator(v) for v in self.validators]
-        
+
         # ... aggregate reports ...
 ```
 
@@ -1017,7 +1017,7 @@ def test_health_check_scales_linearly(benchmark_site):
     """Verify health checks scale O(n), not O(n²)."""
     sizes = [100, 200, 500, 1000]
     times = []
-    
+
     for size in sizes:
         site = create_site_with_pages(size)
         start = time.time()
@@ -1025,13 +1025,13 @@ def test_health_check_scales_linearly(benchmark_site):
         report = health_check.run()
         elapsed = time.time() - start
         times.append(elapsed)
-    
+
     # Verify approximately linear scaling
     # If O(n²), times would be [t, 4t, 25t, 100t]
     # If O(n), times should be [t, 2t, 5t, 10t]
     ratio_200_100 = times[1] / times[0]
     ratio_1000_100 = times[3] / times[0]
-    
+
     assert ratio_200_100 < 3, "Should scale linearly, not quadratically"
     assert ratio_1000_100 < 15, "Should scale linearly at 10× size"
 ```
@@ -1138,4 +1138,3 @@ The system is well-architected for these improvements - we're not fighting again
 2. Get approval for Phase 1 implementation
 3. Create tickets for each quick win
 4. Begin implementation (estimated: 2-3 days for Phase 1)
-

@@ -1,5 +1,6 @@
 name: "Article Card"
 template: "partials/article-card.html"
+description: "Card component for displaying article previews with metadata, tags, and optional images"
 variants:
   - id: "default"
     name: "Default"
@@ -7,19 +8,40 @@ variants:
       article:
         title: "Hello Bengal"
         slug: "hello-bengal"
+        url: "/blog/hello-bengal/"
         metadata:
           description: "A friendly introduction to Bengal SSG."
           author: "Bengal Docs"
         tags: ["featured"]
+        date: "2025-10-01"
+        content: "This is sample content for reading time calculation."
+
   - id: "long-title"
     name: "Long Title"
     context:
       article:
         title: "This is a very long article title to test wrapping and layout behavior in the card component"
         slug: "long-title"
+        url: "/blog/long-title/"
         metadata:
           description: "Testing long titles."
           author: "Bengal Docs"
         tags: ["tutorial"]
+        date: "2025-09-15"
+        content: "Sample content here."
 
-
+  - id: "with-image"
+    name: "With Image"
+    context:
+      article:
+        title: "Building Modern Static Sites"
+        slug: "modern-static-sites"
+        url: "/blog/modern-static-sites/"
+        metadata:
+          description: "Learn how to build fast, modern static sites with Bengal SSG."
+          author: "Jane Developer"
+          image: "images/hero.jpg"
+        tags: ["featured", "tutorial", "new"]
+        date: "2025-10-10"
+        content: "Modern static site generators offer incredible performance and developer experience."
+      show_image: true

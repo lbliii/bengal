@@ -228,16 +228,16 @@
     color: #f3f4f6;
     border-color: #4b5563;
   }
-  
+
   .button-light:hover {
     background-color: #4b5563;
     color: #f3f4f6;
   }
-  
+
   .button-warning {
     color: #111827;
   }
-  
+
   .button-warning:hover {
     color: #111827;
   }
@@ -252,12 +252,12 @@
     width: 100%;
     justify-content: center;
   }
-  
+
   .button-group {
     flex-direction: column;
     width: 100%;
   }
-  
+
   .button-group .button {
     width: 100%;
   }

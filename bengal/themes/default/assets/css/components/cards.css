@@ -228,7 +228,7 @@ a.card {
   .card-horizontal {
     flex-direction: column;
   }
-  
+
   .card-horizontal .card-image {
     width: 100%;
     height: 200px;
@@ -469,7 +469,7 @@ a.card {
   display: grid;
   gap: var(--card-gap, 1.5rem);
   margin: 2rem 0;
-  
+
   /* Auto-fit: Cards fill available space */
   grid-template-columns: repeat(
     var(--card-columns, auto-fit),
@@ -584,11 +584,11 @@ a.card {
   .feature-cards {
     grid-template-columns: 1fr;
   }
-  
+
   .card-grid {
     gap: 1rem;
   }
-  
+
   .card-icon {
     font-size: 1.5rem;
   }
@@ -603,9 +603,8 @@ a.card {
   .feature-card {
     padding: 1rem;
   }
-  
+
   .callout-card {
     padding: 1rem;
   }
 }
-

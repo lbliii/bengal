@@ -1,18 +1,36 @@
 {#
   Search Component
-  
-  Client-side search with Lunr.js
-  Includes search input, filters, and results display
-  
+
+  Full-featured client-side search powered by Lunr.js with filters and keyboard shortcuts.
+
+  Variables:
+    - site: Site object (for site title)
+
   Features:
-  - Keyboard shortcuts (Cmd/Ctrl + K to focus)
-  - Real-time search as you type
-  - Filtering by section, type, tags
-  - Result highlighting
-  - Accessible with ARIA
-  
+    - Client-side full-text search with Lunr.js
+    - Real-time search as you type (debounced)
+    - Keyboard shortcuts (Cmd/Ctrl + K to focus, Escape to clear)
+    - Advanced filtering (section, type, tags)
+    - Result highlighting and grouping
+    - Loading and error states
+    - Accessible with ARIA attributes
+    - Responsive design
+
+  Dependencies:
+    - JavaScript: /assets/js/lunr.min.js (loaded in base.html)
+    - JavaScript: /assets/js/search.js (BengalSearch module, loaded in base.html)
+    - Search Index: /index.json (generated during build)
+
+  Note:
+    This component includes inline <script> and <style> tags for component-specific
+    initialization and styling. This is intentional to keep the component self-contained.
+    Core search functionality is in search.js, but UI-specific code is inline.
+
   Usage:
     {% include 'partials/search.html' %}
+
+  CSS: See inline <style> tag below (component-specific overrides)
+  JS: See inline <script> tag below (UI initialization logic)
 #}
 
 <div class="search-container" id="search-container">
@@ -22,8 +40,8 @@
       <circle cx="11" cy="11" r="8"></circle>
       <path d="m21 21-4.35-4.35"></path>
     </svg>
-    
-    <input 
+
+    <input
       type="search"
       id="search-input"
       class="search-input"
@@ -37,14 +55,14 @@
       aria-controls="search-results"
       aria-autocomplete="list"
     >
-    
+
     {# Keyboard shortcut hint #}
     <div class="search-shortcut" aria-hidden="true">
       <kbd>⌘</kbd><kbd>K</kbd>
     </div>
-    
+
     {# Clear button #}
-    <button 
+    <button
       type="button"
       class="search-clear"
       id="search-clear"
@@ -56,16 +74,16 @@
       </svg>
     </button>
   </div>
-  
+
   {# Search Status (for screen readers and loading) #}
-  <div 
+  <div
     id="search-status"
     class="search-status"
     role="status"
     aria-live="polite"
     aria-atomic="true">
   </div>
-  
+
   {# Filters (collapsible) #}
   <div class="search-filters" id="search-filters" style="display: none;">
     <button type="button" class="search-filters-toggle" aria-expanded="false" aria-controls="search-filters-content">
@@ -74,7 +92,7 @@
       </svg>
       <span>Filters</span>
     </button>
-    
+
     <div class="search-filters-content" id="search-filters-content" style="display: none;">
       {# Section filter #}
       <div class="search-filter-group">
@@ -84,7 +102,7 @@
           {# Options populated by JavaScript #}
         </select>
       </div>
-      
+
       {# Type filter #}
       <div class="search-filter-group">
         <label for="filter-type">Type:</label>
@@ -93,7 +111,7 @@
           {# Options populated by JavaScript #}
         </select>
       </div>
-      
+
       {# Tag filter #}
       <div class="search-filter-group">
         <label for="filter-tags">Tags:</label>
@@ -102,32 +120,32 @@
         </select>
         <small class="filter-hint">Hold Ctrl/Cmd to select multiple</small>
       </div>
-      
+
       {# Clear filters button #}
       <button type="button" class="btn btn-sm btn-outline" id="clear-filters">
         Clear Filters
       </button>
     </div>
   </div>
-  
+
   {# Search Results #}
-  <div 
+  <div
     id="search-results"
     class="search-results"
     role="region"
     aria-label="Search results"
     style="display: none;">
-    
+
     {# Results header #}
     <div class="search-results-header">
       <span id="search-results-count" class="search-results-count"></span>
     </div>
-    
+
     {# Results list #}
     <div id="search-results-list" class="search-results-list">
       {# Results populated by JavaScript #}
     </div>
-    
+
     {# No results message #}
     <div id="search-no-results" class="search-no-results" style="display: none;">
       <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -138,13 +156,13 @@
       <p class="search-no-results-suggestion">Try different keywords or clear your filters.</p>
     </div>
   </div>
-  
+
   {# Loading indicator #}
   <div id="search-loading" class="search-loading" style="display: none;">
     <div class="loading-spinner"></div>
     <p>Loading search index...</p>
   </div>
-  
+
   {# Error message #}
   <div id="search-error" class="search-error" style="display: none;">
     <p>Failed to load search index. Please try refreshing the page.</p>
@@ -154,7 +172,7 @@
 <script>
 (function() {
   'use strict';
-  
+
   // Initialize search UI
   function initializeSearchUI() {
     // Check if BengalSearch is available
@@ -164,9 +182,9 @@
       setTimeout(initializeSearchUI, 100);
       return;
     }
-    
+
     console.log('Initializing search UI...');
-  
+
   // Elements
   const container = document.getElementById('search-container');
   const input = document.getElementById('search-input');
@@ -183,21 +201,21 @@
   const filtersToggle = document.querySelector('.search-filters-toggle');
   const filtersContent = document.getElementById('search-filters-content');
   const clearFiltersBtn = document.getElementById('clear-filters');
-  
+
   // Filter elements
   const filterSection = document.getElementById('filter-section');
   const filterType = document.getElementById('filter-type');
   const filterTags = document.getElementById('filter-tags');
-  
+
   let debounceTimer = null;
   let currentQuery = '';
   let currentFilters = {};
-  
+
   // Initialize
   function init() {
     // Show loading
     loading.style.display = 'block';
-    
+
     // Wait for index to load
     if (BengalSearch.isLoaded()) {
       onIndexLoaded();
@@ -205,15 +223,15 @@
       window.addEventListener('searchIndexLoaded', onIndexLoaded);
       window.addEventListener('searchIndexError', onIndexError);
     }
-    
+
     // Input handlers
     input.addEventListener('input', onInput);
     input.addEventListener('focus', onFocus);
     clearBtn.addEventListener('click', clearSearch);
-    
+
     // Keyboard shortcuts
     document.addEventListener('keydown', handleKeyboardShortcuts);
-    
+
     // Filter handlers
     filtersToggle.addEventListener('click', toggleFilters);
     filterSection.addEventListener('change', onFilterChange);
@@ -221,19 +239,19 @@
     filterTags.addEventListener('change', onFilterChange);
     clearFiltersBtn.addEventListener('click', clearFilters);
   }
-  
+
   function onIndexLoaded() {
     loading.style.display = 'none';
     populateFilterOptions();
     console.log('Search ready');
   }
-  
+
   function onIndexError(event) {
     loading.style.display = 'none';
     error.style.display = 'block';
     console.error('Search index error:', event.detail.error);
   }
-  
+
   function populateFilterOptions() {
     // Sections
     const sections = BengalSearch.getAvailableSections();
@@ -243,7 +261,7 @@
       option.textContent = section;
       filterSection.appendChild(option);
     });
-    
+
     // Types
     const types = BengalSearch.getAvailableTypes();
     types.forEach(type => {
@@ -252,7 +270,7 @@
       option.textContent = type;
       filterType.appendChild(option);
     });
-    
+
     // Tags
     const tags = BengalSearch.getAvailableTags();
     tags.forEach(tag => {
@@ -261,59 +279,59 @@
       option.textContent = tag;
       filterTags.appendChild(option);
     });
-    
+
     // Show filters if we have options
     if (sections.length > 0 || types.length > 0 || tags.length > 0) {
       filters.style.display = 'block';
     }
   }
-  
+
   function onInput(e) {
     const query = e.target.value.trim();
-    
+
     // Show/hide clear button
     clearBtn.style.display = query ? 'flex' : 'none';
-    
+
     // Debounce search
     clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => {
       performSearch(query);
     }, 200);
   }
-  
+
   function onFocus() {
     if (currentQuery) {
       results.style.display = 'block';
     }
   }
-  
+
   function performSearch(query) {
     currentQuery = query;
-    
+
     if (!query || query.length < 2) {
       results.style.display = 'none';
       status.textContent = '';
       return;
     }
-    
+
     // Get current filters
     currentFilters = {
       section: filterSection.value || null,
       type: filterType.value || null,
       tags: Array.from(filterTags.selectedOptions).map(opt => opt.value),
     };
-    
+
     // Perform search
     const searchResults = BengalSearch.search(query, currentFilters);
-    
+
     // Display results
     displayResults(searchResults, query);
   }
-  
+
   function displayResults(searchResults, query) {
     // Clear previous results
     resultsList.innerHTML = '';
-    
+
     if (searchResults.length === 0) {
       results.style.display = 'block';
       noResults.style.display = 'block';
@@ -321,22 +339,22 @@
       status.textContent = 'No results found';
       return;
     }
-    
+
     // Show results
     results.style.display = 'block';
     noResults.style.display = 'none';
-    
+
     // Update count
     const count = searchResults.length;
     resultsCount.textContent = `${count} result${count !== 1 ? 's' : ''}`;
     status.textContent = `Found ${count} result${count !== 1 ? 's' : ''}`;
-    
+
     // Group results by type if > 10 results
     const shouldGroup = searchResults.length > 10;
-    
+
     if (shouldGroup && window.BengalSearch && window.BengalSearch.groupResults) {
       const grouped = window.BengalSearch.groupResults(searchResults);
-      
+
       // Display each group
       grouped.forEach(group => {
         // Group header
@@ -344,13 +362,13 @@
         header.className = 'search-results-group-header';
         header.innerHTML = `<h3>${group.name} <span class="group-count">(${group.count})</span></h3>`;
         resultsList.appendChild(header);
-        
+
         // Group items
         group.items.slice(0, 5).forEach((result, index) => {
           const item = createResultItem(result, index);
           resultsList.appendChild(item);
         });
-        
+
         // Show more button if truncated
         if (group.items.length > 5) {
           const showMore = document.createElement('button');
@@ -373,64 +391,64 @@
         resultsList.appendChild(item);
       });
     }
-    
+
     // Add click handlers for tag buttons
     document.querySelectorAll('.tag-clickable').forEach(button => {
       button.addEventListener('click', (e) => {
         e.preventDefault();
         const tag = button.getAttribute('data-tag');
-        
+
         // Set filter and re-search
         filterTags.value = tag;
         currentFilters.tags = [tag];
-        
+
         // Trigger search
         performSearch();
-        
+
         // Scroll to top
         input.scrollIntoView({ behavior: 'smooth', block: 'start' });
       });
     });
   }
-  
+
   function createResultItem(result, index) {
     const item = document.createElement('article');
     item.className = 'search-result-item';
-    
+
     // Build HTML
     let html = '';
-    
+
     // Title (with highlights)
     html += `<h3 class="search-result-title">`;
     html += `<a href="${result.href || result.uri || result.url}">${result.highlightedTitle || result.title}</a>`;
     html += `</h3>`;
-    
+
     // Meta info
     html += `<div class="search-result-meta">`;
-    
+
     if (result.section) {
       html += `<span class="search-result-section">${result.section}</span>`;
     }
-    
+
     if (result.type) {
       html += `<span class="badge badge-sm badge-${result.type}">${result.type}</span>`;
     }
-    
+
     if (result.formattedDate) {
       html += `<span class="search-result-date">${result.formattedDate}</span>`;
     }
-    
+
     if (result.reading_time) {
       html += `<span class="search-result-reading-time">${result.reading_time} min read</span>`;
     }
-    
+
     html += `</div>`;
-    
+
     // Excerpt (with highlights)
     if (result.highlightedExcerpt) {
       html += `<p class="search-result-excerpt">${result.highlightedExcerpt}</p>`;
     }
-    
+
     // Tags (clickable)
     if (result.tags && result.tags.length > 0) {
       html += `<div class="search-result-tags">`;
@@ -439,12 +457,12 @@
       });
       html += `</div>`;
     }
-    
+
     item.innerHTML = html;
-    
+
     return item;
   }
-  
+
   function clearSearch() {
     input.value = '';
     currentQuery = '';
@@ -453,29 +471,29 @@
     status.textContent = '';
     input.focus();
   }
-  
+
   function toggleFilters() {
     const isExpanded = filtersToggle.getAttribute('aria-expanded') === 'true';
     filtersToggle.setAttribute('aria-expanded', !isExpanded);
     filtersContent.style.display = isExpanded ? 'none' : 'block';
   }
-  
+
   function onFilterChange() {
     if (currentQuery) {
       performSearch(currentQuery);
     }
   }
-  
+
   function clearFilters() {
     filterSection.value = '';
     filterType.value = '';
     filterTags.selectedIndex = -1;
-    
+
     if (currentQuery) {
       performSearch(currentQuery);
     }
   }
-  
+
   function handleKeyboardShortcuts(e) {
     // Cmd/Ctrl + K to focus search
     if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
@@ -483,7 +501,7 @@
       input.focus();
       input.select();
     }
-    
+
     // Escape to clear/close
     if (e.key === 'Escape') {
       if (document.activeElement === input) {
@@ -495,7 +513,7 @@
       }
     }
   }
-  
+
   // Initialize on page load
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
@@ -503,7 +521,7 @@
     init();
   }
   }  // End of initializeSearchUI
-  
+
   // Start initialization (will retry if BengalSearch not loaded yet)
   initializeSearchUI();
 })();
@@ -871,14 +889,13 @@ mark.search-highlight {
   .search-shortcut {
     display: none;
   }
-  
+
   .search-input {
     padding-right: 3rem;
   }
-  
+
   .search-filters-content {
     grid-template-columns: 1fr;
   }
 }
 </style>
-

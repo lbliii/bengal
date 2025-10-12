@@ -168,7 +168,7 @@ More helpful suggestions for:
    - Replace `Optional[X]` → `X | None`
    - Replace `Union[X, Y]` → `X | Y`
    - Remove unused `Union` and `Optional` imports
-   
+
 2. **Update type aliases with `type` keyword** ✅ Clear improvement
    - `bengal/utils/dates.py` - DateLike
    - `bengal/rendering/template_functions/math_functions.py` - Number
@@ -311,4 +311,3 @@ Let's start with the highest-impact, lowest-risk changes:
 - Should we lint for old-style Union/Optional in CI?
 - Should we update ruff config to enforce modern syntax?
 - Should we add a section to CONTRIBUTING.md about Python 3.12 style?
-

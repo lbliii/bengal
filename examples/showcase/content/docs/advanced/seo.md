@@ -274,4 +274,3 @@ Ensure mobile-friendly:
 - [Frontmatter Guide](../writing/frontmatter-guide.md) - Metadata
 - [Images and Assets](../writing/images-and-assets.md) - Media optimization
 - [Blog Posts](../content-types/blog-posts.md) - Post metadata
-

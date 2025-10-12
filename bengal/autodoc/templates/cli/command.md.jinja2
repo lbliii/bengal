@@ -1,6 +1,6 @@
 {#
   Command Template
-  
+
   Generates documentation for a single CLI command with enhanced formatting.
 #}
 
@@ -33,22 +33,22 @@
 
 {% endif %}
 {%- if option.metadata.type and not option.metadata.is_flag %}
-**Type:** `{{ option.metadata.type }}`  
+**Type:** `{{ option.metadata.type }}`
 {% endif -%}
 {%- if option.metadata.is_flag %}
-**Type:** Flag (boolean)  
+**Type:** Flag (boolean)
 {% endif -%}
 {%- if option.metadata.count %}
-**Type:** Counter (counts occurrences)  
+**Type:** Counter (counts occurrences)
 {% endif -%}
 {%- if option.metadata.default %}
-**Default:** `{{ option.metadata.default }}`  
+**Default:** `{{ option.metadata.default }}`
 {% endif -%}
 {%- if option.metadata.required %}
-**Required:** Yes  
+**Required:** Yes
 {% endif -%}
 {%- if option.metadata.multiple %}
-**Multiple:** Can be specified multiple times  
+**Multiple:** Can be specified multiple times
 {% endif -%}
 {%- if option.metadata.envvar %}
 **Environment variable:** `{{ option.metadata.envvar }}`
@@ -99,12 +99,12 @@ description: "{% set lines = element.description.split('\n') %}{% set desc_lines
 
 {% endif %}
 {%- if arg.metadata.type %}
-**Type:** `{{ arg.metadata.type }}`  
+**Type:** `{{ arg.metadata.type }}`
 {% endif -%}
 {%- if arg.metadata.required %}
-**Required:** Yes  
+**Required:** Yes
 {% else %}
-**Required:** No  
+**Required:** No
 {% endif -%}
 {%- if arg.metadata.default %}
 **Default:** `{{ arg.metadata.default }}`

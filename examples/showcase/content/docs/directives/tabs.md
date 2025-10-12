@@ -107,7 +107,7 @@ Show the same example in different languages:
 \`\`\`python
 def hello():
     print("Hello, World!")
-    
+
 hello()
 \`\`\`
 
@@ -593,4 +593,3 @@ Content here
 - [Directives Overview](index.md) - All directives
 - [Quick Reference](quick-reference.md) - Syntax cheatsheet
 - [Markdown Basics](../writing/markdown-basics.md) - Markdown syntax
-
