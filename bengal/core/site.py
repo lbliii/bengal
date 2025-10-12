@@ -571,7 +571,7 @@ class Site:
         else:
             logger.debug("output_dir_does_not_exist", path=str(self.output_dir))
 
-    def _load_data_directory(self) -> Any:
+    def _load_data_directory(self) -> "DotDict":
         """
         Load all data files from the data/ directory into site.data.
 
