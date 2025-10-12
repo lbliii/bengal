@@ -62,6 +62,29 @@ def titleize(slug: str) -> str:
     return slug.replace("-", " ").replace("_", " ").title()
 
 
+def _infer_section_type(section_name: str) -> str:
+    """Infer appropriate section type based on name."""
+    section_lower = section_name.lower()
+
+    # Blog sections
+    if section_lower in ["blog", "posts", "articles", "news"]:
+        return "blog"
+
+    # Documentation sections
+    if section_lower in [
+        "docs",
+        "documentation",
+        "guides",
+        "reference",
+        "getting-started",
+        "tutorials",
+    ]:
+        return "doc"
+
+    # Default to section for others (about, contact, projects, etc.)
+    return "section"
+
+
 def generate_section_index(section_name: str, weight: int) -> str:
     """Generate content for a section _index.md file.
 
@@ -73,10 +96,20 @@ def generate_section_index(section_name: str, weight: int) -> str:
         Markdown content for the section index file
     """
     title = titleize(section_name)
+    section_type = _infer_section_type(section_name)
+
+    # Customize description based on type
+    if section_type == "blog":
+        description = "Latest posts and articles"
+    elif section_type == "doc":
+        description = "Documentation and guides"
+    else:
+        description = f"{title} section"
+
     return f"""---
 title: {title}
-description: {title} section
-type: section
+description: {description}
+type: {section_type}
 weight: {weight}
 ---
 
@@ -468,6 +501,18 @@ def init(
         click.echo(click.style("Created:", fg="cyan"))
         click.echo(f"  • {len(sections_created)} sections")
         click.echo(f"  • {pages_created} pages")
+
+        # Show tip about auto-navigation
+        if sections_created:
+            click.echo(click.style("\n🎯 Navigation configured!", fg="green", bold=True))
+            click.echo(click.style("   Sections will appear automatically in nav", fg="green"))
+            click.echo()
+            click.echo(
+                click.style("   💡 Tip: ", fg="cyan")
+                + click.style("To customize nav order or add external links,", fg="white")
+            )
+            click.echo(click.style("      add [[menu.main]] entries to bengal.toml", fg="white"))
+            click.echo()
 
         # Next steps
         click.echo(click.style("\n📚 Next steps:", fg="cyan", bold=True))

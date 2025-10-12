@@ -54,11 +54,6 @@ title: Getting Started with Bengal
 ---
 ```
 
-**Best practices:**
-- Keep under 60 characters for SEO
-- Make it descriptive and clear
-- Use title case or sentence case consistently
-- Avoid generic titles like "Page 1"
 
 ### description (Recommended)
 
@@ -71,11 +66,6 @@ description: Learn to create your first Bengal site in under 10 minutes
 ---
 ```
 
-**Best practices:**
-- Aim for 120-160 characters
-- Include target keywords naturally
-- Make it compelling (users see this in search results)
-- Describe what readers will learn or gain
 
 ### date
 
@@ -112,11 +102,6 @@ tags: ["python", "tutorial", "beginner"]
 ---
 ```
 
-**Best practices:**
-- Use 3-7 tags per page
-- Use lowercase, hyphenated slugs
-- Be consistent across similar content
-- Use specific tags ("python-basics" not just "tutorial")
 
 ### type
 
@@ -537,7 +522,7 @@ Quick reference of all common fields:
 | `canonical_url` | string | Canonical URL |
 | `show_children` | boolean | Show child page tiles |
 
-See [Frontmatter Standard](../frontmatter-standard.md) for complete reference.
+See [Frontmatter Standard](../frontmatter-standard/) for complete reference.
 
 ## Next Steps
 

@@ -21,6 +21,7 @@ def register(env: "Environment", site: "Site") -> None:
             "get_toc_grouped": get_toc_grouped,
             "get_pagination_items": get_pagination_items,
             "get_nav_tree": get_nav_tree,
+            "get_auto_nav": lambda: get_auto_nav(site),
         }
     )
 
@@ -560,3 +561,110 @@ def get_nav_tree(
         return items
 
     return build_tree_recursive(root_section)
+
+
+def get_auto_nav(site: "Site") -> list[dict[str, Any]]:
+    """
+    Auto-discover top-level navigation from site sections.
+
+    This function provides automatic navigation discovery similar to how
+    sidebars and TOC work. It discovers top-level sections and creates
+    nav items automatically.
+
+    Features:
+    - Auto-discovers all top-level sections in content/
+    - Respects section weight for ordering
+    - Respects 'menu: false' in section _index.md to hide from nav
+    - Returns empty list if manual [[menu.main]] config exists (hybrid mode)
+
+    Returns:
+        List of navigation items with name, url, weight
+
+    Example:
+        {# In nav template #}
+        {% set auto_items = get_auto_nav() %}
+        {% if auto_items %}
+          {% for item in auto_items %}
+            <a href="{{ item.url }}">{{ item.name }}</a>
+          {% endfor %}
+        {% endif %}
+
+    Section _index.md frontmatter can control visibility:
+        ---
+        title: Secret Section
+        menu: false  # Won't appear in auto-nav
+        weight: 10   # Controls ordering
+        ---
+    """
+    # Check if manual menu config exists - if so, don't auto-discover
+    # This allows manual config to take precedence
+    menu_config = site.config.get("menu", {})
+    if menu_config and "main" in menu_config:
+        # Manual config exists, return empty (let manual config handle it)
+        return []
+
+    nav_items = []
+
+    # Get all top-level sections (depth 1 from content root)
+    for section in site.sections:
+        # Only include top-level sections (direct children of content/)
+        if not hasattr(section, "path") or not section.path:
+            continue
+
+        # Check section depth (count path components from content root)
+        try:
+            content_dir = site.root_path / "content"
+            relative = section.path.relative_to(content_dir)
+            depth = len(relative.parts)
+
+            # Only include depth 1 (direct children of content/)
+            if depth != 1:
+                continue
+        except (ValueError, AttributeError):
+            continue
+
+        # Get section metadata from index page
+        section_hidden = False
+        section_title = getattr(section, "title", None) or section.name.replace("-", " ").title()
+        section_weight = getattr(section, "weight", 999)
+
+        # Check if section has index page with metadata
+        if hasattr(section, "index_page") and section.index_page:
+            index_page = section.index_page
+            metadata = getattr(index_page, "metadata", {})
+
+            # Check if explicitly hidden from menu
+            menu_setting = metadata.get("menu", True)
+            if menu_setting is False or (
+                isinstance(menu_setting, dict) and menu_setting.get("main") is False
+            ):
+                section_hidden = True
+
+            # Get title from frontmatter if available
+            if hasattr(index_page, "title") and index_page.title:
+                section_title = index_page.title
+
+            # Get weight from frontmatter if available
+            if "weight" in metadata:
+                section_weight = metadata["weight"]
+
+        # Skip hidden sections
+        if section_hidden:
+            continue
+
+        # Build nav item
+        section_url = getattr(section, "url", f"/{section.name}/")
+
+        nav_items.append(
+            {
+                "name": section_title,
+                "url": section_url,
+                "weight": section_weight,
+                "identifier": section.name,
+            }
+        )
+
+    # Sort by weight (lower weights first)
+    nav_items.sort(key=lambda x: (x["weight"], x["name"]))
+
+    return nav_items

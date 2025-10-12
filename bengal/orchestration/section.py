@@ -7,6 +7,7 @@ validation, and structural integrity.
 
 from typing import TYPE_CHECKING
 
+from bengal.content_types.registry import detect_content_type, get_strategy
 from bengal.utils.logger import get_logger
 from bengal.utils.page_initializer import PageInitializer
 from bengal.utils.url_strategy import URLStrategy
@@ -97,6 +98,9 @@ class SectionOrchestrator:
                 section_path=str(section.path),
                 page_count=len(section.pages),
             )
+        else:
+            # Section has an existing index page - enrich it if it needs section context
+            self._enrich_existing_index(section)
 
         # Recursively finalize subsections
         for subsection in section.subsections:
@@ -108,77 +112,21 @@ class SectionOrchestrator:
         """
         Detect what kind of content this section contains.
 
-        Uses convention over configuration:
-        1. Explicit metadata override (highest priority)
-        2. Cascaded type from parent section (inherits parent's content type)
-        3. Section name patterns (api, cli, etc.)
-        4. Content analysis (check page metadata)
-        5. Date-based heuristic (has dates = archive)
-        6. Default to generic list (not archive)
+        Delegates to the content type registry's detection logic.
 
         Args:
             section: Section to analyze
 
         Returns:
-            Content type: 'api-reference', 'cli-reference', 'tutorial', 'archive', or 'list'
+            Content type name (e.g., 'blog', 'doc', 'api-reference')
         """
-        # 1. Explicit override (highest priority)
-        if "content_type" in section.metadata:
-            return section.metadata["content_type"]
-
-        # 2. Check for cascaded type from parent section
-        # This ensures subsections inherit the parent's type (e.g., /docs/markdown/ inherits 'doc' from /docs/)
-        if section.parent and hasattr(section.parent, "metadata"):
-            parent_cascade = section.parent.metadata.get("cascade", {})
-            if "type" in parent_cascade:
-                # Just return the cascaded type directly
-                # The template map will handle finding the right template
-                return parent_cascade["type"]
-
-        # 3. Convention: section name patterns
-        name = section.name.lower()
-
-        match name:
-            case "api" | "reference" | "api-reference" | "api-docs":
-                return "api-reference"
-            case "cli" | "commands" | "cli-reference" | "command-line":
-                return "cli-reference"
-            case "tutorials" | "guides" | "how-to":
-                return "tutorial"
-            case "blog" | "posts" | "news" | "articles":  # Blog/news sections (chronological)
-                return "archive"
-
-        # 4. Content analysis: check page metadata
-        if section.pages:
-            # Sample first few pages to detect type
-            pages_with_dates = 0
-
-            for page in section.pages[:5]:
-                page_type = page.metadata.get("type", "")
-
-                if "python-module" in page_type or "api-reference" in page_type:
-                    return "api-reference"
-
-                if "cli-" in page_type or page_type == "command":
-                    return "cli-reference"
-
-                # Check if page has a date (blog/archive indicator)
-                if page.metadata.get("date") or page.date:
-                    pages_with_dates += 1
-
-            # 4. If most pages have dates, treat as chronological archive
-            if pages_with_dates >= len(section.pages[:5]) * 0.6:
-                return "archive"
-
-        # 5. Default: generic list page (not chronological archive)
-        return "list"
+        return detect_content_type(section)
 
     def _should_paginate(self, section: "Section", content_type: str) -> bool:
         """
         Determine if section should have pagination.
 
-        Reference documentation (API, CLI, tutorials) should NOT be paginated.
-        Blog-style archives should be paginated if they have many items.
+        Delegates to the content type strategy's pagination logic.
 
         Args:
             section: Section to check
@@ -187,27 +135,22 @@ class SectionOrchestrator:
         Returns:
             True if section should have pagination
         """
-        # Reference docs and documentation: NEVER paginate
-        if content_type in ("api-reference", "cli-reference", "tutorial", "doc"):
-            return False
+        # Get strategy and ask if pagination is appropriate
+        strategy = get_strategy(content_type)
 
-        # Archives: paginate if many items
-        if content_type == "archive":
-            page_count = len(section.pages)
-            threshold = self.site.config.get("pagination", {}).get("threshold", 20)
-            return page_count > threshold
+        # Allow explicit override
+        if "paginate" in section.metadata:
+            return section.metadata["paginate"]
 
-        # Explicit pagination control
-        return section.metadata.get("paginate", False)
+        # Use strategy's logic
+        page_count = len(section.pages)
+        return strategy.should_paginate(page_count, self.site.config)
 
     def _get_template_for_content_type(self, content_type: str) -> str:
         """
         Get the appropriate template for a content type.
 
-        Template hierarchy:
-        - archive.html: Chronological/blog content with dates and pagination
-        - index.html: Generic section landing page (fallback)
-        - {type}/list.html: Specialized reference docs (api, cli, tutorial)
+        Delegates to the content type strategy's template logic.
 
         Args:
             content_type: Type of content
@@ -215,16 +158,29 @@ class SectionOrchestrator:
         Returns:
             Template name
         """
-        template_map = {
-            "api-reference": "api-reference/list.html",
-            "cli-reference": "cli-reference/list.html",
-            "tutorial": "tutorial/list.html",
-            "doc": "doc/list.html",
-            "blog": "blog/list.html",
-            "archive": "archive.html",
-            "list": "index.html",  # Generic fallback for non-chronological sections
-        }
-        return template_map.get(content_type, "index.html")
+        strategy = get_strategy(content_type)
+        return strategy.get_template()
+
+    def _prepare_posts_list(self, section: "Section", content_type: str) -> list["Page"]:
+        """
+        Prepare the posts list for a section using content type strategy.
+
+        Args:
+            section: Section to prepare posts for
+            content_type: Content type of the section
+
+        Returns:
+            Filtered and sorted list of pages
+        """
+        strategy = get_strategy(content_type)
+
+        # Filter out index page (for auto-generated, index_page may not exist yet)
+        filtered_pages = strategy.filter_display_pages(
+            section.regular_pages, section.index_page if hasattr(section, "index_page") else None
+        )
+
+        # Sort according to content type
+        return strategy.sort_pages(filtered_pages)
 
     def _create_archive_index(self, section: "Section") -> "Page":
         """
@@ -269,7 +225,8 @@ class SectionOrchestrator:
             "_generated": True,
             "_virtual": True,
             "_section": section,
-            "_posts": section.pages,
+            # Filter and sort pages using content type strategy
+            "_posts": self._prepare_posts_list(section, content_type),
             "_subsections": section.subsections,
             "_content_type": content_type,
         }
@@ -299,6 +256,68 @@ class SectionOrchestrator:
         self.initializer.ensure_initialized_for_section(archive_page, section)
 
         return archive_page
+
+    def _enrich_existing_index(self, section: "Section") -> None:
+        """
+        Enrich an existing user-created index page with section context.
+
+        This adds the same metadata that auto-generated archives get, allowing
+        user-created index pages with type: blog or archive to work properly.
+
+        Args:
+            section: Section with an existing index page
+        """
+        index_page = section.index_page
+        if not index_page:
+            return
+
+        page_type = index_page.metadata.get("type", "")
+
+        # Only enrich pages that need section context (blog, archive, etc.)
+        if page_type in ("blog", "archive", "api-reference", "cli-reference", "tutorial"):
+            # Add section context metadata if not already present
+            if "_section" not in index_page.metadata:
+                index_page.metadata["_section"] = section
+
+            if "_posts" not in index_page.metadata:
+                # Use content type strategy to filter and sort pages
+                from bengal.content_types.registry import get_strategy
+
+                content_type = page_type or "list"
+                strategy = get_strategy(content_type)
+
+                # Filter out index page
+                filtered_pages = strategy.filter_display_pages(
+                    section.regular_pages, section.index_page
+                )
+
+                # Sort according to content type
+                sorted_pages = strategy.sort_pages(filtered_pages)
+
+                index_page.metadata["_posts"] = sorted_pages
+
+            if "_subsections" not in index_page.metadata:
+                index_page.metadata["_subsections"] = section.subsections
+
+            # Add pagination if appropriate and not already present
+            if "_paginator" not in index_page.metadata and self._should_paginate(
+                section, page_type
+            ):
+                from bengal.utils.pagination import Paginator
+
+                paginator = Paginator(
+                    items=section.pages,
+                    per_page=self.site.config.get("pagination", {}).get("per_page", 10),
+                )
+                index_page.metadata["_paginator"] = paginator
+                index_page.metadata["_page_num"] = 1
+
+            logger.debug(
+                "section_index_enriched",
+                section_name=section.name,
+                page_type=page_type,
+                post_count=len(section.pages),
+            )
 
     def validate_sections(self) -> list[str]:
         """

@@ -1,0 +1,261 @@
+{% extends "base.html" %}
+
+{#
+Changelog/Release Notes Template
+
+Used for changelog and release notes sections. Displays releases in a timeline format
+with version numbers, dates, and categorized changes.
+
+Usage: Set `type: changelog` in section _index.md
+
+Context variables:
+- section: Section object with release notes
+- pages: List of release pages (individual releases)
+- changelog: Changelog data from site.data.changelog (optional)
+
+Supports two modes:
+1. Data-driven: All releases in data/changelog.yaml
+2. Page-driven: Each release as a separate markdown file
+#}
+
+{% from 'partials/navigation-components.html' import breadcrumbs %}
+
+{% block content %}
+{{ breadcrumbs(page if page is defined else section) }}
+
+{# Load changelog data from site.data (preferred) or use pages (fallback) #}
+{% set changelog_data = site.data.get('changelog') if site.data is defined and site.data else none %}
+
+<div class="changelog-container">
+    <header class="changelog-header">
+        <h1>📋 {{ section.title if section else title | default('Changelog') }}</h1>
+
+        {% if section and section.metadata.get('description', '') %}
+        <p class="changelog-description">{{ section.metadata.get('description', '') }}</p>
+        {% elif description %}
+        <p class="changelog-description">{{ description }}</p>
+        {% endif %}
+    </header>
+
+    {# Data-driven mode: Use changelog.yaml #}
+    {% if changelog_data and changelog_data.get('releases') %}
+    <section class="changelog-timeline">
+        <div class="timeline">
+            {% for release in changelog_data.get('releases') %}
+            <div class="timeline-item">
+                <div class="timeline-header">
+                    <div class="timeline-title-group">
+                        <h2 class="timeline-title">
+                            {% if release.get('url') %}
+                            <a href="{{ release.get('url') }}">{{ release.get('version') }}</a>
+                            {% else %}
+                            {{ release.get('version') }}
+                            {% endif %}
+                        </h2>
+                        {% if release.get('name') %}
+                        <p class="timeline-subtitle">{{ release.get('name') }}</p>
+                        {% endif %}
+                    </div>
+                    <div class="timeline-meta">
+                        {% if release.get('date') %}
+                        <span class="timeline-date">{{ release.get('date') }}</span>
+                        {% endif %}
+                        {% if release.get('status') %}
+                        <span class="release-status status-{{ release.get('status') | lower }}">
+                            {{ release.get('status') }}
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                {% if release.get('summary') %}
+                <p class="timeline-description">{{ release.get('summary') }}</p>
+                {% endif %}
+
+                {# Added Features #}
+                {% if release.get('added') and release.get('added') is iterable and release.get('added') is not string
+                %}
+                <div class="changelog-category">
+                    <h3 class="category-title">✨ Added</h3>
+                    <ul class="changelog-list">
+                        {% for item in release.get('added') %}
+                        <li>{{ item }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+
+                {# Changed/Improved #}
+                {% if release.get('changed') and release.get('changed') is iterable and release.get('changed') is not
+                string %}
+                <div class="changelog-category">
+                    <h3 class="category-title">🔄 Changed</h3>
+                    <ul class="changelog-list">
+                        {% for item in release.get('changed') %}
+                        <li>{{ item }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+
+                {# Fixed Bugs #}
+                {% if release.get('fixed') and release.get('fixed') is iterable and release.get('fixed') is not string
+                %}
+                <div class="changelog-category">
+                    <h3 class="category-title">🐛 Fixed</h3>
+                    <ul class="changelog-list">
+                        {% for item in release.get('fixed') %}
+                        <li>{{ item }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+
+                {# Deprecated #}
+                {% if release.get('deprecated') and release.get('deprecated') is iterable and release.get('deprecated')
+                is not string %}
+                <div class="changelog-category">
+                    <h3 class="category-title">⚠️ Deprecated</h3>
+                    <ul class="changelog-list">
+                        {% for item in release.get('deprecated') %}
+                        <li>{{ item }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+
+                {# Removed #}
+                {% if release.get('removed') and release.get('removed') is iterable and release.get('removed') is not
+                string %}
+                <div class="changelog-category">
+                    <h3 class="category-title">🗑️ Removed</h3>
+                    <ul class="changelog-list">
+                        {% for item in release.get('removed') %}
+                        <li>{{ item }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+
+                {# Security #}
+                {% if release.get('security') and release.get('security') is iterable and release.get('security') is not
+                string %}
+                <div class="changelog-category">
+                    <h3 class="category-title">🔒 Security</h3>
+                    <ul class="changelog-list">
+                        {% for item in release.get('security') %}
+                        <li>{{ item }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+
+                {# Breaking Changes #}
+                {% if release.get('breaking') and release.get('breaking') is iterable and release.get('breaking') is not
+                string %}
+                <div class="changelog-category changelog-breaking">
+                    <h3 class="category-title">⚡ Breaking Changes</h3>
+                    <ul class="changelog-list">
+                        {% for item in release.get('breaking') %}
+                        <li>{{ item }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    {# Page-driven mode: Use individual release pages #}
+    {% elif pages %}
+    <section class="changelog-timeline">
+        <div class="timeline">
+            {% for release in pages %}
+            <div class="timeline-item">
+                <div class="timeline-header">
+                    <div class="timeline-title-group">
+                        <h2 class="timeline-title">
+                            <a href="{{ url_for(release) }}">{{ release.title }}</a>
+                        </h2>
+                        {% if release.metadata.get('name') %}
+                        <p class="timeline-subtitle">{{ release.metadata.get('name') }}</p>
+                        {% endif %}
+                    </div>
+                    <div class="timeline-meta">
+                        {% if release.date %}
+                        <time datetime="{{ release.date | date_iso }}">
+                            {{ release.date | dateformat('%B %d, %Y') }}
+                        </time>
+                        {% endif %}
+                        {% if release.metadata.get('status') %}
+                        <span class="release-status status-{{ release.metadata.get('status') | lower }}">
+                            {{ release.metadata.get('status') }}
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                {% if release.metadata.get('summary') or release.excerpt %}
+                <p class="timeline-description">
+                    {{ release.metadata.get('summary') | default(release.excerpt) }}
+                </p>
+                {% endif %}
+
+                {# Show categories if in metadata #}
+                {% if release.metadata.get('added') %}
+                <div class="changelog-category">
+                    <h3 class="category-title">✨ Added</h3>
+                    <ul class="changelog-list">
+                        {% for item in release.metadata.get('added') %}
+                        <li>{{ item }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+
+                {% if release.metadata.get('changed') %}
+                <div class="changelog-category">
+                    <h3 class="category-title">🔄 Changed</h3>
+                    <ul class="changelog-list">
+                        {% for item in release.metadata.get('changed') %}
+                        <li>{{ item }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+
+                {% if release.metadata.get('fixed') %}
+                <div class="changelog-category">
+                    <h3 class="category-title">🐛 Fixed</h3>
+                    <ul class="changelog-list">
+                        {% for item in release.metadata.get('fixed') %}
+                        <li>{{ item }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+
+                <a href="{{ url_for(release) }}" class="changelog-read-more">
+                    View full release notes →
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    {% else %}
+    {# Empty State #}
+    <div class="changelog-empty">
+        <p>No releases yet. Check back soon!</p>
+    </div>
+    {% endif %}
+
+    {# Page content (optional intro text) #}
+    {% if content and content.strip() %}
+    <section class="changelog-content">
+        {{ content | safe }}
+    </section>
+    {% endif %}
+</div>
+{% endblock %}

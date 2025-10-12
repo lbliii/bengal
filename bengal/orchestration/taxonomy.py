@@ -94,16 +94,24 @@ class TaxonomyOrchestrator:
         # Performance: O(all pages) but very fast (just iteration + dict ops)
         self._rebuild_taxonomy_structure_from_cache(cache)
 
+        # STEP 3: Generate tag pages
+        # Special case: If no pages changed but we have tags, regenerate ALL tag pages
+        # (This happens in dev server when site.pages was cleared but content didn't change)
+        if not changed_pages and self.site.taxonomies.get("tags"):
+            # No content changed, but we need to regenerate all taxonomy pages
+            all_tags = set(self.site.taxonomies["tags"].keys())
+            self.generate_dynamic_pages_for_tags(all_tags)
+            affected_tags = all_tags
+        elif affected_tags:
+            # Normal case: Only regenerate affected tag pages
+            self.generate_dynamic_pages_for_tags(affected_tags)
+
         logger.info(
             "taxonomy_collection_incremental_complete",
             tags=len(self.site.taxonomies.get("tags", {})),
             updated_pages=len(changed_pages),
             affected_tags=len(affected_tags),
         )
-
-        # STEP 3: Generate tag pages only for affected tags
-        if affected_tags:
-            self.generate_dynamic_pages_for_tags(affected_tags)
 
         return affected_tags
 
@@ -119,17 +127,23 @@ class TaxonomyOrchestrator:
 
         # Collect from all pages, optionally per-locale
         i18n = self.site.config.get("i18n", {}) or {}
+        strategy = i18n.get("strategy", "none")
         share_taxonomies = bool(i18n.get("share_taxonomies", False))
         current_lang = getattr(self.site, "current_language", None)
+
+        pages_with_tags = 0
         for page in self.site.pages:
+            # Only filter by language if i18n is actually enabled
             if (
-                not share_taxonomies
+                strategy != "none"
+                and not share_taxonomies
                 and current_lang
                 and getattr(page, "lang", current_lang) != current_lang
             ):
                 continue
             # Collect tags
             if page.tags:
+                pages_with_tags += 1
                 for tag in page.tags:
                     tag_key = tag.lower().replace(" ", "-")
                     if tag_key not in self.site.taxonomies["tags"]:
@@ -161,7 +175,13 @@ class TaxonomyOrchestrator:
 
         tag_count = len(self.site.taxonomies.get("tags", {}))
         cat_count = len(self.site.taxonomies.get("categories", {}))
-        logger.info("taxonomy_collection_complete", tags=tag_count, categories=cat_count)
+        logger.info(
+            "taxonomy_collection_complete",
+            tags=tag_count,
+            categories=cat_count,
+            pages_with_tags=pages_with_tags,
+            total_pages_checked=len(self.site.pages),
+        )
 
     def _rebuild_taxonomy_structure_from_cache(self, cache: "BuildCache") -> None:
         """
@@ -230,34 +250,87 @@ class TaxonomyOrchestrator:
         """
         Generate dynamic pages only for specific affected tags (incremental optimization).
 
+        This method supports i18n - it generates per-locale tag pages when i18n is enabled.
+
         Args:
             affected_tags: Set of tag slugs that need page regeneration
         """
         generated_count = 0
 
-        # Always regenerate tag index (it lists all tags)
-        if self.site.taxonomies.get("tags"):
-            tag_index = self._create_tag_index_page()
-            if tag_index:
-                self.site.pages.append(tag_index)
-                generated_count += 1
+        if not self.site.taxonomies.get("tags"):
+            return
 
-            # Only generate pages for affected tags
-            for tag_slug in affected_tags:
-                if tag_slug in self.site.taxonomies["tags"]:
-                    tag_data = self.site.taxonomies["tags"][tag_slug]
-                    tag_pages = self._create_tag_pages(tag_slug, tag_data)
-                    for page in tag_pages:
-                        self.site.pages.append(page)
-                        generated_count += 1
+        # Get i18n configuration
+        i18n = self.site.config.get("i18n", {}) or {}
+        strategy = i18n.get("strategy", "none")
+        share_taxonomies = bool(i18n.get("share_taxonomies", False))
+        default_lang = i18n.get("default_language", "en")
 
-            logger.info(
-                "dynamic_pages_generated_incremental",
-                tag_index=1,
-                tag_pages=generated_count - 1,
-                total=generated_count,
-                affected_tags=len(affected_tags),
-            )
+        # Determine languages to generate for
+        languages = [default_lang]
+        if strategy != "none":
+            languages = []
+            langs_cfg = i18n.get("languages") or []
+            for entry in langs_cfg:
+                if isinstance(entry, dict) and "code" in entry:
+                    languages.append(entry["code"])
+                elif isinstance(entry, str):
+                    languages.append(entry)
+            if default_lang not in languages:
+                languages.append(default_lang)
+
+        # Generate per-locale tag pages
+        for lang in sorted(set(languages)):
+            # Build per-locale tag mapping
+            locale_tags = {}
+            for tag_slug, tag_data in self.site.taxonomies["tags"].items():
+                # Don't filter by language if i18n is disabled or taxonomies are shared
+                pages_for_lang = (
+                    tag_data["pages"]
+                    if (strategy == "none" or share_taxonomies)
+                    else [p for p in tag_data["pages"] if getattr(p, "lang", default_lang) == lang]
+                )
+                if not pages_for_lang:
+                    continue
+                locale_tags[tag_slug] = {
+                    "name": tag_data["name"],
+                    "slug": tag_slug,
+                    "pages": pages_for_lang,
+                }
+
+            if not locale_tags:
+                continue
+
+            # Temporarily set language context for URL computation
+            prev_lang = getattr(self.site, "current_language", None)
+            self.site.current_language = lang
+            try:
+                # Always regenerate tag index (it lists all tags)
+                tag_index = self._create_tag_index_page_for(locale_tags)
+                if tag_index:
+                    tag_index.lang = lang
+                    self.site.pages.append(tag_index)
+                    generated_count += 1
+
+                # Only generate pages for affected tags
+                for tag_slug in affected_tags:
+                    if tag_slug in locale_tags:
+                        tag_data = locale_tags[tag_slug]
+                        tag_pages = self._create_tag_pages_for_lang(tag_slug, tag_data, lang)
+                        for page in tag_pages:
+                            page.lang = lang
+                            self.site.pages.append(page)
+                            generated_count += 1
+            finally:
+                self.site.current_language = prev_lang
+
+        logger.info(
+            "dynamic_pages_generated_incremental",
+            tag_pages=generated_count,
+            total=generated_count,
+            affected_tags=len(affected_tags),
+            languages=len(languages),
+        )
 
     def generate_dynamic_pages(self) -> None:
         """
@@ -290,9 +363,10 @@ class TaxonomyOrchestrator:
                 # Build per-locale tag mapping
                 locale_tags = {}
                 for tag_slug, tag_data in self.site.taxonomies["tags"].items():
+                    # Don't filter by language if i18n is disabled or taxonomies are shared
                     pages_for_lang = (
                         tag_data["pages"]
-                        if share_taxonomies
+                        if (strategy == "none" or share_taxonomies)
                         else [
                             p for p in tag_data["pages"] if getattr(p, "lang", default_lang) == lang
                         ]

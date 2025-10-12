@@ -13,7 +13,7 @@ content_dir = "content"
 output_dir = "public"
 theme = "default"
 draft = false
-auto_regenerate_autodoc = true  # Auto-regenerate docs when source changes
+auto_regenerate_autodoc = true # Auto-regenerate docs when source changes
 
 # Note: Most build settings use sensible defaults:
 # ✅ parallel = true (parallel builds)
@@ -48,14 +48,19 @@ url = "/docs/"
 weight = 2
 
 [[menu.main]]
+name = "Releases"
+url = "/releases/"
+weight = 3
+
+[[menu.main]]
 name = "API"
 url = "/api/"
-weight = 3
+weight = 4
 
 [[menu.main]]
 name = "CLI"
 url = "/cli/"
-weight = 4
+weight = 5
 
 [params]
 # Custom site parameters
@@ -83,9 +88,9 @@ enable_dark_mode = true
 # Autodoc Configuration - Generate Bengal API documentation
 [autodoc.python]
 enabled = true
-source_dirs = ["../../bengal"]  # Document the main Bengal package
-output_dir = "content/api"  # Generated API docs go here
-docstring_style = "auto"  # Auto-detect docstring format
+source_dirs = ["../../bengal"] # Document the main Bengal package
+output_dir = "content/api"     # Generated API docs go here
+docstring_style = "auto"       # Auto-detect docstring format
 
 # Exclude test and cache files
 exclude = [
@@ -97,8 +102,8 @@ exclude = [
 ]
 
 # Member visibility
-include_private = false  # Skip _private methods
-include_special = false  # Skip __special__ methods
+include_private = false # Skip _private methods
+include_special = false # Skip __special__ methods
 
 
 [autodoc.cli]
@@ -110,18 +115,4 @@ output_dir = "content/cli"
 
 # Internationalization (i18n)
 [i18n]
-strategy = "prefix"            # url structure: /en/..., /fr/...
-content_structure = "dir"      # content/en/... and content/fr/...
-default_language = "en"
-default_in_subdir = false       # put default lang under /en/ only if true
-share_taxonomies = false        # per-locale tag pages
-
-[[i18n.languages]]
-code = "en"
-name = "English"
-hreflang = "en"
-
-[[i18n.languages]]
-code = "fr"
-name = "Français"
-hreflang = "fr"
+strategy = "none" # url structure: /en/..., /

@@ -70,7 +70,7 @@ Power user features for experienced users:
 
 ### Reference Documentation
 
-- **[Frontmatter Standard](frontmatter-standard.md)** - Complete frontmatter reference
+- **[Frontmatter Standard](frontmatter-standard/)** - Complete frontmatter reference
 - **[Kitchen Sink](kitchen-sink.md)** - See all features in action
 - **[Health Checks](health-checks.md)** - Build validation
 - **[Output Formats](output-formats.md)** - RSS, sitemaps, and more

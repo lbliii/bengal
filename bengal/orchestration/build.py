@@ -271,7 +271,12 @@ class BuildOrchestrator:
                     cache_hit_rate=f"{(pages_cached / total_pages * 100) if total_pages > 0 else 0:.1f}%",
                 )
 
-                if not pages_to_build and not assets_to_process:
+                # Check if we need to regenerate taxonomy pages
+                # (This happens in dev server when site.pages is cleared but content hasn't changed)
+                # If cache has tags, we need to regenerate taxonomy pages even if no content changed
+                needs_taxonomy_regen = bool(cache.get_all_tags())
+
+                if not pages_to_build and not assets_to_process and not needs_taxonomy_regen:
                     cli.success("No changes detected - skipping build")
                     self.logger.info("no_changes_detected")
                     self.stats.skipped = True
@@ -341,15 +346,25 @@ class BuildOrchestrator:
                 # Store affected tags for later use (related posts, etc.)
                 self.site._affected_tags = affected_tags
 
+            elif incremental and not pages_to_build:
+                # Incremental but no pages changed: Still need to regenerate taxonomy pages
+                # because site.pages was cleared (dev server case)
+                # Use cache to rebuild taxonomies efficiently
+                affected_tags = self.taxonomy.collect_and_generate_incremental([], cache)
+                self.site._affected_tags = affected_tags
+
             elif not incremental:
                 # Full build: Collect and generate everything
                 self.taxonomy.collect_and_generate()
+
+                # Mark all tags as affected (for Phase 6 - adding to pages_to_build)
+                if hasattr(self.site, "taxonomies") and "tags" in self.site.taxonomies:
+                    affected_tags = set(self.site.taxonomies["tags"].keys())
 
                 # Update cache with full taxonomy data (for next incremental build)
                 for page in self.site.pages:
                     if not page.metadata.get("_generated") and page.tags:
                         cache.update_page_tags(page.source_path, set(page.tags))
-            # else: No pages changed, skip taxonomy updates
 
             self.stats.taxonomy_time_ms = (time.time() - taxonomy_start) * 1000
             if hasattr(self.site, "taxonomies"):
@@ -402,9 +417,9 @@ class BuildOrchestrator:
 
         # Phase 6: Update filtered pages list (add generated pages)
         # Now that we've generated tag pages, update pages_to_build if needed
-        if incremental and affected_tags:
+        if affected_tags:
             # Convert to set for O(1) membership and automatic deduplication
-            pages_to_build_set = set(pages_to_build)
+            pages_to_build_set = set(pages_to_build) if pages_to_build else set()
 
             # Add newly generated tag pages to rebuild set
             for page in self.site.pages:
@@ -412,8 +427,16 @@ class BuildOrchestrator:
                     "tag",
                     "tag-index",
                 ):
+                    # For full builds, add all taxonomy pages
+                    # For incremental builds, add only affected tag pages + tag index
                     tag_slug = page.metadata.get("_tag_slug")
-                    if tag_slug in affected_tags or page.metadata.get("type") == "tag-index":
+                    should_include = (
+                        not incremental  # Full build: include all
+                        or page.metadata.get("type") == "tag-index"  # Always include tag index
+                        or tag_slug in affected_tags  # Include affected tag pages
+                    )
+
+                    if should_include:
                         pages_to_build_set.add(page)  # O(1) + automatic dedup
 
             # Convert back to list for rendering (preserves compatibility)

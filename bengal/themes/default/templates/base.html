@@ -1,12 +1,14 @@
 <!DOCTYPE html>
 <html lang="{{ current_lang() }}">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
 
     {# Title #}
-    <title>{% block title %}{{ page.title | default(site.config.title) }}{% if page and page.title %} - {{ site.config.title }}{% endif %}{% endblock %}</title>
+    <title>{% block title %}{{ page.title | default(site.config.title) }}{% if page and page.title %} - {{
+        site.config.title }}{% endif %}{% endblock %}</title>
 
     {# Meta description - automatically pre-computed by renderer (page.meta_description cached_property) #}
     {% set meta_desc = meta_desc | default(site.config.description, '') %}
@@ -82,16 +84,18 @@
 
     {# Theme initialization (prevent flash) #}
     <script>
-        (function() {
+        (function () {
             const theme = localStorage.getItem('bengal-theme') ||
-                         (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+                (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
             document.documentElement.setAttribute('data-theme', theme);
         })();
     </script>
 
     {% block extra_head %}{% endblock %}
 </head>
-<body class="page-kind-{{ page.kind if page and page.kind is defined else 'page' }} {% if page and page.draft is defined and page.draft %}draft-page{% endif %} {% if page and page.tags is defined and (page | has_tag('featured')) %}featured-content{% endif %}">
+
+<body
+    class="page-kind-{{ page.kind if page and page.kind is defined else 'page' }} {% if page and page.draft is defined and page.draft %}draft-page{% endif %} {% if page and page.tags is defined and (page | has_tag('featured')) %}featured-content{% endif %}">
     {# Skip to main content for accessibility #}
     <a href="#main-content" class="skip-link">Skip to main content</a>
 
@@ -104,11 +108,17 @@
 
                 {# Desktop Navigation #}
                 <div class="nav-main hidden-mobile">
+                    {# Try manual menu config first, fallback to auto-discovery #}
                     {% set main_menu = get_menu_lang('main', current_lang()) %}
-                    {% if main_menu %}
+                    {% set auto_nav = get_auto_nav() if not main_menu else [] %}
+
+                    {% if main_menu or auto_nav %}
                     <ul>
+                        {# Manual menu items (if configured) #}
+                        {% if main_menu %}
                         {% for item in main_menu %}
-                        <li class="{{ 'active' if item.active else '' }} {{ 'active-trail' if item.active_trail else '' }}">
+                        <li
+                            class="{{ 'active' if item.active else '' }} {{ 'active-trail' if item.active_trail else '' }}">
                             <a href="{{ item.url }}">{{ item.name }}</a>
                             {% if item.children %}
                             <ul class="submenu">
@@ -121,10 +131,26 @@
                             {% endif %}
                         </li>
                         {% endfor %}
+                        {% endif %}
+
+                        {# Auto-discovered nav items (if no manual config) #}
+                        {% if auto_nav %}
+                        {# Always show Home first in auto mode #}
+                        <li class="{{ 'active' if page.url == '/' else '' }}">
+                            <a href="/">Home</a>
+                        </li>
+                        {% for item in auto_nav %}
+                        <li class="{{ 'active' if page.url.startswith(item.url) and item.url != '/' else '' }}">
+                            <a href="{{ item.url }}">{{ item.name }}</a>
+                        </li>
+                        {% endfor %}
+                        {% endif %}
+
                         {# Search link #}
                         <li>
                             <a href="/search/" title="Search (⌘K)">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
                                     <circle cx="11" cy="11" r="8"></circle>
                                     <path d="m21 21-4.35-4.35"></path>
                                 </svg>
@@ -138,10 +164,12 @@
                     {# Theme Toggle #}
                     <button class="theme-toggle" aria-label="Toggle dark mode" title="Toggle theme">
                         <svg class="icon-sun" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
                         </svg>
                         <svg class="icon-moon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
                         </svg>
                     </button>
                 </div>
@@ -149,7 +177,8 @@
                 {# Mobile Menu Toggle #}
                 <button class="mobile-nav-toggle visible-mobile" aria-label="Open menu" aria-expanded="false">
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 6h16M4 12h16M4 18h16" />
                     </svg>
                 </button>
             </div>
@@ -162,13 +191,18 @@
             <span class="logo">{{ site.config.title }}</span>
             <button class="mobile-nav-close" aria-label="Close menu">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                 </svg>
             </button>
         </div>
+        {# Try manual menu config first, fallback to auto-discovery #}
         {% set main_menu = get_menu_lang('main', current_lang()) %}
-        {% if main_menu %}
+        {% set auto_nav = get_auto_nav() if not main_menu else [] %}
+
+        {% if main_menu or auto_nav %}
         <ul>
+            {# Manual menu items (if configured) #}
+            {% if main_menu %}
             {% for item in main_menu %}
             <li class="{{ 'has-submenu' if item.children else '' }} {{ 'active' if item.active else '' }}">
                 <a href="{{ item.url }}">{{ item.name }}</a>
@@ -183,6 +217,21 @@
                 {% endif %}
             </li>
             {% endfor %}
+            {% endif %}
+
+            {# Auto-discovered nav items (if no manual config) #}
+            {% if auto_nav %}
+            {# Always show Home first in auto mode #}
+            <li class="{{ 'active' if page.url == '/' else '' }}">
+                <a href="/">Home</a>
+            </li>
+            {% for item in auto_nav %}
+            <li class="{{ 'active' if page.url.startswith(item.url) and item.url != '/' else '' }}">
+                <a href="{{ item.url }}">{{ item.name }}</a>
+            </li>
+            {% endfor %}
+            {% endif %}
+
             {% block mobile_nav_items %}{% endblock %}
         </ul>
         {% endif %}
@@ -203,7 +252,8 @@
             {{ popular_tags_widget(limit=10) }}
 
             <p class="footer-copyright">
-                &copy; 2025 {{ site.config.title }} | Built with <a href="https://github.com/bengal-ssg/bengal" rel="noopener">Bengal SSG</a>
+                &copy; 2025 {{ site.config.title }} | Built with <a href="https://github.com/bengal-ssg/bengal"
+                    rel="noopener">Bengal SSG</a>
             </p>
             {% set footer_menu = get_menu_lang('footer', current_lang()) %}
             {% if footer_menu %}
@@ -232,46 +282,47 @@
 
     {# Smart search index preloading #}
     <script>
-    (function() {
-      {% set search_preload = site.config.get('search_preload', 'smart') %}
-      const preloadMode = '{{ search_preload }}';  // 'immediate', 'smart', or 'lazy'
-      let preloadTriggered = false;
+        (function () {
+            {% set search_preload = site.config.get('search_preload', 'smart') %}
+            const preloadMode = '{{ search_preload }}';  // 'immediate', 'smart', or 'lazy'
+            let preloadTriggered = false;
 
-      function preloadSearch() {
-        if (preloadTriggered || !window.BengalSearch) return;
-        preloadTriggered = true;
+            function preloadSearch() {
+                if (preloadTriggered || !window.BengalSearch) return;
+                preloadTriggered = true;
 
-        console.log('🔍 Preloading search index...');
-        window.BengalSearch.load();
-      }
-
-      // Immediate: Load right away (best for small sites <100 pages)
-      if (preloadMode === 'immediate') {
-        document.addEventListener('DOMContentLoaded', preloadSearch);
-      }
-      // Smart: Load on user intent signals (default, best for most sites)
-      else if (preloadMode === 'smart') {
-        document.addEventListener('DOMContentLoaded', function() {
-          // Preload on search link hover (user likely to search)
-          const searchLinks = document.querySelectorAll('a[href="/search/"], a[href*="search"]');
-          searchLinks.forEach(link => {
-            link.addEventListener('mouseenter', preloadSearch, { once: true });
-            link.addEventListener('focus', preloadSearch, { once: true });
-          });
-
-          // Preload if user presses Cmd/Ctrl (likely ⌘K)
-          document.addEventListener('keydown', function(e) {
-            if (e.metaKey || e.ctrlKey) {
-              preloadSearch();
+                console.log('🔍 Preloading search index...');
+                window.BengalSearch.load();
             }
-          }, { once: true });
-        });
-      }
-      // Lazy: Only load when search is actually opened (best for large sites >500 pages)
-      // No preloading - index loads on first search
-    })();
+
+            // Immediate: Load right away (best for small sites <100 pages)
+            if (preloadMode === 'immediate') {
+                document.addEventListener('DOMContentLoaded', preloadSearch);
+            }
+            // Smart: Load on user intent signals (default, best for most sites)
+            else if (preloadMode === 'smart') {
+                document.addEventListener('DOMContentLoaded', function () {
+                    // Preload on search link hover (user likely to search)
+                    const searchLinks = document.querySelectorAll('a[href="/search/"], a[href*="search"]');
+                    searchLinks.forEach(link => {
+                        link.addEventListener('mouseenter', preloadSearch, { once: true });
+                        link.addEventListener('focus', preloadSearch, { once: true });
+                    });
+
+                    // Preload if user presses Cmd/Ctrl (likely ⌘K)
+                    document.addEventListener('keydown', function (e) {
+                        if (e.metaKey || e.ctrlKey) {
+                            preloadSearch();
+                        }
+                    }, { once: true });
+                });
+            }
+            // Lazy: Only load when search is actually opened (best for large sites >500 pages)
+            // No preloading - index loads on first search
+        })();
     </script>
 
     {% block extra_js %}{% endblock %}
 </body>
+
 </html>
