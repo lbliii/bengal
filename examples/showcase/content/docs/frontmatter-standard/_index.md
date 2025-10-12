@@ -6,7 +6,9 @@ weight: 5
 tags: ["frontmatter", "metadata", "documentation", "search"]
 toc: true
 type: doc
+# Use the 'doc/list.html' template to render this page as a list of documentation entries.
 template: doc/list.html
+# Set to true to automatically display child pages below this index.
 show_children: true
 ---
 
