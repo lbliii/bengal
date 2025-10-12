@@ -45,32 +45,49 @@ class ComponentPreviewServer:
             found_count = 0
             for yml in base.glob("*.yaml"):
                 try:
-                    data = yaml.safe_load(yml.read_text(encoding="utf-8")) or {}
-                    if isinstance(data, dict) and data.get("template"):
-                        comp_id = yml.stem
-                        data["id"] = comp_id
-                        data["manifest_path"] = str(yml)
-                        # Normalize variants
-                        variants = data.get("variants", [])
-                        if isinstance(variants, list):
-                            for v in variants:
-                                v.setdefault(
-                                    "id", v.get("name", "default").lower().replace(" ", "-")
-                                )
-                        data["variants"] = variants
-                        manifests.append(data)
-                        found_count += 1
-                        logger.debug(
-                            "component_manifest_loaded",
-                            component_id=comp_id,
-                            template=data.get("template"),
-                            variant_count=len(variants),
-                            path=str(yml),
-                        )
-                    elif not data.get("template"):
-                        logger.warning(
-                            "component_manifest_no_template", file=str(yml), has_data=bool(data)
-                        )
+                    # Support multi-document YAML files (separated by ---)
+                    content = yml.read_text(encoding="utf-8")
+                    documents = list(yaml.safe_load_all(content))
+
+                    for data in documents:
+                        data = data or {}
+                        if not isinstance(data, dict):
+                            continue
+
+                        # Handle both 'template' and 'macro' based components
+                        has_template = data.get("template")
+                        has_macro = data.get("macro")
+
+                        if has_template or has_macro:
+                            # Use explicit id or derive from filename
+                            comp_id = data.get("id") or yml.stem
+                            data["id"] = comp_id
+                            data["manifest_path"] = str(yml)
+
+                            # Normalize variants
+                            variants = data.get("variants", [])
+                            if isinstance(variants, list):
+                                for v in variants:
+                                    v.setdefault(
+                                        "id", v.get("name", "default").lower().replace(" ", "-")
+                                    )
+                            data["variants"] = variants
+                            manifests.append(data)
+                            found_count += 1
+                            logger.debug(
+                                "component_manifest_loaded",
+                                component_id=comp_id,
+                                template=data.get("template"),
+                                macro=data.get("macro"),
+                                variant_count=len(variants),
+                                path=str(yml),
+                            )
+                        elif not (has_template or has_macro):
+                            logger.debug(
+                                "component_manifest_no_template_or_macro",
+                                file=str(yml),
+                                has_data=bool(data),
+                            )
                 except Exception as e:
                     logger.warning(
                         "component_manifest_load_failed",

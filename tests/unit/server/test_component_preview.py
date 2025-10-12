@@ -96,9 +96,7 @@ def test_discover_components_invalid_yaml(tmp_path: Path):
     )
 
     # Create invalid YAML
-    manifest = (
-        tmp_path / "bengal" / "themes" / "test-theme-unique" / "dev" / "components" / "invalid.yaml"
-    )
+    manifest = tmp_path / "themes" / "test-theme-unique" / "dev" / "components" / "invalid.yaml"
     _write(manifest, "invalid: yaml: content: [")
 
     site = Site.from_config(tmp_path)
@@ -119,15 +117,7 @@ def test_discover_components_missing_template_key(tmp_path: Path):
     )
 
     # Create manifest without template key
-    manifest = (
-        tmp_path
-        / "bengal"
-        / "themes"
-        / "test-theme-unique2"
-        / "dev"
-        / "components"
-        / "incomplete.yaml"
-    )
+    manifest = tmp_path / "themes" / "test-theme-unique2" / "dev" / "components" / "incomplete.yaml"
     manifest_data = {"name": "Incomplete Component", "variants": []}
     _write(manifest, yaml.dump(manifest_data))
 
@@ -147,21 +137,17 @@ def test_discover_components_theme_override(tmp_path: Path):
         config, '[site]\ntitle = "Test"\nbase_url = "https://example.com"\ntheme = "child-theme"'
     )
 
-    # Create parent theme component
-    parent_manifest = (
-        tmp_path / "bengal" / "themes" / "default" / "dev" / "components" / "button.yaml"
-    )
+    # Create parent theme component - use unique ID to avoid conflicts
+    parent_manifest = tmp_path / "themes" / "default" / "dev" / "components" / "mybutton.yaml"
     parent_data = {
         "name": "Parent Button",
-        "template": "partials/button.html",
+        "template": "partials/mybutton.html",
         "variants": [{"id": "default", "name": "Default", "context": {}}],
     }
     _write(parent_manifest, yaml.dump(parent_data))
 
     # Create child theme component with same ID
-    child_manifest = (
-        tmp_path / "bengal" / "themes" / "child-theme" / "dev" / "components" / "button.yaml"
-    )
+    child_manifest = tmp_path / "themes" / "child-theme" / "dev" / "components" / "mybutton.yaml"
     child_data = {
         "name": "Child Button",
         "template": "partials/custom-button.html",
@@ -173,10 +159,12 @@ def test_discover_components_theme_override(tmp_path: Path):
     cps = ComponentPreviewServer(site)
     components = cps.discover_components()
 
+    # Find our button component (may have bundled ones too)
+    button_comp = next((c for c in components if c["id"] == "mybutton"), None)
+    assert button_comp is not None
     # Should use child theme version
-    assert len(components) == 1
-    assert components[0]["name"] == "Child Button"
-    assert components[0]["template"] == "partials/custom-button.html"
+    assert button_comp["name"] == "Child Button"
+    assert button_comp["template"] == "partials/custom-button.html"
 
 
 def test_render_component_basic(component_site: Site):
@@ -206,7 +194,6 @@ def test_render_component_page_to_article_alias(component_site: Site):
     # Create template that uses 'article' variable
     template = (
         component_site.root_path
-        / "bengal"
         / "themes"
         / "test-theme"
         / "templates"
@@ -239,7 +226,7 @@ def test_view_page_single_variant(component_site: Site):
     """Test viewing a specific variant."""
     cps = ComponentPreviewServer(component_site)
 
-    html = cps.view_page("card", "long-title")
+    html = cps.view_page("testcard", "long-title")
 
     # Should render only the specified variant
     assert "Very Long Test Title" in html
@@ -249,7 +236,7 @@ def test_view_page_all_variants(component_site: Site):
     """Test viewing all variants of a component."""
     cps = ComponentPreviewServer(component_site)
 
-    html = cps.view_page("card", None)
+    html = cps.view_page("testcard", None)
 
     # Should render all variants
     assert "Test Title" in html or "Default" in html
@@ -262,7 +249,7 @@ def test_view_page_variant_not_found(component_site: Site):
     cps = ComponentPreviewServer(component_site)
 
     # Should render with empty context (no error)
-    html = cps.view_page("card", "nonexistent-variant")
+    html = cps.view_page("testcard", "nonexistent-variant")
 
     # Should not crash, should render something
     assert html is not None
@@ -279,7 +266,8 @@ def test_list_page_empty(tmp_path: Path):
     html = cps.list_page()
 
     assert "Components" in html
-    assert "No components found" in html
+    # May have bundled components from default theme, so just check the page renders
+    assert "<ul>" in html
 
 
 def test_list_page_with_components(component_site: Site):
@@ -291,7 +279,7 @@ def test_list_page_with_components(component_site: Site):
     assert "Components" in html
     assert "Test Card" in html
     assert "2 variants" in html
-    assert 'href="/__bengal_components__/view?c=card"' in html
+    assert 'href="/__bengal_components__/view?c=testcard"' in html
 
 
 def test_component_manifest_dirs_theme_chain(component_site: Site):
@@ -309,7 +297,7 @@ def test_component_variant_id_normalization(tmp_path: Path):
     config = tmp_path / "bengal.toml"
     _write(config, '[site]\ntitle = "Test"\nbase_url = "https://example.com"\ntheme = "test-theme"')
 
-    manifest = tmp_path / "bengal" / "themes" / "test-theme" / "dev" / "components" / "test.yaml"
+    manifest = tmp_path / "themes" / "test-theme" / "dev" / "components" / "test.yaml"
     manifest_data = {
         "name": "Test Component",
         "template": "partials/test.html",
@@ -321,8 +309,12 @@ def test_component_variant_id_normalization(tmp_path: Path):
     cps = ComponentPreviewServer(site)
     components = cps.discover_components()
 
+    # Find our test component (not a bundled one)
+    test_comp = next((c for c in components if c["id"] == "test"), None)
+    assert test_comp is not None
+
     # Should normalize "Very Long Name" to "very-long-name"
-    variant = components[0]["variants"][0]
+    variant = test_comp["variants"][0]
     assert variant["id"] == "very-long-name"
 
 
@@ -345,16 +337,8 @@ def test_multiple_components_discovery(tmp_path: Path):
     _write(config, '[site]\ntitle = "Test"\nbase_url = "https://example.com"\ntheme = "test-theme"')
 
     # Create multiple component manifests
-    for comp_name in ["button", "card", "nav"]:
-        manifest = (
-            tmp_path
-            / "bengal"
-            / "themes"
-            / "test-theme"
-            / "dev"
-            / "components"
-            / f"{comp_name}.yaml"
-        )
+    for comp_name in ["button", "customcard", "nav"]:
+        manifest = tmp_path / "themes" / "test-theme" / "dev" / "components" / f"{comp_name}.yaml"
         manifest_data = {
             "name": f"Test {comp_name.title()}",
             "template": f"partials/{comp_name}.html",
@@ -366,10 +350,10 @@ def test_multiple_components_discovery(tmp_path: Path):
     cps = ComponentPreviewServer(site)
     components = cps.discover_components()
 
-    assert len(components) == 3
+    # Check that our custom components are found (may have bundled ones too)
     comp_ids = [c["id"] for c in components]
     assert "button" in comp_ids
-    assert "card" in comp_ids
+    assert "customcard" in comp_ids
     assert "nav" in comp_ids
 
 
@@ -378,14 +362,12 @@ def test_component_with_no_variants(tmp_path: Path):
     config = tmp_path / "bengal.toml"
     _write(config, '[site]\ntitle = "Test"\nbase_url = "https://example.com"\ntheme = "test-theme"')
 
-    manifest = tmp_path / "bengal" / "themes" / "test-theme" / "dev" / "components" / "simple.yaml"
+    manifest = tmp_path / "themes" / "test-theme" / "dev" / "components" / "simple.yaml"
     manifest_data = {"name": "Simple Component", "template": "partials/simple.html", "variants": []}
     _write(manifest, yaml.dump(manifest_data))
 
     # Create template
-    template = (
-        tmp_path / "bengal" / "themes" / "test-theme" / "templates" / "partials" / "simple.html"
-    )
+    template = tmp_path / "themes" / "test-theme" / "templates" / "partials" / "simple.html"
     _write(template, "<div>Simple</div>")
 
     site = Site.from_config(tmp_path)
