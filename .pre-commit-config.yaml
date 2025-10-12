@@ -1,0 +1,60 @@
+# Pre-commit hooks for Bengal
+# Install: pip install pre-commit && pre-commit install
+# Run manually: pre-commit run --all-files
+
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.4
+    hooks:
+      # Run the linter (auto-fix what we can, ignore line-length for now)
+      - id: ruff
+        args: [--fix, --extend-ignore=E501]
+        types_or: [python, pyi]
+
+      # Run the formatter (will format new code to respect line length)
+      - id: ruff-format
+        types_or: [python, pyi]
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      # Prevent large files from being committed
+      - id: check-added-large-files
+        args: [--maxkb=1000]
+
+      # Check for files that would conflict in case-insensitive filesystems
+      - id: check-case-conflict
+
+      # Check for merge conflicts
+      - id: check-merge-conflict
+
+      # Check for debugger imports and breakpoints
+      - id: debug-statements
+
+      # Check TOML file syntax
+      - id: check-toml
+
+      # Check YAML file syntax
+      - id: check-yaml
+        args: [--unsafe]  # Allow custom YAML tags
+
+      # Fix end of files
+      - id: end-of-file-fixer
+
+      # Fix trailing whitespace
+      - id: trailing-whitespace
+        args: [--markdown-linebreak-ext=md]
+
+      # Check that executables have shebangs
+      - id: check-executables-have-shebangs
+
+      # Check for private keys
+      - id: detect-private-key
+
+  - repo: https://github.com/python-poetry/poetry
+    rev: 1.8.0
+    hooks:
+      # Validate pyproject.toml
+      - id: poetry-check
+        args: [--lock]
+        files: ^pyproject\.toml$
