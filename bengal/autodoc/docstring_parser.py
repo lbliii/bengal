@@ -27,6 +27,7 @@ class ParsedDocstring:
         self.warnings: list[str] = []
         self.deprecated: str | None = None
         self.version_added: str | None = None
+        self.attributes: dict[str, str] = {}
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
@@ -43,6 +44,7 @@ class ParsedDocstring:
             "warnings": self.warnings,
             "deprecated": self.deprecated,
             "version_added": self.version_added,
+            "attributes": self.attributes,
         }
 
 
@@ -91,14 +93,14 @@ def detect_docstring_style(docstring: str) -> str:
     """
     # Google style markers
     if re.search(
-        r"\n\s*(Args|Arguments|Parameters|Returns?|Yields?|Raises?|Note|Warning|Example|Examples|See Also):\s*\n",
+        r"\n\s*(Args|Arguments|Parameters|Returns?|Yields?|Raises?|Note|Warning|Example|Examples|See Also|Attributes):\s*\n",
         docstring,
     ):
         return "google"
 
     # NumPy style markers (section with underline)
     if re.search(
-        r"\n\s*(Parameters|Returns?|Yields?|Raises?|See Also|Notes?|Warnings?|Examples?)\s*\n\s*-+\s*\n",
+        r"\n\s*(Parameters|Returns?|Yields?|Raises?|See Also|Notes?|Warnings?|Examples?|Attributes)\s*\n\s*-+\s*\n",
         docstring,
     ):
         return "numpy"
@@ -163,6 +165,7 @@ class GoogleDocstringParser:
             sections.get("Warning", sections.get("Warnings", ""))
         )
         result.deprecated = sections.get("Deprecated")
+        result.attributes = self._parse_args_section(sections.get("Attributes", ""))
 
         return result
 
@@ -400,6 +403,7 @@ class NumpyDocstringParser:
         result.see_also = self._parse_see_also_section(sections.get("See Also", ""))
         result.notes = self._parse_note_section(sections.get("Notes", ""))
         result.warnings = self._parse_note_section(sections.get("Warnings", ""))
+        result.attributes = self._parse_parameters_section(sections.get("Attributes", ""))
 
         return result
 

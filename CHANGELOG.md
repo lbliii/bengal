@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **List-Table Directive**: Added MyST-compatible `list-table` directive for autodoc templates
+  - Fixes pipe character issues in type annotations (e.g., `str | None`)
+  - Renders parameters and attributes as proper HTML tables with dropdowns
+  - Supports inline markdown (backticks render as `<code>` tags)
+  - Comprehensive test coverage (6 tests)
+
 ### Refactoring
 
 - **CLI Graph Commands**: Modularized graph analysis commands into separate files

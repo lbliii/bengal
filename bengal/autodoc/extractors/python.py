@@ -194,6 +194,31 @@ class PythonExtractor(Extractor):
                 )
                 class_vars.append(var_elem)
 
+        # Merge docstring attributes with code-discovered attributes
+        if parsed_doc and parsed_doc.attributes:
+            # Create a dict of code attributes by name for easy lookup
+            code_attrs_by_name = {attr.name: attr for attr in class_vars}
+
+            # For each docstring attribute, either enrich existing or create new
+            for attr_name, attr_desc in parsed_doc.attributes.items():
+                if attr_name in code_attrs_by_name:
+                    # Enrich existing code attribute with docstring description
+                    code_attrs_by_name[attr_name].description = attr_desc
+                else:
+                    # Create attribute element from docstring only
+                    var_elem = DocElement(
+                        name=attr_name,
+                        qualified_name=f"{qualified_name}.{attr_name}",
+                        description=attr_desc,
+                        element_type="attribute",
+                        source_file=file_path,
+                        line_number=node.lineno,
+                        metadata={
+                            "annotation": None,
+                        },
+                    )
+                    class_vars.append(var_elem)
+
         # Combine children
         children = properties + methods + class_vars
 
