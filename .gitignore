@@ -53,6 +53,10 @@ public/
 .bengal/
 *.log
 
+# Auto-generated API and CLI documentation in examples
+examples/showcase/content/api/
+examples/showcase/content/cli/
+
 # Temporary test output (auto-generated for AI debugging)
 .pytest_cache/last_failure.txt
 .pytest_cache/junit.xml
