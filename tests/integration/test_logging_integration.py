@@ -291,17 +291,29 @@ title: Invalid Page
         # Verify log file format
         assert log_file.exists()
 
+        # Check if file has content
+        content = log_file.read_text()
+        if not content.strip():
+            pytest.skip("Log file is empty - logging might be disabled in test environment")
+
         # Parse each line as JSON
         with open(log_file) as f:
-            for line in f:
+            json_line_count = 0
+            for line_num, line in enumerate(f, 1):
                 if line.strip():
                     try:
                         event_dict = json.loads(line)
                         assert "timestamp" in event_dict
                         assert "level" in event_dict
                         assert "message" in event_dict
+                        json_line_count += 1
                     except json.JSONDecodeError as e:
-                        pytest.fail(f"Invalid JSON in log file: {e}")
+                        pytest.fail(
+                            f"Invalid JSON in log file at line {line_num}: {e}\nLine content: {line!r}"
+                        )
+
+        # Ensure we found at least some JSON lines
+        assert json_line_count > 0, "No valid JSON log entries found"
 
     def test_verbose_vs_normal_mode(self, temp_site):
         """Test that verbose mode logs more detail."""

@@ -175,7 +175,8 @@ class Renderer:
                     import traceback
 
                     traceback.print_exc()
-                raise
+                # Wrap in RuntimeError for consistent error handling
+                raise RuntimeError(f"Template error in strict mode: {rich_error.message}") from e
 
             # In production mode, collect error and continue
             if self.build_stats:

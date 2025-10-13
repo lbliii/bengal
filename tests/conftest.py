@@ -12,6 +12,23 @@ from bengal.core.section import Section
 from bengal.core.site import Site
 
 
+@pytest.fixture(autouse=True)
+def reset_rich_console():
+    """Reset Rich console singleton between tests to avoid 'Only one live display' errors."""
+    from bengal.utils.logger import reset_loggers
+    from bengal.utils.rich_console import reset_console
+
+    # Reset before test
+    reset_console()
+    reset_loggers()
+
+    yield
+
+    # Reset after test
+    reset_console()
+    reset_loggers()
+
+
 @pytest.fixture
 def tmp_site(tmp_path: Path) -> Path:
     """Create a temporary site directory with basic structure."""

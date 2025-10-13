@@ -458,6 +458,16 @@ def close_all_loggers():
         logger.close()
 
 
+def reset_loggers():
+    """Close all loggers and clear the registry (for testing)."""
+    close_all_loggers()
+    _loggers.clear()
+    _global_config["level"] = LogLevel.INFO
+    _global_config["log_file"] = None
+    _global_config["verbose"] = False
+    _global_config["quiet_console"] = False
+
+
 def print_all_summaries():
     """Print timing and memory summaries from all loggers."""
     # Merge all events

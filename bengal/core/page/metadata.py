@@ -83,10 +83,14 @@ class PageMetadataMixin:
             # Compute relative path from actual output directory
             rel_path = self.output_path.relative_to(self._site.output_dir)
         except ValueError:
-            # output_path not under output_dir - should never happen
-            # but handle gracefully with warning
-            logger.warning(
-                "page_output_path_mismatch",
+            # output_path not under output_dir - can happen during page initialization
+            # when output_path hasn't been properly set yet, or for pages with unusual
+            # configurations. Fall back to slug-based URL silently.
+            #
+            # Only log at debug level since this is a known/expected edge case during
+            # page construction (PageInitializer checks URL generation early).
+            logger.debug(
+                "page_output_path_fallback",
                 output_path=str(self.output_path),
                 output_dir=str(self._site.output_dir),
                 page_source=str(getattr(self, "source_path", "unknown")),

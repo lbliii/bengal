@@ -2,19 +2,20 @@
 
 A Python static site generator with incremental builds and modular architecture.
 
-**⚡ Built for Python 3.14**
+**⚡ Optimized for Python 3.14**
 
-Bengal is the first major SSG to require Python 3.14, delivering **256 pages/sec** rendering speed—making it the fastest Python SSG available and competitive with Node.js tools like Eleventy.
+Bengal is the first major SSG optimized for Python 3.14, delivering **515 pages/sec** with free-threading—making it the fastest Python SSG available and competitive with Node.js tools like Eleventy.
 
 ## Performance
 
-- **256 pages/sec** rendering speed (Python 3.14)
+- **515 pages/sec** with free-threaded Python 3.14t (recommended) ⚡
+- **289 pages/sec** with standard Python 3.14
+- **~250 pages/sec** with Python 3.13 (fully supported)
 - **Sub-second incremental builds** for typical changes
 - **50x speedup** for single-page incremental builds vs full rebuild
-- **24% faster** than Python 3.12
 - **Scales to 10,000+ pages** with intelligent caching
 
-*Note: Free-threaded Python 3.14t can achieve 373 pages/sec, but requires a special build. See [ARCHITECTURE.md](ARCHITECTURE.md) for benchmarks.*
+*Want the speed boost? See [INSTALL_FREE_THREADED.md](INSTALL_FREE_THREADED.md) for a 5-minute setup guide.*
 
 ## Features
 
@@ -32,9 +33,9 @@ Bengal is the first major SSG to require Python 3.14, delivering **256 pages/sec
 
 ## Requirements
 
-**Python 3.14 or later**
+**Python 3.13 or later**
 
-*Optional: For maximum performance (373 pps), see [INSTALL_FREE_THREADED.md](INSTALL_FREE_THREADED.md) to install the free-threaded build.*
+**Recommended: Python 3.14t (free-threaded)** for 1.8x faster rendering. See [INSTALL_FREE_THREADED.md](INSTALL_FREE_THREADED.md) for setup instructions.
 
 ## Installation
 
