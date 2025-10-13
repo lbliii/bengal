@@ -64,7 +64,7 @@ minify = false
         section_dir = content_dir / section
         section_dir.mkdir(exist_ok=True)
 
-        if (section_dir / "_index.md").exists() is False:
+        if not (section_dir / "_index.md").exists():
             (section_dir / "_index.md").write_text(f"---\ntitle: {section}\n---\n# {section}\n")
 
         page_content = f"""---
