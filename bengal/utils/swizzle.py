@@ -28,7 +28,7 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
-@dataclass
+@dataclass(frozen=True)
 class SwizzleRecord:
     target: str  # templates-relative path (e.g., "partials/toc.html")
     source: str  # absolute path to theme file used for swizzle
@@ -121,6 +121,10 @@ class SwizzleManager:
         logger.debug("swizzle_list", total=len(records), invalid=invalid_count)
         return records
 
+    def list_swizzled(self) -> builtins.list[SwizzleRecord]:
+        """Alias for list() for backward compatibility."""
+        return self.list()
+
     def update(self) -> dict[str, int]:
         """Attempt to update swizzled files from upstream if local is unchanged.
 
@@ -203,6 +207,37 @@ class SwizzleManager:
         }
 
     # Internal helpers
+
+    def _is_modified(self, template_rel_path: str) -> bool:
+        """Check if a swizzled template has been modified locally.
+
+        Args:
+            template_rel_path: Relative path inside templates/ (e.g., 'partials/toc.html')
+
+        Returns:
+            True if template has been modified locally, False otherwise
+        """
+        data = self._load_registry()
+        records = data.get("records", [])
+
+        # Find record for this template
+        record = None
+        for rec in records:
+            if rec.get("target") == template_rel_path:
+                record = rec
+                break
+
+        if not record:
+            return False  # Not swizzled, so not modified
+
+        target_path = self.root / "templates" / template_rel_path
+        if not target_path.exists():
+            return False  # File doesn't exist, not modified
+
+        current_checksum = _checksum_file(target_path)
+        expected_checksum = record.get("local_checksum")
+
+        return current_checksum != expected_checksum
 
     def _find_theme_template(self, template_rel_path: str) -> Path | None:
         try:

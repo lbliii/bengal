@@ -334,12 +334,50 @@ fingerprint = true
         raise click.Abort() from e
 
 
+def _slugify(text: str) -> str:
+    """
+    Convert text to URL-safe slug with Unicode support.
+
+    This function preserves Unicode word characters (letters, digits, underscore)
+    to support international content. Modern browsers and web servers handle
+    Unicode URLs correctly.
+
+    Examples:
+        "My Awesome Page" → "my-awesome-page"
+        "Hello, World!" → "hello-world"
+        "Test   Multiple   Spaces" → "test-multiple-spaces"
+        "你好世界" → "你好世界" (Chinese characters preserved)
+        "مرحبا" → "مرحبا" (Arabic characters preserved)
+
+    Note:
+        Uses Python's \\w pattern which includes Unicode word characters.
+        Special punctuation is removed, but international letters/digits are kept.
+    """
+    import re
+
+    # Lowercase
+    text = text.lower()
+
+    # Remove special characters (keep alphanumeric, spaces, hyphens)
+    # Note: \w matches [a-zA-Z0-9_] plus Unicode letters and digits
+    text = re.sub(r"[^\w\s-]", "", text)
+
+    # Replace spaces and multiple hyphens with single hyphen
+    text = re.sub(r"[-\s]+", "-", text)
+
+    # Strip leading/trailing hyphens
+    return text.strip("-")
+
+
 @new.command()
 @click.argument("name")
 @click.option("--section", default="", help="Section to create page in")
 def page(name: str, section: str) -> None:
     """
     📄 Create a new page.
+
+    The page name will be automatically slugified for the filename.
+    Example: "My Awesome Page" → my-awesome-page.md
     """
     try:
         # Ensure we're in a Bengal site
@@ -348,6 +386,12 @@ def page(name: str, section: str) -> None:
             show_error("Not in a Bengal site directory!", show_art=False)
             raise click.Abort()
 
+        # Slugify the name for filename
+        slug = _slugify(name)
+
+        # Use original name for title (capitalize properly)
+        title = name.replace("-", " ").title()
+
         # Determine page path
         if section:
             page_dir = content_dir / section
@@ -355,8 +399,8 @@ def page(name: str, section: str) -> None:
         else:
             page_dir = content_dir
 
-        # Create page file
-        page_path = page_dir / f"{name}.md"
+        # Create page file with slugified name
+        page_path = page_dir / f"{slug}.md"
 
         if page_path.exists():
             show_error(f"Page {page_path} already exists!", show_art=False)
@@ -364,11 +408,11 @@ def page(name: str, section: str) -> None:
 
         # Create page content with current timestamp
         page_content = f"""---
-title: {name.replace("-", " ").title()}
+title: {title}
 date: {datetime.now().isoformat()}
 ---
 
-# {name.replace("-", " ").title()}
+# {title}
 
 Your content goes here.
 """

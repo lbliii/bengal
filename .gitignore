@@ -19,65 +19,40 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+MANIFEST
 
-# Virtual Environment
+# Virtual environments
 venv/
-venv-*/
-env/
+venv-3.14/
+venv-3.14t/
 ENV/
-.venv/
+env/
 
-# Python source builds
-Python-*/
-cpython/
+# Testing
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+*.cover
+.hypothesis/
 
-# IDE
+# IDEs
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
-.cursor/
-
-# Testing
-.pytest_cache/
-.coverage
-coverage.xml
-htmlcov/
-.tox/
-.mypy_cache/
-.ruff_cache/
-.hypothesis/
-tests/performance/benchmark_results/  # Benchmark result storage
-
-# Bengal SSG
-public/
-.bengal/          # Development files (profiles, logs)
-.bengal.pid
-
-# Autodoc generated content (regenerate with `bengal autodoc`)
-**/content/api/
-**/content/cli/
-
-# Documentation builds
-docs/_build/
-site/
 
 # OS
 .DS_Store
 Thumbs.db
 
-# Temporary files
+# Project specific
+public/
+.bengal/
 *.log
-*.bak
-*.tmp
-*.stats
-*.prof
-.env
 
-# Bengal generated files
-.bengal-build.log
-.bengal-serve.log
-.demo-build.log
-
-experiments/
+# Temporary test output (auto-generated for AI debugging)
+.pytest_cache/last_failure.txt
+.pytest_cache/junit.xml

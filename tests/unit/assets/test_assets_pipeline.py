@@ -1,5 +1,3 @@
-import sys
-import types
 from pathlib import Path
 
 
@@ -31,10 +29,10 @@ def test_asset_orchestrator_runs_pipeline_when_enabled(monkeypatch, tmp_path: Pa
     def dummy_from_site(_site):
         return DummyPipeline()
 
-    monkeypatch.setitem(sys.modules, "bengal.assets.pipeline", types.ModuleType("pipeline"))
+    # Import the real module and monkeypatch the from_site function
     import bengal.assets.pipeline as pipeline_mod
 
-    pipeline_mod.from_site = dummy_from_site
+    monkeypatch.setattr(pipeline_mod, "from_site", dummy_from_site)
 
     # Import orchestrator after monkeypatching
     from bengal.orchestration.asset import AssetOrchestrator

@@ -49,6 +49,12 @@ class NavigationValidator(BaseValidator):
         # Check 4: Navigation coverage
         results.extend(self._check_navigation_coverage(site))
 
+        # Check 5: Weight-based navigation (NEW - critical for docs)
+        results.extend(self._check_weight_based_navigation(site))
+
+        # Check 6: Output path completeness (NEW - critical for URLs)
+        results.extend(self._check_output_path_completeness(site))
+
         return results
 
     def _check_next_prev_chains(self, site: "Site") -> list[CheckResult]:
@@ -215,5 +221,118 @@ class NavigationValidator(BaseValidator):
             )
         else:
             results.append(CheckResult.info("No regular pages to validate navigation coverage"))
+
+        return results
+
+    def _check_weight_based_navigation(self, site: "Site") -> list[CheckResult]:
+        """
+        Check that weight-based navigation works correctly.
+
+        For doc-type content, verifies:
+        - next_in_section and prev_in_section respect weight order
+        - Navigation stays within section boundaries
+        - No cross-section jumps
+        """
+        results = []
+        issues = []
+        doc_types = {"doc", "tutorial", "api-reference", "cli-reference", "changelog"}
+
+        # Check each section with doc-type content
+        for section in site.sections:
+            if not section.pages:
+                continue
+
+            # Check if section contains doc-type pages
+            doc_pages = [
+                p
+                for p in section.pages
+                if p.metadata.get("type") in doc_types
+                and p.source_path.stem not in ("_index", "index")
+            ]
+
+            if not doc_pages:
+                continue
+
+            # Verify pages are sorted by weight
+            sorted_pages = section.sorted_pages
+            non_index_pages = [
+                p for p in sorted_pages if p.source_path.stem not in ("_index", "index")
+            ]
+
+            # Check navigation chain follows weight order
+            for i, page in enumerate(non_index_pages):
+                if i < len(non_index_pages) - 1:
+                    # Check next_in_section
+                    expected_next = non_index_pages[i + 1]
+                    actual_next = page.next_in_section
+
+                    if actual_next != expected_next:
+                        issues.append(
+                            f"Section '{section.name}': "
+                            f"{page.title} next_in_section should be {expected_next.title}, "
+                            f"got {actual_next.title if actual_next else 'None'}"
+                        )
+
+                if i > 0:
+                    # Check prev_in_section
+                    expected_prev = non_index_pages[i - 1]
+                    actual_prev = page.prev_in_section
+
+                    if actual_prev != expected_prev:
+                        issues.append(
+                            f"Section '{section.name}': "
+                            f"{page.title} prev_in_section should be {expected_prev.title}, "
+                            f"got {actual_prev.title if actual_prev else 'None'}"
+                        )
+
+        if issues:
+            results.append(
+                CheckResult.error(
+                    f"{len(issues)} weight-based navigation issue(s)",
+                    recommendation="This may indicate a bug in navigation system. "
+                    "Check that next_in_section/prev_in_section use sorted_pages.",
+                    details=issues[:5],
+                )
+            )
+        else:
+            doc_sections = sum(
+                1
+                for s in site.sections
+                if any(p.metadata.get("type") in doc_types for p in s.pages)
+            )
+            if doc_sections > 0:
+                results.append(
+                    CheckResult.success(
+                        f"Weight-based navigation validated ({doc_sections} doc sections)"
+                    )
+                )
+
+        return results
+
+    def _check_output_path_completeness(self, site: "Site") -> list[CheckResult]:
+        """
+        Check that all pages have output_path set.
+
+        Critical for URL generation - pages without output_path
+        will have incorrect URLs.
+        """
+        results = []
+        missing = []
+
+        for page in site.pages:
+            if not page.output_path:
+                missing.append(page.source_path.name)
+
+        if missing:
+            results.append(
+                CheckResult.error(
+                    f"{len(missing)} page(s) missing output_path",
+                    recommendation="This is a critical bug. All pages should have output_path set during discovery. "
+                    "Check ContentOrchestrator._set_output_paths() is being called.",
+                    details=missing[:10],
+                )
+            )
+        else:
+            results.append(CheckResult.success(f"All {len(site.pages)} pages have output_path set"))
 
         return results

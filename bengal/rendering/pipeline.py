@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from bengal.core.page import Page
-from bengal.rendering.parser import BaseMarkdownParser, create_markdown_parser
+from bengal.rendering.parsers import BaseMarkdownParser, create_markdown_parser
 from bengal.rendering.renderer import Renderer
 from bengal.rendering.template_engine import TemplateEngine
 from bengal.utils.logger import get_logger
@@ -168,8 +168,8 @@ class RenderingPipeline:
         template = self._determine_template(page)
         parser_version = self._get_parser_version()
 
-        if self.dependency_tracker and hasattr(self.dependency_tracker, "_cache"):
-            cache = self.dependency_tracker._cache
+        if self.dependency_tracker and hasattr(self.dependency_tracker, "cache"):
+            cache = self.dependency_tracker.cache
             if cache and not page.metadata.get("_generated"):
                 cached = cache.get_parsed_content(
                     page.source_path, page.metadata, template, parser_version
@@ -363,6 +363,18 @@ class RenderingPipeline:
         from bengal.utils.atomic_write import atomic_write_text
 
         atomic_write_text(page.output_path, page.rendered_html, encoding="utf-8")
+
+        # Track source→output mapping for cleanup on deletion
+        # (Skip generated pages - they have virtual paths)
+        if (
+            self.dependency_tracker
+            and not page.metadata.get("_generated")
+            and hasattr(self.dependency_tracker, "cache")
+            and self.dependency_tracker.cache
+        ):
+            self.dependency_tracker.cache.track_output(
+                page.source_path, page.output_path, self.site.output_dir
+            )
 
         # Only print in verbose mode
         if not self.quiet:

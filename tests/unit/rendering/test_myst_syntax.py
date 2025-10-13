@@ -6,7 +6,7 @@ Verifies that Bengal supports both backtick-fenced and colon-fenced directive sy
 
 import pytest
 
-from bengal.rendering.parser import MistuneParser
+from bengal.rendering.parsers import MistuneParser
 
 
 class TestMystSyntaxCompatibility:

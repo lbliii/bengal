@@ -54,13 +54,27 @@ class CacheValidator(BaseValidator):
             )
             return results
 
-        # Check 1: Cache file existence
-        cache_path = site.output_dir / ".bengal-cache.json"
+        # Check 1: Cache location (new location since v0.1.2)
+        cache_dir = site.root_path / ".bengal"
+        cache_path = cache_dir / "cache.json"
+
+        # Check for old cache location (migration needed)
+        old_cache_path = site.output_dir / ".bengal-cache.json"
+        if old_cache_path.exists() and not cache_path.exists():
+            results.append(
+                CheckResult.warning(
+                    "Cache at legacy location (public/.bengal-cache.json)",
+                    recommendation="Run 'bengal build' to migrate cache to .bengal/cache.json automatically.",
+                )
+            )
+            # Validate the old cache for now
+            cache_path = old_cache_path
+
         if not cache_path.exists():
             results.append(
                 CheckResult.info(
                     "No cache file found (first build or cache cleared)",
-                    recommendation="Cache will be created after first build.",
+                    recommendation="Cache will be created after first build at .bengal/cache.json",
                 )
             )
             return results
@@ -70,13 +84,15 @@ class CacheValidator(BaseValidator):
         if not cache_readable:
             results.append(
                 CheckResult.error(
-                    "Cache file exists but cannot be read",
-                    recommendation="Delete .bengal-cache.json and rebuild to recreate cache.",
+                    f"Cache file exists but cannot be read: {cache_path}",
+                    recommendation="Delete cache and rebuild: 'bengal clean --cache && bengal build'",
                 )
             )
             return results
 
-        results.append(CheckResult.success("Cache file readable"))
+        results.append(
+            CheckResult.success(f"Cache file readable at {cache_path.relative_to(site.root_path)}")
+        )
 
         # Check 3: Cache structure valid
         structure_valid, structure_issues = self._check_cache_structure(cache_data)
@@ -84,7 +100,7 @@ class CacheValidator(BaseValidator):
             results.append(
                 CheckResult.error(
                     f"Cache structure invalid: {', '.join(structure_issues)}",
-                    recommendation="Cache may be corrupted. Delete .bengal-cache.json and rebuild.",
+                    recommendation="Cache may be corrupted: 'bengal clean --cache && bengal build'",
                 )
             )
         else:
@@ -92,6 +108,17 @@ class CacheValidator(BaseValidator):
 
         # Check 4: Cache size reasonable
         results.extend(self._check_cache_size(cache_path, cache_data))
+
+        # Check 5: Cache location correctness (new check for v0.1.2+)
+        if cache_path == cache_dir / "cache.json":
+            results.append(CheckResult.success("Cache at correct location (.bengal/)"))
+        else:
+            results.append(
+                CheckResult.info(
+                    "Cache at legacy location (will be migrated on next build)",
+                    recommendation="Run 'bengal build' to migrate automatically",
+                )
+            )
 
         # Check 5: Basic dependency tracking
         results.extend(self._check_dependencies(cache_data))

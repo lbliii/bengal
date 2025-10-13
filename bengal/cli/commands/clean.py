@@ -10,15 +10,26 @@ from bengal.utils.build_stats import show_error
 
 @click.command()
 @click.option("--force", "-f", is_flag=True, help="Skip confirmation prompt")
+@click.option("--cache", is_flag=True, help="Also remove build cache (.bengal/ directory)")
+@click.option("--all", "clean_all", is_flag=True, help="Remove everything (output + cache)")
 @click.option(
     "--config", type=click.Path(exists=True), help="Path to config file (default: bengal.toml)"
 )
 @click.argument("source", type=click.Path(exists=True), default=".")
-def clean(force: bool, config: str, source: str) -> None:
+def clean(force: bool, cache: bool, clean_all: bool, config: str, source: str) -> None:
     """
-    🧹 Clean the output directory.
+    🧹 Clean generated files.
 
-    Removes all generated files from the output directory.
+    By default, removes only the output directory (public/).
+
+    Options:
+      --cache    Also remove build cache (for cold build testing)
+      --all      Remove both output and cache (complete reset)
+
+    Examples:
+      bengal clean              # Clean output only (preserves cache)
+      bengal clean --cache      # Clean output AND cache
+      bengal clean --all        # Same as --cache
     """
     try:
         root_path = Path(source).resolve()
@@ -27,13 +38,23 @@ def clean(force: bool, config: str, source: str) -> None:
         # Create site
         site = Site.from_config(root_path, config_path)
 
+        # Determine what to clean
+        clean_cache = cache or clean_all
+
         # Show header (consistent with all other commands)
         from bengal.utils.cli_output import CLIOutput
 
         cli = CLIOutput()
         cli.blank()
-        cli.header("Cleaning output directory...")
-        cli.info(f"   ↪ {site.output_dir}")
+
+        if clean_cache:
+            cli.header("Cleaning output directory and cache...")
+            cli.info(f"   Output: {site.output_dir}")
+            cli.info(f"   Cache:  {site.root_path / '.bengal'}")
+        else:
+            cli.header("Cleaning output directory...")
+            cli.info(f"   ↪ {site.output_dir}")
+            cli.info(f"   ℹ Cache preserved at {site.root_path / '.bengal'}")
         cli.blank()
 
         # Confirm before cleaning unless --force
@@ -46,29 +67,52 @@ def clean(force: bool, config: str, source: str) -> None:
 
                 if should_use_rich():
                     console = get_console()
-                    console.print("[yellow bold]⚠️  Delete all files?[/yellow bold]")
+                    if clean_cache:
+                        console.print("[yellow bold]⚠️  Delete output AND cache?[/yellow bold]")
+                        console.print(
+                            "[dim]   This will force a complete rebuild on next build[/dim]"
+                        )
+                    else:
+                        console.print("[yellow bold]⚠️  Delete output files?[/yellow bold]")
+                        console.print(
+                            "[dim]   Cache will be preserved for incremental builds[/dim]"
+                        )
                     if not Confirm.ask("Proceed", console=console, default=False):
                         console.print("[yellow]Cancelled[/yellow]")
                         return
                 else:
                     # Fallback to click
-                    prompt = click.style("⚠️  Delete all files?", fg="yellow", bold=True)
+                    prompt = click.style("⚠️  Delete files?", fg="yellow", bold=True)
                     if not click.confirm(prompt, default=False):
                         click.echo(click.style("Cancelled", fg="yellow"))
                         return
             except ImportError:
                 # Rich not available, use click
-                prompt = click.style("⚠️  Delete all files?", fg="yellow", bold=True)
+                prompt = click.style("⚠️  Delete files?", fg="yellow", bold=True)
                 if not click.confirm(prompt, default=False):
                     click.echo(click.style("Cancelled", fg="yellow"))
                     return
 
-        # Clean
+        # Clean output directory
         site.clean()
+
+        # Clean cache if requested
+        if clean_cache:
+            cache_dir = site.root_path / ".bengal"
+            if cache_dir.exists():
+                import shutil
+
+                shutil.rmtree(cache_dir)
+                cli.info("   ✓ Removed cache directory")
 
         # Show success
         cli.blank()
-        cli.success("Clean complete!", icon="✓")
+        if clean_cache:
+            cli.success("Clean complete! (output + cache)", icon="✓")
+            cli.info("   Next build will be a cold build (no cache)")
+        else:
+            cli.success("Clean complete! (cache preserved)", icon="✓")
+            cli.info("   Run 'bengal clean --cache' for cold build testing")
         cli.blank()
 
     except Exception as e:

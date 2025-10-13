@@ -8,6 +8,8 @@ ensuring correct sorting, filtering, pagination, and template selection.
 from datetime import datetime
 from unittest.mock import Mock
 
+import pytest
+
 from bengal.content_types.registry import CONTENT_TYPE_REGISTRY, detect_content_type, get_strategy
 from bengal.content_types.strategies import (
     ApiReferenceStrategy,
@@ -191,14 +193,30 @@ class TestContentTypeRegistry:
         assert "tutorial" in CONTENT_TYPE_REGISTRY
         assert "list" in CONTENT_TYPE_REGISTRY
 
-    def test_get_strategy_returns_correct_instance(self):
-        """get_strategy should return the right strategy class."""
-        assert isinstance(get_strategy("blog"), BlogStrategy)
-        assert isinstance(get_strategy("doc"), DocsStrategy)
-        assert isinstance(get_strategy("api-reference"), ApiReferenceStrategy)
-        assert isinstance(get_strategy("cli-reference"), CliReferenceStrategy)
-        assert isinstance(get_strategy("tutorial"), TutorialStrategy)
-        assert isinstance(get_strategy("list"), PageStrategy)
+    @pytest.mark.parametrize(
+        "content_type,expected_strategy_class",
+        [
+            ("blog", BlogStrategy),
+            ("doc", DocsStrategy),
+            ("api-reference", ApiReferenceStrategy),
+            ("cli-reference", CliReferenceStrategy),
+            ("tutorial", TutorialStrategy),
+            ("list", PageStrategy),
+        ],
+        ids=["blog", "doc", "api-reference", "cli-reference", "tutorial", "list"],
+    )
+    def test_get_strategy_returns_correct_instance(self, content_type, expected_strategy_class):
+        """
+        get_strategy should return the correct strategy class for each content type.
+
+        Ensures that the registry correctly maps content type names to their
+        corresponding strategy implementations.
+        """
+        strategy = get_strategy(content_type)
+        assert isinstance(strategy, expected_strategy_class), (
+            f"get_strategy('{content_type}') should return {expected_strategy_class.__name__}, "
+            f"got {type(strategy).__name__}"
+        )
 
     def test_get_strategy_fallback_to_page(self):
         """Unknown content types should fall back to page strategy."""
@@ -229,25 +247,53 @@ class TestContentTypeDetection:
 
         assert detect_content_type(section) == "blog"
 
-    def test_detect_from_section_name_api(self):
-        """Section named 'api' should be detected as api-reference."""
-        for name in ["api", "reference", "api-reference", "api-docs"]:
-            section = Mock()
-            section.name = name
-            section.metadata = {}
-            section.parent = None
-            section.pages = []
-            assert detect_content_type(section) == "api-reference"
+    @pytest.mark.parametrize(
+        "section_name",
+        ["api", "reference", "api-reference", "api-docs"],
+        ids=["api", "reference", "api-reference", "api-docs"],
+    )
+    def test_detect_from_section_name_api(self, section_name):
+        """
+        Section names for API documentation should be detected as api-reference.
 
-    def test_detect_from_section_name_cli(self):
-        """Section named 'cli' should be detected as cli-reference."""
-        for name in ["cli", "commands", "cli-reference"]:
-            section = Mock()
-            section.name = name
-            section.metadata = {}
-            section.parent = None
-            section.pages = []
-            assert detect_content_type(section) == "cli-reference"
+        Tests common naming conventions for API documentation sections to ensure
+        automatic content type detection works across different naming styles.
+        """
+        section = Mock()
+        section.name = section_name
+        section.metadata = {}
+        section.parent = None
+        section.pages = []
+
+        detected = detect_content_type(section)
+        assert detected == "api-reference", (
+            f"Section name '{section_name}' should be detected as 'api-reference', "
+            f"but was detected as '{detected}'"
+        )
+
+    @pytest.mark.parametrize(
+        "section_name",
+        ["cli", "commands", "cli-reference"],
+        ids=["cli", "commands", "cli-reference"],
+    )
+    def test_detect_from_section_name_cli(self, section_name):
+        """
+        Section names for CLI documentation should be detected as cli-reference.
+
+        Tests common naming conventions for CLI documentation sections to ensure
+        automatic content type detection works across different naming styles.
+        """
+        section = Mock()
+        section.name = section_name
+        section.metadata = {}
+        section.parent = None
+        section.pages = []
+
+        detected = detect_content_type(section)
+        assert detected == "cli-reference", (
+            f"Section name '{section_name}' should be detected as 'cli-reference', "
+            f"but was detected as '{detected}'"
+        )
 
     def test_detect_from_parent_cascade(self):
         """Content type should cascade from parent section."""

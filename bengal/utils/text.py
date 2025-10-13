@@ -21,7 +21,10 @@ def slugify(
     text: str, unescape_html: bool = True, max_length: int | None = None, separator: str = "-"
 ) -> str:
     """
-    Convert text to URL-safe slug.
+    Convert text to URL-safe slug with Unicode support.
+
+    Preserves Unicode word characters (letters, digits, underscore) to support
+    international content. Modern web browsers and servers handle Unicode URLs.
 
     Consolidates implementations from:
     - bengal/rendering/parser.py:629 (_slugify)
@@ -35,7 +38,7 @@ def slugify(
         separator: Character to use between words (default: '-')
 
     Returns:
-        URL-safe slug (lowercase, alphanumeric with separators)
+        URL-safe slug (lowercase, with Unicode word chars and separators)
 
     Examples:
         >>> slugify("Hello World!")
@@ -48,6 +51,14 @@ def slugify(
         'very-long'
         >>> slugify("hello_world", separator='_')
         'hello_world'
+        >>> slugify("你好世界")
+        '你好世界'
+        >>> slugify("Café")
+        'café'
+
+    Note:
+        Uses Python's \\w regex pattern which includes Unicode letters and digits.
+        This is intentional to support international content in URLs.
     """
     if not text:
         return ""
@@ -160,7 +171,7 @@ def truncate_chars(text: str, length: int, suffix: str = "...") -> str:
 
     Args:
         text: Text to truncate
-        length: Maximum character length (including suffix)
+        length: Number of characters to keep from original text (before suffix)
         suffix: Suffix to append if truncated
 
     Returns:
@@ -168,7 +179,7 @@ def truncate_chars(text: str, length: int, suffix: str = "...") -> str:
 
     Examples:
         >>> truncate_chars("Hello World", 8)
-        'Hello...'
+        'Hello Wo...'
         >>> truncate_chars("Short", 10)
         'Short'
     """
@@ -178,8 +189,7 @@ def truncate_chars(text: str, length: int, suffix: str = "...") -> str:
     if len(text) <= length:
         return text
 
-    # Truncate and rstrip whitespace before adding suffix
-    # This matches the original template function behavior
+    # Truncate at length, rstrip whitespace, then add suffix
     return text[:length].rstrip() + suffix
 
 

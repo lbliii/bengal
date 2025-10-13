@@ -249,6 +249,25 @@ class BuildCache:
         file_key = str(file_path)
         self.file_hashes[file_key] = self.hash_file(file_path)
 
+    def track_output(self, source_path: Path, output_path: Path, output_dir: Path) -> None:
+        """
+        Track the relationship between a source file and its output file.
+
+        This enables cleanup of output files when source files are deleted.
+
+        Args:
+            source_path: Path to source file (e.g., content/blog/post.md)
+            output_path: Absolute path to output file (e.g., /path/to/public/blog/post/index.html)
+            output_dir: Site output directory (e.g., /path/to/public)
+        """
+        # Store as relative path from output_dir for portability
+        try:
+            rel_output = str(output_path.relative_to(output_dir))
+            self.output_sources[rel_output] = str(source_path)
+        except ValueError:
+            # output_path not relative to output_dir, skip
+            logger.debug("output_not_relative", output=str(output_path), output_dir=str(output_dir))
+
     def add_dependency(self, source: Path, dependency: Path) -> None:
         """
         Record that a source file depends on another file.
