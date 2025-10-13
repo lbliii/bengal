@@ -1,33 +1,67 @@
 {#- Macro: Render parameters as table or list based on count -#}
-{% macro render_parameters(args) %}
-{% set param_count = args | length %}
+{% macro render_parameters(args) -%}
+{% set param_count = args | length -%}
+
 :::{rubric} Parameters
 :class: rubric-parameters
 :::
-{% if param_count >= 5 %}
-{#- Use table format for 5+ parameters -#}
-{% if param_count >= 10 %}
-````{dropdown} {{ param_count }} parameters (click to expand)
+
+::::{dropdown} {{ param_count }} parameters (click to expand)
 :open: false
 
-{% endif %}
-| Name | Type | Default | Description |
-|------|------|---------|-------------|
-{% for arg in args %}
-| `{{ arg.name }}` | {% if arg.annotation %}`{{ arg.annotation }}`{% else %}-{% endif %} | {% if arg.default %}`{{ arg.default }}`{% else %}-{% endif %} | {% if arg.docstring %}{{ arg.docstring }}{% else %}-{% endif %} |
-{% endfor %}
-{% if param_count >= 10 %}
+:::{list-table}
+:header-rows: 1
+:widths: 20 20 20 40
 
-````
-{% endif %}
-{% else %}
-{#- Use list format for < 5 parameters -#}
-{% for arg in args %}
-- **`{{ arg.name }}`**{%- if arg.annotation %} (`{{ arg.annotation }}`){%- endif %}{%- if arg.default %} = `{{ arg.default }}`{%- endif %}{%- if arg.docstring %} - {{ arg.docstring }}{%- endif %}
+* - Name
+  - Type
+  - Default
+  - Description
+{% for arg in args -%}
+* - `{{ arg.name }}`
+  - {% if arg.annotation %}`{{ arg.annotation }}`{% else %}-{% endif %}
 
-{% endfor %}
-{% endif %}
-{% endmacro %}
+  - {% if arg.default %}`{{ arg.default }}`{% else %}-{% endif %}
+
+  - {% if arg.docstring %}{{ arg.docstring }}{% else %}-{% endif %}
+
+{% endfor -%}
+:::
+
+::::
+
+{%- endmacro %}
+
+{#- Macro: Render attributes as table within dropdown -#}
+{% macro render_attributes(attrs) -%}
+{% set attr_count = attrs | length -%}
+
+:::{rubric} Attributes
+:class: rubric-attributes
+:::
+
+::::{dropdown} {{ attr_count }} attributes (click to expand)
+:open: false
+
+:::{list-table}
+:header-rows: 1
+:widths: 25 25 50
+
+* - Name
+  - Type
+  - Description
+{% for attr in attrs -%}
+* - `{{ attr.name }}`
+  - {% if attr.metadata.annotation %}`{{ attr.metadata.annotation }}`{% else %}-{% endif %}
+
+  - {% if attr.description %}{{ attr.description }}{% else %}-{% endif %}
+
+{% endfor -%}
+:::
+
+::::
+
+{%- endmacro %}
 
 {#- Macro: Render examples with proper code block wrapping -#}
 {% macro render_examples(examples) %}
@@ -129,13 +163,7 @@ This is a dataclass.
 {% endif %}
 
 {% if cls.children | selectattr('element_type', 'equalto', 'attribute') | list %}
-:::{rubric} Attributes
-:class: rubric-attributes
-:::
-{% for attr in cls.children | selectattr('element_type', 'equalto', 'attribute') %}
-- **`{{ attr.name }}`**{%- if attr.metadata.annotation %} (`{{ attr.metadata.annotation }}`){%- endif %}{%- if attr.description %} - {{ attr.description }}{%- endif %}
-{% endfor %}
-
+{{ render_attributes(cls.children | selectattr('element_type', 'equalto', 'attribute') | list) }}
 {% endif %}
 
 {% if cls.children | selectattr('metadata.is_property', 'equalto', true) | list %}
@@ -192,9 +220,11 @@ This is an asynchronous method. Use `await` when calling.
 {{ render_parameters(method.metadata.args) }}
 {% endif %}
 {% if method.metadata.returns %}
+
 :::{rubric} Returns
 :class: rubric-returns
 :::
+
 `{{ method.metadata.returns }}`{%- if method.metadata.parsed_doc.returns %} - {{ method.metadata.parsed_doc.returns }}{%- endif %}
 
 {% endif %}

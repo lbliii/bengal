@@ -2,7 +2,7 @@
 Test MyST-style tab-set and tab-item directives.
 """
 
-from bengal.rendering.parser import MistuneParser
+from bengal.rendering.parsers import MistuneParser
 
 
 class TestMystTabSyntax:

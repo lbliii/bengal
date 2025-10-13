@@ -4,7 +4,7 @@ Tests for Mistune parser and plugins.
 
 import pytest
 
-from bengal.rendering.parser import BaseMarkdownParser, MistuneParser, create_markdown_parser
+from bengal.rendering.parsers import BaseMarkdownParser, MistuneParser, create_markdown_parser
 
 
 class TestParserFactory:

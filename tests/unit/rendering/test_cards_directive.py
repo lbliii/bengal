@@ -2,7 +2,7 @@
 Test cards directive system (modern and Sphinx-Design compatibility).
 """
 
-from bengal.rendering.parser import MistuneParser
+from bengal.rendering.parsers import MistuneParser
 
 
 class TestModernCardsDirective:

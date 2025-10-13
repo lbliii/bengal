@@ -100,6 +100,10 @@ class Site:
 
     def __post_init__(self) -> None:
         """Initialize site from configuration."""
+        # Ensure root_path is a Path object
+        if isinstance(self.root_path, str):
+            self.root_path = Path(self.root_path)
+
         self.theme = self.config.get("theme", "default")
 
         if "output_dir" in self.config:

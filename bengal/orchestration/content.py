@@ -77,6 +77,14 @@ class ContentOrchestrator:
         self._apply_cascades()
         self.logger.debug("cascades_applied")
 
+        # Set output paths for all pages immediately after discovery
+        # This ensures page.url works correctly before rendering
+        self._set_output_paths()
+        self.logger.debug("output_paths_set")
+
+        # Check for missing weight metadata (info logging to educate users)
+        self._check_weight_metadata()
+
         # Build cross-reference index for O(1) lookups
         self._build_xref_index()
         self.logger.debug(
@@ -227,6 +235,76 @@ class ContentOrchestrator:
                     for key, value in root_cascade.items():
                         if key not in page.metadata:
                             page.metadata[key] = value
+
+    def _set_output_paths(self) -> None:
+        """
+        Set output paths for all discovered pages.
+
+        This must be called after discovery and cascade application but before
+        any code tries to access page.url (which depends on output_path).
+
+        Setting output_path early ensures:
+        - page.url returns correct paths based on file structure
+        - Templates can access page.url without getting fallback slug-based URLs
+        - xref_index links work correctly
+        - Navigation links have proper URLs
+        """
+        from bengal.utils.url_strategy import URLStrategy
+
+        paths_set = 0
+        already_set = 0
+
+        for page in self.site.pages:
+            # Skip if already set (e.g., generated pages, or set by section orchestrator)
+            if page.output_path:
+                already_set += 1
+                continue
+
+            # Compute output path using centralized strategy
+            page.output_path = URLStrategy.compute_regular_page_output_path(page, self.site)
+            paths_set += 1
+
+        self.logger.debug(
+            "output_paths_configured",
+            paths_set=paths_set,
+            already_set=already_set,
+            total_pages=len(self.site.pages),
+        )
+
+    def _check_weight_metadata(self) -> None:
+        """
+        Check for documentation pages without weight metadata.
+
+        Weight is important for sequential content like docs and tutorials
+        to ensure correct navigation order. This logs info (not a warning)
+        to educate users about weight metadata.
+        """
+        doc_types = {"doc", "tutorial", "api-reference", "cli-reference", "changelog"}
+
+        missing_weight_pages = []
+        for page in self.site.pages:
+            content_type = page.metadata.get("type")
+            # Skip index pages (they don't need weight for navigation)
+            if (
+                content_type in doc_types
+                and "weight" not in page.metadata
+                and page.source_path.stem not in ("_index", "index")
+            ):
+                missing_weight_pages.append(page)
+
+        if missing_weight_pages:
+            # Log info (not warning - it's not an error, just helpful guidance)
+            page_samples = [
+                str(p.source_path.relative_to(self.site.root_path))
+                for p in missing_weight_pages[:5]
+            ]
+
+            self.logger.info(
+                "pages_without_weight",
+                count=len(missing_weight_pages),
+                content_types=list(doc_types),
+                samples=page_samples[:5],  # Limit to 5 samples for brevity
+            )
 
     def _apply_section_cascade(
         self, section: "Section", parent_cascade: dict[str, Any] | None = None

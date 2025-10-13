@@ -38,33 +38,66 @@ class TestContentTypeDetection:
         content_type = orchestrator._detect_content_type(section)
         assert content_type == "custom"
 
-    def test_api_reference_by_name(self, orchestrator):
-        """Test API reference detection by section name."""
-        for name in ["api", "reference", "api-reference", "api-docs"]:
-            section = Section(name=name, path=Path(f"/content/{name}"))
-            content_type = orchestrator._detect_content_type(section)
-            assert content_type == "api-reference", f"Failed for name: {name}"
+    @pytest.mark.parametrize(
+        "section_name,expected_type",
+        [
+            # API Reference detection
+            ("api", "api-reference"),
+            ("reference", "api-reference"),
+            ("api-reference", "api-reference"),
+            ("api-docs", "api-reference"),
+            # CLI Reference detection
+            ("cli", "cli-reference"),
+            ("commands", "cli-reference"),
+            ("cli-reference", "cli-reference"),
+            ("command-line", "cli-reference"),
+            # Tutorial detection
+            ("tutorials", "tutorial"),
+            ("guides", "tutorial"),
+            ("how-to", "tutorial"),
+            # Blog detection (chronological content)
+            ("blog", "blog"),
+            ("posts", "blog"),
+            ("news", "blog"),
+            ("articles", "blog"),
+        ],
+        ids=[
+            "api",
+            "reference",
+            "api-reference",
+            "api-docs",
+            "cli",
+            "commands",
+            "cli-reference",
+            "command-line",
+            "tutorials",
+            "guides",
+            "how-to",
+            "blog",
+            "posts",
+            "news",
+            "articles",
+        ],
+    )
+    def test_content_type_detection_by_name(self, orchestrator, section_name, expected_type):
+        """
+        Test that section names are correctly mapped to content types.
 
-    def test_cli_reference_by_name(self, orchestrator):
-        """Test CLI reference detection by section name."""
-        for name in ["cli", "commands", "cli-reference", "command-line"]:
-            section = Section(name=name, path=Path(f"/content/{name}"))
-            content_type = orchestrator._detect_content_type(section)
-            assert content_type == "cli-reference", f"Failed for name: {name}"
+        This is critical for automatic template selection and feature activation.
+        The content type determines:
+        - Which template is used for rendering
+        - Whether pagination is enabled
+        - How pages are sorted and grouped
 
-    def test_tutorial_by_name(self, orchestrator):
-        """Test tutorial detection by section name."""
-        for name in ["tutorials", "guides", "how-to"]:
-            section = Section(name=name, path=Path(f"/content/{name}"))
-            content_type = orchestrator._detect_content_type(section)
-            assert content_type == "tutorial", f"Failed for name: {name}"
+        Tests multiple section naming conventions to ensure robust detection.
+        """
+        section = Section(name=section_name, path=Path(f"/content/{section_name}"))
+        detected_type = orchestrator._detect_content_type(section)
 
-    def test_archive_by_name(self, orchestrator):
-        """Test archive detection by section name."""
-        for name in ["blog", "posts", "news", "articles"]:
-            section = Section(name=name, path=Path(f"/content/{name}"))
-            content_type = orchestrator._detect_content_type(section)
-            assert content_type == "archive", f"Failed for name: {name}"
+        assert detected_type == expected_type, (
+            f"Section '{section_name}' should be detected as '{expected_type}' "
+            f"but was detected as '{detected_type}'"
+        )
 
     def test_api_reference_by_page_metadata(self, orchestrator):
         """Test API reference detection by page metadata."""
@@ -99,10 +132,10 @@ class TestContentTypeDetection:
         assert content_type == "cli-reference"
 
     def test_archive_by_date_heuristic(self, orchestrator):
-        """Test archive detection when pages have dates."""
+        """Test blog detection when pages have dates."""
         section = Section(name="articles", path=Path("/content/articles"))
 
-        # Add pages with dates (60%+ should trigger archive)
+        # Add pages with dates (60%+ should trigger blog detection)
         for i in range(5):
             page = Page(
                 source_path=Path(f"/content/articles/post{i}.md"),
@@ -112,10 +145,10 @@ class TestContentTypeDetection:
             section.add_page(page)
 
         content_type = orchestrator._detect_content_type(section)
-        assert content_type == "archive"
+        assert content_type == "blog"
 
     def test_list_when_few_dates(self, orchestrator):
-        """Test generic list when less than 60% of pages have dates."""
+        """Test doc detection for sections named 'docs'."""
         section = Section(name="docs", path=Path("/content/docs"))
 
         # Add 2 pages with dates, 3 without (40% with dates)
@@ -134,7 +167,8 @@ class TestContentTypeDetection:
             section.add_page(page)
 
         content_type = orchestrator._detect_content_type(section)
-        assert content_type == "list"
+        # "docs" is detected by DocsStrategy
+        assert content_type == "doc"
 
     def test_list_default_for_unknown(self, orchestrator):
         """Test that unknown sections default to 'list' not 'archive'."""

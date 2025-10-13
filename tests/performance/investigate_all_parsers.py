@@ -53,14 +53,14 @@ def instrumented_python_markdown_init(self):
 def main():
     """Run instrumented build."""
     # Apply monkey patches
-    from bengal.rendering import parser
+    from bengal.rendering import parsers
 
     global original_mistune_init, original_python_markdown_init
-    original_mistune_init = parser.MistuneParser.__init__
-    original_python_markdown_init = parser.PythonMarkdownParser.__init__
+    original_mistune_init = parsers.MistuneParser.__init__
+    original_python_markdown_init = parsers.PythonMarkdownParser.__init__
 
-    parser.MistuneParser.__init__ = instrumented_mistune_init
-    parser.PythonMarkdownParser.__init__ = instrumented_python_markdown_init
+    parsers.MistuneParser.__init__ = instrumented_mistune_init
+    parsers.PythonMarkdownParser.__init__ = instrumented_python_markdown_init
 
     print("=" * 70)
     print("PARSER INSTANCE INVESTIGATION (ALL TYPES)")

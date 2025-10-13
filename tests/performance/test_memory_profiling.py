@@ -353,14 +353,16 @@ class TestMemoryProfiling:
         # Allow up to 50% growth OR 5MB, whichever is larger
         threshold = max(abs(median_usage) * 0.5, 5.0)
 
-        # Only check for POSITIVE growth (memory increasing)
+        # Use pytest.approx for cleaner comparison (only check for POSITIVE growth)
+        # Allow memory to stay same or decrease, but flag significant increases
         if growth > threshold:
             print(
                 f"  ✗ Memory leak detected: {growth:+.1f}MB growth (threshold: {threshold:.1f}MB)"
             )
-            raise AssertionError(
-                f"Memory leak detected: {growth:+.1f}MB growth (threshold: {threshold:.1f}MB)"
-            )
+            # Use pytest.approx for the assertion
+            assert avg_final == pytest.approx(
+                avg_warmup, abs=threshold
+            ), f"Memory leak detected: {growth:+.1f}MB growth exceeds threshold ({threshold:.1f}MB)"
         elif growth < 0:
             print(f"  ✓ No leak - memory decreased by {abs(growth):.1f}MB")
         else:

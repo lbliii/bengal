@@ -45,11 +45,11 @@ def instrumented_init(self):
 def main():
     """Run instrumented build."""
     # Apply monkey patch
-    from bengal.rendering import parser
+    from bengal.rendering import parsers
 
     global original_mistune_parser_init
-    original_mistune_parser_init = parser.MistuneParser.__init__
-    parser.MistuneParser.__init__ = instrumented_init
+    original_mistune_parser_init = parsers.MistuneParser.__init__
+    parsers.MistuneParser.__init__ = instrumented_init
 
     print("=" * 70)
     print("PARSER INSTANCE INVESTIGATION")

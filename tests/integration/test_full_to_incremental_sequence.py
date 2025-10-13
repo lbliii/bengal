@@ -69,8 +69,8 @@ More content here.
         site = Site.from_config(test_site)
         _ = site.build(parallel=True, incremental=False)
 
-        # Verify cache was created
-        cache_file = test_site / "public" / ".bengal-cache.json"
+        # Verify cache was created (new location: .bengal/cache.json since v0.1.2)
+        cache_file = test_site / ".bengal" / "cache.json"
         assert cache_file.exists(), "Cache should be saved after full build"
 
         # Read cache to verify it has content
@@ -173,8 +173,8 @@ More content here.
         # Skip initial full build - go straight to incremental
         site = Site.from_config(test_site)
 
-        # Verify no cache exists
-        cache_file = test_site / "public" / ".bengal-cache.json"
+        # Verify no cache exists (new location since v0.1.2)
+        cache_file = test_site / ".bengal" / "cache.json"
         assert not cache_file.exists(), "Cache should not exist yet"
 
         # Build with incremental=True but no cache
@@ -260,8 +260,8 @@ class TestIncrementalBuildRegression:
         stats1 = site.build(parallel=False, incremental=False)
         assert stats1.cache_hits == 0, "First build should have no cache hits"
 
-        # Step 2: Check cache exists (this would fail with the bug)
-        cache_file = site_root / "public" / ".bengal-cache.json"
+        # Step 2: Check cache exists (this would fail with the bug) - new location since v0.1.2
+        cache_file = site_root / ".bengal" / "cache.json"
         assert cache_file.exists(), "BUG: Cache not saved after full build with incremental=False"
 
         # Step 3: Incremental build should use cache
@@ -295,10 +295,10 @@ class TestIncrementalBuildRegression:
         site = Site.from_config(site_root)
         site.build(parallel=False, incremental=False)
 
-        # Check that config is in cache
+        # Check that config is in cache (new location since v0.1.2)
         import json
 
-        cache_file = site_root / "public" / ".bengal-cache.json"
+        cache_file = site_root / ".bengal" / "cache.json"
         with open(cache_file) as f:
             cache_data = json.load(f)
 

@@ -9,7 +9,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from bengal.rendering.parser import MistuneParser, PythonMarkdownParser
+from bengal.rendering.parsers import MistuneParser, PythonMarkdownParser
 from bengal.rendering.pipeline import RenderingPipeline
 
 
@@ -133,7 +133,7 @@ class TestMistuneDirectives:
 
     def test_mistune_parser_has_directives(self):
         """Test that MistuneParser can handle custom directives."""
-        from bengal.rendering.parser import MistuneParser
+        from bengal.rendering.parsers import MistuneParser
 
         parser = MistuneParser()
 
@@ -154,7 +154,7 @@ This is a note directive.
 
     def test_mistune_parser_has_tabs(self):
         """Test that MistuneParser can handle tabs directive."""
-        from bengal.rendering.parser import MistuneParser
+        from bengal.rendering.parsers import MistuneParser
 
         parser = MistuneParser()
 
@@ -185,7 +185,7 @@ Second tab content
 
     def test_python_markdown_ignores_directives(self):
         """Test that PythonMarkdownParser doesn't have our custom directives."""
-        from bengal.rendering.parser import PythonMarkdownParser
+        from bengal.rendering.parsers import PythonMarkdownParser
 
         parser = PythonMarkdownParser()
 

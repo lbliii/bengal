@@ -2,7 +2,6 @@
 title: Bengal SSG Docs
 description: Comprehensive documentation for Bengal Static Site Generator
 type: doc
-template: doc/list.html
 cascade:
   type: doc
 weight: 100

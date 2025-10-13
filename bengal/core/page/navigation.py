@@ -75,24 +75,36 @@ class PageNavigationMixin:
     @property
     def next_in_section(self) -> Page | None:
         """
-        Get the next page within the same section.
+        Get the next page within the same section, respecting weight order.
+
+        Pages are ordered by weight (ascending), then alphabetically by title.
+        Pages without weight are treated as weight=999999 (appear at end).
+        Index pages (_index.md, index.md) are skipped in navigation.
 
         Returns:
-            Next page in section or None
+            Next page in section or None if this is the last page
 
         Example:
             {% if page.next_in_section %}
               <a href="{{ url_for(page.next_in_section) }}">Next in section →</a>
             {% endif %}
         """
-        if not self._section or not hasattr(self._section, "pages"):
+        if not self._section or not hasattr(self._section, "sorted_pages"):
             return None
 
         try:
-            section_pages = self._section.pages
-            idx = section_pages.index(self)
-            if idx < len(section_pages) - 1:
-                return section_pages[idx + 1]
+            # Use sorted_pages to respect weight ordering
+            sorted_pages = self._section.sorted_pages
+            idx = sorted_pages.index(self)
+
+            # Find next non-index page
+            next_idx = idx + 1
+            while next_idx < len(sorted_pages):
+                next_page = sorted_pages[next_idx]
+                # Skip index pages
+                if next_page.source_path.stem not in ("_index", "index"):
+                    return next_page
+                next_idx += 1
         except (ValueError, IndexError):
             pass
 
@@ -101,24 +113,36 @@ class PageNavigationMixin:
     @property
     def prev_in_section(self) -> Page | None:
         """
-        Get the previous page within the same section.
+        Get the previous page within the same section, respecting weight order.
+
+        Pages are ordered by weight (ascending), then alphabetically by title.
+        Pages without weight are treated as weight=999999 (appear at end).
+        Index pages (_index.md, index.md) are skipped in navigation.
 
         Returns:
-            Previous page in section or None
+            Previous page in section or None if this is the first page
 
         Example:
             {% if page.prev_in_section %}
               <a href="{{ url_for(page.prev_in_section) }}">← Prev in section</a>
             {% endif %}
         """
-        if not self._section or not hasattr(self._section, "pages"):
+        if not self._section or not hasattr(self._section, "sorted_pages"):
             return None
 
         try:
-            section_pages = self._section.pages
-            idx = section_pages.index(self)
-            if idx > 0:
-                return section_pages[idx - 1]
+            # Use sorted_pages to respect weight ordering
+            sorted_pages = self._section.sorted_pages
+            idx = sorted_pages.index(self)
+
+            # Find previous non-index page
+            prev_idx = idx - 1
+            while prev_idx >= 0:
+                prev_page = sorted_pages[prev_idx]
+                # Skip index pages
+                if prev_page.source_path.stem not in ("_index", "index"):
+                    return prev_page
+                prev_idx -= 1
         except (ValueError, IndexError):
             pass
 

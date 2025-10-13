@@ -1,0 +1,236 @@
+"""Bridge pages and navigation bottleneck analysis command."""
+
+import json
+from pathlib import Path
+
+import click
+
+from bengal.core.site import Site
+from bengal.utils.logger import LogLevel, close_all_loggers, configure_logging
+
+
+@click.command()
+@click.option("--top-n", "-n", default=20, type=int, help="Number of pages to show (default: 20)")
+@click.option(
+    "--metric",
+    "-m",
+    type=click.Choice(["betweenness", "closeness", "both"]),
+    default="both",
+    help="Centrality metric to display (default: both)",
+)
+@click.option(
+    "--format",
+    "-f",
+    type=click.Choice(["table", "json", "summary"]),
+    default="table",
+    help="Output format (default: table)",
+)
+@click.option(
+    "--config", type=click.Path(exists=True), help="Path to config file (default: bengal.toml)"
+)
+@click.argument("source", type=click.Path(exists=True), default=".")
+def bridges(top_n: int, metric: str, format: str, config: str, source: str) -> None:
+    """
+    🌉 Identify bridge pages and navigation bottlenecks.
+
+    Analyzes navigation paths to find:
+    - Bridge pages (high betweenness): Pages that connect different parts of the site
+    - Accessible pages (high closeness): Pages easy to reach from anywhere
+    - Navigation bottlenecks: Critical pages for site navigation
+
+    Use path analysis to:
+    - Optimize navigation structure
+    - Identify critical pages
+    - Improve content discoverability
+    - Find navigation gaps
+
+    Examples:
+        # Show top 20 bridge pages
+        bengal bridges
+
+        # Show most accessible pages
+        bengal bridges --metric closeness
+
+        # Show only betweenness centrality
+        bengal bridges --metric betweenness
+
+        # Export as JSON
+        bengal bridges --format json > bridges.json
+    """
+    from bengal.analysis.knowledge_graph import KnowledgeGraph
+
+    try:
+        # Configure minimal logging
+        configure_logging(level=LogLevel.WARNING)
+
+        # Load site
+        source_path = Path(source).resolve()
+
+        if config:
+            config_path = Path(config).resolve()
+            site = Site.from_config(source_path, config_file=config_path)
+        else:
+            site = Site.from_config(source_path)
+
+        # Discover content
+        click.echo("🔍 Discovering site content...")
+        from bengal.orchestration.content import ContentOrchestrator
+
+        content_orch = ContentOrchestrator(site)
+        content_orch.discover()
+
+        # Build knowledge graph
+        click.echo(f"📊 Building knowledge graph from {len(site.pages)} pages...")
+        graph_obj = KnowledgeGraph(site)
+        graph_obj.build()
+
+        # Analyze paths
+        click.echo("🌉 Analyzing navigation paths...")
+        results = graph_obj.analyze_paths()
+
+        # Output based on format
+        if format == "json":
+            # Export as JSON
+            data = {
+                "avg_path_length": results.avg_path_length,
+                "diameter": results.diameter,
+                "total_pages": len(results.betweenness_centrality),
+            }
+
+            if metric in ["betweenness", "both"]:
+                bridges_list = results.get_top_bridges(top_n)
+                data["top_bridges"] = [
+                    {
+                        "title": page.title,
+                        "url": getattr(page, "url_path", str(page.source_path)),
+                        "betweenness": score,
+                        "incoming_refs": graph_obj.incoming_refs.get(page, 0),
+                    }
+                    for page, score in bridges_list
+                ]
+
+            if metric in ["closeness", "both"]:
+                accessible = results.get_most_accessible(top_n)
+                data["most_accessible"] = [
+                    {
+                        "title": page.title,
+                        "url": getattr(page, "url_path", str(page.source_path)),
+                        "closeness": score,
+                        "outgoing_refs": len(graph_obj.outgoing_refs.get(page, set())),
+                    }
+                    for page, score in accessible
+                ]
+
+            click.echo(json.dumps(data, indent=2))
+
+        elif format == "summary":
+            # Show summary stats
+            click.echo("\n" + "=" * 60)
+            click.echo("🌉 Path Analysis Summary")
+            click.echo("=" * 60)
+            click.echo(f"Total pages analyzed:     {len(results.betweenness_centrality)}")
+            click.echo(f"Average path length:      {results.avg_path_length:.2f}")
+            click.echo(f"Network diameter:         {results.diameter}")
+            click.echo("")
+
+            if metric in ["betweenness", "both"]:
+                click.echo("\n🔗 Top Bridge Pages (Betweenness Centrality)")
+                click.echo("-" * 60)
+                bridges_list = results.get_top_bridges(top_n)
+                for i, (page, score) in enumerate(bridges_list, 1):
+                    incoming = graph_obj.incoming_refs.get(page, 0)
+                    outgoing = len(graph_obj.outgoing_refs.get(page, set()))
+                    click.echo(f"{i:3d}. {page.title}")
+                    click.echo(f"     Betweenness: {score:.6f} | {incoming} in, {outgoing} out")
+
+            if metric in ["closeness", "both"]:
+                click.echo("\n🎯 Most Accessible Pages (Closeness Centrality)")
+                click.echo("-" * 60)
+                accessible = results.get_most_accessible(top_n)
+                for i, (page, score) in enumerate(accessible, 1):
+                    outgoing = len(graph_obj.outgoing_refs.get(page, set()))
+                    click.echo(f"{i:3d}. {page.title}")
+                    click.echo(f"     Closeness: {score:.6f} | Can reach {outgoing} pages")
+
+        else:  # table format
+            click.echo("\n" + "=" * 100)
+            click.echo("🌉 Navigation Path Analysis")
+            click.echo("=" * 100)
+            click.echo(
+                f"Analyzed {len(results.betweenness_centrality)} pages • Avg path: {results.avg_path_length:.2f} • Diameter: {results.diameter}"
+            )
+            click.echo("=" * 100)
+
+            if metric in ["betweenness", "both"]:
+                click.echo(f"\n🔗 Top {top_n} Bridge Pages (Betweenness Centrality)")
+                click.echo("-" * 100)
+                click.echo(f"{'Rank':<6} {'Title':<50} {'Betweenness':<14} {'In':<5} {'Out':<5}")
+                click.echo("-" * 100)
+
+                bridges_list = results.get_top_bridges(top_n)
+                for i, (page, score) in enumerate(bridges_list, 1):
+                    title = page.title
+                    if len(title) > 48:
+                        title = title[:45] + "..."
+
+                    incoming = graph_obj.incoming_refs.get(page, 0)
+                    outgoing = len(graph_obj.outgoing_refs.get(page, set()))
+
+                    click.echo(f"{i:<6} {title:<50} {score:.10f}  {incoming:<5} {outgoing:<5}")
+
+            if metric in ["closeness", "both"]:
+                click.echo(f"\n🎯 Top {top_n} Most Accessible Pages (Closeness Centrality)")
+                click.echo("-" * 100)
+                click.echo(f"{'Rank':<6} {'Title':<50} {'Closeness':<14} {'Out':<5}")
+                click.echo("-" * 100)
+
+                accessible = results.get_most_accessible(top_n)
+                for i, (page, score) in enumerate(accessible, 1):
+                    title = page.title
+                    if len(title) > 48:
+                        title = title[:45] + "..."
+
+                    outgoing = len(graph_obj.outgoing_refs.get(page, set()))
+
+                    click.echo(f"{i:<6} {title:<50} {score:.10f}  {outgoing:<5}")
+
+            click.echo("=" * 100)
+            click.echo("\n💡 Tip: Use --metric to focus on betweenness or closeness")
+            click.echo("       Use --format json to export for analysis\n")
+
+        # Show insights
+        if format != "json":
+            click.echo("\n" + "=" * 60)
+            click.echo("📊 Insights")
+            click.echo("=" * 60)
+
+            avg_betweenness = (
+                sum(results.betweenness_centrality.values()) / len(results.betweenness_centrality)
+                if results.betweenness_centrality
+                else 0
+            )
+            max_betweenness = (
+                max(results.betweenness_centrality.values())
+                if results.betweenness_centrality
+                else 0
+            )
+
+            click.echo(f"• Average path length:        {results.avg_path_length:.2f} hops")
+            click.echo(f"• Network diameter:           {results.diameter} hops")
+            click.echo(f"• Average betweenness:        {avg_betweenness:.6f}")
+            click.echo(f"• Max betweenness:            {max_betweenness:.6f}")
+
+            if results.diameter > 5:
+                click.echo("• Structure:                  Deep (consider shortening paths)")
+            elif results.diameter > 3:
+                click.echo("• Structure:                  Medium depth")
+            else:
+                click.echo("• Structure:                  Shallow (well connected)")
+
+            click.echo("\n")
+
+    except Exception as e:
+        click.echo(click.style(f"❌ Error: {e}", fg="red", bold=True))
+        raise click.Abort() from e
+    finally:
+        close_all_loggers()

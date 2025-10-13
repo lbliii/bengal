@@ -38,9 +38,12 @@ class IncrementalOrchestrator:
         Args:
             site: Site instance for incremental builds
         """
+        from bengal.utils.logger import get_logger
+
         self.site = site
         self.cache: BuildCache | None = None
         self.tracker: DependencyTracker | None = None
+        self.logger = get_logger(__name__)
 
     def initialize(self, enabled: bool = False) -> tuple["BuildCache", "DependencyTracker"]:
         """
@@ -52,11 +55,35 @@ class IncrementalOrchestrator:
         Returns:
             Tuple of (cache, tracker)
         """
+        import shutil
+
         from bengal.cache import BuildCache, DependencyTracker
 
-        cache_path = self.site.output_dir / ".bengal-cache.json"
+        # New cache location: .bengal/ directory in project root
+        cache_dir = self.site.root_path / ".bengal"
+        cache_path = cache_dir / "cache.json"
 
         if enabled:
+            # Only create cache directory if enabled
+            cache_dir.mkdir(parents=True, exist_ok=True)
+
+            # Legacy cache location (for migration)
+            old_cache_path = self.site.output_dir / ".bengal-cache.json"
+
+            # Migrate old cache if exists and new doesn't
+            if old_cache_path.exists() and not cache_path.exists():
+                try:
+                    shutil.copy2(old_cache_path, cache_path)
+                    logger.info(
+                        "cache_migrated",
+                        from_location=str(old_cache_path),
+                        to_location=str(cache_path),
+                        action="automatic_migration",
+                    )
+                except Exception as e:
+                    logger.warning(
+                        "cache_migration_failed", error=str(e), action="using_fresh_cache"
+                    )
             self.cache = BuildCache.load(cache_path)
             cache_exists = cache_path.exists()
             try:
@@ -68,6 +95,7 @@ class IncrementalOrchestrator:
                 enabled=True,
                 cache_loaded=cache_exists,
                 cached_files=file_count,
+                cache_location=str(cache_path),
             )
         else:
             self.cache = BuildCache()
@@ -322,6 +350,81 @@ class IncrementalOrchestrator:
 
         return pages_to_build, assets_to_process, change_summary
 
+    def _cleanup_deleted_files(self) -> None:
+        """
+        Clean up output files for deleted source files.
+
+        Checks cache for source files that no longer exist and deletes
+        their corresponding output files. This prevents stale content
+        from remaining in the output directory after source deletion.
+        """
+        if not self.cache or not self.cache.output_sources:
+            return
+
+        deleted_count = 0
+
+        # Build set of current source paths from output_sources (not file_hashes)
+        # output_sources maps output -> source, so we check if those sources still exist
+        deleted_sources = []
+
+        for output_path_str, source_path_str in self.cache.output_sources.items():
+            source_path = Path(source_path_str)
+            # Check if source file still exists on disk
+            if not source_path.exists():
+                deleted_sources.append((output_path_str, source_path_str))
+
+        if deleted_sources:
+            self.logger.info(
+                "deleted_sources_detected",
+                count=len(deleted_sources),
+                files=[Path(src).name for _, src in deleted_sources[:5]],  # Show first 5
+            )
+
+        # Clean up output files for deleted sources
+        for output_path_str, source_path_str in deleted_sources:
+            # Delete the output file
+            output_path = self.site.output_dir / output_path_str
+            if output_path.exists():
+                try:
+                    output_path.unlink()
+                    deleted_count += 1
+                    self.logger.debug(
+                        "deleted_output_file",
+                        source=Path(source_path_str).name,
+                        output=output_path_str,
+                    )
+
+                    # Also try to remove empty parent directories
+                    try:
+                        if output_path.parent != self.site.output_dir:
+                            output_path.parent.rmdir()  # Only removes if empty
+                    except OSError:
+                        pass  # Directory not empty or other issue, ignore
+
+                except Exception as e:
+                    self.logger.warning(
+                        "failed_to_delete_output", output=output_path_str, error=str(e)
+                    )
+
+            # Remove from cache
+            if output_path_str in self.cache.output_sources:
+                del self.cache.output_sources[output_path_str]
+
+            # Remove from file_hashes
+            if source_path_str in self.cache.file_hashes:
+                del self.cache.file_hashes[source_path_str]
+            if source_path_str in self.cache.page_tags:
+                del self.cache.page_tags[source_path_str]
+            if source_path_str in self.cache.parsed_content:
+                del self.cache.parsed_content[source_path_str]
+
+        if deleted_count > 0:
+            self.logger.info(
+                "cleanup_complete",
+                deleted_outputs=deleted_count,
+                deleted_sources=len(deleted_sources),
+            )
+
     def save_cache(self, pages_built: list["Page"], assets_processed: list["Asset"]) -> None:
         """
         Update cache with processed files.
@@ -333,7 +436,10 @@ class IncrementalOrchestrator:
         if not self.cache:
             return
 
-        cache_path = self.site.output_dir / ".bengal-cache.json"
+        # Use same cache location as initialize()
+        cache_dir = self.site.root_path / ".bengal"
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        cache_path = cache_dir / "cache.json"
 
         # Update all page hashes and tags (skip generated pages - they have virtual paths)
         for page in pages_built:

@@ -337,20 +337,34 @@ class TestURLStrategy:
         assert url == "/tags/python/"
         assert output_path == mock_site.output_dir / "tags" / "python" / "index.html"
 
-    def test_paginated_paths_have_correct_urls(self, url_strategy, mock_site, tmp_path):
-        """Test URL generation for paginated pages."""
+    @pytest.mark.parametrize(
+        "page_num,expected_url",
+        [
+            (1, "/blog/"),
+            (2, "/blog/page/2/"),
+            (5, "/blog/page/5/"),
+            (10, "/blog/page/10/"),
+        ],
+        ids=["page_1", "page_2", "page_5", "page_10"],
+    )
+    def test_paginated_paths_have_correct_urls(
+        self, url_strategy, mock_site, tmp_path, page_num, expected_url
+    ):
+        """
+        Test URL generation for paginated archive pages.
+
+        Page 1 should be at section root (/blog/), while subsequent pages
+        should include /page/N/ in the path. This ensures consistent URL
+        structure for pagination across all sections.
+        """
         section = Section(name="blog", path=tmp_path / "content" / "blog")
 
-        for page_num in [1, 2, 5, 10]:
-            output_path = url_strategy.compute_archive_output_path(
-                section=section, page_num=page_num, site=mock_site
-            )
-            url = url_strategy.url_from_output_path(output_path, mock_site)
+        output_path = url_strategy.compute_archive_output_path(
+            section=section, page_num=page_num, site=mock_site
+        )
+        url = url_strategy.url_from_output_path(output_path, mock_site)
 
-            if page_num == 1:
-                assert url == "/blog/"
-            else:
-                assert url == f"/blog/page/{page_num}/"
+        assert url == expected_url, f"Page {page_num} should have URL '{expected_url}', got '{url}'"
 
     def test_virtual_path_structure_is_consistent(self, url_strategy, mock_site, tmp_path):
         """Test that virtual paths have consistent structure."""

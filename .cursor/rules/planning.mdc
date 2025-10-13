@@ -2,4 +2,8 @@
 alwaysApply: true
 ---
 
-Save all of your planning and progress documents in the `plan/` directory. When you are done with a document move it to plan/completed/
+- Save all of your planning and progress documents in the `plan/` directory.
+
+- When you are done drafting a document, move it to `plan/completed/`
+
+- When you have implemented the plan, move it to `plan/implemented` and add a concise entry log in the root `changelog.md` for the next unpublished release.

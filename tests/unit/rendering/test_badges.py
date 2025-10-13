@@ -4,7 +4,7 @@ Test badge plugin.
 Validates {bdg-color}`text` syntax support (Sphinx-Design compatible).
 """
 
-from bengal.rendering.parser import MistuneParser
+from bengal.rendering.parsers import MistuneParser
 
 
 class TestBadgePlugin:

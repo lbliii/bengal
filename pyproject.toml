@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bengal"
-version = "0.1.0"
+version = "0.1.1"
 description = "A high-performance static site generator with modular architecture"
 readme = "README.md"
 requires-python = ">=3.13"  # Python 3.14+ recommended for free-threading support (1.8x faster)
@@ -54,6 +54,8 @@ dev = [
     "pytest-cov>=4.1.0",
     "pytest-mock>=3.11.0",
     "pytest-xdist>=3.3.0",
+    "pytest-timeout>=2.2.0",
+    "hypothesis>=6.92.0",
     "mypy>=1.11.0",
     "ruff>=0.6.0",
 ]
@@ -72,7 +74,7 @@ where = ["."]
 include = ["bengal*"]
 
 [tool.setuptools.package-data]
-bengal = ["themes/**/*", "autodoc/templates/**/*.jinja2", "py.typed"]
+bengal = ["themes/**/*", "autodoc/templates/**/*.jinja2", "cli/templates/**/*", "py.typed"]
 
 [tool.ruff]
 line-length = 100

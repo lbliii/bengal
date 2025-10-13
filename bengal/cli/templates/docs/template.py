@@ -19,13 +19,13 @@ def _create_docs_template() -> SiteTemplate:
 
     files = [
         TemplateFile(
-            relative_path="index.md",
-            content=_load_template_file("index.md"),
+            relative_path="_index.md",
+            content=_load_template_file("_index.md"),
             target_dir="content",
         ),
         TemplateFile(
-            relative_path="getting-started/index.md",
-            content=_load_template_file("getting-started/index.md"),
+            relative_path="getting-started/_index.md",
+            content=_load_template_file("getting-started/_index.md"),
             target_dir="content",
         ),
         TemplateFile(
@@ -39,13 +39,13 @@ def _create_docs_template() -> SiteTemplate:
             target_dir="content",
         ),
         TemplateFile(
-            relative_path="guides/index.md",
-            content=_load_template_file("guides/index.md"),
+            relative_path="guides/_index.md",
+            content=_load_template_file("guides/_index.md"),
             target_dir="content",
         ),
         TemplateFile(
-            relative_path="api/index.md",
-            content=_load_template_file("api/index.md"),
+            relative_path="api/_index.md",
+            content=_load_template_file("api/_index.md"),
             target_dir="content",
         ),
     ]

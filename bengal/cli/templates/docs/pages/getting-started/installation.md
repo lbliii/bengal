@@ -1,8 +1,7 @@
 ---
 title: Installation
 description: How to install
-section: getting-started
-order: 2
+weight: 20
 ---
 
 # Installation
@@ -31,4 +30,4 @@ your-command --version
 
 ## Next Steps
 
-Continue with the [Quick Start Guide](quickstart).
+Continue with the [Quick Start Guide](quickstart/).

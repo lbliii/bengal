@@ -27,6 +27,7 @@ from bengal.rendering.plugins.directives.cards import (
 from bengal.rendering.plugins.directives.code_tabs import CodeTabsDirective
 from bengal.rendering.plugins.directives.dropdown import DropdownDirective
 from bengal.rendering.plugins.directives.errors import DirectiveError, format_directive_error
+from bengal.rendering.plugins.directives.list_table import ListTableDirective
 from bengal.rendering.plugins.directives.rubric import RubricDirective
 from bengal.rendering.plugins.directives.tabs import (
     TabItemDirective,
@@ -61,6 +62,7 @@ def create_documentation_directives():
     - dropdown: Collapsible sections with markdown
     - code-tabs: Code examples in multiple languages
     - rubric: Pseudo-headings for API documentation (not in TOC)
+    - list-table: MyST-style tables using nested lists (avoids pipe character issues)
 
     Usage:
         from bengal.rendering.plugins.directives import create_documentation_directives
@@ -97,6 +99,7 @@ def create_documentation_directives():
                     DropdownDirective(),
                     CodeTabsDirective(),
                     RubricDirective(),  # Pseudo-headings for API docs
+                    ListTableDirective(),  # MyST list-table for tables without pipe issues
                     CardsDirective(),  # Modern card grid system
                     CardDirective(),  # Individual cards
                     GridDirective(),  # Sphinx-Design compatibility

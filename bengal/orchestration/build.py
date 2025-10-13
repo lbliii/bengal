@@ -163,9 +163,10 @@ class BuildOrchestrator:
 
         self.site.build_time = datetime.now()
 
-        # Initialize cache and tracker for incremental builds
+        # Initialize cache and tracker (ALWAYS, even for full builds)
+        # We need cache for cleanup of deleted files
         with self.logger.phase("initialization"):
-            cache, tracker = self.incremental.initialize(enabled=incremental)
+            cache, tracker = self.incremental.initialize(enabled=True)  # Always load cache
 
         # Phase 0.5: Font Processing (before asset discovery)
         # Download Google Fonts and generate CSS if configured
@@ -237,6 +238,20 @@ class BuildOrchestrator:
                     cli.detail(f"Changed: {config_file.name}", indent=1)
 
             incremental = False
+            # Don't clear cache yet - we need it for cleanup!
+
+        # Phase 1.5: Clean up deleted files (ALWAYS, even on full builds)
+        # This ensures output stays in sync with source files
+        # Do this BEFORE clearing cache so we have the output_sources map
+        if cache and hasattr(self.incremental, "_cleanup_deleted_files"):
+            self.incremental._cleanup_deleted_files()
+            # Save cache immediately so deletions are persisted
+            cache_dir = self.site.root_path / ".bengal"
+            cache_path = cache_dir / "cache.json"
+            cache.save(cache_path)
+
+        # Now clear cache if config changed
+        if not incremental and config_changed:
             cache.clear()
 
         # Phase 2: Determine what to build (MOVED UP - before taxonomies/menus)

@@ -1,8 +1,7 @@
 ---
 title: Quick Start
 description: Your first project in 5 minutes
-section: getting-started
-order: 3
+weight: 30
 ---
 
 # Quick Start
@@ -30,6 +29,6 @@ your-command build
 
 ## What's Next?
 
-- Explore the [Guides](../guides/) section
-- Check out the [API Reference](../api/)
-- Learn [Advanced Topics](../advanced/)
+- Explore the [Guides](../../guides/) section
+- Check out the [API Reference](../../api/)
+- Learn more from our documentation
