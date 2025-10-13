@@ -208,7 +208,7 @@ class Asset:
                 if not _warned_no_bundling:
                     logger.warning(
                         "lightningcss_unavailable",
-                        message="CSS will be minified but not autoprefixed",
+                        info="CSS will be minified but not autoprefixed",
                         install_command="pip install lightningcss",
                     )
                     _warned_no_bundling = True

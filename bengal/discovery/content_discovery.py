@@ -2,6 +2,8 @@
 Content discovery - finds and organizes pages and sections.
 """
 
+import os
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Any
 
@@ -39,6 +41,20 @@ class ContentDiscovery:
         """
         self.logger.info("content_discovery_start", content_dir=str(self.content_dir))
 
+        # One-time performance hint: check if PyYAML has C extensions
+        try:
+            import yaml  # noqa: F401
+
+            has_libyaml = getattr(yaml, "__with_libyaml__", False)
+            if not has_libyaml:
+                self.logger.info(
+                    "pyyaml_c_extensions_missing",
+                    hint="Install pyyaml[libyaml] for faster frontmatter parsing",
+                )
+        except Exception:
+            # If yaml isn't importable here, frontmatter will raise later; do nothing now
+            pass
+
         if not self.content_dir.exists():
             self.logger.warning(
                 "content_dir_missing", content_dir=str(self.content_dir), action="returning_empty"
@@ -69,16 +85,26 @@ class ContentDiscovery:
             language_codes.append(default_lang)
 
         # Helper: process a single item with optional current language context
-        def process_item(item_path: Path, current_lang: str | None) -> None:
+        def process_item(item_path: Path, current_lang: str | None) -> list[Page]:
+            pending_pages: list = []
+            produced_pages: list[Page] = []
             # Skip hidden files and directories
             if item_path.name.startswith((".", "_")) and item_path.name not in (
                 "_index.md",
                 "_index.markdown",
             ):
-                return
+                return produced_pages
             if item_path.is_file() and self._is_content_file(item_path):
-                page = self._create_page(item_path, current_lang=current_lang)
-                self.pages.append(page)
+                # Defer parsing to thread pool
+                if not hasattr(self, "_executor") or self._executor is None:
+                    # Fallback to synchronous create if executor not initialized
+                    page = self._create_page(item_path, current_lang=current_lang)
+                    self.pages.append(page)
+                    produced_pages.append(page)
+                else:
+                    pending_pages.append(
+                        self._executor.submit(self._create_page, item_path, current_lang)
+                    )
             elif item_path.is_dir():
                 section = Section(
                     name=item_path.name,
@@ -87,34 +113,61 @@ class ContentDiscovery:
                 self._walk_directory(item_path, section, current_lang=current_lang)
                 if section.pages or section.subsections:
                     self.sections.append(section)
+            # Resolve any pending page futures (top-level pages not in a section)
+            for fut in pending_pages:
+                try:
+                    page = fut.result()
+                    self.pages.append(page)
+                    produced_pages.append(page)
+                except Exception as e:  # pragma: no cover - guarded logging
+                    self.logger.error(
+                        "page_future_failed",
+                        path=str(item_path),
+                        error=str(e),
+                        error_type=type(e).__name__,
+                    )
 
-        # Walk top-level items, with i18n-aware handling when enabled
-        for item in sorted(self.content_dir.iterdir()):
-            # Skip hidden files and directories
-            if item.name.startswith((".", "_")) and item.name not in (
-                "_index.md",
-                "_index.markdown",
-            ):
-                continue
+            return produced_pages
 
-            # Detect language-root directories for i18n dir structure
-            if (
-                strategy == "prefix"
-                and content_structure == "dir"
-                and item.is_dir()
-                and item.name in language_codes
-            ):
-                # Treat children of this directory as top-level within this language
-                current_lang = item.name
-                for sub in sorted(item.iterdir()):
-                    process_item(sub, current_lang=current_lang)
-                continue
+        # Initialize a thread pool for parallel file parsing
+        max_workers = min(8, (os.cpu_count() or 4))
+        self._executor: ThreadPoolExecutor | None = ThreadPoolExecutor(max_workers=max_workers)
 
-            # Non-language-root items → treat as default language (or None if not configured)
-            current_lang = (
-                default_lang if (strategy == "prefix" and content_structure == "dir") else None
-            )
-            process_item(item, current_lang=current_lang)
+        top_level_results: list[Page] = []
+
+        try:
+            # Walk top-level items, with i18n-aware handling when enabled
+            for item in sorted(self.content_dir.iterdir()):
+                # Skip hidden files and directories
+                if item.name.startswith((".", "_")) and item.name not in (
+                    "_index.md",
+                    "_index.markdown",
+                ):
+                    continue
+
+                # Detect language-root directories for i18n dir structure
+                if (
+                    strategy == "prefix"
+                    and content_structure == "dir"
+                    and item.is_dir()
+                    and item.name in language_codes
+                ):
+                    # Treat children of this directory as top-level within this language
+                    current_lang = item.name
+                    for sub in sorted(item.iterdir()):
+                        top_level_results.extend(process_item(sub, current_lang=current_lang))
+                    continue
+
+                # Non-language-root items → treat as default language (or None if not configured)
+                current_lang = (
+                    default_lang if (strategy == "prefix" and content_structure == "dir") else None
+                )
+                top_level_results.extend(process_item(item, current_lang=current_lang))
+        finally:
+            # Ensure all threads are joined
+            if self._executor:
+                self._executor.shutdown(wait=True)
+                self._executor = None
 
         # Sort all sections by weight
         self._sort_all_sections()
@@ -151,6 +204,8 @@ class ContentDiscovery:
             return
 
         # Iterate through items in directory (non-recursively for control)
+        # Collect files in this directory for parallel page creation
+        file_futures = []
         for item in sorted(directory.iterdir()):
             # Skip hidden files and directories
             if item.name.startswith((".", "_")) and item.name not in (
@@ -160,10 +215,15 @@ class ContentDiscovery:
                 continue
 
             if item.is_file() and self._is_content_file(item):
-                # Create a page
-                page = self._create_page(item, current_lang=current_lang)
-                parent_section.add_page(page)
-                self.pages.append(page)
+                # Create a page (in parallel when executor is available)
+                if hasattr(self, "_executor") and self._executor is not None:
+                    file_futures.append(
+                        self._executor.submit(self._create_page, item, current_lang)
+                    )
+                else:
+                    page = self._create_page(item, current_lang=current_lang)
+                    parent_section.add_page(page)
+                    self.pages.append(page)
 
             elif item.is_dir():
                 # Create a subsection
@@ -179,6 +239,20 @@ class ContentDiscovery:
                 if section.pages or section.subsections:
                     parent_section.add_subsection(section)
                     self.sections.append(section)
+
+        # Resolve parallel page futures and attach to section
+        for fut in file_futures:
+            try:
+                page = fut.result()
+                parent_section.add_page(page)
+                self.pages.append(page)
+            except Exception as e:  # pragma: no cover - guarded logging
+                self.logger.error(
+                    "page_future_failed",
+                    path=str(directory),
+                    error=str(e),
+                    error_type=type(e).__name__,
+                )
 
     def _is_content_file(self, file_path: Path) -> bool:
         """

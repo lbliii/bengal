@@ -2,6 +2,7 @@
 Rendering Pipeline - Orchestrates the parsing, AST building, templating, and output rendering.
 """
 
+import re
 import threading
 from pathlib import Path
 from typing import Any
@@ -125,13 +126,13 @@ class RenderingPipeline:
             The parser is cached at thread level, not pipeline level.
         """
         self.site = site
-        # Get markdown engine from config (default: python-markdown)
+        # Get markdown engine from config (default: mistune)
         # Check both old location (markdown_engine) and new nested location (markdown.parser)
         markdown_engine = site.config.get("markdown_engine")
         if not markdown_engine:
             # Check nested markdown section
             markdown_config = site.config.get("markdown", {})
-            markdown_engine = markdown_config.get("parser", "python-markdown")
+            markdown_engine = markdown_config.get("parser", "mistune")
         # Use thread-local parser to avoid re-initialization overhead
         self.parser = _get_thread_parser(markdown_engine)
 
@@ -211,23 +212,57 @@ class RenderingPipeline:
         # Pages can disable preprocessing by setting `preprocess: false` in frontmatter.
         # This is useful for documentation pages that show template syntax examples.
         #
+        # Decide whether TOC is needed. Skip TOC path if disabled or no headings present.
+        need_toc = True
+        if page.metadata.get("toc") is False:
+            need_toc = False
+        else:
+            # Quick heuristic: only generate TOC if markdown likely contains h2-h4 headings
+            # Matches atx-style (##, ###, ####) and setext-style ("---" underlines after a line)
+            content_text = page.content or ""
+            likely_has_atx = re.search(
+                r"^(?:\s{0,3})(?:##|###|####)\s+.+", content_text, re.MULTILINE
+            )
+            if not likely_has_atx:
+                # Lightweight check for setext h2 (===) and h3 (---) style underlines
+                likely_has_setext = re.search(
+                    r"^.+\n\s{0,3}(?:===+|---+)\s*$", content_text, re.MULTILINE
+                )
+                need_toc = bool(likely_has_setext)
+            else:
+                need_toc = True
+
         if hasattr(self.parser, "parse_with_toc_and_context"):
             # Mistune with VariableSubstitutionPlugin (recommended)
             # Check if preprocessing is disabled
             if page.metadata.get("preprocess") is False:
-                # Parse without variable substitution (for docs showing template syntax)
-                parsed_content, toc = self.parser.parse_with_toc(page.content, page.metadata)
+                if need_toc:
+                    # Parse without variable substitution (for docs showing template syntax)
+                    parsed_content, toc = self.parser.parse_with_toc(page.content, page.metadata)
+                else:
+                    parsed_content = self.parser.parse(page.content, page.metadata)
+                    toc = ""
             else:
                 # Single-pass parsing with variable substitution - fast and simple!
                 context = {"page": page, "site": self.site, "config": self.site.config}
-                parsed_content, toc = self.parser.parse_with_toc_and_context(
-                    page.content, page.metadata, context
-                )
+                if need_toc:
+                    parsed_content, toc = self.parser.parse_with_toc_and_context(
+                        page.content, page.metadata, context
+                    )
+                else:
+                    parsed_content = self.parser.parse_with_context(
+                        page.content, page.metadata, context
+                    )
+                    toc = ""
         else:
             # FALLBACK: python-markdown (legacy)
             # Uses Jinja2 preprocessing - deprecated, use Mistune instead
             content = self._preprocess_content(page)
-            parsed_content, toc = self.parser.parse_with_toc(content, page.metadata)
+            if need_toc and hasattr(self.parser, "parse_with_toc"):
+                parsed_content, toc = self.parser.parse_with_toc(content, page.metadata)
+            else:
+                parsed_content = self.parser.parse(content, page.metadata)
+                toc = ""
 
         page.parsed_ast = parsed_content
 

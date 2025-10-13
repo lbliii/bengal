@@ -1,0 +1,14 @@
+# Benchmark results storage (also in top-level .gitignore)
+benchmark_results/
+
+# Temporary test sites generated during benchmarks
+bengal_*
+test_site_*
+
+# Profile output files
+*.stats
+*.svg
+*.png
+.bengal/
+
+# Note: Python cache already covered by top-level .gitignore

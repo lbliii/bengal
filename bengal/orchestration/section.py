@@ -92,6 +92,9 @@ class SectionOrchestrator:
             self.site.pages.append(archive_page)
             archive_count += 1
 
+            # Invalidate cached page lists after adding generated page
+            self.site.invalidate_page_caches()
+
             logger.debug(
                 "section_archive_created",
                 section_name=section.name,

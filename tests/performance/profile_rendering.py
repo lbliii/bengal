@@ -168,11 +168,16 @@ def profile_build(site_path: Path):
     ps.print_stats("sample")
     print(s.getvalue())
 
-    # Save full profile for detailed analysis
-    profile_path = Path(__file__).parent.parent.parent / "plan" / "profile_stats.prof"
+    # Save full profile for detailed analysis using organized paths
+    from bengal.utils.paths import BengalPaths
+
+    profile_path = BengalPaths.get_profile_path(site_path, filename="rendering_profile.stats")
     profiler.dump_stats(str(profile_path))
     print(f"\nFull profile saved to: {profile_path}")
-    print("Analyze with: python -m pstats {profile_path}")
+    print("Analyze with:")
+    print(f"  python -m pstats {profile_path}")
+    print(f"  python tests/performance/analyze_profile.py {profile_path}")
+    print(f"  python tests/performance/flamegraph.py {profile_path}")
 
 
 def main():

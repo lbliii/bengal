@@ -95,12 +95,25 @@ class IncrementalOrchestrator:
         config_file = next((f for f in config_files if f.exists()), None)
 
         if config_file:
+            # Check if this is the first time we're seeing the config
+            file_key = str(config_file)
+            is_new = file_key not in self.cache.file_hashes
+
             changed = self.cache.is_changed(config_file)
             # Always update config file hash (for next build)
             self.cache.update_file(config_file)
 
             if changed:
-                logger.info("config_changed", config_file=config_file.name)
+                if is_new:
+                    logger.info(
+                        "config_not_cached",
+                        config_file=config_file.name,
+                        reason="first_build_or_cache_cleared",
+                    )
+                else:
+                    logger.info(
+                        "config_changed", config_file=config_file.name, reason="content_modified"
+                    )
 
             return changed
 
@@ -176,11 +189,15 @@ class IncrementalOrchestrator:
             if page.source_path in pages_to_rebuild and not page.metadata.get("_generated")
         ]
 
+        # Log what changed for debugging
         logger.info(
             "incremental_work_detected",
             pages_to_build=len(pages_to_build_list),
             assets_to_process=len(assets_to_process),
-            template_changes=len(change_summary.get("Modified templates", [])),
+            modified_pages=len(change_summary.get("Modified pages", [])),
+            modified_templates=len(change_summary.get("Modified templates", [])),
+            modified_assets=len(change_summary.get("Modified assets", [])),
+            total_pages=len(self.site.pages),
         )
 
         return pages_to_build_list, assets_to_process, change_summary
@@ -253,11 +270,8 @@ class IncrementalOrchestrator:
         affected_tags: set[str] = set()
         affected_sections: set[Section] = set()  # Type-safe with hashable sections
 
-        for page in self.site.pages:
-            # Skip generated pages - they don't have real source files
-            if page.metadata.get("_generated"):
-                continue
-
+        # OPTIMIZATION: Use site.regular_pages (cached) instead of filtering all pages
+        for page in self.site.regular_pages:
             # Check if this page changed
             if page.source_path in pages_to_rebuild:
                 # Get old and new tags
@@ -282,11 +296,10 @@ class IncrementalOrchestrator:
                     affected_sections.add(page.section)
 
         # Only rebuild specific tag pages that were affected
+        # OPTIMIZATION: Use site.generated_pages (cached) instead of filtering all pages
         if affected_tags:
-            for page in self.site.pages:
-                if page.metadata.get("_generated") and (
-                    page.metadata.get("type") == "tag" or page.metadata.get("type") == "tag-index"
-                ):
+            for page in self.site.generated_pages:
+                if page.metadata.get("type") == "tag" or page.metadata.get("type") == "tag-index":
                     # Rebuild tag pages only for affected tags
                     tag_slug = page.metadata.get("_tag_slug")
                     if (

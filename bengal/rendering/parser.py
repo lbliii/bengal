@@ -814,12 +814,12 @@ def create_markdown_parser(engine: str | None = None) -> BaseMarkdownParser:
     Raises:
         ValueError: If engine is not supported
     """
-    engine = (engine or "python-markdown").lower()
+    engine = (engine or "mistune").lower()
 
-    if engine in ("python-markdown", "python_markdown", "markdown"):
-        return PythonMarkdownParser()
-    elif engine == "mistune":
+    if engine == "mistune":
         return MistuneParser()
+    elif engine in ("python-markdown", "python_markdown", "markdown"):
+        return PythonMarkdownParser()
     else:
         raise ValueError(
             f"Unsupported markdown engine: {engine}. Choose from: 'python-markdown', 'mistune'"

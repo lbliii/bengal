@@ -64,7 +64,7 @@ Welcome to Bengal SSG! This guide will help you get up and running.
 
 ### Install uv (Recommended)
 
-**Why uv?** It's 10-100x faster than pip and provides better dependency resolution.
+uv is a fast Python package installer and resolver.
 
 ```bash
 # macOS/Linux
@@ -76,10 +76,10 @@ powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
 
 ### Option 1: Install from Source (Current)
 
-**Using uv (recommended):**
+**Using uv:**
 
 ```bash
-cd /Users/llane/Documents/github/python/bengal
+cd bengal
 uv venv
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 uv pip install -e .
@@ -88,7 +88,7 @@ uv pip install -e .
 **Using pip:**
 
 ```bash
-cd /Users/llane/Documents/github/python/bengal
+cd bengal
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -e .
@@ -175,10 +175,10 @@ python -m bengal.cli build
 # Building site at /path/to/myblog...
 # Processing 1 assets...
 # Running post-processing...
-#   ✓ Generated sitemap.xml
-#   ✓ Generated rss.xml
-# ✓ Site built successfully in public
-# ✅ Build complete!
+# Generated sitemap.xml
+# Generated rss.xml
+# Site built successfully in public
+# Build complete
 ```
 
 Your site is now built in the `public/` directory!
@@ -229,13 +229,12 @@ description: Getting started with Bengal SSG
 
 Welcome to my blog! This is my first post using Bengal SSG.
 
-## Why Bengal?
+## Features
 
-Bengal is:
-- **Fast**: Parallel processing for quick builds
-- **Simple**: Easy Markdown-based content
-- **Flexible**: Powerful Jinja2 templates
-- **Modern**: Asset optimization built-in
+- Parallel processing for builds
+- Markdown-based content
+- Jinja2 templates
+- Asset optimization
 
 ## Code Example
 
@@ -672,10 +671,8 @@ bengal theme install <name>  # Install theme via uv/pip (warns on name)
 bengal theme new <slug>      # Scaffold a theme (use --mode site|package)
 ```
 
-## Support
+## Additional Resources
 
-- **Issues**: https://github.com/bengal-ssg/bengal/issues
-- **Discussions**: https://github.com/bengal-ssg/bengal/discussions
-- **Docs**: https://bengal-ssg.github.io
-
-Happy building! 🐯
+- [ARCHITECTURE.md](ARCHITECTURE.md) - Technical architecture documentation
+- [CONTRIBUTING.md](CONTRIBUTING.md) - Development guidelines
+- `examples/` - Example sites and use cases

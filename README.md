@@ -2,11 +2,25 @@
 
 A Python static site generator with incremental builds and modular architecture.
 
+**⚡ Built for Python 3.14**
+
+Bengal is the first major SSG to require Python 3.14, delivering **256 pages/sec** rendering speed—making it the fastest Python SSG available and competitive with Node.js tools like Eleventy.
+
+## Performance
+
+- **256 pages/sec** rendering speed (Python 3.14)
+- **Sub-second incremental builds** for typical changes
+- **50x speedup** for single-page incremental builds vs full rebuild
+- **24% faster** than Python 3.12
+- **Scales to 10,000+ pages** with intelligent caching
+
+*Note: Free-threaded Python 3.14t can achieve 373 pages/sec, but requires a special build. See [ARCHITECTURE.md](ARCHITECTURE.md) for benchmarks.*
+
 ## Features
 
 - Markdown-based content with front matter
 - Incremental builds with dependency tracking
-- Parallel processing support
+- Parallel processing with ThreadPoolExecutor
 - Template engine with Jinja2
 - Automatic navigation and breadcrumbs
 - Taxonomy system (tags, categories)
@@ -16,9 +30,15 @@ A Python static site generator with incremental builds and modular architecture.
 - SEO features (sitemap, RSS feeds)
 - Health validation system
 
+## Requirements
+
+**Python 3.14 or later**
+
+*Optional: For maximum performance (373 pps), see [INSTALL_FREE_THREADED.md](INSTALL_FREE_THREADED.md) to install the free-threaded build.*
+
 ## Installation
 
-**Using uv (recommended - 10-100x faster):**
+**Using uv (recommended):**
 
 ```bash
 # Install uv
@@ -123,7 +143,7 @@ bengal build --strict       # Fail on errors (for CI)
 # Generate API documentation
 bengal autodoc --source mylib --output content/api
 
-# Development server
+# Development server (default: 5173)
 bengal serve --port 5173
 
 # Clean output
@@ -185,9 +205,9 @@ The auto-doc system uses AST-based extraction (no imports required) and supports
 
 ## Development Status
 
-Bengal is functional and under active development. Current test coverage is about 64% with 900+ passing tests.
+Bengal is functional and under active development.
 
-See [ARCHITECTURE.md](ARCHITECTURE.md) for technical details and roadmap.
+See [ARCHITECTURE.md](ARCHITECTURE.md) for technical details.
 
 ## License
 

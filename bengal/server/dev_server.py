@@ -13,6 +13,7 @@ from typing import Any
 from watchdog.observers import Observer
 
 from bengal.server.build_handler import BuildHandler
+from bengal.server.constants import DEFAULT_DEV_HOST, DEFAULT_DEV_PORT
 from bengal.server.pid_manager import PIDManager
 from bengal.server.request_handler import BengalRequestHandler
 from bengal.server.resource_manager import ResourceManager
@@ -56,8 +57,8 @@ class DevServer:
     def __init__(
         self,
         site: Any,
-        host: str = "localhost",
-        port: int = 5173,
+        host: str = DEFAULT_DEV_HOST,
+        port: int = DEFAULT_DEV_PORT,
         watch: bool = True,
         auto_port: bool = True,
         open_browser: bool = False,
