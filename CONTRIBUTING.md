@@ -12,14 +12,14 @@ Thank you for your interest in contributing to Bengal! This document provides gu
 
 ### Setup Development Environment
 
-**Using uv (recommended - 10-100x faster):**
+**Using uv (recommended):**
 
 ```bash
 # Install uv if you haven't already
 curl -LsSf https://astral.sh/uv/install.sh | sh
 
 # Clone the repository
-git clone https://github.com/bengal-ssg/bengal.git
+git clone <repository-url>
 cd bengal
 
 # Create virtual environment and install dependencies
@@ -28,11 +28,11 @@ source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 uv pip install -e ".[dev]"
 ```
 
-**Using pip (traditional method):**
+**Using pip:**
 
 ```bash
 # Clone the repository
-git clone https://github.com/bengal-ssg/bengal.git
+git clone <repository-url>
 cd bengal
 
 # Create virtual environment
@@ -211,9 +211,8 @@ def test_page_extracts_links():
 ### High Priority
 
 1. **Plugin System**: Implement hooks for build events
-2. **Incremental Builds**: Track changes and rebuild only what's needed
-3. **Performance Optimization**: Profile and optimize slow operations
-4. **Test Coverage**: Improve test coverage across modules
+2. **Performance Optimization**: Profile and optimize slow operations
+3. **Test Coverage**: Improve test coverage across modules
 
 ### Medium Priority
 
@@ -262,19 +261,17 @@ def test_page_extracts_links():
 
 ## Communication
 
-- **Issues**: Report bugs and request features on GitHub Issues
-- **Discussions**: Use GitHub Discussions for questions and ideas
-- **Pull Requests**: Submit code changes via Pull Requests
+- Submit code changes via Pull Requests
+- Report bugs and suggest features via issue tracking
+- Document your changes clearly
 
 ## Code of Conduct
 
-Be respectful, inclusive, and collaborative. We're all here to build something great together.
+Be respectful, inclusive, and collaborative.
 
 ## Questions?
 
-If you have questions, feel free to:
-- Open a GitHub Discussion
+If you have questions:
+- Check the documentation in [ARCHITECTURE.md](ARCHITECTURE.md)
+- Review the examples in the `examples/` directory
 - Comment on relevant issues
-- Reach out to maintainers
-
-Thank you for contributing to Bengal! 🎉

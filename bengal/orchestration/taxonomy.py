@@ -324,6 +324,9 @@ class TaxonomyOrchestrator:
             finally:
                 self.site.current_language = prev_lang
 
+        # Invalidate cached page lists after adding generated pages
+        self.site.invalidate_page_caches()
+
         logger.info(
             "dynamic_pages_generated_incremental",
             tag_pages=generated_count,
@@ -401,6 +404,9 @@ class TaxonomyOrchestrator:
                             generated_count += 1
                 finally:
                     self.site.current_language = prev_lang
+
+        # Invalidate cached page lists after adding generated pages
+        self.site.invalidate_page_caches()
 
         # Count types of generated pages
         tag_count = sum(

@@ -17,6 +17,8 @@ Example:
 """
 
 import os
+import threading
+import uuid
 from pathlib import Path
 
 
@@ -50,8 +52,12 @@ def atomic_write_text(
     # Ensure parent directory exists (defensive; callers should ensure this but we harden here)
     path.parent.mkdir(parents=True, exist_ok=True)
 
-    # Create temp file in same directory (ensures same filesystem for atomic rename)
-    tmp_path = path.with_suffix(path.suffix + ".tmp")
+    # Create unique temp file in same directory (ensures same filesystem for atomic rename)
+    # Use PID + thread ID + UUID to prevent race conditions in parallel builds
+    pid = os.getpid()
+    tid = threading.get_ident()
+    unique_id = uuid.uuid4().hex[:8]
+    tmp_path = path.parent / f".{path.name}.{pid}.{tid}.{unique_id}.tmp"
 
     try:
         # Write to temp file
@@ -89,7 +95,12 @@ def atomic_write_bytes(path: Path | str, content: bytes, mode: int | None = None
     path = Path(path)
     # Ensure parent directory exists
     path.parent.mkdir(parents=True, exist_ok=True)
-    tmp_path = path.with_suffix(path.suffix + ".tmp")
+
+    # Create unique temp file to prevent race conditions
+    pid = os.getpid()
+    tid = threading.get_ident()
+    unique_id = uuid.uuid4().hex[:8]
+    tmp_path = path.parent / f".{path.name}.{pid}.{tid}.{unique_id}.tmp"
 
     try:
         tmp_path.write_bytes(content)
@@ -138,7 +149,12 @@ class AtomicFile:
         self.mode = mode
         self.encoding = encoding if "b" not in mode else None
         self.kwargs = kwargs
-        self.tmp_path = self.path.with_suffix(self.path.suffix + ".tmp")
+
+        # Create unique temp file to prevent race conditions
+        pid = os.getpid()
+        tid = threading.get_ident()
+        unique_id = uuid.uuid4().hex[:8]
+        self.tmp_path = self.path.parent / f".{self.path.name}.{pid}.{tid}.{unique_id}.tmp"
         self.file = None
 
     def __enter__(self):

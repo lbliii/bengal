@@ -5,13 +5,14 @@ from pathlib import Path
 import click
 
 from bengal.core.site import Site
+from bengal.server.constants import DEFAULT_DEV_HOST, DEFAULT_DEV_PORT
 from bengal.utils.build_stats import show_error
 from bengal.utils.logger import LogLevel, configure_logging
 
 
 @click.command()
-@click.option("--host", default="localhost", help="Server host address")
-@click.option("--port", "-p", default=5173, type=int, help="Server port number")
+@click.option("--host", default=DEFAULT_DEV_HOST, help="Server host address")
+@click.option("--port", "-p", default=DEFAULT_DEV_PORT, type=int, help="Server port number")
 @click.option(
     "--watch/--no-watch", default=True, help="Watch for file changes and rebuild (default: enabled)"
 )

@@ -1,17 +1,15 @@
 # Bengal SSG - Quick Start Guide
 
-Get up and running with Bengal in 5 minutes!
-
 ## Installation
 
 ```bash
-# From PyPI (when published)
-pip install bengal-ssg
-
-# Or install from source
-git clone https://github.com/bengal-ssg/bengal.git
+# Install from source
+git clone <repository-url>
 cd bengal
 pip install -e .
+
+# Or with uv
+uv pip install -e .
 ```
 
 ## Create Your First Site
@@ -42,7 +40,7 @@ bengal build
 # Start development server with hot reload
 bengal serve
 
-# Visit http://localhost:8000
+# Visit http://localhost:5173 (or the URL printed in the console)
 ```
 
 ## Add Content
@@ -233,9 +231,6 @@ bengal serve
 ### Build Errors
 
 ```bash
-# Enable verbose output (future enhancement)
-bengal build --verbose
-
 # Clean and rebuild
 bengal clean
 bengal build
@@ -257,8 +252,6 @@ pip install -r requirements.txt
 
 ## Getting Help
 
-- [GitHub Issues](https://github.com/bengal-ssg/bengal/issues) - Report bugs
-- [GitHub Discussions](https://github.com/bengal-ssg/bengal/discussions) - Ask questions
-- [Documentation](https://bengal-ssg.github.io) - Read the docs
-
-Happy building with Bengal! 🐯
+- Check [ARCHITECTURE.md](ARCHITECTURE.md) for technical details
+- See [CONTRIBUTING.md](CONTRIBUTING.md) for development guidelines
+- Review example sites in the `examples/` directory

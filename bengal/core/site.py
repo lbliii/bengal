@@ -16,6 +16,7 @@ from bengal.core.menu import MenuBuilder, MenuItem
 from bengal.core.page import Page
 from bengal.core.section import Section
 from bengal.utils.build_stats import BuildStats
+from bengal.utils.dotdict import DotDict
 from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
@@ -95,6 +96,7 @@ class Site:
 
     # Private caches for expensive properties (invalidated when pages change)
     _regular_pages_cache: list[Page] | None = field(default=None, repr=False, init=False)
+    _generated_pages_cache: list[Page] | None = field(default=None, repr=False, init=False)
 
     def __post_init__(self) -> None:
         """Initialize site from configuration."""
@@ -148,6 +150,46 @@ class Site:
         # Compute and cache (O(n), only happens once)
         self._regular_pages_cache = [p for p in self.pages if not p.metadata.get("_generated")]
         return self._regular_pages_cache
+
+    @property
+    def generated_pages(self) -> list[Page]:
+        """
+        Get only generated pages (taxonomy, archive, pagination pages).
+
+        PERFORMANCE: This property is cached after first access for O(1) subsequent lookups.
+        The cache is automatically invalidated when pages are modified.
+
+        Returns:
+            List of generated Page objects (tag pages, archive pages, pagination, etc.)
+
+        Example:
+            # Check if any tag pages need rebuilding
+            for page in site.generated_pages:
+                if page.metadata.get("type") == "tag":
+                    # ... process tag page
+        """
+        # Return cached value if available (O(1))
+        if self._generated_pages_cache is not None:
+            return self._generated_pages_cache
+
+        # Compute and cache (O(n), only happens once)
+        self._generated_pages_cache = [p for p in self.pages if p.metadata.get("_generated")]
+        return self._generated_pages_cache
+
+    def invalidate_page_caches(self) -> None:
+        """
+        Invalidate cached page lists when pages are modified.
+
+        Call this after:
+        - Adding/removing pages
+        - Modifying page metadata (especially _generated flag)
+        - Any operation that changes the pages list
+
+        This ensures cached properties (regular_pages, generated_pages) will
+        recompute on next access.
+        """
+        self._regular_pages_cache = None
+        self._generated_pages_cache = None
 
     def invalidate_regular_pages_cache(self) -> None:
         """
@@ -528,7 +570,7 @@ class Site:
     def serve(
         self,
         host: str = "localhost",
-        port: int = 8000,
+        port: int = 5173,
         watch: bool = True,
         auto_port: bool = True,
         open_browser: bool = False,
@@ -571,7 +613,7 @@ class Site:
         else:
             logger.debug("output_dir_does_not_exist", path=str(self.output_dir))
 
-    def _load_data_directory(self) -> "DotDict":
+    def _load_data_directory(self) -> DotDict:
         """
         Load all data files from the data/ directory into site.data.
 

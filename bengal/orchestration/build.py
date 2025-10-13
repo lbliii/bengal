@@ -216,8 +216,26 @@ class BuildOrchestrator:
             )
 
         # Check if config changed (forces full rebuild)
-        if incremental and self.incremental.check_config_changed():
-            cli.info("  Config file changed - performing full rebuild")
+        # Note: We check this even on full builds to populate the cache
+        config_changed = self.incremental.check_config_changed()
+        if incremental and config_changed:
+            # Determine if this is first build or actual change
+            config_files = [
+                self.site.root_path / "bengal.toml",
+                self.site.root_path / "bengal.yaml",
+                self.site.root_path / "bengal.yml",
+            ]
+            config_file = next((f for f in config_files if f.exists()), None)
+
+            # Check if config was previously cached
+            if config_file and str(config_file) not in cache.file_hashes:
+                cli.info("  Config not in cache - performing full rebuild")
+                cli.detail("(This is normal for the first incremental build)", indent=1)
+            else:
+                cli.info("  Config file modified - performing full rebuild")
+                if config_file:
+                    cli.detail(f"Changed: {config_file.name}", indent=1)
+
             incremental = False
             cache.clear()
 
@@ -277,16 +295,37 @@ class BuildOrchestrator:
                 needs_taxonomy_regen = bool(cache.get_all_tags())
 
                 if not pages_to_build and not assets_to_process and not needs_taxonomy_regen:
-                    cli.success("No changes detected - skipping build")
-                    self.logger.info("no_changes_detected")
+                    cli.success("✓ No changes detected - build skipped")
+                    cli.detail(
+                        f"Cached: {len(self.site.pages)} pages, {len(self.site.assets)} assets",
+                        indent=1,
+                    )
+                    self.logger.info(
+                        "no_changes_detected",
+                        cached_pages=len(self.site.pages),
+                        cached_assets=len(self.site.assets),
+                    )
                     self.stats.skipped = True
                     self.stats.build_time_ms = (time.time() - build_start) * 1000
                     return self.stats
 
-                cli.info(
-                    f"  Incremental build: {len(pages_to_build)} pages, "
-                    f"{len(assets_to_process)} assets"
+                # More informative incremental build message
+                pages_msg = f"{len(pages_to_build)} page{'s' if len(pages_to_build) != 1 else ''}"
+                assets_msg = (
+                    f"{len(assets_to_process)} asset{'s' if len(assets_to_process) != 1 else ''}"
                 )
+                skipped_msg = f"{len(self.site.pages) - len(pages_to_build)} cached"
+
+                cli.info(f"  Incremental build: {pages_msg}, {assets_msg} (skipped {skipped_msg})")
+
+                # Show what changed (brief summary)
+                if change_summary:
+                    changed_items = []
+                    for change_type, items in change_summary.items():
+                        if items:
+                            changed_items.append(f"{len(items)} {change_type.lower()}")
+                    if changed_items:
+                        cli.detail(f"Changed: {', '.join(changed_items[:3])}", indent=1)
 
                 if verbose and change_summary:
                     cli.blank()
@@ -393,26 +432,47 @@ class BuildOrchestrator:
             self.logger.info("menus_built", menu_count=len(self.site.menu), rebuilt=menu_rebuilt)
 
         # Phase 5.5: Related Posts Index (NEW - Pre-compute for O(1) template access)
-        with self.logger.phase("related_posts_index"):
-            from bengal.orchestration.related_posts import RelatedPostsOrchestrator
+        # Note: This is O(n·t·p) and can be expensive at scale. Skip for large sites
+        # or sites without tags to improve performance.
+        should_build_related = (
+            hasattr(self.site, "taxonomies")
+            and "tags" in self.site.taxonomies
+            and len(self.site.pages) < 5000  # Skip for large sites (>5K pages)
+        )
 
-            related_posts_start = time.time()
-            related_posts_orchestrator = RelatedPostsOrchestrator(self.site)
-            related_posts_orchestrator.build_index(limit=5)
+        if should_build_related:
+            with self.logger.phase("related_posts_index"):
+                from bengal.orchestration.related_posts import RelatedPostsOrchestrator
 
-            # Log statistics
-            pages_with_related = sum(
-                1
-                for p in self.site.pages
-                if hasattr(p, "related_posts")
-                and p.related_posts
-                and not p.metadata.get("_generated")
-            )
-            self.stats.related_posts_time_ms = (time.time() - related_posts_start) * 1000
+                related_posts_start = time.time()
+                related_posts_orchestrator = RelatedPostsOrchestrator(self.site)
+                related_posts_orchestrator.build_index(limit=5)
+
+                # Log statistics
+                pages_with_related = sum(
+                    1
+                    for p in self.site.pages
+                    if hasattr(p, "related_posts")
+                    and p.related_posts
+                    and not p.metadata.get("_generated")
+                )
+                self.stats.related_posts_time_ms = (time.time() - related_posts_start) * 1000
+                self.logger.info(
+                    "related_posts_built",
+                    pages_with_related=pages_with_related,
+                    total_pages=len(
+                        [p for p in self.site.pages if not p.metadata.get("_generated")]
+                    ),
+                )
+        else:
+            # Skip related posts for large sites or sites without tags
+            for page in self.site.pages:
+                page.related_posts = []
             self.logger.info(
-                "related_posts_built",
-                pages_with_related=pages_with_related,
-                total_pages=len([p for p in self.site.pages if not p.metadata.get("_generated")]),
+                "related_posts_skipped",
+                reason="large_site_or_no_tags",
+                page_count=len(self.site.pages),
+                threshold=5000,
             )
 
         # Phase 6: Update filtered pages list (add generated pages)
@@ -422,11 +482,9 @@ class BuildOrchestrator:
             pages_to_build_set = set(pages_to_build) if pages_to_build else set()
 
             # Add newly generated tag pages to rebuild set
-            for page in self.site.pages:
-                if page.metadata.get("_generated") and page.metadata.get("type") in (
-                    "tag",
-                    "tag-index",
-                ):
+            # OPTIMIZATION: Use site.generated_pages (cached) instead of filtering all pages
+            for page in self.site.generated_pages:
+                if page.metadata.get("type") in ("tag", "tag-index"):
                     # For full builds, add all taxonomy pages
                     # For incremental builds, add only affected tag pages + tag index
                     tag_slug = page.metadata.get("_tag_slug")
@@ -564,10 +622,10 @@ class BuildOrchestrator:
             self.logger.info("postprocessing_complete")
 
         # Phase 9: Update cache
-        if incremental or self.site.config.get("cache_enabled", True):
-            with self.logger.phase("cache_save"):
-                self.incremental.save_cache(pages_to_build, assets_to_process)
-                self.logger.info("cache_saved")
+        # Always save cache after successful build (needed for future incremental builds)
+        with self.logger.phase("cache_save"):
+            self.incremental.save_cache(pages_to_build, assets_to_process)
+            self.logger.info("cache_saved")
 
         # Collect final stats (before health check so we can include them in report)
         self.stats.total_pages = len(self.site.pages)

@@ -70,15 +70,20 @@ class TestAtomicWriteText:
 
     def test_temp_file_cleaned_on_error(self, tmp_path):
         """Test that temp file is cleaned up on write error."""
+        from unittest.mock import patch
+
         from bengal.utils.atomic_write import atomic_write_text
 
-        file_path = tmp_path / "nonexistent" / "test.txt"
+        file_path = tmp_path / "test.txt"
 
-        # Try to write to non-existent directory
-        with pytest.raises(OSError):
+        # Mock write_text to raise an error after creating the temp file
+        with (
+            patch("pathlib.Path.write_text", side_effect=OSError("Mock write error")),
+            pytest.raises(OSError),
+        ):
             atomic_write_text(file_path, "content")
 
-        # Check no .tmp files left anywhere
+        # Check no .tmp files left anywhere (including hidden ones)
         tmp_files = list(tmp_path.rglob("*.tmp"))
         assert len(tmp_files) == 0
 
@@ -268,6 +273,39 @@ class TestRealWorldScenarios:
 
         # No temp files left
         assert len(list(tmp_path.glob("*.tmp"))) == 0
+
+    def test_concurrent_writes_same_file(self, tmp_path):
+        """Test concurrent writes to the SAME file (regression test for race condition)."""
+        import concurrent.futures
+        import time
+
+        from bengal.utils.atomic_write import atomic_write_text
+
+        file_path = tmp_path / "index.html"
+        num_threads = 10
+
+        def write_same_file(i):
+            """Multiple threads writing to same file."""
+            content = f"<html><body>Thread {i} at {time.time()}</body></html>"
+            atomic_write_text(file_path, content)
+            return i
+
+        # Concurrent writes to SAME file (this was causing FileNotFoundError)
+        with concurrent.futures.ThreadPoolExecutor(max_workers=num_threads) as executor:
+            results = list(executor.map(write_same_file, range(num_threads)))
+
+        # File should exist with valid content from ONE of the threads
+        assert file_path.exists()
+        content = file_path.read_text()
+        assert content.startswith("<html><body>Thread")
+        assert content.endswith("</body></html>")
+
+        # All threads should complete successfully
+        assert len(results) == num_threads
+
+        # No temp files left (critical - was leaking .tmp files before fix)
+        tmp_files = list(tmp_path.rglob("*.tmp"))
+        assert len(tmp_files) == 0, f"Found leftover temp files: {tmp_files}"
 
     def test_html_page_rendering(self, tmp_path):
         """Test typical page rendering scenario."""

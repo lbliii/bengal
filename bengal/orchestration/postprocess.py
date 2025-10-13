@@ -9,6 +9,10 @@ from collections.abc import Callable
 from threading import Lock
 from typing import TYPE_CHECKING
 
+from bengal.postprocess.output_formats import OutputFormatsGenerator
+from bengal.postprocess.rss import RSSGenerator
+from bengal.postprocess.sitemap import SitemapGenerator
+from bengal.postprocess.special_pages import SpecialPagesGenerator
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -147,8 +151,6 @@ class PostprocessOrchestrator:
         Raises:
             Exception: If special page generation fails
         """
-        from bengal.postprocess.special_pages import SpecialPagesGenerator
-
         generator = SpecialPagesGenerator(self.site)
         generator.generate()
 
@@ -159,8 +161,6 @@ class PostprocessOrchestrator:
         Raises:
             Exception: If sitemap generation fails
         """
-        from bengal.postprocess.sitemap import SitemapGenerator
-
         generator = SitemapGenerator(self.site)
         generator.generate()
 
@@ -171,8 +171,6 @@ class PostprocessOrchestrator:
         Raises:
             Exception: If RSS generation fails
         """
-        from bengal.postprocess.rss import RSSGenerator
-
         generator = RSSGenerator(self.site)
         generator.generate()
 
@@ -183,8 +181,6 @@ class PostprocessOrchestrator:
         Raises:
             Exception: If output format generation fails
         """
-        from bengal.postprocess.output_formats import OutputFormatsGenerator
-
         config = self.site.config.get("output_formats", {})
         generator = OutputFormatsGenerator(self.site, config)
         generator.generate()

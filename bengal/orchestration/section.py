@@ -63,6 +63,11 @@ class SectionOrchestrator:
             archives_created = self._finalize_recursive(section)
             archive_count += archives_created
 
+        # Invalidate page caches once after all sections are finalized
+        # (rather than repeatedly during recursive processing)
+        if archive_count > 0:
+            self.site.invalidate_page_caches()
+
         logger.info("section_finalization_complete", archives_created=archive_count)
 
     def _finalize_recursive(self, section: "Section") -> int:

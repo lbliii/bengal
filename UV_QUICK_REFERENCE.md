@@ -47,13 +47,13 @@ uv pip compile pyproject.toml -o requirements.lock --all-extras
 uv pip sync requirements.lock
 ```
 
-## Speed Comparison
+## Why uv?
 
-| Operation | pip | uv | Speedup |
-|-----------|-----|-----|---------|
-| Install 36 packages | ~2-3 min | 181ms | ~100x |
-| Resolve dependencies | ~30s | 29ms | ~1000x |
-| Create venv | ~10s | ~1s | ~10x |
+- Faster than pip
+- Better dependency resolution
+- Lock file support for reproducible builds
+- Modern Rust-based implementation
+- Compatible with existing pip/pyproject.toml setup
 
 ## Common Tasks
 
@@ -135,13 +135,6 @@ uv venv --python 3.12
 uv pip install -e ".[dev]" --resolution=highest
 ```
 
-## Why uv?
-
-- **10-100x faster** than pip
-- **Better dependency resolution** (Rust-based resolver)
-- **Lock file support** for reproducible builds
-- **Modern** - from Astral (creators of Ruff)
-- **Compatible** - works with existing pip/pyproject.toml setup
 
 ## More Info
 
