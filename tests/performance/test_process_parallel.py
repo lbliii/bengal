@@ -331,7 +331,8 @@ This page contains enough complex markdown (code blocks, tables, math, nested li
 
 if __name__ == "__main__":
     # Required for ProcessPoolExecutor on some platforms
-    multiprocessing.set_start_method("spawn", force=True)
+    if not multiprocessing.get_start_method(allow_none=True):
+        multiprocessing.set_start_method("spawn")
 
     print("=" * 70)
     print("PARALLEL RENDERING TEST: Threads vs Processes")
