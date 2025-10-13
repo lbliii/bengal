@@ -7,7 +7,7 @@ name = "bengal"
 version = "0.1.0"
 description = "A high-performance static site generator with modular architecture"
 readme = "README.md"
-requires-python = ">=3.14"
+requires-python = ">=3.13"
 license = "MIT"
 authors = [{ name = "Bengal Contributors", email = "lbeeze@icloud.com" }]
 keywords = [
@@ -23,6 +23,7 @@ classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
     "Topic :: Documentation",
     "Topic :: Software Development :: Documentation",
