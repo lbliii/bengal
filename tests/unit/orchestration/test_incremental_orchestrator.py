@@ -95,6 +95,7 @@ class TestIncrementalOrchestrator:
         # Setup
         orchestrator.cache = Mock(spec=BuildCache)
         orchestrator.cache.is_changed.return_value = True
+        orchestrator.cache.file_hashes = {}  # Add file_hashes attribute
 
         # Create a temporary config file
         config_file = tmp_path / "bengal.toml"
