@@ -1,7 +1,8 @@
 ---
 title: Theming
 description: Theming section
-type: section
+cascade:
+    type: doc
 weight: 40
 ---
 

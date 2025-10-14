@@ -1,7 +1,8 @@
 ---
 title: Get Started
 description: Get Started section
-type: section
+cascade:
+    type: tutorial
 weight: 20
 ---
 

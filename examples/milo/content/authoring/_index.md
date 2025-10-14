@@ -1,7 +1,8 @@
 ---
 title: Authoring
 description: Authoring section
-type: section
+cascade:
+    type: doc
 weight: 30
 ---
 

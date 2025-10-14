@@ -201,11 +201,11 @@ class TestLoadData:
 
     def test_load_unsupported_format(self, temp_data_dir, mock_state):
         """Test loading unsupported file format."""
-        file_path = temp_data_dir / "data" / "file.txt"
-        file_path.parent.mkdir(exist_ok=True)
+        file_path = temp_data_dir / "file.txt"
         file_path.write_text("some data")
 
         directive = DataTableDirective()
+        # Pass path relative to root_path (which is temp_data_dir.parent)
         result = directive._load_data("data/file.txt", mock_state)
 
         assert "error" in result
