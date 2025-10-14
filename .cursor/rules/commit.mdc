@@ -1,0 +1,12 @@
+---
+alwaysApply: true
+---
+
+Write atomic commits for each task you complete that are helpful. 
+
+Examples:
+
+```
+git add -A && git commit -m "core: decouple theme chain/assets resolution from TemplateEngine via utils.theme_resolution; use in Site"
+git add -A && git commit -m "core(server): add Site.reset_ephemeral_state and adopt in dev server; utils: introduce ProgressReporter; orchestration: route streaming output via reporter" --no-verify
+```

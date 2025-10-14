@@ -488,44 +488,19 @@ class Site:
         """
         dirs: list[Path] = []
         try:
-            # Reuse resolver from template engine semantics
-            from bengal.rendering.template_engine import TemplateEngine
+            from bengal.utils.theme_resolution import resolve_theme_chain
 
-            # Build a temporary engine with this site to resolve chain
-            engine = TemplateEngine(self)
-            chain = engine._resolve_theme_chain(self.theme)
+            chain = resolve_theme_chain(self.root_path, self.theme)
         except Exception:
             chain = [self.theme] if self.theme else []
 
         # Build list from parents to child
         for theme_name in reversed(chain):
-            # Site theme assets
-            site_dir = self.root_path / "themes" / theme_name / "assets"
-            if site_dir.exists():
-                dirs.append(site_dir)
-                continue
-            # Installed theme assets
-            try:
-                from bengal.utils.theme_registry import get_theme_package
+            from bengal.utils.theme_resolution import iter_theme_asset_dirs
 
-                pkg = get_theme_package(theme_name)
-                if pkg:
-                    resolved = pkg.resolve_resource_path("assets")
-                    if resolved and resolved.exists():
-                        dirs.append(resolved)
-                        continue
-            except Exception:
-                pass
-            # Bundled theme assets
-            try:
-                import bengal
-
-                bengal_dir = Path(bengal.__file__).parent
-                bundled_dir = bengal_dir / "themes" / theme_name / "assets"
-                if bundled_dir.exists():
-                    dirs.append(bundled_dir)
-            except Exception:
-                pass
+            # iter_theme_asset_dirs returns parent→child; we just consume one theme at a time
+            for d in iter_theme_asset_dirs(self.root_path, [theme_name]):
+                dirs.append(d)
         return dirs
 
     def build(
