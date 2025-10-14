@@ -1,0 +1,12 @@
+[site]
+title = "zzz"
+baseurl = ""
+theme = "default"
+
+[build]
+output_dir = "public"
+parallel = true
+
+[assets]
+minify = true
+fingerprint = true

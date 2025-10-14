@@ -163,6 +163,30 @@ class Renderer:
                 }
             )
 
+        # Handle root index pages (top-level _index.md without enclosing section)
+        elif is_index_page and page_type in ("doc", "blog", "archive", "changelog"):
+            # For root home page, provide site-level context as fallback
+            # Filter to top-level items only (exclude nested sections/pages)
+            top_level_pages = [
+                p
+                for p in self.site.regular_pages
+                if not any(p in s.pages for s in self.site.sections)
+            ]
+            top_level_subsections = [
+                s
+                for s in self.site.sections
+                if not any(s in parent.subsections for parent in self.site.sections)
+            ]
+
+            context.update(
+                {
+                    "section": None,  # Root has no section
+                    "posts": top_level_pages,
+                    "pages": top_level_pages,  # Alias
+                    "subsections": top_level_subsections,
+                }
+            )
+
         # Render with template
         try:
             return self.template_engine.render(template_name, context)
