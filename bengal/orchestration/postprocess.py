@@ -95,11 +95,13 @@ class PostprocessOrchestrator:
         # Run in parallel if enabled and multiple tasks
         # Threshold of 2 tasks (always parallel if multiple tasks since they're independent)
         if parallel and len(tasks) > 1:
-            self._run_parallel(tasks, progress_manager)
+            self._run_parallel(tasks, progress_manager, reporter)
         else:
-            self._run_sequential(tasks, progress_manager)
+            self._run_sequential(tasks, progress_manager, reporter)
 
-    def _run_sequential(self, tasks: list[tuple[str, Callable]], progress_manager=None) -> None:
+    def _run_sequential(
+        self, tasks: list[tuple[str, Callable]], progress_manager=None, reporter=None
+    ) -> None:
         """
         Run post-processing tasks sequentially.
 
@@ -119,9 +121,17 @@ class PostprocessOrchestrator:
                     logger.error("postprocess_task_failed", task=task_name, error=str(e))
                 else:
                     with _print_lock:
-                        print(f"  ✗ {task_name}: {e}")
+                        if reporter:
+                            try:
+                                reporter.log(f"  ✗ {task_name}: {e}")
+                            except Exception:
+                                print(f"  ✗ {task_name}: {e}")
+                        else:
+                            print(f"  ✗ {task_name}: {e}")
 
-    def _run_parallel(self, tasks: list[tuple[str, Callable]], progress_manager=None) -> None:
+    def _run_parallel(
+        self, tasks: list[tuple[str, Callable]], progress_manager=None, reporter=None
+    ) -> None:
         """
         Run post-processing tasks in parallel.
 
@@ -154,14 +164,18 @@ class PostprocessOrchestrator:
         # Report errors
         if errors and not progress_manager:
             with _print_lock:
-                if build_context and getattr(build_context, "reporter", None):
-                    build_context.reporter.log(
-                        f"  ⚠️  {len(errors)} post-processing task(s) failed:"
-                    )
-                    for task_name, error in errors:
-                        build_context.reporter.log(f"    • {task_name}: {error}")
+                header = f"  ⚠️  {len(errors)} post-processing task(s) failed:"
+                if reporter:
+                    try:
+                        reporter.log(header)
+                        for task_name, error in errors:
+                            reporter.log(f"    • {task_name}: {error}")
+                    except Exception:
+                        print(header)
+                        for task_name, error in errors:
+                            print(f"    • {task_name}: {error}")
                 else:
-                    print(f"  ⚠️  {len(errors)} post-processing task(s) failed:")
+                    print(header)
                     for task_name, error in errors:
                         print(f"    • {task_name}: {error}")
 

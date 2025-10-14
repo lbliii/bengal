@@ -28,22 +28,16 @@ def test_postprocess_reports_errors_via_reporter(tmp_path, monkeypatch):
             return [("/broken", "not found")]
 
     monkeypatch.setenv("PYTHONHASHSEED", "0")
-    monkeypatch.setitem(
-        PostprocessOrchestrator.__dict__,
-        "_PostprocessOrchestrator__dummy__",
-        None,
+
+    class FakeLinkValidator:  # noqa: N801
+        def validate_site(self, site):
+            return {"/broken": "not found"}
+
+    monkeypatch.setattr(
+        "bengal.orchestration.postprocess.LinkValidator",
+        FakeLinkValidator,
         raising=False,
     )
-
-    # Patch LinkValidator import
-    import bengal.orchestration.postprocess as pp
-
-    class FakeModule:
-        class LinkValidator:  # noqa: N801
-            def validate_site(self, site):
-                return {"/broken": "not found"}
-
-    pp.LinkValidator = FakeModule.LinkValidator
 
     reporter = CapturingReporter()
     ctx = SimpleNamespace(reporter=reporter)

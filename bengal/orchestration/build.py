@@ -7,6 +7,7 @@ Main coordinator that delegates build phases to specialized orchestrators.
 from __future__ import annotations
 
 import time
+from contextlib import suppress
 from datetime import datetime
 from typing import TYPE_CHECKING
 
@@ -256,6 +257,9 @@ class BuildOrchestrator:
         # Now clear cache if config changed
         if not incremental and config_changed:
             cache.clear()
+            # Re-track config file hash so it's present after full build
+            with suppress(Exception):
+                self.incremental.check_config_changed()
 
         # Phase 2: Determine what to build (MOVED UP - before taxonomies/menus)
         # This is the KEY optimization: filter BEFORE expensive operations

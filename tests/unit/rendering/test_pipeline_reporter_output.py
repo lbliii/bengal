@@ -31,7 +31,14 @@ def test_pipeline_routes_output_via_reporter(tmp_path):
     page = Page(source_path=tmp_path / "content" / "p.md", content="# Title", metadata={})
     page.output_path = site.output_dir / "p" / "index.html"
     reporter = CapturingReporter()
-    ctx = SimpleNamespace(reporter=reporter)
+
+    # Inject a dummy template engine to avoid needing a full Site with theme
+    class DummyTemplateEngine:
+        def __init__(self, site):
+            self.site = site
+            self.env = SimpleNamespace()
+
+    ctx = SimpleNamespace(reporter=reporter, template_engine=DummyTemplateEngine(site))
 
     pipeline = RenderingPipeline(site, build_context=ctx, quiet=False)
     # Ensure write path exists

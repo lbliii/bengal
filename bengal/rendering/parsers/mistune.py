@@ -344,6 +344,11 @@ class MistuneParser(BaseMarkdownParser):
             # Post-process: Restore __BENGAL_ESCAPED_*__ placeholders to literal {{ }}
             html = self._var_plugin.restore_placeholders(html)
 
+            # Post-process: Escape any raw Jinja2 block syntax so it never leaks
+            # through to the final output (outside templates). Browsers render these
+            # HTML entities as the expected characters for documentation.
+            html = self._escape_jinja_blocks(html)
+
             # Post-process for badges (Sphinx-Design compatibility)
             html = self._badge_plugin._substitute_badges(html)
 
@@ -357,6 +362,18 @@ class MistuneParser(BaseMarkdownParser):
                 "mistune_parsing_error_with_toc", error=str(e), error_type=type(e).__name__
             )
             return f'<div class="markdown-error"><p><strong>Markdown parsing error:</strong> {e}</p><pre>{content}</pre></div>'
+
+    def _escape_jinja_blocks(self, html: str) -> str:
+        """
+        Escape raw Jinja2 block delimiters in HTML content.
+
+        This converts "{%"/"%}" into HTML entities so any documentation
+        examples do not appear as unrendered template syntax in the final HTML.
+        """
+        try:
+            return html.replace("{%", "&#123;%").replace("%}", "%&#125;")
+        except Exception:
+            return html
 
     def parse_with_toc_and_context(
         self, content: str, metadata: dict[str, Any], context: dict[str, Any]
