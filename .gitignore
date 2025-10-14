@@ -74,3 +74,5 @@ examples/showcase/content/cli/
 venv/
 venv-*/
 .tmp-venv/
+
+.env
