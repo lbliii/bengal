@@ -42,6 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Comprehensive test coverage (6 tests)
 
 ### Refactoring
+
 - Build orchestration: pass explicit page/asset lists across phases; eliminate Site field swapping
 - Rendering pipeline: accept optional BuildContext; DI for parser/engine/enhancer; log routing via reporter
 - Streaming/render orchestrators: accept reporter to decouple presentation from logic
@@ -292,7 +293,6 @@ Bengal 0.1.0 is an alpha release of a high-performance static site generator opt
 - See `pyproject.toml` for dependencies
 
 ---
-
 ## Project Status
 
 **v0.1.0 is an alpha release** suitable for:
@@ -306,7 +306,6 @@ Bengal 0.1.0 is an alpha release of a high-performance static site generator opt
 - ❌ Mission-critical production without testing
 
 ---
-
 ## Links
 
 - [Documentation](https://github.com/lbliii/bengal)

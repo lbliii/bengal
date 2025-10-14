@@ -186,12 +186,12 @@ class TestLoadYaml:
 
     def test_invalid_yaml_raise(self, tmp_path):
         """Test YAMLError on invalid YAML."""
-        pytest.importorskip("yaml")  # Skip if yaml not installed
+        yaml = pytest.importorskip("yaml")  # Skip if yaml not installed
 
         file_path = tmp_path / "invalid.yaml"
         file_path.write_text("key: [invalid")
 
-        with pytest.raises((ValueError, OSError)):  # yaml.YAMLError
+        with pytest.raises(yaml.YAMLError):
             load_yaml(file_path, on_error="raise")
 
     def test_invalid_yaml_return_empty(self, tmp_path):

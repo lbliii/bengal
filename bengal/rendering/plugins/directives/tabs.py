@@ -26,11 +26,84 @@ from bengal.utils.logger import get_logger
 __all__ = [
     "TabItemDirective",  # Modern MyST syntax
     "TabSetDirective",  # Modern MyST syntax
+    "TabsDirective",  # Legacy/backward compatibility
     "render_tab_item",
     "render_tab_set",
+    "render_tabs",
 ]
 
 logger = get_logger(__name__)
+
+# Pre-compiled regex patterns
+_TAB_SPLIT_PATTERN = re.compile(r"^### Tab: (.+)$", re.MULTILINE)
+
+
+class TabsDirective(DirectivePlugin):
+    """
+    Legacy tabs directive for backward compatibility.
+
+    Syntax:
+        ```{tabs}
+        :id: my-tabs
+
+        ### Tab: First
+
+        Content in first tab.
+
+        ### Tab: Second
+
+        Content in second tab.
+        ```
+
+    This uses ### Tab: markers to split content into tabs.
+    For new code, prefer the modern {tab-set}/{tab-item} syntax.
+    """
+
+    def parse(self, block: Any, m: Match, state: Any) -> dict[str, Any]:
+        """Parse legacy tabs directive."""
+        options = dict(self.parse_options(m))
+        content = self.parse_content(m)
+
+        # Split by tab markers
+        parts = _TAB_SPLIT_PATTERN.split(content)
+
+        tabs = []
+        if len(parts) > 1:
+            # Skip first part if it's just whitespace before first tab
+            start_idx = 1 if not parts[0].strip() else 0
+
+            for i in range(start_idx, len(parts), 2):
+                if i + 1 < len(parts):
+                    title = parts[i].strip()
+                    tab_content = parts[i + 1].strip()
+
+                    # Parse the tab content as markdown
+                    children = self.parse_tokens(block, tab_content, state)
+
+                    tabs.append(
+                        {
+                            "type": "legacy_tab_item",
+                            "attrs": {
+                                "title": title,
+                                "selected": i == start_idx,  # First tab selected
+                            },
+                            "children": children,
+                        }
+                    )
+
+        return {
+            "type": "legacy_tabs",
+            "attrs": options,
+            "children": tabs,
+        }
+
+    def __call__(self, directive, md):
+        """Register the directive with mistune."""
+        directive.register("tabs", self.parse)
+
+        if md.renderer and md.renderer.NAME == "html":
+            md.renderer.register("legacy_tabs", render_tabs)
+            md.renderer.register("legacy_tab_item", render_legacy_tab_item)
 
 
 class TabSetDirective(DirectivePlugin):
@@ -208,6 +281,85 @@ def render_tab_item(renderer, text: str, **attrs) -> str:
         f"{text}"
         f"</div>"
     )
+
+
+def render_legacy_tab_item(renderer, text: str, **attrs) -> str:
+    """
+    Render legacy tab item to HTML.
+
+    Similar to render_tab_item, creates a wrapper div with metadata
+    that the parent legacy_tabs will parse.
+
+    Args:
+        renderer: Mistune renderer
+        text: Rendered tab content
+        attrs: Tab attributes (title, selected)
+
+    Returns:
+        HTML string for tab item (wrapper for legacy_tabs to parse)
+    """
+    title = attrs.get("title", "Tab")
+    selected = "true" if attrs.get("selected", False) else "false"
+
+    return (
+        f'<div class="legacy-tab-item" '
+        f'data-title="{_escape_html(title)}" '
+        f'data-selected="{selected}">'
+        f"{text}"
+        f"</div>"
+    )
+
+
+def render_tabs(renderer, text: str, **attrs) -> str:
+    """
+    Render legacy tabs directive to HTML.
+
+    Args:
+        renderer: Mistune renderer
+        text: Rendered children (tab items as wrapper divs)
+        attrs: Tab attributes (id, etc.)
+
+    Returns:
+        HTML string for tabs
+    """
+    tab_id = attrs.get("id", f"tabs-{id(text)}")
+
+    # Extract tab items from rendered HTML
+    # Pattern: <div class="legacy-tab-item" data-title="..." data-selected="...">content</div>
+    tab_pattern = re.compile(
+        r'<div class="legacy-tab-item" data-title="([^"]*)" data-selected="([^"]*)">(.*?)</div>',
+        re.DOTALL,
+    )
+    matches = tab_pattern.findall(text)
+
+    if not matches:
+        # Fallback: just wrap the content
+        return f'<div class="tabs" id="{tab_id}">\n{text}</div>\n'
+
+    # Build tab navigation
+    nav_html = f'<div class="tabs" id="{tab_id}">\n  <ul class="tab-nav">\n'
+
+    for i, (title, selected, _) in enumerate(matches):
+        active = (
+            ' class="active"'
+            if selected == "true" or (i == 0 and not any(s == "true" for _, s, _ in matches))
+            else ""
+        )
+        nav_html += f'    <li{active}><a href="#" data-tab-target="{tab_id}-{i}">{title}</a></li>\n'
+    nav_html += "  </ul>\n"
+
+    # Build content panes
+    content_html = '  <div class="tab-content">\n'
+    for i, (title, selected, content) in enumerate(matches):
+        active = (
+            " active"
+            if selected == "true" or (i == 0 and not any(s == "true" for _, s, _ in matches))
+            else ""
+        )
+        content_html += f'    <div id="{tab_id}-{i}" class="tab-pane{active}" data-tab-title="{title}">\n{content}    </div>\n'
+    content_html += "  </div>\n</div>\n"
+
+    return nav_html + content_html
 
 
 def _escape_html(text: str) -> str:

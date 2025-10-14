@@ -109,7 +109,7 @@ pip install bengal-ssg
 ```bash
 # Check version
 python -m bengal.cli --version
-# Output: Bengal SSG, version 0.1.0
+# Output: Bengal SSG, version 0.1.2
 
 # Or if installed globally
 bengal --version

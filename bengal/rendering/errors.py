@@ -9,6 +9,8 @@ from typing import Any
 from jinja2 import TemplateSyntaxError, UndefinedError
 from jinja2.exceptions import TemplateAssertionError, TemplateRuntimeError
 
+from bengal.utils.logger import truncate_error
+
 
 @dataclass
 class TemplateErrorContext:
@@ -91,7 +93,7 @@ class TemplateRenderError:
 
         return cls(
             error_type=error_type,
-            message=str(error),
+            message=truncate_error(error),
             template_context=context,
             inclusion_chain=inclusion_chain,
             page_source=page_source,

@@ -13,7 +13,7 @@ from typing import override
 from bengal.server.component_preview import ComponentPreviewServer
 from bengal.server.live_reload import LIVE_RELOAD_SCRIPT, LiveReloadMixin
 from bengal.server.request_logger import RequestLogger
-from bengal.utils.logger import get_logger
+from bengal.utils.logger import get_logger, truncate_str
 
 logger = get_logger(__name__)
 
@@ -120,7 +120,8 @@ class BengalRequestHandler(RequestLogger, LiveReloadMixin, http.server.SimpleHTT
         except Exception as e:
             logger.error("component_preview_failed", error=str(e), error_type=type(e).__name__)
             self.send_response(500)
-            msg = f"<h1>Component Preview Error</h1><pre>{e!s}</pre>".encode()
+            e_str = truncate_str(str(e), 2000, "\n... (truncated for security)")
+            msg = f"<h1>Component Preview Error</h1><pre>{e_str}</pre>".encode()
             self.send_header("Content-Type", "text/html; charset=utf-8")
             self.send_header("Content-Length", str(len(msg)))
             self.end_headers()

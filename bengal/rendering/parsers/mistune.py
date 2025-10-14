@@ -513,7 +513,9 @@ class MistuneParser(BaseMarkdownParser):
                 slug = self._slugify(text)
 
                 # Build heading with ID and headerlink anchor (¶)
-                headerlink = f'<a class="headerlink" href="#{slug}" title="Permalink to this heading">¶</a>'
+                headerlink = (
+                    f'<a class="headerlink" href="#{slug}" title="Permalink to this heading">¶</a>'
+                )
                 return f'<{tag} id="{slug}"{attrs}>{content} {headerlink}</{tag}>'
 
             try:
@@ -637,6 +639,8 @@ class MistuneParser(BaseMarkdownParser):
 
                 # Strip HTML tags to get clean title text
                 title = self._HTML_TAG_PATTERN.sub("", title_html).strip()
+                # Remove pilcrow (¶) character that remains after stripping headerlink
+                title = title.replace("¶", "").strip()
                 if not title:
                     continue
 

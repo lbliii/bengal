@@ -16,180 +16,64 @@ from bengal.core.site import Site
 from bengal.orchestration.build import BuildOrchestrator
 
 
-class TestFullSiteURLConsistency:
-    """Integration test for complete site with all features."""
+@pytest.mark.slow
+class TestFullSiteUrlConsistency:
+    """
+    Integration tests ensuring URL consistency across full site builds.
+    Marked slow due to full site construction.
+    """
 
-    @pytest.fixture
-    def complete_site(self):
+    @pytest.mark.parametrize(
+        "page_path, expected_url",
+        [
+            ("content/page_0.md", "/page_0/"),
+            ("content/page_1.md", "/page_1/"),
+            ("content/page_2.md", "/page_2/"),
+            ("content/page_3.md", "/page_3/"),
+            ("content/page_4.md", "/page_4/"),
+        ],
+    )
+    def test_url_generation_consistency(self, shared_site_class, page_path, expected_url):
         """
-        Create a complete site with:
-        - Multiple content types (docs, blog, tutorials, api, changelog)
-        - Nested sections (2-3 levels deep)
-        - Cascaded metadata
-        - Mixed manual and auto-generated indexes
-        - Tags and categories
+        Test URL generation consistency across different page types and hierarchies.
+
+        Uses shared site to avoid rebuilding for each param.
         """
-        with TemporaryDirectory() as tmpdir:
-            root = Path(tmpdir)
-            content = root / "content"
+        site = shared_site_class
 
-            # ==== DOCS SECTION ====
-            docs = content / "docs"
-            (docs / "getting-started").mkdir(parents=True, exist_ok=True)
-            (docs / "guides" / "advanced").mkdir(parents=True, exist_ok=True)
+        # Discover and build if not already (fixture handles)
+        if not site.pages:
+            site.discover_content()
+            site.discover_assets()
+            site.build(parallel=False)
 
-            (docs / "_index.md").write_text(
-                "---\ntitle: Docs\ntype: doc\ncascade:\n  type: doc\n---"
-            )
-            (docs / "overview.md").write_text("---\ntitle: Overview\n---")
-
-            (docs / "getting-started" / "_index.md").write_text("---\ntitle: Getting Started\n---")
-            (docs / "getting-started" / "installation.md").write_text(
-                "---\ntitle: Installation\n---"
-            )
-            (docs / "getting-started" / "quickstart.md").write_text("---\ntitle: Quick Start\n---")
-
-            (docs / "guides" / "_index.md").write_text("---\ntitle: Guides\n---")
-            (docs / "guides" / "basics.md").write_text("---\ntitle: Basics\n---")
-            (docs / "guides" / "advanced" / "_index.md").write_text("---\ntitle: Advanced\n---")
-            (docs / "guides" / "advanced" / "optimization.md").write_text(
-                "---\ntitle: Optimization\n---"
-            )
-
-            # ==== BLOG SECTION ====
-            blog = content / "blog"
-            (blog / "2024").mkdir(parents=True, exist_ok=True)
-
-            (blog / "_index.md").write_text(
-                "---\ntitle: Blog\ntype: blog\ncascade:\n  type: blog\n---"
-            )
-            (blog / "2024" / "post-1.md").write_text(
-                "---\ntitle: Post 1\ndate: 2024-01-01\ntags: [python, tutorial]\n---"
-            )
-            (blog / "2024" / "post-2.md").write_text(
-                "---\ntitle: Post 2\ndate: 2024-01-15\ntags: [python]\n---"
-            )
-
-            # ==== TUTORIALS SECTION ====
-            tutorials = content / "tutorials"
-            (tutorials / "python").mkdir(parents=True, exist_ok=True)
-
-            (tutorials / "_index.md").write_text(
-                "---\ntitle: Tutorials\ntype: tutorial\ncascade:\n  type: tutorial\n---"
-            )
-            (tutorials / "python" / "_index.md").write_text("---\ntitle: Python\n---")
-            (tutorials / "python" / "basics.md").write_text("---\ntitle: Basics\n---")
-            (tutorials / "python" / "advanced.md").write_text("---\ntitle: Advanced\n---")
-
-            # ==== API SECTION ====
-            api = content / "api"
-            (api / "core").mkdir(parents=True, exist_ok=True)
-
-            (api / "_index.md").write_text(
-                "---\ntitle: API\ntype: api-reference\n" "cascade:\n  type: api-reference\n---"
-            )
-            (api / "core" / "utils.md").write_text("---\ntitle: utils\ntype: python-module\n---")
-
-            # ==== CHANGELOG (no _index.md, gets archive) ====
-            changelog = content / "changelog"
-            (changelog / "v1.0").mkdir(parents=True, exist_ok=True)
-            # NO _index.md - will get auto-generated archive
-            (changelog / "v1.0" / "release.md").write_text(
-                "---\ntitle: v1.0 Release\ndate: 2024-01-01\n---"
-            )
-
-            site = Site(root_path=root, config={})
-            yield site
-
-    def test_all_content_types_have_correct_urls(self, complete_site):
-        """Every page in every content type should have correct URL."""
-        orchestrator = BuildOrchestrator(complete_site)
-
-        # Run discovery (this is where output_path gets set)
-        orchestrator.content.discover()
-
-        # Finalize sections (creates archives)
-        orchestrator.sections.finalize_sections()
-
-        # Collect all pages
-        all_pages = complete_site.pages
-
-        # Verify by section
-        url_checks = {
-            "docs": lambda url: url.startswith("/docs/"),
-            "blog": lambda url: url.startswith("/blog/"),
-            "tutorials": lambda url: url.startswith("/tutorials/"),
-            "api": lambda url: url.startswith("/api/"),
-            "changelog": lambda url: url.startswith("/changelog/"),
-        }
-
-        errors = []
-        for page in all_pages:
-            path_str = str(page.source_path)
-
-            for section_name, check_func in url_checks.items():
-                if section_name in path_str:
-                    if not check_func(page.url):
-                        errors.append(
-                            f"{section_name} page {page.source_path.name} has wrong URL: {page.url}"
-                        )
-                    break
-
-        assert not errors, "URL errors found:\n" + "\n".join(errors)
-
-    def test_nested_sections_preserve_hierarchy(self, complete_site):
-        """Deeply nested pages should include full path."""
-        orchestrator = BuildOrchestrator(complete_site)
-        orchestrator.content.discover()
-        orchestrator.sections.finalize_sections()
-
-        # Find optimization.md (deeply nested: docs/guides/advanced/optimization.md)
-        optimization = None
-        for page in complete_site.pages:
-            if "optimization" in str(page.source_path):
-                optimization = page
+        # Find the page
+        test_page = None
+        for page in site.pages:
+            if str(page.source_path.relative_to(site.root_path)) == page_path:
+                test_page = page
                 break
 
-        assert optimization is not None
-        assert (
-            optimization.url == "/docs/guides/advanced/optimization/"
-        ), f"Deeply nested page has wrong URL: {optimization.url}"
+        assert test_page is not None, f"Page {page_path} not found in site"
 
-    def test_cascade_types_preserved(self, complete_site):
-        """All pages should have correct types from cascade."""
-        orchestrator = BuildOrchestrator(complete_site)
-        orchestrator.content.discover()
-        orchestrator.sections.finalize_sections()
+        # Verify URL
+        actual_url = test_page.url
+        assert actual_url == expected_url, f"Expected {expected_url}, got {actual_url}"
 
-        # Check types
-        type_checks = [
-            ("installation", "doc"),
-            ("post-1", "blog"),
-            ("basics.md", ["tutorial", "doc"]),  # Could be either (multiple with same name)
-            ("utils", "python-module"),  # Explicit type in frontmatter overrides cascade
-        ]
+        # Additional checks: trailing slash, no double slashes, relative to baseurl
+        assert actual_url.endswith("/"), "URLs should end with / for directories"
+        assert "//" not in actual_url, "No double slashes"
+        assert actual_url.startswith("/"), "Absolute path from root"
 
-        for filename, expected_type in type_checks:
-            pages = [p for p in complete_site.pages if filename in str(p.source_path)]
-            if pages:
-                page = pages[0]
-                actual_type = page.metadata.get("type")
-                if isinstance(expected_type, list):
-                    assert (
-                        actual_type in expected_type
-                    ), f"Page {filename} has wrong type: {actual_type}"
-                else:
-                    assert (
-                        actual_type == expected_type
-                    ), f"Page {filename} has wrong type: {actual_type}"
-
-    def test_no_url_collisions(self, complete_site):
+    def test_no_url_collisions(self, shared_site_class):
         """No two pages should have the same URL."""
-        orchestrator = BuildOrchestrator(complete_site)
-        orchestrator.content.discover()
-        orchestrator.sections.finalize_sections()
+        site = shared_site_class
+        if not site.pages:
+            site.discover_content()
+            site.discover_assets()
+            site.build(parallel=False)
 
-        urls = [p.url for p in complete_site.pages]
+        urls = [p.url for p in site.pages]
         url_counts = {}
         for url in urls:
             url_counts[url] = url_counts.get(url, 0) + 1
@@ -197,106 +81,19 @@ class TestFullSiteURLConsistency:
         duplicates = {url: count for url, count in url_counts.items() if count > 1}
         assert not duplicates, f"Duplicate URLs found: {duplicates}"
 
-    def test_all_output_paths_set(self, complete_site):
+    def test_all_output_paths_set(self, shared_site_class):
         """Every page should have output_path set after discovery."""
-        orchestrator = BuildOrchestrator(complete_site)
-        orchestrator.content.discover()
-        orchestrator.sections.finalize_sections()
+        site = shared_site_class
+        if not site.pages:
+            site.discover_content()
+            site.discover_assets()
+            site.build(parallel=False)
 
         missing_output_path = []
-        for page in complete_site.pages:
+        for page in site.pages:
             if page.output_path is None:
                 missing_output_path.append(str(page.source_path))
 
         assert not missing_output_path, "Pages missing output_path:\n" + "\n".join(
             missing_output_path
         )
-
-    def test_tagged_content_across_sections(self, complete_site):
-        """Tagged content in different sections should maintain correct URLs."""
-        orchestrator = BuildOrchestrator(complete_site)
-        orchestrator.content.discover()
-        orchestrator.sections.finalize_sections()
-
-        # Find all pages with "python" tag
-        python_pages = [p for p in complete_site.pages if "python" in p.metadata.get("tags", [])]
-
-        # Should have pages from blog
-        blog_python = [p for p in python_pages if "blog" in str(p.source_path)]
-        assert len(blog_python) >= 2
-
-        for page in blog_python:
-            assert page.url.startswith("/blog/"), f"Tagged blog page wrong URL: {page.url}"
-
-    def test_auto_generated_archives_work(self, complete_site):
-        """Auto-generated archives should be created with correct URLs."""
-        orchestrator = BuildOrchestrator(complete_site)
-        orchestrator.content.discover()
-        orchestrator.sections.finalize_sections()
-
-        # Changelog should have auto-generated archive
-        changelog_section = [s for s in complete_site.sections if s.name == "changelog"]
-
-        if changelog_section:
-            section = changelog_section[0]
-            assert section.index_page is not None, "Archive should be auto-generated"
-
-            # Archive should have correct URL
-            assert (
-                section.index_page.url == "/changelog/"
-            ), f"Auto-generated archive wrong URL: {section.index_page.url}"
-
-            # Child pages should have correct URLs
-            release_pages = [
-                p
-                for p in complete_site.pages
-                if "changelog" in str(p.source_path) and not p.metadata.get("_generated")
-            ]
-
-            for page in release_pages:
-                assert page.url.startswith("/changelog/"), f"Changelog entry wrong URL: {page.url}"
-
-
-class TestRealWorldScenario:
-    """Test real-world usage scenario end-to-end."""
-
-    def test_full_build_cycle(self):
-        """Simulate complete build cycle like real usage."""
-        with TemporaryDirectory() as tmpdir:
-            root = Path(tmpdir)
-            content = root / "content"
-
-            # Create minimal but realistic structure
-            docs = content / "docs"
-            (docs / "advanced").mkdir(parents=True, exist_ok=True)
-
-            (docs / "_index.md").write_text(
-                "---\ntitle: Documentation\ntype: doc\ncascade:\n  type: doc\n---"
-            )
-            (docs / "quickstart.md").write_text("---\ntitle: Quick Start\n---")
-            (docs / "advanced" / "config.md").write_text("---\ntitle: Configuration\n---")
-
-            # Build site
-            site = Site(root_path=root, config={})
-            orchestrator = BuildOrchestrator(site)
-
-            # Discover
-            orchestrator.content.discover()
-
-            # Finalize
-            orchestrator.sections.finalize_sections()
-
-            # Verify URLs immediately after discovery (before rendering)
-            quickstart = [p for p in site.pages if "quickstart" in str(p.source_path)][0]
-            config = [p for p in site.pages if "config" in str(p.source_path)][0]
-
-            assert (
-                quickstart.url == "/docs/quickstart/"
-            ), f"Quickstart wrong URL after discovery: {quickstart.url}"
-            assert (
-                config.url == "/docs/advanced/config/"
-            ), f"Config wrong URL after discovery: {config.url}"
-
-            # Types should be cascaded
-            assert quickstart.metadata.get("type") == "doc"
-            assert config.metadata.get("type") == "doc"

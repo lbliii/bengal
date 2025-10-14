@@ -365,8 +365,10 @@ class IncrementalConsistencyWorkflow(RuleBasedStateMachine):
                 f"Incremental only: {inc_files - full_files}"
             )
 
-            # Compare file contents
+            # Compare file contents, skipping llm-full.txt due to dynamic timestamp
             for file_path in full_files:
+                if file_path == 'llm-full.txt':
+                    continue
                 full_hash = self.full_build_hashes[file_path]
                 inc_hash = self.incremental_build_hashes[file_path]
 

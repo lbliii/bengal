@@ -7,7 +7,7 @@ import click
 from bengal.core.site import Site
 from bengal.server.constants import DEFAULT_DEV_HOST, DEFAULT_DEV_PORT
 from bengal.utils.build_stats import show_error
-from bengal.utils.logger import LogLevel, configure_logging
+from bengal.utils.logger import LogLevel, configure_logging, truncate_error
 
 
 @click.command()
@@ -107,5 +107,5 @@ def serve(
         )
 
     except Exception as e:
-        show_error(f"Server failed: {e}", show_art=True)
+        show_error(f"Server failed: {truncate_error(e)}", show_art=True)
         raise click.Abort() from e

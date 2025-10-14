@@ -11,7 +11,7 @@ from bengal.core.page import Page
 from bengal.rendering.parsers import BaseMarkdownParser, create_markdown_parser
 from bengal.rendering.renderer import Renderer
 from bengal.rendering.template_engine import TemplateEngine
-from bengal.utils.logger import get_logger
+from bengal.utils.logger import get_logger, truncate_error
 from bengal.utils.url_strategy import URLStrategy
 
 logger = get_logger(__name__)
@@ -567,25 +567,27 @@ class RenderingPipeline:
                 logger.warning(
                     "jinja2_syntax_error",
                     source_path=str(page.source_path),
-                    error=str(e),
+                    error=truncate_error(e),
                     error_type=type(e).__name__,
                 )
             if not self.quiet and not self.build_stats:
-                print(f"  ⚠️  Jinja2 syntax error in {page.source_path}: {e}")
+                print(f"  ⚠️  Jinja2 syntax error in {page.source_path}: {truncate_error(e)}")
             return page.content
         except Exception as e:
             # For any other error, warn but continue
             if self.build_stats:
-                self.build_stats.add_warning(str(page.source_path), str(e), "preprocessing")
+                self.build_stats.add_warning(
+                    str(page.source_path), truncate_error(e), "preprocessing"
+                )
             else:
                 logger.warning(
                     "preprocessing_error",
                     source_path=str(page.source_path),
-                    error=str(e),
+                    error=truncate_error(e),
                     error_type=type(e).__name__,
                 )
             if not self.quiet and not self.build_stats:
-                print(f"  ⚠️  Error pre-processing {page.source_path}: {e}")
+                print(f"  ⚠️  Error pre-processing {page.source_path}: {truncate_error(e)}")
             return page.content
 
 

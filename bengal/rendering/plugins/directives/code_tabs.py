@@ -17,7 +17,8 @@ __all__ = ["CodeTabsDirective", "render_code_tab_item", "render_code_tabs"]
 logger = get_logger(__name__)
 
 # Pre-compiled regex patterns (compiled once, reused for all pages)
-_CODE_TAB_SPLIT_PATTERN = re.compile(r"^### Tab: (.+)$", re.MULTILINE)
+# Support both "### Tab: Python" and "### Python" syntax
+_CODE_TAB_SPLIT_PATTERN = re.compile(r"^### (?:Tab: )?(.+)$", re.MULTILINE)
 _CODE_BLOCK_EXTRACT_PATTERN = re.compile(r"```\w*\n(.*?)```", re.DOTALL)
 _CODE_TAB_ITEM_PATTERN = re.compile(
     r'<div class="code-tab-item" data-lang="(.*?)" data-code="(.*?)"></div>', re.DOTALL

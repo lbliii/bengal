@@ -52,7 +52,8 @@ def test_engine_resolves_installed_theme_templates(tmp_path, monkeypatch):
     site = Site.from_config(site_root)
     engine = TemplateEngine(site)
     # page.html exists only in installed theme
-    html = engine.render("page.html", {"title": "x"})
+    mock_page = SimpleNamespace(url="/test/", title="Test Page", metadata={})
+    html = engine.render("page.html", {"title": "x", "page": mock_page})
     assert "ACME PAGE" in html
 
 

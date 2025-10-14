@@ -68,6 +68,10 @@
 @import url('components/api-docs.css');
 @import url('components/tutorial.css');
 @import url('components/blog.css');
+@import url('components/data-table.css');
+
+/* Third-party libraries */
+@import url('tabulator.min.css');
 
 /* ============================================
    PAGE-SPECIFIC STYLES

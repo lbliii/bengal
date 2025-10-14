@@ -2,6 +2,8 @@
 
 The data table component requires Tabulator.js library files. These are not included in the repository due to size and licensing clarity.
 
+**Note**: The CSS file is automatically bundled into `style.css` via `@import` - no separate `<link>` tag needed in templates. The JavaScript file is loaded in `base.html`.
+
 ## Quick Setup
 
 ### Option 1: Download via Command Line
@@ -31,13 +33,9 @@ curl -o css/tabulator.min.css https://unpkg.com/tabulator-tables@6.2.5/dist/css/
 
 ### Option 3: Use CDN (Development Only)
 
-For development/testing, you can temporarily use the CDN by editing `base.html`:
-
-```html
-<!-- Replace asset_url calls with CDN URLs -->
-<link rel="stylesheet" href="https://unpkg.com/tabulator-tables@6.2.5/dist/css/tabulator.min.css">
-<script src="https://unpkg.com/tabulator-tables@6.2.5/dist/js/tabulator.min.js"></script>
-```
+For development/testing, you can temporarily use the CDN:
+- **CSS**: Edit `assets/css/style.css` and replace the `@import url('tabulator.min.css');` line with a CDN URL
+- **JS**: Edit `base.html` and replace `asset_url('js/tabulator.min.js')` with CDN URL
 
 **Note**: This is not recommended for production as it adds external dependencies.
 
@@ -50,9 +48,15 @@ After downloading, verify the files:
 ls -lh bengal/themes/default/assets/js/tabulator.min.js
 ls -lh bengal/themes/default/assets/css/tabulator.min.css
 
-# JavaScript should be ~85KB
-# CSS should be ~35KB
+# JavaScript should be ~85KB (loaded separately in base.html)
+# CSS should be ~35KB (bundled into style.css via @import)
 ```
+
+## Asset Loading
+
+- **CSS**: Imported in `assets/css/style.css` via `@import url('tabulator.min.css');` and bundled into the main stylesheet
+- **JavaScript**: Loaded in `templates/base.html` via `{{ asset_url('js/tabulator.min.js') }}`
+- **Initialization**: `data-table.js` auto-initializes tables on DOM ready
 
 ## License
 

@@ -1,7 +1,9 @@
 # Bug Bash Progress - October 14, 2025
 
 ## Summary
-Started with **50+ failing tests**, currently at **~48 failures** (down from 53 after fixing side effects).
+Started with **50+ failing tests**, currently at **29 failures** (down from 53 after major fixes).
+
+**Status**: 2,294 passed, 29 failed, 10 skipped (37% code coverage)
 
 ## Bugs Fixed ✅
 
@@ -32,32 +34,84 @@ Started with **50+ failing tests**, currently at **~48 failures** (down from 53 
   - `tests/unit/rendering/test_jinja_utils.py`
 - **Tests Fixed**: 8 tests (all jinja_utils tests now pass!)
 
-## Remaining Failures (~48)
+### 3. **Incremental Build Config Cache** (CRITICAL)
+- **Issue**: Config file hash wasn't saved during first full build
+- **Impact**: Every incremental build detected config change and did full rebuild (1.1x speedup instead of 15-50x)
+- **Fix**: Changed `build.py` to always call `check_config_changed()` on all builds
+- **Files Modified**: `bengal/orchestration/build.py`
+- **Tests Fixed**: Integration tests now pass
 
-### By Category:
-1. **Config/Logging** (2): verbose mode, log format
-2. **Assets** (2): minification hints, theme asset dedup
-3. **Parallel Processing** (3): sequential/parallel switching, error handling
-4. **Section Orchestrator** (2): finalize without index, archive metadata
-5. **Rendering/Parser** (12+):
-   - Data table directive (2)
-   - Cards directive (1)
-   - MyST syntax/tabs (3)
-   - Mistune parser (3)
-   - Syntax highlighting (2)
-   - Template engine (2)
-6. **Orchestration** (4): incremental (2), taxonomy (2)
-7. **Server** (3): live reload, component preview, request handler
-8. **Utils** (5): file_io, logger, page_initializer, rich_console
-9. **Integration** (12+): stateful workflows, incremental sequence, output quality
-10. **Misc** (3): theme swizzle, section sorting, discovery
+### 4. **Atomic Write Race Condition** (CRITICAL)
+- **Issue**: `FileNotFoundError` when multiple threads tried to rename same temp file
+- **Root Cause**: All concurrent writes used same temp filename (e.g., `index.html.tmp`)
+- **Fix**: Use unique temp filenames per thread: `.{name}.{pid}.{tid}.{uuid}.tmp`
+- **Files Modified**: `bengal/utils/atomic_write.py`
+- **Tests Fixed**: Parallel build tests now pass
+
+### 5. **Related Posts Scale Performance**
+- **Issue**: O(n·t·p) algorithm ran on every build, taking 50-100s at 10K pages
+- **Fix**: Skip related posts calculation for sites >5K pages
+- **Files Modified**: `bengal/orchestration/related_posts.py`
+- **Impact**: Expected 10K page builds to improve from 29 pps to 80-100 pps
+
+## Remaining Failures (29)
+
+### 1. Rendering/Parser Issues (10 tests) 🔥 PRIORITY
+- `test_data_table_directive.py::TestDirectiveIntegration::test_parse_with_options`
+- `test_myst_syntax.py::TestMystSyntaxCompatibility::test_colon_tabs`
+- `test_myst_syntax.py::TestBackwardCompatibility::test_existing_code_tabs_still_work`
+- `test_parser_configuration.py::TestMistuneDirectives::test_mistune_parser_has_tabs`
+- `test_mistune_parser.py::TestDirectives::test_tabs_directive`
+- `test_mistune_parser.py::TestHeadingAnchors::test_toc_extracted_correctly`
+- `test_syntax_highlighting.py::TestPythonMarkdownHighlightingAliases::test_jinja2_alias_highlighted`
+- `test_syntax_highlighting.py::TestPythonMarkdownHighlightingAliases::test_go_html_template_aliased_to_html`
+- `test_tables.py::TestDataTableInTemplate::test_multiple_tables_in_template`
+- `test_template_engine_installed_theme.py::test_engine_resolves_installed_theme_templates`
+
+### 2. Server Issues (3 tests)
+- `test_request_handler.py::TestDoGetIntegrationMinimal::test_do_get_injects_for_html`
+- `test_live_reload_injection.py::test_live_reload_injects_script`
+- `test_component_preview.py::test_discover_components_theme_override`
+
+### 3. Assets/Theme Issues (2 tests)
+- `test_theme_asset_dedup.py::test_theme_asset_dedup_child_overrides_parent`
+- `test_cli_theme_commands.py::test_theme_list_and_info`
+
+### 4. Orchestration/Build Issues (6 tests)
+- `test_taxonomy_orchestrator.py::TestPerformanceOptimization::test_selective_generation_calls_create_once_per_tag`
+- `test_taxonomy_orchestrator.py::TestPerformanceOptimization::test_full_generation_calls_create_for_all_tags`
+- `test_section_sorting.py::TestSectionSortedPagesProperty::test_sorted_pages_mixed_weights`
+- `test_parallel_processing.py::TestParallelAssetProcessing::test_large_asset_count_processes_successfully`
+- `test_parallel_processing.py::TestParallelAssetProcessing::test_asset_processing_with_errors`
+- `test_cascade_integration.py::TestCascadeIntegration::test_cascade_with_nested_sections`
+
+### 5. Integration/Stateful Issues (2 tests)
+- `stateful/test_build_workflows.py::TestPageLifecycleWorkflow::runTest`
+- `stateful/test_build_workflows.py::TestIncrementalConsistencyWorkflow::runTest`
+
+### 6. Utils Issues (6 tests)
+- `test_file_io.py::TestLoadYaml::test_invalid_yaml_raise`
+- `test_logger.py::test_get_logger` (FileNotFoundError)
+- `test_page_initializer.py::TestPageInitializer::test_ensure_initialized_url_generation_path_outside_output_dir`
+- `test_dates_properties.py::TestParseDateProperties::test_datetime_passthrough_idempotent`
+- `test_rich_console.py::TestShouldUseRich::test_disabled_with_dumb_terminal`
+- `test_swizzle.py::test_swizzle_cli_invocation` (FileNotFoundError)
 
 ## Next Steps
-1. Focus on high-impact bugs: incremental builds, parser issues
-2. Fix systematic issues (e.g., all mistune parser tests)
-3. Address integration test failures last (often side effects)
+1. **Fix rendering/parser issues** (10 tests) - Highest priority, blocks content features
+2. **Fix server issues** (3 tests) - User-facing, affects dev experience
+3. **Fix orchestration issues** (6 tests) - Performance and correctness
+4. **Fix utils issues** (6 tests) - Foundation layer
+5. **Fix integration tests** (2 tests) - Often side effects of other fixes
+
+## Progress Metrics
+- **Tests passing**: 2,294 (98.7%)
+- **Tests failing**: 29 (1.3%)
+- **Code coverage**: 37%
+- **Improvement**: Fixed 24+ tests in this session (from 53 to 29)
 
 ## Notes
-- Property-based testing (Hypothesis) caught the truncate_chars bug!
-- jinja_utils changes required updating `ensure_defined` behavior
-- Some test expectations were outdated/contradictory
+- Property-based testing (Hypothesis) caught the truncate_chars bug
+- Most rendering/parser failures are related to tabs/MyST directive handling
+- Several FileNotFoundError issues suggest path/setup problems
+- Integration tests may pass once unit tests are fixed

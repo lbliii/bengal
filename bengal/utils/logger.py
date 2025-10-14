@@ -145,9 +145,15 @@ class BengalLogger:
         self._events: list[LogEvent] = []
 
         # File handle - properly closed in close() method
+        # Open in append mode to allow multiple loggers to write to same file safely
         self._file_handle: TextIO | None = None
         if log_file:
-            self._file_handle = open(log_file, "w", encoding="utf-8")  # noqa: SIM115
+            # Ensure parent directory exists before opening the log file
+            from contextlib import suppress
+
+            with suppress(Exception):
+                log_file.parent.mkdir(parents=True, exist_ok=True)
+            self._file_handle = open(log_file, "a", encoding="utf-8")  # noqa: SIM115
 
     @contextmanager
     def phase(self, name: str, **context):
@@ -371,6 +377,18 @@ class BengalLogger:
         return False
 
 
+def truncate_str(s: str, max_len: int = 500, suffix: str = " ... (truncated)") -> str:
+    """Truncate a string if it exceeds max_len characters."""
+    if len(s) > max_len:
+        return s[:max_len] + suffix
+    return s
+
+
+def truncate_error(e: Exception, max_len: int = 500) -> str:
+    """Safely truncate an exception string representation."""
+    return truncate_str(str(e), max_len, f"\n... (truncated {len(str(e)) - max_len} chars)")
+
+
 # Global logger registry
 _loggers: dict[str, BengalLogger] = {}
 _global_config = {
@@ -399,6 +417,18 @@ def configure_logging(
     _global_config["level"] = level
     _global_config["log_file"] = log_file
     _global_config["verbose"] = verbose
+
+    # Clear log file if specified (truncate once at start)
+    if log_file:
+        try:
+            # Ensure parent directory exists before truncating
+            log_file.parent.mkdir(parents=True, exist_ok=True)
+            # Truncate the file to ensure we start fresh
+            with open(log_file, "w", encoding="utf-8"):
+                pass
+        except Exception:
+            # Ignore errors (file might not be writable, etc.)
+            pass
 
     # Enable memory tracking if requested
     if track_memory and not tracemalloc.is_tracing():

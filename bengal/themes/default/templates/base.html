@@ -7,11 +7,12 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
 
     {# Title #}
-    <title>{% block title %}{{ page.title | default(site.config.title) }}{% if page and page.title %} - {{
-        site.config.title }}{% endif %}{% endblock %}</title>
+    <title>{% block title %}{{ (page.title if page is defined and page and page.title is defined else site.config.title)
+        }}{% if page is defined and page and page.title is defined %} - {{ site.config.title }}{% endif %}{% endblock %}
+    </title>
 
     {# Meta description - automatically pre-computed by renderer (page.meta_description cached_property) #}
-    {% set meta_desc = meta_desc | default(site.config.description, '') %}
+    {% set meta_desc = meta_desc | default(site.config.get('description'), '') %}
 
     {# Meta Description - Auto-generate if not provided #}
     <meta name="description" content="{{ meta_desc }}">
@@ -25,12 +26,14 @@
 
     {# Open Graph / Facebook #}
     <meta property="og:type" content="{% if page %}article{% else %}website{% endif %}">
-    <meta property="og:title" content="{{ page.title | default(site.config.title) }}">
+    <meta property="og:title"
+        content="{{ (page.title if page is defined and page and page.title is defined else site.config.title) }}">
     {% if meta_desc %}
     <meta property="og:description" content="{{ meta_desc }}">
     {% endif %}
     {% if site.config.baseurl %}
-    <meta property="og:url" content="{{ canonical_url(page.url | default('/')) }}">
+    <meta property="og:url"
+        content="{{ canonical_url((page.url if page is defined and page and page.url is defined else '/')) }}">
     {% endif %}
     {# Open Graph Image #}
     {% if page and page.metadata is defined and page.metadata.get('image') %}
@@ -41,7 +44,8 @@
 
     {# Twitter Card #}
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="{{ page.title | default(site.config.title) }}">
+    <meta name="twitter:title"
+        content="{{ (page.title if page is defined and page and page.title is defined else site.config.title) }}">
     {% if meta_desc %}
     <meta name="twitter:description" content="{{ meta_desc }}">
     {% endif %}
@@ -51,9 +55,13 @@
     <meta name="twitter:image" content="{{ og_image(site.config.get('og_image')) }}">
     {% endif %}
 
+    {# Bengal config meta for JS to read without template tags inside scripts #}
+    <meta name="bengal:search_preload" content="{{ site.config.get('search_preload', 'smart') }}">
+
     {# Canonical URL #}
     {% if site.config.baseurl %}
-    <link rel="canonical" href="{{ canonical_url(page.url | default('/')) }}">
+    <link rel="canonical"
+        href="{{ canonical_url((page.url if page is defined and page and page.url is defined else '/')) }}">
     {% endif %}
 
     {# RSS Feed (locale-aware when i18n prefix strategy is enabled) #}
@@ -92,6 +100,19 @@
     </script>
 
     {% block extra_head %}{% endblock %}
+    {# Generator and build meta #}
+    {% include 'partials/meta-generator.html' %}
+
+    {# Optional JSON bootstrap for client-side scripts #}
+    {% if config.get('expose_metadata_json') %}
+    <script id="bengal-bootstrap" type="application/json">{{ bengal | jsonify }}</script>
+    <script>
+        (function () {
+            var el = document.getElementById('bengal-bootstrap');
+            if (el) { window.__BENGAL__ = JSON.parse(el.textContent || '{}'); }
+        })();
+    </script>
+    {% endif %}
 </head>
 
 <body
@@ -276,6 +297,10 @@
     <script src="{{ asset_url('js/copy-link.js') }}"></script>
     <script src="{{ asset_url('js/lightbox.js') }}"></script>
 
+    {# Tabulator for data tables #}
+    <script src="{{ asset_url('js/tabulator.min.js') }}"></script>
+    <script src="{{ asset_url('js/data-table.js') }}"></script>
+
     {# Lunr.js for search (local copy avoids CDN integrity issues) #}
     <script src="{{ asset_url('js/lunr.min.js') }}"></script>
     <script src="{{ asset_url('js/search.js') }}"></script>
@@ -283,8 +308,7 @@
     {# Smart search index preloading #}
     <script>
         (function () {
-            {% set search_preload = site.config.get('search_preload', 'smart') %}
-            const preloadMode = '{{ search_preload }}';  // 'immediate', 'smart', or 'lazy'
+            const preloadMode = (document.querySelector('meta[name="bengal:search_preload"]').content) || 'smart';
             let preloadTriggered = false;
 
             function preloadSearch() {

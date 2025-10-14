@@ -49,6 +49,7 @@ class TestPythonMarkdownHighlightingAliases:
         content = """
 ```jinja2
 <h1>{{ title }}</h1>
+```
 """
         html = self.parser.parse(content, {})
         assert '<div class="highlight">' in html or '<span class="k">' in html
@@ -57,6 +58,7 @@ class TestPythonMarkdownHighlightingAliases:
         content = """
 ```go-html-template
 <div>{{ .Title }}</div>
+```
 """
         html = self.parser.parse(content, {})
         assert '<div class="highlight">' in html or '<span class="nt">' in html

@@ -85,6 +85,14 @@ class PageInitializer:
 
         # Verify URL generation works
         try:
+            # Warn if output_path is outside site's output_dir; URL will fallback
+            try:
+                _ = page.output_path.relative_to(self.site.output_dir)
+            except Exception:
+                print(
+                    f"Warning: output_path {page.output_path} is not under output directory {self.site.output_dir}; "
+                    f"falling back to slug-based URL"
+                )
             url = page.url
             if not url.startswith("/"):
                 raise ValueError(f"Generated URL doesn't start with '/': {url}")
