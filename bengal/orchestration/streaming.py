@@ -53,6 +53,8 @@ class StreamingRenderOrchestrator:
         stats: BuildStats | None = None,
         batch_size: int = 100,
         progress_manager: Any | None = None,
+        reporter: Any | None = None,
+        build_context: Any | None = None,
     ) -> None:
         """
         Render pages in memory-optimized batches using connectivity analysis.
@@ -68,18 +70,50 @@ class StreamingRenderOrchestrator:
         """
         total_pages = len(pages)
 
+        # Nothing to render: return early and avoid unnecessary analysis/output
+        if total_pages == 0:
+            return
+
+        # Resolve from context if absent
+        if not reporter and build_context and getattr(build_context, "reporter", None):
+            reporter = build_context.reporter
+        if (
+            not progress_manager
+            and build_context
+            and getattr(build_context, "progress_manager", None)
+        ):
+            progress_manager = build_context.progress_manager
+
         # Warn if using memory optimization on small sites (overhead > benefit)
         RECOMMENDED_THRESHOLD = 5000
         WARNING_THRESHOLD = 1000
 
+        if reporter is None:
+            try:
+                from bengal.utils.progress import NoopReporter
+
+                reporter = NoopReporter()
+            except Exception:
+                reporter = None
+
         if total_pages < WARNING_THRESHOLD:
-            print("  ⚠️  Memory optimization is designed for large sites (5K+ pages)")
-            print(f"     Your site has {total_pages} pages - standard build is likely faster.")
-            print("     Continuing anyway for testing/profiling purposes...")
+            msg1 = "  ⚠️  Memory optimization is designed for large sites (5K+ pages)"
+            msg2 = f"     Your site has {total_pages} pages - standard build is likely faster."
+            msg3 = "     Continuing anyway for testing/profiling purposes..."
+            if reporter:
+                reporter.log(msg1)
+                reporter.log(msg2)
+                reporter.log(msg3)
+            elif not quiet:
+                print(msg1)
+                print(msg2)
+                print(msg3)
         elif total_pages < RECOMMENDED_THRESHOLD:
-            print(
-                f"  ℹ️  Site has {total_pages} pages - memory optimization may have marginal benefit."
-            )
+            msg = f"  ℹ️  Site has {total_pages} pages - memory optimization may have marginal benefit."
+            if reporter:
+                reporter.log(msg)
+            elif not quiet:
+                print(msg)
 
         logger.info(
             "streaming_render_start",
@@ -106,7 +140,10 @@ class StreamingRenderOrchestrator:
             return
 
         # Build knowledge graph to analyze connectivity
-        print("  🧠 Analyzing connectivity for memory optimization...")
+        if reporter:
+            reporter.log("  🧠 Analyzing connectivity for memory optimization...")
+        elif not quiet:
+            print("  🧠 Analyzing connectivity for memory optimization...")
         graph = KnowledgeGraph(self.site)
         graph.build()
 
@@ -127,9 +164,17 @@ class StreamingRenderOrchestrator:
             "streaming_render_layers", hubs=total_hubs, mid_tier=total_mid, leaves=total_leaves
         )
 
-        print(f"     Hubs: {total_hubs} (keep in memory)")
-        print(f"     Mid-tier: {total_mid} (batch process)")
-        print(f"     Leaves: {total_leaves} (stream & release)")
+        msg_h = f"     Hubs: {total_hubs} (keep in memory)"
+        msg_m = f"     Mid-tier: {total_mid} (batch process)"
+        msg_l = f"     Leaves: {total_leaves} (stream & release)"
+        if reporter:
+            reporter.log(msg_h)
+            reporter.log(msg_m)
+            reporter.log(msg_l)
+        elif not quiet:
+            print(msg_h)
+            print(msg_m)
+            print(msg_l)
 
         # Import standard renderer for actual processing
         from bengal.orchestration.render import RenderOrchestrator
@@ -138,15 +183,30 @@ class StreamingRenderOrchestrator:
 
         # Phase 1: Render hubs (keep in memory - they're referenced often)
         if hubs_to_render:
-            print(f"\n  📍 Rendering {total_hubs} hub page(s)...")
+            msg = f"\n  📍 Rendering {total_hubs} hub page(s)..."
+            if reporter:
+                reporter.log(msg)
+            elif not quiet:
+                print(msg)
             renderer.process(
-                hubs_to_render, parallel, quiet, tracker, stats, progress_manager=progress_manager
+                hubs_to_render,
+                parallel,
+                quiet,
+                tracker,
+                stats,
+                progress_manager=progress_manager,
+                reporter=reporter,
+                build_context=build_context,
             )
             logger.debug("streaming_render_hubs_complete", count=total_hubs)
 
         # Phase 2: Render mid-tier in batches
         if mid_to_render:
-            print(f"  🔗 Rendering {total_mid} mid-tier page(s)...")
+            msg = f"  🔗 Rendering {total_mid} mid-tier page(s)..."
+            if reporter:
+                reporter.log(msg)
+            elif not quiet:
+                print(msg)
             self._render_batches(
                 renderer,
                 mid_to_render,
@@ -157,12 +217,17 @@ class StreamingRenderOrchestrator:
                 stats,
                 "mid-tier",
                 progress_manager=progress_manager,
+                # reporter and context forwarded inside _render_batches via renderer.process
             )
             logger.debug("streaming_render_mid_complete", count=total_mid)
 
         # Phase 3: Stream leaves in batches (release after each batch)
         if leaves_to_render:
-            print(f"  🍃 Streaming {total_leaves} leaf page(s)...")
+            msg = f"  🍃 Streaming {total_leaves} leaf page(s)..."
+            if reporter:
+                reporter.log(msg)
+            else:
+                print(msg)
             self._render_batches(
                 renderer,
                 leaves_to_render,
@@ -185,7 +250,10 @@ class StreamingRenderOrchestrator:
             leaves=total_leaves,
         )
 
-        print("  ✓ Memory-optimized render complete!")
+        if reporter:
+            reporter.log("  ✓ Memory-optimized render complete!")
+        elif not quiet:
+            print("  ✓ Memory-optimized render complete!")
 
     def _render_batches(
         self,
@@ -224,7 +292,13 @@ class StreamingRenderOrchestrator:
 
             # Render this batch
             renderer.process(
-                batch, parallel, quiet, tracker, stats, progress_manager=progress_manager
+                batch,
+                parallel,
+                quiet,
+                tracker,
+                stats,
+                progress_manager=progress_manager,
+                build_context=None,
             )
 
             logger.debug(

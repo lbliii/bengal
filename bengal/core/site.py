@@ -488,44 +488,19 @@ class Site:
         """
         dirs: list[Path] = []
         try:
-            # Reuse resolver from template engine semantics
-            from bengal.rendering.template_engine import TemplateEngine
+            from bengal.utils.theme_resolution import resolve_theme_chain
 
-            # Build a temporary engine with this site to resolve chain
-            engine = TemplateEngine(self)
-            chain = engine._resolve_theme_chain(self.theme)
+            chain = resolve_theme_chain(self.root_path, self.theme)
         except Exception:
             chain = [self.theme] if self.theme else []
 
         # Build list from parents to child
         for theme_name in reversed(chain):
-            # Site theme assets
-            site_dir = self.root_path / "themes" / theme_name / "assets"
-            if site_dir.exists():
-                dirs.append(site_dir)
-                continue
-            # Installed theme assets
-            try:
-                from bengal.utils.theme_registry import get_theme_package
+            from bengal.utils.theme_resolution import iter_theme_asset_dirs
 
-                pkg = get_theme_package(theme_name)
-                if pkg:
-                    resolved = pkg.resolve_resource_path("assets")
-                    if resolved and resolved.exists():
-                        dirs.append(resolved)
-                        continue
-            except Exception:
-                pass
-            # Bundled theme assets
-            try:
-                import bengal
-
-                bengal_dir = Path(bengal.__file__).parent
-                bundled_dir = bengal_dir / "themes" / theme_name / "assets"
-                if bundled_dir.exists():
-                    dirs.append(bundled_dir)
-            except Exception:
-                pass
+            # iter_theme_asset_dirs returns parent→child; we just consume one theme at a time
+            for d in iter_theme_asset_dirs(self.root_path, [theme_name]):
+                dirs.append(d)
         return dirs
 
     def build(
@@ -696,3 +671,40 @@ class Site:
 
     def __repr__(self) -> str:
         return f"Site(pages={len(self.pages)}, sections={len(self.sections)}, assets={len(self.assets)})"
+
+    def reset_ephemeral_state(self) -> None:
+        """
+        Clear ephemeral/derived state that should not persist between builds.
+
+        This method is intended for long-lived Site instances (e.g., dev server)
+        to avoid stale object references across rebuilds.
+
+        Persistence contract:
+        - Persist: root_path, config, theme, output_dir, build_time
+        - Clear: pages, sections, assets
+        - Clear derived: taxonomies, menu, menu_builders, xref_index (if present)
+        - Clear caches: cached page lists
+        """
+        logger.debug("site_reset_ephemeral_state", site_root=str(self.root_path))
+
+        # Content to be rediscovered
+        self.pages = []
+        self.sections = []
+        self.assets = []
+
+        # Derived structures (contain object references)
+        self.taxonomies = {}
+        self.menu = {}
+        self.menu_builders = {}
+        self.menu_localized = {}
+        self.menu_builders_localized = {}
+
+        # Indices (rebuilt from pages)
+        if hasattr(self, "xref_index"):
+            from contextlib import suppress
+
+            with suppress(Exception):
+                self.xref_index = {}
+
+        # Cached properties
+        self.invalidate_regular_pages_cache()

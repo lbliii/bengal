@@ -167,21 +167,23 @@ def truncate_words(text: str, word_count: int, suffix: str = "...") -> str:
 
 def truncate_chars(text: str, length: int, suffix: str = "...") -> str:
     """
-    Truncate text to specified character length.
+    Truncate text to specified character length (including suffix).
 
     Args:
         text: Text to truncate
-        length: Number of characters to keep from original text (before suffix)
+        length: Maximum total length (including suffix if truncated)
         suffix: Suffix to append if truncated
 
     Returns:
-        Truncated text with suffix if shortened
+        Truncated text with suffix if shortened, never exceeding length
 
     Examples:
         >>> truncate_chars("Hello World", 8)
-        'Hello Wo...'
+        'Hello...'
         >>> truncate_chars("Short", 10)
         'Short'
+        >>> truncate_chars("0123456789", 10)
+        '0123456...'
     """
     if not text:
         return ""
@@ -189,8 +191,15 @@ def truncate_chars(text: str, length: int, suffix: str = "...") -> str:
     if len(text) <= length:
         return text
 
-    # Truncate at length, rstrip whitespace, then add suffix
-    return text[:length].rstrip() + suffix
+    # Account for suffix length when truncating so total stays within length
+    suffix_len = len(suffix)
+    if suffix_len >= length:
+        # Edge case: suffix is longer than or equal to requested length
+        return suffix[:length]
+
+    # Truncate to (length - suffix_len), rstrip whitespace, then add suffix
+    truncate_at = length - suffix_len
+    return text[:truncate_at].rstrip() + suffix
 
 
 def truncate_middle(text: str, max_length: int, separator: str = "...") -> str:

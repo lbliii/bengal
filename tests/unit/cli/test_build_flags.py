@@ -198,3 +198,59 @@ class TestStrictMode:
 
     # Note: Full functionality test requires integration with health checks
     # This is covered by integration tests
+
+
+class TestFastMode:
+    """Test --fast flag functionality."""
+
+    def test_fast_flag_exists(self):
+        """Test that --fast flag is recognized in help."""
+        runner = CliRunner()
+        result = runner.invoke(main, ["build", "--help"])
+
+        assert result.exit_code == 0
+        assert "--fast" in result.output
+        assert "quiet output" in result.output or "max speed" in result.output
+
+    def test_fast_and_dev_conflict(self):
+        """Test that --fast and --dev cannot be used together."""
+        runner = CliRunner()
+        with runner.isolated_filesystem():
+            result = runner.invoke(main, ["build", "--fast", "--dev", "."])
+
+            assert result.exit_code != 0
+            assert "--fast cannot be used with --dev" in result.output
+
+    def test_fast_and_theme_dev_conflict(self):
+        """Test that --fast and --theme-dev cannot be used together."""
+        runner = CliRunner()
+        with runner.isolated_filesystem():
+            result = runner.invoke(main, ["build", "--fast", "--theme-dev", "."])
+
+            assert result.exit_code != 0
+            assert "--fast cannot be used with --dev or --theme-dev" in result.output
+
+    def test_fast_mode_enables_quiet_and_parallel(self):
+        """Test that --fast mode is recognized (actual behavior tested in integration)."""
+        runner = CliRunner()
+
+        with runner.isolated_filesystem():
+            # Create minimal bengal.toml
+            with open("bengal.toml", "w") as f:
+                f.write("[site]\ntitle = 'Test'\n")
+
+            # The command will fail at Site.from_config but should parse --fast flag
+            result = runner.invoke(main, ["build", "--fast", "."])
+
+            # Flag should be accepted without validation error
+            # (The actual behavior - quiet output and parallel - is tested in integration tests)
+            assert "--fast" not in result.output  # No error about unknown flag
+
+    def test_no_fast_flag_disables_fast_mode(self):
+        """Test that --no-fast explicitly disables fast mode."""
+        runner = CliRunner()
+        result = runner.invoke(main, ["build", "--help"])
+
+        # Should show both --fast and --no-fast options
+        assert "--fast" in result.output
+        assert "--no-fast" in result.output

@@ -21,6 +21,11 @@ baseurl = "https://example.com"
 [build]
 output_dir = "public"
 
+# Fast mode (recommended) - Maximum speed for builds
+# Enables quiet output, ensures parallel rendering is on
+# Note: To suppress GIL warnings in free-threaded Python, set PYTHON_GIL=0 in your shell
+fast_mode = true
+
 # Uncomment to disable default features if needed:
 # incremental = false        # Force full rebuilds every time
 # minify_html = false        # Keep HTML unminified (for debugging)

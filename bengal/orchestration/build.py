@@ -7,6 +7,7 @@ Main coordinator that delegates build phases to specialized orchestrators.
 from __future__ import annotations
 
 import time
+from contextlib import suppress
 from datetime import datetime
 from typing import TYPE_CHECKING
 
@@ -120,14 +121,17 @@ class BuildOrchestrator:
 
         # Create live progress manager if enabled
         progress_manager = None
+        reporter = None
         if use_live_progress:
             try:
                 from bengal.utils.live_progress import LiveProgressManager
+                from bengal.utils.progress import LiveProgressReporterAdapter
                 from bengal.utils.rich_console import should_use_rich
 
                 if should_use_rich():
                     progress_manager = LiveProgressManager(profile)
                     progress_manager.__enter__()
+                    reporter = LiveProgressReporterAdapter(progress_manager)
             except Exception as e:
                 # Fallback to traditional output if live progress fails
                 self.logger.warning("live_progress_init_failed", error=str(e))
@@ -253,6 +257,9 @@ class BuildOrchestrator:
         # Now clear cache if config changed
         if not incremental and config_changed:
             cache.clear()
+            # Re-track config file hash so it's present after full build
+            with suppress(Exception):
+                self.incremental.check_config_changed()
 
         # Phase 2: Determine what to build (MOVED UP - before taxonomies/menus)
         # This is the KEY optimization: filter BEFORE expensive operations
@@ -409,7 +416,7 @@ class BuildOrchestrator:
 
             elif not incremental:
                 # Full build: Collect and generate everything
-                self.taxonomy.collect_and_generate()
+                self.taxonomy.collect_and_generate(parallel=parallel)
 
                 # Mark all tags as affected (for Phase 6 - adding to pages_to_build)
                 if hasattr(self.site, "taxonomies") and "tags" in self.site.taxonomies:
@@ -461,7 +468,7 @@ class BuildOrchestrator:
 
                 related_posts_start = time.time()
                 related_posts_orchestrator = RelatedPostsOrchestrator(self.site)
-                related_posts_orchestrator.build_index(limit=5)
+                related_posts_orchestrator.build_index(limit=5, parallel=parallel)
 
                 # Log statistics
                 pages_with_related = sum(
@@ -519,8 +526,6 @@ class BuildOrchestrator:
         # Assets must be processed first so asset_url() can find fingerprinted files
         with self.logger.phase("assets", asset_count=len(assets_to_process), parallel=parallel):
             assets_start = time.time()
-            original_assets = self.site.assets
-            self.site.assets = assets_to_process  # Temporarily replace with subset
 
             # Register assets phase
             if progress_manager:
@@ -530,8 +535,6 @@ class BuildOrchestrator:
             self.assets.process(
                 assets_to_process, parallel=parallel, progress_manager=progress_manager
             )
-
-            self.site.assets = original_assets  # Restore full asset list
             self.stats.assets_time_ms = (time.time() - assets_start) * 1000
 
             if progress_manager:
@@ -551,8 +554,6 @@ class BuildOrchestrator:
             memory_optimized=memory_optimized,
         ):
             rendering_start = time.time()
-            original_pages = self.site.pages
-            self.site.pages = pages_to_build  # Temporarily replace with subset
 
             # Register rendering phase
             if progress_manager:
@@ -562,8 +563,19 @@ class BuildOrchestrator:
             # Use memory-optimized streaming if requested
             if memory_optimized:
                 from bengal.orchestration.streaming import StreamingRenderOrchestrator
+                from bengal.utils.build_context import BuildContext
 
                 streaming_render = StreamingRenderOrchestrator(self.site)
+                # Prepare context (future use)
+                ctx = BuildContext(
+                    site=self.site,
+                    pages=pages_to_build,
+                    tracker=tracker,
+                    stats=self.stats,
+                    profile=profile,
+                    progress_manager=progress_manager,
+                    reporter=reporter,
+                )
                 streaming_render.process(
                     pages_to_build,
                     parallel=parallel,
@@ -571,8 +583,23 @@ class BuildOrchestrator:
                     tracker=tracker,
                     stats=self.stats,
                     progress_manager=progress_manager,
+                    reporter=reporter,
+                    build_context=ctx,
                 )
             else:
+                from bengal.utils.build_context import BuildContext
+
+                # Prepare context (future use)
+                ctx = BuildContext(
+                    site=self.site,
+                    pages=pages_to_build,
+                    tracker=tracker,
+                    stats=self.stats,
+                    profile=profile,
+                    progress_manager=progress_manager,
+                    reporter=reporter,
+                )
+                # Keep existing API while threading context in progressively
                 self.render.process(
                     pages_to_build,
                     parallel=parallel,
@@ -580,9 +607,10 @@ class BuildOrchestrator:
                     tracker=tracker,
                     stats=self.stats,
                     progress_manager=progress_manager,
+                    reporter=reporter,
+                    build_context=ctx,
                 )
 
-            self.site.pages = original_pages  # Restore full page list
             self.stats.rendering_time_ms = (time.time() - rendering_start) * 1000
 
             if progress_manager:
@@ -625,7 +653,9 @@ class BuildOrchestrator:
                 )
                 progress_manager.start_phase("postprocess")
 
-            self.postprocess.run(parallel=parallel, progress_manager=progress_manager)
+            self.postprocess.run(
+                parallel=parallel, progress_manager=progress_manager, build_context=ctx
+            )
 
             self.stats.postprocess_time_ms = (time.time() - postprocess_start) * 1000
 

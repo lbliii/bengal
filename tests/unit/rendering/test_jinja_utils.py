@@ -261,11 +261,11 @@ class TestEnsureDefined:
         assert ensure_defined(Undefined(), None) is None
         assert ensure_defined(Undefined(), []) == []
 
-    def test_none_is_returned(self):
-        """Test that None is returned (not replaced)."""
-        # None is a valid value, should not be replaced
-        assert ensure_defined(None) is None
-        assert ensure_defined(None, "default") is None
+    def test_none_is_replaced(self):
+        """Test that None is replaced with default."""
+        # None is treated as "not defined" and replaced with default
+        assert ensure_defined(None) == ""
+        assert ensure_defined(None, "default") == "default"
 
     def test_empty_string_is_returned(self):
         """Test that empty string is returned."""

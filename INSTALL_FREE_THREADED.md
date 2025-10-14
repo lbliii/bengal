@@ -132,6 +132,39 @@ When you run `bengal build`, you'll see:
 ● free_threaded_python_detected python_version=3.14.0 message="Using ThreadPoolExecutor with true parallelism (no GIL)"
 ```
 
+### Fast Mode (Recommended)
+
+For the absolute fastest build experience, use `--fast` mode:
+
+```bash
+# Maximum speed with clean output
+PYTHON_GIL=0 bengal build --fast
+```
+
+**What `--fast` mode does:**
+- **Quiet output** for minimal overhead
+- **Parallel rendering** guaranteed enabled
+- **Clean, focused output** showing only what matters
+
+**To suppress GIL warnings**, set `PYTHON_GIL=0` in your shell:
+
+```bash
+# One-time
+PYTHON_GIL=0 bengal build --fast
+
+# Permanent (add to ~/.zshrc or ~/.bashrc)
+export PYTHON_GIL=0
+```
+
+**Make fast mode permanent** by adding to your `bengal.toml`:
+
+```toml
+[build]
+fast_mode = true  # Always use quiet + parallel
+```
+
+Then just run `PYTHON_GIL=0 bengal build` for the cleanest experience.
+
 ## Switching Between Versions
 
 You can keep both Python 3.14 and 3.14t installed:
@@ -177,13 +210,16 @@ which has not declared that it can run safely without the GIL.
 - **Your build performance is not affected** - Bengal's parallel rendering code doesn't depend on these libraries
 - The ~1.8x speedup for rendering still applies
 
-**To suppress the warning** (optional):
+**To suppress the warning**, set `PYTHON_GIL=0` in your shell:
 
 ```bash
-# Run with warnings suppressed (not recommended, but works)
+# Run with warnings suppressed
 PYTHON_GIL=0 bengal build
 
-# Or set it in your shell profile
+# Or combine with --fast for maximum speed
+PYTHON_GIL=0 bengal build --fast
+
+# Make it permanent (add to ~/.zshrc or ~/.bashrc)
 export PYTHON_GIL=0
 ```
 

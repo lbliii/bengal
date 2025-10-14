@@ -44,7 +44,7 @@ class PostprocessOrchestrator:
         """
         self.site = site
 
-    def run(self, parallel: bool = True, progress_manager=None) -> None:
+    def run(self, parallel: bool = True, progress_manager=None, build_context=None) -> None:
         """
         Perform post-processing tasks (sitemap, RSS, output formats, link validation, etc.).
 
@@ -52,8 +52,22 @@ class PostprocessOrchestrator:
             parallel: Whether to run tasks in parallel
             progress_manager: Live progress manager (optional)
         """
+        # Resolve from context if absent
+        if (
+            not progress_manager
+            and build_context
+            and getattr(build_context, "progress_manager", None)
+        ):
+            progress_manager = build_context.progress_manager
+        reporter = None
+        if build_context and getattr(build_context, "reporter", None):
+            reporter = build_context.reporter
+
         if not progress_manager:
-            print("\n🔧 Post-processing:")
+            if reporter:
+                reporter.log("\n🔧 Post-processing:")
+            else:
+                print("\n🔧 Post-processing:")
 
         # Collect enabled tasks
         tasks = []
@@ -81,11 +95,13 @@ class PostprocessOrchestrator:
         # Run in parallel if enabled and multiple tasks
         # Threshold of 2 tasks (always parallel if multiple tasks since they're independent)
         if parallel and len(tasks) > 1:
-            self._run_parallel(tasks, progress_manager)
+            self._run_parallel(tasks, progress_manager, reporter)
         else:
-            self._run_sequential(tasks, progress_manager)
+            self._run_sequential(tasks, progress_manager, reporter)
 
-    def _run_sequential(self, tasks: list[tuple[str, Callable]], progress_manager=None) -> None:
+    def _run_sequential(
+        self, tasks: list[tuple[str, Callable]], progress_manager=None, reporter=None
+    ) -> None:
         """
         Run post-processing tasks sequentially.
 
@@ -105,9 +121,17 @@ class PostprocessOrchestrator:
                     logger.error("postprocess_task_failed", task=task_name, error=str(e))
                 else:
                     with _print_lock:
-                        print(f"  ✗ {task_name}: {e}")
+                        if reporter:
+                            try:
+                                reporter.log(f"  ✗ {task_name}: {e}")
+                            except Exception:
+                                print(f"  ✗ {task_name}: {e}")
+                        else:
+                            print(f"  ✗ {task_name}: {e}")
 
-    def _run_parallel(self, tasks: list[tuple[str, Callable]], progress_manager=None) -> None:
+    def _run_parallel(
+        self, tasks: list[tuple[str, Callable]], progress_manager=None, reporter=None
+    ) -> None:
         """
         Run post-processing tasks in parallel.
 
@@ -140,9 +164,20 @@ class PostprocessOrchestrator:
         # Report errors
         if errors and not progress_manager:
             with _print_lock:
-                print(f"  ⚠️  {len(errors)} post-processing task(s) failed:")
-                for task_name, error in errors:
-                    print(f"    • {task_name}: {error}")
+                header = f"  ⚠️  {len(errors)} post-processing task(s) failed:"
+                if reporter:
+                    try:
+                        reporter.log(header)
+                        for task_name, error in errors:
+                            reporter.log(f"    • {task_name}: {error}")
+                    except Exception:
+                        print(header)
+                        for task_name, error in errors:
+                            print(f"    • {task_name}: {error}")
+                else:
+                    print(header)
+                    for task_name, error in errors:
+                        print(f"    • {task_name}: {error}")
 
     def _generate_special_pages(self) -> None:
         """

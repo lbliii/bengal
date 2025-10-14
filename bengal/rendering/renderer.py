@@ -130,7 +130,15 @@ class Renderer:
             and page._section
             and (
                 page_type
-                in ("api-reference", "cli-reference", "tutorial", "doc", "blog", "archive")
+                in (
+                    "api-reference",
+                    "cli-reference",
+                    "tutorial",
+                    "doc",
+                    "blog",
+                    "archive",
+                    "changelog",
+                )
                 or is_index_page
             )
         ):
@@ -150,6 +158,7 @@ class Renderer:
                 {
                     "section": section,
                     "posts": posts,
+                    "pages": posts,  # Alias for templates expecting 'pages'
                     "subsections": subsections,
                 }
             )
@@ -206,7 +215,14 @@ class Renderer:
         """
         page_type = page.metadata.get("type")
 
-        if page_type in ("archive", "blog", "api-reference", "cli-reference", "tutorial"):
+        if page_type in (
+            "archive",
+            "blog",
+            "api-reference",
+            "cli-reference",
+            "tutorial",
+            "changelog",
+        ):
             # Archive/Reference/Blog page context
             # Note: Posts are already filtered and sorted by the content type strategy
             # in the SectionOrchestrator, so we don't need to re-sort here
@@ -236,6 +252,7 @@ class Renderer:
                 {
                     "section": section,
                     "posts": posts,
+                    "pages": posts,  # Alias for templates expecting 'pages'
                     "subsections": subsections,
                     "total_posts": len(all_posts),
                     **pagination,
