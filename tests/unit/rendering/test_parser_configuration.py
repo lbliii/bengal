@@ -61,8 +61,8 @@ class TestParserSelection:
             pipeline.parser, MistuneParser
         ), "Failed to select Mistune parser from flat markdown_engine config"
 
-    def test_python_markdown_parser_default(self, tmp_path):
-        """Test that python-markdown is the default when not specified."""
+    def test_mistune_parser_default(self, tmp_path):
+        """Test that mistune is the default when not specified (recommended for speed)."""
         site = Mock()
         site.config = {
             "site": {"title": "Test Site"},
@@ -75,10 +75,10 @@ class TestParserSelection:
 
         pipeline = RenderingPipeline(site, quiet=True)
 
-        # Should default to PythonMarkdownParser
+        # Should default to MistuneParser (fast, recommended)
         assert isinstance(
-            pipeline.parser, PythonMarkdownParser
-        ), "Failed to default to python-markdown parser"
+            pipeline.parser, MistuneParser
+        ), "Failed to default to mistune parser"
 
     def test_flat_config_takes_precedence(self, tmp_path):
         """Test that flat markdown_engine takes precedence over nested."""

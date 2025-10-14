@@ -95,10 +95,10 @@ class RenderingPipeline:
             Reads from config in this order:
             1. config['markdown_engine'] (legacy)
             2. config['markdown']['parser'] (preferred)
-            3. Default: 'python-markdown'
+            3. Default: 'mistune' (recommended for speed)
 
             Common values:
-            - 'mistune': Fast parser, recommended for most sites
+            - 'mistune': Fast parser, recommended for most sites (default)
             - 'python-markdown': Full-featured, slightly slower
 
         Parser Caching:
