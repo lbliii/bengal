@@ -120,14 +120,17 @@ class BuildOrchestrator:
 
         # Create live progress manager if enabled
         progress_manager = None
+        reporter = None
         if use_live_progress:
             try:
                 from bengal.utils.live_progress import LiveProgressManager
+                from bengal.utils.progress import LiveProgressReporterAdapter
                 from bengal.utils.rich_console import should_use_rich
 
                 if should_use_rich():
                     progress_manager = LiveProgressManager(profile)
                     progress_manager.__enter__()
+                    reporter = LiveProgressReporterAdapter(progress_manager)
             except Exception as e:
                 # Fallback to traditional output if live progress fails
                 self.logger.warning("live_progress_init_failed", error=str(e))
@@ -569,6 +572,7 @@ class BuildOrchestrator:
                     tracker=tracker,
                     stats=self.stats,
                     progress_manager=progress_manager,
+                    reporter=reporter,
                 )
             else:
                 self.render.process(
@@ -578,6 +582,7 @@ class BuildOrchestrator:
                     tracker=tracker,
                     stats=self.stats,
                     progress_manager=progress_manager,
+                    reporter=reporter,
                 )
 
             self.stats.rendering_time_ms = (time.time() - rendering_start) * 1000

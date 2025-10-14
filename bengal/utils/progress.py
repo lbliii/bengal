@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Protocol
+from contextlib import suppress
+from typing import Any, Protocol
 
 
 class ProgressReporter(Protocol):
@@ -42,3 +43,40 @@ class NoopReporter:
 
     def log(self, message: str) -> None:
         return None
+
+
+class LiveProgressReporterAdapter:
+    """Adapter to bridge LiveProgressManager to ProgressReporter.
+
+    Delegates phase methods directly and prints simple lines for log().
+    """
+
+    def __init__(self, live_progress_manager: Any):
+        self._pm = live_progress_manager
+
+    def add_phase(self, phase_id: str, label: str, total: int | None = None) -> None:
+        self._pm.add_phase(phase_id, label, total)
+
+    def start_phase(self, phase_id: str) -> None:
+        self._pm.start_phase(phase_id)
+
+    def update_phase(
+        self, phase_id: str, current: int | None = None, current_item: str | None = None
+    ) -> None:
+        if current is None and current_item is None:
+            # Nothing to update
+            return
+        kwargs = {}
+        if current is not None:
+            kwargs["current"] = current
+        if current_item is not None:
+            kwargs["current_item"] = current_item
+        self._pm.update_phase(phase_id, **kwargs)
+
+    def complete_phase(self, phase_id: str, elapsed_ms: float | None = None) -> None:
+        self._pm.complete_phase(phase_id, elapsed_ms=elapsed_ms)
+
+    def log(self, message: str) -> None:
+        # Simple bridge: print; live manager handles phases only
+        with suppress(Exception):
+            print(message)

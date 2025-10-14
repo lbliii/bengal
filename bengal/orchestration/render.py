@@ -90,6 +90,7 @@ class RenderOrchestrator:
         tracker: DependencyTracker | None = None,
         stats: BuildStats | None = None,
         progress_manager: Any | None = None,
+        reporter: Any | None = None,
     ) -> None:
         """
         Render pages (parallel or sequential).
