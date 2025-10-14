@@ -85,7 +85,8 @@ class TestSectionOrchestrator:
         # Should create archive index page
         assert section.index_page is not None
         assert section.index_page.metadata.get("_generated") is True
-        assert section.index_page.metadata.get("template") == "archive.html"
+        # Blog sections get content-type-specific template
+        assert section.index_page.metadata.get("template") == "blog/list.html"
         assert len(mock_site.pages) == 1  # Archive page added
 
     def test_finalize_section_only_subsections(self, orchestrator, mock_site, tmp_path):
@@ -170,8 +171,9 @@ class TestSectionOrchestrator:
 
         # Check metadata
         assert archive.metadata["title"] == section.title
-        assert archive.metadata["template"] == "archive.html"
-        assert archive.metadata["type"] == "archive"
+        # "posts" section is detected as blog content type, gets blog/list.html template
+        assert archive.metadata["template"] == "blog/list.html"
+        assert archive.metadata["type"] == "blog"
         assert archive.metadata["_generated"] is True
         assert archive.metadata["_virtual"] is True
         assert archive.metadata["_section"] == section
@@ -179,7 +181,7 @@ class TestSectionOrchestrator:
         assert archive.metadata["_subsections"] == section.subsections
         # Note: _paginator is only added for sections with >20 pages (pagination threshold)
         # This test has only 1 page, so no pagination
-        assert archive.metadata["_content_type"] == "archive"
+        assert archive.metadata["_content_type"] == "blog"
 
     def test_archive_output_path(self, orchestrator, mock_site, tmp_path):
         """Test that archive pages have correct output paths."""
