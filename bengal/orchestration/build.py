@@ -551,8 +551,6 @@ class BuildOrchestrator:
             memory_optimized=memory_optimized,
         ):
             rendering_start = time.time()
-            original_pages = self.site.pages
-            self.site.pages = pages_to_build  # Temporarily replace with subset
 
             # Register rendering phase
             if progress_manager:
@@ -582,7 +580,6 @@ class BuildOrchestrator:
                     progress_manager=progress_manager,
                 )
 
-            self.site.pages = original_pages  # Restore full page list
             self.stats.rendering_time_ms = (time.time() - rendering_start) * 1000
 
             if progress_manager:
