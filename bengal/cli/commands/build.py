@@ -379,13 +379,11 @@ def build(
         if should_regenerate_autodoc:
             _run_autodoc_before_build(config_path=config_path, root_path=root_path, quiet=quiet)
 
-        # Validate templates if requested
+        # Validate templates if requested (via service)
         if validate:
-            from bengal.rendering.template_engine import TemplateEngine
-            from bengal.rendering.validator import validate_templates
+            from bengal.services.validation import DefaultTemplateValidationService
 
-            template_engine = TemplateEngine(site)
-            error_count = validate_templates(template_engine)
+            error_count = DefaultTemplateValidationService().validate(site)
 
             if error_count > 0:
                 click.echo(
@@ -416,25 +414,7 @@ def build(
             # Traditional static indicator
             show_building_indicator("Building site")
 
-        # Validate templates if requested
-        if validate:
-            click.echo(click.style("\n🔍 Validating templates...", fg="cyan"))
-            from bengal.rendering.validator import TemplateValidator
-
-            validator = TemplateValidator(site)
-            errors = validator.validate_all()
-
-            if errors:
-                click.echo(
-                    click.style(f"\n❌ Found {len(errors)} template error(s):", fg="red", bold=True)
-                )
-                for error in errors[:5]:  # Show first 5
-                    click.echo(f"  • {error}")
-                if len(errors) > 5:
-                    click.echo(f"  ... and {len(errors) - 5} more")
-                raise click.Abort()
-            else:
-                click.echo(click.style("✓ All templates valid\n", fg="green"))
+        # (Validation already done above when validate is True)
 
         # Enable performance profiling if requested
         if perf_profile:
