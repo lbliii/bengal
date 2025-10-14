@@ -134,8 +134,12 @@ class RenderingPipeline:
             # Check nested markdown section
             markdown_config = site.config.get("markdown", {})
             markdown_engine = markdown_config.get("parser", "mistune")
+        # Allow injection of parser via BuildContext for tests/experiments
+        injected_parser = None
+        if build_context and getattr(build_context, "markdown_parser", None):
+            injected_parser = build_context.markdown_parser
         # Use thread-local parser to avoid re-initialization overhead
-        self.parser = _get_thread_parser(markdown_engine)
+        self.parser = injected_parser or _get_thread_parser(markdown_engine)
 
         # Enable cross-references if xref_index is available
         if hasattr(site, "xref_index") and hasattr(self.parser, "enable_cross_references"):
@@ -144,7 +148,11 @@ class RenderingPipeline:
         self.dependency_tracker = dependency_tracker
         self.quiet = quiet
         self.build_stats = build_stats
-        self.template_engine = TemplateEngine(site)
+        # Allow injection of TemplateEngine via BuildContext (e.g., strict modes or mocks)
+        if build_context and getattr(build_context, "template_engine", None):
+            self.template_engine = build_context.template_engine
+        else:
+            self.template_engine = TemplateEngine(site)
         if self.dependency_tracker:
             self.template_engine._dependency_tracker = self.dependency_tracker
         self.renderer = Renderer(self.template_engine, build_stats=build_stats)
