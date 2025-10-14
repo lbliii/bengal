@@ -105,8 +105,12 @@
 
     {# Optional JSON bootstrap for client-side scripts #}
     {% if config.get('expose_metadata_json') %}
+    <script id="bengal-bootstrap" type="application/json">{{ bengal | jsonify }}</script>
     <script>
-        window.__BENGAL__ = {{ bengal | jsonify }};
+        (function () {
+            var el = document.getElementById('bengal-bootstrap');
+            if (el) { window.__BENGAL__ = JSON.parse(el.textContent || '{}'); }
+        })();
     </script>
     {% endif %}
 </head>

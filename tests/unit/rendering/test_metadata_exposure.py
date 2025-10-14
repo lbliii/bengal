@@ -42,3 +42,43 @@ def test_bengal_global_extended_exposure_includes_rendering_info():
         "python-markdown",
         "python_markdown",
     )
+
+
+def test_json_bootstrap_includes_bengal_when_enabled(tmp_path):
+    # Arrange a minimal rendering scenario that uses base.html include
+    site = Site(root_path=tmp_path, config={"expose_metadata_json": True})
+    # Place a simple template that extends base and emits the head content
+    templates_dir = tmp_path / "templates"
+    templates_dir.mkdir(parents=True, exist_ok=True)
+    (templates_dir / "base.html").write_text(
+        """
+<!DOCTYPE html>
+<html>
+<head>
+    {% include 'partials/meta-generator.html' %}
+    {% if config.get('expose_metadata_json') %}
+    <script id="bengal-bootstrap" type="application/json">{{ bengal | jsonify }}</script>
+    <script>
+        (function () {
+            var el = document.getElementById('bengal-bootstrap');
+            if (el) { window.__BENGAL__ = JSON.parse(el.textContent || '{}'); }
+        })();
+    </script>
+    {% endif %}
+</head>
+<body></body>
+</html>
+""",
+        encoding="utf-8",
+    )
+    # partials dir and file
+    (templates_dir / "partials").mkdir(exist_ok=True)
+    (templates_dir / "partials" / "meta-generator.html").write_text(
+        '<meta name="generator" content="Bengal">', encoding="utf-8"
+    )
+
+    engine = TemplateEngine(site)
+    html = engine.render("base.html", {})
+
+    assert 'id="bengal-bootstrap"' in html
+    assert 'type="application/json"' in html

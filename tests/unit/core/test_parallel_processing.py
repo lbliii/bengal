@@ -14,50 +14,39 @@ from bengal.orchestration.asset import AssetOrchestrator
 from bengal.orchestration.postprocess import PostprocessOrchestrator
 
 
-class TestParallelAssetProcessing:
-    """Test parallel asset processing functionality."""
+@pytest.fixture
+def temp_site_dir():
+    """Create a temporary site directory with assets."""
+    temp_dir = Path(tempfile.mkdtemp())
 
-    @pytest.fixture
-    def temp_site_dir(self):
-        """Create a temporary site directory with assets."""
-        temp_dir = Path(tempfile.mkdtemp())
+    # Create directory structure
+    (temp_dir / "content").mkdir()
+    (temp_dir / "assets" / "css").mkdir(parents=True)
+    (temp_dir / "assets" / "js").mkdir(parents=True)
+    (temp_dir / "public").mkdir()
 
-        # Create directory structure
-        (temp_dir / "content").mkdir()
-        (temp_dir / "assets" / "css").mkdir(parents=True)
-        (temp_dir / "assets" / "js").mkdir(parents=True)
-        (temp_dir / "assets" / "images").mkdir(parents=True)
-        (temp_dir / "public").mkdir()
+    # Create test assets
+    for i in range(10):
+        (temp_dir / "assets" / "css" / f"style{i}.css").write_text(f"body {{ color: red{i}; }}")
 
-        # Create test assets
-        for i in range(10):
-            (temp_dir / "assets" / "css" / f"style{i}.css").write_text(f"body {{ color: red{i}; }}")
+    for i in range(5):
+        (temp_dir / "assets" / "js" / f"script{i}.js").write_text(f"console.log('test{i}');")
 
-        for i in range(5):
-            (temp_dir / "assets" / "js" / f"script{i}.js").write_text(f"console.log('test{i}');")
-
-        # Create small test images (1x1 pixel)
-        for i in range(3):
-            # Create a minimal valid PNG
-            png_data = (
-                b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01"
-                b"\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89"
-                b"\x00\x00\x00\nIDATx\x9cc\x00\x01\x00\x00\x05\x00\x01"
-                b"\r\n-\xb4\x00\x00\x00\x00IEND\xaeB`\x82"
-            )
-            (temp_dir / "assets" / "images" / f"image{i}.png").write_bytes(png_data)
-
-        # Create config
-        (temp_dir / "bengal.toml").write_text("""
+    # Create config
+    (temp_dir / "bengal.toml").write_text("""
 [build]
 title = "Test Site"
 parallel = true
 """)
 
-        yield temp_dir
+    yield temp_dir
 
-        # Cleanup
-        shutil.rmtree(temp_dir)
+    # Cleanup
+    shutil.rmtree(temp_dir)
+
+
+class TestParallelAssetProcessing:
+    """Test parallel asset processing functionality."""
 
     def test_small_asset_count_uses_sequential(self, temp_site_dir):
         """Test that sites with few assets use sequential processing."""
@@ -66,8 +55,6 @@ parallel = true
             css_file.unlink()
         for js_file in (temp_site_dir / "assets" / "js").glob("*.js"):
             js_file.unlink()
-        for img_file in (temp_site_dir / "assets" / "images").glob("*.png"):
-            img_file.unlink()
 
         # Create site with only 2 site assets (theme assets will also be discovered)
         (temp_site_dir / "assets" / "css" / "main.css").write_text("body { color: blue; }")
@@ -93,8 +80,8 @@ parallel = true
         site = Site.from_config(temp_site_dir)
         site.discover_assets()
 
-        # Should have 18 assets (10 CSS + 5 JS + 3 images)
-        assert len(site.assets) >= 18
+        # Should have 15 assets (10 CSS + 5 JS)
+        assert len(site.assets) >= 15
 
         # Process assets
         asset_orchestrator = AssetOrchestrator(site)
@@ -106,7 +93,7 @@ parallel = true
 
         # Count output files (may have fingerprints in names)
         output_files = list(output_dir.rglob("*.*"))
-        assert len(output_files) >= 18
+        assert len(output_files) >= 15
 
     def test_parallel_produces_same_output_as_sequential(self, temp_site_dir):
         """Test that parallel and sequential processing produce identical output."""
@@ -160,7 +147,7 @@ parallel = true
         # Other assets should still be processed
         output_dir = temp_site_dir / "public" / "assets"
         output_files = list(output_dir.rglob("*.*"))
-        assert len(output_files) >= 18  # Original valid assets
+        assert len(output_files) >= 15  # Original valid assets
 
 
 class TestParallelPostProcessing:

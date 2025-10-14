@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bengal"
-version = "0.1.1"
+version = "0.1.2"
 description = "A high-performance static site generator with modular architecture"
 readme = "README.md"
 requires-python = ">=3.13"  # Python 3.14+ recommended for free-threading support (1.8x faster)

@@ -374,24 +374,32 @@ class TestDoGetIntegrationMinimal:
             )
         return handler
 
-    def test_do_get_injects_for_html(self, monkeypatch):
+    def test_do_get_injects_for_html(self, tmp_path, monkeypatch):
         """HTML responses should be injected with live reload script."""
-        handler = self._make_handler()
+        # Create test file
+        (tmp_path / "index.html").write_text("<html><body>Test</body></html>")
+
+        # Create mock server with directory
+        mock_server = Mock()
+        mock_server.directory = str(tmp_path)
+
+        # Create handler
+        request = Mock()
+        request.makefile = Mock(side_effect=lambda *args, **kwargs: BytesIO(b""))
+        handler = BengalRequestHandler(
+            request=request, client_address=("127.0.0.1", 12345), server=mock_server
+        )
+        handler.requestline = "GET /index.html HTTP/1.1"
         handler.path = "/index.html"
         output = BytesIO()
         handler.wfile = output
 
-        def fake_do_get(self):
-            # Simulate base handler writing a valid HTTP response
-            self.wfile.write(b"HTTP/1.1 200 OK\r\n")
-            self.wfile.write(b"Content-Type: text/html; charset=utf-8\r\n")
-            self.wfile.write(b"Content-Length: 13\r\n")
-            self.wfile.write(b"\r\n")
-            self.wfile.write(b"<html></html>")
+        # Monkeypatch to avoid actual handle, but since we set directory, it should work
+        # But to control, mock translate_path to return the file
+        def fake_translate_path(self, path):
+            return str(tmp_path / path.lstrip('/'))
 
-        monkeypatch.setattr(
-            http.server.SimpleHTTPRequestHandler, "do_GET", fake_do_get, raising=True
-        )
+        monkeypatch.setattr(BengalRequestHandler, "translate_path", fake_translate_path)
 
         # Execute
         handler.do_GET()
@@ -399,6 +407,7 @@ class TestDoGetIntegrationMinimal:
 
         assert "__bengal_reload__" in result
         assert "EventSource" in result
+        assert "Test" in result  # Original content preserved
 
     def test_do_get_bypasses_non_html(self, monkeypatch):
         """Non-HTML responses should not be modified or injected."""

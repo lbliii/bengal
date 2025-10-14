@@ -92,7 +92,7 @@ Original content.""")
 """)
 
         # Initial full build
-        site = Site.from_config(str(config_path))
+        site = Site.from_config(site_dir, config_path=config_path)
         site.discover_content()
         site.discover_assets()
         full_stats = site.build()

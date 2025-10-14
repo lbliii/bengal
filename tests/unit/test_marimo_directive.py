@@ -3,6 +3,16 @@
 import pytest
 
 
+def _marimo_available() -> bool:
+    """Check if Marimo is installed."""
+    try:
+        import marimo  # noqa: F401
+
+        return True
+    except ImportError:
+        return False
+
+
 class TestMarimoCellDirective:
     """Tests for MarimoCellDirective."""
 
@@ -57,13 +67,3 @@ class TestMarimoCellDirective:
         # Should produce some HTML output
         assert isinstance(html, str)
         assert len(html) > 0
-
-
-def _marimo_available() -> bool:
-    """Check if Marimo is installed."""
-    try:
-        import marimo  # noqa: F401
-
-        return True
-    except ImportError:
-        return False

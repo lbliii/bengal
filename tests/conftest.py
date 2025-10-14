@@ -197,7 +197,7 @@ def reset_console_between_tests():
 
 
 @pytest.fixture(scope="class")
-def shared_site_class(request, tmp_path_factory, sample_config):
+def shared_site_class(request, tmp_path_factory):
     """
     Class-scoped temporary site for tests that can share setup.
 
@@ -238,7 +238,7 @@ Content for page {i}.""",
         )
 
     # Create site and build
-    site = Site.from_config(str(config_path))
+    site = Site.from_config(site_dir, config_path=config_path)
     site.discover_content()
     site.discover_assets()
     build_stats = site.build(parallel=False)  # Sequential for consistency
@@ -250,7 +250,8 @@ Content for page {i}.""",
 
         mod_site_dir = tmp_path_factory.mktemp("modifiable_site")
         shutil.copytree(site_dir, mod_site_dir)
-        mod_site = Site.from_config(str(mod_site_dir / "bengal.toml"))
+        mod_config_path = mod_site_dir / "bengal.toml"
+        mod_site = Site.from_config(mod_site_dir, config_path=mod_config_path)
         mod_site.discover_content()
         mod_site.discover_assets()
         yield mod_site
