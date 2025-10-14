@@ -6,6 +6,8 @@ from pathlib import Path
 import click
 
 from bengal.cli.site_templates import get_template
+
+# Add these imports
 from bengal.utils.build_stats import show_error
 
 # Preset definitions for wizard
@@ -17,6 +19,7 @@ PRESETS = {
         "sections": ["blog", "about"],
         "with_content": True,
         "pages_per_section": 3,
+        "template_id": "blog",
     },
     "docs": {
         "name": "Documentation",
@@ -25,6 +28,7 @@ PRESETS = {
         "sections": ["getting-started", "guides", "reference"],
         "with_content": True,
         "pages_per_section": 3,
+        "template_id": "docs",
     },
     "portfolio": {
         "name": "Portfolio",
@@ -33,6 +37,7 @@ PRESETS = {
         "sections": ["about", "projects", "blog", "contact"],
         "with_content": True,
         "pages_per_section": 3,
+        "template_id": "portfolio",
     },
     "business": {
         "name": "Business",
@@ -41,6 +46,7 @@ PRESETS = {
         "sections": ["products", "services", "about", "contact"],
         "with_content": True,
         "pages_per_section": 2,
+        "template_id": "default",  # Fallback if no business template yet
     },
     "resume": {
         "name": "Resume",
@@ -49,6 +55,7 @@ PRESETS = {
         "sections": ["resume"],
         "with_content": True,
         "pages_per_section": 1,
+        "template_id": "resume",
     },
 }
 
@@ -68,9 +75,9 @@ def _should_run_init_wizard(template: str, no_init: bool, init_preset: str) -> b
     return template == "default"
 
 
-def _run_init_wizard(site_path: Path, preset: str = None) -> bool:
-    """Run the site initialization wizard."""
-    from bengal.cli.commands.init import plan_init_operations
+def _run_init_wizard(preset: str = None) -> str | None:
+    """Run the site initialization wizard and return the selected template ID or None."""
+    import click
 
     # If preset was provided via flag, use it directly
     if preset:
@@ -79,175 +86,106 @@ def _run_init_wizard(site_path: Path, preset: str = None) -> bool:
                 click.style(f"⚠️  Unknown preset '{preset}'. Available: ", fg="yellow")
                 + ", ".join(PRESETS.keys())
             )
-            return False
+            return None
 
         selected_preset = PRESETS[preset]
         click.echo(
-            click.style("🏗️  Initializing with ", fg="cyan")
+            click.style("🏗️  Selected ", fg="cyan")
             + click.style(
                 f"{selected_preset['emoji']} {selected_preset['name']}", fg="cyan", bold=True
             )
-            + click.style(" preset...", fg="cyan")
+            + click.style(" preset.", fg="cyan")
         )
-    else:
-        # Interactive wizard with questionary
-        try:
-            import questionary
-        except ImportError:
-            # Fallback to click if questionary not available
-            click.echo(
-                click.style(
-                    "\n⚠️  Install questionary for better interactive prompts: pip install questionary",
-                    fg="yellow",
-                )
-            )
-            return False
+        return selected_preset.get("template_id", "default")
 
-        # Build choices list
-        choices = []
-        preset_items = list(PRESETS.items())
-
-        for key, info in preset_items:
-            choices.append(
-                {
-                    "name": f"{info['emoji']} {info['name']:<15} - {info['description']}",
-                    "value": key,
-                }
-            )
-
-        choices.append(
-            {
-                "name": "📦 Blank          - Empty site, no initial structure",
-                "value": "__blank__",
-            }
-        )
-
-        choices.append(
-            {
-                "name": "⚙️  Custom         - Define your own structure",
-                "value": "__custom__",
-            }
-        )
-
-        # Show interactive menu
-        click.echo()  # Blank line before menu
-        selection = questionary.select(
-            "What kind of site are you building?",
-            choices=choices,
-            style=questionary.Style(
-                [
-                    ("qmark", "fg:cyan bold"),
-                    ("question", "fg:cyan bold"),
-                    ("pointer", "fg:cyan bold"),
-                    ("highlighted", "fg:cyan bold"),
-                    ("selected", "fg:green"),
-                ]
-            ),
-        ).ask()
-
-        # Handle cancellation (Ctrl+C)
-        if selection is None:
-            click.echo(click.style("\n✨ Cancelled. Site created without structure.", fg="yellow"))
-            return False
-
-        # Handle blank
-        if selection == "__blank__":
-            click.echo(
-                click.style(
-                    "\n✨ Creating blank site. Run 'bengal init' later to add structure.",
-                    fg="cyan",
-                )
-            )
-            return False
-
-        # Handle custom
-        if selection == "__custom__":
-            sections_input = click.prompt(
-                click.style("\nEnter section names (comma-separated)", fg="cyan"),
-                type=str,
-                default="blog,about",
-            )
-            selected_preset = {
-                "name": "Custom",
-                "sections": [s.strip() for s in sections_input.split(",")],
-                "with_content": click.confirm(
-                    click.style("Generate sample content?", fg="cyan"),
-                    default=True,
-                ),
-                "pages_per_section": click.prompt(
-                    click.style("Pages per section", fg="cyan"),
-                    type=int,
-                    default=3,
-                ),
-            }
-        else:
-            # Regular preset selected
-            selected_preset = PRESETS[selection]
-
-        click.echo()  # Blank line before execution
-
-    # Execute the initialization
-    content_dir = site_path / "content"
-
+    # Interactive wizard with questionary
     try:
-        operations, warnings = plan_init_operations(
-            content_dir,
-            selected_preset["sections"],
-            selected_preset["with_content"],
-            selected_preset["pages_per_section"],
-            force=False,
+        import questionary
+    except ImportError:
+        click.echo(
+            click.style(
+                "\n⚠️  Install questionary for better interactive prompts: pip install questionary",
+                fg="yellow",
+            )
+        )
+        return None
+
+    # Build choices list
+    choices = []
+    preset_items = list(PRESETS.items())
+
+    for key, info in preset_items:
+        choices.append(
+            {
+                "name": f"{info['emoji']} {info['name']:<15} - {info['description']}",
+                "value": key,
+            }
         )
 
-        if warnings:
-            for warning in warnings:
-                click.echo(click.style(f"⚠️  {warning}", fg="yellow"))
+    choices.append(
+        {
+            "name": "📦 Blank          - Empty site, no initial structure",
+            "value": "__blank__",
+        }
+    )
 
-        if not operations:
-            return False
+    choices.append(
+        {
+            "name": "⚙️  Custom         - Define your own structure",
+            "value": "__custom__",
+        }
+    )
 
-        # Execute operations
-        click.echo(click.style("🏗️  Initializing site structure...\n", fg="cyan", bold=True))
+    # Show interactive menu
+    click.echo(click.style("\n🎯 What kind of site are you building?", fg="cyan", bold=True))
+    selection = questionary.select(
+        "Select a preset:",
+        choices=choices,
+        style=questionary.Style(
+            [
+                ("qmark", "fg:cyan bold"),
+                ("question", "fg:cyan bold"),
+                ("pointer", "fg:cyan bold"),
+                ("highlighted", "fg:cyan bold"),
+                ("selected", "fg:green"),
+            ]
+        ),
+    ).ask()
 
-        sections_created = set()
-        pages_created = 0
+    # Handle cancellation (Ctrl+C)
+    if selection is None:
+        click.echo(click.style("\n✨ Cancelled. Will create basic default site.", fg="yellow"))
+        return "default"
 
-        for op in operations:
-            op.execute()
+    # Handle blank
+    if selection == "__blank__":
+        click.echo(click.style("\n✨ Blank site selected. No initial structure added.", fg="cyan"))
+        return None
 
-            if op.path.name == "_index.md":
-                sections_created.add(op.path.parent.name)
-                rel_path = op.path.relative_to(site_path)
-                click.echo(click.style("   ✓ ", fg="green") + f"Created {rel_path}")
-            else:
-                pages_created += 1
-                rel_path = op.path.relative_to(site_path)
-                click.echo(click.style("   ✓ ", fg="green") + f"Created {rel_path}")
-
-        # Summary
-        click.echo(click.style("\n✨ Site initialized successfully!", fg="green", bold=True))
-        click.echo(click.style("\nCreated:", fg="cyan"))
-        click.echo(f"  • {len(sections_created)} sections")
-        click.echo(f"  • {pages_created} pages")
-
-        # Show tip about auto-navigation
-        if sections_created:
-            click.echo(click.style("\n🎯 Navigation configured!", fg="green", bold=True))
-            click.echo(click.style("   Sections will appear automatically in nav:", fg="green"))
-            for section in sorted(sections_created):
-                display_name = section.replace("-", " ").replace("_", " ").title()
-                click.echo(click.style(f"   • {display_name}", fg="green"))
-            click.echo()
-            click.echo(
-                click.style("   💡 Tip: ", fg="cyan")
-                + click.style("Navigation auto-discovers sections. To customize,", fg="white")
+    # Handle custom
+    if selection == "__custom__":
+        sections_input = click.prompt(
+            click.style("\nEnter section names (comma-separated, e.g., blog,about):", fg="cyan"),
+            type=str,
+            default="blog,about",
+        )
+        pages_per = click.prompt(
+            click.style("Pages per section:", fg="cyan"),
+            type=int,
+            default=3,
+        )
+        click.echo(
+            click.style(
+                f"\n✨ Custom structure noted (sections={sections_input}, pages={pages_per}). Basic site created; run 'bengal init --sections {sections_input} --pages-per-section {pages_per} --with-content' after to add structure.",
+                fg="cyan",
             )
-            click.echo(click.style("      add [[menu.main]] entries to bengal.toml", fg="white"))
+        )
+        return "default"  # Custom needs post-creation init
 
-        return True
-
-    except Exception as e:
-        click.echo(click.style(f"\n❌ Initialization failed: {e}", fg="red"))
-        return False
+    # Regular preset selected
+    selected_preset = PRESETS[selection]
+    click.echo(click.style(f"\n✨ {selected_preset['name']} preset selected.", fg="cyan"))
+    return selected_preset.get("template_id", "default")
 
 
 @click.group()
@@ -286,8 +224,25 @@ def site(name: str, theme: str, template: str, no_init: bool, init_preset: str) 
             show_error(f"Directory {name} already exists!", show_art=False)
             raise click.Abort()
 
-        # Get the selected template
-        site_template = get_template(template)
+        # Determine effective template
+        effective_template = template
+        is_custom = False
+
+        # Check if we should run wizard (only for default + interactive/non-no-init)
+        should_run_wizard = _should_run_init_wizard(template, no_init, init_preset)
+
+        if should_run_wizard:
+            # Run wizard before creation to get selection
+            wizard_selection = _run_init_wizard(init_preset)
+
+            if wizard_selection is not None and wizard_selection != "default":
+                effective_template = wizard_selection
+            elif wizard_selection == "__custom__":  # Track for advice
+                is_custom = True
+            # Else: blank/cancel uses default (None -> default)
+
+        # Get the effective template
+        site_template = get_template(effective_template)
 
         click.echo(
             click.style(f"\n🏗️  Creating new Bengal site: {name}", fg="cyan", bold=True)
@@ -322,7 +277,6 @@ parallel = true
 minify = true
 fingerprint = true
 """
-        # Write config atomically (crash-safe)
         from bengal.utils.atomic_write import atomic_write_text
 
         atomic_write_text(site_path / "bengal.toml", config_content)
@@ -380,18 +334,15 @@ ENV/
 ehthumbs.db
 Thumbs.db
 """
-
         atomic_write_text(site_path / ".gitignore", gitignore_content)
         click.echo(click.style("   ├─ ", fg="cyan") + "Created .gitignore")
 
         # Create files from template (pages, data files, etc.)
         files_created = 0
         for template_file in site_template.files:
-            # Determine the base directory (content, data, templates, etc.)
             base_dir = site_path / template_file.target_dir
             base_dir.mkdir(parents=True, exist_ok=True)
 
-            # Create the file
             file_path = base_dir / template_file.relative_path
             file_path.parent.mkdir(parents=True, exist_ok=True)
             atomic_write_text(file_path, template_file.content)
@@ -404,15 +355,16 @@ Thumbs.db
 
         click.echo(click.style("\n✅ Site created successfully!", fg="green", bold=True))
 
-        # Run initialization wizard unless skipped or template was non-default
-        should_init = _should_run_init_wizard(template, no_init, init_preset)
-
-        if should_init:
-            click.echo()  # Blank line
-            init_result = _run_init_wizard(site_path, init_preset)
-
-            if init_result:
-                click.echo()  # Blank line after init
+        # Handle special cases for wizard
+        if wizard_selection is None and init_preset is None:
+            click.echo(click.style("\n💡 Run 'bengal init' to add structure later.", fg="yellow"))
+        if is_custom:
+            click.echo(
+                click.style(
+                    "\n💡 For custom sections, run 'bengal init --sections <your-list> --with-content' now.",
+                    fg="yellow",
+                )
+            )
 
         # Show next steps
         click.echo(click.style("\n📚 Next steps:", fg="cyan", bold=True))
