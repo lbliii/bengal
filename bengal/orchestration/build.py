@@ -567,7 +567,7 @@ class BuildOrchestrator:
 
                 streaming_render = StreamingRenderOrchestrator(self.site)
                 # Prepare context (future use)
-                BuildContext(
+                ctx = BuildContext(
                     site=self.site,
                     pages=pages_to_build,
                     tracker=tracker,
@@ -584,12 +584,13 @@ class BuildOrchestrator:
                     stats=self.stats,
                     progress_manager=progress_manager,
                     reporter=reporter,
+                    build_context=ctx,
                 )
             else:
                 from bengal.utils.build_context import BuildContext
 
                 # Prepare context (future use)
-                BuildContext(
+                ctx = BuildContext(
                     site=self.site,
                     pages=pages_to_build,
                     tracker=tracker,
@@ -607,6 +608,7 @@ class BuildOrchestrator:
                     stats=self.stats,
                     progress_manager=progress_manager,
                     reporter=reporter,
+                    build_context=ctx,
                 )
 
             self.stats.rendering_time_ms = (time.time() - rendering_start) * 1000

@@ -91,6 +91,7 @@ class RenderOrchestrator:
         stats: BuildStats | None = None,
         progress_manager: Any | None = None,
         reporter: Any | None = None,
+        build_context: Any | None = None,
     ) -> None:
         """
         Render pages (parallel or sequential).

@@ -54,6 +54,7 @@ class StreamingRenderOrchestrator:
         batch_size: int = 100,
         progress_manager: Any | None = None,
         reporter: Any | None = None,
+        build_context: Any | None = None,
     ) -> None:
         """
         Render pages in memory-optimized batches using connectivity analysis.
