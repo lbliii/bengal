@@ -8,6 +8,7 @@ class DummySite:
         self.root_path = root_path
         self.theme = theme
         self.config = {}
+        self.output_dir = root_path / "public"  # Required by TemplateEngine for bytecode cache
 
 
 def write_theme(root: Path, name: str, extends: str | None, with_template: bool = False) -> None:
