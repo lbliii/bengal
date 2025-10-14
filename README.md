@@ -29,6 +29,18 @@ brew install pyenv  # On macOS with Homebrew
 
 pyenv install 3.14.0
 pyenv global 3.14.0
+
+# Initialize pyenv in your shell profile (add these lines to ~/.zshrc or ~/.bash_profile):
+# export PYENV_ROOT="$HOME/.pyenv"
+# export PATH="$PYENV_ROOT/bin:$PATH"
+# eval "$(pyenv init --path)"
+# eval "$(pyenv init -)"
+# eval "$(pyenv virtualenv-init -)"
+#
+# Then reload your shell:
+# source ~/.zshrc  # or source ~/.bash_profile
+#
+# Verify with: python --version (should show 3.14.0)
 ```
 
 ### Official Installer
