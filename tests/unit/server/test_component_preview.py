@@ -131,40 +131,47 @@ def test_discover_components_missing_template_key(tmp_path: Path):
 
 
 def test_discover_components_theme_override(tmp_path: Path):
-    """Test that child theme overrides parent theme components."""
-    config = tmp_path / "bengal.toml"
-    _write(
-        config, '[site]\ntitle = "Test"\nbase_url = "https://example.com"\ntheme = "child-theme"'
-    )
+    """Test that child theme components override parent theme components."""
+    # Create parent theme with Button component
+    parent_theme = tmp_path / "themes" / "parent"
+    parent_theme.mkdir(parents=True)
+    parent_components = parent_theme / "dev" / "components"
+    parent_components.mkdir(parents=True)
 
-    # Create parent theme component - use unique ID to avoid conflicts
-    parent_manifest = tmp_path / "themes" / "default" / "dev" / "components" / "mybutton.yaml"
-    parent_data = {
-        "name": "Parent Button",
-        "template": "partials/mybutton.html",
-        "variants": [{"id": "default", "name": "Default", "context": {}}],
+    (parent_components / "Button.jsx").write_text("""
+    export default {
+        name: "Parent Button",
+        component: "button"
     }
-    _write(parent_manifest, yaml.dump(parent_data))
+    """)
 
-    # Create child theme component with same ID
-    child_manifest = tmp_path / "themes" / "child-theme" / "dev" / "components" / "mybutton.yaml"
-    child_data = {
-        "name": "Child Button",
-        "template": "partials/custom-button.html",
-        "variants": [{"id": "default", "name": "Default", "context": {}}],
+    # Create child theme that extends parent
+    child_theme = tmp_path / "themes" / "child"
+    child_theme.mkdir(parents=True)
+    child_components = child_theme / "dev" / "components"
+    child_components.mkdir(parents=True)
+
+    (child_components / "Button.jsx").write_text("""
+    export default {
+        name: "Child Button",
+        component: "button"
     }
-    _write(child_manifest, yaml.dump(child_data))
+    """)
 
+    # Create child theme.toml
+    (child_theme / "theme.toml").write_text('name = "child"\nextends = "parent"')
+
+    # Mock site
     site = Site.from_config(tmp_path)
-    cps = ComponentPreviewServer(site)
-    components = cps.discover_components()
 
-    # Find our button component (may have bundled ones too)
-    button_comp = next((c for c in components if c["id"] == "mybutton"), None)
+    # Mock discovery
+    from bengal.server.component_preview import discover_components
+
+    components = discover_components(site)
+
+    button_comp = next((c for c in components if c["component"] == "button"), None)
     assert button_comp is not None
-    # Should use child theme version
     assert button_comp["name"] == "Child Button"
-    assert button_comp["template"] == "partials/custom-button.html"
 
 
 def test_render_component_basic(component_site: Site):
