@@ -29,8 +29,8 @@
 
         {% if page and page.metadata.get('description', '') %}
         <p class="section-description">{{ page.metadata.get('description', '') }}</p>
-        {% elif section and section.metadata.description %}
-        <p class="section-description">{{ section.metadata.description }}</p>
+        {% elif section and section.metadata.get('description') %}
+        <p class="section-description">{{ section.metadata.get('description', '') }}</p>
         {% endif %}
     </header>
 

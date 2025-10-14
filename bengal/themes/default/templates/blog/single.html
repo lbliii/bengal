@@ -223,10 +223,10 @@ Context variables:
         <div class="blog-featured-grid">
             {% for post in related %}
             <article class="blog-post-card">
-                {% if post.metadata.image or post.metadata.cover %}
+                {% if post.metadata.get('image') or post.metadata.get('cover') %}
                 <div class="blog-card-image">
                     <a href="{{ url_for(post) }}">
-                        <img src="{{ post.metadata.image | default(post.metadata.cover) }}" alt="{{ post.title }}">
+                        <img src="{{ post.metadata.get('image') | default(post.metadata.get('cover')) }}" alt="{{ post.title }}">
                     </a>
                 </div>
                 {% endif %}
@@ -234,8 +234,8 @@ Context variables:
                     <h3 class="blog-card-title">
                         <a href="{{ url_for(post) }}">{{ post.title }}</a>
                     </h3>
-                    {% if post.metadata.description or post.excerpt %}
-                    <p class="blog-card-excerpt">{{ post.metadata.description | default(post.excerpt) | truncate(120) }}
+                    {% if post.metadata.get('description') or post.excerpt %}
+                    <p class="blog-card-excerpt">{{ post.metadata.get('description') | default(post.excerpt) | truncate(120) }}
                     </p>
                     {% endif %}
                     {% if post.date %}

@@ -3,22 +3,22 @@
 {% from 'partials/content-components.html' import article_card %}
 
 {#
-  Chronological Archive Template
+Chronological Archive Template
 
-  Used for blog-style sections with dated posts.
-  Displays content in reverse chronological order with pagination.
+Used for blog-style sections with dated posts.
+Displays content in reverse chronological order with pagination.
 
-  When to use:
-  - Blog posts
-  - News articles
-  - Any time-ordered content
+When to use:
+- Blog posts
+- News articles
+- Any time-ordered content
 
-  Context variables:
-    - section: Section object
-    - posts: List of pages (may be paginated)
-    - subsections: Child sections
-    - total_pages: Total pagination pages (if paginated)
-    - current_page: Current page number (if paginated)
+Context variables:
+- section: Section object
+- posts: List of pages (may be paginated)
+- subsections: Child sections
+- total_pages: Total pagination pages (if paginated)
+- current_page: Current page number (if paginated)
 #}
 
 {% block content %}
@@ -26,7 +26,7 @@
 
 {# Section navigation for section pages - dogfooding section properties #}
 {% if section %}
-    {{ section_navigation(section) }}
+{{ section_navigation(section) }}
 {% endif %}
 
 <div class="archive">
@@ -35,8 +35,8 @@
 
         {% if description %}
         <p class="archive-description">{{ description }}</p>
-        {% elif section and section.metadata.description %}
-        <p class="archive-description">{{ section.metadata.description }}</p>
+        {% elif section and section.metadata.get('description') %}
+        <p class="archive-description">{{ section.metadata.get('description') }}</p>
         {% endif %}
 
         {% if total_pages %}
@@ -55,7 +55,7 @@
         <h2 class="section-subtitle">Featured Posts</h2>
         <div class="archive-list archive-list-featured">
             {% for post in featured_posts %}
-                {{ article_card(post, show_excerpt=True, show_image=True) }}
+            {{ article_card(post, show_excerpt=True, show_image=True) }}
             {% endfor %}
         </div>
     </section>
@@ -68,7 +68,7 @@
         {% if featured_posts %}<h2 class="section-subtitle">All Posts</h2>{% endif %}
         <div class="archive-list">
             {% for post in regular_posts %}
-                {{ article_card(post, show_excerpt=True) }}
+            {{ article_card(post, show_excerpt=True) }}
             {% endfor %}
         </div>
     </section>
@@ -86,8 +86,8 @@
             {% for subsection in subsections %}
             <article class="archive-item">
                 <h3><a href="{{ subsection.url }}">{{ subsection.title }}</a></h3>
-                {% if subsection.metadata.description %}
-                <p>{{ subsection.metadata.description }}</p>
+                {% if subsection.metadata.get('description') %}
+                <p>{{ subsection.metadata.get('description') }}</p>
                 {% endif %}
                 {% if subsection.pages %}
                 <p class="meta">{{ subsection.pages | length }} page(s)</p>
@@ -104,7 +104,8 @@
             <div class="empty-help">
                 <p><strong>To add posts:</strong></p>
                 <ul>
-                    <li>Create a post with a date: <code>content/{{ section.path.relative_to(site.content_dir) }}/my-post.md</code></li>
+                    <li>Create a post with a date:
+                        <code>content/{{ section.path.relative_to(site.content_dir) }}/my-post.md</code></li>
                     <li>Add frontmatter with <code>date: 2025-01-01</code></li>
                 </ul>
                 <p class="empty-hint">💡 Posts in this section will be displayed in reverse chronological order.</p>

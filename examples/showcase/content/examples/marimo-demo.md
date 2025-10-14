@@ -11,7 +11,7 @@ draft: true
 Bengal supports executable Python code blocks using [Marimo](https://marimo.io/), a reactive notebook system.
 
 ```{note}
-**Marimo is an optional dependency.** Install with `pip install marimo` to enable executable Python cells. 
+**Marimo is an optional dependency.** Install with `pip install marimo` to enable executable Python cells.
 
 The `{marimo}` directive is only available when Marimo is installed. Without it, this page will show placeholder content.
 ```

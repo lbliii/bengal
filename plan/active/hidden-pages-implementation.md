@@ -138,7 +138,7 @@ def generate_rss(site: Site, output_dir: Path, config: dict) -> None:
 **Need to add:**
 ```python
 posts = [
-    p for p in site.pages 
+    p for p in site.pages
     if p.date and not p.metadata.get("hidden", False)
 ]
 ```
@@ -192,9 +192,9 @@ def compute_related_posts(site: Site, limit: int = 5) -> None:
 **Need to add:**
 ```python
 candidates = [
-    p for p in site.pages 
-    if p != page 
-    and p.tags 
+    p for p in site.pages
+    if p != page
+    and p.tags
     and not p.metadata.get("hidden", False)
 ]
 ```
@@ -219,7 +219,7 @@ def _generate_archives(self, site: Site) -> None:
 **Need to add:**
 ```python
 posts = [
-    p for p in site.pages 
+    p for p in site.pages
     if p.date and not p.metadata.get("hidden", False)
 ]
 ```
@@ -271,7 +271,7 @@ for page in site.pages:
 def get_recent_posts(site, limit=10):
     """Get recent posts."""
     posts = [
-        p for p in site.pages 
+        p for p in site.pages
         if p.date and not p.metadata.get("hidden", False)
     ]
     return sorted(posts, key=lambda p: p.date, reverse=True)[:limit]
@@ -314,7 +314,7 @@ Hidden pages still render, so they should still pass validation.
    ```
 
 2. **Navigation filtering**
-   - Update `get_section_pages()` 
+   - Update `get_section_pages()`
    - Update `get_nav_tree()`
    - Update `get_auto_nav()`
 
@@ -376,22 +376,22 @@ Hidden pages still render, so they should still pass validation.
 def hidden(self) -> bool:
     """
     Check if page is marked as hidden.
-    
+
     Hidden pages:
     - Still render and are accessible via direct URL
     - Don't appear in navigation, lists, or search
     - Don't appear in sitemaps or RSS feeds
     - Are excluded from related posts
-    
+
     Returns:
         True if page is hidden
-    
+
     Example:
         ---
         title: "Secret Page"
         hidden: true
         ---
-        
+
         # This page is accessible via direct link
         # but won't appear in any listings
     """
@@ -408,25 +408,25 @@ def filter_display_pages(
 ) -> list["Page"]:
     """
     Filter which pages to show in list views.
-    
+
     Excludes:
     - Hidden pages (hidden: true)
     - The index page itself
-    
+
     Args:
         pages: All pages in the section
         index_page: The section's index page (to exclude from lists)
-    
+
     Returns:
         Filtered list of pages
     """
     # Filter out hidden pages
     filtered = [p for p in pages if not p.hidden]
-    
+
     # Filter out index page
     if index_page:
         filtered = [p for p in filtered if p != index_page]
-    
+
     return filtered
 ```
 
@@ -438,20 +438,20 @@ def filter_display_pages(
 def get_section_pages(section: "Section", sort: bool = True) -> list["Page"]:
     """
     Get all pages in a section, excluding hidden pages.
-    
+
     Args:
         section: Section to get pages from
         sort: Whether to sort by weight/title
-    
+
     Returns:
         List of visible pages
     """
     # Filter out hidden pages
     pages = [p for p in section.pages if not p.hidden]
-    
+
     if sort:
         pages = sorted(pages, key=lambda p: (p.metadata.get("weight", 999), p.title))
-    
+
     return pages
 ```
 
@@ -463,26 +463,26 @@ def get_section_pages(section: "Section", sort: bool = True) -> list["Page"]:
 def _generate_search_index(self, site: Site) -> dict:
     """Generate search index JSON."""
     pages_data = []
-    
+
     for page in site.pages:
         # Skip hidden pages
         if page.hidden:
             continue
-        
+
         # Skip pages marked search_exclude
         if page.metadata.get("search_exclude", False):
             continue
-        
+
         # Skip drafts
         if page.draft:
             continue
-        
+
         pages_data.append({
             "url": page.url,
             "title": page.title,
             "content": page.plain_text[:500],  # Preview
         })
-    
+
     return {"pages": pages_data}
 ```
 
@@ -494,12 +494,12 @@ def _generate_search_index(self, site: Site) -> dict:
 def generate_sitemap(site: Site, output_dir: Path) -> None:
     """Generate sitemap.xml."""
     urlset = ET.Element("urlset", xmlns="http://www.sitemaps.org/schemas/sitemap/0.9")
-    
+
     for page in site.pages:
         # Skip hidden pages
         if page.hidden:
             continue
-        
+
         # Add to sitemap
         url_elem = ET.SubElement(urlset, "url")
         loc = ET.SubElement(url_elem, "loc")
@@ -515,9 +515,9 @@ def generate_rss(site: Site, output_dir: Path, config: dict) -> None:
     """Generate RSS feed."""
     # Get recent posts (excluding hidden)
     posts = [
-        p for p in site.pages 
-        if p.date 
-        and not p.hidden 
+        p for p in site.pages
+        if p.date
+        and not p.hidden
         and not p.draft
     ]
     posts.sort(key=lambda p: p.date, reverse=True)
@@ -545,13 +545,13 @@ def test_page_hidden_property():
 def test_filter_display_pages_excludes_hidden():
     """Test content strategy filters hidden pages."""
     from bengal.content_types.strategies import PageStrategy
-    
+
     visible = Page(source_path=Path("visible.md"), metadata={})
     hidden = Page(source_path=Path("hidden.md"), metadata={"hidden": True})
-    
+
     strategy = PageStrategy()
     filtered = strategy.filter_display_pages([visible, hidden])
-    
+
     assert visible in filtered
     assert hidden not in filtered
 ```
@@ -677,13 +677,13 @@ If `_index.md` has `hidden: true`, should all child pages be hidden?
 def is_hidden_cascade(page: Page) -> bool:
     if page.hidden:
         return True
-    
+
     section = page.section
     while section:
         if section.index_page and section.index_page.hidden:
             return True
         section = section.parent
-    
+
     return False
 ```
 
@@ -768,4 +768,3 @@ Could cache `page.hidden` result if metadata is immutable.
 5. ⏳ Test thoroughly
 6. ⏳ Document feature
 7. ⏳ Ship it! 🚀
-

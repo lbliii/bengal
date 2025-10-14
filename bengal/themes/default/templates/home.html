@@ -96,8 +96,8 @@
                 {% if post.date %}
                 <time datetime="{{ post.date | date_iso }}">{{ post.date | dateformat('%B %d, %Y') }}</time>
                 {% endif %}
-                {% if post.metadata.description %}
-                <p>{{ post.metadata.description }}</p>
+                {% if post.metadata.get('description') %}
+                <p>{{ post.metadata.get('description') }}</p>
                 {% endif %}
                 <a href="{{ post.url }}" class="read-more">Read more →</a>
             </article>

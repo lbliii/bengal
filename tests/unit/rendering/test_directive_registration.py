@@ -1,7 +1,7 @@
 """
 Test that all directives are properly registered with Mistune.
 
-This test ensures we don't forget to register directives in the 
+This test ensures we don't forget to register directives in the
 create_documentation_directives() function.
 """
 
@@ -140,13 +140,12 @@ class TestDirectiveModuleConsistency:
         classes that are imported in __init__.py.
         """
         # Import the module to inspect its source
-        import bengal.rendering.plugins.directives as directives_module
 
         # Get the source of create_documentation_directives
         from bengal.rendering.plugins.directives import create_documentation_directives
 
-        # Get the plugin function
-        plugin_fn = create_documentation_directives()
+        # Initialize the plugin (ensures registration code runs)
+        create_documentation_directives()
 
         # We can't easily inspect the closure, but we can test that
         # all directive classes are actually being used
@@ -241,4 +240,3 @@ Hidden content
         assert "bengal-data-table" in result or "Data Table Error" in result
         assert "button button-primary" in result
         assert "dropdown" in result
-
