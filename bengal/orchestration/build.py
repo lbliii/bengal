@@ -563,8 +563,19 @@ class BuildOrchestrator:
             # Use memory-optimized streaming if requested
             if memory_optimized:
                 from bengal.orchestration.streaming import StreamingRenderOrchestrator
+                from bengal.utils.build_context import BuildContext
 
                 streaming_render = StreamingRenderOrchestrator(self.site)
+                # Prepare context (future use)
+                BuildContext(
+                    site=self.site,
+                    pages=pages_to_build,
+                    tracker=tracker,
+                    stats=self.stats,
+                    profile=profile,
+                    progress_manager=progress_manager,
+                    reporter=reporter,
+                )
                 streaming_render.process(
                     pages_to_build,
                     parallel=parallel,
@@ -575,6 +586,19 @@ class BuildOrchestrator:
                     reporter=reporter,
                 )
             else:
+                from bengal.utils.build_context import BuildContext
+
+                # Prepare context (future use)
+                BuildContext(
+                    site=self.site,
+                    pages=pages_to_build,
+                    tracker=tracker,
+                    stats=self.stats,
+                    profile=profile,
+                    progress_manager=progress_manager,
+                    reporter=reporter,
+                )
+                # Keep existing API while threading context in progressively
                 self.render.process(
                     pages_to_build,
                     parallel=parallel,
