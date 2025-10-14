@@ -42,6 +42,14 @@ PRESETS = {
         "with_content": True,
         "pages_per_section": 2,
     },
+    "resume": {
+        "name": "Resume",
+        "emoji": "📄",
+        "description": "Professional resume/CV site",
+        "sections": ["resume"],
+        "with_content": True,
+        "pages_per_section": 1,
+    },
 }
 
 
@@ -82,19 +90,7 @@ def _run_init_wizard(site_path: Path, preset: str = None) -> bool:
             + click.style(" preset...", fg="cyan")
         )
     else:
-        # Interactive wizard
-        if not click.confirm(
-            click.style("\nInitialize site structure?", fg="cyan", bold=True), default=True
-        ):
-            click.echo(
-                click.style(
-                    "Skipping initialization. Run 'bengal init' later to add structure.",
-                    fg="yellow",
-                )
-            )
-            return False
-
-        # Show preset options
+        # Interactive wizard - show options immediately
         click.echo(click.style("\n> What kind of site are you building?", fg="cyan", bold=True))
         click.echo()
 
@@ -108,6 +104,12 @@ def _run_init_wizard(site_path: Path, preset: str = None) -> bool:
 
         click.echo(
             click.style(f"  {len(preset_items) + 1}. ", fg="bright_black")
+            + click.style("📦 Blank          ", fg="cyan", bold=True)
+            + click.style(" - Empty site, no initial structure", fg="bright_black")
+        )
+
+        click.echo(
+            click.style(f"  {len(preset_items) + 2}. ", fg="bright_black")
             + click.style("⚙️  Custom         ", fg="cyan", bold=True)
             + click.style(" - Define your own structure", fg="bright_black")
         )
@@ -121,12 +123,22 @@ def _run_init_wizard(site_path: Path, preset: str = None) -> bool:
             show_default=True,
         )
 
-        if selection < 1 or selection > len(preset_items) + 1:
+        if selection < 1 or selection > len(preset_items) + 2:
             click.echo(click.style("Invalid selection. Skipping initialization.", fg="yellow"))
             return False
 
-        # Handle custom
+        # Handle blank
         if selection == len(preset_items) + 1:
+            click.echo(
+                click.style(
+                    "\n✨ Creating blank site. Run 'bengal init' later to add structure.",
+                    fg="cyan",
+                )
+            )
+            return False
+
+        # Handle custom
+        if selection == len(preset_items) + 2:
             sections_input = click.prompt(
                 click.style("\nEnter section names (comma-separated)", fg="cyan"),
                 type=str,
@@ -238,7 +250,7 @@ def new() -> None:
 )
 @click.option(
     "--init-preset",
-    help="Initialize with preset (blog, docs, portfolio, business) without prompting",
+    help="Initialize with preset (blog, docs, portfolio, business, resume) without prompting",
 )
 def site(name: str, theme: str, template: str, no_init: bool, init_preset: str) -> None:
     """
