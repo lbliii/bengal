@@ -227,6 +227,7 @@ def site(name: str, theme: str, template: str, no_init: bool, init_preset: str) 
         # Determine effective template
         effective_template = template
         is_custom = False
+        wizard_selection = None
 
         # Check if we should run wizard (only for default + interactive/non-no-init)
         should_run_wizard = _should_run_init_wizard(template, no_init, init_preset)
