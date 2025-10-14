@@ -11,6 +11,10 @@ from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
+# Threshold for parallel processing - below this we use sequential processing
+# to avoid thread pool overhead for small workloads
+MIN_PAGES_FOR_PARALLEL = 100
+
 if TYPE_CHECKING:
     from bengal.core.page import Page
     from bengal.core.site import Site
@@ -70,9 +74,6 @@ class RelatedPostsOrchestrator:
         pages_to_process = [p for p in self.site.pages if not p.metadata.get("_generated")]
 
         # Use parallel processing for larger sites to avoid thread overhead
-        # Threshold: 100+ pages (parallel becomes beneficial)
-        MIN_PAGES_FOR_PARALLEL = 100
-
         if parallel and len(pages_to_process) >= MIN_PAGES_FOR_PARALLEL:
             pages_with_related = self._build_parallel(
                 pages_to_process, page_tags_map, tags_dict, limit

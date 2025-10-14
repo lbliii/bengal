@@ -16,6 +16,10 @@ from bengal.utils.url_strategy import URLStrategy
 
 logger = get_logger(__name__)
 
+# Threshold for parallel processing - below this we use sequential processing
+# to avoid thread pool overhead for small workloads
+MIN_TAGS_FOR_PARALLEL = 20
+
 if TYPE_CHECKING:
     from bengal.cache.build_cache import BuildCache
     from bengal.core.page import Page
@@ -403,9 +407,7 @@ class TaxonomyOrchestrator:
                         generated_count += 1
 
                     # Individual tag pages for this language
-                    # Use parallel generation if we have many tags (threshold: 20+)
-                    MIN_TAGS_FOR_PARALLEL = 20
-
+                    # Use parallel generation if we have many tags
                     if parallel and len(locale_tags) >= MIN_TAGS_FOR_PARALLEL:
                         tag_pages_count = self._generate_tag_pages_parallel(locale_tags, lang)
                     else:
