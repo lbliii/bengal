@@ -1,7 +1,17 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from bengal.cache.dependency_tracker import DependencyTracker
+    from bengal.core.asset import Asset
+    from bengal.core.page import Page
+    from bengal.core.site import Site
+    from bengal.utils.build_stats import BuildStats
+    from bengal.utils.live_progress import LiveProgressManager
+    from bengal.utils.profile import BuildProfile
+    from bengal.utils.progress import ProgressReporter
 
 
 @dataclass
@@ -13,11 +23,11 @@ class BuildContext:
     Fields are optional to maintain backward compatibility while we thread this through.
     """
 
-    site: Any | None = None
-    pages: list[Any] | None = None
-    assets: list[Any] | None = None
-    tracker: Any | None = None
-    stats: Any | None = None
-    profile: Any | None = None
-    progress_manager: Any | None = None
-    reporter: Any | None = None
+    site: Site | None = None
+    pages: list[Page] | None = None
+    assets: list[Asset] | None = None
+    tracker: DependencyTracker | None = None
+    stats: BuildStats | None = None
+    profile: BuildProfile | None = None
+    progress_manager: LiveProgressManager | None = None
+    reporter: ProgressReporter | None = None
