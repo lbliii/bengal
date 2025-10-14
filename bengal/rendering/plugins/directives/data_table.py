@@ -57,8 +57,8 @@ class DataTableDirective(DirectivePlugin):
             Token dict with type 'data_table'
         """
         # Get file path from title
-        # Try to use parse_title if parser is available, otherwise extract from match
-        if hasattr(self, "parser") and self.parser:
+        # Try to use parse_title if available, otherwise extract from match
+        if hasattr(self, "parse_title") and callable(self.parse_title):
             path = self.parse_title(m)
         else:
             # For testing or direct usage: extract from match object
@@ -77,8 +77,7 @@ class DataTableDirective(DirectivePlugin):
             }
 
         # Parse options
-        # For testing: options aren't passed through match.group(), so use empty dict
-        options = dict(self.parse_options(m)) if hasattr(self, "parser") and self.parser else {}
+        options = dict(self.parse_options(m)) if hasattr(self, "parse_options") else {}
 
         # Load data from file
         data_result = self._load_data(path, state)
