@@ -66,7 +66,7 @@ class MarimoCellDirective(DirectivePlugin):
                 self._marimo_available = False
                 logger.warning(
                     "marimo_not_installed",
-                    message="Marimo not installed. Install with: pip install marimo",
+                    info="Marimo not installed. Install with: pip install marimo",
                 )
         return self._marimo_available
 

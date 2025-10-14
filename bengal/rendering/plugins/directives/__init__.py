@@ -25,6 +25,7 @@ from bengal.rendering.plugins.directives.cards import (
     GridItemCardDirective,
 )
 from bengal.rendering.plugins.directives.code_tabs import CodeTabsDirective
+from bengal.rendering.plugins.directives.data_table import DataTableDirective
 from bengal.rendering.plugins.directives.dropdown import DropdownDirective
 from bengal.rendering.plugins.directives.errors import DirectiveError, format_directive_error
 from bengal.rendering.plugins.directives.list_table import ListTableDirective
@@ -89,25 +90,40 @@ def create_documentation_directives():
             ) from e
 
         try:
+            # Build directive list
+            directives_list = [
+                AdmonitionDirective(),  # Supports note, tip, warning, etc.
+                TabsDirective(),  # Legacy tabs (backward compatibility)
+                TabSetDirective(),  # Modern MyST tab-set
+                TabItemDirective(),  # Modern MyST tab-item
+                DropdownDirective(),
+                CodeTabsDirective(),
+                RubricDirective(),  # Pseudo-headings for API docs
+                ListTableDirective(),  # MyST list-table for tables without pipe issues
+                DataTableDirective(),  # Interactive data tables with Tabulator.js
+                CardsDirective(),  # Modern card grid system
+                CardDirective(),  # Individual cards
+                GridDirective(),  # Sphinx-Design compatibility
+                GridItemCardDirective(),  # Sphinx-Design compatibility
+                ButtonDirective(),  # Simple button links
+            ]
+
+            # Conditionally add Marimo support (only if marimo is installed)
+            try:
+                import marimo  # noqa: F401
+
+                directives_list.append(MarimoCellDirective())  # Executable Python cells via Marimo
+                logger.info("marimo_directive_enabled", info="Marimo executable cells enabled")
+            except ImportError:
+                logger.info(
+                    "marimo_directive_disabled",
+                    info="Marimo not available - {marimo} directive disabled",
+                )
+
             # Create fenced directive with all our custom directives
             # Support both backtick (`) and colon (:) fences for MyST Markdown compatibility
             directive = FencedDirective(
-                [
-                    AdmonitionDirective(),  # Supports note, tip, warning, etc.
-                    TabsDirective(),  # Legacy tabs (backward compatibility)
-                    TabSetDirective(),  # Modern MyST tab-set
-                    TabItemDirective(),  # Modern MyST tab-item
-                    DropdownDirective(),
-                    CodeTabsDirective(),
-                    RubricDirective(),  # Pseudo-headings for API docs
-                    ListTableDirective(),  # MyST list-table for tables without pipe issues
-                    CardsDirective(),  # Modern card grid system
-                    CardDirective(),  # Individual cards
-                    GridDirective(),  # Sphinx-Design compatibility
-                    GridItemCardDirective(),  # Sphinx-Design compatibility
-                    ButtonDirective(),  # Simple button links
-                    MarimoCellDirective(),  # Executable Python cells via Marimo
-                ],
+                directives_list,
                 markers="`:",
             )
 

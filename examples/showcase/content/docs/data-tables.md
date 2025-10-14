@@ -129,12 +129,12 @@ Show only specific columns:
 
 ### Browser Support Matrix
 
-```{data-table} data/browser-support.yaml
+:::{data-table} data/browser-support.yaml
 :search: true
 :filter: true
 :pagination: 0
 :height: 500px
-```
+:::
 
 This table shows browser compatibility for modern web features. Try:
 - **Searching**: Type "CSS" to filter features
