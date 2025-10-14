@@ -271,11 +271,19 @@ class RenderingPipeline:
 
         # Post-process: Enhance API documentation with badges
         # (inject HTML badges for @async, @property, etc. markers)
-        from bengal.rendering.api_doc_enhancer import get_enhancer
+        # Prefer injected enhancer if present in BuildContext, else use singleton
+        try:
+            enhancer = None
+            if self.build_context and getattr(self.build_context, "api_doc_enhancer", None):
+                enhancer = self.build_context.api_doc_enhancer
+            if enhancer is None:
+                from bengal.rendering.api_doc_enhancer import get_enhancer
 
-        enhancer = get_enhancer()
+                enhancer = get_enhancer()
+        except Exception:
+            enhancer = None
         page_type = page.metadata.get("type")
-        if enhancer.should_enhance(page_type):
+        if enhancer and enhancer.should_enhance(page_type):
             before_enhancement = page.parsed_ast
             page.parsed_ast = enhancer.enhance(page.parsed_ast, page_type)
 
