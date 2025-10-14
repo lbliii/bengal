@@ -107,7 +107,9 @@ class TestTruncateChars:
     def test_truncate_long_text(self):
         text = "This is a long text"
         result = truncate_chars(text, 10)
-        assert result == "This is a..."
+        # Total length should be exactly 10 (7 chars + "..." = 10)
+        assert result == "This is..."
+        assert len(result) == 10
 
     def test_no_truncate_short_text(self):
         text = "Short"
@@ -122,7 +124,9 @@ class TestTruncateChars:
     def test_custom_suffix(self):
         text = "This is text"
         result = truncate_chars(text, 7, "…")
-        assert result == "This is…"
+        # Total length should be exactly 7 (6 chars + "…" = 7)
+        assert result == "This i…"
+        assert len(result) == 7
 
     def test_empty_string(self):
         assert truncate_chars("", 10) == ""

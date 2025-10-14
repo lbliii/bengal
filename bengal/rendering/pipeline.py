@@ -86,6 +86,7 @@ class RenderingPipeline:
         dependency_tracker: Any = None,
         quiet: bool = False,
         build_stats: Any = None,
+        build_context: Any | None = None,
     ) -> None:
         """
         Initialize the rendering pipeline.
@@ -147,6 +148,8 @@ class RenderingPipeline:
         if self.dependency_tracker:
             self.template_engine._dependency_tracker = self.dependency_tracker
         self.renderer = Renderer(self.template_engine, build_stats=build_stats)
+        # Optional build context for future DI (e.g., caches, reporters)
+        self.build_context = build_context
 
     def process_page(self, page: Page) -> None:
         """

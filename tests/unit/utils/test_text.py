@@ -144,9 +144,11 @@ class TestTruncateChars:
 
     def test_basic_truncation(self):
         """Test basic character truncation."""
-        # Truncates at length, then rstrips, then adds suffix
-        assert truncate_chars("Hello World", 8) == "Hello Wo..."
-        assert truncate_chars("Testing", 4) == "Test..."
+        # Total length includes suffix (never exceeds specified length)
+        assert truncate_chars("Hello World", 8) == "Hello..."
+        assert len(truncate_chars("Hello World", 8)) == 8
+        assert truncate_chars("Testing", 4) == "T..."
+        assert len(truncate_chars("Testing", 4)) == 4
 
     def test_no_truncation_needed(self):
         """Test when text is shorter than length."""
@@ -155,7 +157,9 @@ class TestTruncateChars:
 
     def test_custom_suffix(self):
         """Test custom suffix."""
-        assert truncate_chars("Hello World", 8, suffix="…") == "Hello Wo…"
+        # Total length includes suffix
+        assert truncate_chars("Hello World", 8, suffix="…") == "Hello W…"
+        assert len(truncate_chars("Hello World", 8, suffix="…")) == 8
 
     def test_empty_string(self):
         """Test empty string."""
