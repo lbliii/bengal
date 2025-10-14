@@ -7,6 +7,7 @@ This file provides:
 - Automatic test output capture
 """
 
+import shutil
 from datetime import datetime
 from pathlib import Path
 
@@ -241,13 +242,11 @@ Content for page {i}.""",
     site = Site.from_config(site_dir, config_path=config_path)
     site.discover_content()
     site.discover_assets()
-    build_stats = site.build(parallel=False)  # Sequential for consistency
+    _build_stats = site.build(parallel=False)  # Sequential for consistency
 
     # Yield site, with optional param to copy for modification
     if hasattr(request, "param") and request.param == "modifiable":
         # For tests that need a copy
-        import shutil
-
         mod_site_dir = tmp_path_factory.mktemp("modifiable_site")
         shutil.copytree(site_dir, mod_site_dir)
         mod_config_path = mod_site_dir / "bengal.toml"
@@ -261,6 +260,4 @@ Content for page {i}.""",
     # Teardown: Clean output
     output_dir = site_dir / "public"
     if output_dir.exists():
-        import shutil
-
         shutil.rmtree(output_dir)

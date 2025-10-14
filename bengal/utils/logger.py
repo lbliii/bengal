@@ -377,6 +377,18 @@ class BengalLogger:
         return False
 
 
+def truncate_str(s: str, max_len: int = 500, suffix: str = " ... (truncated)") -> str:
+    """Truncate a string if it exceeds max_len characters."""
+    if len(s) > max_len:
+        return s[:max_len] + suffix
+    return s
+
+
+def truncate_error(e: Exception, max_len: int = 500) -> str:
+    """Safely truncate an exception string representation."""
+    return truncate_str(str(e), max_len, f"\n... (truncated {len(str(e)) - max_len} chars)")
+
+
 # Global logger registry
 _loggers: dict[str, BengalLogger] = {}
 _global_config = {

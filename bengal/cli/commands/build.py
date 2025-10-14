@@ -10,7 +10,13 @@ from bengal.utils.build_stats import (
     show_building_indicator,
     show_error,
 )
-from bengal.utils.logger import LogLevel, close_all_loggers, configure_logging, print_all_summaries
+from bengal.utils.logger import (
+    LogLevel,
+    close_all_loggers,
+    configure_logging,
+    print_all_summaries,
+    truncate_error,
+)
 
 
 def _should_regenerate_autodoc(
@@ -521,7 +527,7 @@ def build(
             print_all_summaries()
 
     except Exception as e:
-        show_error(f"Build failed: {e}", show_art=True)
+        show_error(f"Build failed: {truncate_error(e)}", show_art=True)
         if debug:
             raise
         raise click.Abort() from e

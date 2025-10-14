@@ -8,7 +8,7 @@ from typing import Any
 from markupsafe import Markup
 
 from bengal.core.page import Page
-from bengal.utils.logger import get_logger
+from bengal.utils.logger import get_logger, truncate_error
 
 logger = get_logger(__name__)
 
@@ -185,7 +185,9 @@ class Renderer:
 
                     traceback.print_exc()
                 # Wrap in RuntimeError for consistent error handling
-                raise RuntimeError(f"Template error in strict mode: {rich_error.message}") from e
+                raise RuntimeError(
+                    f"Template error in strict mode: {truncate_error(rich_error.message)}"
+                ) from e
 
             # In production mode, collect error and continue
             if self.build_stats:
