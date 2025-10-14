@@ -83,7 +83,7 @@
     {% endfor %}
 
     {# Favicon #}
-    {% set favicon_path = site.config.get('favicon') %}
+    {% set favicon_path = site.config.get('site', {}).get('favicon') %}
     {% if favicon_path %}
         <link rel="icon" type="image/png" href="{{ favicon_path }}">
     {% else %}
