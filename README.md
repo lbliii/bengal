@@ -77,9 +77,14 @@ bengal new page my-first-post
 # Build the site
 bengal build
 
+# Build with maximum speed (recommended for trying out Bengal)
+PYTHON_GIL=0 bengal build --fast
+
 # Start development server with file watching
 bengal serve
 ```
+
+**💡 Tip:** Add `fast_mode = true` to `[build]` section in your `bengal.toml` to make fast mode the default.
 
 ## Build Profiles
 
@@ -109,6 +114,7 @@ theme = "default"
 output_dir = "public"
 incremental = true
 parallel = true
+fast_mode = true        # Maximum speed (recommended)
 
 [assets]
 minify = true
@@ -147,8 +153,10 @@ mysite/
 bengal build
 
 # Build with options
-bengal build --incremental  # Rebuild changed files
-bengal build --strict       # Fail on errors (for CI)
+bengal build --fast                  # Quiet output + guaranteed parallel
+PYTHON_GIL=0 bengal build --fast    # Maximum speed (no GIL warnings)
+bengal build --incremental     # Rebuild changed files
+bengal build --strict          # Fail on errors (for CI)
 
 # Generate API documentation
 bengal autodoc --source mylib --output content/api

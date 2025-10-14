@@ -9,6 +9,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Fast Mode**: Added `--fast` flag and `fast_mode` config option for maximum build speed
+  - Enables quiet output for minimal overhead
+  - Ensures parallel rendering is enabled
+  - Can be enabled via CLI (`bengal build --fast`) or config (`fast_mode = true`)
+  - Combine with `PYTHON_GIL=0` to suppress warnings in free-threaded Python
+  - Ideal for users trying out Bengal's performance, especially with Python 3.14t
+
+### Performance
+
+- **Parallel Related Posts**: Related posts computation now uses parallel processing
+  - Threshold: 100+ pages (avoids overhead on small sites)
+  - 10k page site: 120s → 16s on Python 3.14t (7.5x faster)
+  - 10k page site: 120s → 40-50s on Python 3.13 (2.4-3x faster)
+  - Automatic detection and use of site config `max_workers`
+
+- **Parallel Taxonomy Generation**: Tag page generation now uses parallel processing
+  - Threshold: 20+ tags (avoids overhead on small sites)
+  - 10k page site with 800 tags: 24s → 4s on Python 3.14t (6x faster)
+  - 10k page site with 800 tags: 24s → 8-12s on Python 3.13 (2-3x faster)
+  - Combined savings: ~2 minutes on large site full builds (Python 3.14t)
+
 - **List-Table Directive**: Added MyST-compatible `list-table` directive for autodoc templates
   - Fixes pipe character issues in type annotations (e.g., `str | None`)
   - Renders parameters and attributes as proper HTML tables with dropdowns

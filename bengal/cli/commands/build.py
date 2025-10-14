@@ -223,6 +223,11 @@ def _run_autodoc_before_build(config_path: Path, root_path: Path, quiet: bool) -
 )
 @click.option("--quiet", "-q", is_flag=True, help="Minimal output - only show errors and summary")
 @click.option(
+    "--fast/--no-fast",
+    default=None,
+    help="Fast mode: quiet output, guaranteed parallel, max speed (overrides config)",
+)
+@click.option(
     "--full-output",
     is_flag=True,
     help="Show full traditional output instead of live progress (useful for debugging)",
@@ -247,6 +252,7 @@ def build(
     autodoc: bool,
     config: str,
     quiet: bool,
+    fast: bool,
     full_output: bool,
     log_file: str,
     source: str,
@@ -257,14 +263,30 @@ def build(
     Generates HTML files from your content, applies templates,
     processes assets, and outputs a production-ready site.
     """
+
     # Import profile system
     from bengal.utils.profile import BuildProfile, set_current_profile
 
-    # Validate conflicting flags
+    # Handle fast mode (CLI flag takes precedence, then check config later)
+    # For now, determine from CLI flag only - config will be checked after Site.from_config
+    fast_mode_enabled = fast if fast is not None else False
+
+    # Validate conflicting flags (check before applying fast mode settings)
+    if fast and (use_dev or use_theme_dev):
+        raise click.UsageError("--fast cannot be used with --dev or --theme-dev profiles")
     if quiet and verbose:
         raise click.UsageError("--quiet and --verbose cannot be used together")
     if quiet and (use_dev or use_theme_dev):
         raise click.UsageError("--quiet cannot be used with --dev or --theme-dev")
+
+    # Apply fast mode settings if enabled
+    if fast_mode_enabled:
+        # Note: PYTHON_GIL=0 must be set in shell before Python starts to suppress warnings
+        # We can't set it here as modules are already imported
+        # Force quiet mode for minimal output
+        quiet = True
+        # Ensure parallel is enabled
+        parallel = True
 
     # New validations for build flag combinations
     if memory_optimized and perf_profile:
@@ -321,6 +343,17 @@ def build(
 
         # Create and build site
         site = Site.from_config(root_path, config_path)
+
+        # Check if fast_mode is enabled in config (CLI flag takes precedence)
+        if fast is None:
+            # No explicit CLI flag, check config
+            config_fast_mode = site.config.get("build", {}).get("fast_mode", False)
+            if config_fast_mode:
+                # Enable fast mode from config
+                # Note: PYTHON_GIL=0 must be set in shell to suppress import warnings
+                quiet = True
+                parallel = True
+                fast_mode_enabled = True
 
         # Override config with CLI flags
         if strict:

@@ -409,7 +409,7 @@ class BuildOrchestrator:
 
             elif not incremental:
                 # Full build: Collect and generate everything
-                self.taxonomy.collect_and_generate()
+                self.taxonomy.collect_and_generate(parallel=parallel)
 
                 # Mark all tags as affected (for Phase 6 - adding to pages_to_build)
                 if hasattr(self.site, "taxonomies") and "tags" in self.site.taxonomies:
@@ -461,7 +461,7 @@ class BuildOrchestrator:
 
                 related_posts_start = time.time()
                 related_posts_orchestrator = RelatedPostsOrchestrator(self.site)
-                related_posts_orchestrator.build_index(limit=5)
+                related_posts_orchestrator.build_index(limit=5, parallel=parallel)
 
                 # Log statistics
                 pages_with_related = sum(
