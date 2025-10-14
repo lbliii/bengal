@@ -168,3 +168,25 @@ def sample_config():
         "site": {"title": "Test Site", "baseurl": "https://example.com"},
         "build": {"output_dir": "public", "content_dir": "content"},
     }
+
+
+@pytest.fixture(autouse=True)
+def reset_console_between_tests():
+    """
+    Automatically reset Rich console between tests to prevent Live display conflicts.
+    
+    This fixture runs automatically for every test (autouse=True) and ensures
+    that Rich Live displays are properly cleaned up, preventing the
+    "Only one live display may be active at once" error.
+    
+    Long-term solution to ensure test isolation for Rich-based progress displays.
+    """
+    # Setup: Nothing needed before test
+    yield
+    # Teardown: Reset console after each test
+    try:
+        from bengal.utils.rich_console import reset_console
+        reset_console()
+    except ImportError:
+        # If module not available, skip cleanup
+        pass

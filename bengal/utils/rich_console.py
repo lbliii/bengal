@@ -127,3 +127,16 @@ def reset_console():
     """Reset the console singleton (mainly for testing)."""
     global _console
     _console = None
+
+
+def is_live_display_active() -> bool:
+    """
+    Check if there's an active Live display on the console.
+    
+    This prevents creating multiple Live displays which Rich doesn't allow.
+    
+    Returns:
+        True if a Live display is currently active
+    """
+    console = get_console()
+    return console._live is not None

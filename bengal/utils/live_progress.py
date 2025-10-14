@@ -140,7 +140,11 @@ class LiveProgressManager:
         if self.live:
             # Final update before closing
             self._update_display()
-            self.live.__exit__(*args)
+            try:
+                self.live.__exit__(*args)
+            finally:
+                # Ensure Live display is fully released
+                self.live = None
 
     def add_phase(self, phase_id: str, name: str, total: int | None = None):
         """
