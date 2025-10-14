@@ -60,3 +60,17 @@ examples/showcase/content/cli/
 # Temporary test output (auto-generated for AI debugging)
 .pytest_cache/last_failure.txt
 .pytest_cache/junit.xml
+
+# Linters, type-checkers, editor state
+.ruff_cache/
+.mypy_cache/
+.cursor/
+.python-version
+.bengal-metrics
+
+# Virtual environments
+.venv/
+.venv-*/
+venv/
+venv-*/
+.tmp-venv/

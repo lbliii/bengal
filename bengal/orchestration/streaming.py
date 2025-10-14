@@ -70,6 +70,10 @@ class StreamingRenderOrchestrator:
         """
         total_pages = len(pages)
 
+        # Nothing to render: return early and avoid unnecessary analysis/output
+        if total_pages == 0:
+            return
+
         # Resolve from context if absent
         if not reporter and build_context and getattr(build_context, "reporter", None):
             reporter = build_context.reporter

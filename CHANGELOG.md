@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- BuildContext DI: Introduced `bengal.utils.build_context.BuildContext` and threaded through render/postprocess to remove temporary `site.pages`/`site.assets` mutation
+- ProgressReporter: Added `bengal.utils.progress.ProgressReporter` protocol with Rich adapter; routed orchestration/render logging through reporter
+- TemplateValidationService: Added `bengal.services.validation.TemplateValidationService` and default implementation; CLI `--validate` now depends on service rather than direct engine/validator
+- Theme resolution utility: Extracted theme chain and template dir resolution into `bengal.utils.theme_resolution` for decoupling
+- Renderer context: Added `pages` alias for list templates and support for `changelog` type
 - **Fast Mode**: Added `--fast` flag and `fast_mode` config option for maximum build speed
   - Enables quiet output for minimal overhead
   - Ensures parallel rendering is enabled
@@ -37,6 +42,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Comprehensive test coverage (6 tests)
 
 ### Refactoring
+- Build orchestration: pass explicit page/asset lists across phases; eliminate Site field swapping
+- Rendering pipeline: accept optional BuildContext; DI for parser/engine/enhancer; log routing via reporter
+- Streaming/render orchestrators: accept reporter to decouple presentation from logic
+
+### Fixed
+
+- Output quality: prevent unrendered Jinja2 markers from leaking into HTML when `preprocess: false` by escaping `{{ }}` and `{% %}` appropriately; hardened Mistune path to restore placeholders as entities
+- Incremental cache: ensure config file hash recorded after full build to fix false positives and cache hit regressions in incremental sequences
+
+- core(orchestration): Postprocess error reporting uses reporter/quiet-aware CLI; fixed out-of-scope var in parallel path
+- core(orchestration): Streaming render respects quiet mode (no direct prints without reporter)
+- tests: Added coverage for postprocess reporter errors and streaming quiet behavior
+- chore: Lint cleanups in build orchestrator
 
 - **CLI Graph Commands**: Modularized graph analysis commands into separate files
   - Split `cli/commands/graph.py` (1,050 lines) into 5 focused files (~200 lines each)

@@ -45,3 +45,47 @@ def test_postprocess_reports_errors_via_reporter(tmp_path, monkeypatch):
     orch.run(parallel=False, progress_manager=None, build_context=ctx)
 
     assert any("post-processing" in msg for msg in reporter.messages) or reporter.messages
+
+
+def test_postprocess_parallel_errors_use_reporter(tmp_path, monkeypatch):
+    """Ensure parallel errors are routed to reporter and do not crash."""
+    site = SimpleNamespace(config={})
+    orch = PostprocessOrchestrator(site)
+
+    # Configure to run multiple tasks to trigger parallel path
+    site.config["generate_sitemap"] = True
+    site.config["generate_rss"] = True
+    site.config["output_formats"] = {"enabled": True}
+    site.config["validate_links"] = True
+
+    # Make sitemap raise, others no-op
+    class Boom(Exception):
+        pass
+
+    class FakeSitemap:
+        def __init__(self, site):
+            pass
+
+        def generate(self):
+            raise Boom("boom")
+
+    monkeypatch.setattr(
+        "bengal.orchestration.postprocess.SitemapGenerator", FakeSitemap, raising=True
+    )
+
+    # Stub link validator to avoid actual scanning
+    class FakeLinkValidator:  # noqa: N801
+        def validate_site(self, site):
+            return {}
+
+    monkeypatch.setattr(
+        "bengal.orchestration.postprocess.LinkValidator", FakeLinkValidator, raising=False
+    )
+
+    reporter = CapturingReporter()
+    ctx = SimpleNamespace(reporter=reporter)
+
+    orch.run(parallel=True, progress_manager=None, build_context=ctx)
+
+    # Expect an error summary in reporter messages
+    assert any("post-processing" in msg for msg in reporter.messages)

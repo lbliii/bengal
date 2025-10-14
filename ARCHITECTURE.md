@@ -78,6 +78,48 @@ graph TB
 4. **Autodoc**: Generate Python/CLI docs → treated as regular content pages
 5. **Dev Server**: Watch files → trigger incremental rebuilds → serve output
 
+## Cross-Cutting Context and Reporting
+
+### BuildContext (Dependency Injection)
+
+The build system uses a lightweight `BuildContext` object (`bengal/utils/build_context.py`) to pass shared state and services through orchestrators and rendering without relying on globals or mutating `Site` internals.
+
+- Purpose: centralized container for dependencies and in-flight state
+- Typical fields: `site`, `pages`, `assets`, `reporter`, `progress_manager`, optional injected `markdown_parser`, `template_engine`, `api_doc_enhancer`
+- Adoption:
+  - `BuildOrchestrator` creates and threads `BuildContext` into `RenderOrchestrator` and post-process stages
+  - `RenderingPipeline` and `Renderer` can read injected services from `BuildContext`
+- Outcome: removes temporary mutation of `site.pages` and `site.assets`; phases now receive explicit lists (clearer, safer, parallel-friendly)
+
+### ProgressReporter (Output Decoupling)
+
+To standardize progress output, we introduced a `ProgressReporter` protocol with default and Rich-based implementations (`bengal/utils/progress.py`). This decouples user-visible output from the core logic.
+
+- Protocol methods: `add_phase`, `start_phase`, `update_phase`, `complete_phase`, `log`
+- Adapter: `LiveProgressReporterAdapter` bridges to the existing Rich `LiveProgressManager` (`bengal/utils/live_progress.py`)
+- Usage: orchestrators and the rendering pipeline route per-page messages and phase updates via the reporter; direct `print()` calls have been removed or minimized
+
+### TemplateValidationService (CLI Decoupling)
+
+The CLI no longer constructs rendering internals directly for template validation. Instead it depends on a `TemplateValidationService` protocol (`bengal/services/validation.py`) with a default implementation that wraps the existing validator. This reduces CLI→rendering coupling and improves testability.
+
+### Theme Resolution Utility
+
+Theme inheritance and resolution logic is being extracted to `bengal/utils/theme_resolution.py` to reduce coupling between `Site`, theme assets, and the template engine. `Site` and rendering components use the utility for consistent chain resolution and fallbacks.
+
+### Output Quality Hardening
+
+The variable-substitution path (Mistune) restores escaped placeholders as HTML entities, and the pipeline hardens content by escaping raw Jinja2 markers when `preprocess: false`. This prevents unrendered template syntax (e.g., `{{ page.* }}`, `{% if ... %}`) from leaking into final HTML outside templates.
+
+### Recent Decoupling Improvements (2025-10)
+
+- Introduced `BuildContext` and threaded it through rendering/post-processing
+- Replaced temporary `site.pages`/`site.assets` swaps with explicit lists
+- Standardized progress output via `ProgressReporter` (Rich adapter available)
+- Decoupled CLI validation via `TemplateValidationService`
+- Extracted theme resolution into utility module
+- Hardened output to avoid unrendered Jinja2 markers in generated HTML
+
 ## Core Components
 
 ### 1. Object Model
