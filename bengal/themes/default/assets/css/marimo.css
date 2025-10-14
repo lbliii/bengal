@@ -1,0 +1,153 @@
+/* Marimo Executable Cells Styling */
+
+.marimo-cell {
+    margin: 1.5rem 0;
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--code-bg, #f5f5f5);
+}
+
+.marimo-cell pre {
+    background: var(--code-bg, #f5f5f5);
+    padding: 1rem;
+    overflow-x: auto;
+    margin: 0;
+}
+
+.marimo-cell code {
+    font-family: var(--font-mono, 'Courier New', monospace);
+    font-size: 0.9em;
+}
+
+/* Marimo tables */
+.marimo-cell table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+}
+
+.marimo-cell table th,
+.marimo-cell table td {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--border-color, #ddd);
+    text-align: left;
+}
+
+.marimo-cell table th {
+    background: var(--table-header-bg, #f0f0f0);
+    font-weight: 600;
+}
+
+.marimo-cell table tr:nth-child(even) {
+    background: var(--table-stripe-bg, #fafafa);
+}
+
+/* Marimo output */
+.marimo-cell img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 1rem auto;
+}
+
+.marimo-cell svg {
+    max-width: 100%;
+    height: auto;
+}
+
+/* Marimo error display */
+.marimo-error {
+    background: #fee;
+    border-left: 4px solid #c33;
+    padding: 1rem;
+    margin: 1rem 0;
+    border-radius: 4px;
+}
+
+.marimo-error .admonition-title {
+    color: #c33;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.marimo-error code {
+    background: #fdd;
+    padding: 0.2em 0.4em;
+    border-radius: 3px;
+    font-size: 0.9em;
+}
+
+.marimo-error details {
+    margin-top: 0.75rem;
+}
+
+.marimo-error details summary {
+    cursor: pointer;
+    color: #666;
+    font-size: 0.9em;
+}
+
+.marimo-error details summary:hover {
+    color: #333;
+}
+
+.marimo-error pre {
+    background: #fdd;
+    padding: 0.75rem;
+    border-radius: 4px;
+    overflow-x: auto;
+    margin-top: 0.5rem;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+    .marimo-cell {
+        background: var(--code-bg-dark, #2d2d2d);
+    }
+
+    .marimo-cell pre {
+        background: var(--code-bg-dark, #2d2d2d);
+    }
+
+    .marimo-cell table th {
+        background: var(--table-header-bg-dark, #3d3d3d);
+    }
+
+    .marimo-cell table tr:nth-child(even) {
+        background: var(--table-stripe-bg-dark, #333);
+    }
+
+    .marimo-cell table th,
+    .marimo-cell table td {
+        border-color: var(--border-color-dark, #555);
+    }
+
+    .marimo-error {
+        background: #4a1a1a;
+        border-left-color: #e55;
+    }
+
+    .marimo-error .admonition-title {
+        color: #ff6b6b;
+    }
+
+    .marimo-error code {
+        background: #3a1515;
+    }
+
+    .marimo-error pre {
+        background: #3a1515;
+    }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .marimo-cell table {
+        font-size: 0.9em;
+    }
+
+    .marimo-cell table th,
+    .marimo-cell table td {
+        padding: 0.4rem 0.5rem;
+    }
+}

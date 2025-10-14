@@ -28,6 +28,7 @@ from bengal.rendering.plugins.directives.code_tabs import CodeTabsDirective
 from bengal.rendering.plugins.directives.dropdown import DropdownDirective
 from bengal.rendering.plugins.directives.errors import DirectiveError, format_directive_error
 from bengal.rendering.plugins.directives.list_table import ListTableDirective
+from bengal.rendering.plugins.directives.marimo import MarimoCellDirective
 from bengal.rendering.plugins.directives.rubric import RubricDirective
 from bengal.rendering.plugins.directives.tabs import (
     TabItemDirective,
@@ -105,6 +106,7 @@ def create_documentation_directives():
                     GridDirective(),  # Sphinx-Design compatibility
                     GridItemCardDirective(),  # Sphinx-Design compatibility
                     ButtonDirective(),  # Simple button links
+                    MarimoCellDirective(),  # Executable Python cells via Marimo
                 ],
                 markers="`:",
             )
