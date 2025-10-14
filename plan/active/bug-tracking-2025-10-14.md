@@ -135,19 +135,7 @@ assert isinstance(pipeline.parser, PythonMarkdownParser)
 **Fix:**
 Check `bengal/rendering/pipeline.py` parser selection logic and default configuration.
 
-### Issue 4: MyST Backward Compatibility
-Old code-tabs syntax not working.
-
-**Affected Test:**
-- `test_existing_code_tabs_still_work`
-- Expected: Tab structure with "Python" label
-- Actual: `<div class="code-tabs"></div>` (empty)
-
-**Files to Check:**
-- `bengal/rendering/plugins/tabs.py`
-- Ensure backward compatibility for old syntax
-
-### Issue 5: Syntax Highlighting Aliases Not Working
+### Issue 4: Syntax Highlighting Aliases Not Working
 Jinja2 and go-html-template aliases not being recognized.
 
 **Affected Tests (2)**

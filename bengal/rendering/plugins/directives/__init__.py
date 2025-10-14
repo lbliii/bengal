@@ -31,7 +31,6 @@ from bengal.rendering.plugins.directives.list_table import ListTableDirective
 from bengal.rendering.plugins.directives.rubric import RubricDirective
 from bengal.rendering.plugins.directives.tabs import (
     TabItemDirective,
-    TabsDirective,
     TabSetDirective,
 )
 from bengal.rendering.plugins.directives.validator import DirectiveSyntaxValidator
@@ -95,7 +94,6 @@ def create_documentation_directives():
                     AdmonitionDirective(),  # Supports note, tip, warning, etc.
                     TabSetDirective(),  # Modern MyST tab-set
                     TabItemDirective(),  # Modern MyST tab-item
-                    TabsDirective(),  # Legacy tabs (backward compat)
                     DropdownDirective(),
                     CodeTabsDirective(),
                     RubricDirective(),  # Pseudo-headings for API docs

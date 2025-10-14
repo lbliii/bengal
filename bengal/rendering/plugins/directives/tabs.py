@@ -4,9 +4,7 @@ Tabs directive for Mistune.
 Provides tabbed content sections with full markdown support including
 nested directives, code blocks, and admonitions.
 
-Supports both modern MyST syntax and legacy Bengal syntax:
-
-Modern (MyST - Preferred):
+Modern MyST syntax:
     :::{tab-set}
     :::{tab-item} Python
     Content here
@@ -15,14 +13,6 @@ Modern (MyST - Preferred):
     Content here
     :::
     ::::
-
-Legacy (Bengal):
-    ````{tabs}
-    ### Tab: Python
-    Content here
-    ### Tab: JavaScript
-    Content here
-    ````
 """
 
 import re
@@ -36,15 +26,11 @@ from bengal.utils.logger import get_logger
 __all__ = [
     "TabItemDirective",  # Modern MyST syntax
     "TabSetDirective",  # Modern MyST syntax
-    "TabsDirective",  # Legacy syntax (backward compat)
     "render_tab_item",
     "render_tab_set",
 ]
 
 logger = get_logger(__name__)
-
-# Pre-compiled regex patterns (compiled once, reused for all pages)
-_TAB_SPLIT_PATTERN = re.compile(r"^### Tab: (.+)$", re.MULTILINE)
 
 
 class TabSetDirective(DirectivePlugin):
@@ -127,78 +113,6 @@ class TabItemDirective(DirectivePlugin):
         directive.register("tab-item", self.parse)
 
         if md.renderer and md.renderer.NAME == "html":
-            md.renderer.register("tab_item", render_tab_item)
-
-
-class TabsDirective(DirectivePlugin):
-    """
-    LEGACY: Old Bengal tab syntax (backward compatibility).
-
-    Syntax:
-        ````{tabs}
-        ### Tab: Python
-        Content here
-        ### Tab: JavaScript
-        Content here
-        ````
-
-    NOTE: This is kept for backward compatibility only.
-    New docs should use the MyST syntax (tab-set/tab-item).
-    """
-
-    def parse(self, block: Any, m: Match, state: Any) -> dict[str, Any]:
-        """Parse legacy tabs directive with ### Tab: markers."""
-        options = dict(self.parse_options(m))
-        content = self.parse_content(m)
-
-        # Split content by tab markers: ### Tab: Title
-        parts = _TAB_SPLIT_PATTERN.split(content)
-
-        tab_items = []
-        if len(parts) > 1 and not parts[0].strip():
-            # Parse each tab (skip empty first part)
-            for i in range(1, len(parts), 2):
-                if i + 1 < len(parts):
-                    title = parts[i].strip()
-                    tab_content = parts[i + 1].strip()
-
-                    tab_items.append(
-                        {
-                            "type": "tab_item",
-                            "attrs": {
-                                "title": title,
-                                "selected": i == 1,  # First tab selected
-                            },
-                            "children": self.parse_tokens(block, tab_content, state),
-                        }
-                    )
-
-        # If no valid tabs found, create single tab
-        if not tab_items:
-            tab_items.append(
-                {
-                    "type": "tab_item",
-                    "attrs": {
-                        "title": options.get("title", "Content"),
-                        "selected": True,
-                    },
-                    "children": self.parse_tokens(block, content, state),
-                }
-            )
-
-        return {
-            "type": "tab_set",
-            "attrs": options,
-            "children": tab_items,
-        }
-
-    def __call__(self, directive, md):
-        """Register the directive with mistune."""
-        directive.register("tabs", self.parse)
-
-        # Uses the same renderer as TabSetDirective
-        if md.renderer and md.renderer.NAME == "html":
-            md.renderer.register("tab_set", render_tab_set)
             md.renderer.register("tab_item", render_tab_item)
 
 

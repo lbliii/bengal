@@ -157,44 +157,6 @@ Content B
         assert result.count('class="tabs"') == 2
 
 
-class TestLegacyTabSyntax:
-    """Test legacy Bengal tab syntax for backward compatibility."""
-
-    def test_legacy_tabs_syntax(self):
-        """Test old ### Tab: syntax still works."""
-        parser = MistuneParser()
-
-        content = """
-````{tabs}
-### Tab: Python
-Python content
-### Tab: JavaScript
-JavaScript content
-````
-"""
-        result = parser.parse(content, {})
-
-        assert '<div class="tabs"' in result
-        assert "Python" in result
-        assert "JavaScript" in result
-        assert "Python content" in result
-        assert "JavaScript content" in result
-
-    def test_legacy_with_markdown(self):
-        """Test legacy tabs with markdown content."""
-        parser = MistuneParser()
-
-        content = """
-````{tabs}
-### Tab: Test
-This has **bold** text.
-````
-"""
-        result = parser.parse(content, {})
-
-        assert "<strong>bold</strong>" in result
-
-
 class TestTabEdgeCases:
     """Test edge cases and error handling."""
 
@@ -242,44 +204,3 @@ Content without title
 
         # Should default to "Tab"
         assert "Content without title" in result
-
-
-class TestTabComparison:
-    """Compare modern and legacy syntax output."""
-
-    def test_both_syntaxes_produce_similar_output(self):
-        """Both syntaxes should produce similar HTML structure."""
-        parser = MistuneParser()
-
-        modern = """
-:::{tab-set}
-:::{tab-item} A
-Content A
-:::
-:::{tab-item} B
-Content B
-:::
-::::
-"""
-
-        legacy = """
-````{tabs}
-### Tab: A
-Content A
-### Tab: B
-Content B
-````
-"""
-
-        modern_result = parser.parse(modern, {})
-        legacy_result = parser.parse(legacy, {})
-
-        # Both should have tabs class
-        assert 'class="tabs"' in modern_result
-        assert 'class="tabs"' in legacy_result
-
-        # Both should have the content
-        assert "Content A" in modern_result
-        assert "Content A" in legacy_result
-        assert "Content B" in modern_result
-        assert "Content B" in legacy_result
