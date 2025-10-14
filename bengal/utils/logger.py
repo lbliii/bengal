@@ -145,9 +145,10 @@ class BengalLogger:
         self._events: list[LogEvent] = []
 
         # File handle - properly closed in close() method
+        # Open in append mode to allow multiple loggers to write to same file safely
         self._file_handle: TextIO | None = None
         if log_file:
-            self._file_handle = open(log_file, "w", encoding="utf-8")  # noqa: SIM115
+            self._file_handle = open(log_file, "a", encoding="utf-8")  # noqa: SIM115
 
     @contextmanager
     def phase(self, name: str, **context):
@@ -399,6 +400,16 @@ def configure_logging(
     _global_config["level"] = level
     _global_config["log_file"] = log_file
     _global_config["verbose"] = verbose
+
+    # Clear log file if specified (truncate once at start)
+    if log_file:
+        try:
+            # Truncate the file to ensure we start fresh
+            with open(log_file, "w", encoding="utf-8"):
+                pass
+        except Exception:
+            # Ignore errors (file might not be writable, etc.)
+            pass
 
     # Enable memory tracking if requested
     if track_memory and not tracemalloc.is_tracing():
