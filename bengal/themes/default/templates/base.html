@@ -82,9 +82,12 @@
     <link rel="alternate" hreflang="{{ alt.hreflang }}" href="{{ alt.href }}">
     {% endfor %}
 
-    {# Favicon - only include if configured #}
-    {% if site.config.get('favicon') %}
-    <link rel="icon" type="image/png" href="{{ site.config.get('favicon') }}">
+    {# Favicon #}
+    {% set favicon_path = site.config.get('site', {}).get('favicon') %}
+    {% if favicon_path %}
+    <link rel="icon" type="image/png" href="{{ favicon_path }}">
+    {% else %}
+    <link rel="icon" type="image/svg+xml" href="{{ asset_url('favicon.svg') }}">
     {% endif %}
 
     {# Stylesheets #}

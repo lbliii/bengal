@@ -282,6 +282,12 @@ class Asset:
 
     def _optimize_image(self) -> None:
         """Optimize image assets."""
+        if self.source_path.suffix.lower() == ".svg":
+            # Skip SVG optimization - vector format, no raster compression needed
+            logger.debug("svg_optimization_skipped", source=str(self.source_path))
+            self.optimized = True
+            return
+
         try:
             from PIL import Image
 
