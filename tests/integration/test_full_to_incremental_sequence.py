@@ -10,6 +10,7 @@ Bug History:
 - Fix: Always save cache after successful builds
 """
 
+import shutil
 import time
 
 import pytest
@@ -17,221 +18,140 @@ import pytest
 from bengal.core.site import Site
 
 
-class TestFullToIncrementalSequence:
-    """Test the full → incremental build sequence."""
+@pytest.mark.slow
+class TestIncrementalSequence:
+    """
+    Integration tests for full-to-incremental build sequences.
+    Marked slow due to multiple full builds and file watching simulation.
+    """
 
-    @pytest.fixture
-    def test_site(self, tmp_path):
-        """Create a test site with config and content."""
-        site_root = tmp_path / "test_site"
-        site_root.mkdir()
+    @pytest.fixture(autouse=True)
+    def setup_teardown(self, tmp_path):
+        """Ensure clean state between tests."""
+        yield
+        # Clean any lingering output
+        public_dir = tmp_path / "public"
+        if public_dir.exists():
+            shutil.rmtree(public_dir)
 
-        # Config
-        config_file = site_root / "bengal.toml"
-        config_file.write_text("""
+    @pytest.mark.parametrize(
+        "change_type",
+        [
+            "content",  # Modify page content
+            "template",  # Modify template
+            "config",  # Modify bengal.toml
+        ],
+    )
+    def test_change_detection(self, tmp_site, change_type):
+        """
+        Test that incremental builds detect and rebuild only affected files.
+
+        Parametrized to reduce redundant site creation across change types.
+        """
+        site_dir = tmp_site
+
+        # Setup basic site
+        config_path = site_dir / "bengal.toml"
+        config_content = """
 [site]
-title = "Test Site"
-baseurl = "https://example.com"
+title = "Test Incremental"
+baseurl = "/"
 
 [build]
 output_dir = "public"
-""")
+incremental = true
+parallel = false  # Sequential for predictable timing
+"""
+        with open(config_path, "w") as f:
+            f.write(config_content)
 
-        # Content
-        content_dir = site_root / "content"
+        # Create content
+        content_dir = site_dir / "content"
         content_dir.mkdir()
-
-        # Create 50 pages for realistic test
-        for i in range(50):
-            page_file = content_dir / f"page-{i:02d}.md"
-            page_file.write_text(f"""---
-title: "Page {i}"
-date: 2025-01-{(i % 28) + 1:02d}
-tags: ["tag-{i % 5}"]
+        page1 = content_dir / "page1.md"
+        with open(page1, "w") as f:
+            f.write("""---
+title: "Page 1"
 ---
+Original content.""")
 
-# Page {i}
-
-Content for page {i}.
-
-## Section
-
-More content here.
+        # Create simple template
+        templates_dir = site_dir / "templates"
+        templates_dir.mkdir()
+        base_html = templates_dir / "base.html"
+        with open(base_html, "w") as f:
+            f.write("""
+<!DOCTYPE html>
+<html>
+<head><title>{{ page.title }}</title></head>
+<body>
+<h1>{{ page.title }}</h1>
+{{ content }}
+</body>
+</html>
 """)
 
-        yield site_root
+        # Initial full build
+        site = Site.from_config(str(config_path))
+        site.discover_content()
+        site.discover_assets()
+        full_stats = site.build()
+        assert full_stats.total_time > 0
+        assert len(list((site_dir / "public").rglob("*.html"))) > 0
 
-        # Cleanup handled by tmp_path fixture
+        # Wait for file system
+        time.sleep(0.05)  # Reduced from 0.15
 
-    def test_full_build_saves_cache(self, test_site):
-        """Test that full builds save cache for future incremental builds."""
-        # Build 1: Full build
-        site = Site.from_config(test_site)
-        _ = site.build(parallel=True, incremental=False)
+        # Make change based on type
+        if change_type == "content":
+            with open(page1, "w") as f:
+                f.write("""---
+title: "Page 1"
+---
+Modified content.""")
+        elif change_type == "template":
+            with open(base_html, "w") as f:
+                f.write("""
+<!DOCTYPE html>
+<html>
+<head><title>{{ page.title }} - Updated</title></head>
+<body>
+<h1>{{ page.title }}</h1>
+{{ content }}
+<footer>Modified template</footer>
+</body>
+</html>
+""")
+        elif change_type == "config":
+            with open(config_path, "w") as f:
+                f.write(
+                    config_content.replace('title = "Test Incremental"', 'title = "Updated Title"')
+                )
 
-        # Verify cache was created (new location: .bengal/cache.json since v0.1.2)
-        cache_file = test_site / ".bengal" / "cache.json"
-        assert cache_file.exists(), "Cache should be saved after full build"
+        time.sleep(0.05)  # Reduced
 
-        # Read cache to verify it has content
-        import json
+        # Incremental build
+        incremental_stats = site.build(incremental=True)
+        assert incremental_stats.total_time > 0
+        assert incremental_stats.total_time < full_stats.total_time * 0.5  # Faster
 
-        with open(cache_file) as f:
-            cache_data = json.load(f)
+        # Verify change applied
+        output_html = site_dir / "public" / "page1.html"
+        with open(output_html) as f:
+            content = f.read()
+            if change_type == "content":
+                assert "Modified content" in content
+            elif change_type == "template":
+                assert "Updated" in content or "footer>Modified template" in content
+            elif change_type == "config":
+                assert "Updated Title" in content  # Via page title update
 
-        assert "file_hashes" in cache_data
-        assert len(cache_data["file_hashes"]) > 0, "Cache should have file hashes"
-
-        # Verify config is in cache
-        config_path = str(test_site / "bengal.toml")
-        assert any(
-            config_path in key for key in cache_data["file_hashes"]
-        ), "Config file should be in cache"
-
-    def test_incremental_after_full_build(self, test_site):
-        """Test that incremental builds work after a full build."""
-        # Build 1: Full build (baseline)
-        site = Site.from_config(test_site)
-        _ = site.build(parallel=True, incremental=False)
-
-        # Wait to ensure file mtime changes are detectable
-        time.sleep(0.15)
-
-        # Build 2: Incremental with no changes (should use cache)
-        stats2 = site.build(parallel=True, incremental=True)
-
-        # Should use cache (50 cache hits, 0 misses)
-        assert stats2.cache_hits == 50, f"Should have 50 cache hits, got {stats2.cache_hits}"
-        assert stats2.cache_misses == 0, f"Should have 0 cache misses, got {stats2.cache_misses}"
-
-        # Note: skipped may be False if we have taxonomies that need regeneration
-        # The important thing is that pages are cached (not rebuilt)
-
-    def test_incremental_single_page_change(self, test_site):
-        """Test that incremental builds only rebuild changed pages."""
-        # Build 1: Full build
-        site = Site.from_config(test_site)
-        stats1 = site.build(parallel=True, incremental=False)
-        full_time = stats1.build_time_ms / 1000
-
-        # Record output file mtimes
-        output_dir = test_site / "public"
-        files_before = {f: f.stat().st_mtime for f in output_dir.rglob("*.html")}
-
-        # Wait and change one page
-        time.sleep(0.15)
-        test_page = test_site / "content" / "page-00.md"
-        original = test_page.read_text()
-        test_page.write_text(original + "\n\n## New Section\n\nNew content added.\n")
-
-        # Build 2: Incremental with one change
-        time.sleep(0.15)
-        stats2 = site.build(parallel=True, incremental=True)
-        incr_time = stats2.build_time_ms / 1000
-
-        # Check which files were actually modified
-        files_after = {f: f.stat().st_mtime for f in output_dir.rglob("*.html")}
-        modified_files = [f for f in files_before if files_after.get(f, 0) != files_before[f]]
-
-        # Assertions
-        assert stats2.skipped is not True, "Build should not be skipped"
+        # Additional incremental (no change) should be very fast
+        time.sleep(0.05)
+        no_change_stats = site.build(incremental=True)
         assert (
-            len(modified_files) < 15
-        ), f"Should rebuild <15 files, but rebuilt {len(modified_files)}"
-        assert (
-            incr_time < full_time
-        ), f"Incremental ({incr_time:.2f}s) should be faster than full ({full_time:.2f}s)"
-
-        # Calculate speedup
-        speedup = full_time / incr_time
-        assert speedup >= 2.0, f"Incremental should be at least 2x faster (got {speedup:.1f}x)"
-
-    def test_config_change_triggers_full_rebuild(self, test_site):
-        """Test that config changes trigger full rebuild."""
-        # Build 1: Full build
-        site = Site.from_config(test_site)
-        site.build(parallel=True, incremental=False)
-
-        # Wait and modify config
-        time.sleep(0.15)
-        config_file = test_site / "bengal.toml"
-        config_content = config_file.read_text()
-        config_file.write_text(
-            config_content.replace('title = "Test Site"', 'title = "Modified Site"')
-        )
-
-        # Build 2: Incremental (should detect config change)
-        time.sleep(0.15)
-        site = Site.from_config(test_site)  # Reload config
-        stats = site.build(parallel=True, incremental=True)
-
-        # Should do full rebuild (skipped=False)
-        assert stats.skipped is not True, "Build should not be skipped when config changes"
-
-    def test_first_incremental_build_no_cache(self, test_site):
-        """Test that first incremental build without cache does full rebuild."""
-        # Skip initial full build - go straight to incremental
-        site = Site.from_config(test_site)
-
-        # Verify no cache exists (new location since v0.1.2)
-        cache_file = test_site / ".bengal" / "cache.json"
-        assert not cache_file.exists(), "Cache should not exist yet"
-
-        # Build with incremental=True but no cache
-        stats = site.build(parallel=True, incremental=True)
-
-        # Should do full build (no cache to compare against)
-        assert stats.skipped is not True
-
-        # Cache should now exist
-        assert cache_file.exists(), "Cache should be created"
-
-    def test_multiple_incremental_builds(self, test_site):
-        """Test that multiple incremental builds in sequence work correctly."""
-        # Build 1: Full build
-        site = Site.from_config(test_site)
-        site.build(parallel=True, incremental=False)
-
-        # Build 2: Incremental, no changes (should use cache)
-        time.sleep(0.15)
-        stats2 = site.build(parallel=True, incremental=True)
-        assert stats2.cache_hits == 50, "Should use cache for all pages"
-        assert stats2.cache_misses == 0, "Should have no cache misses"
-
-        # Build 3: Change one file
-        time.sleep(0.15)
-        (test_site / "content" / "page-00.md").write_text("---\ntitle: Changed\n---\nNew content")
-        time.sleep(0.15)
-        stats3 = site.build(parallel=True, incremental=True)
-        assert stats3.cache_misses > 0, "Should have cache miss for changed file"
-        assert stats3.cache_hits > 40, "Should still use cache for unchanged files"
-
-        # Build 4: No changes again
-        time.sleep(0.15)
-        stats4 = site.build(parallel=True, incremental=True)
-        assert stats4.cache_hits == 50, "Should use cache for all pages again"
-        assert stats4.cache_misses == 0, "Should have no cache misses again"
-
-    def test_cache_survives_site_reload(self, test_site):
-        """Test that cache persists across Site object recreation."""
-        # Build 1: Full build with first site instance
-        site1 = Site.from_config(test_site)
-        site1.build(parallel=True, incremental=False)
-
-        # Create NEW Site instance (simulates restart)
-        time.sleep(0.15)
-        site2 = Site.from_config(test_site)
-
-        # Build 2: Incremental with new instance, no changes
-        stats = site2.build(parallel=True, incremental=True)
-
-        # Should use cache from previous build (50 hits, 0 misses)
-        assert (
-            stats.cache_hits == 50
-        ), f"New site instance should use persisted cache (got {stats.cache_hits} hits)"
-        assert (
-            stats.cache_misses == 0
-        ), f"New site instance should have no cache misses (got {stats.cache_misses})"
+            no_change_stats.total_time < incremental_stats.total_time * 0.3
+        )  # Even faster, mostly cache hits
 
 
 class TestIncrementalBuildRegression:

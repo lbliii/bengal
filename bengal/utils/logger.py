@@ -148,6 +148,11 @@ class BengalLogger:
         # Open in append mode to allow multiple loggers to write to same file safely
         self._file_handle: TextIO | None = None
         if log_file:
+            # Ensure parent directory exists before opening the log file
+            from contextlib import suppress
+
+            with suppress(Exception):
+                log_file.parent.mkdir(parents=True, exist_ok=True)
             self._file_handle = open(log_file, "a", encoding="utf-8")  # noqa: SIM115
 
     @contextmanager
@@ -404,6 +409,8 @@ def configure_logging(
     # Clear log file if specified (truncate once at start)
     if log_file:
         try:
+            # Ensure parent directory exists before truncating
+            log_file.parent.mkdir(parents=True, exist_ok=True)
             # Truncate the file to ensure we start fresh
             with open(log_file, "w", encoding="utf-8"):
                 pass

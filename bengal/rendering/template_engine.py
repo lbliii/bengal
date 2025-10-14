@@ -12,6 +12,7 @@ from jinja2.bccache import FileSystemBytecodeCache
 
 from bengal.rendering.template_functions import register_all
 from bengal.utils.logger import get_logger
+from bengal.utils.metadata import build_template_metadata
 from bengal.utils.theme_registry import get_theme_package
 
 logger = get_logger(__name__)
@@ -136,6 +137,11 @@ class TemplateEngine:
         # Add global variables (available in all templates and macros)
         env.globals["site"] = self.site
         env.globals["config"] = self.site.config
+        # Curated build/runtime metadata for templates/JS (privacy-aware)
+        try:
+            env.globals["bengal"] = build_template_metadata(self.site)
+        except Exception:
+            env.globals["bengal"] = {"engine": {"name": "Bengal SSG", "version": "unknown"}}
 
         # Add global functions (core template helpers)
         env.globals["url_for"] = self._url_for

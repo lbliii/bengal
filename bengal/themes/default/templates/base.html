@@ -7,8 +7,9 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
 
     {# Title #}
-    <title>{% block title %}{{ page.title | default(site.config.title) }}{% if page and page.title %} - {{
-        site.config.title }}{% endif %}{% endblock %}</title>
+    <title>{% block title %}{{ (page.title if page is defined and page and page.title is defined else site.config.title)
+        }}{% if page is defined and page and page.title is defined %} - {{ site.config.title }}{% endif %}{% endblock %}
+    </title>
 
     {# Meta description - automatically pre-computed by renderer (page.meta_description cached_property) #}
     {% set meta_desc = meta_desc | default(site.config.get('description'), '') %}
@@ -25,12 +26,14 @@
 
     {# Open Graph / Facebook #}
     <meta property="og:type" content="{% if page %}article{% else %}website{% endif %}">
-    <meta property="og:title" content="{{ page.title | default(site.config.title) }}">
+    <meta property="og:title"
+        content="{{ (page.title if page is defined and page and page.title is defined else site.config.title) }}">
     {% if meta_desc %}
     <meta property="og:description" content="{{ meta_desc }}">
     {% endif %}
     {% if site.config.baseurl %}
-    <meta property="og:url" content="{{ canonical_url(page.url | default('/')) }}">
+    <meta property="og:url"
+        content="{{ canonical_url((page.url if page is defined and page and page.url is defined else '/')) }}">
     {% endif %}
     {# Open Graph Image #}
     {% if page and page.metadata is defined and page.metadata.get('image') %}
@@ -41,7 +44,8 @@
 
     {# Twitter Card #}
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="{{ page.title | default(site.config.title) }}">
+    <meta name="twitter:title"
+        content="{{ (page.title if page is defined and page and page.title is defined else site.config.title) }}">
     {% if meta_desc %}
     <meta name="twitter:description" content="{{ meta_desc }}">
     {% endif %}
@@ -56,7 +60,8 @@
 
     {# Canonical URL #}
     {% if site.config.baseurl %}
-    <link rel="canonical" href="{{ canonical_url(page.url | default('/')) }}">
+    <link rel="canonical"
+        href="{{ canonical_url((page.url if page is defined and page and page.url is defined else '/')) }}">
     {% endif %}
 
     {# RSS Feed (locale-aware when i18n prefix strategy is enabled) #}
@@ -95,6 +100,15 @@
     </script>
 
     {% block extra_head %}{% endblock %}
+    {# Generator and build meta #}
+    {% include 'partials/meta-generator.html' %}
+
+    {# Optional JSON bootstrap for client-side scripts #}
+    {% if config.get('expose_metadata_json') %}
+    <script>
+        window.__BENGAL__ = {{ bengal | jsonify }};
+    </script>
+    {% endif %}
 </head>
 
 <body

@@ -47,6 +47,7 @@ class ConfigValidator:
         "strict_mode",
         "debug",
         "validate_build",
+        "expose_metadata_json",  # Opt-in JSON bootstrap in head
     }
 
     INTEGER_FIELDS = {"max_workers", "min_page_size", "port"}
@@ -63,6 +64,7 @@ class ConfigValidator:
         "assets_dir",
         "templates_dir",
         "host",
+        "expose_metadata",  # minimal|standard|extended
     }
 
     def validate(self, config: dict[str, Any], source_file: Path | None = None) -> dict[str, Any]:

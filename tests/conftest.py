@@ -12,6 +12,9 @@ from pathlib import Path
 
 import pytest
 
+from bengal.core.site import Site
+from bengal.utils.file_io import write_text_file
+
 # ============================================================================
 # COLLECTION HOOKS
 # ============================================================================
@@ -174,11 +177,11 @@ def sample_config():
 def reset_console_between_tests():
     """
     Automatically reset Rich console between tests to prevent Live display conflicts.
-    
+
     This fixture runs automatically for every test (autouse=True) and ensures
     that Rich Live displays are properly cleaned up, preventing the
     "Only one live display may be active at once" error.
-    
+
     Long-term solution to ensure test isolation for Rich-based progress displays.
     """
     # Setup: Nothing needed before test
@@ -186,7 +189,77 @@ def reset_console_between_tests():
     # Teardown: Reset console after each test
     try:
         from bengal.utils.rich_console import reset_console
+
         reset_console()
     except ImportError:
         # If module not available, skip cleanup
         pass
+
+
+@pytest.fixture(scope="class")
+def shared_site_class(request, tmp_path_factory, sample_config):
+    """
+    Class-scoped temporary site for tests that can share setup.
+
+    Creates a basic site with sample content and builds it once per class.
+    Tests can modify if needed, but prefer tmp_site for heavy changes.
+
+    Yields: Site object
+    """
+    site_dir = tmp_path_factory.mktemp("shared_site")
+
+    # Write config
+    config_path = site_dir / "bengal.toml"
+    write_text_file(
+        str(config_path),
+        """[site]
+title = "Test Shared Site"
+baseurl = "/"
+
+[build]
+output_dir = "public"
+parallel = true
+incremental = false
+""",
+    )
+
+    # Create sample content (10 pages)
+    content_dir = site_dir / "content"
+    content_dir.mkdir()
+
+    for i in range(10):
+        page_path = content_dir / f"page_{i}.md"
+        write_text_file(
+            str(page_path),
+            f"""---
+title: "Page {i}"
+---
+Content for page {i}.""",
+        )
+
+    # Create site and build
+    site = Site.from_config(str(config_path))
+    site.discover_content()
+    site.discover_assets()
+    build_stats = site.build(parallel=False)  # Sequential for consistency
+
+    # Yield site, with optional param to copy for modification
+    if hasattr(request, "param") and request.param == "modifiable":
+        # For tests that need a copy
+        import shutil
+
+        mod_site_dir = tmp_path_factory.mktemp("modifiable_site")
+        shutil.copytree(site_dir, mod_site_dir)
+        mod_site = Site.from_config(str(mod_site_dir / "bengal.toml"))
+        mod_site.discover_content()
+        mod_site.discover_assets()
+        yield mod_site
+    else:
+        yield site
+
+    # Teardown: Clean output
+    output_dir = site_dir / "public"
+    if output_dir.exists():
+        import shutil
+
+        shutil.rmtree(output_dir)
