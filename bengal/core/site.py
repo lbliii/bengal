@@ -696,3 +696,40 @@ class Site:
 
     def __repr__(self) -> str:
         return f"Site(pages={len(self.pages)}, sections={len(self.sections)}, assets={len(self.assets)})"
+
+    def reset_ephemeral_state(self) -> None:
+        """
+        Clear ephemeral/derived state that should not persist between builds.
+
+        This method is intended for long-lived Site instances (e.g., dev server)
+        to avoid stale object references across rebuilds.
+
+        Persistence contract:
+        - Persist: root_path, config, theme, output_dir, build_time
+        - Clear: pages, sections, assets
+        - Clear derived: taxonomies, menu, menu_builders, xref_index (if present)
+        - Clear caches: cached page lists
+        """
+        logger.debug("site_reset_ephemeral_state", site_root=str(self.root_path))
+
+        # Content to be rediscovered
+        self.pages = []
+        self.sections = []
+        self.assets = []
+
+        # Derived structures (contain object references)
+        self.taxonomies = {}
+        self.menu = {}
+        self.menu_builders = {}
+        self.menu_localized = {}
+        self.menu_builders_localized = {}
+
+        # Indices (rebuilt from pages)
+        if hasattr(self, "xref_index"):
+            from contextlib import suppress
+
+            with suppress(Exception):
+                self.xref_index = {}
+
+        # Cached properties
+        self.invalidate_regular_pages_cache()

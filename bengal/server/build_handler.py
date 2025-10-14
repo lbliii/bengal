@@ -71,40 +71,21 @@ class BuildHandler(FileSystemEventHandler):
         self.timer_lock = threading.Lock()
 
     def _clear_ephemeral_state(self) -> None:
-        """
-        Clear ephemeral state that shouldn't persist between builds.
-
-        This is CRITICAL in dev server mode where the Site object persists
-        across multiple builds. We must clear derived state to avoid stale
-        object references.
-
-        Persistence contract:
-        - root_path, config, theme: Persist (static config)
-        - output_dir, build_time: Persist (metadata)
-        - pages, sections, assets: CLEAR (will be rediscovered)
-        - taxonomies, menu, xref_index: CLEAR (derived from pages)
-
-        This prevents the stale reference bug where taxonomies contain
-        old Page objects from previous builds.
-        """
-        logger.debug("clearing_ephemeral_state", site_root=str(self.site.root_path))
-
-        # Clear content (will be rediscovered)
-        self.site.pages = []
-        self.site.sections = []
-        self.site.assets = []
-
-        # Clear derived structures (contain object references)
-        self.site.taxonomies = {}
-        self.site.menu = {}
-        self.site.menu_builders = {}
-
-        # Clear indices (rebuilt from pages)
-        if hasattr(self.site, "xref_index"):
-            self.site.xref_index = {}
-
-        # Clear caches on pages (if any survived somehow)
-        self.site.invalidate_regular_pages_cache()
+        """Clear ephemeral state safely via Site API."""
+        try:
+            self.site.reset_ephemeral_state()
+        except AttributeError:
+            # Backward compatibility: inline clear for older Site versions
+            logger.debug("clearing_ephemeral_state_legacy", site_root=str(self.site.root_path))
+            self.site.pages = []
+            self.site.sections = []
+            self.site.assets = []
+            self.site.taxonomies = {}
+            self.site.menu = {}
+            self.site.menu_builders = {}
+            if hasattr(self.site, "xref_index"):
+                self.site.xref_index = {}
+            self.site.invalidate_regular_pages_cache()
 
     def _should_ignore_file(self, file_path: str) -> bool:
         """
