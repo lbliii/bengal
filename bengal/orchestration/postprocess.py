@@ -44,7 +44,7 @@ class PostprocessOrchestrator:
         """
         self.site = site
 
-    def run(self, parallel: bool = True, progress_manager=None) -> None:
+    def run(self, parallel: bool = True, progress_manager=None, build_context=None) -> None:
         """
         Perform post-processing tasks (sitemap, RSS, output formats, link validation, etc.).
 
@@ -52,6 +52,14 @@ class PostprocessOrchestrator:
             parallel: Whether to run tasks in parallel
             progress_manager: Live progress manager (optional)
         """
+        # Resolve from context if absent
+        if (
+            not progress_manager
+            and build_context
+            and getattr(build_context, "progress_manager", None)
+        ):
+            progress_manager = build_context.progress_manager
+
         if not progress_manager:
             print("\n🔧 Post-processing:")
 

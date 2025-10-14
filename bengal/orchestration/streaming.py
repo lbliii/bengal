@@ -70,6 +70,16 @@ class StreamingRenderOrchestrator:
         """
         total_pages = len(pages)
 
+        # Resolve from context if absent
+        if not reporter and build_context and getattr(build_context, "reporter", None):
+            reporter = build_context.reporter
+        if (
+            not progress_manager
+            and build_context
+            and getattr(build_context, "progress_manager", None)
+        ):
+            progress_manager = build_context.progress_manager
+
         # Warn if using memory optimization on small sites (overhead > benefit)
         RECOMMENDED_THRESHOLD = 5000
         WARNING_THRESHOLD = 1000
@@ -175,7 +185,14 @@ class StreamingRenderOrchestrator:
             else:
                 print(msg)
             renderer.process(
-                hubs_to_render, parallel, quiet, tracker, stats, progress_manager=progress_manager
+                hubs_to_render,
+                parallel,
+                quiet,
+                tracker,
+                stats,
+                progress_manager=progress_manager,
+                reporter=reporter,
+                build_context=build_context,
             )
             logger.debug("streaming_render_hubs_complete", count=total_hubs)
 
@@ -196,6 +213,7 @@ class StreamingRenderOrchestrator:
                 stats,
                 "mid-tier",
                 progress_manager=progress_manager,
+                # reporter and context forwarded inside _render_batches via renderer.process
             )
             logger.debug("streaming_render_mid_complete", count=total_mid)
 
@@ -270,7 +288,13 @@ class StreamingRenderOrchestrator:
 
             # Render this batch
             renderer.process(
-                batch, parallel, quiet, tracker, stats, progress_manager=progress_manager
+                batch,
+                parallel,
+                quiet,
+                tracker,
+                stats,
+                progress_manager=progress_manager,
+                build_context=None,
             )
 
             logger.debug(

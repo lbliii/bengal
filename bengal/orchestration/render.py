@@ -105,6 +105,14 @@ class RenderOrchestrator:
             progress_manager: Live progress manager (optional)
         """
 
+        # Resolve progress manager from context if not provided
+        if (
+            not progress_manager
+            and build_context
+            and getattr(build_context, "progress_manager", None)
+        ):
+            progress_manager = build_context.progress_manager
+
         # PRE-PROCESS: Set output paths for pages being rendered
         # Note: This only sets paths for pages we're actually rendering.
         # Other pages should already have paths from previous builds or will get them when needed.

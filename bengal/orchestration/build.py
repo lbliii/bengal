@@ -653,7 +653,9 @@ class BuildOrchestrator:
                 )
                 progress_manager.start_phase("postprocess")
 
-            self.postprocess.run(parallel=parallel, progress_manager=progress_manager)
+            self.postprocess.run(
+                parallel=parallel, progress_manager=progress_manager, build_context=ctx
+            )
 
             self.stats.postprocess_time_ms = (time.time() - postprocess_start) * 1000
 
