@@ -100,7 +100,7 @@ class StreamingRenderOrchestrator:
                 reporter.log(msg1)
                 reporter.log(msg2)
                 reporter.log(msg3)
-            else:
+            elif not quiet:
                 print(msg1)
                 print(msg2)
                 print(msg3)
@@ -108,7 +108,7 @@ class StreamingRenderOrchestrator:
             msg = f"  ℹ️  Site has {total_pages} pages - memory optimization may have marginal benefit."
             if reporter:
                 reporter.log(msg)
-            else:
+            elif not quiet:
                 print(msg)
 
         logger.info(
@@ -138,7 +138,7 @@ class StreamingRenderOrchestrator:
         # Build knowledge graph to analyze connectivity
         if reporter:
             reporter.log("  🧠 Analyzing connectivity for memory optimization...")
-        else:
+        elif not quiet:
             print("  🧠 Analyzing connectivity for memory optimization...")
         graph = KnowledgeGraph(self.site)
         graph.build()
@@ -167,7 +167,7 @@ class StreamingRenderOrchestrator:
             reporter.log(msg_h)
             reporter.log(msg_m)
             reporter.log(msg_l)
-        else:
+        elif not quiet:
             print(msg_h)
             print(msg_m)
             print(msg_l)
@@ -182,7 +182,7 @@ class StreamingRenderOrchestrator:
             msg = f"\n  📍 Rendering {total_hubs} hub page(s)..."
             if reporter:
                 reporter.log(msg)
-            else:
+            elif not quiet:
                 print(msg)
             renderer.process(
                 hubs_to_render,
@@ -201,7 +201,7 @@ class StreamingRenderOrchestrator:
             msg = f"  🔗 Rendering {total_mid} mid-tier page(s)..."
             if reporter:
                 reporter.log(msg)
-            else:
+            elif not quiet:
                 print(msg)
             self._render_batches(
                 renderer,
@@ -248,7 +248,7 @@ class StreamingRenderOrchestrator:
 
         if reporter:
             reporter.log("  ✓ Memory-optimized render complete!")
-        else:
+        elif not quiet:
             print("  ✓ Memory-optimized render complete!")
 
     def _render_batches(
