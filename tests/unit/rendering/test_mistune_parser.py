@@ -98,7 +98,7 @@ Term
         assert "<del>" in result or "<s>" in result
 
     def test_code_blocks(self, parser):
-        """Test code block support."""
+        """Test code block support with syntax highlighting."""
         content = """
 ```python
 print("hello")
@@ -107,7 +107,8 @@ print("hello")
         result = parser.parse(content, {})
         assert "<pre>" in result
         assert "<code" in result
-        assert "python" in result
+        # Check for Pygments highlighting (language class may not be present)
+        assert '<div class="highlight">' in result or '<span class="nb">print</span>' in result
 
     def test_parse_with_toc(self, parser):
         """Test TOC generation."""

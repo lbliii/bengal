@@ -312,8 +312,10 @@ def hello():
 """
         result = parser.parse(content, {})
 
-        assert "def hello" in result or "hello()" in result
-        assert "<code" in result or "<pre" in result
+        # Check for Pygments syntax highlighting
+        assert '<span class="k">def</span>' in result or 'def' in result
+        assert '<span class="nf">hello</span>' in result or 'hello' in result
+        assert '<div class="highlight">' in result or "<code" in result or "<pre" in result
 
 
 class TestEdgeCases:

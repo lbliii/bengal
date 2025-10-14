@@ -512,8 +512,9 @@ class MistuneParser(BaseMarkdownParser):
 
                 slug = self._slugify(text)
 
-                # Build heading with ID (anchor link added by JavaScript)
-                return f'<{tag} id="{slug}"{attrs}>{content}</{tag}>'
+                # Build heading with ID and headerlink anchor (¶)
+                headerlink = f'<a class="headerlink" href="#{slug}" title="Permalink to this heading">¶</a>'
+                return f'<{tag} id="{slug}"{attrs}>{content} {headerlink}</{tag}>'
 
             try:
                 return self._HEADING_PATTERN.sub(replace_heading, html)
@@ -554,7 +555,8 @@ class MistuneParser(BaseMarkdownParser):
                             return m.group(0)
 
                         slug = self._slugify(text)
-                        return f'<{tag} id="{slug}"{attrs}>{content}</{tag}>'
+                        headerlink = f'<a class="headerlink" href="#{slug}" title="Permalink to this heading">¶</a>'
+                        return f'<{tag} id="{slug}"{attrs}>{content} {headerlink}</{tag}>'
 
                     parts.append(self._HEADING_PATTERN.sub(replace_heading, before))
                 else:
@@ -589,7 +591,8 @@ class MistuneParser(BaseMarkdownParser):
                         return m.group(0)
 
                     slug = self._slugify(text)
-                    return f'<{tag} id="{slug}"{attrs}>{content}</{tag}>'
+                    headerlink = f'<a class="headerlink" href="#{slug}" title="Permalink to this heading">¶</a>'
+                    return f'<{tag} id="{slug}"{attrs}>{content} {headerlink}</{tag}>'
 
                 parts.append(self._HEADING_PATTERN.sub(replace_heading, remaining))
             else:

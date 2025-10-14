@@ -123,7 +123,8 @@ console.log("Hello");
 
         assert "Python" in result
         assert "JavaScript" in result
-        assert 'print("Hello")' in result or "print(&quot;Hello&quot;)" in result
+        # Check for Pygments highlighting or escaped HTML
+        assert '<span class="nb">print</span>' in result or 'print(&quot;Hello&quot;)' in result
 
     def test_directive_with_options_colon_style(self):
         """Test MyST-style directive with options."""
