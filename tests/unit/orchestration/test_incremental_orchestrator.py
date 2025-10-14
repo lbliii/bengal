@@ -272,5 +272,228 @@ class TestPhaseOrderingOptimization:
         assert call_args[1] == {"python", "testing"}
 
 
+class TestCascadeDependencyTracking:
+    """Test suite for cascade dependency tracking in incremental builds."""
+
+    def test_cascade_change_marks_descendants_for_rebuild(self, orchestrator, mock_site):
+        """When section _index.md with cascade changes, mark all descendants."""
+        # Setup - Create a section with an index page that has cascade
+        from bengal.core.section import Section
+
+        section = Section(name="docs", path=Path("/fake/site/content/docs"))
+
+        # Create section index with cascade
+        index_page = Page(
+            source_path=Path("/fake/site/content/docs/_index.md"),
+            content="Section index",
+            metadata={"title": "Docs", "cascade": {"type": "doc", "layout": "doc-page"}},
+        )
+        section.index_page = index_page
+        section.pages.append(index_page)
+
+        # Create child pages
+        child1 = Page(
+            source_path=Path("/fake/site/content/docs/page1.md"),
+            content="Child 1",
+            metadata={"title": "Page 1"},
+        )
+        child2 = Page(
+            source_path=Path("/fake/site/content/docs/page2.md"),
+            content="Child 2",
+            metadata={"title": "Page 2"},
+        )
+        section.pages.extend([child1, child2])
+
+        # Update mock site
+        mock_site.pages = [index_page, child1, child2]
+        mock_site.sections = [section]
+
+        # Setup cache - only _index.md changed
+        orchestrator.cache = Mock()
+        orchestrator.tracker = Mock()
+
+        def is_changed(path):
+            return str(path).endswith("_index.md")
+
+        orchestrator.cache.is_changed.side_effect = is_changed
+
+        # Mock the _get_theme_templates_dir to return None
+        with patch.object(orchestrator, "_get_theme_templates_dir", return_value=None):
+            # Test
+            pages_to_build, _, change_summary = orchestrator.find_work_early(verbose=True)
+
+        # Should rebuild all 3 pages: _index.md + 2 children
+        assert len(pages_to_build) == 3
+        assert index_page in pages_to_build
+        assert child1 in pages_to_build
+        assert child2 in pages_to_build
+
+        # Should have cascade change info
+        assert "Cascade changes" in change_summary
+        assert len(change_summary["Cascade changes"]) > 0
+
+    def test_cascade_change_in_nested_section(self, orchestrator, mock_site):
+        """When nested section cascade changes, mark only its descendants."""
+        from bengal.core.section import Section
+
+        # Create parent section
+        parent_section = Section(name="docs", path=Path("/fake/site/content/docs"))
+        parent_index = Page(
+            source_path=Path("/fake/site/content/docs/_index.md"),
+            content="Parent",
+            metadata={"title": "Docs"},
+        )
+        parent_section.index_page = parent_index
+        parent_section.pages.append(parent_index)
+
+        # Create child section with cascade
+        child_section = Section(name="advanced", path=Path("/fake/site/content/docs/advanced"))
+        child_section.parent = parent_section
+        child_index = Page(
+            source_path=Path("/fake/site/content/docs/advanced/_index.md"),
+            content="Child section",
+            metadata={"title": "Advanced", "cascade": {"difficulty": "hard"}},
+        )
+        child_section.index_page = child_index
+        child_section.pages.append(child_index)
+
+        # Add pages to child section
+        nested_page = Page(
+            source_path=Path("/fake/site/content/docs/advanced/guide.md"),
+            content="Guide",
+            metadata={"title": "Guide"},
+        )
+        child_section.pages.append(nested_page)
+
+        # Add page to parent section (should NOT be affected)
+        parent_page = Page(
+            source_path=Path("/fake/site/content/docs/intro.md"),
+            content="Intro",
+            metadata={"title": "Intro"},
+        )
+        parent_section.pages.append(parent_page)
+        parent_section.subsections.append(child_section)
+
+        # Update mock site
+        mock_site.pages = [parent_index, parent_page, child_index, nested_page]
+        mock_site.sections = [parent_section, child_section]
+
+        # Setup cache - only child _index.md changed
+        orchestrator.cache = Mock()
+        orchestrator.tracker = Mock()
+
+        def is_changed(path):
+            return "advanced/_index.md" in str(path)
+
+        orchestrator.cache.is_changed.side_effect = is_changed
+
+        # Mock the _get_theme_templates_dir to return None
+        with patch.object(orchestrator, "_get_theme_templates_dir", return_value=None):
+            # Test
+            pages_to_build, _, _ = orchestrator.find_work_early()
+
+        # Should rebuild child section pages only, not parent section pages
+        assert child_index in pages_to_build
+        assert nested_page in pages_to_build
+        assert parent_page not in pages_to_build
+        assert parent_index not in pages_to_build
+
+    def test_root_level_cascade_marks_all_pages(self, orchestrator, mock_site):
+        """When top-level page with cascade changes, mark all pages."""
+        # Create a root-level index page with cascade
+        root_index = Page(
+            source_path=Path("/fake/site/content/index.md"),
+            content="Root",
+            metadata={"title": "Home", "cascade": {"site_wide": "value"}},
+        )
+
+        # Create other pages
+        page1 = Page(
+            source_path=Path("/fake/site/content/page1.md"),
+            content="Page 1",
+            metadata={"title": "Page 1"},
+        )
+        page2 = Page(
+            source_path=Path("/fake/site/content/page2.md"),
+            content="Page 2",
+            metadata={"title": "Page 2"},
+        )
+
+        # Update mock site - no sections (root level)
+        mock_site.pages = [root_index, page1, page2]
+        mock_site.sections = []
+
+        # Setup cache - only root index changed
+        orchestrator.cache = Mock()
+        orchestrator.tracker = Mock()
+
+        def is_changed(path):
+            return "content/index.md" in str(path)
+
+        orchestrator.cache.is_changed.side_effect = is_changed
+
+        # Mock the _get_theme_templates_dir to return None
+        with patch.object(orchestrator, "_get_theme_templates_dir", return_value=None):
+            # Test
+            pages_to_build, _, _ = orchestrator.find_work_early()
+
+        # Should rebuild ALL pages due to root-level cascade
+        assert len(pages_to_build) == 3
+        assert root_index in pages_to_build
+        assert page1 in pages_to_build
+        assert page2 in pages_to_build
+
+    def test_no_cascade_no_extra_rebuilds(self, orchestrator, mock_site):
+        """When _index.md without cascade changes, don't mark descendants."""
+        from bengal.core.section import Section
+
+        section = Section(name="blog", path=Path("/fake/site/content/blog"))
+
+        # Create section index WITHOUT cascade
+        index_page = Page(
+            source_path=Path("/fake/site/content/blog/_index.md"),
+            content="Blog index",
+            metadata={"title": "Blog"},  # No cascade!
+        )
+        section.index_page = index_page
+        section.pages.append(index_page)
+
+        # Create child page
+        child = Page(
+            source_path=Path("/fake/site/content/blog/post.md"),
+            content="Post",
+            metadata={"title": "Post"},
+        )
+        section.pages.append(child)
+
+        # Update mock site
+        mock_site.pages = [index_page, child]
+        mock_site.sections = [section]
+
+        # Setup cache - only _index.md changed
+        orchestrator.cache = Mock()
+        orchestrator.tracker = Mock()
+
+        def is_changed(path):
+            return str(path).endswith("_index.md")
+
+        orchestrator.cache.is_changed.side_effect = is_changed
+
+        # Mock the _get_theme_templates_dir to return None
+        with patch.object(orchestrator, "_get_theme_templates_dir", return_value=None):
+            # Test
+            pages_to_build, _, change_summary = orchestrator.find_work_early(verbose=True)
+
+        # Should only rebuild _index.md, not the child (no cascade)
+        assert len(pages_to_build) == 1
+        assert index_page in pages_to_build
+        assert child not in pages_to_build
+
+        # Should NOT have cascade change info
+        assert (
+            "Cascade changes" not in change_summary or len(change_summary["Cascade changes"]) == 0
+        )
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

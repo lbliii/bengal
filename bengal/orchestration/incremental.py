@@ -188,6 +188,40 @@ class IncrementalOrchestrator:
                 if page.tags:
                     self.tracker.track_taxonomy(page.source_path, set(page.tags))
 
+        # Check for cascade changes and mark dependent pages for rebuild
+        # When a section _index.md with cascade metadata changes, all descendant pages
+        # need to be rebuilt because their inherited metadata has changed
+        cascade_affected_count = 0
+        for changed_path in list(pages_to_rebuild):  # Iterate over snapshot
+            # Check if this is a section index page (_index.md or index.md)
+            if changed_path.stem in ("_index", "index"):
+                # Find the Page object for this changed file
+                changed_page = next(
+                    (p for p in self.site.pages if p.source_path == changed_path), None
+                )
+                if changed_page and "cascade" in changed_page.metadata:
+                    # This is a section index with cascade - find all affected pages
+                    affected_pages = self._find_cascade_affected_pages(changed_page)
+                    before_count = len(pages_to_rebuild)
+                    pages_to_rebuild.update(affected_pages)
+                    after_count = len(pages_to_rebuild)
+                    newly_affected = after_count - before_count
+                    cascade_affected_count += newly_affected
+
+                    if verbose and newly_affected > 0:
+                        if "Cascade changes" not in change_summary:
+                            change_summary["Cascade changes"] = []
+                        change_summary["Cascade changes"].append(
+                            f"{changed_path.name} cascade affects {newly_affected} descendant pages"
+                        )
+
+        if cascade_affected_count > 0:
+            logger.info(
+                "cascade_dependencies_detected",
+                additional_pages=cascade_affected_count,
+                reason="section_cascade_metadata_changed",
+            )
+
         # Find changed assets
         for asset in self.site.assets:
             if self.cache.is_changed(asset.source_path):
@@ -463,6 +497,55 @@ class IncrementalOrchestrator:
 
         # Save cache
         self.cache.save(cache_path)
+
+    def _find_cascade_affected_pages(self, index_page: "Page") -> set[Path]:
+        """
+        Find all pages affected by a cascade change in a section index.
+
+        When a section's _index.md has cascade metadata and is modified,
+        all descendant pages inherit those values and need to be rebuilt.
+
+        Args:
+            index_page: Section _index.md page with cascade metadata
+
+        Returns:
+            Set of page source paths that should be rebuilt due to cascade
+        """
+        affected = set()
+
+        # Check if this is a root-level page (affects ALL pages)
+        is_root_level = not any(index_page in section.pages for section in self.site.sections)
+
+        if is_root_level:
+            # Root-level cascade affects all pages in the site
+            logger.info(
+                "root_cascade_change_detected",
+                index_page=str(index_page.source_path),
+                affected_count="all_pages",
+            )
+            for page in self.site.pages:
+                if not page.metadata.get("_generated"):
+                    affected.add(page.source_path)
+        else:
+            # Find the section that owns this index page
+            for section in self.site.sections:
+                if section.index_page == index_page:
+                    # Get all pages in this section and subsections recursively
+                    # This uses Section.regular_pages_recursive which walks the tree
+                    for page in section.regular_pages_recursive:
+                        # Skip generated pages (they have virtual paths)
+                        if not page.metadata.get("_generated"):
+                            affected.add(page.source_path)
+
+                    logger.debug(
+                        "section_cascade_change_detected",
+                        section=section.name,
+                        index_page=str(index_page.source_path),
+                        affected_count=len(affected),
+                    )
+                    break
+
+        return affected
 
     def _get_theme_templates_dir(self) -> Path | None:
         """
