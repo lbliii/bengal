@@ -522,8 +522,6 @@ class BuildOrchestrator:
         # Assets must be processed first so asset_url() can find fingerprinted files
         with self.logger.phase("assets", asset_count=len(assets_to_process), parallel=parallel):
             assets_start = time.time()
-            original_assets = self.site.assets
-            self.site.assets = assets_to_process  # Temporarily replace with subset
 
             # Register assets phase
             if progress_manager:
@@ -533,8 +531,6 @@ class BuildOrchestrator:
             self.assets.process(
                 assets_to_process, parallel=parallel, progress_manager=progress_manager
             )
-
-            self.site.assets = original_assets  # Restore full asset list
             self.stats.assets_time_ms = (time.time() - assets_start) * 1000
 
             if progress_manager:
