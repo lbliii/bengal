@@ -13,27 +13,27 @@ from bengal.orchestration.incremental import IncrementalOrchestrator
 
 
 @pytest.fixture
-def mock_site():
+def mock_site(tmp_path):
     """Create a mock site with pages and assets."""
     site = Mock()
-    site.root_path = Path("/fake/site")
-    site.output_dir = Path("/fake/site/public")
+    site.root_path = tmp_path
+    site.output_dir = tmp_path / "public"
     site.config = {}
 
     # Create some mock pages
     site.pages = [
         Page(
-            source_path=Path("/fake/site/content/page1.md"),
+            source_path=tmp_path / "content/page1.md",
             content="Content 1",
             metadata={"title": "Page 1", "tags": ["python", "testing"]},
         ),
         Page(
-            source_path=Path("/fake/site/content/page2.md"),
+            source_path=tmp_path / "content/page2.md",
             content="Content 2",
             metadata={"title": "Page 2", "tags": ["python"]},
         ),
         Page(
-            source_path=Path("/fake/site/content/_generated/tags.md"),
+            source_path=tmp_path / "content/_generated/tags.md",
             content="",
             metadata={"title": "Tags", "_generated": True, "type": "tag-index"},
         ),
@@ -41,8 +41,8 @@ def mock_site():
 
     # Create some mock assets
     site.assets = [
-        Mock(source_path=Path("/fake/site/assets/style.css")),
-        Mock(source_path=Path("/fake/site/assets/script.js")),
+        Mock(source_path=tmp_path / "assets/style.css"),
+        Mock(source_path=tmp_path / "assets/script.js"),
     ]
 
     return site
@@ -80,8 +80,8 @@ class TestIncrementalOrchestrator:
 
         cache, tracker = orchestrator.initialize(enabled=True)
 
-        # Should load existing cache
-        cache_path = mock_site.output_dir / ".bengal-cache.json"
+        # Should load existing cache from .bengal/cache.json
+        cache_path = mock_site.root_path / ".bengal" / "cache.json"
         mock_load.assert_called_once_with(cache_path)
         assert cache is mock_cache
 

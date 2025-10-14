@@ -90,6 +90,12 @@ class AssetOrchestrator:
         css_modules = [a for a in assets if a.is_css_module()]
         other_assets = [a for a in assets if a.asset_type != "css"]
 
+        # If no CSS entry points exist, treat CSS modules as regular assets
+        # (they're standalone CSS files, not modules to be bundled)
+        if not css_entries and css_modules:
+            other_assets.extend(css_modules)
+            css_modules = []
+
         # If pipeline is enabled, skip raw sources that should not be copied
         assets_cfg = (
             self.site.config.get("assets", {})

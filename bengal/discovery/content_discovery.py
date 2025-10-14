@@ -238,7 +238,8 @@ class ContentDiscovery:
                 # Only add section if it has content
                 if section.pages or section.subsections:
                     parent_section.add_subsection(section)
-                    self.sections.append(section)
+                    # Note: Don't add to self.sections here - only top-level sections
+                    # should be in self.sections. Subsections are accessible via parent.subsections
 
         # Resolve parallel page futures and attach to section
         for fut in file_futures:
