@@ -59,9 +59,15 @@ class PostprocessOrchestrator:
             and getattr(build_context, "progress_manager", None)
         ):
             progress_manager = build_context.progress_manager
+        reporter = None
+        if build_context and getattr(build_context, "reporter", None):
+            reporter = build_context.reporter
 
         if not progress_manager:
-            print("\n🔧 Post-processing:")
+            if reporter:
+                reporter.log("\n🔧 Post-processing:")
+            else:
+                print("\n🔧 Post-processing:")
 
         # Collect enabled tasks
         tasks = []
@@ -148,9 +154,16 @@ class PostprocessOrchestrator:
         # Report errors
         if errors and not progress_manager:
             with _print_lock:
-                print(f"  ⚠️  {len(errors)} post-processing task(s) failed:")
-                for task_name, error in errors:
-                    print(f"    • {task_name}: {error}")
+                if build_context and getattr(build_context, "reporter", None):
+                    build_context.reporter.log(
+                        f"  ⚠️  {len(errors)} post-processing task(s) failed:"
+                    )
+                    for task_name, error in errors:
+                        build_context.reporter.log(f"    • {task_name}: {error}")
+                else:
+                    print(f"  ⚠️  {len(errors)} post-processing task(s) failed:")
+                    for task_name, error in errors:
+                        print(f"    • {task_name}: {error}")
 
     def _generate_special_pages(self) -> None:
         """
