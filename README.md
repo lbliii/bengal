@@ -1,30 +1,6 @@
 # Bengal
 
-A Python static site generator with incremental builds and modular architecture.
-
-**⚡ Optimized for Python 3.14**
-
-Bengal is the first major SSG optimized for Python 3.14, delivering **515 pages/sec** with free-threading—making it the fastest Python SSG available and competitive with Node.js tools like Eleventy.
-
-## Performance
-
-- **515 pages/sec** with free-threaded Python 3.14t (recommended) ⚡
-- **289 pages/sec** with standard Python 3.14
-- **~250 pages/sec** with Python 3.13 (fully supported)
-- **Sub-second incremental builds** for typical changes
-- **50x speedup** for single-page incremental builds vs full rebuild
-- **Scales to 10,000+ pages** with intelligent caching
-
-*Want the speed boost? See [INSTALL_FREE_THREADED.md](INSTALL_FREE_THREADED.md) for a 5-minute setup guide.*
-
-## Quality & Testing
-
-- **2,297 tests** with **76-96% critical path coverage** ([details](TEST_COVERAGE.md))
-- **115 property tests** generating 11,600+ examples per run (Hypothesis)
-- **40-second test suite** running on every commit
-- **A+ test quality** (property-based + parametrized + integration)
-
-*Note: "17% overall coverage" includes optional features (CLI wizards, graph tools, font downloaders) that represent 39% of codebase but <5% of usage. See [TEST_COVERAGE.md](TEST_COVERAGE.md) for why this matters.*
+A Python static site generator.
 
 ## Features
 
@@ -40,21 +16,56 @@ Bengal is the first major SSG optimized for Python 3.14, delivering **515 pages/
 - SEO features (sitemap, RSS feeds)
 - Health validation system
 
+## Installing Python 3.14
+
+Bengal works best with Python 3.14. Here's how to install it:
+
+### Using pyenv (recommended for managing versions)
+
+```bash
+# Install pyenv (see https://github.com/pyenv/pyenv for full instructions)
+brew install pyenv  # On macOS with Homebrew
+# or: curl https://pyenv.run | bash
+
+pyenv install 3.14.0
+pyenv global 3.14.0
+```
+
+### Official Installer
+
+Download from [python.org/downloads](https://www.python.org/downloads/release/python-3140/).
+
+### Create a Virtual Environment
+
+Always use a virtual environment:
+
+```bash
+python -m venv bengal-env
+source bengal-env/bin/activate  # On Windows: bengal-env\Scripts\activate
+```
+
 ## Requirements
 
-**Python 3.13 or later**
+Python 3.14 or later
 
-**Recommended: Python 3.14t (free-threaded)** for 1.8x faster rendering. See [INSTALL_FREE_THREADED.md](INSTALL_FREE_THREADED.md) for setup instructions.
+Recommended: Python 3.14t (free-threaded) for up to 1.8x faster rendering. See [INSTALL_FREE_THREADED.md](INSTALL_FREE_THREADED.md) for setup instructions.
 
-## Installation
+## Cloning and Installation
+
+To install the latest development version:
+
+```bash
+git clone https://github.com/llane/bengal.git
+cd bengal
+```
 
 **Using uv (recommended):**
 
 ```bash
-# Install uv
+# Install uv if not already installed
 curl -LsSf https://astral.sh/uv/install.sh | sh
 
-# Install Bengal
+# Install Bengal in editable mode for development
 uv pip install -e .
 ```
 
@@ -64,27 +75,41 @@ uv pip install -e .
 pip install -e .
 ```
 
+For the released version (once available on PyPI):
+
+```bash
+pip install bengal
+# or with uv: uv pip install bengal
+```
+
 ## Quick Start
 
 ```bash
-# Create a new site
+# Create a new site. An interactive wizard will guide you through presets for different site types:
+# - Blog (personal/professional writing)
+# - Documentation (technical docs/guides)
+# - Portfolio (showcase your work)
+# - Business (company/product site)
+# - Resume (professional CV site)
+# - Blank or Custom
 bengal new site mysite
 cd mysite
 
-# Create a new page
+# The wizard creates structure with sample content. You can then:
+# Create additional pages
 bengal new page my-first-post
 
 # Build the site
 bengal build
 
-# Build with maximum speed (recommended for trying out Bengal)
+# For maximum speed (recommended)
 PYTHON_GIL=0 bengal build --fast
 
 # Start development server with file watching
 bengal serve
 ```
 
-**💡 Tip:** Add `fast_mode = true` to `[build]` section in your `bengal.toml` to make fast mode the default.
+**💡 Tip:** Add `fast_mode = true` to the `[build]` section in your `bengal.toml` to enable fast mode by default.
 
 ## Build Profiles
 
