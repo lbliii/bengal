@@ -17,7 +17,8 @@ def test_build_performance(benchmark, scenario):
             ["bengal", "build"],
             cwd=scenario_path,
             check=True,
-            capture_output=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
         )
 
     benchmark(build_site)
