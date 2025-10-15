@@ -1,0 +1,7 @@
+[site]
+title = "Large Benchmark Site"
+base_url = "https://example.com/large"
+
+[build]
+fast_mode = true
+output_dir = "output"

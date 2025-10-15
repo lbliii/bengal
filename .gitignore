@@ -76,3 +76,7 @@ venv-*/
 .tmp-venv/
 
 .env
+
+# Benchmark output
+benchmarks/scenarios/*/output/
+.benchmarks/

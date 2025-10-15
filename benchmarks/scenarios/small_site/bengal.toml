@@ -1,0 +1,7 @@
+[site]
+title = "Small Benchmark Site"
+base_url = "https://example.com/small"
+
+[build]
+fast_mode = true
+output_dir = "output"
