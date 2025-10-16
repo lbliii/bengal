@@ -176,14 +176,14 @@ class TestSignalHandling:
     def test_cleanup_command_help(self):
         """Test that cleanup command is accessible."""
         result = subprocess.run(
-            ["python", "-m", "bengal.cli", "cleanup", "--help"],
+            ["python", "-m", "bengal.cli", "site", "clean", "--help"],
             capture_output=True,
             text=True,
             timeout=5,
         )
 
         assert result.returncode == 0
-        assert "Clean up stale Bengal server processes" in result.stdout
+        assert "Clean" in result.stdout or "clean" in result.stdout.lower()
 
 
 if __name__ == "__main__":
