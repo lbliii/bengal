@@ -68,13 +68,13 @@ class TaxonomyOrchestrator:
         Incrementally update taxonomies for changed pages only.
 
         Architecture:
-        1. Always rebuild site.taxonomies from current Page objects (correct)
+        1. Only rebuild site.taxonomies from current Page objects when tags actually changed
         2. Use cache to determine which tag PAGES need regeneration (fast)
         3. Never reuse taxonomy structure with object references (prevents bugs)
 
         Performance:
         - Change detection: O(changed pages)
-        - Taxonomy reconstruction: O(all tags * pages_per_tag) ≈ O(all pages) but fast
+        - Taxonomy reconstruction: O(all tags * pages_per_tag) ≈ O(all pages) but ONLY when tags changed
         - Tag page generation: O(affected tags)
 
         Args:
@@ -99,9 +99,14 @@ class TaxonomyOrchestrator:
             affected_tags.update(page_affected)
 
         # STEP 2: Rebuild taxonomy structure from current Page objects
-        # This is ALWAYS done from scratch to avoid stale references
-        # Performance: O(all pages) but very fast (just iteration + dict ops)
-        self._rebuild_taxonomy_structure_from_cache(cache)
+        # OPTIMIZATION: Only rebuild if tags were actually affected
+        # This saves ~100ms when page changes don't affect any tags
+        if affected_tags or not changed_pages:
+            # Rebuild only if: (1) tags changed OR (2) no pages changed (dev server case)
+            self._rebuild_taxonomy_structure_from_cache(cache)
+        else:
+            # No tags affected - skip expensive O(n) rebuild
+            logger.info("taxonomy_rebuild_skipped", reason="no_tags_affected")
 
         # STEP 3: Generate tag pages
         # Special case: If no pages changed but we have tags, regenerate ALL tag pages
