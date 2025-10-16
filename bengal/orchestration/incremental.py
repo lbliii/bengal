@@ -386,13 +386,44 @@ class IncrementalOrchestrator:
         return pages_to_build, assets_to_process, change_summary
 
     def process(self, change_type: str, changed_paths: set) -> None:
-        """Bridge-style process used by tests; relies on CacheInvalidator.
+        """
+        Bridge-style process for testing incremental invalidation.
 
+        ⚠️  TEST BRIDGE ONLY
+        ========================
         This method is a lightweight adapter used in tests to simulate an
-        incremental pass without invoking the entire site build.
+        incremental pass without invoking the entire site build orchestrator.
+
+        **Not for production use:**
+        - Writes placeholder output ("Updated") for verification only
+        - Does not perform full rendering or asset processing
+        - Skips postprocessing (RSS, sitemap, etc.)
+        - Use run() or full_build() for production builds
+
+        **Primarily consumed by:**
+        - tests/integration/test_full_to_incremental_sequence.py
+        - bengal/orchestration/full_to_incremental.py (test bridge helper)
+        - Test scenarios validating cache invalidation logic
+
+        Args:
+            change_type: One of "content", "template", or "config"
+            changed_paths: Set of paths that changed (ignored for "config")
+
+        Raises:
+            RuntimeError: If tracker not initialized (call initialize() first)
         """
         if not self.tracker:
             raise RuntimeError("Tracker not initialized - call initialize() first")
+
+        # Warn if called outside test context
+        import sys
+
+        if "pytest" not in sys.modules:
+            logger.warning(
+                "IncrementalOrchestrator.process() is a test bridge. "
+                "Use run() or full_build() for production builds. "
+                "This method writes placeholder output only."
+            )
 
         context = BuildContext(site=self.site, pages=self.site.pages, tracker=self.tracker)
 
@@ -412,10 +443,18 @@ class IncrementalOrchestrator:
             self._write_output(path, context)
 
     def _write_output(self, path: Path, context: BuildContext) -> None:
-        """Write a placeholder output file corresponding to a content path.
+        """
+        Write a placeholder output file corresponding to a content path.
+
+        ⚠️  TEST HELPER - Used by process() bridge only.
 
         For tests that exercise the bridge-only flow, derive the output
         location from the content path under the site's content dir.
+        Writes placeholder "Updated" content for test verification.
+
+        Args:
+            path: Source content path
+            context: Build context (not used in this simplified version)
         """
         content_dir = self.site.root_path / "content"
         try:
