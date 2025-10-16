@@ -65,7 +65,7 @@ class BuildOrchestrator:
     def build(
         self,
         parallel: bool = True,
-        incremental: bool = False,
+        incremental: bool | None = None,
         verbose: bool = False,
         quiet: bool = False,
         profile: BuildProfile = None,
@@ -148,8 +148,8 @@ class BuildOrchestrator:
             collector = PerformanceCollector()
             collector.start_build()
 
-        # Initialize stats
-        self.stats = BuildStats(parallel=parallel, incremental=incremental)
+        # Initialize stats (incremental may be None, resolve later)
+        self.stats = BuildStats(parallel=parallel, incremental=bool(incremental))
         self.stats.strict_mode = strict
 
         self.logger.info(
@@ -163,14 +163,41 @@ class BuildOrchestrator:
         if not progress_manager:
             cli.header("Building your site...")
             cli.info(f"   ↪ {self.site.root_path}")
+            mode_label = "incremental" if incremental else "full"
+            _auto_reason = locals().get("auto_reason")
+            if _auto_reason:
+                cli.detail(f"Mode: {mode_label} ({_auto_reason})", indent=1)
+            else:
+                cli.detail(f"Mode: {mode_label} (flag)", indent=1)
             cli.blank()
 
         self.site.build_time = datetime.now()
 
         # Initialize cache and tracker (ALWAYS, even for full builds)
-        # We need cache for cleanup of deleted files
+        # We need cache for cleanup of deleted files and auto-mode decision
         with self.logger.phase("initialization"):
             cache, tracker = self.incremental.initialize(enabled=True)  # Always load cache
+
+        # Resolve incremental mode (auto when None)
+        auto_reason = None
+        if incremental is None:
+            try:
+                cache_dir = self.site.root_path / ".bengal"
+                cache_path = cache_dir / "cache.json"
+                cache_exists = cache_path.exists()
+                cached_files = len(getattr(cache, "file_hashes", {}) or {})
+                if cache_exists and cached_files > 0:
+                    incremental = True
+                    auto_reason = "auto: cache present"
+                else:
+                    incremental = False
+                    auto_reason = "auto: no cache yet"
+            except Exception:
+                incremental = False
+                auto_reason = "auto: cache check failed"
+
+        # Record resolved mode in stats
+        self.stats.incremental = bool(incremental)
 
         # Phase 0.5: Font Processing (before asset discovery)
         # Download Google Fonts and generate CSS if configured
@@ -204,7 +231,24 @@ class BuildOrchestrator:
                 progress_manager.add_phase("discovery", "Discovery")
                 progress_manager.start_phase("discovery")
 
-            self.content.discover()
+            # Load cache for incremental builds (Phase 2c.1 lazy loading)
+            page_discovery_cache = None
+            if incremental:
+                try:
+                    from bengal.cache.page_discovery_cache import PageDiscoveryCache
+
+                    page_discovery_cache = PageDiscoveryCache(
+                        self.site.root_path / ".bengal" / "page_metadata.json"
+                    )
+                except Exception as e:
+                    self.logger.debug(
+                        "page_discovery_cache_load_failed_for_lazy_loading",
+                        error=str(e),
+                    )
+                    # Continue without cache - will do full discovery
+
+            # Discover with optional lazy loading (Phase 2c.1)
+            self.content.discover(incremental=incremental, cache=page_discovery_cache)
 
             self.stats.discovery_time_ms = (time.time() - discovery_start) * 1000
 
@@ -219,6 +263,44 @@ class BuildOrchestrator:
             self.logger.info(
                 "discovery_complete", pages=len(self.site.pages), sections=len(self.site.sections)
             )
+
+        # Phase 1.25: Cache Discovery Metadata (Phase 2b - Step 1)
+        # Save page discovery metadata for incremental builds and lazy loading
+        with self.logger.phase("cache_discovery_metadata", enabled=True):
+            try:
+                from bengal.cache.page_discovery_cache import PageDiscoveryCache, PageMetadata
+
+                page_cache = PageDiscoveryCache(
+                    self.site.root_path / ".bengal" / "page_metadata.json"
+                )
+
+                # Extract metadata from discovered pages
+                for page in self.site.pages:
+                    metadata = PageMetadata(
+                        source_path=str(page.source_path),
+                        title=page.title,
+                        date=page.date.isoformat() if page.date else None,
+                        tags=page.tags,
+                        section=str(page._section.path) if page._section else None,
+                        slug=page.slug,
+                        weight=page.metadata.get("weight"),
+                        lang=page.lang,
+                    )
+                    page_cache.add_metadata(metadata)
+
+                # Persist cache to disk
+                page_cache.save_to_disk()
+
+                self.logger.info(
+                    "page_discovery_cache_saved",
+                    entries=len(page_cache.pages),
+                    path=str(page_cache.cache_path),
+                )
+            except Exception as e:
+                self.logger.warning(
+                    "page_discovery_cache_save_failed",
+                    error=str(e),
+                )
 
         # Check if config changed (forces full rebuild)
         # Note: We check this even on full builds to populate the cache
@@ -268,6 +350,7 @@ class BuildOrchestrator:
             assets_to_process = self.site.assets
             affected_tags = set()
             changed_page_paths = set()
+            affected_sections = None  # Track for selective section finalization
 
             if incremental:
                 # Find what changed BEFORE generating taxonomies/menus
@@ -280,11 +363,16 @@ class BuildOrchestrator:
                     p.source_path for p in pages_to_build if not p.metadata.get("_generated")
                 }
 
-                # Determine affected tags from changed pages
+                # Determine affected sections and tags from changed pages
+                affected_sections = set()
                 for page in pages_to_build:
-                    if page.tags and not page.metadata.get("_generated"):
-                        for tag in page.tags:
-                            affected_tags.add(tag.lower().replace(" ", "-"))
+                    if not page.metadata.get("_generated"):
+                        # Safely check if page has a section (may be None for root-level pages)
+                        if hasattr(page, "section") and page.section:
+                            affected_sections.add(str(page.section.path))
+                        if page.tags:
+                            for tag in page.tags:
+                                affected_tags.add(tag.lower().replace(" ", "-"))
 
                 # Track cache statistics (Phase 2)
                 total_pages = len(self.site.pages)
@@ -364,34 +452,40 @@ class BuildOrchestrator:
         # Phase 3: Section Finalization (ensure all sections have index pages)
         # Note: "Generated pages" message removed - cluttered output
         with self.logger.phase("section_finalization"):
-            self.sections.finalize_sections()
+            # If incremental and there are no affected sections, skip noisy finalization/validation
+            if not (
+                incremental and isinstance(affected_sections, set) and len(affected_sections) == 0
+            ):
+                self.sections.finalize_sections(affected_sections=affected_sections)
 
-            # Invalidate regular_pages cache (section finalization may add generated index pages)
-            self.site.invalidate_regular_pages_cache()
+                # Invalidate regular_pages cache (section finalization may add generated index pages)
+                self.site.invalidate_regular_pages_cache()
 
-            # Validate section structure
-            section_errors = self.sections.validate_sections()
-            if section_errors:
-                self.logger.warning(
-                    "section_validation_errors",
-                    error_count=len(section_errors),
-                    errors=section_errors[:3],
-                )
-                strict_mode = self.site.config.get("strict_mode", False)
-                if strict_mode:
-                    cli.blank()
-                    cli.error("Section validation errors:")
-                    for error in section_errors:
-                        cli.detail(str(error), indent=1, icon="•")
-                    raise Exception(
-                        f"Build failed: {len(section_errors)} section validation error(s)"
+                # Validate section structure
+                section_errors = self.sections.validate_sections()
+                if section_errors:
+                    self.logger.warning(
+                        "section_validation_errors",
+                        error_count=len(section_errors),
+                        errors=section_errors[:3],
                     )
-                else:
-                    # Warn but continue in non-strict mode
-                    for error in section_errors[:3]:  # Show first 3
-                        cli.warning(str(error))
-                    if len(section_errors) > 3:
-                        cli.warning(f"... and {len(section_errors) - 3} more errors")
+                    strict_mode = self.site.config.get("strict_mode", False)
+                    if strict_mode:
+                        cli.blank()
+                        cli.error("Section validation errors:")
+                        for error in section_errors:
+                            cli.detail(str(error), indent=1, icon="•")
+                        raise Exception(
+                            f"Build failed: {len(section_errors)} section validation error(s)"
+                        )
+                    else:
+                        # Warn but continue in non-strict mode
+                        for error in section_errors[:3]:  # Show first 3
+                            cli.warning(str(error))
+                        if len(section_errors) > 3:
+                            cli.warning(f"... and {len(section_errors) - 3} more errors")
+            else:
+                self.logger.info("section_finalization_skipped", reason="no_affected_sections")
 
         # Phase 4: Taxonomies & Dynamic Pages (INCREMENTAL OPTIMIZATION)
         with self.logger.phase("taxonomies"):
@@ -438,6 +532,52 @@ class BuildOrchestrator:
             # Invalidate regular_pages cache (taxonomy generation adds tag/category pages)
             self.site.invalidate_regular_pages_cache()
 
+        # Phase 4.5: Save Taxonomy Index (Phase 2b - Step 3)
+        # Persist tag-to-pages mapping for incremental builds
+        with self.logger.phase("save_taxonomy_index", enabled=True):
+            try:
+                from bengal.cache.taxonomy_index import TaxonomyIndex
+
+                index = TaxonomyIndex(self.site.root_path / ".bengal" / "taxonomy_index.json")
+
+                # Populate index from collected taxonomies
+                if hasattr(self.site, "taxonomies") and "tags" in self.site.taxonomies:
+                    tags_dict = self.site.taxonomies["tags"]
+
+                    for tag_slug, tag_data in tags_dict.items():
+                        # tag_data is a dict like {"name": "Programming", "slug": "programming", "pages": [...]}
+                        if not isinstance(tag_data, dict):
+                            continue
+
+                        tag_name = tag_data.get("name", tag_slug)
+                        pages = tag_data.get("pages", [])
+
+                        # Extract source paths from page objects, handling various types
+                        page_paths = []
+                        for p in pages:
+                            if isinstance(p, str):
+                                page_paths.append(p)
+                            elif hasattr(p, "source_path"):
+                                page_paths.append(str(p.source_path))
+
+                        # Update index with tag mapping if we have valid paths
+                        if page_paths:
+                            index.update_tag(tag_slug, tag_name, page_paths)
+
+                # Persist taxonomy index to disk
+                index.save_to_disk()
+
+                self.logger.info(
+                    "taxonomy_index_saved",
+                    tags=len(index.tags),
+                    path=str(index.cache_path),
+                )
+            except Exception as e:
+                self.logger.warning(
+                    "taxonomy_index_save_failed",
+                    error=str(e),
+                )
+
         # Phase 5: Menus (INCREMENTAL - skip if unchanged)
         with self.logger.phase("menus"):
             menu_start = time.time()
@@ -468,7 +608,12 @@ class BuildOrchestrator:
 
                 related_posts_start = time.time()
                 related_posts_orchestrator = RelatedPostsOrchestrator(self.site)
-                related_posts_orchestrator.build_index(limit=5, parallel=parallel)
+                # OPTIMIZATION: In incremental builds, only update related posts for changed pages
+                related_posts_orchestrator.build_index(
+                    limit=5,
+                    parallel=parallel,
+                    affected_pages=pages_to_build if incremental else None,
+                )
 
                 # Log statistics
                 pages_with_related = sum(
@@ -531,6 +676,22 @@ class BuildOrchestrator:
             if progress_manager:
                 progress_manager.add_phase("assets", "Assets", total=len(assets_to_process))
                 progress_manager.start_phase("assets")
+
+            # CRITICAL FIX: On incremental builds, if no assets changed, still need to ensure
+            # theme assets are in output. This handles the case where assets directory doesn't
+            # exist yet (e.g., first incremental build after initial setup)
+            if incremental and not assets_to_process and self.site.theme:
+                    # Check if theme has assets
+                    from bengal.orchestration.content import ContentOrchestrator
+
+                    co = ContentOrchestrator(self.site)
+                    theme_dir = co._get_theme_assets_dir()
+                    if theme_dir and theme_dir.exists():
+                        # Check if output/assets directory was populated
+                        output_assets = self.site.output_dir / "assets"
+                        if not output_assets.exists() or len(list(output_assets.rglob("*"))) < 5:
+                            # Theme assets not in output - re-process all assets
+                            assets_to_process = self.site.assets
 
             self.assets.process(
                 assets_to_process, parallel=parallel, progress_manager=progress_manager
@@ -631,6 +792,39 @@ class BuildOrchestrator:
         if quiet_mode:
             self._print_rendering_summary()
 
+        # Phase 8.5: Track Asset Dependencies (Phase 2b - Step 2)
+        # Extract and cache which assets each rendered page references
+        with self.logger.phase("track_assets", enabled=True):
+            try:
+                from bengal.cache.asset_dependency_map import AssetDependencyMap
+                from bengal.rendering.asset_extractor import extract_assets_from_html
+
+                asset_map = AssetDependencyMap(self.site.root_path / ".bengal" / "asset_deps.json")
+
+                # Extract assets from rendered pages
+                for page in pages_to_build:
+                    if page.rendered_html:
+                        # Extract asset references from the rendered HTML
+                        assets = extract_assets_from_html(page.rendered_html)
+
+                        if assets:
+                            # Track page-to-assets mapping
+                            asset_map.track_page_assets(page.source_path, assets)
+
+                # Persist asset dependencies to disk
+                asset_map.save_to_disk()
+
+                self.logger.info(
+                    "asset_dependencies_tracked",
+                    pages_with_assets=len(asset_map.pages),
+                    unique_assets=len(asset_map.get_all_assets()),
+                )
+            except Exception as e:
+                self.logger.warning(
+                    "asset_tracking_failed",
+                    error=str(e),
+                )
+
         # Phase 9: Post-processing
         with self.logger.phase("postprocessing", parallel=parallel):
             postprocess_start = time.time()
@@ -654,7 +848,10 @@ class BuildOrchestrator:
                 progress_manager.start_phase("postprocess")
 
             self.postprocess.run(
-                parallel=parallel, progress_manager=progress_manager, build_context=ctx
+                parallel=parallel,
+                progress_manager=progress_manager,
+                build_context=ctx,
+                incremental=incremental,
             )
 
             self.stats.postprocess_time_ms = (time.time() - postprocess_start) * 1000

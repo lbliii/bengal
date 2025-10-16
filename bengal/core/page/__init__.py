@@ -13,6 +13,7 @@ from .computed import PageComputedMixin
 from .metadata import PageMetadataMixin
 from .navigation import PageNavigationMixin
 from .operations import PageOperationsMixin
+from .proxy import PageProxy
 from .relationships import PageRelationshipsMixin
 
 
@@ -143,4 +144,4 @@ class Page(
         return f"Page(title='{self.title}', source='{self.source_path}')"
 
 
-__all__ = ["Page"]
+__all__ = ["Page", "PageProxy"]

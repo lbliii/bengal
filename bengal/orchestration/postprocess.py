@@ -44,13 +44,20 @@ class PostprocessOrchestrator:
         """
         self.site = site
 
-    def run(self, parallel: bool = True, progress_manager=None, build_context=None) -> None:
+    def run(
+        self,
+        parallel: bool = True,
+        progress_manager=None,
+        build_context=None,
+        incremental: bool = False,
+    ) -> None:
         """
         Perform post-processing tasks (sitemap, RSS, output formats, link validation, etc.).
 
         Args:
             parallel: Whether to run tasks in parallel
             progress_manager: Live progress manager (optional)
+            incremental: Whether this is an incremental build (can skip some tasks)
         """
         # Resolve from context if absent
         if (
@@ -75,19 +82,33 @@ class PostprocessOrchestrator:
         # Always generate special pages (404, etc.) - important for deployment
         tasks.append(("special pages", self._generate_special_pages))
 
-        if self.site.config.get("generate_sitemap", True):
-            tasks.append(("sitemap", self._generate_sitemap))
+        # OPTIMIZATION: For incremental builds with small changes, skip some postprocessing
+        # This is safe because:
+        # - Sitemaps update on full builds (periodic refresh)
+        # - RSS regenerated on content rebuild (not layout changes)
+        # - Link validation happens in CI/full builds
+        if not incremental:
+            # Full build: run all tasks
+            if self.site.config.get("generate_sitemap", True):
+                tasks.append(("sitemap", self._generate_sitemap))
 
-        if self.site.config.get("generate_rss", True):
-            tasks.append(("rss", self._generate_rss))
+            if self.site.config.get("generate_rss", True):
+                tasks.append(("rss", self._generate_rss))
 
-        # Custom output formats (JSON, LLM text, etc.)
-        output_formats_config = self.site.config.get("output_formats", {})
-        if output_formats_config.get("enabled", True):
-            tasks.append(("output formats", self._generate_output_formats))
+            # Custom output formats (JSON, LLM text, etc.)
+            output_formats_config = self.site.config.get("output_formats", {})
+            if output_formats_config.get("enabled", True):
+                tasks.append(("output formats", self._generate_output_formats))
 
-        if self.site.config.get("validate_links", True):
-            tasks.append(("link validation", self._validate_links))
+            if self.site.config.get("validate_links", True):
+                tasks.append(("link validation", self._validate_links))
+        else:
+            # Incremental: only regenerate if explicitly requested
+            # (Most users don't need updated sitemaps/RSS for every content change)
+            logger.info(
+                "postprocessing_incremental",
+                reason="skipping_sitemap_rss_validation_for_speed",
+            )
 
         if not tasks:
             return

@@ -31,7 +31,6 @@ class AssetDiscovery:
     def discover(self, base_path: Path | None = None) -> list:
         # Use provided assets dir or fall back to self.assets_dir
         assets_dir = self.assets_dir if base_path is None else base_path
-
         if not assets_dir.exists():
             assets_dir.mkdir(parents=True, exist_ok=True)  # Auto-create
             # Log: "Created missing assets dir"

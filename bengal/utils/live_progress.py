@@ -119,6 +119,15 @@ class LiveProgressManager:
         if not self.live_config.get("enabled", True):
             self.use_live = False
 
+        # Throttle rendering to reduce overhead during very frequent updates.
+        # Default to ~5 Hz if not configured via profile live_progress.min_interval_ms
+        min_interval_ms = self.live_config.get("min_interval_ms", 200)
+        try:
+            self._min_render_interval_sec = max(0.0, float(min_interval_ms) / 1000.0)
+        except Exception:
+            self._min_render_interval_sec = 0.2
+        self._last_render_ts: float = 0.0
+
         # Track last printed state for fallback
         self._last_fallback_phase: str | None = None
 
@@ -139,7 +148,7 @@ class LiveProgressManager:
         """Exit context manager."""
         if self.live:
             # Final update before closing
-            self._update_display()
+            self._update_display(force=True)
             try:
                 self.live.__exit__(*args)
             finally:
@@ -158,7 +167,7 @@ class LiveProgressManager:
         self.phases[phase_id] = PhaseProgress(name=name, total=total)
         if phase_id not in self.phase_order:
             self.phase_order.append(phase_id)
-        self._update_display()
+        self._update_display(force=True)
 
     def start_phase(self, phase_id: str):
         """
@@ -171,7 +180,7 @@ class LiveProgressManager:
             phase = self.phases[phase_id]
             phase.status = PhaseStatus.RUNNING
             phase.start_time = time.time()
-            self._update_display()
+            self._update_display(force=True)
 
     def update_phase(
         self, phase_id: str, current: int | None = None, current_item: str | None = None, **metadata
@@ -209,6 +218,7 @@ class LiveProgressManager:
         if phase.status == PhaseStatus.RUNNING and phase.start_time:
             phase.elapsed_ms = (time.time() - phase.start_time) * 1000
 
+        # Frequent updates are throttled; no force here
         self._update_display()
 
     def complete_phase(self, phase_id: str, elapsed_ms: float | None = None):
@@ -233,7 +243,7 @@ class LiveProgressManager:
             if phase.total:
                 phase.current = phase.total
 
-            self._update_display()
+            self._update_display(force=True)
 
     def fail_phase(self, phase_id: str, error: str):
         """
@@ -247,12 +257,16 @@ class LiveProgressManager:
             phase = self.phases[phase_id]
             phase.status = PhaseStatus.FAILED
             phase.metadata["error"] = error
-            self._update_display()
+            self._update_display(force=True)
 
-    def _update_display(self):
+    def _update_display(self, force: bool = False):
         """Update the live display or print fallback."""
         if self.live:
+            now = time.time()
+            if not force and (now - self._last_render_ts) < self._min_render_interval_sec:
+                return
             self.live.update(self._render())
+            self._last_render_ts = now
         else:
             # Fallback for CI/non-TTY: print incremental updates
             self._print_fallback()

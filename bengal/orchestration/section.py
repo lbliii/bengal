@@ -45,9 +45,9 @@ class SectionOrchestrator:
         self.url_strategy = URLStrategy()
         self.initializer = PageInitializer(site)
 
-    def finalize_sections(self) -> None:
+    def finalize_sections(self, affected_sections: set[str] | None = None) -> None:
         """
-        Finalize all sections by ensuring they have index pages.
+        Finalize sections by ensuring they have index pages.
 
         For each section:
         - If it has an explicit _index.md, leave it alone
@@ -55,12 +55,26 @@ class SectionOrchestrator:
         - Recursively process subsections
 
         This ensures all section URLs resolve to valid pages.
+
+        Args:
+            affected_sections: Set of section paths that were affected by changes.
+                             If None, finalize all sections (full build).
+                             If provided, only finalize affected sections (incremental).
         """
-        logger.info("section_finalization_start", section_count=len(self.site.sections))
+        logger.info(
+            "section_finalization_start",
+            section_count=len(self.site.sections),
+            incremental=affected_sections is not None,
+        )
 
         archive_count = 0
         for section in self.site.sections:
-            archives_created = self._finalize_recursive(section)
+            # In incremental mode, skip sections not affected by changes
+            if affected_sections is not None and str(section.path) not in affected_sections:
+                # Still need to recursively check subsections
+                archives_created = self._finalize_recursive_filtered(section, affected_sections)
+            else:
+                archives_created = self._finalize_recursive(section)
             archive_count += archives_created
 
         # Invalidate page caches once after all sections are finalized
@@ -69,6 +83,46 @@ class SectionOrchestrator:
             self.site.invalidate_page_caches()
 
         logger.info("section_finalization_complete", archives_created=archive_count)
+
+    def _finalize_recursive_filtered(self, section: "Section", affected_sections: set[str]) -> int:
+        """
+        Recursively finalize only affected sections (incremental optimization).
+
+        Args:
+            section: Section to finalize
+            affected_sections: Set of section paths that were affected
+
+        Returns:
+            Number of archive pages created
+        """
+        archive_count = 0
+
+        # Skip root section (no index needed)
+        if section.name == "root":
+            # Still process subsections (with filter)
+            for subsection in section.subsections:
+                if str(subsection.path) in affected_sections:
+                    archive_count += self._finalize_recursive(subsection)
+                else:
+                    archive_count += self._finalize_recursive_filtered(
+                        subsection, affected_sections
+                    )
+            return archive_count
+
+        # Only finalize if this section was affected
+        if str(section.path) in affected_sections:
+            archive_count += self._finalize_recursive(section)
+        else:
+            # Not affected - just recursively check subsections
+            for subsection in section.subsections:
+                if str(subsection.path) in affected_sections:
+                    archive_count += self._finalize_recursive(subsection)
+                else:
+                    archive_count += self._finalize_recursive_filtered(
+                        subsection, affected_sections
+                    )
+
+        return archive_count
 
     def _finalize_recursive(self, section: "Section") -> int:
         """
