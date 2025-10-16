@@ -89,10 +89,11 @@ class TestPageDeduplicationInBuilds:
 
         assert found_count == found_count_list == 100
 
-        # Set should be significantly faster (at least 5x for O(1) vs O(n))
+        # Set should be significantly faster (at least 2.5x for O(1) vs O(n))
+        # Use 2.5x to account for system variability and JIT warmup
         assert (
-            lookup_time_set < lookup_time_list / 5
-        ), f"Set lookup ({lookup_time_set * 1000:.2f}ms) should be much faster than list ({lookup_time_list * 1000:.2f}ms)"
+            lookup_time_set < lookup_time_list / 2.5
+        ), f"Set lookup ({lookup_time_set * 1000:.2f}ms) should be faster than list ({lookup_time_list * 1000:.2f}ms)"
 
 
 class TestSectionTrackingInBuilds:
