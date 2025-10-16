@@ -71,7 +71,7 @@ def test_cli_build_flag_overrides_pipeline(tmp_path: Path, monkeypatch):
     runner = CliRunner()
     result = runner.invoke(
         main,
-        ["build", str(tmp_path), "--assets-pipeline", "--quiet"],
+        ["site", "build", str(tmp_path), "--assets-pipeline", "--quiet"],
         catch_exceptions=False,
     )
 

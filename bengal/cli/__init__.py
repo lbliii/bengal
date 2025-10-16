@@ -5,18 +5,12 @@ Command-line interface for Bengal SSG.
 import click
 
 from bengal import __version__
-from bengal.cli.commands.assets import assets
-from bengal.cli.commands.autodoc import autodoc, autodoc_cli
-from bengal.cli.commands.build import build
-from bengal.cli.commands.clean import clean, cleanup
-from bengal.cli.commands.graph import bridges, communities, graph, pagerank, suggest
-from bengal.cli.commands.init import init
 from bengal.cli.commands.new import new
+from bengal.cli.commands.project import project_cli
+from bengal.cli.commands.site import site_cli
+from bengal.cli.commands.utils import utils_cli
 
 # Import commands from new modular structure
-from bengal.cli.commands.perf import perf
-from bengal.cli.commands.serve import serve
-from bengal.cli.commands.theme import theme
 
 
 class BengalGroup(click.Group):
@@ -69,6 +63,13 @@ def main() -> None:
     """
     ᓚᘏᗢ Bengal SSG - A high-performance static site generator.
 
+    Quick start:
+        bengal site build     Build your site
+        bengal site serve     Start dev server with live reload
+        bengal new site       Create a new site
+
+    For more commands:
+        bengal --help
     """
     # Install rich traceback handler for beautiful error messages (unless in CI)
     import os
@@ -92,22 +93,10 @@ def main() -> None:
 
 
 # Register commands from new modular structure
-main.add_command(build)
-main.add_command(perf)
-main.add_command(clean)
-main.add_command(cleanup)
-main.add_command(serve)
+main.add_command(site_cli)
+main.add_command(utils_cli)
 main.add_command(new)
-main.add_command(init)
-main.add_command(graph)
-main.add_command(pagerank)
-main.add_command(communities)
-main.add_command(bridges)
-main.add_command(suggest)
-main.add_command(autodoc)
-main.add_command(autodoc_cli)
-main.add_command(assets)
-main.add_command(theme)
+main.add_command(project_cli)
 
 
 if __name__ == "__main__":

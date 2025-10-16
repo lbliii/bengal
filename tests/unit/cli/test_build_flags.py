@@ -14,7 +14,7 @@ class TestFlagValidation:
         """Test that --quiet and --verbose cannot be used together."""
         runner = CliRunner()
         with runner.isolated_filesystem():
-            result = runner.invoke(main, ["build", "--quiet", "--verbose", "."])
+            result = runner.invoke(main, ["site", "build", "--quiet", "--verbose", "."])
 
             assert result.exit_code != 0
             assert "--quiet and --verbose cannot be used together" in result.output
@@ -23,7 +23,7 @@ class TestFlagValidation:
         """Test that --quiet and --dev cannot be used together."""
         runner = CliRunner()
         with runner.isolated_filesystem():
-            result = runner.invoke(main, ["build", "--quiet", "--dev", "."])
+            result = runner.invoke(main, ["site", "build", "--quiet", "--dev", "."])
 
             assert result.exit_code != 0
             assert "--quiet cannot be used with --dev" in result.output
@@ -32,7 +32,7 @@ class TestFlagValidation:
         """Test that --quiet and --theme-dev cannot be used together."""
         runner = CliRunner()
         with runner.isolated_filesystem():
-            result = runner.invoke(main, ["build", "--quiet", "--theme-dev", "."])
+            result = runner.invoke(main, ["site", "build", "--quiet", "--theme-dev", "."])
 
             assert result.exit_code != 0
             assert "--quiet cannot be used with --dev or --theme-dev" in result.output
@@ -42,7 +42,7 @@ class TestFlagValidation:
         runner = CliRunner()
         with runner.isolated_filesystem():
             result = runner.invoke(
-                main, ["build", "--memory-optimized", "--perf-profile", "test.stats", "."]
+                main, ["site", "build", "--memory-optimized", "--perf-profile", "test.stats", "."]
             )
 
             assert result.exit_code != 0
@@ -54,7 +54,9 @@ class TestFlagValidation:
         runner = CliRunner()
         with runner.isolated_filesystem():
             # This will fail at site creation but should show the warning first
-            result = runner.invoke(main, ["build", "--memory-optimized", "--incremental", "."])
+            result = runner.invoke(
+                main, ["site", "build", "--memory-optimized", "--incremental", "."]
+            )
 
             # Warning should appear in output
             assert (
@@ -176,7 +178,7 @@ class TestValidateFlag:
     def test_validate_flag_exists(self):
         """Test that --validate flag is recognized."""
         runner = CliRunner()
-        result = runner.invoke(main, ["build", "--help"])
+        result = runner.invoke(main, ["site", "build", "--help"])
 
         assert "--validate" in result.output
         assert "Validate templates" in result.output or "validate" in result.output.lower()
@@ -191,7 +193,7 @@ class TestStrictMode:
     def test_strict_flag_exists(self):
         """Test that --strict flag is recognized."""
         runner = CliRunner()
-        result = runner.invoke(main, ["build", "--help"])
+        result = runner.invoke(main, ["site", "build", "--help"])
 
         assert "--strict" in result.output
         assert "strict" in result.output.lower()
@@ -206,7 +208,7 @@ class TestFastMode:
     def test_fast_flag_exists(self):
         """Test that --fast flag is recognized in help."""
         runner = CliRunner()
-        result = runner.invoke(main, ["build", "--help"])
+        result = runner.invoke(main, ["site", "build", "--help"])
 
         assert result.exit_code == 0
         assert "--fast" in result.output
@@ -216,7 +218,7 @@ class TestFastMode:
         """Test that --fast and --dev cannot be used together."""
         runner = CliRunner()
         with runner.isolated_filesystem():
-            result = runner.invoke(main, ["build", "--fast", "--dev", "."])
+            result = runner.invoke(main, ["site", "build", "--fast", "--dev", "."])
 
             assert result.exit_code != 0
             assert "--fast cannot be used with --dev" in result.output
@@ -225,7 +227,7 @@ class TestFastMode:
         """Test that --fast and --theme-dev cannot be used together."""
         runner = CliRunner()
         with runner.isolated_filesystem():
-            result = runner.invoke(main, ["build", "--fast", "--theme-dev", "."])
+            result = runner.invoke(main, ["site", "build", "--fast", "--theme-dev", "."])
 
             assert result.exit_code != 0
             assert "--fast cannot be used with --dev or --theme-dev" in result.output
@@ -240,7 +242,7 @@ class TestFastMode:
                 f.write("[site]\ntitle = 'Test'\n")
 
             # The command will fail at Site.from_config but should parse --fast flag
-            result = runner.invoke(main, ["build", "--fast", "."])
+            result = runner.invoke(main, ["site", "build", "--fast", "."])
 
             # Flag should be accepted without validation error
             # (The actual behavior - quiet output and parallel - is tested in integration tests)
@@ -249,7 +251,7 @@ class TestFastMode:
     def test_no_fast_flag_disables_fast_mode(self):
         """Test that --no-fast explicitly disables fast mode."""
         runner = CliRunner()
-        result = runner.invoke(main, ["build", "--help"])
+        result = runner.invoke(main, ["site", "build", "--help"])
 
         # Should show both --fast and --no-fast options
         assert "--fast" in result.output

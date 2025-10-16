@@ -37,12 +37,12 @@ def test_theme_list_and_info(tmp_path, monkeypatch):
     monkeypatch.setattr(metadata, "entry_points", fake_entry_points)
     clear_theme_cache()
 
-    r = CliRunner().invoke(cli_main, ["theme", "list", str(site_root)])
+    r = CliRunner().invoke(cli_main, ["utils", "theme", "list", str(site_root)])
     assert r.exit_code == 0
     assert "Installed themes:" in r.stdout
     assert "acme" in r.stdout
 
-    r2 = CliRunner().invoke(cli_main, ["theme", "info", "acme", str(site_root)])
+    r2 = CliRunner().invoke(cli_main, ["utils", "theme", "info", "acme", str(site_root)])
     assert r2.exit_code == 0
     assert "Theme: acme" in r2.stdout
 
@@ -68,6 +68,6 @@ def test_theme_discover_lists_templates(tmp_path, monkeypatch):
     monkeypatch.setattr(metadata, "entry_points", fake_entry_points)
     clear_theme_cache()
 
-    r = CliRunner().invoke(cli_main, ["theme", "discover", str(site_root)])
+    r = CliRunner().invoke(cli_main, ["utils", "theme", "discover", str(site_root)])
     assert r.exit_code == 0
     assert "a.html" in r.stdout

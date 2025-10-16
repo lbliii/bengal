@@ -92,7 +92,9 @@ def test_swizzle_cli_invocation(tmp_path: Path):
 
     # Act
     result = runner.invoke(
-        main, ["theme", "swizzle", "partials/demo.html", str(tmp_path)], catch_exceptions=False
+        main,
+        ["utils", "theme", "swizzle", "partials/demo.html", str(tmp_path)],
+        catch_exceptions=False,
     )
 
     # Assert

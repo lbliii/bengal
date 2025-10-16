@@ -121,7 +121,7 @@ Meta descriptions:
 
         parser = ParserFactory.get_html_parser("native")
         soup = parser(output_content)
-        assert soup.find_all_tags() > 0  # Invariant
+        assert len(soup.get_text()) > 0  # Verify text was extracted
 
         soup = BeautifulSoup(output_content, "html.parser")
         body_content = soup.find("body")

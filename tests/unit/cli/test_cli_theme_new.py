@@ -8,7 +8,7 @@ def test_theme_new_site_scaffold(tmp_path):
     site_root.mkdir()
     r = CliRunner().invoke(
         cli_main,
-        ["theme", "new", "acme", "--mode", "site", "--output", str(site_root)],
+        ["utils", "theme", "new", "acme", "--mode", "site", "--output", str(site_root)],
     )
     assert r.exit_code == 0, r.output
     theme_dir = site_root / "themes" / "acme"
@@ -22,7 +22,7 @@ def test_theme_new_package_scaffold(tmp_path):
     out.mkdir()
     r = CliRunner().invoke(
         cli_main,
-        ["theme", "new", "acme", "--mode", "package", "--output", str(out)],
+        ["utils", "theme", "new", "acme", "--mode", "package", "--output", str(out)],
     )
     assert r.exit_code == 0, r.output
     pkg = out / "bengal-theme-acme"

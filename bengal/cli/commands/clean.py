@@ -12,24 +12,26 @@ from bengal.utils.build_stats import show_error
 @click.option("--force", "-f", is_flag=True, help="Skip confirmation prompt")
 @click.option("--cache", is_flag=True, help="Also remove build cache (.bengal/ directory)")
 @click.option("--all", "clean_all", is_flag=True, help="Remove everything (output + cache)")
+@click.option("--stale-server", is_flag=True, help="Clean up stale 'bengal serve' processes")
 @click.option(
     "--config", type=click.Path(exists=True), help="Path to config file (default: bengal.toml)"
 )
 @click.argument("source", type=click.Path(exists=True), default=".")
-def clean(force: bool, cache: bool, clean_all: bool, config: str, source: str) -> None:
+def clean(force: bool, cache: bool, clean_all: bool, stale_server: bool, config: str, source: str) -> None:
     """
-    🧹 Clean generated files.
+    🧹 Clean generated files and stale processes.
 
     By default, removes only the output directory (public/).
 
     Options:
-      --cache    Also remove build cache (for cold build testing)
-      --all      Remove both output and cache (complete reset)
+      --cache         Also remove build cache
+      --all           Remove both output and cache
+      --stale-server  Clean up stale 'bengal serve' processes
 
     Examples:
-      bengal clean              # Clean output only (preserves cache)
-      bengal clean --cache      # Clean output AND cache
-      bengal clean --all        # Same as --cache
+      bengal clean                  # Clean output only
+      bengal clean --cache          # Clean output and cache
+      bengal clean --stale-server   # Clean up stale server processes
     """
     try:
         root_path = Path(source).resolve()
@@ -56,6 +58,10 @@ def clean(force: bool, cache: bool, clean_all: bool, config: str, source: str) -
             cli.info(f"   ↪ {site.output_dir}")
             cli.info(f"   ℹ Cache preserved at {site.root_path / '.bengal'}")
         cli.blank()
+
+        if stale_server:
+            cleanup(force, None, source)
+            return
 
         # Confirm before cleaning unless --force
         if not force:
@@ -120,19 +126,8 @@ def clean(force: bool, cache: bool, clean_all: bool, config: str, source: str) -
         raise click.Abort() from e
 
 
-@click.command()
-@click.option("--force", "-f", is_flag=True, help="Kill process without confirmation")
-@click.option("--port", "-p", type=int, help="Also check if process is using this port")
-@click.argument("source", type=click.Path(exists=True), default=".")
 def cleanup(force: bool, port: int, source: str) -> None:
-    """
-    🔧 Clean up stale Bengal server processes.
-
-    Finds and terminates any stale 'bengal serve' processes that may be
-    holding ports or preventing new servers from starting.
-
-    This is useful if a previous server didn't shut down cleanly.
-    """
+    """Clean up stale Bengal server processes."""
     try:
         from bengal.server.pid_manager import PIDManager
 
