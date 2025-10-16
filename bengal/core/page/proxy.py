@@ -100,6 +100,11 @@ class PageProxy:
         try:
             self._full_page = self._loader(self.source_path)
             self._lazy_loaded = True
+
+            # Apply any pending attributes that were set before loading
+            if hasattr(self, "_pending_output_path") and self._full_page:
+                self._full_page.output_path = self._pending_output_path
+
             logger.debug("page_proxy_loaded", source_path=str(self.source_path))
         except Exception as e:
             logger.error(
@@ -161,11 +166,36 @@ class PageProxy:
         self._ensure_loaded()
         return self._full_page.output_path if self._full_page else None
 
+    @output_path.setter
+    def output_path(self, value: Path | None) -> None:
+        """Set output path."""
+        # For proxies that haven't been loaded yet, we can set output_path
+        # directly without loading the full page
+        if not self._lazy_loaded and self._full_page is None:
+            # Create a minimal full page if needed just to set output_path
+            # Or store it temporarily
+            if not hasattr(self, "_pending_output_path"):
+                self._pending_output_path = value
+            else:
+                self._pending_output_path = value
+        else:
+            # If loaded, set on full page
+            self._ensure_loaded()
+            if self._full_page:
+                self._full_page.output_path = value
+
     @property
     def parsed_ast(self) -> Any:
         """Get parsed AST (lazy-loaded)."""
         self._ensure_loaded()
         return self._full_page.parsed_ast if self._full_page else None
+
+    @parsed_ast.setter
+    def parsed_ast(self, value: Any) -> None:
+        """Set parsed AST."""
+        self._ensure_loaded()
+        if self._full_page:
+            self._full_page.parsed_ast = value
 
     @property
     def related_posts(self) -> list:

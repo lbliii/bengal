@@ -243,7 +243,7 @@ class BuildOrchestrator:
             try:
                 from bengal.cache.page_discovery_cache import PageDiscoveryCache, PageMetadata
 
-                cache = PageDiscoveryCache(self.site.root_path / ".bengal" / "page_metadata.json")
+                page_cache = PageDiscoveryCache(self.site.root_path / ".bengal" / "page_metadata.json")
 
                 # Extract metadata from discovered pages
                 for page in self.site.pages:
@@ -257,15 +257,15 @@ class BuildOrchestrator:
                         weight=page.metadata.get("weight"),
                         lang=page.lang,
                     )
-                    cache.add_metadata(metadata)
+                    page_cache.add_metadata(metadata)
 
                 # Persist cache to disk
-                cache.save_to_disk()
+                page_cache.save_to_disk()
 
                 self.logger.info(
                     "page_discovery_cache_saved",
-                    entries=len(cache.pages),
-                    path=str(cache.cache_path),
+                    entries=len(page_cache.pages),
+                    path=str(page_cache.cache_path),
                 )
             except Exception as e:
                 self.logger.warning(
@@ -513,11 +513,17 @@ class BuildOrchestrator:
                         # Normalize tag slug from tag name
                         tag_slug = tag_name.lower().replace(" ", "-")
 
-                        # Extract source paths from page objects
-                        page_paths = [str(p.source_path) for p in pages]
+                        # Extract source paths from page objects, handling various types
+                        page_paths = []
+                        for p in pages:
+                            if isinstance(p, str):
+                                page_paths.append(p)
+                            elif hasattr(p, 'source_path'):
+                                page_paths.append(str(p.source_path))
 
-                        # Update index with tag mapping
-                        index.update_tag(tag_slug, tag_name, page_paths)
+                        # Update index with tag mapping if we have valid paths
+                        if page_paths:
+                            index.update_tag(tag_slug, tag_name, page_paths)
 
                 # Persist taxonomy index to disk
                 index.save_to_disk()
