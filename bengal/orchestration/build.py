@@ -473,7 +473,12 @@ class BuildOrchestrator:
 
                 related_posts_start = time.time()
                 related_posts_orchestrator = RelatedPostsOrchestrator(self.site)
-                related_posts_orchestrator.build_index(limit=5, parallel=parallel)
+                # OPTIMIZATION: In incremental builds, only update related posts for changed pages
+                related_posts_orchestrator.build_index(
+                    limit=5,
+                    parallel=parallel,
+                    affected_pages=pages_to_build if incremental else None,
+                )
 
                 # Log statistics
                 pages_with_related = sum(
