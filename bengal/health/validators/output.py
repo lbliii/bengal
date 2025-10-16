@@ -6,14 +6,10 @@ Migrated from Site._validate_build_health() with improvements.
 
 from typing import TYPE_CHECKING, override
 
-import hypothesis.strategies as st
-from hypothesis import given
-
 from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult
 
 if TYPE_CHECKING:
-    from bengal.core.page import Page
     from bengal.core.site import Site
 
 
@@ -32,22 +28,6 @@ class OutputValidator(BaseValidator):
     enabled_by_default = True
 
     MIN_SIZE = 1000  # Configurable via site.config
-
-    def validate_pages(self, pages: list):
-        for page in pages:
-            if page.size < self.MIN_SIZE and not self.is_stub(page):
-                self.warnings.append(f"Small page: {page.url} ({page.size} bytes)")
-
-    def is_stub(self, page) -> bool:
-        """Skip known fallback stubs."""
-        return "fallback" in page.metadata.get("template", "") or page.url.endswith("/index.html")
-
-    @given(st.lists(st.integers(min_value=0)))
-    def test_size_invariant(self, sizes: list):
-        """Hypothesis: No small non-stubs."""
-        for size in sizes:
-            if size < self.MIN_SIZE:
-                assert self.is_stub(Page(size=size))  # Simplified
 
     @override
     def validate(self, site: "Site") -> list[CheckResult]:
