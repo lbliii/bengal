@@ -63,6 +63,13 @@ def main() -> None:
     """
     ᓚᘏᗢ Bengal SSG - A high-performance static site generator.
 
+    Quick start:
+        bengal site build     Build your site
+        bengal site serve     Start dev server with live reload
+        bengal new site       Create a new site
+
+    For more commands:
+        bengal --help
     """
     # Install rich traceback handler for beautiful error messages (unless in CI)
     import os
@@ -85,14 +92,11 @@ def main() -> None:
             pass
 
 
-from bengal.cli.commands.build import build as build_command
-
 # Register commands from new modular structure
 main.add_command(site_cli)
 main.add_command(utils_cli)
 main.add_command(new)
 main.add_command(project_cli)
-main.add_command(build_command)
 
 
 if __name__ == "__main__":

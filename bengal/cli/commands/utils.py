@@ -2,6 +2,7 @@ import click
 
 from bengal.cli.commands.assets import assets
 from bengal.cli.commands.autodoc import autodoc, autodoc_cli
+from bengal.cli.commands.graph import graph_cli
 from bengal.cli.commands.perf import perf
 from bengal.cli.commands.theme import theme
 
@@ -9,11 +10,16 @@ from bengal.cli.commands.theme import theme
 @click.group("utils")
 def utils_cli():
     """
-    Utility and analysis commands.
+    🛠️  Developer utilities and analysis tools.
+
+    Commands:
+        autodoc    Generate API documentation from Python source code
+        theme      Manage themes (list, install, create)
+        assets     Manage site assets (minify, optimize)
+        perf       Analyze build performance
+        graph      Analyze site structure and connectivity
     """
     pass
-
-from bengal.cli.commands.graph import graph_cli
 
 
 utils_cli.add_command(perf)
