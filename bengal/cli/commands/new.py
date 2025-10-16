@@ -191,7 +191,14 @@ def _run_init_wizard(preset: str = None) -> str | None:
 @click.group()
 def new() -> None:
     """
-    ✨ Create new site, page, or section.
+    ✨ Create new site, page, layout, partial, or theme.
+
+    Subcommands:
+        site      Create a new Bengal site with optional presets
+        page      Create a new page in content directory
+        layout    Create a new layout template in templates/layouts/
+        partial   Create a new partial template in templates/partials/
+        theme     Create a new theme scaffold with templates and assets
     """
     pass
 
@@ -500,4 +507,366 @@ Your content goes here.
 
     except Exception as e:
         show_error(f"Failed to create page: {e}", show_art=False)
+        raise click.Abort() from e
+
+
+@new.command()
+@click.argument("name", required=False)
+def layout(name: str) -> None:
+    """
+    📋 Create a new layout template.
+
+    Layouts are reusable HTML templates used by pages.
+    Example: "article" → templates/layouts/article.html
+    """
+    try:
+        # Ensure we're in a Bengal site
+        templates_dir = Path("templates")
+        if not templates_dir.exists():
+            show_error("Not in a Bengal site directory!", show_art=False)
+            raise click.Abort()
+
+        if not name:
+            name = click.prompt(
+                click.style("Enter layout name", fg="cyan"),
+                type=str,
+            )
+            if not name:
+                click.echo(click.style("✨ Cancelled.", fg="yellow"))
+                raise click.Abort()
+
+        # Slugify the name for filename
+        slug = _slugify(name)
+        layout_dir = templates_dir / "layouts"
+        layout_dir.mkdir(parents=True, exist_ok=True)
+        layout_path = layout_dir / f"{slug}.html"
+
+        if layout_path.exists():
+            show_error(f"Layout {layout_path} already exists!", show_art=False)
+            raise click.Abort()
+
+        # Create layout template
+        layout_content = """{% extends "base.html" %}
+
+{% block content %}
+{# Your layout content here #}
+{{ page.content | safe }}
+{% endblock %}
+"""
+        from bengal.utils.atomic_write import atomic_write_text
+
+        atomic_write_text(layout_path, layout_content)
+
+        click.echo(
+            click.style("\n✨ Created new layout: ", fg="cyan")
+            + click.style(str(layout_path), fg="green", bold=True)
+        )
+        click.echo(click.style("   └─ ", fg="cyan") + "Extend this in pages with: layout: " + slug)
+        click.echo()
+
+    except Exception as e:
+        show_error(f"Failed to create layout: {e}", show_art=False)
+        raise click.Abort() from e
+
+
+@new.command()
+@click.argument("name", required=False)
+def partial(name: str) -> None:
+    """
+    🧩 Create a new partial template.
+
+    Partials are reusable template fragments included in other templates.
+    Example: "sidebar" → templates/partials/sidebar.html
+    """
+    try:
+        # Ensure we're in a Bengal site
+        templates_dir = Path("templates")
+        if not templates_dir.exists():
+            show_error("Not in a Bengal site directory!", show_art=False)
+            raise click.Abort()
+
+        if not name:
+            name = click.prompt(
+                click.style("Enter partial name", fg="cyan"),
+                type=str,
+            )
+            if not name:
+                click.echo(click.style("✨ Cancelled.", fg="yellow"))
+                raise click.Abort()
+
+        # Slugify the name for filename
+        slug = _slugify(name)
+        partial_dir = templates_dir / "partials"
+        partial_dir.mkdir(parents=True, exist_ok=True)
+        partial_path = partial_dir / f"{slug}.html"
+
+        if partial_path.exists():
+            show_error(f"Partial {partial_path} already exists!", show_art=False)
+            raise click.Abort()
+
+        # Create partial template
+        partial_content = (
+            """{# Partial: """
+            + slug
+            + """ #}
+{# Include in templates with: {% include "partials/"""
+            + slug
+            + """.html" %} #}
+
+<div class=\"partial partial-"""
+            + slug
+            + """\">
+  {# Your partial content here #}
+</div>
+"""
+        )
+        from bengal.utils.atomic_write import atomic_write_text
+
+        atomic_write_text(partial_path, partial_content)
+
+        click.echo(
+            click.style("\n✨ Created new partial: ", fg="cyan")
+            + click.style(str(partial_path), fg="green", bold=True)
+        )
+        click.echo(
+            click.style("   └─ ", fg="cyan")
+            + 'Include in templates with: {% include "partials/'
+            + slug
+            + '.html" %}'
+        )
+        click.echo()
+
+    except Exception as e:
+        show_error(f"Failed to create partial: {e}", show_art=False)
+        raise click.Abort() from e
+
+
+@new.command()
+@click.argument("name", required=False)
+def theme(name: str) -> None:
+    """
+    🎨 Create a new theme scaffold.
+
+    Themes are self-contained template and asset packages.
+    Example: "my-theme" → themes/my-theme/ with templates, partials, and assets
+    """
+    try:
+        if not name:
+            name = click.prompt(
+                click.style("Enter theme name", fg="cyan"),
+                type=str,
+            )
+            if not name:
+                click.echo(click.style("✨ Cancelled.", fg="yellow"))
+                raise click.Abort()
+
+        # Slugify the name for directory
+        slug = _slugify(name)
+
+        # Determine if we're in a site or creating standalone
+        in_site = Path("content").exists() and Path("bengal.toml").exists()
+
+        theme_path = (Path("themes") / slug) if in_site else Path(slug)
+
+        if theme_path.exists():
+            show_error(f"Theme directory {theme_path} already exists!", show_art=False)
+            raise click.Abort()
+
+        # Create theme directory structure
+        theme_path.mkdir(parents=True)
+        (theme_path / "templates").mkdir()
+        (theme_path / "templates" / "partials").mkdir()
+        (theme_path / "assets" / "css").mkdir(parents=True)
+        (theme_path / "assets" / "js").mkdir(parents=True)
+        (theme_path / "assets" / "images").mkdir(parents=True)
+
+        click.echo(
+            click.style(f"\n🎨 Creating new theme: {name}", fg="cyan", bold=True)
+            + click.style(f" → {theme_path}", fg="bright_black")
+        )
+        click.echo(click.style("   ├─ ", fg="cyan") + "Created directory structure")
+
+        from bengal.utils.atomic_write import atomic_write_text
+
+        # Create base.html template
+        base_template = """<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{{ site.config.title }}{% endblock %}</title>
+    <meta name="description" content="{% block description %}{{ site.config.description | default('', true) }}{% endblock %}">
+    <link rel="stylesheet" href="{{ url_for('assets/css/style.css') }}">
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    {% include "partials/header.html" %}
+
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    {% include "partials/footer.html" %}
+
+    <script src="{{ url_for('assets/js/main.js') }}"></script>
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>
+"""
+        atomic_write_text(theme_path / "templates" / "base.html", base_template)
+
+        # Create header partial
+        header_partial = """<header class="site-header">
+    <div class="container">
+        <div class="site-title">
+            <h1><a href="{{ site.config.baseurl }}">{{ site.config.title }}</a></h1>
+        </div>
+        <nav class="site-nav">
+            {% for menu_item in site.menu.get('main', []) %}
+                <a href="{{ menu_item.url }}">{{ menu_item.name }}</a>
+            {% endfor %}
+        </nav>
+    </div>
+</header>
+"""
+        atomic_write_text(theme_path / "templates" / "partials" / "header.html", header_partial)
+
+        # Create footer partial
+        footer_partial = """<footer class="site-footer">
+    <div class="container">
+        <p>&copy; {{ get_current_year() }} {{ site.config.title }}</p>
+    </div>
+</footer>
+"""
+        atomic_write_text(theme_path / "templates" / "partials" / "footer.html", footer_partial)
+
+        # Create home page template
+        home_template = """{% extends "base.html" %}
+
+{% block content %}
+<div class="home">
+    <h1>Welcome to {{ site.config.title }}</h1>
+    <p>{{ site.config.description | default('', true) }}</p>
+</div>
+{% endblock %}
+"""
+        atomic_write_text(theme_path / "templates" / "home.html", home_template)
+
+        # Create page template
+        page_template = """{% extends "base.html" %}
+
+{% block title %}{{ page.title }} - {{ site.config.title }}{% endblock %}
+
+{% block content %}
+<article class="page">
+    <header class="page-header">
+        <h1>{{ page.title }}</h1>
+        {% if page.date %}
+        <time datetime="{{ page.date | date_iso }}">{{ page.date | strftime('%B %d, %Y') }}</time>
+        {% endif %}
+    </header>
+    <div class="page-content">
+        {{ page.content | safe }}
+    </div>
+</article>
+{% endblock %}
+"""
+        atomic_write_text(theme_path / "templates" / "page.html", page_template)
+
+        click.echo(click.style("   ├─ ", fg="cyan") + "Created 4 templates")
+        click.echo(click.style("   ├─ ", fg="cyan") + "Created 2 partials")
+
+        # Create CSS
+        css_content = (
+            """/* Theme: """
+            + name
+            + """ */
+
+:root {
+    --primary-color: #007bff;
+    --secondary-color: #6c757d;
+    --text-color: #333;
+    --bg-color: #fff;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    color: var(--text-color);
+    background-color: var(--bg-color);
+    line-height: 1.6;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1rem;
+}
+
+.site-header {
+    background: var(--primary-color);
+    color: white;
+    padding: 2rem 0;
+    margin-bottom: 2rem;
+}
+
+.site-footer {
+    background: var(--secondary-color);
+    color: white;
+    padding: 2rem 0;
+    margin-top: 4rem;
+    text-align: center;
+}
+
+article {
+    margin: 2rem 0;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    margin: 1.5rem 0 0.5rem;
+    line-height: 1.3;
+}
+"""
+        )
+        atomic_write_text(theme_path / "assets" / "css" / "style.css", css_content)
+        click.echo(click.style("   ├─ ", fg="cyan") + "Created CSS stylesheet")
+
+        # Create JS
+        js_content = (
+            """// Theme: """
+            + name
+            + """
+
+console.log('Theme loaded: """
+            + name
+            + """');
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Your theme scripts here
+});
+"""
+        )
+        atomic_write_text(theme_path / "assets" / "js" / "main.js", js_content)
+        click.echo(click.style("   └─ ", fg="cyan") + "Created JavaScript")
+
+        click.echo(click.style("\n✅ Theme created successfully!", fg="green", bold=True))
+
+        # Show next steps
+        click.echo(click.style("\n📚 Next steps:", fg="cyan", bold=True))
+        if in_site:
+            click.echo(click.style("   ├─ ", fg="cyan") + f'Update bengal.toml: theme = "{slug}"')
+            click.echo(click.style("   └─ ", fg="cyan") + "bengal serve")
+        else:
+            click.echo(click.style("   ├─ ", fg="cyan") + f"Package as: bengal-theme-{slug}")
+            click.echo(click.style("   ├─ ", fg="cyan") + "Add to pyproject.toml for distribution")
+            click.echo(click.style("   └─ ", fg="cyan") + "pip install -e .")
+        click.echo()
+
+    except Exception as e:
+        show_error(f"Failed to create theme: {e}", show_art=False)
         raise click.Abort() from e
