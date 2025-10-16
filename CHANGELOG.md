@@ -42,6 +42,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Ensures individual CLI command pages use the `cli-reference/single.html` template with proper sidebar navigation
   - Pages now correctly render with the full documentation layout including command navigation
 
+- **Incremental build regression**: Fixed critical `'str' object has no attribute 'path'` error blocking rebuild scenarios
+  - PageProxy stores section metadata as string path, not Section object
+  - Added safe attribute checking before accessing `.path` on page.section
+  - Resolves complete failure of incremental builds on second and subsequent runs
+  - Incremental caching now works correctly after initial full build
+
 ### Changed
 
 - **Code quality**: Removed dead code - unused exception variables, deprecated classes (ResponseBuffer), unused WIP stubs (TablePlugin), and verified false positives from static analysis
