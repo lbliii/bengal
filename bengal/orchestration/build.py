@@ -368,8 +368,10 @@ class BuildOrchestrator:
                 for page in pages_to_build:
                     if not page.metadata.get("_generated"):
                         # Safely check if page has a section (may be None for root-level pages)
+                        # page.section might be a Section object or already a string path
                         if hasattr(page, "section") and page.section:
-                            affected_sections.add(str(page.section.path))
+                            section_path = str(page.section.path) if hasattr(page.section, "path") else str(page.section)
+                            affected_sections.add(section_path)
                         if page.tags:
                             for tag in page.tags:
                                 affected_tags.add(tag.lower().replace(" ", "-"))
