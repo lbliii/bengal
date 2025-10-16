@@ -177,6 +177,154 @@ Enable automatic regression detection:
 
 ---
 
+## Automatic Benchmark History Logging
+
+### What It Does
+
+Every time you run benchmarks, results are **automatically captured** with:
+- ✅ Timestamp (when the benchmark ran)
+- ✅ Git commit hash (which code version)
+- ✅ Git branch (which branch)
+- ✅ All metrics (mean, min, max, stddev, etc)
+
+All data is appended to `.benchmarks/history.jsonl` (append-only log).
+
+### Default Behavior
+
+After running benchmarks, you'll see a summary:
+
+```bash
+$ pytest benchmarks/ -v
+
+# ... test output ...
+
+Benchmark History (last 3 runs):
+================================================================================
+
+1. 2025-10-16T15:23:45.123456
+   Branch: feature/benchmark-suite-enhancements | Commit: 1956d96 | Version:
+
+   test_build_performance[small_site]: 0.85
+   test_build_performance[large_site]: 2.45
+   test_incremental_single_page_change: 0.12
+
+2. 2025-10-16T14:55:22.987654
+   Branch: main | Commit: 6fc4866 | Version:
+
+   test_build_performance[small_site]: 0.87
+   test_build_performance[large_site]: 2.50
+   test_incremental_single_page_change: 0.14
+
+================================================================================
+```
+
+### Viewing History
+
+```python
+from pathlib import Path
+from benchmarks.benchmark_history import BenchmarkHistoryLogger
+
+logger = BenchmarkHistoryLogger()
+
+# Print last 10 runs
+logger.print_summary(last_n=10)
+
+# Get all history as list
+history = logger.get_history()
+
+# Get most recent run
+latest = logger.get_latest_results()
+print(latest['timestamp'])
+print(latest['git_commit'])
+print(latest['results'])
+```
+
+### Export for Analysis
+
+Export to CSV for graphing:
+
+```python
+from pathlib import Path
+from benchmarks.benchmark_history import BenchmarkHistoryLogger
+
+logger = BenchmarkHistoryLogger()
+
+# Export mean times to CSV
+logger.export_csv(Path('benchmark_trends.csv'), metric='mean')
+
+# Output: CSV with columns: timestamp, test, metric, git_commit, git_branch
+# Can be graphed in Excel, Sheets, matplotlib, etc
+```
+
+CSV format:
+```
+timestamp,test,metric,git_commit,git_branch
+2025-10-16T15:23:45.123456,test_build_performance[small_site],0.85,1956d96,feature/benchmark-suite-enhancements
+2025-10-16T15:23:45.123456,test_build_performance[large_site],2.45,1956d96,feature/benchmark-suite-enhancements
+2025-10-16T14:55:22.987654,test_build_performance[small_site],0.87,6fc4866,main
+```
+
+### Measuring Across Patches
+
+The append-only log enables trending:
+
+```
+Patch 1 (Oct 16, 10:00): Single-page incremental = 0.12s
+Patch 2 (Oct 16, 11:00): Single-page incremental = 0.11s ✅ 8% faster!
+Patch 3 (Oct 16, 12:00): Single-page incremental = 0.15s ❌ 36% slower (regression!)
+```
+
+### History File Location
+
+```
+bengal/
+├── benchmarks/
+│   ├── .benchmarks/
+│   │   ├── history.jsonl              ← Append-only log (auto-updated)
+│   │   ├── Linux-...-0001.json        ← Individual run data
+│   │   ├── Linux-...-baseline.json
+│   │   └── ...
+```
+
+### Format of history.jsonl
+
+Each line is a JSON object:
+
+```json
+{
+  "timestamp": "2025-10-16T15:23:45.123456",
+  "git_commit": "1956d96f4b...",
+  "git_branch": "feature/benchmark-suite-enhancements",
+  "version": null,
+  "metadata": {
+    "benchmark_file": "Linux-3.12.0-qemu-0001.json",
+    "exit_status": 0
+  },
+  "results": {
+    "test_build_performance[small_site]": {
+      "stats": {
+        "mean": 0.85,
+        "median": 0.83,
+        "min": 0.79,
+        "max": 0.92,
+        "stddev": 0.04
+      }
+    },
+    ...
+  }
+}
+```
+
+### Key Advantages
+
+1. **Automatic** - No manual logging required
+2. **Dated** - Every run is timestamped
+3. **Immutable** - Append-only log can't lose data
+4. **Traceable** - Git commit/branch stored with results
+5. **Analyzable** - Export to CSV for graphing
+
+---
+
 ## Full Benchmark Run
 
 ### Complete Phase 1 Validation
