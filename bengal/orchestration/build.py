@@ -65,7 +65,7 @@ class BuildOrchestrator:
     def build(
         self,
         parallel: bool = True,
-        incremental: bool = False,
+        incremental: bool | None = None,
         verbose: bool = False,
         quiet: bool = False,
         profile: BuildProfile = None,
@@ -148,8 +148,8 @@ class BuildOrchestrator:
             collector = PerformanceCollector()
             collector.start_build()
 
-        # Initialize stats
-        self.stats = BuildStats(parallel=parallel, incremental=incremental)
+        # Initialize stats (incremental may be None, resolve later)
+        self.stats = BuildStats(parallel=parallel, incremental=bool(incremental))
         self.stats.strict_mode = strict
 
         self.logger.info(
@@ -163,14 +163,41 @@ class BuildOrchestrator:
         if not progress_manager:
             cli.header("Building your site...")
             cli.info(f"   ↪ {self.site.root_path}")
+            mode_label = "incremental" if incremental else "full"
+            _auto_reason = locals().get("auto_reason")
+            if _auto_reason:
+                cli.detail(f"Mode: {mode_label} ({_auto_reason})", indent=1)
+            else:
+                cli.detail(f"Mode: {mode_label} (flag)", indent=1)
             cli.blank()
 
         self.site.build_time = datetime.now()
 
         # Initialize cache and tracker (ALWAYS, even for full builds)
-        # We need cache for cleanup of deleted files
+        # We need cache for cleanup of deleted files and auto-mode decision
         with self.logger.phase("initialization"):
             cache, tracker = self.incremental.initialize(enabled=True)  # Always load cache
+
+        # Resolve incremental mode (auto when None)
+        auto_reason = None
+        if incremental is None:
+            try:
+                cache_dir = self.site.root_path / ".bengal"
+                cache_path = cache_dir / "cache.json"
+                cache_exists = cache_path.exists()
+                cached_files = len(getattr(cache, "file_hashes", {}) or {})
+                if cache_exists and cached_files > 0:
+                    incremental = True
+                    auto_reason = "auto: cache present"
+                else:
+                    incremental = False
+                    auto_reason = "auto: no cache yet"
+            except Exception:
+                incremental = False
+                auto_reason = "auto: cache check failed"
+
+        # Record resolved mode in stats
+        self.stats.incremental = bool(incremental)
 
         # Phase 0.5: Font Processing (before asset discovery)
         # Download Google Fonts and generate CSS if configured
@@ -243,7 +270,9 @@ class BuildOrchestrator:
             try:
                 from bengal.cache.page_discovery_cache import PageDiscoveryCache, PageMetadata
 
-                page_cache = PageDiscoveryCache(self.site.root_path / ".bengal" / "page_metadata.json")
+                page_cache = PageDiscoveryCache(
+                    self.site.root_path / ".bengal" / "page_metadata.json"
+                )
 
                 # Extract metadata from discovered pages
                 for page in self.site.pages:
@@ -423,34 +452,40 @@ class BuildOrchestrator:
         # Phase 3: Section Finalization (ensure all sections have index pages)
         # Note: "Generated pages" message removed - cluttered output
         with self.logger.phase("section_finalization"):
-            self.sections.finalize_sections(affected_sections=affected_sections)
+            # If incremental and there are no affected sections, skip noisy finalization/validation
+            if not (
+                incremental and isinstance(affected_sections, set) and len(affected_sections) == 0
+            ):
+                self.sections.finalize_sections(affected_sections=affected_sections)
 
-            # Invalidate regular_pages cache (section finalization may add generated index pages)
-            self.site.invalidate_regular_pages_cache()
+                # Invalidate regular_pages cache (section finalization may add generated index pages)
+                self.site.invalidate_regular_pages_cache()
 
-            # Validate section structure
-            section_errors = self.sections.validate_sections()
-            if section_errors:
-                self.logger.warning(
-                    "section_validation_errors",
-                    error_count=len(section_errors),
-                    errors=section_errors[:3],
-                )
-                strict_mode = self.site.config.get("strict_mode", False)
-                if strict_mode:
-                    cli.blank()
-                    cli.error("Section validation errors:")
-                    for error in section_errors:
-                        cli.detail(str(error), indent=1, icon="•")
-                    raise Exception(
-                        f"Build failed: {len(section_errors)} section validation error(s)"
+                # Validate section structure
+                section_errors = self.sections.validate_sections()
+                if section_errors:
+                    self.logger.warning(
+                        "section_validation_errors",
+                        error_count=len(section_errors),
+                        errors=section_errors[:3],
                     )
-                else:
-                    # Warn but continue in non-strict mode
-                    for error in section_errors[:3]:  # Show first 3
-                        cli.warning(str(error))
-                    if len(section_errors) > 3:
-                        cli.warning(f"... and {len(section_errors) - 3} more errors")
+                    strict_mode = self.site.config.get("strict_mode", False)
+                    if strict_mode:
+                        cli.blank()
+                        cli.error("Section validation errors:")
+                        for error in section_errors:
+                            cli.detail(str(error), indent=1, icon="•")
+                        raise Exception(
+                            f"Build failed: {len(section_errors)} section validation error(s)"
+                        )
+                    else:
+                        # Warn but continue in non-strict mode
+                        for error in section_errors[:3]:  # Show first 3
+                            cli.warning(str(error))
+                        if len(section_errors) > 3:
+                            cli.warning(f"... and {len(section_errors) - 3} more errors")
+            else:
+                self.logger.info("section_finalization_skipped", reason="no_affected_sections")
 
         # Phase 4: Taxonomies & Dynamic Pages (INCREMENTAL OPTIMIZATION)
         with self.logger.phase("taxonomies"):
@@ -513,7 +548,7 @@ class BuildOrchestrator:
                         # tag_data is a dict like {"name": "Programming", "slug": "programming", "pages": [...]}
                         if not isinstance(tag_data, dict):
                             continue
-                        
+
                         tag_name = tag_data.get("name", tag_slug)
                         pages = tag_data.get("pages", [])
 
@@ -522,7 +557,7 @@ class BuildOrchestrator:
                         for p in pages:
                             if isinstance(p, str):
                                 page_paths.append(p)
-                            elif hasattr(p, 'source_path'):
+                            elif hasattr(p, "source_path"):
                                 page_paths.append(str(p.source_path))
 
                         # Update index with tag mapping if we have valid paths
@@ -641,6 +676,22 @@ class BuildOrchestrator:
             if progress_manager:
                 progress_manager.add_phase("assets", "Assets", total=len(assets_to_process))
                 progress_manager.start_phase("assets")
+
+            # CRITICAL FIX: On incremental builds, if no assets changed, still need to ensure
+            # theme assets are in output. This handles the case where assets directory doesn't
+            # exist yet (e.g., first incremental build after initial setup)
+            if incremental and not assets_to_process and self.site.theme:
+                    # Check if theme has assets
+                    from bengal.orchestration.content import ContentOrchestrator
+
+                    co = ContentOrchestrator(self.site)
+                    theme_dir = co._get_theme_assets_dir()
+                    if theme_dir and theme_dir.exists():
+                        # Check if output/assets directory was populated
+                        output_assets = self.site.output_dir / "assets"
+                        if not output_assets.exists() or len(list(output_assets.rglob("*"))) < 5:
+                            # Theme assets not in output - re-process all assets
+                            assets_to_process = self.site.assets
 
             self.assets.process(
                 assets_to_process, parallel=parallel, progress_manager=progress_manager

@@ -30,8 +30,10 @@ class AssetDiscovery:
 
     def discover(self, base_path: Path | None = None) -> list:
         if base_path is None:
-            base_path = self.assets_dir  # Backward compat
-        assets_dir = base_path / "assets"
+            base_path = self.assets_dir
+        # If the base_path ends with 'assets', use it directly (theme case)
+        # Otherwise, append 'assets' subdirectory (site root case)
+        assets_dir = base_path if base_path.name == "assets" else base_path / "assets"
         if not assets_dir.exists():
             assets_dir.mkdir(parents=True, exist_ok=True)  # Auto-create
             # Log: "Created missing assets dir"

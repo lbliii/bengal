@@ -497,7 +497,7 @@ class Site:
     def build(
         self,
         parallel: bool = True,
-        incremental: bool = False,
+        incremental: bool | None = None,
         verbose: bool = False,
         quiet: bool = False,
         profile: BuildProfile = None,
