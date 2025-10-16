@@ -13,8 +13,6 @@ from typing import TYPE_CHECKING, Any
 from bengal.utils.logger import get_logger
 from bengal.utils.url_strategy import URLStrategy
 
-# from bengal.core.page import PageInitializer  # If not defined, remove
-
 logger = get_logger(__name__)
 
 # Threshold for parallel processing - below this we use sequential processing
@@ -51,7 +49,6 @@ class TaxonomyOrchestrator:
         self.threshold = threshold
         self.parallel = parallel
         self.url_strategy = URLStrategy()
-        # self.initializer = PageInitializer(site)  # Comment if not defined
 
     def collect_and_generate(self, parallel: bool = True) -> None:
         """
@@ -553,9 +550,6 @@ class TaxonomyOrchestrator:
         # Compute output path using centralized logic (i18n-aware via site.current_language)
         tag_index.output_path = self.url_strategy.compute_tag_index_output_path(self.site)
 
-        # Ensure page is correctly initialized (sets _site, validates)
-        # self.initializer.ensure_initialized(tag_index) # Comment if not defined
-
         return tag_index
 
     def _create_tag_index_page_for(self, tags: dict[str, Any]) -> "Page":
@@ -575,7 +569,6 @@ class TaxonomyOrchestrator:
             },
         )
         tag_index.output_path = self.url_strategy.compute_tag_index_output_path(self.site)
-        # self.initializer.ensure_initialized(tag_index) # Comment if not defined
         return tag_index
 
     def _create_tag_pages(self, tag_slug: str, tag_data: dict[str, Any]) -> list["Page"]:
@@ -627,9 +620,6 @@ class TaxonomyOrchestrator:
                 tag_slug=tag_slug, page_num=page_num, site=self.site
             )
 
-            # Ensure page is correctly initialized (sets _site, validates)
-            # self.initializer.ensure_initialized(tag_page) # Comment if not defined
-
             pages_to_create.append(tag_page)
 
         return pages_to_create
@@ -666,7 +656,6 @@ class TaxonomyOrchestrator:
             tag_page.output_path = self.url_strategy.compute_tag_output_path(
                 tag_slug=tag_slug, page_num=page_num, site=self.site
             )
-            # self.initializer.ensure_initialized(tag_page) # Comment if not defined
             pages_to_create.append(tag_page)
         return pages_to_create
 
