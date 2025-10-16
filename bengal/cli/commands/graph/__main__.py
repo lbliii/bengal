@@ -40,6 +40,27 @@ def graph_cli():
 def analyze(show_stats: bool, tree: bool, output: str, config: str, source: str) -> None:
     """
     📊 Analyze site structure and connectivity.
+
+    This command analyzes the site's knowledge graph, providing insights into the structure,
+    connectivity, and relationships between pages. It can help you:
+
+    - Find orphaned pages (pages with no incoming links)
+    - Identify hub pages (pages with many outgoing links)
+    - Visualize the site as a tree or interactive graph
+    - Generate statistics about the site's connectivity
+
+    Options:
+        --stats      Show graph statistics (enabled by default)
+        --tree       Show site structure as a tree visualization
+        --output     Generate an interactive visualization to a file (e.g., public/graph.html)
+        --config     Path to config file (default: bengal.toml)
+        SOURCE       Path to the site source directory (default: .)
+
+    Examples:
+        $ bengal graph analyze
+        $ bengal graph analyze --tree
+        $ bengal graph analyze --output public/graph.html
+        $ bengal graph analyze --config mysite.toml /path/to/site
     """
     from bengal.analysis.knowledge_graph import KnowledgeGraph
 
