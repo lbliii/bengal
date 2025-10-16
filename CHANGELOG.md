@@ -37,6 +37,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added setter for `rendered_html` to support rendering phase assignments
   - Ensures templates work correctly with both Page and PageProxy objects in incremental builds
 
+- **Autodoc CLI template selection**: Fixed CLI command documentation pages not rendering with sidebar navigation
+  - Changed autodoc command template to set `type: cli-reference` instead of `type: cli-command`
+  - Ensures individual CLI command pages use the `cli-reference/single.html` template with proper sidebar navigation
+  - Pages now correctly render with the full documentation layout including command navigation
+
 ### Changed
 
 - **Code quality**: Removed dead code - unused exception variables, deprecated classes (ResponseBuffer), unused WIP stubs (TablePlugin), and verified false positives from static analysis
