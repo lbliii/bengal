@@ -244,7 +244,7 @@ class MistuneParser(BaseMarkdownParser):
         # Stage 1.5: Post-process badges
         html = self._badge_plugin._substitute_badges(html)
 
-        # Stage 2: Inject heading anchors (IDs and ¶ links)
+        # Stage 2: Inject heading anchors (IDs only; theme adds copy-link anchors)
         html = self._inject_heading_anchors(html)
 
         # Stage 3: Extract TOC from anchored HTML
@@ -426,7 +426,7 @@ class MistuneParser(BaseMarkdownParser):
         # Parse markdown with variable substitution (includes badge post-processing)
         html = self.parse_with_context(content, metadata, context)
 
-        # Inject heading anchors (IDs and ¶ links)
+        # Inject heading anchors (IDs only; theme adds copy-link anchors)
         html = self._inject_heading_anchors(html)
 
         # Extract TOC from anchored HTML
@@ -472,7 +472,8 @@ class MistuneParser(BaseMarkdownParser):
 
     def _inject_heading_anchors(self, html: str) -> str:
         """
-        Inject IDs and headerlinks into heading tags using fast regex (5-10x faster than BS4).
+        Inject IDs into heading tags using fast regex (5-10x faster than BS4).
+
         Excludes headings inside blockquotes from getting IDs (so they don't appear in TOC).
 
         Single-pass regex replacement handles:
@@ -486,7 +487,7 @@ class MistuneParser(BaseMarkdownParser):
             html: HTML content from markdown parser
 
         Returns:
-            HTML with heading IDs and headerlinks added (except those in blockquotes)
+            HTML with heading IDs added (except those in blockquotes)
         """
         # Quick rejection: skip if no headings
         if not html or not ("<h2" in html or "<h3" in html or "<h4" in html):
@@ -496,7 +497,7 @@ class MistuneParser(BaseMarkdownParser):
         if "<blockquote" not in html:
 
             def replace_heading(match):
-                """Replace heading with ID and headerlink anchor."""
+                """Replace heading with ID only (no inline headerlink)."""
                 tag = match.group(1)  # 'h2', 'h3', or 'h4'
                 attrs = match.group(2)  # Existing attributes
                 content = match.group(3)  # Heading content
@@ -512,11 +513,8 @@ class MistuneParser(BaseMarkdownParser):
 
                 slug = self._slugify(text)
 
-                # Build heading with ID and headerlink anchor (¶)
-                headerlink = (
-                    f'<a class="headerlink" href="#{slug}" title="Permalink to this heading">¶</a>'
-                )
-                return f'<{tag} id="{slug}"{attrs}>{content} {headerlink}</{tag}>'
+                # Build heading with ID only; theme JS adds copy-link anchor
+                return f'<{tag} id="{slug}"{attrs}>{content}</{tag}>'
 
             try:
                 return self._HEADING_PATTERN.sub(replace_heading, html)
@@ -557,8 +555,7 @@ class MistuneParser(BaseMarkdownParser):
                             return m.group(0)
 
                         slug = self._slugify(text)
-                        headerlink = f'<a class="headerlink" href="#{slug}" title="Permalink to this heading">¶</a>'
-                        return f'<{tag} id="{slug}"{attrs}>{content} {headerlink}</{tag}>'
+                        return f'<{tag} id="{slug}"{attrs}>{content}</{tag}>'
 
                     parts.append(self._HEADING_PATTERN.sub(replace_heading, before))
                 else:
@@ -593,8 +590,7 @@ class MistuneParser(BaseMarkdownParser):
                         return m.group(0)
 
                     slug = self._slugify(text)
-                    headerlink = f'<a class="headerlink" href="#{slug}" title="Permalink to this heading">¶</a>'
-                    return f'<{tag} id="{slug}"{attrs}>{content} {headerlink}</{tag}>'
+                    return f'<{tag} id="{slug}"{attrs}>{content}</{tag}>'
 
                 parts.append(self._HEADING_PATTERN.sub(replace_heading, remaining))
             else:
@@ -616,7 +612,7 @@ class MistuneParser(BaseMarkdownParser):
         Extract table of contents from HTML with anchored headings using fast regex (5-8x faster than BS4).
 
         Builds a nested list of links to heading anchors.
-        Expects headings to already have IDs and ¶ links (from _inject_heading_anchors).
+        Expects headings to have IDs (anchors handled by theme).
 
         Args:
             html: HTML content with heading IDs and headerlinks
@@ -631,7 +627,7 @@ class MistuneParser(BaseMarkdownParser):
         try:
             toc_items = []
 
-            # Match headings with IDs: <h2 id="slug" ...>Title<a ...>¶</a></h2>
+            # Match headings with IDs: <h2 id="slug" ...>Title</h2>
             for match in self._TOC_HEADING_PATTERN.finditer(html):
                 level = int(match.group(1)[1])  # 'h2' → 2, 'h3' → 3, etc.
                 heading_id = match.group(2)  # The slug/ID
