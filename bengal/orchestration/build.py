@@ -268,6 +268,7 @@ class BuildOrchestrator:
             assets_to_process = self.site.assets
             affected_tags = set()
             changed_page_paths = set()
+            affected_sections = None  # Track for selective section finalization
 
             if incremental:
                 # Find what changed BEFORE generating taxonomies/menus
@@ -280,11 +281,15 @@ class BuildOrchestrator:
                     p.source_path for p in pages_to_build if not p.metadata.get("_generated")
                 }
 
-                # Determine affected tags from changed pages
+                # Determine affected sections and tags from changed pages
+                affected_sections = set()
                 for page in pages_to_build:
-                    if page.tags and not page.metadata.get("_generated"):
-                        for tag in page.tags:
-                            affected_tags.add(tag.lower().replace(" ", "-"))
+                    if not page.metadata.get("_generated"):
+                        if page.section:
+                            affected_sections.add(str(page.section.path))
+                        if page.tags:
+                            for tag in page.tags:
+                                affected_tags.add(tag.lower().replace(" ", "-"))
 
                 # Track cache statistics (Phase 2)
                 total_pages = len(self.site.pages)
@@ -364,7 +369,7 @@ class BuildOrchestrator:
         # Phase 3: Section Finalization (ensure all sections have index pages)
         # Note: "Generated pages" message removed - cluttered output
         with self.logger.phase("section_finalization"):
-            self.sections.finalize_sections()
+            self.sections.finalize_sections(affected_sections=affected_sections)
 
             # Invalidate regular_pages cache (section finalization may add generated index pages)
             self.site.invalidate_regular_pages_cache()
