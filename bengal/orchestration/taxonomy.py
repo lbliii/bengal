@@ -62,6 +62,37 @@ class TaxonomyOrchestrator:
         self.collect_taxonomies()
         self.generate_dynamic_pages(parallel=parallel)
 
+        # Phase 2c.2: Create/Update TaxonomyIndex for full builds
+        # This ensures TaxonomyIndex is populated for incremental builds
+        try:
+            from bengal.cache.taxonomy_index import TaxonomyIndex
+
+            # Create fresh index (don't load existing)
+            index_path = self.site.root_path / ".bengal" / "taxonomy_index.json"
+            index = TaxonomyIndex(index_path)
+            index.clear()  # Start fresh for full build
+
+            # Populate index from collected taxonomies
+            for tag_slug, tag_data in self.site.taxonomies.get("tags", {}).items():
+                page_paths = [str(p.source_path) for p in tag_data.get("pages", [])]
+                logger.debug(
+                    "taxonomy_index_update_tag",
+                    tag_slug=tag_slug,
+                    page_count=len(page_paths),
+                )
+                index.update_tag(tag_slug, tag_data.get("name", tag_slug), page_paths)
+
+            index.save_to_disk()
+            logger.debug(
+                "taxonomy_index_updated_full_build",
+                tags=len(index.tags),
+            )
+        except Exception as e:
+            logger.debug(
+                "taxonomy_index_update_failed_full_build",
+                error=str(e),
+            )
+
     def collect_and_generate_incremental(
         self, changed_pages: list["Page"], cache: "BuildCache"
     ) -> set[str]:

@@ -509,9 +509,13 @@ class BuildOrchestrator:
                 if hasattr(self.site, "taxonomies") and "tags" in self.site.taxonomies:
                     tags_dict = self.site.taxonomies["tags"]
 
-                    for tag_name, pages in tags_dict.items():
-                        # Normalize tag slug from tag name
-                        tag_slug = tag_name.lower().replace(" ", "-")
+                    for tag_slug, tag_data in tags_dict.items():
+                        # tag_data is a dict like {"name": "Programming", "slug": "programming", "pages": [...]}
+                        if not isinstance(tag_data, dict):
+                            continue
+                        
+                        tag_name = tag_data.get("name", tag_slug)
+                        pages = tag_data.get("pages", [])
 
                         # Extract source paths from page objects, handling various types
                         page_paths = []
