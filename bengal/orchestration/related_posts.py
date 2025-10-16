@@ -40,9 +40,11 @@ class RelatedPostsOrchestrator:
         """
         self.site = site
 
-    def build_index(self, limit: int = 5, parallel: bool = True) -> None:
+    def build_index(
+        self, limit: int = 5, parallel: bool = True, affected_pages: list["Page"] | None = None
+    ) -> None:
         """
-        Compute related posts for all pages using tag-based matching.
+        Compute related posts for pages using tag-based matching.
 
         This is called once during the build phase. Each page gets a
         pre-computed list of related pages stored in page.related_posts.
@@ -50,8 +52,15 @@ class RelatedPostsOrchestrator:
         Args:
             limit: Maximum related posts per page (default: 5)
             parallel: Whether to use parallel processing (default: True)
+            affected_pages: List of pages whose related posts should be recomputed.
+                          If None, computes for all pages (full build).
+                          If provided, only updates affected pages (incremental).
         """
-        logger.info("related_posts_build_start", total_pages=len(self.site.pages))
+        logger.info(
+            "related_posts_build_start",
+            total_pages=len(self.site.pages),
+            incremental=affected_pages is not None,
+        )
 
         # Skip if no taxonomies built yet
         if not hasattr(self.site, "taxonomies"):
@@ -70,8 +79,13 @@ class RelatedPostsOrchestrator:
         # This is O(n) where n = number of pages
         page_tags_map = self._build_page_tags_map()
 
-        # Filter pages that need related posts (non-generated pages)
-        pages_to_process = [p for p in self.site.pages if not p.metadata.get("_generated")]
+        # Determine which pages to process
+        if affected_pages is not None:
+            # Incremental: only process affected pages
+            pages_to_process = [p for p in affected_pages if not p.metadata.get("_generated")]
+        else:
+            # Full build: process all non-generated pages
+            pages_to_process = [p for p in self.site.pages if not p.metadata.get("_generated")]
 
         # Use parallel processing for larger sites to avoid thread overhead
         if parallel and len(pages_to_process) >= MIN_PAGES_FOR_PARALLEL:
@@ -87,6 +101,7 @@ class RelatedPostsOrchestrator:
             "related_posts_build_complete",
             pages_with_related=pages_with_related,
             total_pages=len(self.site.pages),
+            affected_pages=len(pages_to_process) if affected_pages else None,
             mode="parallel"
             if parallel and len(pages_to_process) >= MIN_PAGES_FOR_PARALLEL
             else "sequential",

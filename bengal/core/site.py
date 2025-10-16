@@ -226,34 +226,79 @@ class Site:
             - [taxonomies]: tags, categories, series
 
         Args:
-            root_path: Root directory of the site
-            config_path: Optional explicit path to config file
-                        (auto-detected from root_path if not provided)
+            root_path: Root directory of the site (Path object)
+                      The folder containing bengal.toml/bengal.yaml
+            config_path: Optional explicit path to config file (Path object)
+                        If not provided, searches in root_path for:
+                        bengal.toml → bengal.yaml → bengal.yml
 
         Returns:
             Configured Site instance with all settings loaded
 
-        Example:
+        Examples:
+            # Auto-detect config file in site directory
             site = Site.from_config(Path('/path/to/site'))
-            # Loads /path/to/site/bengal.toml automatically
+            # Loads /path/to/site/bengal.toml (or .yaml/.yml)
 
-        Use Cases:
-            1. Unit testing: Site(root_path=path, config={})
-               - Tests can control exact state without config files
-               - Allows isolated testing of specific features
+            # Explicit config file path
+            site = Site.from_config(
+                Path('/path/to/site'),
+                config_path=Path('/path/to/site/bengal.toml')
+            )
 
-            2. Manual config loading: Site(root_path=path, config=loaded_config)
-               - When you need to modify config programmatically
-               - Advanced use case for custom build scripts
+        For Testing:
+            If you need a Site for testing, use Site.for_testing() instead.
+            It creates a minimal Site without requiring a config file.
 
-        Warning:
-            In production/normal builds, use Site.from_config() instead!
-            Passing config={} will override bengal.toml settings and use defaults.
+        See Also:
+            - Site() - Direct constructor for advanced use cases
+            - Site.for_testing() - Factory for test sites
         """
         from bengal.config.loader import ConfigLoader
 
         loader = ConfigLoader(root_path)
         config = loader.load(config_path)
+
+        return cls(root_path=root_path, config=config)
+
+    @classmethod
+    def for_testing(cls, root_path: Path | None = None, config: dict | None = None) -> Site:
+        """
+        Create a Site instance for testing without requiring a config file.
+
+        This is a convenience factory for unit tests and integration tests
+        that need a Site object with custom configuration.
+
+        Args:
+            root_path: Root directory of the test site (defaults to current dir)
+            config: Configuration dictionary (defaults to minimal config)
+
+        Returns:
+            Configured Site instance ready for testing
+
+        Example:
+            # Minimal test site
+            site = Site.for_testing()
+
+            # Test site with custom root path
+            site = Site.for_testing(Path('/tmp/test_site'))
+
+            # Test site with custom config
+            config = {'site': {'title': 'My Test Site'}}
+            site = Site.for_testing(config=config)
+
+        Note:
+            This bypasses config file loading, so you control all settings.
+            Perfect for unit tests that need predictable behavior.
+        """
+        if root_path is None:
+            root_path = Path(".")
+
+        if config is None:
+            config = {
+                "site": {"title": "Test Site"},
+                "build": {"output_dir": "public"},
+            }
 
         return cls(root_path=root_path, config=config)
 
@@ -452,7 +497,7 @@ class Site:
     def build(
         self,
         parallel: bool = True,
-        incremental: bool = False,
+        incremental: bool | None = None,
         verbose: bool = False,
         quiet: bool = False,
         profile: BuildProfile = None,

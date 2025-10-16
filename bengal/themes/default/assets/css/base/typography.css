@@ -79,6 +79,37 @@
   color: var(--color-text-secondary);
 }
 
+/* Ensure embedded content blocks inside prose don't override heading scale */
+.prose .has-prose-content h1,
+.prose .has-prose-content h2,
+.prose .has-prose-content h3,
+.prose .has-prose-content h4,
+.prose .has-prose-content h5,
+.prose .has-prose-content h6 {
+  font-size: inherit;
+  line-height: inherit;
+  font-weight: inherit;
+}
+
+/* Page header titles: ensure token-driven sizes when outside .prose */
+.docs-header h1 {
+  font-size: var(--text-heading-1);
+  line-height: var(--leading-tight);
+  font-weight: var(--font-extrabold);
+}
+
+.docs-header h2 {
+  font-size: var(--text-heading-2);
+  line-height: var(--leading-tight);
+  font-weight: var(--font-bold);
+}
+
+.docs-header h3 {
+  font-size: var(--text-heading-3);
+  line-height: var(--leading-tight);
+  font-weight: var(--font-semibold);
+}
+
 /* Paragraphs */
 .prose p {
   margin-bottom: 1.25em;

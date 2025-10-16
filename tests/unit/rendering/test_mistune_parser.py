@@ -133,7 +133,7 @@ Details.
         assert "Section 1" in html
         assert "Section 2" in html
         assert 'id="section-1"' in html
-        assert 'class="headerlink"' in html
+        assert 'class="headerlink"' not in html
 
         # Check TOC structure (if generated)
         if toc:
@@ -371,14 +371,14 @@ class TestHeadingAnchors:
 
         assert 'id="test-heading"' in html
 
-    def test_headerlink_anchors_injected(self, parser):
-        """Test that headerlink anchors (¶) are injected."""
+    def test_headerlink_not_injected(self, parser):
+        """Test that headerlink anchors (¶) are not injected by parser."""
         content = "## Test Heading\n\nSome content."
         html, toc = parser.parse_with_toc(content, {})
 
-        assert 'class="headerlink"' in html
-        assert 'href="#test-heading"' in html
-        assert "¶" in html
+        assert 'class="headerlink"' not in html
+        assert 'href="#test-heading"' not in html
+        assert "¶" not in html
 
     def test_toc_extracted_correctly(self, parser):
         """Test that TOC is properly extracted from headings."""

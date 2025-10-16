@@ -172,7 +172,9 @@ def _run_autodoc_before_build(config_path: Path, root_path: Path, quiet: bool) -
     help="Enable parallel processing for faster builds (default: enabled)",
 )
 @click.option(
-    "--incremental", is_flag=True, help="Perform incremental build (only rebuild changed files)"
+    "--incremental/--no-incremental",
+    default=None,
+    help="Incremental mode: auto when omitted (uses cache if present).",
 )
 @click.option(
     "--memory-optimized",
@@ -300,7 +302,7 @@ def build(
             "--memory-optimized and --perf-profile cannot be used together (profiler doesn't work with streaming)"
         )
 
-    if memory_optimized and incremental:
+    if memory_optimized and incremental is True:
         click.echo(
             click.style(
                 "⚠️  Warning: --memory-optimized with --incremental may not fully utilize cache",

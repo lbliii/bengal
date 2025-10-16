@@ -10,74 +10,77 @@
    DESIGN TOKENS (Variables First!)
    ============================================ */
 
+/* Use CSS Layers to stabilize cascade */
+@layer tokens, base, utilities, components, pages;
+
 /* Foundation tokens (primitives - never use directly) */
-@import url('tokens/foundation.css');
+@layer tokens { @import url('tokens/foundation.css'); }
 
 /* Semantic tokens (purpose-based - use these in components) */
-@import url('tokens/semantic.css');
+@layer tokens { @import url('tokens/semantic.css'); }
 
 /* ============================================
    BASE STYLES (Resets & Foundations)
    ============================================ */
 
-@import url('base/reset.css');
-@import url('base/typography.css');
-@import url('base/prose-content.css');
-@import url('base/utilities.css');
-@import url('base/accessibility.css');
-@import url('base/print.css');
+@layer base { @import url('base/reset.css'); }
+@layer base { @import url('base/typography.css'); }
+@layer base { @import url('base/prose-content.css'); }
+@layer base { @import url('base/utilities.css'); }
+@layer base { @import url('base/accessibility.css'); }
+@layer base { @import url('base/print.css'); }
 
 /* ============================================
    COMPOSITION (Layout Primitives)
    ============================================ */
 
-@import url('composition/layouts.css');
+@layer base { @import url('composition/layouts.css'); }
 
 /* ============================================
    LAYOUT STYLES (Legacy - will be refactored)
    ============================================ */
 
-@import url('layouts/grid.css');
-@import url('layouts/header.css');
-@import url('layouts/footer.css');
-@import url('layouts/resume.css');
-@import url('layouts/changelog.css');
+@layer pages { @import url('layouts/grid.css'); }
+@layer pages { @import url('layouts/header.css'); }
+@layer pages { @import url('layouts/footer.css'); }
+@layer pages { @import url('layouts/resume.css'); }
+@layer pages { @import url('layouts/changelog.css'); }
 
 /* ============================================
    COMPONENT STYLES
    ============================================ */
 
-@import url('components/admonitions.css');
-@import url('components/tabs.css');
-@import url('components/dropdowns.css');
-@import url('components/buttons.css');
-@import url('components/cards.css');
-@import url('components/tags.css');
-@import url('components/code.css');
-@import url('components/pagination.css');
-@import url('components/toc.css');
-@import url('components/related-posts.css');
-@import url('components/navigation.css');
-@import url('components/docs-nav.css');
-@import url('components/badges.css');
-@import url('components/widgets.css');
-@import url('components/search.css');
-@import url('components/hero.css');
-@import url('components/interactive.css');
-@import url('components/reference-docs.css');
-@import url('components/api-docs.css');
-@import url('components/tutorial.css');
-@import url('components/blog.css');
-@import url('components/data-table.css');
+@layer components { @import url('components/admonitions.css'); }
+@layer components { @import url('components/tabs.css'); }
+@layer components { @import url('components/dropdowns.css'); }
+@layer components { @import url('components/buttons.css'); }
+@layer components { @import url('components/cards.css'); }
+@layer components { @import url('components/tags.css'); }
+@layer components { @import url('components/code.css'); }
+@layer components { @import url('components/pagination.css'); }
+@layer components { @import url('components/toc.css'); }
+@layer components { @import url('components/related-posts.css'); }
+@layer components { @import url('components/navigation.css'); }
+@layer components { @import url('components/docs-nav.css'); }
+@layer components { @import url('components/badges.css'); }
+@layer components { @import url('components/widgets.css'); }
+@layer components { @import url('components/search.css'); }
+@layer components { @import url('components/hero.css'); }
+@layer components { @import url('components/interactive.css'); }
+@layer components { @import url('components/reference-docs.css'); }
+@layer components { @import url('components/api-docs.css'); }
+@layer components { @import url('components/tutorial.css'); }
+@layer components { @import url('components/blog.css'); }
+@layer components { @import url('components/data-table.css'); }
 
 /* Third-party libraries */
-@import url('tabulator.min.css');
+@layer components { @import url('tabulator.min.css'); }
 
 /* ============================================
    PAGE-SPECIFIC STYLES
    ============================================ */
 
-@import url('pages/article.css');
+@layer pages { @import url('pages/article.css'); }
 
 /* ============================================
    CUSTOM GLOBAL STYLES
