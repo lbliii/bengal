@@ -212,7 +212,7 @@ class ResourceManager:
         atexit.register(self.cleanup)
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type, *args):
         """Context manager exit - ensure cleanup runs."""
         self.cleanup()
         return False  # Don't suppress exceptions

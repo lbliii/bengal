@@ -242,7 +242,7 @@ class PygmentsPatch:
         self.apply()
         return self
 
-    def __exit__(self, exc_type, exc, tb):
+    def __exit__(self, exc_type, tb):
         self.restore()
 
     @classmethod

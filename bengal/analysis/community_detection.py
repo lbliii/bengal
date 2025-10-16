@@ -196,7 +196,6 @@ class LouvainCommunityDetector:
                     # Calculate modularity gain
                     gain = self._modularity_gain(
                         page,
-                        current_community,
                         neighbor_community,
                         page_to_community,
                         edge_weights,
@@ -308,7 +307,6 @@ class LouvainCommunityDetector:
     def _modularity_gain(
         self,
         page: "Page",
-        from_community: int,
         to_community: int,
         page_to_community: dict["Page", int],
         edge_weights: dict[frozenset["Page"], float],

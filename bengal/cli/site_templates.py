@@ -21,15 +21,3 @@ __all__ = [
     "list_templates",
     "register_template",
 ]
-
-
-# Helper class for old-style PageTemplate compatibility
-class PageTemplate:
-    """
-    Legacy PageTemplate class for backward compatibility.
-    Maps to the new TemplateFile structure.
-    """
-
-    def __init__(self, path: str, content: str):
-        self.path = path
-        self.content = content

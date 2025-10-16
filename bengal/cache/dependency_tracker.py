@@ -50,14 +50,16 @@ class DependencyTracker:
     Thread-safe: Uses thread-local storage to track current page per thread.
     """
 
-    def __init__(self, cache: BuildCache):
+    def __init__(self, cache: BuildCache, site=None):
         """
         Initialize the dependency tracker.
 
         Args:
             cache: BuildCache instance to store dependencies in
+            site: Optional Site instance to get config path from
         """
         self.cache = cache
+        self.site = site
         self.logger = get_logger(__name__)
         self.tracked_files: dict[Path, str] = {}
         self.dependencies: dict[Path, set[Path]] = {}
@@ -75,7 +77,9 @@ class DependencyTracker:
         """Hash config for invalidation."""
         from bengal.utils.file_utils import hash_file
 
-        config_path = self.site.config.path if hasattr(self, "site") else Path("bengal.toml")
+        # Determine config path from site or fallback
+        config_path = self.site.root_path / "bengal.toml" if self.site else Path("bengal.toml")
+
         try:
             return hash_file(config_path)
         except FileNotFoundError:

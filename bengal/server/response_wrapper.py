@@ -21,7 +21,7 @@ class ResponseBuffer:  # pragma: no cover - slated for removal
     def send_buffered(self):
         pass
 
-    def send_modified(self, modified_data: bytes):
+    def send_modified(self):
         pass
 
     def clear(self):

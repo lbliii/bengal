@@ -102,7 +102,7 @@ class IncrementalOrchestrator:
             self.cache = BuildCache()
             logger.debug("cache_initialized", enabled=False)
 
-        self.tracker = DependencyTracker(self.cache)
+        self.tracker = DependencyTracker(self.cache, self.site)
 
         return self.cache, self.tracker
 

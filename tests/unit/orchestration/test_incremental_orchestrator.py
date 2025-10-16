@@ -18,7 +18,11 @@ def mock_site(tmp_path):
     site = Mock()
     site.root_path = tmp_path
     site.output_dir = tmp_path / "public"
-    site.config = {}
+
+    # Create a proper config mock with path attribute
+    mock_config = Mock()
+    mock_config.path = tmp_path / "bengal.toml"
+    site.config = mock_config
 
     # Create some mock pages
     site.pages = [
