@@ -155,6 +155,13 @@ class PageProxy:
         self._ensure_loaded()
         return self._full_page.toc if self._full_page else None
 
+    @toc.setter
+    def toc(self, value: str | None) -> None:
+        """Set table of contents."""
+        self._ensure_loaded()
+        if self._full_page:
+            self._full_page.toc = value
+
     @property
     def toc_items(self) -> list[dict[str, Any]]:
         """Get TOC items (lazy-loaded)."""
@@ -226,6 +233,12 @@ class PageProxy:
         """Get translation key."""
         self._ensure_loaded()
         return self._full_page.translation_key if self._full_page else None
+
+    @property
+    def url(self) -> str:
+        """Get the URL path for the page (lazy-loaded, cached after first access)."""
+        self._ensure_loaded()
+        return self._full_page.url if self._full_page else "/"
 
     # ============================================================================
     # Navigation Properties - Most work with cached metadata only
