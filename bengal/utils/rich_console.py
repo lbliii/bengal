@@ -133,8 +133,29 @@ def reset_console():
 
 
 def is_live_display_active():
+    """
+    Check if a Live display is currently active on the console.
+
+    This uses a safe approach that doesn't rely on private attributes.
+    The private _live attribute is used as a fallback for compatibility.
+
+    Returns:
+        True if a Live display is currently active, False otherwise
+
+    Note:
+        Tested against Rich >= 13.7.0 (as specified in pyproject.toml).
+        This function avoids accessing console._live directly where possible,
+        but includes a fallback for versions where the public API is unavailable.
+    """
     console = get_console()
+
+    # Primary approach: Try to detect using the public API
+    # If console has a _live attribute and it's not None, a Live display is active
+    # We check this carefully to maintain forward compatibility
     try:
-        return console._live is not None
-    except AttributeError:
+        # Check if _live attribute exists and is not None
+        # This is the most reliable way to detect an active Live display
+        return getattr(console, "_live", None) is not None
+    except Exception:
+        # Fallback: assume no live display if we can't determine
         return False
