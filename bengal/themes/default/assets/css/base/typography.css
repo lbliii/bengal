@@ -79,6 +79,18 @@
   color: var(--color-text-secondary);
 }
 
+/* Ensure embedded content blocks inside prose don't override heading scale */
+.prose .has-prose-content h1,
+.prose .has-prose-content h2,
+.prose .has-prose-content h3,
+.prose .has-prose-content h4,
+.prose .has-prose-content h5,
+.prose .has-prose-content h6 {
+  font-size: inherit;
+  line-height: inherit;
+  font-weight: inherit;
+}
+
 /* Paragraphs */
 .prose p {
   margin-bottom: 1.25em;

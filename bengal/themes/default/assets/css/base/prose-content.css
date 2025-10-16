@@ -77,30 +77,6 @@
   line-height: var(--leading-tight);
 }
 
-.has-prose-content h1 {
-  font-size: var(--text-xl);
-}
-
-.has-prose-content h2 {
-  font-size: var(--text-lg);
-}
-
-.has-prose-content h3 {
-  font-size: var(--text-base);
-}
-
-.has-prose-content h4 {
-  font-size: var(--text-base);
-}
-
-.has-prose-content h5 {
-  font-size: var(--text-sm);
-}
-
-.has-prose-content h6 {
-  font-size: var(--text-sm);
-}
-
 /* ============================================
    INLINE ELEMENTS
    ============================================ */
