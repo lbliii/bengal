@@ -197,7 +197,7 @@ def new() -> None:
 
 
 @new.command()
-@click.argument("name")
+@click.argument("name", required=False)
 @click.option("--theme", default="default", help="Theme to use")
 @click.option(
     "--template",
@@ -218,6 +218,17 @@ def site(name: str, theme: str, template: str, no_init: bool, init_preset: str) 
     🏗️  Create a new Bengal site with optional structure initialization.
     """
     try:
+        # Prompt for site name if not provided
+        if not name:
+            click.echo(click.style("\n🏗️  Create a new Bengal site", fg="cyan", bold=True))
+            name = click.prompt(
+                click.style("Enter site name", fg="cyan"),
+                type=str,
+            )
+            if not name:
+                click.echo(click.style("✨ Cancelled.", fg="yellow"))
+                raise click.Abort()
+        
         site_path = Path(name)
 
         if site_path.exists():
