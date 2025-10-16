@@ -73,6 +73,7 @@ class PageProxy:
         self._loader = loader
         self._lazy_loaded = False
         self._full_page: Page | None = None
+        self._related_posts_cache: list | None = None
 
         # Populate metadata fields from cache for immediate access
         self.title = metadata.title if hasattr(metadata, "title") else ""
@@ -200,8 +201,25 @@ class PageProxy:
     @property
     def related_posts(self) -> list:
         """Get related posts (lazy-loaded)."""
+        # If set on proxy without loading, return cached value
+        if self._related_posts_cache is not None:
+            return self._related_posts_cache
+        # Otherwise load full page and return its value
         self._ensure_loaded()
         return self._full_page.related_posts if self._full_page else []
+
+    @related_posts.setter
+    def related_posts(self, value: list) -> None:
+        """Set related posts.
+
+        In incremental mode, allow setting on proxy without forcing a full load.
+        """
+        if not self._lazy_loaded and self._full_page is None:
+            self._related_posts_cache = value
+            return
+        self._ensure_loaded()
+        if self._full_page:
+            self._full_page.related_posts = value
 
     @property
     def translation_key(self) -> str | None:

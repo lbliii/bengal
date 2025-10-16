@@ -91,6 +91,25 @@
   font-weight: inherit;
 }
 
+/* Page header titles: ensure token-driven sizes when outside .prose */
+.docs-header h1 {
+  font-size: var(--text-heading-1);
+  line-height: var(--leading-tight);
+  font-weight: var(--font-extrabold);
+}
+
+.docs-header h2 {
+  font-size: var(--text-heading-2);
+  line-height: var(--leading-tight);
+  font-weight: var(--font-bold);
+}
+
+.docs-header h3 {
+  font-size: var(--text-heading-3);
+  line-height: var(--leading-tight);
+  font-weight: var(--font-semibold);
+}
+
 /* Paragraphs */
 .prose p {
   margin-bottom: 1.25em;
