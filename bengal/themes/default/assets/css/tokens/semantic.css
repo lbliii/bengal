@@ -165,21 +165,21 @@
    --text-2xl: clamp(var(--font-size-24), 1.3rem + 1vw, var(--font-size-30));
    --text-3xl: clamp(var(--font-size-30), 1.5rem + 1.5vw, var(--font-size-36));
    --text-4xl: clamp(var(--font-size-36), 1.8rem + 2vw, var(--font-size-48));
-   --text-5xl: clamp(var(--font-size-48), 2.5rem + 2.5vw, var(--font-size-60));
+   --text-5xl: clamp(var(--font-size-48), 2.5rem + 2.5vw, var(--font-size-72));
 
-   /* Heading Sizes - More compact scale */
-   --text-heading-1: var(--text-4xl);
-   /* 36-48px instead of 48-60px */
-   --text-heading-2: var(--text-3xl);
-   /* 30-36px instead of 36-48px */
-   --text-heading-3: var(--text-2xl);
-   /* 24-30px instead of 30-36px */
-   --text-heading-4: var(--text-xl);
-   /* 20-24px instead of 24-30px */
-   --text-heading-5: var(--text-lg);
-   /* 18-20px instead of 20-24px */
-   --text-heading-6: var(--text-base);
-   /* 16-18px instead of 18-20px */
+   /* Heading Sizes - Increase by one step for better readability */
+   --text-heading-1: var(--text-5xl);
+   /* 48-72px */
+   --text-heading-2: var(--text-4xl);
+   /* 36-48px */
+   --text-heading-3: var(--text-3xl);
+   /* 30-36px */
+   --text-heading-4: var(--text-2xl);
+   /* 24-30px */
+   --text-heading-5: var(--text-xl);
+   /* 20-24px */
+   --text-heading-6: var(--text-lg);
+   /* 18-20px */
 
    /* Body Text */
    --text-body: var(--text-base);

@@ -34,7 +34,7 @@
 }
 
 .prose h1 {
-  font-size: var(--text-heading-1);
+  font-size: 2.5rem;
   font-weight: var(--font-extrabold);
   margin-top: 0;
   margin-bottom: 0.75rem;
@@ -43,7 +43,7 @@
 }
 
 .prose h2 {
-  font-size: var(--text-heading-2);
+  font-size: 2rem;
   font-weight: var(--font-bold);
   margin-top: 1.75em;
   margin-bottom: 0.5em;
@@ -53,25 +53,25 @@
 }
 
 .prose h3 {
-  font-size: var(--text-heading-3);
+  font-size: 1.75rem;
   font-weight: var(--font-semibold);
   margin-top: 1.5em;
 }
 
 .prose h4 {
-  font-size: var(--text-heading-4);
+  font-size: 1.5rem;
   font-weight: var(--font-semibold);
   margin-top: 1.25em;
 }
 
 .prose h5 {
-  font-size: var(--text-heading-5);
+  font-size: 1.25rem;
   font-weight: var(--font-medium);
   margin-top: 1.25em;
 }
 
 .prose h6 {
-  font-size: var(--text-heading-6);
+  font-size: 1.125rem;
   font-weight: var(--font-medium);
   margin-top: 1.25em;
   text-transform: uppercase;
@@ -93,19 +93,19 @@
 
 /* Page header titles: ensure token-driven sizes when outside .prose */
 .docs-header h1 {
-  font-size: var(--text-heading-1);
+  font-size: 2.5rem;
   line-height: var(--leading-tight);
   font-weight: var(--font-extrabold);
 }
 
 .docs-header h2 {
-  font-size: var(--text-heading-2);
+  font-size: 2rem;
   line-height: var(--leading-tight);
   font-weight: var(--font-bold);
 }
 
 .docs-header h3 {
-  font-size: var(--text-heading-3);
+  font-size: 1.75rem;
   line-height: var(--leading-tight);
   font-weight: var(--font-semibold);
 }
