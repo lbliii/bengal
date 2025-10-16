@@ -1,4 +1,4 @@
-"""Main graph analysis command for visualizing site structure."""
+"""Graph analysis and knowledge graph commands."""
 
 from pathlib import Path
 
@@ -7,8 +7,19 @@ import click
 from bengal.core.site import Site
 from bengal.utils.logger import LogLevel, close_all_loggers, configure_logging
 
+from .bridges import bridges
+from .communities import communities
+from .pagerank import pagerank
+from .suggest import suggest
 
-@click.command()
+
+@click.group("graph")
+def graph_cli():
+    """Commands for analyzing the site's knowledge graph."""
+    pass
+
+
+@click.command("analyze")
 @click.option(
     "--stats",
     "show_stats",
@@ -26,22 +37,9 @@ from bengal.utils.logger import LogLevel, close_all_loggers, configure_logging
     "--config", type=click.Path(exists=True), help="Path to config file (default: bengal.toml)"
 )
 @click.argument("source", type=click.Path(exists=True), default=".")
-def graph(show_stats: bool, tree: bool, output: str, config: str, source: str) -> None:
+def analyze(show_stats: bool, tree: bool, output: str, config: str, source: str) -> None:
     """
     📊 Analyze site structure and connectivity.
-
-    Builds a knowledge graph of your site to:
-    - Find orphaned pages (no incoming links)
-    - Identify hub pages (highly connected)
-    - Understand content structure
-    - Generate interactive visualizations
-
-    Examples:
-        # Show connectivity statistics
-        bengal graph
-
-        # Generate interactive visualization
-        bengal graph --output public/graph.html
     """
     from bengal.analysis.knowledge_graph import KnowledgeGraph
 
@@ -215,3 +213,9 @@ def graph(show_stats: bool, tree: bool, output: str, config: str, source: str) -
         raise click.Abort() from e
     finally:
         close_all_loggers()
+
+graph_cli.add_command(analyze)
+graph_cli.add_command(pagerank)
+graph_cli.add_command(communities)
+graph_cli.add_command(bridges)
+graph_cli.add_command(suggest)
