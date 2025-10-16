@@ -61,7 +61,6 @@ def clean(force: bool, cache: bool, clean_all: bool, stale_server: bool, config:
 
         if stale_server:
             cleanup(force, None, source)
-            return
 
         # Confirm before cleaning unless --force
         if not force:
