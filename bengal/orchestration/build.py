@@ -285,7 +285,8 @@ class BuildOrchestrator:
                 affected_sections = set()
                 for page in pages_to_build:
                     if not page.metadata.get("_generated"):
-                        if page.section:
+                        # Safely check if page has a section (may be None for root-level pages)
+                        if hasattr(page, "section") and page.section:
                             affected_sections.add(str(page.section.path))
                         if page.tags:
                             for tag in page.tags:
