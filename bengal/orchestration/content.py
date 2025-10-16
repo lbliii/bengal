@@ -36,20 +36,31 @@ class ContentOrchestrator:
         self.site = site
         self.logger = get_logger(__name__)
 
-    def discover(self) -> None:
+    def discover(self, incremental: bool = False, cache: Any | None = None) -> None:
         """
         Discover all content and assets.
+
         Main entry point called during build.
+
+        Args:
+            incremental: Whether this is an incremental build (enables lazy loading)
+            cache: PageDiscoveryCache instance (required if incremental=True)
         """
-        self.discover_content()
+        self.discover_content(incremental=incremental, cache=cache)
         self.discover_assets()
 
-    def discover_content(self, content_dir: Path | None = None) -> None:
+    def discover_content(
+        self, content_dir: Path | None = None, incremental: bool = False, cache: Any | None = None
+    ) -> None:
         """
         Discover all content (pages, sections) in the content directory.
 
+        Supports optional lazy loading with PageProxy for incremental builds.
+
         Args:
             content_dir: Content directory path (defaults to root_path/content)
+            incremental: Whether this is an incremental build (enables lazy loading)
+            cache: PageDiscoveryCache instance (required if incremental=True)
         """
         if content_dir is None:
             content_dir = self.site.root_path / "content"
@@ -58,15 +69,33 @@ class ContentOrchestrator:
             self.logger.warning("content_dir_not_found", path=str(content_dir))
             return
 
-        self.logger.debug("discovering_content", path=str(content_dir))
+        self.logger.debug(
+            "discovering_content",
+            path=str(content_dir),
+            incremental=incremental,
+            use_cache=incremental and cache is not None,
+        )
 
         from bengal.discovery.content_discovery import ContentDiscovery
 
-        discovery = ContentDiscovery(content_dir)
-        self.site.sections, self.site.pages = discovery.discover()
+        discovery = ContentDiscovery(content_dir, site=self.site)
+
+        # Use lazy loading if incremental build with cache
+        use_cache = incremental and cache is not None
+        self.site.sections, self.site.pages = discovery.discover(use_cache=use_cache, cache=cache)
+
+        # Track how many pages are proxies (for logging)
+        from bengal.core.page.proxy import PageProxy
+
+        proxy_count = sum(1 for p in self.site.pages if isinstance(p, PageProxy))
+        full_page_count = len(self.site.pages) - proxy_count
 
         self.logger.debug(
-            "raw_content_discovered", pages=len(self.site.pages), sections=len(self.site.sections)
+            "raw_content_discovered",
+            pages=len(self.site.pages),
+            sections=len(self.site.sections),
+            proxies=proxy_count,
+            full_pages=full_page_count,
         )
 
         # Set up page references for navigation

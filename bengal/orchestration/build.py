@@ -204,7 +204,24 @@ class BuildOrchestrator:
                 progress_manager.add_phase("discovery", "Discovery")
                 progress_manager.start_phase("discovery")
 
-            self.content.discover()
+            # Load cache for incremental builds (Phase 2c.1 lazy loading)
+            page_discovery_cache = None
+            if incremental:
+                try:
+                    from bengal.cache.page_discovery_cache import PageDiscoveryCache
+
+                    page_discovery_cache = PageDiscoveryCache(
+                        self.site.root_path / ".bengal" / "page_metadata.json"
+                    )
+                except Exception as e:
+                    self.logger.debug(
+                        "page_discovery_cache_load_failed_for_lazy_loading",
+                        error=str(e),
+                    )
+                    # Continue without cache - will do full discovery
+
+            # Discover with optional lazy loading (Phase 2c.1)
+            self.content.discover(incremental=incremental, cache=page_discovery_cache)
 
             self.stats.discovery_time_ms = (time.time() - discovery_start) * 1000
 
