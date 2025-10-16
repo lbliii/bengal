@@ -245,7 +245,10 @@ The `TablePlugin` returns hardcoded `"..."` content - clearly a **stub for REN-0
 - **Severity**: Low
 - **Location**: `bengal/orchestration/incremental.py:388`
 - **Issue**: Test-specific method on production class, writes "Updated" placeholder
-- **Fix**: Move to test helper or add prominent warning docs
+- **Fix**: ✅ **IMPLEMENTED** - Added diagnostic timestamp and path markers to placeholder output
+  - Commit: `f33bb3c` - orchestration(incremental): add diagnostic timestamp and path markers to test bridge placeholder output
+  - Now writes: `[TEST BRIDGE] Updated at {timestamp}\nSource: {path}\nOutput: {rel_html}`
+  - Makes test debugging more diagnostic-friendly
 
 ---
 
