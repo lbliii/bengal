@@ -17,10 +17,24 @@ class DummyHandler(BengalRequestHandler):
         self.path = "/index.html"
         self._file_path = str(file_path)
         self.wfile = io.BytesIO()
+        self.requestline = "GET /index.html HTTP/1.1"
 
     # Bypass filesystem translation and return our test file path
     def translate_path(self, path: str) -> str:  # type: ignore[override]
         return self._file_path
+
+    # Stub HTTP response methods for testing
+    def send_response(self, code: int) -> None:
+        """Stub - we're testing content, not HTTP mechanics."""
+        pass
+
+    def send_header(self, keyword: str, value: str) -> None:
+        """Stub - we're testing content, not HTTP mechanics."""
+        pass
+
+    def end_headers(self) -> None:
+        """Stub - we're testing content, not HTTP mechanics."""
+        pass
 
 
 def test_live_reload_injects_script(tmp_path: Path) -> None:

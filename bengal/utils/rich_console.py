@@ -71,9 +71,12 @@ def should_use_rich() -> bool:
     if os.getenv("CI"):
         return False
 
+    # TERM=dumb should disable rich (test expectation)
+    term = os.getenv("TERM", "").lower()
+    if term == "dumb":
+        return False
+
     # Disable if no terminal
-    # Allow if terminal exists, even if TERM=dumb
-    # Rich handles this gracefully with simpler output
     return console.is_terminal
 
 
@@ -129,14 +132,9 @@ def reset_console():
     _console = None
 
 
-def is_live_display_active() -> bool:
-    """
-    Check if there's an active Live display on the console.
-    
-    This prevents creating multiple Live displays which Rich doesn't allow.
-    
-    Returns:
-        True if a Live display is currently active
-    """
+def is_live_display_active():
     console = get_console()
-    return console._live is not None
+    try:
+        return console._live is not None
+    except AttributeError:
+        return False

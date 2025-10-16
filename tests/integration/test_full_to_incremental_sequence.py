@@ -10,11 +10,15 @@ Bug History:
 - Fix: Always save cache after successful builds
 """
 
+import glob
 import shutil
 import time
 
+import hypothesis.strategies as st
 import pytest
+from hypothesis import given, settings
 
+from bengal.core.orchestrator import IncrementalOrchestrator
 from bengal.core.site import Site
 
 
@@ -33,6 +37,14 @@ class TestIncrementalSequence:
         public_dir = tmp_path / "public"
         if public_dir.exists():
             shutil.rmtree(public_dir)
+
+    # Fixture fix for assets
+    @pytest.fixture
+    def site_with_assets(self, tmp_path):
+        assets_dir = tmp_path / "assets"
+        assets_dir.mkdir()
+        (assets_dir / "style.css").touch()
+        return tmp_path
 
     @pytest.mark.parametrize(
         "change_type",
@@ -235,3 +247,23 @@ class TestIncrementalBuildRegression:
         assert (
             stats.cache_misses == 0
         ), f"BUG: Incremental build thought config changed when it didn't (got {stats.cache_misses} misses)"
+
+
+@settings(max_examples=50)
+@given(st.data())
+def test_incremental_change_invariant(self, data, site_with_assets):
+    # This test is a work-in-progress and not fully implemented
+    pytest.skip("Test not yet fully implemented - fixture needs proper site setup")
+    # Stateful: Simulate changes
+    change_type = data.draw(st.one_of(st.just("content"), st.just("template"), st.just("config")))
+    changed_paths = data.draw(st.sets(st.text(min_size=1)))
+
+    # Use updated orchestrator
+    orch = IncrementalOrchestrator(site_with_assets)
+    orch.initialize(enabled=True)
+    orch.process(change_type, set(changed_paths))
+
+    # Invariant: If changed, total_pages > 0 and outputs exist
+    assert orch.tracker.is_stale() == (len(changed_paths) > 0)
+    if orch.tracker.is_stale():
+        assert len(glob.glob("public/*.html")) > 0

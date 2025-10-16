@@ -5,6 +5,9 @@ Asset discovery - finds and organizes static assets.
 from pathlib import Path
 
 from bengal.core.asset import Asset
+from bengal.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 class AssetDiscovery:
@@ -25,16 +28,14 @@ class AssetDiscovery:
         self.assets_dir = assets_dir
         self.assets: list[Asset] = []
 
-    def discover(self) -> list[Asset]:
-        """
-        Discover all assets in the assets directory.
+    def discover(self, base_path: Path | None = None) -> list:
+        if base_path is None:
+            base_path = self.assets_dir  # Backward compat
+        assets_dir = base_path / "assets"
+        if not assets_dir.exists():
+            assets_dir.mkdir(parents=True, exist_ok=True)  # Auto-create
+            # Log: "Created missing assets dir"
 
-        Simply walks the directory tree and creates Asset objects.
-        No business logic - just discovery.
-
-        Returns:
-            List of Asset objects
-        """
         # Walk the assets directory
         for file_path in self.assets_dir.rglob("*"):
             if file_path.is_file():
@@ -56,4 +57,11 @@ class AssetDiscovery:
 
                 self.assets.append(asset)
 
+        # Validate warning-only
+        for asset in self.assets:
+            try:
+                if Path(asset.source_path).stat().st_size < 1000:
+                    logger.warning(f"Small asset: {asset.source_path}")
+            except (AttributeError, FileNotFoundError):
+                logger.warning(f"Asset without valid path: {asset}")
         return self.assets

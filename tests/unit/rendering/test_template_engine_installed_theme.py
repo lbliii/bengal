@@ -40,19 +40,22 @@ def test_engine_resolves_installed_theme_templates(tmp_path, monkeypatch):
     # Fake entry points
     from importlib import metadata
 
+    from bengal.utils.theme_registry import clear_theme_cache
+
     def fake_entry_points(group=None):
         if group == "bengal.themes":
             return [SimpleNamespace(name="acme", value=pkg)]
         return []
 
     monkeypatch.setattr(metadata, "entry_points", fake_entry_points)
+    clear_theme_cache()
 
     from bengal.rendering.template_engine import TemplateEngine
 
     site = Site.from_config(site_root)
     engine = TemplateEngine(site)
     # page.html exists only in installed theme
-    mock_page = SimpleNamespace(url="/test/", title="Test Page", metadata={})
+    mock_page = SimpleNamespace(url="/test/", title="Test", related_posts=[], metadata={})
     html = engine.render("page.html", {"title": "x", "page": mock_page})
     assert "ACME PAGE" in html
 
@@ -69,12 +72,15 @@ def test_extends_read_from_installed_theme(tmp_path, monkeypatch):
 
     from importlib import metadata
 
+    from bengal.utils.theme_registry import clear_theme_cache
+
     def fake_entry_points(group=None):
         if group == "bengal.themes":
             return [SimpleNamespace(name="acme", value=pkg)]
         return []
 
     monkeypatch.setattr(metadata, "entry_points", fake_entry_points)
+    clear_theme_cache()
 
     from bengal.rendering.template_engine import TemplateEngine
 

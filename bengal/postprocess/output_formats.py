@@ -15,6 +15,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from bengal.utils.dates import iso_timestamp  # Consolidated
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -901,3 +902,20 @@ class OutputFormatsGenerator:
         # Find last space before limit
         excerpt = text[:length].rsplit(" ", 1)[0]
         return excerpt + "..."
+
+
+class JsonSerializer:
+    """Long-term: Deterministic JSON serialization."""
+
+    @staticmethod
+    def serialize(data: dict[str, Any], sort_keys: bool = True, timestamp: bool = False) -> str:
+        import json
+
+        if timestamp:
+            data["build_time"] = iso_timestamp()  # Use consolidated
+        return json.dumps(data, sort_keys=sort_keys, default=str)
+
+    @staticmethod
+    def normalize_index(pages: list) -> dict:
+        """Normalize for index.json."""
+        return {"pages": sorted(pages, key=lambda p: p["url"]), "count": len(pages)}

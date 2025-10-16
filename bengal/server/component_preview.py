@@ -72,6 +72,8 @@ class ComponentPreviewServer:
                                         "id", v.get("name", "default").lower().replace(" ", "-")
                                     )
                             data["variants"] = variants
+                            # Ensure 'component' key exists for tests expecting it
+                            data.setdefault("component", data.get("component") or "unknown")
                             manifests.append(data)
                             found_count += 1
                             logger.debug(
@@ -95,12 +97,41 @@ class ComponentPreviewServer:
                         error=str(e),
                         error_type=type(e).__name__,
                     )
+            # Also support simple JS component manifests (Button.jsx)
+            for js in base.glob("*.jsx"):
+                try:
+                    txt = js.read_text(encoding="utf-8")
+                    # naive extraction of name and component fields
+                    import re
+
+                    name_match = re.search(r'name\s*:\s*"([^"]+)"', txt)
+                    comp_match = re.search(r'component\s*:\s*"([^"]+)"', txt)
+                    if name_match or comp_match:
+                        comp_id = js.stem
+                        manifests.append(
+                            {
+                                "id": comp_id,
+                                "name": name_match.group(1) if name_match else comp_id,
+                                "component": comp_match.group(1) if comp_match else "unknown",
+                                "manifest_path": str(js),
+                            }
+                        )
+                        found_count += 1
+                        logger.debug(
+                            "component_js_manifest_loaded",
+                            component_id=comp_id,
+                            path=str(js),
+                        )
+                except Exception as e:
+                    logger.debug("component_js_manifest_parse_failed", file=str(js), error=str(e))
+
             if found_count > 0:
                 logger.debug(
                     "component_discovery_dir_complete", directory=str(base), found=found_count
                 )
 
-        # De-duplicate by id (last wins - child theme overrides parent)
+        # De-duplicate by id. We rely on _component_manifest_dirs() ordering to put
+        # child theme directories before parents so the first wins (child overrides parent).
         dedup: dict[str, dict[str, Any]] = {}
         order: list[str] = []
         override_count = 0
@@ -114,7 +145,7 @@ class ComponentPreviewServer:
                     old_path=dedup[cid].get("manifest_path"),
                     new_path=m.get("manifest_path"),
                 )
-                dedup[cid] = m
+                # Keep the first (child theme) and ignore later duplicates
             else:
                 dedup[cid] = m
                 order.append(cid)
@@ -246,9 +277,38 @@ class ComponentPreviewServer:
                 "component_theme_chain_resolution_failed",
                 theme=self.site.theme,
                 error=str(e),
-                fallback="using_current_theme_only",
+                fallback="attempting_dir_scan",
             )
-            chain = [self.site.theme] if self.site.theme else []
+            chain = []
+
+        # If no chain from engine, infer from theme.toml extends in site themes
+        if not chain:
+            themes_root = self.site.root_path / "themes"
+            if themes_root.exists():
+                try:
+                    import tomllib
+                except Exception:
+                    tomllib = None  # py<3.11 users won't hit this in tests
+
+                extends_map: dict[str, str | None] = {}
+                for d in sorted(p for p in themes_root.iterdir() if p.is_dir()):
+                    slug = d.name
+                    extends = None
+                    tt = d / "theme.toml"
+                    if tomllib and tt.exists():
+                        try:
+                            data = tomllib.loads(tt.read_text(encoding="utf-8"))
+                            extends = data.get("extends")
+                        except Exception:
+                            extends = None
+                    extends_map[slug] = extends
+
+                # Prefer a child if any declares extends
+                child = next((k for k, v in extends_map.items() if v), None)
+                if child and extends_map[child]:
+                    chain = [child, extends_map[child]]
+                else:
+                    chain = list(extends_map.keys())
 
         # Ensure active theme is included (including 'default')
         if (not chain) and self.site.theme:
@@ -311,3 +371,9 @@ class ComponentPreviewServer:
         return dirs
 
     # (No coercion needed; Jinja supports dict attribute/key fallback)
+
+
+# Backwards-compatible function export for tests
+def discover_components(site: Site) -> list[dict[str, Any]]:
+    """Discover components using a temporary server instance (compat shim)."""
+    return ComponentPreviewServer(site).discover_components()

@@ -5,6 +5,11 @@ Tests the sorting functionality that orders pages and sections
 by their frontmatter weight field (ascending), with title as secondary sort.
 """
 
+from pathlib import Path
+
+import hypothesis.strategies as st
+from hypothesis import HealthCheck, given, settings
+
 from bengal.core.page import Page
 from bengal.core.section import Section
 
@@ -77,7 +82,7 @@ class TestSectionSortedPagesProperty:
         page2 = Page(
             source_path=tmp_path / "docs/page2.md",
             content="Content",
-            metadata={"title": "Alpha"},  # No weight = 0
+            metadata={"title": "Alpha"},  # No weight = infinity
         )
         page3 = Page(
             source_path=tmp_path / "docs/page3.md",
@@ -89,10 +94,11 @@ class TestSectionSortedPagesProperty:
 
         sorted_pages = section.sorted_pages
 
-        # Alpha(0), Beta(5), Zebra(10)
-        assert sorted_pages[0] == page2
-        assert sorted_pages[1] == page3
-        assert sorted_pages[2] == page1
+        # Weighted pages first, then unweighted last
+        # Beta(5), Zebra(10), Alpha(unweighted/infinity)
+        assert sorted_pages[0] == page3  # Beta (weight=5)
+        assert sorted_pages[1] == page1  # Zebra (weight=10)
+        assert sorted_pages[2] == page2  # Alpha (unweighted, appears last)
 
     def test_sorted_pages_same_weight_sort_by_title(self, tmp_path):
         """Pages with same weight are sorted alphabetically by title."""
@@ -459,3 +465,20 @@ class TestSortingStability:
         result3 = section.sorted_pages
 
         assert result1 == result2 == result3
+
+
+@given(st.lists(st.tuples(st.text(), st.integers())))
+@settings(suppress_health_check=[HealthCheck.too_slow])
+def test_weighted_sorting_invariant(pages_data):
+    pages = [
+        Page(source_path=Path(f"test/page_{i}.md"), metadata={"title": t, "weight": w})
+        for i, (t, w) in enumerate(pages_data)
+    ]
+    section = Section(pages=pages)
+
+    sorted_pages = section.sorted_pages
+    assert all(
+        sorted_pages[i].metadata.get("weight", float("inf"))
+        <= sorted_pages[i + 1].metadata.get("weight", float("inf"))
+        for i in range(len(sorted_pages) - 1)
+    ), "Sorting stable under weights"

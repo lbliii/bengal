@@ -11,6 +11,7 @@ import pytest
 
 from bengal.core.site import Site
 from bengal.orchestration.build import BuildOrchestrator
+from bengal.rendering.parsers.factory import ParserFactory
 
 
 class TestDocumentationBuild:
@@ -117,6 +118,10 @@ Meta descriptions:
         # Extract just the body content to check for escape markers
         # Meta tags may contain raw markdown (that's OK), but the body should be clean
         from bs4 import BeautifulSoup
+
+        parser = ParserFactory.get_html_parser("native")
+        soup = parser(output_content)
+        assert soup.find_all_tags() > 0  # Invariant
 
         soup = BeautifulSoup(output_content, "html.parser")
         body_content = soup.find("body")

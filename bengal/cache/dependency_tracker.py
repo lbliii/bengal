@@ -9,6 +9,37 @@ from bengal.cache.build_cache import BuildCache
 from bengal.utils.logger import get_logger
 
 
+class CacheInvalidator:
+    """Long-term: Explicit invalidation for incremental builds."""
+
+    def __init__(self, config_hash: str, content_paths: list[Path], template_paths: list[Path]):
+        self.config_hash = config_hash
+        self.content_paths = content_paths
+        self.template_paths = template_paths
+        self.invalidated: set[Path] = set()
+
+    def invalidate_content(self, changed_paths: set[Path]) -> set[Path]:
+        """Invalidate on content changes."""
+        self.invalidated.update(changed_paths)
+        return self.invalidated
+
+    def invalidate_templates(self, changed_paths: set[Path]) -> set[Path]:
+        """Invalidate dependent pages on template changes."""
+        affected = {p for p in self.content_paths if any(t in p.parents for t in changed_paths)}
+        self.invalidated.update(affected)
+        return self.invalidated
+
+    def invalidate_config(self) -> set[Path]:
+        """Full invalidation on config change."""
+        self.invalidated = set(self.content_paths + self.template_paths)
+        return self.invalidated
+
+    @property
+    def is_stale(self) -> bool:
+        """Invariant: Check if cache needs rebuild."""
+        return bool(self.invalidated)
+
+
 class DependencyTracker:
     """
     Tracks dependencies between pages and their templates, partials, and config files.
@@ -28,8 +59,27 @@ class DependencyTracker:
         """
         self.cache = cache
         self.logger = get_logger(__name__)
+        self.tracked_files: dict[Path, str] = {}
+        self.dependencies: dict[Path, set[Path]] = {}
+        self.reverse_dependencies: dict[Path, set[Path]] = {}
+        self.lock = threading.Lock()
         # Use thread-local storage for current page to support parallel processing
         self.current_page = threading.local()
+        self.content_paths = []
+        self.template_paths = []
+        self.invalidator = CacheInvalidator(
+            self._hash_config(), self.content_paths, self.template_paths
+        )
+
+    def _hash_config(self) -> str:
+        """Hash config for invalidation."""
+        from bengal.utils.file_utils import hash_file
+
+        config_path = self.site.config.path if hasattr(self, "site") else Path("bengal.toml")
+        try:
+            return hash_file(config_path)
+        except FileNotFoundError:
+            return "default_config_hash"  # Fallback for tests
 
     def start_page(self, page_path: Path) -> None:
         """

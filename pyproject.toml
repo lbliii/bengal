@@ -60,6 +60,11 @@ dev = [
     "mypy>=1.11.0",
     "ruff>=0.6.0",
 ]
+parsing = [
+    "beautifulsoup4>=4.12.0",  # Primary HTML parser
+    "lxml>=4.9.0",             # Faster XML/HTML backend
+    "html5lib>=1.1",           # Tolerant HTML parser for edge cases
+]
 
 [project.scripts]
 bengal = "bengal.cli:main"

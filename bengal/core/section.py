@@ -4,6 +4,7 @@ Section Object - Represents a folder or logical grouping of pages.
 
 from dataclasses import dataclass, field
 from functools import cached_property
+from operator import attrgetter
 from pathlib import Path
 from typing import Any
 
@@ -11,6 +12,18 @@ from bengal.core.page import Page
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
+
+
+@dataclass
+class WeightedPage:
+    page: Page
+    weight: float = float("inf")
+    title_lower: str = ""
+
+    def __lt__(self, other):
+        if self.weight != other.weight:
+            return self.weight < other.weight
+        return self.title_lower < other.title_lower
 
 
 @dataclass
@@ -39,8 +52,8 @@ class Section:
         parent: Parent section (if nested)
     """
 
-    name: str
-    path: Path
+    name: str = "root"
+    path: Path = Path(".")
     pages: list[Page] = field(default_factory=list)
     subsections: list["Section"] = field(default_factory=list)
     metadata: dict[str, Any] = field(default_factory=dict)
@@ -125,8 +138,10 @@ class Section:
         """
         Get pages sorted by weight (ascending), then by title.
 
-        Pages without a weight field are treated as having weight=999999 (appear at end).
-        Lower weights appear first in the list.
+        Pages without a weight field are treated as having weight=float('inf')
+        and appear at the end of the sorted list, after all weighted pages.
+        Lower weights appear first in the list. Pages with equal weight are sorted
+        alphabetically by title.
 
         Returns:
             List of pages sorted by weight, then title
@@ -136,7 +151,16 @@ class Section:
               <article>{{ page.title }}</article>
             {% endfor %}
         """
-        return sorted(self.pages, key=lambda p: (p.metadata.get("weight", 999999), p.title.lower()))
+
+        def is_index_page(p: Page) -> bool:
+            return p.source_path.stem in ("_index", "index")
+
+        weighted = [
+            WeightedPage(p, p.metadata.get("weight", float("inf")), p.title.lower())
+            for p in self.pages
+            if not is_index_page(p)
+        ]
+        return [wp.page for wp in sorted(weighted, key=attrgetter("weight", "title_lower"))]
 
     @property
     def sorted_subsections(self) -> list["Section"]:
@@ -283,16 +307,21 @@ class Section:
         Sort pages and subsections in this section by weight, then by title.
 
         This modifies the pages and subsections lists in place.
-        Pages/sections without a weight field are treated as having weight=0.
+        Pages/sections without a weight field are treated as having weight=float('inf'),
+        so they appear at the end (after all weighted items).
         Lower weights appear first in the sorted lists.
 
         This is typically called after content discovery is complete.
         """
         # Sort pages by weight (ascending), then title (alphabetically)
-        self.pages.sort(key=lambda p: (p.metadata.get("weight", 0), p.title.lower()))
+        # Unweighted pages use float('inf') to sort last
+        self.pages.sort(key=lambda p: (p.metadata.get("weight", float("inf")), p.title.lower()))
 
         # Sort subsections by weight (ascending), then title (alphabetically)
-        self.subsections.sort(key=lambda s: (s.metadata.get("weight", 0), s.title.lower()))
+        # Unweighted subsections use float('inf') to sort last
+        self.subsections.sort(
+            key=lambda s: (s.metadata.get("weight", float("inf")), s.title.lower())
+        )
 
         logger.debug(
             "section_children_sorted",

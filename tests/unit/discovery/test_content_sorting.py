@@ -226,7 +226,7 @@ Content""")
         assert beginner_section.subsections[1].metadata["weight"] == 50  # tutorial-z
 
     def test_discover_handles_missing_weights(self, tmp_path):
-        """Pages/sections without weights default to 0 and sort by title."""
+        """Pages/sections without weights default to infinity and sort last by title."""
         content_dir = tmp_path / "content"
         content_dir.mkdir()
 
@@ -256,11 +256,11 @@ Content""")
 
         docs_section = sections[0]
 
-        # Should be sorted: Alpha(0), Zebra(0), Weighted(10)
+        # Should be sorted: Weighted(10), then unweighted (alphabetically): Alpha, Zebra
         assert len(docs_section.pages) == 3
-        assert "Alpha" in docs_section.pages[0].title
-        assert "Zebra" in docs_section.pages[1].title
-        assert "Weighted" in docs_section.pages[2].title
+        assert "Weighted" in docs_section.pages[0].title
+        assert "Alpha" in docs_section.pages[1].title
+        assert "Zebra" in docs_section.pages[2].title
 
     def test_discover_empty_section_no_error(self, tmp_path):
         """Empty sections don't cause sorting errors."""
@@ -369,7 +369,7 @@ weight: 1
 ---
 Content""")
 
-        # Guides section (no weight - defaults to 0, but alphabetically after advanced)
+        # Guides section (no weight - defaults to infinity, appears last)
         guides_dir = docs_dir / "guides"
         guides_dir.mkdir()
         (guides_dir / "_index.md").write_text("""---
@@ -387,13 +387,13 @@ Content""")
         # Subsections should be sorted correctly
         assert len(docs_section.subsections) == 3
 
-        # guides(0), getting-started(1), advanced(100)
-        assert docs_section.subsections[0].name == "guides"
-        assert docs_section.subsections[1].name == "getting-started"
-        assert docs_section.subsections[2].name == "advanced"
+        # Weighted sections first, then unweighted: getting-started(1), advanced(100), guides(infinity)
+        assert docs_section.subsections[0].name == "getting-started"
+        assert docs_section.subsections[1].name == "advanced"
+        assert docs_section.subsections[2].name == "guides"
 
         # Pages within getting-started should be sorted
-        gs_section = docs_section.subsections[1]
+        gs_section = docs_section.subsections[0]
         # _index(1), installation(1), quickstart(2)
         # When weights are equal, sorted by title
         assert len(gs_section.pages) == 3

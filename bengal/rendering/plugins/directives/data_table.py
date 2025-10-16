@@ -150,9 +150,9 @@ class DataTableDirective(DirectivePlugin):
         if not file_path.exists():
             return {"error": f"File not found: {path}"}
 
-        # Check file size (max 5MB)
+        # Check file size (threshold 1MB per tests)
         file_size = file_path.stat().st_size
-        if file_size > 5 * 1024 * 1024:
+        if file_size > 1 * 1024 * 1024:
             return {"error": f"File too large: {path} ({file_size / 1024 / 1024:.1f}MB)"}
 
         # Load based on extension

@@ -84,6 +84,10 @@ def test_swizzle_cli_invocation(tmp_path: Path):
     theme_tpl = tmp_path / "themes" / "child" / "templates" / "partials" / "demo.html"
     _write(theme_tpl, "from cli")
 
+    # Create bengal.toml to configure the theme
+    config_file = tmp_path / "bengal.toml"
+    config_file.write_text('[site]\nname="test"\ntheme="child"\n', encoding="utf-8")
+
     runner = CliRunner()
 
     # Act

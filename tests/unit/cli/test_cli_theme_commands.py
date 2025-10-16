@@ -27,12 +27,15 @@ def test_theme_list_and_info(tmp_path, monkeypatch):
 
     from importlib import metadata
 
+    from bengal.utils.theme_registry import clear_theme_cache
+
     def fake_entry_points(group=None):
         if group == "bengal.themes":
             return [SimpleNamespace(name="acme", value=pkg)]
         return []
 
     monkeypatch.setattr(metadata, "entry_points", fake_entry_points)
+    clear_theme_cache()
 
     r = CliRunner().invoke(cli_main, ["theme", "list", str(site_root)])
     assert r.exit_code == 0
@@ -55,12 +58,15 @@ def test_theme_discover_lists_templates(tmp_path, monkeypatch):
 
     from importlib import metadata
 
+    from bengal.utils.theme_registry import clear_theme_cache
+
     def fake_entry_points(group=None):
         if group == "bengal.themes":
             return [SimpleNamespace(name="acme", value=pkg)]
         return []
 
     monkeypatch.setattr(metadata, "entry_points", fake_entry_points)
+    clear_theme_cache()
 
     r = CliRunner().invoke(cli_main, ["theme", "discover", str(site_root)])
     assert r.exit_code == 0
