@@ -9,7 +9,7 @@ from typing import Any
 
 import frontmatter
 
-from bengal.core.page import Page
+from bengal.core.page import Page, PageProxy
 from bengal.core.section import Section
 from bengal.utils.logger import get_logger
 
@@ -34,9 +34,41 @@ class ContentDiscovery:
         # Deprecated: do not store mutable current section on the instance; pass explicitly
         self.current_section: Section | None = None
 
-    def discover(self) -> tuple[list[Section], list[Page]]:
+    def discover(
+        self,
+        use_cache: bool = False,
+        cache: Any | None = None,
+    ) -> tuple[list[Section], list[Page]]:
         """
         Discover all content in the content directory.
+
+        Supports optional lazy loading with PageProxy for incremental builds.
+
+        Args:
+            use_cache: Whether to use PageDiscoveryCache for lazy loading
+            cache: PageDiscoveryCache instance (if use_cache=True)
+
+        Returns:
+            Tuple of (sections, pages)
+
+        Note:
+            When use_cache=True and cache is provided:
+            - Unchanged pages are returned as PageProxy (metadata only, lazy load on demand)
+            - Changed pages are fully parsed and returned as normal Page objects
+            - This saves disk I/O and parsing time for unchanged pages
+
+            When use_cache=False (default):
+            - All pages are fully discovered and parsed (current behavior)
+            - Backward compatible - no changes to calling code needed
+        """
+        if use_cache and cache:
+            return self._discover_with_cache(cache)
+        else:
+            return self._discover_full()
+
+    def _discover_full(self) -> tuple[list[Section], list[Page]]:
+        """
+        Full discovery (current behavior) - discover all pages completely.
 
         Returns:
             Tuple of (sections, pages)
@@ -191,6 +223,121 @@ class ContentDiscovery:
         )
 
         return self.sections, self.pages
+
+    def _discover_with_cache(self, cache: Any) -> tuple[list[Section], list[Page]]:
+        """
+        Discover content with lazy loading from cache.
+
+        Uses PageProxy for unchanged pages (metadata only) and parses changed pages.
+
+        Args:
+            cache: PageDiscoveryCache instance
+
+        Returns:
+            Tuple of (sections, pages) with mixed Page and PageProxy objects
+        """
+        self.logger.info(
+            "content_discovery_with_cache_start",
+            content_dir=str(self.content_dir),
+            cached_pages=len(cache.pages) if hasattr(cache, "pages") else 0,
+        )
+
+        # First, do a full discovery to find all files and sections
+        # We need sections regardless, and we need to know which files exist
+        sections, all_discovered_pages = self._discover_full()
+
+        # Now, enhance with cache for unchanged pages
+        proxy_count = 0
+        full_page_count = 0
+
+        for i, page in enumerate(all_discovered_pages):
+            # Check if this page is in cache
+            cached_metadata = cache.get_metadata(page.source_path)
+
+            if cached_metadata and self._cache_is_valid(page, cached_metadata):
+                # Page is unchanged - create PageProxy instead
+                def make_loader(source_path):
+                    def loader(_):
+                        # Load full page from disk when needed
+                        return self._create_page(
+                            source_path, current_lang=page.lang, section=page._section
+                        )
+
+                    return loader
+
+                proxy = PageProxy(
+                    source_path=page.source_path,
+                    metadata=cached_metadata,
+                    loader=make_loader(page.source_path),
+                )
+
+                # Copy section relationship
+                proxy._section = page._section
+
+                # Replace full page with proxy
+                all_discovered_pages[i] = proxy
+                proxy_count += 1
+
+                self.logger.debug(
+                    "page_proxy_created",
+                    source_path=str(page.source_path),
+                    from_cache=True,
+                )
+            else:
+                # Page is changed or not in cache - keep as full Page
+                full_page_count += 1
+
+        # Update self.pages with the mixed list
+        self.pages = all_discovered_pages
+
+        self.logger.info(
+            "content_discovery_with_cache_complete",
+            total_pages=len(all_discovered_pages),
+            proxies=proxy_count,
+            full_pages=full_page_count,
+            sections=len(sections),
+        )
+
+        return sections, all_discovered_pages
+
+    def _cache_is_valid(self, page: Page, cached_metadata: Any) -> bool:
+        """
+        Check if cached metadata is still valid for a page.
+
+        Args:
+            page: Discovered page
+            cached_metadata: Cached metadata from PageDiscoveryCache
+
+        Returns:
+            True if cache is valid and can be used (unchanged page)
+        """
+        # Compare key metadata that indicates a change
+        # If any of these changed, the page needs to be reparsed
+
+        # Title
+        if page.title != cached_metadata.title:
+            return False
+
+        # Tags
+        if set(page.tags or []) != set(cached_metadata.tags or []):
+            return False
+
+        # Date
+        page_date_str = page.date.isoformat() if page.date else None
+        if page_date_str != cached_metadata.date:
+            return False
+
+        # Slug
+        if page.slug != cached_metadata.slug:
+            return False
+
+        # Section
+        page_section_str = str(page._section.path) if page._section else None
+        if page_section_str != cached_metadata.section:
+            return False
+
+        # If we got here, cache is valid
+        return True
 
     def _walk_directory(
         self, directory: Path, parent_section: Section, current_lang: str | None = None
