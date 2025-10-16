@@ -146,6 +146,7 @@ class ComponentPreviewServer:
                     new_path=m.get("manifest_path"),
                 )
                 # Keep the first (child theme) and ignore later duplicates
+                pass
             else:
                 dedup[cid] = m
                 order.append(cid)
