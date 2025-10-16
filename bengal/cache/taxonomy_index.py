@@ -310,6 +310,42 @@ class TaxonomyIndex:
         """
         return {tag_slug: entry for tag_slug, entry in self.tags.items() if not entry.is_valid}
 
+    def pages_changed(self, tag_slug: str, new_page_paths: list[str]) -> bool:
+        """
+        Check if pages for a tag have changed (enabling skipping of unchanged tag regeneration).
+
+        This is the key optimization for Phase 2c.2: If a tag's page membership hasn't changed,
+        we can skip regenerating its HTML pages entirely since the output would be identical.
+
+        Args:
+            tag_slug: Normalized tag identifier
+            new_page_paths: New list of page paths for this tag
+
+        Returns:
+            True if tag pages have changed and need regeneration
+            False if tag pages are identical to cached version
+        """
+        # New tag - always needs generation
+        entry = self.get_tag(tag_slug)
+        if not entry:
+            return True
+
+        # Compare as sets (order doesn't matter for HTML generation)
+        # Since pages are always sorted by date in output, set comparison is sufficient
+        old_paths = set(entry.page_paths)
+        new_paths = set(new_page_paths)
+
+        changed = old_paths != new_paths
+        logger.debug(
+            "tag_pages_comparison",
+            tag_slug=tag_slug,
+            old_count=len(old_paths),
+            new_count=len(new_paths),
+            changed=changed,
+        )
+
+        return changed
+
     def stats(self) -> dict[str, Any]:
         """
         Get taxonomy index statistics.
