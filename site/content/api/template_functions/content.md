@@ -229,7 +229,7 @@ def nl2br(text: str) -> str
 
 Convert newlines to HTML <br> tags.
 
-    Replaces
+    Replaces 
  with <br>
  to preserve both HTML and text formatting.
 

@@ -137,6 +137,13 @@ class PageProxy:
         self._ensure_loaded()
         return self._full_page.rendered_html if self._full_page else ""
 
+    @rendered_html.setter
+    def rendered_html(self, value: str) -> None:
+        """Set rendered HTML."""
+        self._ensure_loaded()
+        if self._full_page:
+            self._full_page.rendered_html = value
+
     @property
     def links(self) -> list[str]:
         """Get extracted links (lazy-loaded)."""
@@ -239,6 +246,74 @@ class PageProxy:
         """Get the URL path for the page (lazy-loaded, cached after first access)."""
         self._ensure_loaded()
         return self._full_page.url if self._full_page else "/"
+
+    # ============================================================================
+    # Computed Properties - delegate to full page (cached_properties)
+    # ============================================================================
+
+    @property
+    def meta_description(self) -> str:
+        """Get meta description (lazy-loaded from full page)."""
+        self._ensure_loaded()
+        return self._full_page.meta_description if self._full_page else ""
+
+    @property
+    def reading_time(self) -> str:
+        """Get reading time estimate (lazy-loaded from full page)."""
+        self._ensure_loaded()
+        return self._full_page.reading_time if self._full_page else ""
+
+    @property
+    def excerpt(self) -> str:
+        """Get content excerpt (lazy-loaded from full page)."""
+        self._ensure_loaded()
+        return self._full_page.excerpt if self._full_page else ""
+
+    @property
+    def keywords(self) -> list[str]:
+        """Get keywords (lazy-loaded from full page)."""
+        self._ensure_loaded()
+        return self._full_page.keywords if self._full_page else []
+
+    # ============================================================================
+    # Type/Kind Properties - Metadata-based type checking
+    # ============================================================================
+
+    @property
+    def is_home(self) -> bool:
+        """Check if this page is the home page."""
+        self._ensure_loaded()
+        return self._full_page.is_home if self._full_page else False
+
+    @property
+    def is_section(self) -> bool:
+        """Check if this page is a section page."""
+        self._ensure_loaded()
+        return self._full_page.is_section if self._full_page else False
+
+    @property
+    def is_page(self) -> bool:
+        """Check if this is a regular page (not a section)."""
+        self._ensure_loaded()
+        return self._full_page.is_page if self._full_page else True
+
+    @property
+    def kind(self) -> str:
+        """Get the kind of page: 'home', 'section', or 'page'."""
+        self._ensure_loaded()
+        return self._full_page.kind if self._full_page else "page"
+
+    @property
+    def description(self) -> str:
+        """Get page description from metadata."""
+        self._ensure_loaded()
+        return self._full_page.description if self._full_page else ""
+
+    @property
+    def draft(self) -> bool:
+        """Check if page is marked as draft."""
+        self._ensure_loaded()
+        return self._full_page.draft if self._full_page else False
 
     # ============================================================================
     # Navigation Properties - Most work with cached metadata only

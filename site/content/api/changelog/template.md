@@ -15,3 +15,4 @@ Changelog template definition.
 
 
 ## Functions
+

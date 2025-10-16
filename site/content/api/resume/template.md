@@ -15,3 +15,4 @@ Resume template definition.
 
 
 ## Functions
+

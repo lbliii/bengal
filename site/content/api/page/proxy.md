@@ -154,6 +154,86 @@ def url(self) -> str
 ```
 
 Get the URL path for the page (lazy-loaded, cached after first access).
+#### `meta_description` @property
+
+```python
+@property
+def meta_description(self) -> str
+```
+
+Get meta description (lazy-loaded from full page).
+#### `reading_time` @property
+
+```python
+@property
+def reading_time(self) -> str
+```
+
+Get reading time estimate (lazy-loaded from full page).
+#### `excerpt` @property
+
+```python
+@property
+def excerpt(self) -> str
+```
+
+Get content excerpt (lazy-loaded from full page).
+#### `keywords` @property
+
+```python
+@property
+def keywords(self) -> list[str]
+```
+
+Get keywords (lazy-loaded from full page).
+#### `is_home` @property
+
+```python
+@property
+def is_home(self) -> bool
+```
+
+Check if this page is the home page.
+#### `is_section` @property
+
+```python
+@property
+def is_section(self) -> bool
+```
+
+Check if this page is a section page.
+#### `is_page` @property
+
+```python
+@property
+def is_page(self) -> bool
+```
+
+Check if this is a regular page (not a section).
+#### `kind` @property
+
+```python
+@property
+def kind(self) -> str
+```
+
+Get the kind of page: 'home', 'section', or 'page'.
+#### `description` @property
+
+```python
+@property
+def description(self) -> str
+```
+
+Get page description from metadata.
+#### `draft` @property
+
+```python
+@property
+def draft(self) -> bool
+```
+
+Check if page is marked as draft.
 #### `next` @property
 
 ```python
@@ -678,6 +758,426 @@ Get the URL path for the page (lazy-loaded, cached after first access).
 
 
 ---
+#### `meta_description`
+```python
+def meta_description(self) -> str
+```
+
+Get meta description (lazy-loaded from full page).
+
+
+
+:::{rubric} Parameters
+:class: rubric-parameters
+:::
+
+::::{dropdown} 1 parameters (click to expand)
+:open: false
+
+:::{list-table}
+:header-rows: 1
+:widths: 20 20 20 40
+
+* - Name
+  - Type
+  - Default
+  - Description
+* - `self`
+  - -
+  - -
+  - -
+:::
+
+::::
+
+:::{rubric} Returns
+:class: rubric-returns
+:::
+
+`str`
+
+
+
+
+---
+#### `reading_time`
+```python
+def reading_time(self) -> str
+```
+
+Get reading time estimate (lazy-loaded from full page).
+
+
+
+:::{rubric} Parameters
+:class: rubric-parameters
+:::
+
+::::{dropdown} 1 parameters (click to expand)
+:open: false
+
+:::{list-table}
+:header-rows: 1
+:widths: 20 20 20 40
+
+* - Name
+  - Type
+  - Default
+  - Description
+* - `self`
+  - -
+  - -
+  - -
+:::
+
+::::
+
+:::{rubric} Returns
+:class: rubric-returns
+:::
+
+`str`
+
+
+
+
+---
+#### `excerpt`
+```python
+def excerpt(self) -> str
+```
+
+Get content excerpt (lazy-loaded from full page).
+
+
+
+:::{rubric} Parameters
+:class: rubric-parameters
+:::
+
+::::{dropdown} 1 parameters (click to expand)
+:open: false
+
+:::{list-table}
+:header-rows: 1
+:widths: 20 20 20 40
+
+* - Name
+  - Type
+  - Default
+  - Description
+* - `self`
+  - -
+  - -
+  - -
+:::
+
+::::
+
+:::{rubric} Returns
+:class: rubric-returns
+:::
+
+`str`
+
+
+
+
+---
+#### `keywords`
+```python
+def keywords(self) -> list[str]
+```
+
+Get keywords (lazy-loaded from full page).
+
+
+
+:::{rubric} Parameters
+:class: rubric-parameters
+:::
+
+::::{dropdown} 1 parameters (click to expand)
+:open: false
+
+:::{list-table}
+:header-rows: 1
+:widths: 20 20 20 40
+
+* - Name
+  - Type
+  - Default
+  - Description
+* - `self`
+  - -
+  - -
+  - -
+:::
+
+::::
+
+:::{rubric} Returns
+:class: rubric-returns
+:::
+
+`list[str]`
+
+
+
+
+---
+#### `is_home`
+```python
+def is_home(self) -> bool
+```
+
+Check if this page is the home page.
+
+
+
+:::{rubric} Parameters
+:class: rubric-parameters
+:::
+
+::::{dropdown} 1 parameters (click to expand)
+:open: false
+
+:::{list-table}
+:header-rows: 1
+:widths: 20 20 20 40
+
+* - Name
+  - Type
+  - Default
+  - Description
+* - `self`
+  - -
+  - -
+  - -
+:::
+
+::::
+
+:::{rubric} Returns
+:class: rubric-returns
+:::
+
+`bool`
+
+
+
+
+---
+#### `is_section`
+```python
+def is_section(self) -> bool
+```
+
+Check if this page is a section page.
+
+
+
+:::{rubric} Parameters
+:class: rubric-parameters
+:::
+
+::::{dropdown} 1 parameters (click to expand)
+:open: false
+
+:::{list-table}
+:header-rows: 1
+:widths: 20 20 20 40
+
+* - Name
+  - Type
+  - Default
+  - Description
+* - `self`
+  - -
+  - -
+  - -
+:::
+
+::::
+
+:::{rubric} Returns
+:class: rubric-returns
+:::
+
+`bool`
+
+
+
+
+---
+#### `is_page`
+```python
+def is_page(self) -> bool
+```
+
+Check if this is a regular page (not a section).
+
+
+
+:::{rubric} Parameters
+:class: rubric-parameters
+:::
+
+::::{dropdown} 1 parameters (click to expand)
+:open: false
+
+:::{list-table}
+:header-rows: 1
+:widths: 20 20 20 40
+
+* - Name
+  - Type
+  - Default
+  - Description
+* - `self`
+  - -
+  - -
+  - -
+:::
+
+::::
+
+:::{rubric} Returns
+:class: rubric-returns
+:::
+
+`bool`
+
+
+
+
+---
+#### `kind`
+```python
+def kind(self) -> str
+```
+
+Get the kind of page: 'home', 'section', or 'page'.
+
+
+
+:::{rubric} Parameters
+:class: rubric-parameters
+:::
+
+::::{dropdown} 1 parameters (click to expand)
+:open: false
+
+:::{list-table}
+:header-rows: 1
+:widths: 20 20 20 40
+
+* - Name
+  - Type
+  - Default
+  - Description
+* - `self`
+  - -
+  - -
+  - -
+:::
+
+::::
+
+:::{rubric} Returns
+:class: rubric-returns
+:::
+
+`str`
+
+
+
+
+---
+#### `description`
+```python
+def description(self) -> str
+```
+
+Get page description from metadata.
+
+
+
+:::{rubric} Parameters
+:class: rubric-parameters
+:::
+
+::::{dropdown} 1 parameters (click to expand)
+:open: false
+
+:::{list-table}
+:header-rows: 1
+:widths: 20 20 20 40
+
+* - Name
+  - Type
+  - Default
+  - Description
+* - `self`
+  - -
+  - -
+  - -
+:::
+
+::::
+
+:::{rubric} Returns
+:class: rubric-returns
+:::
+
+`str`
+
+
+
+
+---
+#### `draft`
+```python
+def draft(self) -> bool
+```
+
+Check if page is marked as draft.
+
+
+
+:::{rubric} Parameters
+:class: rubric-parameters
+:::
+
+::::{dropdown} 1 parameters (click to expand)
+:open: false
+
+:::{list-table}
+:header-rows: 1
+:widths: 20 20 20 40
+
+* - Name
+  - Type
+  - Default
+  - Description
+* - `self`
+  - -
+  - -
+  - -
+:::
+
+::::
+
+:::{rubric} Returns
+:class: rubric-returns
+:::
+
+`bool`
+
+
+
+
+---
 #### `next`
 ```python
 def next(self) -> Page | None
@@ -805,6 +1305,52 @@ Initialize PageProxy with metadata and loader.
 :::
 
 ::::
+
+
+
+
+---
+#### `rendered_html`
+```python
+def rendered_html(self, value: str) -> None
+```
+
+Set rendered HTML.
+
+
+
+:::{rubric} Parameters
+:class: rubric-parameters
+:::
+
+::::{dropdown} 2 parameters (click to expand)
+:open: false
+
+:::{list-table}
+:header-rows: 1
+:widths: 20 20 20 40
+
+* - Name
+  - Type
+  - Default
+  - Description
+* - `self`
+  - -
+  - -
+  - -
+* - `value`
+  - `str`
+  - -
+  - -
+:::
+
+::::
+
+:::{rubric} Returns
+:class: rubric-returns
+:::
+
+`None`
 
 
 

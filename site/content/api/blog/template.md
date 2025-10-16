@@ -15,3 +15,4 @@ Blog template definition.
 
 
 ## Functions
+
