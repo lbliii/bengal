@@ -37,7 +37,7 @@ class AssetDiscovery:
             # Log: "Created missing assets dir"
 
         # Walk the assets directory
-        for file_path in self.assets_dir.rglob("*"):
+        for file_path in assets_dir.rglob("*"):
             if file_path.is_file():
                 # Skip hidden files
                 if any(part.startswith(".") for part in file_path.parts):
@@ -48,7 +48,7 @@ class AssetDiscovery:
                     continue
 
                 # Create asset with relative output path
-                rel_path = file_path.relative_to(self.assets_dir)
+                rel_path = file_path.relative_to(assets_dir)
 
                 asset = Asset(
                     source_path=file_path,
