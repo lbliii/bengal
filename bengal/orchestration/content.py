@@ -211,12 +211,32 @@ class ContentOrchestrator:
         All pages under this section will inherit these values unless they
         define their own values (page values take precedence over cascaded values).
 
-        Delegates to CascadeEngine for the actual implementation.
+        Delegates to CascadeEngine for the actual implementation and collects statistics.
         """
         from bengal.core.cascade_engine import CascadeEngine
 
         engine = CascadeEngine(self.site.pages, self.site.sections)
-        engine.apply()
+        stats = engine.apply()
+
+        # Log cascade statistics
+        if stats.get("cascade_keys_applied"):
+            keys_info = ", ".join(
+                f"{k}({v})" for k, v in sorted(stats["cascade_keys_applied"].items())
+            )
+            self.logger.info(
+                "cascades_applied",
+                pages_processed=stats["pages_processed"],
+                pages_affected=stats["pages_with_cascade"],
+                root_cascade_pages=stats["root_cascade_pages"],
+                cascade_keys=keys_info,
+            )
+        else:
+            self.logger.debug(
+                "cascades_applied",
+                pages_processed=stats["pages_processed"],
+                pages_affected=0,
+                reason="no_cascades_defined",
+            )
 
     def _set_output_paths(self) -> None:
         """
