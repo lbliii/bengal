@@ -53,8 +53,8 @@ class BengalRequestHandler(RequestLogger, LiveReloadMixin, http.server.SimpleHTT
         properly set these during normal HTTP request handling.
         """
         super().__init__(*args, **kwargs)
-        # Initialize with empty HTTPMessage using a file-like object
-        self.headers = HTTPMessage(io.BytesIO())
+        # Initialize with empty HTTPMessage
+        self.headers = HTTPMessage()
         self.request_version = "HTTP/1.1"
 
     @override
