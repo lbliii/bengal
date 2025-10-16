@@ -210,13 +210,12 @@ class BengalLogger:
                 **phase_context,
             )
 
-    def _emit(self, level: LogLevel, event_type: str, message: str, **context):
+    def _emit(self, level: LogLevel, message: str, **context):
         """
         Emit a log event.
 
         Args:
             level: Log level
-            event_type: Event type identifier
             message: Human-readable message
             **context: Additional context data
         """
@@ -286,23 +285,23 @@ class BengalLogger:
 
     def debug(self, message: str, **context):
         """Log debug event."""
-        self._emit(LogLevel.DEBUG, "debug", message, **context)
+        self._emit(LogLevel.DEBUG, message, **context)
 
     def info(self, message: str, **context):
         """Log info event."""
-        self._emit(LogLevel.INFO, "info", message, **context)
+        self._emit(LogLevel.INFO, message, **context)
 
     def warning(self, message: str, **context):
         """Log warning event."""
-        self._emit(LogLevel.WARNING, "warning", message, **context)
+        self._emit(LogLevel.WARNING, message, **context)
 
     def error(self, message: str, **context):
         """Log error event."""
-        self._emit(LogLevel.ERROR, "error", message, **context)
+        self._emit(LogLevel.ERROR, message, **context)
 
     def critical(self, message: str, **context):
         """Log critical event."""
-        self._emit(LogLevel.CRITICAL, "critical", message, **context)
+        self._emit(LogLevel.CRITICAL, message, **context)
 
     def get_events(self) -> list[LogEvent]:
         """Get all logged events."""
@@ -358,7 +357,7 @@ class BengalLogger:
                 print(f"  {phase:30s} {duration:8.1f}ms ({percentage:5.1f}%)")
 
             print("-" * 60)
-            print(f"  {'TOTAL':30s} {total:8.1f}ms (100.0%)")
+            console.print(f"  {'TOTAL':30s} {total:8.1f}ms (100.0%)")
             print("=" * 60)
 
     def close(self):
@@ -371,7 +370,7 @@ class BengalLogger:
         """Context manager entry."""
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type, *args):
         """Context manager exit."""
         self.close()
         return False

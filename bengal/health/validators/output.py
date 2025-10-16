@@ -27,6 +27,8 @@ class OutputValidator(BaseValidator):
     description = "Validates generated pages and assets"
     enabled_by_default = True
 
+    MIN_SIZE = 1000  # Configurable via site.config
+
     @override
     def validate(self, site: "Site") -> list[CheckResult]:
         """Run output validation checks."""

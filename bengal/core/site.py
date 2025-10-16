@@ -394,67 +394,13 @@ class Site:
 
         All pages under this section will inherit these values unless they
         define their own values (page values take precedence over cascaded values).
+
+        Delegates to CascadeEngine for the actual implementation.
         """
-        # First, check for root-level cascade from top-level pages (like content/index.md)
-        root_cascade = None
-        for page in self.pages:
-            # Check if this is a top-level page (not in any section)
-            is_top_level = not any(page in section.pages for section in self.sections)
-            if is_top_level and "cascade" in page.metadata:
-                # Found root-level cascade - merge it
-                if root_cascade is None:
-                    root_cascade = {}
-                root_cascade.update(page.metadata["cascade"])
+        from bengal.core.cascade_engine import CascadeEngine
 
-        # Process all top-level sections with root cascade (they will recurse to subsections)
-        for section in self.sections:
-            self._apply_section_cascade(section, parent_cascade=root_cascade)
-
-        # Also apply root cascade to other top-level pages
-        if root_cascade:
-            for page in self.pages:
-                is_top_level = not any(page in section.pages for section in self.sections)
-                # Skip the page that defined the cascade itself
-                if is_top_level and "cascade" not in page.metadata:
-                    for key, value in root_cascade.items():
-                        if key not in page.metadata:
-                            page.metadata[key] = value
-
-    def _apply_section_cascade(
-        self, section: Section, parent_cascade: dict[str, Any] | None = None
-    ) -> None:
-        """
-        Recursively apply cascade metadata to a section and its descendants.
-
-        Cascade metadata accumulates through the hierarchy - child sections inherit
-        and can extend parent cascades.
-
-        Args:
-            section: Section to process
-            parent_cascade: Cascade metadata inherited from parent sections
-        """
-        # Merge parent cascade with this section's cascade
-        accumulated_cascade = {}
-
-        if parent_cascade:
-            accumulated_cascade.update(parent_cascade)
-
-        if "cascade" in section.metadata:
-            # Section's cascade extends/overrides parent cascade
-            accumulated_cascade.update(section.metadata["cascade"])
-
-        # Apply accumulated cascade to all pages in this section
-        # (but only for keys not already defined in page metadata)
-        for page in section.pages:
-            if accumulated_cascade:
-                for key, value in accumulated_cascade.items():
-                    # Page metadata takes precedence over cascade
-                    if key not in page.metadata:
-                        page.metadata[key] = value
-
-        # Recursively apply to subsections with accumulated cascade
-        for subsection in section.subsections:
-            self._apply_section_cascade(subsection, accumulated_cascade)
+        engine = CascadeEngine(self.pages, self.sections)
+        engine.apply()
 
     def _get_theme_assets_dir(self) -> Path | None:
         """

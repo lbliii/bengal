@@ -293,3 +293,15 @@ def date_range_overlap(start1: DateLike, end1: DateLike, start2: DateLike, end2:
         return False
 
     return dt_start1 <= dt_end2 and dt_start2 <= dt_end1  # type: ignore
+
+
+def utc_now() -> datetime:
+    """Get current UTC datetime (low-level primitive)."""
+    return datetime.now(UTC)
+
+
+def iso_timestamp(dt: datetime | None = None) -> str:
+    """Get ISO 8601 timestamp from datetime (UTC)."""
+    if dt is None:
+        dt = utc_now()
+    return dt.isoformat()

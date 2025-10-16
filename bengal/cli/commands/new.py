@@ -197,7 +197,7 @@ def new() -> None:
 
 
 @new.command()
-@click.argument("name")
+@click.argument("name", required=False)
 @click.option("--theme", default="default", help="Theme to use")
 @click.option(
     "--template",
@@ -218,10 +218,32 @@ def site(name: str, theme: str, template: str, no_init: bool, init_preset: str) 
     🏗️  Create a new Bengal site with optional structure initialization.
     """
     try:
-        site_path = Path(name)
+        # Prompt for site name if not provided
+        if not name:
+            click.echo(click.style("\n🏗️  Create a new Bengal site", fg="cyan", bold=True))
+            name = click.prompt(
+                click.style("Enter site name", fg="cyan"),
+                type=str,
+            )
+            if not name:
+                click.echo(click.style("✨ Cancelled.", fg="yellow"))
+                raise click.Abort()
+
+        # Store the original name for site title and slugify for directory
+        site_title = name.strip()
+        site_dir_name = _slugify(site_title)
+
+        # Validate that slugified name is not empty
+        if not site_dir_name:
+            show_error(
+                "Site name must contain at least one alphanumeric character!", show_art=False
+            )
+            raise click.Abort()
+
+        site_path = Path(site_dir_name)
 
         if site_path.exists():
-            show_error(f"Directory {name} already exists!", show_art=False)
+            show_error(f"Directory {site_dir_name} already exists!", show_art=False)
             raise click.Abort()
 
         # Determine effective template
@@ -245,8 +267,13 @@ def site(name: str, theme: str, template: str, no_init: bool, init_preset: str) 
         # Get the effective template
         site_template = get_template(effective_template)
 
+        # Show what we're creating
+        display_text = site_title
+        if site_title != site_dir_name:
+            display_text += click.style(f" → {site_dir_name}", fg="bright_black")
+
         click.echo(
-            click.style(f"\n🏗️  Creating new Bengal site: {name}", fg="cyan", bold=True)
+            click.style(f"\n🏗️  Creating new Bengal site: {display_text}", fg="cyan", bold=True)
             + click.style(f" ({site_template.description})", fg="bright_black")
         )
 
@@ -264,9 +291,9 @@ def site(name: str, theme: str, template: str, no_init: bool, init_preset: str) 
 
         click.echo(click.style("   ├─ ", fg="cyan") + "Created directory structure")
 
-        # Create config file
+        # Create config file using site_title for the title field
         config_content = f"""[site]
-title = "{name}"
+title = "{site_title}"
 baseurl = ""
 theme = "{theme}"
 
@@ -369,7 +396,7 @@ Thumbs.db
 
         # Show next steps
         click.echo(click.style("\n📚 Next steps:", fg="cyan", bold=True))
-        click.echo(click.style("   ├─ ", fg="cyan") + f"cd {name}")
+        click.echo(click.style("   ├─ ", fg="cyan") + f"cd {site_dir_name}")
         click.echo(click.style("   └─ ", fg="cyan") + "bengal serve")
         click.echo()
 

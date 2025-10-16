@@ -31,6 +31,8 @@ class ContentDiscovery:
         self.sections: list[Section] = []
         self.pages: list[Page] = []
         self.logger = get_logger(__name__)
+        # Deprecated: do not store mutable current section on the instance; pass explicitly
+        self.current_section: Section | None = None
 
     def discover(self) -> tuple[list[Section], list[Page]]:
         """
@@ -98,12 +100,12 @@ class ContentDiscovery:
                 # Defer parsing to thread pool
                 if not hasattr(self, "_executor") or self._executor is None:
                     # Fallback to synchronous create if executor not initialized
-                    page = self._create_page(item_path, current_lang=current_lang)
+                    page = self._create_page(item_path, current_lang=current_lang, section=None)
                     self.pages.append(page)
                     produced_pages.append(page)
                 else:
                     pending_pages.append(
-                        self._executor.submit(self._create_page, item_path, current_lang)
+                        self._executor.submit(self._create_page, item_path, current_lang, None)
                     )
             elif item_path.is_dir():
                 section = Section(
@@ -218,10 +220,12 @@ class ContentDiscovery:
                 # Create a page (in parallel when executor is available)
                 if hasattr(self, "_executor") and self._executor is not None:
                     file_futures.append(
-                        self._executor.submit(self._create_page, item, current_lang)
+                        self._executor.submit(self._create_page, item, current_lang, parent_section)
                     )
                 else:
-                    page = self._create_page(item, current_lang=current_lang)
+                    page = self._create_page(
+                        item, current_lang=current_lang, section=parent_section
+                    )
                     parent_section.add_page(page)
                     self.pages.append(page)
 
@@ -268,7 +272,9 @@ class ContentDiscovery:
         content_extensions = {".md", ".markdown", ".rst", ".txt"}
         return file_path.suffix.lower() in content_extensions
 
-    def _create_page(self, file_path: Path, current_lang: str | None = None) -> Page:
+    def _create_page(
+        self, file_path: Path, current_lang: str | None = None, section: Section | None = None
+    ) -> Page:
         """
         Create a Page object from a file with robust error handling.
 
@@ -291,11 +297,16 @@ class ContentDiscovery:
         try:
             content, metadata = self._parse_content_file(file_path)
 
+            # Create page without passing section into constructor
             page = Page(
                 source_path=file_path,
                 content=content,
                 metadata=metadata,
             )
+
+            # Attach section relationship post-construction when provided
+            if section is not None:
+                page._section = section
 
             # i18n: assign language and translation key if available
             try:

@@ -211,19 +211,18 @@ class TestLoadData:
         assert "error" in result
         assert "unsupported" in result["error"].lower()
 
-    def test_load_file_too_large(self, temp_data_dir, mock_state):
+    def test_load_file_too_large(self, tmp_path, mock_state):
         """Test loading file that exceeds size limit."""
         # Create a file larger than 5MB
-        large_file = temp_data_dir / "data" / "large.yaml"
-        large_file.parent.mkdir(exist_ok=True)
+        large_file = tmp_path / "large.yaml"
+        large_file.write_text("a" * 1_100_000)  # >1MB
 
-        # Mock file size check
         directive = DataTableDirective()
 
         with patch.object(Path, "stat") as mock_stat:
-            mock_stat.return_value.st_size = 6 * 1024 * 1024  # 6MB
+            mock_stat.return_value.st_size = 1_100_000  # 6MB
 
-            result = directive._load_data("data/large.yaml", mock_state)
+            result = directive._load_data(str(large_file), mock_state)
 
             assert "error" in result
             assert "too large" in result["error"].lower()

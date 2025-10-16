@@ -5,8 +5,10 @@ Provides beautiful logging, custom 404 pages, and live reload support.
 """
 
 import http.server
+import io
 import re
 import threading
+from http.client import HTTPMessage
 from pathlib import Path
 from typing import override
 
@@ -41,6 +43,19 @@ class BengalRequestHandler(RequestLogger, LiveReloadMixin, http.server.SimpleHTT
     _html_cache = {}
     _html_cache_max_size = 50  # Keep last 50 pages in cache
     _html_cache_lock = threading.Lock()
+
+    def __init__(self, *args, **kwargs):
+        """
+        Initialize the request handler.
+
+        Pre-initializes headers and request_version to avoid AttributeError
+        when tests bypass normal request parsing flow. The parent class will
+        properly set these during normal HTTP request handling.
+        """
+        super().__init__(*args, **kwargs)
+        # Initialize with empty HTTPMessage
+        self.headers = HTTPMessage()
+        self.request_version = "HTTP/1.1"
 
     @override
     def handle(self) -> None:

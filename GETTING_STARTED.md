@@ -676,3 +676,15 @@ bengal theme new <slug>      # Scaffold a theme (use --mode site|package)
 - [ARCHITECTURE.md](ARCHITECTURE.md) - Technical architecture documentation
 - [CONTRIBUTING.md](CONTRIBUTING.md) - Development guidelines
 - `examples/` - Example sites and use cases
+
+## Running Tests on Python 3.14
+
+Bengal requires Python 3.13+, but tests must use 3.14+ for compatibility (e.g., free-threading perf).
+
+1. Ensure venv-3.14 is created: `python3.14 -m venv venv-3.14 && source venv-3.14/bin/activate && pip install -e .[dev]`.
+
+2. Always run tests via `./scripts/run-tests.sh` (auto-activates venv).
+
+3. For free-threaded (1.8x faster): Use `venv-3.14t` and update `run-tests.sh` accordingly. See `INSTALL_FREE_THREADED.md`.
+
+Avoid running `pytest` directly from Miniconda/system Python to prevent version mismatches.

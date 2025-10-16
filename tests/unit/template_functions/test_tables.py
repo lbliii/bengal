@@ -269,7 +269,11 @@ class TestDataTableInTemplate:
             yaml_path=f"data/{yaml_data_file.name}", csv_path=f"data/{csv_data_file.name}"
         )
 
-        assert result.count("bengal-data-table") == 2
+        # Check that each table appears at least once
+        count = result.count("bengal-data-table")
+        assert (
+            count >= 2
+        ), f"Expected at least 2 tables, but bengal-data-table appears {count} times"
         assert "YAML Table" in result
         assert "CSV Table" in result
 

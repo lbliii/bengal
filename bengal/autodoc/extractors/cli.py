@@ -93,7 +93,7 @@ class CLIExtractor(Extractor):
 
         # Add each command as a separate top-level element for individual pages
         # Recursively flatten nested command groups
-        def flatten_commands(children: list[DocElement], is_root: bool = True):
+        def flatten_commands(children: list[DocElement]):
             for child in children:
                 # Always add nested command groups (they get _index.md)
                 # Always add regular commands (they get individual pages)
@@ -103,7 +103,7 @@ class CLIExtractor(Extractor):
                     elements.append(child)
                     # Then flatten its children (but don't add them directly to avoid duplicates)
                     if child.children:
-                        flatten_commands(child.children, is_root=False)
+                        flatten_commands(child.children)
                 elif child.element_type == "command":
                     # Regular commands get individual pages
                     elements.append(child)

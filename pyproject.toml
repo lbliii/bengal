@@ -60,6 +60,8 @@ dev = [
     "mypy>=1.11.0",
     "ruff>=0.6.0",
 ]
+# Note: parsing extra removed - Bengal uses stdlib html.parser (NativeHTMLParser)
+# for build-time validation. BS4/lxml were removed for performance.
 
 [project.scripts]
 bengal = "bengal.cli:main"

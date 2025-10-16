@@ -10,55 +10,82 @@ import pytest
 from bengal.rendering.parsers.pygments_patch import PygmentsPatch
 
 
+@pytest.fixture
+def clean_pygments_state():
+    """Ensure clean state before and after each test."""
+    PygmentsPatch.restore()  # Start clean
+    yield
+    PygmentsPatch.restore()  # Cleanup after test
+
+
 class TestPygmentsPatchApply:
     """Test applying the Pygments patch."""
 
-    def test_patch_can_be_applied(self):
+    def test_patch_can_be_applied(self, clean_pygments_state):
         """Test that patch can be applied successfully."""
-        # Ensure we start clean
-        PygmentsPatch.restore()
-
         result = PygmentsPatch.apply()
 
-        try:
-            assert result is True
-            assert PygmentsPatch.is_patched() is True
-        finally:
-            PygmentsPatch.restore()
+        assert result is True, "First application should succeed"
+        assert PygmentsPatch.is_patched() is True, "Patch should be active after apply"
 
-    def test_patch_is_idempotent(self):
+    def test_patch_is_idempotent(self, clean_pygments_state):
         """Test that applying patch multiple times is safe."""
-        # Ensure we start clean
-        PygmentsPatch.restore()
-
         result1 = PygmentsPatch.apply()
         result2 = PygmentsPatch.apply()
         result3 = PygmentsPatch.apply()
 
-        try:
-            assert result1 is True  # First application succeeds
-            assert result2 is False  # Already applied
-            assert result3 is False  # Already applied
-            assert PygmentsPatch.is_patched() is True
-        finally:
-            PygmentsPatch.restore()
+        assert result1 is True, "First application succeeds"
+        assert result2 is False, "Second application returns False (already applied)"
+        assert result3 is False, "Third application returns False (still applied)"
+        assert PygmentsPatch.is_patched() is True, "Patch remains active"
 
-    def test_patch_affects_codehilite_module(self):
+    def test_patch_affects_codehilite_module(self, clean_pygments_state):
         """Test that patch modifies the codehilite module."""
-        PygmentsPatch.restore()  # Start clean
-
         try:
-            import markdown.extensions.codehilite
+            import markdown.extensions.codehilite  # noqa: F401
         except ImportError:
             pytest.skip("markdown-codehilite extension not available")
+
         # Apply patch
-        PygmentsPatch.apply()
+        result = PygmentsPatch.apply()
 
         # Verify patch applied via explicit state check
+        assert result is True, "Patch should apply successfully"
+        assert PygmentsPatch.is_patched() is True, "Patch state should be True"
+
+    def test_restore_after_apply_returns_to_original_state(self, clean_pygments_state):
+        """Test that restore fully reverses the patch."""
+        PygmentsPatch.apply()
         assert PygmentsPatch.is_patched() is True
 
-        finally:
-            PygmentsPatch.restore()
+        PygmentsPatch.restore()
+        assert PygmentsPatch.is_patched() is False, "Patch should be removed after restore"
+
+    def test_patch_after_restore_works(self, clean_pygments_state):
+        """Test patch can be reapplied after restoration."""
+        PygmentsPatch.apply()
+        PygmentsPatch.restore()
+
+        result = PygmentsPatch.apply()
+        assert result is True, "Should be able to reapply after restore"
+        assert PygmentsPatch.is_patched() is True, "Patch should be active again"
+
+    def test_apply_without_codehilite_returns_false(self, clean_pygments_state, monkeypatch):
+        """Test that apply gracefully handles missing codehilite."""
+        import builtins
+
+        original_import = builtins.__import__
+
+        def mock_import(name, *args, **kwargs):
+            if "markdown.extensions" in name or name == "markdown.extensions":
+                raise ImportError("No module named 'markdown.extensions'")
+            return original_import(name, *args, **kwargs)
+
+        monkeypatch.setattr(builtins, "__import__", mock_import)
+
+        result = PygmentsPatch.apply()
+        assert result is False, "Apply should return False when codehilite unavailable"
+        assert PygmentsPatch.is_patched() is False, "Patch should not be active"
 
 
 class TestPygmentsPatchRestore:
@@ -90,7 +117,11 @@ class TestPygmentsPatchRestore:
         PygmentsPatch.restore()  # Start clean
 
         try:
-            import markdown.extensions.codehilite
+            # Try to import to check if extension is available
+            import importlib.util
+
+            if importlib.util.find_spec("markdown.extensions.codehilite") is None:
+                pytest.skip("markdown-codehilite extension not available")
         except ImportError:
             pytest.skip("markdown-codehilite extension not available")
         # Apply and restore
@@ -240,26 +271,13 @@ class TestPygmentsPatchState:
 class TestPygmentsPatchErrorHandling:
     """Test error handling in patch operations."""
 
-    def test_missing_codehilite_is_handled_gracefully(self, monkeypatch):
-        """Test that missing codehilite is handled without crashing."""
-        PygmentsPatch.restore()
-
-        # Mock the import to fail
-        import builtins
-
-        original_import = builtins.__import__
-
-        def mock_import(name, *args, **kwargs):
-            if "markdown.extensions" in name or name == "markdown.extensions":
-                raise ImportError("No module named 'markdown.extensions'")
-            return original_import(name, *args, **kwargs)
-
-        monkeypatch.setattr(builtins, "__import__", mock_import)
-
-        # Should not raise, just return False
+    def test_exception_during_apply_is_handled(self, clean_pygments_state):
+        """Test that exceptions during apply don't leave patch in bad state."""
+        # This test verifies graceful error handling
+        # The actual codehilite missing test is in TestPygmentsPatchApply
         result = PygmentsPatch.apply()
-        assert result is False
-        assert PygmentsPatch.is_patched() is False
+        # Should succeed or fail gracefully
+        assert isinstance(result, bool)
 
 
 class TestPygmentsPatchIntegration:

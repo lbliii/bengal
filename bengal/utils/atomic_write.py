@@ -169,7 +169,7 @@ class AtomicFile:
         self.file = open(self.tmp_path, self.mode, **open_kwargs)
         return self.file
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type, *args):
         """Close temp file and rename atomically if successful."""
         if self.file:
             self.file.close()

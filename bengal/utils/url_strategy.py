@@ -29,7 +29,9 @@ class URLStrategy:
     """
 
     @staticmethod
-    def compute_regular_page_output_path(page: "Page", site: "Site") -> Path:
+    def compute_regular_page_output_path(
+        page: "Page", site: "Site", pre_cascade: bool = False
+    ) -> Path:
         """
         Compute output path for a regular content page.
 
@@ -59,6 +61,10 @@ class URLStrategy:
         except ValueError:
             # Not under content_dir (shouldn't happen for regular pages)
             rel_path = Path(page.source_path.name)
+
+        if pre_cascade:
+            # For pre-cascade, use source_path as-is without modifications
+            rel_path = page.source_path.relative_to(content_dir)
 
         # Change extension to .html
         output_rel_path = rel_path.with_suffix(".html")

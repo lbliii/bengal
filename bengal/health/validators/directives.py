@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING, Any, override
 
 from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult
+from bengal.rendering.parsers.factory import ParserFactory
 
 if TYPE_CHECKING:
     from bengal.core.site import Site
@@ -558,24 +559,9 @@ class DirectiveValidator(BaseValidator):
             True if unrendered directives found (not in code blocks)
         """
         try:
-            from bs4 import BeautifulSoup
-
-            soup = BeautifulSoup(html_content, "html.parser")
-
-            # Remove all code blocks first (they're allowed to show directive syntax)
-            for code_block in soup.find_all(["code", "pre"]):
-                code_block.decompose()
-
-            # Now check the remaining HTML for directive markers
+            parser = ParserFactory.get_html_parser("native")
+            soup = parser(html_content)
             remaining_text = soup.get_text()
-
-            # Check for unrendered directive blocks: ```{type}
             return bool(re.search(r"```\{(\w+)", remaining_text))
-
-        except ImportError:
-            # BeautifulSoup not available, fall back to simple check
-            # (will have false positives for docs with code examples)
-            return re.search(r"```\{(\w+)", html_content) is not None
         except Exception:
-            # On any parsing error, assume it's ok to avoid false positives
-            return False
+            return re.search(r"```\{(\w+)", html_content) is not None

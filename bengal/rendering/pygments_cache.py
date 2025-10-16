@@ -222,3 +222,94 @@ def log_cache_stats():
         hit_rate=f"{stats['hit_rate']:.1%}",
         cache_size=stats["cache_size"],
     )
+
+
+class PygmentsPatch:
+    """
+    Monkey-patch adapter for Pygments used in tests.
+
+    Provides a context manager and static methods to apply/restore a
+    patch that routes markdown.codehilite lookups through our cached
+    helpers, without changing public APIs.
+    """
+
+    _original_get = None
+    _original_guess = None
+    _patched = False
+    _nesting_count = 0
+
+    def __enter__(self):
+        self.apply()
+        return self
+
+    def __exit__(self, exc_type, tb):
+        self.restore()
+
+    @classmethod
+    def apply(cls) -> bool:
+        """Apply monkey patches; idempotent. Returns True if applied."""
+        if cls._patched:
+            # Already patched; bump nesting and return False
+            try:
+                cls._nesting_count += 1
+            except Exception:
+                cls._nesting_count = max(1, getattr(cls, "_nesting_count", 0))
+            return False
+        try:
+            from markdown.extensions import codehilite as md_codehilite
+
+            cls._original_get = (
+                getattr(md_codehilite, "get_lexer_by_name", None) or md_codehilite.get_lexer_by_name
+                if hasattr(md_codehilite, "get_lexer_by_name")
+                else None
+            )
+            cls._original_guess = (
+                getattr(md_codehilite, "guess_lexer", None) or md_codehilite.guess_lexer
+                if hasattr(md_codehilite, "guess_lexer")
+                else None
+            )
+
+            def _patched_get_lexer_by_name(name: str, *args, **kwargs):
+                return get_lexer_cached(name)
+
+            def _patched_guess_lexer(code: str, *args, **kwargs):
+                return get_lexer_cached(None, code)
+
+            md_codehilite.get_lexer_by_name = _patched_get_lexer_by_name
+            md_codehilite.guess_lexer = _patched_guess_lexer
+            cls._patched = True
+            cls._nesting_count = 1
+            return True
+        except Exception:
+            # If codehilite is unavailable, do nothing
+            return False
+
+    @classmethod
+    def restore(cls) -> bool:
+        """Restore original functions; returns True if restoration occurred."""
+        if not cls._patched:
+            return False
+        try:
+            from markdown.extensions import codehilite as md_codehilite
+
+            # Decrement nesting and only unpatch when reaching zero
+            if cls._nesting_count > 1:
+                cls._nesting_count -= 1
+                return False
+            # Actually restore when exiting outermost context
+            if cls._original_get is not None:
+                md_codehilite.get_lexer_by_name = cls._original_get
+            if cls._original_guess is not None:
+                md_codehilite.guess_lexer = cls._original_guess
+            cls._patched = False
+            cls._nesting_count = 0
+            return True
+        except Exception:
+            # If module is not present, consider restored
+            cls._patched = False
+            return True
+
+    @classmethod
+    def is_patched(cls) -> bool:
+        """Return current patch state."""
+        return cls._patched

@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING, override
 
 from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult
+from bengal.rendering.parsers.factory import ParserFactory
 
 if TYPE_CHECKING:
     from bengal.core.site import Site
@@ -147,38 +148,16 @@ class RenderingValidator(BaseValidator):
             True if unrendered Jinja2 found (not in code blocks)
         """
         try:
-            from bs4 import BeautifulSoup
-
-            soup = BeautifulSoup(html_content, "html.parser")
-
-            # Remove all code blocks first (they're allowed to have Jinja2 syntax)
-            for code_block in soup.find_all(["code", "pre"]):
-                code_block.decompose()
-
-            # Now check the remaining HTML for Jinja2 syntax
+            parser = ParserFactory.get_html_parser("native")
+            soup = parser(html_content)
             remaining_text = soup.get_text()
 
-            # Check for unrendered syntax patterns
-            # NOTE: We only check for {{ vars }} since {% if %} is not supported in markdown
-            # (conditionals belong in templates, not content)
-            jinja2_patterns = [
-                "{{ page.",
-                "{{ site.",
-            ]
-
+            # Check patterns
+            jinja2_patterns = ["{{ page.", "{{ site."]
             return any(pattern in remaining_text for pattern in jinja2_patterns)
-
-        except ImportError:
-            # BeautifulSoup not available, fall back to simple check
-            # (will have false positives for docs with code examples)
-            return (
-                "{{ page." in html_content
-                or "{{ site." in html_content
-                or "{% if page" in html_content
-            )
         except Exception:
-            # On any parsing error, assume it's ok to avoid false positives
-            return False
+            # Fallback regex (no bs4)
+            return any(p in html_content for p in ["{{ page.", "{{ site."])
 
     def _check_template_functions(self, site: "Site") -> list[CheckResult]:
         """Check that template functions are registered."""

@@ -29,6 +29,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 10k page site: 120s → 40-50s on Python 3.13 (2.4-3x faster)
   - Automatic detection and use of site config `max_workers`
 
+### Changed
+
+- **Code quality**: Removed dead code - unused exception variables, deprecated classes (ResponseBuffer), unused WIP stubs (TablePlugin), and verified false positives from static analysis
+
 - **Parallel Taxonomy Generation**: Tag page generation now uses parallel processing
   - Threshold: 20+ tags (avoids overhead on small sites)
   - 10k page site with 800 tags: 24s → 4s on Python 3.14t (6x faster)

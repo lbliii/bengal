@@ -15,25 +15,6 @@ logger = get_logger(__name__)
 
 
 @dataclass
-class ParsedContentCache:
-    """
-    Cached parsed markdown content for a page.
-
-    This allows skipping markdown parsing when only templates change.
-    Optimization #2: Saves 20-30% time on template changes.
-    """
-
-    html: str  # Rendered HTML (post-markdown, pre-template)
-    toc: str  # Table of contents HTML
-    toc_items: list[dict[str, Any]]  # Structured TOC data
-    metadata_hash: str  # SHA256 of frontmatter (detect metadata changes)
-    template: str  # Template name used
-    parser_version: str  # Parser version (e.g., "mistune-3.0")
-    timestamp: str  # When cached (ISO format)
-    size_bytes: int  # Size for cache management
-
-
-@dataclass
 class BuildCache:
     """
     Tracks file hashes and dependencies between builds.

@@ -210,31 +210,33 @@ class ContentOrchestrator:
 
         All pages under this section will inherit these values unless they
         define their own values (page values take precedence over cascaded values).
+
+        Delegates to CascadeEngine for the actual implementation and collects statistics.
         """
-        # First, check for root-level cascade from top-level pages (like content/index.md)
-        root_cascade = None
-        for page in self.site.pages:
-            # Check if this is a top-level page (not in any section)
-            is_top_level = not any(page in section.pages for section in self.site.sections)
-            if is_top_level and "cascade" in page.metadata:
-                # Found root-level cascade - merge it
-                if root_cascade is None:
-                    root_cascade = {}
-                root_cascade.update(page.metadata["cascade"])
+        from bengal.core.cascade_engine import CascadeEngine
 
-        # Process all top-level sections with root cascade (they will recurse to subsections)
-        for section in self.site.sections:
-            self._apply_section_cascade(section, parent_cascade=root_cascade)
+        engine = CascadeEngine(self.site.pages, self.site.sections)
+        stats = engine.apply()
 
-        # Also apply root cascade to other top-level pages
-        if root_cascade:
-            for page in self.site.pages:
-                is_top_level = not any(page in section.pages for section in self.site.sections)
-                # Skip the page that defined the cascade itself
-                if is_top_level and "cascade" not in page.metadata:
-                    for key, value in root_cascade.items():
-                        if key not in page.metadata:
-                            page.metadata[key] = value
+        # Log cascade statistics
+        if stats.get("cascade_keys_applied"):
+            keys_info = ", ".join(
+                f"{k}({v})" for k, v in sorted(stats["cascade_keys_applied"].items())
+            )
+            self.logger.info(
+                "cascades_applied",
+                pages_processed=stats["pages_processed"],
+                pages_affected=stats["pages_with_cascade"],
+                root_cascade_pages=stats["root_cascade_pages"],
+                cascade_keys=keys_info,
+            )
+        else:
+            self.logger.debug(
+                "cascades_applied",
+                pages_processed=stats["pages_processed"],
+                pages_affected=0,
+                reason="no_cascades_defined",
+            )
 
     def _set_output_paths(self) -> None:
         """
@@ -305,42 +307,6 @@ class ContentOrchestrator:
                 content_types=list(doc_types),
                 samples=page_samples[:5],  # Limit to 5 samples for brevity
             )
-
-    def _apply_section_cascade(
-        self, section: "Section", parent_cascade: dict[str, Any] | None = None
-    ) -> None:
-        """
-        Recursively apply cascade metadata to a section and its descendants.
-
-        Cascade metadata accumulates through the hierarchy - child sections inherit
-        and can extend parent cascades.
-
-        Args:
-            section: Section to process
-            parent_cascade: Cascade metadata inherited from parent sections
-        """
-        # Merge parent cascade with this section's cascade
-        accumulated_cascade = {}
-
-        if parent_cascade:
-            accumulated_cascade.update(parent_cascade)
-
-        if "cascade" in section.metadata:
-            # Section's cascade extends/overrides parent cascade
-            accumulated_cascade.update(section.metadata["cascade"])
-
-        # Apply accumulated cascade to all pages in this section
-        # (but only for keys not already defined in page metadata)
-        for page in section.pages:
-            if accumulated_cascade:
-                for key, value in accumulated_cascade.items():
-                    # Page metadata takes precedence over cascade
-                    if key not in page.metadata:
-                        page.metadata[key] = value
-
-        # Recursively apply to subsections with accumulated cascade
-        for subsection in section.subsections:
-            self._apply_section_cascade(subsection, accumulated_cascade)
 
     def _build_xref_index(self) -> None:
         """
