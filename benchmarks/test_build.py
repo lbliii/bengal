@@ -69,7 +69,7 @@ def test_incremental_single_page_change(benchmark, temporary_scenario):
         # Modify the page with a unique marker to force rebuild detection
         page_path.write_text(original_content + f"\n\nModified at {time.time_ns()}")
         subprocess.run(
-            ["bengal", "build"],
+            ["bengal", "build", "--incremental"],
             cwd=temporary_scenario,
             check=True,
             stdout=subprocess.DEVNULL,
@@ -100,7 +100,7 @@ def test_incremental_multi_page_change(benchmark, temporary_scenario):
             page_path.write_text(original + f"\n\nBatch modified at {time.time_ns()}")
 
         subprocess.run(
-            ["bengal", "build"],
+            ["bengal", "build", "--incremental"],
             cwd=temporary_scenario,
             check=True,
             stdout=subprocess.DEVNULL,
@@ -130,7 +130,7 @@ def test_incremental_config_change(benchmark, temporary_scenario):
         config_path.write_text(original_config + f"\n# Modified at {time.time_ns()}\n")
 
         subprocess.run(
-            ["bengal", "build"],
+            ["bengal", "build", "--incremental"],
             cwd=temporary_scenario,
             check=True,
             stdout=subprocess.DEVNULL,
@@ -154,7 +154,7 @@ def test_incremental_no_changes(benchmark, temporary_scenario):
 
     def rebuild_no_changes():
         subprocess.run(
-            ["bengal", "build"],
+            ["bengal", "build", "--incremental"],
             cwd=temporary_scenario,
             check=True,
             stdout=subprocess.DEVNULL,
@@ -228,7 +228,7 @@ def test_incremental_memory_tracking(benchmark, temporary_scenario):
         page_path.write_text(original_content + f"\n\nModified at {time.time_ns()}")
 
         subprocess.run(
-            ["bengal", "build"],
+            ["bengal", "build", "--incremental"],
             cwd=temporary_scenario,
             check=True,
             stdout=subprocess.DEVNULL,
@@ -240,3 +240,42 @@ def test_incremental_memory_tracking(benchmark, temporary_scenario):
 
     # Run benchmark
     benchmark(benchmark_with_memory_tracking)
+
+
+@pytest.fixture
+def fresh_scenario(tmp_path):
+    """
+    Create a fresh copy of large_site for baseline full build testing.
+
+    This fixture creates a NEW copy each time, ensuring we measure
+    a true full build without any cache.
+    """
+    source = Path(__file__).parent / "scenarios" / "large_site"
+    target = tmp_path / "fresh_scenario"
+    shutil.copytree(source, target)
+    yield target
+
+    # Cleanup
+    if target.exists():
+        shutil.rmtree(target)
+
+
+@pytest.mark.benchmark
+def test_full_build_baseline(benchmark, fresh_scenario):
+    """
+    Measure full build performance (no cache, no incremental).
+
+    This provides the baseline to compare against incremental builds.
+    Expected: This should be slower than incremental single-page changes (5-50x).
+    """
+
+    def full_build():
+        subprocess.run(
+            ["bengal", "build"],  # <-- NO --incremental
+            cwd=fresh_scenario,
+            check=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+
+    benchmark(full_build)
