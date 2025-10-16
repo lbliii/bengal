@@ -220,6 +220,42 @@ class BuildOrchestrator:
                 "discovery_complete", pages=len(self.site.pages), sections=len(self.site.sections)
             )
 
+        # Phase 1.25: Cache Discovery Metadata (Phase 2b - Step 1)
+        # Save page discovery metadata for incremental builds and lazy loading
+        with self.logger.phase("cache_discovery_metadata", enabled=True):
+            try:
+                from bengal.cache.page_discovery_cache import PageDiscoveryCache, PageMetadata
+
+                cache = PageDiscoveryCache(self.site.root_path / ".bengal" / "page_metadata.json")
+
+                # Extract metadata from discovered pages
+                for page in self.site.pages:
+                    metadata = PageMetadata(
+                        source_path=str(page.source_path),
+                        title=page.title,
+                        date=page.date.isoformat() if page.date else None,
+                        tags=page.tags,
+                        section=str(page._section.path) if page._section else None,
+                        slug=page.slug,
+                        weight=page.metadata.get("weight"),
+                        lang=page.lang,
+                    )
+                    cache.add_metadata(metadata)
+
+                # Persist cache to disk
+                cache.save_to_disk()
+
+                self.logger.info(
+                    "page_discovery_cache_saved",
+                    entries=len(cache.pages),
+                    path=str(cache.cache_path),
+                )
+            except Exception as e:
+                self.logger.warning(
+                    "page_discovery_cache_save_failed",
+                    error=str(e),
+                )
+
         # Check if config changed (forces full rebuild)
         # Note: We check this even on full builds to populate the cache
         config_changed = self.incremental.check_config_changed()
@@ -444,6 +480,42 @@ class BuildOrchestrator:
             # Invalidate regular_pages cache (taxonomy generation adds tag/category pages)
             self.site.invalidate_regular_pages_cache()
 
+        # Phase 4.5: Save Taxonomy Index (Phase 2b - Step 3)
+        # Persist tag-to-pages mapping for incremental builds
+        with self.logger.phase("save_taxonomy_index", enabled=True):
+            try:
+                from bengal.cache.taxonomy_index import TaxonomyIndex
+
+                index = TaxonomyIndex(self.site.root_path / ".bengal" / "taxonomy_index.json")
+
+                # Populate index from collected taxonomies
+                if hasattr(self.site, "taxonomies") and "tags" in self.site.taxonomies:
+                    tags_dict = self.site.taxonomies["tags"]
+
+                    for tag_name, pages in tags_dict.items():
+                        # Normalize tag slug from tag name
+                        tag_slug = tag_name.lower().replace(" ", "-")
+
+                        # Extract source paths from page objects
+                        page_paths = [str(p.source_path) for p in pages]
+
+                        # Update index with tag mapping
+                        index.update_tag(tag_slug, tag_name, page_paths)
+
+                # Persist taxonomy index to disk
+                index.save_to_disk()
+
+                self.logger.info(
+                    "taxonomy_index_saved",
+                    tags=len(index.tags),
+                    path=str(index.cache_path),
+                )
+            except Exception as e:
+                self.logger.warning(
+                    "taxonomy_index_save_failed",
+                    error=str(e),
+                )
+
         # Phase 5: Menus (INCREMENTAL - skip if unchanged)
         with self.logger.phase("menus"):
             menu_start = time.time()
@@ -641,6 +713,39 @@ class BuildOrchestrator:
         # Print rendering summary in quiet mode
         if quiet_mode:
             self._print_rendering_summary()
+
+        # Phase 8.5: Track Asset Dependencies (Phase 2b - Step 2)
+        # Extract and cache which assets each rendered page references
+        with self.logger.phase("track_assets", enabled=True):
+            try:
+                from bengal.cache.asset_dependency_map import AssetDependencyMap
+                from bengal.rendering.asset_extractor import extract_assets_from_html
+
+                asset_map = AssetDependencyMap(self.site.root_path / ".bengal" / "asset_deps.json")
+
+                # Extract assets from rendered pages
+                for page in pages_to_build:
+                    if page.rendered_html:
+                        # Extract asset references from the rendered HTML
+                        assets = extract_assets_from_html(page.rendered_html)
+
+                        if assets:
+                            # Track page-to-assets mapping
+                            asset_map.track_page_assets(page.source_path, assets)
+
+                # Persist asset dependencies to disk
+                asset_map.save_to_disk()
+
+                self.logger.info(
+                    "asset_dependencies_tracked",
+                    pages_with_assets=len(asset_map.pages),
+                    unique_assets=len(asset_map.get_all_assets()),
+                )
+            except Exception as e:
+                self.logger.warning(
+                    "asset_tracking_failed",
+                    error=str(e),
+                )
 
         # Phase 9: Post-processing
         with self.logger.phase("postprocessing", parallel=parallel):
