@@ -450,12 +450,14 @@ class IncrementalOrchestrator:
 
         For tests that exercise the bridge-only flow, derive the output
         location from the content path under the site's content dir.
-        Writes placeholder "Updated" content for test verification.
+        Writes diagnostic placeholder content for test verification.
 
         Args:
             path: Source content path
             context: Build context (not used in this simplified version)
         """
+        import datetime
+
         content_dir = self.site.root_path / "content"
         try:
             rel = path.relative_to(content_dir)
@@ -473,7 +475,11 @@ class IncrementalOrchestrator:
 
         output_path = self.site.output_dir / rel_html
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        output_path.write_text("Updated")
+        
+        # Write diagnostic placeholder with timestamp and path for debugging
+        timestamp = datetime.datetime.now().isoformat()
+        diagnostic_content = f"[TEST BRIDGE] Updated at {timestamp}\nSource: {path}\nOutput: {rel_html}"
+        output_path.write_text(diagnostic_content)
 
     def full_rebuild(self, pages: list, context: BuildContext):
         # ... existing logic ...
