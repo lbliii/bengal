@@ -36,6 +36,12 @@ class BuildCache:
         last_build: Timestamp of last successful build
     """
 
+    # Serialized schema version (persisted in cache JSON). Tolerant loader accepts missing/older.
+    VERSION: int = 1  # Class-level constant for current schema
+
+    # Instance persisted version; defaults to current VERSION
+    version: int = VERSION
+
     file_hashes: dict[str, str] = field(default_factory=dict)
     dependencies: dict[str, set[str]] = field(default_factory=dict)
     output_sources: dict[str, str] = field(default_factory=dict)
@@ -90,6 +96,17 @@ class BuildCache:
             with open(cache_path, encoding="utf-8") as f:
                 data = json.load(f)
 
+            # Tolerant versioning: accept missing version (pre-versioned files)
+            found_version = data.get("version")
+            if found_version is not None and found_version != cls.VERSION:
+                logger.warning(
+                    "cache_version_mismatch",
+                    expected=cls.VERSION,
+                    found=found_version,
+                    action="loading_with_best_effort",
+                )
+                # Keep loading with best effort; fields below normalized
+
             # Convert lists back to sets in dependencies
             if "dependencies" in data:
                 data["dependencies"] = {k: set(v) for k, v in data["dependencies"].items()}
@@ -107,6 +124,10 @@ class BuildCache:
 
             if "page_tags" in data:
                 data["page_tags"] = {k: set(v) for k, v in data["page_tags"].items()}
+
+            # Inject default version if missing
+            if "version" not in data:
+                data["version"] = cls.VERSION
 
             return cls(**data)
         except (json.JSONDecodeError, KeyError, TypeError) as e:
@@ -135,6 +156,7 @@ class BuildCache:
 
         # Convert sets to lists for JSON serialization
         data = {
+            "version": self.VERSION,
             "file_hashes": self.file_hashes,
             "dependencies": {k: list(v) for k, v in self.dependencies.items()},
             "output_sources": self.output_sources,
