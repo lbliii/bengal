@@ -8,12 +8,12 @@
 /* Scope brand colors to root element only */
 :root[data-brand="snow-lynx"],
 html[data-brand="snow-lynx"] {
-    /* Primary (ice-blue) */
-    --color-primary: #81D8D0;
-    --color-primary-hover: #5FCFC6;
-    --color-primary-active: #3FB7AE;
-    --color-primary-light: #E6F7F5;
-    --color-primary-dark: #0F7F79;
+    /* Primary (warm teal - less blue, more earthy) */
+    --color-primary: #5FA89D;
+    --color-primary-hover: #4D9287;
+    --color-primary-active: #3D7B72;
+    --color-primary-light: #E6F4F2;
+    --color-primary-dark: #2D6962;
 
     /* Backgrounds (cream paper) */
     --color-bg-primary: #FAF3E7;
@@ -31,14 +31,14 @@ html[data-brand="snow-lynx"] {
     --color-text-tertiary: #8A8177;
     --color-text-muted: #B1A79C;
     --color-text-inverse: #FFFFFF;
-    --color-text-link: #3FB7AE;
-    --color-text-link-hover: #0F7F79;
+    --color-text-link: #4D9287;
+    --color-text-link-hover: #3D7B72;
 
     /* Borders (warm ashen) */
     --color-border: #E2D8CB;
     --color-border-light: #EFE7DC;
     --color-border-strong: #C8BBA9;
-    --color-border-focus: #81D8D0;
+    --color-border-focus: #5FA89D;
 
     /* Semantic states (tuned for cream backgrounds) */
     --color-success: #2E7D32;
@@ -65,44 +65,76 @@ html[data-brand="snow-lynx"] {
 /* Dark-mode adjustments while Snow Lynx brand is active */
 :root[data-theme="dark"][data-brand="snow-lynx"],
 html[data-theme="dark"][data-brand="snow-lynx"] {
-    /* Keep dark foundations; cool the primary for contrast */
+    /* Cool the primary for contrast */
     --color-primary: #6FE4DC;
     --color-primary-hover: #8EEBE5;
     --color-primary-active: #4BCDC4;
     --color-primary-light: rgba(111, 228, 220, 0.18);
     --color-primary-dark: #2FB3AB;
 
-    /* Optional subtle warm tint for elevated surfaces */
+    /* Dark backgrounds with subtle warm tint */
+    --color-bg-primary: #1a1918;
+    --color-bg-secondary: #2d2a28;
+    --color-bg-tertiary: #3a3633;
     --color-bg-elevated: #23201D;
+    --color-bg-hover: #3d3935;
+    --color-bg-active: #4a453f;
+    --color-bg-code: #2d2a28;
+
+    /* Adjusted text colors for dark mode */
+    --color-text-primary: #f5f0e8;
+    --color-text-secondary: #c9bfb3;
+    --color-text-tertiary: #9d9388;
+    --color-text-muted: #7a7169;
+
+    /* Adjusted borders for dark mode */
+    --color-border: #3d3935;
+    --color-border-light: #332f2c;
+    --color-border-strong: #544e48;
 }
 
 /* ============================================
    THEME-AWARE BRAND PREVIEW (DROPDOWN BUTTONS)
    ============================================ */
 
-/* Light mode: Show brand preview with brand's light-mode colors */
-[data-theme="light"] .theme-dropdown__menu button[data-brand="snow-lynx"] {
-    color: #2A2A2A;
-    /* Snow Lynx text color */
+/* Add a color indicator dot before brand buttons */
+.theme-dropdown__menu button[data-brand="snow-lynx"]::before {
+    content: '';
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 0.5rem;
+    background: linear-gradient(135deg, #5FA89D 0%, #4D9287 50%, #FAF3E7 100%);
+    border: 1px solid rgba(95, 168, 157, 0.3);
+    vertical-align: middle;
 }
 
+/* Default brand indicator dot (blue gradient) */
+.theme-dropdown__menu button[data-brand=""]::before {
+    content: '';
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 0.5rem;
+    background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%);
+    border: 1px solid rgba(33, 150, 243, 0.3);
+    vertical-align: middle;
+}
+
+/* Light mode: Keep default button styling, let indicator show the brand */
 [data-theme="light"] .theme-dropdown__menu button[data-brand="snow-lynx"]:hover,
 [data-theme="light"] .theme-dropdown__menu button[data-brand="snow-lynx"]:focus {
-    color: #3FB7AE;
-    /* Snow Lynx primary */
+    /* Use standard hover with a hint of brand color */
     background: #F5EBDD;
-    /* Snow Lynx bg-secondary */
+    color: #4D9287;
 }
 
-/* Dark mode: Show preview with adjusted colors that work on dark backgrounds */
-[data-theme="dark"] .theme-dropdown__menu button[data-brand="snow-lynx"] {
-    color: #81D8D0;
-    /* Ice-blue - readable on dark */
-}
-
+/* Dark mode: Keep default button styling, let indicator show the brand */
 [data-theme="dark"] .theme-dropdown__menu button[data-brand="snow-lynx"]:hover,
 [data-theme="dark"] .theme-dropdown__menu button[data-brand="snow-lynx"]:focus {
-    color: #6FE4DC;
-    /* Brighter ice-blue */
+    /* Use standard hover with a hint of brand color */
     background: var(--color-bg-secondary);
+    color: #6FE4DC;
 }
