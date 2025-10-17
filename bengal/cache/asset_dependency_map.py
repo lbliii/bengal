@@ -31,6 +31,7 @@ from pathlib import Path
 from typing import Any
 
 from bengal.utils.logger import get_logger
+from bengal.utils.atomic_write import AtomicFile
 
 logger = get_logger(__name__)
 
@@ -158,7 +159,8 @@ class AssetDependencyMap:
                 "pages": {path: entry.to_dict() for path, entry in self.pages.items()},
             }
 
-            with open(self.cache_path, "w") as f:
+            # Atomic write to avoid partial/corrupt files on crash
+            with AtomicFile(self.cache_path, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2)
 
             logger.info(
