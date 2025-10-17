@@ -336,6 +336,13 @@ class TemplateEngine:
         Returns:
             Asset URL
         """
+        # In dev server mode, prefer stable URLs without fingerprints for CSS/JS
+        try:
+            if self.site.config.get("dev_server", False):
+                return f"/assets/{asset_path}"
+        except Exception:
+            pass
+
         # Attempt to resolve a fingerprinted file in output_dir/assets
         try:
             base = self.site.output_dir / "assets"

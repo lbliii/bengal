@@ -321,6 +321,7 @@ body.user-is-tabbing *:focus {
    ============================================ */
 
 @media print {
+
   /* Remove focus outlines in print */
   *:focus,
   *:focus-visible {

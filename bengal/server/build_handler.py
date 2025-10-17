@@ -183,6 +183,15 @@ class BuildHandler(FileSystemEventHandler):
                 # Use WRITER profile for clean, minimal output during file watching
                 from bengal.utils.profile import BuildProfile
 
+                # Ensure dev flags remain active on rebuilds
+                try:
+                    cfg = self.site.config
+                    cfg["dev_server"] = True
+                    cfg["fingerprint_assets"] = False
+                    cfg.setdefault("minify_assets", False)
+                except Exception:
+                    pass
+
                 stats = self.site.build(
                     parallel=True, incremental=True, profile=BuildProfile.WRITER
                 )
