@@ -93,7 +93,7 @@
     {% for item in items %}
     <li>
       {% if item.url and not loop.last %}
-      <a href="{{ item.url }}">{{ item.name }}</a>
+      <a href="{{ item.url | absolute_url }}">{{ item.name }}</a>
       {% else %}
       <span>{{ item.name }}</span>
       {% endif %}

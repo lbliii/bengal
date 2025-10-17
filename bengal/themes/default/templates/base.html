@@ -316,7 +316,7 @@
             else if (preloadMode === 'smart') {
                 document.addEventListener('DOMContentLoaded', function () {
                     // Preload on search link hover (user likely to search)
-                    const searchLinks = document.querySelectorAll('a[href="/search/"], a[href*="search"]');
+                    const searchLinks = document.querySelectorAll('a[href$="/search/"], a[href*="search"]');
                     searchLinks.forEach(link => {
                         link.addEventListener('mouseenter', preloadSearch, { once: true });
                         link.addEventListener('focus', preloadSearch, { once: true });
