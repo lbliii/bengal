@@ -4,6 +4,7 @@ Configuration loader supporting TOML and YAML formats.
 
 import difflib
 import multiprocessing
+import os
 from pathlib import Path
 from typing import Any
 
@@ -98,7 +99,7 @@ class ConfigLoader:
             Configuration dictionary
         """
         if config_path:
-            return self._load_file(config_path)
+            return self._apply_env_overrides(self._load_file(config_path))
 
         # Try to find config file automatically
         for filename in ["bengal.toml", "bengal.yaml", "bengal.yml"]:
@@ -117,7 +118,7 @@ class ConfigLoader:
             tried_files=["bengal.toml", "bengal.yaml", "bengal.yml"],
             action="using_defaults",
         )
-        return self._default_config()
+        return self._apply_env_overrides(self._default_config())
 
     def _load_file(self, config_path: Path) -> dict[str, Any]:
         """
@@ -162,7 +163,7 @@ class ConfigLoader:
                 warnings=len(self.warnings),
             )
 
-            return validated_config
+            return self._apply_env_overrides(validated_config)
 
         except ConfigValidationError:
             # Validation error already printed nice errors
@@ -386,3 +387,57 @@ class ConfigLoader:
             "validate_build": True,  # Run post-build health checks
             "min_page_size": 1000,  # Minimum expected page size in bytes
         }
+
+    def _apply_env_overrides(self, config: dict[str, Any]) -> dict[str, Any]:
+        """
+        Apply environment-based overrides for ergonomics across hosts.
+
+        Priority:
+        1) BENGAL_BASEURL (explicit override)
+        2) Netlify (URL/DEPLOY_PRIME_URL)
+        3) Vercel (VERCEL_URL)
+        4) GitHub Pages (owner.github.io/repo) when running in Actions
+        Only applies when config baseurl is empty or missing.
+        """
+        try:
+            baseurl_current = config.get("baseurl", "")
+            if baseurl_current:
+                return config
+
+            # 1) Explicit override
+            explicit = os.environ.get("BENGAL_BASEURL") or os.environ.get("BENGAL_BASE_URL")
+            if explicit:
+                config["baseurl"] = explicit.rstrip("/")
+                return config
+
+            # 2) Netlify
+            if os.environ.get("NETLIFY") == "true":
+                # Production has URL; previews have DEPLOY_PRIME_URL
+                netlify_url = os.environ.get("URL") or os.environ.get("DEPLOY_PRIME_URL")
+                if netlify_url:
+                    config["baseurl"] = netlify_url.rstrip("/")
+                    return config
+
+            # 3) Vercel
+            if os.environ.get("VERCEL") == "1" or os.environ.get("VERCEL") == "true":
+                vercel_host = os.environ.get("VERCEL_URL")
+                if vercel_host:
+                    prefix = (
+                        "https://" if not vercel_host.startswith(("http://", "https://")) else ""
+                    )
+                    config["baseurl"] = f"{prefix}{vercel_host}".rstrip("/")
+                    return config
+
+            # 4) GitHub Pages in Actions (best-effort)
+            if os.environ.get("GITHUB_ACTIONS") == "true":
+                repo = os.environ.get("GITHUB_REPOSITORY", "")  # owner/repo
+                if repo and "/" in repo:
+                    owner, name = repo.split("/", 1)
+                    config["baseurl"] = f"https://{owner}.github.io/{name}".rstrip("/")
+                    return config
+
+        except Exception:
+            # Never fail build due to env override logic
+            return config
+
+        return config
