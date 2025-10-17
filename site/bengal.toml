@@ -1,7 +1,6 @@
 [site]
 title = "Bengal"
 baseurl = "/bengal"
-theme = "default"
 logo_text = "ᓚᘏᗢ"
 
 [build]
@@ -18,6 +17,7 @@ search = true
 analytics = false
 
 [theme]
+name = "default"
 default_appearance = "dark"
 default_palette = "snow-lynx"
 

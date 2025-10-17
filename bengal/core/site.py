@@ -106,13 +106,13 @@ class Site:
         if isinstance(self.root_path, str):
             self.root_path = Path(self.root_path)
 
-        # Get theme NAME (string) - check [site] section first to avoid collision with [theme] section
-        if "site" in self.config and isinstance(self.config["site"], dict):
-            self.theme = self.config["site"].get("theme", "default")
+        # Get theme NAME from [theme] section
+        theme_section = self.config.get("theme", {})
+        if isinstance(theme_section, dict):
+            self.theme = theme_section.get("name", "default")
         else:
-            theme_value = self.config.get("theme", "default")
-            # If 'theme' is a dict (the [theme] config section), use default
-            self.theme = theme_value if isinstance(theme_value, str) else "default"
+            # Fallback for legacy config where theme was a string
+            self.theme = theme_section if isinstance(theme_section, str) else "default"
 
         # Initialize Theme object
         self._theme_obj = Theme.from_config(self.config)

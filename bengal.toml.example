@@ -17,6 +17,7 @@
 [site]
 title = "My Site"
 baseurl = "https://example.com"
+# Note: Theme name is now configured in [theme] section below
 
 [build]
 output_dir = "public"
@@ -76,8 +77,10 @@ code = "JetBrains Mono:400"          # Code blocks
 #   --font-heading: 'Playfair Display'
 #   --font-code: 'JetBrains Mono'
 
-# Theme Configuration (appearance and color palettes)
+# Theme Configuration
 [theme]
+name = "default"  # Which theme to use (default, or name of custom theme in themes/ directory)
+
 # Default appearance mode for new visitors (overridden by localStorage once user makes a choice)
 default_appearance = "system"  # Options: "light", "dark", "system" (follows OS preference)
 

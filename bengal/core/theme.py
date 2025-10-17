@@ -53,35 +53,32 @@ class Theme:
         Returns:
             Theme object with values from config
         """
-        # Get theme name from [site] section or top-level 'theme' key
-        if "site" in config and isinstance(config["site"], dict):
-            theme_name = config["site"].get("theme", "default")
-        else:
-            theme_name = config.get("theme", "default")
-            # If theme is a dict (the [theme] section), it's not the name
-            if isinstance(theme_name, dict):
-                theme_name = "default"
+        # Get [theme] section
+        theme_section = config.get("theme", {})
 
-        # Get [theme] section configuration if it exists
-        # Check in both nested and flattened forms
-        theme_section = None
-        if "theme" in config and isinstance(config["theme"], dict):
-            theme_section = config["theme"]
+        # Handle legacy config where theme was a string
+        if isinstance(theme_section, str):
+            return cls(
+                name=theme_section,
+                default_appearance="system",
+                default_palette="",
+                config={},
+            )
 
-        if theme_section:
-            default_appearance = theme_section.get("default_appearance", "system")
-            default_palette = theme_section.get("default_palette", "")
-            # Pass through any additional theme config
-            theme_config = {
-                k: v
-                for k, v in theme_section.items()
-                if k not in ("default_appearance", "default_palette")
-            }
-        else:
-            # No [theme] section - use defaults
-            default_appearance = "system"
-            default_palette = ""
-            theme_config = {}
+        # Modern config: [theme] is a dict with name, appearance, palette
+        if not isinstance(theme_section, dict):
+            theme_section = {}
+
+        theme_name = theme_section.get("name", "default")
+        default_appearance = theme_section.get("default_appearance", "system")
+        default_palette = theme_section.get("default_palette", "")
+
+        # Pass through any additional theme config (excluding known keys)
+        theme_config = {
+            k: v
+            for k, v in theme_section.items()
+            if k not in ("name", "default_appearance", "default_palette")
+        }
 
         return cls(
             name=theme_name,
