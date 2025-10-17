@@ -58,7 +58,7 @@ class ConfigValidator:
         "description",
         "author",
         "language",
-        "theme",
+        # Note: "theme" removed - now a [theme] section with nested config
         "output_dir",
         "content_dir",
         "assets_dir",
