@@ -102,7 +102,7 @@ a.card {
 
 .card-title {
   margin: 0;
-  font-size: var(--text-xl);
+  font-size: var(--type-ui-title);
   font-weight: var(--font-bold);
   line-height: var(--leading-tight);
   /* Not a semantic heading, just styled text */
@@ -125,7 +125,8 @@ a.card {
 .card-text {
   margin: 0;
   color: var(--color-text-secondary);
-  line-height: var(--leading-relaxed);
+  font-size: var(--type-ui-body);
+  line-height: var(--type-leading-body);
 }
 
 .card-meta {

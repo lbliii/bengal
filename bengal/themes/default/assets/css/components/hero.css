@@ -14,21 +14,17 @@
   position: relative;
   padding: 4rem 0;
   text-align: center;
-  background: linear-gradient(
-    135deg,
-    var(--color-bg-elevated) 0%,
-    var(--color-bg-secondary) 100%
-  );
+  background: linear-gradient(135deg,
+      var(--color-bg-elevated) 0%,
+      var(--color-bg-secondary) 100%);
   border-bottom: 1px solid var(--color-border-light);
   overflow: hidden;
 }
 
 [data-theme="dark"] .hero {
-  background: linear-gradient(
-    135deg,
-    var(--color-bg-primary) 0%,
-    rgba(33, 150, 243, 0.05) 100%
-  );
+  background: linear-gradient(135deg,
+      var(--color-bg-primary) 0%,
+      rgba(33, 150, 243, 0.05) 100%);
 }
 
 .hero__container {
@@ -57,17 +53,17 @@
 
 .hero__title {
   margin: 0 0 1.5rem 0;
-  font-size: var(--text-5xl);
+  font-size: var(--type-display);
   font-weight: var(--font-weight-extrabold);
-  line-height: 1.1;
+  line-height: var(--type-leading-heading);
   letter-spacing: var(--letter-spacing-tighter);
   color: var(--color-text-primary);
 }
 
 .hero__subtitle {
   margin: 0 0 2rem 0;
-  font-size: var(--text-xl);
-  line-height: var(--line-height-relaxed);
+  font-size: var(--type-ui-subtitle);
+  line-height: var(--type-leading-body);
   color: var(--color-text-secondary);
 }
 
@@ -84,7 +80,7 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.875rem 1.75rem;
-  font-size: var(--text-body);
+  font-size: var(--type-ui-button);
   font-weight: var(--font-weight-semibold);
   text-decoration: none;
   border-radius: var(--border-radius-medium);
