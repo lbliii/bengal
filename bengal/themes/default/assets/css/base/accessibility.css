@@ -46,7 +46,7 @@ nav a:focus-visible {
    ============================================ */
 
 button:focus-visible,
-.btn:focus-visible {
+.button:focus-visible {
   outline: 2px solid var(--color-border-focus);
   outline-offset: 2px;
   box-shadow: 0 0 0 4px rgba(33, 150, 243, 0.1);
@@ -267,11 +267,7 @@ body.user-is-tabbing *:focus {
    FOCUS WITHIN (Parent Container)
    ============================================ */
 
-/* Highlight parent containers when child has focus */
-.nav-main:focus-within,
-.mobile-nav:focus-within {
-  /* Optional: Add subtle background to show active navigation */
-}
+/* Note: avoid nav-wide focus-within backgrounds to prevent bar flicker on click */
 
 /* ============================================
    CUSTOM FOCUS STYLES FOR SPECIFIC COMPONENTS
