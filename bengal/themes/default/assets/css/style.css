@@ -217,8 +217,7 @@
 
 /* Main Content Area */
 main {
-  min-height: calc(100vh - 300px);
-  /* Adjust based on header/footer height */
+  flex: 1 0 auto;
   padding: var(--space-10) 0;
 }
 
