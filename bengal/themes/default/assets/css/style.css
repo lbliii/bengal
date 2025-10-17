@@ -185,6 +185,10 @@
 }
 
 @layer components {
+  @import url('components/empty-state.css');
+}
+
+@layer components {
   @import url('components/meta.css');
 }
 
