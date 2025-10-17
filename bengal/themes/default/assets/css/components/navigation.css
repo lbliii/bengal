@@ -17,9 +17,19 @@
   flex-direction: column;
 }
 
+.nav-previous {
+  justify-self: start;
+}
+
 .nav-next {
+  justify-self: end;
   text-align: right;
-  margin-left: auto;
+}
+
+/* Ensure when only Next exists it sits in the right column */
+.nav-links>.nav-next:only-child {
+  grid-column: 2;
+  justify-self: end;
 }
 
 .nav-links a {
@@ -30,13 +40,13 @@
   border-radius: 8px;
   text-decoration: none;
   color: var(--color-text-primary);
-  transition: all 0.2s;
+  transition: color var(--motion-fast), background-color var(--motion-fast), border-color var(--motion-fast), box-shadow var(--motion-fast), transform var(--motion-fast);
 }
 
 .nav-links a:hover {
   border-color: var(--color-primary);
   background: var(--color-bg-secondary);
-  transform: translateY(-2px);
+  transform: translateY(calc(-1 * var(--motion-distance-2)));
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
@@ -101,7 +111,13 @@
 
   .nav-next {
     text-align: left;
-    margin-left: 0;
+    justify-self: start;
+  }
+
+  /* Reset placement when single item on mobile */
+  .nav-links>.nav-next:only-child {
+    grid-column: auto;
+    justify-self: start;
   }
 
   .breadcrumbs {

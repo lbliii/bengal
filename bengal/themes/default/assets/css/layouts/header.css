@@ -14,7 +14,6 @@ header[role="banner"] {
   background-color: var(--color-bg-primary);
   border-bottom: 1px solid var(--color-border);
   backdrop-filter: blur(8px);
-  background-color: rgba(255, 255, 255, 0.95);
 }
 
 [data-theme="dark"] header[role="banner"] {
@@ -345,4 +344,84 @@ header .container {
 
 [data-theme="dark"] .theme-toggle .icon-moon {
   display: none;
+}
+
+/* Theme Controls (toggle + dropdown) */
+.theme-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.theme-dropdown {
+  position: relative;
+}
+
+.theme-dropdown__button {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 0.75rem;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast) var(--ease-out);
+}
+
+.theme-dropdown__button:hover,
+.theme-dropdown__button[aria-expanded="true"] {
+  color: var(--color-primary);
+  background: var(--color-bg-secondary);
+  border-color: var(--color-primary);
+}
+
+.theme-dropdown__menu {
+  position: absolute;
+  right: 0;
+  margin-top: 0.5rem;
+  min-width: 180px;
+  padding: 0.25rem;
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--elevation-dropdown);
+  list-style: none;
+  display: none;
+  z-index: var(--z-dropdown);
+}
+
+.theme-dropdown__menu.open {
+  display: block;
+}
+
+.theme-dropdown__menu li {
+  margin: 0;
+}
+
+.theme-dropdown__menu li.separator {
+  height: 1px;
+  background: var(--color-border-light);
+  margin: 0.25rem 0.25rem;
+}
+
+.theme-dropdown__menu button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  color: var(--color-text-primary);
+  font-size: var(--text-sm);
+  padding: 0.5rem 0.5rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.theme-dropdown__menu button:hover,
+.theme-dropdown__menu button:focus {
+  background: var(--color-bg-secondary);
+  color: var(--color-primary);
 }

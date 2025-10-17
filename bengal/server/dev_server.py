@@ -121,6 +121,17 @@ class DevServer:
             # Use WRITER profile for clean, minimal output in dev server
             from bengal.utils.profile import BuildProfile
 
+            # Development defaults: disable asset fingerprinting/minify for stable URLs & faster rebuilds
+            try:
+                cfg = self.site.config
+                cfg["dev_server"] = True
+                # Prefer stable CSS/JS filenames in dev so reload-css works without full page reloads
+                cfg["fingerprint_assets"] = False
+                # Avoid minification in dev to maximize CSS source stability and speed
+                cfg.setdefault("minify_assets", False)
+            except Exception:
+                pass
+
             show_building_indicator("Initial build")
             stats = self.site.build(profile=BuildProfile.WRITER)
             display_build_stats(stats, show_art=False, output_dir=str(self.site.output_dir))

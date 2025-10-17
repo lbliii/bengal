@@ -26,7 +26,7 @@
     {% if posts %}
     <div class="archive-list">
         {% for post in posts %}
-            {{ article_card(post, show_excerpt=True) }}
+        {{ article_card(post, show_excerpt=True) }}
         {% endfor %}
     </div>
 
@@ -39,20 +39,9 @@
     {% endif %}
 
     <div class="tag-nav">
-        <a href="/tags/" class="btn btn-outline">← View all tags</a>
+        <a href="/tags/" class="button button-outline">← View all tags</a>
     </div>
 </div>
 
-<style>
-.tag-icon {
-    color: var(--color-primary);
-    font-weight: var(--font-bold);
-    margin-right: var(--space-2);
-}
-
-.tag-nav {
-    margin-top: var(--space-12);
-    text-align: center;
-}
-</style>
+{# styles moved to components/tags.css #}
 {% endblock %}

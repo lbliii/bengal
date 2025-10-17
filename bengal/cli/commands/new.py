@@ -404,7 +404,7 @@ Thumbs.db
         # Show next steps
         click.echo(click.style("\n📚 Next steps:", fg="cyan", bold=True))
         click.echo(click.style("   ├─ ", fg="cyan") + f"cd {site_dir_name}")
-        click.echo(click.style("   └─ ", fg="cyan") + "bengal serve")
+        click.echo(click.style("   └─ ", fg="cyan") + "bengal site serve")
         click.echo()
 
     except Exception as e:

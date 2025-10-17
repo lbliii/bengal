@@ -145,8 +145,8 @@
    /* Container padding */
 
    /* ============================================
-     SEMANTIC TYPOGRAPHY
-     ============================================ */
+    SEMANTIC TYPOGRAPHY
+    ============================================ */
 
    /* Font Families */
    --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Segoe UI Variable',
@@ -165,21 +165,42 @@
    --text-2xl: clamp(var(--font-size-24), 1.3rem + 1vw, var(--font-size-30));
    --text-3xl: clamp(var(--font-size-30), 1.5rem + 1.5vw, var(--font-size-36));
    --text-4xl: clamp(var(--font-size-36), 1.8rem + 2vw, var(--font-size-48));
-   --text-5xl: clamp(var(--font-size-48), 2.5rem + 2.5vw, var(--font-size-60));
+   --text-5xl: clamp(var(--font-size-48), 2.5rem + 2.5vw, var(--font-size-72));
 
-   /* Heading Sizes - More compact scale */
-   --text-heading-1: var(--text-4xl);
-   /* 36-48px instead of 48-60px */
-   --text-heading-2: var(--text-3xl);
-   /* 30-36px instead of 36-48px */
-   --text-heading-3: var(--text-2xl);
-   /* 24-30px instead of 30-36px */
-   --text-heading-4: var(--text-xl);
-   /* 20-24px instead of 24-30px */
-   --text-heading-5: var(--text-lg);
-   /* 18-20px instead of 20-24px */
-   --text-heading-6: var(--text-base);
-   /* 16-18px instead of 18-20px */
+   /* Heading Sizes - Increase by one step for better readability */
+   --text-heading-1: var(--text-5xl);
+   /* 48-72px */
+   --text-heading-2: var(--text-4xl);
+   /* 36-48px */
+   --text-heading-3: var(--text-3xl);
+   /* 30-36px */
+   --text-heading-4: var(--text-2xl);
+   /* 24-30px */
+   --text-heading-5: var(--text-xl);
+   /* 20-24px */
+   --text-heading-6: var(--text-lg);
+   /* 18-20px */
+
+   /* Role-based Type Tokens (Content) */
+   --type-display: var(--text-5xl);
+   --type-h1: var(--text-heading-1);
+   --type-h2: var(--text-heading-2);
+   --type-h3: var(--text-heading-3);
+   --type-h4: var(--text-heading-4);
+   --type-h5: var(--text-heading-5);
+   --type-h6: var(--text-heading-6);
+
+   --type-body: var(--text-base);
+   --type-body-small: var(--text-sm);
+   --type-caption: var(--text-xs);
+
+   /* Role-based Type Tokens (UI/Components) */
+   --type-ui-title: var(--text-2xl);
+   --type-ui-subtitle: var(--text-lg);
+   --type-ui-body: var(--text-base);
+   --type-ui-meta: var(--text-sm);
+   --type-ui-button: var(--text-sm);
+   --type-ui-link: var(--text-sm);
 
    /* Body Text */
    --text-body: var(--text-base);
@@ -196,6 +217,10 @@
 
    /* Line height semantic alias */
    --line-height-relaxed: var(--line-height-relaxed);
+
+   /* Role-based leading */
+   --type-leading-heading: var(--leading-tight);
+   --type-leading-body: var(--leading-relaxed);
 
    /* Letter Spacing (aliases for foundation tokens) */
    --tracking-tight: var(--letter-spacing-tight);
@@ -216,6 +241,10 @@
    --font-semibold: var(--font-weight-semibold);
    --font-bold: var(--font-weight-bold);
    --font-extrabold: var(--font-weight-extrabold);
+
+   /* Role-based weights */
+   --type-weight-strong: var(--font-bold);
+   --type-weight-medium: var(--font-medium);
 
    /* ============================================
      SEMANTIC ELEVATION (Shadows)
@@ -280,6 +309,23 @@
    --transition-base: var(--duration-200) var(--ease-out);
    --transition-slow: var(--duration-300) var(--ease-in-out);
    --transition-slower: var(--duration-500) var(--ease-in-out);
+
+   /* Semantic Motion Aliases (composed from durations/easing) */
+   --motion-fast: var(--duration-150) var(--ease-out);
+   --motion-medium: var(--duration-200) var(--ease-out);
+   --motion-slow: var(--duration-300) var(--ease-in-out);
+
+   /* Motion Distances and Scales */
+   --motion-distance-1: 2px;
+   /* micro nudge */
+   --motion-distance-2: 4px;
+   /* small raise/slide */
+   --motion-distance-3: 8px;
+   /* content reveal */
+   --motion-scale-up: 1.02;
+   /* subtle hover scale */
+   --motion-scale-down: 0.98;
+   /* press feedback */
 
    /* ============================================
      SEMANTIC Z-INDEX

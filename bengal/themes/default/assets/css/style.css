@@ -14,73 +14,202 @@
 @layer tokens, base, utilities, components, pages;
 
 /* Foundation tokens (primitives - never use directly) */
-@layer tokens { @import url('tokens/foundation.css'); }
+@layer tokens {
+  @import url('tokens/foundation.css');
+}
 
 /* Semantic tokens (purpose-based - use these in components) */
-@layer tokens { @import url('tokens/semantic.css'); }
+@layer tokens {
+  @import url('tokens/semantic.css');
+}
+
+/* Brand presets (optional overrides; activated via data-brand="...") */
+@layer tokens {
+  @import url('tokens/brands/snow-lynx.css');
+}
 
 /* ============================================
    BASE STYLES (Resets & Foundations)
    ============================================ */
 
-@layer base { @import url('base/reset.css'); }
-@layer base { @import url('base/typography.css'); }
-@layer base { @import url('base/prose-content.css'); }
-@layer base { @import url('base/utilities.css'); }
-@layer base { @import url('base/accessibility.css'); }
-@layer base { @import url('base/print.css'); }
+@layer base {
+  @import url('base/reset.css');
+}
+
+@layer base {
+  @import url('base/typography.css');
+}
+
+@layer base {
+  @import url('base/prose-content.css');
+}
+
+@layer base {
+  @import url('base/utilities.css');
+}
+
+@layer utilities {
+  @import url('utilities/motion.css');
+}
+
+@layer base {
+  @import url('base/accessibility.css');
+}
+
+@layer base {
+  @import url('base/print.css');
+}
 
 /* ============================================
    COMPOSITION (Layout Primitives)
    ============================================ */
 
-@layer base { @import url('composition/layouts.css'); }
+@layer base {
+  @import url('composition/layouts.css');
+}
 
 /* ============================================
    LAYOUT STYLES (Legacy - will be refactored)
    ============================================ */
 
-@layer pages { @import url('layouts/grid.css'); }
-@layer pages { @import url('layouts/header.css'); }
-@layer pages { @import url('layouts/footer.css'); }
-@layer pages { @import url('layouts/resume.css'); }
-@layer pages { @import url('layouts/changelog.css'); }
+@layer pages {
+  @import url('layouts/grid.css');
+}
+
+@layer pages {
+  @import url('layouts/header.css');
+}
+
+@layer pages {
+  @import url('layouts/footer.css');
+}
+
+@layer pages {
+  @import url('layouts/resume.css');
+}
+
+@layer pages {
+  @import url('layouts/changelog.css');
+}
 
 /* ============================================
    COMPONENT STYLES
    ============================================ */
 
-@layer components { @import url('components/admonitions.css'); }
-@layer components { @import url('components/tabs.css'); }
-@layer components { @import url('components/dropdowns.css'); }
-@layer components { @import url('components/buttons.css'); }
-@layer components { @import url('components/cards.css'); }
-@layer components { @import url('components/tags.css'); }
-@layer components { @import url('components/code.css'); }
-@layer components { @import url('components/pagination.css'); }
-@layer components { @import url('components/toc.css'); }
-@layer components { @import url('components/related-posts.css'); }
-@layer components { @import url('components/navigation.css'); }
-@layer components { @import url('components/docs-nav.css'); }
-@layer components { @import url('components/badges.css'); }
-@layer components { @import url('components/widgets.css'); }
-@layer components { @import url('components/search.css'); }
-@layer components { @import url('components/hero.css'); }
-@layer components { @import url('components/interactive.css'); }
-@layer components { @import url('components/reference-docs.css'); }
-@layer components { @import url('components/api-docs.css'); }
-@layer components { @import url('components/tutorial.css'); }
-@layer components { @import url('components/blog.css'); }
-@layer components { @import url('components/data-table.css'); }
+@layer components {
+  @import url('components/admonitions.css');
+}
+
+@layer components {
+  @import url('components/tabs.css');
+}
+
+@layer components {
+  @import url('components/dropdowns.css');
+}
+
+@layer components {
+  @import url('components/buttons.css');
+}
+
+@layer components {
+  @import url('components/cards.css');
+}
+
+@layer components {
+  @import url('components/tags.css');
+}
+
+@layer components {
+  @import url('components/code.css');
+}
+
+@layer components {
+  @import url('components/pagination.css');
+}
+
+@layer components {
+  @import url('components/toc.css');
+}
+
+@layer components {
+  @import url('components/related-posts.css');
+}
+
+@layer components {
+  @import url('components/navigation.css');
+}
+
+@layer components {
+  @import url('components/docs-nav.css');
+}
+
+@layer components {
+  @import url('components/badges.css');
+}
+
+@layer components {
+  @import url('components/widgets.css');
+}
+
+@layer components {
+  @import url('components/search.css');
+}
+
+@layer components {
+  @import url('components/hero.css');
+}
+
+@layer components {
+  @import url('components/interactive.css');
+}
+
+@layer components {
+  @import url('components/reference-docs.css');
+}
+
+@layer components {
+  @import url('components/api-docs.css');
+}
+
+@layer components {
+  @import url('components/tutorial.css');
+}
+
+@layer components {
+  @import url('components/blog.css');
+}
+
+@layer components {
+  @import url('components/data-table.css');
+}
+
+@layer components {
+  @import url('components/empty-state.css');
+}
+
+@layer components {
+  @import url('components/meta.css');
+}
+
+@layer components {
+  @import url('components/share.css');
+}
+
+@layer components {
+  @import url('components/author.css');
+}
 
 /* Third-party libraries */
-@layer components { @import url('tabulator.min.css'); }
+@layer components {
+  @import url('tabulator.min.css');
+}
 
 /* ============================================
    PAGE-SPECIFIC STYLES
    ============================================ */
 
-@layer pages { @import url('pages/article.css'); }
+/* Removed page-specific CSS in favor of reusable components */
 
 /* ============================================
    CUSTOM GLOBAL STYLES
@@ -93,31 +222,7 @@ main {
   padding: var(--space-10) 0;
 }
 
-/* Home Page Hero */
-.hero {
-  margin-bottom: var(--space-12);
-  padding: var(--space-16) 0;
-  text-align: center;
-  background: linear-gradient(135deg,
-      var(--color-primary) 0%,
-      var(--color-secondary) 100%);
-  border-radius: var(--radius-xl);
-  color: var(--color-text-inverse);
-}
-
-.hero h1 {
-  margin: 0 0 var(--space-4) 0;
-  font-size: var(--text-5xl);
-  font-weight: var(--font-extrabold);
-  color: var(--color-text-inverse);
-}
-
-.hero p {
-  margin: 0 auto;
-  max-width: 600px;
-  font-size: var(--text-xl);
-  color: rgba(255, 255, 255, 0.9);
-}
+/* Home Page Hero: moved to components/hero.css; keep this section empty intentionally */
 
 /* Section Headers */
 .section-header {

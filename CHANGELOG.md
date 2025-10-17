@@ -29,6 +29,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 10k page site: 120s → 40-50s on Python 3.13 (2.4-3x faster)
   - Automatic detection and use of site config `max_workers`
 
+### Fixed
+
+- **PageProxy template compatibility**: Fixed error `'PageProxy' object has no attribute 'meta_description'` by adding missing property accessors to PageProxy
+  - Added lazy-loaded computed properties: `meta_description`, `reading_time`, `excerpt`
+  - Added metadata properties: `is_home`, `is_section`, `is_page`, `kind`, `description`, `draft`, `keywords`
+  - Added setter for `rendered_html` to support rendering phase assignments
+  - Ensures templates work correctly with both Page and PageProxy objects in incremental builds
+
+- **Autodoc CLI template selection**: Fixed CLI command documentation pages not rendering with sidebar navigation
+  - Changed autodoc command template to set `type: cli-reference` instead of `type: cli-command`
+  - Ensures individual CLI command pages use the `cli-reference/single.html` template with proper sidebar navigation
+  - Pages now correctly render with the full documentation layout including command navigation
+
+- **Incremental build regression**: Fixed critical `'str' object has no attribute 'path'` error blocking rebuild scenarios
+  - PageProxy stores section metadata as string path, not Section object
+  - Added safe attribute checking before accessing `.path` on page.section
+  - Resolves complete failure of incremental builds on second and subsequent runs
+  - Incremental caching now works correctly after initial full build
+
 ### Changed
 
 - **Code quality**: Removed dead code - unused exception variables, deprecated classes (ResponseBuffer), unused WIP stubs (TablePlugin), and verified false positives from static analysis

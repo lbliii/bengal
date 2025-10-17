@@ -48,7 +48,7 @@
   /* Interactive elements */
   button,
   .button,
-  .btn,
+  .button,
   #back-to-top,
   #reading-progress,
   .header-anchor-link,
@@ -93,7 +93,12 @@
      TYPOGRAPHY
      ============================================ */
 
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     color: black !important;
     page-break-after: avoid;
     page-break-inside: avoid;
@@ -114,7 +119,9 @@
     font-size: 14pt;
   }
 
-  h4, h5, h6 {
+  h4,
+  h5,
+  h6 {
     font-size: 12pt;
   }
 
@@ -248,7 +255,8 @@
      LISTS
      ============================================ */
 
-  ul, ol {
+  ul,
+  ol {
     page-break-inside: avoid;
   }
 
@@ -315,7 +323,7 @@
   }
 
   /* Optimize spacing */
-  .prose > * + * {
+  .prose>*+* {
     margin-top: 12pt;
   }
 }

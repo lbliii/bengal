@@ -1,0 +1,30 @@
+/* Author bio component (media card pattern) */
+
+.author-bio {
+    display: flex;
+    gap: var(--space-6);
+    padding: var(--space-6);
+    background-color: var(--color-bg-secondary);
+    border-radius: var(--radius-lg);
+    margin: var(--space-12) 0;
+}
+
+.author-bio-avatar {
+    flex-shrink: 0;
+    width: 80px;
+    height: 80px;
+    border-radius: var(--radius-full);
+}
+
+.author-bio h3 {
+    margin: 0 0 var(--space-2) 0;
+    font-size: var(--text-xl);
+    font-weight: var(--font-bold);
+    color: var(--color-text-primary);
+}
+
+.author-bio p {
+    margin: 0;
+    color: var(--color-text-secondary);
+    line-height: var(--leading-relaxed);
+}

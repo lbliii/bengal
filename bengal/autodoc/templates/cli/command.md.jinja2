@@ -60,7 +60,7 @@
 
 ---
 title: "{{ element.name }}"
-type: cli-command
+type: cli-reference
 css_class: api-content
 description: "{% set lines = element.description.split('\n') %}{% set desc_lines = [] %}{% for line in lines %}{% if not line.strip().startswith('#') %}{% set _ = desc_lines.append(line) %}{% endif %}{% endfor %}{{ desc_lines | join(' ') | truncate(180, True, '...') }}"
 {% if element.source_file %}source_file: "{{ element.source_file | project_relative }}"

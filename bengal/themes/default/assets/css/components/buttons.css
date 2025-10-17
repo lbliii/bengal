@@ -12,25 +12,26 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.625rem 1.5rem;
-  font-size: var(--text-base);
+  font-size: var(--type-ui-button);
   font-weight: var(--font-semibold);
-  line-height: 1.5;
+  line-height: var(--type-leading-body);
   text-align: center;
   text-decoration: none;
   border: 2px solid transparent;
   border-radius: var(--radius-md);
   cursor: pointer;
-  transition: all var(--transition-base) var(--ease-out);
+  transition: color var(--motion-medium), background-color var(--motion-medium), border-color var(--motion-medium), box-shadow var(--motion-medium), transform var(--motion-medium);
   white-space: nowrap;
 }
 
 .button:hover {
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-md);
+  transform: translateY(calc(-1 * var(--motion-distance-1)));
+  box-shadow: var(--elevation-medium);
 }
 
 .button:active {
-  transform: translateY(0);
+  transform: scale(var(--motion-scale-down));
+  box-shadow: var(--elevation-low);
 }
 
 /* Button text and icon alignment */
@@ -199,13 +200,13 @@
 /* Small */
 .button-sm {
   padding: 0.375rem 1rem;
-  font-size: var(--text-sm);
+  font-size: var(--type-ui-button);
 }
 
 /* Large */
 .button-lg {
   padding: 0.875rem 2rem;
-  font-size: var(--text-lg);
+  font-size: var(--type-ui-button);
 }
 
 /* ============================================

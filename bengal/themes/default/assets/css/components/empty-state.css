@@ -1,0 +1,106 @@
+/* Empty/Error state component (used by 404) */
+
+.empty-state {
+    text-align: center;
+    max-width: 600px;
+    margin: var(--space-20) auto;
+    padding: var(--space-8);
+}
+
+.empty-state__code {
+    font-size: 120px;
+    font-weight: var(--font-extrabold);
+    line-height: 1;
+    color: var(--color-primary);
+    opacity: 0.2;
+    margin-bottom: var(--space-4);
+}
+
+.empty-state__title {
+    font-size: var(--text-4xl);
+    font-weight: var(--font-bold);
+    color: var(--color-text-primary);
+    margin: 0 0 var(--space-4) 0;
+}
+
+.empty-state__message {
+    font-size: var(--text-lg);
+    color: var(--color-text-secondary);
+    margin: 0 0 var(--space-8) 0;
+    line-height: var(--leading-relaxed);
+}
+
+.empty-state__actions {
+    display: flex;
+    gap: var(--space-4);
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: var(--space-12);
+}
+
+.empty-state__suggestions {
+    text-align: left;
+    background-color: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-6);
+    margin-top: var(--space-10);
+}
+
+.empty-state__suggestions h2 {
+    font-size: var(--text-xl);
+    font-weight: var(--font-semibold);
+    margin: 0 0 var(--space-4) 0;
+    color: var(--color-text-primary);
+}
+
+.empty-state__suggestions ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.empty-state__suggestions li {
+    padding: var(--space-2) 0;
+    color: var(--color-text-secondary);
+}
+
+.empty-state__suggestions li::before {
+    content: '→';
+    margin-right: var(--space-2);
+    color: var(--color-primary);
+    font-weight: var(--font-bold);
+}
+
+.empty-state__suggestions a {
+    color: var(--color-primary);
+    text-decoration: none;
+    transition: color var(--transition-fast) var(--ease-out);
+}
+
+.empty-state__suggestions a:hover {
+    color: var(--color-secondary);
+    text-decoration: underline;
+}
+
+@media (max-width: 640px) {
+    .empty-state__code {
+        font-size: 80px;
+    }
+
+    .empty-state__title {
+        font-size: var(--text-2xl);
+    }
+
+    .empty-state__message {
+        font-size: var(--text-base);
+    }
+
+    .empty-state__actions {
+        flex-direction: column;
+    }
+
+    .empty-state__actions .button {
+        width: 100%;
+    }
+}

@@ -1,0 +1,103 @@
+@layer utilities {
+    .ux-raise {
+        transition: transform var(--motion-medium), box-shadow var(--motion-medium);
+    }
+
+    .ux-raise:hover {
+        transform: translateY(calc(-1 * var(--motion-distance-2)));
+        box-shadow: var(--elevation-card-hover);
+    }
+
+    .ux-press {
+        transition: transform var(--motion-fast);
+    }
+
+    .ux-press:active {
+        transform: scale(var(--motion-scale-down));
+    }
+
+    .ux-scale {
+        transition: transform var(--motion-medium);
+    }
+
+    .ux-scale:hover {
+        transform: scale(var(--motion-scale-up));
+    }
+
+    .fade-in {
+        opacity: 0;
+        transform: translateY(var(--motion-distance-1));
+        transition: opacity var(--motion-medium), transform var(--motion-medium);
+    }
+
+    .fade-in.is-visible {
+        opacity: 1;
+        transform: none;
+    }
+
+    .slide-in-up {
+        transform: translateY(var(--motion-distance-3));
+        opacity: 0;
+        transition: transform var(--motion-medium), opacity var(--motion-medium);
+    }
+
+    .slide-in-up.is-visible {
+        transform: none;
+        opacity: 1;
+    }
+
+    .slide-in-down {
+        transform: translateY(calc(-1 * var(--motion-distance-3)));
+        opacity: 0;
+        transition: transform var(--motion-medium), opacity var(--motion-medium);
+    }
+
+    .slide-in-down.is-visible {
+        transform: none;
+        opacity: 1;
+    }
+
+    .focus-glow {
+        transition: box-shadow var(--motion-fast);
+    }
+
+    .focus-glow:focus-visible {
+        box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-border-focus) 25%, transparent);
+    }
+
+    .stagger-children>* {
+        transition: opacity var(--motion-medium), transform var(--motion-medium);
+    }
+
+    .stagger-children>*:nth-child(1) {
+        transition-delay: 0ms;
+    }
+
+    .stagger-children>*:nth-child(2) {
+        transition-delay: 30ms;
+    }
+
+    .stagger-children>*:nth-child(3) {
+        transition-delay: 60ms;
+    }
+
+    .stagger-children>*:nth-child(4) {
+        transition-delay: 90ms;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    @layer utilities {
+
+        .ux-raise,
+        .ux-press,
+        .ux-scale,
+        .fade-in,
+        .slide-in-up,
+        .slide-in-down,
+        .stagger-children>* {
+            transition: none !important;
+            transform: none !important;
+        }
+    }
+}
