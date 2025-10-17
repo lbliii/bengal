@@ -76,6 +76,15 @@ code = "JetBrains Mono:400"          # Code blocks
 #   --font-heading: 'Playfair Display'
 #   --font-code: 'JetBrains Mono'
 
+# Theme Configuration (appearance and color palettes)
+[theme]
+# Default appearance mode for new visitors (overridden by localStorage once user makes a choice)
+default_appearance = "system"  # Options: "light", "dark", "system" (follows OS preference)
+
+# Default color palette (leave empty for default theme palette)
+default_palette = ""  # Options: "" (default), "snow-lynx", or custom palette name
+# Example: default_palette = "snow-lynx"  # Warm teal + cream palette for light mode, ice-blue for dark
+
 # Autodoc Configuration
 [autodoc.python]
 enabled = true

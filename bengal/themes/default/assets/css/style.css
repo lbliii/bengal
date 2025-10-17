@@ -23,9 +23,9 @@
   @import url('tokens/semantic.css');
 }
 
-/* Brand presets (optional overrides; activated via data-brand="...") */
+/* Palette presets (optional overrides; activated via data-palette="...") */
 @layer tokens {
-  @import url('tokens/brands/snow-lynx.css');
+  @import url('tokens/palettes/snow-lynx.css');
 }
 
 /* ============================================

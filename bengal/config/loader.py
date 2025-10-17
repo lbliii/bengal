@@ -75,6 +75,7 @@ class ConfigLoader:
         "output_formats",
         "health_check",
         "fonts",
+        "theme",
     }
 
     def __init__(self, root_path: Path) -> None:

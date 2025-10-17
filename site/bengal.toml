@@ -17,6 +17,9 @@ syntax_highlighting = true
 search = true
 analytics = false
 
+[theme]
+default_appearance = "dark"
+default_palette = "snow-lynx"
 
 # Autodoc Configuration - Generate Bengal API documentation
 [autodoc.python]

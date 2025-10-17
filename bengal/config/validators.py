@@ -65,6 +65,8 @@ class ConfigValidator:
         "templates_dir",
         "host",
         "expose_metadata",  # minimal|standard|extended
+        "default_appearance",  # light|dark|system
+        "default_palette",  # palette key or empty string
     }
 
     def validate(self, config: dict[str, Any], source_file: Path | None = None) -> dict[str, Any]:

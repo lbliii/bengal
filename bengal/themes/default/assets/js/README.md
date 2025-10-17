@@ -94,28 +94,28 @@ setupKeyboardDetection() // Add .user-is-tabbing class
 ---
 
 #### `theme-toggle.js`
-**Purpose:** Appearance control (mode + brand/palette)
+**Purpose:** Appearance control (mode + palette)
 
 **Features:**
 - Mode selection: System, Light, Dark
-- Brand/Palette selection via dropdown (e.g., `snow-lynx`)
+- Palette selection via dropdown (e.g., `snow-lynx`)
 - System preference detection (`prefers-color-scheme`)
-- localStorage persistence for mode (`bengal-theme`) and brand (`bengal-brand`)
-- Emits `themechange` and `brandchange` events
+- localStorage persistence for mode (`bengal-theme`) and palette (`bengal-palette`)
+- Emits `themechange` and `palettechange` events
 
 **Key Functions (exposed as `window.BengalTheme`):**
 ```javascript
-get()              // Get resolved theme ('light'|'dark') respecting 'system'
-set(theme)         // Set theme ('system'|'light'|'dark')
-toggle()           // Optional: toggle between light/dark if you add a button
-getBrand()         // Get current brand key or ''
-setBrand(brand)    // Set brand/palette key or '' to clear
+get()                  // Get resolved theme ('light'|'dark') respecting 'system'
+set(theme)             // Set theme ('system'|'light'|'dark')
+toggle()               // Optional: toggle between light/dark if you add a button
+getPalette()           // Get current palette key or ''
+setPalette(palette)    // Set color palette key or '' to clear
 ```
 
 **Storage:**
 ```javascript
-localStorage.getItem('bengal-theme') // 'system' | 'light' | 'dark'
-localStorage.getItem('bengal-brand') // '' | brand key
+localStorage.getItem('bengal-theme')   // 'system' | 'light' | 'dark'
+localStorage.getItem('bengal-palette') // '' | palette key
 ```
 
 **Usage (default theme):**
@@ -128,8 +128,8 @@ localStorage.getItem('bengal-brand') // '' | brand key
     <li role="menuitem"><button data-appearance="light">Light</button></li>
     <li role="menuitem"><button data-appearance="dark">Dark</button></li>
     <li role="separator" class="separator"></li>
-    <li role="menuitem"><button data-brand="">Default Brand</button></li>
-    <li role="menuitem"><button data-brand="snow-lynx">Snow Lynx</button></li>
+    <li role="menuitem"><button data-palette="">Default</button></li>
+    <li role="menuitem"><button data-palette="snow-lynx">Snow Lynx</button></li>
   </ul>
   <script src="assets/js/theme-toggle.js"></script>
 ```

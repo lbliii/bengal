@@ -48,6 +48,18 @@ header .container {
   text-decoration: none;
 }
 
+/* Brand presentation variants */
+.brand-image {
+  display: inline-block;
+  height: 1.5em;
+  vertical-align: middle;
+}
+
+.brand-text {
+  display: inline-block;
+  line-height: 1;
+}
+
 /* ============================================
    MAIN NAVIGATION
    ============================================ */

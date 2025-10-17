@@ -15,6 +15,7 @@ from bengal.core.asset import Asset
 from bengal.core.menu import MenuBuilder, MenuItem
 from bengal.core.page import Page
 from bengal.core.section import Section
+from bengal.core.theme import Theme
 from bengal.utils.build_stats import BuildStats
 from bengal.utils.dotdict import DotDict
 from bengal.utils.logger import get_logger
@@ -97,6 +98,7 @@ class Site:
     # Private caches for expensive properties (invalidated when pages change)
     _regular_pages_cache: list[Page] | None = field(default=None, repr=False, init=False)
     _generated_pages_cache: list[Page] | None = field(default=None, repr=False, init=False)
+    _theme_obj: Theme | None = field(default=None, repr=False, init=False)
 
     def __post_init__(self) -> None:
         """Initialize site from configuration."""
@@ -105,6 +107,9 @@ class Site:
             self.root_path = Path(self.root_path)
 
         self.theme = self.config.get("theme", "default")
+
+        # Initialize Theme object
+        self._theme_obj = Theme.from_config(self.config)
 
         if "output_dir" in self.config:
             self.output_dir = Path(self.config["output_dir"])
@@ -130,6 +135,24 @@ class Site:
     def author(self) -> str | None:
         """Get site author from config."""
         return self.config.get("author")
+
+    @property
+    def theme_config(self) -> Theme:
+        """
+        Get theme configuration object.
+
+        Available in templates as `site.theme_config` for accessing theme settings:
+        - site.theme_config.name: Theme name
+        - site.theme_config.default_appearance: Default light/dark/system mode
+        - site.theme_config.default_palette: Default color palette
+        - site.theme_config.config: Additional theme-specific config
+
+        Returns:
+            Theme configuration object
+        """
+        if self._theme_obj is None:
+            self._theme_obj = Theme.from_config(self.config)
+        return self._theme_obj
 
     @property
     def regular_pages(self) -> list[Page]:

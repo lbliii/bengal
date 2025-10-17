@@ -94,7 +94,15 @@
     {# Stylesheets #}
     <link rel="stylesheet" href="{{ asset_url('css/style.css') }}">
 
-    {# Theme & Brand initialization (prevent flash) #}
+    {# Theme configuration defaults from bengal.toml #}
+    <script>
+        window.BENGAL_THEME_DEFAULTS = {
+            appearance: '{{ site.theme_config.default_appearance }}',
+            palette: '{{ site.theme_config.default_palette }}'
+        };
+    </script>
+
+    {# Theme & Palette initialization (prevent flash) #}
     <script src="{{ asset_url('js/theme-init.js') }}"></script>
 
     {% block extra_head %}{% endblock %}
@@ -124,16 +132,14 @@
             <div class="container">
                 {# Logo / Site Title #}
                 <a href="{{ '/' | absolute_url }}" class="logo">
-                    {% set _logo_image = site.config.get('logo_image') or site.config.get('site', {}).get('logo_image')
-                    %}
+                    {% set _logo_image = site.config.get('logo_image') or site.config.get('site', {}).get('logo_image') %}
                     {% set _logo_text = site.config.get('logo_text') or site.config.get('site', {}).get('logo_text') %}
                     {% if _logo_image %}
-                    <img src="{{ _logo_image | absolute_url }}" alt="{{ site.config.title }}"
-                        style="height:1.5em; vertical-align:middle;" />
+                    <img src="{{ _logo_image | absolute_url }}" alt="{{ site.config.title }}" class="brand-image" />
                     {% elif _logo_text %}
-                    {{ _logo_text }}
+                    <span class="brand-text">{{ _logo_text }}</span>
                     {% else %}
-                    {{ site.config.title }}
+                    <span class="brand-text">{{ site.config.title }}</span>
                     {% endif %}
                 </a>
 
@@ -214,12 +220,11 @@
                 {% set _logo_image = site.config.get('logo_image') or site.config.get('site', {}).get('logo_image') %}
                 {% set _logo_text = site.config.get('logo_text') or site.config.get('site', {}).get('logo_text') %}
                 {% if _logo_image %}
-                <img src="{{ _logo_image | absolute_url }}" alt="{{ site.config.title }}"
-                    style="height:1.5em; vertical-align:middle;" />
+                <img src="{{ _logo_image | absolute_url }}" alt="{{ site.config.title }}" class="brand-image" />
                 {% elif _logo_text %}
-                {{ _logo_text }}
+                <span class="brand-text">{{ _logo_text }}</span>
                 {% else %}
-                {{ site.config.title }}
+                <span class="brand-text">{{ site.config.title }}</span>
                 {% endif %}
             </span>
             <button class="mobile-nav-close" aria-label="Close menu">

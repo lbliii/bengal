@@ -51,6 +51,7 @@ Thumbs.db
 # Project specific
 public/
 .bengal/
+.bengal.pid
 *.log
 site/conent/cli/
 site/content/api/
