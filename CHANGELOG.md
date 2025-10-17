@@ -52,6 +52,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Code quality**: Removed dead code - unused exception variables, deprecated classes (ResponseBuffer), unused WIP stubs (TablePlugin), and verified false positives from static analysis
 
+- **Default Theme Appearance**: Removed legacy light/dark toggle button in favor of a single dropdown-based Appearance control
+  - Dropdown now manages Mode (System/Light/Dark) and Brand/Palette
+  - Kept `theme-toggle.js` for initialization and dropdown wiring; `.theme-toggle` button support remains for backwards compatibility but is no longer used by default
+  - Updated docs to reflect the change
+
 - **Parallel Taxonomy Generation**: Tag page generation now uses parallel processing
   - Threshold: 20+ tags (avoids overhead on small sites)
   - 10k page site with 800 tags: 24s → 4s on Python 3.14t (6x faster)

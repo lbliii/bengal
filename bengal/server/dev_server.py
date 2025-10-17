@@ -129,6 +129,23 @@ class DevServer:
                 cfg["fingerprint_assets"] = False
                 # Avoid minification in dev to maximize CSS source stability and speed
                 cfg.setdefault("minify_assets", False)
+                # Ignore path-only baseurl during local development so the site is served at '/'
+                # This avoids forcing local navigation under a GitHub Pages-like subpath (e.g., '/bengal').
+                try:
+                    baseurl_value = (cfg.get("baseurl", "") or "").strip()
+                except Exception:
+                    baseurl_value = ""
+                if baseurl_value.startswith("/") and not baseurl_value.startswith(
+                    ("http://", "https://")
+                ):
+                    # Treat any path-only baseurl as production-only; keep absolute baseurls intact
+                    cfg["_dev_original_baseurl"] = baseurl_value
+                    cfg["baseurl"] = ""
+                    logger.info(
+                        "dev_server_baseurl_ignored",
+                        original=baseurl_value,
+                        effective=cfg.get("baseurl", ""),
+                    )
             except Exception:
                 pass
 

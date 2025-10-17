@@ -46,7 +46,7 @@ The Bengal Default Theme is a modern, accessible, and highly customizable theme 
 #### UI Components
 - **Hero Sections** - Eye-catching landing sections
 - **Search** - Full-text search with Lunr.js
-- **Theme Toggle** - Light/dark mode switcher
+- **Appearance** - Dropdown for Mode (System/Light/Dark) and Brand/Palette
 - **Mobile Navigation** - Responsive menu with hamburger
 - **Pagination** - Page number navigation
 - **Tags & Badges** - Content categorization
@@ -303,7 +303,7 @@ All JavaScript is vanilla ES6+ with no framework dependencies:
 | File | Purpose |
 |------|---------|
 | `main.js` | Entry point, coordinates all modules |
-| `theme-toggle.js` | Dark mode with localStorage persistence |
+| `theme-toggle.js` | Appearance control (mode + brand) with persistence |
 | `toc.js` | Table of contents with scroll spy |
 | `search.js` | Full-text search with Lunr.js |
 | `tabs.js` | Tab component with keyboard nav |
@@ -489,7 +489,7 @@ window.Bengal.disableSmoothScroll = true;
 
 **Enhanced features (with JavaScript):**
 - Search
-- Dark mode toggle
+- Appearance control (mode + brand)
 - Interactive components
 - Smooth scrolling
 - Back to top

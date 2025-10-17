@@ -406,7 +406,6 @@ main {
   header[role="banner"],
   footer[role="contentinfo"],
   .mobile-nav-toggle,
-  .theme-toggle,
   .share-buttons,
   .article-nav {
     display: none !important;
