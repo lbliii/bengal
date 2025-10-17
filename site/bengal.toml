@@ -1,7 +1,8 @@
 [site]
-title = "ᓚᘏᗢ Bengal SSG"
+title = "Bengal"
 baseurl = "/bengal"
 theme = "default"
+logo_text = "ᓚᘏᗢ"
 
 [build]
 output_dir = "public"
