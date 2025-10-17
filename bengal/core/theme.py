@@ -53,11 +53,22 @@ class Theme:
         Returns:
             Theme object with values from config
         """
-        theme_name = config.get("theme", "default")
+        # Get theme name from [site] section or top-level 'theme' key
+        if "site" in config and isinstance(config["site"], dict):
+            theme_name = config["site"].get("theme", "default")
+        else:
+            theme_name = config.get("theme", "default")
+            # If theme is a dict (the [theme] section), it's not the name
+            if isinstance(theme_name, dict):
+                theme_name = "default"
 
-        # Get theme section if it exists
-        theme_section = config.get("theme", {})
-        if isinstance(theme_section, dict):
+        # Get [theme] section configuration if it exists
+        # Check in both nested and flattened forms
+        theme_section = None
+        if "theme" in config and isinstance(config["theme"], dict):
+            theme_section = config["theme"]
+
+        if theme_section:
             default_appearance = theme_section.get("default_appearance", "system")
             default_palette = theme_section.get("default_palette", "")
             # Pass through any additional theme config
@@ -67,7 +78,7 @@ class Theme:
                 if k not in ("default_appearance", "default_palette")
             }
         else:
-            # If theme is just a string (theme name), use defaults
+            # No [theme] section - use defaults
             default_appearance = "system"
             default_palette = ""
             theme_config = {}
