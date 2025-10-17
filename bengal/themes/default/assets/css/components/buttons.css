@@ -24,9 +24,15 @@
   white-space: nowrap;
 }
 
-.button:hover { transform: translateY(calc(-1 * var(--motion-distance-1))); box-shadow: var(--elevation-medium); }
+.button:hover {
+  transform: translateY(calc(-1 * var(--motion-distance-1)));
+  box-shadow: var(--elevation-medium);
+}
 
-.button:active { transform: scale(var(--motion-scale-down)); box-shadow: var(--elevation-low); }
+.button:active {
+  transform: scale(var(--motion-scale-down));
+  box-shadow: var(--elevation-low);
+}
 
 /* Button text and icon alignment */
 .button-text {

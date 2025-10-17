@@ -144,7 +144,7 @@
    --space-container-padding: var(--size-6);
    /* Container padding */
 
-  /* ============================================
+   /* ============================================
     SEMANTIC TYPOGRAPHY
     ============================================ */
 
@@ -167,7 +167,7 @@
    --text-4xl: clamp(var(--font-size-36), 1.8rem + 2vw, var(--font-size-48));
    --text-5xl: clamp(var(--font-size-48), 2.5rem + 2.5vw, var(--font-size-72));
 
-  /* Heading Sizes - Increase by one step for better readability */
+   /* Heading Sizes - Increase by one step for better readability */
    --text-heading-1: var(--text-5xl);
    /* 48-72px */
    --text-heading-2: var(--text-4xl);
@@ -181,33 +181,33 @@
    --text-heading-6: var(--text-lg);
    /* 18-20px */
 
-  /* Role-based Type Tokens (Content) */
-  --type-display: var(--text-5xl);
-  --type-h1: var(--text-heading-1);
-  --type-h2: var(--text-heading-2);
-  --type-h3: var(--text-heading-3);
-  --type-h4: var(--text-heading-4);
-  --type-h5: var(--text-heading-5);
-  --type-h6: var(--text-heading-6);
+   /* Role-based Type Tokens (Content) */
+   --type-display: var(--text-5xl);
+   --type-h1: var(--text-heading-1);
+   --type-h2: var(--text-heading-2);
+   --type-h3: var(--text-heading-3);
+   --type-h4: var(--text-heading-4);
+   --type-h5: var(--text-heading-5);
+   --type-h6: var(--text-heading-6);
 
-  --type-body: var(--text-base);
-  --type-body-small: var(--text-sm);
-  --type-caption: var(--text-xs);
+   --type-body: var(--text-base);
+   --type-body-small: var(--text-sm);
+   --type-caption: var(--text-xs);
 
-  /* Role-based Type Tokens (UI/Components) */
-  --type-ui-title: var(--text-2xl);
-  --type-ui-subtitle: var(--text-lg);
-  --type-ui-body: var(--text-base);
-  --type-ui-meta: var(--text-sm);
-  --type-ui-button: var(--text-sm);
-  --type-ui-link: var(--text-sm);
+   /* Role-based Type Tokens (UI/Components) */
+   --type-ui-title: var(--text-2xl);
+   --type-ui-subtitle: var(--text-lg);
+   --type-ui-body: var(--text-base);
+   --type-ui-meta: var(--text-sm);
+   --type-ui-button: var(--text-sm);
+   --type-ui-link: var(--text-sm);
 
    /* Body Text */
    --text-body: var(--text-base);
    --text-body-small: var(--text-sm);
    --text-caption: var(--text-xs);
 
-  /* Line Heights (aliases for foundation tokens) */
+   /* Line Heights (aliases for foundation tokens) */
    --leading-none: var(--line-height-none);
    --leading-tight: var(--line-height-tight);
    --leading-snug: var(--line-height-snug);
@@ -218,9 +218,9 @@
    /* Line height semantic alias */
    --line-height-relaxed: var(--line-height-relaxed);
 
-  /* Role-based leading */
-  --type-leading-heading: var(--leading-tight);
-  --type-leading-body: var(--leading-relaxed);
+   /* Role-based leading */
+   --type-leading-heading: var(--leading-tight);
+   --type-leading-body: var(--leading-relaxed);
 
    /* Letter Spacing (aliases for foundation tokens) */
    --tracking-tight: var(--letter-spacing-tight);
@@ -234,7 +234,7 @@
    --letter-spacing-tight: var(--letter-spacing-tight);
    --letter-spacing-wide: var(--letter-spacing-wide);
 
-  /* Font Weights (aliases for foundation tokens) */
+   /* Font Weights (aliases for foundation tokens) */
    --font-light: var(--font-weight-light);
    --font-normal: var(--font-weight-normal);
    --font-medium: var(--font-weight-medium);
@@ -242,9 +242,9 @@
    --font-bold: var(--font-weight-bold);
    --font-extrabold: var(--font-weight-extrabold);
 
-  /* Role-based weights */
-  --type-weight-strong: var(--font-bold);
-  --type-weight-medium: var(--font-medium);
+   /* Role-based weights */
+   --type-weight-strong: var(--font-bold);
+   --type-weight-medium: var(--font-medium);
 
    /* ============================================
      SEMANTIC ELEVATION (Shadows)
@@ -316,11 +316,16 @@
    --motion-slow: var(--duration-300) var(--ease-in-out);
 
    /* Motion Distances and Scales */
-   --motion-distance-1: 2px; /* micro nudge */
-   --motion-distance-2: 4px; /* small raise/slide */
-   --motion-distance-3: 8px; /* content reveal */
-   --motion-scale-up: 1.02;  /* subtle hover scale */
-   --motion-scale-down: 0.98; /* press feedback */
+   --motion-distance-1: 2px;
+   /* micro nudge */
+   --motion-distance-2: 4px;
+   /* small raise/slide */
+   --motion-distance-3: 8px;
+   /* content reveal */
+   --motion-scale-up: 1.02;
+   /* subtle hover scale */
+   --motion-scale-down: 0.98;
+   /* press feedback */
 
    /* ============================================
      SEMANTIC Z-INDEX
