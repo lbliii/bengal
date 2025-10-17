@@ -363,10 +363,28 @@ class TemplateEngine:
             logger.warning("asset_path_invalid", provided=str(asset_path))
             return "/assets/"
 
+        # Helper to prefix a URL path with baseurl (absolute or path-only)
+        def _with_baseurl(path: str) -> str:
+            # path must start with '/'
+            if not path.startswith("/"):
+                path = "/" + path
+            try:
+                baseurl_value = (self.site.config.get("baseurl", "") or "").rstrip("/")
+            except Exception:
+                baseurl_value = ""
+            if not baseurl_value:
+                return path
+            # Absolute baseurl (e.g., https://example.com/subpath)
+            if baseurl_value.startswith(("http://", "https://")):
+                return f"{baseurl_value}{path}"
+            # Path-only baseurl (e.g., /bengal)
+            base_path = "/" + baseurl_value.lstrip("/")
+            return f"{base_path}{path}"
+
         # In dev server mode, prefer stable URLs without fingerprints for CSS/JS
         try:
             if self.site.config.get("dev_server", False):
-                return f"/assets/{safe_asset_path}"
+                return _with_baseurl(f"/assets/{safe_asset_path}")
         except Exception:
             pass
 
@@ -385,10 +403,10 @@ class TemplateEngine:
                     parts = cand.name.split(".")
                     if len(parts) >= 3 and len(parts[-2]) >= 6:
                         rel = cand.relative_to(self.site.output_dir)
-                        return f"/{rel.as_posix()}"
+                        return _with_baseurl(f"/{rel.as_posix()}")
         except Exception:
             pass
-        return f"/assets/{safe_asset_path}"
+        return _with_baseurl(f"/assets/{safe_asset_path}")
 
     def _get_menu(self, menu_name: str = "main") -> list:
         """

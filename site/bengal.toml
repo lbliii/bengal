@@ -1,6 +1,6 @@
 [site]
 title = "ᓚᘏᗢ Bengal SSG"
-baseurl = ""
+baseurl = "/bengal"
 theme = "default"
 
 [build]
