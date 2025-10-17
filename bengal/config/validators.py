@@ -58,13 +58,15 @@ class ConfigValidator:
         "description",
         "author",
         "language",
-        "theme",
+        # Note: "theme" removed - now a [theme] section with nested config
         "output_dir",
         "content_dir",
         "assets_dir",
         "templates_dir",
         "host",
         "expose_metadata",  # minimal|standard|extended
+        "default_appearance",  # light|dark|system
+        "default_palette",  # palette key or empty string
     }
 
     def validate(self, config: dict[str, Any], source_file: Path | None = None) -> dict[str, Any]:

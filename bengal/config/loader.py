@@ -75,6 +75,7 @@ class ConfigLoader:
         "output_formats",
         "health_check",
         "fonts",
+        "theme",
     }
 
     def __init__(self, root_path: Path) -> None:
@@ -365,7 +366,6 @@ class ConfigLoader:
         return {
             "title": "Bengal Site",
             "baseurl": "",
-            "theme": "default",
             "output_dir": "public",
             "content_dir": "content",
             "assets_dir": "assets",
@@ -386,6 +386,12 @@ class ConfigLoader:
             "debug": False,  # Show verbose debug output and tracebacks
             "validate_build": True,  # Run post-build health checks
             "min_page_size": 1000,  # Minimum expected page size in bytes
+            # Theme configuration
+            "theme": {
+                "name": "default",
+                "default_appearance": "system",
+                "default_palette": "",
+            },
         }
 
     def _apply_env_overrides(self, config: dict[str, Any]) -> dict[str, Any]:

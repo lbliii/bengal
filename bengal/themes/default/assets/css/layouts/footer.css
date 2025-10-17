@@ -12,6 +12,7 @@ footer[role="contentinfo"] {
   padding: var(--space-8) 0;
   border-top: 1px solid var(--color-border);
   background-color: var(--color-bg-secondary);
+  margin-top: auto; /* stick to bottom on short pages */
 }
 
 footer .container {

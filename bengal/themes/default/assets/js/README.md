@@ -94,36 +94,47 @@ setupKeyboardDetection() // Add .user-is-tabbing class
 ---
 
 #### `theme-toggle.js`
-**Purpose:** Dark mode functionality
+**Purpose:** Appearance control (mode + palette)
 
 **Features:**
-- Light/dark mode toggle
-- System preference detection
-- localStorage persistence
-- Smooth transitions
+- Mode selection: System, Light, Dark
+- Palette selection via dropdown (e.g., `snow-lynx`)
+- System preference detection (`prefers-color-scheme`)
+- localStorage persistence for mode (`bengal-theme`) and palette (`bengal-palette`)
+- Emits `themechange` and `palettechange` events
 
-**Key Functions:**
+**Key Functions (exposed as `window.BengalTheme`):**
 ```javascript
-getTheme()         // Get current theme
-setTheme(theme)    // Set theme ('light'|'dark'|'auto')
-toggleTheme()      // Toggle between light/dark
-initTheme()        // Initialize on page load
-watchSystemTheme() // Listen for system preference changes
+get()                  // Get resolved theme ('light'|'dark') respecting 'system'
+set(theme)             // Set theme ('system'|'light'|'dark')
+toggle()               // Optional: toggle between light/dark if you add a button
+getPalette()           // Get current palette key or ''
+setPalette(palette)    // Set color palette key or '' to clear
 ```
 
 **Storage:**
 ```javascript
-localStorage.getItem('theme') // 'light', 'dark', or null (auto)
+localStorage.getItem('bengal-theme')   // 'system' | 'light' | 'dark'
+localStorage.getItem('bengal-palette') // '' | palette key
 ```
 
-**Usage:**
+**Usage (default theme):**
 ```html
-<button class="theme-toggle" aria-label="Toggle dark mode">
-  <svg class="icon-sun">...</svg>
-  <svg class="icon-moon">...</svg>
-</button>
-<script src="assets/js/theme-toggle.js"></script>
+<!-- Dropdown-only control -->
+<div class="theme-dropdown">
+  <button class="theme-dropdown__button" aria-haspopup="menu" aria-expanded="false">Theme</button>
+  <ul class="theme-dropdown__menu" role="menu">
+    <li role="menuitem"><button data-appearance="system">System</button></li>
+    <li role="menuitem"><button data-appearance="light">Light</button></li>
+    <li role="menuitem"><button data-appearance="dark">Dark</button></li>
+    <li role="separator" class="separator"></li>
+    <li role="menuitem"><button data-palette="">Default</button></li>
+    <li role="menuitem"><button data-palette="snow-lynx">Snow Lynx</button></li>
+  </ul>
+  <script src="assets/js/theme-toggle.js"></script>
 ```
+
+Note: The legacy single-button `.theme-toggle` is no longer used in the default markup. If present, the script will still wire it up for backwards compatibility.
 
 ---
 

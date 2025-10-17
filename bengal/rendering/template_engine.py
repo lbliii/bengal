@@ -374,8 +374,8 @@ class TemplateEngine:
                 baseurl_value = ""
             if not baseurl_value:
                 return path
-            # Absolute baseurl (e.g., https://example.com/subpath)
-            if baseurl_value.startswith(("http://", "https://")):
+            # Absolute baseurl (e.g., https://example.com/subpath, file:///...)
+            if baseurl_value.startswith(("http://", "https://", "file://")):
                 return f"{baseurl_value}{path}"
             # Path-only baseurl (e.g., /bengal)
             base_path = "/" + baseurl_value.lstrip("/")

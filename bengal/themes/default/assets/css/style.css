@@ -23,9 +23,9 @@
   @import url('tokens/semantic.css');
 }
 
-/* Brand presets (optional overrides; activated via data-brand="...") */
+/* Palette presets (optional overrides; activated via data-palette="...") */
 @layer tokens {
-  @import url('tokens/brands/snow-lynx.css');
+  @import url('tokens/palettes/snow-lynx.css');
 }
 
 /* ============================================
@@ -217,8 +217,7 @@
 
 /* Main Content Area */
 main {
-  min-height: calc(100vh - 300px);
-  /* Adjust based on header/footer height */
+  flex: 1 0 auto;
   padding: var(--space-10) 0;
 }
 
@@ -406,7 +405,6 @@ main {
   header[role="banner"],
   footer[role="contentinfo"],
   .mobile-nav-toggle,
-  .theme-toggle,
   .share-buttons,
   .article-nav {
     display: none !important;

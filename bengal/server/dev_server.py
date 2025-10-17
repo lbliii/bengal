@@ -129,6 +129,21 @@ class DevServer:
                 cfg["fingerprint_assets"] = False
                 # Avoid minification in dev to maximize CSS source stability and speed
                 cfg.setdefault("minify_assets", False)
+                # Clear baseurl during local development so the site is served at '/'
+                # This applies to both path-only (/bengal) and absolute URLs (https://example.com)
+                try:
+                    baseurl_value = (cfg.get("baseurl", "") or "").strip()
+                except Exception:
+                    baseurl_value = ""
+                if baseurl_value:
+                    # Store original and clear for dev server
+                    cfg["_dev_original_baseurl"] = baseurl_value
+                    cfg["baseurl"] = ""
+                    logger.info(
+                        "dev_server_baseurl_ignored",
+                        original=baseurl_value,
+                        effective=cfg.get("baseurl", ""),
+                    )
             except Exception:
                 pass
 

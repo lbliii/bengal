@@ -7,7 +7,7 @@
   'use strict';
 
   const THEME_KEY = 'bengal-theme';
-  const BRAND_KEY = 'bengal-brand';
+  const PALETTE_KEY = 'bengal-palette';
   const THEMES = {
     SYSTEM: 'system',
     LIGHT: 'light',
@@ -39,19 +39,19 @@
     window.dispatchEvent(new CustomEvent('themechange', { detail: { theme: resolved } }));
   }
 
-  function getBrand() {
-    return localStorage.getItem(BRAND_KEY) || '';
+  function getPalette() {
+    return localStorage.getItem(PALETTE_KEY) || '';
   }
 
-  function setBrand(brand) {
-    if (brand) {
-      document.documentElement.setAttribute('data-brand', brand);
-      localStorage.setItem(BRAND_KEY, brand);
+  function setPalette(palette) {
+    if (palette) {
+      document.documentElement.setAttribute('data-palette', palette);
+      localStorage.setItem(PALETTE_KEY, palette);
     } else {
-      document.documentElement.removeAttribute('data-brand');
-      localStorage.removeItem(BRAND_KEY);
+      document.documentElement.removeAttribute('data-palette');
+      localStorage.removeItem(PALETTE_KEY);
     }
-    window.dispatchEvent(new CustomEvent('brandchange', { detail: { brand } }));
+    window.dispatchEvent(new CustomEvent('palettechange', { detail: { palette } }));
   }
 
   /**
@@ -70,8 +70,8 @@
   function initTheme() {
     const stored = localStorage.getItem(THEME_KEY) || THEMES.SYSTEM;
     setTheme(stored);
-    const brand = getBrand();
-    if (brand) setBrand(brand);
+    const palette = getPalette();
+    if (palette) setPalette(palette);
   }
 
   /**
@@ -111,12 +111,12 @@
         const t = e.target.closest('button');
         if (!t) return;
         const appearance = t.getAttribute('data-appearance');
-        const brand = t.getAttribute('data-brand');
+        const palette = t.getAttribute('data-palette');
         if (appearance) {
           setTheme(appearance);
         }
-        if (brand !== null) {
-          setBrand(brand);
+        if (palette !== null) {
+          setPalette(palette);
         }
         closeMenu();
       });

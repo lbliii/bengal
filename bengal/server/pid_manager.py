@@ -25,9 +25,9 @@ Usage:
     if port_pid:
         print(f"Port in use by PID {port_pid}")
 
-The PID file (.bengal.pid) is created in the project root and automatically
-cleaned up on normal server shutdown. If the server crashes or is killed,
-the PID file remains and is detected on next startup.
+The PID file (.bengal/server.pid) is created in the .bengal directory and
+automatically cleaned up on normal server shutdown. If the server crashes or
+is killed, the PID file remains and is detected on next startup.
 """
 
 import contextlib
@@ -57,9 +57,11 @@ class PIDManager:
             project_root: Root directory of Bengal project
 
         Returns:
-            Path to .bengal.pid file
+            Path to PID file in .bengal/ directory
         """
-        return project_root / ".bengal.pid"
+        bengal_dir = project_root / ".bengal"
+        bengal_dir.mkdir(parents=True, exist_ok=True)
+        return bengal_dir / "server.pid"
 
     @staticmethod
     def is_bengal_process(pid: int) -> bool:
@@ -119,7 +121,7 @@ class PIDManager:
             PID of stale process, or None if no stale process
 
         Example:
-            pid_file = Path(".bengal.pid")
+            pid_file = Path(".bengal/server.pid")
             stale_pid = PIDManager.check_stale_pid(pid_file)
 
             if stale_pid:
@@ -224,7 +226,7 @@ class PIDManager:
         Example:
             pid_file = PIDManager.get_pid_file(Path.cwd())
             PIDManager.write_pid_file(pid_file)
-            # Now .bengal.pid contains the current process ID
+            # Now .bengal/server.pid contains the current process ID
         """
         try:
             # Write PID file atomically (crash-safe)

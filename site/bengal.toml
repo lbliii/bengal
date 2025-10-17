@@ -1,7 +1,7 @@
 [site]
-title = "ᓚᘏᗢ Bengal SSG"
+title = "Bengal"
 baseurl = "/bengal"
-theme = "default"
+logo_text = "ᓚᘏᗢ"
 
 [build]
 output_dir = "public"
@@ -16,6 +16,10 @@ syntax_highlighting = true
 search = true
 analytics = false
 
+[theme]
+name = "default"
+default_appearance = "dark"
+default_palette = "snow-lynx"
 
 # Autodoc Configuration - Generate Bengal API documentation
 [autodoc.python]

@@ -88,13 +88,25 @@
     {% if favicon_path %}
     <link rel="icon" type="image/png" href="{{ favicon_path }}">
     {% else %}
-    <link rel="icon" type="image/svg+xml" href="{{ asset_url('favicon.svg') }}">
+    <link rel="icon" type="image/x-icon" href="{{ asset_url('favicon.ico') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ asset_url('favicon-16x16.png') }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ asset_url('favicon-32x32.png') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ asset_url('apple-touch-icon.png') }}">
+    <link rel="manifest" href="{{ asset_url('site.webmanifest') }}">
     {% endif %}
 
     {# Stylesheets #}
     <link rel="stylesheet" href="{{ asset_url('css/style.css') }}">
 
-    {# Theme & Brand initialization (prevent flash) #}
+    {# Theme configuration defaults from bengal.toml #}
+    <script>
+        window.BENGAL_THEME_DEFAULTS = {
+            appearance: '{{ site.theme_config.default_appearance }}',
+            palette: '{{ site.theme_config.default_palette }}'
+        };
+    </script>
+
+    {# Theme & Palette initialization (prevent flash) #}
     <script src="{{ asset_url('js/theme-init.js') }}"></script>
 
     {% block extra_head %}{% endblock %}
@@ -123,7 +135,18 @@
         <nav role="navigation" aria-label="Main navigation">
             <div class="container">
                 {# Logo / Site Title #}
-                <a href="{{ '/' | absolute_url }}" class="logo">{{ site.config.title }}</a>
+                <a href="{{ '/' | absolute_url }}" class="logo">
+                    {% set _logo_image = site.config.get('logo_image') or site.config.get('site', {}).get('logo_image')
+                    %}
+                    {% set _logo_text = site.config.get('logo_text') or site.config.get('site', {}).get('logo_text') %}
+                    {% if _logo_image %}
+                    <img src="{{ _logo_image | absolute_url }}" alt="{{ site.config.title }}" class="brand-image" />
+                    {% elif _logo_text %}
+                    <span class="brand-text">{{ _logo_text }}</span>
+                    {% else %}
+                    <span class="brand-text">{{ site.config.title }}</span>
+                    {% endif %}
+                </a>
 
                 {# Desktop Navigation #}
                 <div class="nav-main hidden-mobile">
@@ -198,7 +221,17 @@
     {# Mobile Navigation #}
     <nav class="mobile-nav" role="navigation" aria-label="Mobile navigation">
         <div class="mobile-nav-header">
-            <span class="logo">{{ site.config.title }}</span>
+            <span class="logo">
+                {% set _logo_image = site.config.get('logo_image') or site.config.get('site', {}).get('logo_image') %}
+                {% set _logo_text = site.config.get('logo_text') or site.config.get('site', {}).get('logo_text') %}
+                {% if _logo_image %}
+                <img src="{{ _logo_image | absolute_url }}" alt="{{ site.config.title }}" class="brand-image" />
+                {% elif _logo_text %}
+                <span class="brand-text">{{ _logo_text }}</span>
+                {% else %}
+                <span class="brand-text">{{ site.config.title }}</span>
+                {% endif %}
+            </span>
             <button class="mobile-nav-close" aria-label="Close menu">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -262,8 +295,8 @@
             {{ popular_tags_widget(limit=10) }}
 
             <p class="footer-copyright">
-                &copy; 2025 {{ site.config.title }} | Built with <a href="https://github.com/bengal-ssg/bengal"
-                    rel="noopener">Bengal SSG</a>
+                &copy; 2025 {{ site.config.title }} | Built with <a href="https://github.com/lbliii/bengal"
+                    rel="noopener">ᓚᘏᗢ</a>
             </p>
             {% set footer_menu = get_menu_lang('footer', current_lang()) %}
             {% if footer_menu %}

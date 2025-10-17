@@ -28,3 +28,23 @@
     height: 32px;
     border-radius: var(--radius-full);
 }
+
+/* Documentation metadata (date, reading time) */
+.docs-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-4);
+    font-size: var(--text-sm);
+    color: var(--color-text-muted);
+}
+
+.docs-meta-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.docs-meta-item svg {
+    flex-shrink: 0;
+}

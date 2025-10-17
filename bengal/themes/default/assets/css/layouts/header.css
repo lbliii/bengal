@@ -48,6 +48,18 @@ header .container {
   text-decoration: none;
 }
 
+/* Brand presentation variants */
+.brand-image {
+  display: inline-block;
+  height: 1.5em;
+  vertical-align: middle;
+}
+
+.brand-text {
+  display: inline-block;
+  line-height: 1;
+}
+
 /* ============================================
    MAIN NAVIGATION
    ============================================ */
@@ -302,49 +314,7 @@ header .container {
   display: block;
 }
 
-/* ============================================
-   THEME TOGGLE
-   ============================================ */
-
-.theme-toggle {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  padding: 0;
-  border: none;
-  background: transparent;
-  color: var(--color-text-primary);
-  cursor: pointer;
-  border-radius: var(--radius-md);
-  transition: all var(--transition-fast) var(--ease-out);
-}
-
-.theme-toggle:hover {
-  background-color: var(--color-bg-hover);
-}
-
-.theme-toggle svg {
-  width: 20px;
-  height: 20px;
-}
-
-.theme-toggle .icon-sun {
-  display: none;
-}
-
-.theme-toggle .icon-moon {
-  display: block;
-}
-
-[data-theme="dark"] .theme-toggle .icon-sun {
-  display: block;
-}
-
-[data-theme="dark"] .theme-toggle .icon-moon {
-  display: none;
-}
+/* (Removed legacy single-button theme toggle styles) */
 
 /* Theme Controls (toggle + dropdown) */
 .theme-controls {

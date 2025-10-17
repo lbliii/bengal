@@ -52,12 +52,7 @@ button:focus-visible,
   box-shadow: 0 0 0 4px rgba(33, 150, 243, 0.1);
 }
 
-/* Theme toggle button */
-.theme-toggle:focus-visible {
-  outline: 2px solid var(--color-border-focus);
-  outline-offset: 2px;
-  box-shadow: 0 0 0 4px rgba(33, 150, 243, 0.15);
-}
+/* (Removed legacy theme toggle focus rule) */
 
 /* ============================================
    FORMS
