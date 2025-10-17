@@ -52,6 +52,8 @@ Thumbs.db
 public/
 .bengal/
 *.log
+site/conent/cli/
+site/content/api/
 
 # Auto-generated API and CLI documentation in examples
 examples/showcase/content/api/
