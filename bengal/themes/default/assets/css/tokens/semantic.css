@@ -310,6 +310,18 @@
    --transition-slow: var(--duration-300) var(--ease-in-out);
    --transition-slower: var(--duration-500) var(--ease-in-out);
 
+   /* Semantic Motion Aliases (composed from durations/easing) */
+   --motion-fast: var(--duration-150) var(--ease-out);
+   --motion-medium: var(--duration-200) var(--ease-out);
+   --motion-slow: var(--duration-300) var(--ease-in-out);
+
+   /* Motion Distances and Scales */
+   --motion-distance-1: 2px; /* micro nudge */
+   --motion-distance-2: 4px; /* small raise/slide */
+   --motion-distance-3: 8px; /* content reveal */
+   --motion-scale-up: 1.02;  /* subtle hover scale */
+   --motion-scale-down: 0.98; /* press feedback */
+
    /* ============================================
      SEMANTIC Z-INDEX
      ============================================ */

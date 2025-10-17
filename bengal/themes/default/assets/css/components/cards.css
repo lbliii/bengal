@@ -15,7 +15,7 @@
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
   overflow: hidden;
-  transition: all var(--transition-base) var(--ease-out);
+  transition: box-shadow var(--motion-medium), transform var(--motion-medium), border-color var(--motion-medium);
 }
 
 /* When card is a link, remove underlines */
@@ -24,10 +24,7 @@ a.card {
   color: inherit;
 }
 
-.card:hover {
-  box-shadow: var(--shadow-lg);
-  transform: translateY(-2px);
-}
+.card:hover { box-shadow: var(--elevation-high); transform: translateY(calc(-1 * var(--motion-distance-2))); }
 
 /* ============================================
    CARD PARTS
@@ -154,14 +151,10 @@ a.card {
   border-radius: var(--radius-lg);
   overflow: hidden;
   text-decoration: none;
-  transition: all var(--transition-base) var(--ease-out);
+  transition: box-shadow var(--motion-medium), transform var(--motion-medium), border-color var(--motion-medium);
 }
 
-.article-card:hover {
-  box-shadow: var(--shadow-lg);
-  transform: translateY(-2px);
-  border-color: var(--color-primary);
-}
+.article-card:hover { box-shadow: var(--elevation-high); transform: translateY(calc(-1 * var(--motion-distance-2))); border-color: var(--color-primary); }
 
 .article-card-image {
   width: 100%;
@@ -250,14 +243,11 @@ a.card {
   border: 1px solid var(--color-border-light);
   border-radius: var(--border-radius-large);
   box-shadow: var(--elevation-card);
-  transition: all var(--transition-base);
+  transition: box-shadow var(--motion-medium), transform var(--motion-medium);
   height: 100%;
 }
 
-.feature-card:hover {
-  box-shadow: var(--elevation-card-hover);
-  transform: translateY(-2px);
-}
+.feature-card:hover { box-shadow: var(--elevation-card-hover); transform: translateY(calc(-1 * var(--motion-distance-2))); }
 
 .feature-card__icon {
   width: 56px;
@@ -290,7 +280,7 @@ a.card {
 .feature-card__title a {
   color: inherit;
   text-decoration: none;
-  transition: color var(--transition-fast);
+  transition: color var(--motion-fast);
 }
 
 .feature-card__title a:hover {
@@ -312,7 +302,7 @@ a.card {
   font-weight: var(--font-weight-medium);
   color: var(--color-primary);
   text-decoration: none;
-  transition: all var(--transition-fast);
+  transition: color var(--motion-fast), gap var(--motion-fast);
   margin-top: auto;
 }
 

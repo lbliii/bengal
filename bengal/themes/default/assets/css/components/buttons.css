@@ -20,18 +20,13 @@
   border: 2px solid transparent;
   border-radius: var(--radius-md);
   cursor: pointer;
-  transition: all var(--transition-base) var(--ease-out);
+  transition: color var(--motion-medium), background-color var(--motion-medium), border-color var(--motion-medium), box-shadow var(--motion-medium), transform var(--motion-medium);
   white-space: nowrap;
 }
 
-.button:hover {
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-md);
-}
+.button:hover { transform: translateY(calc(-1 * var(--motion-distance-1))); box-shadow: var(--elevation-medium); }
 
-.button:active {
-  transform: translateY(0);
-}
+.button:active { transform: scale(var(--motion-scale-down)); box-shadow: var(--elevation-low); }
 
 /* Button text and icon alignment */
 .button-text {

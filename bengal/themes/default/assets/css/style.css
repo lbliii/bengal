@@ -43,6 +43,10 @@
   @import url('base/utilities.css');
 }
 
+@layer utilities {
+  @import url('utilities/motion.css');
+}
+
 @layer base {
   @import url('base/accessibility.css');
 }

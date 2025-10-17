@@ -40,15 +40,10 @@
   border-radius: 8px;
   text-decoration: none;
   color: var(--color-text-primary);
-  transition: all 0.2s;
+  transition: color var(--motion-fast), background-color var(--motion-fast), border-color var(--motion-fast), box-shadow var(--motion-fast), transform var(--motion-fast);
 }
 
-.nav-links a:hover {
-  border-color: var(--color-primary);
-  background: var(--color-bg-secondary);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
+.nav-links a:hover { border-color: var(--color-primary); background: var(--color-bg-secondary); transform: translateY(calc(-1 * var(--motion-distance-2))); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); }
 
 .nav-subtitle {
   font-size: 0.875rem;
