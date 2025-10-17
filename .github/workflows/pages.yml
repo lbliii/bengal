@@ -30,7 +30,7 @@ jobs:
 
       - name: Build site
         working-directory: site
-        run: python -m bengal.cli build
+        run: python -m bengal.cli site build
 
       - name: Add .nojekyll
         run: touch site/public/.nojekyll
