@@ -41,6 +41,46 @@ class AssetOrchestrator:
         """
         self.site = site
         self.logger = get_logger(__name__)
+        # Ephemeral cache for CSS entry points discovered from full site asset list.
+        # Invalidation strategy: recompute when the site.assets identity or length changes.
+        self._cached_css_entry_points: list[Asset] | None = None
+        self._cached_assets_id: int | None = None
+        self._cached_assets_len: int | None = None
+
+    def _get_site_css_entries_cached(self) -> list["Asset"]:
+        """
+        Return cached list of CSS entry points from the full site asset list.
+
+        This avoids repeatedly filtering the entire site assets on incremental rebuilds
+        when only CSS modules changed. We use a simple invalidation signal that is
+        robust under dev-server rebuilds where `Site.reset_ephemeral_state()` replaces
+        `site.assets` entirely:
+            - If the identity (id) of `site.assets` changes, invalidate
+            - If the length changes, invalidate
+        If either condition is met or cache is empty, recompute.
+        """
+        try:
+            current_id = id(self.site.assets)
+            current_len = len(self.site.assets)
+        except Exception:
+            # Defensive: if site/assets are not available yet
+            return []
+
+        if (
+            self._cached_css_entry_points is None
+            or self._cached_assets_id != current_id
+            or self._cached_assets_len != current_len
+        ):
+            try:
+                self._cached_css_entry_points = [
+                    a for a in self.site.assets if a.is_css_entry_point()
+                ]
+            except Exception:
+                self._cached_css_entry_points = []
+            self._cached_assets_id = current_id
+            self._cached_assets_len = current_len
+
+        return self._cached_css_entry_points
 
     def process(self, assets: list["Asset"], parallel: bool = True, progress_manager=None) -> None:
         """
@@ -96,11 +136,7 @@ class AssetOrchestrator:
         # To keep dev workflow intuitive, when modules changed and no entry is queued,
         # pull entry points from the full site asset list so they get re-bundled.
         if css_modules and not css_entries:
-            try:
-                site_entries = [a for a in self.site.assets if a.is_css_entry_point()]
-            except Exception:
-                site_entries = []
-
+            site_entries = self._get_site_css_entries_cached()
             if site_entries:
                 css_entries = site_entries
             else:

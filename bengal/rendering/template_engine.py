@@ -3,7 +3,7 @@ Template engine using Jinja2.
 """
 
 from collections.abc import Mapping
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any
 
 import toml
@@ -336,10 +336,37 @@ class TemplateEngine:
         Returns:
             Asset URL
         """
+
+        # Normalize and validate the provided asset path to prevent traversal/absolute paths
+        def _normalize_and_validate_asset_path(raw_path: str) -> str:
+            # Convert Windows-style separators and trim whitespace
+            candidate = (raw_path or "").replace("\\", "/").strip()
+            # Remove any leading slash to keep it relative inside /assets
+            while candidate.startswith("/"):
+                candidate = candidate[1:]
+
+            try:
+                posix_path = PurePosixPath(candidate)
+            except Exception:
+                return ""
+
+            # Reject absolute paths and traversal segments
+            if posix_path.is_absolute() or any(part == ".." for part in posix_path.parts):
+                return ""
+
+            # Collapse any '.' segments by reconstructing the path
+            sanitized = PurePosixPath(*[p for p in posix_path.parts if p not in ("", ".")])
+            return sanitized.as_posix()
+
+        safe_asset_path = _normalize_and_validate_asset_path(asset_path)
+        if not safe_asset_path:
+            logger.warning("asset_path_invalid", provided=str(asset_path))
+            return "/assets/"
+
         # In dev server mode, prefer stable URLs without fingerprints for CSS/JS
         try:
             if self.site.config.get("dev_server", False):
-                return f"/assets/{asset_path}"
+                return f"/assets/{safe_asset_path}"
         except Exception:
             pass
 
@@ -347,7 +374,7 @@ class TemplateEngine:
         try:
             base = self.site.output_dir / "assets"
             # If input includes a directory (e.g., css/style.css), split it
-            p = Path(asset_path)
+            p = Path(safe_asset_path)
             subdir = base / p.parent
             stem = p.stem
             suffix = p.suffix
@@ -361,7 +388,7 @@ class TemplateEngine:
                         return f"/{rel.as_posix()}"
         except Exception:
             pass
-        return f"/assets/{asset_path}"
+        return f"/assets/{safe_asset_path}"
 
     def _get_menu(self, menu_name: str = "main") -> list:
         """

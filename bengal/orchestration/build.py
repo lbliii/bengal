@@ -21,6 +21,7 @@ from bengal.orchestration.section import SectionOrchestrator
 from bengal.orchestration.taxonomy import TaxonomyOrchestrator
 from bengal.utils.build_stats import BuildStats
 from bengal.utils.logger import get_logger
+from bengal.utils.sections import resolve_page_section_path
 
 if TYPE_CHECKING:
     from bengal.core.site import Site
@@ -368,9 +369,9 @@ class BuildOrchestrator:
                 for page in pages_to_build:
                     if not page.metadata.get("_generated"):
                         # Safely check if page has a section (may be None for root-level pages)
-                        # page.section might be a Section object or already a string path
-                        if hasattr(page, "section") and page.section:
-                            section_path = str(page.section.path) if hasattr(page.section, "path") else str(page.section)
+                        # Use shared helper to normalize section path
+                        section_path = resolve_page_section_path(page)
+                        if section_path:
                             affected_sections.add(section_path)
                         if page.tags:
                             for tag in page.tags:
@@ -683,17 +684,17 @@ class BuildOrchestrator:
             # theme assets are in output. This handles the case where assets directory doesn't
             # exist yet (e.g., first incremental build after initial setup)
             if incremental and not assets_to_process and self.site.theme:
-                    # Check if theme has assets
-                    from bengal.orchestration.content import ContentOrchestrator
+                # Check if theme has assets
+                from bengal.orchestration.content import ContentOrchestrator
 
-                    co = ContentOrchestrator(self.site)
-                    theme_dir = co._get_theme_assets_dir()
-                    if theme_dir and theme_dir.exists():
-                        # Check if output/assets directory was populated
-                        output_assets = self.site.output_dir / "assets"
-                        if not output_assets.exists() or len(list(output_assets.rglob("*"))) < 5:
-                            # Theme assets not in output - re-process all assets
-                            assets_to_process = self.site.assets
+                co = ContentOrchestrator(self.site)
+                theme_dir = co._get_theme_assets_dir()
+                if theme_dir and theme_dir.exists():
+                    # Check if output/assets directory was populated
+                    output_assets = self.site.output_dir / "assets"
+                    if not output_assets.exists() or len(list(output_assets.rglob("*"))) < 5:
+                        # Theme assets not in output - re-process all assets
+                        assets_to_process = self.site.assets
 
             self.assets.process(
                 assets_to_process, parallel=parallel, progress_manager=progress_manager
