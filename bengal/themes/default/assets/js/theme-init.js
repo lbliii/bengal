@@ -26,7 +26,7 @@
         }
 
         // Resolve final palette (stored preference OR config default)
-        const palette = storedPalette !== null ? storedPalette : defaults.palette;
+        const palette = storedPalette ?? defaults.palette;
 
         // Apply to document
         document.documentElement.setAttribute('data-theme', theme);
