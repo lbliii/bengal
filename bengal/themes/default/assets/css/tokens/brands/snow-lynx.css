@@ -5,7 +5,9 @@
  * Usage: Attach data-brand="snow-lynx" on <html> to activate.
  */
 
-[data-brand="snow-lynx"] {
+/* Scope brand colors to root element only */
+:root[data-brand="snow-lynx"],
+html[data-brand="snow-lynx"] {
     /* Primary (ice-blue) */
     --color-primary: #81D8D0;
     --color-primary-hover: #5FCFC6;
@@ -61,7 +63,8 @@
 }
 
 /* Dark-mode adjustments while Snow Lynx brand is active */
-[data-theme="dark"][data-brand="snow-lynx"] {
+:root[data-theme="dark"][data-brand="snow-lynx"],
+html[data-theme="dark"][data-brand="snow-lynx"] {
     /* Keep dark foundations; cool the primary for contrast */
     --color-primary: #6FE4DC;
     --color-primary-hover: #8EEBE5;
@@ -71,4 +74,35 @@
 
     /* Optional subtle warm tint for elevated surfaces */
     --color-bg-elevated: #23201D;
+}
+
+/* ============================================
+   THEME-AWARE BRAND PREVIEW (DROPDOWN BUTTONS)
+   ============================================ */
+
+/* Light mode: Show brand preview with brand's light-mode colors */
+[data-theme="light"] .theme-dropdown__menu button[data-brand="snow-lynx"] {
+    color: #2A2A2A;
+    /* Snow Lynx text color */
+}
+
+[data-theme="light"] .theme-dropdown__menu button[data-brand="snow-lynx"]:hover,
+[data-theme="light"] .theme-dropdown__menu button[data-brand="snow-lynx"]:focus {
+    color: #3FB7AE;
+    /* Snow Lynx primary */
+    background: #F5EBDD;
+    /* Snow Lynx bg-secondary */
+}
+
+/* Dark mode: Show preview with adjusted colors that work on dark backgrounds */
+[data-theme="dark"] .theme-dropdown__menu button[data-brand="snow-lynx"] {
+    color: #81D8D0;
+    /* Ice-blue - readable on dark */
+}
+
+[data-theme="dark"] .theme-dropdown__menu button[data-brand="snow-lynx"]:hover,
+[data-theme="dark"] .theme-dropdown__menu button[data-brand="snow-lynx"]:focus {
+    color: #6FE4DC;
+    /* Brighter ice-blue */
+    background: var(--color-bg-secondary);
 }
