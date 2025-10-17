@@ -1,114 +1,110 @@
 {#
-  Content Components
+Content Components
 
-  Reusable macro-based content display components for the Bengal default theme.
+Reusable macro-based content display components for the Bengal default theme.
 
-  Components:
-    - article_card(article, show_excerpt=True, show_image=False): Rich article preview card
-    - child_page_tiles(posts=None, subsections=None): Subsections and child pages as compact tiles
-    - tag_list(tags, small=False, linkable=True): Styled tag badges
-    - popular_tags(limit=10): Tag cloud widget with popular tags
-    - random_posts(count=3): Random post discovery widget
+Components:
+- article_card(article, show_excerpt=True, show_image=False): Rich article preview card
+- child_page_tiles(posts=None, subsections=None): Subsections and child pages as compact tiles
+- tag_list(tags, small=False, linkable=True): Styled tag badges
+- popular_tags(limit=10): Tag cloud widget with popular tags
+- random_posts(count=3): Random post discovery widget
 
-  Usage:
-    {% from 'partials/content-components.html' import article_card, tag_list %}
-    {{ article_card(post, show_image=True) }}
-    {{ tag_list(page.tags, small=True) }}
+Usage:
+{% from 'partials/content-components.html' import article_card, tag_list %}
+{{ article_card(post, show_image=True) }}
+{{ tag_list(page.tags, small=True) }}
 #}
 
 {#
-  Article Card Component
+Article Card Component
 
-  Displays a rich card preview of an article with metadata, tags, and optional image.
+Displays a rich card preview of an article with metadata, tags, and optional image.
 
-  Args:
-    article: Page object to display (required)
-    show_excerpt: Boolean (default: True) - show description/excerpt
-    show_image: Boolean (default: False) - show featured image
+Args:
+article: Page object to display (required)
+show_excerpt: Boolean (default: True) - show description/excerpt
+show_image: Boolean (default: False) - show featured image
 
-  Example:
-    {{ article_card(post, show_image=True, show_excerpt=True) }}
+Example:
+{{ article_card(post, show_image=True, show_excerpt=True) }}
 #}
 {% macro article_card(article, show_excerpt=True, show_image=False) %}
 <article class="article-card {% if article | has_tag('featured') %}featured-card{% endif %}">
-    {% if show_image and article.metadata.get('image') %}
-    {# Responsive image with srcset - dogfooding image_srcset() #}
-    <img
-        src="{{ image_url(article.metadata.get('image'), width=800) }}"
-        srcset="{{ article.metadata.get('image') | image_srcset([400, 800, 1200]) }}"
-        sizes="(max-width: 640px) 400px, (max-width: 1024px) 800px, 1200px"
-        alt="{{ article.metadata.get('image') | image_alt }}"
-        class="article-card-image"
-        loading="lazy"
-    >
+  {% if show_image and article.metadata.get('image') %}
+  {# Responsive image with srcset - dogfooding image_srcset() #}
+  <img src="{{ image_url(article.metadata.get('image'), width=800) }}"
+    srcset="{{ article.metadata.get('image') | image_srcset([400, 800, 1200]) }}"
+    sizes="(max-width: 640px) 400px, (max-width: 1024px) 800px, 1200px"
+    alt="{{ article.metadata.get('image') | image_alt }}" class="article-card-image" loading="lazy">
+  {% endif %}
+
+  <div class="article-card-content">
+    {# Tag badges - dogfooding has_tag() #}
+    <div class="article-card-badges">
+      {% if article | has_tag('featured') %}
+      <span class="badge badge-featured">⭐ Featured</span>
+      {% endif %}
+      {% if article | has_tag('tutorial') %}
+      <span class="badge badge-tutorial">📚 Tutorial</span>
+      {% endif %}
+      {% if article | has_tag('new') %}
+      <span class="badge badge-new">✨ New</span>
+      {% endif %}
+    </div>
+
+    <h2 class="article-card-title">
+      <a href="{{ url_for(article) }}">{{ article.title }}</a>
+    </h2>
+
+    <div class="article-card-meta">
+      {% if article.date %}
+      <time datetime="{{ article.date | date_iso }}" title="{{ article.date | dateformat('%B %d, %Y') }}">
+        {{ article.date | time_ago }}
+      </time>
+      {% endif %}
+
+      {% if article.metadata.get('author') %}
+      <span class="author">{{ article.metadata.get('author') }}</span>
+      {% endif %}
+
+      {% if article.content %}
+      <span class="reading-time">
+        {{ article.content | reading_time }} min read
+      </span>
+      {% endif %}
+    </div>
+
+    {% if show_excerpt %}
+    <p class="article-card-excerpt">
+      {% if article.metadata.get('description') %}
+      {{ article.metadata.get('description') }}
+      {% elif article.content %}
+      {{ article.content | strip_html | excerpt(150) }}
+      {% endif %}
+    </p>
     {% endif %}
 
-    <div class="article-card-content">
-        {# Tag badges - dogfooding has_tag() #}
-        <div class="article-card-badges">
-            {% if article | has_tag('featured') %}
-            <span class="badge badge-featured">⭐ Featured</span>
-            {% endif %}
-            {% if article | has_tag('tutorial') %}
-            <span class="badge badge-tutorial">📚 Tutorial</span>
-            {% endif %}
-            {% if article | has_tag('new') %}
-            <span class="badge badge-new">✨ New</span>
-            {% endif %}
-        </div>
-
-        <h2 class="article-card-title">
-            <a href="{{ url_for(article) }}">{{ article.title }}</a>
-        </h2>
-
-        <div class="article-card-meta">
-            {% if article.date %}
-            <time datetime="{{ article.date | date_iso }}" title="{{ article.date | dateformat('%B %d, %Y') }}">
-                {{ article.date | time_ago }}
-            </time>
-            {% endif %}
-
-            {% if article.metadata.get('author') %}
-            <span class="author">{{ article.metadata.get('author') }}</span>
-            {% endif %}
-
-            {% if article.content %}
-            <span class="reading-time">
-                {{ article.content | reading_time }} min read
-            </span>
-            {% endif %}
-        </div>
-
-        {% if show_excerpt %}
-        <p class="article-card-excerpt">
-            {% if article.metadata.get('description') %}
-                {{ article.metadata.get('description') }}
-            {% elif article.content %}
-                {{ article.content | strip_html | excerpt(150) }}
-            {% endif %}
-        </p>
-        {% endif %}
-
-        {% if article.tags %}
-        <div class="article-card-footer">
-            {{ tag_list(article.tags, small=True) }}
-        </div>
-        {% endif %}
+    {% if article.tags %}
+    <div class="article-card-footer">
+      {{ tag_list(article.tags, small=True) }}
     </div>
+    {% endif %}
+  </div>
 </article>
 {% endmacro %}
 
 {#
-  Child Page Tiles Component
+Child Page Tiles Component
 
-  Displays subsections and child pages as compact row-based items with icons.
+Displays subsections and child pages as compact row-based items with icons.
 
-  Args:
-    posts: List of child pages to display (optional, defaults to None)
-    subsections: List of child sections to display (optional, defaults to None)
+Args:
+posts: List of child pages to display (optional, defaults to None)
+subsections: List of child sections to display (optional, defaults to None)
 
-  Example:
-    {{ child_page_tiles(posts=page.regular_pages, subsections=page.sections) }}
+Example:
+{{ child_page_tiles(posts=page.regular_pages, subsections=page.sections) }}
 #}
 {% macro child_page_tiles(posts=None, subsections=None) %}
 {% if posts or subsections %}
@@ -117,32 +113,34 @@
 
 {# Add subsections with metadata #}
 {% if subsections %}
-  {% for subsection in subsections %}
-    {% set _ = all_items.append({
-      'type': 'section',
-      'obj': subsection,
-      'title': subsection.title,
-      'url': url_for(subsection),
-      'description': subsection.metadata.get('description', '') if subsection.metadata and subsection.metadata.get('description', '') else '',
-      'weight': subsection.metadata.get('weight', 999999) if subsection.metadata else 999999,
-      'page_count': subsection.pages | length if subsection.pages else 0
-    }) %}
-  {% endfor %}
+{% for subsection in subsections %}
+{% set _ = all_items.append({
+'type': 'section',
+'obj': subsection,
+'title': subsection.title,
+'url': url_for(subsection),
+'description': subsection.metadata.get('description', '') if subsection.metadata and
+subsection.metadata.get('description', '') else '',
+'weight': subsection.metadata.get('weight', 999999) if subsection.metadata else 999999,
+'page_count': subsection.pages | length if subsection.pages else 0
+}) %}
+{% endfor %}
 {% endif %}
 
 {# Add pages with metadata #}
 {% if posts %}
-  {% for post in posts %}
-    {% set _ = all_items.append({
-      'type': 'page',
-      'obj': post,
-      'title': post.title,
-      'url': url_for(post),
-      'description': post.metadata.get('description', '') if post.metadata and post.metadata.get('description', '') else (post.content | strip_html | excerpt(120) if post.content else ''),
-      'weight': post.metadata.get('weight', 999999) if post.metadata else 999999,
-      'date': post.date if post.date else none
-    }) %}
-  {% endfor %}
+{% for post in posts %}
+{% set _ = all_items.append({
+'type': 'page',
+'obj': post,
+'title': post.title,
+'url': url_for(post),
+'description': post.metadata.get('description', '') if post.metadata and post.metadata.get('description', '') else
+(post.content | strip_html | excerpt(120) if post.content else ''),
+'weight': post.metadata.get('weight', 999999) if post.metadata else 999999,
+'date': post.date if post.date else none
+}) %}
+{% endfor %}
 {% endif %}
 
 {# Sort by weight (ascending), then title #}
@@ -169,17 +167,17 @@
         <span class="child-item-title">
           <a href="{{ item.url | absolute_url }}">{{ item.title }}</a>
 
-        {% if item.description %}
-        <span class="child-item-description">{{ item.description }}</span>
-        {% endif %}
-
-        <span class="child-item-meta">
-          {% if item.type == 'section' and item.page_count > 0 %}
-          <span class="meta-item">{{ item.page_count }} page{{ 's' if item.page_count != 1 }}</span>
-          {% elif item.type == 'page' and item.date %}
-          <span class="meta-item">{{ item.date | time_ago }}</span>
+          {% if item.description %}
+          <span class="child-item-description">{{ item.description }}</span>
           {% endif %}
-        </span>
+
+          <span class="child-item-meta">
+            {% if item.type == 'section' and item.page_count > 0 %}
+            <span class="meta-item">{{ item.page_count }} page{{ 's' if item.page_count != 1 }}</span>
+            {% elif item.type == 'page' and item.date %}
+            <span class="meta-item">{{ item.date | time_ago }}</span>
+            {% endif %}
+          </span>
         </span>
       </div>
     </article>
@@ -190,52 +188,52 @@
 {% endmacro %}
 
 {#
-  Tag List Component
+Tag List Component
 
-  Displays tags as styled badges, optionally linkable to tag archive pages.
+Displays tags as styled badges, optionally linkable to tag archive pages.
 
-  Args:
-    tags: List of tag strings (required)
-    small: Boolean (default: False) - use smaller size
-    linkable: Boolean (default: True) - make tags clickable
+Args:
+tags: List of tag strings (required)
+small: Boolean (default: False) - use smaller size
+linkable: Boolean (default: True) - make tags clickable
 
-  Example:
-    {{ tag_list(page.tags) }}
-    {{ tag_list(article.tags, small=True, linkable=False) }}
+Example:
+{{ tag_list(page.tags) }}
+{{ tag_list(article.tags, small=True, linkable=False) }}
 #}
 {% macro tag_list(tags, small=False, linkable=True) %}
 <div class="tags {% if small %}tags-small{% endif %}">
-    {% for tag in tags %}
-        {% if linkable %}
-        {# Locale-aware tag link: if prefix strategy and non-default or default_in_subdir, prefix with language #}
-        {% set _i18n = site.config.get('i18n', {}) %}
-        {% set _lang = current_lang() %}
-        {% set _default = _i18n.get('default_language', 'en') if _i18n else 'en' %}
-        {% set _in_subdir = _i18n.get('default_in_subdir', False) if _i18n else False %}
-        {% set _prefix = '' %}
-        {% if _i18n and _i18n.get('strategy') == 'prefix' and _lang and (_in_subdir or _lang != _default) %}
-        {% set _prefix = '/' ~ _lang %}
-        {% endif %}
-        <a href="{{ _prefix }}/tags/{{ tag | lower | replace(' ', '-') }}/" class="tag">
-            {{ tag }}
-        </a>
-        {% else %}
-        <span class="tag">{{ tag }}</span>
-        {% endif %}
-    {% endfor %}
+  {% for tag in tags %}
+  {% if linkable %}
+  {# Locale-aware tag link: if prefix strategy and non-default or default_in_subdir, prefix with language #}
+  {% set _i18n = site.config.get('i18n', {}) %}
+  {% set _lang = current_lang() %}
+  {% set _default = _i18n.get('default_language', 'en') if _i18n else 'en' %}
+  {% set _in_subdir = _i18n.get('default_in_subdir', False) if _i18n else False %}
+  {% set _prefix = '' %}
+  {% if _i18n and _i18n.get('strategy') == 'prefix' and _lang and (_in_subdir or _lang != _default) %}
+  {% set _prefix = '/' ~ _lang %}
+  {% endif %}
+  <a href="{{ _prefix }}/tags/{{ tag | lower | replace(' ', '-') }}/" class="tag">
+    {{ tag }}
+  </a>
+  {% else %}
+  <span class="tag">{{ tag }}</span>
+  {% endif %}
+  {% endfor %}
 </div>
 {% endmacro %}
 
 {#
-  Popular Tags Component
+Popular Tags Component
 
-  Displays a tag cloud widget showing the most frequently used tags across the site.
+Displays a tag cloud widget showing the most frequently used tags across the site.
 
-  Args:
-    limit: Number of tags to show (default: 10)
+Args:
+limit: Number of tags to show (default: 10)
 
-  Example:
-    {{ popular_tags(limit=20) }}
+Example:
+{{ popular_tags(limit=20) }}
 #}
 {% macro popular_tags_widget(limit=10) %}
 {% set top_tags = popular_tags(limit=limit) %}
@@ -256,35 +254,35 @@
 {% endmacro %}
 
 {#
-  Random Posts Component
+Random Posts Component
 
-  Displays a widget with randomly selected posts from the site.
+Displays a widget with randomly selected posts from the site.
 
-  Args:
-    count: Number of random posts to show (default: 3)
+Args:
+count: Number of random posts to show (default: 3)
 
-  Example:
-    {{ random_posts(count=5) }}
+Example:
+{{ random_posts(count=5) }}
 #}
 {% macro random_posts(count=3) %}
 {% set random_posts = site.regular_pages | sample(count) %}
 {% if random_posts %}
 <aside class="random-posts-widget">
-    <h3>You Might Also Like</h3>
-    <div class="random-posts-list">
-        {% for post in random_posts %}
-        <article class="random-post-item">
-            <h4>
-            <a href="{{ url_for(post) | absolute_url }}">{{ post.title }}</a>
-            </h4>
-            {% if post.date %}
-            <time datetime="{{ post.date | date_iso }}">
-                {{ post.date | time_ago }}
-            </time>
-            {% endif %}
-        </article>
-        {% endfor %}
-    </div>
+  <h3>You Might Also Like</h3>
+  <div class="random-posts-list">
+    {% for post in random_posts %}
+    <article class="random-post-item">
+      <h4>
+        <a href="{{ url_for(post) | absolute_url }}">{{ post.title }}</a>
+      </h4>
+      {% if post.date %}
+      <time datetime="{{ post.date | date_iso }}">
+        {{ post.date | time_ago }}
+      </time>
+      {% endif %}
+    </article>
+    {% endfor %}
+  </div>
 </aside>
 {% endif %}
 {% endmacro %}

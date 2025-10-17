@@ -1,33 +1,33 @@
 {#
-  Reusable Component Macros for Bengal Themes
+Reusable Component Macros for Bengal Themes
 
-  These macros provide a cleaner, more ergonomic API for common UI components.
-  Unlike includes, macros have explicit parameters and don't pollute scope.
+These macros provide a cleaner, more ergonomic API for common UI components.
+Unlike includes, macros have explicit parameters and don't pollute scope.
 
-  Usage:
-    {% from 'partials/components.html' import reference_header %}
-    {{ reference_header(icon='📦', title=page.title) }}
+Usage:
+{% from 'partials/components.html' import reference_header %}
+{{ reference_header(icon='📦', title=page.title) }}
 #}
 
 
 {#
-  Reference Documentation Header
+Reference Documentation Header
 
-  Unified header component for all reference documentation types (API, CLI, OpenAPI, etc.)
+Unified header component for all reference documentation types (API, CLI, OpenAPI, etc.)
 
-  Args:
-    icon: Icon/emoji to display (e.g., '📦', '⌨️', '🔌')
-    title: Page title
-    description: Optional lead description (default: None)
-    type: Reference type for CSS class ('api', 'cli', 'openapi', etc.)
+Args:
+icon: Icon/emoji to display (e.g., '📦', '⌨️', '🔌')
+title: Page title
+description: Optional lead description (default: None)
+type: Reference type for CSS class ('api', 'cli', 'openapi', etc.)
 
-  Example:
-    {{ reference_header(
-      icon='📦',
-      title=page.title,
-      description=page.metadata.get('description', ''),
-      type='api'
-    ) }}
+Example:
+{{ reference_header(
+icon='📦',
+title=page.title,
+description=page.metadata.get('description', ''),
+type='api'
+) }}
 #}
 {% macro reference_header(icon, title, description=None, type='default') %}
 <div class="reference-header">
@@ -41,19 +41,19 @@
 
 
 {#
-  Reference Metadata Box
+Reference Metadata Box
 
-  Displays metadata for reference documentation (module, source, etc.)
+Displays metadata for reference documentation (module, source, etc.)
 
-  Args:
-    metadata: Dict of key-value pairs to display
-    type: Reference type for CSS class (default: 'default')
+Args:
+metadata: Dict of key-value pairs to display
+type: Reference type for CSS class (default: 'default')
 
-  Example:
-    {{ reference_metadata({
-      'Module': page.metadata.get('module_path', ''),
-      'Source': page.metadata.get('source_file', '')
-    }) }}
+Example:
+{{ reference_metadata({
+'Module': page.metadata.get('module_path', ''),
+'Source': page.metadata.get('source_file', '')
+}) }}
 #}
 {% macro reference_metadata(metadata, type='default') %}
 {% if metadata %}
@@ -72,20 +72,20 @@
 
 
 {#
-  Breadcrumbs Component
+Breadcrumbs Component
 
-  Displays breadcrumb navigation
+Displays breadcrumb navigation
 
-  Args:
-    items: List of breadcrumb items [{name, url}, ...]
-    separator: Separator character (default: '/')
+Args:
+items: List of breadcrumb items [{name, url}, ...]
+separator: Separator character (default: '/')
 
-  Example:
-    {{ breadcrumbs([
-      {'name': 'Home', 'url': '/'},
-      {'name': 'API', 'url': '/api/'},
-      {'name': page.title, 'url': page.url}
-    ]) }}
+Example:
+{{ breadcrumbs([
+{'name': 'Home', 'url': '/'},
+{'name': 'API', 'url': '/api/'},
+{'name': page.title, 'url': page.url}
+]) }}
 #}
 {% macro breadcrumbs(items, separator='/') %}
 <nav class="breadcrumbs" aria-label="Breadcrumb">

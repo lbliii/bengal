@@ -54,7 +54,24 @@
     isIndexLoading = true;
 
     try {
-      const response = await fetch(CONFIG.indexUrl);
+      // Resolve baseurl from meta tag if present
+      let baseurl = '';
+      try {
+        const m = document.querySelector('meta[name="bengal:baseurl"]');
+        baseurl = (m && m.getAttribute('content')) || '';
+      } catch (e) { /* no-op */ }
+
+      let indexUrl = CONFIG.indexUrl;
+      if (baseurl) {
+        baseurl = baseurl.replace(/\/$/, '');
+        if (!indexUrl.startsWith('http://') && !indexUrl.startsWith('https://')) {
+          // Ensure leading slash on indexUrl
+          indexUrl = indexUrl.startsWith('/') ? indexUrl : ('/' + indexUrl);
+          indexUrl = baseurl + indexUrl;
+        }
+      }
+
+      const response = await fetch(indexUrl);
       if (!response.ok) {
         throw new Error(`Failed to load search index: ${response.status}`);
       }
