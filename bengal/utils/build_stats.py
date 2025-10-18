@@ -480,8 +480,7 @@ def show_welcome() -> None:
 
     # Create centered content with themed styling
     content = Align.center(
-        "[bengal]ᓚᘏᗢ[/bengal]     [header]BENGAL SSG[/header]\n"
-        "          [dim]Fast & Fierce Static Sites[/dim]",
+        "[bengal]ᓚᘏᗢ[/bengal]     [header]BENGAL SSG[/header]",
         vertical="middle",
     )
 

@@ -6,6 +6,7 @@ from pathlib import Path
 import click
 
 from bengal.core.site import Site
+from bengal.utils.cli_output import CLIOutput
 from bengal.utils.logger import LogLevel, close_all_loggers, configure_logging
 
 
