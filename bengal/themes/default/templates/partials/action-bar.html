@@ -1,0 +1,200 @@
+{#
+Action Bar Component
+
+Combines breadcrumb navigation (left) with page actions (right)
+such as sharing with AI assistants.
+
+Usage: {% include 'partials/action-bar.html' %}
+
+Requires: page object in context
+#}
+
+{% if page %}
+<div class="action-bar-container">
+    {# Main Action Bar #}
+    <div class="action-bar">
+        {# Left: Breadcrumbs #}
+        <nav class="action-bar-nav" aria-label="Breadcrumb">
+            {% set breadcrumb_items = get_breadcrumbs(page) %}
+            {% if breadcrumb_items %}
+            <ol class="action-bar-breadcrumbs">
+                {% for item in breadcrumb_items %}
+                <li {% if item.is_current %}aria-current="page" {% endif %}>
+                    {% if item.is_current %}
+                    {% set has_metadata = page.metadata.get('author') or page.date or page.content or
+                    page.metadata.get('lastmod') %}
+                    <span class="action-bar-breadcrumb-current-wrapper">
+                        <span class="action-bar-breadcrumb-current" title="{{ item.title }}">{{ item.title |
+                            truncate(20, true, '…') }}</span>
+                        {% if has_metadata %}
+                        <button class="action-bar-meta-toggle" aria-label="Toggle page metadata" aria-expanded="false"
+                            aria-controls="action-bar-metadata" title="Show page details">
+                            <svg class="action-bar-meta-toggle-icon" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24" width="14" height="14">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </button>
+                        {% endif %}
+                    </span>
+                    {% else %}
+                    <a href="{{ item.url | absolute_url }}" class="action-bar-breadcrumb-link"
+                        title="{{ item.title }}">{{ item.title | truncate(28, true, '…') }}</a>
+                    {% endif %}
+                </li>
+                {% endfor %}
+            </ol>
+            {% endif %}
+        </nav>
+
+        {# Right: Actions #}
+        <div class="action-bar-actions">
+            {# LLM Share Button #}
+            {% set page_url = canonical_url(page.url) %}
+            {% set llm_txt_url = ensure_trailing_slash(page_url) + 'index.txt' %}
+            {% set share_prompt = "Please help me understand this documentation: " + llm_txt_url %}
+
+            <div class="action-bar-share">
+                <button class="action-bar-share-trigger" aria-label="Share with AI assistants" aria-expanded="false"
+                    aria-controls="action-bar-share-dropdown" title="Share with AI assistants">
+                    {# Bengal cat symbol - on-brand! #}
+                    <span style="font-size: 16px; line-height: 1;">ᗢ</span>
+                    <svg class="action-bar-share-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                        width="12" height="12">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                </button>
+
+                <div class="action-bar-share-dropdown" id="action-bar-share-dropdown" role="menu" aria-hidden="true">
+                    <div class="action-bar-share-content">
+                        {# Quick Actions #}
+                        <button class="action-bar-share-item" data-action="copy-url" data-url="{{ page_url }}"
+                            role="menuitem">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                            </svg>
+                            <span>Copy URL</span>
+                        </button>
+
+                        <a href="{{ llm_txt_url }}" target="_blank" rel="noopener noreferrer"
+                            class="action-bar-share-item" role="menuitem">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                            </svg>
+                            <span>Open LLM text</span>
+                        </a>
+
+                        <button class="action-bar-share-item" data-action="copy-llm-txt" data-url="{{ llm_txt_url }}"
+                            role="menuitem">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                            </svg>
+                            <span>Copy LLM text</span>
+                        </button>
+
+                        <hr class="action-bar-share-separator">
+
+                        {# AI Assistant Links #}
+                        <div class="action-bar-share-section-header">Share with AI</div>
+
+                        <a href="https://claude.ai/new?q={{ share_prompt | urlencode }}" target="_blank"
+                            rel="noopener noreferrer" class="action-bar-share-item action-bar-share-ai" data-ai="claude"
+                            role="menuitem">
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <path
+                                    d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" />
+                                <circle cx="12" cy="12" r="3" />
+                            </svg>
+                            <span>Ask Claude</span>
+                        </a>
+
+                        <a href="https://chatgpt.com/?q={{ share_prompt | urlencode }}" target="_blank"
+                            rel="noopener noreferrer" class="action-bar-share-item action-bar-share-ai"
+                            data-ai="chatgpt" role="menuitem">
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <path
+                                    d="M22.282 9.821a5.985 5.985 0 00-.516-4.91 6.046 6.046 0 00-6.51-2.9A6.065 6.065 0 004.888 4.36a5.99 5.99 0 00-2.907 6.507 6.018 6.018 0 00.517 4.91 6.05 6.05 0 006.51 2.9A6.065 6.065 0 0019.376 16.64a5.99 5.99 0 002.907-6.507l-.001-.312z" />
+                            </svg>
+                            <span>Ask ChatGPT</span>
+                        </a>
+
+                        <a href="https://gemini.google.com/app?q={{ share_prompt | urlencode }}" target="_blank"
+                            rel="noopener noreferrer" class="action-bar-share-item action-bar-share-ai" data-ai="gemini"
+                            role="menuitem">
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+                            </svg>
+                            <span>Ask Gemini</span>
+                        </a>
+
+                        <a href="https://copilot.microsoft.com/?q={{ share_prompt | urlencode }}" target="_blank"
+                            rel="noopener noreferrer" class="action-bar-share-item action-bar-share-ai"
+                            data-ai="copilot" role="menuitem">
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <path
+                                    d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
+                            </svg>
+                            <span>Ask Copilot</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# Expandable Metadata Panel - Below action bar #}
+    {% set has_metadata = page.metadata.get('author') or page.date or page.content or page.metadata.get('lastmod') %}
+    {% if has_metadata %}
+    <div class="action-bar-metadata" id="action-bar-metadata" aria-hidden="true">
+        <div class="action-bar-metadata-content">
+            {% if page.metadata.get('author') %}
+            <span class="action-bar-meta-item">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+                <span>{{ page.metadata.get('author') }}</span>
+            </span>
+            {% endif %}
+
+            {% if page.content %}
+            <span class="action-bar-meta-item">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+                <span>{{ page.content | reading_time }} min read</span>
+            </span>
+            {% endif %}
+
+            {% if page.content %}
+            <span class="action-bar-meta-item">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                    <polyline points="10 9 9 9 8 9"></polyline>
+                </svg>
+                <span>{{ page.content | wordcount }} words</span>
+            </span>
+            {% endif %}
+
+            {% if page.metadata.get('lastmod') or page.date %}
+            <span class="action-bar-meta-item">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+                    <path d="M3 3v5h5"></path>
+                    <path d="M12 7v5l4 2"></path>
+                </svg>
+                <span>Updated {{ (page.metadata.get('lastmod') or page.date) | time_ago }}</span>
+            </span>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endif %}

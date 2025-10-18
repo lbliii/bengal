@@ -8,89 +8,110 @@
 /* Scope palette colors to root element only */
 :root[data-palette="snow-lynx"],
 html[data-palette="snow-lynx"] {
-    /* Primary (warm teal - less blue, more earthy) */
-    --color-primary: #5FA89D;
-    --color-primary-hover: #4D9287;
-    --color-primary-active: #3D7B72;
-    --color-primary-light: #E6F4F2;
-    --color-primary-dark: #2D6962;
+    /* Primary (ice blue eyes - piercing but earthy) */
+    --color-primary: #4FA8A0;
+    --color-primary-hover: #3D9287;
+    --color-primary-active: #2D7B72;
+    --color-primary-light: #E3F5F3;
+    --color-primary-dark: #236962;
 
-    /* Backgrounds (cream paper) */
-    --color-bg-primary: #FAF3E7;
-    --color-bg-secondary: #F5EBDD;
-    --color-bg-tertiary: #ECE2D4;
+    /* Backgrounds (milky cream / snow - LIGHTER, MORE WHITE) */
+    --color-bg-primary: #FDFCF9;
+    --color-bg-secondary: #F9F6F0;
+    --color-bg-tertiary: #F2EDE3;
     --color-bg-elevated: #FFFFFF;
     --color-bg-overlay: rgba(0, 0, 0, 0.5);
-    --color-bg-hover: #EFE6D9;
-    --color-bg-active: #E5DBC9;
-    --color-bg-code: #F6EDDF;
+    --color-bg-hover: #F4EFEA;
+    --color-bg-active: #EDE7DC;
+    --color-bg-code: #FAF7F2;
 
-    /* Text (soft charcoal / mocha) */
-    --color-text-primary: #2A2A2A;
-    --color-text-secondary: #6B6257;
-    --color-text-tertiary: #8A8177;
-    --color-text-muted: #B1A79C;
+    /* Text (soft charcoal with cooler undertone) */
+    --color-text-primary: #252525;
+    --color-text-secondary: #5F5B56;
+    --color-text-tertiary: #847F78;
+    --color-text-muted: #AFA9A1;
     --color-text-inverse: #FFFFFF;
-    --color-text-link: #4D9287;
-    --color-text-link-hover: #3D7B72;
+    --color-text-link: #4FA8A0;
+    --color-link-hover: #3D9287;
 
-    /* Borders (warm ashen) */
-    --color-border: #E2D8CB;
-    --color-border-light: #EFE7DC;
-    --color-border-strong: #C8BBA9;
-    --color-border-focus: #5FA89D;
+    /* Borders (cool ashen) */
+    --color-border: #E5DFD6;
+    --color-border-light: #F0EBE3;
+    --color-border-strong: #CFC7BC;
+    --color-border-focus: #4FA8A0;
 
-    /* Semantic states (tuned for cream backgrounds) */
+    /* Semantic states (harmonized with icy cream) */
     --color-success: #2E7D32;
-    --color-success-bg: #E8F5E9;
+    --color-success-bg: #EEF8EF;
     --color-success-border: #A5D6A7;
     --color-success-text: #1B5E20;
 
     --color-warning: #D97706;
-    --color-warning-bg: #FFF7E6;
+    --color-warning-bg: #FFFAF0;
     --color-warning-border: #F5D7A1;
     --color-warning-text: #7C3E03;
 
     --color-error: #C62828;
-    --color-error-bg: #FDEBEC;
+    --color-error-bg: #FFF0F0;
     --color-error-border: #F5B7B1;
     --color-error-text: #7F1D1D;
 
-    --color-info: #1E88E5;
-    --color-info-bg: #E7F2FD;
-    --color-info-border: #90CAF9;
-    --color-info-text: #0D47A1;
+    --color-info: #3D9DAF;
+    --color-info-bg: #EDF7F9;
+    --color-info-border: #8AC9D9;
+    --color-info-text: #1E5C6B;
 }
 
 /* Dark-mode adjustments while Snow Lynx palette is active */
 :root[data-theme="dark"][data-palette="snow-lynx"],
 html[data-theme="dark"][data-palette="snow-lynx"] {
-    /* Cool the primary for contrast */
-    --color-primary: #6FE4DC;
-    --color-primary-hover: #8EEBE5;
-    --color-primary-active: #4BCDC4;
-    --color-primary-light: rgba(111, 228, 220, 0.18);
-    --color-primary-dark: #2FB3AB;
+    /* Icy teal for dark mode - muted and cool like moonlit ice */
+    --color-primary: #6EC4BC;
+    --color-primary-hover: #87D3CC;
+    --color-primary-active: #55B5AC;
+    --color-primary-light: rgba(110, 196, 188, 0.18);
+    --color-primary-dark: #3C9B93;
 
-    /* Dark backgrounds with subtle warm tint */
-    --color-bg-primary: #1a1918;
-    --color-bg-secondary: #2d2a28;
-    --color-bg-tertiary: #3a3633;
-    --color-bg-elevated: #23201D;
-    --color-bg-hover: #3d3935;
-    --color-bg-active: #4a453f;
-    --color-bg-code: #2d2a28;
+    /* Dark backgrounds with cool ash-gray tint (less warm, more snow/ice) */
+    --color-bg-primary: #18191A;
+    --color-bg-secondary: #252729;
+    --color-bg-tertiary: #333538;
+    --color-bg-elevated: #1E2022;
+    --color-bg-hover: #3A3D40;
+    --color-bg-active: #454850;
+    --color-bg-code: #252729;
 
-    /* Adjusted text colors for dark mode */
-    --color-text-primary: #f5f0e8;
-    --color-text-secondary: #c9bfb3;
-    --color-text-tertiary: #9d9388;
-    --color-text-muted: #7a7169;
+    /* Cool text colors for dark mode */
+    --color-text-primary: #F5F5F3;
+    --color-text-secondary: #C9C7C3;
+    --color-text-tertiary: #9D9B97;
+    --color-text-muted: #75736F;
 
-    /* Adjusted borders for dark mode */
-    --color-border: #3d3935;
-    --color-border-light: #332f2c;
-    --color-border-strong: #544e48;
+    /* Cool borders for dark mode */
+    --color-border: #3A3D40;
+    --color-border-light: #2D3032;
+    --color-border-strong: #4F5356;
+
+    /* Semantic states for dark mode (notices/admonitions) */
+    --color-success: #66BB6A;
+    --color-success-bg: rgba(46, 125, 50, 0.15);
+    --color-success-border: #388E3C;
+    --color-success-text: #A5D6A7;
+
+    --color-warning: #FFA726;
+    --color-warning-bg: rgba(217, 119, 6, 0.15);
+    --color-warning-border: #E67E22;
+    --color-warning-text: #FFCC80;
+
+    --color-error: #EF5350;
+    --color-error-bg: rgba(198, 40, 40, 0.15);
+    --color-error-border: #C62828;
+    --color-error-text: #FFAB91;
+
+    --color-info: #42A5F5;
+    --color-info-bg: rgba(30, 136, 229, 0.15);
+    --color-info-border: #1976D2;
+    --color-info-text: #90CAF9;
 }
 
 /* ============================================
@@ -105,8 +126,8 @@ html[data-theme="dark"][data-palette="snow-lynx"] {
     height: 10px;
     border-radius: 50%;
     margin-right: 0.5rem;
-    background: linear-gradient(135deg, #5FA89D 0%, #4D9287 50%, #FAF3E7 100%);
-    border: 1px solid rgba(95, 168, 157, 0.3);
+    background: linear-gradient(135deg, #4FA8A0 0%, #6EC4BC 50%, #FDFCF9 100%);
+    border: 1px solid rgba(79, 168, 160, 0.3);
     vertical-align: middle;
 }
 
@@ -127,8 +148,8 @@ html[data-theme="dark"][data-palette="snow-lynx"] {
 [data-theme="light"] .theme-dropdown__menu button[data-palette="snow-lynx"]:hover,
 [data-theme="light"] .theme-dropdown__menu button[data-palette="snow-lynx"]:focus {
     /* Use standard hover with a hint of palette color */
-    background: #F5EBDD;
-    color: #4D9287;
+    background: #F9F6F0;
+    color: #4FA8A0;
 }
 
 /* Dark mode: Keep default button styling, let indicator show the palette */
@@ -136,5 +157,5 @@ html[data-theme="dark"][data-palette="snow-lynx"] {
 [data-theme="dark"] .theme-dropdown__menu button[data-palette="snow-lynx"]:focus {
     /* Use standard hover with a hint of palette color */
     background: var(--color-bg-secondary);
-    color: #6FE4DC;
+    color: #6EC4BC;
 }

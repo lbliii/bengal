@@ -18,7 +18,8 @@ Context variables:
 {% from 'partials/content-components.html' import tag_list %}
 
 {% block content %}
-{{ breadcrumbs(page) }}
+{# Action Bar: Breadcrumbs + Share #}
+{% include 'partials/action-bar.html' %}
 
 <div class="blog-post-layout {% if toc %}blog-with-toc{% endif %}">
     <article
@@ -226,7 +227,8 @@ Context variables:
                 {% if post.metadata.get('image') or post.metadata.get('cover') %}
                 <div class="blog-card-image">
                     <a href="{{ url_for(post) }}">
-                        <img src="{{ post.metadata.get('image') | default(post.metadata.get('cover')) }}" alt="{{ post.title }}">
+                        <img src="{{ post.metadata.get('image') | default(post.metadata.get('cover')) }}"
+                            alt="{{ post.title }}">
                     </a>
                 </div>
                 {% endif %}
@@ -235,7 +237,8 @@ Context variables:
                         <a href="{{ url_for(post) }}">{{ post.title }}</a>
                     </h3>
                     {% if post.metadata.get('description') or post.excerpt %}
-                    <p class="blog-card-excerpt">{{ post.metadata.get('description') | default(post.excerpt) | truncate(120) }}
+                    <p class="blog-card-excerpt">{{ post.metadata.get('description') | default(post.excerpt) |
+                        truncate(120) }}
                     </p>
                     {% endif %}
                     {% if post.date %}

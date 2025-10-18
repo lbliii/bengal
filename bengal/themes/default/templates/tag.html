@@ -7,8 +7,8 @@
     <header class="page-header">
         <nav class="breadcrumbs">
             <ol>
-                <li><a href="/">Home</a></li>
-                <li><a href="/tags/">Tags</a></li>
+                <li><a href="{{ '/' | absolute_url }}">Home</a></li>
+                <li><a href="{{ '/tags/' | absolute_url }}">Tags</a></li>
                 <li>{{ tag }}</li>
             </ol>
         </nav>
@@ -39,7 +39,7 @@
     {% endif %}
 
     <div class="tag-nav">
-        <a href="/tags/" class="button button-outline">← View all tags</a>
+        <a href="{{ '/tags/' | absolute_url }}" class="button button-outline">← View all tags</a>
     </div>
 </div>
 

@@ -1,0 +1,105 @@
+{#
+Archive Sidebar Widget
+
+Displays a navigable list of years/months with post counts.
+Uses query indexes for O(1) lookups.
+
+Usage:
+{% include 'partials/archive-sidebar.html' %}
+
+Optional variables:
+- section_filter: Only show archives for a specific section (e.g., 'blog')
+- show_months: Show month breakdown (default: false)
+- title: Widget title (default: "Archives")
+
+Example:
+{% include 'partials/archive-sidebar.html' with section_filter='blog', show_months=true %}
+#}
+
+{% set title = title | default('Archives') %}
+{% set show_months = show_months | default(false) %}
+
+<aside class="archive-sidebar-widget">
+  <h3>{{ title }}</h3>
+
+  {# Get all years from the date_range index #}
+  {% set all_years = site.indexes.date_range.keys()
+  | select('match', '^\\d{4}$')
+  | sort(reverse=true)
+  | list %}
+
+  {% if all_years %}
+  <nav class="archive-nav" aria-label="Browse by date">
+    <ul class="archive-year-list">
+      {% for year in all_years %}
+      {# O(1) lookup for year #}
+      {% set year_posts = site.indexes.date_range.get(year) | resolve_pages %}
+
+      {# Filter by section if specified #}
+      {% if section_filter %}
+      {% set year_posts = year_posts | selectattr('_section.name', 'equalto', section_filter) | list %}
+      {% endif %}
+
+      {% if year_posts %}
+      <li class="archive-year-item">
+        {% if show_months %}
+        {# Expandable year with months #}
+        <details class="year-details">
+          <summary class="year-summary">
+            <span class="year-label">{{ year }}</span>
+            <span class="year-count">({{ year_posts | length }})</span>
+          </summary>
+
+          <ul class="archive-month-list">
+            {% for month_num in range(1, 13) %}
+            {% set month_key = year ~ '-' ~ '%02d' | format(month_num) %}
+            {% set month_posts = site.indexes.date_range.get(month_key) | resolve_pages %}
+
+            {# Filter by section if specified #}
+            {% if section_filter %}
+            {% set month_posts = month_posts | selectattr('_section.name', 'equalto', section_filter) | list %}
+            {% endif %}
+
+            {% if month_posts %}
+            <li class="archive-month-item">
+              <a href="{{ ('/archive/' ~ year ~ '/' ~ '%02d' | format(month_num) ~ '/') | absolute_url }}">
+                <span class="month-label">
+                  {{ [
+                  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+                  ][month_num - 1] }}
+                </span>
+                <span class="month-count">({{ month_posts | length }})</span>
+              </a>
+            </li>
+            {% endif %}
+            {% endfor %}
+          </ul>
+        </details>
+        {% else %}
+        {# Simple year link #}
+        <a href="{{ ('/archive/' ~ year ~ '/') | absolute_url }}" class="year-link">
+          <span class="year-label">{{ year }}</span>
+          <span class="year-count">({{ year_posts | length }})</span>
+        </a>
+        {% endif %}
+      </li>
+      {% endif %}
+      {% endfor %}
+    </ul>
+  </nav>
+
+  {# Optional: Show total post count #}
+  <div class="archive-total">
+    {% set ns = namespace(total_posts=0) %}
+    {% for y in site.indexes.date_range.keys() | select('match', '^\\d{4}$') %}
+    {% set ns.total_posts = ns.total_posts + (site.indexes.date_range.get(y) | length) %}
+    {% endfor %}
+    <p class="total-text">
+      <strong>{{ ns.total_posts }}</strong> total posts
+    </p>
+  </div>
+  {% else %}
+  <p class="no-archives">No archives available.</p>
+  {% endif %}
+</aside>

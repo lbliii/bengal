@@ -1,0 +1,148 @@
+/**
+ * Blue Bengal Palette
+ * Rare and premium - muted blue-grays, powder blues, and soft steel tones
+ *
+ * Usage: Attach data-palette="blue-bengal" on <html> to activate.
+ */
+
+/* Scope palette colors to root element only */
+:root[data-palette="blue-bengal"],
+html[data-palette="blue-bengal"] {
+    /* Primary (soft powder blue - PASTEL) */
+    --color-primary: #7FA3C3;
+    --color-primary-hover: #6991B5;
+    --color-primary-active: #5680A7;
+    --color-primary-light: #F2F6FA;
+    --color-primary-dark: #4A6E91;
+
+    /* Backgrounds (airy powder blue tints - VERY SOFT) */
+    --color-bg-primary: #FAFCFD;
+    --color-bg-secondary: #F4F8FC;
+    --color-bg-tertiary: #EDF4FB;
+    --color-bg-elevated: #FFFFFF;
+    --color-bg-overlay: rgba(79, 128, 167, 0.4);
+    --color-bg-hover: #E8F1F9;
+    --color-bg-active: #DEE9F5;
+    --color-bg-code: #F7FAFD;
+
+    /* Text (soft slate blues) */
+    --color-text-primary: #2A3F54;
+    --color-text-secondary: #526578;
+    --color-text-tertiary: #7B8FA5;
+    --color-text-muted: #A4B5C8;
+    --color-text-inverse: #FFFFFF;
+    --color-text-link: #7FA3C3;
+    --color-text-link-hover: #6991B5;
+
+    /* Borders (gentle blue-grays) */
+    --color-border: #D8E4F0;
+    --color-border-light: #E7EEF7;
+    --color-border-strong: #B8CADE;
+    --color-border-focus: #7FA3C3;
+
+    /* Semantic states (harmonized with blue theme) */
+    --color-success: #2E7D32;
+    --color-success-bg: #F0F9F3;
+    --color-success-border: #A5D6A7;
+    --color-success-text: #1B5E20;
+
+    --color-warning: #D97706;
+    --color-warning-bg: #FFFAEF;
+    --color-warning-border: #FCD34D;
+    --color-warning-text: #92400E;
+
+    --color-error: #C62828;
+    --color-error-bg: #FFF6F6;
+    --color-error-border: #FCA5A5;
+    --color-error-text: #7F1D1D;
+
+    --color-info: #1976D2;
+    --color-info-bg: #F0F7FF;
+    --color-info-border: #93C5FD;
+    --color-info-text: #1E3A8A;
+}
+
+/* Dark-mode adjustments while Blue Bengal palette is active */
+:root[data-theme="dark"][data-palette="blue-bengal"],
+html[data-theme="dark"][data-palette="blue-bengal"] {
+    /* Soft glowing powder blue for dark mode */
+    --color-primary: #9DBDD9;
+    --color-primary-hover: #B4CFE6;
+    --color-primary-active: #86ABCC;
+    --color-primary-light: rgba(157, 189, 217, 0.18);
+    --color-primary-dark: #7099BF;
+
+    /* Dark backgrounds with gentle blue wash */
+    --color-bg-primary: #141B22;
+    --color-bg-secondary: #1B2430;
+    --color-bg-tertiary: #243140;
+    --color-bg-elevated: #192028;
+    --color-bg-hover: #2A3849;
+    --color-bg-active: #354657;
+    --color-bg-code: #1B2430;
+
+    /* Soft text colors with blue tint */
+    --color-text-primary: #F4F8FC;
+    --color-text-secondary: #D3DFEB;
+    --color-text-tertiary: #A4B5C8;
+    --color-text-muted: #738AA1;
+
+    /* Adjusted borders for dark mode */
+    --color-border: #2A3849;
+    --color-border-light: #243140;
+    --color-border-strong: #3D4E61;
+
+    /* Semantic states for dark mode */
+    --color-success: #66BB6A;
+    --color-success-bg: rgba(46, 125, 50, 0.15);
+    --color-success-border: #388E3C;
+    --color-success-text: #A5D6A7;
+
+    --color-warning: #FFB020;
+    --color-warning-bg: rgba(217, 119, 6, 0.15);
+    --color-warning-border: #F59E0B;
+    --color-warning-text: #FCD34D;
+
+    --color-error: #EF5350;
+    --color-error-bg: rgba(198, 40, 40, 0.15);
+    --color-error-border: #C62828;
+    --color-error-text: #FCA5A5;
+
+    --color-info: #42A5F5;
+    --color-info-bg: rgba(25, 118, 210, 0.15);
+    --color-info-border: #1976D2;
+    --color-info-text: #93C5FD;
+}
+
+/* ============================================
+   THEME-AWARE PALETTE PREVIEW (DROPDOWN BUTTONS)
+   ============================================ */
+
+/* Add a color indicator dot before palette buttons */
+.theme-dropdown__menu button[data-palette="blue-bengal"]::before {
+    content: '';
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 0.5rem;
+    background: linear-gradient(135deg, #6B8CAF 0%, #8DACC9 50%, #F8FAFC 100%);
+    border: 1px solid rgba(107, 140, 175, 0.3);
+    vertical-align: middle;
+}
+
+/* Light mode: Keep default button styling, let indicator show the palette */
+[data-theme="light"] .theme-dropdown__menu button[data-palette="blue-bengal"]:hover,
+[data-theme="light"] .theme-dropdown__menu button[data-palette="blue-bengal"]:focus {
+    /* Use standard hover with a hint of palette color */
+    background: #F1F5F9;
+    color: #6B8CAF;
+}
+
+/* Dark mode: Keep default button styling, let indicator show the palette */
+[data-theme="dark"] .theme-dropdown__menu button[data-palette="blue-bengal"]:hover,
+[data-theme="dark"] .theme-dropdown__menu button[data-palette="blue-bengal"]:focus {
+    /* Use standard hover with a hint of palette color */
+    background: var(--color-bg-secondary);
+    color: #8DACC9;
+}

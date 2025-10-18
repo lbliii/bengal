@@ -79,7 +79,7 @@ Does NOT mark for rebuild: docs/guide.md, docs/tutorial.md, etc.
 Result: Their cached HTML is stale (old cascade values)
 ```
 
-**Root cause**: 
+**Root cause**:
 - `IncrementalOrchestrator.find_work_early()` doesn't understand cascade dependencies
 - When section index changes, descendants should be auto-marked for rebuild
 
@@ -97,25 +97,25 @@ Result: Their cached HTML is stale (old cascade values)
 ```python
 class CascadeEngine:
     """Isolated cascade application logic (no Site/Orchestrator coupling)."""
-    
+
     def __init__(self, pages: list[Page], sections: list[Section]):
         """Initialize with page and section lists."""
         # Pre-compute for O(1) lookups
         self._pages_in_sections = self._compute_pages_in_sections(sections)
         self.pages = pages
         self.sections = sections
-    
+
     def _compute_pages_in_sections(self, sections) -> set[Page]:
         """Pre-compute set of all pages that belong to any section."""
         pages = set()
         for section in sections:
             pages.update(section.get_all_pages())
         return pages
-    
+
     def is_top_level_page(self, page: Page) -> bool:
         """O(1) check if page is top-level (not in any section)."""
         return page not in self._pages_in_sections
-    
+
     def apply(self) -> None:
         """Apply all cascades to site."""
         # Logic from Site._apply_cascades(), but using pre-computed set
@@ -149,18 +149,18 @@ class CascadeEngine:
 def _find_cascade_affected_pages(self, index_page: Page) -> set[Path]:
     """
     Find all pages affected by cascade change in an index page.
-    
+
     When content/docs/_index.md cascade changes, return paths of all
     pages in docs/ and subsections (docs/advanced/, etc.).
-    
+
     Args:
         index_page: The _index.md or index.md page with cascade
-    
+
     Returns:
         Set of source paths to rebuild
     """
     affected = set()
-    
+
     # Find the section this index page belongs to
     for section in self.site.sections:
         if section.index_page == index_page:
@@ -169,7 +169,7 @@ def _find_cascade_affected_pages(self, index_page: Page) -> set[Path]:
                 if not page.metadata.get("_generated"):
                     affected.add(page.source_path)
             break
-    
+
     return affected
 ```
 
@@ -178,18 +178,18 @@ def _find_cascade_affected_pages(self, index_page: Page) -> set[Path]:
 # After detecting changed pages, check for cascade changes
 for changed_path in list(pages_to_rebuild):  # Snapshot
     page_obj = self._find_page_by_path(changed_path)
-    
+
     if page_obj and self._is_index_page(page_obj):
         # Check if this page has cascade metadata
         old_metadata = self.cache.get_old_page_metadata(changed_path)
         new_cascade = page_obj.metadata.get("cascade", {})
         old_cascade = old_metadata.get("cascade", {}) if old_metadata else {}
-        
+
         if new_cascade != old_cascade:
             # Cascade changed - mark all descendants for rebuild
             affected = self._find_cascade_affected_pages(page_obj)
             pages_to_rebuild.update(affected)
-            
+
             if verbose:
                 change_summary["Cascade affects"].append(
                     f"{changed_path.name}: {len(affected)} pages"
@@ -235,7 +235,7 @@ if self._is_root_level_page(page_obj):
 def apply(self, verbose: bool = False) -> dict[str, int]:
     """
     Apply cascades and return statistics.
-    
+
     Returns:
         {
             "pages_processed": 1000,
@@ -245,7 +245,7 @@ def apply(self, verbose: bool = False) -> dict[str, int]:
         }
     """
     stats = {...}
-    
+
     # Log each cascade application
     for page in section.pages:
         applied_keys = []
@@ -253,7 +253,7 @@ def apply(self, verbose: bool = False) -> dict[str, int]:
             if key not in page.metadata:
                 page.metadata[key] = value
                 applied_keys.append(key)
-        
+
         if applied_keys and verbose:
             logger.debug(
                 "cascade_applied",
@@ -261,7 +261,7 @@ def apply(self, verbose: bool = False) -> dict[str, int]:
                 keys=applied_keys,
                 from_section=section.name
             )
-    
+
     return stats
 ```
 
@@ -269,7 +269,7 @@ def apply(self, verbose: bool = False) -> dict[str, int]:
 ```python
 def discover(self):
     # ... discovery ...
-    
+
     stats = self._apply_cascades()
     logger.info(
         "cascades_applied",

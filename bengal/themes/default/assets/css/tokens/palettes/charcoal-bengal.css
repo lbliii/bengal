@@ -1,0 +1,148 @@
+/**
+ * Charcoal Bengal Palette
+ * Dramatic charcoal with steel gray-blue undertones - mysterious and sophisticated
+ *
+ * Usage: Attach data-palette="charcoal-bengal" on <html> to activate.
+ */
+
+/* Scope palette colors to root element only */
+:root[data-palette="charcoal-bengal"],
+html[data-palette="charcoal-bengal"] {
+    /* Primary (deep slate with subtle cool undertone - DRAMATIC) */
+    --color-primary: #3E4C5A;
+    --color-primary-hover: #2E3C4A;
+    --color-primary-active: #1E2C3A;
+    --color-primary-light: #E8EBED;
+    --color-primary-dark: #0E1C2A;
+
+    /* Backgrounds (darker, moodier grays - editorial feel) */
+    --color-bg-primary: #ECEFF1;
+    --color-bg-secondary: #E0E4E7;
+    --color-bg-tertiary: #D1D7DB;
+    --color-bg-elevated: #F5F7F8;
+    --color-bg-overlay: rgba(0, 0, 0, 0.75);
+    --color-bg-hover: #D8DCE0;
+    --color-bg-active: #CCD2D6;
+    --color-bg-code: #E5E9EC;
+
+    /* Text (rich blacks - magazine-like contrast) */
+    --color-text-primary: #0A0D10;
+    --color-text-secondary: #2C3942;
+    --color-text-tertiary: #4A5761;
+    --color-text-muted: #6F7C87;
+    --color-text-inverse: #FFFFFF;
+    --color-text-link: #3E4C5A;
+    --color-text-link-hover: #2E3C4A;
+
+    /* Borders (moody grays) */
+    --color-border: #B8C1C9;
+    --color-border-light: #CFD6DD;
+    --color-border-strong: #8F9CA7;
+    --color-border-focus: #3E4C5A;
+
+    /* Semantic states (muted but clear) */
+    --color-success: #2E7D32;
+    --color-success-bg: #EEF7EF;
+    --color-success-border: #A5D6A7;
+    --color-success-text: #1B5E20;
+
+    --color-warning: #D97706;
+    --color-warning-bg: #FFF9EE;
+    --color-warning-border: #FCD34D;
+    --color-warning-text: #92400E;
+
+    --color-error: #C62828;
+    --color-error-bg: #FEF3F3;
+    --color-error-border: #FCA5A5;
+    --color-error-text: #7F1D1D;
+
+    --color-info: #1976D2;
+    --color-info-bg: #EFF6FD;
+    --color-info-border: #93C5FD;
+    --color-info-text: #1E3A8A;
+}
+
+/* Dark-mode adjustments while Charcoal Bengal palette is active */
+:root[data-theme="dark"][data-palette="charcoal-bengal"],
+html[data-theme="dark"][data-palette="charcoal-bengal"] {
+    /* Muted steel for dark mode - subdued elegance */
+    --color-primary: #8A99A8;
+    --color-primary-hover: #9BAAB9;
+    --color-primary-active: #798897;
+    --color-primary-light: rgba(138, 153, 168, 0.15);
+    --color-primary-dark: #687786;
+
+    /* VERY dark backgrounds - deep editorial black */
+    --color-bg-primary: #0A0C0F;
+    --color-bg-secondary: #12151A;
+    --color-bg-tertiary: #1C2127;
+    --color-bg-elevated: #0E1115;
+    --color-bg-hover: #232931;
+    --color-bg-active: #2D3540;
+    --color-bg-code: #12151A;
+
+    /* Refined text with strong contrast */
+    --color-text-primary: #F8FAFB;
+    --color-text-secondary: #C8D1DA;
+    --color-text-tertiary: #8A99A8;
+    --color-text-muted: #5C6A78;
+
+    /* Adjusted borders for dark mode */
+    --color-border: #232931;
+    --color-border-light: #1C2127;
+    --color-border-strong: #343D49;
+
+    /* Semantic states for dark mode */
+    --color-success: #66BB6A;
+    --color-success-bg: rgba(46, 125, 50, 0.15);
+    --color-success-border: #388E3C;
+    --color-success-text: #A5D6A7;
+
+    --color-warning: #FFB020;
+    --color-warning-bg: rgba(217, 119, 6, 0.15);
+    --color-warning-border: #F59E0B;
+    --color-warning-text: #FCD34D;
+
+    --color-error: #EF5350;
+    --color-error-bg: rgba(198, 40, 40, 0.15);
+    --color-error-border: #C62828;
+    --color-error-text: #FCA5A5;
+
+    --color-info: #42A5F5;
+    --color-info-bg: rgba(25, 118, 210, 0.15);
+    --color-info-border: #1976D2;
+    --color-info-text: #93C5FD;
+}
+
+/* ============================================
+   THEME-AWARE PALETTE PREVIEW (DROPDOWN BUTTONS)
+   ============================================ */
+
+/* Add a color indicator dot before palette buttons */
+.theme-dropdown__menu button[data-palette="charcoal-bengal"]::before {
+    content: '';
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 0.5rem;
+    background: linear-gradient(135deg, #3D4A53 0%, #5D6A73 50%, #8B95A0 100%);
+    border: 1px solid rgba(93, 106, 115, 0.3);
+    vertical-align: middle;
+}
+
+/* Light mode: Keep default button styling, let indicator show the palette */
+[data-theme="light"] .theme-dropdown__menu button[data-palette="charcoal-bengal"]:hover,
+[data-theme="light"] .theme-dropdown__menu button[data-palette="charcoal-bengal"]:focus {
+    /* Use standard hover with a hint of palette color */
+    background: #EBEDEF;
+    color: #5D6A73;
+}
+
+/* Dark mode: Keep default button styling, let indicator show the palette */
+[data-theme="dark"] .theme-dropdown__menu button[data-palette="charcoal-bengal"]:hover,
+[data-theme="dark"] .theme-dropdown__menu button[data-palette="charcoal-bengal"]:focus {
+    /* Use standard hover with a hint of palette color */
+    background: var(--color-bg-secondary);
+    color: #7B8A95;
+}

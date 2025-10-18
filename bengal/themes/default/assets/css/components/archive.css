@@ -1,0 +1,379 @@
+/* Archive Components - Year/Month Archives and Sidebar Widget */
+
+/* ============================================
+   Archive Year Page
+   ============================================ */
+
+.archive-year {
+  max-width: var(--container-md);
+  margin: 0 auto;
+}
+
+.archive-header {
+  margin-bottom: var(--space-12);
+}
+
+.archive-header h1 {
+  font-size: var(--text-4xl);
+  font-weight: var(--font-bold);
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-4) 0;
+}
+
+.archive-count {
+  font-size: var(--text-base);
+  color: var(--color-text-secondary);
+  margin: var(--space-2) 0 0 0;
+}
+
+/* Archive Statistics */
+.archive-stats {
+  margin: var(--space-8) 0;
+  padding: var(--space-6);
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-lg);
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: var(--space-6);
+  text-align: center;
+}
+
+.stat-value {
+  display: block;
+  font-size: var(--text-4xl);
+  font-weight: var(--font-bold);
+  color: var(--color-primary);
+  line-height: 1;
+}
+
+.stat-label {
+  display: block;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  margin-top: var(--space-2);
+}
+
+/* Month Grouping */
+.month-group {
+  margin: var(--space-12) 0;
+}
+
+.month-title {
+  font-size: var(--text-2xl);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-4);
+  padding-bottom: var(--space-2);
+  border-bottom: 2px solid var(--color-border);
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.month-count {
+  font-size: var(--text-base);
+  font-weight: var(--font-normal);
+  color: var(--color-text-tertiary);
+}
+
+.month-posts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* Archive Post Card */
+.archive-post-card {
+  display: flex;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-md);
+  transition: transform var(--transition-fast) var(--ease-out),
+              box-shadow var(--transition-fast) var(--ease-out);
+}
+
+.archive-post-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="dark"] .archive-post-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.post-date {
+  flex-shrink: 0;
+  width: 3rem;
+  height: 3rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--text-xl);
+  font-weight: var(--font-bold);
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+  border-radius: var(--radius-sm);
+}
+
+.post-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.post-title {
+  margin: 0 0 var(--space-2) 0;
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+}
+
+.post-title a {
+  color: var(--color-text-primary);
+  text-decoration: none;
+  transition: color var(--transition-fast) var(--ease-out);
+}
+
+.post-title a:hover {
+  color: var(--color-primary);
+}
+
+.post-excerpt {
+  margin: var(--space-2) 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  line-height: var(--leading-relaxed);
+}
+
+.post-meta {
+  display: flex;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  margin-top: var(--space-2);
+}
+
+.post-author,
+.reading-time {
+  display: inline-flex;
+  align-items: center;
+}
+
+.post-tags {
+  display: inline-flex;
+  gap: var(--space-1);
+}
+
+/* Year Navigation */
+.year-navigation {
+  margin-top: var(--space-16);
+  padding-top: var(--space-8);
+  border-top: 2px solid var(--color-border);
+}
+
+.year-navigation h3 {
+  font-size: var(--text-xl);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-4) 0;
+}
+
+.year-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.year-list li a {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  color: var(--color-text-primary);
+  transition: background var(--transition-fast) var(--ease-out),
+              color var(--transition-fast) var(--ease-out);
+}
+
+.year-list li.current-year a {
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+}
+
+.year-list li a:hover {
+  background: var(--color-primary-hover);
+  color: var(--color-text-inverse);
+}
+
+.year-count {
+  font-size: var(--text-xs);
+  opacity: 0.7;
+}
+
+/* ============================================
+   Archive Sidebar Widget
+   ============================================ */
+
+.archive-sidebar-widget {
+  padding: var(--space-6);
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-lg);
+}
+
+.archive-sidebar-widget h3 {
+  margin: 0 0 var(--space-4) 0;
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+}
+
+.archive-nav {
+  margin: 0;
+}
+
+.archive-year-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.archive-year-item {
+  margin-bottom: var(--space-2);
+}
+
+.year-link {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-surface);
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  color: var(--color-text-primary);
+  transition: background var(--transition-fast) var(--ease-out),
+              color var(--transition-fast) var(--ease-out);
+}
+
+.year-link:hover {
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+}
+
+.year-label {
+  font-weight: var(--font-medium);
+}
+
+/* Expandable Month View */
+.year-details {
+  background: var(--color-surface);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.year-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-2) var(--space-3);
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+  transition: background var(--transition-fast) var(--ease-out);
+}
+
+.year-summary::-webkit-details-marker {
+  display: none;
+}
+
+.year-summary:hover {
+  background: var(--color-bg-hover);
+}
+
+.year-details[open] .year-summary {
+  border-bottom: 1px solid var(--color-border);
+}
+
+.archive-month-list {
+  list-style: none;
+  padding: var(--space-2);
+  margin: 0;
+}
+
+.archive-month-item {
+  margin-bottom: var(--space-1);
+}
+
+.archive-month-item a {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+  transition: background var(--transition-fast) var(--ease-out),
+              color var(--transition-fast) var(--ease-out);
+}
+
+.archive-month-item a:hover {
+  background: var(--color-bg-hover);
+  color: var(--color-text-primary);
+}
+
+.month-label {
+  font-weight: var(--font-medium);
+}
+
+.archive-total {
+  margin-top: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border);
+}
+
+.total-text {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  text-align: center;
+}
+
+.no-archives {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-tertiary);
+  font-style: italic;
+}
+
+/* ============================================
+   Responsive
+   ============================================ */
+
+@media (max-width: 640px) {
+  .stat-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .month-title {
+    font-size: var(--text-xl);
+  }
+
+  .archive-post-card {
+    flex-direction: column;
+  }
+
+  .post-date {
+    width: auto;
+    height: auto;
+    padding: var(--space-2) var(--space-3);
+  }
+}
+

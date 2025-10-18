@@ -1,29 +1,29 @@
 {#
-  Documentation Navigation Component
+Documentation Navigation Component
 
-  Displays full hierarchical sidebar navigation for documentation sites.
+Displays full hierarchical sidebar navigation for documentation sites.
 
-  Variables:
-    - page: Current page object (required)
-    - page._section: Current section (for determining root)
-    - page._section.root: Root section to display from
-    - site: Site object (fallback when no section)
+Variables:
+- page: Current page object (required)
+- page._section: Current section (for determining root)
+- page._section.root: Root section to display from
+- site: Site object (fallback when no section)
 
-  Features:
-    - Hierarchical tree structure
-    - Active page highlighting
-    - Active trail marking
-    - Scoped to current section tree
-    - Recursive subsection rendering
-    - Keyboard accessible
+Features:
+- Hierarchical tree structure
+- Active page highlighting
+- Active trail marking
+- Scoped to current section tree
+- Recursive subsection rendering
+- Keyboard accessible
 
-  Note:
-    Includes 'partials/docs-nav-section.html' for recursive rendering.
-    If page has a section, displays only that section's tree.
-    If no section, falls back to showing all top-level sections.
+Note:
+Includes 'partials/docs-nav-section.html' for recursive rendering.
+If page has a section, displays only that section's tree.
+If no section, falls back to showing all top-level sections.
 
-  Usage:
-    {% include 'partials/docs-nav.html' %}
+Usage:
+{% include 'partials/docs-nav.html' %}
 #}
 
 <nav class="docs-nav" aria-label="Documentation pages">
@@ -37,62 +37,54 @@
 
     {# If we have a root section, show only its tree #}
     {% if root_section %}
-      {# Show the section's index page if it exists #}
-      {% if root_section.index_page %}
-        <a
-          href="{{ url_for(root_section.index_page) }}"
-          class="docs-nav-link {% if page.url == root_section.index_page.url %}active{% endif %}">
-          {{ root_section.index_page.title }}
-        </a>
-      {% endif %}
+    {# Cache sorted lists and subsection index URLs for O(1) lookups #}
+    {% set sorted_pages = root_section.sorted_pages %}
+    {% set sorted_subsections = root_section.sorted_subsections %}
+    {# subsection_index_urls is a set from Python for O(1) membership checks #}
+    {% set subsection_index_urls = root_section.subsection_index_urls %}
+    {% set root_index_url = root_section.index_page.url if root_section.index_page else none %}
 
-      {# Show regular pages in the root section (excluding index page and subsection index pages) - sorted by weight #}
-      {% for p in root_section.sorted_pages %}
-        {# Skip root section index page #}
-        {% if p.url != root_section.index_page.url %}
-          {# Skip if this page is the index page of any subsection (avoid duplication) #}
-          {% set is_subsection_index = namespace(value=false) %}
-          {% for subsection in root_section.sorted_subsections %}
-            {% if subsection.index_page and p.url == subsection.index_page.url %}
-              {% set is_subsection_index.value = true %}
-            {% endif %}
-          {% endfor %}
+    {# Show the section's index page if it exists #}
+    {% if root_section.index_page %}
+    <a href="{{ url_for(root_section.index_page) }}"
+      class="docs-nav-link {% if page.url == root_index_url %}active{% endif %}">
+      {{ root_section.index_page.title }}
+    </a>
+    {% endif %}
 
-          {# Only show if not a subsection index page #}
-          {% if not is_subsection_index.value %}
-            <a
-              href="{{ url_for(p) }}"
-              class="docs-nav-link {% if page.url == p.url %}active{% endif %}">
-              {{ p.title }}
-            </a>
-          {% endif %}
-        {% endif %}
-      {% endfor %}
+    {# Show regular pages (O(n) with O(1) lookups) - sorted by weight #}
+    {% for p in sorted_pages %}
+    {# Skip root index and subsection index pages - now O(1) set lookup! #}
+    {% if p.url != root_index_url and p.url not in subsection_index_urls %}
+    <a href="{{ url_for(p) }}" class="docs-nav-link {% if page.url == p.url %}active{% endif %}">
+      {{ p.title }}
+    </a>
+    {% endif %}
+    {% endfor %}
 
-      {# Show subsections - sorted by weight #}
-      {% for section in root_section.sorted_subsections %}
-        {% set depth = 0 %}
-        {% include 'partials/docs-nav-section.html' %}
-      {% endfor %}
+    {# Show subsections - sorted by weight #}
+    {% for section in sorted_subsections %}
+    {% set depth = 0 %}
+    {% include 'partials/docs-nav-section.html' %}
+    {% endfor %}
     {% else %}
-      {# Fallback: Show all top-level sections (original behavior) #}
-      {% set top_sections = site.sections | selectattr('parent', 'none') | list %}
+    {# Fallback: Show all top-level sections (original behavior) #}
+    {% set top_sections = site.sections | selectattr('parent', 'none') | list %}
 
-      {# Show any top-level pages first (regular pages without a section) #}
-      {% set top_pages = site.pages | selectattr('_section', 'none') | rejectattr('metadata._generated', 'defined') | list %}
-      {% for p in top_pages %}
-        <a
-          href="{{ url_for(p) }}"
-          class="docs-nav-link {% if page.url == p.url %}active{% endif %}">
-          {{ p.title }}
-        </a>
-      {% endfor %}
+    {# Show any top-level pages first (regular pages without a section) #}
+    {% set top_pages = site.pages | selectattr('_section', 'none') | rejectattr('metadata._generated', 'defined') | list
+    %}
+    {% for p in top_pages %}
+    <a href="{{ url_for(p) }}" class="docs-nav-link {% if page.url == p.url %}active{% endif %}">
+      {{ p.title }}
+    </a>
+    {% endfor %}
 
-      {# Show all top-level sections #}
-      {% for section in top_sections %}
-        {% set depth = 0 %}
-        {% include 'partials/docs-nav-section.html' %}
-      {% endfor %}
+    {# Show all top-level sections #}
+    {% for section in top_sections %}
+    {% set depth = 0 %}
+    {% include 'partials/docs-nav-section.html' %}
+    {% endfor %}
     {% endif %}
   </div>
 </nav>

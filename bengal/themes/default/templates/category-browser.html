@@ -1,0 +1,241 @@
+{% extends "base.html" %}
+
+{#
+Category Browser Template
+
+Displays all categories with post counts and recent posts.
+Perfect for documentation sites to browse by category/type.
+Uses query indexes for O(1) category lookups.
+
+URL Pattern: /categories/
+
+Usage:
+Create content/categories/_index.md:
+---
+title: "Browse by Category"
+template: category-browser.html
+description: "Explore documentation organized by category"
+---
+
+Optional metadata:
+- sections: ["docs", "blog"] (only show categories from these sections)
+- show_recent: 3 (number of recent posts to show per category)
+- layout: "grid" or "list" (default: "grid")
+
+Context variables:
+- page: Current page
+- site.indexes.category: Category index
+#}
+
+{% from 'partials/navigation-components.html' import breadcrumbs %}
+{% from 'partials/content-components.html' import tag_list %}
+
+{% set section_filters = page.metadata.get('sections', []) %}
+{% set show_recent = page.metadata.get('show_recent', 3) %}
+{% set layout = page.metadata.get('layout', 'grid') %}
+
+{% block content %}
+{{ breadcrumbs(page) }}
+
+<div class="category-browser">
+    <header class="browser-header">
+        <h1>{{ page.title | default('Browse by Category') }}</h1>
+
+        {% if page.metadata.get('description') %}
+        <p class="browser-description">{{ page.metadata.get('description') }}</p>
+        {% endif %}
+    </header>
+
+    {# Main content from markdown #}
+    {% if content %}
+    <div class="browser-content prose">
+        {{ content | safe }}
+    </div>
+    {% endif %}
+
+    {# Get all categories from index #}
+    {% set all_categories = site.indexes.category.keys() | sort %}
+
+    {% if all_categories %}
+    {# Summary stats #}
+    <div class="browser-stats">
+        <span class="stat">
+            <strong>{{ all_categories | length }}</strong> categories
+        </span>
+
+        {% set total_posts = namespace(count=0) %}
+        {% for category in all_categories %}
+        {% set category_posts = site.indexes.category.get(category) | resolve_pages %}
+        {% if section_filters %}
+        {% set filtered_posts = [] %}
+        {% for post in category_posts %}
+        {% if post._section.name in section_filters %}
+        {% do filtered_posts.append(post) %}
+        {% endif %}
+        {% endfor %}
+        {% set category_posts = filtered_posts %}
+        {% endif %}
+        {% set total_posts.count = total_posts.count + (category_posts | length) %}
+        {% endfor %}
+
+        <span class="stat">
+            <strong>{{ total_posts.count }}</strong> total pages
+        </span>
+    </div>
+
+    {# Layout toggle #}
+    <div class="layout-toggle">
+        <button class="layout-btn {% if layout == 'grid' %}active{% endif %}" data-layout="grid" aria-label="Grid view">
+            📊 Grid
+        </button>
+        <button class="layout-btn {% if layout == 'list' %}active{% endif %}" data-layout="list" aria-label="List view">
+            📝 List
+        </button>
+    </div>
+
+    {# Category Grid/List #}
+    <div class="category-container" data-layout="{{ layout }}">
+        {% for category in all_categories %}
+        {# O(1) lookup for category pages #}
+        {% set category_posts = site.indexes.category.get(category) | resolve_pages %}
+
+        {# Filter by section if specified #}
+        {% if section_filters %}
+        {% set filtered_posts = [] %}
+        {% for post in category_posts %}
+        {% if post._section.name in section_filters %}
+        {% do filtered_posts.append(post) %}
+        {% endif %}
+        {% endfor %}
+        {% set category_posts = filtered_posts %}
+        {% endif %}
+
+        {% if category_posts %}
+        <article class="category-card">
+            <div class="category-header">
+                <h2 class="category-title">
+                    <a href="{{ ('/category/' ~ category ~ '/') | absolute_url }}">{{ category | title }}</a>
+                </h2>
+                <span class="category-count">{{ category_posts | length }} page{{ 's' if category_posts | length != 1
+                    }}</span>
+            </div>
+
+            {# Category stats #}
+            <div class="category-meta">
+                {% set total_words = category_posts | map(attribute='content') | join('') | wordcount %}
+                {% set authors = category_posts | map(attribute='metadata.author') | select('defined') | unique | list
+                %}
+
+                <span class="meta-item">
+                    📖 {{ total_words | format_number }} words
+                </span>
+
+                {% if authors %}
+                <span class="meta-item">
+                    ✍️ {{ authors | length }} author{{ 's' if authors | length != 1 }}
+                </span>
+                {% endif %}
+            </div>
+
+            {# Recent posts in this category #}
+            {% if show_recent > 0 %}
+            {% set recent_posts = category_posts | sort_by('date', reverse=true) | limit(show_recent) %}
+            <div class="category-recent">
+                <h3 class="recent-title">Recent:</h3>
+                <ul class="recent-list">
+                    {% for post in recent_posts %}
+                    <li>
+                        <a href="{{ url_for(post) }}">{{ post.title }}</a>
+                        {% if post.date %}
+                        <time datetime="{{ post.date | date_iso }}">
+                            {{ post.date | time_ago }}
+                        </time>
+                        {% endif %}
+                    </li>
+                    {% endfor %}
+                </ul>
+
+                {% if category_posts | length > show_recent %}
+                <a href="{{ ('/category/' ~ category ~ '/') | absolute_url }}" class="view-all">
+                    View all {{ category_posts | length }} →
+                </a>
+                {% endif %}
+            </div>
+            {% endif %}
+        </article>
+        {% endif %}
+        {% endfor %}
+    </div>
+
+    {# All Categories A-Z Index #}
+    <aside class="category-index">
+        <h3>Quick Index</h3>
+        <nav class="alpha-nav" aria-label="Alphabetical category index">
+            {% set current = namespace(letter=None) %}
+            {% for cat in all_categories | sort %}
+            {% set letter = cat[0]|upper %}
+            {% if current.letter != letter %}
+            {% if current.letter is not none %}
+            </ul>
+</div>
+{% endif %}
+<div class="letter-group">
+    <strong class="letter">{{ letter }}</strong>
+    <ul class="letter-list">
+        {% set current.letter = letter %}
+        {% endif %}
+        {% set cat_posts = site.indexes.category.get(cat) | resolve_pages %}
+        {% if section_filters %}
+        {% set filtered_posts = [] %}
+        {% for post in cat_posts %}
+        {% if post._section.name in section_filters %}
+        {% do filtered_posts.append(post) %}
+        {% endif %}
+        {% endfor %}
+        {% set cat_posts = filtered_posts %}
+        {% endif %}
+        {% if cat_posts %}
+        <li>
+            <a href="{{ ('/category/' ~ cat ~ '/') | absolute_url }}">
+                {{ cat | title }} ({{ cat_posts | length }})
+            </a>
+        </li>
+        {% endif %}
+        {% endfor %}
+        {% if current.letter is not none %}
+    </ul>
+</div>
+{% endif %}
+</nav>
+</aside>
+
+{% else %}
+{# Empty State #}
+<div class="browser-empty">
+    <div class="empty-state">
+        <p class="empty-message">No categories found.</p>
+        <p class="empty-hint">Add <code>categories: ["tutorial", "guide"]</code> to page frontmatter to create
+            categories.</p>
+    </div>
+</div>
+{% endif %}
+</div>
+
+<script>
+    // Layout toggle functionality
+    document.querySelectorAll('.layout-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const layout = btn.dataset.layout;
+            const container = document.querySelector('.category-container');
+
+            // Update buttons
+            document.querySelectorAll('.layout-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            // Update container
+            container.dataset.layout = layout;
+        });
+    });
+</script>
+
+{% endblock %}

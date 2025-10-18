@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import pytest
+
 from bengal.core.site import Site
 from bengal.rendering.template_engine import TemplateEngine
 
@@ -119,8 +121,16 @@ output_dir = "public"
     assert result == "https://example.com/api/module/"
 
 
-def test_url_for_without_baseurl(tmp_path: Path):
+def test_url_for_without_baseurl(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     """Test that url_for works correctly without a base URL."""
+    # Ensure BENGAL_BASEURL isn't set from test matrix
+    monkeypatch.delenv("BENGAL_BASEURL", raising=False)
+    monkeypatch.delenv("BENGAL_BASE_URL", raising=False)
+    # Ensure CI environment variables don't auto-detect baseurl
+    monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
+    monkeypatch.delenv("NETLIFY", raising=False)
+    monkeypatch.delenv("VERCEL", raising=False)
+
     # Arrange: site without base URL
     site_dir = tmp_path / "site"
     (site_dir / "content").mkdir(parents=True)

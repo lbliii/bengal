@@ -65,18 +65,18 @@
 1. `bengal/orchestration/build.py`
    - Fixed variable shadowing (page_cache vs cache)
    - Improved taxonomy index type handling
-   
+
 2. `bengal/orchestration/taxonomy.py`
    - Added TaxonomyIndex loading and usage
    - New `generate_dynamic_pages_for_tags_with_cache()` method
    - Enhanced incremental generation logic
-   
+
 3. `bengal/cache/taxonomy_index.py`
    - Added `pages_changed()` method
-   
+
 4. `bengal/discovery/content_discovery.py`
    - Added lazy loading support
-   
+
 5. `bengal/orchestration/content.py`
    - Added incremental flag and cache parameter support
 

@@ -35,8 +35,9 @@ footer .container {
    ============================================ */
 
 .footer-copyright {
-  font-size: var(--text-xs);
-  color: var(--color-text-secondary);
+  font-size: var(--text-xxs);
+  color: var(--color-text-tertiary);
+  margin: 0;
 }
 
 .footer-links {
@@ -140,4 +141,172 @@ footer .container {
 .social-links svg {
   width: 18px;
   height: 18px;
+}
+
+/* ============================================
+   FOOTER BOTTOM (Copyright + Badge)
+   ============================================ */
+
+.footer-bottom {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  align-items: center;
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .footer-bottom {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+}
+
+.footer-left {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  align-items: center;
+}
+
+@media (min-width: 768px) {
+  .footer-left {
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-4);
+  }
+}
+
+.footer-right {
+  display: flex;
+  align-items: center;
+}
+
+/* ============================================
+   BENGAL BADGE (Built with Bengal)
+   ============================================ */
+
+/* Cat component structure */
+.cat {
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
+  user-select: none;
+}
+
+.cat-tail,
+.cat-body,
+.cat-head {
+  display: inline-block;
+  font-weight: 300;
+  /* Lighter weight prevents thickness at small sizes */
+}
+
+.cat-body {
+  letter-spacing: -0.02em;
+  /* Tighten spacing slightly */
+}
+
+/* Contemplative animation */
+.cat-contemplative .cat-head {
+  animation: contemplative-head 8s ease-in-out infinite;
+}
+
+.cat-contemplative .cat-tail {
+  animation: contemplative-tail 5s ease-in-out infinite;
+  transform-origin: right center;
+}
+
+@keyframes contemplative-head {
+
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+
+  40% {
+    transform: rotate(-5deg);
+  }
+
+  60% {
+    transform: rotate(-5deg);
+  }
+}
+
+@keyframes contemplative-tail {
+
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+
+  50% {
+    transform: rotate(-6deg);
+  }
+}
+
+/* Badge styles - using design tokens */
+.bengal-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  padding: var(--space-1) var(--space-2-5);
+  border-radius: var(--radius-full);
+  font-size: var(--text-xxs);
+  font-weight: var(--font-medium);
+  text-decoration: none;
+  transition: all var(--transition-normal) var(--ease-out);
+  background: transparent;
+  color: var(--color-text-tertiary);
+  border: 1px solid var(--color-border);
+}
+
+.bengal-badge .cat {
+  font-size: 13px;
+  /* Proportional to 11px text */
+}
+
+/* Hover state - theme aware */
+.bengal-badge:hover {
+  background: var(--color-bg-hover);
+  color: var(--color-text-primary);
+  border-color: var(--color-border-strong);
+  transform: translateY(-1px);
+}
+
+/* Ensure cat parts inherit color on hover */
+.bengal-badge:hover .cat {
+  color: inherit;
+}
+
+/* Dark theme adjustments */
+:root[data-theme="dark"] .bengal-badge,
+html[data-theme="dark"] .bengal-badge {
+  color: var(--color-text-secondary);
+  border-color: var(--color-border);
+}
+
+:root[data-theme="dark"] .bengal-badge:hover,
+html[data-theme="dark"] .bengal-badge:hover {
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-primary);
+  border-color: var(--color-border-strong);
+}
+
+/* Respect reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+
+  .cat-contemplative .cat-head,
+  .cat-contemplative .cat-tail {
+    animation: none;
+  }
+
+  .bengal-badge {
+    transition: none;
+  }
+
+  .bengal-badge:hover {
+    transform: none;
+  }
 }

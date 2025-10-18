@@ -16,16 +16,16 @@
     </p>
 
     <div class="empty-state__actions">
-      <a href="/" class="button button-primary">Go Home</a>
-      <a href="/posts/" class="button button-secondary">View Posts</a>
+      <a href="{{ '/' | absolute_url }}" class="button button-primary">Go Home</a>
+      <a href="{{ '/blog/' | absolute_url }}" class="button button-secondary">View Posts</a>
     </div>
 
     <div class="empty-state__suggestions">
       <h2>You might want to:</h2>
       <ul>
-        <li><a href="/">Visit the homepage</a></li>
-        <li><a href="/posts/">Browse all posts</a></li>
-        <li><a href="/tags/">Explore by tags</a></li>
+        <li><a href="{{ '/' | absolute_url }}">Visit the homepage</a></li>
+        <li><a href="{{ '/blog/' | absolute_url }}">Browse all posts</a></li>
+        <li><a href="{{ '/tags/' | absolute_url }}">Explore by tags</a></li>
         <li>Use the navigation menu above</li>
       </ul>
     </div>

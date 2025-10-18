@@ -145,9 +145,7 @@ class TaxonomyOrchestrator:
         try:
             from bengal.cache.taxonomy_index import TaxonomyIndex
 
-            taxonomy_index = TaxonomyIndex(
-                self.site.root_path / ".bengal" / "taxonomy_index.json"
-            )
+            taxonomy_index = TaxonomyIndex(self.site.root_path / ".bengal" / "taxonomy_index.json")
             logger.debug(
                 "taxonomy_index_loaded_for_incremental",
                 tags=len(taxonomy_index.tags),
@@ -170,7 +168,9 @@ class TaxonomyOrchestrator:
         elif affected_tags:
             # Normal case: Only regenerate affected tag pages
             # Phase 2c.2: With TaxonomyIndex optimization for skipping unchanged tags
-            self.generate_dynamic_pages_for_tags_with_cache(affected_tags, taxonomy_index=taxonomy_index)
+            self.generate_dynamic_pages_for_tags_with_cache(
+                affected_tags, taxonomy_index=taxonomy_index
+            )
 
         # STEP 5: Update TaxonomyIndex for next build
         # This persists the tag-to-pages mappings so Phase 2c.2 can detect unchanged tags
@@ -286,9 +286,7 @@ class TaxonomyOrchestrator:
         self.site.taxonomies = {"tags": {}, "categories": {}}
 
         # Build lookup map: path → current Page object
-        current_page_map = {
-            p.source_path: p for p in self.site.pages if not p.metadata.get("_generated")
-        }
+        current_page_map = {p.source_path: p for p in self.site.regular_pages}
 
         # For each tag in cache, map paths to current Page objects
         for tag_slug in cache.get_all_tags():

@@ -88,7 +88,10 @@
 
     {# Recent Posts/Updates (if this is a blog-style home) #}
     {% if page.metadata.get('show_recent_posts') %}
-    {% set recent = pages | where('section', 'blog') | sort_by('date', reverse=true) | first(3) %}
+    {# Use query index for O(1) lookup instead of O(n) filtering #}
+    {% set blog_section = page.metadata.get('blog_section', 'blog') %}
+    {% set blog_posts = site.indexes.section.get(blog_section) | resolve_pages %}
+    {% set recent = blog_posts | sort_by('date', reverse=true) | limit(3) %}
     {% if recent %}
     <section class="recent-posts">
         <h2>Recent Updates</h2>
