@@ -25,9 +25,13 @@ Args:
 page: Current page object (required)
 
 Note:
-URLs returned by get_breadcrumbs() already include the base URL, so no additional
-url_for() or absolute_url filter is needed. The breadcrumb items are pre-processed
-with proper URL resolution.
+URLs returned by get_breadcrumbs() are currently relative paths (e.g., "/about/")
+without baseurl. This will be updated in a future release to include baseurl by default
+for consistency with other template functions. See: plan/active/url-strategy-cohesive.md
+
+For now, use {{ item.url }} directly - it works for root domain deployments.
+For subpath deployments (GitHub Pages, custom subpaths), baseurl is handled by the
+build system's URL rewriting.
 
 Example:
 {{ breadcrumbs(page) }}
