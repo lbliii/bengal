@@ -112,13 +112,13 @@ cd mysite
 bengal new page my-first-post
 
 # Build the site
-bengal build
+bengal site build
 
 # For maximum speed (recommended)
-PYTHON_GIL=0 bengal build --fast
+PYTHON_GIL=0 bengal site build --fast
 
 # Start development server with file watching
-bengal serve
+bengal site serve
 ```
 
 **💡 Tip:** Add `fast_mode = true` to the `[build]` section in your `bengal.toml` to enable fast mode by default.
@@ -185,46 +185,119 @@ mysite/
 
 ## Commands
 
+Bengal commands are organized into logical groups for better discoverability. Use `bengal --help` to see all command groups, or `bengal <group> --help` to see commands within a group (e.g., `bengal site --help`).
+
+### Site Management (`bengal site`)
+
 ```bash
 # Build site
-bengal build
+bengal site build
 
 # Build with options
-bengal build --fast                  # Quiet output + guaranteed parallel
-PYTHON_GIL=0 bengal build --fast    # Maximum speed (no GIL warnings)
-bengal build --incremental     # Rebuild changed files
-bengal build --strict          # Fail on errors (for CI)
-
-# Generate API documentation
-bengal autodoc --source mylib --output content/api
+bengal site build --fast                  # Quiet output + guaranteed parallel
+PYTHON_GIL=0 bengal site build --fast    # Maximum speed (no GIL warnings)
+bengal site build --incremental           # Rebuild changed files
+bengal site build --strict                # Fail on errors (for CI)
 
 # Development server (default: 5173)
-bengal serve --port 5173
+bengal site serve --port 5173
 
 # Clean output
-bengal clean
+bengal site clean
+```
+
+### Creating New Content (`bengal new`)
+
+```bash
+# Create a new site
+bengal new site mysite
+
+# Create a new page
+bengal new page my-page --section blog
+
+# Create a new layout template
+bengal new layout article
+
+# Create a new partial template
+bengal new partial sidebar
+
+# Create a new theme
+bengal new theme my-theme
+```
+
+### Project Management (`bengal project`)
+
+```bash
+# Initialize project structure
+bengal project init
+
+# Set working profile (dev, themer, writer, ai)
+bengal project profile dev
+
+# Validate configuration
+bengal project validate
+
+# Show project info and statistics
+bengal project info
+
+# View/manage configuration
+bengal project config
+bengal project config site.title "My New Title" --set
+```
+
+### Developer Utilities (`bengal utils`)
+
+```bash
+# Generate API documentation
+bengal utils autodoc --source mylib --output content/api
+
+# Theme management
+bengal utils theme list
+bengal utils theme info <slug>
+bengal utils theme discover
+bengal utils theme install bengal-theme-starter
+bengal utils theme new mybrand --mode site --output .
+
+# Asset management
+bengal utils assets minify
+bengal utils assets optimize
+
+# Performance analysis
+bengal utils perf analyze
+
+# Graph analysis
+bengal utils graph analyze --stats --tree
+bengal utils graph pagerank
+bengal utils graph communities
+bengal utils graph bridges
+bengal utils graph suggest
 ```
 
 ## Themes
 
+Bengal supports three types of themes: project themes (under `themes/`), installed themes (via pip/uv), and bundled themes.
+
 ```bash
 # List available themes (project | installed | bundled)
-bengal theme list
+bengal utils theme list
 
 # Show info about a theme slug (paths, version)
-bengal theme info <slug>
+bengal utils theme info <slug>
 
 # Discover swizzlable templates/partials in active theme chain
-bengal theme discover
+bengal utils theme discover
 
 # Install a theme via uv/pip (warns if name is non-canonical)
-bengal theme install bengal-theme-starter
+bengal utils theme install bengal-theme-starter
 
 # Scaffold a new theme
 ## Site-local theme under themes/<slug>
-bengal theme new mybrand --mode site --output .
+bengal utils theme new mybrand --mode site --output .
 ## Installable package scaffold in current directory
-bengal theme new mybrand --mode package --output .
+bengal utils theme new mybrand --mode package --output .
+
+# Or use bengal new theme for quick site-local themes
+bengal new theme mybrand
 ```
 
 Configuration to select a theme:
