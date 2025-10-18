@@ -24,6 +24,11 @@ Displays hierarchical navigation showing the current page's location in the site
 Args:
 page: Current page object (required)
 
+Note:
+URLs returned by get_breadcrumbs() already include the base URL, so no additional
+url_for() or absolute_url filter is needed. The breadcrumb items are pre-processed
+with proper URL resolution.
+
 Example:
 {{ breadcrumbs(page) }}
 #}
@@ -37,6 +42,7 @@ Example:
       {% if item.is_current %}
       {{ item.title }}
       {% else %}
+      {# URL is already absolute - no filter needed #}
       <a href="{{ item.url }}">{{ item.title }}</a>
       {% endif %}
       </li>

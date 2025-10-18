@@ -74,22 +74,37 @@
     if (palette) setPalette(palette);
   }
 
+  // Cache dropdown elements and their menus to avoid repeated DOM queries
+  let cachedDropdowns = [];
+
   /**
-   * Update active states in all dropdown menus
+   * Cache all dropdown elements and their menus
+   */
+  function cacheDropdowns() {
+    const dropdowns = document.querySelectorAll('.theme-dropdown');
+    cachedDropdowns = Array.from(dropdowns).map(function (dd) {
+      const menu = dd.querySelector('.theme-dropdown__menu');
+      return {
+        menu: menu,
+        appearanceButtons: menu ? menu.querySelectorAll('button[data-appearance]') : [],
+        paletteButtons: menu ? menu.querySelectorAll('button[data-palette]') : []
+      };
+    }).filter(function (cache) {
+      return cache.menu !== null;
+    });
+  }
+
+  /**
+   * Update active states in all dropdown menus using cached elements
    */
   function updateActiveStates() {
-    const dropdowns = document.querySelectorAll('.theme-dropdown');
-
     // Get current settings once
     const currentAppearance = localStorage.getItem(THEME_KEY) || THEMES.SYSTEM;
     const currentPalette = getPalette();
 
-    dropdowns.forEach(function (dd) {
-      const menu = dd.querySelector('.theme-dropdown__menu');
-      if (!menu) return;
-
+    cachedDropdowns.forEach(function (cache) {
       // Update appearance buttons
-      menu.querySelectorAll('button[data-appearance]').forEach(function (btn) {
+      cache.appearanceButtons.forEach(function (btn) {
         const appearance = btn.getAttribute('data-appearance');
         if (appearance === currentAppearance) {
           btn.classList.add('active');
@@ -99,7 +114,7 @@
       });
 
       // Update palette buttons
-      menu.querySelectorAll('button[data-palette]').forEach(function (btn) {
+      cache.paletteButtons.forEach(function (btn) {
         const palette = btn.getAttribute('data-palette');
         if (palette === currentPalette) {
           btn.classList.add('active');
@@ -124,6 +139,9 @@
         }
       });
     }
+
+    // Cache dropdown elements once during initialization
+    cacheDropdowns();
 
     // Handle all theme dropdowns (desktop and mobile)
     const dropdowns = document.querySelectorAll('.theme-dropdown');
