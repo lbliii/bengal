@@ -262,7 +262,7 @@ from bengal.cache.query_index import QueryIndex
 class StatusIndex(QueryIndex):
     def __init__(self, cache_path):
         super().__init__('status', cache_path)
-    
+
     def extract_keys(self, page):
         status = page.metadata.get('status', 'published')
         return [(status, {})]
@@ -314,7 +314,7 @@ site.indexes.register('status', StatusIndex(...))
 
 1. **Index size:** Can grow large for very large sites (10K+ pages)
    - Mitigation: Indexes are optional, can be disabled
-   
+
 2. **Memory overhead:** All page paths stored in memory
    - Mitigation: ~10-20MB for 10K pages (acceptable)
 
@@ -361,4 +361,3 @@ Phase 1a is **complete and working**. The query index system:
 7. ✅ Includes comprehensive tests
 
 **Theme developers can now build scalable templates that work beautifully from 10 to 10,000 pages!**
-

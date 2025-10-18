@@ -39,15 +39,15 @@ from bengal.orchestration.incremental import IncrementalOrchestrator
 
 class IncrementalTestBridge:
     """Lightweight adapter for testing incremental invalidation without full orchestrator."""
-    
+
     def __init__(self, site):
         self.orch = IncrementalOrchestrator(site)
         self.orch.initialize(enabled=True)
-    
+
     def process(self, change_type: str, changed_paths: set) -> None:
         """Process incremental change for testing."""
         # (Move process() logic here)
-    
+
     @staticmethod
     def write_test_output(site, path: Path, context: BuildContext) -> None:
         """Write diagnostic placeholder for test verification."""

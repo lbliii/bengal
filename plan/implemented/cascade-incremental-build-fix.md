@@ -33,7 +33,7 @@ The incremental build system (`IncrementalOrchestrator`) only tracks direct file
 for page in self.site.pages:
     if page.metadata.get("_generated"):
         continue
-    
+
     if self.cache.is_changed(page.source_path):
         pages_to_rebuild.add(page.source_path)  # Only the changed page!
 ```
@@ -85,15 +85,15 @@ for page in list(pages_to_rebuild):  # Iterate over snapshot
 def _find_cascade_affected_pages(self, index_page: Page) -> set[Path]:
     """
     Find all pages affected by a cascade change in a section index.
-    
+
     Args:
         index_page: Section _index.md page with cascade metadata
-    
+
     Returns:
         Set of page source paths that should be rebuilt
     """
     affected = set()
-    
+
     # Find the section that owns this index page
     for section in self.site.sections:
         if section.index_page == index_page:
@@ -103,7 +103,7 @@ def _find_cascade_affected_pages(self, index_page: Page) -> set[Path]:
                 if not page.metadata.get("_generated"):
                     affected.add(page.source_path)
             break
-    
+
     return affected
 ```
 
@@ -135,13 +135,13 @@ def _find_cascade_affected_pages(self, index_page: Page) -> set[Path]:
 
 def test_cascade_change_marks_descendants_for_rebuild():
     """When section _index.md with cascade changes, mark all descendants."""
-    
+
 def test_root_cascade_marks_all_pages():
     """When top-level page with cascade changes, mark all pages."""
-    
+
 def test_nested_cascade_change():
     """When nested section cascade changes, mark its descendants only."""
-    
+
 def test_cascade_removal():
     """When cascade is removed from _index.md, descendants are rebuilt."""
 ```
@@ -191,4 +191,3 @@ def test_cascade_removal():
 - Slight performance cost when `_index.md` changes (acceptable trade-off)
 - Could be optimized later with section→pages caching if needed
 - Similar approach could be used for other dependency types (includes, shortcodes)
-

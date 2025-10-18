@@ -15,7 +15,7 @@
 
 **Problem**: Tests used `{tabs}` directive with `### Tab:` markers, but only modern `{tab-set}`/`{tab-item}` syntax was supported.
 
-**Solution**: 
+**Solution**:
 - Added `TabsDirective` class for backward compatibility
 - Parses `### Tab: Title` markers and splits content into tabs
 - Properly renders tab navigation and content panes
@@ -67,7 +67,7 @@
 
 ### 4. Data Table Directive - Option Parsing (2 tests fixed) ✅
 
-**Problem**: 
+**Problem**:
 - Directive only called `parse_options` if `self.parser` exists
 - Tests mocked `parse_options` but didn't set `self.parser`
 - Result: Options like `search=false` were ignored, defaults used instead
@@ -180,4 +180,3 @@
 Solid progress on fixing rendering/parser bugs. The tabs directive support was the largest fix, enabling backward compatibility with legacy syntax while maintaining modern MyST standards. Data table option parsing fix ensures test mocking works correctly.
 
 **Next session should focus on**: Syntax highlighting and server injection tests (quick wins), then tackle orchestration and utils issues.
-
