@@ -1,0 +1,461 @@
+{% extends "base.html" %}
+
+{#
+Category Browser Template
+
+Displays all categories with post counts and recent posts.
+Perfect for documentation sites to browse by category/type.
+Uses query indexes for O(1) category lookups.
+
+URL Pattern: /categories/
+
+Usage:
+Create content/categories/_index.md:
+---
+title: "Browse by Category"
+template: category-browser.html
+description: "Explore documentation organized by category"
+---
+
+Optional metadata:
+- sections: ["docs", "blog"] (only show categories from these sections)
+- show_recent: 3 (number of recent posts to show per category)
+- layout: "grid" or "list" (default: "grid")
+
+Context variables:
+- page: Current page
+- site.indexes.category: Category index
+#}
+
+{% from 'partials/navigation-components.html' import breadcrumbs %}
+{% from 'partials/content-components.html' import tag_list %}
+
+{% set section_filters = page.metadata.get('sections', []) %}
+{% set show_recent = page.metadata.get('show_recent', 3) %}
+{% set layout = page.metadata.get('layout', 'grid') %}
+
+{% block content %}
+{{ breadcrumbs(page) }}
+
+<div class="category-browser">
+    <header class="browser-header">
+        <h1>{{ page.title | default('Browse by Category') }}</h1>
+
+        {% if page.metadata.get('description') %}
+        <p class="browser-description">{{ page.metadata.get('description') }}</p>
+        {% endif %}
+    </header>
+
+    {# Main content from markdown #}
+    {% if content %}
+    <div class="browser-content prose">
+        {{ content | safe }}
+    </div>
+    {% endif %}
+
+    {# Get all categories from index #}
+    {% set all_categories = site.indexes.category.keys() | sort %}
+
+    {% if all_categories %}
+    {# Summary stats #}
+    <div class="browser-stats">
+        <span class="stat">
+            <strong>{{ all_categories | length }}</strong> categories
+        </span>
+
+        {% set total_posts = namespace(count=0) %}
+        {% for category in all_categories %}
+        {% set category_posts = site.indexes.category.get(category) | resolve_pages %}
+        {% if section_filters %}
+        {% set category_posts = category_posts | selectattr('_section.name', 'in', section_filters) | list %}
+        {% endif %}
+        {% set total_posts.count = total_posts.count + (category_posts | length) %}
+        {% endfor %}
+
+        <span class="stat">
+            <strong>{{ total_posts.count }}</strong> total pages
+        </span>
+    </div>
+
+    {# Layout toggle #}
+    <div class="layout-toggle">
+        <button class="layout-btn {% if layout == 'grid' %}active{% endif %}" data-layout="grid" aria-label="Grid view">
+            📊 Grid
+        </button>
+        <button class="layout-btn {% if layout == 'list' %}active{% endif %}" data-layout="list" aria-label="List view">
+            📝 List
+        </button>
+    </div>
+
+    {# Category Grid/List #}
+    <div class="category-container" data-layout="{{ layout }}">
+        {% for category in all_categories %}
+        {# O(1) lookup for category pages #}
+        {% set category_posts = site.indexes.category.get(category) | resolve_pages %}
+
+        {# Filter by section if specified #}
+        {% if section_filters %}
+        {% set category_posts = category_posts | selectattr('_section.name', 'in', section_filters) | list %}
+        {% endif %}
+
+        {% if category_posts %}
+        <article class="category-card">
+            <div class="category-header">
+                <h2 class="category-title">
+                    <a href="/category/{{ category }}/">{{ category | title }}</a>
+                </h2>
+                <span class="category-count">{{ category_posts | length }} page{{ 's' if category_posts | length != 1
+                    }}</span>
+            </div>
+
+            {# Category stats #}
+            <div class="category-meta">
+                {% set total_words = category_posts | map(attribute='content') | join('') | wordcount %}
+                {% set authors = category_posts | map(attribute='metadata.author') | select('defined') | unique | list
+                %}
+
+                <span class="meta-item">
+                    📖 {{ total_words | format_number }} words
+                </span>
+
+                {% if authors %}
+                <span class="meta-item">
+                    ✍️ {{ authors | length }} author{{ 's' if authors | length != 1 }}
+                </span>
+                {% endif %}
+            </div>
+
+            {# Recent posts in this category #}
+            {% if show_recent > 0 %}
+            {% set recent_posts = category_posts | sort_by('date', reverse=true) | limit(show_recent) %}
+            <div class="category-recent">
+                <h3 class="recent-title">Recent:</h3>
+                <ul class="recent-list">
+                    {% for post in recent_posts %}
+                    <li>
+                        <a href="{{ url_for(post) }}">{{ post.title }}</a>
+                        {% if post.date %}
+                        <time datetime="{{ post.date | date_iso }}">
+                            {{ post.date | time_ago }}
+                        </time>
+                        {% endif %}
+                    </li>
+                    {% endfor %}
+                </ul>
+
+                {% if category_posts | length > show_recent %}
+                <a href="/category/{{ category }}/" class="view-all">
+                    View all {{ category_posts | length }} →
+                </a>
+                {% endif %}
+            </div>
+            {% endif %}
+        </article>
+        {% endif %}
+        {% endfor %}
+    </div>
+
+    {# All Categories A-Z Index #}
+    <aside class="category-index">
+        <h3>Quick Index</h3>
+        <nav class="alpha-nav" aria-label="Alphabetical category index">
+            {% set categories_by_letter = all_categories | group_by('0') %}
+            {% for letter, cats in categories_by_letter.items() | sort %}
+            <div class="letter-group">
+                <strong class="letter">{{ letter | upper }}</strong>
+                <ul class="letter-list">
+                    {% for cat in cats %}
+                    {% set cat_posts = site.indexes.category.get(cat) | resolve_pages %}
+                    {% if section_filters %}
+                    {% set cat_posts = cat_posts | selectattr('_section.name', 'in', section_filters) | list %}
+                    {% endif %}
+                    {% if cat_posts %}
+                    <li>
+                        <a href="/category/{{ cat }}/">
+                            {{ cat | title }} ({{ cat_posts | length }})
+                        </a>
+                    </li>
+                    {% endif %}
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endfor %}
+        </nav>
+    </aside>
+
+    {% else %}
+    {# Empty State #}
+    <div class="browser-empty">
+        <div class="empty-state">
+            <p class="empty-message">No categories found.</p>
+            <p class="empty-hint">Add <code>categories: ["tutorial", "guide"]</code> to page frontmatter to create
+                categories.</p>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+    // Layout toggle functionality
+    document.querySelectorAll('.layout-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const layout = btn.dataset.layout;
+            const container = document.querySelector('.category-container');
+
+            // Update buttons
+            document.querySelectorAll('.layout-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            // Update container
+            container.dataset.layout = layout;
+        });
+    });
+</script>
+
+<style>
+    .category-browser {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .browser-header {
+        text-align: center;
+        margin-bottom: 3rem;
+    }
+
+    .browser-header h1 {
+        font-size: 2.5rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .browser-description {
+        font-size: 1.25rem;
+        color: var(--color-text-secondary);
+        margin: 0.5rem 0 0 0;
+    }
+
+    .browser-stats {
+        display: flex;
+        justify-content: center;
+        gap: 2rem;
+        margin: 2rem 0;
+        padding: 1rem;
+        background: var(--color-surface-secondary);
+        border-radius: var(--radius-md);
+        font-size: 0.875rem;
+    }
+
+    .layout-toggle {
+        display: flex;
+        justify-content: center;
+        gap: 0.5rem;
+        margin: 2rem 0;
+    }
+
+    .layout-btn {
+        padding: 0.5rem 1rem;
+        background: var(--color-surface-secondary);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .layout-btn:hover {
+        background: var(--color-surface-tertiary);
+    }
+
+    .layout-btn.active {
+        background: var(--color-primary);
+        color: var(--color-on-primary);
+        border-color: var(--color-primary);
+    }
+
+    .category-container[data-layout="grid"] {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 1.5rem;
+        margin: 2rem 0;
+    }
+
+    .category-container[data-layout="list"] {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        margin: 2rem 0;
+    }
+
+    .category-card {
+        padding: 1.5rem;
+        background: var(--color-surface-secondary);
+        border-radius: var(--radius-md);
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .category-container[data-layout="grid"] .category-card:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--shadow-lg);
+    }
+
+    .category-container[data-layout="list"] .category-card {
+        display: grid;
+        grid-template-columns: 250px 1fr auto;
+        gap: 1.5rem;
+        align-items: start;
+    }
+
+    .category-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        margin-bottom: 0.75rem;
+    }
+
+    .category-title {
+        margin: 0;
+        font-size: 1.5rem;
+    }
+
+    .category-title a {
+        color: var(--color-text);
+        text-decoration: none;
+    }
+
+    .category-title a:hover {
+        color: var(--color-primary);
+    }
+
+    .category-count {
+        font-size: 0.875rem;
+        color: var(--color-text-tertiary);
+        font-weight: normal;
+    }
+
+    .category-meta {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+        font-size: 0.813rem;
+        color: var(--color-text-secondary);
+        margin-bottom: 1rem;
+    }
+
+    .category-recent {
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--color-border);
+    }
+
+    .recent-title {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: var(--color-text-secondary);
+        margin: 0 0 0.5rem 0;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .recent-list {
+        list-style: none;
+        padding: 0;
+        margin: 0 0 0.75rem 0;
+    }
+
+    .recent-list li {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        padding: 0.375rem 0;
+        font-size: 0.875rem;
+    }
+
+    .recent-list a {
+        color: var(--color-text);
+        text-decoration: none;
+        flex: 1;
+    }
+
+    .recent-list a:hover {
+        color: var(--color-primary);
+    }
+
+    .recent-list time {
+        font-size: 0.75rem;
+        color: var(--color-text-tertiary);
+        flex-shrink: 0;
+        margin-left: 0.5rem;
+    }
+
+    .view-all {
+        font-size: 0.813rem;
+        color: var(--color-primary);
+        text-decoration: none;
+        font-weight: 500;
+    }
+
+    .view-all:hover {
+        text-decoration: underline;
+    }
+
+    .category-index {
+        margin-top: 4rem;
+        padding-top: 2rem;
+        border-top: 2px solid var(--color-border);
+    }
+
+    .category-index h3 {
+        font-size: 1.5rem;
+        margin-bottom: 1.5rem;
+        text-align: center;
+    }
+
+    .alpha-nav {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .letter-group {
+        background: var(--color-surface-secondary);
+        padding: 1rem;
+        border-radius: var(--radius-sm);
+    }
+
+    .letter {
+        display: block;
+        font-size: 1.25rem;
+        color: var(--color-primary);
+        margin-bottom: 0.5rem;
+    }
+
+    .letter-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .letter-list li {
+        padding: 0.25rem 0;
+    }
+
+    .letter-list a {
+        color: var(--color-text);
+        text-decoration: none;
+        font-size: 0.875rem;
+    }
+
+    .letter-list a:hover {
+        color: var(--color-primary);
+    }
+
+    @media (max-width: 768px) {
+        .category-container[data-layout="list"] .category-card {
+            grid-template-columns: 1fr;
+        }
+
+        .alpha-nav {
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        }
+    }
+</style>
+{% endblock %}
