@@ -360,10 +360,25 @@ class Asset:
 
             atomic_write_text(output_path, self._minified_content, encoding="utf-8")
         elif hasattr(self, "_optimized_image"):
-            # Save optimized image atomically
-            tmp_path = output_path.with_suffix(output_path.suffix + ".tmp")
+            # Save optimized image atomically using unique temp file to prevent race conditions
+            import os
+            import threading
+            import uuid
+
+            pid = os.getpid()
+            tid = threading.get_ident()
+            unique_id = uuid.uuid4().hex[:8]
+            tmp_path = output_path.parent / f".{output_path.name}.{pid}.{tid}.{unique_id}.tmp"
             try:
-                self._optimized_image.save(tmp_path, optimize=True, quality=85)
+                # Determine image format from original file extension (not .tmp)
+                img_format = None
+                ext = output_path.suffix.upper().lstrip(".")
+                if ext in ("JPG", "JPEG"):
+                    img_format = "JPEG"
+                elif ext in ("PNG", "GIF", "WEBP"):
+                    img_format = ext
+
+                self._optimized_image.save(tmp_path, format=img_format, optimize=True, quality=85)
                 tmp_path.replace(output_path)
             except Exception:
                 tmp_path.unlink(missing_ok=True)

@@ -131,11 +131,11 @@ class TestCrossReferenceTemplateFunctions:
         }
 
         # Test reference with auto title
-        result = crossref.ref("docs/installation", index)
+        result = crossref.ref("docs/installation", index, baseurl="")
         assert '<a href="/docs/installation/">Installation</a>' in result
 
         # Test reference with custom text
-        result = crossref.ref("docs/installation", index, "Install Guide")
+        result = crossref.ref("docs/installation", index, baseurl="", text="Install Guide")
         assert '<a href="/docs/installation/">Install Guide</a>' in result
 
     def test_ref_function_broken_link(self):
@@ -147,7 +147,7 @@ class TestCrossReferenceTemplateFunctions:
             "by_heading": {},
         }
 
-        result = crossref.ref("nonexistent/page", index)
+        result = crossref.ref("nonexistent/page", index, baseurl="")
         assert "broken-ref" in result
         assert "nonexistent/page" in result
 
@@ -190,7 +190,7 @@ class TestCrossReferenceTemplateFunctions:
             "by_heading": {},
         }
 
-        result = crossref.relref("docs/api", index)
+        result = crossref.relref("docs/api", index, baseurl="")
         assert result == "/docs/api/"
 
 

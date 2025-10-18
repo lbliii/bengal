@@ -350,3 +350,55 @@ class TestThreadSafety:
             assert file_path.read_text() == f"Content {i}"
 
         shutil.rmtree(temp_dir)
+
+    def test_concurrent_image_optimization_no_temp_file_collision(self):
+        """Test that concurrent image optimization doesn't cause temp file collisions."""
+        import concurrent.futures
+        import tempfile
+
+        from PIL import Image
+
+        temp_dir = Path(tempfile.mkdtemp())
+        (temp_dir / "assets").mkdir()
+        (temp_dir / "output").mkdir()
+
+        # Create test PNG images
+        for i in range(5):
+            img_path = temp_dir / "assets" / f"image{i}.png"
+            img = Image.new("RGB", (100, 100), color=(i * 50, 0, 0))
+            img.save(img_path)
+
+        # Create assets
+        assets = []
+        for i in range(5):
+            asset = Asset(
+                source_path=temp_dir / "assets" / f"image{i}.png",
+                output_path=Path(f"image{i}.png"),
+            )
+            assets.append(asset)
+
+        def optimize_asset(asset):
+            """Optimize and copy asset."""
+            try:
+                from PIL import Image
+
+                asset._optimized_image = Image.open(asset.source_path)
+                asset.copy_to_output(temp_dir / "output", use_fingerprint=False)
+                return True
+            except Exception as e:
+                raise Exception(f"Failed to optimize {asset.source_path}: {e}") from e
+
+        # Optimize assets concurrently
+        with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+            futures = [executor.submit(optimize_asset, asset) for asset in assets]
+            results = [f.result() for f in futures]
+
+        # All assets should be processed successfully
+        assert all(results)
+        assert len(list((temp_dir / "output").glob("*.png"))) == 5
+
+        # Verify no temp files left behind
+        temp_files = list((temp_dir / "output").glob("*.tmp"))
+        assert len(temp_files) == 0, f"Found leftover temp files: {temp_files}"
+
+        shutil.rmtree(temp_dir)

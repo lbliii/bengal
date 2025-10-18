@@ -42,6 +42,10 @@ class AssetDiscovery:
                 if any(part.startswith(".") for part in file_path.parts):
                     continue
 
+                # Skip temporary files (from atomic writes and image optimization)
+                if file_path.suffix.lower() == ".tmp":
+                    continue
+
                 # Skip markdown/documentation files
                 if file_path.suffix.lower() == ".md":
                     continue
