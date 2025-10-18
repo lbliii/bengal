@@ -23,3 +23,28 @@ def apply_dev_no_cache_headers(sender: HeaderSender) -> None:
         pass
 
 
+def get_dev_config(site_config: dict, *keys: str, default=None):
+    """Safely access nested dev config: get_dev_config(cfg, 'watch', 'backend', default='auto')."""
+    try:
+        node = site_config.get("dev", {})
+        for key in keys:
+            if not isinstance(node, dict):
+                return default
+            node = node.get(key, default)
+        return node if node is not None else default
+    except Exception:
+        return default
+
+
+def safe_int(value, default: int = 0) -> int:
+    """Parse int with fallback; accepts numeric strings and ints, otherwise default."""
+    try:
+        if value is None:
+            return default
+        if isinstance(value, int):
+            return value
+        return int(str(value))
+    except (ValueError, TypeError):
+        return default
+
+

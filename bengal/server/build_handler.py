@@ -340,20 +340,18 @@ class BuildHandler(FileSystemEventHandler):
 
             # Allow override via config: dev.watch.debounce_ms or env BENGAL_DEBOUNCE_MS
             delay = self.DEBOUNCE_DELAY
-            try:
-                import os as _os
+            import os as _os
+            from bengal.server.utils import get_dev_config, safe_int
 
-                debounce_ms_env = _os.environ.get("BENGAL_DEBOUNCE_MS")
-                debounce_ms_cfg = (
-                    self.site.config.get("dev", {}).get("watch", {}).get("debounce_ms")
-                    if hasattr(self.site, "config")
-                    else None
-                )
-                debounce_ms = int(debounce_ms_env or debounce_ms_cfg or 0)
-                if debounce_ms > 0:
-                    delay = debounce_ms / 1000.0
-            except Exception:
-                pass
+            debounce_ms_env = _os.environ.get("BENGAL_DEBOUNCE_MS")
+            debounce_ms_cfg = (
+                get_dev_config(self.site.config, "watch", "debounce_ms")
+                if hasattr(self.site, "config")
+                else None
+            )
+            debounce_ms = safe_int(debounce_ms_env if debounce_ms_env is not None else debounce_ms_cfg, 0)
+            if debounce_ms > 0:
+                delay = debounce_ms / 1000.0
 
             self.debounce_timer = threading.Timer(delay, self._trigger_build)
             self.debounce_timer.daemon = True
