@@ -614,6 +614,12 @@
   }
 }
 
+/* Empty placeholder styling for normalized dash cells */
+.prose.api-content .table-empty {
+  color: var(--color-text-muted);
+  opacity: 0.7;
+}
+
 /* ============================================
    COLLAPSIBLE SECTIONS (details/summary)
    ============================================ */

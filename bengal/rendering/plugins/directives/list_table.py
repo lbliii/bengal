@@ -179,6 +179,8 @@ def render_list_table(renderer: Any, text: str, **attrs: Any) -> str:
     Returns:
         HTML string for list table
     """
+    import html as html_lib
+
     import mistune
 
     header_rows = attrs.get("header_rows", 0)
@@ -194,6 +196,10 @@ def render_list_table(renderer: Any, text: str, **attrs: Any) -> str:
 
     def render_cell(cell_content: str) -> str:
         """Render cell content with inline markdown (backticks, etc.)."""
+        # Normalize placeholder '-' which would otherwise render as an empty list
+        if cell_content.strip() == "-":
+            return '<span class="table-empty">—</span>'
+
         # Parse as markdown
         html = inline_md(cell_content)
         # Strip wrapping <p> tags if present
@@ -232,11 +238,28 @@ def render_list_table(renderer: Any, text: str, **attrs: Any) -> str:
     # Render body rows
     if len(rows) > header_rows:
         html_parts.append("  <tbody>")
+        # Extract plain-text header labels for data-label attributes
+        header_labels: list[str] = []
+        if header_rows > 0:
+            # Use first header row as labels
+            first_header = rows[0]
+            for header_cell in first_header:
+                # Use the raw content (e.g., "Name") and escape for attribute usage
+                label_text = header_cell.strip()
+                # Remove surrounding backticks if present
+                if label_text.startswith("`") and label_text.endswith("`"):
+                    label_text = label_text[1:-1]
+                header_labels.append(label_text)
+
         for row_idx in range(header_rows, len(rows)):
             html_parts.append("    <tr>")
-            for cell in rows[row_idx]:
+            for col_idx, cell in enumerate(rows[row_idx]):
                 cell_html = render_cell(cell)
-                html_parts.append(f"      <td>{cell_html}</td>")
+                if header_labels and col_idx < len(header_labels):
+                    data_label = html_lib.escape(header_labels[col_idx], quote=True)
+                    html_parts.append(f'      <td data-label="{data_label}">{cell_html}</td>')
+                else:
+                    html_parts.append(f"      <td>{cell_html}</td>")
             html_parts.append("    </tr>")
         html_parts.append("  </tbody>")
 
