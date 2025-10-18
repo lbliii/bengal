@@ -76,6 +76,7 @@
    RESPONSIVE: TABLET (Hide TOC)
    ============================================ */
 
+/* Laptop and below (lg breakpoint) */
 @media (max-width: 1024px) {
   .docs-layout {
     grid-template-columns:
@@ -98,6 +99,7 @@
    RESPONSIVE: MOBILE (Sidebar Becomes Drawer)
    ============================================ */
 
+/* Tablet and below (md breakpoint) */
 @media (max-width: 768px) {
   .docs-layout {
     grid-template-columns: 1fr;

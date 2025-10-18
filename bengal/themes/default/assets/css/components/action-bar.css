@@ -386,7 +386,7 @@
    Responsive Design
    ============================================================================ */
 
-/* Tablet */
+/* Tablet and below (md breakpoint) */
 @media (max-width: 768px) {
   .action-bar {
     padding: 0.5rem 0.875rem;

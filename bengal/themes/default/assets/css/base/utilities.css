@@ -287,20 +287,20 @@
    RESPONSIVE UTILITIES
    ============================================ */
 
-/* Show/Hide on mobile */
-@media (max-width: 767px) {
+/* Show/Hide on mobile (tablet and below: <= 768px) */
+@media (max-width: 768px) {
   .hidden-mobile { display: none !important; }
 }
 
-@media (min-width: 768px) {
+@media (min-width: 769px) {
   .visible-mobile { display: none !important; }
 }
 
-/* Show/Hide on desktop */
-@media (min-width: 768px) {
+/* Show/Hide on desktop (desktop and up: >= 769px) */
+@media (min-width: 769px) {
   .hidden-desktop { display: none !important; }
 }
 
-@media (max-width: 767px) {
+@media (max-width: 768px) {
   .visible-desktop { display: none !important; }
 }

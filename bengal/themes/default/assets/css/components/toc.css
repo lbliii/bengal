@@ -529,7 +529,8 @@
    Mobile & Responsive
    ============================================================================ */
 
-@media (max-width: 1023px) {
+/* Laptop and below: Adjust sidebar layout */
+@media (max-width: 1024px) {
     .page-sidebar {
         margin-top: 2rem;
     }

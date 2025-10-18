@@ -254,10 +254,16 @@ header .container {
   color: var(--color-text-primary);
   cursor: pointer;
   border-radius: var(--radius-md);
+  transition: background-color var(--transition-fast) var(--ease-out);
 }
 
 .mobile-nav-close:hover {
   background-color: var(--color-bg-hover);
+}
+
+.mobile-nav-close svg {
+  width: 24px;
+  height: 24px;
 }
 
 .mobile-nav ul {
@@ -332,22 +338,34 @@ header .container {
   font-size: var(--text-base);
 }
 
+.mobile-nav-footer .theme-dropdown {
+  /* Make this the positioning context */
+  position: static;
+}
+
 .mobile-nav-footer .theme-dropdown__menu {
+  /* Use fixed positioning to escape overflow constraints */
+  position: fixed;
   left: 50%;
   right: auto;
-  transform: translateX(-50%) translateY(-8px);
+  bottom: 80px; /* Position above the footer */
+  top: auto;
+  transform: translateX(-50%) translateY(8px);
   width: calc(100% - 2rem);
   max-width: 300px;
   /* Ensure dropdown appears above mobile nav overlay */
   z-index: calc(var(--z-modal) + 10);
-  /* Position relative to mobile nav footer - open upwards */
-  bottom: 100%;
-  top: auto;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0;
+  /* Smooth transition */
+  transition: opacity 0.15s ease, transform 0.15s ease, visibility 0.15s;
+  opacity: 0;
+  visibility: hidden;
 }
 
 .mobile-nav-footer .theme-dropdown__menu.open {
   transform: translateX(-50%) translateY(0);
+  opacity: 1;
+  visibility: visible;
 }
 
 /* (Removed legacy single-button theme toggle styles) */
@@ -411,6 +429,11 @@ header .container {
 }
 
 .theme-dropdown__menu.open {
+  display: block;
+}
+
+/* Override for mobile nav footer - use visibility/opacity for smooth animation */
+.mobile-nav-footer .theme-dropdown__menu {
   display: block;
 }
 
