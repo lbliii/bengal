@@ -118,7 +118,7 @@ Example:
 'type': 'section',
 'obj': subsection,
 'title': subsection.title,
-'url': url_for(subsection),
+'url': subsection.url,
 'description': subsection.metadata.get('description', '') if subsection.metadata and
 subsection.metadata.get('description', '') else '',
 'weight': subsection.metadata.get('weight', 999999) if subsection.metadata else 999999,
@@ -134,7 +134,7 @@ subsection.metadata.get('description', '') else '',
 'type': 'page',
 'obj': post,
 'title': post.title,
-'url': url_for(post),
+'url': post.url,
 'description': post.metadata.get('description', '') if post.metadata and post.metadata.get('description', '') else
 (post.content | strip_html | excerpt(120) if post.content else ''),
 'weight': post.metadata.get('weight', 999999) if post.metadata else 999999,

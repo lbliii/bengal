@@ -76,7 +76,7 @@ Example:
     {# Previous Button #}
     <li>
       {% if p.prev %}
-      <a href="{{ p.prev.url }}" aria-label="Previous page">
+      <a href="{{ p.prev.url | absolute_url }}" aria-label="Previous page">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="20" height="20">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
         </svg>
@@ -100,7 +100,7 @@ Example:
       {% elif item.is_current %}
       <span class="active" aria-current="page">{{ item.num }}</span>
       {% else %}
-      <a href="{{ item.url }}">{{ item.num }}</a>
+      <a href="{{ item.url | absolute_url }}">{{ item.num }}</a>
       {% endif %}
     </li>
     {% endfor %}
@@ -108,7 +108,7 @@ Example:
     {# Next Button #}
     <li>
       {% if p.next %}
-      <a href="{{ p.next.url }}" aria-label="Next page">
+      <a href="{{ p.next.url | absolute_url }}" aria-label="Next page">
         Next
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="20" height="20">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
