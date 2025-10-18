@@ -69,11 +69,11 @@ def clean(
         if not force:
             # Interactive mode: ask for confirmation (with warning icon for destructive operation)
             if clean_cache:
-                cli.warning("⚠️  Delete output AND cache?")
+                cli.warning("Delete output AND cache?")
                 if cli.use_rich:
                     cli.detail("This will force a complete rebuild on next build", indent=1)
             else:
-                cli.warning("⚠️  Delete output files?")
+                cli.warning("Delete output files?")
                 if cli.use_rich:
                     cli.detail("Cache will be preserved for incremental builds", indent=1)
 

@@ -255,8 +255,8 @@
                 {% if item.children %}
                 <ul class="submenu">
                     {% for child in item.children %}
-                    <li class="{{ 'active' if child.active else '' }}">
-                        <a href="{{ child.url }}">{{ child.name }}</a>
+                                <li class="{{ 'active' if child.active else '' }}">
+                                    <a href="{{ child.url | url }}">{{ child.name }}</a>
                     </li>
                     {% endfor %}
                 </ul>

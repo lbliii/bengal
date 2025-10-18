@@ -23,6 +23,7 @@ def register(env: "Environment", site: "Site") -> None:
     env.filters.update(
         {
             "absolute_url": absolute_url_with_site,
+            "url": absolute_url_with_site,
             "url_encode": url_encode,
             "url_decode": url_decode,
         }

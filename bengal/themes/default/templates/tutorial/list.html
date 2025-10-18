@@ -82,7 +82,7 @@ Context variables:
                     <div class="tutorial-card-header">
                         <span class="tutorial-icon">📁</span>
                         <h3 class="tutorial-title">
-                            <a href="{{ url_for(subsection) }}">{{ subsection.title }}</a>
+                            <a href="{{ subsection.permalink }}">{{ subsection.title }}</a>
                         </h3>
                     </div>
 
@@ -126,7 +126,7 @@ Context variables:
                         <span class="tutorial-icon">📖</span>
                         {% endif %}
                         <h3 class="tutorial-title">
-                            <a href="{{ url_for(tutorial) }}">{{ tutorial.title }}</a>
+                            <a href="{{ tutorial.permalink }}">{{ tutorial.title }}</a>
                         </h3>
                     </div>
 
@@ -175,7 +175,7 @@ Context variables:
                             {% endif %}
                         </div>
 
-                        <a href="{{ url_for(tutorial) }}" class="tutorial-link">
+                        <a href="{{ tutorial.permalink }}" class="tutorial-link">
                             Start tutorial →
                         </a>
                     </div>

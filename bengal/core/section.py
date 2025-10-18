@@ -273,6 +273,28 @@ class Section:
 
         return url
 
+    @cached_property
+    def permalink(self) -> str:
+        """
+        Get section URL with baseurl applied (cached after first access).
+
+        Mirrors Page.permalink semantics for template ergonomics.
+        """
+        rel = self.url or "/"
+
+        baseurl = ""
+        try:
+            baseurl = self._site.config.get("baseurl", "") if getattr(self, "_site", None) else ""
+        except Exception:
+            baseurl = ""
+
+        if not baseurl:
+            return rel
+
+        baseurl = baseurl.rstrip("/")
+        rel = "/" + rel.lstrip("/")
+        return f"{baseurl}{rel}"
+
     def add_page(self, page: Page) -> None:
         """
         Add a page to this section.

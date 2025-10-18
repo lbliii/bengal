@@ -38,7 +38,7 @@ Usage:
       </svg>
     </button>
     {% if section.index_page %}
-    <a href="{{ url_for(section.index_page) }}"
+    <a href="{{ section.index_page.permalink }}"
       class="docs-nav-group-link {% if page.url == section.index_page.url %}active{% endif %}">
       {{ section.title }}
     </a>
@@ -59,7 +59,7 @@ Usage:
     {% if p.url != section_index_url %}
     {# Extract short name for nested items (e.g., "admonitions" from "directives.admonitions") #}
     {% set display_title = p.title.split('.')[-1] if '.' in p.title else p.title %}
-    <a href="{{ url_for(p) }}" class="docs-nav-link {% if page.url == p.url %}active{% endif %}">
+    <a href="{{ p.permalink }}" class="docs-nav-link {% if page.url == p.url %}active{% endif %}">
       {{ display_title }}
     </a>
     {% endif %}
