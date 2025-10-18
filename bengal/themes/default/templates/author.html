@@ -240,7 +240,12 @@ Context variables:
       {% if all_tags %}
       <div class="posts-view" data-view-content="by-tag" style="display: none;">
         {% for tag in all_tags | sort %}
-          {% set tag_posts = author_posts | selectattr('tags', 'defined') | selectattr('tags', 'contains', tag) | list %}
+          {% set tag_posts = [] %}
+          {% for post in author_posts %}
+            {% if post.tags is defined and (tag in post.tags) %}
+              {% set _ = tag_posts.append(post) %}
+            {% endif %}
+          {% endfor %}
           <div class="tag-group">
             <h3>{{ tag }} ({{ tag_posts | length }})</h3>
             <ul class="post-list-compact">
