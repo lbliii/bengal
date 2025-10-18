@@ -9,24 +9,6 @@ import click
 
 from bengal.utils.cli_output import CLIOutput
 
-# Bengal cat ASCII art variations (inspired by ᓚᘏᗢ)
-
-BENGAL_ART = r"""
-    ᓚᘏᗢ   Bengal SSG
-"""
-
-BENGAL_SUCCESS = r"""
-    ᓚᘏᗢ
-"""
-
-BENGAL_ERROR = r"""
-    ᓚᘏᗢ !!!
-"""
-
-BENGAL_BUILDING = r"""
-    ᓚᘏᗢ Building...
-"""
-
 
 @dataclass
 class BuildWarning:
@@ -470,80 +452,49 @@ def display_build_stats(
 
 
 def show_building_indicator(text: str = "Building") -> None:
-    """Show a building indicator (static or animated based on terminal)."""
-    try:
-        from bengal.utils.rich_console import get_console, should_use_rich
+    """Show a building indicator with Bengal cat mascot."""
+    from bengal.utils.rich_console import get_console
 
-        if should_use_rich():
-            # Rich output with cat mascot
-            console = get_console()
-            console.print()
-            console.print("    [bengal]ᓚᘏᗢ[/bengal]  [header]Building your site...[/header]")
-            console.print()
-            return
-    except ImportError:
-        pass  # Fall back to click
-
-    # Fallback to click (for CI, dumb terminals, or if rich not available)
-    cli = CLIOutput()
-    cli.info(BENGAL_BUILDING)
-    cli.info(f"🔨 {text}...")
-    cli.blank()
+    console = get_console()
+    console.print()
+    console.print("    [bengal]ᓚᘏᗢ[/bengal]  [header]Building your site...[/header]")
+    console.print()
 
 
 def show_error(message: str, show_art: bool = True) -> None:
-    """Show an error message with art."""
+    """Show an error message with mouse emoji (errors that Bengal needs to catch!)."""
     cli = CLIOutput()
-    if show_art:
-        if cli.use_rich:
-            cli.console.print("[error]" + BENGAL_ERROR + "[/error]")
-        else:
-            cli.error(BENGAL_ERROR)
     
-    if cli.use_rich:
-        cli.console.print(f"[mouse]ᘛ⁐̤ᕐᐷ[/mouse]  [error]{message}[/error]")
-    else:
-        cli.error(f"ᘛ⁐̤ᕐᐷ  {message}")
+    # Use the nice themed error header with mouse
+    cli.error_header(message, mouse=show_art)
 
 
 def show_welcome() -> None:
-    """Show welcome banner using Rich for stable borders."""
-    try:
-        from rich.align import Align
-        from rich.console import Console
-        from rich.panel import Panel
+    """Show welcome banner with Bengal cat mascot."""
+    from rich.align import Align
+    from rich.panel import Panel
 
-        console = Console()
+    from bengal.utils.rich_console import get_console
 
-        # Create centered content
-        content = Align.center(
-            "[bengal]ᓚᘏᗢ[/bengal]     [bold yellow]BENGAL SSG[/bold yellow]\n"
-            "          [dim]Fast & Fierce Static Sites[/dim]",
-            vertical="middle",
-        )
+    console = get_console()
 
-        panel = Panel(
-            content,
-            border_style="yellow",
-            padding=(1, 2),
-            expand=False,
-            width=58,  # Match original width
-        )
+    # Create centered content with themed styling
+    content = Align.center(
+        "[bengal]ᓚᘏᗢ[/bengal]     [header]BENGAL SSG[/header]\n"
+        "          [dim]Fast & Fierce Static Sites[/dim]",
+        vertical="middle",
+    )
 
-        console.print()
-        console.print(panel)
-    except ImportError:
-        # Fallback if Rich not available
-        banner = r"""
-    ╔══════════════════════════════════════════════════════╗
-    ║                                                      ║
-    ║           ᓚᘏᗢ     BENGAL SSG                        ║
-    ║                   Fast & Fierce Static Sites         ║
-    ║                                                      ║
-    ╚══════════════════════════════════════════════════════╝
-    """
-        cli = CLIOutput()
-        cli.info(banner)
+    panel = Panel(
+        content,
+        border_style="header",  # Use semantic token
+        padding=(1, 2),
+        expand=False,
+        width=58,
+    )
+
+    console.print()
+    console.print(panel)
 
 
 def show_clean_success(output_dir: str) -> None:
