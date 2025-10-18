@@ -311,7 +311,7 @@
                     {% if footer_menu %}
                     <ul class="footer-links">
                         {% for item in footer_menu %}
-                        <li><a href="{{ item.url }}">{{ item.name }}</a></li>
+                        <li><a href="{{ item.url | absolute_url }}">{{ item.name }}</a></li>
                         {% endfor %}
                     </ul>
                     {% endif %}

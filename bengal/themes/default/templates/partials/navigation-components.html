@@ -25,13 +25,12 @@ Args:
 page: Current page object (required)
 
 Note:
-URLs returned by get_breadcrumbs() are currently relative paths (e.g., "/about/")
-without baseurl. This will be updated in a future release to include baseurl by default
-for consistency with other template functions. See: plan/active/url-strategy-cohesive.md
+URLs returned by get_breadcrumbs() are relative paths (e.g., "/about/") without baseurl.
+This is intentional - relative URLs are used for identity/comparison purposes (menu activation,
+validation, etc.). For display in HTML href attributes, always apply the | absolute_url filter
+to support subpath deployments (GitHub Pages, custom subpaths).
 
-For now, use {{ item.url }} directly - it works for root domain deployments.
-For subpath deployments (GitHub Pages, custom subpaths), baseurl is handled by the
-build system's URL rewriting.
+See: plan/active/url-strategy-downstream-impact.md for the "identity vs display" pattern.
 
 Example:
 {{ breadcrumbs(page) }}
@@ -46,8 +45,7 @@ Example:
       {% if item.is_current %}
       {{ item.title }}
       {% else %}
-      {# URL is already absolute - no filter needed #}
-      <a href="{{ item.url }}">{{ item.title }}</a>
+      <a href="{{ item.url | absolute_url }}">{{ item.title }}</a>
       {% endif %}
       </li>
       {% endfor %}

@@ -165,7 +165,7 @@ subsection.metadata.get('description', '') else '',
 
       <div class="child-item-content">
         <span class="child-item-title">
-          <a href="{{ item.url }}">{{ item.title }}</a>
+          <a href="{{ item.url | absolute_url }}">{{ item.title }}</a>
 
           {% if item.description %}
           <span class="child-item-description">{{ item.description }}</span>
