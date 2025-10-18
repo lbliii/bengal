@@ -51,20 +51,32 @@ LIVE_RELOAD_SCRIPT = """
         window.addEventListener('pagehide', closeSource, { once: true });
 
         source.onmessage = function(event) {
-            if (event.data === 'reload') {
+            let payload = null;
+            try { payload = JSON.parse(event.data); } catch (e) {}
+
+            const action = payload && payload.action ? payload.action : event.data;
+            const changedPaths = (payload && payload.changedPaths) || [];
+            const reason = (payload && payload.reason) || '';
+
+            if (action === 'reload') {
                 console.log('🔄 Bengal: Reloading page...');
                 // Save scroll position before reload
                 sessionStorage.setItem('bengal_scroll_x', window.scrollX.toString());
                 sessionStorage.setItem('bengal_scroll_y', window.scrollY.toString());
                 location.reload();
-            } else if (event.data === 'reload-css') {
-                console.log('🎨 Bengal: Reloading CSS...');
+            } else if (action === 'reload-css') {
+                console.log('🎨 Bengal: Reloading CSS...', reason || '', changedPaths);
                 const links = document.querySelectorAll('link[rel="stylesheet"]');
                 const now = Date.now();
                 links.forEach(link => {
                     const href = link.getAttribute('href');
                     if (!href) return;
                     const url = new URL(href, window.location.origin);
+                    // If targeted list provided, only reload those
+                    if (changedPaths.length > 0) {
+                        const path = url.pathname.replace(/^\//, '');
+                        if (!changedPaths.includes(path)) return;
+                    }
                     // Bust cache with a version param
                     url.searchParams.set('v', now.toString());
                     // Replace the link to trigger reload
@@ -76,7 +88,7 @@ LIVE_RELOAD_SCRIPT = """
                     };
                     link.parentNode.insertBefore(newLink, link.nextSibling);
                 });
-            } else if (event.data === 'reload-page') {
+            } else if (action === 'reload-page') {
                 console.log('📄 Bengal: Reloading current page...');
                 // Save scroll position before reload
                 sessionStorage.setItem('bengal_scroll_x', window.scrollX.toString());

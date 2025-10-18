@@ -246,29 +246,44 @@ class BuildHandler(FileSystemEventHandler):
                     parallel=stats.parallel,
                 )
 
-                # Suppress reload if build was skipped (no effective output changes)
+                # Output-diff–driven reload decision
                 if getattr(stats, "skipped", False):
                     logger.info("reload_suppressed", reason="build_skipped")
                 else:
-                    # Notify SSE clients: CSS-only changes trigger CSS hot-reload
-                    try:
-                        changed_lower = [str(p).lower() for p in changed_files]
-                        only_css = len(changed_files) > 0 and all(
-                            path.endswith(".css") for path in changed_lower
-                        )
-                    except Exception:
-                        only_css = False
+                    from bengal.server.reload_controller import controller
+                    decision = controller.decide_and_update(self.site.output_dir)
 
-                    if only_css:
-                        from bengal.server.live_reload import set_reload_action
-
-                        set_reload_action("reload-css")
+                    if decision.action == "none":
+                        logger.info("reload_suppressed", reason=decision.reason)
                     else:
-                        from bengal.server.live_reload import set_reload_action
+                        # Send structured SSE payload (JSON per client)
+                        from bengal.server.live_reload import _reload_condition  # type: ignore
+                        from bengal.server.live_reload import logger as lr_logger  # type: ignore
+                        from bengal.server.live_reload import _reload_generation  # type: ignore
 
-                        set_reload_action("reload")
+                        import json
+                        payload = json.dumps(
+                            {
+                                "action": decision.action,
+                                "reason": decision.reason,
+                                "changedPaths": decision.changed_paths,
+                                "generation": _reload_generation + 1,
+                            }
+                        )
 
-                    notify_clients_reload()
+                        with _reload_condition:
+                            _reload_generation += 1  # type: ignore
+                            # Store last action as the JSON payload
+                            from bengal.server.live_reload import _last_action  # type: ignore
+
+                            _last_action = payload  # type: ignore
+                            _reload_condition.notify_all()
+                        lr_logger.info(
+                            "reload_notification_sent_structured",
+                            action=decision.action,
+                            reason=decision.reason,
+                            changed=len(decision.changed_paths),
+                        )
 
                     # Clear HTML cache after successful rebuild (files have changed)
                     from bengal.server.request_handler import BengalRequestHandler
