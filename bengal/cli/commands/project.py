@@ -267,12 +267,11 @@ def info() -> None:
         config_path = Path("bengal.toml")
 
         cli.blank()
-        cli.header("📊 Project Information")
-        cli.blank()
+        cli.header("📊 Project Information", trailing_blank=False)
 
         # Load config
         if not config_path.exists():
-            show_error("bengal.toml not found. Run 'bengal project init' first.", show_art=False)
+            show_error("bengal.toml not found. Run 'bengal project init' first.", show_art=True)
             raise click.Abort()
 
         with open(config_path, "rb") as f:
@@ -371,7 +370,7 @@ def config(key: str, value: str, set_value: bool, list_all: bool) -> None:
         config_path = Path("bengal.toml")
 
         if not config_path.exists():
-            show_error("bengal.toml not found. Run 'bengal project init' first.", show_art=False)
+            show_error("bengal.toml not found. Run 'bengal project init' first.", show_art=True)
             raise click.Abort()
 
         with open(config_path, "rb") as f:

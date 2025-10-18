@@ -43,7 +43,7 @@ bengal_theme = Theme(
         "metric_value": "default",
         "link": f"underline {PALETTE['secondary']}",
         "prompt": f"{PALETTE['accent']}",  # Yellow for prompts
-        "mouse": f"{PALETTE['error']}",  # Red for mice (errors)
+        "mouse": f"{PALETTE['error']} bold",  # Red and bold for mice (errors)
     }
 )
 
