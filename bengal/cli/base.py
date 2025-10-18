@@ -193,18 +193,27 @@ class BengalGroup(click.Group):
                 suggestions = self._get_similar_commands(unknown_cmd)
 
                 if suggestions:
-                    # Format error message with suggestions
-                    msg = f"Unknown command '{unknown_cmd}'.\n\n"
-                    msg += "Did you mean one of these?\n"
-                    for _i, suggestion in enumerate(suggestions, 1):
-                        msg += f"  • {click.style(suggestion, fg='cyan', bold=True)}\n"
-                    msg += (
-                        f"\nRun '{click.style('bengal --help', fg='yellow')}' to see all commands."
-                    )
-                    raise click.exceptions.UsageError(msg) from e
+                    # Themed error output using CLIOutput
+                    cli = CLIOutput()
+                    cli.error_header(f"Unknown command '{unknown_cmd}'.", mouse=True)
+                    if cli.use_rich:
+                        cli.console.print("[header]Did you mean one of these?[/header]")
+                        for suggestion in suggestions:
+                            cli.console.print(f"  [info]•[/info] [link]{suggestion}[/link]")
+                    else:
+                        cli.info("Did you mean one of these?")
+                        for suggestion in suggestions:
+                            cli.info(f"  • {suggestion}")
+                    cli.blank()
+                    cli.info("Run 'bengal --help' to see all commands.")
+                    raise click.Abort() from e
 
                 # Re-raise original error if no suggestions
-                raise
+                # Use themed single-line error
+                cli = CLIOutput()
+                cli.error_header(f"Unknown command '{unknown_cmd}'.", mouse=True)
+                cli.info("Run 'bengal --help' to see all commands.")
+                raise click.Abort() from e
 
             # Re-raise original error if no suggestions
             raise
