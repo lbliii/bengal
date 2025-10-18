@@ -23,6 +23,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Performance
 
+- **Page Subset Caching**: Added cached properties for filtered page lists in `Site`
+  - Reduced page equality checks by 75% (446K → 112K at 400 pages)
+  - Added `Site.regular_pages` and `Site.generated_pages` cached properties
+  - Updated all orchestration code paths to use cached properties
+  - Eliminates repeated O(n) filtering across build orchestration
 - **Parallel Related Posts**: Related posts computation now uses parallel processing
   - Threshold: 100+ pages (avoids overhead on small sites)
   - 10k page site: 120s → 16s on Python 3.14t (7.5x faster)
