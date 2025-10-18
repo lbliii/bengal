@@ -58,6 +58,7 @@
     {# Bengal config meta for JS to read without template tags inside scripts #}
     <meta name="bengal:search_preload" content="{{ site.config.get('search_preload', 'smart') }}">
     <meta name="bengal:baseurl" content="{{ site.config.baseurl or '' }}">
+    <meta name="bengal:index_url" content="{{ '/index.json' | absolute_url }}">
 
     {# Canonical URL #}
     {% if site.config.baseurl %}

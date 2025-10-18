@@ -18,7 +18,7 @@
   // ====================================
 
   const CONFIG = {
-    indexUrl: '/index.json',
+    indexUrl: null, // computed from meta tag when available
     minQueryLength: 2,
     maxResults: 50,
     excerptLength: 150,
@@ -61,10 +61,17 @@
         baseurl = (m && m.getAttribute('content')) || '';
       } catch (e) { /* no-op */ }
 
-      let indexUrl = CONFIG.indexUrl;
-      if (baseurl) {
-        baseurl = baseurl.replace(/\/$/, '');
-        if (!indexUrl.startsWith('http://') && !indexUrl.startsWith('https://')) {
+      // Prefer explicit meta index URL first
+      let indexUrl = '';
+      try {
+        const m2 = document.querySelector('meta[name="bengal:index_url"]');
+        indexUrl = (m2 && m2.getAttribute('content')) || '';
+      } catch (e) { /* no-op */ }
+
+      if (!indexUrl) {
+        indexUrl = '/index.json';
+        if (baseurl) {
+          baseurl = baseurl.replace(/\/$/, '');
           // Ensure leading slash on indexUrl
           indexUrl = indexUrl.startsWith('/') ? indexUrl : ('/' + indexUrl);
           indexUrl = baseurl + indexUrl;
