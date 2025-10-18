@@ -5,7 +5,6 @@ Provides beautiful logging, custom 404 pages, and live reload support.
 """
 
 import http.server
-import io
 import re
 import threading
 from http.client import HTTPMessage
@@ -61,7 +60,10 @@ class BengalRequestHandler(RequestLogger, LiveReloadMixin, http.server.SimpleHTT
     def end_headers(self) -> None:  # type: ignore[override]
         try:
             # If cache headers not already set, add sensible dev defaults
-            if not any(h.lower().startswith("cache-control:") for h in getattr(self, "_headers_buffer", [])):
+            if not any(
+                h.lower().startswith(b"cache-control:")
+                for h in getattr(self, "_headers_buffer", [])
+            ):
                 # no-store to force revalidation; max-age=0 and must-revalidate as fallbacks
                 self.send_header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
                 self.send_header("Pragma", "no-cache")

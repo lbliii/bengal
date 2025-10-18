@@ -109,6 +109,8 @@ class BuildHandler(FileSystemEventHandler):
             ".pyo",
             ".orig",
             ".rej",
+            "~",  # Editor backup files (Emacs, Vim)
+            "~~",  # Alternate backup suffixes
         }
 
         # Ignore common transient files by exact filename
@@ -134,6 +136,7 @@ class BuildHandler(FileSystemEventHandler):
             "htmlcov",
             "dist",
             "build",
+            "public",
         }
 
         # Suffix ignores
@@ -145,10 +148,7 @@ class BuildHandler(FileSystemEventHandler):
             return True
 
         # Directory ignores (match any segment)
-        if any(seg in dir_ignores for seg in path.parts):
-            return True
-
-        return False
+        return any(seg in dir_ignores for seg in path.parts)
 
     def _trigger_build(self) -> None:
         """
