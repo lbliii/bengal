@@ -97,13 +97,8 @@ def profile(profile_name: str) -> None:
 
             for profile_key, profile_info in PROFILES.items():
                 marker = "✓ " if profile_key == current_profile else "  "
-                is_current = profile_key == current_profile
-
                 profile_line = f"{marker}{profile_info['emoji']} {profile_info['name']} - {profile_info['description']}"
-                if is_current:
-                    cli.detail(profile_line, indent=1)
-                else:
-                    cli.detail(profile_line, indent=1)
+                cli.detail(profile_line, indent=1)
 
             if current_profile:
                 cli.blank()

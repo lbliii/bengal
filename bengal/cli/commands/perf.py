@@ -8,11 +8,6 @@ from bengal.cli.base import BengalCommand
 @click.command(cls=BengalCommand)
 @click.option("--last", "-n", default=10, help="Show last N builds (default: 10)")
 @click.option(
-    "--detailed",
-    is_flag=True,
-    help="Show detailed memory and timing breakdown",
-)
-@click.option(
     "--format",
     "-f",
     type=click.Choice(["table", "json", "summary"]),

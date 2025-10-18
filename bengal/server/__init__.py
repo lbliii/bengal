@@ -59,6 +59,22 @@ __all__ = ["DevServer"]
 
 
 def __getattr__(name: str):
+    """
+    Lazy import pattern for DevServer to avoid loading heavy dependencies.
+
+    This defers the import of watchdog and other dev server dependencies
+    until actually needed, preventing noisy runtime warnings in free-threaded
+    Python when users run other commands that don't require the dev server.
+
+    Args:
+        name: The attribute name being accessed
+
+    Returns:
+        The requested attribute (DevServer)
+
+    Raises:
+        AttributeError: If the attribute is not found
+    """
     if name == "DevServer":
         from bengal.server.dev_server import DevServer  # Runtime import
 

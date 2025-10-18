@@ -129,7 +129,7 @@ Details.
 """
         html, toc = parser.parse_with_toc(content, {})
 
-        # Check HTML has headings (now with IDs and headerlinks)
+        # Check HTML has headings (now with IDs)
         assert "Section 1" in html
         assert "Section 2" in html
         assert 'id="section-1"' in html

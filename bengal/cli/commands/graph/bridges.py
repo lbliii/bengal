@@ -14,11 +14,6 @@ from bengal.utils.logger import LogLevel, close_all_loggers, configure_logging
 @click.command(cls=BengalCommand)
 @click.option("--top-n", "-n", default=20, type=int, help="Number of pages to show (default: 20)")
 @click.option(
-    "--detailed",
-    is_flag=True,
-    help="Show detailed bridge analysis",
-)
-@click.option(
     "--metric",
     "-m",
     type=click.Choice(["betweenness", "closeness", "both"]),

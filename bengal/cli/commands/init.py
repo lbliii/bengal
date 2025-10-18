@@ -364,6 +364,7 @@ def format_file_tree(operations: list[FileOperation], content_dir: Path) -> str:
     "--sections",
     "-s",
     multiple=True,
+    default=("blog",),
     help="Content sections to create (e.g., blog posts about). Default: blog",
 )
 @click.option(
@@ -388,18 +389,24 @@ def format_file_tree(operations: list[FileOperation], content_dir: Path) -> str:
     help="Overwrite existing sections and files",
 )
 def init(
-    sections: str | None, with_content: bool, pages_per_section: int, dry_run: bool, force: bool
+    sections: tuple[str, ...],
+    with_content: bool,
+    pages_per_section: int,
+    dry_run: bool,
+    force: bool,
 ) -> None:
     """
     🏗️  Initialize site structure with sections and pages.
 
     Examples:
 
-      bengal init --sections "blog,projects,about"
+      bengal init --sections blog --sections projects --sections about
 
-      bengal init --sections "blog" --with-content --pages-per-section 10
+      bengal init --sections blog --with-content --pages-per-section 10
 
-      bengal init --sections "docs,guides" --dry-run
+      bengal init --sections docs --sections guides --dry-run
+
+      bengal init  # Uses default 'blog' section
     """
     cli = CLIOutput()
 
@@ -412,14 +419,12 @@ def init(
             )
             raise click.Abort()
 
-        # Validate and parse sections
+        # Validate and parse sections (sections is a tuple from Click's multiple=True)
         if not sections:
-            show_error(
-                "Please provide --sections (e.g., --sections 'blog,projects')", show_art=False
-            )
-            raise click.Abort()
+            # This shouldn't happen due to default, but handle it gracefully
+            sections = ("blog",)
 
-        section_list = [s.strip() for s in sections.split(",") if s.strip()]
+        section_list = [s.strip() for s in sections if s.strip()]
 
         if not section_list:
             show_error("No valid sections provided", show_art=False)
@@ -527,7 +532,7 @@ def init(
         # Next steps
         cli.blank()
         cli.header("📚 Next steps:")
-        cli.tip("Run 'bengal serve' to preview your site")
+        cli.info("  1. Run 'bengal serve' to preview your site")
         cli.info("  2. Edit files in content/ to add your content")
         cli.blank()
 
