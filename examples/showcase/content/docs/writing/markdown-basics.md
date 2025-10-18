@@ -200,11 +200,11 @@ See [Images and Assets](images-and-assets.md) for more details.
 Wrap code with backticks:
 
 ```markdown
-Use the `bengal build` command to build your site.
+Use the `bengal site build` command to build your site.
 Install with `pip install bengal`.
 ```
 
-**Result:** Use the `bengal build` command to build your site.
+**Result:** Use the `bengal site build` command to build your site.
 
 ### Code Blocks
 

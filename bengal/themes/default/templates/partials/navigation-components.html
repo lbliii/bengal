@@ -24,6 +24,14 @@ Displays hierarchical navigation showing the current page's location in the site
 Args:
 page: Current page object (required)
 
+Note:
+URLs returned by get_breadcrumbs() are relative paths (e.g., "/about/") without baseurl.
+This is intentional - relative URLs are used for identity/comparison purposes (menu activation,
+validation, etc.). For display in HTML href attributes, always apply the | absolute_url filter
+to support subpath deployments (GitHub Pages, custom subpaths).
+
+See: plan/active/url-strategy-downstream-impact.md for the "identity vs display" pattern.
+
 Example:
 {{ breadcrumbs(page) }}
 #}
@@ -68,7 +76,7 @@ Example:
     {# Previous Button #}
     <li>
       {% if p.prev %}
-      <a href="{{ p.prev.url | absolute_url }}" aria-label="Previous page">
+      <a href="{{ p.prev.url }}" aria-label="Previous page">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="20" height="20">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
         </svg>
@@ -92,7 +100,7 @@ Example:
       {% elif item.is_current %}
       <span class="active" aria-current="page">{{ item.num }}</span>
       {% else %}
-      <a href="{{ item.url | absolute_url }}">{{ item.num }}</a>
+      <a href="{{ item.url }}">{{ item.num }}</a>
       {% endif %}
     </li>
     {% endfor %}
@@ -100,7 +108,7 @@ Example:
     {# Next Button #}
     <li>
       {% if p.next %}
-      <a href="{{ p.next.url | absolute_url }}" aria-label="Next page">
+      <a href="{{ p.next.url }}" aria-label="Next page">
         Next
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="20" height="20">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
@@ -148,7 +156,7 @@ Example:
   <div class="nav-links">
     {% if page.prev_in_section %}
     <div class="nav-previous">
-      <a href="{{ url_for(page.prev_in_section) | absolute_url }}" rel="prev">
+      <a href="{{ url_for(page.prev_in_section) }}" rel="prev">
         <span class="nav-subtitle">← Previous</span>
         <span class="nav-title">{{ page.prev_in_section.title }}</span>
       </a>
@@ -157,7 +165,7 @@ Example:
 
     {% if page.next_in_section %}
     <div class="nav-next">
-      <a href="{{ url_for(page.next_in_section) | absolute_url }}" rel="next">
+      <a href="{{ url_for(page.next_in_section) }}" rel="next">
         <span class="nav-subtitle">Next →</span>
         <span class="nav-title">{{ page.next_in_section.title }}</span>
       </a>
@@ -173,7 +181,7 @@ Example:
   <div class="nav-links">
     {% if page.prev %}
     <div class="nav-previous">
-      <a href="{{ url_for(page.prev) | absolute_url }}" rel="prev">
+      <a href="{{ url_for(page.prev) }}" rel="prev">
         <span class="nav-subtitle">← Previous</span>
         <span class="nav-title">{{ page.prev.title }}</span>
       </a>
@@ -182,7 +190,7 @@ Example:
 
     {% if page.next %}
     <div class="nav-next">
-      <a href="{{ url_for(page.next) | absolute_url }}" rel="next">
+      <a href="{{ url_for(page.next) }}" rel="next">
         <span class="nav-subtitle">Next →</span>
         <span class="nav-title">{{ page.next.title }}</span>
       </a>

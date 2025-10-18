@@ -273,7 +273,7 @@ Example:
     {% for post in random_posts %}
     <article class="random-post-item">
       <h4>
-        <a href="{{ url_for(post) | absolute_url }}">{{ post.title }}</a>
+        <a href="{{ url_for(post) }}">{{ post.title }}</a>
       </h4>
       {% if post.date %}
       <time datetime="{{ post.date | date_iso }}">

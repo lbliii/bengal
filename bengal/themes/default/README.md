@@ -68,7 +68,7 @@ All 14 template partials have **component manifests** for isolated testing and d
 
 ```bash
 # Start dev server
-bengal serve
+bengal site serve
 
 # Preview components in browser
 open http://localhost:5173/__bengal_components__/
@@ -485,7 +485,7 @@ All templates have access to:
 {% for month_num in range(1, 13) %}
   {% set month_key = '2024-' ~ '%02d' | format(month_num) %}
   {% set month_posts = site.indexes.date_range.get(month_key) | resolve_pages %}
-  
+
   {% if month_posts %}
     <h2>{{ ['Jan', 'Feb', ...][month_num - 1] }} ({{ month_posts | length }})</h2>
     <ul>

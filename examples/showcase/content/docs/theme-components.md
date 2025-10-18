@@ -376,7 +376,7 @@ For clarity, use named parameters for optional arguments:
 All components are strict mode compatible. Enable strict mode for better error detection:
 
 ```bash
-bengal build --strict
+bengal site build --strict
 ```
 
 This will catch:

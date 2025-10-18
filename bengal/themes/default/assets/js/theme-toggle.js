@@ -74,38 +74,54 @@
     if (palette) setPalette(palette);
   }
 
+  // Cache dropdown elements and their menus to avoid repeated DOM queries
+  let cachedDropdowns = [];
+
   /**
-   * Update active states in dropdown menu
+   * Cache all dropdown elements and their menus
+   */
+  function cacheDropdowns() {
+    const dropdowns = document.querySelectorAll('.theme-dropdown');
+    cachedDropdowns = Array.from(dropdowns).map(function (dd) {
+      const menu = dd.querySelector('.theme-dropdown__menu');
+      return {
+        menu: menu,
+        appearanceButtons: menu ? menu.querySelectorAll('button[data-appearance]') : [],
+        paletteButtons: menu ? menu.querySelectorAll('button[data-palette]') : []
+      };
+    }).filter(function (cache) {
+      return cache.menu !== null;
+    });
+  }
+
+  /**
+   * Update active states in all dropdown menus using cached elements
    */
   function updateActiveStates() {
-    const dd = document.querySelector('.theme-dropdown');
-    if (!dd) return;
-
-    const menu = dd.querySelector('.theme-dropdown__menu');
-    if (!menu) return;
-
-    // Get current settings
+    // Get current settings once
     const currentAppearance = localStorage.getItem(THEME_KEY) || THEMES.SYSTEM;
     const currentPalette = getPalette();
 
-    // Update appearance buttons
-    menu.querySelectorAll('button[data-appearance]').forEach(function (btn) {
-      const appearance = btn.getAttribute('data-appearance');
-      if (appearance === currentAppearance) {
-        btn.classList.add('active');
-      } else {
-        btn.classList.remove('active');
-      }
-    });
+    cachedDropdowns.forEach(function (cache) {
+      // Update appearance buttons
+      cache.appearanceButtons.forEach(function (btn) {
+        const appearance = btn.getAttribute('data-appearance');
+        if (appearance === currentAppearance) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
 
-    // Update palette buttons
-    menu.querySelectorAll('button[data-palette]').forEach(function (btn) {
-      const palette = btn.getAttribute('data-palette');
-      if (palette === currentPalette) {
-        btn.classList.add('active');
-      } else {
-        btn.classList.remove('active');
-      }
+      // Update palette buttons
+      cache.paletteButtons.forEach(function (btn) {
+        const palette = btn.getAttribute('data-palette');
+        if (palette === currentPalette) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
     });
   }
 
@@ -124,10 +140,17 @@
       });
     }
 
-    const dd = document.querySelector('.theme-dropdown');
-    if (dd) {
+    // Cache dropdown elements once during initialization
+    cacheDropdowns();
+
+    // Handle all theme dropdowns (desktop and mobile)
+    const dropdowns = document.querySelectorAll('.theme-dropdown');
+    dropdowns.forEach(function (dd) {
       const btn = dd.querySelector('.theme-dropdown__button');
       const menu = dd.querySelector('.theme-dropdown__menu');
+
+      if (!btn || !menu) return;
+
       function closeMenu() {
         menu.classList.remove('open');
         btn.setAttribute('aria-expanded', 'false');
@@ -160,7 +183,7 @@
 
       // Set initial active states
       updateActiveStates();
-    }
+    });
   }
 
   /**

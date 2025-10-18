@@ -529,7 +529,8 @@
    Mobile & Responsive
    ============================================================================ */
 
-@media (max-width: 1023px) {
+/* Laptop and below: Adjust sidebar layout */
+@media (max-width: 1024px) {
     .page-sidebar {
         margin-top: 2rem;
     }
@@ -564,9 +565,12 @@
 
 .page-layout.page-with-toc .page,
 .page-layout.page-with-toc .post {
-    min-width: 0; /* Prevent grid blowout */
-    max-width: none; /* Remove prose width constraint in grid layout */
-    margin: 0; /* Remove auto centering in grid */
+    min-width: 0;
+    /* Prevent grid blowout */
+    max-width: none;
+    /* Remove prose width constraint in grid layout */
+    margin: 0;
+    /* Remove auto centering in grid */
 }
 
 /* Scrollbar styling for TOC on desktop */

@@ -97,10 +97,10 @@ Build and preview your site:
 
 ```bash
 # Build the site
-bengal build
+bengal site build
 
 # Start the development server
-bengal serve
+bengal site serve
 ```
 
 Open your browser to `http://localhost:5173` and navigate to your new page!
@@ -146,7 +146,7 @@ Wrap up your thoughts here.
 ## Development Workflow
 
 ```{tip} Live Reload
-Use `bengal serve` for automatic rebuilds when you save files. Your browser will refresh automatically!
+Use `bengal site serve` for automatic rebuilds when you save files. Your browser will refresh automatically!
 ```
 
 The typical workflow:

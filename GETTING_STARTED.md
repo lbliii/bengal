@@ -34,9 +34,9 @@ sourcemaps = true        # Emit source maps
 You can also toggle at build time:
 
 ```bash
-bengal build --assets-pipeline
+bengal site build --assets-pipeline
 # or
-bengal build --no-assets-pipeline
+bengal site build --no-assets-pipeline
 ```
 
 Conventions and outputs:
@@ -169,7 +169,7 @@ Customize it to your needs:
 
 ```bash
 # Build the site
-python -m bengal.cli build
+python -m bengal.cli site build
 
 # Output:
 # Building site at /path/to/myblog...
@@ -365,10 +365,10 @@ Reference it:
 
 ```bash
 # Clean previous build
-python -m bengal.cli clean
+python -m bengal.cli site clean
 
 # Build for production
-python -m bengal.cli build
+python -m bengal.cli site build
 
 # The public/ directory is ready to deploy!
 ```
@@ -381,14 +381,14 @@ The `public/` directory contains your complete static site. Deploy it to:
 
 1. Push your code to GitHub
 2. Connect to Netlify
-3. Build command: `bengal build` or `python -m bengal.cli build`
+3. Build command: `bengal site build` or `python -m bengal.cli site build`
 4. Publish directory: `public`
 
 ### GitHub Pages
 
 ```bash
 # Build site
-python -m bengal.cli build
+python -m bengal.cli site build
 
 # Deploy to gh-pages branch
 git subtree push --prefix public origin gh-pages
@@ -584,8 +584,8 @@ pages = data['pages']
 
 ```bash
 # Clean and rebuild
-python -m bengal.cli clean
-python -m bengal.cli build
+python -m bengal.cli site clean
+python -m bengal.cli site build
 ```
 
 ### Template Not Found
@@ -645,19 +645,19 @@ bengal --version             # Show version
 bengal --help                # Show help
 
 # Building
-bengal build                 # Build site
-bengal build --no-parallel   # Sequential build
-bengal build --config path   # Use custom config
+bengal site build                 # Build site
+bengal site build --no-parallel   # Sequential build
+bengal site build --config path   # Use custom config
 
 # Development
-bengal serve                 # Start dev server
-bengal serve --port 3000     # Custom port
-bengal serve --no-watch      # Disable file watching
-bengal serve --verbose       # Show detailed server activity
-bengal serve --debug         # Show debug output
+bengal site serve                 # Start dev server
+bengal site serve --port 3000     # Custom port
+bengal site serve --no-watch      # Disable file watching
+bengal site serve --verbose       # Show detailed server activity
+bengal site serve --debug         # Show debug output
 
 # Management
-bengal clean                 # Clean output directory
+bengal site clean                 # Clean output directory
 
 # Creation
 bengal new site <name>       # Create new site

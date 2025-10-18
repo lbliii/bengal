@@ -225,7 +225,8 @@ a.card {
   height: auto;
 }
 
-@media (max-width: 767px) {
+/* Tablet and below: Stack horizontal cards */
+@media (max-width: 768px) {
   .card-horizontal {
     flex-direction: column;
   }
@@ -629,7 +630,8 @@ a.card {
   margin: 2rem 0;
 }
 
-@media (max-width: 640px) {
+/* Mobile: Single column card grids */
+@media (max-width: 639px) {
 
   .cards-grid,
   .feature-cards {
@@ -649,7 +651,8 @@ a.card {
    RESPONSIVE
    ============================================ */
 
-@media (max-width: 640px) {
+/* Mobile: Compact card padding */
+@media (max-width: 639px) {
 
   .card-body,
   .feature-card {

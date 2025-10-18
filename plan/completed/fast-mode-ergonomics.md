@@ -15,7 +15,7 @@ Users testing Bengal with free-threaded Python 3.14t would see GIL warnings from
 
 Implemented a fast mode that can be enabled via:
 
-1. **CLI flag**: `bengal build --fast`
+1. **CLI flag**: `bengal site build --fast`
 2. **Config option**: `fast_mode = true` in `[build]` section of `bengal.toml`
 
 ### What Fast Mode Does
@@ -31,8 +31,8 @@ When enabled, fast mode:
 
 **CLI Flag:**
 ```bash
-bengal build --fast       # Enable fast mode
-bengal build --no-fast    # Explicitly disable
+bengal site build --fast       # Enable fast mode
+bengal site build --no-fast    # Explicitly disable
 ```
 
 **Config Option:**
@@ -70,17 +70,17 @@ fast_mode = true  # Always use fast mode
 
 ```bash
 # Try fast mode once
-bengal build --fast
+bengal site build --fast
 
 # Like it? Make it permanent
 echo "[build]" >> bengal.toml
 echo "fast_mode = true" >> bengal.toml
 
 # Now just run normally
-bengal build
+bengal site build
 
 # Override if needed
-bengal build --no-fast
+bengal site build --no-fast
 ```
 
 ## Testing

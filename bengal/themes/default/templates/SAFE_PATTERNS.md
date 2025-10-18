@@ -407,7 +407,7 @@ Use this checklist when creating new templates:
 
 3. **Test in strict mode:**
    ```bash
-   bengal serve  # Strict mode enabled by default
+   bengal site serve  # Strict mode enabled by default
    ```
 
 ### Common Test Cases
@@ -448,8 +448,8 @@ Strict mode makes Jinja2 raise errors on undefined variables instead of silently
 
 ### When is Strict Mode Enabled?
 
-- ✅ **Always in `bengal serve`** (auto-enabled for development)
-- ⚠️ **Optional in `bengal build`** (use `--strict` flag)
+- ✅ **Always in `bengal site serve`** (auto-enabled for development)
+- ⚠️ **Optional in `bengal site build`** (use `--strict` flag)
 
 ### Why Use Strict Mode?
 
@@ -467,14 +467,14 @@ Strict mode makes Jinja2 raise errors on undefined variables instead of silently
 
 ```bash
 # Development (always strict)
-bengal serve
+bengal site serve
 
 # Production build (optional strict)
-bengal build          # Lenient (renders as empty)
-bengal build --strict # Strict (fails on errors)
+bengal site build          # Lenient (renders as empty)
+bengal site build --strict # Strict (fails on errors)
 
 # CI/CD (recommended)
-bengal build --strict # Catch template errors early
+bengal site build --strict # Catch template errors early
 ```
 
 ---
@@ -494,7 +494,7 @@ Bengal provides enhanced error messages in strict mode:
    Common locations: page.metadata, site.config, section.metadata
 
    Note: This error only appears in strict mode (serve).
-   Use 'bengal build --strict' to catch in builds.
+   Use 'bengal site build --strict' to catch in builds.
 ```
 
 ### Attribute Errors

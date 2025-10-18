@@ -75,10 +75,10 @@ mypy bengal/
 
 # Build example site
 cd examples/showcase
-bengal build
+bengal site build
 
 # Start dev server
-bengal serve
+bengal site serve
 ```
 
 ## Clean Start
