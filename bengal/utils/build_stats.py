@@ -348,96 +348,96 @@ def display_build_stats(
             cli.success("    BUILD COMPLETE")
 
     # Content stats
-    click.echo(click.style("\n📊 Content Statistics:", fg="cyan", bold=True))
-    click.echo(
-        click.style("   ├─ ", fg="cyan")
-        + f"Pages:       {click.style(str(stats.total_pages), fg='green', bold=True)}"
-        + f" ({stats.regular_pages} regular + {stats.generated_pages} generated)"
-    )
-    click.echo(
-        click.style("   ├─ ", fg="cyan")
-        + f"Sections:    {click.style(str(stats.total_sections), fg='green', bold=True)}"
-    )
-    click.echo(
-        click.style("   ├─ ", fg="cyan")
-        + f"Assets:      {click.style(str(stats.total_assets), fg='green', bold=True)}"
-    )
-
-    # Directive statistics (if present)
-    if stats.total_directives > 0:
-        # Get top 3 directive types
-        top_types = sorted(stats.directives_by_type.items(), key=lambda x: x[1], reverse=True)[:3]
-        type_summary = ", ".join([f"{t}({c})" for t, c in top_types])
-        click.echo(
-            click.style("   ├─ ", fg="cyan")
-            + f"Directives:  {click.style(str(stats.total_directives), fg='magenta', bold=True)}"
-            + f" ({type_summary})"
-        )
-
-    click.echo(
-        click.style("   └─ ", fg="cyan")
-        + f"Taxonomies:  {click.style(str(stats.taxonomies_count), fg='green', bold=True)}"
-    )
+    cli.blank()
+    if cli.use_rich:
+        cli.console.print("[header]📊 Content Statistics:[/header]")
+        cli.console.print(f"   [info]├─[/info] Pages:       [success]{stats.total_pages}[/success] ({stats.regular_pages} regular + {stats.generated_pages} generated)")
+        cli.console.print(f"   [info]├─[/info] Sections:    [success]{stats.total_sections}[/success]")
+        cli.console.print(f"   [info]├─[/info] Assets:      [success]{stats.total_assets}[/success]")
+        
+        # Directive statistics (if present)
+        if stats.total_directives > 0:
+            top_types = sorted(stats.directives_by_type.items(), key=lambda x: x[1], reverse=True)[:3]
+            type_summary = ", ".join([f"{t}({c})" for t, c in top_types])
+            cli.console.print(f"   [info]├─[/info] Directives:  [highlight]{stats.total_directives}[/highlight] ({type_summary})")
+        
+        cli.console.print(f"   [info]└─[/info] Taxonomies:  [success]{stats.taxonomies_count}[/success]")
+    else:
+        cli.info("📊 Content Statistics:")
+        cli.info(f"   ├─ Pages:       {stats.total_pages} ({stats.regular_pages} regular + {stats.generated_pages} generated)")
+        cli.info(f"   ├─ Sections:    {stats.total_sections}")
+        cli.info(f"   ├─ Assets:      {stats.total_assets}")
+        
+        if stats.total_directives > 0:
+            top_types = sorted(stats.directives_by_type.items(), key=lambda x: x[1], reverse=True)[:3]
+            type_summary = ", ".join([f"{t}({c})" for t, c in top_types])
+            cli.info(f"   ├─ Directives:  {stats.total_directives} ({type_summary})")
+        
+        cli.info(f"   └─ Taxonomies:  {stats.taxonomies_count}")
 
     # Build info
-    click.echo(click.style("\n⚙️  Build Configuration:", fg="cyan", bold=True))
+    cli.blank()
     mode_parts = []
     if stats.incremental:
-        mode_parts.append(click.style("incremental", fg="yellow"))
+        mode_parts.append("incremental")
     if stats.parallel:
-        mode_parts.append(click.style("parallel", fg="yellow"))
+        mode_parts.append("parallel")
     if not mode_parts:
-        mode_parts.append(click.style("sequential", fg="yellow"))
+        mode_parts.append("sequential")
 
     mode_text = " + ".join(mode_parts)
-    click.echo(click.style("   └─ ", fg="cyan") + f"Mode:        {mode_text}")
+    
+    if cli.use_rich:
+        cli.console.print("[header]⚙️  Build Configuration:[/header]")
+        cli.console.print(f"   [info]└─[/info] Mode:        [warning]{mode_text}[/warning]")
+    else:
+        cli.info("⚙️  Build Configuration:")
+        cli.info(f"   └─ Mode:        {mode_text}")
 
     # Performance stats
-    click.echo(click.style("\n⏱️  Performance:", fg="cyan", bold=True))
-
-    # Total time with color coding
+    cli.blank()
     total_time_str = format_time(stats.build_time_ms)
+    
+    # Determine time styling
     if stats.build_time_ms < 100:
-        time_color = "green"
+        time_token = "success"
         emoji = "🚀"
     elif stats.build_time_ms < 1000:
-        time_color = "yellow"
+        time_token = "warning"
         emoji = "⚡"
     else:
-        time_color = "red"
+        time_token = "error"
         emoji = "🐌"
-
-    click.echo(
-        click.style("   ├─ ", fg="cyan")
-        + f"Total:       {click.style(total_time_str, fg=time_color, bold=True)} {emoji}"
-    )
-
-    # Phase breakdown (only if we have phase data)
-    if stats.discovery_time_ms > 0:
-        click.echo(
-            click.style("   ├─ ", fg="cyan")
-            + f"Discovery:   {click.style(format_time(stats.discovery_time_ms), fg='white')}"
-        )
-    if stats.taxonomy_time_ms > 0:
-        click.echo(
-            click.style("   ├─ ", fg="cyan")
-            + f"Taxonomies:  {click.style(format_time(stats.taxonomy_time_ms), fg='white')}"
-        )
-    if stats.rendering_time_ms > 0:
-        click.echo(
-            click.style("   ├─ ", fg="cyan")
-            + f"Rendering:   {click.style(format_time(stats.rendering_time_ms), fg='white')}"
-        )
-    if stats.assets_time_ms > 0:
-        click.echo(
-            click.style("   ├─ ", fg="cyan")
-            + f"Assets:      {click.style(format_time(stats.assets_time_ms), fg='white')}"
-        )
-    if stats.postprocess_time_ms > 0:
-        click.echo(
-            click.style("   └─ ", fg="cyan")
-            + f"Postprocess: {click.style(format_time(stats.postprocess_time_ms), fg='white')}"
-        )
+    
+    if cli.use_rich:
+        cli.console.print("[header]⏱️  Performance:[/header]")
+        cli.console.print(f"   [info]├─[/info] Total:       [{time_token}]{total_time_str}[/{time_token}] {emoji}")
+        
+        # Phase breakdown (only if we have phase data)
+        if stats.discovery_time_ms > 0:
+            cli.console.print(f"   [info]├─[/info] Discovery:   {format_time(stats.discovery_time_ms)}")
+        if stats.taxonomy_time_ms > 0:
+            cli.console.print(f"   [info]├─[/info] Taxonomies:  {format_time(stats.taxonomy_time_ms)}")
+        if stats.rendering_time_ms > 0:
+            cli.console.print(f"   [info]├─[/info] Rendering:   {format_time(stats.rendering_time_ms)}")
+        if stats.assets_time_ms > 0:
+            cli.console.print(f"   [info]├─[/info] Assets:      {format_time(stats.assets_time_ms)}")
+        if stats.postprocess_time_ms > 0:
+            cli.console.print(f"   [info]└─[/info] Postprocess: {format_time(stats.postprocess_time_ms)}")
+    else:
+        cli.info("⏱️  Performance:")
+        cli.info(f"   ├─ Total:       {total_time_str} {emoji}")
+        
+        if stats.discovery_time_ms > 0:
+            cli.info(f"   ├─ Discovery:   {format_time(stats.discovery_time_ms)}")
+        if stats.taxonomy_time_ms > 0:
+            cli.info(f"   ├─ Taxonomies:  {format_time(stats.taxonomy_time_ms)}")
+        if stats.rendering_time_ms > 0:
+            cli.info(f"   ├─ Rendering:   {format_time(stats.rendering_time_ms)}")
+        if stats.assets_time_ms > 0:
+            cli.info(f"   ├─ Assets:      {format_time(stats.assets_time_ms)}")
+        if stats.postprocess_time_ms > 0:
+            cli.info(f"   └─ Postprocess: {format_time(stats.postprocess_time_ms)}")
 
     # Fun stats
     if stats.build_time_ms > 0:
@@ -445,18 +445,28 @@ def display_build_stats(
             (stats.total_pages / stats.build_time_ms) * 1000 if stats.build_time_ms > 0 else 0
         )
         if pages_per_sec > 0:
-            click.echo(click.style("\n📈 Throughput:", fg="cyan", bold=True))
-            click.echo(
-                click.style("   └─ ", fg="cyan")
-                + f"{click.style(f'{pages_per_sec:.1f}', fg='magenta', bold=True)} pages/second"
-            )
+            cli.blank()
+            if cli.use_rich:
+                cli.console.print("[header]📈 Throughput:[/header]")
+                cli.console.print(f"   [info]└─[/info] [highlight]{pages_per_sec:.1f}[/highlight] pages/second")
+            else:
+                cli.info("📈 Throughput:")
+                cli.info(f"   └─ {pages_per_sec:.1f} pages/second")
 
     # Output location
     if output_dir:
-        click.echo(click.style("\n📂 Output:", fg="cyan", bold=True))
-        click.echo(click.style("   ↪ ", fg="cyan") + click.style(output_dir, fg="white", bold=True))
+        cli.blank()
+        cli.path(output_dir, icon="📂", label="Output")
 
-    click.echo(click.style("\n─────────────────────────────────────────────────────\n", fg="cyan"))
+    # Separator
+    if cli.use_rich:
+        cli.console.print()
+        cli.console.print("[info]─────────────────────────────────────────────────────[/info]")
+        cli.console.print()
+    else:
+        cli.blank()
+        cli.info("─────────────────────────────────────────────────────")
+        cli.blank()
 
 
 def show_building_indicator(text: str = "Building") -> None:
@@ -475,15 +485,25 @@ def show_building_indicator(text: str = "Building") -> None:
         pass  # Fall back to click
 
     # Fallback to click (for CI, dumb terminals, or if rich not available)
-    click.echo(click.style(BENGAL_BUILDING, fg="yellow"))
-    click.echo(click.style(f"🔨 {text}...\n", fg="cyan", bold=True))
+    cli = CLIOutput()
+    cli.info(BENGAL_BUILDING)
+    cli.info(f"🔨 {text}...")
+    cli.blank()
 
 
 def show_error(message: str, show_art: bool = True) -> None:
     """Show an error message with art."""
+    cli = CLIOutput()
     if show_art:
-        click.echo(click.style(BENGAL_ERROR, fg="red"))
-    click.echo(click.style(f"ᘛ⁐̤ᕐᐷ  {message}", fg="red", bold=True))
+        if cli.use_rich:
+            cli.console.print("[error]" + BENGAL_ERROR + "[/error]")
+        else:
+            cli.error(BENGAL_ERROR)
+    
+    if cli.use_rich:
+        cli.console.print(f"[mouse]ᘛ⁐̤ᕐᐷ[/mouse]  [error]{message}[/error]")
+    else:
+        cli.error(f"ᘛ⁐̤ᕐᐷ  {message}")
 
 
 def show_welcome() -> None:
@@ -522,7 +542,8 @@ def show_welcome() -> None:
     ║                                                      ║
     ╚══════════════════════════════════════════════════════╝
     """
-        click.echo(click.style(banner, fg="yellow", bold=True))
+        cli = CLIOutput()
+        cli.info(banner)
 
 
 def show_clean_success(output_dir: str) -> None:
@@ -556,12 +577,22 @@ def display_template_errors(stats: BuildStats) -> None:
 
     from bengal.rendering.errors import display_template_error
 
+    cli = CLIOutput()
     error_count = len(stats.template_errors)
-    click.echo(click.style(f"\n❌ Template Errors ({error_count}):\n", fg="red", bold=True))
+    
+    # Use mouse emoji error header
+    cli.error_header(f"❌ Template Errors ({error_count})")
 
     for i, error in enumerate(stats.template_errors, 1):
-        click.echo(click.style(f"Error {i}/{error_count}:", fg="red", bold=True))
+        if cli.use_rich:
+            cli.console.print(f"[error]Error {i}/{error_count}:[/error]")
+        else:
+            cli.error(f"Error {i}/{error_count}:")
+        
         display_template_error(error, use_color=True)
 
         if i < error_count:
-            click.echo(click.style("─" * 80, fg="cyan"))
+            if cli.use_rich:
+                cli.console.print("[info]" + "─" * 80 + "[/info]")
+            else:
+                cli.info("─" * 80)
