@@ -1,5 +1,5 @@
 """
-Bengal SSG - A high-performance static site generator.
+Bengal SSG - A pythonic static site generator.
 """
 
 __version__ = "0.1.2"

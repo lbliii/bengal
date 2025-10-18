@@ -6,6 +6,7 @@ from pathlib import Path
 import click
 
 from bengal.core.site import Site
+from bengal.utils.cli_output import CLIOutput
 from bengal.utils.logger import LogLevel, close_all_loggers, configure_logging
 
 
@@ -52,19 +53,15 @@ def pagerank(top_n: int, damping: float, format: str, config: str, source: str) 
     """
     from bengal.analysis.knowledge_graph import KnowledgeGraph
 
+    cli = CLIOutput()
+    
     try:
         # Configure minimal logging
         configure_logging(level=LogLevel.WARNING)
 
         # Validate damping factor
         if not 0 < damping < 1:
-            click.echo(
-                click.style(
-                    f"❌ Error: Damping factor must be between 0 and 1, got {damping}",
-                    fg="red",
-                    bold=True,
-                )
-            )
+            cli.error(f"❌ Error: Damping factor must be between 0 and 1, got {damping}")
             raise click.Abort()
 
         # Load site
@@ -77,55 +74,35 @@ def pagerank(top_n: int, damping: float, format: str, config: str, source: str) 
             site = Site.from_config(source_path)
 
         # Discover content and compute PageRank with status indicator
-        try:
-            from bengal.utils.rich_console import get_console, should_use_rich
-
-            if should_use_rich():
-                console = get_console()
-
-                with console.status(
-                    "[bold green]Discovering site content...", spinner="dots"
-                ) as status:
-                    from bengal.orchestration.content import ContentOrchestrator
-
-                    content_orch = ContentOrchestrator(site)
-                    content_orch.discover()
-
-                    status.update(
-                        f"[bold green]Building knowledge graph from {len(site.pages)} pages..."
-                    )
-                    graph_obj = KnowledgeGraph(site)
-                    graph_obj.build()
-
-                    status.update(f"[bold green]Computing PageRank (damping={damping})...")
-                    results = graph_obj.compute_pagerank(damping=damping)
-            else:
-                # Fallback to simple messages
-                click.echo("🔍 Discovering site content...")
+        if cli.use_rich:
+            with cli.console.status(
+                "[info]Discovering site content...", spinner="dots"
+            ) as status:
                 from bengal.orchestration.content import ContentOrchestrator
 
                 content_orch = ContentOrchestrator(site)
                 content_orch.discover()
 
-                click.echo(f"📊 Building knowledge graph from {len(site.pages)} pages...")
+                status.update(
+                    f"[info]Building knowledge graph from {len(site.pages)} pages..."
+                )
                 graph_obj = KnowledgeGraph(site)
                 graph_obj.build()
 
-                click.echo(f"🏆 Computing PageRank (damping={damping})...")
+                status.update(f"[info]Computing PageRank (damping={damping})...")
                 results = graph_obj.compute_pagerank(damping=damping)
-        except ImportError:
-            # Rich not available, use simple messages
-            click.echo("🔍 Discovering site content...")
+        else:
+            cli.info("🔍 Discovering site content...")
             from bengal.orchestration.content import ContentOrchestrator
 
             content_orch = ContentOrchestrator(site)
             content_orch.discover()
 
-            click.echo(f"📊 Building knowledge graph from {len(site.pages)} pages...")
+            cli.info(f"📊 Building knowledge graph from {len(site.pages)} pages...")
             graph_obj = KnowledgeGraph(site)
             graph_obj.build()
 
-            click.echo(f"🏆 Computing PageRank (damping={damping})...")
+            cli.info(f"🏆 Computing PageRank (damping={damping})...")
             results = graph_obj.compute_pagerank(damping=damping)
 
         # Get top pages
@@ -151,36 +128,39 @@ def pagerank(top_n: int, damping: float, format: str, config: str, source: str) 
                     for i, (page, score) in enumerate(top_pages)
                 ],
             }
-            click.echo(json.dumps(data, indent=2))
+            cli.info(json.dumps(data, indent=2))
 
         elif format == "summary":
             # Show summary stats
-            click.echo("\n" + "=" * 60)
-            click.echo("📈 PageRank Summary")
-            click.echo("=" * 60)
-            click.echo(f"Total pages analyzed:    {len(results.scores)}")
-            click.echo(f"Iterations to converge:  {results.iterations}")
-            click.echo(f"Converged:               {'✅ Yes' if results.converged else '⚠️  No'}")
-            click.echo(f"Damping factor:          {results.damping_factor}")
-            click.echo(f"\nTop {min(top_n, len(top_pages))} pages by importance:")
-            click.echo("-" * 60)
+            cli.blank()
+            cli.info("=" * 60)
+            cli.header("📈 PageRank Summary")
+            cli.info("=" * 60)
+            cli.info(f"Total pages analyzed:    {len(results.scores)}")
+            cli.info(f"Iterations to converge:  {results.iterations}")
+            cli.info(f"Converged:               {'✅ Yes' if results.converged else '⚠️  No'}")
+            cli.info(f"Damping factor:          {results.damping_factor}")
+            cli.blank()
+            cli.info(f"Top {min(top_n, len(top_pages))} pages by importance:")
+            cli.info("-" * 60)
 
             for i, (page, score) in enumerate(top_pages, 1):
                 incoming = graph_obj.incoming_refs.get(page, 0)
                 outgoing = len(graph_obj.outgoing_refs.get(page, set()))
-                click.echo(f"{i:3d}. {page.title:<40} Score: {score:.6f}")
-                click.echo(f"     {incoming} incoming, {outgoing} outgoing links")
+                cli.info(f"{i:3d}. {page.title:<40} Score: {score:.6f}")
+                cli.info(f"     {incoming} incoming, {outgoing} outgoing links")
 
         else:  # table format
-            click.echo("\n" + "=" * 100)
-            click.echo(f"🏆 Top {min(top_n, len(top_pages))} Pages by PageRank")
-            click.echo("=" * 100)
-            click.echo(
+            cli.blank()
+            cli.info("=" * 100)
+            cli.header(f"🏆 Top {min(top_n, len(top_pages))} Pages by PageRank")
+            cli.info("=" * 100)
+            cli.info(
                 f"Analyzed {len(results.scores)} pages • Converged in {results.iterations} iterations • Damping: {damping}"
             )
-            click.echo("=" * 100)
-            click.echo(f"{'Rank':<6} {'Title':<45} {'Score':<12} {'In':<5} {'Out':<5}")
-            click.echo("-" * 100)
+            cli.info("=" * 100)
+            cli.info(f"{'Rank':<6} {'Title':<45} {'Score':<12} {'In':<5} {'Out':<5}")
+            cli.info("-" * 100)
 
             for i, (page, score) in enumerate(top_pages, 1):
                 incoming = graph_obj.incoming_refs.get(page, 0)
@@ -191,17 +171,20 @@ def pagerank(top_n: int, damping: float, format: str, config: str, source: str) 
                 if len(title) > 43:
                     title = title[:40] + "..."
 
-                click.echo(f"{i:<6} {title:<45} {score:.8f}  {incoming:<5} {outgoing:<5}")
+                cli.info(f"{i:<6} {title:<45} {score:.8f}  {incoming:<5} {outgoing:<5}")
 
-            click.echo("=" * 100)
-            click.echo("\n💡 Tip: Use --format json to export scores for further analysis")
-            click.echo("       Use --top-n to show more/fewer pages\n")
+            cli.info("=" * 100)
+            cli.blank()
+            cli.info("💡 Tip: Use --format json to export scores for further analysis")
+            cli.info("       Use --top-n to show more/fewer pages")
+            cli.blank()
 
         # Show insights
         if format != "json" and results.converged:
-            click.echo("\n" + "=" * 60)
-            click.echo("📊 Insights")
-            click.echo("=" * 60)
+            cli.blank()
+            cli.info("=" * 60)
+            cli.header("📊 Insights")
+            cli.info("=" * 60)
 
             # Calculate some basic stats
             scores_list = sorted(results.scores.values(), reverse=True)
@@ -209,18 +192,18 @@ def pagerank(top_n: int, damping: float, format: str, config: str, source: str) 
             avg_score = sum(scores_list) / len(scores_list) if scores_list else 0
             max_score = max(scores_list) if scores_list else 0
 
-            click.echo(f"• Average PageRank score:     {avg_score:.6f}")
-            click.echo(f"• Maximum PageRank score:     {max_score:.6f}")
-            click.echo(
+            cli.info(f"• Average PageRank score:     {avg_score:.6f}")
+            cli.info(f"• Maximum PageRank score:     {max_score:.6f}")
+            cli.info(
                 f"• Top 10% threshold:          {len(top_10_pct)} pages (score ≥ {scores_list[int(len(scores_list) * 0.1)]:.6f})"
             )
-            click.echo(
+            cli.info(
                 f"• Score concentration:        {'High' if max_score > avg_score * 10 else 'Moderate' if max_score > avg_score * 5 else 'Low'}"
             )
-            click.echo("\n")
+            cli.blank()
 
     except Exception as e:
-        click.echo(click.style(f"❌ Error: {e}", fg="red", bold=True))
+        cli.error(f"❌ Error: {e}")
         if "--debug" in click.get_current_context().args:
             raise
         raise click.Abort() from e

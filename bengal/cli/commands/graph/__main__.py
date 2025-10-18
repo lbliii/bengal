@@ -78,24 +78,24 @@ def analyze(show_stats: bool, tree: bool, output: str, config: str, source: str)
                     graph_obj.build()
             else:
                 # Fallback to simple messages
-                click.echo("🔍 Discovering site content...")
+                cli.info("🔍 Discovering site content...")
                 from bengal.orchestration.content import ContentOrchestrator
 
                 content_orch = ContentOrchestrator(site)
                 content_orch.discover()
 
-                click.echo(f"📊 Analyzing {len(site.pages)} pages...")
+                cli.info(f"📊 Analyzing {len(site.pages)} pages...")
                 graph_obj = KnowledgeGraph(site)
                 graph_obj.build()
         except ImportError:
             # Rich not available, use simple messages
-            click.echo("🔍 Discovering site content...")
+            cli.info("🔍 Discovering site content...")
             from bengal.orchestration.content import ContentOrchestrator
 
             content_orch = ContentOrchestrator(site)
             content_orch.discover()
 
-            click.echo(f"📊 Analyzing {len(site.pages)} pages...")
+            cli.info(f"📊 Analyzing {len(site.pages)} pages...")
             graph_obj = KnowledgeGraph(site)
             graph_obj.build()
 
@@ -182,14 +182,10 @@ def analyze(show_stats: bool, tree: bool, output: str, config: str, source: str)
         # Show statistics
         if show_stats:
             stats = graph_obj.format_stats()
-            click.echo(stats)
+            cli.info(stats)
 
         # Generate visualization if requested
         if output:
-            from bengal.utils.cli_output import CLIOutput
-
-            cli = CLIOutput()
-
             output_path = Path(output).resolve()
             cli.blank()
             cli.header("Generating interactive visualization...")
@@ -208,14 +204,14 @@ def analyze(show_stats: bool, tree: bool, output: str, config: str, source: str)
                 # Write HTML file
                 output_path.write_text(html, encoding="utf-8")
 
-                click.echo(click.style("✅ Visualization generated!", fg="green", bold=True))
-                click.echo(f"   Open {output_path} in your browser to explore.")
+                cli.success("✅ Visualization generated!")
+                cli.info(f"   Open {output_path} in your browser to explore.")
             except ImportError:
-                click.echo(click.style("⚠️  Graph visualization not yet implemented.", fg="yellow"))
-                click.echo("   This feature is coming in Phase 2!")
+                cli.warning("⚠️  Graph visualization not yet implemented.")
+                cli.info("   This feature is coming in Phase 2!")
 
     except Exception as e:
-        click.echo(click.style(f"❌ Error: {e}", fg="red", bold=True))
+        cli.error(f"❌ Error: {e}")
         raise click.Abort() from e
     finally:
         close_all_loggers()

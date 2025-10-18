@@ -62,7 +62,7 @@ class BengalGroup(click.Group):
 @click.version_option(version=__version__, prog_name="Bengal SSG")
 def main(ctx) -> None:
     """
-    ᓚᘏᗢ Bengal SSG - A high-performance static site generator.
+    ᓚᘏᗢ Bengal SSG - A pythonic static site generator.
 
     Quick start:
         bengal site build     Build your site
