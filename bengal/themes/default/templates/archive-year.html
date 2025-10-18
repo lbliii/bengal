@@ -95,10 +95,7 @@ Context variables:
     {% if month_posts %}
     <section class="month-group">
         <h2 class="month-title">
-            {{ [
-            'January', 'February', 'March', 'April', 'May', 'June',
-            'July', 'August', 'September', 'October', 'November', 'December'
-            ][month_num - 1] }}
+            {{ (year ~ '-' ~ '%02d'|format(month_num) ~ '-01') | dateformat('%B') }}
             <span class="month-count">({{ month_posts | length }})</span>
         </h2>
 
