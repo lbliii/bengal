@@ -17,6 +17,7 @@ from pathlib import Path
 import click
 
 from bengal.utils.build_stats import show_error
+from bengal.utils.cli_output import CLIOutput
 
 # Constants
 DEFAULT_PAGES_PER_SECTION = 3
@@ -397,6 +398,8 @@ def init(
 
       bengal init --sections "docs,guides" --dry-run
     """
+    cli = CLIOutput()
+    
     try:
         # Ensure we're in a Bengal site
         content_dir = Path("content")
@@ -430,10 +433,11 @@ def init(
                 name_changes.append(f"  • '{orig}' → '{sanitized}'")
 
         if name_changes:
-            click.echo(click.style("\n⚠️  Section names sanitized:", fg="yellow"))
+            cli.blank()
+            cli.warning("Section names sanitized:")
             for change in name_changes:
-                click.echo(click.style(change, fg="yellow"))
-            click.echo()
+                cli.info(change)
+            cli.blank()
 
         # Plan operations
         operations, warnings = plan_init_operations(
@@ -442,10 +446,11 @@ def init(
 
         # Show warnings
         if warnings:
-            click.echo(click.style("\n⚠️  Warnings:", fg="yellow", bold=True))
+            cli.blank()
+            cli.warning("Warnings:")
             for warning in warnings:
-                click.echo(click.style(f"  • {warning}", fg="yellow"))
-            click.echo()
+                cli.info(f"  • {warning}")
+            cli.blank()
 
             if not operations:
                 show_error(
@@ -459,22 +464,24 @@ def init(
 
         # Dry run - just preview
         if dry_run:
-            click.echo(
-                click.style("\n📋 Dry run - no files will be created\n", fg="cyan", bold=True)
-            )
-            click.echo(click.style("Would create:", fg="cyan"))
-            click.echo(format_file_tree(operations, content_dir))
+            cli.blank()
+            cli.header("📋 Dry run - no files will be created")
+            cli.blank()
+            cli.info("Would create:")
+            cli.info(format_file_tree(operations, content_dir))
 
             total_size = sum(op.size_bytes() for op in operations)
             size_kb = total_size / 1024
-            click.echo(
-                click.style(f"\nTotal: {len(operations)} files, {size_kb:.1f} KB", fg="cyan")
-            )
-            click.echo(click.style("\nRun without --dry-run to create these files", fg="yellow"))
+            cli.blank()
+            cli.info(f"Total: {len(operations)} files, {size_kb:.1f} KB")
+            cli.blank()
+            cli.warning("Run without --dry-run to create these files")
             return
 
         # Execute operations
-        click.echo(click.style("\n🏗️  Initializing site structure...\n", fg="cyan", bold=True))
+        cli.blank()
+        cli.header("🏗️  Initializing site structure...")
+        cli.blank()
 
         sections_created = set()
         pages_created = 0
@@ -491,35 +498,36 @@ def init(
 
             if op.path.name == "_index.md":
                 sections_created.add(op.path.parent.name)
-                click.echo(click.style("   ✓ ", fg="green") + f"Created {rel_path}")
+                cli.success(f"Created {rel_path}", icon="✓")
             else:
                 pages_created += 1
-                click.echo(click.style("   ✓ ", fg="green") + f"Created {rel_path}")
+                cli.success(f"Created {rel_path}", icon="✓")
 
         # Summary
-        click.echo(click.style("\n✨ Site initialized successfully!\n", fg="green", bold=True))
-        click.echo(click.style("Created:", fg="cyan"))
-        click.echo(f"  • {len(sections_created)} sections")
-        click.echo(f"  • {pages_created} pages")
+        cli.blank()
+        cli.success("✨ Site initialized successfully!")
+        cli.blank()
+        cli.info("Created:")
+        cli.info(f"  • {len(sections_created)} sections")
+        cli.info(f"  • {pages_created} pages")
 
         # Show tip about auto-navigation
         if sections_created:
-            click.echo(click.style("\n🎯 Navigation configured!", fg="green", bold=True))
-            click.echo(click.style("   Sections will appear automatically in nav", fg="green"))
-            click.echo()
-            click.echo(
-                click.style("   💡 Tip: ", fg="cyan")
-                + click.style("To customize nav order or add external links,", fg="white")
-            )
-            click.echo(click.style("      add [[menu.main]] entries to bengal.toml", fg="white"))
-            click.echo()
+            cli.blank()
+            cli.success("🎯 Navigation configured!")
+            cli.info("   Sections will appear automatically in nav")
+            cli.blank()
+            cli.info("   💡 Tip: To customize nav order or add external links,")
+            cli.info("      add [[menu.main]] entries to bengal.toml")
+            cli.blank()
 
         # Next steps
-        click.echo(click.style("\n📚 Next steps:", fg="cyan", bold=True))
-        click.echo("  1. Review and customize generated content")
-        click.echo("  2. Run 'bengal serve' to preview your site")
-        click.echo("  3. Edit files in content/ to add your content")
-        click.echo()
+        cli.blank()
+        cli.header("📚 Next steps:")
+        cli.info("  1. Review and customize generated content")
+        cli.info("  2. Run 'bengal serve' to preview your site")
+        cli.info("  3. Edit files in content/ to add your content")
+        cli.blank()
 
     except click.Abort:
         raise

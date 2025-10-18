@@ -8,6 +8,7 @@ from bengal.autodoc.config import load_autodoc_config
 from bengal.autodoc.extractors.cli import CLIExtractor
 from bengal.autodoc.extractors.python import PythonExtractor
 from bengal.autodoc.generator import DocumentationGenerator
+from bengal.utils.cli_output import CLIOutput
 
 
 @click.command()
