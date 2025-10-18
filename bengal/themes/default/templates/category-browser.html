@@ -159,27 +159,35 @@ Context variables:
     <aside class="category-index">
         <h3>Quick Index</h3>
         <nav class="alpha-nav" aria-label="Alphabetical category index">
-            {% set categories_by_letter = all_categories | group_by('0') %}
-            {% for letter, cats in categories_by_letter.items() | sort %}
+            {% set current = namespace(letter=None) %}
+            {% for cat in all_categories | sort %}
+            {% set letter = cat[0]|upper %}
+            {% if current.letter != letter %}
+            {% if current.letter is not none %}
+                </ul>
+            </div>
+            {% endif %}
             <div class="letter-group">
-                <strong class="letter">{{ letter | upper }}</strong>
+                <strong class="letter">{{ letter }}</strong>
                 <ul class="letter-list">
-                    {% for cat in cats %}
-                    {% set cat_posts = site.indexes.category.get(cat) | resolve_pages %}
-                    {% if section_filters %}
-                    {% set cat_posts = cat_posts | selectattr('_section.name', 'in', section_filters) | list %}
-                    {% endif %}
-                    {% if cat_posts %}
+            {% set current.letter = letter %}
+            {% endif %}
+            {% set cat_posts = site.indexes.category.get(cat) | resolve_pages %}
+            {% if section_filters %}
+            {% set cat_posts = cat_posts | selectattr('_section.name', 'in', section_filters) | list %}
+            {% endif %}
+            {% if cat_posts %}
                     <li>
                         <a href="{{ ('/category/' ~ cat ~ '/') | absolute_url }}">
                             {{ cat | title }} ({{ cat_posts | length }})
                         </a>
                     </li>
-                    {% endif %}
-                    {% endfor %}
+            {% endif %}
+            {% endfor %}
+            {% if current.letter is not none %}
                 </ul>
             </div>
-            {% endfor %}
+            {% endif %}
         </nav>
     </aside>
 
