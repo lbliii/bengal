@@ -11,13 +11,37 @@ class BengalCommand(click.Command):
         cli = CLIOutput()
 
         if cli.use_rich:
+
+            def _sanitize_help_text(text: str) -> str:
+                if not text:
+                    return ""
+                import re
+
+                lines = text.splitlines()
+                result: list[str] = []
+                in_commands = False
+                for line in lines:
+                    if re.match(r"^\s*Commands:\s*$", line):
+                        in_commands = True
+                        continue
+                    if in_commands:
+                        if line.strip() == "":
+                            in_commands = False
+                        continue
+                    result.append(line)
+                # collapse leading/trailing blank lines
+                sanitized = "\n".join(result).strip()
+                return sanitized
+
             cli.blank()
             cli.header(f"ᓚᘏᗢ  {ctx.command_path}")
             cli.blank()
 
-            # Help text
+            # Help text (sanitized to avoid duplicating Commands section from docstring)
             if self.help:
-                cli.info(self.help)
+                sanitized = _sanitize_help_text(self.help)
+                if sanitized:
+                    cli.info(sanitized)
                 cli.blank()
 
             # Usage
@@ -84,9 +108,31 @@ class BengalGroup(click.Group):
             super().format_help(ctx, formatter)
             return
 
-        # Help text
+        # Help text (sanitized to avoid duplicating Commands section from docstring)
         if self.help:
-            cli.info(self.help)
+
+            def _sanitize_help_text(text: str) -> str:
+                if not text:
+                    return ""
+                import re
+
+                lines = text.splitlines()
+                result: list[str] = []
+                in_commands = False
+                for line in lines:
+                    if re.match(r"^\s*Commands:\s*$", line):
+                        in_commands = True
+                        continue
+                    if in_commands:
+                        if line.strip() == "":
+                            in_commands = False
+                        continue
+                    result.append(line)
+                return "\n".join(result).strip()
+
+            sanitized = _sanitize_help_text(self.help)
+            if sanitized:
+                cli.info(sanitized)
             cli.blank()
 
         # Quick Start section (styled like Options/Commands) - only for root
