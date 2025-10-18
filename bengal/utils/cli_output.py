@@ -247,6 +247,16 @@ class CLIOutput:
         else:
             click.echo(click.style(f"{icon} {text}", fg="red", bold=True))
 
+    def tip(self, text: str, icon: str = "💡") -> None:
+        """Print a subtle tip/instruction line."""
+        if not self.should_show(MessageLevel.INFO):
+            return
+
+        if self.use_rich:
+            self.console.print(f"{icon} [tip]{text}[/tip]")
+        else:
+            click.echo(f"{icon} {text}")
+
     def error_header(self, text: str, mouse: bool = True) -> None:
         """
         Print an error header with mouse emoji.

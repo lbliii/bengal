@@ -205,14 +205,14 @@ class BengalGroup(click.Group):
                         for suggestion in suggestions:
                             cli.info(f"  • {suggestion}")
                     cli.blank()
-                    cli.info("Run 'bengal --help' to see all commands.")
+                    cli.tip("Run 'bengal --help' to see all commands.")
                     raise click.Abort() from e
 
                 # Re-raise original error if no suggestions
                 # Use themed single-line error
                 cli = CLIOutput()
                 cli.error_header(f"Unknown command '{unknown_cmd}'.", mouse=True)
-                cli.info("Run 'bengal --help' to see all commands.")
+                cli.tip("Run 'bengal --help' to see all commands.")
                 raise click.Abort() from e
 
             # Re-raise original error if no suggestions
