@@ -1,23 +1,24 @@
 {% extends "base.html" %}
 
 {#
-  Tutorial List Template
+Tutorial List Template
 
-  Used for tutorial section indexes. Displays tutorials in a grid
-  with difficulty levels, time estimates, and visual indicators.
+Used for tutorial section indexes. Displays tutorials in a grid
+with difficulty levels, time estimates, and visual indicators.
 
-  Usage: Set `type: tutorial` in section _index.md
+Usage: Set `type: tutorial` in section _index.md
 
-  Context variables:
-    - section: Section object with tutorials
-    - posts: List of tutorial pages
-    - subsections: Tutorial categories/groups
+Context variables:
+- section: Section object with tutorials
+- posts: List of tutorial pages
+- subsections: Tutorial categories/groups
 #}
 
 {% from 'partials/navigation-components.html' import breadcrumbs %}
 
 {% block content %}
-{{ breadcrumbs(page if page is defined else section) }}
+{# Action Bar: Breadcrumbs + Share #}
+{% include 'partials/action-bar.html' with context %}
 
 <div class="tutorial-container">
     <header class="tutorial-header">
@@ -95,7 +96,8 @@
                         <div class="tutorial-meta">
                             {% if subsection.regular_pages %}
                             {# Count only non-index pages #}
-                            {% set content_pages = subsection.regular_pages | rejectattr('url', 'equalto', subsection.index_page.url if subsection.index_page else '') | list %}
+                            {% set content_pages = subsection.regular_pages | rejectattr('url', 'equalto',
+                            subsection.index_page.url if subsection.index_page else '') | list %}
                             {% if content_pages %}
                             <span class="tutorial-meta-item">
                                 {{ content_pages | length }} tutorial{{ 's' if content_pages | length != 1 }}
@@ -150,7 +152,8 @@
                             {# Time Estimate #}
                             {% if tutorial.metadata.get('time') or tutorial.metadata.get('duration') %}
                             <span class="tutorial-meta-item">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
                                     <circle cx="12" cy="12" r="10"></circle>
                                     <polyline points="12 6 12 12 16 14"></polyline>
                                 </svg>
@@ -161,11 +164,13 @@
                             {# Prerequisites #}
                             {% if tutorial.metadata.get('prerequisites') %}
                             <span class="tutorial-meta-item">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
                                     <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
                                     <polyline points="22 4 12 14.01 9 11.01"></polyline>
                                 </svg>
-                                {{ tutorial.metadata.get('prerequisites') | length }} prerequisite{{ 's' if tutorial.metadata.get('prerequisites') | length != 1 }}
+                                {{ tutorial.metadata.get('prerequisites') | length }} prerequisite{{ 's' if
+                                tutorial.metadata.get('prerequisites') | length != 1 }}
                             </span>
                             {% endif %}
                         </div>

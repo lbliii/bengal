@@ -116,13 +116,16 @@ class TemplateEngine:
 
         # Create environment
         # Use StrictUndefined in strict_mode to catch missing variables
+        # Enable auto_reload in dev mode for hot-reloading templates
+        auto_reload = self.site.config.get("dev_server", False)
+
         env_kwargs = {
             "loader": FileSystemLoader(template_dirs) if template_dirs else FileSystemLoader("."),
             "autoescape": select_autoescape(["html", "xml"]),
             "trim_blocks": True,
             "lstrip_blocks": True,
             "bytecode_cache": bytecode_cache,
-            "auto_reload": False,  # Disable auto-reload for performance
+            "auto_reload": auto_reload,  # Enable in dev mode for hot reload
         }
 
         # Only set undefined if strict_mode is enabled
@@ -305,7 +308,7 @@ class TemplateEngine:
         """
         # Get the relative URL first
         url = None
-        
+
         # Use the page's url property if available (clean URLs)
         try:
             if hasattr(page, "url"):
@@ -330,37 +333,37 @@ class TemplateEngine:
                 url = f"/{page.slug}/"
             except Exception:
                 url = "/"
-        
+
         # Apply base URL prefix if configured
         return self._with_baseurl(url)
-    
+
     def _with_baseurl(self, path: str) -> str:
         """
         Apply base URL prefix to a path.
-        
+
         Args:
             path: Relative path starting with '/'
-            
+
         Returns:
             Path with base URL prefix (absolute or path-only)
         """
         # Ensure path starts with '/'
         if not path.startswith("/"):
             path = "/" + path
-        
+
         # Get baseurl from config
         try:
             baseurl_value = (self.site.config.get("baseurl", "") or "").rstrip("/")
         except Exception:
             baseurl_value = ""
-        
+
         if not baseurl_value:
             return path
-        
+
         # Absolute baseurl (e.g., https://example.com/subpath, file:///...)
         if baseurl_value.startswith(("http://", "https://", "file://")):
             return f"{baseurl_value}{path}"
-        
+
         # Path-only baseurl (e.g., /bengal)
         base_path = "/" + baseurl_value.lstrip("/")
         return f"{base_path}{path}"

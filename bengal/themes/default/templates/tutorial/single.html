@@ -1,26 +1,28 @@
 {% extends "base.html" %}
 
 {#
-  Tutorial Single Page Template
+Tutorial Single Page Template
 
-  Used for individual tutorial pages. Optimized for step-by-step learning
-  with clear navigation, progress indicators, and helpful metadata.
+Used for individual tutorial pages. Optimized for step-by-step learning
+with clear navigation, progress indicators, and helpful metadata.
 
-  Usage: Set `type: tutorial` in frontmatter or use cascade from section
+Usage: Set `type: tutorial` in frontmatter or use cascade from section
 
-  Context variables:
-    - page: Tutorial page object
-    - content: Rendered tutorial content
-    - toc: Table of contents
+Context variables:
+- page: Tutorial page object
+- content: Rendered tutorial content
+- toc: Table of contents
 #}
 
 {% from 'partials/navigation-components.html' import breadcrumbs, page_navigation %}
 
 {% block content %}
-{{ breadcrumbs(page) }}
+{# Action Bar: Breadcrumbs + Share #}
+{% include 'partials/action-bar.html' %}
 
 <div class="tutorial-page-layout {% if toc %}tutorial-with-toc{% endif %}">
-    <article class="tutorial-page prose {% if page.metadata.get('css_class') %}{{ page.metadata.get('css_class') }}{% endif %}">
+    <article
+        class="tutorial-page prose {% if page.metadata.get('css_class') %}{{ page.metadata.get('css_class') }}{% endif %}">
         <header class="tutorial-page-header">
             {# Tutorial Icon #}
             {% if page.metadata.get('icon') %}
@@ -84,7 +86,8 @@
             <div class="tutorial-objectives">
                 <h4>What you'll learn</h4>
                 <ul>
-                    {% for objective in (page.metadata.get('learning_objectives') | default(page.metadata.get('objectives'))) %}
+                    {% for objective in (page.metadata.get('learning_objectives') |
+                    default(page.metadata.get('objectives'))) %}
                     <li>{{ objective }}</li>
                     {% endfor %}
                 </ul>

@@ -4,34 +4,13 @@
 {% from 'partials/content-components.html' import tag_list, random_posts with context %}
 
 {% block content %}
-{{ breadcrumbs(page) }}
+{# Action Bar: Breadcrumbs + Share #}
+{% include 'partials/action-bar.html' %}
 
 <div class="page-layout {% if toc %}page-with-toc{% endif %}">
     <article class="page prose {% if page.metadata.get('css_class') %}{{ page.metadata.get('css_class') }}{% endif %}">
         <header class="page-header">
             <h1>{{ page.title }}</h1>
-
-            {% if page.date or page.metadata.get('author') %}
-            <div class="meta">
-                {% if page.date %}
-                <time datetime="{{ page.date | date_iso }}" title="{{ page.date | dateformat('%B %d, %Y') }}">
-                    {{ page.date | time_ago }}
-                </time>
-                {% endif %}
-
-                {% if page.metadata.get('author') %}
-                <span class="author">
-                    <span>By {{ page.metadata.get('author') }}</span>
-                </span>
-                {% endif %}
-
-                {% if page.content %}
-                <span class="reading-time">
-                    {{ reading_time }} min read
-                </span>
-                {% endif %}
-            </div>
-            {% endif %}
         </header>
 
         <div class="page-content">

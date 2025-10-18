@@ -145,6 +145,10 @@
 }
 
 @layer components {
+  @import url('components/action-bar.css');
+}
+
+@layer components {
   @import url('components/docs-nav.css');
 }
 

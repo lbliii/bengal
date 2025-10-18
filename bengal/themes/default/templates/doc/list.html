@@ -1,19 +1,19 @@
 {% extends "base.html" %}
 
 {#
-  Documentation List Template
+Documentation List Template
 
-  Three-column layout optimized for documentation section index pages:
-  - Left sidebar: Navigation tree
-  - Center: Content + Child page tiles
-  - Right sidebar: TOC + metadata
+Three-column layout optimized for documentation section index pages:
+- Left sidebar: Navigation tree
+- Center: Content + Child page tiles
+- Right sidebar: TOC + metadata
 
-  Usage: Set `template: doc/list.html` in frontmatter
-  Or set `type: doc` to auto-select this template
+Usage: Set `template: doc/list.html` in frontmatter
+Or set `type: doc` to auto-select this template
 
-  Features:
-  - Automatically displays child pages and subsections as tiles
-  - Disable with `show_children: false` in frontmatter
+Features:
+- Automatically displays child pages and subsections as tiles
+- Disable with `show_children: false` in frontmatter
 #}
 
 {% from 'partials/navigation-components.html' import breadcrumbs, page_navigation, toc with context %}
@@ -29,8 +29,8 @@
 
   {# Main Content #}
   <div class="docs-main">
-    {# Breadcrumbs #}
-    {{ breadcrumbs(page) }}
+    {# Action Bar: Breadcrumbs + Share #}
+    {% include 'partials/action-bar.html' %}
 
     {# Article Content #}
     <article class="prose {% if page.metadata.get('css_class') %}{{ page.metadata.get('css_class') }}{% endif %}">
@@ -40,9 +40,6 @@
         {% if page.metadata.get('description', '') %}
         <p class="lead">{{ page.metadata.get('description', '') }}</p>
         {% endif %}
-
-        {# Document metadata #}
-        {% include 'partials/docs-meta.html' %}
       </header>
 
       {# Main content #}
@@ -79,10 +76,7 @@
 </div>
 
 {# Mobile sidebar toggle button #}
-<button
-  class="docs-sidebar-toggle"
-  aria-label="Toggle navigation sidebar"
-  aria-expanded="false"
+<button class="docs-sidebar-toggle" aria-label="Toggle navigation sidebar" aria-expanded="false"
   aria-controls="docs-sidebar">
   <svg viewBox="0 0 24 24">
     <line x1="3" y1="12" x2="21" y2="12"></line>
