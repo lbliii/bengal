@@ -121,6 +121,31 @@ class PageMetadataMixin:
 
         return url
 
+    @cached_property
+    def permalink(self) -> str:
+        """
+        Get URL with baseurl applied (cached after first access).
+
+        This is a convenience for templates. It follows the identity vs display
+        pattern: use .url for comparisons, and .permalink for href/src output.
+        """
+        # Relative URL (identity)
+        rel = self.url or "/"
+
+        # Best-effort baseurl lookup; remain robust if site/config is missing
+        baseurl = ""
+        try:
+            baseurl = self._site.config.get("baseurl", "") if getattr(self, "_site", None) else ""
+        except Exception:
+            baseurl = ""
+
+        if not baseurl:
+            return rel
+
+        baseurl = baseurl.rstrip("/")
+        rel = "/" + rel.lstrip("/")
+        return f"{baseurl}{rel}"
+
     def _fallback_url(self) -> str:
         """
         Generate fallback URL when output_path or site not available.
