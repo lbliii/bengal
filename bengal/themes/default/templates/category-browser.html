@@ -67,7 +67,13 @@ Context variables:
         {% for category in all_categories %}
         {% set category_posts = site.indexes.category.get(category) | resolve_pages %}
         {% if section_filters %}
-        {% set category_posts = category_posts | selectattr('_section.name', 'in', section_filters) | list %}
+        {% set filtered_posts = [] %}
+        {% for post in category_posts %}
+        {% if post._section.name in section_filters %}
+        {% do filtered_posts.append(post) %}
+        {% endif %}
+        {% endfor %}
+        {% set category_posts = filtered_posts %}
         {% endif %}
         {% set total_posts.count = total_posts.count + (category_posts | length) %}
         {% endfor %}
@@ -95,7 +101,13 @@ Context variables:
 
         {# Filter by section if specified #}
         {% if section_filters %}
-        {% set category_posts = category_posts | selectattr('_section.name', 'in', section_filters) | list %}
+        {% set filtered_posts = [] %}
+        {% for post in category_posts %}
+        {% if post._section.name in section_filters %}
+        {% do filtered_posts.append(post) %}
+        {% endif %}
+        {% endfor %}
+        {% set category_posts = filtered_posts %}
         {% endif %}
 
         {% if category_posts %}
@@ -174,7 +186,13 @@ Context variables:
         {% endif %}
         {% set cat_posts = site.indexes.category.get(cat) | resolve_pages %}
         {% if section_filters %}
-        {% set cat_posts = cat_posts | selectattr('_section.name', 'in', section_filters) | list %}
+        {% set filtered_posts = [] %}
+        {% for post in cat_posts %}
+        {% if post._section.name in section_filters %}
+        {% do filtered_posts.append(post) %}
+        {% endif %}
+        {% endfor %}
+        {% set cat_posts = filtered_posts %}
         {% endif %}
         {% if cat_posts %}
         <li>

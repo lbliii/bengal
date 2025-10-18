@@ -91,12 +91,12 @@ Example:
 
   {# Optional: Show total post count #}
   <div class="archive-total">
-    {% set total_posts = site.indexes.date_range.keys()
-    | select('match', '^\\d{4}$')
-    | map('extract', site.indexes.date_range)
-    | sum(attribute='length') %}
+    {% set ns = namespace(total_posts=0) %}
+    {% for y in site.indexes.date_range.keys() | select('match', '^\\d{4}$') %}
+    {% set ns.total_posts = ns.total_posts + (site.indexes.date_range.get(y) | length) %}
+    {% endfor %}
     <p class="total-text">
-      <strong>{{ total_posts }}</strong> total posts
+      <strong>{{ ns.total_posts }}</strong> total posts
     </p>
   </div>
   {% else %}

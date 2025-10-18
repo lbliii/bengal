@@ -2,6 +2,7 @@
 
 from bengal.rendering.template_functions.urls import (
     absolute_url,
+    ensure_trailing_slash,
     url_decode,
     url_encode,
 )
@@ -87,3 +88,41 @@ class TestUrlDecode:
     def test_no_encoding(self):
         result = url_decode("hello")
         assert result == "hello"
+
+
+class TestEnsureTrailingSlash:
+    """Tests for ensure_trailing_slash function."""
+
+    def test_url_without_trailing_slash(self):
+        result = ensure_trailing_slash("https://example.com/docs")
+        assert result == "https://example.com/docs/"
+
+    def test_url_with_trailing_slash(self):
+        result = ensure_trailing_slash("https://example.com/docs/")
+        assert result == "https://example.com/docs/"
+
+    def test_path_without_trailing_slash(self):
+        result = ensure_trailing_slash("/docs/guide")
+        assert result == "/docs/guide/"
+
+    def test_path_with_trailing_slash(self):
+        result = ensure_trailing_slash("/docs/guide/")
+        assert result == "/docs/guide/"
+
+    def test_root_path(self):
+        result = ensure_trailing_slash("/")
+        assert result == "/"
+
+    def test_empty_string(self):
+        result = ensure_trailing_slash("")
+        assert result == "/"
+
+    def test_url_with_query_params(self):
+        # Ensure trailing slash is added before query params would be
+        result = ensure_trailing_slash("https://example.com/page")
+        assert result == "https://example.com/page/"
+
+    def test_url_with_fragment(self):
+        # Ensure trailing slash is added to path
+        result = ensure_trailing_slash("https://example.com/page")
+        assert result == "https://example.com/page/"
