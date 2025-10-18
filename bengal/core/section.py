@@ -133,15 +133,23 @@ class Section:
         """
         return self.subsections
 
-    @property
+    @cached_property
     def sorted_pages(self) -> list[Page]:
         """
-        Get pages sorted by weight (ascending), then by title.
+        Get pages sorted by weight (ascending), then by title (CACHED).
+
+        This property is cached after first access for O(1) subsequent lookups.
+        The sort is computed once and reused across all template renders.
 
         Pages without a weight field are treated as having weight=float('inf')
         and appear at the end of the sorted list, after all weighted pages.
         Lower weights appear first in the list. Pages with equal weight are sorted
         alphabetically by title.
+
+        Performance:
+            - First access: O(n log n) where n = number of pages
+            - Subsequent accesses: O(1) cached lookup
+            - Memory cost: O(n) to store sorted list
 
         Returns:
             List of pages sorted by weight, then title
@@ -162,13 +170,21 @@ class Section:
         ]
         return [wp.page for wp in sorted(weighted, key=attrgetter("weight", "title_lower"))]
 
-    @property
+    @cached_property
     def sorted_subsections(self) -> list["Section"]:
         """
-        Get subsections sorted by weight (ascending), then by title.
+        Get subsections sorted by weight (ascending), then by title (CACHED).
+
+        This property is cached after first access for O(1) subsequent lookups.
+        The sort is computed once and reused across all template renders.
 
         Subsections without a weight field in their index page metadata
         are treated as having weight=999999 (appear at end). Lower weights appear first.
+
+        Performance:
+            - First access: O(m log m) where m = number of subsections
+            - Subsequent accesses: O(1) cached lookup
+            - Memory cost: O(m) to store sorted list
 
         Returns:
             List of subsections sorted by weight, then title
@@ -181,6 +197,32 @@ class Section:
         return sorted(
             self.subsections, key=lambda s: (s.metadata.get("weight", 999999), s.title.lower())
         )
+
+    @cached_property
+    def subsection_index_urls(self) -> set[str]:
+        """
+        Get set of URLs for all subsection index pages (CACHED).
+
+        This pre-computed set enables O(1) membership checks for determining
+        if a page is a subsection index. Used in navigation templates to avoid
+        showing subsection indices twice (once as page, once as subsection link).
+
+        Performance:
+            - First access: O(m) where m = number of subsections
+            - Subsequent lookups: O(1) set membership check
+            - Memory cost: O(m) URLs
+
+        Returns:
+            Set of URL strings for subsection index pages
+
+        Example:
+            {% if page.url not in section.subsection_index_urls %}
+              <a href="{{ url_for(page) }}">{{ page.title }}</a>
+            {% endif %}
+        """
+        return {
+            subsection.index_page.url for subsection in self.subsections if subsection.index_page
+        }
 
     @property
     def regular_pages_recursive(self) -> list[Page]:
