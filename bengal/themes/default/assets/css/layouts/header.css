@@ -335,9 +335,19 @@ header .container {
 .mobile-nav-footer .theme-dropdown__menu {
   left: 50%;
   right: auto;
-  transform: translateX(-50%);
+  transform: translateX(-50%) translateY(-8px);
   width: calc(100% - 2rem);
   max-width: 300px;
+  /* Ensure dropdown appears above mobile nav overlay */
+  z-index: calc(var(--z-modal) + 10);
+  /* Position relative to mobile nav footer - open upwards */
+  bottom: 100%;
+  top: auto;
+  margin-bottom: 0.5rem;
+}
+
+.mobile-nav-footer .theme-dropdown__menu.open {
+  transform: translateX(-50%) translateY(0);
 }
 
 /* (Removed legacy single-button theme toggle styles) */

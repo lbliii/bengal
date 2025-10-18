@@ -75,37 +75,38 @@
   }
 
   /**
-   * Update active states in dropdown menu
+   * Update active states in all dropdown menus
    */
   function updateActiveStates() {
-    const dd = document.querySelector('.theme-dropdown');
-    if (!dd) return;
+    const dropdowns = document.querySelectorAll('.theme-dropdown');
 
-    const menu = dd.querySelector('.theme-dropdown__menu');
-    if (!menu) return;
-
-    // Get current settings
+    // Get current settings once
     const currentAppearance = localStorage.getItem(THEME_KEY) || THEMES.SYSTEM;
     const currentPalette = getPalette();
 
-    // Update appearance buttons
-    menu.querySelectorAll('button[data-appearance]').forEach(function (btn) {
-      const appearance = btn.getAttribute('data-appearance');
-      if (appearance === currentAppearance) {
-        btn.classList.add('active');
-      } else {
-        btn.classList.remove('active');
-      }
-    });
+    dropdowns.forEach(function (dd) {
+      const menu = dd.querySelector('.theme-dropdown__menu');
+      if (!menu) return;
 
-    // Update palette buttons
-    menu.querySelectorAll('button[data-palette]').forEach(function (btn) {
-      const palette = btn.getAttribute('data-palette');
-      if (palette === currentPalette) {
-        btn.classList.add('active');
-      } else {
-        btn.classList.remove('active');
-      }
+      // Update appearance buttons
+      menu.querySelectorAll('button[data-appearance]').forEach(function (btn) {
+        const appearance = btn.getAttribute('data-appearance');
+        if (appearance === currentAppearance) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
+
+      // Update palette buttons
+      menu.querySelectorAll('button[data-palette]').forEach(function (btn) {
+        const palette = btn.getAttribute('data-palette');
+        if (palette === currentPalette) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
     });
   }
 
@@ -124,10 +125,14 @@
       });
     }
 
-    const dd = document.querySelector('.theme-dropdown');
-    if (dd) {
+    // Handle all theme dropdowns (desktop and mobile)
+    const dropdowns = document.querySelectorAll('.theme-dropdown');
+    dropdowns.forEach(function (dd) {
       const btn = dd.querySelector('.theme-dropdown__button');
       const menu = dd.querySelector('.theme-dropdown__menu');
+
+      if (!btn || !menu) return;
+
       function closeMenu() {
         menu.classList.remove('open');
         btn.setAttribute('aria-expanded', 'false');
@@ -160,7 +165,7 @@
 
       // Set initial active states
       updateActiveStates();
-    }
+    });
   }
 
   /**
