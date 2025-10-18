@@ -238,6 +238,33 @@ class CLIOutput:
         else:
             click.echo(click.style(f"{icon} {text}", fg="red", bold=True))
 
+    def error_header(self, text: str, mouse: bool = True) -> None:
+        """
+        Print an error header with mouse emoji.
+
+        Example: "ᘛ⁐̤ᕐᐷ  3 template errors found"
+        
+        The mouse represents errors that Bengal (the cat) needs to catch!
+        """
+        if not self.should_show(MessageLevel.ERROR):
+            return
+
+        if self.use_rich:
+            mouse_str = "[mouse]ᘛ⁐̤ᕐᐷ[/mouse]  " if mouse else ""
+            self.console.print()
+            self.console.print(
+                Panel(
+                    f"{mouse_str}{text}",
+                    expand=False,
+                    border_style="error",
+                    padding=(0, 5),
+                )
+            )
+            self.console.print()
+        else:
+            mouse_str = "ᘛ⁐̤ᕐᐷ  " if mouse else ""
+            click.echo(click.style(f"\n    {mouse_str}{text}\n", fg="red", bold=True))
+
     def path(self, path: str, icon: str = "📂", label: str = "Output") -> None:
         """
         Print a path.

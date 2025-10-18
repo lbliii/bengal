@@ -7,6 +7,8 @@ from typing import Any
 
 import click
 
+from bengal.utils.cli_output import CLIOutput
+
 # Bengal cat ASCII art variations (inspired by ᓚᘏᗢ)
 
 BENGAL_ART = r"""
@@ -180,13 +182,11 @@ def display_warnings(stats: BuildStats) -> None:
     if not stats.warnings:
         return
 
-    # Header
+    cli = CLIOutput()
+    
+    # Header  
     warning_count = len(stats.warnings)
-    click.echo(
-        click.style(
-            f"\n⚠️  Build completed with warnings ({warning_count}):\n", fg="yellow", bold=True
-        )
-    )
+    cli.error_header(f"Build completed with warnings ({warning_count})")
 
     # Group by type
     type_names = {
@@ -200,24 +200,30 @@ def display_warnings(stats: BuildStats) -> None:
 
     for warning_type, type_warnings in grouped.items():
         type_name = type_names.get(warning_type, warning_type.title())
-        click.echo(click.style(f"   {type_name} ({len(type_warnings)}):", fg="cyan", bold=True))
+        
+        if cli.use_rich:
+            cli.console.print(f"   [header]{type_name} ({len(type_warnings)}):[/header]")
+        else:
+            cli.info(f"   {type_name} ({len(type_warnings)}):")
 
         for i, warning in enumerate(type_warnings):
             is_last = i == len(type_warnings) - 1
             prefix = "   └─ " if is_last else "   ├─ "
 
-            # Show short path in yellow
-            click.echo(
-                click.style(prefix, fg="cyan") + click.style(warning.short_path, fg="yellow")
-            )
+            # Show short path
+            if cli.use_rich:
+                cli.console.print(f"   [info]{prefix}[/info][warning]{warning.short_path}[/warning]")
+            else:
+                cli.info(f"{prefix}{warning.short_path}")
 
             # Show message indented
             msg_prefix = "      " if is_last else "   │  "
-            click.echo(
-                click.style(msg_prefix + "└─ ", fg="cyan") + click.style(warning.message, fg="red")
-            )
+            if cli.use_rich:
+                cli.console.print(f"   [info]{msg_prefix}└─[/info] [error]{warning.message}[/error]")
+            else:
+                cli.info(f"{msg_prefix}└─ {warning.message}")
 
-        click.echo()  # Blank line between types
+        cli.blank()
 
 
 def display_simple_build_stats(stats: BuildStats, output_dir: str | None = None) -> None:
@@ -231,32 +237,28 @@ def display_simple_build_stats(stats: BuildStats, output_dir: str | None = None)
         stats: Build statistics to display
         output_dir: Output directory path to display
     """
+    cli = CLIOutput()
+    
     if stats.skipped:
-        click.echo(click.style("\n✨ No changes detected - build skipped!", fg="cyan", bold=True))
+        cli.blank()
+        cli.info("✨ No changes detected - build skipped!")
         return
 
     # Success indicator
     if not stats.has_errors:
         build_time_s = stats.build_time_ms / 1000
-        click.echo(
-            click.style(
-                f"\n✨ Built {stats.total_pages} pages in {build_time_s:.1f}s\n",
-                fg="green",
-                bold=True,
-            )
-        )
+        cli.blank()
+        cli.success(f"✨ Built {stats.total_pages} pages in {build_time_s:.1f}s")
+        cli.blank()
     else:
-        click.echo(
-            click.style(
-                f"\n⚠️  Built with {len(stats.template_errors)} error(s)\n", fg="yellow", bold=True
-            )
-        )
+        cli.blank()
+        cli.warning(f"⚠️  Built with {len(stats.template_errors)} error(s)")
+        cli.blank()
 
     # Show template errors if any (critical for writers)
     if stats.template_errors:
-        click.echo(
-            click.style(f"❌ {len(stats.template_errors)} template error(s):", fg="red", bold=True)
-        )
+        cli.error_header(f"{len(stats.template_errors)} template error(s)")
+        
         for error in stats.template_errors[:3]:  # Show first 3
             # Extract key info without overwhelming detail
             template_name = (
@@ -265,33 +267,41 @@ def display_simple_build_stats(stats: BuildStats, output_dir: str | None = None)
                 else "unknown"
             )
             message = str(error.message)[:80]  # Truncate long messages
-            click.echo(f"   • {click.style(template_name, fg='yellow')}: {message}")
+            
+            if cli.use_rich:
+                cli.console.print(f"   • [warning]{template_name}[/warning]: {message}")
+            else:
+                cli.info(f"   • {template_name}: {message}")
 
             # Show suggestion if available
             if hasattr(error, "suggestion") and error.suggestion:
-                click.echo(click.style(f"     💡 {error.suggestion}", fg="cyan"))
+                if cli.use_rich:
+                    cli.console.print(f"     💡 [info]{error.suggestion}[/info]")
+                else:
+                    cli.info(f"     💡 {error.suggestion}")
 
         if len(stats.template_errors) > 3:
             remaining = len(stats.template_errors) - 3
-            click.echo(f"   ... and {remaining} more")
-        click.echo()
+            cli.info(f"   ... and {remaining} more")
+        cli.blank()
 
     # Show link validation warnings if any
     link_warnings = [w for w in stats.warnings if w.warning_type == "link"]
     if link_warnings:
-        click.echo(click.style(f"⚠️  {len(link_warnings)} broken link(s) found:", fg="yellow"))
+        cli.warning(f"⚠️  {len(link_warnings)} broken link(s) found:")
         for warning in link_warnings[:5]:  # Show first 5
-            click.echo(f"   • {click.style(warning.short_path, fg='yellow')} → {warning.message}")
+            if cli.use_rich:
+                cli.console.print(f"   • [warning]{warning.short_path}[/warning] → {warning.message}")
+            else:
+                cli.info(f"   • {warning.short_path} → {warning.message}")
         if len(link_warnings) > 5:
             remaining = len(link_warnings) - 5
-            click.echo(f"   ... and {remaining} more")
-        click.echo()
+            cli.info(f"   ... and {remaining} more")
+        cli.blank()
 
     # Output location
     if output_dir:
-        click.echo(click.style("📂 Output:", fg="cyan"))
-        click.echo(click.style("   ↪ ", fg="cyan") + click.style(output_dir, fg="white", bold=True))
-        click.echo()
+        cli.path(output_dir, icon="📂", label="Output")
 
 
 def display_build_stats(
@@ -305,8 +315,11 @@ def display_build_stats(
         show_art: Whether to show ASCII art
         output_dir: Output directory path to display
     """
+    cli = CLIOutput()
+    
     if stats.skipped:
-        click.echo(click.style("\n✨ No changes detected - build skipped!", fg="cyan", bold=True))
+        cli.blank()
+        cli.info("✨ No changes detected - build skipped!")
         return
 
     # Display warnings first if any
@@ -316,28 +329,23 @@ def display_build_stats(
     # Header with ASCII art integrated
     has_warnings = len(stats.warnings) > 0
     if has_warnings:
-        click.echo(
-            click.style("\n┌─────────────────────────────────────────────────────┐", fg="cyan")
-        )
-        click.echo(
-            click.style("│", fg="cyan")
-            + click.style(
-                "         ⚠️  BUILD COMPLETE (WITH WARNINGS)          ", fg="yellow", bold=True
-            )
-            + click.style("│", fg="cyan")
-        )
-        click.echo(
-            click.style("└─────────────────────────────────────────────────────┘", fg="cyan")
-        )
-    else:
-        click.echo()
-        if show_art:
-            click.echo(
-                click.style("    ᓚᘏᗢ  ", fg="yellow")
-                + click.style("BUILD COMPLETE", fg="green", bold=True)
-            )
+        if cli.use_rich:
+            cli.console.print()
+            cli.console.print("[info]┌─────────────────────────────────────────────────────┐[/info]")
+            cli.console.print("[info]│[/info][warning]         ⚠️  BUILD COMPLETE (WITH WARNINGS)          [/warning][info]│[/info]")
+            cli.console.print("[info]└─────────────────────────────────────────────────────┘[/info]")
         else:
-            click.echo(click.style("    BUILD COMPLETE", fg="green", bold=True))
+            cli.blank()
+            cli.warning("         ⚠️  BUILD COMPLETE (WITH WARNINGS)          ")
+    else:
+        cli.blank()
+        if show_art:
+            if cli.use_rich:
+                cli.console.print("    [bengal]ᓚᘏᗢ[/bengal]  [success]BUILD COMPLETE[/success]")
+            else:
+                cli.info("    ᓚᘏᗢ  BUILD COMPLETE")
+        else:
+            cli.success("    BUILD COMPLETE")
 
     # Content stats
     click.echo(click.style("\n📊 Content Statistics:", fg="cyan", bold=True))
@@ -475,7 +483,7 @@ def show_error(message: str, show_art: bool = True) -> None:
     """Show an error message with art."""
     if show_art:
         click.echo(click.style(BENGAL_ERROR, fg="red"))
-    click.echo(click.style(f"❌ {message}", fg="red", bold=True))
+    click.echo(click.style(f"ᘛ⁐̤ᕐᐷ  {message}", fg="red", bold=True))
 
 
 def show_welcome() -> None:

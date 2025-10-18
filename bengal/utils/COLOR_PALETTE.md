@@ -32,6 +32,7 @@ Colors are mapped to semantic style tokens for maintainability:
 | `[metric_label]` | Accent Yellow (bold) | Metric/statistic labels |
 | `[metric_value]` | Default | Metric/statistic values |
 | `[prompt]` | Accent Yellow | User input prompts |
+| `[mouse]` | Error Red | Error mascot - mice that Bengal catches (ᘛ⁐̤ᕐᐷ) |
 | `[bengal]` | Primary Orange (bold) | Bengal mascot (ᓚᘏᗢ) |
 
 ## Accessibility Considerations
