@@ -643,6 +643,41 @@ class BuildOrchestrator:
                 threshold=5000,
             )
 
+        # Phase 5.5: Build/Update Query Indexes
+        # Build pre-computed indexes for O(1) template lookups
+        with self.logger.phase("query_indexes"):
+            query_indexes_start = time.time()
+            
+            if incremental and pages_to_build:
+                # Incremental: only update affected indexes
+                affected_keys = self.site.indexes.update_incremental(
+                    pages_to_build,
+                    cache,
+                )
+                total_affected = sum(len(keys) for keys in affected_keys.values())
+                self.logger.info(
+                    "query_indexes_updated_incremental",
+                    affected_keys=total_affected,
+                    indexes=len(affected_keys),
+                )
+            else:
+                # Full build: rebuild all indexes
+                self.site.indexes.build_all(
+                    self.site.pages,
+                    cache,
+                )
+                stats = self.site.indexes.stats()
+                self.logger.info(
+                    "query_indexes_built",
+                    indexes=stats["total_indexes"],
+                )
+            
+            query_indexes_time = (time.time() - query_indexes_start) * 1000
+            self.logger.debug(
+                "query_indexes_complete",
+                duration_ms=query_indexes_time,
+            )
+
         # Phase 6: Update filtered pages list (add generated pages)
         # Now that we've generated tag pages, update pages_to_build if needed
         if affected_tags:

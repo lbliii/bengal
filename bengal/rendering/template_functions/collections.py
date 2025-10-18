@@ -17,6 +17,11 @@ if TYPE_CHECKING:
 
 def register(env: Environment, site: Site) -> None:
     """Register collection functions with Jinja2 environment."""
+    
+    # Create closure for resolve_pages with access to site
+    def resolve_pages_with_site(page_paths: list[str]) -> list:
+        return resolve_pages(page_paths, site)
+    
     env.filters.update(
         {
             "where": where,
@@ -27,6 +32,7 @@ def register(env: Environment, site: Site) -> None:
             "offset": offset,
             "uniq": uniq,
             "flatten": flatten,
+            "resolve_pages": resolve_pages_with_site,
         }
     )
 
@@ -260,3 +266,41 @@ def flatten(items: list[list[Any]]) -> list[Any]:
             result.append(item)
 
     return result
+
+
+def resolve_pages(page_paths: list[str], site: "Site") -> list:
+    """
+    Resolve page paths to Page objects.
+    
+    Used with query indexes to convert O(1) path lookups into Page objects:
+        {% set blog_paths = site.indexes.section.get('blog') %}
+        {% set blog_pages = blog_paths | resolve_pages %}
+    
+    Args:
+        page_paths: List of page source paths (strings)
+        site: Site instance with pages
+    
+    Returns:
+        List of Page objects
+    
+    Example:
+        {% set author_paths = site.indexes.author.get('Jane Smith') %}
+        {% set author_posts = author_paths | resolve_pages %}
+        {% for post in author_posts | sort(attribute='date', reverse=true) %}
+            <h2>{{ post.title }}</h2>
+        {% endfor %}
+    """
+    if not page_paths:
+        return []
+    
+    # Build lookup map: path -> page (O(n) once, then O(1) per lookup)
+    page_map = {str(p.source_path): p for p in site.pages}
+    
+    # Resolve paths to pages
+    pages = []
+    for path in page_paths:
+        page = page_map.get(path)
+        if page:
+            pages.append(page)
+    
+    return pages

@@ -162,6 +162,36 @@ class Site:
         return self._theme_obj
 
     @property
+    def indexes(self):
+        """
+        Access to query indexes for O(1) page lookups.
+
+        Provides pre-computed indexes for common page queries:
+            site.indexes.section.get('blog')        # All blog posts
+            site.indexes.author.get('Jane Smith')   # Posts by Jane
+            site.indexes.category.get('tutorial')   # Tutorial pages
+            site.indexes.date_range.get('2024')     # 2024 posts
+
+        Indexes are built during the build phase and provide O(1) lookups
+        instead of O(n) filtering. This makes templates scale to large sites.
+
+        Returns:
+            QueryIndexRegistry instance
+
+        Example:
+            {% set blog_posts = site.indexes.section.get('blog') | resolve_pages %}
+            {% for post in blog_posts %}
+                <h2>{{ post.title }}</h2>
+            {% endfor %}
+        """
+        if self._query_registry is None:
+            from bengal.cache.query_index_registry import QueryIndexRegistry
+
+            cache_dir = self.root_path / ".bengal" / "indexes"
+            self._query_registry = QueryIndexRegistry(self, cache_dir)
+        return self._query_registry
+
+    @property
     def regular_pages(self) -> list[Page]:
         """
         Get only regular content pages (excludes generated taxonomy/archive pages).
