@@ -169,47 +169,9 @@
    MOBILE SIDEBAR TOGGLE BUTTON
    ============================================ */
 
+/* Removed floating sidebar toggle button - users can access sidebar via main hamburger menu */
 .docs-sidebar-toggle {
-  display: none;
-  position: fixed;
-  bottom: 2rem;
-  left: 1rem;
-  width: 48px;
-  height: 48px;
-  padding: 0;
-  background: var(--color-primary);
-  color: var(--color-text-inverse);
-  border: none;
-  border-radius: var(--radius-full);
-  box-shadow: var(--elevation-high);
-  cursor: pointer;
-  z-index: var(--z-fixed);
-  transition: all var(--transition-fast);
-}
-
-.docs-sidebar-toggle:hover {
-  background: var(--color-primary-hover);
-  transform: scale(1.05);
-}
-
-.docs-sidebar-toggle:active {
-  transform: scale(0.95);
-}
-
-.docs-sidebar-toggle svg {
-  width: 24px;
-  height: 24px;
-  stroke: currentColor;
-  stroke-width: 2;
-  fill: none;
-}
-
-@media (max-width: 768px) {
-  .docs-sidebar-toggle {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
+  display: none !important;
 }
 
 /* ============================================

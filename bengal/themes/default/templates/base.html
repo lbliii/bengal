@@ -205,7 +205,10 @@
 
                 </div>
 
-                {% include 'partials/theme-controls.html' %}
+                {# Theme Controls - Desktop Only #}
+                <div class="theme-controls-desktop hidden-mobile">
+                    {% include 'partials/theme-controls.html' %}
+                </div>
 
                 {# Mobile Menu Toggle #}
                 <button class="mobile-nav-toggle visible-mobile" aria-label="Open menu" aria-expanded="false">
@@ -278,6 +281,11 @@
             {% block mobile_nav_items %}{% endblock %}
         </ul>
         {% endif %}
+
+        {# Theme Controls - Mobile Only #}
+        <div class="mobile-nav-footer">
+            {% include 'partials/theme-controls.html' %}
+        </div>
     </nav>
 
     {# Main Content #}

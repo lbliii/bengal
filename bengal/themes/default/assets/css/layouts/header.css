@@ -314,6 +314,32 @@ header .container {
   display: block;
 }
 
+/* Mobile Navigation Footer (Theme Controls) */
+.mobile-nav-footer {
+  padding: var(--space-4);
+  border-top: 1px solid var(--color-border);
+  margin-top: auto;
+}
+
+.mobile-nav-footer .theme-controls {
+  justify-content: center;
+}
+
+.mobile-nav-footer .theme-dropdown__button {
+  width: 100%;
+  justify-content: center;
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--text-base);
+}
+
+.mobile-nav-footer .theme-dropdown__menu {
+  left: 50%;
+  right: auto;
+  transform: translateX(-50%);
+  width: calc(100% - 2rem);
+  max-width: 300px;
+}
+
 /* (Removed legacy single-button theme toggle styles) */
 
 /* Theme Controls (toggle + dropdown) */
@@ -321,6 +347,17 @@ header .container {
   display: flex;
   align-items: center;
   gap: var(--space-2);
+}
+
+/* Desktop theme controls wrapper */
+.theme-controls-desktop {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .theme-controls-desktop {
+    display: block;
+  }
 }
 
 .theme-dropdown {
