@@ -85,7 +85,7 @@ Context variables:
         <div class="archive-list">
             {% for subsection in subsections %}
             <article class="archive-item">
-                <h3><a href="{{ subsection.url }}">{{ subsection.title }}</a></h3>
+                <h3><a href="{{ subsection.permalink }}">{{ subsection.title }}</a></h3>
                 {% if subsection.metadata.get('description') %}
                 <p>{{ subsection.metadata.get('description') }}</p>
                 {% endif %}

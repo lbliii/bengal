@@ -54,7 +54,7 @@
         <div class="related-posts-grid">
             {% for post in related %}
             <article class="related-post-card">
-                <h3><a href="{{ url_for(post) }}">{{ post.title }}</a></h3>
+                <h3><a href="{{ post.permalink }}">{{ post.title }}</a></h3>
                 {% if post.date %}
                 <time datetime="{{ post.date | date_iso }}">{{ post.date | time_ago }}</time>
                 {% endif %}

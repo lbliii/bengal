@@ -226,7 +226,7 @@ Context variables:
             <article class="blog-post-card">
                 {% if post.metadata.get('image') or post.metadata.get('cover') %}
                 <div class="blog-card-image">
-                    <a href="{{ url_for(post) }}">
+                    <a href="{{ post.permalink }}">
                         <img src="{{ post.metadata.get('image') | default(post.metadata.get('cover')) }}"
                             alt="{{ post.title }}">
                     </a>
@@ -234,7 +234,7 @@ Context variables:
                 {% endif %}
                 <div class="blog-card-content">
                     <h3 class="blog-card-title">
-                        <a href="{{ url_for(post) }}">{{ post.title }}</a>
+                        <a href="{{ post.permalink }}">{{ post.title }}</a>
                     </h3>
                     {% if post.metadata.get('description') or post.excerpt %}
                     <p class="blog-card-excerpt">{{ post.metadata.get('description') | default(post.excerpt) |

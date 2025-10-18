@@ -67,7 +67,7 @@
 
                         <div class="cli-item-content">
                             <span class="cli-item-title">
-                                <a href="{{ url_for(command) }}">{{ command.title }}</a>
+                                <a href="{{ command.permalink }}">{{ command.title }}</a>
 
                                 {% if command.metadata.get('description', '') %}
                                 <span class="cli-item-description">{{ command.metadata.get('description', '') }}</span>
@@ -103,7 +103,7 @@
 
                             <div class="cli-item-content">
                                 <span class="cli-item-title">
-                                    <a href="{{ url_for(subsection) }}">{{ subsection.title }}</a>
+                                    <a href="{{ subsection.permalink }}">{{ subsection.title }}</a>
 
                                     {% if subsection.metadata.get('description', '') %}
                                     <span class="cli-item-description">{{ subsection.metadata.get('description', '') }}</span>

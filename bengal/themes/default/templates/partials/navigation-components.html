@@ -156,7 +156,7 @@ Example:
   <div class="nav-links">
     {% if page.prev_in_section %}
     <div class="nav-previous">
-      <a href="{{ url_for(page.prev_in_section) }}" rel="prev">
+      <a href="{{ page.prev_in_section.permalink }}" rel="prev">
         <span class="nav-subtitle">← Previous</span>
         <span class="nav-title">{{ page.prev_in_section.title }}</span>
       </a>
@@ -165,7 +165,7 @@ Example:
 
     {% if page.next_in_section %}
     <div class="nav-next">
-      <a href="{{ url_for(page.next_in_section) }}" rel="next">
+      <a href="{{ page.next_in_section.permalink }}" rel="next">
         <span class="nav-subtitle">Next →</span>
         <span class="nav-title">{{ page.next_in_section.title }}</span>
       </a>
@@ -181,7 +181,7 @@ Example:
   <div class="nav-links">
     {% if page.prev %}
     <div class="nav-previous">
-      <a href="{{ url_for(page.prev) }}" rel="prev">
+      <a href="{{ page.prev.permalink }}" rel="prev">
         <span class="nav-subtitle">← Previous</span>
         <span class="nav-title">{{ page.prev.title }}</span>
       </a>
@@ -190,7 +190,7 @@ Example:
 
     {% if page.next %}
     <div class="nav-next">
-      <a href="{{ url_for(page.next) }}" rel="next">
+      <a href="{{ page.next.permalink }}" rel="next">
         <span class="nav-subtitle">Next →</span>
         <span class="nav-title">{{ page.next.title }}</span>
       </a>

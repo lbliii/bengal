@@ -108,7 +108,7 @@ Context variables:
 
                 <div class="post-content">
                     <h3 class="post-title">
-                        <a href="{{ url_for(post) }}">{{ post.title }}</a>
+                        <a href="{{ post.permalink }}">{{ post.title }}</a>
                     </h3>
 
                     {% if post.metadata.get('description') %}

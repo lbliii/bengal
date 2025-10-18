@@ -180,7 +180,7 @@ Context variables:
             <article class="author-post-card">
               <div class="post-card-content">
                 <h3 class="post-title">
-                  <a href="{{ url_for(post) }}">{{ post.title }}</a>
+                  <a href="{{ post.permalink }}">{{ post.title }}</a>
                 </h3>
 
                 {% if post.metadata.get('description') %}
@@ -225,7 +225,7 @@ Context variables:
             <ul class="post-list-compact">
               {% for post in year_posts | sort_by('date', reverse=true) %}
                 <li>
-                  <a href="{{ url_for(post) }}">{{ post.title }}</a>
+                  <a href="{{ post.permalink }}">{{ post.title }}</a>
                   {% if post.date %}
                   <time>{{ post.date | dateformat('%b %d') }}</time>
                   {% endif %}
@@ -251,7 +251,7 @@ Context variables:
             <ul class="post-list-compact">
               {% for post in tag_posts | sort_by('date', reverse=true) %}
                 <li>
-                  <a href="{{ url_for(post) }}">{{ post.title }}</a>
+                  <a href="{{ post.permalink }}">{{ post.title }}</a>
                   {% if post.date %}
                   <time>{{ post.date | dateformat('%b %d, %Y') }}</time>
                   {% endif %}

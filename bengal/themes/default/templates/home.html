@@ -98,14 +98,14 @@
         <div class="posts-grid">
             {% for post in recent %}
             <article class="post-card">
-                <h3><a href="{{ post.url }}">{{ post.title }}</a></h3>
+                <h3><a href="{{ post.permalink }}">{{ post.title }}</a></h3>
                 {% if post.date %}
                 <time datetime="{{ post.date | date_iso }}">{{ post.date | dateformat('%B %d, %Y') }}</time>
                 {% endif %}
                 {% if post.metadata.get('description') %}
                 <p>{{ post.metadata.get('description') }}</p>
                 {% endif %}
-                <a href="{{ post.url }}" class="read-more">Read more →</a>
+                <a href="{{ post.permalink }}" class="read-more">Read more →</a>
             </article>
             {% endfor %}
         </div>
