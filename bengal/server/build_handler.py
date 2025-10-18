@@ -246,29 +246,22 @@ class BuildHandler(FileSystemEventHandler):
                     parallel=stats.parallel,
                 )
 
-                # Suppress reload if build was skipped (no effective output changes)
+                # Output-diff–driven reload decision
                 if getattr(stats, "skipped", False):
                     logger.info("reload_suppressed", reason="build_skipped")
                 else:
-                    # Notify SSE clients: CSS-only changes trigger CSS hot-reload
-                    try:
-                        changed_lower = [str(p).lower() for p in changed_files]
-                        only_css = len(changed_files) > 0 and all(
-                            path.endswith(".css") for path in changed_lower
-                        )
-                    except Exception:
-                        only_css = False
+                    from bengal.server.reload_controller import controller
+                    decision = controller.decide_and_update(self.site.output_dir)
 
-                    if only_css:
-                        from bengal.server.live_reload import set_reload_action
-
-                        set_reload_action("reload-css")
+                    if decision.action == "none":
+                        logger.info("reload_suppressed", reason=decision.reason)
                     else:
-                        from bengal.server.live_reload import set_reload_action
+                        # Public API: send structured payload to clients
+                        from bengal.server.live_reload import send_reload_payload
 
-                        set_reload_action("reload")
-
-                    notify_clients_reload()
+                        send_reload_payload(
+                            decision.action, decision.reason, decision.changed_paths
+                        )
 
                     # Clear HTML cache after successful rebuild (files have changed)
                     from bengal.server.request_handler import BengalRequestHandler

@@ -26,6 +26,7 @@ import os
 import threading
 
 from bengal.utils.logger import get_logger
+import json
 
 logger = get_logger(__name__)
 
@@ -51,20 +52,32 @@ LIVE_RELOAD_SCRIPT = """
         window.addEventListener('pagehide', closeSource, { once: true });
 
         source.onmessage = function(event) {
-            if (event.data === 'reload') {
+            let payload = null;
+            try { payload = JSON.parse(event.data); } catch (e) {}
+
+            const action = payload && payload.action ? payload.action : event.data;
+            const changedPaths = (payload && payload.changedPaths) || [];
+            const reason = (payload && payload.reason) || '';
+
+            if (action === 'reload') {
                 console.log('🔄 Bengal: Reloading page...');
                 // Save scroll position before reload
                 sessionStorage.setItem('bengal_scroll_x', window.scrollX.toString());
                 sessionStorage.setItem('bengal_scroll_y', window.scrollY.toString());
                 location.reload();
-            } else if (event.data === 'reload-css') {
-                console.log('🎨 Bengal: Reloading CSS...');
+            } else if (action === 'reload-css') {
+                console.log('🎨 Bengal: Reloading CSS...', reason || '', changedPaths);
                 const links = document.querySelectorAll('link[rel="stylesheet"]');
                 const now = Date.now();
                 links.forEach(link => {
                     const href = link.getAttribute('href');
                     if (!href) return;
                     const url = new URL(href, window.location.origin);
+                    // If targeted list provided, only reload those
+                    if (changedPaths.length > 0) {
+                        const path = url.pathname.replace(/^\//, '');
+                        if (!changedPaths.includes(path)) return;
+                    }
                     // Bust cache with a version param
                     url.searchParams.set('v', now.toString());
                     // Replace the link to trigger reload
@@ -76,7 +89,7 @@ LIVE_RELOAD_SCRIPT = """
                     };
                     link.parentNode.insertBefore(newLink, link.nextSibling);
                 });
-            } else if (event.data === 'reload-page') {
+            } else if (action === 'reload-page') {
                 console.log('📄 Bengal: Reloading current page...');
                 // Save scroll position before reload
                 sessionStorage.setItem('bengal_scroll_x', window.scrollX.toString());
@@ -349,6 +362,42 @@ def notify_clients_reload() -> None:
         _reload_condition.notify_all()
     logger.info("reload_notification_sent", generation=_reload_generation)
 
+
+def send_reload_payload(action: str, reason: str, changed_paths: list[str]) -> None:
+    """
+    Send a structured JSON payload to connected SSE clients.
+
+    Args:
+        action: 'reload' | 'reload-css' | 'reload-page'
+        reason: short machine-readable reason string
+        changed_paths: list of changed output paths (relative to output dir)
+    """
+    global _reload_generation, _last_action
+    try:
+        payload = json.dumps(
+            {
+                "action": action,
+                "reason": reason,
+                "changedPaths": changed_paths,
+                "generation": _reload_generation + 1,
+            }
+        )
+    except Exception:
+        # Fallback to simple action string on serialization failure
+        payload = action
+
+    with _reload_condition:
+        _last_action = payload
+        _reload_generation += 1
+        _reload_condition.notify_all()
+
+    logger.info(
+        "reload_notification_sent_structured",
+        action=action,
+        reason=reason,
+        changed=len(changed_paths),
+        generation=_reload_generation,
+    )
 
 def set_reload_action(action: str) -> None:
     """
