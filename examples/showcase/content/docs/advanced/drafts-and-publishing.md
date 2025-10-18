@@ -56,7 +56,7 @@ We're excited to announce...
 
 ```bash
 # View drafts in development
-bengal serve --drafts
+bengal site serve --drafts
 ```
 
 Visit http://localhost:5173 to preview.
@@ -76,7 +76,7 @@ date: 2025-10-15
 ### 4. Build for Production
 
 ```bash
-bengal build
+bengal site build
 ```
 
 Drafts automatically excluded.
@@ -102,20 +102,20 @@ Before publishing:
 
 ```bash
 # Build without drafts
-bengal build
+bengal site build
 ```
 
 ### With Options
 
 ```bash
 # Incremental build
-bengal build --incremental
+bengal site build --incremental
 
 # Strict mode (fail on errors)
-bengal build --strict
+bengal site build --strict
 
 # Both
-bengal build --incremental --strict
+bengal site build --incremental --strict
 ```
 
 ### Verify Build
@@ -136,7 +136,7 @@ python -m http.server 8000
 
 1. **Connect repo** - Link your Git repository
 2. **Configure build**:
-   - Build command: `bengal build`
+   - Build command: `bengal site build`
    - Publish directory: `public`
 3. **Deploy** - Push to main branch
 
@@ -144,7 +144,7 @@ python -m http.server 8000
 
 ```toml
 [build]
-command = "pip install -e . && bengal build"
+command = "pip install -e . && bengal site build"
 publish = "public"
 
 [[redirects]]
@@ -157,7 +157,7 @@ status = 404
 
 1. **Import project** - Connect Git repository
 2. **Configure**:
-   - Build command: `bengal build`
+   - Build command: `bengal site build`
    - Output directory: `public`
 3. **Deploy**
 
@@ -180,7 +180,7 @@ jobs:
         with:
           python-version: '3.11'
       - run: pip install -e .
-      - run: bengal build
+      - run: bengal site build
       - uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
@@ -191,7 +191,7 @@ jobs:
 
 ```bash
 # Build locally
-bengal build
+bengal site build
 
 # Upload public/ directory
 rsync -avz public/ user@server:/var/www/html/
@@ -203,7 +203,7 @@ Run health checks before deployment:
 
 ```bash
 # Build with validation
-bengal build --strict
+bengal site build --strict
 ```
 
 **Checks include:**
@@ -220,7 +220,7 @@ Ensure all links work:
 
 ```bash
 # Build includes link validation
-bengal build
+bengal site build
 
 # Check health report for broken links
 ```
@@ -248,7 +248,7 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
       - run: pip install -e .
-      - run: bengal build --strict
+      - run: bengal site build --strict
       - run: # Run tests
 ```
 
@@ -287,7 +287,7 @@ Test before production:
 
 ```bash
 # Build for staging
-bengal build
+bengal site build
 
 # Deploy to staging.example.com
 # Test thoroughly
@@ -350,12 +350,12 @@ draft: true
 
 **Build for production:**
 ```bash
-bengal build
+bengal site build
 ```
 
 **Preview drafts:**
 ```bash
-bengal serve --drafts
+bengal site serve --drafts
 ```
 
 **Deploy checklist:**

@@ -81,7 +81,7 @@ weight: 10
 
 ```yaml
 ---
-title: "bengal build"
+title: "bengal site build"
 description: "Build command reference and options"
 type: cli-reference
 template: cli-reference/list.html

@@ -107,7 +107,7 @@ cdef class FastPage:
 **PyPy Runtime** (JIT compilation)
 ```bash
 # Run Bengal with PyPy instead of CPython
-pypy3 -m bengal build
+pypy3 -m bengal site build
 ```
 **Effort**: 1-2 weeks (compatibility testing)  
 **Impact**: +40-60 pps (2-5x faster for pure Python code)  

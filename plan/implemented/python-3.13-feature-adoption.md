@@ -63,7 +63,7 @@ Python 3.13.4+ includes an experimental JIT that translates bytecode to machine 
 **Integration with `--fast` Mode:**
 ```bash
 # Automatically enable JIT with fast mode
-PYTHON_JIT=1 PYTHON_GIL=0 bengal build --fast
+PYTHON_JIT=1 PYTHON_GIL=0 bengal site build --fast
 ```
 
 **Implementation:**

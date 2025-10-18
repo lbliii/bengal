@@ -108,7 +108,7 @@ logger.debug("related_posts_skip_detail",
 
 ### First Build (Full)
 ```bash
-$ bengal build
+$ bengal site build
 ✓ Discovery     Done
 ✓ Assets        Done
 ✓ Rendering     Done
@@ -119,14 +119,14 @@ Built 1000 pages in 5.69s
 
 ### Second Build (Incremental, No Changes)
 ```bash
-$ bengal build --incremental
+$ bengal site build --incremental
 ✓ No changes detected - build skipped
   Cached: 1000 pages, 50 assets
 ```
 
 ### Third Build (Incremental, 1 Change)
 ```bash
-$ bengal build --incremental
+$ bengal site build --incremental
   Incremental build: 1 page, 0 assets (skipped 999 cached)
   Changed: 1 modified pages
 
@@ -140,7 +140,7 @@ Built in 0.76s (was 5.69s - 7.5x faster)
 
 ### Fourth Build (Config Changed)
 ```bash
-$ bengal build --incremental
+$ bengal site build --incremental
   Config file modified - performing full rebuild
   Changed: bengal.toml
 
@@ -154,7 +154,7 @@ Built 1000 pages in 5.71s
 
 ### Large Site (Related Posts Skipped)
 ```bash
-$ bengal build
+$ bengal site build
   Related posts skipped (10000 pages > 5000 threshold)
 
 ✓ Discovery     Done
@@ -196,7 +196,7 @@ Built in 0.76s (7.5x faster than full build)
 
 ### Add --verbose Details
 ```bash
-$ bengal build --incremental --verbose
+$ bengal site build --incremental --verbose
   Incremental build: 1 page, 0 assets (skipped 999 cached)
   Changed files:
     • Modified pages: content/post.md
@@ -206,14 +206,14 @@ $ bengal build --incremental --verbose
 
 ### Add Cache Statistics
 ```bash
-$ bengal build --incremental
+$ bengal site build --incremental
   Cache hit rate: 99.9% (999/1000 pages)
   Incremental build: 1 page, 0 assets
 ```
 
 ### Add Performance Hints
 ```bash
-$ bengal build
+$ bengal site build
   ⚠ Site has 12000 pages - consider enabling memory_optimized mode
   ⚠ Related posts disabled (>5000 pages) - set features.related_posts=true to force
 

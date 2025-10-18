@@ -325,7 +325,7 @@ pytest benchmarks/ -v --profile
 # benchmarks/generate_flamegraph.sh
 
 # 1. Run with py-spy
-py-spy record -o profile.svg -- bengal build
+py-spy record -o profile.svg -- bengal site build
 
 # 2. Generate interactive HTML
 speedscope profile.svg

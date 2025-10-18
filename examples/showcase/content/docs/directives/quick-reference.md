@@ -355,7 +355,7 @@ Install the Bengal VS Code extension for directive syntax highlighting!
 ```
 
 ```{tip} Test Directives
-Use `bengal serve` to preview directives with live reload.
+Use `bengal site serve` to preview directives with live reload.
 ```
 
 ```{warning} Escaping

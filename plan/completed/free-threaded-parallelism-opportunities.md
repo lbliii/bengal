@@ -79,7 +79,7 @@ else:
 **Current:** Sequential validation of templates
 **Opportunity:** Validate multiple templates in parallel
 - Each template validation is independent
-- Would speed up `bengal build --validate`
+- Would speed up `bengal site build --validate`
 
 **Impact:** Low (only affects `--validate` flag usage)
 

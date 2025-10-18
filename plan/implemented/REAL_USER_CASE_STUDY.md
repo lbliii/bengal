@@ -226,11 +226,11 @@ EOF
 bengal autodoc
 
 # Benchmark build
-time bengal build
+time bengal site build
 
 # Benchmark incremental
 touch content/test.md
-time bengal build --incremental
+time bengal site build --incremental
 ```
 
 **You'll know in 30 minutes if this is worth pursuing.**

@@ -100,7 +100,7 @@ pytest tests/unit/test_marimo_directive.py
 
 # Build showcase with demo
 cd examples/showcase
-bengal build
+bengal site build
 
 # Check output
 open public/examples/marimo-demo/index.html

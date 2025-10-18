@@ -36,7 +36,7 @@ Core workflow regressions; fix for 0.1.3.
 | ORC-003 | Nested sections leak metadata (e.g., 'stable' propagates) | tests/integration/test_cascade_integration.py:168 | Medium | 25 min | Fixed - Long-term refactor (e.g., CacheInvalidator, ParserFactory) |
 
 ## Medium-Priority Failures (Dev Tools, CLI) - 7 Total
-Affect `bengal serve` and commands.
+Affect `bengal site serve` and commands.
 
 | ID | Description | Affected File/Line | Priority | Est. Time | Status |
 |----|-------------|---------------------|----------|-----------|--------|

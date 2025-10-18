@@ -57,7 +57,7 @@ def build(
 
 ## Evidence from Benchmarks
 
-Our Phase 1 benchmark runs `bengal build` WITHOUT the `--incremental` flag:
+Our Phase 1 benchmark runs `bengal site build` WITHOUT the `--incremental` flag:
 
 ```python
 def build_site():

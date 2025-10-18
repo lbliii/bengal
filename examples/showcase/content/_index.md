@@ -132,5 +132,5 @@ bengal new site my-site
 cd my-site
 
 # Start dev server
-bengal serve
+bengal site serve
 ```

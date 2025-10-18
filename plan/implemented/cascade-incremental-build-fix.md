@@ -5,7 +5,7 @@
 
 ## Problem
 
-When using `bengal serve` (live server), changes to cascade metadata in section `_index.md` files do not propagate to all descendant pages. The user must stop the server and run a full `bengal build` to see the changes applied.
+When using `bengal site serve` (live server), changes to cascade metadata in section `_index.md` files do not propagate to all descendant pages. The user must stop the server and run a full `bengal site build` to see the changes applied.
 
 ### Example Scenario
 ```yaml
@@ -160,7 +160,7 @@ def test_cascade_removal():
          guide.md
    ```
 
-2. Start `bengal serve`
+2. Start `bengal site serve`
 
 3. Modify `docs/_index.md` cascade value
 

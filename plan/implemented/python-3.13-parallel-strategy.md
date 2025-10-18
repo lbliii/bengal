@@ -127,13 +127,13 @@ See [INSTALL_FREE_THREADED.md](INSTALL_FREE_THREADED.md) for installation.
 
 **Python 3.14t (free-threaded, recommended):**
 ```bash
-PYTHON_GIL=0 bengal build --fast
+PYTHON_GIL=0 bengal site build --fast
 # 10K pages: ~250s (1.8x faster than 3.13)
 ```
 
 **Python 3.13/3.14 (with GIL):**
 ```bash
-bengal build --parallel
+bengal site build --parallel
 # 10K pages: ~320s (1.4x faster than sequential)
 ```
 
@@ -162,7 +162,7 @@ If you're building small sites (<100 pages):
 
 ### 3. **Smart Detection & User Guidance**
 
-Add a one-time tip when users first run `bengal build` on Python 3.13:
+Add a one-time tip when users first run `bengal site build` on Python 3.13:
 
 ```python
 # In bengal/cli/commands/build.py

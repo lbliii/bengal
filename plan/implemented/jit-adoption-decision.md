@@ -84,7 +84,7 @@ Python 3.13.4+ includes an experimental JIT for 5-10% faster builds:
 
 ```bash
 # One-time test
-PYTHON_JIT=1 bengal build --fast
+PYTHON_JIT=1 bengal site build --fast
 
 # Make permanent (add to ~/.zshrc or ~/.bashrc)
 export PYTHON_JIT=1
@@ -105,7 +105,7 @@ For fastest builds:
 
 1. **Use Python 3.14t** (free-threaded, 1.8x faster)
    ```bash
-   PYTHON_GIL=0 bengal build --fast
+   PYTHON_GIL=0 bengal site build --fast
    ```
 
 2. **Enable JIT (experimental, 5-10% faster)**
@@ -115,7 +115,7 @@ For fastest builds:
 
 3. **Use incremental builds**
    ```bash
-   bengal build --incremental
+   bengal site build --incremental
    ```
 ```
 
@@ -140,13 +140,13 @@ echo 'export PYTHON_GIL=0' >> ~/.zshrc
 source ~/.zshrc
 
 # Now just use --fast
-bengal build --fast
+bengal site build --fast
 ```
 
 **Beginner workflow:**
 ```bash
 # Just use fast mode - works everywhere
-bengal build --fast
+bengal site build --fast
 
 # Read docs to learn about JIT if interested
 ```

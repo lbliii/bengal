@@ -325,10 +325,10 @@ optimize = true            # Compress PDF
 **Testing:**
 ```bash
 # Generate PDF
-bengal build --format pdf
+bengal site build --format pdf
 
 # Custom config
-bengal build --format pdf --pdf-config custom.toml
+bengal site build --format pdf --pdf-config custom.toml
 
 # Test output
 pytest tests/unit/postprocess/formats/test_pdf.py -v
@@ -893,7 +893,7 @@ immutable_max_age = 31536000
 
 ```bash
 # Generate asset manifest
-bengal build --manifest
+bengal site build --manifest
 
 # Deploy to S3
 bengal deploy --provider s3

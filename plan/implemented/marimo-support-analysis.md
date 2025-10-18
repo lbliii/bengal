@@ -400,7 +400,7 @@ def is_marimo_notebook(file_path: Path) -> bool:
 Marimo notebooks **must be executed** to generate output. Options:
 
 **A. Build-time execution** (Recommended)
-- Execute during `bengal build`
+- Execute during `bengal site build`
 - Cache results
 - Fast rebuilds
 - Static output

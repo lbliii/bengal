@@ -348,7 +348,7 @@ Yes! Bengal is open source and free to use.
    [site]
    title = "My Site"
    \`\`\`
-3. Run `bengal build` again
+3. Run `bengal site build` again
 ```
 
 ```{dropdown} Pages not updating
@@ -358,9 +358,9 @@ Yes! Bengal is open source and free to use.
 
 **Solution:**
 1. Stop the dev server (Ctrl+C)
-2. Clear cache: `bengal clean`
-3. Rebuild: `bengal build`
-4. Restart server: `bengal serve`
+2. Clear cache: `bengal site clean`
+3. Rebuild: `bengal site build`
+4. Restart server: `bengal site serve`
 ```
 ````
 

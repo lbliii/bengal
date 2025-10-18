@@ -21,7 +21,7 @@ Start the dev server to preview components in isolation:
 
 ```bash
 cd examples/showcase  # or your project
-bengal serve
+bengal site serve
 open http://localhost:5173/__bengal_components__/
 ```
 
@@ -266,7 +266,7 @@ context:
 
 - Check YAML syntax (use YAML validator)
 - Ensure `template` path is correct
-- Restart dev server: `Ctrl+C` then `bengal serve`
+- Restart dev server: `Ctrl+C` then `bengal site serve`
 
 ### Component renders blank/errors
 

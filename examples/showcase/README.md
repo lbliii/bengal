@@ -21,7 +21,7 @@ bengal autodoc        # Python API docs → content/api/
 bengal autodoc-cli    # CLI docs → content/cli/
 
 # Build the site
-bengal build
+bengal site build
 ```
 
 ### Quick Build (No Autodoc)
@@ -30,7 +30,7 @@ If you don't need the API/CLI docs:
 
 ```bash
 cd examples/showcase
-bengal build
+bengal site build
 ```
 
 The site will build without autodoc content.
@@ -41,7 +41,7 @@ The site will build without autodoc content.
 
 ```bash
 cd examples/showcase
-bengal serve
+bengal site serve
 ```
 
 **Note:** The dev server watches for changes in:
@@ -116,8 +116,8 @@ output_dir = "content/cli"
 After building, Bengal runs health checks:
 
 ```bash
-bengal build --quiet  # Minimal output
-bengal build          # Full stats + health checks
+bengal site build --quiet  # Minimal output
+bengal site build          # Full stats + health checks
 ```
 
 Common warnings:
@@ -129,7 +129,7 @@ Common warnings:
 
 ```bash
 # Build for production
-bengal build --quiet
+bengal site build --quiet
 
 # Output is in public/
 # Deploy public/ to your hosting service
@@ -148,7 +148,7 @@ bengal autodoc && bengal autodoc-cli
 ```
 
 ### Build errors
-Check the health report at the end of `bengal build` for specific issues.
+Check the health report at the end of `bengal site build` for specific issues.
 
 ---
 

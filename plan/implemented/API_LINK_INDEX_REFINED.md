@@ -738,7 +738,7 @@ class APILinkValidator(BaseValidator):
                     f"{len(broken_refs)} broken API reference(s)",
                     recommendation=(
                         "Fix broken API references. Use qualified names if needed. "
-                        "Run 'bengal build --verbose' to see all broken refs."
+                        "Run 'bengal site build --verbose' to see all broken refs."
                     ),
                     details=details,
                 )

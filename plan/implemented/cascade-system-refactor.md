@@ -14,7 +14,7 @@ The cascade system works correctly but has three interconnected problems:
 
 1. **Code Duplication**: Identical implementation in `Site` and `ContentOrchestrator`
 2. **Performance**: O(n²) root-level cascade detection runs twice
-3. **Incremental Build Bug**: Cascade changes don't trigger child page rebuilds in `bengal serve`
+3. **Incremental Build Bug**: Cascade changes don't trigger child page rebuilds in `bengal site serve`
 
 This plan consolidates the logic, fixes performance, and adds incremental build support.
 
@@ -422,7 +422,7 @@ pytest tests/integration/test_cascade_integration.py -v
 - [ ] No behavior changes to cascade application
 - [ ] O(1) top-level page checks (O(n²) → O(n))
 - [ ] Incremental builds rebuild descendants when cascade changes
-- [ ] `bengal serve` works correctly with cascade changes
+- [ ] `bengal site serve` works correctly with cascade changes
 - [ ] Cascade stats logged during discovery
 - [ ] No new linter errors
 - [ ] Code coverage maintained (>90% for cascade code)

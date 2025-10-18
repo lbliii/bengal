@@ -60,12 +60,12 @@ Helpful suggestions and best practices:
 
 ````markdown
 ```{tip} Pro Tip
-Use `bengal serve` for live reload during development.
+Use `bengal site serve` for live reload during development.
 ```
 ````
 
 ```{tip} Pro Tip
-Use `bengal serve` for live reload during development.
+Use `bengal site serve` for live reload during development.
 ```
 
 ### info
@@ -102,12 +102,12 @@ Critical warnings about destructive or irreversible actions:
 
 ````markdown
 ```{danger} Data Loss Warning
-Running `bengal clean --all` deletes the output directory and build cache. This cannot be undone.
+Running `bengal site clean --all` deletes the output directory and build cache. This cannot be undone.
 ```
 ````
 
 ```{danger} Data Loss Warning
-Running `bengal clean --all` deletes the output directory and build cache. This cannot be undone.
+Running `bengal site clean --all` deletes the output directory and build cache. This cannot be undone.
 ```
 
 ### error
@@ -155,7 +155,7 @@ Code examples or usage demonstrations:
 To build your site:
 
 \`\`\`bash
-bengal build --parallel
+bengal site build --parallel
 \`\`\`
 ```
 ````
@@ -164,7 +164,7 @@ bengal build --parallel
 To build your site:
 
 \`\`\`bash
-bengal build --parallel
+bengal site build --parallel
 \`\`\`
 ```
 
@@ -295,7 +295,7 @@ Never commit API keys or secrets to version control. Use environment variables i
    [site]
    title = "My Site"
    \`\`\`
-3. Run `bengal build` again
+3. Run `bengal site build` again
 ```
 ````
 

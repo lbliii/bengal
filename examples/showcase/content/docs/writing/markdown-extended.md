@@ -73,18 +73,18 @@ Use colons `:` to align columns:
 ```markdown
 | Command | Description | Example |
 |---------|-------------|---------|
-| `build` | Build the site | `bengal build` |
-| `serve` | Start dev server | `bengal serve` |
-| `clean` | Clean output | `bengal clean` |
+| `build` | Build the site | `bengal site build` |
+| `serve` | Start dev server | `bengal site serve` |
+| `clean` | Clean output | `bengal site clean` |
 ```
 
 **Result:**
 
 | Command | Description | Example |
 |---------|-------------|---------|
-| `build` | Build the site | `bengal build` |
-| `serve` | Start dev server | `bengal serve` |
-| `clean` | Clean output | `bengal clean` |
+| `build` | Build the site | `bengal site build` |
+| `serve` | Start dev server | `bengal site serve` |
+| `clean` | Clean output | `bengal site clean` |
 
 **Comparison table:**
 
@@ -260,7 +260,7 @@ Complete these steps:
 - [x] Install Bengal: `pip install bengal`
 - [ ] Create site: `bengal new site mysite`
 - [ ] Configure in `bengal.toml`
-- [ ] Build: `bengal build`
+- [ ] Build: `bengal site build`
 
 **Next:** See the [configuration guide](../advanced/navigation.md).
 ```

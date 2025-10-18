@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Fast Mode**: Added `--fast` flag and `fast_mode` config option for maximum build speed
   - Enables quiet output for minimal overhead
   - Ensures parallel rendering is enabled
-  - Can be enabled via CLI (`bengal build --fast`) or config (`fast_mode = true`)
+  - Can be enabled via CLI (`bengal site build --fast`) or config (`fast_mode = true`)
   - Combine with `PYTHON_GIL=0` to suppress warnings in free-threaded Python
   - Ideal for users trying out Bengal's performance, especially with Python 3.14t
 
@@ -117,7 +117,7 @@ This release resolves critical bugs affecting build cache storage, page creation
 
 **Build Cache Location (BREAKING - Auto-migrated)**
 - **FIXED**: Build cache now stored in `.bengal/` directory instead of `public/`
-  - Old location: `public/.bengal-cache.json` (deleted by `bengal clean`)
+  - Old location: `public/.bengal-cache.json` (deleted by `bengal site clean`)
   - New location: `.bengal/cache.json` (persists through clean)
   - **Automatic migration**: Old cache copied to new location on first build
   - **Impact**: Incremental builds survive clean operations, CI/CD can cache `.bengal/` directory
@@ -131,13 +131,13 @@ This release resolves critical bugs affecting build cache storage, page creation
   - **Impact**: Clean URLs without spaces or special characters
 
 **Enhanced Clean Command**
-- **NEW**: `bengal clean` now has multiple modes for different use cases
+- **NEW**: `bengal site clean` now has multiple modes for different use cases
   - Default: Clean output only (preserves cache for fast rebuilds)
   - `--cache`: Clean output + cache (for cold build testing)
   - `--all`: Same as --cache (convenience alias)
   - Improved messaging shows what will be deleted
   - Different confirmation prompts based on mode
-  - **Impact**: Users can test cold builds with `bengal clean --cache`
+  - **Impact**: Users can test cold builds with `bengal site clean --cache`
 
 #### 🐛 Bug Fixes
 

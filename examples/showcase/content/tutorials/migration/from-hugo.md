@@ -517,13 +517,13 @@ hugo new posts/my-post.md
 
 ```bash
 # Development server
-bengal serve --watch
+bengal site serve --watch
 
 # Production build
-bengal build --parallel --incremental
+bengal site build --parallel --incremental
 
 # Clean
-bengal clean
+bengal site clean
 
 # New content
 bengal new posts/my-post.md
@@ -621,7 +621,7 @@ grep -r "summary:" content/
 
 ```bash
 cd my-bengal-site
-bengal build
+bengal site build
 
 # Check output
 ls public/
@@ -630,7 +630,7 @@ ls public/
 ### 7. Test Locally
 
 ```bash
-bengal serve
+bengal site serve
 
 # Visit http://localhost:8000
 # Verify pages render correctly

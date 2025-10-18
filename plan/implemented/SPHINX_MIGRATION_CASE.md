@@ -169,7 +169,7 @@ Build finished. The HTML pages are in build/
 
 **First build (full)**:
 ```bash
-$ bengal build
+$ bengal site build
 ✓ Discovery     Done (0.5s)
 ✓ Assets        Done (0.3s)
 ✓ Rendering     Done (3.2s)
@@ -180,7 +180,7 @@ Built 10,000 pages in 4.2 minutes
 
 **Subsequent builds (incremental)**:
 ```bash
-$ bengal build --incremental
+$ bengal site build --incremental
 ✓ Changed: 1 page
 ✓ Affected: 3 pages (dependencies)
 ✓ Rebuilt: 4 pages
