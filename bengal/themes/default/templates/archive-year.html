@@ -1,0 +1,349 @@
+{% extends "base.html" %}
+
+{#
+Year Archive Template
+
+Displays all posts from a specific year, grouped by month.
+Uses query indexes for O(1) lookups instead of O(n) filtering.
+
+URL Pattern: /archive/2024/
+
+Required page metadata:
+- year: "2024"
+
+Optional metadata:
+- section: "blog" (which section to show archives for)
+- show_stats: true (show statistics for the year)
+
+Usage:
+Create content/archive/2024.md:
+---
+title: "2024 Archive"
+year: "2024"
+template: archive-year.html
+---
+
+Context variables:
+- page: Current page with year in metadata
+- page.metadata.year: The year to show
+- site.indexes.date_range: Date range index
+#}
+
+{% from 'partials/navigation-components.html' import breadcrumbs %}
+{% from 'partials/content-components.html' import tag_list %}
+
+{% set year = page.metadata.year | string %}
+{% set section_filter = page.metadata.get('section') %}
+
+{% block content %}
+{{ breadcrumbs(page) }}
+
+<div class="archive-year">
+    <header class="archive-header">
+        <h1>📅 {{ year }} Archive</h1>
+
+        {# O(1) lookup for the entire year #}
+        {% set year_posts = site.indexes.date_range.get(year) | resolve_pages %}
+
+        {# Filter by section if specified #}
+        {% if section_filter %}
+        {% set year_posts = year_posts | selectattr('_section.name', 'equalto', section_filter) | list %}
+        {% endif %}
+
+        {% if year_posts %}
+        <p class="archive-count">{{ year_posts | length }} post{{ 's' if year_posts | length != 1 }} in {{ year }}</p>
+
+        {# Optional statistics #}
+        {% if page.metadata.get('show_stats') %}
+        <div class="archive-stats">
+            <div class="stat-grid">
+                <div class="stat">
+                    <span class="stat-value">{{ year_posts | length }}</span>
+                    <span class="stat-label">Posts</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-value">{{ year_posts | map(attribute='content') | join('') | wordcount |
+                        format_number }}</span>
+                    <span class="stat-label">Words</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-value">{{ year_posts | map(attribute='tags') | flatten | unique | length }}</span>
+                    <span class="stat-label">Topics</span>
+                </div>
+                {% set authors = year_posts | map(attribute='metadata.author') | select('defined') | unique | list %}
+                <div class="stat">
+                    <span class="stat-value">{{ authors | length }}</span>
+                    <span class="stat-label">Author{{ 's' if authors | length != 1 }}</span>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        {% endif %}
+    </header>
+
+    {% if year_posts %}
+    {# Group posts by month #}
+    {% for month_num in range(1, 13) %}
+    {% set month_key = year ~ '-' ~ '%02d' | format(month_num) %}
+    {% set month_posts = site.indexes.date_range.get(month_key) | resolve_pages %}
+
+    {# Filter by section if specified #}
+    {% if section_filter %}
+    {% set month_posts = month_posts | selectattr('_section.name', 'equalto', section_filter) | list %}
+    {% endif %}
+
+    {% if month_posts %}
+    <section class="month-group">
+        <h2 class="month-title">
+            {{ [
+            'January', 'February', 'March', 'April', 'May', 'June',
+            'July', 'August', 'September', 'October', 'November', 'December'
+            ][month_num - 1] }}
+            <span class="month-count">({{ month_posts | length }})</span>
+        </h2>
+
+        <div class="month-posts">
+            {% for post in month_posts | sort_by('date', reverse=true) %}
+            <article class="archive-post-card">
+                <time class="post-date" datetime="{{ post.date | date_iso }}">
+                    {{ post.date | dateformat('%d') }}
+                </time>
+
+                <div class="post-content">
+                    <h3 class="post-title">
+                        <a href="{{ url_for(post) }}">{{ post.title }}</a>
+                    </h3>
+
+                    {% if post.metadata.get('description') %}
+                    <p class="post-excerpt">{{ post.metadata.get('description') }}</p>
+                    {% endif %}
+
+                    <div class="post-meta">
+                        {% if post.metadata.get('author') %}
+                        <span class="post-author">{{ post.metadata.get('author') }}</span>
+                        {% endif %}
+
+                        {% if post.content %}
+                        <span class="reading-time">
+                            {{ (post.content | wordcount / 200) | round }} min read
+                        </span>
+                        {% endif %}
+
+                        {% if post.tags %}
+                        <span class="post-tags">
+                            {{ tag_list(post.tags | limit(3)) }}
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+    {% endfor %}
+
+    {# Navigation to other years #}
+    <nav class="year-navigation" aria-label="Other years">
+        <h3>Browse Other Years</h3>
+        <ul class="year-list">
+            {% set all_years = site.indexes.date_range.keys()
+            | select('match', '^\\d{4}$')
+            | sort(reverse=true)
+            | list %}
+
+            {% for other_year in all_years %}
+            {% set other_year_posts = site.indexes.date_range.get(other_year) | resolve_pages %}
+
+            {# Filter by section if specified #}
+            {% if section_filter %}
+            {% set other_year_posts = other_year_posts | selectattr('_section.name', 'equalto', section_filter) | list
+            %}
+            {% endif %}
+
+            {% if other_year_posts %}
+            <li {% if other_year==year %}class="current-year" {% endif %}>
+                <a href="/archive/{{ other_year }}/">
+                    {{ other_year }}
+                    <span class="year-count">({{ other_year_posts | length }})</span>
+                </a>
+            </li>
+            {% endif %}
+            {% endfor %}
+        </ul>
+    </nav>
+
+    {% else %}
+    {# Empty state #}
+    <div class="archive-empty">
+        <div class="empty-state">
+            <p class="empty-message">No posts found for {{ year }}.</p>
+            <a href="/archive/" class="button">Browse All Archives</a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+    .archive-year {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+
+    .archive-stats {
+        margin: 2rem 0;
+        padding: 1.5rem;
+        background: var(--color-surface-secondary);
+        border-radius: var(--radius-md);
+    }
+
+    .stat-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 1.5rem;
+        text-align: center;
+    }
+
+    .stat-value {
+        display: block;
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--color-primary);
+    }
+
+    .stat-label {
+        display: block;
+        font-size: 0.875rem;
+        color: var(--color-text-secondary);
+        margin-top: 0.25rem;
+    }
+
+    .month-group {
+        margin: 3rem 0;
+    }
+
+    .month-title {
+        font-size: 1.5rem;
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid var(--color-border);
+    }
+
+    .month-count {
+        font-size: 1rem;
+        font-weight: normal;
+        color: var(--color-text-secondary);
+    }
+
+    .month-posts {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .archive-post-card {
+        display: flex;
+        gap: 1rem;
+        padding: 1rem;
+        background: var(--color-surface-secondary);
+        border-radius: var(--radius-md);
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .archive-post-card:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+    }
+
+    .post-date {
+        flex-shrink: 0;
+        width: 3rem;
+        height: 3rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+        font-weight: 700;
+        background: var(--color-primary);
+        color: var(--color-on-primary);
+        border-radius: var(--radius-sm);
+    }
+
+    .post-content {
+        flex: 1;
+    }
+
+    .post-title {
+        margin: 0 0 0.5rem 0;
+        font-size: 1.125rem;
+    }
+
+    .post-title a {
+        color: var(--color-text);
+        text-decoration: none;
+    }
+
+    .post-title a:hover {
+        color: var(--color-primary);
+    }
+
+    .post-excerpt {
+        margin: 0.5rem 0;
+        font-size: 0.875rem;
+        color: var(--color-text-secondary);
+    }
+
+    .post-meta {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+        font-size: 0.813rem;
+        color: var(--color-text-tertiary);
+        margin-top: 0.5rem;
+    }
+
+    .year-navigation {
+        margin-top: 4rem;
+        padding-top: 2rem;
+        border-top: 2px solid var(--color-border);
+    }
+
+    .year-navigation h3 {
+        font-size: 1.25rem;
+        margin-bottom: 1rem;
+    }
+
+    .year-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        list-style: none;
+        padding: 0;
+    }
+
+    .year-list li a {
+        display: inline-block;
+        padding: 0.5rem 1rem;
+        background: var(--color-surface-secondary);
+        border-radius: var(--radius-sm);
+        text-decoration: none;
+        color: var(--color-text);
+        transition: background 0.2s, color 0.2s;
+    }
+
+    .year-list li.current-year a {
+        background: var(--color-primary);
+        color: var(--color-on-primary);
+    }
+
+    .year-list li a:hover {
+        background: var(--color-primary-hover);
+        color: var(--color-on-primary);
+    }
+
+    .year-count {
+        font-size: 0.813rem;
+        opacity: 0.7;
+    }
+</style>
+{% endblock %}
