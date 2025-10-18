@@ -256,33 +256,11 @@ class BuildHandler(FileSystemEventHandler):
                     if decision.action == "none":
                         logger.info("reload_suppressed", reason=decision.reason)
                     else:
-                        # Send structured SSE payload (JSON per client)
-                        from bengal.server.live_reload import _reload_condition  # type: ignore
-                        from bengal.server.live_reload import logger as lr_logger  # type: ignore
-                        from bengal.server.live_reload import _reload_generation  # type: ignore
+                        # Public API: send structured payload to clients
+                        from bengal.server.live_reload import send_reload_payload
 
-                        import json
-                        payload = json.dumps(
-                            {
-                                "action": decision.action,
-                                "reason": decision.reason,
-                                "changedPaths": decision.changed_paths,
-                                "generation": _reload_generation + 1,
-                            }
-                        )
-
-                        with _reload_condition:
-                            _reload_generation += 1  # type: ignore
-                            # Store last action as the JSON payload
-                            from bengal.server.live_reload import _last_action  # type: ignore
-
-                            _last_action = payload  # type: ignore
-                            _reload_condition.notify_all()
-                        lr_logger.info(
-                            "reload_notification_sent_structured",
-                            action=decision.action,
-                            reason=decision.reason,
-                            changed=len(decision.changed_paths),
+                        send_reload_payload(
+                            decision.action, decision.reason, decision.changed_paths
                         )
 
                     # Clear HTML cache after successful rebuild (files have changed)

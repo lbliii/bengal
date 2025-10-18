@@ -26,6 +26,7 @@ import os
 import threading
 
 from bengal.utils.logger import get_logger
+import json
 
 logger = get_logger(__name__)
 
@@ -361,6 +362,42 @@ def notify_clients_reload() -> None:
         _reload_condition.notify_all()
     logger.info("reload_notification_sent", generation=_reload_generation)
 
+
+def send_reload_payload(action: str, reason: str, changed_paths: list[str]) -> None:
+    """
+    Send a structured JSON payload to connected SSE clients.
+
+    Args:
+        action: 'reload' | 'reload-css' | 'reload-page'
+        reason: short machine-readable reason string
+        changed_paths: list of changed output paths (relative to output dir)
+    """
+    global _reload_generation, _last_action
+    try:
+        payload = json.dumps(
+            {
+                "action": action,
+                "reason": reason,
+                "changedPaths": changed_paths,
+                "generation": _reload_generation + 1,
+            }
+        )
+    except Exception:
+        # Fallback to simple action string on serialization failure
+        payload = action
+
+    with _reload_condition:
+        _last_action = payload
+        _reload_generation += 1
+        _reload_condition.notify_all()
+
+    logger.info(
+        "reload_notification_sent_structured",
+        action=action,
+        reason=reason,
+        changed=len(changed_paths),
+        generation=_reload_generation,
+    )
 
 def set_reload_action(action: str) -> None:
     """

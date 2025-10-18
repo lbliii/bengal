@@ -38,6 +38,9 @@ class ReloadDecision:
     changed_paths: List[str]
 
 
+MAX_CHANGED_PATHS_TO_SEND = 20
+
+
 class ReloadController:
     def __init__(self, min_notify_interval_ms: int = 150) -> None:
         self._previous: OutputSnapshot | None = None
@@ -45,7 +48,8 @@ class ReloadController:
         self._min_interval_ms: int = min_notify_interval_ms
 
     def _now_ms(self) -> int:
-        return int(time.time() * 1000)
+        # Use monotonic clock for interval measurement to avoid wall-clock jumps
+        return int(time.monotonic() * 1000)
 
     def _take_snapshot(self, output_dir: Path) -> OutputSnapshot:
         files: Dict[str, SnapshotEntry] = {}
@@ -115,7 +119,11 @@ class ReloadController:
             return ReloadDecision(action="reload-css", reason="css-only", changed_paths=css_changed)
 
         # Anything else
-        return ReloadDecision(action="reload", reason="content-changed", changed_paths=changed[:20])
+        return ReloadDecision(
+            action="reload",
+            reason="content-changed",
+            changed_paths=changed[:MAX_CHANGED_PATHS_TO_SEND],
+        )
 
 
 # Global controller for dev server
