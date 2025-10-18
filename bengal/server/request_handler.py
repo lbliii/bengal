@@ -64,11 +64,9 @@ class BengalRequestHandler(RequestLogger, LiveReloadMixin, http.server.SimpleHTT
                 h.lower().startswith(b"cache-control:")
                 for h in getattr(self, "_headers_buffer", [])
             ):
-                # no-store to force revalidation; max-age=0 and must-revalidate as fallbacks
-                self.send_header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
-                self.send_header("Pragma", "no-cache")
-            # Always include a weak ETag of mtime when serving static files would be ideal,
-            # but we rely on file change + reload events; leave ETag off for simplicity.
+                from bengal.server.utils import apply_dev_no_cache_headers
+
+                apply_dev_no_cache_headers(self)
         except Exception:
             pass
         super().end_headers()
