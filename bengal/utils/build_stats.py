@@ -460,7 +460,7 @@ def show_building_indicator(text: str = "Building") -> None:
             # Rich output with cat mascot
             console = get_console()
             console.print()
-            console.print("    [bengal]ᓚᘏᗢ[/bengal]  [bold cyan]Building your site...[/bold cyan]")
+            console.print("    [bengal]ᓚᘏᗢ[/bengal]  [header]Building your site...[/header]")
             console.print()
             return
     except ImportError:
