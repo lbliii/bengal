@@ -380,11 +380,11 @@ Thumbs.db
         # Handle special cases for wizard
         if wizard_selection is None and init_preset is None:
             cli.blank()
-            cli.warning("💡 Run 'bengal init' to add structure later.")
+            cli.tip("Run 'bengal init' to add structure later.")
         if is_custom:
             cli.blank()
-            cli.warning(
-                "💡 For custom sections, run 'bengal init --sections <your-list> --with-content' now."
+            cli.tip(
+                "For custom sections, run 'bengal init --sections <your-list> --with-content' now."
             )
 
         # Show next steps
@@ -833,12 +833,12 @@ document.addEventListener('DOMContentLoaded', function() {
         cli.blank()
         cli.header("📚 Next steps:")
         if in_site:
-            cli.info(f'   ├─ Update bengal.toml: theme = "{slug}"')
-            cli.info("   └─ bengal serve")
+            cli.tip(f'Update bengal.toml: theme = "{slug}"')
+            cli.tip("Run 'bengal serve'")
         else:
-            cli.info(f"   ├─ Package as: bengal-theme-{slug}")
-            cli.info("   ├─ Add to pyproject.toml for distribution")
-            cli.info("   └─ pip install -e .")
+            cli.tip(f"Package as: bengal-theme-{slug}")
+            cli.tip("Add to pyproject.toml for distribution")
+            cli.tip("pip install -e .")
         cli.blank()
 
     except Exception as e:

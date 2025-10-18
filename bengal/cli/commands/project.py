@@ -136,11 +136,11 @@ def profile(profile_name: str) -> None:
 
         # Show what changed
         cli.header("💡 This affects:")
-        cli.info(f"  • Output format:    {profile_info['output_format'].upper()}")
-        cli.info(f"  • Verbosity level:  {profile_info['verbosity'].upper()}")
-        cli.info(f"  • Build profile:    {profile_info['default_build_profile']}")
+        cli.tip(f"Output format:    {profile_info['output_format'].upper()}")
+        cli.tip(f"Verbosity level:  {profile_info['verbosity'].upper()}")
+        cli.tip(f"Build profile:    {profile_info['default_build_profile']}")
         if not profile_info["show_all_commands"]:
-            cli.info("  • Commands shown:   Simplified (use --all for full)")
+            cli.tip("Commands shown:   Simplified (use --all for full)")
         cli.blank()
 
     except click.Abort:

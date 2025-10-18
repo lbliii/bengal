@@ -518,18 +518,17 @@ def init(
         if sections_created:
             cli.blank()
             cli.success("🎯 Navigation configured!")
-            cli.info("   Sections will appear automatically in nav")
+            cli.tip("Sections will appear automatically in nav")
             cli.blank()
-            cli.info("   💡 Tip: To customize nav order or add external links,")
+            cli.tip("To customize nav order or add external links,")
             cli.info("      add [[menu.main]] entries to bengal.toml")
             cli.blank()
 
         # Next steps
         cli.blank()
         cli.header("📚 Next steps:")
-        cli.info("  1. Review and customize generated content")
-        cli.info("  2. Run 'bengal serve' to preview your site")
-        cli.info("  3. Edit files in content/ to add your content")
+        cli.tip("Run 'bengal serve' to preview your site")
+        cli.info("  2. Edit files in content/ to add your content")
         cli.blank()
 
     except click.Abort:

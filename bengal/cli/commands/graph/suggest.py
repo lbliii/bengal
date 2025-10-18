@@ -154,9 +154,9 @@ def suggest(top_n: int, min_score: float, format: str, config: str, source: str)
 
             cli.info("=" * 120)
             cli.blank()
-            cli.info("💡 Tip: Use --format markdown to generate implementation checklist")
-            cli.info("       Use --format json to export for programmatic processing")
-            cli.info("       Use --min-score to filter low-confidence suggestions")
+            cli.tip("Use --format markdown to generate implementation checklist")
+            cli.tip("Use --format json to export for programmatic processing")
+            cli.tip("Use --min-score to filter low-confidence suggestions")
             cli.blank()
 
         if format != "json":

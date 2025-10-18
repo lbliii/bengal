@@ -100,7 +100,7 @@ def clean(
             cli.info("   Next build will be a cold build (no cache)")
         else:
             cli.success("Clean complete! (cache preserved)", icon="✓")
-            cli.info("   Run 'bengal clean --cache' for cold build testing")
+            cli.tip("Run 'bengal clean --cache' for cold build testing")
         cli.blank()
 
     except Exception as e:

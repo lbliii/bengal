@@ -172,8 +172,8 @@ def pagerank(top_n: int, damping: float, format: str, config: str, source: str) 
 
             cli.info("=" * 100)
             cli.blank()
-            cli.info("💡 Tip: Use --format json to export scores for further analysis")
-            cli.info("       Use --top-n to show more/fewer pages")
+            cli.tip("Use --format json to export scores for further analysis")
+            cli.tip("Use --top-n to show more/fewer pages")
             cli.blank()
 
         # Show insights

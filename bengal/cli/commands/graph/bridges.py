@@ -204,8 +204,9 @@ def bridges(top_n: int, metric: str, format: str, config: str, source: str) -> N
                     cli.info(f"{i:<6} {title:<50} {score:.10f}  {outgoing:<5}")
 
             cli.info("=" * 100)
-            cli.info("\n💡 Tip: Use --metric to focus on betweenness or closeness")
-            cli.info("       Use --format json to export for analysis\n")
+            cli.tip("Use --metric to focus on betweenness or closeness")
+            cli.tip("Use --format json to export for analysis")
+            cli.blank()
 
         # Show insights
         if format != "json":

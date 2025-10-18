@@ -243,8 +243,8 @@ def _generate_python_docs(
 
     cli.blank()
     cli.header("💡 Next steps:")
-    cli.info(f"   • View docs: ls {output_dir}")
-    cli.info("   • Build site: bengal build")
+    cli.tip(f"View docs: ls {output_dir}")
+    cli.tip("Build site: bengal build")
     cli.blank()
 
 
@@ -350,8 +350,8 @@ def _generate_cli_docs(
     cli.info(f"   📂 Output: {output_dir}")
     cli.blank()
     cli.header("💡 Next steps:")
-    cli.info(f"   • View docs: ls {output_dir}")
-    cli.info("   • Build site: bengal build")
+    cli.tip(f"View docs: ls {output_dir}")
+    cli.tip("Build site: bengal build")
     cli.blank()
 
 
@@ -519,8 +519,8 @@ def autodoc_cli(
             cli.blank()
 
         cli.warning("💡 Next steps:")
-        cli.info(f"   • View docs: ls {output_dir}")
-        cli.info("   • Build site: bengal build")
+        cli.tip(f"View docs: ls {output_dir}")
+        cli.tip("Build site: bengal build")
         cli.blank()
 
     except click.Abort:
