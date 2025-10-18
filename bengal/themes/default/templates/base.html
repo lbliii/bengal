@@ -294,18 +294,30 @@
             {% from 'partials/content-components.html' import popular_tags_widget with context %}
             {{ popular_tags_widget(limit=10) }}
 
-            <p class="footer-copyright">
-                &copy; 2025 {{ site.config.title }} | Built with <a href="https://github.com/lbliii/bengal"
-                    rel="noopener">ᓚᘏᗢ</a>
-            </p>
-            {% set footer_menu = get_menu_lang('footer', current_lang()) %}
-            {% if footer_menu %}
-            <ul class="footer-links">
-                {% for item in footer_menu %}
-                <li><a href="{{ item.url }}">{{ item.name }}</a></li>
-                {% endfor %}
-            </ul>
-            {% endif %}
+            <div class="footer-bottom">
+                <div class="footer-left">
+                    <p class="footer-copyright">
+                        &copy; 2025 {{ site.config.title }}
+                    </p>
+                    {% set footer_menu = get_menu_lang('footer', current_lang()) %}
+                    {% if footer_menu %}
+                    <ul class="footer-links">
+                        {% for item in footer_menu %}
+                        <li><a href="{{ item.url }}">{{ item.name }}</a></li>
+                        {% endfor %}
+                    </ul>
+                    {% endif %}
+                </div>
+                <div class="footer-right">
+                    <a href="https://github.com/lbliii/bengal" rel="noopener" class="bengal-badge">
+                        <span class="cat cat-contemplative">
+                            <span class="cat-tail">ᓚ</span><span class="cat-body">ᘏ</span><span
+                                class="cat-head">ᗢ</span>
+                        </span>
+                        <span>Built with Bengal</span>
+                    </a>
+                </div>
+            </div>
         </div>
     </footer>
 
