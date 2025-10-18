@@ -199,7 +199,7 @@ class BengalGroup(click.Group):
                     if cli.use_rich:
                         cli.console.print("[header]Did you mean one of these?[/header]")
                         for suggestion in suggestions:
-                            cli.console.print(f"  [info]•[/info] [link]{suggestion}[/link]")
+                            cli.console.print(f"  [info]•[/info] [phase]{suggestion}[/phase]")
                     else:
                         cli.info("Did you mean one of these?")
                         for suggestion in suggestions:
