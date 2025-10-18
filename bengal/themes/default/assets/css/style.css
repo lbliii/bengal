@@ -200,6 +200,18 @@
   @import url('components/author.css');
 }
 
+@layer components {
+  @import url('components/author-page.css');
+}
+
+@layer components {
+  @import url('components/archive.css');
+}
+
+@layer components {
+  @import url('components/category-browser.css');
+}
+
 /* Third-party libraries */
 @layer components {
   @import url('tabulator.min.css');
