@@ -85,16 +85,18 @@ def _check_autodoc_needs_regeneration(autodoc_config: dict, root_path: Path, qui
 
             if newest_source > oldest_output:
                 if not quiet:
-                    click.echo(
-                        click.style(
-                            "📝 Python source files changed, regenerating API docs...", fg="yellow"
-                        )
-                    )
+                    from bengal.utils.cli_output import CLIOutput
+
+                    cli = CLIOutput()
+                    cli.warning("📝 Python source files changed, regenerating API docs...")
                 needs_regen = True
         else:
             # Output doesn't exist, need to generate
             if not quiet:
-                click.echo(click.style("📝 API docs not found, generating...", fg="yellow"))
+                from bengal.utils.cli_output import CLIOutput
+
+                cli = CLIOutput()
+                cli.warning("📝 API docs not found, generating...")
             needs_regen = True
 
     # Check CLI docs
@@ -103,7 +105,10 @@ def _check_autodoc_needs_regeneration(autodoc_config: dict, root_path: Path, qui
 
         if not output_dir.exists() or not list(output_dir.rglob("*.md")):
             if not quiet:
-                click.echo(click.style("📝 CLI docs not found, generating...", fg="yellow"))
+                from bengal.utils.cli_output import CLIOutput
+
+                cli = CLIOutput()
+                cli.warning("📝 CLI docs not found, generating...")
             needs_regen = True
 
     return needs_regen
@@ -113,11 +118,14 @@ def _run_autodoc_before_build(config_path: Path, root_path: Path, quiet: bool) -
     """Run autodoc generation before build."""
     from bengal.autodoc.config import load_autodoc_config
     from bengal.cli.commands.autodoc import _generate_cli_docs, _generate_python_docs
+    from bengal.utils.cli_output import CLIOutput
+
+    cli = CLIOutput(quiet=quiet)
 
     if not quiet:
-        click.echo()
-        click.echo(click.style("📚 Regenerating documentation...", fg="cyan", bold=True))
-        click.echo()
+        cli.blank()
+        cli.header("📚 Regenerating documentation...")
+        cli.blank()
 
     autodoc_config = load_autodoc_config(config_path)
     python_config = autodoc_config.get("python", {})
@@ -141,8 +149,8 @@ def _run_autodoc_before_build(config_path: Path, root_path: Path, quiet: bool) -
             )
         except Exception as e:
             if not quiet:
-                click.echo(click.style(f"⚠️  Python autodoc failed: {e}", fg="yellow"))
-                click.echo(click.style("Continuing with build...", fg="yellow"))
+                cli.warning(f"⚠️  Python autodoc failed: {e}")
+                cli.warning("Continuing with build...")
 
     # Generate CLI docs
     if generate_cli:
@@ -158,11 +166,11 @@ def _run_autodoc_before_build(config_path: Path, root_path: Path, quiet: bool) -
             )
         except Exception as e:
             if not quiet:
-                click.echo(click.style(f"⚠️  CLI autodoc failed: {e}", fg="yellow"))
-                click.echo(click.style("Continuing with build...", fg="yellow"))
+                cli.warning(f"⚠️  CLI autodoc failed: {e}")
+                cli.warning("Continuing with build...")
 
     if not quiet:
-        click.echo()
+        cli.blank()
 
 
 @click.command()
@@ -303,18 +311,12 @@ def build(
         )
 
     if memory_optimized and incremental is True:
-        click.echo(
-            click.style(
-                "⚠️  Warning: --memory-optimized with --incremental may not fully utilize cache",
-                fg="yellow",
-            )
-        )
-        click.echo(
-            click.style(
-                "   Streaming build processes pages in batches, limiting incremental benefits.\n",
-                fg="yellow",
-            )
-        )
+        from bengal.utils.cli_output import CLIOutput
+
+        cli = CLIOutput()
+        cli.warning("⚠️  Warning: --memory-optimized with --incremental may not fully utilize cache")
+        cli.warning("   Streaming build processes pages in batches, limiting incremental benefits.")
+        cli.blank()
 
     # Determine build profile with proper precedence
     build_profile = BuildProfile.from_cli_args(
@@ -390,19 +392,18 @@ def build(
         # Validate templates if requested (via service)
         if validate:
             from bengal.services.validation import DefaultTemplateValidationService
+            from bengal.utils.cli_output import CLIOutput
 
+            cli = CLIOutput()
             error_count = DefaultTemplateValidationService().validate(site)
 
             if error_count > 0:
-                click.echo(
-                    click.style(
-                        f"\n❌ Validation failed with {error_count} error(s).", fg="red", bold=True
-                    )
-                )
-                click.echo(click.style("Fix errors above, then run 'bengal build'", fg="yellow"))
+                cli.blank()
+                cli.error(f"❌ Validation failed with {error_count} error(s).")
+                cli.warning("Fix errors above, then run 'bengal build'")
                 raise click.Abort()
 
-            click.echo()  # Blank line before build
+            cli.blank()  # Blank line before build
 
         # Determine if we should use rich status spinner
         try:
@@ -460,23 +461,21 @@ def build(
 
             # Display summary
             if not quiet:
+                from bengal.utils.cli_output import CLIOutput
+
+                cli = CLIOutput()
                 s = StringIO()
                 ps = pstats.Stats(profiler, stream=s).sort_stats("cumulative")
                 ps.print_stats(20)  # Top 20 functions
 
-                click.echo()
-                click.echo(
-                    click.style(
-                        "📊 Performance Profile (Top 20 by cumulative time):", fg="cyan", bold=True
-                    )
-                )
-                click.echo(s.getvalue())
-                click.echo(click.style(f"Full profile saved to: {perf_profile_path}", fg="green"))
-                click.echo(
-                    click.style(
-                        "Analyze with: python -m pstats " + str(perf_profile_path), fg="yellow"
-                    )
-                )
+                cli.blank()
+                cli.header("📊 Performance Profile (Top 20 by cumulative time):")
+                if cli.use_rich:
+                    cli.console.print(s.getvalue())
+                else:
+                    cli.info(s.getvalue())
+                cli.success(f"Full profile saved to: {perf_profile_path}")
+                cli.warning("Analyze with: python -m pstats " + str(perf_profile_path))
         else:
             # Pass profile to build
             # When --full-output is used, enable console logs for debugging
@@ -518,8 +517,11 @@ def build(
                 # Theme-dev: Use existing detailed display
                 display_build_stats(stats, show_art=True, output_dir=str(site.output_dir))
         else:
-            click.echo(click.style("✅ Build complete!", fg="green", bold=True))
-            click.echo(click.style(f"   ↪ {site.output_dir}", fg="cyan"))
+            from bengal.utils.cli_output import CLIOutput
+
+            cli = CLIOutput()
+            cli.success("✅ Build complete!")
+            cli.path(str(site.output_dir), label="", icon="↪")
 
         # Print phase timing summary in dev mode only
         if build_profile == BuildProfile.DEVELOPER and not quiet:
