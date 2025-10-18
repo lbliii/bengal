@@ -51,7 +51,7 @@ Requires: page object in context
         <div class="action-bar-actions">
             {# LLM Share Button #}
             {% set page_url = canonical_url(page.url) %}
-            {% set llm_txt_url = page_url.rstrip('/') + '/index.txt' %}
+            {% set llm_txt_url = ensure_trailing_slash(page_url) + 'index.txt' %}
             {% set share_prompt = "Please help me understand this documentation: " + llm_txt_url %}
 
             <div class="action-bar-share">
