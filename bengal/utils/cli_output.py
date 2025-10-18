@@ -12,7 +12,7 @@ from enum import Enum
 from typing import Any
 
 import click
-from rich.console import Console
+from rich.panel import Panel
 from rich.table import Table
 
 
@@ -83,7 +83,14 @@ class CLIOutput:
             use_rich = should_use_rich()
 
         self.use_rich = use_rich
-        self.console = Console() if use_rich else None
+
+        # Use themed console for semantic styles (header, success, etc.)
+        if use_rich:
+            from bengal.utils.rich_console import get_console
+
+            self.console = get_console()
+        else:
+            self.console = None
 
         # Get profile config
         self.profile_config = profile.get_config() if profile else {}
@@ -112,7 +119,14 @@ class CLIOutput:
         if self.use_rich:
             mascot_str = "[bengal]ᓚᘏᗢ[/bengal]  " if mascot else ""
             self.console.print()
-            self.console.print(f"    {mascot_str}[bold cyan]{text}[/bold cyan]")
+            self.console.print(
+                Panel(
+                    f"{mascot_str}{text}",
+                    expand=False,
+                    border_style="header",
+                    padding=(0, 5),
+                )
+            )
             self.console.print()
         else:
             mascot_str = "ᓚᘏᗢ  " if mascot else ""
@@ -138,15 +152,15 @@ class CLIOutput:
             return
 
         # Format based on profile
-        parts = [icon, name]
+        parts = [f"[success]{icon}[/success]", f"[phase]{name}[/phase]"]
 
         # Add timing if available and profile shows it
         if duration_ms is not None and self._show_timing():
-            parts.append(f"{int(duration_ms)}ms")
+            parts.append(f"[dim]{int(duration_ms)}ms[/dim]")
 
         # Add details if provided and profile shows them
         if details and self._show_details():
-            parts.append(f"({details})")
+            parts.append(f"([dim]{details}[/dim])")
 
         # Render
         line = self._format_phase_line(parts)
@@ -187,7 +201,7 @@ class CLIOutput:
 
         if self.use_rich:
             self.console.print()
-            self.console.print(f"{icon} [bold green]{text}[/bold green]")
+            self.console.print(f"{icon} [success]{text}[/success]")
             self.console.print()
         else:
             click.echo(f"\n{icon} {text}\n", color=True)
@@ -210,7 +224,7 @@ class CLIOutput:
             return
 
         if self.use_rich:
-            self.console.print(f"{icon}  [yellow]{text}[/yellow]")
+            self.console.print(f"{icon}  [warning]{text}[/warning]")
         else:
             click.echo(click.style(f"{icon}  {text}", fg="yellow"))
 
@@ -220,7 +234,7 @@ class CLIOutput:
             return
 
         if self.use_rich:
-            self.console.print(f"{icon} [bold red]{text}[/bold red]")
+            self.console.print(f"{icon} [error]{text}[/error]")
         else:
             click.echo(click.style(f"{icon} {text}", fg="red", bold=True))
 
@@ -240,7 +254,7 @@ class CLIOutput:
 
         if self.use_rich:
             self.console.print(f"{icon} {label}:")
-            self.console.print(f"   ↪ [cyan]{display_path}[/cyan]")
+            self.console.print(f"   ↪ [path]{display_path}[/path]")
         else:
             click.echo(f"{icon} {label}:")
             click.echo(click.style(f"   ↪ {display_path}", fg="cyan"))
@@ -259,11 +273,12 @@ class CLIOutput:
 
         indent_str = self.indent_char * (self.indent_size * indent)
         unit_str = f" {unit}" if unit else ""
-        line = f"{indent_str}{label}: {value}{unit_str}"
 
         if self.use_rich:
+            line = f"{indent_str}[metric_label]{label}[/metric_label]: [metric_value]{value}{unit_str}[/metric_value]"
             self.console.print(line)
         else:
+            line = f"{indent_str}{label}: {value}{unit_str}"
             click.echo(line)
 
     def table(self, data: list[dict[str, str]], headers: list[str]) -> None:
