@@ -139,30 +139,115 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for details.
 
 ## Configuration
 
-Create a `bengal.toml` or `bengal.yaml` in your project root:
+Create a `bengal.toml` or `bengal.yaml` in your project root. Bengal uses sensible defaults for most settings, so you only need to configure what you want to change:
 
 ```toml
 [site]
 title = "My Bengal Site"
 baseurl = "https://example.com"
-theme = "default"
+description = "Site description"
+language = "en"
+author = "Your Name"
 
 [build]
 output_dir = "public"
-incremental = true
-parallel = true
-fast_mode = true        # Maximum speed (recommended)
+content_dir = "content"
+fast_mode = true                    # Maximum speed (recommended)
+cache_templates = true              # Cache compiled templates (10-15% faster)
+auto_regenerate_autodoc = false     # Auto-regenerate docs when source changes
 
+# Optional: Disable default features if needed
+# incremental = false               # Force full rebuilds
+# minify_html = false               # Keep HTML unminified for debugging
+# parallel = false                  # Disable parallel processing
+# generate_sitemap = false          # Skip sitemap
+# generate_rss = false              # Skip RSS feed
+
+# Theme Configuration
+[theme]
+name = "default"                    # Theme name (default, or custom theme in themes/ dir)
+default_appearance = "system"       # Options: "light", "dark", "system" (follows OS)
+default_palette = ""                # Color palette (empty = default, or palette name)
+
+# Font Configuration - Auto-downloads and self-hosts Google Fonts
+[fonts]
+primary = "Inter:400,600,700"           # Body text
+heading = "Playfair Display:700"        # Headings
+code = "JetBrains Mono:400"             # Code blocks
+
+# Assets
 [assets]
 minify = true
 fingerprint = true
+optimize = true
 
-# Special search page (optional overrides)
+# Optional: Node-based asset pipeline (requires Node v22 LTS)
+# pipeline = true
+# scss = true
+# postcss = true
+# bundle_js = true
+
+# Markdown Configuration
+[markdown]
+parser = "mistune"
+table_of_contents = true
+gfm = true                          # GitHub Flavored Markdown
+
+# Taxonomies (tags, categories, etc.)
+[taxonomies]
+tags = "tags"
+categories = "categories"
+
+# Menu Configuration
+[[menu.main]]
+name = "Home"
+url = "/"
+weight = 1
+
+[[menu.main]]
+name = "Documentation"
+url = "/docs/"
+weight = 2
+
+# Search Page (special page, auto-enabled if template exists)
 [search]
 enabled = true
 path = "/search/"
 template = "search.html"
+
+# API Documentation Generation
+[autodoc.python]
+enabled = true
+source_dirs = ["src"]
+output_dir = "content/api"
+docstring_style = "auto"            # Options: auto, google, numpy, sphinx
+
+exclude = [
+    "*/tests/*",
+    "*/__pycache__/*",
+]
+
+include_private = false             # Include _private methods
+include_special = false             # Include __special__ methods
+
+# CLI Documentation Generation
+[autodoc.cli]
+enabled = true
+app_module = "myapp.cli:main"       # module_path:attribute format
+output_dir = "content/cli"
+framework = "click"                 # Options: click, argparse, typer
 ```
+
+**Default Features** (enabled automatically, no config needed):
+
+- ✅ Parallel builds
+- ✅ Incremental builds (18-42x faster!)
+- ✅ HTML minification (15-25% smaller)
+- ✅ Asset optimization and fingerprinting
+- ✅ Sitemap and RSS generation
+- ✅ JSON + LLM text output formats
+- ✅ Link validation
+- ✅ Build quality checks
 
 ## Project Structure
 
@@ -300,36 +385,74 @@ bengal utils theme new mybrand --mode package --output .
 bengal new theme mybrand
 ```
 
-Configuration to select a theme:
+Configuration to select and customize a theme:
 
 ```toml
-[site]
-theme = "mybrand"  # Uses project themes/mybrand, installed bengal-theme-mybrand, or bundled
+[theme]
+name = "mybrand"                  # Uses project themes/mybrand, installed bengal-theme-mybrand, or bundled
+default_appearance = "system"     # Options: "light", "dark", "system" (follows OS preference)
+default_palette = ""              # Color palette name (empty = default)
+```
+
+**Legacy configuration** (still supported):
+
+```toml
+[build]
+theme = "mybrand"  # Simple string format still works for backwards compatibility
 ```
 
 Naming convention for installable themes (recommended): `bengal-theme-<slug>`.
 
-## API Documentation
+## API Documentation (Autodoc)
 
-Bengal can generate API documentation from Python source code using AST parsing. Configure in `bengal.toml`:
+Bengal can automatically generate API documentation from Python source code and CLI applications using AST parsing.
+
+### Python API Documentation
+
+Configure in `bengal.toml`:
 
 ```toml
 [autodoc.python]
 enabled = true
 source_dirs = ["src/mylib"]
 output_dir = "content/api"
-docstring_style = "auto"  # auto, google, numpy, sphinx
+docstring_style = "auto"  # Options: auto, google, numpy, sphinx
 
 exclude = [
     "*/tests/*",
     "*/__pycache__/*",
 ]
 
-include_private = false
-include_special = false
+include_private = false   # Include _private methods
+include_special = false   # Include __special__ methods
 ```
 
-The auto-doc system uses AST-based extraction (no imports required) and supports Google, NumPy, and Sphinx documentation formats.
+Or generate on-demand:
+
+```bash
+bengal utils autodoc --source mylib --output content/api
+```
+
+### CLI Documentation
+
+Automatically document Click, Argparse, or Typer CLI applications:
+
+```toml
+[autodoc.cli]
+enabled = true
+app_module = "myapp.cli:main"  # module_path:attribute format
+output_dir = "content/cli"
+framework = "click"            # Options: click, argparse, typer
+include_hidden = false         # Include hidden commands
+```
+
+### Autodoc Features
+
+- **AST-based extraction** - No imports required, works with any Python code
+- **Multiple docstring formats** - Supports Google, NumPy, and Sphinx styles
+- **Auto-regeneration** - Set `auto_regenerate_autodoc = true` in `[build]` to automatically update docs when source changes
+- **CLI frameworks** - Built-in support for Click, Argparse, and Typer
+- **Smart filtering** - Exclude tests, caches, and private members
 
 ## Development Status
 
