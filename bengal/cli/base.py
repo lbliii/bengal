@@ -206,6 +206,7 @@ class BengalGroup(click.Group):
                             cli.info(f"  • {suggestion}")
                     cli.blank()
                     cli.tip("Run 'bengal --help' to see all commands.")
+                    cli.blank()
                     raise SystemExit(2) from None
 
                 # Re-raise original error if no suggestions
