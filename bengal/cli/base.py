@@ -41,7 +41,10 @@ class BengalCommand(click.Command):
             if self.help:
                 sanitized = _sanitize_help_text(self.help)
                 if sanitized:
-                    cli.info(sanitized)
+                    if cli.use_rich:
+                        cli.console.print(f"[dim]{sanitized}[/dim]")
+                    else:
+                        cli.info(sanitized)
                 cli.blank()
 
             # Usage
@@ -132,7 +135,10 @@ class BengalGroup(click.Group):
 
             sanitized = _sanitize_help_text(self.help)
             if sanitized:
-                cli.info(sanitized)
+                if cli.use_rich:
+                    cli.console.print(f"[dim]{sanitized}[/dim]")
+                else:
+                    cli.info(sanitized)
             cli.blank()
 
         # Quick Start section (styled like Options/Commands) - only for root
@@ -157,7 +163,7 @@ class BengalGroup(click.Group):
         cli.console.print(
             f"[header]Usage:[/header] {prog_name} [dim][OPTIONS][/dim] [info]COMMAND[/info] [dim][ARGS]...[/dim]"
         )
-        cli.blank()
+        # Do not add an extra blank here; options/commands sections manage spacing.
 
         # Options
         if self.params:
@@ -171,6 +177,8 @@ class BengalGroup(click.Group):
         # Commands
         commands = self.list_commands(ctx)
         if commands:
+            if not self.params:
+                cli.blank()
             cli.header("Commands:")
             for name in commands:
                 cmd = self.get_command(ctx, name)
