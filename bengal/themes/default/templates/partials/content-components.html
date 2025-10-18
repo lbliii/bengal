@@ -118,7 +118,7 @@ Example:
 'type': 'section',
 'obj': subsection,
 'title': subsection.title,
-'url': subsection.url,
+'url': subsection.permalink,
 'description': subsection.metadata.get('description', '') if subsection.metadata and
 subsection.metadata.get('description', '') else '',
 'weight': subsection.metadata.get('weight', 999999) if subsection.metadata else 999999,
@@ -134,7 +134,7 @@ subsection.metadata.get('description', '') else '',
 'type': 'page',
 'obj': post,
 'title': post.title,
-'url': post.url,
+'url': post.permalink,
 'description': post.metadata.get('description', '') if post.metadata and post.metadata.get('description', '') else
 (post.content | strip_html | excerpt(120) if post.content else ''),
 'weight': post.metadata.get('weight', 999999) if post.metadata else 999999,
@@ -165,7 +165,7 @@ subsection.metadata.get('description', '') else '',
 
       <div class="child-item-content">
         <span class="child-item-title">
-          <a href="{{ item.url | absolute_url }}">{{ item.title }}</a>
+          <a href="{{ item.url }}">{{ item.title }}</a>
 
           {% if item.description %}
           <span class="child-item-description">{{ item.description }}</span>

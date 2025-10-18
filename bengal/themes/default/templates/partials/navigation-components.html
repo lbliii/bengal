@@ -245,7 +245,7 @@ Example:
       {% for subsection in page.sections %}
       <div class="subsection-card">
         <h3>
-          <a href="{{ url_for(subsection) }}">{{ subsection.title }}</a>
+          <a href="{{ subsection.permalink }}">{{ subsection.title }}</a>
         </h3>
         {% if subsection.metadata.get('description', '') %}
         <p>{{ subsection.metadata.get('description', '') }}</p>

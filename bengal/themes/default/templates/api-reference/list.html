@@ -84,7 +84,7 @@
 
                         <div class="api-item-content">
                             <span class="api-item-title">
-                                <a href="{{ url_for(subsection) }}">{{ subsection.title }}</a>
+                                <a href="{{ subsection.permalink }}">{{ subsection.title }}</a>
 
                                 {% if subsection.metadata.get('description', '') %}
                                 <span class="api-item-description">{{ subsection.metadata.get('description', '') }}</span>
@@ -123,7 +123,7 @@
 
                         <div class="api-item-content">
                             <span class="api-item-title">
-                                <a href="{{ url_for(post) }}">{{ post.title }}</a>
+                                <a href="{{ post.permalink }}">{{ post.title }}</a>
 
                                 {% if post.metadata.get('description') %}
                                 <span class="api-item-description">{{ post.metadata.get('description') }}</span>
