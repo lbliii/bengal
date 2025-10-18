@@ -484,7 +484,7 @@
 }
 
 /* Very Small Mobile - Stack only when absolutely necessary */
-/* Lower threshold so modern small phones (e.g., 430px) stay single-line */
+/* Using --breakpoint-xxs (400px) -> apply at 399px to avoid overlap */
 @media (max-width: 399px) {
   .action-bar {
     flex-wrap: wrap;

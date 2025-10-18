@@ -210,88 +210,96 @@ footer .container {
 
 /* Contemplative animation */
 .cat-contemplative .cat-head {
-  animation: contemplative-head 8s ease-in-out infinite;
+  animation: contemplative-head 6s ease-in-out infinite;
 }
 
 .cat-contemplative .cat-tail {
-  animation: contemplative-tail 5s ease-in-out infinite;
+  animation: contemplative-tail 4s ease-in-out infinite;
   transform-origin: right center;
 }
 
 @keyframes contemplative-head {
-
-  0%,
-  100% {
-    transform: rotate(0deg);
-  }
-
-  40% {
-    transform: rotate(-5deg);
-  }
-
-  60% {
-    transform: rotate(-5deg);
-  }
+  0%, 100% { transform: rotate(0deg); }
+  30% { transform: rotate(-8deg); }
+  45% { transform: rotate(-8deg); }
+  /* tiny ear twitch flick */
+  47% { transform: rotate(-10deg); }
+  49% { transform: rotate(-8deg); }
 }
 
 @keyframes contemplative-tail {
-
-  0%,
-  100% {
-    transform: rotate(0deg);
-  }
-
-  50% {
-    transform: rotate(-6deg);
-  }
+  0%, 100% { transform: rotate(0deg); }
+  30% { transform: rotate(-10deg); }
+  60% { transform: rotate(-12deg); }
 }
 
-/* Badge styles - using design tokens */
+/* Hover bounce to draw attention at tiny size */
+.bengal-badge:hover .cat-head,
+.bengal-badge:focus-visible .cat-head {
+  animation-duration: 2.2s;
+}
+
+.bengal-badge:hover .cat-tail,
+.bengal-badge:focus-visible .cat-tail {
+  animation-duration: 1.8s;
+}
+
+/* Minimal badge: icon-only link with tooltip */
 .bengal-badge {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-1-5);
-  padding: var(--space-1) var(--space-2-5);
-  border-radius: var(--radius-full);
-  font-size: var(--text-xxs);
-  font-weight: var(--font-medium);
+  justify-content: center;
+  width: 28px;
+  height: 28px;
   text-decoration: none;
-  transition: all var(--transition-normal) var(--ease-out);
-  background: transparent;
   color: var(--color-text-tertiary);
-  border: 1px solid var(--color-border);
+  transition: color var(--transition-fast) var(--ease-out), transform var(--transition-fast) var(--ease-out);
 }
 
 .bengal-badge .cat {
-  font-size: 13px;
-  /* Proportional to 11px text */
+  font-size: 15px; /* Slightly larger for visibility */
 }
 
-/* Hover state - theme aware */
 .bengal-badge:hover {
-  background: var(--color-bg-hover);
   color: var(--color-text-primary);
-  border-color: var(--color-border-strong);
   transform: translateY(-1px);
 }
 
-/* Ensure cat parts inherit color on hover */
-.bengal-badge:hover .cat {
-  color: inherit;
+/* Tooltip */
+.bengal-badge[data-tooltip] {
+  position: relative;
 }
 
-/* Dark theme adjustments */
-:root[data-theme="dark"] .bengal-badge,
-html[data-theme="dark"] .bengal-badge {
-  color: var(--color-text-secondary);
-  border-color: var(--color-border);
-}
-
-:root[data-theme="dark"] .bengal-badge:hover,
-html[data-theme="dark"] .bengal-badge:hover {
+.bengal-badge[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(-6px);
+  white-space: nowrap;
   background: var(--color-bg-tertiary);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 4px 6px;
+  font-size: var(--text-xxs);
+  line-height: 1;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--transition-fast) var(--ease-out), transform var(--transition-fast) var(--ease-out);
+}
+
+.bengal-badge[data-tooltip]:hover::after,
+.bengal-badge[data-tooltip]:focus-visible::after {
+  opacity: 1;
+  transform: translateX(-50%) translateY(-10px);
+}
+
+/* Dark theme tooltip contrast */
+:root[data-theme="dark"] .bengal-badge[data-tooltip]::after,
+html[data-theme="dark"] .bengal-badge[data-tooltip]::after {
+  background: var(--color-bg-hover);
   color: var(--color-text-primary);
-  border-color: var(--color-border-strong);
 }
 
 /* Respect reduced motion preferences */
@@ -302,11 +310,6 @@ html[data-theme="dark"] .bengal-badge:hover {
     animation: none;
   }
 
-  .bengal-badge {
-    transition: none;
-  }
-
-  .bengal-badge:hover {
-    transform: none;
-  }
+  .bengal-badge { transition: none; }
+  .bengal-badge:hover { transform: none; }
 }

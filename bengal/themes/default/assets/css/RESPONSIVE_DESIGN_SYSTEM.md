@@ -15,6 +15,7 @@ Bengal uses a **mobile-first, semantic breakpoint system** with standardized com
 
 ```css
 /* CSS Variables (for JS reference only - cannot be used in @media) */
+--breakpoint-xxs: 400px;  /* Very small phones; use 399px in CSS media */
 --breakpoint-sm: 640px;   /* Landscape phones, portrait tablets */
 --breakpoint-md: 768px;   /* Tablets */
 --breakpoint-lg: 1024px;  /* Laptops, small desktops */
