@@ -252,10 +252,10 @@ def _create_medium_templates(templates_dir: Path):
   {% if page.next or page.prev %}
   <nav class="pagination">
     {% if page.prev %}
-    <a href="{{ url_for(page.prev) }}">← {{ page.prev.title }}</a>
+    <a href="{{ page.prev.permalink }}">← {{ page.prev.title }}</a>
     {% endif %}
     {% if page.next %}
-    <a href="{{ url_for(page.next) }}">{{ page.next.title }} →</a>
+    <a href="{{ page.next.permalink }}">{{ page.next.title }} →</a>
     {% endif %}
   </nav>
   {% endif %}
@@ -331,7 +331,7 @@ def _create_heavy_templates(templates_dir: Path):
     <ul>
     {% for post in related %}
       <li>
-        <a href="{{ url_for(post) }}">{{ post.title }}</a>
+        <a href="{{ post.permalink }}">{{ post.title }}</a>
         <span>{{ post.date | date_format }}</span>
       </li>
     {% endfor %}
@@ -342,12 +342,12 @@ def _create_heavy_templates(templates_dir: Path):
 
   <nav class="pagination">
     {% if page.prev_in_section %}
-    <a href="{{ url_for(page.prev_in_section) }}" rel="prev">
+    <a href="{{ page.prev_in_section.permalink }}" rel="prev">
       ← {{ page.prev_in_section.title | truncatewords(5) }}
     </a>
     {% endif %}
     {% if page.next_in_section %}
-    <a href="{{ url_for(page.next_in_section) }}" rel="next">
+    <a href="{{ page.next_in_section.permalink }}" rel="next">
       {{ page.next_in_section.title | truncatewords(5) }} →
     </a>
     {% endif %}
