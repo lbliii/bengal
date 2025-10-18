@@ -35,3 +35,125 @@ output_dir = "public"
     assert '<meta name="bengal:baseurl" content="/bengal">' in html
     # Logo link uses absolute_url
     assert 'href="/bengal/"' in html
+
+
+def test_url_for_with_baseurl_path_only(tmp_path: Path):
+    """Test that url_for applies path-only base URLs correctly."""
+    # Arrange: site with path-only base URL
+    site_dir = tmp_path / "site"
+    (site_dir / "content").mkdir(parents=True)
+    (site_dir / "public").mkdir(parents=True)
+
+    cfg = site_dir / "bengal.toml"
+    cfg.write_text(
+        """
+[site]
+title = "Test"
+baseurl = "/bengal"
+
+[build]
+output_dir = "public"
+        """,
+        encoding="utf-8",
+    )
+
+    (site_dir / "content" / "api").mkdir(parents=True)
+    (site_dir / "content" / "api" / "module.md").write_text(
+        """---\ntitle: Module\n---\n# Module\n""", encoding="utf-8"
+    )
+
+    site = Site.from_config(site_dir)
+    engine = TemplateEngine(site)
+
+    # Create a mock page object
+    class MockPage:
+        def __init__(self, url):
+            self.url = url
+            self.slug = "module"
+
+    page = MockPage("/api/module/")
+    result = engine._url_for(page)
+
+    # Assert: url_for should prepend the base URL
+    assert result == "/bengal/api/module/"
+
+
+def test_url_for_with_baseurl_absolute(tmp_path: Path):
+    """Test that url_for applies absolute base URLs correctly."""
+    # Arrange: site with absolute base URL
+    site_dir = tmp_path / "site"
+    (site_dir / "content").mkdir(parents=True)
+    (site_dir / "public").mkdir(parents=True)
+
+    cfg = site_dir / "bengal.toml"
+    cfg.write_text(
+        """
+[site]
+title = "Test"
+baseurl = "https://example.com"
+
+[build]
+output_dir = "public"
+        """,
+        encoding="utf-8",
+    )
+
+    (site_dir / "content" / "api").mkdir(parents=True)
+    (site_dir / "content" / "api" / "module.md").write_text(
+        """---\ntitle: Module\n---\n# Module\n""", encoding="utf-8"
+    )
+
+    site = Site.from_config(site_dir)
+    engine = TemplateEngine(site)
+
+    # Create a mock page object
+    class MockPage:
+        def __init__(self, url):
+            self.url = url
+            self.slug = "module"
+
+    page = MockPage("/api/module/")
+    result = engine._url_for(page)
+
+    # Assert: url_for should prepend the absolute base URL
+    assert result == "https://example.com/api/module/"
+
+
+def test_url_for_without_baseurl(tmp_path: Path):
+    """Test that url_for works correctly without a base URL."""
+    # Arrange: site without base URL
+    site_dir = tmp_path / "site"
+    (site_dir / "content").mkdir(parents=True)
+    (site_dir / "public").mkdir(parents=True)
+
+    cfg = site_dir / "bengal.toml"
+    cfg.write_text(
+        """
+[site]
+title = "Test"
+
+[build]
+output_dir = "public"
+        """,
+        encoding="utf-8",
+    )
+
+    (site_dir / "content" / "api").mkdir(parents=True)
+    (site_dir / "content" / "api" / "module.md").write_text(
+        """---\ntitle: Module\n---\n# Module\n""", encoding="utf-8"
+    )
+
+    site = Site.from_config(site_dir)
+    engine = TemplateEngine(site)
+
+    # Create a mock page object
+    class MockPage:
+        def __init__(self, url):
+            self.url = url
+            self.slug = "module"
+
+    page = MockPage("/api/module/")
+    result = engine._url_for(page)
+
+    # Assert: url_for should return the URL as-is
+    assert result == "/api/module/"

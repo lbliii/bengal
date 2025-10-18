@@ -49,7 +49,25 @@ def register(env: "Environment", site: "Site") -> None:
         prefix = ""
         if strategy == "prefix" and lang and (default_in_subdir or lang != default_lang):
             prefix = f"/{lang}"
-        return f"{prefix}{tag_url(tag)}"
+        
+        # Generate tag URL and apply base URL
+        relative_url = f"{prefix}{tag_url(tag)}"
+        
+        # Apply base URL prefix if configured
+        baseurl = site.config.get("baseurl", "") or ""
+        if baseurl:
+            baseurl = baseurl.rstrip("/")
+            # Ensure relative_url starts with /
+            if not relative_url.startswith("/"):
+                relative_url = "/" + relative_url
+            # Handle absolute vs path-only base URLs
+            if baseurl.startswith(("http://", "https://", "file://")):
+                return f"{baseurl}{relative_url}"
+            else:
+                base_path = "/" + baseurl.lstrip("/")
+                return f"{base_path}{relative_url}"
+        
+        return relative_url
 
     env.filters.update(
         {

@@ -295,36 +295,75 @@ class TemplateEngine:
 
     def _url_for(self, page: Any) -> str:
         """
-        Generate URL for a page.
+        Generate URL for a page with base URL support.
 
         Args:
             page: Page object
 
         Returns:
-            URL path (clean, without index.html)
+            URL path (clean, without index.html) with base URL prefix if configured
         """
+        # Get the relative URL first
+        url = None
+        
         # Use the page's url property if available (clean URLs)
         try:
             if hasattr(page, "url"):
-                return page.url
+                url = page.url
         except Exception:
             pass
 
         # Support dict-like contexts (component preview/demo data)
-        try:
-            if isinstance(page, Mapping):
-                if "url" in page:
-                    return str(page["url"])
-                if "slug" in page:
-                    return f"/{page['slug']}/"
-        except Exception:
-            pass
+        if url is None:
+            try:
+                if isinstance(page, Mapping):
+                    if "url" in page:
+                        url = str(page["url"])
+                    elif "slug" in page:
+                        url = f"/{page['slug']}/"
+            except Exception:
+                pass
 
         # Fallback to slug-based URL for objects
+        if url is None:
+            try:
+                url = f"/{page.slug}/"
+            except Exception:
+                url = "/"
+        
+        # Apply base URL prefix if configured
+        return self._with_baseurl(url)
+    
+    def _with_baseurl(self, path: str) -> str:
+        """
+        Apply base URL prefix to a path.
+        
+        Args:
+            path: Relative path starting with '/'
+            
+        Returns:
+            Path with base URL prefix (absolute or path-only)
+        """
+        # Ensure path starts with '/'
+        if not path.startswith("/"):
+            path = "/" + path
+        
+        # Get baseurl from config
         try:
-            return f"/{page.slug}/"
+            baseurl_value = (self.site.config.get("baseurl", "") or "").rstrip("/")
         except Exception:
-            return "/"
+            baseurl_value = ""
+        
+        if not baseurl_value:
+            return path
+        
+        # Absolute baseurl (e.g., https://example.com/subpath, file:///...)
+        if baseurl_value.startswith(("http://", "https://", "file://")):
+            return f"{baseurl_value}{path}"
+        
+        # Path-only baseurl (e.g., /bengal)
+        base_path = "/" + baseurl_value.lstrip("/")
+        return f"{base_path}{path}"
 
     def _asset_url(self, asset_path: str) -> str:
         """
@@ -363,28 +402,10 @@ class TemplateEngine:
             logger.warning("asset_path_invalid", provided=str(asset_path))
             return "/assets/"
 
-        # Helper to prefix a URL path with baseurl (absolute or path-only)
-        def _with_baseurl(path: str) -> str:
-            # path must start with '/'
-            if not path.startswith("/"):
-                path = "/" + path
-            try:
-                baseurl_value = (self.site.config.get("baseurl", "") or "").rstrip("/")
-            except Exception:
-                baseurl_value = ""
-            if not baseurl_value:
-                return path
-            # Absolute baseurl (e.g., https://example.com/subpath, file:///...)
-            if baseurl_value.startswith(("http://", "https://", "file://")):
-                return f"{baseurl_value}{path}"
-            # Path-only baseurl (e.g., /bengal)
-            base_path = "/" + baseurl_value.lstrip("/")
-            return f"{base_path}{path}"
-
         # In dev server mode, prefer stable URLs without fingerprints for CSS/JS
         try:
             if self.site.config.get("dev_server", False):
-                return _with_baseurl(f"/assets/{safe_asset_path}")
+                return self._with_baseurl(f"/assets/{safe_asset_path}")
         except Exception:
             pass
 
@@ -403,10 +424,10 @@ class TemplateEngine:
                     parts = cand.name.split(".")
                     if len(parts) >= 3 and len(parts[-2]) >= 6:
                         rel = cand.relative_to(self.site.output_dir)
-                        return _with_baseurl(f"/{rel.as_posix()}")
+                        return self._with_baseurl(f"/{rel.as_posix()}")
         except Exception:
             pass
-        return _with_baseurl(f"/assets/{safe_asset_path}")
+        return self._with_baseurl(f"/assets/{safe_asset_path}")
 
     def _get_menu(self, menu_name: str = "main") -> list:
         """

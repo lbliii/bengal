@@ -24,18 +24,18 @@ logger = get_logger(__name__)
 def register(env: Environment, site: Site) -> None:
     """Register cross-reference functions with Jinja2 environment."""
 
-    # Create closures that have access to site's xref_index
+    # Create closures that have access to site's xref_index and baseurl
     def ref_with_site(path: str, text: str | None = None) -> Markup:
-        return ref(path, site.xref_index, text)
+        return ref(path, site.xref_index, site.config.get("baseurl", ""), text)
 
     def doc_with_site(path: str) -> Page | None:
         return doc(path, site.xref_index)
 
     def anchor_with_site(heading: str, page_path: str | None = None) -> Markup:
-        return anchor(heading, site.xref_index, page_path)
+        return anchor(heading, site.xref_index, site.config.get("baseurl", ""), page_path)
 
     def relref_with_site(path: str) -> str:
-        return relref(path, site.xref_index)
+        return relref(path, site.xref_index, site.config.get("baseurl", ""))
 
     env.globals.update(
         {
@@ -48,7 +48,7 @@ def register(env: Environment, site: Site) -> None:
     )
 
 
-def ref(path: str, index: dict, text: str | None = None) -> Markup:
+def ref(path: str, index: dict, baseurl: str = "", text: str | None = None) -> Markup:
     """
     Generate cross-reference link (like Sphinx :doc: or :ref:).
 
@@ -129,6 +129,18 @@ def ref(path: str, index: dict, text: str | None = None) -> Markup:
     # Generate link
     link_text = text or page.title
     url = page.url if hasattr(page, "url") else f"/{page.slug}/"
+    
+    # Apply base URL prefix if configured
+    if baseurl:
+        baseurl = baseurl.rstrip("/")
+        if not url.startswith("/"):
+            url = "/" + url
+        # Handle absolute vs path-only base URLs
+        if baseurl.startswith(("http://", "https://", "file://")):
+            url = f"{baseurl}{url}"
+        else:
+            base_path = "/" + baseurl.lstrip("/")
+            url = f"{base_path}{url}"
 
     logger.debug(
         "xref_resolved", path=path, strategy=lookup_strategy, url=url, page_title=page.title
@@ -209,7 +221,7 @@ def doc(path: str, index: dict) -> Page | None:
     return page
 
 
-def anchor(heading: str, index: dict, page_path: str | None = None) -> Markup:
+def anchor(heading: str, index: dict, baseurl: str = "", page_path: str | None = None) -> Markup:
     """
     Link to a heading (anchor) in a page.
 
@@ -256,11 +268,23 @@ def anchor(heading: str, index: dict, page_path: str | None = None) -> Markup:
     # Use first match
     page, anchor_id = results[0]
     url = page.url if hasattr(page, "url") else f"/{page.slug}/"
+    
+    # Apply base URL prefix if configured
+    if baseurl:
+        baseurl = baseurl.rstrip("/")
+        if not url.startswith("/"):
+            url = "/" + url
+        # Handle absolute vs path-only base URLs
+        if baseurl.startswith(("http://", "https://", "file://")):
+            url = f"{baseurl}{url}"
+        else:
+            base_path = "/" + baseurl.lstrip("/")
+            url = f"{base_path}{url}"
 
     return Markup(f'<a href="{url}#{anchor_id}">{heading}</a>')
 
 
-def relref(path: str, index: dict) -> str:
+def relref(path: str, index: dict, baseurl: str = "") -> str:
     """
     Get relative URL for a page (Hugo-style relref).
 
@@ -285,5 +309,19 @@ def relref(path: str, index: dict) -> str:
     page = doc(path, index)
     if not page:
         return ""
-
-    return page.url if hasattr(page, "url") else f"/{page.slug}/"
+    
+    url = page.url if hasattr(page, "url") else f"/{page.slug}/"
+    
+    # Apply base URL prefix if configured
+    if baseurl:
+        baseurl = baseurl.rstrip("/")
+        if not url.startswith("/"):
+            url = "/" + url
+        # Handle absolute vs path-only base URLs
+        if baseurl.startswith(("http://", "https://", "file://")):
+            return f"{baseurl}{url}"
+        else:
+            base_path = "/" + baseurl.lstrip("/")
+            return f"{base_path}{url}"
+    
+    return url
