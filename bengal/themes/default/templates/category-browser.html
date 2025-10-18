@@ -164,43 +164,43 @@ Context variables:
             {% set letter = cat[0]|upper %}
             {% if current.letter != letter %}
             {% if current.letter is not none %}
-                </ul>
-            </div>
-            {% endif %}
-            <div class="letter-group">
-                <strong class="letter">{{ letter }}</strong>
-                <ul class="letter-list">
-            {% set current.letter = letter %}
-            {% endif %}
-            {% set cat_posts = site.indexes.category.get(cat) | resolve_pages %}
-            {% if section_filters %}
-            {% set cat_posts = cat_posts | selectattr('_section.name', 'in', section_filters) | list %}
-            {% endif %}
-            {% if cat_posts %}
-                    <li>
-                        <a href="{{ ('/category/' ~ cat ~ '/') | absolute_url }}">
-                            {{ cat | title }} ({{ cat_posts | length }})
-                        </a>
-                    </li>
-            {% endif %}
-            {% endfor %}
-            {% if current.letter is not none %}
-                </ul>
-            </div>
-            {% endif %}
-        </nav>
-    </aside>
+            </ul>
+</div>
+{% endif %}
+<div class="letter-group">
+    <strong class="letter">{{ letter }}</strong>
+    <ul class="letter-list">
+        {% set current.letter = letter %}
+        {% endif %}
+        {% set cat_posts = site.indexes.category.get(cat) | resolve_pages %}
+        {% if section_filters %}
+        {% set cat_posts = cat_posts | selectattr('_section.name', 'in', section_filters) | list %}
+        {% endif %}
+        {% if cat_posts %}
+        <li>
+            <a href="{{ ('/category/' ~ cat ~ '/') | absolute_url }}">
+                {{ cat | title }} ({{ cat_posts | length }})
+            </a>
+        </li>
+        {% endif %}
+        {% endfor %}
+        {% if current.letter is not none %}
+    </ul>
+</div>
+{% endif %}
+</nav>
+</aside>
 
-    {% else %}
-    {# Empty State #}
-    <div class="browser-empty">
-        <div class="empty-state">
-            <p class="empty-message">No categories found.</p>
-            <p class="empty-hint">Add <code>categories: ["tutorial", "guide"]</code> to page frontmatter to create
-                categories.</p>
-        </div>
+{% else %}
+{# Empty State #}
+<div class="browser-empty">
+    <div class="empty-state">
+        <p class="empty-message">No categories found.</p>
+        <p class="empty-hint">Add <code>categories: ["tutorial", "guide"]</code> to page frontmatter to create
+            categories.</p>
     </div>
-    {% endif %}
+</div>
+{% endif %}
 </div>
 
 <script>
