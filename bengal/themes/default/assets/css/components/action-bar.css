@@ -11,6 +11,8 @@
 
 .action-bar-container {
   margin-bottom: 1.5rem;
+  width: 100%;
+  max-width: var(--prose-width);
 }
 
 .action-bar {
@@ -23,6 +25,8 @@
   border: 1px solid var(--color-border);
   border-radius: var(--border-radius-md);
   min-height: 40px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 /* ============================================================================

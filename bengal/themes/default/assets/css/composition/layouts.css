@@ -25,10 +25,7 @@
 .docs-layout {
   display: grid;
   grid-template-columns:
-    [sidebar-start] minmax(240px, 280px)
-    [content-start] minmax(0, 1fr)
-    [toc-start] minmax(200px, 260px)
-    [end];
+    [sidebar-start] minmax(240px, 280px) [content-start] minmax(0, 1fr) [toc-start] minmax(200px, 260px) [end];
   gap: 2rem;
   max-width: 1600px;
   margin: 0 auto;
@@ -37,7 +34,7 @@
 }
 
 /* Remove container constraints for docs layout */
-.container > .docs-layout {
+.container>.docs-layout {
   max-width: 100%;
   margin: 0;
   padding: 2rem;
@@ -47,7 +44,8 @@
 .docs-sidebar {
   grid-column: sidebar-start / content-start;
   position: sticky;
-  top: 80px; /* Account for fixed header */
+  top: 80px;
+  /* Account for fixed header */
   max-height: calc(100vh - 100px);
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -57,7 +55,8 @@
 /* Main Content */
 .docs-main {
   grid-column: content-start / toc-start;
-  min-width: 0; /* Prevent grid blowout */
+  min-width: 0;
+  /* Prevent grid blowout */
   /* max-width removed - let grid control width */
 }
 
@@ -80,9 +79,7 @@
 @media (max-width: 1024px) {
   .docs-layout {
     grid-template-columns:
-      [sidebar-start] minmax(240px, 260px)
-      [content-start] minmax(0, 1fr)
-      [end];
+      [sidebar-start] minmax(240px, 260px) [content-start] minmax(0, 1fr) [end];
     gap: 2rem;
   }
 
@@ -114,7 +111,8 @@
   .docs-sidebar {
     /* Convert to mobile drawer */
     position: fixed;
-    top: 60px; /* Mobile header height */
+    top: 60px;
+    /* Mobile header height */
     left: 0;
     bottom: 0;
     width: 280px;
@@ -283,10 +281,8 @@
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(
-    auto-fit,
-    minmax(var(--grid-min, 280px), 1fr)
-  );
+  grid-template-columns: repeat(auto-fit,
+      minmax(var(--grid-min, 280px), 1fr));
   gap: var(--grid-gap, var(--space-component-gap));
 }
 
@@ -350,16 +346,16 @@
   gap: var(--sidebar-gap, var(--space-section-gap));
 }
 
-.with-sidebar > * {
+.with-sidebar>* {
   flex-grow: 1;
 }
 
-.with-sidebar > :first-child {
+.with-sidebar> :first-child {
   flex-basis: var(--sidebar-width, 300px);
   flex-grow: 0;
 }
 
-.with-sidebar > :last-child {
+.with-sidebar> :last-child {
   flex-basis: 0;
   flex-grow: 999;
   min-width: 50%;
