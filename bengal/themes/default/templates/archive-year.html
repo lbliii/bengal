@@ -163,7 +163,7 @@ Context variables:
 
             {% if other_year_posts %}
             <li {% if other_year==year %}class="current-year" {% endif %}>
-                <a href="/archive/{{ other_year }}/">
+                <a href="{{ ('/archive/' ~ other_year ~ '/') | absolute_url }}">
                     {{ other_year }}
                     <span class="year-count">({{ other_year_posts | length }})</span>
                 </a>
@@ -178,7 +178,7 @@ Context variables:
     <div class="archive-empty">
         <div class="empty-state">
             <p class="empty-message">No posts found for {{ year }}.</p>
-            <a href="/archive/" class="button">Browse All Archives</a>
+            <a href="{{ '/archive/' | absolute_url }}" class="button">Browse All Archives</a>
         </div>
     </div>
     {% endif %}

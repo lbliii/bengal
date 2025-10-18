@@ -126,6 +126,10 @@ def test_url_for_without_baseurl(tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     # Ensure BENGAL_BASEURL isn't set from test matrix
     monkeypatch.delenv("BENGAL_BASEURL", raising=False)
     monkeypatch.delenv("BENGAL_BASE_URL", raising=False)
+    # Ensure CI environment variables don't auto-detect baseurl
+    monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
+    monkeypatch.delenv("NETLIFY", raising=False)
+    monkeypatch.delenv("VERCEL", raising=False)
 
     # Arrange: site without base URL
     site_dir = tmp_path / "site"

@@ -102,7 +102,7 @@ Context variables:
         <article class="category-card">
             <div class="category-header">
                 <h2 class="category-title">
-                    <a href="/category/{{ category }}/">{{ category | title }}</a>
+                    <a href="{{ ('/category/' ~ category ~ '/') | absolute_url }}">{{ category | title }}</a>
                 </h2>
                 <span class="category-count">{{ category_posts | length }} page{{ 's' if category_posts | length != 1
                     }}</span>
@@ -144,7 +144,7 @@ Context variables:
                 </ul>
 
                 {% if category_posts | length > show_recent %}
-                <a href="/category/{{ category }}/" class="view-all">
+                <a href="{{ ('/category/' ~ category ~ '/') | absolute_url }}" class="view-all">
                     View all {{ category_posts | length }} →
                 </a>
                 {% endif %}
@@ -171,7 +171,7 @@ Context variables:
                     {% endif %}
                     {% if cat_posts %}
                     <li>
-                        <a href="/category/{{ cat }}/">
+                        <a href="{{ ('/category/' ~ cat ~ '/') | absolute_url }}">
                             {{ cat | title }} ({{ cat_posts | length }})
                         </a>
                     </li>

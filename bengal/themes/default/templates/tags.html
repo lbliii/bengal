@@ -13,7 +13,7 @@
     <div class="tag-cloud">
         {% for tag in tags %}
         <div class="tag-item">
-            <a href="/tags/{{ tag.slug }}/" class="tag-link">
+            <a href="{{ ('/tags/' ~ tag.slug ~ '/') | absolute_url }}" class="tag-link">
                 <span class="tag-name">{{ tag.name }}</span>
                 <span class="tag-count">{{ tag.count }} post{% if tag.count != 1 %}s{% endif %}</span>
             </a>
