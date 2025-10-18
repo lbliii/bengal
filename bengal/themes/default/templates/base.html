@@ -256,8 +256,8 @@
                 {% if item.children %}
                 <ul class="submenu">
                     {% for child in item.children %}
-                                <li class="{{ 'active' if child.active else '' }}">
-                                    <a href="{{ child.url | url }}">{{ child.name }}</a>
+                    <li class="{{ 'active' if child.active else '' }}">
+                        <a href="{{ child.url | url }}">{{ child.name }}</a>
                     </li>
                     {% endfor %}
                 </ul>
@@ -318,9 +318,11 @@
                     {% endif %}
                 </div>
                 <div class="footer-right">
-                    <a href="https://github.com/lbliii/bengal" rel="noopener" class="bengal-badge" aria-label="Built with Bengal" data-tooltip="Built with Bengal" title="Built with Bengal">
+                    <a href="https://github.com/lbliii/bengal" rel="noopener" class="bengal-badge"
+                        aria-label="Built with Bengal" data-tooltip="Built with Bengal" title="Built with Bengal">
                         <span class="cat cat-contemplative">
-                            <span class="cat-tail">ᓚ</span><span class="cat-body">ᘏ</span><span class="cat-head">ᗢ</span>
+                            <span class="cat-tail">ᓚ</span><span class="cat-body">ᘏ</span><span
+                                class="cat-head">ᗢ</span>
                         </span>
                     </a>
                 </div>
