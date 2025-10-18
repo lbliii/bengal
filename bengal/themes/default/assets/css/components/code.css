@@ -111,6 +111,27 @@ pre code {
 }
 
 /* ============================================
+   XXS adjustments (<= --breakpoint-xxs): keep toolbar compact
+   Use 399px to avoid overlap with min-width queries
+   ============================================ */
+@media (max-width: 399px) {
+  .code-header {
+    padding: var(--space-2) var(--space-3);
+    gap: 0.5rem;
+  }
+
+  .code-language {
+    font-size: var(--text-xxs);
+  }
+
+  .code-copy-button {
+    padding: 0.25rem 0.5rem;
+    font-size: var(--text-xxs);
+    gap: 0.25rem;
+  }
+}
+
+/* ============================================
    SYNTAX HIGHLIGHTING (Pygments-compatible)
    ============================================ */
 

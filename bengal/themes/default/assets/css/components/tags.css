@@ -32,6 +32,19 @@
   transition: all var(--transition-fast) var(--ease-out);
 }
 
+/* XXS adjustments (<= --breakpoint-xxs): fit chip rows without wrapping */
+@media (max-width: 399px) {
+  .tags {
+    gap: var(--space-1);
+  }
+
+  .tag {
+    padding: 2px 8px;
+    font-size: var(--text-xxs);
+    gap: 0.25rem;
+  }
+}
+
 .tag:hover {
   color: var(--color-text-inverse);
   background-color: var(--color-primary);

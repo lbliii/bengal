@@ -484,8 +484,8 @@
 }
 
 /* Very Small Mobile - Stack only when absolutely necessary */
-/* Using 479px to avoid overlap with 480px min-width queries */
-@media (max-width: 479px) {
+/* Using --breakpoint-xxs (400px) -> apply at 399px to avoid overlap */
+@media (max-width: 399px) {
   .action-bar {
     flex-wrap: wrap;
     gap: 0.625rem;

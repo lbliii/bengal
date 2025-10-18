@@ -370,6 +370,8 @@
    --container-2xl: 1536px;
 
    /* Breakpoints (for reference in JS) */
+   --breakpoint-xxs: 400px;
+   /* Very small phones; use 399px in CSS media to avoid overlap */
    --breakpoint-sm: 640px;
    --breakpoint-md: 768px;
    --breakpoint-lg: 1024px;

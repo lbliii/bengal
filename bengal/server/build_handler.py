@@ -50,8 +50,8 @@ class BuildHandler(FileSystemEventHandler):
         observer.start()
     """
 
-    # Debounce delay in seconds
-    DEBOUNCE_DELAY = 0.2
+    # Debounce delay in seconds (slightly higher to coalesce noisy editor events)
+    DEBOUNCE_DELAY = 0.3
 
     def __init__(self, site: Any, host: str = "localhost", port: int = 5173) -> None:
         """
@@ -97,27 +97,58 @@ class BuildHandler(FileSystemEventHandler):
         Returns:
             True if file should be ignored
         """
-        ignore_patterns = [
+        path = Path(file_path)
+
+        # Ignore common transient files by suffix
+        suffix_ignores = {
             ".swp",
             ".swo",
             ".swx",  # Vim swap files
             ".tmp",
-            "~",  # Temp files
             ".pyc",
-            ".pyo",  # Python cache
-            "__pycache__",  # Python cache dir
-            ".DS_Store",  # macOS
-            ".git",  # Git
-            ".bengal-cache.json",  # Bengal cache
-            ".bengal-build.log",  # Build log (would cause infinite rebuild loop!)
-            "public/",  # Default output directory
-        ]
+            ".pyo",
+            ".orig",
+            ".rej",
+            "~",  # Editor backup files (Emacs, Vim)
+            "~~",  # Alternate backup suffixes
+        }
 
-        path = Path(file_path)
-        name = path.name
+        # Ignore common transient files by exact filename
+        name_ignores = {
+            ".DS_Store",
+            ".bengal-cache.json",
+            ".bengal-build.log",
+        }
 
-        # Check if file matches any ignore pattern
-        return any(pattern in name or name.endswith(pattern) for pattern in ignore_patterns)
+        # Ignore when file lives under these directories anywhere in the path
+        dir_ignores = {
+            ".git",
+            "node_modules",
+            "__pycache__",
+            ".pytest_cache",
+            ".mypy_cache",
+            ".cache",
+            "venv",
+            ".venv",
+            ".idea",
+            ".vscode",
+            "coverage",
+            "htmlcov",
+            "dist",
+            "build",
+            "public",
+        }
+
+        # Suffix ignores
+        if any(str(path).endswith(suf) for suf in suffix_ignores):
+            return True
+
+        # Filename ignores
+        if path.name in name_ignores:
+            return True
+
+        # Directory ignores (match any segment)
+        return any(seg in dir_ignores for seg in path.parts)
 
     def _trigger_build(self) -> None:
         """
@@ -215,34 +246,38 @@ class BuildHandler(FileSystemEventHandler):
                     parallel=stats.parallel,
                 )
 
-                # Notify SSE clients: CSS-only changes trigger CSS hot-reload
-                try:
-                    changed_lower = [str(p).lower() for p in changed_files]
-                    only_css = len(changed_files) > 0 and all(
-                        path.endswith(".css") for path in changed_lower
-                    )
-                except Exception:
-                    only_css = False
-
-                if only_css:
-                    from bengal.server.live_reload import set_reload_action
-
-                    set_reload_action("reload-css")
+                # Suppress reload if build was skipped (no effective output changes)
+                if getattr(stats, "skipped", False):
+                    logger.info("reload_suppressed", reason="build_skipped")
                 else:
-                    from bengal.server.live_reload import set_reload_action
+                    # Notify SSE clients: CSS-only changes trigger CSS hot-reload
+                    try:
+                        changed_lower = [str(p).lower() for p in changed_files]
+                        only_css = len(changed_files) > 0 and all(
+                            path.endswith(".css") for path in changed_lower
+                        )
+                    except Exception:
+                        only_css = False
 
-                    set_reload_action("reload")
+                    if only_css:
+                        from bengal.server.live_reload import set_reload_action
 
-                notify_clients_reload()
+                        set_reload_action("reload-css")
+                    else:
+                        from bengal.server.live_reload import set_reload_action
 
-                # Clear HTML cache after successful rebuild (files have changed)
-                from bengal.server.request_handler import BengalRequestHandler
+                        set_reload_action("reload")
 
-                with BengalRequestHandler._html_cache_lock:
-                    cache_size = len(BengalRequestHandler._html_cache)
-                    BengalRequestHandler._html_cache.clear()
-                if cache_size > 0:
-                    logger.debug("html_cache_cleared", entries_removed=cache_size)
+                    notify_clients_reload()
+
+                    # Clear HTML cache after successful rebuild (files have changed)
+                    from bengal.server.request_handler import BengalRequestHandler
+
+                    with BengalRequestHandler._html_cache_lock:
+                        cache_size = len(BengalRequestHandler._html_cache)
+                        BengalRequestHandler._html_cache.clear()
+                    if cache_size > 0:
+                        logger.debug("html_cache_cleared", entries_removed=cache_size)
             except Exception as e:
                 build_duration = time.time() - build_start
 

@@ -110,14 +110,14 @@
   }
 
   .nav-next {
-    text-align: left;
-    justify-self: start;
+    text-align: right;
+    justify-self: end;
   }
 
   /* Reset placement when single item on mobile */
   .nav-links>.nav-next:only-child {
     grid-column: auto;
-    justify-self: start;
+    justify-self: end;
   }
 
   .breadcrumbs {
