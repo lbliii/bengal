@@ -40,11 +40,8 @@ Usage:
     {# Cache sorted lists and subsection index URLs for O(1) lookups #}
     {% set sorted_pages = root_section.sorted_pages %}
     {% set sorted_subsections = root_section.sorted_subsections %}
-    {% if root_section is defined and root_section is not none and root_section.subsection_index_urls is defined %}
-        {% set subsection_index_urls = root_section.subsection_index_urls %}
-    {% else %}
-        {% set subsection_index_urls = sorted_subsections | map(attribute='index_page') | select('defined') | map(attribute='url') | list %}
-    {% endif %}
+    {# subsection_index_urls is a set from Python for O(1) membership checks #}
+    {% set subsection_index_urls = root_section.subsection_index_urls %}
     {% set root_index_url = root_section.index_page.url if root_section.index_page else none %}
 
     {# Show the section's index page if it exists #}
