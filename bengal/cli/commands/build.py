@@ -4,6 +4,7 @@ from pathlib import Path
 
 import click
 
+from bengal.cli.base import BengalCommand
 from bengal.core.site import Site
 from bengal.utils.build_stats import (
     display_build_stats,
@@ -167,7 +168,7 @@ def _run_autodoc_before_build(config_path: Path, root_path: Path, quiet: bool) -
         cli.blank()
 
 
-@click.command()
+@click.command(cls=BengalCommand)
 @click.option(
     "--parallel/--no-parallel",
     default=True,
@@ -398,7 +399,7 @@ def build(
 
         # Determine if we should use rich status spinner
         try:
-            from bengal.utils.rich_console import get_console, should_use_rich
+            from bengal.utils.rich_console import should_use_rich
 
             use_rich_spinner = should_use_rich() and not quiet
         except ImportError:
@@ -459,10 +460,8 @@ def build(
 
                 cli.blank()
                 cli.header("📊 Performance Profile (Top 20 by cumulative time):")
-                if cli.use_rich:
-                    cli.console.print(s.getvalue())
-                else:
-                    cli.info(s.getvalue())
+                for line in s.getvalue().splitlines():
+                    cli.info(line)
                 cli.success(f"Full profile saved to: {perf_profile_path}")
                 cli.warning("Analyze with: python -m pstats " + str(perf_profile_path))
         else:

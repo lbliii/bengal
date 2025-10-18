@@ -8,10 +8,11 @@ from bengal.autodoc.config import load_autodoc_config
 from bengal.autodoc.extractors.cli import CLIExtractor
 from bengal.autodoc.extractors.python import PythonExtractor
 from bengal.autodoc.generator import DocumentationGenerator
+from bengal.cli.base import BengalCommand
 from bengal.utils.cli_output import CLIOutput
 
 
-@click.command()
+@click.command(cls=BengalCommand)
 @click.option(
     "--source",
     "-s",
@@ -61,7 +62,7 @@ def autodoc(
         bengal autodoc --source src       # Override Python source
     """
     import time
-    
+
     cli = CLIOutput()
 
     try:
@@ -82,7 +83,9 @@ def autodoc(
             cli.blank()
             cli.info("Either:")
             cli.info("  • Enable Python docs in bengal.toml: [autodoc.python] enabled = true")
-            cli.info("  • Enable CLI docs in bengal.toml: [autodoc.cli] enabled = true, app_module = '...'")
+            cli.info(
+                "  • Enable CLI docs in bengal.toml: [autodoc.cli] enabled = true, app_module = '...'"
+            )
             cli.info("  • Use --python-only or --cli-only flags")
             return
 
@@ -155,7 +158,7 @@ def _generate_python_docs(
 ) -> None:
     """Generate Python API documentation."""
     import time
-    
+
     cli = CLIOutput()
 
     cli.header("🐍 Python API Documentation")
@@ -202,7 +205,9 @@ def _generate_python_docs(
             func_count = sum(
                 len([c for c in e.children if c.element_type == "function"]) for e in elements
             )
-            cli.info(f"   ✓ Found {module_count} modules, {class_count} classes, {func_count} functions")
+            cli.info(
+                f"   ✓ Found {module_count} modules, {class_count} classes, {func_count} functions"
+            )
 
     extraction_time = time.time() - start_time
 
@@ -255,7 +260,7 @@ def _generate_cli_docs(
     """Generate CLI documentation."""
     import importlib
     import time
-    
+
     cli = CLIOutput()
 
     cli.header("⌨️  CLI Documentation")
@@ -337,7 +342,7 @@ def _generate_cli_docs(
     cli.info(f"      • Options:  {option_count}")
     cli.info(f"      • Pages:    {len(generated_files)}")
     cli.blank()
-    cli.header("   ⚡ Performance:")
+    cli.info("   ⚡ Performance:")
     cli.info(f"      • Extraction: {extraction_time:.3f}s")
     cli.info(f"      • Generation: {gen_time:.3f}s")
     cli.info(f"      • Total:      {total_time:.3f}s")
@@ -350,7 +355,7 @@ def _generate_cli_docs(
     cli.blank()
 
 
-@click.command(name="autodoc-cli")
+@click.command(name="autodoc-cli", cls=BengalCommand)
 @click.option("--app", "-a", help="CLI app module (e.g., bengal.cli:main)")
 @click.option(
     "--framework",
@@ -393,7 +398,7 @@ def autodoc_cli(
     import time
 
     cli = CLIOutput()
-    
+
     try:
         cli.blank()
         cli.header("⌨️  Bengal CLI Autodoc")

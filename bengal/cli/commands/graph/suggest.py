@@ -5,12 +5,13 @@ from pathlib import Path
 
 import click
 
+from bengal.cli.base import BengalCommand
 from bengal.core.site import Site
 from bengal.utils.cli_output import CLIOutput
 from bengal.utils.logger import LogLevel, close_all_loggers, configure_logging
 
 
-@click.command()
+@click.command(cls=BengalCommand)
 @click.option(
     "--top-n", "-n", default=50, type=int, help="Number of suggestions to show (default: 50)"
 )
@@ -60,7 +61,7 @@ def suggest(top_n: int, min_score: float, format: str, config: str, source: str)
     from bengal.analysis.knowledge_graph import KnowledgeGraph
 
     cli = CLIOutput()
-    
+
     try:
         configure_logging(level=LogLevel.WARNING)
 

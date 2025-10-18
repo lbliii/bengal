@@ -4,7 +4,9 @@ from pathlib import Path
 
 import click
 
+from bengal.cli.base import BengalCommand, BengalGroup
 from bengal.core.site import Site
+from bengal.utils.cli_output import CLIOutput
 from bengal.utils.logger import LogLevel, close_all_loggers, configure_logging
 
 from .bridges import bridges
@@ -13,13 +15,13 @@ from .pagerank import pagerank
 from .suggest import suggest
 
 
-@click.group("graph")
+@click.group("graph", cls=BengalGroup)
 def graph_cli():
     """Commands for analyzing the site's knowledge graph."""
     pass
 
 
-@click.command("analyze")
+@click.command("analyze", cls=BengalCommand)
 @click.option(
     "--stats",
     "show_stats",
@@ -78,6 +80,7 @@ def analyze(show_stats: bool, tree: bool, output: str, config: str, source: str)
                     graph_obj.build()
             else:
                 # Fallback to simple messages
+                cli = CLIOutput()
                 cli.info("🔍 Discovering site content...")
                 from bengal.orchestration.content import ContentOrchestrator
 
@@ -89,6 +92,7 @@ def analyze(show_stats: bool, tree: bool, output: str, config: str, source: str)
                 graph_obj.build()
         except ImportError:
             # Rich not available, use simple messages
+            cli = CLIOutput()
             cli.info("🔍 Discovering site content...")
             from bengal.orchestration.content import ContentOrchestrator
 
@@ -166,7 +170,7 @@ def analyze(show_stats: bool, tree: bool, output: str, config: str, source: str)
                             section_branch.add(f"[dim]... and {remaining} more pages[/dim]")
 
                     # Print the Rich Tree component (complex visualization)
-                    console.print(tree_root)
+                    cli.console.print(tree_root)
                     cli.blank()
                 else:
                     from bengal.utils.cli_output import CLIOutput
@@ -182,11 +186,13 @@ def analyze(show_stats: bool, tree: bool, output: str, config: str, source: str)
         # Show statistics
         if show_stats:
             stats = graph_obj.format_stats()
+            cli = CLIOutput()
             cli.info(stats)
 
         # Generate visualization if requested
         if output:
             output_path = Path(output).resolve()
+            cli = CLIOutput()
             cli.blank()
             cli.header("Generating interactive visualization...")
             cli.info(f"   ↪ {output_path}")
@@ -211,10 +217,12 @@ def analyze(show_stats: bool, tree: bool, output: str, config: str, source: str)
                 cli.info("   This feature is coming in Phase 2!")
 
     except Exception as e:
+        cli = CLIOutput()
         cli.error(f"❌ Error: {e}")
         raise click.Abort() from e
     finally:
         close_all_loggers()
+
 
 graph_cli.add_command(analyze)
 graph_cli.add_command(pagerank)

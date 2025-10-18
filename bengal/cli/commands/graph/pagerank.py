@@ -5,12 +5,13 @@ from pathlib import Path
 
 import click
 
+from bengal.cli.base import BengalCommand
 from bengal.core.site import Site
 from bengal.utils.cli_output import CLIOutput
 from bengal.utils.logger import LogLevel, close_all_loggers, configure_logging
 
 
-@click.command()
+@click.command(cls=BengalCommand)
 @click.option(
     "--top-n", "-n", default=20, type=int, help="Number of top pages to show (default: 20)"
 )
@@ -54,7 +55,7 @@ def pagerank(top_n: int, damping: float, format: str, config: str, source: str) 
     from bengal.analysis.knowledge_graph import KnowledgeGraph
 
     cli = CLIOutput()
-    
+
     try:
         # Configure minimal logging
         configure_logging(level=LogLevel.WARNING)
@@ -75,17 +76,13 @@ def pagerank(top_n: int, damping: float, format: str, config: str, source: str) 
 
         # Discover content and compute PageRank with status indicator
         if cli.use_rich:
-            with cli.console.status(
-                "[info]Discovering site content...", spinner="dots"
-            ) as status:
+            with cli.console.status("[info]Discovering site content...", spinner="dots") as status:
                 from bengal.orchestration.content import ContentOrchestrator
 
                 content_orch = ContentOrchestrator(site)
                 content_orch.discover()
 
-                status.update(
-                    f"[info]Building knowledge graph from {len(site.pages)} pages..."
-                )
+                status.update(f"[info]Building knowledge graph from {len(site.pages)} pages...")
                 graph_obj = KnowledgeGraph(site)
                 graph_obj.build()
 

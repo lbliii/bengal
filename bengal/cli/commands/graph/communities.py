@@ -5,12 +5,13 @@ from pathlib import Path
 
 import click
 
+from bengal.cli.base import BengalCommand
 from bengal.core.site import Site
 from bengal.utils.cli_output import CLIOutput
 from bengal.utils.logger import LogLevel, close_all_loggers, configure_logging
 
 
-@click.command()
+@click.command(cls=BengalCommand)
 @click.option(
     "--min-size", "-m", default=2, type=int, help="Minimum community size to show (default: 2)"
 )
@@ -67,8 +68,6 @@ def communities(
     from bengal.analysis.knowledge_graph import KnowledgeGraph
 
     cli = CLIOutput()
-
-    
 
     try:
         # Configure minimal logging

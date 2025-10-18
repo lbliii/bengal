@@ -5,13 +5,14 @@ from pathlib import Path
 
 import click
 
+from bengal.cli.base import BengalGroup
 from bengal.core.site import Site
 from bengal.utils.cli_output import CLIOutput
 from bengal.utils.swizzle import SwizzleManager
 from bengal.utils.theme_registry import get_installed_themes, get_theme_package
 
 
-@click.group()
+@click.group(cls=BengalGroup)
 def theme() -> None:
     """Theme utilities (list/info/discover/install, swizzle)."""
     pass

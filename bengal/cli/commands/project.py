@@ -2,6 +2,7 @@ from pathlib import Path
 
 import click
 
+from bengal.cli.base import BengalGroup
 from bengal.cli.commands.init import init
 from bengal.utils.build_stats import show_error
 from bengal.utils.cli_output import CLIOutput
@@ -47,7 +48,7 @@ PROFILES = {
 }
 
 
-@click.group("project")
+@click.group("project", cls=BengalGroup)
 def project_cli():
     """
     📦 Project management and setup commands.
@@ -80,7 +81,7 @@ def profile(profile_name: str) -> None:
         bengal project profile writer    # Switch to content writer profile
     """
     cli = CLIOutput()
-    
+
     try:
         profile_path = Path(".bengal-profile")
 
@@ -97,16 +98,12 @@ def profile(profile_name: str) -> None:
             for profile_key, profile_info in PROFILES.items():
                 marker = "✓ " if profile_key == current_profile else "  "
                 is_current = profile_key == current_profile
-                
-                if cli.use_rich:
-                    style = "info" if is_current else "default"
-                    bold = " bold" if is_current else ""
-                    cli.console.print(
-                        f"[{style}]{marker}{profile_info['emoji']} {profile_info['name']}[/{style}]{bold} "
-                        f"[dim]- {profile_info['description']}[/dim]"
-                    )
+
+                profile_line = f"{marker}{profile_info['emoji']} {profile_info['name']} - {profile_info['description']}"
+                if is_current:
+                    cli.detail(profile_line, indent=1)
                 else:
-                    cli.info(f"{marker}{profile_info['emoji']} {profile_info['name']} - {profile_info['description']}")
+                    cli.detail(profile_line, indent=1)
 
             if current_profile:
                 cli.blank()
@@ -134,10 +131,7 @@ def profile(profile_name: str) -> None:
         profile_info = PROFILES[profile_name]
         cli.blank()
         cli.success(f"✓ Profile set to: {profile_info['emoji']} {profile_info['name']}")
-        if cli.use_rich:
-            cli.console.print(f"  [dim]{profile_info['description']}[/dim]")
-        else:
-            cli.info(f"  {profile_info['description']}")
+        cli.detail(profile_info["description"], indent=1)
         cli.blank()
 
         # Show what changed
@@ -169,7 +163,7 @@ def validate() -> None:
         ✓ Content files parseable
     """
     cli = CLIOutput()
-    
+
     try:
         import tomllib
         from pathlib import Path
@@ -265,7 +259,7 @@ def info() -> None:
         - Configuration paths
     """
     cli = CLIOutput()
-    
+
     try:
         import tomllib
         from pathlib import Path
@@ -369,7 +363,7 @@ def config(key: str, value: str, set_value: bool, list_all: bool) -> None:
         bengal project config --list             # List all options
     """
     cli = CLIOutput()
-    
+
     try:
         import tomllib
         from pathlib import Path

@@ -16,6 +16,7 @@ from pathlib import Path
 
 import click
 
+from bengal.cli.base import BengalCommand
 from bengal.utils.build_stats import show_error
 from bengal.utils.cli_output import CLIOutput
 
@@ -358,10 +359,12 @@ def format_file_tree(operations: list[FileOperation], content_dir: Path) -> str:
     return "\n".join(lines)
 
 
-@click.command()
+@click.command(cls=BengalCommand)
 @click.option(
     "--sections",
-    help="Comma-separated section names (e.g., 'blog,projects,about')",
+    "-s",
+    multiple=True,
+    help="Content sections to create (e.g., blog posts about). Default: blog",
 )
 @click.option(
     "--with-content",
@@ -399,7 +402,7 @@ def init(
       bengal init --sections "docs,guides" --dry-run
     """
     cli = CLIOutput()
-    
+
     try:
         # Ensure we're in a Bengal site
         content_dir = Path("content")

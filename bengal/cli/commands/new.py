@@ -5,6 +5,7 @@ from pathlib import Path
 
 import click
 
+from bengal.cli.base import BengalGroup
 from bengal.cli.site_templates import get_template
 
 # Add these imports
@@ -78,8 +79,7 @@ def _should_run_init_wizard(template: str, no_init: bool, init_preset: str) -> b
 
 def _run_init_wizard(preset: str = None) -> str | None:
     """Run the site initialization wizard and return the selected template ID or None."""
-    import click
-    
+
     cli = CLIOutput()
 
     # If preset was provided via flag, use it directly
@@ -163,7 +163,9 @@ def _run_init_wizard(preset: str = None) -> str | None:
         )
         pages_per = cli.prompt("Pages per section", default=3, type=int)
         cli.blank()
-        cli.info(f"✨ Custom structure noted (sections={sections_input}, pages={pages_per}). Basic site created; run 'bengal init --sections {sections_input} --pages-per-section {pages_per} --with-content' after to add structure.")
+        cli.info(
+            f"✨ Custom structure noted (sections={sections_input}, pages={pages_per}). Basic site created; run 'bengal init --sections {sections_input} --pages-per-section {pages_per} --with-content' after to add structure."
+        )
         return "default"  # Custom needs post-creation init
 
     # Regular preset selected
@@ -173,7 +175,7 @@ def _run_init_wizard(preset: str = None) -> str | None:
     return selected_preset.get("template_id", "default")
 
 
-@click.group()
+@click.group(cls=BengalGroup)
 def new() -> None:
     """
     ✨ Create new site, page, layout, partial, or theme.
@@ -210,7 +212,7 @@ def site(name: str, theme: str, template: str, no_init: bool, init_preset: str) 
     🏗️  Create a new Bengal site with optional structure initialization.
     """
     cli = CLIOutput()
-    
+
     try:
         # Prompt for site name if not provided
         if not name:
@@ -381,7 +383,9 @@ Thumbs.db
             cli.warning("💡 Run 'bengal init' to add structure later.")
         if is_custom:
             cli.blank()
-            cli.warning("💡 For custom sections, run 'bengal init --sections <your-list> --with-content' now.")
+            cli.warning(
+                "💡 For custom sections, run 'bengal init --sections <your-list> --with-content' now."
+            )
 
         # Show next steps
         cli.blank()
@@ -441,7 +445,7 @@ def page(name: str, section: str) -> None:
     Example: "My Awesome Page" → my-awesome-page.md
     """
     cli = CLIOutput()
-    
+
     try:
         # Ensure we're in a Bengal site
         content_dir = Path("content")
@@ -503,7 +507,7 @@ def layout(name: str) -> None:
     Example: "article" → templates/layouts/article.html
     """
     cli = CLIOutput()
-    
+
     try:
         # Ensure we're in a Bengal site
         templates_dir = Path("templates")
@@ -559,7 +563,7 @@ def partial(name: str) -> None:
     Example: "sidebar" → templates/partials/sidebar.html
     """
     cli = CLIOutput()
-    
+
     try:
         # Ensure we're in a Bengal site
         templates_dir = Path("templates")
@@ -623,7 +627,7 @@ def theme(name: str) -> None:
     Example: "my-theme" → themes/my-theme/ with templates, partials, and assets
     """
     cli = CLIOutput()
-    
+
     try:
         if not name:
             name = cli.prompt("Enter theme name")

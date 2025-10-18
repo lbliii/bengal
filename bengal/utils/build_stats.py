@@ -5,8 +5,6 @@ Build statistics display with colorful output and ASCII art.
 from dataclasses import dataclass
 from typing import Any
 
-import click
-
 from bengal.utils.cli_output import CLIOutput
 
 
@@ -165,8 +163,8 @@ def display_warnings(stats: BuildStats) -> None:
         return
 
     cli = CLIOutput()
-    
-    # Header  
+
+    # Header
     warning_count = len(stats.warnings)
     cli.error_header(f"Build completed with warnings ({warning_count})")
 
@@ -182,7 +180,7 @@ def display_warnings(stats: BuildStats) -> None:
 
     for warning_type, type_warnings in grouped.items():
         type_name = type_names.get(warning_type, warning_type.title())
-        
+
         if cli.use_rich:
             cli.console.print(f"   [header]{type_name} ({len(type_warnings)}):[/header]")
         else:
@@ -194,14 +192,18 @@ def display_warnings(stats: BuildStats) -> None:
 
             # Show short path
             if cli.use_rich:
-                cli.console.print(f"   [info]{prefix}[/info][warning]{warning.short_path}[/warning]")
+                cli.console.print(
+                    f"   [info]{prefix}[/info][warning]{warning.short_path}[/warning]"
+                )
             else:
                 cli.info(f"{prefix}{warning.short_path}")
 
             # Show message indented
             msg_prefix = "      " if is_last else "   │  "
             if cli.use_rich:
-                cli.console.print(f"   [info]{msg_prefix}└─[/info] [error]{warning.message}[/error]")
+                cli.console.print(
+                    f"   [info]{msg_prefix}└─[/info] [error]{warning.message}[/error]"
+                )
             else:
                 cli.info(f"{msg_prefix}└─ {warning.message}")
 
@@ -220,7 +222,7 @@ def display_simple_build_stats(stats: BuildStats, output_dir: str | None = None)
         output_dir: Output directory path to display
     """
     cli = CLIOutput()
-    
+
     if stats.skipped:
         cli.blank()
         cli.info("✨ No changes detected - build skipped!")
@@ -240,7 +242,7 @@ def display_simple_build_stats(stats: BuildStats, output_dir: str | None = None)
     # Show template errors if any (critical for writers)
     if stats.template_errors:
         cli.error_header(f"{len(stats.template_errors)} template error(s)")
-        
+
         for error in stats.template_errors[:3]:  # Show first 3
             # Extract key info without overwhelming detail
             template_name = (
@@ -249,7 +251,7 @@ def display_simple_build_stats(stats: BuildStats, output_dir: str | None = None)
                 else "unknown"
             )
             message = str(error.message)[:80]  # Truncate long messages
-            
+
             if cli.use_rich:
                 cli.console.print(f"   • [warning]{template_name}[/warning]: {message}")
             else:
@@ -273,7 +275,9 @@ def display_simple_build_stats(stats: BuildStats, output_dir: str | None = None)
         cli.warning(f"⚠️  {len(link_warnings)} broken link(s) found:")
         for warning in link_warnings[:5]:  # Show first 5
             if cli.use_rich:
-                cli.console.print(f"   • [warning]{warning.short_path}[/warning] → {warning.message}")
+                cli.console.print(
+                    f"   • [warning]{warning.short_path}[/warning] → {warning.message}"
+                )
             else:
                 cli.info(f"   • {warning.short_path} → {warning.message}")
         if len(link_warnings) > 5:
@@ -298,7 +302,7 @@ def display_build_stats(
         output_dir: Output directory path to display
     """
     cli = CLIOutput()
-    
+
     if stats.skipped:
         cli.blank()
         cli.info("✨ No changes detected - build skipped!")
@@ -313,9 +317,15 @@ def display_build_stats(
     if has_warnings:
         if cli.use_rich:
             cli.console.print()
-            cli.console.print("[info]┌─────────────────────────────────────────────────────┐[/info]")
-            cli.console.print("[info]│[/info][warning]         ⚠️  BUILD COMPLETE (WITH WARNINGS)          [/warning][info]│[/info]")
-            cli.console.print("[info]└─────────────────────────────────────────────────────┘[/info]")
+            cli.console.print(
+                "[info]┌─────────────────────────────────────────────────────┐[/info]"
+            )
+            cli.console.print(
+                "[info]│[/info][warning]         ⚠️  BUILD COMPLETE (WITH WARNINGS)          [/warning][info]│[/info]"
+            )
+            cli.console.print(
+                "[info]└─────────────────────────────────────────────────────┘[/info]"
+            )
         else:
             cli.blank()
             cli.warning("         ⚠️  BUILD COMPLETE (WITH WARNINGS)          ")
@@ -333,28 +343,44 @@ def display_build_stats(
     cli.blank()
     if cli.use_rich:
         cli.console.print("[header]📊 Content Statistics:[/header]")
-        cli.console.print(f"   [info]├─[/info] Pages:       [success]{stats.total_pages}[/success] ({stats.regular_pages} regular + {stats.generated_pages} generated)")
-        cli.console.print(f"   [info]├─[/info] Sections:    [success]{stats.total_sections}[/success]")
-        cli.console.print(f"   [info]├─[/info] Assets:      [success]{stats.total_assets}[/success]")
-        
+        cli.console.print(
+            f"   [info]├─[/info] Pages:       [success]{stats.total_pages}[/success] ({stats.regular_pages} regular + {stats.generated_pages} generated)"
+        )
+        cli.console.print(
+            f"   [info]├─[/info] Sections:    [success]{stats.total_sections}[/success]"
+        )
+        cli.console.print(
+            f"   [info]├─[/info] Assets:      [success]{stats.total_assets}[/success]"
+        )
+
         # Directive statistics (if present)
         if stats.total_directives > 0:
-            top_types = sorted(stats.directives_by_type.items(), key=lambda x: x[1], reverse=True)[:3]
+            top_types = sorted(stats.directives_by_type.items(), key=lambda x: x[1], reverse=True)[
+                :3
+            ]
             type_summary = ", ".join([f"{t}({c})" for t, c in top_types])
-            cli.console.print(f"   [info]├─[/info] Directives:  [highlight]{stats.total_directives}[/highlight] ({type_summary})")
-        
-        cli.console.print(f"   [info]└─[/info] Taxonomies:  [success]{stats.taxonomies_count}[/success]")
+            cli.console.print(
+                f"   [info]├─[/info] Directives:  [highlight]{stats.total_directives}[/highlight] ({type_summary})"
+            )
+
+        cli.console.print(
+            f"   [info]└─[/info] Taxonomies:  [success]{stats.taxonomies_count}[/success]"
+        )
     else:
         cli.info("📊 Content Statistics:")
-        cli.info(f"   ├─ Pages:       {stats.total_pages} ({stats.regular_pages} regular + {stats.generated_pages} generated)")
+        cli.info(
+            f"   ├─ Pages:       {stats.total_pages} ({stats.regular_pages} regular + {stats.generated_pages} generated)"
+        )
         cli.info(f"   ├─ Sections:    {stats.total_sections}")
         cli.info(f"   ├─ Assets:      {stats.total_assets}")
-        
+
         if stats.total_directives > 0:
-            top_types = sorted(stats.directives_by_type.items(), key=lambda x: x[1], reverse=True)[:3]
+            top_types = sorted(stats.directives_by_type.items(), key=lambda x: x[1], reverse=True)[
+                :3
+            ]
             type_summary = ", ".join([f"{t}({c})" for t, c in top_types])
             cli.info(f"   ├─ Directives:  {stats.total_directives} ({type_summary})")
-        
+
         cli.info(f"   └─ Taxonomies:  {stats.taxonomies_count}")
 
     # Build info
@@ -368,7 +394,7 @@ def display_build_stats(
         mode_parts.append("sequential")
 
     mode_text = " + ".join(mode_parts)
-    
+
     if cli.use_rich:
         cli.console.print("[header]⚙️  Build Configuration:[/header]")
         cli.console.print(f"   [info]└─[/info] Mode:        [warning]{mode_text}[/warning]")
@@ -379,7 +405,7 @@ def display_build_stats(
     # Performance stats
     cli.blank()
     total_time_str = format_time(stats.build_time_ms)
-    
+
     # Determine time styling
     if stats.build_time_ms < 100:
         time_token = "success"
@@ -390,26 +416,38 @@ def display_build_stats(
     else:
         time_token = "error"
         emoji = "🐌"
-    
+
     if cli.use_rich:
         cli.console.print("[header]⏱️  Performance:[/header]")
-        cli.console.print(f"   [info]├─[/info] Total:       [{time_token}]{total_time_str}[/{time_token}] {emoji}")
-        
+        cli.console.print(
+            f"   [info]├─[/info] Total:       [{time_token}]{total_time_str}[/{time_token}] {emoji}"
+        )
+
         # Phase breakdown (only if we have phase data)
         if stats.discovery_time_ms > 0:
-            cli.console.print(f"   [info]├─[/info] Discovery:   {format_time(stats.discovery_time_ms)}")
+            cli.console.print(
+                f"   [info]├─[/info] Discovery:   {format_time(stats.discovery_time_ms)}"
+            )
         if stats.taxonomy_time_ms > 0:
-            cli.console.print(f"   [info]├─[/info] Taxonomies:  {format_time(stats.taxonomy_time_ms)}")
+            cli.console.print(
+                f"   [info]├─[/info] Taxonomies:  {format_time(stats.taxonomy_time_ms)}"
+            )
         if stats.rendering_time_ms > 0:
-            cli.console.print(f"   [info]├─[/info] Rendering:   {format_time(stats.rendering_time_ms)}")
+            cli.console.print(
+                f"   [info]├─[/info] Rendering:   {format_time(stats.rendering_time_ms)}"
+            )
         if stats.assets_time_ms > 0:
-            cli.console.print(f"   [info]├─[/info] Assets:      {format_time(stats.assets_time_ms)}")
+            cli.console.print(
+                f"   [info]├─[/info] Assets:      {format_time(stats.assets_time_ms)}"
+            )
         if stats.postprocess_time_ms > 0:
-            cli.console.print(f"   [info]└─[/info] Postprocess: {format_time(stats.postprocess_time_ms)}")
+            cli.console.print(
+                f"   [info]└─[/info] Postprocess: {format_time(stats.postprocess_time_ms)}"
+            )
     else:
         cli.info("⏱️  Performance:")
         cli.info(f"   ├─ Total:       {total_time_str} {emoji}")
-        
+
         if stats.discovery_time_ms > 0:
             cli.info(f"   ├─ Discovery:   {format_time(stats.discovery_time_ms)}")
         if stats.taxonomy_time_ms > 0:
@@ -430,7 +468,9 @@ def display_build_stats(
             cli.blank()
             if cli.use_rich:
                 cli.console.print("[header]📈 Throughput:[/header]")
-                cli.console.print(f"   [info]└─[/info] [highlight]{pages_per_sec:.1f}[/highlight] pages/second")
+                cli.console.print(
+                    f"   [info]└─[/info] [highlight]{pages_per_sec:.1f}[/highlight] pages/second"
+                )
             else:
                 cli.info("📈 Throughput:")
                 cli.info(f"   └─ {pages_per_sec:.1f} pages/second")
@@ -464,36 +504,17 @@ def show_building_indicator(text: str = "Building") -> None:
 def show_error(message: str, show_art: bool = True) -> None:
     """Show an error message with mouse emoji (errors that Bengal needs to catch!)."""
     cli = CLIOutput()
-    
+
     # Use the nice themed error header with mouse
     cli.error_header(message, mouse=show_art)
 
 
 def show_welcome() -> None:
     """Show welcome banner with Bengal cat mascot."""
-    from rich.align import Align
-    from rich.panel import Panel
+    from bengal.utils.cli_output import CLIOutput
 
-    from bengal.utils.rich_console import get_console
-
-    console = get_console()
-
-    # Create centered content with themed styling
-    content = Align.center(
-        "[bengal]ᓚᘏᗢ[/bengal]     [header]BENGAL SSG[/header]",
-        vertical="middle",
-    )
-
-    panel = Panel(
-        content,
-        border_style="header",  # Use semantic token
-        padding=(1, 2),
-        expand=False,
-        width=58,
-    )
-
-    console.print()
-    console.print(panel)
+    cli = CLIOutput()
+    cli.header("BENGAL SSG", mascot=True, leading_blank=True, trailing_blank=False)
 
 
 def show_clean_success(output_dir: str) -> None:
@@ -529,7 +550,7 @@ def display_template_errors(stats: BuildStats) -> None:
 
     cli = CLIOutput()
     error_count = len(stats.template_errors)
-    
+
     # Use mouse emoji error header
     cli.error_header(f"❌ Template Errors ({error_count})")
 
@@ -538,7 +559,7 @@ def display_template_errors(stats: BuildStats) -> None:
             cli.console.print(f"[error]Error {i}/{error_count}:[/error]")
         else:
             cli.error(f"Error {i}/{error_count}:")
-        
+
         display_template_error(error, use_color=True)
 
         if i < error_count:

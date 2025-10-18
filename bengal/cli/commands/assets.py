@@ -5,6 +5,7 @@ from pathlib import Path
 
 import click
 
+from bengal.cli.base import BengalGroup
 from bengal.core.site import Site
 from bengal.utils.cli_output import CLIOutput
 from bengal.utils.logger import get_logger
@@ -12,7 +13,7 @@ from bengal.utils.logger import get_logger
 logger = get_logger(__name__)
 
 
-@click.group()
+@click.group(cls=BengalGroup)
 def assets() -> None:
     """Manage and build assets."""
     pass

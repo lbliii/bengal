@@ -107,10 +107,15 @@ class CLIOutput:
 
     # === High-level message types ===
 
-    def header(self, text: str, mascot: bool = True) -> None:
+    def header(
+        self,
+        text: str,
+        mascot: bool = True,
+        leading_blank: bool = True,
+        trailing_blank: bool = True,
+    ) -> None:
         """
         Print a header message.
-
         Example: "ᓚᘏᗢ  Building your site..."
         """
         if not self.should_show(MessageLevel.INFO):
@@ -118,7 +123,8 @@ class CLIOutput:
 
         if self.use_rich:
             mascot_str = "[bengal]ᓚᘏᗢ[/bengal]  " if mascot else ""
-            self.console.print()
+            if leading_blank:
+                self.console.print()
             self.console.print(
                 Panel(
                     f"{mascot_str}{text}",
@@ -127,10 +133,13 @@ class CLIOutput:
                     padding=(0, 5),
                 )
             )
-            self.console.print()
+            if trailing_blank:
+                self.console.print()
         else:
             mascot_str = "ᓚᘏᗢ  " if mascot else ""
-            click.echo(f"\n    {mascot_str}{text}\n", color=True)
+            prefix = "\n" if leading_blank else ""
+            suffix = "\n" if trailing_blank else ""
+            click.echo(f"{prefix}    {mascot_str}{text}{suffix}", color=True)
 
     def phase(
         self,
@@ -243,7 +252,7 @@ class CLIOutput:
         Print an error header with mouse emoji.
 
         Example: "ᘛ⁐̤ᕐᐷ  3 template errors found"
-        
+
         The mouse represents errors that Bengal (the cat) needs to catch!
         """
         if not self.should_show(MessageLevel.ERROR):
@@ -379,9 +388,7 @@ class CLIOutput:
         if self.use_rich:
             from rich.prompt import Confirm
 
-            return Confirm.ask(
-                f"[prompt]{text}[/prompt]", default=default, console=self.console
-            )
+            return Confirm.ask(f"[prompt]{text}[/prompt]", default=default, console=self.console)
         else:
             # Fallback to click.confirm
             return click.confirm(text, default=default)

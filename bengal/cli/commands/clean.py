@@ -4,11 +4,13 @@ from pathlib import Path
 
 import click
 
+from bengal.cli.base import BengalCommand
 from bengal.core.site import Site
 from bengal.utils.build_stats import show_error
+from bengal.utils.cli_output import CLIOutput
 
 
-@click.command()
+@click.command(cls=BengalCommand)
 @click.option("--force", "-f", is_flag=True, help="Skip confirmation prompt")
 @click.option("--cache", is_flag=True, help="Also remove build cache (.bengal/ directory)")
 @click.option("--all", "clean_all", is_flag=True, help="Remove everything (output + cache)")
@@ -17,7 +19,9 @@ from bengal.utils.build_stats import show_error
     "--config", type=click.Path(exists=True), help="Path to config file (default: bengal.toml)"
 )
 @click.argument("source", type=click.Path(exists=True), default=".")
-def clean(force: bool, cache: bool, clean_all: bool, stale_server: bool, config: str, source: str) -> None:
+def clean(
+    force: bool, cache: bool, clean_all: bool, stale_server: bool, config: str, source: str
+) -> None:
     """
     🧹 Clean generated files and stale processes.
 
@@ -44,8 +48,6 @@ def clean(force: bool, cache: bool, clean_all: bool, stale_server: bool, config:
         clean_cache = cache or clean_all
 
         # Show header (consistent with all other commands)
-        from bengal.utils.cli_output import CLIOutput
-
         cli = CLIOutput()
         cli.blank()
 
@@ -69,12 +71,12 @@ def clean(force: bool, cache: bool, clean_all: bool, stale_server: bool, config:
             if clean_cache:
                 cli.warning("⚠️  Delete output AND cache?")
                 if cli.use_rich:
-                    cli.console.print("[dim]   This will force a complete rebuild on next build[/dim]")
+                    cli.detail("This will force a complete rebuild on next build", indent=1)
             else:
                 cli.warning("⚠️  Delete output files?")
                 if cli.use_rich:
-                    cli.console.print("[dim]   Cache will be preserved for incremental builds[/dim]")
-            
+                    cli.detail("Cache will be preserved for incremental builds", indent=1)
+
             if not cli.confirm("Proceed", default=False):
                 cli.warning("Cancelled")
                 return
