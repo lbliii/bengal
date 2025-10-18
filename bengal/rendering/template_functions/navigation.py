@@ -94,8 +94,10 @@ def get_breadcrumbs(page: "Page") -> list[dict[str, Any]]:
 
     items = []
 
+    # Add Home as the first breadcrumb
+    items.append({"title": "Home", "url": "/", "is_current": False})
+
     # Get ancestors in reverse order (root to current)
-    # Note: We skip adding "Home" since users have logo/nav to return home
     reversed_ancestors = list(reversed(page.ancestors))
 
     # Check if current page is the index page of the last ancestor

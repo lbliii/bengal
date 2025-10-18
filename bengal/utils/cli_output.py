@@ -12,7 +12,7 @@ from enum import Enum
 from typing import Any
 
 import click
-from rich.console import Console
+from rich.panel import Panel
 from rich.table import Table
 
 
@@ -83,7 +83,14 @@ class CLIOutput:
             use_rich = should_use_rich()
 
         self.use_rich = use_rich
-        self.console = Console() if use_rich else None
+
+        # Use themed console for semantic styles (header, success, etc.)
+        if use_rich:
+            from bengal.utils.rich_console import get_console
+
+            self.console = get_console()
+        else:
+            self.console = None
 
         # Get profile config
         self.profile_config = profile.get_config() if profile else {}
@@ -100,10 +107,15 @@ class CLIOutput:
 
     # === High-level message types ===
 
-    def header(self, text: str, mascot: bool = True) -> None:
+    def header(
+        self,
+        text: str,
+        mascot: bool = True,
+        leading_blank: bool = True,
+        trailing_blank: bool = True,
+    ) -> None:
         """
         Print a header message.
-
         Example: "ᓚᘏᗢ  Building your site..."
         """
         if not self.should_show(MessageLevel.INFO):
@@ -111,12 +123,23 @@ class CLIOutput:
 
         if self.use_rich:
             mascot_str = "[bengal]ᓚᘏᗢ[/bengal]  " if mascot else ""
-            self.console.print()
-            self.console.print(f"    {mascot_str}[bold cyan]{text}[/bold cyan]")
-            self.console.print()
+            if leading_blank:
+                self.console.print()
+            self.console.print(
+                Panel(
+                    f"{mascot_str}{text}",
+                    expand=False,
+                    border_style="header",
+                    padding=(0, 5),
+                )
+            )
+            if trailing_blank:
+                self.console.print()
         else:
             mascot_str = "ᓚᘏᗢ  " if mascot else ""
-            click.echo(f"\n    {mascot_str}{text}\n", color=True)
+            prefix = "\n" if leading_blank else ""
+            suffix = "\n" if trailing_blank else ""
+            click.echo(f"{prefix}    {mascot_str}{text}{suffix}", color=True)
 
     def phase(
         self,
@@ -138,15 +161,15 @@ class CLIOutput:
             return
 
         # Format based on profile
-        parts = [icon, name]
+        parts = [f"[success]{icon}[/success]", f"[phase]{name}[/phase]"]
 
         # Add timing if available and profile shows it
         if duration_ms is not None and self._show_timing():
-            parts.append(f"{int(duration_ms)}ms")
+            parts.append(f"[dim]{int(duration_ms)}ms[/dim]")
 
         # Add details if provided and profile shows them
         if details and self._show_details():
-            parts.append(f"({details})")
+            parts.append(f"([dim]{details}[/dim])")
 
         # Render
         line = self._format_phase_line(parts)
@@ -187,7 +210,7 @@ class CLIOutput:
 
         if self.use_rich:
             self.console.print()
-            self.console.print(f"{icon} [bold green]{text}[/bold green]")
+            self.console.print(f"{icon} [success]{text}[/success]")
             self.console.print()
         else:
             click.echo(f"\n{icon} {text}\n", color=True)
@@ -210,7 +233,7 @@ class CLIOutput:
             return
 
         if self.use_rich:
-            self.console.print(f"{icon}  [yellow]{text}[/yellow]")
+            self.console.print(f"{icon}  [warning]{text}[/warning]")
         else:
             click.echo(click.style(f"{icon}  {text}", fg="yellow"))
 
@@ -220,9 +243,46 @@ class CLIOutput:
             return
 
         if self.use_rich:
-            self.console.print(f"{icon} [bold red]{text}[/bold red]")
+            self.console.print(f"{icon} [error]{text}[/error]")
         else:
             click.echo(click.style(f"{icon} {text}", fg="red", bold=True))
+
+    def tip(self, text: str, icon: str = "💡") -> None:
+        """Print a subtle tip/instruction line."""
+        if not self.should_show(MessageLevel.INFO):
+            return
+
+        if self.use_rich:
+            self.console.print(f"{icon} [tip]{text}[/tip]")
+        else:
+            click.echo(f"{icon} {text}")
+
+    def error_header(self, text: str, mouse: bool = True) -> None:
+        """
+        Print an error header with mouse emoji.
+
+        Example: "ᘛ⁐̤ᕐᐷ  3 template errors found"
+
+        The mouse represents errors that Bengal (the cat) needs to catch!
+        """
+        if not self.should_show(MessageLevel.ERROR):
+            return
+
+        if self.use_rich:
+            mouse_str = "[mouse]ᘛ⁐̤ᕐᐷ[/mouse]  " if mouse else ""
+            self.console.print()
+            self.console.print(
+                Panel(
+                    f"{mouse_str}{text}",
+                    expand=False,
+                    border_style="error",
+                    padding=(0, 5),
+                )
+            )
+            self.console.print()
+        else:
+            mouse_str = "ᘛ⁐̤ᕐᐷ  " if mouse else ""
+            click.echo(click.style(f"\n    {mouse_str}{text}\n", fg="red", bold=True))
 
     def path(self, path: str, icon: str = "📂", label: str = "Output") -> None:
         """
@@ -240,7 +300,7 @@ class CLIOutput:
 
         if self.use_rich:
             self.console.print(f"{icon} {label}:")
-            self.console.print(f"   ↪ [cyan]{display_path}[/cyan]")
+            self.console.print(f"   ↪ [path]{display_path}[/path]")
         else:
             click.echo(f"{icon} {label}:")
             click.echo(click.style(f"   ↪ {display_path}", fg="cyan"))
@@ -259,11 +319,12 @@ class CLIOutput:
 
         indent_str = self.indent_char * (self.indent_size * indent)
         unit_str = f" {unit}" if unit else ""
-        line = f"{indent_str}{label}: {value}{unit_str}"
 
         if self.use_rich:
+            line = f"{indent_str}[metric_label]{label}[/metric_label]: [metric_value]{value}{unit_str}[/metric_value]"
             self.console.print(line)
         else:
+            line = f"{indent_str}{label}: {value}{unit_str}"
             click.echo(line)
 
     def table(self, data: list[dict[str, str]], headers: list[str]) -> None:
@@ -285,6 +346,62 @@ class CLIOutput:
             for row in data:
                 values = [f"{k}: {v}" for k, v in row.items()]
                 click.echo(" | ".join(values))
+
+    def prompt(
+        self, text: str, default: Any = None, type: Any = str, show_default: bool = True
+    ) -> Any:
+        """
+        Prompt user for input with themed styling.
+
+        Args:
+            text: The prompt text to display
+            default: Default value if user presses enter
+            type: Type to convert input to (str, int, float, etc.)
+            show_default: Whether to show the default value
+
+        Returns:
+            User's input converted to the specified type
+
+        Example:
+            name = cli.prompt("Enter site name")
+            count = cli.prompt("How many pages?", default=3, type=int)
+        """
+        if self.use_rich:
+            from rich.prompt import Prompt
+
+            # Use Rich's Prompt with our themed console
+            return Prompt.ask(
+                f"[prompt]{text}[/prompt]",
+                default=default,
+                console=self.console,
+                show_default=show_default,
+            )
+        else:
+            # Fallback to click.prompt
+            return click.prompt(text, default=default, type=type, show_default=show_default)
+
+    def confirm(self, text: str, default: bool = False) -> bool:
+        """
+        Prompt user for yes/no confirmation with themed styling.
+
+        Args:
+            text: The prompt text to display
+            default: Default value if user presses enter
+
+        Returns:
+            True if user confirms, False otherwise
+
+        Example:
+            if cli.confirm("Delete all files?"):
+                do_deletion()
+        """
+        if self.use_rich:
+            from rich.prompt import Confirm
+
+            return Confirm.ask(f"[prompt]{text}[/prompt]", default=default, console=self.console)
+        else:
+            # Fallback to click.confirm
+            return click.confirm(text, default=default)
 
     def blank(self, count: int = 1) -> None:
         """Print blank lines."""

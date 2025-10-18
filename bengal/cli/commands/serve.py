@@ -4,13 +4,14 @@ from pathlib import Path
 
 import click
 
+from bengal.cli.base import BengalCommand
 from bengal.core.site import Site
 from bengal.server.constants import DEFAULT_DEV_HOST, DEFAULT_DEV_PORT
 from bengal.utils.build_stats import show_error
 from bengal.utils.logger import LogLevel, configure_logging, truncate_error
 
 
-@click.command()
+@click.command(cls=BengalCommand)
 @click.option("--host", default=DEFAULT_DEV_HOST, help="Server host address")
 @click.option("--port", "-p", default=DEFAULT_DEV_PORT, type=int, help="Server port number")
 @click.option(

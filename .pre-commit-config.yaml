@@ -52,4 +52,17 @@ repos:
       # Check for private keys
       - id: detect-private-key
 
+  - repo: local
+    hooks:
+      - id: block-string-based-click-cls
+        name: Block string-based Click cls usage
+        entry: bash -c "! rg -n 'cls=\"bengal\\.cli\\.(Bengal(Group|Command))\"' bengal/cli || (echo 'Use direct class references from bengal.cli.base for Click cls' && exit 1)"
+        language: system
+        files: ^bengal/cli/.*\.py$
+      - id: block-legacy-cli-imports
+        name: Block legacy bengal.cli.bengal_* imports
+        entry: bash -c "! rg -n 'from\\s+bengal\\.cli\\.(bengal_command|bengal_group)\\s+import' || (echo 'Import BengalCommand/BengalGroup from bengal.cli.base' && exit 1)"
+        language: system
+        files: ^bengal/.*\.py$
+
   # Poetry is not used in this repository; removing poetry-check to avoid false failures

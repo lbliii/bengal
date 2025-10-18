@@ -50,9 +50,11 @@ def test_default_favicon_inclusion(mock_site):
     # Act: Render base.html
     html_output = engine.render("base.html", context)
 
-    # Assert: Default favicon link is present
-    assert '<link rel="icon" type="image/svg+xml" href="' in html_output
-    assert "favicon.svg" in html_output
+    # Assert: Default favicon links are present
+    assert '<link rel="icon" type="image/x-icon" href="' in html_output
+    assert "favicon.ico" in html_output
+    assert "favicon-16x16.png" in html_output
+    assert "favicon-32x32.png" in html_output
 
 
 def test_custom_favicon_override(mock_site):
@@ -77,4 +79,5 @@ def test_custom_favicon_override(mock_site):
     # Assert: Custom favicon link is present, no default
     assert '<link rel="icon" type="image/png" href="' in html_output
     assert "/assets/custom-favicon.png" in html_output
-    assert "favicon.svg" not in html_output
+    # Default favicons should not be present when custom is specified
+    assert "favicon.ico" not in html_output or "/assets/custom-favicon.png" in html_output

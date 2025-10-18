@@ -5,10 +5,12 @@ from pathlib import Path
 
 import click
 
+from bengal.cli.base import BengalGroup
 from bengal.cli.site_templates import get_template
 
 # Add these imports
 from bengal.utils.build_stats import show_error
+from bengal.utils.cli_output import CLIOutput
 
 # Preset definitions for wizard
 PRESETS = {
@@ -77,37 +79,25 @@ def _should_run_init_wizard(template: str, no_init: bool, init_preset: str) -> b
 
 def _run_init_wizard(preset: str = None) -> str | None:
     """Run the site initialization wizard and return the selected template ID or None."""
-    import click
+
+    cli = CLIOutput()
 
     # If preset was provided via flag, use it directly
     if preset:
         if preset not in PRESETS:
-            click.echo(
-                click.style(f"⚠️  Unknown preset '{preset}'. Available: ", fg="yellow")
-                + ", ".join(PRESETS.keys())
-            )
+            cli.warning(f"Unknown preset '{preset}'. Available: " + ", ".join(PRESETS.keys()))
             return None
 
         selected_preset = PRESETS[preset]
-        click.echo(
-            click.style("🏗️  Selected ", fg="cyan")
-            + click.style(
-                f"{selected_preset['emoji']} {selected_preset['name']}", fg="cyan", bold=True
-            )
-            + click.style(" preset.", fg="cyan")
-        )
+        cli.info(f"🏗️  Selected {selected_preset['emoji']} {selected_preset['name']} preset.")
         return selected_preset.get("template_id", "default")
 
     # Interactive wizard with questionary
     try:
         import questionary
     except ImportError:
-        click.echo(
-            click.style(
-                "\n⚠️  Install questionary for better interactive prompts: pip install questionary",
-                fg="yellow",
-            )
-        )
+        cli.blank()
+        cli.warning("Install questionary for better interactive prompts: pip install questionary")
         return None
 
     # Build choices list
@@ -137,7 +127,8 @@ def _run_init_wizard(preset: str = None) -> str | None:
     )
 
     # Show interactive menu
-    click.echo(click.style("\n🎯 What kind of site are you building?", fg="cyan", bold=True))
+    cli.blank()
+    cli.header("🎯 What kind of site are you building?")
     selection = questionary.select(
         "Select a preset:",
         choices=choices,
@@ -154,41 +145,37 @@ def _run_init_wizard(preset: str = None) -> str | None:
 
     # Handle cancellation (Ctrl+C)
     if selection is None:
-        click.echo(click.style("\n✨ Cancelled. Will create basic default site.", fg="yellow"))
+        cli.blank()
+        cli.warning("✨ Cancelled. Will create basic default site.")
         return "default"
 
     # Handle blank
     if selection == "__blank__":
-        click.echo(click.style("\n✨ Blank site selected. No initial structure added.", fg="cyan"))
+        cli.blank()
+        cli.info("✨ Blank site selected. No initial structure added.")
         return None
 
     # Handle custom
     if selection == "__custom__":
-        sections_input = click.prompt(
-            click.style("\nEnter section names (comma-separated, e.g., blog,about):", fg="cyan"),
-            type=str,
-            default="blog,about",
+        cli.blank()
+        sections_input = cli.prompt(
+            "Enter section names (comma-separated, e.g., blog,about)", default="blog,about"
         )
-        pages_per = click.prompt(
-            click.style("Pages per section:", fg="cyan"),
-            type=int,
-            default=3,
-        )
-        click.echo(
-            click.style(
-                f"\n✨ Custom structure noted (sections={sections_input}, pages={pages_per}). Basic site created; run 'bengal init --sections {sections_input} --pages-per-section {pages_per} --with-content' after to add structure.",
-                fg="cyan",
-            )
+        pages_per = cli.prompt("Pages per section", default=3, type=int)
+        cli.blank()
+        cli.info(
+            f"✨ Custom structure noted (sections={sections_input}, pages={pages_per}). Basic site created; run 'bengal init --sections {sections_input} --pages-per-section {pages_per} --with-content' after to add structure."
         )
         return "default"  # Custom needs post-creation init
 
     # Regular preset selected
     selected_preset = PRESETS[selection]
-    click.echo(click.style(f"\n✨ {selected_preset['name']} preset selected.", fg="cyan"))
+    cli.blank()
+    cli.info(f"✨ {selected_preset['name']} preset selected.")
     return selected_preset.get("template_id", "default")
 
 
-@click.group()
+@click.group(cls=BengalGroup)
 def new() -> None:
     """
     ✨ Create new site, page, layout, partial, or theme.
@@ -224,16 +211,16 @@ def site(name: str, theme: str, template: str, no_init: bool, init_preset: str) 
     """
     🏗️  Create a new Bengal site with optional structure initialization.
     """
+    cli = CLIOutput()
+
     try:
         # Prompt for site name if not provided
         if not name:
-            click.echo(click.style("\n🏗️  Create a new Bengal site", fg="cyan", bold=True))
-            name = click.prompt(
-                click.style("Enter site name", fg="cyan"),
-                type=str,
-            )
+            cli.blank()
+            cli.header("🏗️  Create a new Bengal site")
+            name = cli.prompt("Enter site name")
             if not name:
-                click.echo(click.style("✨ Cancelled.", fg="yellow"))
+                cli.warning("✨ Cancelled.")
                 raise click.Abort()
 
         # Store the original name for site title and slugify for directory
@@ -277,12 +264,11 @@ def site(name: str, theme: str, template: str, no_init: bool, init_preset: str) 
         # Show what we're creating
         display_text = site_title
         if site_title != site_dir_name:
-            display_text += click.style(f" → {site_dir_name}", fg="bright_black")
+            display_text += f" → {site_dir_name}"
 
-        click.echo(
-            click.style(f"\n🏗️  Creating new Bengal site: {display_text}", fg="cyan", bold=True)
-            + click.style(f" ({site_template.description})", fg="bright_black")
-        )
+        cli.blank()
+        cli.header(f"🏗️  Creating new Bengal site: {display_text}")
+        cli.info(f"   ({site_template.description})")
 
         # Create directory structure
         site_path.mkdir(parents=True)
@@ -296,7 +282,7 @@ def site(name: str, theme: str, template: str, no_init: bool, init_preset: str) 
         for additional_dir in site_template.additional_dirs:
             (site_path / additional_dir).mkdir(parents=True, exist_ok=True)
 
-        click.echo(click.style("   ├─ ", fg="cyan") + "Created directory structure")
+        cli.info("   ├─ Created directory structure")
 
         # Create config file using site_title for the title field
         config_content = f"""[site]
@@ -315,7 +301,7 @@ fingerprint = true
         from bengal.utils.atomic_write import atomic_write_text
 
         atomic_write_text(site_path / "bengal.toml", config_content)
-        click.echo(click.style("   ├─ ", fg="cyan") + "Created bengal.toml")
+        cli.info("   ├─ Created bengal.toml")
 
         # Create .gitignore
         gitignore_content = """# Bengal build outputs
@@ -370,7 +356,7 @@ ehthumbs.db
 Thumbs.db
 """
         atomic_write_text(site_path / ".gitignore", gitignore_content)
-        click.echo(click.style("   ├─ ", fg="cyan") + "Created .gitignore")
+        cli.info("   ├─ Created .gitignore")
 
         # Create files from template (pages, data files, etc.)
         files_created = 0
@@ -384,28 +370,29 @@ Thumbs.db
             files_created += 1
 
         if files_created == 1:
-            click.echo(click.style("   └─ ", fg="cyan") + f"Created {files_created} file")
+            cli.info(f"   └─ Created {files_created} file")
         else:
-            click.echo(click.style("   └─ ", fg="cyan") + f"Created {files_created} files")
+            cli.info(f"   └─ Created {files_created} files")
 
-        click.echo(click.style("\n✅ Site created successfully!", fg="green", bold=True))
+        cli.blank()
+        cli.success("✅ Site created successfully!")
 
         # Handle special cases for wizard
         if wizard_selection is None and init_preset is None:
-            click.echo(click.style("\n💡 Run 'bengal init' to add structure later.", fg="yellow"))
+            cli.blank()
+            cli.tip("Run 'bengal init' to add structure later.")
         if is_custom:
-            click.echo(
-                click.style(
-                    "\n💡 For custom sections, run 'bengal init --sections <your-list> --with-content' now.",
-                    fg="yellow",
-                )
+            cli.blank()
+            cli.tip(
+                "For custom sections, run 'bengal init --sections <your-list> --with-content' now."
             )
 
         # Show next steps
-        click.echo(click.style("\n📚 Next steps:", fg="cyan", bold=True))
-        click.echo(click.style("   ├─ ", fg="cyan") + f"cd {site_dir_name}")
-        click.echo(click.style("   └─ ", fg="cyan") + "bengal site serve")
-        click.echo()
+        cli.blank()
+        cli.header("📚 Next steps:")
+        cli.info(f"   ├─ cd {site_dir_name}")
+        cli.info("   └─ bengal site serve")
+        cli.blank()
 
     except Exception as e:
         show_error(f"Failed to create site: {e}", show_art=False)
@@ -457,6 +444,8 @@ def page(name: str, section: str) -> None:
     The page name will be automatically slugified for the filename.
     Example: "My Awesome Page" → my-awesome-page.md
     """
+    cli = CLIOutput()
+
     try:
         # Ensure we're in a Bengal site
         content_dir = Path("content")
@@ -499,11 +488,9 @@ Your content goes here.
 
         atomic_write_text(page_path, page_content)
 
-        click.echo(
-            click.style("\n✨ Created new page: ", fg="cyan")
-            + click.style(str(page_path), fg="green", bold=True)
-        )
-        click.echo()
+        cli.blank()
+        cli.success(f"✨ Created new page: {page_path}")
+        cli.blank()
 
     except Exception as e:
         show_error(f"Failed to create page: {e}", show_art=False)
@@ -519,6 +506,8 @@ def layout(name: str) -> None:
     Layouts are reusable HTML templates used by pages.
     Example: "article" → templates/layouts/article.html
     """
+    cli = CLIOutput()
+
     try:
         # Ensure we're in a Bengal site
         templates_dir = Path("templates")
@@ -527,12 +516,9 @@ def layout(name: str) -> None:
             raise click.Abort()
 
         if not name:
-            name = click.prompt(
-                click.style("Enter layout name", fg="cyan"),
-                type=str,
-            )
+            name = cli.prompt("Enter layout name")
             if not name:
-                click.echo(click.style("✨ Cancelled.", fg="yellow"))
+                cli.warning("✨ Cancelled.")
                 raise click.Abort()
 
         # Slugify the name for filename
@@ -557,12 +543,10 @@ def layout(name: str) -> None:
 
         atomic_write_text(layout_path, layout_content)
 
-        click.echo(
-            click.style("\n✨ Created new layout: ", fg="cyan")
-            + click.style(str(layout_path), fg="green", bold=True)
-        )
-        click.echo(click.style("   └─ ", fg="cyan") + "Extend this in pages with: layout: " + slug)
-        click.echo()
+        cli.blank()
+        cli.success(f"✨ Created new layout: {layout_path}")
+        cli.info(f"   └─ Extend this in pages with: layout: {slug}")
+        cli.blank()
 
     except Exception as e:
         show_error(f"Failed to create layout: {e}", show_art=False)
@@ -578,6 +562,8 @@ def partial(name: str) -> None:
     Partials are reusable template fragments included in other templates.
     Example: "sidebar" → templates/partials/sidebar.html
     """
+    cli = CLIOutput()
+
     try:
         # Ensure we're in a Bengal site
         templates_dir = Path("templates")
@@ -586,12 +572,9 @@ def partial(name: str) -> None:
             raise click.Abort()
 
         if not name:
-            name = click.prompt(
-                click.style("Enter partial name", fg="cyan"),
-                type=str,
-            )
+            name = cli.prompt("Enter partial name")
             if not name:
-                click.echo(click.style("✨ Cancelled.", fg="yellow"))
+                cli.warning("✨ Cancelled.")
                 raise click.Abort()
 
         # Slugify the name for filename
@@ -624,17 +607,10 @@ def partial(name: str) -> None:
 
         atomic_write_text(partial_path, partial_content)
 
-        click.echo(
-            click.style("\n✨ Created new partial: ", fg="cyan")
-            + click.style(str(partial_path), fg="green", bold=True)
-        )
-        click.echo(
-            click.style("   └─ ", fg="cyan")
-            + 'Include in templates with: {% include "partials/'
-            + slug
-            + '.html" %}'
-        )
-        click.echo()
+        cli.blank()
+        cli.success(f"✨ Created new partial: {partial_path}")
+        cli.info(f'   └─ Include in templates with: {{% include "partials/{slug}.html" %}}')
+        cli.blank()
 
     except Exception as e:
         show_error(f"Failed to create partial: {e}", show_art=False)
@@ -650,14 +626,13 @@ def theme(name: str) -> None:
     Themes are self-contained template and asset packages.
     Example: "my-theme" → themes/my-theme/ with templates, partials, and assets
     """
+    cli = CLIOutput()
+
     try:
         if not name:
-            name = click.prompt(
-                click.style("Enter theme name", fg="cyan"),
-                type=str,
-            )
+            name = cli.prompt("Enter theme name")
             if not name:
-                click.echo(click.style("✨ Cancelled.", fg="yellow"))
+                cli.warning("✨ Cancelled.")
                 raise click.Abort()
 
         # Slugify the name for directory
@@ -680,11 +655,10 @@ def theme(name: str) -> None:
         (theme_path / "assets" / "js").mkdir(parents=True)
         (theme_path / "assets" / "images").mkdir(parents=True)
 
-        click.echo(
-            click.style(f"\n🎨 Creating new theme: {name}", fg="cyan", bold=True)
-            + click.style(f" → {theme_path}", fg="bright_black")
-        )
-        click.echo(click.style("   ├─ ", fg="cyan") + "Created directory structure")
+        cli.blank()
+        cli.header(f"🎨 Creating new theme: {name}")
+        cli.info(f"   → {theme_path}")
+        cli.info("   ├─ Created directory structure")
 
         from bengal.utils.atomic_write import atomic_write_text
 
@@ -739,8 +713,6 @@ def theme(name: str) -> None:
 </footer>
 """
         atomic_write_text(theme_path / "templates" / "partials" / "footer.html", footer_partial)
-
-        # Create home page template
         home_template = """{% extends "base.html" %}
 
 {% block content %}
@@ -773,8 +745,8 @@ def theme(name: str) -> None:
 """
         atomic_write_text(theme_path / "templates" / "page.html", page_template)
 
-        click.echo(click.style("   ├─ ", fg="cyan") + "Created 4 templates")
-        click.echo(click.style("   ├─ ", fg="cyan") + "Created 2 partials")
+        cli.info("   ├─ Created 4 templates")
+        cli.info("   ├─ Created 2 partials")
 
         # Create CSS
         css_content = (
@@ -834,7 +806,7 @@ h1, h2, h3, h4, h5, h6 {
 """
         )
         atomic_write_text(theme_path / "assets" / "css" / "style.css", css_content)
-        click.echo(click.style("   ├─ ", fg="cyan") + "Created CSS stylesheet")
+        cli.info("   ├─ Created CSS stylesheet")
 
         # Create JS
         js_content = (
@@ -852,20 +824,22 @@ document.addEventListener('DOMContentLoaded', function() {
 """
         )
         atomic_write_text(theme_path / "assets" / "js" / "main.js", js_content)
-        click.echo(click.style("   └─ ", fg="cyan") + "Created JavaScript")
+        cli.info("   └─ Created JavaScript")
 
-        click.echo(click.style("\n✅ Theme created successfully!", fg="green", bold=True))
+        cli.blank()
+        cli.success("✅ Theme created successfully!")
 
         # Show next steps
-        click.echo(click.style("\n📚 Next steps:", fg="cyan", bold=True))
+        cli.blank()
+        cli.header("📚 Next steps:")
         if in_site:
-            click.echo(click.style("   ├─ ", fg="cyan") + f'Update bengal.toml: theme = "{slug}"')
-            click.echo(click.style("   └─ ", fg="cyan") + "bengal serve")
+            cli.tip(f'Update bengal.toml: theme = "{slug}"')
+            cli.tip("Run 'bengal serve'")
         else:
-            click.echo(click.style("   ├─ ", fg="cyan") + f"Package as: bengal-theme-{slug}")
-            click.echo(click.style("   ├─ ", fg="cyan") + "Add to pyproject.toml for distribution")
-            click.echo(click.style("   └─ ", fg="cyan") + "pip install -e .")
-        click.echo()
+            cli.tip(f"Package as: bengal-theme-{slug}")
+            cli.tip("Add to pyproject.toml for distribution")
+            cli.tip("pip install -e .")
+        cli.blank()
 
     except Exception as e:
         show_error(f"Failed to create theme: {e}", show_art=False)

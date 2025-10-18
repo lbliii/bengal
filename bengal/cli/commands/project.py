@@ -2,8 +2,10 @@ from pathlib import Path
 
 import click
 
+from bengal.cli.base import BengalGroup
 from bengal.cli.commands.init import init
 from bengal.utils.build_stats import show_error
+from bengal.utils.cli_output import CLIOutput
 
 # User profiles with customization
 PROFILES = {
@@ -46,7 +48,7 @@ PROFILES = {
 }
 
 
-@click.group("project")
+@click.group("project", cls=BengalGroup)
 def project_cli():
     """
     📦 Project management and setup commands.
@@ -78,6 +80,8 @@ def profile(profile_name: str) -> None:
         bengal project profile dev       # Switch to developer profile
         bengal project profile writer    # Switch to content writer profile
     """
+    cli = CLIOutput()
+
     try:
         profile_path = Path(".bengal-profile")
 
@@ -87,35 +91,31 @@ def profile(profile_name: str) -> None:
             if profile_path.exists():
                 current_profile = profile_path.read_text().strip()
 
-            click.echo(click.style("\n👤 Available Profiles\n", fg="cyan", bold=True))
+            cli.blank()
+            cli.header("👤 Available Profiles")
+            cli.blank()
 
             for profile_key, profile_info in PROFILES.items():
                 marker = "✓ " if profile_key == current_profile else "  "
-                click.echo(
-                    click.style(
-                        f"{marker}{profile_info['emoji']} ",
-                        fg="cyan" if profile_key == current_profile else "white",
-                    )
-                    + click.style(profile_info["name"], bold=profile_key == current_profile)
-                    + click.style(f" - {profile_info['description']}", fg="bright_black")
-                )
+                profile_line = f"{marker}{profile_info['emoji']} {profile_info['name']} - {profile_info['description']}"
+                cli.detail(profile_line, indent=1)
 
             if current_profile:
-                click.echo(
-                    click.style(f"\n📍 Current: {PROFILES[current_profile]['name']}", fg="green")
-                )
+                cli.blank()
+                cli.success(f"📍 Current: {PROFILES[current_profile]['name']}")
             else:
-                click.echo(click.style("\n📍 Current: (not set)", fg="yellow"))
+                cli.blank()
+                cli.warning("📍 Current: (not set)")
 
-            click.echo(
-                click.style("\nUsage: bengal project profile <dev|themer|writer|ai>\n", fg="cyan")
-            )
+            cli.blank()
+            cli.info("Usage: bengal project profile <dev|themer|writer|ai>")
+            cli.blank()
             return
 
         # Validate profile
         if profile_name not in PROFILES:
-            click.echo(click.style(f"✗ Unknown profile: {profile_name}", fg="red"))
-            click.echo(click.style(f"Available: {', '.join(PROFILES.keys())}", fg="yellow"))
+            cli.error(f"✗ Unknown profile: {profile_name}")
+            cli.warning(f"Available: {', '.join(PROFILES.keys())}")
             raise click.Abort()
 
         # Save profile
@@ -124,22 +124,19 @@ def profile(profile_name: str) -> None:
         atomic_write_text(profile_path, profile_name)
 
         profile_info = PROFILES[profile_name]
-        click.echo()
-        click.echo(
-            click.style("✓ Profile set to: ", fg="green")
-            + click.style(f"{profile_info['emoji']} {profile_info['name']}", fg="green", bold=True)
-        )
-        click.echo(click.style(f"  {profile_info['description']}", fg="bright_black"))
-        click.echo()
+        cli.blank()
+        cli.success(f"✓ Profile set to: {profile_info['emoji']} {profile_info['name']}")
+        cli.detail(profile_info["description"], indent=1)
+        cli.blank()
 
         # Show what changed
-        click.echo(click.style("💡 This affects:", fg="cyan", bold=True))
-        click.echo(f"  • Output format:    {profile_info['output_format'].upper()}")
-        click.echo(f"  • Verbosity level:  {profile_info['verbosity'].upper()}")
-        click.echo(f"  • Build profile:    {profile_info['default_build_profile']}")
+        cli.header("💡 This affects:")
+        cli.tip(f"Output format:    {profile_info['output_format'].upper()}")
+        cli.tip(f"Verbosity level:  {profile_info['verbosity'].upper()}")
+        cli.tip(f"Build profile:    {profile_info['default_build_profile']}")
         if not profile_info["show_all_commands"]:
-            click.echo("  • Commands shown:   Simplified (use --all for full)")
-        click.echo()
+            cli.tip("Commands shown:   Simplified (use --all for full)")
+        cli.blank()
 
     except click.Abort:
         raise
@@ -160,13 +157,17 @@ def validate() -> None:
         ✓ Theme configuration
         ✓ Content files parseable
     """
+    cli = CLIOutput()
+
     try:
         import tomllib
         from pathlib import Path
 
         config_path = Path("bengal.toml")
 
-        click.echo(click.style("\n🔍 Validating Bengal project...\n", fg="cyan", bold=True))
+        cli.blank()
+        cli.header("🔍 Validating Bengal project...")
+        cli.blank()
 
         errors = []
         warnings = []
@@ -177,14 +178,14 @@ def validate() -> None:
             errors.append("bengal.toml not found in current directory")
         else:
             checks_passed += 1
-            click.echo(click.style("   ✓ ", fg="green") + "bengal.toml found")
+            cli.success("   ✓ bengal.toml found")
 
             # Check 2: Config is valid TOML
             try:
                 with open(config_path, "rb") as f:
                     config = tomllib.load(f)
                 checks_passed += 1
-                click.echo(click.style("   ✓ ", fg="green") + "bengal.toml is valid")
+                cli.success("   ✓ bengal.toml is valid")
             except Exception as e:
                 errors.append(f"bengal.toml parse error: {e}")
                 config = {}
@@ -198,12 +199,12 @@ def validate() -> None:
                 warnings.append(f"Missing recommended fields: {', '.join(missing)}")
             else:
                 checks_passed += 1
-                click.echo(click.style("   ✓ ", fg="green") + "Required fields present")
+                cli.success("   ✓ Required fields present")
 
             # Check 4: Theme configured
             theme = site_config.get("theme", "default")
             checks_passed += 1
-            click.echo(click.style("   ✓ ", fg="green") + f"Theme configured: {theme}")
+            cli.success(f"   ✓ Theme configured: {theme}")
 
         # Check 5: Directory structure
         required_dirs = ["content", "templates", "assets"]
@@ -213,25 +214,26 @@ def validate() -> None:
             warnings.append(f"Missing directories: {', '.join(missing_dirs)}")
         else:
             checks_passed += 1
-            click.echo(click.style("   ✓ ", fg="green") + "Directory structure valid")
+            cli.success("   ✓ Directory structure valid")
 
         # Summary
-        click.echo()
+        cli.blank()
         if errors:
-            click.echo(click.style("❌ Validation FAILED", fg="red", bold=True))
+            cli.error("❌ Validation FAILED")
             for error in errors:
-                click.echo(click.style("   ✗ ", fg="red") + error)
-            click.echo()
+                cli.error(f"   ✗ {error}")
+            cli.blank()
             raise click.Abort()
 
         if warnings:
-            click.echo(click.style("⚠️  Validation passed with warnings", fg="yellow", bold=True))
+            cli.warning("⚠️  Validation passed with warnings")
             for warning in warnings:
-                click.echo(click.style("   ⚠️  ", fg="yellow") + warning)
+                cli.warning(f"   ⚠️  {warning}")
         else:
-            click.echo(click.style("✅ Validation passed!", fg="green", bold=True))
+            cli.success("✅ Validation passed!")
 
-        click.echo(click.style(f"\n   {checks_passed} checks passed\n", fg="green"))
+        cli.success(f"\n   {checks_passed} checks passed")
+        cli.blank()
 
     except Exception as e:
         if isinstance(e, click.Abort):
@@ -251,17 +253,20 @@ def info() -> None:
         - Asset counts
         - Configuration paths
     """
+    cli = CLIOutput()
+
     try:
         import tomllib
         from pathlib import Path
 
         config_path = Path("bengal.toml")
 
-        click.echo(click.style("\n📊 Project Information\n", fg="cyan", bold=True))
+        cli.blank()
+        cli.header("📊 Project Information", trailing_blank=False)
 
         # Load config
         if not config_path.exists():
-            show_error("bengal.toml not found. Run 'bengal project init' first.", show_art=False)
+            show_error("bengal.toml not found. Run 'bengal project init' first.", show_art=True)
             raise click.Abort()
 
         with open(config_path, "rb") as f:
@@ -271,18 +276,18 @@ def info() -> None:
         build_config = config.get("build", {})
 
         # Site info
-        click.echo(click.style("Site Configuration:", fg="cyan", bold=True))
-        click.echo(f"  Title:     {site_config.get('title', '(not set)')}")
-        click.echo(f"  Base URL:  {site_config.get('baseurl', '(not set)')}")
-        click.echo(f"  Theme:     {site_config.get('theme', 'default')}")
-        click.echo()
+        cli.header("Site Configuration:")
+        cli.info(f"  Title:     {site_config.get('title', '(not set)')}")
+        cli.info(f"  Base URL:  {site_config.get('baseurl', '(not set)')}")
+        cli.info(f"  Theme:     {site_config.get('theme', 'default')}")
+        cli.blank()
 
         # Build info
-        click.echo(click.style("Build Settings:", fg="cyan", bold=True))
-        click.echo(f"  Output:    {build_config.get('output_dir', 'public')}")
-        click.echo(f"  Parallel:  {'Yes' if build_config.get('parallel', True) else 'No'}")
-        click.echo(f"  Incremental: {'Yes' if build_config.get('incremental', True) else 'No'}")
-        click.echo()
+        cli.header("Build Settings:")
+        cli.info(f"  Output:    {build_config.get('output_dir', 'public')}")
+        cli.info(f"  Parallel:  {'Yes' if build_config.get('parallel', True) else 'No'}")
+        cli.info(f"  Incremental: {'Yes' if build_config.get('incremental', True) else 'No'}")
+        cli.blank()
 
         # Content stats
         content_dir = Path("content")
@@ -290,10 +295,10 @@ def info() -> None:
             md_files = list(content_dir.rglob("*.md"))
             dirs = [d for d in content_dir.iterdir() if d.is_dir()]
 
-            click.echo(click.style("Content:", fg="cyan", bold=True))
-            click.echo(f"  Pages:    {len(md_files)}")
-            click.echo(f"  Sections: {len(dirs)}")
-            click.echo()
+            cli.header("Content:")
+            cli.info(f"  Pages:    {len(md_files)}")
+            cli.info(f"  Sections: {len(dirs)}")
+            cli.blank()
 
         # Asset stats
         assets_dir = Path("assets")
@@ -308,11 +313,11 @@ def info() -> None:
                 if f.is_file() and f.suffix.lower() in img_extensions
             ]
 
-            click.echo(click.style("Assets:", fg="cyan", bold=True))
-            click.echo(f"  CSS:    {len(css_files)} files")
-            click.echo(f"  JS:     {len(js_files)} files")
-            click.echo(f"  Images: {len(img_files)} files")
-            click.echo()
+            cli.header("Assets:")
+            cli.info(f"  CSS:    {len(css_files)} files")
+            cli.info(f"  JS:     {len(js_files)} files")
+            cli.info(f"  Images: {len(img_files)} files")
+            cli.blank()
 
         # Template stats
         templates_dir = Path("templates")
@@ -324,10 +329,10 @@ def info() -> None:
                 else []
             )
 
-            click.echo(click.style("Templates:", fg="cyan", bold=True))
-            click.echo(f"  Templates: {len(templates)}")
-            click.echo(f"  Partials:  {len(partials)}")
-            click.echo()
+            cli.header("Templates:")
+            cli.info(f"  Templates: {len(templates)}")
+            cli.info(f"  Partials:  {len(partials)}")
+            cli.blank()
 
     except click.Abort:
         raise
@@ -351,6 +356,8 @@ def config(key: str, value: str, set_value: bool, list_all: bool) -> None:
         bengal project config site.title "My Blog" --set  # Set value
         bengal project config --list             # List all options
     """
+    cli = CLIOutput()
+
     try:
         import tomllib
         from pathlib import Path
@@ -358,7 +365,7 @@ def config(key: str, value: str, set_value: bool, list_all: bool) -> None:
         config_path = Path("bengal.toml")
 
         if not config_path.exists():
-            show_error("bengal.toml not found. Run 'bengal project init' first.", show_art=False)
+            show_error("bengal.toml not found. Run 'bengal project init' first.", show_art=True)
             raise click.Abort()
 
         with open(config_path, "rb") as f:
@@ -366,34 +373,38 @@ def config(key: str, value: str, set_value: bool, list_all: bool) -> None:
 
         # Show all options
         if list_all:
-            click.echo(click.style("\n📋 Available Configuration Options\n", fg="cyan", bold=True))
+            cli.blank()
+            cli.header("📋 Available Configuration Options")
+            cli.blank()
 
-            click.echo(click.style("[site]", fg="cyan", bold=True))
-            click.echo("  title           Site title (required)")
-            click.echo("  baseurl         Base URL for the site (required)")
-            click.echo("  description     Site description")
-            click.echo("  theme           Theme name (default: 'default')")
-            click.echo()
+            cli.header("[site]")
+            cli.info("  title           Site title (required)")
+            cli.info("  baseurl         Base URL for the site (required)")
+            cli.info("  description     Site description")
+            cli.info("  theme           Theme name (default: 'default')")
+            cli.blank()
 
-            click.echo(click.style("[build]", fg="cyan", bold=True))
-            click.echo("  output_dir      Output directory (default: 'public')")
-            click.echo("  parallel        Enable parallel processing (default: true)")
-            click.echo("  incremental     Enable incremental builds (default: true)")
-            click.echo()
+            cli.header("[build]")
+            cli.info("  output_dir      Output directory (default: 'public')")
+            cli.info("  parallel        Enable parallel processing (default: true)")
+            cli.info("  incremental     Enable incremental builds (default: true)")
+            cli.blank()
 
-            click.echo(click.style("[assets]", fg="cyan", bold=True))
-            click.echo("  minify          Minify CSS/JS (default: true)")
-            click.echo("  fingerprint     Add cache-busting fingerprints (default: true)")
-            click.echo()
+            cli.header("[assets]")
+            cli.info("  minify          Minify CSS/JS (default: true)")
+            cli.info("  fingerprint     Add cache-busting fingerprints (default: true)")
+            cli.blank()
             return
 
         # Show current config
         if not key:
-            click.echo(click.style("\n⚙️  Current Configuration\n", fg="cyan", bold=True))
+            cli.blank()
+            cli.header("⚙️  Current Configuration")
+            cli.blank()
             import json
 
-            click.echo(json.dumps(config, indent=2))
-            click.echo()
+            cli.info(json.dumps(config, indent=2))
+            cli.blank()
             return
 
         # Get specific value
@@ -403,11 +414,14 @@ def config(key: str, value: str, set_value: bool, list_all: bool) -> None:
             if isinstance(current, dict) and part in current:
                 current = current[part]
             else:
-                click.echo(click.style(f"✗ Config key not found: {key}", fg="red"))
+                cli.error(f"✗ Config key not found: {key}")
                 raise click.Abort()
 
         if not set_value:
-            click.echo(click.style(f"{key}: ", fg="cyan") + str(current))
+            if cli.use_rich:
+                cli.console.print(f"[info]{key}:[/info] {str(current)}")
+            else:
+                cli.info(f"{key}: {str(current)}")
             return
 
         # Set value
@@ -448,8 +462,8 @@ def config(key: str, value: str, set_value: bool, list_all: bool) -> None:
 
         atomic_write_text(config_path, "\n".join(toml_lines))
 
-        click.echo(click.style(f"✓ Set {key} = {value}", fg="green"))
-        click.echo()
+        cli.success(f"✓ Set {key} = {value}")
+        cli.blank()
 
     except click.Abort:
         raise

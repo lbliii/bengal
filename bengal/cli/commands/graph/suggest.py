@@ -5,11 +5,13 @@ from pathlib import Path
 
 import click
 
+from bengal.cli.base import BengalCommand
 from bengal.core.site import Site
+from bengal.utils.cli_output import CLIOutput
 from bengal.utils.logger import LogLevel, close_all_loggers, configure_logging
 
 
-@click.command()
+@click.command(cls=BengalCommand)
 @click.option(
     "--top-n", "-n", default=50, type=int, help="Number of suggestions to show (default: 50)"
 )
@@ -58,6 +60,8 @@ def suggest(top_n: int, min_score: float, format: str, config: str, source: str)
     """
     from bengal.analysis.knowledge_graph import KnowledgeGraph
 
+    cli = CLIOutput()
+
     try:
         configure_logging(level=LogLevel.WARNING)
 
@@ -69,21 +73,17 @@ def suggest(top_n: int, min_score: float, format: str, config: str, source: str)
         else:
             site = Site.from_config(source_path)
 
-        click.echo("🔍 Discovering site content...")
+        cli.info("🔍 Discovering site content...")
         from bengal.orchestration.content import ContentOrchestrator
 
         content_orch = ContentOrchestrator(site)
         content_orch.discover()
 
-        from bengal.utils.cli_output import CLIOutput
-
-        cli = CLIOutput()
-
         cli.header(f"Building knowledge graph from {len(site.pages)} pages...")
         graph_obj = KnowledgeGraph(site)
         graph_obj.build()
 
-        click.echo("💡 Generating link suggestions...")
+        cli.info("💡 Generating link suggestions...")
         results = graph_obj.suggest_links(min_score=min_score)
 
         top_suggestions = results.get_top_suggestions(top_n)
@@ -103,36 +103,37 @@ def suggest(top_n: int, min_score: float, format: str, config: str, source: str)
                     for s in top_suggestions
                 ],
             }
-            click.echo(json.dumps(data, indent=2))
+            cli.info(json.dumps(data, indent=2))
 
         elif format == "markdown":
-            click.echo("# Link Suggestions\n")
-            click.echo(
+            cli.info("# Link Suggestions\n")
+            cli.info(
                 f"Generated {results.total_suggestions} suggestions from {results.pages_analyzed} pages\n"
             )
-            click.echo(f"## Top {len(top_suggestions)} Suggestions\n")
+            cli.info(f"## Top {len(top_suggestions)} Suggestions\n")
 
             for i, suggestion in enumerate(top_suggestions, 1):
-                click.echo(f"### {i}. {suggestion.source.title} → {suggestion.target.title}")
-                click.echo(f"**Score:** {suggestion.score:.3f}\n")
-                click.echo("**Reasons:**")
+                cli.info(f"### {i}. {suggestion.source.title} → {suggestion.target.title}")
+                cli.info(f"**Score:** {suggestion.score:.3f}\n")
+                cli.info("**Reasons:**")
                 for reason in suggestion.reasons:
-                    click.echo(f"- {reason}")
-                click.echo(
+                    cli.info(f"- {reason}")
+                cli.info(
                     f"\n**Action:** Add link from `{suggestion.source.source_path}` to `{suggestion.target.source_path}`\n"
                 )
-                click.echo("---\n")
+                cli.info("---\n")
 
         else:  # table format
-            click.echo("\n" + "=" * 120)
-            click.echo(f"💡 Top {len(top_suggestions)} Link Suggestions")
-            click.echo("=" * 120)
-            click.echo(
+            cli.blank()
+            cli.info("=" * 120)
+            cli.header(f"💡 Top {len(top_suggestions)} Link Suggestions")
+            cli.info("=" * 120)
+            cli.info(
                 f"Generated {results.total_suggestions} suggestions from {results.pages_analyzed} pages (min score: {min_score})"
             )
-            click.echo("=" * 120)
-            click.echo(f"{'#':<4} {'From':<35} {'To':<35} {'Score':<8} {'Reasons':<35}")
-            click.echo("-" * 120)
+            cli.info("=" * 120)
+            cli.info(f"{'#':<4} {'From':<35} {'To':<35} {'Score':<8} {'Reasons':<35}")
+            cli.info("-" * 120)
 
             for i, suggestion in enumerate(top_suggestions, 1):
                 source_title = suggestion.source.title
@@ -147,29 +148,32 @@ def suggest(top_n: int, min_score: float, format: str, config: str, source: str)
                 if len(reasons_str) > 33:
                     reasons_str = reasons_str[:30] + "..."
 
-                click.echo(
+                cli.info(
                     f"{i:<4} {source_title:<35} {target_title:<35} {suggestion.score:.4f}  {reasons_str:<35}"
                 )
 
-            click.echo("=" * 120)
-            click.echo("\n💡 Tip: Use --format markdown to generate implementation checklist")
-            click.echo("       Use --format json to export for programmatic processing")
-            click.echo("       Use --min-score to filter low-confidence suggestions\n")
+            cli.info("=" * 120)
+            cli.blank()
+            cli.tip("Use --format markdown to generate implementation checklist")
+            cli.tip("Use --format json to export for programmatic processing")
+            cli.tip("Use --min-score to filter low-confidence suggestions")
+            cli.blank()
 
         if format != "json":
-            click.echo("\n" + "=" * 60)
-            click.echo("📊 Summary")
-            click.echo("=" * 60)
-            click.echo(f"• Total suggestions:          {results.total_suggestions}")
-            click.echo(f"• Above threshold ({min_score}):      {len(top_suggestions)}")
-            click.echo(f"• Pages analyzed:             {results.pages_analyzed}")
-            click.echo(
+            cli.blank()
+            cli.info("=" * 60)
+            cli.header("📊 Summary")
+            cli.info("=" * 60)
+            cli.info(f"• Total suggestions:          {results.total_suggestions}")
+            cli.info(f"• Above threshold ({min_score}):      {len(top_suggestions)}")
+            cli.info(f"• Pages analyzed:             {results.pages_analyzed}")
+            cli.info(
                 f"• Avg suggestions per page:   {results.total_suggestions / results.pages_analyzed:.1f}"
             )
-            click.echo("\n")
+            cli.blank()
 
     except Exception as e:
-        click.echo(click.style(f"❌ Error: {e}", fg="red", bold=True))
+        cli.error(f"❌ Error: {e}")
         raise click.Abort() from e
     finally:
         close_all_loggers()

@@ -10,8 +10,6 @@ import time
 from pathlib import Path
 from typing import Any
 
-from watchdog.observers import Observer
-
 from bengal.server.build_handler import BuildHandler
 from bengal.server.constants import DEFAULT_DEV_HOST, DEFAULT_DEV_PORT
 from bengal.server.pid_manager import PIDManager
@@ -235,7 +233,7 @@ class DevServer:
         # Filter to only existing directories
         return [str(d) for d in watch_dirs if d.exists()]
 
-    def _create_observer(self, actual_port: int) -> Observer:
+    def _create_observer(self, actual_port: int) -> Any:
         """
         Create file system observer (does not start it).
 
@@ -246,7 +244,37 @@ class DevServer:
             Configured Observer instance (not yet started)
         """
         event_handler = BuildHandler(self.site, self.host, actual_port)
-        observer = Observer()
+
+        # Import watchdog lazily and allow selecting a backend to avoid loading
+        # platform-specific C extensions under free-threaded Python by default.
+        # Users can force a backend via BENGAL_WATCHDOG_BACKEND=polling|auto.
+        import os as _os
+
+        backend = (_os.environ.get("BENGAL_WATCHDOG_BACKEND", "auto") or "auto").lower()
+
+        # If running on a free-threaded build with GIL disabled, prefer polling to
+        # avoid loading native extensions that may re-enable the GIL and warn.
+        if backend == "auto":
+            try:
+                import sys as _sys
+
+                if hasattr(_sys, "_is_gil_enabled") and not _sys._is_gil_enabled():
+                    backend = "polling"
+            except Exception:
+                # Fall through to auto native backend when detection fails
+                pass
+
+        ObserverClass = None
+        if backend == "polling":
+            try:
+                from watchdog.observers.polling import PollingObserver as ObserverClass
+            except Exception:
+                from watchdog.observers import Observer as ObserverClass
+        else:
+            # auto/default: use native Observer; users can switch with env var
+            from watchdog.observers import Observer as ObserverClass
+
+        observer = ObserverClass()
 
         # Get all watch directories
         watch_dirs = self._get_watched_directories()

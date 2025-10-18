@@ -5,11 +5,13 @@ from pathlib import Path
 
 import click
 
+from bengal.cli.base import BengalCommand
 from bengal.core.site import Site
+from bengal.utils.cli_output import CLIOutput
 from bengal.utils.logger import LogLevel, close_all_loggers, configure_logging
 
 
-@click.command()
+@click.command(cls=BengalCommand)
 @click.option("--top-n", "-n", default=20, type=int, help="Number of pages to show (default: 20)")
 @click.option(
     "--metric",
@@ -59,6 +61,8 @@ def bridges(top_n: int, metric: str, format: str, config: str, source: str) -> N
     """
     from bengal.analysis.knowledge_graph import KnowledgeGraph
 
+    cli = CLIOutput()
+
     try:
         # Configure minimal logging
         configure_logging(level=LogLevel.WARNING)
@@ -73,19 +77,19 @@ def bridges(top_n: int, metric: str, format: str, config: str, source: str) -> N
             site = Site.from_config(source_path)
 
         # Discover content
-        click.echo("🔍 Discovering site content...")
+        cli.info("🔍 Discovering site content...")
         from bengal.orchestration.content import ContentOrchestrator
 
         content_orch = ContentOrchestrator(site)
         content_orch.discover()
 
         # Build knowledge graph
-        click.echo(f"📊 Building knowledge graph from {len(site.pages)} pages...")
+        cli.info(f"📊 Building knowledge graph from {len(site.pages)} pages...")
         graph_obj = KnowledgeGraph(site)
         graph_obj.build()
 
         # Analyze paths
-        click.echo("🌉 Analyzing navigation paths...")
+        cli.info("🌉 Analyzing navigation paths...")
         results = graph_obj.analyze_paths()
 
         # Output based on format
@@ -121,51 +125,51 @@ def bridges(top_n: int, metric: str, format: str, config: str, source: str) -> N
                     for page, score in accessible
                 ]
 
-            click.echo(json.dumps(data, indent=2))
+            cli.info(json.dumps(data, indent=2))
 
         elif format == "summary":
             # Show summary stats
-            click.echo("\n" + "=" * 60)
-            click.echo("🌉 Path Analysis Summary")
-            click.echo("=" * 60)
-            click.echo(f"Total pages analyzed:     {len(results.betweenness_centrality)}")
-            click.echo(f"Average path length:      {results.avg_path_length:.2f}")
-            click.echo(f"Network diameter:         {results.diameter}")
-            click.echo("")
+            cli.info("\n" + "=" * 60)
+            cli.info("🌉 Path Analysis Summary")
+            cli.info("=" * 60)
+            cli.info(f"Total pages analyzed:     {len(results.betweenness_centrality)}")
+            cli.info(f"Average path length:      {results.avg_path_length:.2f}")
+            cli.info(f"Network diameter:         {results.diameter}")
+            cli.info("")
 
             if metric in ["betweenness", "both"]:
-                click.echo("\n🔗 Top Bridge Pages (Betweenness Centrality)")
-                click.echo("-" * 60)
+                cli.info("\n🔗 Top Bridge Pages (Betweenness Centrality)")
+                cli.info("-" * 60)
                 bridges_list = results.get_top_bridges(top_n)
                 for i, (page, score) in enumerate(bridges_list, 1):
                     incoming = graph_obj.incoming_refs.get(page, 0)
                     outgoing = len(graph_obj.outgoing_refs.get(page, set()))
-                    click.echo(f"{i:3d}. {page.title}")
-                    click.echo(f"     Betweenness: {score:.6f} | {incoming} in, {outgoing} out")
+                    cli.info(f"{i:3d}. {page.title}")
+                    cli.info(f"     Betweenness: {score:.6f} | {incoming} in, {outgoing} out")
 
             if metric in ["closeness", "both"]:
-                click.echo("\n🎯 Most Accessible Pages (Closeness Centrality)")
-                click.echo("-" * 60)
+                cli.info("\n🎯 Most Accessible Pages (Closeness Centrality)")
+                cli.info("-" * 60)
                 accessible = results.get_most_accessible(top_n)
                 for i, (page, score) in enumerate(accessible, 1):
                     outgoing = len(graph_obj.outgoing_refs.get(page, set()))
-                    click.echo(f"{i:3d}. {page.title}")
-                    click.echo(f"     Closeness: {score:.6f} | Can reach {outgoing} pages")
+                    cli.info(f"{i:3d}. {page.title}")
+                    cli.info(f"     Closeness: {score:.6f} | Can reach {outgoing} pages")
 
         else:  # table format
-            click.echo("\n" + "=" * 100)
-            click.echo("🌉 Navigation Path Analysis")
-            click.echo("=" * 100)
-            click.echo(
+            cli.info("\n" + "=" * 100)
+            cli.info("🌉 Navigation Path Analysis")
+            cli.info("=" * 100)
+            cli.info(
                 f"Analyzed {len(results.betweenness_centrality)} pages • Avg path: {results.avg_path_length:.2f} • Diameter: {results.diameter}"
             )
-            click.echo("=" * 100)
+            cli.info("=" * 100)
 
             if metric in ["betweenness", "both"]:
-                click.echo(f"\n🔗 Top {top_n} Bridge Pages (Betweenness Centrality)")
-                click.echo("-" * 100)
-                click.echo(f"{'Rank':<6} {'Title':<50} {'Betweenness':<14} {'In':<5} {'Out':<5}")
-                click.echo("-" * 100)
+                cli.info(f"\n🔗 Top {top_n} Bridge Pages (Betweenness Centrality)")
+                cli.info("-" * 100)
+                cli.info(f"{'Rank':<6} {'Title':<50} {'Betweenness':<14} {'In':<5} {'Out':<5}")
+                cli.info("-" * 100)
 
                 bridges_list = results.get_top_bridges(top_n)
                 for i, (page, score) in enumerate(bridges_list, 1):
@@ -176,13 +180,13 @@ def bridges(top_n: int, metric: str, format: str, config: str, source: str) -> N
                     incoming = graph_obj.incoming_refs.get(page, 0)
                     outgoing = len(graph_obj.outgoing_refs.get(page, set()))
 
-                    click.echo(f"{i:<6} {title:<50} {score:.10f}  {incoming:<5} {outgoing:<5}")
+                    cli.info(f"{i:<6} {title:<50} {score:.10f}  {incoming:<5} {outgoing:<5}")
 
             if metric in ["closeness", "both"]:
-                click.echo(f"\n🎯 Top {top_n} Most Accessible Pages (Closeness Centrality)")
-                click.echo("-" * 100)
-                click.echo(f"{'Rank':<6} {'Title':<50} {'Closeness':<14} {'Out':<5}")
-                click.echo("-" * 100)
+                cli.info(f"\n🎯 Top {top_n} Most Accessible Pages (Closeness Centrality)")
+                cli.info("-" * 100)
+                cli.info(f"{'Rank':<6} {'Title':<50} {'Closeness':<14} {'Out':<5}")
+                cli.info("-" * 100)
 
                 accessible = results.get_most_accessible(top_n)
                 for i, (page, score) in enumerate(accessible, 1):
@@ -192,17 +196,18 @@ def bridges(top_n: int, metric: str, format: str, config: str, source: str) -> N
 
                     outgoing = len(graph_obj.outgoing_refs.get(page, set()))
 
-                    click.echo(f"{i:<6} {title:<50} {score:.10f}  {outgoing:<5}")
+                    cli.info(f"{i:<6} {title:<50} {score:.10f}  {outgoing:<5}")
 
-            click.echo("=" * 100)
-            click.echo("\n💡 Tip: Use --metric to focus on betweenness or closeness")
-            click.echo("       Use --format json to export for analysis\n")
+            cli.info("=" * 100)
+            cli.tip("Use --metric to focus on betweenness or closeness")
+            cli.tip("Use --format json to export for analysis")
+            cli.blank()
 
         # Show insights
         if format != "json":
-            click.echo("\n" + "=" * 60)
-            click.echo("📊 Insights")
-            click.echo("=" * 60)
+            cli.info("\n" + "=" * 60)
+            cli.info("📊 Insights")
+            cli.info("=" * 60)
 
             avg_betweenness = (
                 sum(results.betweenness_centrality.values()) / len(results.betweenness_centrality)
@@ -215,22 +220,22 @@ def bridges(top_n: int, metric: str, format: str, config: str, source: str) -> N
                 else 0
             )
 
-            click.echo(f"• Average path length:        {results.avg_path_length:.2f} hops")
-            click.echo(f"• Network diameter:           {results.diameter} hops")
-            click.echo(f"• Average betweenness:        {avg_betweenness:.6f}")
-            click.echo(f"• Max betweenness:            {max_betweenness:.6f}")
+            cli.info(f"• Average path length:        {results.avg_path_length:.2f} hops")
+            cli.info(f"• Network diameter:           {results.diameter} hops")
+            cli.info(f"• Average betweenness:        {avg_betweenness:.6f}")
+            cli.info(f"• Max betweenness:            {max_betweenness:.6f}")
 
             if results.diameter > 5:
-                click.echo("• Structure:                  Deep (consider shortening paths)")
+                cli.info("• Structure:                  Deep (consider shortening paths)")
             elif results.diameter > 3:
-                click.echo("• Structure:                  Medium depth")
+                cli.info("• Structure:                  Medium depth")
             else:
-                click.echo("• Structure:                  Shallow (well connected)")
+                cli.info("• Structure:                  Shallow (well connected)")
 
-            click.echo("\n")
+            cli.info("\n")
 
     except Exception as e:
-        click.echo(click.style(f"❌ Error: {e}", fg="red", bold=True))
+        cli.error(f"❌ Error: {e}")
         raise click.Abort() from e
     finally:
         close_all_loggers()

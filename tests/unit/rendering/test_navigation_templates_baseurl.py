@@ -10,6 +10,7 @@ from unittest.mock import Mock
 import pytest
 
 from bengal.core.site import Site
+from bengal.orchestration.menu import MenuOrchestrator
 from bengal.rendering.template_engine import TemplateEngine
 
 
@@ -110,7 +111,9 @@ output_dir = "public"
 
         # Assert: links should be relative (no baseurl)
         assert 'href="/docs/"' in html
-        assert 'href="/docs/guide/"' in html
+        # Current page should not be a link (aria-current="page")
+        assert 'aria-current="page"' in html
+        assert "User Guide" in html
 
 
 class TestFooterMenuWithBaseurl:
@@ -150,6 +153,11 @@ output_dir = "public"
         )
 
         site = Site.from_config(site_dir)
+
+        # Build menus from config
+        menu_orchestrator = MenuOrchestrator(site)
+        menu_orchestrator.build()
+
         engine = TemplateEngine(site)
 
         # Render base.html (contains footer)
@@ -264,6 +272,11 @@ output_dir = "public"
         )
 
         site = Site.from_config(site_dir)
+
+        # Build menus from config
+        menu_orchestrator = MenuOrchestrator(site)
+        menu_orchestrator.build()
+
         engine = TemplateEngine(site)
 
         # Create mock page at /docs/
@@ -271,6 +284,8 @@ output_dir = "public"
         page.url = "/docs/"  # Relative URL (identity)
         page.title = "Documentation"
         page.metadata = {}
+        page.keywords = []
+        page.tags = []
 
         # Render base template (contains menu)
         html = engine.render("base.html", {"page": page})

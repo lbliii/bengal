@@ -2,8 +2,10 @@
 
 import click
 
+from bengal.cli.base import BengalCommand
 
-@click.command()
+
+@click.command(cls=BengalCommand)
 @click.option("--last", "-n", default=10, help="Show last N builds (default: 10)")
 @click.option(
     "--format",

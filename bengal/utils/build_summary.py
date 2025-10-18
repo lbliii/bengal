@@ -110,7 +110,7 @@ def create_timing_breakdown_table(stats: BuildStats) -> Table:
         "[bold]Total[/bold]",
         f"[bold]{total_str}[/bold]",
         "[bold]100%[/bold]",
-        "[bold green]████████████████████[/bold green]",
+        "[success]████████████████████[/success]",
     )
 
     return table
@@ -160,7 +160,7 @@ def create_performance_panel(stats: BuildStats, advisor: PerformanceAdvisor) -> 
 
     return Panel(
         content,
-        title="[bold cyan]⚡ Performance Grade[/bold cyan]",
+        title="[header]⚡ Performance Grade[/header]",
         border_style="cyan",
         padding=(1, 2),
     )
@@ -279,7 +279,7 @@ def create_cache_stats_panel(stats: BuildStats) -> Panel | None:
 
     return Panel(
         content,
-        title="[bold cyan]💾 Cache Statistics[/bold cyan]",
+        title="[header]💾 Cache Statistics[/header]",
         border_style="cyan",
         padding=(1, 2),
     )
@@ -377,7 +377,7 @@ def display_build_summary(stats: BuildStats, environment: dict[str, Any] | None 
     # Skip if build was skipped
     if stats.skipped:
         console.print()
-        console.print("[cyan bold]✨ No changes detected - build skipped![/cyan bold]")
+        console.print("[info]✨ No changes detected - build skipped![/info]")
         console.print()
         return
 
@@ -387,7 +387,7 @@ def display_build_summary(stats: BuildStats, environment: dict[str, Any] | None 
 
     # Header
     console.print()
-    console.print("    [bengal]ᓚᘏᗢ[/bengal]  [bold green]Build Complete![/bold green]")
+    console.print("    [bengal]ᓚᘏᗢ[/bengal]  [success]Build Complete![/success]")
     console.print()
 
     # Main content
@@ -415,7 +415,7 @@ def display_build_summary(stats: BuildStats, environment: dict[str, Any] | None 
 
     # Footer: Output location
     if hasattr(stats, "output_dir") and stats.output_dir:
-        console.print("[cyan bold]📂 Output:[/cyan bold]")
+        console.print("[header]📂 Output:[/header]")
         console.print(f"   [cyan]↪[/cyan] [white bold]{stats.output_dir}[/white bold]")
         console.print()
 

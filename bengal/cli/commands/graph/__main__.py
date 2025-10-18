@@ -4,7 +4,9 @@ from pathlib import Path
 
 import click
 
+from bengal.cli.base import BengalCommand, BengalGroup
 from bengal.core.site import Site
+from bengal.utils.cli_output import CLIOutput
 from bengal.utils.logger import LogLevel, close_all_loggers, configure_logging
 
 from .bridges import bridges
@@ -13,13 +15,13 @@ from .pagerank import pagerank
 from .suggest import suggest
 
 
-@click.group("graph")
+@click.group("graph", cls=BengalGroup)
 def graph_cli():
     """Commands for analyzing the site's knowledge graph."""
     pass
 
 
-@click.command("analyze")
+@click.command("analyze", cls=BengalCommand)
 @click.option(
     "--stats",
     "show_stats",
@@ -78,24 +80,26 @@ def analyze(show_stats: bool, tree: bool, output: str, config: str, source: str)
                     graph_obj.build()
             else:
                 # Fallback to simple messages
-                click.echo("🔍 Discovering site content...")
+                cli = CLIOutput()
+                cli.info("🔍 Discovering site content...")
                 from bengal.orchestration.content import ContentOrchestrator
 
                 content_orch = ContentOrchestrator(site)
                 content_orch.discover()
 
-                click.echo(f"📊 Analyzing {len(site.pages)} pages...")
+                cli.info(f"📊 Analyzing {len(site.pages)} pages...")
                 graph_obj = KnowledgeGraph(site)
                 graph_obj.build()
         except ImportError:
             # Rich not available, use simple messages
-            click.echo("🔍 Discovering site content...")
+            cli = CLIOutput()
+            cli.info("🔍 Discovering site content...")
             from bengal.orchestration.content import ContentOrchestrator
 
             content_orch = ContentOrchestrator(site)
             content_orch.discover()
 
-            click.echo(f"📊 Analyzing {len(site.pages)} pages...")
+            cli.info(f"📊 Analyzing {len(site.pages)} pages...")
             graph_obj = KnowledgeGraph(site)
             graph_obj.build()
 
@@ -107,11 +111,14 @@ def analyze(show_stats: bool, tree: bool, output: str, config: str, source: str)
                 from bengal.utils.rich_console import get_console, should_use_rich
 
                 if should_use_rich():
+                    from bengal.utils.cli_output import CLIOutput
+
+                    cli = CLIOutput()
                     console = get_console()
-                    console.print()
+                    cli.blank()
 
                     # Create tree visualization
-                    tree_root = Tree("📁 [bold cyan]Site Structure[/bold cyan]")
+                    tree_root = Tree("📁 [header]Site Structure[/header]")
 
                     # Group pages by section
                     sections_dict = {}
@@ -133,7 +140,7 @@ def analyze(show_stats: bool, tree: bool, output: str, config: str, source: str)
                         pages_in_section = sections_dict[section_name]
 
                         # Create section branch
-                        section_label = f"📁 [cyan]{section_name}[/cyan] [dim]({len(pages_in_section)} pages)[/dim]"
+                        section_label = f"📁 [info]{section_name}[/info] [dim]({len(pages_in_section)} pages)[/dim]"
                         section_branch = tree_root.add(section_label)
 
                         # Add pages (limit to first 15 per section)
@@ -162,29 +169,30 @@ def analyze(show_stats: bool, tree: bool, output: str, config: str, source: str)
                             remaining = len(pages_in_section) - 15
                             section_branch.add(f"[dim]... and {remaining} more pages[/dim]")
 
-                    console.print(tree_root)
-                    console.print()
+                    # Print the Rich Tree component (complex visualization)
+                    cli.console.print(tree_root)
+                    cli.blank()
                 else:
-                    click.echo(
-                        click.style("Tree visualization requires a TTY terminal", fg="yellow")
-                    )
+                    from bengal.utils.cli_output import CLIOutput
+
+                    cli = CLIOutput()
+                    cli.warning("Tree visualization requires a TTY terminal")
             except ImportError:
-                click.echo(
-                    click.style("⚠️  Tree visualization requires 'rich' library", fg="yellow")
-                )
+                from bengal.utils.cli_output import CLIOutput
+
+                cli = CLIOutput()
+                cli.warning("⚠️  Tree visualization requires 'rich' library")
 
         # Show statistics
         if show_stats:
             stats = graph_obj.format_stats()
-            click.echo(stats)
+            cli = CLIOutput()
+            cli.info(stats)
 
         # Generate visualization if requested
         if output:
-            from bengal.utils.cli_output import CLIOutput
-
-            cli = CLIOutput()
-
             output_path = Path(output).resolve()
+            cli = CLIOutput()
             cli.blank()
             cli.header("Generating interactive visualization...")
             cli.info(f"   ↪ {output_path}")
@@ -202,17 +210,19 @@ def analyze(show_stats: bool, tree: bool, output: str, config: str, source: str)
                 # Write HTML file
                 output_path.write_text(html, encoding="utf-8")
 
-                click.echo(click.style("✅ Visualization generated!", fg="green", bold=True))
-                click.echo(f"   Open {output_path} in your browser to explore.")
+                cli.success("✅ Visualization generated!")
+                cli.info(f"   Open {output_path} in your browser to explore.")
             except ImportError:
-                click.echo(click.style("⚠️  Graph visualization not yet implemented.", fg="yellow"))
-                click.echo("   This feature is coming in Phase 2!")
+                cli.warning("⚠️  Graph visualization not yet implemented.")
+                cli.info("   This feature is coming in Phase 2!")
 
     except Exception as e:
-        click.echo(click.style(f"❌ Error: {e}", fg="red", bold=True))
+        cli = CLIOutput()
+        cli.error(f"❌ Error: {e}")
         raise click.Abort() from e
     finally:
         close_all_loggers()
+
 
 graph_cli.add_command(analyze)
 graph_cli.add_command(pagerank)

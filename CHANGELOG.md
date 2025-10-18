@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **CLI Output Theming**: Introduced branded color palette and semantic styling system
+  - New vibrant orange (`#FF9D00`) as primary brand color for Bengal identity
+  - Comprehensive color palette with hex precision for cross-platform consistency
+  - Semantic style tokens (success, warning, error, header, path, etc.) replace direct color codes
+  - Enhanced header rendering with Panel component for visual prominence
+  - Improved maintainability through centralized color definitions
+  - Complete color accessibility documentation with WCAG analysis (see `bengal/utils/COLOR_PALETTE.md`)
+  - 29 comprehensive unit tests for semantic styling
+  - 14 integration tests covering real CLI command scenarios
+
 - BuildContext DI: Introduced `bengal.utils.build_context.BuildContext` and threaded through render/postprocess to remove temporary `site.pages`/`site.assets` mutation
 - ProgressReporter: Added `bengal.utils.progress.ProgressReporter` protocol with Rich adapter; routed orchestration/render logging through reporter
 - TemplateValidationService: Added `bengal.services.validation.TemplateValidationService` and default implementation; CLI `--validate` now depends on service rather than direct engine/validator
@@ -35,6 +45,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Automatic detection and use of site config `max_workers`
 
 ### Fixed
+
+- **CRITICAL: CLI console theme initialization**: Fixed `MissingStyle` error causing all CLI commands to crash
+  - Error: "Failed to get style 'header'; unable to parse 'header' as color"
+  - Root cause: `CLIOutput` was creating Console without `bengal_theme`, breaking semantic style tokens
+  - Impact: ALL CLI commands (clean, build, etc.) failed in production use
+  - Solution: Use `get_console()` singleton which includes theme, not raw `Console()`
+  - Prevention: Added 14 integration tests to catch theme initialization issues before release
 
 - **PageProxy template compatibility**: Fixed error `'PageProxy' object has no attribute 'meta_description'` by adding missing property accessors to PageProxy
   - Added lazy-loaded computed properties: `meta_description`, `reading_time`, `excerpt`

@@ -45,6 +45,38 @@ The server watches for changes in:
 - bengal.toml - Configuration file
 """
 
-from bengal.server.dev_server import DevServer
+from typing import TYPE_CHECKING
+
+# Lazy export of DevServer to avoid importing heavy dependencies (e.g., watchdog)
+# when users are not running the dev server. This prevents noisy runtime warnings
+# in free-threaded Python when unrelated commands import bengal.server.
+
+if TYPE_CHECKING:
+    # For type checkers only; does not execute at runtime
+    from bengal.server.dev_server import DevServer as DevServer
 
 __all__ = ["DevServer"]
+
+
+def __getattr__(name: str):
+    """
+    Lazy import pattern for DevServer to avoid loading heavy dependencies.
+
+    This defers the import of watchdog and other dev server dependencies
+    until actually needed, preventing noisy runtime warnings in free-threaded
+    Python when users run other commands that don't require the dev server.
+
+    Args:
+        name: The attribute name being accessed
+
+    Returns:
+        The requested attribute (DevServer)
+
+    Raises:
+        AttributeError: If the attribute is not found
+    """
+    if name == "DevServer":
+        from bengal.server.dev_server import DevServer  # Runtime import
+
+        return DevServer
+    raise AttributeError(f"module 'bengal.server' has no attribute {name!r}")
