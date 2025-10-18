@@ -1,7 +1,5 @@
 """Unit tests for QueryIndex and built-in indexes."""
 
-import tempfile
-from datetime import datetime
 from pathlib import Path
 
 import pytest
