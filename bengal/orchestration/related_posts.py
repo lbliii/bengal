@@ -81,11 +81,11 @@ class RelatedPostsOrchestrator:
 
         # Determine which pages to process
         if affected_pages is not None:
-            # Incremental: only process affected pages
+            # Incremental: only process affected pages (filter out generated)
             pages_to_process = [p for p in affected_pages if not p.metadata.get("_generated")]
         else:
-            # Full build: process all non-generated pages
-            pages_to_process = [p for p in self.site.pages if not p.metadata.get("_generated")]
+            # Full build: process all regular pages (use cached property)
+            pages_to_process = list(self.site.regular_pages)
 
         # Use parallel processing for larger sites to avoid thread overhead
         if parallel and len(pages_to_process) >= MIN_PAGES_FOR_PARALLEL:

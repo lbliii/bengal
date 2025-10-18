@@ -99,6 +99,7 @@ class Site:
     _regular_pages_cache: list[Page] | None = field(default=None, repr=False, init=False)
     _generated_pages_cache: list[Page] | None = field(default=None, repr=False, init=False)
     _theme_obj: Theme | None = field(default=None, repr=False, init=False)
+    _query_registry: Any = field(default=None, repr=False, init=False)
 
     def __post_init__(self) -> None:
         """Initialize site from configuration."""

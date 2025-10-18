@@ -630,9 +630,7 @@ class BuildOrchestrator:
                 self.logger.info(
                     "related_posts_built",
                     pages_with_related=pages_with_related,
-                    total_pages=len(
-                        [p for p in self.site.pages if not p.metadata.get("_generated")]
-                    ),
+                    total_pages=len(self.site.regular_pages),
                 )
         else:
             # Skip related posts for large sites or sites without tags
@@ -874,12 +872,8 @@ class BuildOrchestrator:
 
         # Collect final stats (before health check so we can include them in report)
         self.stats.total_pages = len(self.site.pages)
-        self.stats.regular_pages = len(
-            [p for p in self.site.pages if not p.metadata.get("_generated")]
-        )
-        self.stats.generated_pages = len(
-            [p for p in self.site.pages if p.metadata.get("_generated")]
-        )
+        self.stats.regular_pages = len(self.site.regular_pages)
+        self.stats.generated_pages = len(self.site.generated_pages)
         self.stats.total_assets = len(self.site.assets)
         self.stats.total_sections = len(self.site.sections)
         self.stats.taxonomies_count = sum(len(terms) for terms in self.site.taxonomies.values())
@@ -960,7 +954,7 @@ class BuildOrchestrator:
             for p in self.site.pages
             if p.metadata.get("_generated") and "/page/" in str(p.output_path)
         )
-        regular_pages = sum(1 for p in self.site.pages if not p.metadata.get("_generated"))
+        regular_pages = len(self.site.regular_pages)
 
         cli.detail(f"Regular pages:    {regular_pages}", indent=1, icon="├─")
         if tag_pages:
