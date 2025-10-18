@@ -326,7 +326,9 @@
     <script src="{{ asset_url('js/mobile-nav.js') }}"></script>
     <script src="{{ asset_url('js/tabs.js') }}"></script>
     <script src="{{ asset_url('js/toc.js') }}"></script>
+    {% if site.config.action_bar_enabled %}
     <script src="{{ asset_url('js/action-bar.js') }}"></script>
+    {% endif %}
     <script src="{{ asset_url('js/main.js') }}"></script>
     <script src="{{ asset_url('js/interactive.js') }}"></script>
     <script src="{{ asset_url('js/copy-link.js') }}"></script>
