@@ -26,6 +26,10 @@
 /* Palette presets (optional overrides; activated via data-palette="...") */
 @layer tokens {
   @import url('tokens/palettes/snow-lynx.css');
+  @import url('tokens/palettes/brown-bengal.css');
+  @import url('tokens/palettes/silver-bengal.css');
+  @import url('tokens/palettes/charcoal-bengal.css');
+  @import url('tokens/palettes/blue-bengal.css');
 }
 
 /* ============================================

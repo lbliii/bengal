@@ -395,3 +395,18 @@ header .container {
   background: var(--color-bg-secondary);
   color: var(--color-primary);
 }
+
+.theme-dropdown__menu button.active {
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  font-weight: var(--font-medium);
+  position: relative;
+}
+
+.theme-dropdown__menu button.active::after {
+  content: '✓';
+  position: absolute;
+  right: 0.5rem;
+  color: var(--color-primary);
+  font-size: var(--text-base);
+}

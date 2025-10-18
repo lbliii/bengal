@@ -1,0 +1,148 @@
+/**
+ * Silver Bengal Palette
+ * High-contrast silver with cool blue undertones and charcoal accents
+ *
+ * Usage: Attach data-palette="silver-bengal" on <html> to activate.
+ */
+
+/* Scope palette colors to root element only */
+:root[data-palette="silver-bengal"],
+html[data-palette="silver-bengal"] {
+    /* Primary (cool pure silver - MONOCHROMATIC) */
+    --color-primary: #6B7280;
+    --color-primary-hover: #4B5563;
+    --color-primary-active: #374151;
+    --color-primary-light: #F3F4F6;
+    --color-primary-dark: #1F2937;
+
+    /* Backgrounds (pure monochrome - NO color tint) */
+    --color-bg-primary: #FFFFFF;
+    --color-bg-secondary: #F9FAFB;
+    --color-bg-tertiary: #F3F4F6;
+    --color-bg-elevated: #FFFFFF;
+    --color-bg-overlay: rgba(0, 0, 0, 0.6);
+    --color-bg-hover: #F3F4F6;
+    --color-bg-active: #E5E7EB;
+    --color-bg-code: #F9FAFB;
+
+    /* Text (pure blacks and grays - maximum contrast) */
+    --color-text-primary: #000000;
+    --color-text-secondary: #374151;
+    --color-text-tertiary: #6B7280;
+    --color-text-muted: #9CA3AF;
+    --color-text-inverse: #FFFFFF;
+    --color-text-link: #4B5563;
+    --color-text-link-hover: #1F2937;
+
+    /* Borders (neutral grays) */
+    --color-border: #D1D5DB;
+    --color-border-light: #E5E7EB;
+    --color-border-strong: #9CA3AF;
+    --color-border-focus: #6B7280;
+
+    /* Semantic states (cool tones) */
+    --color-success: #2E7D32;
+    --color-success-bg: #F0F9F1;
+    --color-success-border: #A5D6A7;
+    --color-success-text: #1B5E20;
+
+    --color-warning: #D97706;
+    --color-warning-bg: #FFFBF0;
+    --color-warning-border: #FCD34D;
+    --color-warning-text: #92400E;
+
+    --color-error: #C62828;
+    --color-error-bg: #FFF5F5;
+    --color-error-border: #FCA5A5;
+    --color-error-text: #7F1D1D;
+
+    --color-info: #1976D2;
+    --color-info-bg: #F0F7FF;
+    --color-info-border: #93C5FD;
+    --color-info-text: #1E3A8A;
+}
+
+/* Dark-mode adjustments while Silver Bengal palette is active */
+:root[data-theme="dark"][data-palette="silver-bengal"],
+html[data-theme="dark"][data-palette="silver-bengal"] {
+    /* Bright pure silver for dark mode - NO color tint */
+    --color-primary: #D1D5DB;
+    --color-primary-hover: #E5E7EB;
+    --color-primary-active: #9CA3AF;
+    --color-primary-light: rgba(209, 213, 219, 0.15);
+    --color-primary-dark: #6B7280;
+
+    /* Pure black backgrounds - monochromatic */
+    --color-bg-primary: #000000;
+    --color-bg-secondary: #0F0F0F;
+    --color-bg-tertiary: #1A1A1A;
+    --color-bg-elevated: #0A0A0A;
+    --color-bg-hover: #262626;
+    --color-bg-active: #333333;
+    --color-bg-code: #0F0F0F;
+
+    /* Pure grayscale text - high contrast */
+    --color-text-primary: #FFFFFF;
+    --color-text-secondary: #D1D5DB;
+    --color-text-tertiary: #9CA3AF;
+    --color-text-muted: #6B7280;
+
+    /* Adjusted borders for dark mode */
+    --color-border: #262626;
+    --color-border-light: #1A1A1A;
+    --color-border-strong: #404040;
+
+    /* Semantic states for dark mode */
+    --color-success: #66BB6A;
+    --color-success-bg: rgba(46, 125, 50, 0.15);
+    --color-success-border: #388E3C;
+    --color-success-text: #A5D6A7;
+
+    --color-warning: #FFB020;
+    --color-warning-bg: rgba(217, 119, 6, 0.15);
+    --color-warning-border: #F59E0B;
+    --color-warning-text: #FCD34D;
+
+    --color-error: #EF5350;
+    --color-error-bg: rgba(198, 40, 40, 0.15);
+    --color-error-border: #C62828;
+    --color-error-text: #FCA5A5;
+
+    --color-info: #42A5F5;
+    --color-info-bg: rgba(25, 118, 210, 0.15);
+    --color-info-border: #1976D2;
+    --color-info-text: #93C5FD;
+}
+
+/* ============================================
+   THEME-AWARE PALETTE PREVIEW (DROPDOWN BUTTONS)
+   ============================================ */
+
+/* Add a color indicator dot before palette buttons */
+.theme-dropdown__menu button[data-palette="silver-bengal"]::before {
+    content: '';
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 0.5rem;
+    background: linear-gradient(135deg, #5A6A7A 0%, #7C8B9B 50%, #FAFBFC 100%);
+    border: 1px solid rgba(90, 106, 122, 0.3);
+    vertical-align: middle;
+}
+
+/* Light mode: Keep default button styling, let indicator show the palette */
+[data-theme="light"] .theme-dropdown__menu button[data-palette="silver-bengal"]:hover,
+[data-theme="light"] .theme-dropdown__menu button[data-palette="silver-bengal"]:focus {
+    /* Use standard hover with a hint of palette color */
+    background: #F4F6F8;
+    color: #5A6A7A;
+}
+
+/* Dark mode: Keep default button styling, let indicator show the palette */
+[data-theme="dark"] .theme-dropdown__menu button[data-palette="silver-bengal"]:hover,
+[data-theme="dark"] .theme-dropdown__menu button[data-palette="silver-bengal"]:focus {
+    /* Use standard hover with a hint of palette color */
+    background: var(--color-bg-secondary);
+    color: #7C8B9B;
+}
