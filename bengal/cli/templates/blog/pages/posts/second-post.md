@@ -28,5 +28,5 @@ bengal new page my-new-post --section posts
 Then build and serve your site:
 
 ```bash
-bengal site serve
+bengal serve
 ```

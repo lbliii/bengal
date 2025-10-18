@@ -195,7 +195,7 @@ python tests/performance/flamegraph.py $PROFILE --tool gprof2dot --output graph.
 
 ```bash
 # Profile with python -X importtime
-python -X importtime -m bengal site build 2> imports.log
+python -X importtime -m bengal build 2> imports.log
 
 # Analyze
 cat imports.log | grep "cumulative"

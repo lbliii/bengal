@@ -205,10 +205,7 @@
 
                 </div>
 
-                {# Theme Controls - Desktop Only #}
-                <div class="theme-controls-desktop hidden-mobile">
-                    {% include 'partials/theme-controls.html' %}
-                </div>
+                {% include 'partials/theme-controls.html' %}
 
                 {# Mobile Menu Toggle #}
                 <button class="mobile-nav-toggle visible-mobile" aria-label="Open menu" aria-expanded="false">
@@ -281,11 +278,6 @@
             {% block mobile_nav_items %}{% endblock %}
         </ul>
         {% endif %}
-
-        {# Theme Controls - Mobile Only #}
-        <div class="mobile-nav-footer">
-            {% include 'partials/theme-controls.html' %}
-        </div>
     </nav>
 
     {# Main Content #}
@@ -311,7 +303,7 @@
                     {% if footer_menu %}
                     <ul class="footer-links">
                         {% for item in footer_menu %}
-                        <li><a href="{{ item.url | absolute_url }}">{{ item.name }}</a></li>
+                        <li><a href="{{ item.url }}">{{ item.name }}</a></li>
                         {% endfor %}
                     </ul>
                     {% endif %}

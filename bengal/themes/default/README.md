@@ -68,7 +68,7 @@ All 14 template partials have **component manifests** for isolated testing and d
 
 ```bash
 # Start dev server
-bengal site serve
+bengal serve
 
 # Preview components in browser
 open http://localhost:5173/__bengal_components__/

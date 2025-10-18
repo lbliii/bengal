@@ -1,7 +1,7 @@
 # Bengal Default Theme - CSS Architecture
 
-**Last Updated:** October 18, 2025  
-**Architecture:** Semantic Design Token System + Scoping Rules + Responsive Design System
+**Last Updated:** October 8, 2025  
+**Architecture:** Semantic Design Token System + Scoping Rules
 
 ---
 
@@ -18,22 +18,6 @@
 2. Use `.has-prose-content` utility for user content
 3. Content-type specific styles use `.prose.api-content`, etc.
 4. Test with nested components
-
----
-
-## 📱 Responsive Design System
-
-**Bengal uses standardized breakpoints and responsive patterns.**
-
-**📖 Essential reading for component development:**
-- [Responsive Design System](./RESPONSIVE_DESIGN_SYSTEM.md) - Complete guide
-
-**Key principles:**
-1. **Mobile-first approach** - Start with mobile, enhance for larger screens
-2. **Standard breakpoints** - 640px (sm), 768px (md), 1024px (lg), 1280px (xl)
-3. **Semantic patterns** - Stack→Side-by-side, Compress→Expand, Hide→Show
-4. **Avoid overlap** - Use `max-width: 639px` (not 640px) with `min-width: 640px`
-5. **Test at key sizes** - 375px (iPhone), 768px (tablet), 1280px (desktop)
 
 ---
 

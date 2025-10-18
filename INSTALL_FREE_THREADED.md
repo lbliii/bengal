@@ -126,7 +126,7 @@ You should see ThreadPoolExecutor is ~1.8x slower with the GIL.
 
 Once set up, Bengal **automatically detects** free-threaded Python and uses it for optimal performance. No configuration needed!
 
-When you run `bengal site build`, you'll see:
+When you run `bengal build`, you'll see:
 
 ```
 ● free_threaded_python_detected python_version=3.14.0 message="Using ThreadPoolExecutor with true parallelism (no GIL)"
@@ -138,7 +138,7 @@ For the absolute fastest build experience, use `--fast` mode:
 
 ```bash
 # Maximum speed with clean output
-PYTHON_GIL=0 bengal site build --fast
+PYTHON_GIL=0 bengal build --fast
 ```
 
 **What `--fast` mode does:**
@@ -150,7 +150,7 @@ PYTHON_GIL=0 bengal site build --fast
 
 ```bash
 # One-time
-PYTHON_GIL=0 bengal site build --fast
+PYTHON_GIL=0 bengal build --fast
 
 # Permanent (add to ~/.zshrc or ~/.bashrc)
 export PYTHON_GIL=0
@@ -163,7 +163,7 @@ export PYTHON_GIL=0
 fast_mode = true  # Always use quiet + parallel
 ```
 
-Then just run `PYTHON_GIL=0 bengal site build` for the cleanest experience.
+Then just run `PYTHON_GIL=0 bengal build` for the cleanest experience.
 
 ## Switching Between Versions
 
@@ -214,10 +214,10 @@ which has not declared that it can run safely without the GIL.
 
 ```bash
 # Run with warnings suppressed
-PYTHON_GIL=0 bengal site build
+PYTHON_GIL=0 bengal build
 
 # Or combine with --fast for maximum speed
-PYTHON_GIL=0 bengal site build --fast
+PYTHON_GIL=0 bengal build --fast
 
 # Make it permanent (add to ~/.zshrc or ~/.bashrc)
 export PYTHON_GIL=0

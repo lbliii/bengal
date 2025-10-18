@@ -68,7 +68,7 @@ Perfect for continuous deployment:
 
 ```bash
 # Run health checks in CI
-bengal site build
+bengal build
 bengal health-check
 
 # Exit code 0 = all checks passed
@@ -557,7 +557,7 @@ max_build_time_sec = 30         # Warn if > 30 seconds
 
 ```bash
 # Build with health checks
-bengal site build
+bengal build
 
 # Run health checks after build
 bengal health-check
@@ -632,7 +632,7 @@ jobs:
         run: pip install bengal-ssg
 
       - name: Build Site
-        run: bengal site build
+        run: bengal build
 
       - name: Run Health Checks
         run: bengal health-check --strict
@@ -779,10 +779,10 @@ $ bengal health-check
 
 ```bash
 # Quick checks while developing
-bengal site serve --watch --health-check
+bengal serve --watch --health-check
 
 # Auto-checks on file changes
-bengal site build --incremental --health-check
+bengal build --incremental --health-check
 ```
 
 **Focus on:**
@@ -801,7 +801,7 @@ bengal health-check --strict --all
 # Or in pre-commit hook
 # .git/hooks/pre-commit
 #!/bin/bash
-bengal site build && bengal health-check --strict
+bengal build && bengal health-check --strict
 ```
 
 **Fix all:**
@@ -815,7 +815,7 @@ bengal site build && bengal health-check --strict
 
 ```bash
 # Strict mode: fail on warnings
-bengal site build
+bengal build
 bengal health-check --strict --fail-on-warning
 
 # Generate reports
@@ -923,7 +923,7 @@ parallel = true
 ```
 
 ```bash
-bengal site build --incremental --parallel
+bengal build --incremental --parallel
 ```
 ```
 
@@ -949,8 +949,8 @@ warn_singleton_tags = false
 **Solution:**
 ```bash
 # Clear cache and rebuild
-bengal site clean
-bengal site build
+bengal clean
+bengal build
 ```
 ```
 

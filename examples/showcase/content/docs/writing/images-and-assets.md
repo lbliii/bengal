@@ -410,7 +410,7 @@ Each component communicates via REST APIs.
 - **Wrong path**: Check file location and path
 - **Case sensitivity**: `Photo.jpg` ≠ `photo.jpg`
 - **Missing file**: Ensure file is in `assets/`
-- **Build needed**: Run `bengal site build` to copy assets
+- **Build needed**: Run `bengal build` to copy assets
 ```
 
 ### Broken Images

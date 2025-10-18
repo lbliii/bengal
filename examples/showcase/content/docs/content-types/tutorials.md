@@ -251,13 +251,13 @@ I'm learning static sites!
 Build your site:
 
 \`\`\`bash
-bengal site build
+bengal build
 \`\`\`
 
 Start the development server:
 
 \`\`\`bash
-bengal site serve
+bengal serve
 \`\`\`
 
 Visit `http://localhost:5173` in your browser.

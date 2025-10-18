@@ -428,7 +428,7 @@ site.build()
 ### Tab: CLI
 
 \`\`\`bash
-bengal site build --parallel
+bengal build --parallel
 \`\`\`
 ```
 ````

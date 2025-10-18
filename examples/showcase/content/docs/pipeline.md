@@ -50,8 +50,8 @@ sourcemaps = true
 You can also toggle at build time:
 
 ```bash
-bengal site build --assets-pipeline
-bengal site build --no-assets-pipeline
+bengal build --assets-pipeline
+bengal build --no-assets-pipeline
 ```
 
 ## Project Layout

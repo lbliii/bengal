@@ -17,5 +17,5 @@ This is your new Bengal static site. Start editing this file to begin!
 
 1. Edit `content/index.md` (this file)
 2. Create new pages with `bengal new page <name>`
-3. Build your site with `bengal site build`
-4. Preview with `bengal site serve`
+3. Build your site with `bengal build`
+4. Preview with `bengal serve`

@@ -119,8 +119,8 @@ print(f"Built {len(site.pages)} pages!")
 
 :::{tab-item} CLI
 ```bash
-bengal site build
-bengal site serve
+bengal build
+bengal serve
 bengal new my-site
 ```
 :::
@@ -394,11 +394,11 @@ weight = 1
 
 ```bash
 # Build and serve
-bengal site build --parallel
-bengal site serve --port 8000
+bengal build --parallel
+bengal serve --port 8000
 
 # Watch for changes
-bengal site serve --watch
+bengal serve --watch
 ```
 
 ---

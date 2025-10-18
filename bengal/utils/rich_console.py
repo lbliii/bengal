@@ -12,16 +12,36 @@ import os
 from rich.console import Console
 from rich.theme import Theme
 
+# Bengal color palette
+PALETTE = {
+    "primary": "#FF9D00",  # Vivid Orange
+    "secondary": "#3498DB",  # Bright Blue
+    "accent": "#F1C40F",  # Sunflower Yellow
+    "success": "#2ECC71",  # Emerald Green
+    "error": "#E74C3C",  # Alizarin Crimson
+    "warning": "#E67E22",  # Carrot Orange
+    "info": "#95A5A6",  # Silver
+    "muted": "#7F8C8D",  # Grayish
+    "bengal": "#FF9D00",  # For the cat mascot
+}
+
 # Bengal theme
 bengal_theme = Theme(
     {
-        "info": "cyan",
-        "success": "green",
-        "warning": "yellow",
-        "error": "red bold",
-        "highlight": "magenta bold",
+        "info": PALETTE["info"],
+        "success": PALETTE["success"],
+        "warning": PALETTE["warning"],
+        "error": f"{PALETTE['error']} bold",
+        "highlight": f"{PALETTE['accent']} bold",
         "dim": "dim",
-        "bengal": "yellow bold",  # For the cat mascot
+        "bengal": f"{PALETTE['bengal']} bold",
+        # Semantic styles
+        "header": f"{PALETTE['primary']} bold",
+        "phase": "bold",
+        "path": f"{PALETTE['secondary']}",
+        "metric_label": f"{PALETTE['accent']} bold",
+        "metric_value": "default",
+        "link": f"underline {PALETTE['secondary']}",
     }
 )
 

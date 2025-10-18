@@ -254,7 +254,7 @@ Test external links periodically:
 
 ```bash
 # Build and check health report
-bengal site build
+bengal build
 
 # Look for link validation warnings
 ```

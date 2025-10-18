@@ -300,7 +300,7 @@ Here's a really long tip that goes on and on about performance and covers multip
 Use the dev server to preview directives:
 
 ```bash
-bengal site serve
+bengal serve
 ```
 
 Changes appear immediately with live reload.

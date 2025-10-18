@@ -257,7 +257,7 @@ Bengal can validate links during builds:
 
 ```bash
 # Build with link validation
-bengal site build
+bengal build
 
 # Health check includes link validation
 # Broken links appear in health report
@@ -278,14 +278,14 @@ Always test your links:
 
 ```bash
 # Start dev server
-bengal site serve
+bengal serve
 
 # Navigate to your pages
 # Click all links to verify they work
 ```
 
 ```{tip} Development Workflow
-Use `bengal site serve` with live reload. When you save changes, the site rebuilds automatically and you can test links immediately.
+Use `bengal serve` with live reload. When you save changes, the site rebuilds automatically and you can test links immediately.
 ```
 
 ## Best Practices Summary

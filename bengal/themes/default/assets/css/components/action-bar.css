@@ -11,8 +11,6 @@
 
 .action-bar-container {
   margin-bottom: 1.5rem;
-  width: 100%;
-  max-width: var(--prose-width);
 }
 
 .action-bar {
@@ -25,8 +23,6 @@
   border: 1px solid var(--color-border);
   border-radius: var(--border-radius-md);
   min-height: 40px;
-  width: 100%;
-  box-sizing: border-box;
 }
 
 /* ============================================================================
@@ -390,7 +386,7 @@
    Responsive Design
    ============================================================================ */
 
-/* Tablet and below (md breakpoint) */
+/* Tablet */
 @media (max-width: 768px) {
   .action-bar {
     padding: 0.5rem 0.875rem;
@@ -425,13 +421,11 @@
   }
 }
 
-/* Mobile - Keep items on same line with aggressive compression */
-/* Using 639px to avoid overlap with 640px min-width queries (--breakpoint-sm) */
-@media (max-width: 639px) {
+/* Mobile */
+@media (max-width: 640px) {
   .action-bar {
-    /* NO flex-wrap to prevent wrapping */
+    flex-wrap: wrap;
     padding: 0.5rem 0.75rem;
-    gap: 0.5rem;
   }
 
   .action-bar-metadata {
@@ -443,58 +437,19 @@
     font-size: 0.75rem;
   }
 
-  /* Aggressive truncation on mobile but keep items inline */
-  .action-bar-nav {
-    flex: 1;
-    min-width: 0;
-    max-width: calc(100% - 80px);
-    /* Reserve space for action button */
-  }
-
+  /* Even shorter truncation on mobile */
   .action-bar-breadcrumb-link {
-    max-width: 80px;
-  }
-
-  .action-bar-breadcrumb-current {
     max-width: 100px;
   }
 
-  .action-bar-breadcrumbs {
-    font-size: 0.75rem;
+  .action-bar-breadcrumb-current {
+    max-width: 120px;
   }
 
-  /* Compact the actions area */
-  .action-bar-actions {
-    flex-shrink: 0;
-  }
-
-  /* More compact share button on mobile */
-  .action-bar-share-trigger {
-    padding: 0.375rem 0.5rem;
-    font-size: 0.75rem;
-    gap: 0.375rem;
-  }
-
-  /* Position dropdown relative to right edge on mobile */
-  .action-bar-share-dropdown {
-    right: 0;
-    min-width: max(240px, 80vw);
-    max-width: 90vw;
-  }
-}
-
-/* Very Small Mobile - Stack only when absolutely necessary */
-/* Using 479px to avoid overlap with 480px min-width queries */
-@media (max-width: 479px) {
-  .action-bar {
-    flex-wrap: wrap;
-    gap: 0.625rem;
-  }
-
-  /* Allow nav to take full width when stacked */
+  /* Stack on very small screens */
   .action-bar-nav {
     flex: 1 1 100%;
-    max-width: 100%;
+    min-width: 100%;
   }
 
   .action-bar-actions {
@@ -502,7 +457,12 @@
     justify-content: flex-end;
   }
 
-  /* Center dropdown on very small screens */
+  /* Compact share button on mobile - already icon-only */
+  .action-bar-share-trigger {
+    padding: 0.375rem 0.625rem;
+  }
+
+  /* Center dropdown on mobile */
   .action-bar-share-dropdown {
     right: auto;
     left: 50%;

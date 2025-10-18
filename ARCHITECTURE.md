@@ -480,10 +480,10 @@ flowchart TD
 **CLI Usage:**
 ```bash
 # Incremental build
-bengal site build --incremental
+bengal build --incremental
 
 # With detailed change information
-bengal site build --incremental --verbose
+bengal build --incremental --verbose
 ```
 
 #### Build Pipeline Flow
@@ -1240,13 +1240,13 @@ bengal autodoc
   → Creates content/api/*.md files
 
 # 2. Build site (includes API docs)
-bengal site build
+bengal build
   → Discovers content/api/*.md
   → Renders with templates
   → Generates public/api/*.html
 
 # 3. Serve with dev server
-bengal site serve
+bengal serve
   → API docs included
   → Watch mode regenerates on source changes
 ```
@@ -1450,7 +1450,7 @@ The FontValidator checks:
 
 ```bash
 # Font health check runs automatically
-bengal site build
+bengal build
 
 # Example output:
 # 🔤 Fonts:
@@ -1946,34 +1946,34 @@ See "CLI Commands" section for detailed command documentation.
 **Build Commands**:
 ```bash
 # Basic build
-bengal site build
+bengal build
 
 # Incremental build (18-42x faster)
-bengal site build --incremental
+bengal build --incremental
 
 # Parallel build (default, 2-4x faster)
-bengal site build --parallel
+bengal build --parallel
 
 # Strict mode (fail on template errors, recommended for CI)
-bengal site build --strict
+bengal build --strict
 
 # Debug mode (full tracebacks)
-bengal site build --debug
+bengal build --debug
 
 # Verbose output (show detailed change info)
-bengal site build --incremental --verbose
+bengal build --incremental --verbose
 ```
 
 **Development Commands**:
 ```bash
 # Start development server with live reload
-bengal site serve
+bengal serve
 
 # Custom port
-bengal site serve --port 8080
+bengal serve --port 8080
 
 # Disable live reload
-bengal site serve --no-reload
+bengal serve --no-reload
 ```
 
 **Documentation Commands**:
@@ -2027,10 +2027,10 @@ bengal perf --verbose
 **Utility Commands**:
 ```bash
 # Clean output directory
-bengal site clean
+bengal clean
 
 # Clean cache and output
-bengal site cleanup
+bengal cleanup
 
 # Create new site
 bengal new site mysite
@@ -2552,13 +2552,13 @@ The CLI automatically uses organized paths:
 
 ```bash
 # Default: saves to .bengal/profiles/profile.stats
-bengal site build --perf-profile
+bengal build --perf-profile
 
 # Custom path
-bengal site build --perf-profile my-profile.stats
+bengal build --perf-profile my-profile.stats
 
 # Build log: defaults to .bengal-build.log
-bengal site build --log-file custom.log
+bengal build --log-file custom.log
 ```
 
 ### Design Rationale

@@ -35,10 +35,10 @@ cd myblog
 
 ```bash
 # Build the site
-bengal site build
+bengal build
 
 # Start development server with hot reload
-bengal site serve
+bengal serve
 
 # Visit http://localhost:5173 (or the URL printed in the console)
 ```
@@ -143,7 +143,7 @@ After building, deploy the `public/` directory to your hosting provider:
 
 ```bash
 # Build for production
-bengal site build
+bengal build
 
 # The public/ directory contains your complete site
 # Upload it to:
@@ -157,7 +157,7 @@ bengal site build
 
 ```bash
 # Build site
-bengal site build
+bengal build
 
 # Deploy to gh-pages branch
 git subtree push --prefix public origin gh-pages
@@ -181,9 +181,9 @@ template: custom.html         # Custom template
 ### Available CLI Commands
 
 ```bash
-bengal site build              # Build the site
-bengal site serve              # Start dev server
-bengal site clean              # Clean output directory
+bengal build              # Build the site
+bengal serve              # Start dev server
+bengal clean              # Clean output directory
 bengal new site <name>    # Create new site
 bengal new page <name>    # Create new page
 bengal --version          # Show version
@@ -194,19 +194,19 @@ bengal --help             # Show help
 
 ```bash
 # Custom host and port
-bengal site serve --host 0.0.0.0 --port 3000
+bengal serve --host 0.0.0.0 --port 3000
 
 # Disable file watching
-bengal site serve --no-watch
+bengal serve --no-watch
 
 # Show detailed server activity
-bengal site serve --verbose
+bengal serve --verbose
 
 # Show debug output (port checks, file changes, etc.)
-bengal site serve --debug
+bengal serve --debug
 
 # Use custom config file
-bengal site serve --config custom-config.toml
+bengal serve --config custom-config.toml
 ```
 
 ## Example Sites
@@ -215,7 +215,7 @@ Check out example sites in the `examples/` directory:
 
 ```bash
 cd examples/quickstart
-bengal site serve
+bengal serve
 ```
 
 ## Next Steps
@@ -232,8 +232,8 @@ bengal site serve
 
 ```bash
 # Clean and rebuild
-bengal site clean
-bengal site build
+bengal clean
+bengal build
 ```
 
 ### Template Not Found
