@@ -91,6 +91,27 @@ html[data-theme="dark"][data-palette="snow-lynx"] {
     --color-border: #3d3935;
     --color-border-light: #332f2c;
     --color-border-strong: #544e48;
+
+    /* Semantic states for dark mode (notices/admonitions) */
+    --color-success: #66BB6A;
+    --color-success-bg: rgba(46, 125, 50, 0.15);
+    --color-success-border: #388E3C;
+    --color-success-text: #A5D6A7;
+
+    --color-warning: #FFA726;
+    --color-warning-bg: rgba(217, 119, 6, 0.15);
+    --color-warning-border: #E67E22;
+    --color-warning-text: #FFCC80;
+
+    --color-error: #EF5350;
+    --color-error-bg: rgba(198, 40, 40, 0.15);
+    --color-error-border: #C62828;
+    --color-error-text: #FFAB91;
+
+    --color-info: #42A5F5;
+    --color-info-bg: rgba(30, 136, 229, 0.15);
+    --color-info-border: #1976D2;
+    --color-info-text: #90CAF9;
 }
 
 /* ============================================

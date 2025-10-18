@@ -644,7 +644,8 @@
 }
 
 /* Custom arrow indicator */
-.prose.api-content details summary::before {
+/* Note: .dropdown class already has arrow styling in dropdowns.css */
+.prose.api-content details:not(.dropdown) summary::before {
   content: '▶';
   display: inline-block;
   font-size: 0.75em;
@@ -653,7 +654,7 @@
   flex-shrink: 0;
 }
 
-.prose.api-content details[open] summary::before {
+.prose.api-content details:not(.dropdown)[open] summary::before {
   transform: rotate(90deg);
 }
 
