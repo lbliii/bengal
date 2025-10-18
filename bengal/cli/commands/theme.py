@@ -6,6 +6,7 @@ from pathlib import Path
 import click
 
 from bengal.core.site import Site
+from bengal.utils.cli_output import CLIOutput
 from bengal.utils.swizzle import SwizzleManager
 from bengal.utils.theme_registry import get_installed_themes, get_theme_package
 
@@ -21,38 +22,38 @@ def theme() -> None:
 @click.argument("source", type=click.Path(exists=True), default=".")
 def swizzle(template_path: str, source: str) -> None:
     """Copy a theme template/partial to project templates/ and track provenance."""
+    cli = CLIOutput()
     site = Site.from_config(Path(source).resolve())
     mgr = SwizzleManager(site)
     dest = mgr.swizzle(template_path)
-    click.echo(click.style(f"✓ Swizzled to {dest}", fg="green"))
+    cli.success(f"✓ Swizzled to {dest}")
 
 
 @theme.command("swizzle-list")
 @click.argument("source", type=click.Path(exists=True), default=".")
 def swizzle_list(source: str) -> None:
     """List swizzled templates."""
+    cli = CLIOutput()
     site = Site.from_config(Path(source).resolve())
     mgr = SwizzleManager(site)
     records = mgr.list()
     if not records:
-        click.echo("No swizzled templates.")
+        cli.info("No swizzled templates.")
         return
     for r in records:
-        click.echo(f"- {r.target} (from {r.theme})")
+        cli.info(f"- {r.target} (from {r.theme})")
 
 
 @theme.command("swizzle-update")
 @click.argument("source", type=click.Path(exists=True), default=".")
 def swizzle_update(source: str) -> None:
     """Update swizzled templates if unchanged locally."""
+    cli = CLIOutput()
     site = Site.from_config(Path(source).resolve())
     mgr = SwizzleManager(site)
     summary = mgr.update()
-    click.echo(
-        click.style(
-            f"Updated: {summary['updated']}, Skipped (changed): {summary['skipped_changed']}, Missing upstream: {summary['missing_upstream']}",
-            fg="cyan",
-        )
+    cli.info(
+        f"Updated: {summary['updated']}, Skipped (changed): {summary['skipped_changed']}, Missing upstream: {summary['missing_upstream']}"
     )
 
 
@@ -60,6 +61,7 @@ def swizzle_update(source: str) -> None:
 @click.argument("source", type=click.Path(exists=True), default=".")
 def list_themes(source: str) -> None:
     """List available themes (project, installed, bundled)."""
+    cli = CLIOutput()
     site = Site.from_config(Path(source).resolve())
 
     # Project themes
@@ -82,28 +84,28 @@ def list_themes(source: str) -> None:
     except Exception:
         pass
 
-    click.echo("Project themes:")
+    cli.header("Project themes:")
     if project:
         for t in sorted(project):
-            click.echo(f"  - {t}")
+            cli.info(f"  - {t}")
     else:
-        click.echo("  (none)")
+        cli.info("  (none)")
 
-    click.echo("Installed themes:")
+    cli.header("Installed themes:")
     if installed:
         for t in sorted(installed):
             pkg = get_theme_package(t)
             ver = pkg.version if pkg else None
-            click.echo(f"  - {t}{' ' + ver if ver else ''}")
+            cli.info(f"  - {t}{' ' + ver if ver else ''}")
     else:
-        click.echo("  (none)")
+        cli.info("  (none)")
 
-    click.echo("Bundled themes:")
+    cli.header("Bundled themes:")
     if bundled:
         for t in sorted(bundled):
-            click.echo(f"  - {t}")
+            cli.info(f"  - {t}")
     else:
-        click.echo("  (none)")
+        cli.info("  (none)")
 
 
 @theme.command("info")
@@ -111,24 +113,25 @@ def list_themes(source: str) -> None:
 @click.argument("source", type=click.Path(exists=True), default=".")
 def info(slug: str, source: str) -> None:
     """Show theme info for a slug (source, version, paths)."""
+    cli = CLIOutput()
     site = Site.from_config(Path(source).resolve())
-    click.echo(f"Theme: {slug}")
+    cli.header(f"Theme: {slug}")
 
     # Project theme
     site_theme = site.root_path / "themes" / slug
     if site_theme.exists():
-        click.echo(f"  Project path: {site_theme}")
+        cli.info(f"  Project path: {site_theme}")
 
     # Installed theme
     pkg = get_theme_package(slug)
     if pkg:
-        click.echo(f"  Installed: {pkg.distribution or pkg.package} {pkg.version or ''}")
+        cli.info(f"  Installed: {pkg.distribution or pkg.package} {pkg.version or ''}")
         tp = pkg.resolve_resource_path("templates")
         ap = pkg.resolve_resource_path("assets")
         if tp:
-            click.echo(f"  Templates: {tp}")
+            cli.info(f"  Templates: {tp}")
         if ap:
-            click.echo(f"  Assets:    {ap}")
+            cli.info(f"  Assets:    {ap}")
 
     # Bundled theme
     try:
@@ -136,7 +139,7 @@ def info(slug: str, source: str) -> None:
 
         bundled = Path(bengal.__file__).parent / "themes" / slug
         if bundled.exists():
-            click.echo(f"  Bundled path: {bundled}")
+            cli.info(f"  Bundled path: {bundled}")
     except Exception:
         pass
 
@@ -145,6 +148,7 @@ def info(slug: str, source: str) -> None:
 @click.argument("source", type=click.Path(exists=True), default=".")
 def discover(source: str) -> None:
     """List swizzlable templates from the active theme chain."""
+    cli = CLIOutput()
     site = Site.from_config(Path(source).resolve())
     from bengal.rendering.template_engine import TemplateEngine
 
@@ -156,7 +160,7 @@ def discover(source: str) -> None:
             rel = str(f.relative_to(base))
             if rel not in seen:
                 seen.add(rel)
-                click.echo(rel)
+                cli.info(rel)
 
 
 @theme.command("install")
@@ -168,6 +172,7 @@ def install(name: str, force: bool) -> None:
     NAME may be a package or a slug. If a slug without prefix is provided,
     suggest canonical 'bengal-theme-<slug>'.
     """
+    cli = CLIOutput()
     pkg = name
     is_slug = (
         "." not in name
@@ -178,11 +183,8 @@ def install(name: str, force: bool) -> None:
     if is_slug:
         sugg = f"bengal-theme-{name}"
         if not force:
-            click.echo(
-                click.style(
-                    f"⚠ Theme name '{name}' is non-standard. Prefer '{sugg}'. Use --force to proceed.",
-                    fg="yellow",
-                )
+            cli.warning(
+                f"⚠ Theme name '{name}' is non-standard. Prefer '{sugg}'. Use --force to proceed."
             )
             return
         pkg = sugg
@@ -195,20 +197,20 @@ def install(name: str, force: bool) -> None:
         cmd = [sys.executable, "-m", "uv", "pip", "install", pkg]
         proc = subprocess.run(cmd, capture_output=True, text=True)
         if proc.returncode != 0:
-            click.echo(click.style(proc.stderr or proc.stdout, fg="red"))
+            cli.error(proc.stderr or proc.stdout)
             raise SystemExit(proc.returncode) from None
-        click.echo(click.style(f"Installed {pkg}", fg="green"))
+        cli.success(f"Installed {pkg}")
     except FileNotFoundError:
-        click.echo(click.style("uv not found; falling back to pip", fg="yellow"))
+        cli.warning("uv not found; falling back to pip")
         import subprocess
         import sys
 
         cmd = [sys.executable, "-m", "pip", "install", pkg]
         proc = subprocess.run(cmd, capture_output=True, text=True)
         if proc.returncode != 0:
-            click.echo(click.style(proc.stderr or proc.stdout, fg="red"))
+            cli.error(proc.stderr or proc.stdout)
             raise SystemExit(proc.returncode) from None
-        click.echo(click.style(f"Installed {pkg}", fg="green"))
+        cli.success(f"Installed {pkg}")
 
 
 def _sanitize_slug(slug: str) -> str:
@@ -274,7 +276,8 @@ def new(slug: str, mode: str, output: str, extends: str, force: bool) -> None:
             encoding="utf-8",
         )
 
-        click.echo(click.style(f"✓ Created site theme at {theme_dir}", fg="green"))
+        cli = CLIOutput()
+        cli.success(f"✓ Created site theme at {theme_dir}")
         return
 
     # package mode
@@ -330,4 +333,5 @@ def new(slug: str, mode: str, output: str, extends: str, force: bool) -> None:
         encoding="utf-8",
     )
 
-    click.echo(click.style(f"✓ Created package theme at {pkg_root}", fg="green"))
+    cli = CLIOutput()
+    cli.success(f"✓ Created package theme at {pkg_root}")

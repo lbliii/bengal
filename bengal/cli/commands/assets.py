@@ -6,6 +6,7 @@ from pathlib import Path
 import click
 
 from bengal.core.site import Site
+from bengal.utils.cli_output import CLIOutput
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -22,8 +23,6 @@ def assets() -> None:
 @click.argument("source", type=click.Path(exists=True), default=".")
 def build(watch: bool, source: str) -> None:
     """Build assets using the configured pipeline (if enabled)."""
-    from bengal.utils.cli_output import CLIOutput
-
     cli = CLIOutput()
     root = Path(source).resolve()
     site = Site.from_config(root)
