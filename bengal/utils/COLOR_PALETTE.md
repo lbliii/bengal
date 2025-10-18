@@ -31,6 +31,7 @@ Colors are mapped to semantic style tokens for maintainability:
 | `[path]` | Secondary Blue | File paths, URLs |
 | `[metric_label]` | Accent Yellow (bold) | Metric/statistic labels |
 | `[metric_value]` | Default | Metric/statistic values |
+| `[prompt]` | Accent Yellow | User input prompts |
 | `[bengal]` | Primary Orange (bold) | Bengal mascot (ᓚᘏᗢ) |
 
 ## Accessibility Considerations

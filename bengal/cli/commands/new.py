@@ -157,16 +157,11 @@ def _run_init_wizard(preset: str = None) -> str | None:
 
     # Handle custom
     if selection == "__custom__":
-        sections_input = click.prompt(
-            "\nEnter section names (comma-separated, e.g., blog,about):",
-            type=str,
-            default="blog,about",
+        cli.blank()
+        sections_input = cli.prompt(
+            "Enter section names (comma-separated, e.g., blog,about)", default="blog,about"
         )
-        pages_per = click.prompt(
-            "Pages per section:",
-            type=int,
-            default=3,
-        )
+        pages_per = cli.prompt("Pages per section", default=3, type=int)
         cli.blank()
         cli.info(f"✨ Custom structure noted (sections={sections_input}, pages={pages_per}). Basic site created; run 'bengal init --sections {sections_input} --pages-per-section {pages_per} --with-content' after to add structure.")
         return "default"  # Custom needs post-creation init
@@ -221,10 +216,7 @@ def site(name: str, theme: str, template: str, no_init: bool, init_preset: str) 
         if not name:
             cli.blank()
             cli.header("🏗️  Create a new Bengal site")
-            name = click.prompt(
-                "Enter site name",
-                type=str,
-            )
+            name = cli.prompt("Enter site name")
             if not name:
                 cli.warning("✨ Cancelled.")
                 raise click.Abort()
@@ -520,10 +512,7 @@ def layout(name: str) -> None:
             raise click.Abort()
 
         if not name:
-            name = click.prompt(
-                "Enter layout name",
-                type=str,
-            )
+            name = cli.prompt("Enter layout name")
             if not name:
                 cli.warning("✨ Cancelled.")
                 raise click.Abort()
@@ -579,10 +568,7 @@ def partial(name: str) -> None:
             raise click.Abort()
 
         if not name:
-            name = click.prompt(
-                "Enter partial name",
-                type=str,
-            )
+            name = cli.prompt("Enter partial name")
             if not name:
                 cli.warning("✨ Cancelled.")
                 raise click.Abort()
@@ -640,10 +626,7 @@ def theme(name: str) -> None:
     
     try:
         if not name:
-            name = click.prompt(
-                "Enter theme name",
-                type=str,
-            )
+            name = cli.prompt("Enter theme name")
             if not name:
                 cli.warning("✨ Cancelled.")
                 raise click.Abort()

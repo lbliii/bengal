@@ -301,6 +301,64 @@ class CLIOutput:
                 values = [f"{k}: {v}" for k, v in row.items()]
                 click.echo(" | ".join(values))
 
+    def prompt(
+        self, text: str, default: Any = None, type: Any = str, show_default: bool = True
+    ) -> Any:
+        """
+        Prompt user for input with themed styling.
+
+        Args:
+            text: The prompt text to display
+            default: Default value if user presses enter
+            type: Type to convert input to (str, int, float, etc.)
+            show_default: Whether to show the default value
+
+        Returns:
+            User's input converted to the specified type
+
+        Example:
+            name = cli.prompt("Enter site name")
+            count = cli.prompt("How many pages?", default=3, type=int)
+        """
+        if self.use_rich:
+            from rich.prompt import Prompt
+
+            # Use Rich's Prompt with our themed console
+            return Prompt.ask(
+                f"[prompt]{text}[/prompt]",
+                default=default,
+                console=self.console,
+                show_default=show_default,
+            )
+        else:
+            # Fallback to click.prompt
+            return click.prompt(text, default=default, type=type, show_default=show_default)
+
+    def confirm(self, text: str, default: bool = False) -> bool:
+        """
+        Prompt user for yes/no confirmation with themed styling.
+
+        Args:
+            text: The prompt text to display
+            default: Default value if user presses enter
+
+        Returns:
+            True if user confirms, False otherwise
+
+        Example:
+            if cli.confirm("Delete all files?"):
+                do_deletion()
+        """
+        if self.use_rich:
+            from rich.prompt import Confirm
+
+            return Confirm.ask(
+                f"[prompt]{text}[/prompt]", default=default, console=self.console
+            )
+        else:
+            # Fallback to click.confirm
+            return click.confirm(text, default=default)
+
     def blank(self, count: int = 1) -> None:
         """Print blank lines."""
         for _ in range(count):
