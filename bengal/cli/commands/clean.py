@@ -66,38 +66,18 @@ def clean(force: bool, cache: bool, clean_all: bool, stale_server: bool, config:
         # Confirm before cleaning unless --force
         if not force:
             # Interactive mode: ask for confirmation (with warning icon for destructive operation)
-            try:
-                from rich.prompt import Confirm
-
-                from bengal.utils.rich_console import get_console, should_use_rich
-
-                if should_use_rich():
-                    console = get_console()
-                    if clean_cache:
-                        console.print("[yellow bold]⚠️  Delete output AND cache?[/yellow bold]")
-                        console.print(
-                            "[dim]   This will force a complete rebuild on next build[/dim]"
-                        )
-                    else:
-                        console.print("[yellow bold]⚠️  Delete output files?[/yellow bold]")
-                        console.print(
-                            "[dim]   Cache will be preserved for incremental builds[/dim]"
-                        )
-                    if not Confirm.ask("Proceed", console=console, default=False):
-                        console.print("[yellow]Cancelled[/yellow]")
-                        return
-                else:
-                    # Fallback to click
-                    prompt = click.style("⚠️  Delete files?", fg="yellow", bold=True)
-                    if not click.confirm(prompt, default=False):
-                        click.echo(click.style("Cancelled", fg="yellow"))
-                        return
-            except ImportError:
-                # Rich not available, use click
-                prompt = click.style("⚠️  Delete files?", fg="yellow", bold=True)
-                if not click.confirm(prompt, default=False):
-                    click.echo(click.style("Cancelled", fg="yellow"))
-                    return
+            if clean_cache:
+                cli.warning("⚠️  Delete output AND cache?")
+                if cli.use_rich:
+                    cli.console.print("[dim]   This will force a complete rebuild on next build[/dim]")
+            else:
+                cli.warning("⚠️  Delete output files?")
+                if cli.use_rich:
+                    cli.console.print("[dim]   Cache will be preserved for incremental builds[/dim]")
+            
+            if not cli.confirm("Proceed", default=False):
+                cli.warning("Cancelled")
+                return
 
         # Clean output directory
         site.clean()

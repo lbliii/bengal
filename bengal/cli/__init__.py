@@ -57,9 +57,10 @@ class BengalGroup(click.Group):
         return matches
 
 
-@click.group(cls=BengalGroup, name="bengal")
+@click.group(cls=BengalGroup, name="bengal", invoke_without_command=True)
+@click.pass_context
 @click.version_option(version=__version__, prog_name="Bengal SSG")
-def main() -> None:
+def main(ctx) -> None:
     """
     ᓚᘏᗢ Bengal SSG - A high-performance static site generator.
 
@@ -90,6 +91,14 @@ def main() -> None:
         except ImportError:
             # Rich not available, skip
             pass
+    
+    # Show welcome banner if no command provided (but not if --help was used)
+    if ctx.invoked_subcommand is None and not ctx.resilient_parsing:
+        from bengal.utils.build_stats import show_welcome
+        
+        show_welcome()
+        click.echo()  # Spacing
+        click.echo(ctx.get_help())
 
 
 # Register commands from new modular structure

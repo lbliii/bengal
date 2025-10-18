@@ -107,11 +107,14 @@ def analyze(show_stats: bool, tree: bool, output: str, config: str, source: str)
                 from bengal.utils.rich_console import get_console, should_use_rich
 
                 if should_use_rich():
+                    from bengal.utils.cli_output import CLIOutput
+
+                    cli = CLIOutput()
                     console = get_console()
-                    console.print()
+                    cli.blank()
 
                     # Create tree visualization
-                    tree_root = Tree("📁 [bold cyan]Site Structure[/bold cyan]")
+                    tree_root = Tree("📁 [header]Site Structure[/header]")
 
                     # Group pages by section
                     sections_dict = {}
@@ -133,7 +136,7 @@ def analyze(show_stats: bool, tree: bool, output: str, config: str, source: str)
                         pages_in_section = sections_dict[section_name]
 
                         # Create section branch
-                        section_label = f"📁 [cyan]{section_name}[/cyan] [dim]({len(pages_in_section)} pages)[/dim]"
+                        section_label = f"📁 [info]{section_name}[/info] [dim]({len(pages_in_section)} pages)[/dim]"
                         section_branch = tree_root.add(section_label)
 
                         # Add pages (limit to first 15 per section)
@@ -162,16 +165,19 @@ def analyze(show_stats: bool, tree: bool, output: str, config: str, source: str)
                             remaining = len(pages_in_section) - 15
                             section_branch.add(f"[dim]... and {remaining} more pages[/dim]")
 
+                    # Print the Rich Tree component (complex visualization)
                     console.print(tree_root)
-                    console.print()
+                    cli.blank()
                 else:
-                    click.echo(
-                        click.style("Tree visualization requires a TTY terminal", fg="yellow")
-                    )
+                    from bengal.utils.cli_output import CLIOutput
+
+                    cli = CLIOutput()
+                    cli.warning("Tree visualization requires a TTY terminal")
             except ImportError:
-                click.echo(
-                    click.style("⚠️  Tree visualization requires 'rich' library", fg="yellow")
-                )
+                from bengal.utils.cli_output import CLIOutput
+
+                cli = CLIOutput()
+                cli.warning("⚠️  Tree visualization requires 'rich' library")
 
         # Show statistics
         if show_stats:

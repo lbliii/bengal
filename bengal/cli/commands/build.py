@@ -413,13 +413,10 @@ def build(
             use_rich_spinner = False
 
         if use_rich_spinner:
-            # Show rich animated indicator
-            console = get_console()
-            console.print()
-            console.print("    [bengal]ᓚᘏᗢ[/bengal]  [bold]Building your site...[/bold]")
-            console.print()
+            # Show building indicator using themed CLIOutput
+            show_building_indicator("Building site")
         else:
-            # Traditional static indicator
+            # Fallback (shouldn't happen since Rich is required)
             show_building_indicator("Building site")
 
         # (Validation already done above when validate is True)
