@@ -22,6 +22,9 @@ def assets() -> None:
 @click.argument("source", type=click.Path(exists=True), default=".")
 def build(watch: bool, source: str) -> None:
     """Build assets using the configured pipeline (if enabled)."""
+    from bengal.utils.cli_output import CLIOutput
+
+    cli = CLIOutput()
     root = Path(source).resolve()
     site = Site.from_config(root)
 
@@ -31,15 +34,15 @@ def build(watch: bool, source: str) -> None:
 
             pipeline = pipeline_from_site(site)
             outputs = pipeline.build()
-            click.echo(click.style(f"✓ Assets built ({len(outputs)} outputs)", fg="green"))
+            cli.success(f"✓ Assets built ({len(outputs)} outputs)")
         except Exception as e:
-            click.echo(click.style(f"✗ Asset pipeline failed: {e}", fg="red"))
+            cli.error(f"✗ Asset pipeline failed: {e}")
 
     if not watch:
         run_once()
         return
 
-    click.echo(click.style("Watching assets... Press Ctrl+C to stop.", fg="cyan"))
+    cli.info("Watching assets... Press Ctrl+C to stop.")
     try:
         last_run = 0.0
         while True:
@@ -50,5 +53,5 @@ def build(watch: bool, source: str) -> None:
                 last_run = now
             time.sleep(0.5)
     except KeyboardInterrupt:
-        click.echo()
-        click.echo(click.style("Stopped asset watcher.", fg="yellow"))
+        cli.blank()
+        cli.warning("Stopped asset watcher.")
