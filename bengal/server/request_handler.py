@@ -102,7 +102,7 @@ class BengalRequestHandler(RequestLogger, LiveReloadMixin, http.server.SimpleHTT
             self.handle_sse()
             return
 
-        # Serve HTML with injected live-reload if applicable
+        # Serve HTML with injected live-reload if applicable (kept for compatibility during Phase 3)
         if self.serve_html_with_live_reload():
             return
 
