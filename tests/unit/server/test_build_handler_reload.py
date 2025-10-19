@@ -1,6 +1,7 @@
 from unittest.mock import patch
 
 from bengal.server.build_handler import BuildHandler
+from bengal.server.reload_controller import ReloadDecision
 
 
 class DummyStats:
@@ -28,6 +29,9 @@ class DummySite:
     def invalidate_regular_pages_cache(self):
         pass
 
+    def reset_ephemeral_state(self):
+        pass
+
 
 def _make_handler(tmp_path):
     site = DummySite(tmp_path)
@@ -41,17 +45,23 @@ def test_css_only_triggers_css_reload(tmp_path, monkeypatch):
 
     called = {}
 
-    def fake_set_action(action):
+    def fake_send_reload(action, reason, changed_paths):
         called["action"] = action
+        called["reason"] = reason
 
     # Silence display/printing via the symbols actually used by BuildHandler
     monkeypatch.setattr("bengal.server.build_handler.display_build_stats", lambda *a, **k: None)
     monkeypatch.setattr("bengal.server.build_handler.show_building_indicator", lambda *a, **k: None)
 
+    # Mock the reload controller to return CSS-only decision
     with (
-        patch("bengal.server.live_reload.set_reload_action", fake_set_action),
-        patch("bengal.server.live_reload.notify_clients_reload", lambda: None),
+        patch("bengal.server.build_handler.controller") as mock_controller,
+        patch("bengal.server.build_handler.send_reload_payload", fake_send_reload),
+        patch("bengal.server.build_handler.BengalRequestHandler"),
     ):
+        mock_controller.decide_and_update.return_value = ReloadDecision(
+            action="reload-css", reason="css-only", changed_paths=["style.css"]
+        )
         handler._trigger_build()
 
     assert called.get("action") == "reload-css"
@@ -66,17 +76,23 @@ def test_mixed_changes_trigger_full_reload(tmp_path, monkeypatch):
 
     called = {}
 
-    def fake_set_action(action):
+    def fake_send_reload(action, reason, changed_paths):
         called["action"] = action
+        called["reason"] = reason
 
     # Silence display/printing via the symbols actually used by BuildHandler
     monkeypatch.setattr("bengal.server.build_handler.display_build_stats", lambda *a, **k: None)
     monkeypatch.setattr("bengal.server.build_handler.show_building_indicator", lambda *a, **k: None)
 
+    # Mock the reload controller to return full reload decision
     with (
-        patch("bengal.server.live_reload.set_reload_action", fake_set_action),
-        patch("bengal.server.live_reload.notify_clients_reload", lambda: None),
+        patch("bengal.server.build_handler.controller") as mock_controller,
+        patch("bengal.server.build_handler.send_reload_payload", fake_send_reload),
+        patch("bengal.server.build_handler.BengalRequestHandler"),
     ):
+        mock_controller.decide_and_update.return_value = ReloadDecision(
+            action="reload", reason="content-changed", changed_paths=["style.css", "page.html"]
+        )
         handler._trigger_build()
 
     assert called.get("action") == "reload"

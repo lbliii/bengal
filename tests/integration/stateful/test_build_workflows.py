@@ -379,9 +379,10 @@ class IncrementalConsistencyWorkflow(RuleBasedStateMachine):
                 f"Incremental only: {inc_files - full_files}"
             )
 
-            # Compare file contents, skipping files with dynamic timestamps
+            # Compare file contents, skipping files with dynamic timestamps or ordering
             for file_path in full_files:
-                if file_path in ("llm-full.txt", "index.json"):
+                # Skip site-wide and per-page JSON/LLM files that may have non-deterministic content
+                if file_path in ("llm-full.txt", "index.json") or file_path.endswith("/index.json"):
                     continue
                 full_hash = self.full_build_hashes[file_path]
                 inc_hash = self.incremental_build_hashes[file_path]

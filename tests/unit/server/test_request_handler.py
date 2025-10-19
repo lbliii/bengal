@@ -374,6 +374,9 @@ class TestDoGetIntegrationMinimal:
             )
         return handler
 
+    @pytest.mark.skip(
+        reason="Phase 3: live reload now handled via template includes, not runtime injection"
+    )
     def test_do_get_injects_for_html(self, tmp_path, monkeypatch):
         """HTML responses should be injected with live reload script."""
         # Create test file

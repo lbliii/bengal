@@ -1,6 +1,8 @@
 from io import BytesIO
 from unittest.mock import Mock, patch
 
+import pytest
+
 from bengal.server.request_handler import BengalRequestHandler
 
 
@@ -18,6 +20,9 @@ def _make_handler():
     return handler
 
 
+@pytest.mark.skip(
+    reason="Phase 3: live reload now handled via template includes, not runtime injection mixin"
+)
 def test_do_get_uses_mixin_for_html(monkeypatch):
     handler = _make_handler()
     handler.path = "/index.html"
@@ -46,6 +51,9 @@ def test_do_get_uses_mixin_for_html(monkeypatch):
     assert b"ok" in data
 
 
+@pytest.mark.skip(
+    reason="Phase 3: live reload now handled via template includes, not runtime injection mixin"
+)
 def test_do_get_falls_back_for_non_html(monkeypatch):
     handler = _make_handler()
     handler.path = "/assets/app.js"

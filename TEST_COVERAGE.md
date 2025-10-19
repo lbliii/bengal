@@ -1,28 +1,29 @@
 # Bengal Test Coverage Report
 
-**Last Updated**: 2025-10-13  
+**Last Updated**: 2025-10-19  
 **Status**: ✅ Core functionality comprehensively tested  
 
 ---
 
 ## Executive Summary
 
-**Overall Coverage**: 17% of entire codebase  
-**Critical Path Coverage**: 76-96% (measured, not estimated!)  
-**Total Tests**: 2,297 collected (2,311 total including manual)  
+**Overall Coverage**: 65% of entire codebase  
+**Critical Path Coverage**: 75-100% (measured, not estimated!)  
+**Total Tests**: 2,661 collected (2,675 total including manual)  
 **Test Quality**: A+ (Property-based + Parametrized + Integration)
 
-### Why 18% Is Misleading
+### Coverage Achievements
 
-Bengal's codebase includes many optional/specialized features that aren't priorities for testing:
-- CLI interactive menus (10% of codebase)
-- Graph visualization tools (5% of codebase)  
-- Font downloader utilities (3% of codebase)
-- Analysis/performance advisor tools (8% of codebase)
-- Autodoc generators (7% of codebase)
-- Development server (6% of codebase)
+Bengal now has excellent test coverage across the board:
+- **65% overall coverage** - up from 17% in October 2025
+- **Core build pipeline**: 75-100% coverage
+- **Critical path**: All essential modules well-tested
+- **Property-based testing**: 116 tests generating 11,600+ examples
 
-**These optional features account for ~39% of the codebase but <5% of actual usage.**
+Areas with intentionally lower coverage remain optional features:
+- Font downloader utilities (0% of codebase) - rarely used, network-dependent
+- Dev server live reload (0-18% coverage) - requires complex HTTP/WebSocket testing
+- Interactive CLI wizards (9-13% coverage) - better suited for manual testing
 
 ---
 
@@ -32,10 +33,10 @@ Bengal's codebase includes many optional/specialized features that aren't priori
 
 | Test Type | Count | Coverage Type |
 |-----------|-------|---------------|
-| Unit Tests | 2,066 | Component isolation |
-| Property Tests (Hypothesis) | 115 | Invariant verification (11,600+ examples) |
-| Integration Tests | 116 | Multi-component workflows |
-| **TOTAL** | **2,297** | **Comprehensive** |
+| Unit Tests | 2,412 | Component isolation |
+| Property Tests (Hypothesis) | 116 | Invariant verification (11,600+ examples) |
+| Integration Tests | 148 | Multi-component workflows |
+| **TOTAL** | **2,661** | **Comprehensive** |
 
 *(14 additional tests in manual/ directory for dev server interaction testing)*
 
@@ -50,46 +51,48 @@ Bengal's codebase includes many optional/specialized features that aren't priori
 
 ## Coverage by Module Priority
 
-### Tier 1: Critical Path (Measured: 76-96% coverage!)
+### Tier 1: Critical Path (Measured: 75-100% coverage!)
 
 These are the modules that run on EVERY build:
 
 | Module | Measured Coverage | Key Files | Status |
 |--------|-------------------|-----------|--------|
-| `bengal/core/` | **76-100%** | Page (98-100%), Section (80%), Site (76%), Menu (96%) | ✅ **EXCELLENT** |
-| `bengal/orchestration/` | **51-93%** | Content (87%), Section (91%), Taxonomy (86%), Build (81%) | ✅ **EXCELLENT** |
-| `bengal/rendering/` | **61-88%** | Parser (83%), Jinja (88%), Errors (76%), Link validator (83%) | ✅ **EXCELLENT** |
-| `bengal/utils/` | **83-97%** | Text (83%), Dates (85%), Pagination (96%), Paths (97%), URL (65%) | ✅ **EXCELLENT** |
-| `bengal/cache/` | **27%** | Build cache, dependency tracking | ⚠️ Moderate |
-| `bengal/postprocess/` | **24%** | RSS, sitemap generation | ⚠️ Moderate |
+| `bengal/core/` | **75-100%** | Page (87-100%), Section (83%), Site (75%), Menu (96%), Cascade (89%) | ✅ **EXCELLENT** |
+| `bengal/orchestration/` | **44-92%** | Content (92%), Section (80%), Taxonomy (83%), Build (79%), Related (92%), Asset (88%) | ✅ **EXCELLENT** |
+| `bengal/rendering/` | **54-100%** | Renderer (86%), Template engine (79%), Errors (54%), Link validator (83%), Parsers (78-100%) | ✅ **EXCELLENT** |
+| `bengal/utils/` | **65-100%** | Text (98%), Dates (92%), Pagination (96%), Paths (100%), URL (92%), DotDict (97%) | ✅ **EXCELLENT** |
+| `bengal/cache/` | **59-90%** | Build cache (81%), Dependency tracker (90%), Query index (90%), Taxonomy (59%) | ✅ **EXCELLENT** |
+| `bengal/postprocess/` | **61-91%** | Output formats (90%), RSS (87%), Sitemap (61%), Special pages (91%) | ✅ **EXCELLENT** |
+| `bengal/discovery/` | **76-93%** | Content discovery (76%), Asset discovery (93%) | ✅ **EXCELLENT** |
 
 **Critical Path Reality**:
-- **Core objects**: 76-100% coverage - every Page, Section, Site operation tested
-- **Orchestration**: 51-93% coverage - all major build workflows tested
-- **Rendering**: 61-88% coverage - parser, templates, errors all tested
-- **Utils**: 83-97% coverage with 115 property tests = **GOLD STANDARD**
+- **Core objects**: 75-100% coverage - every Page, Section, Site operation tested
+- **Orchestration**: 44-92% coverage - all major build workflows tested
+- **Rendering**: 54-100% coverage - parser, templates, errors all tested
+- **Utils**: 65-100% coverage with 116 property tests = **GOLD STANDARD**
+- **Cache**: 59-90% coverage - build cache and dependency tracking tested
+- **Postprocess**: 61-91% coverage - RSS, sitemap, output formats tested
+- **Discovery**: 76-93% coverage - content and asset discovery tested
 
-### Tier 2: Important But Not Every Build (~40% coverage)
+### Tier 2: Important Supplementary Features (60-95% coverage)
 
-| Module | Coverage | Tests | Priority |
-|--------|----------|-------|----------|
-| `bengal/discovery/` | 10% | 8 tests | Medium |
-| `bengal/health/` | 19% | 95 tests | Medium |
-| `bengal/config/` | 15% | 11 tests | Low |
+| Module | Coverage | Key Components | Status |
+|--------|----------|----------------|--------|
+| `bengal/health/` | **60-98%** | Report (92%), Validators (12-98%), Health check (80%) | ✅ **GOOD** |
+| `bengal/config/` | **61-76%** | Loader (76%), Validators (61%) | ✅ **GOOD** |
+| `bengal/content_types/` | **89-95%** | Registry (95%), Strategies (95%), Base (89%) | ✅ **EXCELLENT** |
 
-### Tier 3: Optional Features (~10% coverage)
+### Tier 3: Optional Features & Tools (0-95% coverage)
 
-These are NOT tested because they're specialized tools:
+| Module | Coverage | Reason for Variance |
+|--------|----------|-------------------|
+| `bengal/analysis/` | **45-99%** | Graph analysis tools: PageRank (99%), Path analysis (99%), Community (94%), Knowledge graph (85%), Link suggestions (87%), Performance advisor (88%), Graph viz (45%) |
+| `bengal/autodoc/` | **19-96%** | Docstring parser (96%), Config (86%), Base (79%), CLI extractor (77%), Python extractor (69%), Generator (19%) - AST parsing complexity |
+| `bengal/cli/commands/` | **9-71%** | Theme (71%), Build (44%), Clean (43%), Serve (47%), Perf (58%) - interactive menus less testable |
+| `bengal/server/` | **0-94%** | Component preview (90%), Reload controller (94%), Build handler (67%), Request handler (61%), Request logger (82%), Utils (82%), Live reload (18%), Dev server (0%) - WebSocket/HTTP server |
+| `bengal/fonts/` | **0%** | Font downloader - network-dependent, rarely used |
 
-| Module | Coverage | Tests | Reason Not Tested |
-|--------|----------|-------|-------------------|
-| `bengal/cli/commands/` | 12% | 68 tests | Interactive menus, init wizards |
-| `bengal/server/` | 15% | 85 tests | Dev server (integration tested separately) |
-| `bengal/analysis/` | 18% | 102 tests | Graph analysis tools (optional) |
-| `bengal/autodoc/` | 14% | 81 tests | Documentation generators (optional) |
-| `bengal/fonts/` | 0% | 0 tests | Font downloader (optional) |
-
-**These modules total ~39% of codebase but <5% of usage.**
+**Analysis and autodoc modules are now well-tested. CLI and server remain challenging due to their interactive/networking nature.**
 
 ---
 
@@ -97,7 +100,7 @@ These are NOT tested because they're specialized tools:
 
 ### Property-Based Testing (Hypothesis)
 
-**115 property tests** generating **11,600+ examples per run**:
+**116 property tests** generating **11,600+ examples per run**:
 
 | Module | Property Tests | Examples Generated | Bugs Found |
 |--------|----------------|-------------------|------------|
@@ -120,7 +123,7 @@ These are NOT tested because they're specialized tools:
 
 ### Integration Testing
 
-**107 integration tests** covering:
+**148 integration tests** covering:
 - ✅ Full site URL consistency
 - ✅ Full → Incremental build sequences
 - ✅ Cache migration
@@ -139,7 +142,7 @@ Content Discovery → Parsing → Rendering → Post-processing → Output
      ✅              ✅          ✅            ✅             ✅
 ```
 
-**Evidence**: 2,350 tests across all stages
+**Evidence**: 2,661 tests across all stages
 
 ### Incremental Builds ✅
 
@@ -165,75 +168,72 @@ Content Discovery → Parsing → Rendering → Post-processing → Output
 - 25 property tests (2,500+ examples)
 - Truncation, slugification, HTML stripping tested
 - Unicode support verified
+- 98% coverage
 
 ---
 
 ## What's NOT Tested (By Design)
 
-### Optional Features (~39% of codebase)
+### Remaining Low-Coverage Areas
 
-1. **Interactive CLI Menus** (10%)
-   - Reason: Requires terminal interaction
-   - Alternative: Manual testing
+Most of Bengal's codebase is now well-tested (65% overall). The remaining areas with low coverage are:
 
-2. **Graph Visualization** (5%)
-   - Reason: Analysis tool, not core build
-   - Alternative: Manual verification
-
-3. **Font Downloader** (3%)
+1. **Font Downloader** (0%)
    - Reason: Network-dependent, rarely used
-   - Alternative: Integration test stub
+   - Alternative: Manual testing when needed
 
-4. **Autodoc Generators** (7%)
-   - Reason: AST parsing, complex edge cases
-   - Alternative: Example-based testing
+2. **Development Server WebSocket/HTTP** (0-18%)
+   - Reason: Complex HTTP server, requires socket testing
+   - Status: Core reload logic (94%) and component preview (90%) ARE tested
+   - Alternative: Manual testing for live reload
 
-5. **Development Server** (6%)
-   - Reason: HTTP server, requires socket testing
-   - Alternative: Integration tests for reload
+3. **Interactive CLI Wizards** (9-13%)
+   - Reason: Requires terminal interaction and user input
+   - Status: Build/serve commands (44-47%) have programmatic coverage
+   - Alternative: Manual testing for interactive flows
 
-6. **Performance Profiler** (4%)
-   - Reason: Profiling tool, not core build
-   - Alternative: Benchmark scripts
-
-7. **Rich Console Output** (2%)
+4. **Rich Console Output & Progress Bars** (17-31%)
    - Reason: Terminal formatting, visual QA
    - Alternative: Manual testing
 
-8. **Build Stats Reporting** (2%)
-   - Reason: Display logic, not business logic
-   - Alternative: Output validation
+5. **Performance Profiler Display** (31%)
+   - Reason: Profiling tool display logic
+   - Status: Core profiling logic (98%) IS tested
+   - Alternative: Benchmark scripts
 
-**Total Optional**: 39% of codebase, <5% of actual usage
+**These areas represent ~10-15% of the codebase and are intentionally undertested due to their interactive/visual nature.**
 
 ---
 
 ## Coverage Goals
 
-### Current: 17% Overall, 76-96% Critical Path ✅
+### Current: 65% Overall, 75-100% Critical Path ✅
 
-**This is EXCELLENT for an SSG with optional features.**
+**This is OUTSTANDING for an SSG of any kind.**
 
-The critical path (core, orchestration, rendering, utils) has:
-- **89% average coverage** across all critical modules
-- **96-100% coverage** on Page/Section core objects
+The critical path (core, orchestration, rendering, utils, cache, postprocess, discovery) has:
+- **81% average coverage** across all critical modules
+- **75-100% coverage** on Page/Section/Site core objects
 - **Property tests** providing 11,600+ examples per run
+- **148 integration tests** ensuring multi-component workflows
 
-### Target: 25% Overall, 80%+ Critical Path (ACHIEVED!)
+### Target: 70% Overall, 80%+ Critical Path (NEARLY ACHIEVED!)
 
 **Focus areas**:
-1. ✅ ~~Utils (85%)~~ - DONE
-2. ⚠️ Cache (27% → 60%) - Add stateful tests
-3. ⚠️ Discovery (10% → 50%) - Add content loading tests
-4. ⚠️ Postprocess (24% → 60%) - Add RSS/sitemap tests
+1. ✅ ~~Utils (65-100%)~~ - DONE
+2. ✅ ~~Cache (59-90%)~~ - DONE
+3. ✅ ~~Discovery (76-93%)~~ - DONE
+4. ✅ ~~Postprocess (61-91%)~~ - DONE
+5. ⚠️ Rendering errors (54% → 70%) - Add more error handling tests
+6. ⚠️ Health validators (12-98%, improve low ones) - Add navigation/taxonomy validator tests
 
 ### Non-Goals
 
-**We will NOT aim for >50% overall coverage** because:
-- 39% of codebase is optional features
-- Those features are rarely used (<5% of builds)
-- Cost/benefit doesn't justify test investment
-- Manual testing is more efficient for UX features
+**We will NOT aim for >80% overall coverage** because:
+- 10-15% of codebase is interactive/visual features (CLI wizards, terminal output, dev server)
+- Those features require manual testing for UX validation
+- Cost/benefit doesn't justify automating terminal interaction
+- Current coverage provides excellent protection for business logic
 
 ---
 
@@ -241,18 +241,19 @@ The critical path (core, orchestration, rendering, utils) has:
 
 ### Strengths
 
-✅ **Property-based testing**: 11,600+ examples per run  
+✅ **Property-based testing**: 11,600+ examples per run (116 tests)  
 ✅ **Parametrization**: 2.6x better visibility  
-✅ **Integration tests**: Multi-component workflows covered  
-✅ **Critical path**: ~85% coverage of frequently-run code  
-✅ **Fast execution**: 35 seconds for 2,350 tests  
-✅ **Bug detection**: 4 bugs found by Hypothesis in days  
+✅ **Integration tests**: 148 tests covering multi-component workflows  
+✅ **Critical path**: 81% average coverage of frequently-run code  
+✅ **Fast execution**: ~40 seconds for 2,661 tests  
+✅ **Bug detection**: 4+ bugs found by Hypothesis in days  
+✅ **Comprehensive coverage**: 65% overall, 75-100% on critical modules
 
 ### Areas for Improvement
 
-⚠️ **Stateful integration testing**: Need multi-step workflow tests  
-⚠️ **Cache validation**: Need more cache invalidation scenarios  
-⚠️ **Template rendering**: Need template error handling tests  
+⚠️ **Rendering error handling**: 54% coverage - add more error scenario tests  
+⚠️ **Health validators**: Some validators (navigation, taxonomy, connectivity) at 12-24% - add validation tests  
+⚠️ **CLI interactive flows**: 9-13% coverage - consider adding programmatic tests where feasible  
 
 ---
 
@@ -260,25 +261,29 @@ The critical path (core, orchestration, rendering, utils) has:
 
 ### ❌ Wrong Interpretation
 
-> "17% coverage is terrible! We need to get to 80%!"
+> "We need 100% coverage! Every line must be tested!"
 
 ### ✅ Correct Interpretation
 
-> "17% overall, but **76-96% of critical path** is tested with 2,297 high-quality tests including property-based testing. Optional features (39% of codebase) are intentionally not tested."
+> "65% overall with **75-100% critical path coverage** is excellent. 2,661 high-quality tests including property-based testing provide strong protection. Remaining gaps are intentional (interactive features, visual output)."
 
 **The numbers prove it:**
-- Core objects: 76-100% coverage
-- Orchestration: 51-93% coverage  
-- Rendering: 61-88% coverage
-- Utils: 83-97% coverage
+- Core objects: 75-100% coverage
+- Orchestration: 44-92% coverage  
+- Rendering: 54-100% coverage
+- Utils: 65-100% coverage with 116 property tests
+- Cache: 59-90% coverage
+- Postprocess: 61-91% coverage
+- Discovery: 76-93% coverage
 
 ### Key Metrics That Matter
 
-1. **Tests per module** - 2,350 tests is comprehensive
+1. **Tests per module** - 2,661 tests is comprehensive
 2. **Test quality** - Property tests + parametrization = A+
-3. **Bug detection** - 4 bugs found that would have reached production
-4. **Execution speed** - 35 seconds is fast enough for every commit
-5. **Critical path coverage** - ~85% is excellent
+3. **Bug detection** - 4+ bugs found that would have reached production
+4. **Execution speed** - ~40 seconds is fast enough for every commit
+5. **Critical path coverage** - 81% average is excellent
+6. **Overall coverage** - 65% is outstanding for a complex SSG
 
 ---
 
@@ -309,24 +314,31 @@ pytest tests/unit -m hypothesis --cov=bengal.utils --cov-report=term
 
 ## Conclusion
 
-**Bengal's test suite is EXCELLENT**, not poor:
+**Bengal's test suite is OUTSTANDING**:
 
-- ✅ 2,297 tests covering critical functionality
-- ✅ 115 property tests generating 11,600+ examples
-- ✅ Fast execution (40 seconds)
-- ✅ High-quality tests (property-based + parametrized)
-- ✅ **76-96% critical path coverage (MEASURED)**
+- ✅ 2,661 tests covering critical functionality
+- ✅ 116 property tests generating 11,600+ examples
+- ✅ 148 integration tests for multi-component workflows
+- ✅ Fast execution (~40 seconds)
+- ✅ High-quality tests (property-based + parametrized + integration)
+- ✅ **65% overall coverage, 75-100% critical path (MEASURED)**
 
-**The 17% overall number is misleading** because 39% of the codebase consists of optional features that don't need comprehensive testing.
+**The reality**:
 
-**The reality**: Core modules average **89% coverage** across Page, Section, Site, Content, Rendering, and Utils.
+- Core modules average **81% coverage** across Page, Section, Site, Content, Rendering, Utils, Cache, Postprocess, and Discovery
+- Critical path components have 75-100% coverage
+- Remaining gaps are intentional (interactive CLIs, visual output, dev server WebSockets)
 
-**Next Priority**: Stateful integration testing with Hypothesis to verify multi-step build workflows.
+**Next Priorities**:
+
+1. Improve rendering error handling tests (54% → 70%)
+2. Add tests for low-coverage health validators (navigation, taxonomy, connectivity)
+3. Consider adding programmatic tests for CLI flows where feasible
 
 ---
 
-**Report Generated**: 2025-10-13  
+**Report Generated**: 2025-10-19  
 **Coverage Tool**: pytest-cov 7.0.0  
-**Total Tests**: 2,297 (+ 14 manual)  
-**Overall Coverage**: 17% (76-96% critical path, 89% average)  
+**Total Tests**: 2,661 (+ 14 manual)  
+**Overall Coverage**: 65% (75-100% critical path, 81% average)  
 **Quality Rating**: A+
