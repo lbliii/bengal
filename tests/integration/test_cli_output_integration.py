@@ -7,9 +7,6 @@ and don't crash with style errors.
 Uses Phase 1 infrastructure: run_cli() helper for standardized CLI testing.
 """
 
-import subprocess
-import sys
-
 import pytest
 
 from tests._testing.cli import run_cli
@@ -61,45 +58,18 @@ class TestCLICommandOutput:
 class TestCLIOutputWithRealCommands:
     """Test CLI output system with real command scenarios."""
 
-    def test_build_command_uses_themed_header(self, tmp_path):
+    @pytest.mark.bengal(testroot="test-basic")
+    def test_build_command_uses_themed_header(self, site):
         """Test build command displays themed header without errors."""
-        # Create minimal site
-        site_dir = tmp_path / "test_site"
-        site_dir.mkdir()
+        # Run build command on the test site
+        result = run_cli(["site", "build"], cwd=str(site.root_path), timeout=30)
 
-        content_dir = site_dir / "content"
-        content_dir.mkdir()
-
-        config_file = site_dir / "bengal.toml"
-        config_file.write_text("""
-[site]
-title = "Test Site"
-base_url = "https://example.com"
-        """)
-
-        (content_dir / "_index.md").write_text("""---
-title: Home
----
-# Test
-        """)
-
-        # Run build
-        result = subprocess.run(
-            [sys.executable, "-m", "bengal.cli", "site", "build"],
-            cwd=site_dir,
-            capture_output=True,
-            text=True,
-            timeout=30,
-        )
+        # Build should succeed
+        result.assert_ok()
 
         # Should not have style errors
         assert "Failed to get style" not in result.stderr
         assert "unable to parse" not in result.stderr
-
-        # Build should succeed or fail for valid reasons, not style errors
-        if result.returncode != 0:
-            # If it failed, it shouldn't be due to style errors
-            assert "header" not in result.stderr.lower() or "style" not in result.stderr.lower()
 
 
 class TestCLIOutputInitialization:

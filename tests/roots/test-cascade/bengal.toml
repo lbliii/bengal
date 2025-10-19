@@ -1,0 +1,11 @@
+[site]
+title = "Cascade Test Site"
+baseurl = "/"
+
+[build]
+content_dir = "content"
+output_dir = "public"
+theme = "default"
+
+[markdown]
+parser = "mistune"

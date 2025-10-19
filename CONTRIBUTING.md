@@ -178,12 +178,152 @@ if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef):
 
 ### Writing Tests
 
+Bengal has a comprehensive test infrastructure to make writing tests easier and more consistent. See `tests/_testing/README.md` for full documentation.
+
+#### Test Organization
+
+- **Unit tests** (`tests/unit/`): Fast, isolated tests of individual functions/classes
+- **Integration tests** (`tests/integration/`): Tests that involve multiple components
+- **Test roots** (`tests/roots/`): Minimal, reusable site templates for integration tests
+
+#### Quick Start: Integration Tests with Test Roots
+
+Use the `@pytest.mark.bengal` marker for declarative site setup:
+
+```python
+import pytest
+
+@pytest.mark.bengal(testroot="test-basic")
+def test_simple_build(site, build_site):
+    """Test basic site building."""
+    # site is pre-configured from test-basic root
+    build_site()
+    
+    # Assert on results
+    assert len(site.pages) == 1
+    assert (site.output_dir / "index.html").exists()
+
+
+@pytest.mark.bengal(
+    testroot="test-baseurl",
+    confoverrides={"site.baseurl": "/custom"}
+)
+def test_custom_baseurl(site):
+    """Test with config overrides."""
+    assert site.baseurl == "/custom"
+```
+
+**Available test roots:**
+- `test-basic`: Minimal 1-page site
+- `test-baseurl`: Tests baseurl handling
+- `test-taxonomy`: 3 pages with tags
+- `test-templates`: Template example documentation
+- `test-assets`: Custom + theme assets
+- `test-cascade`: Nested sections with cascade frontmatter
+
+See `tests/roots/README.md` for full details.
+
+#### CLI Testing
+
+Use the `run_cli()` helper for standardized CLI testing:
+
+```python
+from tests._testing.cli import run_cli
+
+def test_version_command():
+    """Test version command."""
+    result = run_cli(["--version"])
+    
+    # Assertions
+    result.assert_ok()  # returncode == 0
+    assert "Bengal" in result.stdout
+    
+    # Errors are automatically stripped of ANSI codes
+
+
+def test_build_command_failure():
+    """Test build command with invalid site."""
+    result = run_cli(["site", "build"], cwd="/nonexistent")
+    
+    result.assert_fail_with()  # returncode != 0
+    result.assert_stderr_contains("not found")
+```
+
+#### Output Normalization
+
+Use normalization utilities for deterministic assertions on HTML/JSON:
+
+```python
+from tests._testing.normalize import normalize_html, normalize_json
+
+def test_asset_hashing(site, build_site):
+    """Test asset hashing in output."""
+    build_site()
+    html = (site.output_dir / "index.html").read_text()
+    
+    # Normalize volatile elements (paths, hashes, timestamps)
+    norm_html = normalize_html(html)
+    
+    # Assert on stable patterns
+    assert 'href="/assets/css/style.HASH.css"' in norm_html
+```
+
+#### HTTP Server for Link Testing
+
+Use the `http_server` fixture for ephemeral test servers:
+
+```python
+def test_external_links(site, build_site, http_server, tmp_path):
+    """Test link checking with ephemeral server."""
+    # Create test fixtures
+    fixtures = tmp_path / "fixtures"
+    fixtures.mkdir()
+    (fixtures / "test.html").write_text("<h1>Test</h1>")
+    
+    # Start server
+    base_url = http_server.start(fixtures)
+    
+    # Build site with links to server
+    # ... configure site to link to base_url ...
+    build_site()
+    
+    # Assert link checking works
+    # ...
+```
+
+#### Test Performance and Markers
+
+Bengal uses pytest markers to organize tests:
+
+- `@pytest.mark.slow`: Long-running tests (>5s per test)
+- `@pytest.mark.hypothesis`: Property-based tests
+- `@pytest.mark.serial`: Must run sequentially
+- `@pytest.mark.integration`: Integration tests
+- `@pytest.mark.network`: Requires internet
+
+**Fast development loop** (skip slow tests):
+```bash
+# Fast feedback (~20s)
+pytest -m "not slow" -n auto
+
+# Full suite
+pytest -n auto
+
+# Slow tests only
+pytest -m slow
+```
+
+#### General Testing Principles
+
 - Write tests for new features
 - Ensure edge cases are covered
 - Use descriptive test names
 - Follow the Arrange-Act-Assert pattern
+- Aim for >80% code coverage
+- Focus on critical paths
+- Test both success and failure cases
 
-Example:
+Example unit test:
 ```python
 def test_page_extracts_links():
     # Arrange
@@ -199,12 +339,6 @@ def test_page_extracts_links():
     assert len(links) == 1
     assert links[0] == "https://example.com"
 ```
-
-### Test Coverage
-
-- Aim for >80% code coverage
-- Focus on critical paths
-- Test both success and failure cases
 
 ## Areas for Contribution
 

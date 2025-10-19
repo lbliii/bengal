@@ -12,6 +12,8 @@ import time
 from pathlib import Path
 from tempfile import mkdtemp
 
+import pytest
+
 from bengal.core.site import Site
 from bengal.rendering.pipeline import RenderingPipeline
 
@@ -39,8 +41,12 @@ def render_page_process(args):
         return (str(page.source_path), False, f"{type(e).__name__}: {e}\n{traceback.format_exc()}")
 
 
+@pytest.mark.slow
 def test_thread_vs_process_rendering():
-    """Compare thread-based vs process-based rendering."""
+    """Compare thread-based vs process-based rendering.
+    
+    Marked slow: Creates and renders 1000 complex pages (~117s).
+    """
 
     # Create test site
     print("Creating test site with 200 pages...")

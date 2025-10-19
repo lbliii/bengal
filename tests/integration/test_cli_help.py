@@ -1,10 +1,13 @@
-from click.testing import CliRunner
+"""Integration test for CLI help output.
 
-from bengal.cli import main
+Uses Phase 1 infrastructure: run_cli() helper.
+"""
+
+from tests._testing.cli import run_cli
 
 
 def test_cli_help_runs():
-    runner = CliRunner()
-    result = runner.invoke(main, ["--help"])  # ensure no circular imports and help renders
-    assert result.exit_code == 0
-    assert "Usage:" in result.output
+    """Test CLI help runs without circular imports and renders properly."""
+    result = run_cli(["--help"])
+    result.assert_ok()
+    assert "Usage:" in result.stdout

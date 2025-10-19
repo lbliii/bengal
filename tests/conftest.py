@@ -183,25 +183,45 @@ def sample_config():
 
 
 @pytest.fixture(autouse=True)
-def reset_console_between_tests():
+def reset_bengal_state():
     """
-    Automatically reset Rich console between tests to prevent Live display conflicts.
+    Reset all stateful singletons/caches between tests for test isolation.
 
-    This fixture runs automatically for every test (autouse=True) and ensures
-    that Rich Live displays are properly cleaned up, preventing the
-    "Only one live display may be active at once" error.
-
-    Long-term solution to ensure test isolation for Rich-based progress displays.
+    This fixture runs automatically for every test (autouse=True) and ensures:
+    - Rich console is reset (prevents Live display conflicts)
+    - Logger state is cleared (prevents file handle leaks)
+    - Theme cache is cleared (ensures fresh theme discovery)
+    
+    Future expansions:
+    - PageProxyCache (if added as singleton)
+    - TaxonomyIndex caching state
+    - Template engine instances/bytecode cache
+    - Asset dependency map state
     """
     # Setup: Nothing needed before test
     yield
-    # Teardown: Reset console after each test
+    
+    # Teardown: Reset all stateful components after each test
+    
+    # 1. Reset Rich console
     try:
         from bengal.utils.rich_console import reset_console
-
         reset_console()
     except ImportError:
-        # If module not available, skip cleanup
+        pass
+    
+    # 2. Reset logger state (close file handles, clear registry)
+    try:
+        from bengal.utils.logger import reset_loggers
+        reset_loggers()
+    except ImportError:
+        pass
+    
+    # 3. Clear theme cache (forces fresh discovery)
+    try:
+        from bengal.utils.theme_registry import clear_theme_cache
+        clear_theme_cache()
+    except ImportError:
         pass
 
 
@@ -269,3 +289,4 @@ Content for page {i}.""",
     output_dir = site_dir / "public"
     if output_dir.exists():
         shutil.rmtree(output_dir)
+

@@ -162,8 +162,12 @@ Modified content.""")
         assert no_change_stats.total_pages > 0
 
 
+@pytest.mark.slow
 class TestIncrementalBuildRegression:
-    """Regression tests for specific incremental build bugs."""
+    """Regression tests for specific incremental build bugs.
+    
+    Marked slow due to multiple full + incremental build sequences.
+    """
 
     def test_bug_cache_not_saved_after_full_build(self, tmp_path):
         """

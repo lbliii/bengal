@@ -201,8 +201,12 @@ class TestOutputQuality:
         assert "<url>" in sitemap_content, "Sitemap missing <url> entries"
 
 
+@pytest.mark.slow
 class TestStrictMode:
-    """Test that strict mode catches rendering errors."""
+    """Test that strict mode catches rendering errors.
+    
+    Marked slow due to full site builds in each test.
+    """
 
     def test_strict_mode_fails_on_bad_template(self, tmp_path):
         """Verify strict mode fails build on template errors."""

@@ -1,4 +1,7 @@
-"""Integration tests for cascading frontmatter with full content discovery."""
+"""Integration tests for cascading frontmatter with full content discovery.
+
+Uses Phase 1 infrastructure: @pytest.mark.bengal with test-cascade root.
+"""
 
 import shutil
 import tempfile
@@ -19,74 +22,13 @@ class TestCascadeIntegration:
         yield temp_dir
         shutil.rmtree(temp_dir)
 
-    def test_full_cascade_workflow(self, temp_site):
-        """Test complete cascade workflow with file system."""
-        # Create content structure
-        content_dir = temp_site / "content"
-        products_dir = content_dir / "products"
-        widgets_dir = products_dir / "widgets"
+    @pytest.mark.bengal(testroot="test-cascade")
+    def test_full_cascade_workflow(self, site):
+        """Test complete cascade workflow with nested sections.
 
-        products_dir.mkdir(parents=True)
-        widgets_dir.mkdir()
-
-        # Create products/_index.md with cascade
-        products_index = products_dir / "_index.md"
-        products_index.write_text("""---
-title: "Products"
-cascade:
-  type: product
-  show_price: true
-  product_line: current
----
-
-# Products
-
-All our products.
-""")
-
-        # Create widgets/_index.md with additional cascade
-        widgets_index = widgets_dir / "_index.md"
-        widgets_index.write_text("""---
-title: "Widgets"
-cascade:
-  category: widget
-  warranty: 2-year
----
-
-# Widgets
-
-Widget products.
-""")
-
-        # Create a product page
-        widget_page = widgets_dir / "super-widget.md"
-        widget_page.write_text("""---
-title: "Super Widget"
-price: "$99.99"
----
-
-# Super Widget
-
-An amazing widget!
-""")
-
-        # Create a product page with override
-        custom_widget = widgets_dir / "custom-widget.md"
-        custom_widget.write_text("""---
-title: "Custom Widget"
-price: "$149.99"
-type: custom-product
----
-
-# Custom Widget
-
-A customizable widget!
-""")
-
-        # Create site and discover content
-        site = Site(root_path=temp_site, config={})
-        site.discover_content(content_dir)
-
+        Uses test-cascade root with products/widgets hierarchy.
+        Tests that cascade properties flow from parent sections to child pages.
+        """
         # Find the pages
         super_widget = next(p for p in site.pages if "super-widget" in str(p.source_path))
         custom_widget = next(p for p in site.pages if "custom-widget" in str(p.source_path))
