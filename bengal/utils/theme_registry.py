@@ -30,66 +30,75 @@ class ThemePackage:
     version: str | None
 
     def templates_exists(self) -> bool:
-        # Try importlib.resources first
-        try:
-            traversable = resources.files(self.package) / "templates"
-            if hasattr(traversable, "is_dir"):
-                return traversable.is_dir()
-        except Exception:
-            pass
-
-        # Fallback: direct module import (for test packages in sys.path)
+        # Fallback: direct module import (works for test packages in sys.path)
+        # Try this FIRST because it's more reliable for non-installed packages
         try:
             import importlib
 
             module = importlib.import_module(self.package)
             if hasattr(module, "__file__") and module.__file__:
                 pkg_dir = Path(module.__file__).parent
-                return (pkg_dir / "templates").is_dir()
+                templates_dir = pkg_dir / "templates"
+                if templates_dir.is_dir():
+                    return True
+        except Exception:
+            pass
+
+        # Try importlib.resources (for properly installed packages)
+        try:
+            traversable = resources.files(self.package) / "templates"
+            # Try calling is_dir() directly - if it exists, it should work
+            return bool(traversable.is_dir())
         except Exception:
             pass
 
         return False
 
     def assets_exists(self) -> bool:
-        # Try importlib.resources first
-        try:
-            traversable = resources.files(self.package) / "assets"
-            if hasattr(traversable, "is_dir"):
-                return traversable.is_dir()
-        except Exception:
-            pass
-
-        # Fallback: direct module import (for test packages in sys.path)
+        # Fallback: direct module import (works for test packages in sys.path)
+        # Try this FIRST because it's more reliable for non-installed packages
         try:
             import importlib
 
             module = importlib.import_module(self.package)
             if hasattr(module, "__file__") and module.__file__:
                 pkg_dir = Path(module.__file__).parent
-                return (pkg_dir / "assets").is_dir()
+                assets_dir = pkg_dir / "assets"
+                if assets_dir.is_dir():
+                    return True
+        except Exception:
+            pass
+
+        # Try importlib.resources (for properly installed packages)
+        try:
+            traversable = resources.files(self.package) / "assets"
+            # Try calling is_dir() directly - if it exists, it should work
+            return bool(traversable.is_dir())
         except Exception:
             pass
 
         return False
 
     def manifest_exists(self) -> bool:
-        # Try importlib.resources first
-        try:
-            traversable = resources.files(self.package) / "theme.toml"
-            if hasattr(traversable, "is_file"):
-                return traversable.is_file()
-        except Exception:
-            pass
-
-        # Fallback: direct module import (for test packages in sys.path)
+        # Fallback: direct module import (works for test packages in sys.path)
+        # Try this FIRST because it's more reliable for non-installed packages
         try:
             import importlib
 
             module = importlib.import_module(self.package)
             if hasattr(module, "__file__") and module.__file__:
                 pkg_dir = Path(module.__file__).parent
-                return (pkg_dir / "theme.toml").is_file()
+                manifest_file = pkg_dir / "theme.toml"
+                if manifest_file.is_file():
+                    return True
+        except Exception:
+            pass
+
+        # Try importlib.resources (for properly installed packages)
+        try:
+            traversable = resources.files(self.package) / "theme.toml"
+            # Try calling is_file() directly - if it exists, it should work
+            return bool(traversable.is_file())
         except Exception:
             pass
 
@@ -99,7 +108,21 @@ class ThemePackage:
         return PackageLoader(self.package, "templates")
 
     def resolve_resource_path(self, relative: str) -> Path | None:
-        # Try importlib.resources first
+        # Fallback: direct module import (works for test packages in sys.path)
+        # Try this FIRST because it's more reliable for non-installed packages
+        try:
+            import importlib
+
+            module = importlib.import_module(self.package)
+            if hasattr(module, "__file__") and module.__file__:
+                pkg_dir = Path(module.__file__).parent
+                full_path = pkg_dir / relative
+                if full_path.exists():
+                    return full_path
+        except Exception:
+            pass
+
+        # Try importlib.resources (for properly installed packages)
         try:
             target = resources.files(self.package)
             traversable = target.joinpath(relative)
@@ -118,19 +141,6 @@ class ThemePackage:
                         return Path(path)
                 except Exception:
                     pass
-        except Exception:
-            pass
-
-        # Fallback: direct module import (for test packages in sys.path)
-        try:
-            import importlib
-
-            module = importlib.import_module(self.package)
-            if hasattr(module, "__file__") and module.__file__:
-                pkg_dir = Path(module.__file__).parent
-                full_path = pkg_dir / relative
-                if full_path.exists():
-                    return full_path
         except Exception:
             pass
 
