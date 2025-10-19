@@ -34,12 +34,18 @@ def normalize_html(html_str: str, preserve_structure: bool = True) -> str:
     """
     html = html_str
 
-    # Replace absolute paths
-    html = re.sub(r'/[a-zA-Z]:/[^\s"\'<>]+', "PATH", html)
-    html = re.sub(r'file://[^\s"\'<>]+', "PATH", html)
-
-    # Replace asset hashes (e.g., style.abc123.css -> style.HASH.css)
+    # Replace asset hashes FIRST (before path normalization)
+    # e.g., style.abc123def.css -> style.HASH.css
     html = re.sub(r"\.([a-f0-9]{8,})\.", ".HASH.", html)
+
+    # Replace absolute paths (Windows, Unix, UNC, file:// URLs)
+    # Order matters: most specific patterns first
+    html = re.sub(r'file:///[^\s"\'<>]*', "PATH", html)  # file:/// URLs
+    html = re.sub(r'[A-Za-z]:[/\\][^\s"\'<>]*', "PATH", html)  # C:\path or C:/path
+    html = re.sub(r'\\\\[^\s"\'<>]+', "PATH", html)  # UNC paths \\server\share
+    # Unix system paths (not web paths like /assets/...)
+    # Match common system roots: /home, /usr, /tmp, /var, /private, /Users
+    html = re.sub(r'/(home|usr|tmp|var|private|Users|opt|etc|Library)/[^\s"\'<>]*', "PATH", html)
 
     # Strip timestamps
     html = re.sub(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}", "TIMESTAMP", html)
@@ -90,9 +96,15 @@ def normalize_json(data: dict | list | Any) -> dict | list | Any:
         return [normalize_json(item) for item in data]
 
     elif isinstance(data, str):
-        # Normalize paths in strings
-        normalized = re.sub(r'/[a-zA-Z]:/[^\s"\'<>]+', "PATH", data)
-        normalized = re.sub(r'file://[^\s"\'<>]+', "PATH", normalized)
+        # Normalize paths in strings (Windows, Unix, UNC, file:// URLs)
+        # Order matters: most specific patterns first
+        normalized = re.sub(r'file:///[^\s"\'<>]*', "PATH", data)  # file:/// URLs
+        normalized = re.sub(r'[A-Za-z]:[/\\][^\s"\'<>]*', "PATH", normalized)  # C:\path
+        normalized = re.sub(r'\\\\[^\s"\'<>]+', "PATH", normalized)  # UNC \\server\share
+        # Unix system paths (not web paths)
+        normalized = re.sub(
+            r'/(home|usr|tmp|var|private|Users|opt|etc|Library)/[^\s"\'<>]*', "PATH", normalized
+        )
         return normalized
 
     else:

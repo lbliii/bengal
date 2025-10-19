@@ -45,11 +45,13 @@ Provides core fixtures:
 - `rootdir` - Path to `tests/roots/` directory
 - `site_factory(testroot, confoverrides)` - Factory to create Site from roots
 - `build_site()` - Helper to build a site
-- `site` - Auto-injected when using `@pytest.mark.bengal`
 
 ### `markers.py`
 
-Implements `@pytest.mark.bengal` marker:
+Implements `@pytest.mark.bengal` marker and provides the `site` fixture:
+
+- `@pytest.mark.bengal` - Marker for declarative test site setup
+- `site` - Auto-injected fixture when using `@pytest.mark.bengal`
 
 ```python
 @pytest.mark.bengal(testroot="test-basic")

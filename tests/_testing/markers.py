@@ -13,7 +13,7 @@ Usage:
     @pytest.mark.bengal(testroot="test-baseurl", confoverrides={"site.baseurl": "/custom"})
     def test_with_overrides(site):
         # 'site' will have custom baseurl
-        assert site.config["site"]["baseurl"] == "/custom"
+        assert site.baseurl == "/custom"
 """
 
 import pytest
@@ -27,32 +27,6 @@ def pytest_configure(config):
         "Mark test to use Bengal test root infrastructure. "
         "Requires 'site' fixture parameter in test function.",
     )
-
-
-def pytest_generate_tests(metafunc):
-    """
-    Hook to provide 'site' fixture for tests marked with @pytest.mark.bengal.
-
-    This is called during test collection for each test function.
-    If the test has the bengal marker, we ensure the site fixture is available.
-    """
-    bengal_marker = metafunc.definition.get_closest_marker("bengal")
-
-    if bengal_marker and "site" in metafunc.fixturenames:
-        # Extract marker parameters
-        testroot = bengal_marker.kwargs.get("testroot")
-        confoverrides = bengal_marker.kwargs.get("confoverrides")
-
-        if not testroot:
-            raise ValueError(
-                f"@pytest.mark.bengal requires 'testroot' parameter. "
-                f"Test: {metafunc.function.__name__}"
-            )
-
-        # Store marker params as attributes on the test
-        # The site fixture in conftest.py will read these
-        metafunc.definition._bengal_testroot = testroot
-        metafunc.definition._bengal_confoverrides = confoverrides
 
 
 @pytest.fixture
