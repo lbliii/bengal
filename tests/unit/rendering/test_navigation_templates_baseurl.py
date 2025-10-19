@@ -67,8 +67,11 @@ output_dir = "public"
 
     def test_breadcrumbs_without_baseurl(self, tmp_path, monkeypatch):
         """Test breadcrumbs work correctly without baseurl configured."""
-        # Ensure no env baseurl
+        # Ensure no env baseurl or CI auto-detection
         monkeypatch.delenv("BENGAL_BASEURL", raising=False)
+        monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
+        monkeypatch.delenv("NETLIFY", raising=False)
+        monkeypatch.delenv("VERCEL", raising=False)
 
         site_dir = tmp_path / "site"
         (site_dir / "content").mkdir(parents=True)
@@ -186,8 +189,17 @@ class TestNavigationComponentsConsistency:
             ("", ""),  # No baseurl
         ],
     )
-    def test_consistent_baseurl_application(self, tmp_path, baseurl_value, expected_prefix):
+    def test_consistent_baseurl_application(
+        self, tmp_path, monkeypatch, baseurl_value, expected_prefix
+    ):
         """Test that all navigation components apply baseurl consistently."""
+        # Clear CI env vars to prevent auto-detection when testing empty baseurl
+        if not baseurl_value:
+            monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
+            monkeypatch.delenv("NETLIFY", raising=False)
+            monkeypatch.delenv("VERCEL", raising=False)
+            monkeypatch.delenv("BENGAL_BASEURL", raising=False)
+
         site_dir = tmp_path / "site"
         (site_dir / "content").mkdir(parents=True)
         (site_dir / "public").mkdir(parents=True)

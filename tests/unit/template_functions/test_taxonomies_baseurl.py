@@ -82,9 +82,15 @@ output_dir = "public"
 
         assert result == "https://example.com/tags/web-dev/"
 
-    def test_tag_url_without_baseurl(self, tmp_path):
+    def test_tag_url_without_baseurl(self, tmp_path, monkeypatch):
         """Test tag_url without base URL (default behavior)."""
         from bengal.rendering.template_engine import TemplateEngine
+
+        # Clear CI env vars to prevent auto-detection
+        monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
+        monkeypatch.delenv("NETLIFY", raising=False)
+        monkeypatch.delenv("VERCEL", raising=False)
+        monkeypatch.delenv("BENGAL_BASEURL", raising=False)
 
         site_dir = tmp_path / "site"
         (site_dir / "content").mkdir(parents=True)
@@ -117,8 +123,8 @@ output_dir = "public"
 
     def test_tag_url_with_baseurl_and_i18n_prefix(self, tmp_path):
         """Test tag_url with both base URL and i18n prefix strategy."""
-        from bengal.rendering.template_engine import TemplateEngine
         from bengal.core.page import Page
+        from bengal.rendering.template_engine import TemplateEngine
 
         site_dir = tmp_path / "site"
         (site_dir / "content").mkdir(parents=True)
@@ -168,8 +174,8 @@ languages = ["en", "fr"]
 
     def test_tag_url_with_baseurl_no_i18n_for_default_lang(self, tmp_path):
         """Test tag_url with base URL but no i18n prefix for default language."""
-        from bengal.rendering.template_engine import TemplateEngine
         from bengal.core.page import Page
+        from bengal.rendering.template_engine import TemplateEngine
 
         site_dir = tmp_path / "site"
         (site_dir / "content").mkdir(parents=True)
@@ -257,8 +263,8 @@ class TestTagUrlInAutodocContext:
 
     def test_tag_url_in_api_reference_page(self, tmp_path):
         """Test tag_url works correctly when called from API reference pages."""
-        from bengal.rendering.template_engine import TemplateEngine
         from bengal.core.page import Page
+        from bengal.rendering.template_engine import TemplateEngine
 
         site_dir = tmp_path / "site"
         (site_dir / "content").mkdir(parents=True)
@@ -308,8 +314,8 @@ tags: ["api", "core"]
 
     def test_tag_url_in_cli_reference_page(self, tmp_path):
         """Test tag_url works correctly when called from CLI reference pages."""
-        from bengal.rendering.template_engine import TemplateEngine
         from bengal.core.page import Page
+        from bengal.rendering.template_engine import TemplateEngine
 
         site_dir = tmp_path / "site"
         (site_dir / "content").mkdir(parents=True)
@@ -356,4 +362,3 @@ tags: ["cli", "build"]
 
         # Should have path base URL + tag path
         assert result == "/myapp/tags/cli/"
-

@@ -31,20 +31,53 @@ class ThemePackage:
 
     def templates_exists(self) -> bool:
         try:
-            return (resources.files(self.package) / "templates").is_dir()
+            traversable = resources.files(self.package) / "templates"
+            return traversable.is_dir()
         except Exception:
+            # Fallback for packages in sys.path but not installed (e.g., tests)
+            try:
+                import importlib
+
+                module = importlib.import_module(self.package)
+                if hasattr(module, "__file__") and module.__file__:
+                    pkg_dir = Path(module.__file__).parent
+                    return (pkg_dir / "templates").is_dir()
+            except Exception:
+                pass
             return False
 
     def assets_exists(self) -> bool:
         try:
-            return (resources.files(self.package) / "assets").is_dir()
+            traversable = resources.files(self.package) / "assets"
+            return traversable.is_dir()
         except Exception:
+            # Fallback for packages in sys.path but not installed (e.g., tests)
+            try:
+                import importlib
+
+                module = importlib.import_module(self.package)
+                if hasattr(module, "__file__") and module.__file__:
+                    pkg_dir = Path(module.__file__).parent
+                    return (pkg_dir / "assets").is_dir()
+            except Exception:
+                pass
             return False
 
     def manifest_exists(self) -> bool:
         try:
-            return (resources.files(self.package) / "theme.toml").is_file()
+            traversable = resources.files(self.package) / "theme.toml"
+            return traversable.is_file()
         except Exception:
+            # Fallback for packages in sys.path but not installed (e.g., tests)
+            try:
+                import importlib
+
+                module = importlib.import_module(self.package)
+                if hasattr(module, "__file__") and module.__file__:
+                    pkg_dir = Path(module.__file__).parent
+                    return (pkg_dir / "theme.toml").is_file()
+            except Exception:
+                pass
             return False
 
     def jinja_loader(self) -> PackageLoader:
@@ -56,13 +89,37 @@ class ThemePackage:
             traversable = target.joinpath(relative)
             if not traversable.exists():
                 return None
-            # Ensure a real filesystem path (supports zip/egg via as_file)
+
+            # Try to get a persistent filesystem path
+            # For properly installed packages, this works
+            try:
+                # Check if it's already a real Path (not in a zip)
+                if hasattr(traversable, "__fspath__"):
+                    return Path(traversable)
+            except Exception:
+                pass
+
+            # For packages in zip files, we need as_file, but the path is temporary
+            # Store a persistent copy or just return the temp path
+            # Note: Caller should handle this carefully
             with resources.as_file(traversable) as path:
+                # Make a copy of the path (the actual Path object, not the file)
                 return Path(path)
-        except Exception as e:
-            logger.debug(
-                "theme_resource_resolve_failed", package=self.package, rel=relative, error=str(e)
-            )
+        except Exception:
+            # Fallback for packages in sys.path but not installed (e.g., tests)
+            try:
+                import importlib
+
+                module = importlib.import_module(self.package)
+                if hasattr(module, "__file__") and module.__file__:
+                    pkg_dir = Path(module.__file__).parent
+                    full_path = pkg_dir / relative
+                    if full_path.exists():
+                        return full_path
+            except Exception:
+                pass
+
+            logger.debug("theme_resource_resolve_failed", package=self.package, rel=relative)
             return None
 
 

@@ -647,7 +647,7 @@ class BuildOrchestrator:
         # Build pre-computed indexes for O(1) template lookups
         with self.logger.phase("query_indexes"):
             query_indexes_start = time.time()
-            
+
             if incremental and pages_to_build:
                 # Incremental: only update affected indexes
                 affected_keys = self.site.indexes.update_incremental(
@@ -671,7 +671,7 @@ class BuildOrchestrator:
                     "query_indexes_built",
                     indexes=stats["total_indexes"],
                 )
-            
+
             query_indexes_time = (time.time() - query_indexes_start) * 1000
             self.logger.debug(
                 "query_indexes_complete",
@@ -834,7 +834,7 @@ class BuildOrchestrator:
         if incremental and pages_to_build:
             # Create a mapping of source_path -> rendered page
             rendered_map = {page.source_path: page for page in pages_to_build}
-            
+
             # Replace stale proxies with fresh pages
             updated_pages = []
             for page in self.site.pages:
@@ -844,11 +844,11 @@ class BuildOrchestrator:
                 else:
                     # Keep the existing page (proxy or unchanged)
                     updated_pages.append(page)
-            
+
             self.site.pages = updated_pages
-            
+
             # Log composition for debugging (helps troubleshoot incremental issues)
-            if self.logger.level <= 10:  # DEBUG level
+            if self.logger.level.value <= 10:  # DEBUG level
                 page_types = {"Page": 0, "PageProxy": 0, "other": 0}
                 for p in self.site.pages:
                     ptype = type(p).__name__
@@ -858,7 +858,7 @@ class BuildOrchestrator:
                         page_types["PageProxy"] += 1
                     else:
                         page_types["other"] += 1
-                
+
                 self.logger.debug(
                     "site_pages_composition_before_postprocess",
                     fresh_pages=page_types["Page"],
