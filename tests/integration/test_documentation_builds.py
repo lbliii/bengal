@@ -22,11 +22,14 @@ class TestDocumentationBuild:
 
     @pytest.mark.bengal(testroot="test-templates")
     def test_build_page_with_template_examples(self, site, build_site):
-        """Test building a page with escaped template examples."""
+        """Test building a page with escaped template examples.
+
+        Uses test-templates root which contains guide.md with template examples.
+        """
         # Build the site - should NOT raise errors
         build_site()
 
-        # Verify output exists
+        # Verify output exists (guide.md → guide/index.html)
         output_file = site.output_dir / "guide" / "index.html"
         assert output_file.exists(), "Output file was not generated"
 
