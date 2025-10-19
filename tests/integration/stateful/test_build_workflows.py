@@ -5,8 +5,11 @@ These tests simulate real user workflows with multiple steps,
 automatically generating hundreds of different sequences.
 """
 
+import os
 import string
 
+import pytest
+from hypothesis import settings
 from hypothesis import strategies as st
 from hypothesis.stateful import RuleBasedStateMachine, initialize, invariant, precondition, rule
 
@@ -19,6 +22,16 @@ from .helpers import (
     run_build,
     write_page,
 )
+
+# Configure Hypothesis profiles for different environments
+# Dev: Faster feedback with fewer examples (20)
+# CI: Thorough testing with more examples (100)
+# Note: This should ideally be in conftest.py, but kept here for now
+settings.register_profile("ci", max_examples=100)
+settings.register_profile("dev", max_examples=20)
+# Robust CI detection: handles '1', 'true', 'True', 'yes', 'on'
+ci_env = os.getenv("CI", "").lower()
+settings.load_profile("ci" if ci_env in {"1", "true", "yes", "on"} else "dev")
 
 
 # Strategies for generating test data
@@ -284,7 +297,8 @@ class PageLifecycleWorkflow(RuleBasedStateMachine):
 
 
 # Convert to pytest test case
-TestPageLifecycleWorkflow = PageLifecycleWorkflow.TestCase
+# Marked slow and hypothesis for proper test selection
+TestPageLifecycleWorkflow = pytest.mark.slow(pytest.mark.hypothesis(PageLifecycleWorkflow.TestCase))
 
 
 class IncrementalConsistencyWorkflow(RuleBasedStateMachine):
@@ -384,7 +398,9 @@ class IncrementalConsistencyWorkflow(RuleBasedStateMachine):
             clean_site(self.site_dir)
 
 
-TestIncrementalConsistencyWorkflow = IncrementalConsistencyWorkflow.TestCase
+TestIncrementalConsistencyWorkflow = pytest.mark.slow(
+    pytest.mark.hypothesis(IncrementalConsistencyWorkflow.TestCase)
+)
 
 
 # Example output documentation

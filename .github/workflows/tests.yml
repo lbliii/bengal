@@ -32,12 +32,15 @@ jobs:
     - name: Run targeted baseurl portability tests
       env:
         BENGAL_BASEURL: ${{ matrix.baseurl }}
+        CI: true  # Tells Hypothesis to use CI profile (100 examples)
       run: |
         echo "Running with BENGAL_BASEURL='${BENGAL_BASEURL}'"
         pytest -q tests/unit/config/test_config_loader_baseurl_env.py tests/unit/rendering/test_asset_url_baseurl.py tests/unit/rendering/test_template_links_baseurl.py tests/integration/test_baseurl_builds.py -q
 
     - name: Run full test suite (single env only)
       if: matrix.baseurl == ''
+      env:
+        CI: true  # Tells Hypothesis to use CI profile (100 examples)
       run: |
         python -m pytest -v --tb=short --cov=bengal --cov-report=xml
 

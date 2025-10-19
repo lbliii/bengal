@@ -5,14 +5,19 @@ Bengal's test suite emphasizes high coverage on the critical path (76-96%) with 
 ## Quick Runs (~20s)
 Use `pytest.ini` defaults for fast feedback: parallel execution (`-n auto`), quiet output (`-q`), and profiling of top 10 slowest tests (`--durations=10`).
 
+- **Fast dev loop** (RECOMMENDED, ~20s):  
+  `pytest -m "not slow" -n auto`  
+  Skips showcase site builds and stateful tests for rapid feedback.
+
 - **Unit only** (isolated, ~8s → ~3-4s parallel):  
   `pytest tests/unit -n auto`
 
 - **Integration** (workflows, ~15s):  
   `pytest tests/integration -m "not slow"` (skips full-build heavies)
 
-- **Full suite** (unit + integration, ~30s parallel):  
-  `time pytest` (or `pytest -n auto --durations=10 -q`)
+- **Full suite** (unit + integration, ~1 min):  
+  `time pytest` (or `pytest -n auto --durations=10 -q`)  
+  Run before committing to ensure all tests pass.
 
 - **Ultra-fast dev** (skip slows + Hypothesis):  
   `pytest -m "not slow and not hypothesis"` (~15s)
@@ -20,11 +25,12 @@ Use `pytest.ini` defaults for fast feedback: parallel execution (`-n auto`), qui
 ## Markers
 Markers help control execution. See `pytest.ini` for full list.
 
-- `slow`: Full builds/integrations (e.g., site.build()—~15s total; skip for dev).  
-  Run: `pytest -m slow` (only heavies) or `-m "not slow"` (skip them).
+- `slow`: Full builds/integrations (e.g., showcase site with 292 pages, stateful workflows).  
+  Run: `pytest -m slow` (only heavies) or `-m "not slow"` (skip them - RECOMMENDED for dev).  
+  **Performance note**: Slow tests include the 292-page showcase build, which previously caused a frustrating long tail at 95% completion. These are now optimized but still take time.
 
 - `hypothesis`: Property-based tests (115 tests, ~11s due to example generation).  
-  Skip: `pytest -m "not hypothesis"` (~29s). Limit examples in dev: Add `from hypothesis import settings; settings(max_examples=50)`.
+  Skip: `pytest -m "not hypothesis"` (~29s). Examples are auto-tuned: 20 in dev, 100 in CI via profiles.
 
 - `serial`: Non-parallel tests (rare, e.g., stateful FS sims).  
   Run sequentially: `pytest -m serial -n 0`.
