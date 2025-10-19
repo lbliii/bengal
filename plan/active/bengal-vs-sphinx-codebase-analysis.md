@@ -142,12 +142,16 @@ locale/                  1   (+ 206 locale files for i18n)
 - **XML/pseudo-XML** output
 
 ❌ **Multi-Language Domain System** (~21,345 lines)
-- **C domain** - Full C API documentation
-- **C++ domain** - C++ with templates, namespaces
-- **JavaScript domain** - JS API documentation
-- **reStructuredText domain** - Advanced reST features
+- **"Domains" = Programming language API documentation systems** (not human languages!)
+- **Python domain** - ✅ Bengal has this (Python autodoc)
+- **C domain** - Document C APIs (functions, structs, macros)
+- **C++ domain** - Document C++ (classes, templates, namespaces)
+- **JavaScript domain** - Document JavaScript APIs
+- **reStructuredText domain** - Document reST directives
 - **Math domain** - Mathematical notation
-- Bengal only has Python autodoc
+- **Gap**: Bengal can only auto-document Python code, not C/C++/JavaScript/etc.
+- **Who needs this**: Projects with C extensions (NumPy, Pandas), polyglot libraries, system programming
+- **Who doesn't**: Pure Python projects (90%+ of Python ecosystem)
 
 ⚠️ **Internationalization Infrastructure** (~16,351 lines in Sphinx)
 - **Bengal HAS i18n** but different approach:
@@ -165,6 +169,11 @@ locale/                  1   (+ 206 locale files for i18n)
   - ❌ Extract translatable strings from docs
   - ❌ Translation memory
 - **Key difference**: Bengal focuses on multi-language *content*, Sphinx provides *interface* translations
+- **2025 Reality**: AI translation (ChatGPT/Claude) + browser auto-translation reduce need for complex .po/.mo workflows
+  - AI can translate entire markdown files in seconds
+  - Browsers auto-translate pages for users
+  - Bengal's content-based i18n is ideal for SEO and professional sites
+  - Traditional translation workflows matter less in AI era
 
 ❌ **Extension Ecosystem** (~16,351 lines in built-in extensions)
 - **autodoc** - Import-based Python autodoc (vs Bengal's AST approach)
@@ -195,15 +204,17 @@ locale/                  1   (+ 206 locale files for i18n)
 
 Based on this analysis, Bengal's **true feature gaps** are:
 
-1. **PDF/LaTeX output** - Major gap for technical documentation
-2. **Multi-language domain system** - Only supports Python, not C/C++/JS
-3. **gettext/.po/.mo translation workflow** - Bengal has i18n but not professional translation tools
-4. **Extension plugin system** - No third-party extension ecosystem
-5. **Advanced search** - Basic search vs full-text with stemming
-6. **Cross-project linking** - No intersphinx equivalent
-7. **Doctest integration** - Can't run examples as tests
-8. **Math rendering** - No LaTeX math support
-9. **Diagram generation** - No graphviz/inheritance diagrams
+1. **PDF/LaTeX output** - Major gap for technical documentation (if print/PDF needed)
+2. **Multi-language domain system** - Can only auto-document Python, not C/C++/JavaScript
+   - Matters for: CPython extensions (NumPy, Pandas), polyglot projects
+   - Doesn't matter for: Pure Python projects (90%+ of ecosystem)
+3. **Extension plugin system** - No third-party extension ecosystem
+4. **Advanced search** - Basic search vs full-text with stemming
+5. **Cross-project linking** - No intersphinx equivalent
+6. **Doctest integration** - Can't run examples as tests
+7. **Math rendering** - No LaTeX math support
+8. **Diagram generation** - No graphviz/inheritance diagrams
+9. ~~**Professional translation workflow**~~ - **Low priority in 2025** (AI + browser translation handle this)
 
 ### What Bengal Does BETTER
 
@@ -257,11 +268,12 @@ Based on this analysis, Bengal's **true feature gaps** are:
 - Bengal Python autodoc: ~9 files (~2,000 lines estimated)
 - **Difference: ~19,000 lines**
 
-### 4. **Internationalization** - 5-10% of difference
+### 4. **Internationalization** - 5-10% of difference (but less relevant in 2025)
 - Sphinx i18n infrastructure: ~7,326 lines in `locale/__init__.py` + 206 translation files (.po/.mo)
 - Bengal i18n: ~220 lines in `rendering/template_functions/i18n.py` + YAML-based translations
 - **Key difference**: Sphinx has 70+ pre-translated UI languages vs Bengal's user-provided translations
-- **Difference: ~7,000+ lines** (mostly pre-built translations)
+- **Modern reality**: Browser auto-translation + AI translation reduces need for complex translation workflows
+- **Difference: ~7,000+ lines** (mostly pre-built translations that matter less with AI/browser translation)
 
 ### 5. **Extension Ecosystem** - 5-10% of difference
 - Sphinx has 20+ built-in extensions: ~16,351 lines
@@ -345,8 +357,8 @@ Bengal is **not small due to feature gaps** - it's appropriately sized for its f
 5. ~~gettext/.po/.mo translation workflow~~ - **Low priority in AI era** (browsers auto-translate, AI can batch translate content)
 
 **Lower Priority:**
-6. C/C++/JS domains (if expanding beyond Python)
-7. Math rendering (if targeting scientific docs)
-8. Diagram generation (graphviz, inheritance)
+6. C/C++/JS autodoc domains (only needed for polyglot projects or CPython extensions - niche use case)
+7. Math rendering (LaTeX/MathJax - if targeting scientific/academic docs)
+8. Diagram generation (graphviz, inheritance diagrams - nice-to-have)
 
 **Bengal's sweet spot:** Modern, fast, well-tested static site generator focused on Markdown content, Python documentation, and excellent HTML output with great DX.
