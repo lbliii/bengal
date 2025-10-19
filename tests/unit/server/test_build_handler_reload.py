@@ -55,9 +55,9 @@ def test_css_only_triggers_css_reload(tmp_path, monkeypatch):
 
     # Mock the reload controller to return CSS-only decision
     with (
-        patch("bengal.server.build_handler.controller") as mock_controller,
-        patch("bengal.server.build_handler.send_reload_payload", fake_send_reload),
-        patch("bengal.server.build_handler.BengalRequestHandler"),
+        patch("bengal.server.reload_controller.controller") as mock_controller,
+        patch("bengal.server.live_reload.send_reload_payload", fake_send_reload),
+        patch("bengal.server.request_handler.BengalRequestHandler"),
     ):
         mock_controller.decide_and_update.return_value = ReloadDecision(
             action="reload-css", reason="css-only", changed_paths=["style.css"]
@@ -86,9 +86,9 @@ def test_mixed_changes_trigger_full_reload(tmp_path, monkeypatch):
 
     # Mock the reload controller to return full reload decision
     with (
-        patch("bengal.server.build_handler.controller") as mock_controller,
-        patch("bengal.server.build_handler.send_reload_payload", fake_send_reload),
-        patch("bengal.server.build_handler.BengalRequestHandler"),
+        patch("bengal.server.reload_controller.controller") as mock_controller,
+        patch("bengal.server.live_reload.send_reload_payload", fake_send_reload),
+        patch("bengal.server.request_handler.BengalRequestHandler"),
     ):
         mock_controller.decide_and_update.return_value = ReloadDecision(
             action="reload", reason="content-changed", changed_paths=["style.css", "page.html"]
