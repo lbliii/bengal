@@ -64,14 +64,12 @@ class TestCLIOutputWithRealCommands:
         # Run build command on the test site
         result = run_cli(["site", "build"], cwd=str(site.root_path), timeout=30)
 
+        # Build should succeed
+        result.assert_ok()
+
         # Should not have style errors
         assert "Failed to get style" not in result.stderr
         assert "unable to parse" not in result.stderr
-
-        # Build should succeed or fail for valid reasons, not style errors
-        if result.returncode != 0:
-            # If it failed, it shouldn't be due to style errors
-            assert "header" not in result.stderr.lower() or "style" not in result.stderr.lower()
 
 
 class TestCLIOutputInitialization:

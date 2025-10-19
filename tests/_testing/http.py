@@ -72,7 +72,7 @@ def http_server():
                 http.server.SimpleHTTPRequestHandler,
                 directory=str(directory)
             )
-            self.server = socketserver.TCPServer(("localhost", port), handler)
+            self.server = socketserver.ThreadingTCPServer(("localhost", port), handler)
             self.port = self.server.server_address[1]
 
             self.thread = threading.Thread(target=self.server.serve_forever)
@@ -90,6 +90,9 @@ def http_server():
                 self.server.shutdown()
                 if self.thread:
                     self.thread.join(timeout=5)
+                self.server.server_close()
+                self.server = None
+                self.thread = None
 
     server = TestHTTPServer()
     yield server
