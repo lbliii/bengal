@@ -14,14 +14,18 @@ from bs4 import BeautifulSoup
 from bengal.core.site import Site
 
 
-@pytest.fixture
-def built_site(tmp_path):
+@pytest.fixture(scope="class")
+def built_site(tmp_path_factory):
     """
     Build a complete site and return the output directory.
 
     Uses the showcase example as test data.
+
+    Note: Class-scoped to avoid rebuilding 292 pages for each test.
+    All tests in TestOutputQuality are read-only, so this is safe.
     """
     # Copy showcase example to tmp
+    tmp_path = tmp_path_factory.mktemp("showcase_site")
     showcase = Path("examples/showcase")
     site_dir = tmp_path / "site"
 
@@ -38,8 +42,13 @@ def built_site(tmp_path):
     return site.output_dir
 
 
+@pytest.mark.slow
 class TestOutputQuality:
-    """Test that built pages have expected quality and content."""
+    """Test that built pages have expected quality and content.
+
+    Marked slow because it builds the full 292-page showcase site.
+    Skip with: pytest -m "not slow" for fast feedback loop.
+    """
 
     def test_pages_include_theme_assets(self, built_site):
         """Verify pages include CSS and JS from theme."""
