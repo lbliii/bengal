@@ -5,6 +5,7 @@ This file provides:
 - Shared fixtures for all tests
 - Pytest hooks for better debugging
 - Automatic test output capture
+- Testing infrastructure plugins
 """
 
 import shutil
@@ -15,6 +16,13 @@ import pytest
 
 from bengal.core.site import Site
 from bengal.utils.file_io import write_text_file
+
+# ============================================================================
+# TESTING INFRASTRUCTURE
+# ============================================================================
+
+# Register Phase 1 testing plugins
+pytest_plugins = ["tests._testing.fixtures", "tests._testing.markers"]
 
 # ============================================================================
 # COLLECTION HOOKS
