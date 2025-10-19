@@ -69,7 +69,8 @@ class DevServer:
             host: Server host
             port: Server port
             watch: Whether to watch for file changes
-            auto_port: Whether to automatically find an available port if the specified one is in use
+            auto_port: Whether to automatically find an available port if the
+                specified one is in use
             open_browser: Whether to automatically open the browser
         """
         self.site = site
@@ -115,15 +116,24 @@ class DevServer:
 
         # Use ResourceManager for comprehensive cleanup handling
         with ResourceManager() as rm:
+            # Mark process as dev server for CLI output tuning
+            try:
+                import os as _os
+
+                _os.environ["BENGAL_DEV_SERVER"] = "1"
+            except Exception:
+                pass
             # Always do an initial build to ensure site is up to date
             # Use WRITER profile for clean, minimal output in dev server
             from bengal.utils.profile import BuildProfile
 
-            # Development defaults: disable asset fingerprinting/minify for stable URLs & faster rebuilds
+            # Development defaults: disable asset fingerprinting/minify for stable
+            # URLs & faster rebuilds
             try:
                 cfg = self.site.config
                 cfg["dev_server"] = True
-                # Prefer stable CSS/JS filenames in dev so reload-css works without full page reloads
+                # Prefer stable CSS/JS filenames in dev so reload-css works without
+                # full page reloads
                 cfg["fingerprint_assets"] = False
                 # Avoid minification in dev to maximize CSS source stability and speed
                 cfg.setdefault("minify_assets", False)
@@ -249,11 +259,14 @@ class DevServer:
         # platform-specific C extensions under free-threaded Python by default.
         # Users can force a backend via BENGAL_WATCHDOG_BACKEND=polling|auto.
         import os as _os
+
         from bengal.server.utils import get_dev_config
 
         backend = (_os.environ.get("BENGAL_WATCHDOG_BACKEND", "") or "").lower()
         if not backend:
-            backend = str(get_dev_config(self.site.config, "watch", "backend", default="auto")).lower()
+            backend = str(
+                get_dev_config(self.site.config, "watch", "backend", default="auto")
+            ).lower()
         if backend not in ("auto", "polling"):
             backend = "auto"
 
@@ -335,7 +348,8 @@ class DevServer:
             if self._is_port_available(port):
                 return port
         raise OSError(
-            f"Could not find an available port in range {start_port}-{start_port + max_attempts - 1}"
+            f"Could not find an available port in range "
+            f"{start_port}-{start_port + max_attempts - 1}"
         )
 
     def _check_stale_processes(self) -> None:
@@ -434,7 +448,8 @@ class DevServer:
                     logger.info("port_fallback", requested_port=self.port, actual_port=actual_port)
                 except OSError as e:
                     print(
-                        f"❌ Port {self.port} is already in use and no alternative ports are available."
+                        f"❌ Port {self.port} is already in use and no alternative "
+                        f"ports are available."
                     )
                     print("\nTo fix this issue:")
                     print(f"  1. Stop the process using port {self.port}, or")

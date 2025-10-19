@@ -92,6 +92,21 @@ class CLIOutput:
         else:
             self.console = None
 
+        # Dev mode detection (set by dev server)
+        try:
+            import os as _os
+
+            self.dev_server = (_os.environ.get("BENGAL_DEV_SERVER") or "") == "1"
+            # Phase deduplication window (ms) to suppress duplicate phase lines
+            self._phase_dedup_ms = int(_os.environ.get("BENGAL_CLI_PHASE_DEDUP_MS", "1500"))
+        except Exception:
+            self.dev_server = False
+            self._phase_dedup_ms = 1500
+
+        # Track last phase line for deduplication
+        self._last_phase_key: str | None = None
+        self._last_phase_time_ms: int = 0
+
         # Get profile config
         self.profile_config = profile.get_config() if profile else {}
 
@@ -171,8 +186,13 @@ class CLIOutput:
         if details and self._show_details():
             parts.append(f"([dim]{details}[/dim])")
 
-        # Render
+        # Render (compute without side-effects for dedup key)
         line = self._format_phase_line(parts)
+
+        # Deduplicate identical phase lines within a short window to avoid spam in dev
+        if self._should_dedup_phase(line):
+            return
+        self._mark_phase_emit(line)
 
         if self.use_rich:
             self.console.print(line)
@@ -321,7 +341,10 @@ class CLIOutput:
         unit_str = f" {unit}" if unit else ""
 
         if self.use_rich:
-            line = f"{indent_str}[metric_label]{label}[/metric_label]: [metric_value]{value}{unit_str}[/metric_value]"
+            line = (
+                f"{indent_str}[metric_label]{label}[/metric_label]: "
+                f"[metric_value]{value}{unit_str}[/metric_value]"
+            )
             self.console.print(line)
         else:
             line = f"{indent_str}{label}: {value}{unit_str}"
@@ -458,7 +481,34 @@ class CLIOutput:
         if rest:
             return f"{icon} {name_padded} {' '.join(rest)}"
         else:
+            # In dev server mode, omit the trailing "Done" to reduce noise
+            if getattr(self, "dev_server", False):
+                return f"{icon} {name_padded}".rstrip()
             return f"{icon} {name_padded} Done"
+
+    def _now_ms(self) -> int:
+        try:
+            import time as _time
+
+            return int(_time.monotonic() * 1000)
+        except Exception:
+            return 0
+
+    def _should_dedup_phase(self, line: str) -> bool:
+        # Only dedup in dev mode
+        if not getattr(self, "dev_server", False):
+            return False
+        key = line
+        now = self._now_ms()
+        return (
+            self._last_phase_key == key and (now - self._last_phase_time_ms) < self._phase_dedup_ms
+        )
+
+    def _mark_phase_emit(self, line: str) -> None:
+        if not getattr(self, "dev_server", False):
+            return
+        self._last_phase_key = line
+        self._last_phase_time_ms = self._now_ms()
 
     def _format_path(self, path: str) -> str:
         """Format path based on profile (shorten for Writer, full for Developer)."""
