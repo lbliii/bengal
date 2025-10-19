@@ -2,6 +2,8 @@ import sys
 from pathlib import Path
 from types import SimpleNamespace
 
+import pytest
+
 from bengal.core.site import Site
 
 
@@ -26,6 +28,7 @@ def _make_fake_theme(tmp_path: Path, slug: str = "acme", extends: str | None = "
     return f"bengal_themes.{slug}", pkg_root
 
 
+@pytest.mark.xdist_group(name="theme_registry_import")
 def test_engine_resolves_installed_theme_templates(tmp_path, monkeypatch):
     # Site root
     site_root = tmp_path / "site"
@@ -60,6 +63,7 @@ def test_engine_resolves_installed_theme_templates(tmp_path, monkeypatch):
     assert "ACME PAGE" in html
 
 
+@pytest.mark.xdist_group(name="theme_registry_import")
 def test_extends_read_from_installed_theme(tmp_path, monkeypatch):
     site_root = tmp_path / "site"
     (site_root / "content").mkdir(parents=True)

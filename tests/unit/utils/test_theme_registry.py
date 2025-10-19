@@ -2,6 +2,8 @@ import sys
 from pathlib import Path
 from types import SimpleNamespace
 
+import pytest
+
 from bengal.utils.theme_registry import (
     clear_theme_cache,
     get_installed_themes,
@@ -23,6 +25,7 @@ def _make_fake_theme_package(tmp_path: Path, slug: str = "acme") -> tuple[str, P
     return f"bengal_themes.{slug}", root
 
 
+@pytest.mark.xdist_group(name="theme_registry_import")
 def test_get_installed_themes_discovers_entry_point(tmp_path, monkeypatch):
     pkg, root = _make_fake_theme_package(tmp_path, slug="acme")
 
