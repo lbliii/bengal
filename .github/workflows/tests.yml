@@ -9,11 +9,36 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  test:
-    runs-on: ubuntu-latest  # Or macos-latest for darwin consistency
+  # Fast check: runs in ~20 seconds, gives quick feedback
+  fast-check:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python 3.14
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.14"
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e .[dev]
+
+    - name: Fast test suite (skip slow tests)
+      env:
+        CI: true  # Use Hypothesis CI profile (100 examples, but fewer slow tests)
+      run: |
+        echo "Running fast test suite (skipping slow tests)..."
+        pytest -m "not slow" -n auto -v --tb=short
+
+  # Full check: runs all tests including slow ones
+  full-suite:
+    runs-on: ubuntu-latest
+    needs: fast-check  # Only run if fast-check passes
     strategy:
       matrix:
-        python-version: ["3.14"]  # Lock to 3.14; add "3.13" if needed for matrix
+        python-version: ["3.14"]
         baseurl: ["", "/bengal", "https://example.com/sub"]
 
     steps:
@@ -32,17 +57,25 @@ jobs:
     - name: Run targeted baseurl portability tests
       env:
         BENGAL_BASEURL: ${{ matrix.baseurl }}
-        CI: true  # Tells Hypothesis to use CI profile (100 examples)
+        CI: true  # Use Hypothesis CI profile (100 examples)
       run: |
         echo "Running with BENGAL_BASEURL='${BENGAL_BASEURL}'"
-        pytest -q tests/unit/config/test_config_loader_baseurl_env.py tests/unit/rendering/test_asset_url_baseurl.py tests/unit/rendering/test_template_links_baseurl.py tests/integration/test_baseurl_builds.py -q
+        pytest -q tests/unit/config/test_config_loader_baseurl_env.py tests/unit/rendering/test_asset_url_baseurl.py tests/unit/rendering/test_template_links_baseurl.py tests/integration/test_baseurl_builds.py
 
-    - name: Run full test suite (single env only)
+    - name: Run full test suite with coverage (single env only)
       if: matrix.baseurl == ''
       env:
-        CI: true  # Tells Hypothesis to use CI profile (100 examples)
+        CI: true  # Use Hypothesis CI profile (100 examples)
       run: |
         python -m pytest -v --tb=short --cov=bengal --cov-report=xml
+
+    - name: Run slow tests explicitly (single env only)
+      if: matrix.baseurl == ''
+      env:
+        CI: true
+      run: |
+        echo "Running slow tests (showcase build, stateful workflows)..."
+        pytest -m slow -v --tb=short
 
     - name: Upload coverage
       if: matrix.baseurl == ''
