@@ -26,9 +26,12 @@ from .helpers import (
 # Configure Hypothesis profiles for different environments
 # Dev: Faster feedback with fewer examples (20)
 # CI: Thorough testing with more examples (100)
+# Note: This should ideally be in conftest.py, but kept here for now
 settings.register_profile("ci", max_examples=100)
 settings.register_profile("dev", max_examples=20)
-settings.load_profile("dev" if os.getenv("CI") != "true" else "ci")
+# Robust CI detection: handles '1', 'true', 'True', 'yes', 'on'
+ci_env = os.getenv("CI", "").lower()
+settings.load_profile("ci" if ci_env in {"1", "true", "yes", "on"} else "dev")
 
 
 # Strategies for generating test data
@@ -294,8 +297,8 @@ class PageLifecycleWorkflow(RuleBasedStateMachine):
 
 
 # Convert to pytest test case
-# Marked slow because Hypothesis generates many build sequences
-TestPageLifecycleWorkflow = pytest.mark.slow(PageLifecycleWorkflow.TestCase)
+# Marked slow and hypothesis for proper test selection
+TestPageLifecycleWorkflow = pytest.mark.slow(pytest.mark.hypothesis(PageLifecycleWorkflow.TestCase))
 
 
 class IncrementalConsistencyWorkflow(RuleBasedStateMachine):
@@ -395,7 +398,9 @@ class IncrementalConsistencyWorkflow(RuleBasedStateMachine):
             clean_site(self.site_dir)
 
 
-TestIncrementalConsistencyWorkflow = pytest.mark.slow(IncrementalConsistencyWorkflow.TestCase)
+TestIncrementalConsistencyWorkflow = pytest.mark.slow(
+    pytest.mark.hypothesis(IncrementalConsistencyWorkflow.TestCase)
+)
 
 
 # Example output documentation

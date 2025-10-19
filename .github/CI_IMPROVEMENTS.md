@@ -4,11 +4,11 @@
 
 Your CI workflow needs a small update to work optimally with the Phase 0 test improvements:
 
-**Problem**: Hypothesis profile selection
+**Problem**: Hypothesis profile selection robustness
 - Our tests now use different Hypothesis profiles: dev (20 examples) vs CI (100 examples)
 - Selection is based on `os.getenv("CI")`
-- **GitHub Actions does NOT set CI=true by default**
-- Result: CI is using the dev profile (20 examples) instead of CI profile (100 examples)
+- **Note**: GitHub Actions DOES set CI=true automatically, but we make it explicit for clarity
+- Original issue: Detection was brittle (only checked for exact string "true")
 
 ## Minimal Fix (APPLIED)
 
@@ -30,9 +30,10 @@ Added `CI: true` environment variable to test steps in `.github/workflows/tests.
 ```
 
 **Impact**:
-- CI now runs 100 Hypothesis examples (thorough)
-- Dev still runs 20 examples (fast feedback)
-- No other changes to current workflow
+- CI runs 100 Hypothesis examples (thorough)
+- Dev runs 20 examples (fast feedback)
+- Detection is now robust (handles '1', 'true', 'True', 'yes', 'on')
+- Explicit CI=true in workflow for documentation/clarity
 
 ## Optional Enhancement (see tests-improved.yml.suggestion)
 
