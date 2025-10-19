@@ -249,8 +249,13 @@ class DevServer:
         # platform-specific C extensions under free-threaded Python by default.
         # Users can force a backend via BENGAL_WATCHDOG_BACKEND=polling|auto.
         import os as _os
+        from bengal.server.utils import get_dev_config
 
-        backend = (_os.environ.get("BENGAL_WATCHDOG_BACKEND", "auto") or "auto").lower()
+        backend = (_os.environ.get("BENGAL_WATCHDOG_BACKEND", "") or "").lower()
+        if not backend:
+            backend = str(get_dev_config(self.site.config, "watch", "backend", default="auto")).lower()
+        if backend not in ("auto", "polling"):
+            backend = "auto"
 
         # If running on a free-threaded build with GIL disabled, prefer polling to
         # avoid loading native extensions that may re-enable the GIL and warn.
