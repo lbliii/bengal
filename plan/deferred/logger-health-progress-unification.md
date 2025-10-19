@@ -1,5 +1,19 @@
 # Logger, Health Check, and Progress Reporting Unification Plan
 
+> **Status: DEFERRED** (October 19, 2025)
+>
+> This plan was never implemented. While it was placed in `plan/completed/`, an audit revealed:
+> - 25 files still contain raw `print()` statements in production code
+> - No integration between logger, health checks, and progress systems
+> - Foundation (~60%) exists but comprehensive cleanup was not done
+>
+> **Recommendation:** Deprioritize this comprehensive refactoring. Current `print()` statements provide good UX and work well. If revisited, focus only on:
+> 1. Health check integration (for testability)
+> 2. Critical error path logging (for better log capture)
+> 3. Add linter rule to prevent NEW prints (grandfather existing ones)
+>
+> Skip the comprehensive cleanup unless there's a specific user-facing bug or feature need. The dev server's pretty colored output is intentional UX and should not be sacrificed for architectural purity.
+
 ## Goals
 - Establish a single, configurable logging facade for all human and machine-readable output.
 - Integrate health checks with structured logging and remove ad-hoc prints.
