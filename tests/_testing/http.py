@@ -68,6 +68,8 @@ def http_server():
             Returns:
                 Base URL of server (e.g., "http://localhost:12345")
             """
+            if self.server is not None:
+                self.stop()
             handler = partial(
                 http.server.SimpleHTTPRequestHandler,
                 directory=str(directory)
