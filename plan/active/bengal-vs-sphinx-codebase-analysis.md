@@ -152,6 +152,11 @@ locale/                  1   (+ 206 locale files for i18n)
 - **Gap**: Bengal can only auto-document Python code, not C/C++/JavaScript/etc.
 - **Who needs this**: Projects with C extensions (NumPy, Pandas), polyglot libraries, system programming
 - **Who doesn't**: Pure Python projects (90%+ of Python ecosystem)
+- **Can we AST other languages?** YES! Via tree-sitter (universal parser) or libclang (C/C++)
+  - See `plan/active/rfc-multi-language-autodoc-ast.md` for detailed analysis
+  - Viable path: tree-sitter for JS/TS → libclang for C/C++ → expand as needed
+  - Would require ~500-1500 LOC and external parsing dependencies
+  - Feasible but not trivial
 
 ⚠️ **Internationalization Infrastructure** (~16,351 lines in Sphinx)
 - **Bengal HAS i18n** but different approach:

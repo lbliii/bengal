@@ -35,6 +35,42 @@ class PageProxy:
     Holds page metadata from cache and defers loading full content until
     accessed. Transparent to callers - implements Page-like interface.
 
+    LIFECYCLE IN INCREMENTAL BUILDS:
+    ---------------------------------
+    1. **Discovery** (content_discovery.py):
+       - Created from cached metadata for unchanged pages
+       - Has: title, date, tags, slug, _section, _site, output_path
+       - Does NOT have: content, rendered_html (lazy-loaded on demand)
+
+    2. **Filtering** (incremental.py):
+       - PageProxy objects pass through find_work_early() unchanged
+       - Only modified pages become full Page objects for rendering
+
+    3. **Rendering** (render.py):
+       - Modified pages rendered as full Page objects
+       - PageProxy objects skipped (already have cached output)
+
+    4. **Update** (build.py Phase 8.4):
+       - Freshly rendered Page objects REPLACE their PageProxy counterparts
+       - site.pages becomes: mix of fresh Page (rebuilt) + PageProxy (cached)
+
+    5. **Postprocessing** (postprocess.py):
+       - Iterates over site.pages (now updated with fresh Pages)
+       - ⚠️ CRITICAL: PageProxy must implement ALL properties/methods used:
+         * output_path (for finding where to write .txt/.json)
+         * url, permalink (for generating index.json)
+         * title, date, tags (for content in output files)
+
+    TRANSPARENCY CONTRACT:
+    ----------------------
+    PageProxy must be transparent to:
+    - **Templates**: Implements .url, .permalink, .title, etc.
+    - **Postprocessing**: Implements .output_path, metadata access
+    - **Navigation**: Implements .prev, .next (via lazy load)
+
+    ⚠️ When adding new Page properties used by templates/postprocessing,
+    MUST also add to PageProxy or handle in _ensure_loaded().
+
     Usage:
         # Create from cached metadata
         page = PageProxy(
@@ -83,6 +119,7 @@ class PageProxy:
         self.slug = metadata.slug
         self.weight = metadata.weight
         self.lang = metadata.lang
+        self.output_path: Path | None = None  # Will be set during rendering or computed on demand
 
     def _parse_date(self, date_str: str) -> datetime | None:
         """Parse ISO date string to datetime."""
@@ -101,6 +138,13 @@ class PageProxy:
         try:
             self._full_page = self._loader(self.source_path)
             self._lazy_loaded = True
+
+            # Transfer site and section references to loaded page
+            if self._full_page:
+                if hasattr(self, "_site"):
+                    self._full_page._site = self._site
+                if hasattr(self, "_section"):
+                    self._full_page._section = self._section
 
             # Apply any pending attributes that were set before loading
             if hasattr(self, "_pending_output_path") and self._full_page:
@@ -246,6 +290,12 @@ class PageProxy:
         """Get the URL path for the page (lazy-loaded, cached after first access)."""
         self._ensure_loaded()
         return self._full_page.url if self._full_page else "/"
+
+    @property
+    def permalink(self) -> str:
+        """Get the permalink (URL with baseurl) for the page (lazy-loaded, cached after first access)."""
+        self._ensure_loaded()
+        return self._full_page.permalink if self._full_page else "/"
 
     # ============================================================================
     # Computed Properties - delegate to full page (cached_properties)

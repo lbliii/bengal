@@ -223,6 +223,55 @@ class IncrementalOrchestrator:
                 reason="section_cascade_metadata_changed",
             )
 
+        # Check for navigation dependencies: when a page changes, rebuild adjacent pages
+        # that have prev/next links to it (they display the changed page's title)
+        navigation_affected_count = 0
+        for changed_path in list(pages_to_rebuild):  # Iterate over snapshot
+            # Find the Page object for this changed file
+            changed_page = next(
+                (p for p in self.site.pages if p.source_path == changed_path), None
+            )
+            if changed_page and not changed_page.metadata.get("_generated"):
+                # Find pages that have this page as next or prev
+                # Check prev page (it has this page as 'next')
+                if hasattr(changed_page, "prev") and changed_page.prev:
+                    prev_page = changed_page.prev
+                    if (
+                        not prev_page.metadata.get("_generated")
+                        and prev_page.source_path not in pages_to_rebuild
+                    ):
+                        pages_to_rebuild.add(prev_page.source_path)
+                        navigation_affected_count += 1
+                        if verbose:
+                            if "Navigation changes" not in change_summary:
+                                change_summary["Navigation changes"] = []
+                            change_summary["Navigation changes"].append(
+                                f"{prev_page.source_path.name} references modified {changed_path.name}"
+                            )
+
+                # Check next page (it has this page as 'prev')
+                if hasattr(changed_page, "next") and changed_page.next:
+                    next_page = changed_page.next
+                    if (
+                        not next_page.metadata.get("_generated")
+                        and next_page.source_path not in pages_to_rebuild
+                    ):
+                        pages_to_rebuild.add(next_page.source_path)
+                        navigation_affected_count += 1
+                        if verbose:
+                            if "Navigation changes" not in change_summary:
+                                change_summary["Navigation changes"] = []
+                            change_summary["Navigation changes"].append(
+                                f"{next_page.source_path.name} references modified {changed_path.name}"
+                            )
+
+        if navigation_affected_count > 0:
+            logger.info(
+                "navigation_dependencies_detected",
+                additional_pages=navigation_affected_count,
+                reason="adjacent_pages_have_nav_links_to_modified_pages",
+            )
+
         # Find changed assets
         for asset in self.site.assets:
             if self.cache.is_changed(asset.source_path):

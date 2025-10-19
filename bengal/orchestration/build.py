@@ -828,6 +828,50 @@ class BuildOrchestrator:
         if quiet_mode:
             self._print_rendering_summary()
 
+        # Phase 8.4: Update site.pages with freshly rendered pages (incremental builds)
+        # During incremental builds, site.pages contains stale PageProxy objects.
+        # Replace them with the freshly rendered Page objects so postprocessing sees updated content.
+        if incremental and pages_to_build:
+            # Create a mapping of source_path -> rendered page
+            rendered_map = {page.source_path: page for page in pages_to_build}
+            
+            # Replace stale proxies with fresh pages
+            updated_pages = []
+            for page in self.site.pages:
+                if page.source_path in rendered_map:
+                    # Use the freshly rendered page
+                    updated_pages.append(rendered_map[page.source_path])
+                else:
+                    # Keep the existing page (proxy or unchanged)
+                    updated_pages.append(page)
+            
+            self.site.pages = updated_pages
+            
+            # Log composition for debugging (helps troubleshoot incremental issues)
+            if self.logger.level <= 10:  # DEBUG level
+                page_types = {"Page": 0, "PageProxy": 0, "other": 0}
+                for p in self.site.pages:
+                    ptype = type(p).__name__
+                    if ptype == "Page":
+                        page_types["Page"] += 1
+                    elif ptype == "PageProxy":
+                        page_types["PageProxy"] += 1
+                    else:
+                        page_types["other"] += 1
+                
+                self.logger.debug(
+                    "site_pages_composition_before_postprocess",
+                    fresh_pages=page_types["Page"],
+                    cached_proxies=page_types["PageProxy"],
+                    total_pages=len(self.site.pages),
+                )
+            else:
+                self.logger.debug(
+                    "site_pages_updated_after_render",
+                    fresh_pages=len(rendered_map),
+                    total_pages=len(self.site.pages),
+                )
+
         # Phase 8.5: Track Asset Dependencies (Phase 2b - Step 2)
         # Extract and cache which assets each rendered page references
         with self.logger.phase("track_assets", enabled=True):

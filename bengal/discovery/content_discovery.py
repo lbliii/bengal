@@ -271,8 +271,13 @@ class ContentDiscovery:
                     loader=make_loader(page.source_path),
                 )
 
-                # Copy section relationship
+                # Copy section and site relationships
                 proxy._section = page._section
+                proxy._site = page._site
+                
+                # Copy output_path for postprocessing (needed for .txt/.json generation)
+                if page.output_path:
+                    proxy.output_path = page.output_path
 
                 # Replace full page with proxy
                 all_discovered_pages[i] = proxy
