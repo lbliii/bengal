@@ -181,6 +181,19 @@ Add `pytest_report_header` to print:
 **Primary Approach (subprocess)**:
 ```python
 # tests/_testing/cli.py
+import os
+import re
+import subprocess
+import sys
+from dataclasses import dataclass
+
+# ANSI escape code pattern
+ANSI_RE = re.compile(r'\x1b\[[0-9;]*m')
+
+def strip_ansi(text: str) -> str:
+    """Strip ANSI escape codes from text."""
+    return ANSI_RE.sub('', text)
+
 @dataclass
 class CLIResult:
     returncode: int
@@ -290,6 +303,9 @@ def reset_bengal_state():
 **Normalization Utilities**:
 ```python
 # tests/_testing/normalize.py
+import re
+from bs4 import BeautifulSoup
+
 def normalize_html(html_str, preserve_structure=True):
     """Normalize HTML for deterministic assertions.
 
@@ -412,6 +428,26 @@ def test_head_meta_structure(site, build_site, data_regression):
 **Implementation** (Phase 3):
 ```python
 # tests/_testing/http.py
+import http.server
+import socket
+import socketserver
+import threading
+import time
+from functools import partial
+
+import pytest
+
+def wait_for_port(port: int, host: str = "localhost", timeout: float = 5.0) -> None:
+    """Wait until a port is listening or timeout."""
+    start = time.time()
+    while time.time() - start < timeout:
+        try:
+            with socket.create_connection((host, port), timeout=0.5):
+                return  # Port is listening
+        except (socket.timeout, ConnectionRefusedError, OSError):
+            time.sleep(0.1)
+    raise TimeoutError(f"Port {port} not listening after {timeout}s")
+
 @pytest.fixture
 def http_server(tmp_path):
     """Ephemeral HTTP server for testing links/assets."""
@@ -736,15 +772,16 @@ markers =
     cli: CLI command tests
     network: Tests requiring internet access
     snapshot: Tests using snapshot assertions (future)
-
-# Register custom plugin
-pytest_plugins = tests._testing
 ```
 
-**conftest.py Updates**:
+**conftest.py Updates** (plugin registration must be in Python, not pytest.ini):
 ```python
 # tests/conftest.py
+
+# Register custom plugins
 pytest_plugins = ["tests._testing.fixtures", "tests._testing.markers"]
+
+# ... rest of existing conftest.py ...
 ```
 
 **CI Jobs**:

@@ -30,7 +30,7 @@ Markers help control execution. See `pytest.ini` for full list.
   **Performance note**: Slow tests include the 292-page showcase build, which previously caused a frustrating long tail at 95% completion. These are now optimized but still take time.
 
 - `hypothesis`: Property-based tests (115 tests, ~11s due to example generation).  
-  Skip: `pytest -m "not hypothesis"` (~29s). Limit examples in dev: Add `from hypothesis import settings; settings(max_examples=50)`.
+  Skip: `pytest -m "not hypothesis"` (~29s). Examples are auto-tuned: 20 in dev, 100 in CI via profiles.
 
 - `serial`: Non-parallel tests (rare, e.g., stateful FS sims).  
   Run sequentially: `pytest -m serial -n 0`.
