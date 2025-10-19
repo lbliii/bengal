@@ -1,6 +1,6 @@
 # MyST parser: viability and LoE
 
-### Goal
+## Goal
 
 Assess the level of effort (LoE) and viability of adding a "MyST" Markdown parser option to Bengal as an alternative to the existing `mistune` engine, with a focus on migration paths from Sphinx and alignment with the MyST specification.
 
@@ -9,15 +9,15 @@ References: [MyST Ecosystem Overview](https://mystmd.org/overview/ecosystem), [M
 ### Current State (Bengal)
 
 - Parser switching is already supported via `bengal.rendering.parsers.create_markdown_parser(engine)` with `mistune` as default and `python-markdown` as an alternative.
-- Bengal’s custom directive suite (admonitions, tabs, dropdown, code-tabs, badges, etc.) is implemented as `mistune` plugins. We already support MyST-style colon-fenced directives and options parsing in tests, so a subset of MyST syntax works today.
-- Cross-references, heading anchors, TOC extraction, and variable substitution are handled post-parse or via Bengal plugins, independent of the underlying markdown engine.
+- Bengal implements its directive suite (admonitions, tabs, dropdown, code-tabs, badges, etc.) as `mistune` plugins. We already support MyST-style colon-fenced directives and options parsing in tests, so a subset of MyST syntax works today.
+- Bengal handles cross-references, heading anchors, TOC extraction, and variable substitution post-parse or via Bengal plugins, independent of the underlying markdown engine.
 
 ### What “MyST support” could mean
 
 MyST has two major tracks:
 
 1) Python track (ExecutableBooks)
-   - `myst-parser` integrates with `docutils`/Sphinx, producing a `docutils` AST; Sphinx extensions provide commonly used directives/roles in JupyterBook ecosystems.
+   - `myst-parser` integrates with `docutils`/Sphinx, producing a `docutils` AST; Sphinx extensions provide frequently used directives/roles in JupyterBook ecosystems.
    - Outside Sphinx, we can still parse with `docutils` + extensions, then render to HTML via the `docutils` HTML writer, but coverage of popular Sphinx directives (e.g., sphinx-design tabs/cards) would require either running Sphinx or re-implementing those directives/transforms.
 
 2) JavaScript track (`mystmd`)
@@ -29,9 +29,9 @@ There’s also a third pragmatic path we already started: extend `mistune` to ac
 
 - Option A: Python myst-parser + `docutils` HTML writer (no Sphinx runtime)
   - Scope: Parse MyST into a `docutils` AST; render HTML with `docutils`; rely on myst-parser’s directive/role support.
-  - Coverage: Core MyST + a subset of directives; many Sphinx-provided directives (e.g., sphinx-design tabs/cards) would be missing unless we port them.
+  - Coverage: Core MyST + a subset of directives; several Sphinx-provided directives (e.g., sphinx-design tabs/cards) would be missing unless we port them.
   - Integrations: Keep Bengal’s post-processing (anchors, TOC, xrefs, variable substitution) as-is; or adapt around `docutils` output.
-  - LoE: 2–3 days for baseline Parse→HTML path, wiring into `BaseMarkdownParser` and thread-local caching; +1–2 weeks if we aim to replicate popular Sphinx-only directives without Sphinx.
+  - LoE: 2–3 days for baseline Parse→HTML path, wiring into `BaseMarkdownParser` and thread-local caching; +1–2 weeks if we aim to replicate popular Sphinx directives without Sphinx.
   - Risks: Directive/role coverage gaps vs. JupyterBook expectations; `docutils` HTML output semantics and CSS classes may differ from our themes; maintenance against myst-parser and `docutils` changes.
 
 - Option B: JS `mystmd` CLI (shell-out)
@@ -42,19 +42,19 @@ There’s also a third pragmatic path we already started: extend `mistune` to ac
   - Risks: Adds Node dependency; per-page process cost; CLI version drift; mapping generated HTML classes to Bengal themes.
 
 - Option C: Continue `mistune`-based MyST compatibility (status quo++)
-  - Scope: We already support colon fences and some MyST-style options. Expand inline roles (e.g., ref, numref, abbrev), figure/table numbering, citations, and other commonly used MyST features as Mistune plugins.
+  - Scope: We already support colon fences and some MyST-style options. Expand inline roles (e.g., `ref`, `numref`, `abbrev`), figure/table numbering, citations, and other commonly used MyST features as `mistune` plugins.
   - Coverage: Target the 80/20 most-used MyST features for Sphinx migrations where full Sphinx extension parity isn’t required.
-  - LoE: 3–6 days for core roles and options (design, implement, test, docs); more for advanced cross-referencing and numbering semantics.
-  - Risks: Divergence from the canonical MyST AST/spec; ongoing maintenance for feature parity; but keeps Python-only, fast path, and our existing plugin model.
+  - LoE: 3–6 days for core roles and options (design, build, test, docs); more for advanced cross-referencing and numbering semantics.
+  - Risks: Divergence from the canonical MyST AST/spec; ongoing maintenance for feature parity; but keeps a Python-first, fast path, and our existing plugin model.
 
 ### Viability and Recommendation
 
 - As an alternative to `mistune`: Yes, we can add a `myst` parser engine. The cleanest product story is a tiered approach:
-  - Phase 1: Option B (`mystmd`) CLI as an “experimental” optional engine. Minimal LoE, wide syntax coverage, good for teams migrating from Sphinx and familiar with MyST. Keep `mistune` the default for speed.
-  - Phase 2: Option C enhancements to `mistune` to cover the most-requested MyST features inline, preserving performance and Python-only dependency.
+  - Phase 1: Option B (`mystmd` CLI) as an “experimental” optional engine. Minimal LoE, wide syntax coverage, good for teams migrating from Sphinx and familiar with MyST. Keep `mistune` the default for speed.
+  - Phase 2: Option C enhancements to `mistune` to cover the most-requested MyST features inline, preserving performance and a Python-first approach.
   - Phase 3 (optional): Option A if customers demand a Python-native MyST path without Node, accepting narrower directive coverage unless we port Sphinx directives.
 
-This leverages Bengal’s engine-pluggability without forcing a global runtime shift. Projects migrating from Sphinx get a quick on-ramp (Option B), and we continue to deliver a fast path (Mistune) for mainstream static docs.
+This leverages Bengal’s engine-pluggability without forcing a global runtime shift. Projects migrating from Sphinx get a quick on-ramp (Option B), and we continue to deliver a fast path (`mistune`) for mainstream static docs.
 
 ### Design Sketch (Option B)
 
@@ -64,7 +64,7 @@ This leverages Bengal’s engine-pluggability without forcing a global runtime s
   - `parse_with_toc()`: if CLI’s TOC differs from Bengal’s, prefer Bengal’s fast anchor+TOC extractor for consistency; otherwise honor CLI output and skip our TOC pass.
   - `parse_with_context()`: run Bengal variable substitution pre-CLI (to keep content semantics consistent across engines), then CLI, then Bengal’s usual post-processing (badges, xrefs).
   - Caching: Respect existing parsed-content cache by incorporating a `mystmd-<version>` parser version string.
-  - Configuration:
+  - Configuration (TOML):
 
 ```toml
 [markdown]
@@ -78,19 +78,19 @@ args = ["--format", "html"]
 ### Estimated LoE
 
 - Option B (`mystmd` CLI): 1–2 days to land MVP, 0.5–1 day hardening and docs.
-- Option C (`mistune` + MyST features): 3–6 days for core roles and numbering; additional phases for citations/advanced semantics.
-- Option A (Python myst-parser + `docutils`): 2–3 days for HTML baseline; +1–2 weeks if porting popular Sphinx-only directives.
+- Option C (`mistune` + MyST features): 3–6 days for core roles and numbering; follow-on phases for citations and advanced semantics.
+- Option A (Python myst-parser + `docutils`): 2–3 days for HTML baseline; +1–2 weeks if porting popular Sphinx directives.
 
-### Risks and mitigation
+## Risks and mitigation
 
 - Directive parity: Set expectations—“experimental MyST engine” initially focuses on content fidelity, not full Sphinx extension parity. Document unsupported directives.
 - Theming/class names: Provide a small compatibility CSS layer for myst-generated HTML where needed.
-- Performance: Add an opt-in build flag to bypass myst CLI for unchanged pages via existing parsed-content cache. Consider batching or worker reuse if CLI overhead is noticeable.
+- Performance: Add an opt-in build flag to bypass the `myst` CLI for unchanged pages via existing parsed-content cache. Consider batching or worker reuse if CLI overhead is noticeable.
 - Supply chain: Pin CLI version in project docs; surface version in build logs to aid debugging.
 
 ### Decision
 
-- Proceed with Option B as an optional engine (`parser = "myst"`), keeping `mistune` as default.
-- In parallel, continue Option C improvements to close the 80/20 gap for MyST syntax directly in Mistune.
+- Proceed with Option B as an optional engine (set `[markdown].parser` to the MyST engine in `bengal.toml`), keeping `mistune` as the default parser.
+- In parallel, continue Option C improvements to close the 80/20 gap for MyST syntax directly in `mistune`.
 
 This provides an immediate migration story for Sphinx/MyST users with low engineering risk, while preserving Bengal’s performance and Python-first defaults.
