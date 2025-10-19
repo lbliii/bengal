@@ -1,5 +1,5 @@
 // Bengal Live Reload (client)
-(function() {
+(function () {
   'use strict';
 
   if (window.__BENGAL_LIVE_RELOAD__) return;
@@ -8,26 +8,45 @@
   let backoffMs = 1000;
   const maxBackoffMs = 10000;
 
+  function saveScrollThenReload() {
+    try {
+      sessionStorage.setItem('bengal_scroll_x', String(window.scrollX));
+      sessionStorage.setItem('bengal_scroll_y', String(window.scrollY));
+    } catch (e) { }
+    location.reload();
+  }
+
+  function restoreScrollOnLoad() {
+    try {
+      const sx = sessionStorage.getItem('bengal_scroll_x');
+      const sy = sessionStorage.getItem('bengal_scroll_y');
+      if (sx !== null && sy !== null) {
+        window.scrollTo(parseInt(sx, 10), parseInt(sy, 10));
+        sessionStorage.removeItem('bengal_scroll_x');
+        sessionStorage.removeItem('bengal_scroll_y');
+      }
+    } catch (e) { }
+  }
+
+  // Attach once, outside of connect() to avoid duplicate listeners on reconnect
+  window.addEventListener('load', restoreScrollOnLoad, { once: true });
+
   function connect() {
     const source = new EventSource('/__bengal_reload__');
-    const closeSource = () => { try { source.close(); } catch (e) {} };
+    const closeSource = () => { try { source.close(); } catch (e) { } };
     window.addEventListener('beforeunload', closeSource, { once: true });
     window.addEventListener('pagehide', closeSource, { once: true });
 
-    source.onmessage = function(event) {
+    source.onmessage = function (event) {
       let payload = null;
-      try { payload = JSON.parse(event.data); } catch (e) {}
+      try { payload = JSON.parse(event.data); } catch (e) { }
 
       const action = payload && payload.action ? payload.action : event.data;
       const changedPaths = (payload && payload.changedPaths) || [];
       const reason = (payload && payload.reason) || '';
 
       if (action === 'reload') {
-        try {
-          sessionStorage.setItem('bengal_scroll_x', String(window.scrollX));
-          sessionStorage.setItem('bengal_scroll_y', String(window.scrollY));
-        } catch (e) {}
-        location.reload();
+        saveScrollThenReload();
       } else if (action === 'reload-css') {
         const links = document.querySelectorAll('link[rel="stylesheet"]');
         const now = Date.now();
@@ -42,33 +61,18 @@
           url.searchParams.set('v', String(now));
           const newLink = link.cloneNode();
           newLink.href = url.toString();
-          newLink.onload = () => { try { link.remove(); } catch (e) {} };
+          newLink.onload = () => { try { link.remove(); } catch (e) { } };
           link.parentNode.insertBefore(newLink, link.nextSibling);
         });
       } else if (action === 'reload-page') {
-        try {
-          sessionStorage.setItem('bengal_scroll_x', String(window.scrollX));
-          sessionStorage.setItem('bengal_scroll_y', String(window.scrollY));
-        } catch (e) {}
-        location.reload();
+        // Alias for reload
+        saveScrollThenReload();
       }
     };
 
-    window.addEventListener('load', function() {
-      try {
-        const sx = sessionStorage.getItem('bengal_scroll_x');
-        const sy = sessionStorage.getItem('bengal_scroll_y');
-        if (sx !== null && sy !== null) {
-          window.scrollTo(parseInt(sx, 10), parseInt(sy, 10));
-          sessionStorage.removeItem('bengal_scroll_x');
-          sessionStorage.removeItem('bengal_scroll_y');
-        }
-      } catch (e) {}
-    });
-
-    source.onopen = function() { backoffMs = 1000; };
-    source.onerror = function() {
-      try { source.close(); } catch (e) {}
+    source.onopen = function () { backoffMs = 1000; };
+    source.onerror = function () {
+      try { source.close(); } catch (e) { }
       setTimeout(connect, backoffMs);
       backoffMs = Math.min(maxBackoffMs, Math.floor(backoffMs * 1.5));
     };
@@ -76,5 +80,3 @@
 
   connect();
 })();
-
-
