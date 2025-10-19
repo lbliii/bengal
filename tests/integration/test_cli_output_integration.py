@@ -3,6 +3,8 @@ Integration tests for CLI output with actual commands.
 
 These tests verify that CLI commands work with the themed console
 and don't crash with style errors.
+
+Uses Phase 1 infrastructure: run_cli() helper for standardized CLI testing.
 """
 
 import subprocess
@@ -10,75 +12,47 @@ import sys
 
 import pytest
 
+from tests._testing.cli import run_cli
+
 
 class TestCLICommandOutput:
     """Test CLI commands produce valid output without errors."""
 
-    def test_clean_command_works(self, tmp_path):
+    @pytest.mark.bengal(testroot="test-basic")
+    def test_clean_command_works(self, site):
         """Test 'bengal site clean' command doesn't crash with style errors."""
-        # Create a minimal site structure
-        site_dir = tmp_path / "test_site"
-        site_dir.mkdir()
-
-        content_dir = site_dir / "content"
-        content_dir.mkdir()
-
-        # Create a minimal config
-        config_file = site_dir / "bengal.toml"
-        config_file.write_text("""
-[site]
-title = "Test Site"
-base_url = "https://example.com"
-        """)
-
-        # Create a simple page
-        (content_dir / "_index.md").write_text("""---
-title: Home
----
-# Home Page
-        """)
-
         # Run clean help command (should not crash with style errors)
-        result = subprocess.run(
-            [sys.executable, "-m", "bengal.cli", "site", "clean", "--help"],
-            cwd=site_dir,
-            capture_output=True,
-            text=True,
-        )
+        result = run_cli(["site", "clean", "--help"], cwd=str(site.root_path))
 
         # Should not contain style error
         assert "Failed to get style" not in result.stderr
         assert "unable to parse 'header' as color" not in result.stderr
 
         # Help should succeed
-        assert result.returncode == 0
+        result.assert_ok()
 
     def test_build_help_shows_themed_output(self):
         """Test help commands display without style errors."""
-        result = subprocess.run(
-            [sys.executable, "-m", "bengal.cli", "site", "build", "--help"],
-            capture_output=True,
-            text=True,
-        )
+        result = run_cli(["site", "build", "--help"])
 
         # Should not have style errors
         assert "Failed to get style" not in result.stderr
-        assert result.returncode == 0
+
+        # Help should succeed
+        result.assert_ok()
 
         # Should show help text
         assert "build" in result.stdout.lower() or "Build" in result.stdout
 
     def test_version_command_works(self):
         """Test version command displays correctly."""
-        result = subprocess.run(
-            [sys.executable, "-m", "bengal.cli", "--version"],
-            capture_output=True,
-            text=True,
-        )
+        result = run_cli(["--version"])
 
         # Should not have style errors
         assert "Failed to get style" not in result.stderr
-        assert result.returncode == 0
+
+        # Should succeed
+        result.assert_ok()
 
         # Should show version
         assert "Bengal" in result.stdout or "bengal" in result.stdout
@@ -245,12 +219,7 @@ class TestThemeConsistency:
 )
 def test_cli_command_no_style_errors(command):
     """Test various CLI commands don't produce style errors."""
-    result = subprocess.run(
-        [sys.executable, "-m", "bengal.cli"] + command,
-        capture_output=True,
-        text=True,
-        timeout=10,
-    )
+    result = run_cli(command, timeout=10)
 
     # Should never have style errors
     assert "Failed to get style" not in result.stderr
