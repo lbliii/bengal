@@ -1,3 +1,9 @@
+import pytest
+
+pytest.skip(
+    "HTML injection path removed in Phase 3; live reload via template include",
+    allow_module_level=True,
+)
 """Tests for HTML live reload injection and SSE notify flow."""
 
 from __future__ import annotations
