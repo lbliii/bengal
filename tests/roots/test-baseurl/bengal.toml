@@ -1,0 +1,11 @@
+[site]
+title = "Baseurl Test Site"
+baseurl = "/site"
+
+[build]
+content_dir = "content"
+output_dir = "public"
+theme = "default"
+
+[markdown]
+parser = "mistune"
