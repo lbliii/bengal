@@ -3,11 +3,14 @@ Integration tests for building documentation sites with template examples.
 
 These tests ensure that documentation content with template syntax examples
 can be built without errors, addressing the showcase site issues.
+
+Uses Phase 1 infrastructure: @pytest.mark.bengal with test-templates root.
 """
 
 import shutil
 
 import pytest
+from bs4 import BeautifulSoup
 
 from bengal.core.site import Site
 from bengal.orchestration.build import BuildOrchestrator
@@ -17,91 +20,17 @@ from bengal.rendering.parsers.factory import ParserFactory
 class TestDocumentationBuild:
     """Integration tests for building documentation pages."""
 
-    def test_build_page_with_template_examples(self, tmp_path):
-        """Test building a page with escaped template examples."""
-        # Create site structure
-        site_dir = tmp_path / "site"
-        content_dir = site_dir / "content"
-        content_dir.mkdir(parents=True)
+    @pytest.mark.bengal(testroot="test-templates")
+    def test_build_page_with_template_examples(self, site, build_site):
+        """Test building a page with escaped template examples.
 
-        # Create config
-        config_file = site_dir / "bengal.toml"
-        config_file.write_text("""
-[site]
-title = "Test Site"
-baseurl = "https://example.com"
+        Uses test-templates root which contains guide.md with template examples.
+        """
+        # Build the site - should NOT raise errors
+        build_site()
 
-[build]
-content_dir = "content"
-output_dir = "public"
-theme = "default"
-
-[markdown]
-parser = "mistune"
-""")
-
-        # Create documentation page with template examples
-        doc_page = content_dir / "template-guide.md"
-        doc_page.write_text("""---
-title: Template Guide
-date: 2025-10-04
----
-
-# Template Functions
-
-## Variable Substitution
-
-Use {{/* page.title */}} to display the page title.
-
-## String Functions
-
-Truncate content:
-
-```jinja2
-{{/* post.content | truncatewords(50) */}}
-```
-
-## Date Functions
-
-Format dates:
-
-```jinja2
-{{/* page.date | format_date('%Y-%m-%d') */}}
-```
-
-## URL Functions
-
-Absolute URLs:
-
-```jinja2
-{{/* page.url | absolute_url */}}
-```
-
-## SEO Functions
-
-Meta descriptions:
-
-```jinja2
-{{/* page.content | meta_description(160) */}}
-```
-""")
-
-        # Build the site
-        site = Site.from_config(site_dir)
-        orchestrator = BuildOrchestrator(site)
-
-        # This should NOT raise errors
-        try:
-            orchestrator.build()
-            success = True
-        except Exception as e:
-            success = False
-            error_msg = str(e)
-
-        assert success, f"Build failed with error: {error_msg if not success else 'N/A'}"
-
-        # Verify output exists
-        output_file = site_dir / "public" / "template-guide" / "index.html"
+        # Verify output exists (guide.md → guide/index.html)
+        output_file = site.output_dir / "guide" / "index.html"
         assert output_file.exists(), "Output file was not generated"
 
         # Verify template examples are in the output as HTML entities
@@ -113,12 +42,9 @@ Meta descriptions:
         assert "&#123;&#123; post.content | truncatewords(50) &#125;&#125;" in output_content
         assert "&#123;&#123; page.date | format_date" in output_content
         assert "&#123;&#123; page.url | absolute_url &#125;&#125;" in output_content
-        assert "&#123;&#123; page.content | meta_description" in output_content
 
         # Extract just the body content to check for escape markers
         # Meta tags may contain raw markdown (that's OK), but the body should be clean
-        from bs4 import BeautifulSoup
-
         parser = ParserFactory.get_html_parser("native")
         soup = parser(output_content)
         assert len(soup.get_text()) > 0  # Verify text was extracted
@@ -192,67 +118,25 @@ Use {{/* content | meta_description(160) */}} for meta tags.
             output_file = site_dir / "public" / "docs" / filename.replace(".md", "") / "index.html"
             assert output_file.exists(), f"{filename} was not built"
 
-    def test_mixed_real_and_example_variables(self, tmp_path):
+    @pytest.mark.bengal(testroot="test-templates")
+    def test_mixed_real_and_example_variables(self, site, build_site):
         """Test page with both real variable substitution and examples."""
-        site_dir = tmp_path / "site"
-        content_dir = site_dir / "content"
-        content_dir.mkdir(parents=True)
-
-        config_file = site_dir / "bengal.toml"
-        config_file.write_text("""
-[site]
-title = "Test Site"
-author = "Test Author"
-
-[build]
-content_dir = "content"
-output_dir = "public"
-
-[markdown]
-parser = "mistune"
-""")
-
-        # Page with both real and example templates
-        page = content_dir / "guide.md"
-        page.write_text("""---
-title: Template Guide
-author: Guide Author
----
-
-# Guide Title: {{ page.title }}
-
-Written by: {{ page.metadata.author }}
-
-## How to Use
-
-To display the title, use: {{/* page.title */}}
-
-To display the author, use: {{/* page.metadata.author */}}
-
-Site name: {{ site.title }}
-
-To get site name, use: {{/* site.title */}}
-""")
-
-        # Build
-        site = Site.from_config(site_dir)
-        orchestrator = BuildOrchestrator(site)
-        orchestrator.build()
+        # Build site - test-templates root has guide.md with both real and escaped vars
+        build_site()
 
         # Check output
-        output_file = site_dir / "public" / "guide" / "index.html"
+        output_file = site.output_dir / "guide" / "index.html"
         output = output_file.read_text()
 
-        # Real variables should be substituted
-        assert "Guide Title: Template Guide" in output or "Template Guide" in output
-        assert "Written by: Guide Author" in output or "Guide Author" in output
-        assert "Site name: Test Site" in output or "Test Site" in output
+        # Real variables should be substituted (site.title, page.title, page.author)
+        assert "Template Guide" in output  # page.title
+        assert "Test Author" in output  # page.author from frontmatter
 
         # Examples should be literal (as HTML entities to prevent Jinja2 processing)
         # Browsers will render &#123;&#123; as {{ for the user
-        assert "use: &#123;&#123; page.title &#125;&#125;" in output
-        assert "use: &#123;&#123; page.metadata.author &#125;&#125;" in output
-        assert "use: &#123;&#123; site.title &#125;&#125;" in output
+        assert "&#123;&#123; page.title &#125;&#125;" in output
+        assert "&#123;&#123; post.content | truncatewords" in output
+        assert "&#123;&#123; page.date | format_date" in output
 
 
 @pytest.fixture

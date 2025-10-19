@@ -1,48 +1,29 @@
+"""Integration tests for baseurl handling during builds.
+
+Validates that baseurl configuration (via config and BENGAL_BASEURL env var)
+correctly affects asset links, page URLs, and index.json output.
+
+Uses Phase 1 infrastructure: @pytest.mark.bengal with test-baseurl root.
+"""
+
 import json
-from pathlib import Path
 
-from bengal.core.site import Site
-from bengal.orchestration.build import BuildOrchestrator
+import pytest
 
 
-def _write_site(tmp: Path, baseurl_line: str) -> Path:
-    site_dir = tmp / "site"
-    (site_dir / "content").mkdir(parents=True)
-    (site_dir / "public").mkdir(parents=True)
+@pytest.mark.bengal(testroot="test-baseurl", confoverrides={"site.baseurl": "/bengal"})
+def test_build_with_path_baseurl(site, build_site):
+    """Test that path-based baseurl is applied to assets and URLs."""
+    # Build the site with baseurl="/bengal"
+    build_site()
 
-    cfg = site_dir / "bengal.toml"
-    cfg.write_text(
-        f"""
-[site]
-title = "Test"
-{baseurl_line}
-
-[build]
-output_dir = "public"
-        """,
-        encoding="utf-8",
-    )
-
-    (site_dir / "content" / "index.md").write_text(
-        """---\ntitle: Home\n---\n# Home\n""", encoding="utf-8"
-    )
-    return site_dir
-
-
-def test_build_with_path_baseurl(tmp_path: Path):
-    site_dir = _write_site(tmp_path, 'baseurl = "/bengal"')
-    site = Site.from_config(site_dir)
-    orchestrator = BuildOrchestrator(site)
-    orchestrator.build()
-
-    # Assert assets and index.json present at root
-    assert (site_dir / "public" / "assets").exists()
-    index_path = site_dir / "public" / "index.json"
+    # Assert assets and index.json present
+    assert (site.output_dir / "assets").exists()
+    index_path = site.output_dir / "index.json"
     assert index_path.exists()
 
-    # Check home HTML contains baseurl-prefixed CSS link
     # Validate HTML contains baseurl-prefixed CSS
-    html = (site_dir / "public" / "index.html").read_text(encoding="utf-8")
+    html = (site.output_dir / "index.html").read_text(encoding="utf-8")
     assert 'href="/bengal/assets/css/style' in html
 
     # Validate index.json shape and baseurl
@@ -54,21 +35,24 @@ def test_build_with_path_baseurl(tmp_path: Path):
         assert "url" in sample and "uri" in sample
 
 
-def test_build_with_env_absolute_baseurl(tmp_path: Path, monkeypatch):
-    site_dir = _write_site(tmp_path, 'baseurl = ""')
+def test_build_with_env_absolute_baseurl(site_factory, monkeypatch):
+    """Test that BENGAL_BASEURL env var overrides config baseurl."""
+    # Override baseurl via environment variable BEFORE creating site
     monkeypatch.setenv("BENGAL_BASEURL", "https://example.com/sub")
 
-    site = Site.from_config(site_dir)
-    orchestrator = BuildOrchestrator(site)
-    orchestrator.build()
+    # Create site with empty baseurl (env var will override)
+    site = site_factory("test-baseurl", confoverrides={"site.baseurl": ""})
 
-    # index.json written
-    index_path = site_dir / "public" / "index.json"
-    assert index_path.exists()
-    html = (site_dir / "public" / "index.html").read_text(encoding="utf-8")
+    # Build the site
+    site.build()
+
+    # Validate HTML contains absolute baseurl-prefixed CSS
+    html = (site.output_dir / "index.html").read_text(encoding="utf-8")
     assert 'href="https://example.com/sub/assets/css/style' in html
 
     # Validate index.json uses absolute baseurl
+    index_path = site.output_dir / "index.json"
+    assert index_path.exists()
     data = json.loads(index_path.read_text(encoding="utf-8"))
     assert data.get("site", {}).get("baseurl") == "https://example.com/sub"
     assert isinstance(data.get("pages"), list)
