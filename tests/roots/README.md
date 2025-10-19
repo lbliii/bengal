@@ -121,3 +121,24 @@ def test_incremental_build(site, build_site):
 - Periodically audit: Are roots still necessary?
 - Consolidate when possible
 - Remove deprecated roots after migration
+
+### test-cascade
+**Purpose**: Tests cascading frontmatter through nested sections  
+**Structure**: Nested products/widgets/ hierarchy with _index.md cascade files  
+**Use for**: Cascade behavior, metadata inheritance, nested sections, overrides
+
+```python
+@pytest.mark.bengal(testroot="test-cascade")
+def test_cascade_inheritance(site):
+    site.discover_content()
+    widget = next(p for p in site.pages if "super-widget" in str(p.source_path))
+    # Inherits from both products/ and widgets/ cascades
+    assert widget.metadata["type"] == "product"
+    assert widget.metadata["category"] == "widget"
+```
+
+**Structure**:
+- `products/_index.md` → cascade: type, show_price, product_line
+- `products/widgets/_index.md` → cascade: category, warranty
+- `products/widgets/super-widget.md` → inherits all
+- `products/widgets/custom-widget.md` → inherits but overrides type
