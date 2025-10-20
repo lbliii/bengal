@@ -804,13 +804,30 @@ class OutputFormatsGenerator:
         if not page.output_path:
             return f"/{getattr(page, 'slug', page.source_path.stem)}/"
 
+        # Handle invalid output paths (e.g., Path('.'))
+        if str(page.output_path) in (".", "..") or page.output_path.name == "":
+            logger.warning(
+                "invalid_output_path",
+                page=str(page.source_path),
+                output_path=str(page.output_path),
+                fallback="using_slug",
+            )
+            return f"/{getattr(page, 'slug', page.source_path.stem)}/"
+
         try:
             rel_path = page.output_path.relative_to(self.site.output_dir)
             url = f"/{rel_path}".replace("\\", "/")
             # Clean up /index.html
             url = url.replace("/index.html", "/")
             return url
-        except ValueError:
+        except ValueError as e:
+            logger.debug(
+                "output_path_not_relative",
+                page=str(page.source_path),
+                output_path=str(page.output_path),
+                output_dir=str(self.site.output_dir),
+                error=str(e),
+            )
             return f"/{getattr(page, 'slug', page.source_path.stem)}/"
 
     def _get_page_json_path(self, page: Any) -> Path | None:
