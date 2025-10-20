@@ -10,7 +10,6 @@ import time
 from pathlib import Path
 from typing import Any
 
-from bengal.server.build_handler import BuildHandler
 from bengal.server.constants import DEFAULT_DEV_HOST, DEFAULT_DEV_PORT
 from bengal.server.pid_manager import PIDManager
 from bengal.server.request_handler import BengalRequestHandler
@@ -252,8 +251,28 @@ class DevServer:
 
         Returns:
             Configured Observer instance (not yet started)
+
+        Raises:
+            ImportError: If watchdog is not installed (prompts user to install it)
         """
-        event_handler = BuildHandler(self.site, self.host, actual_port)
+        # Check if watchdog is installed
+        try:
+            import watchdog  # noqa: F401
+        except ImportError:
+            print("\n❌ File watching requires the 'watchdog' package.")
+            print("\n📦 Install it with:")
+            print("   pip install bengal[server]")
+            print("\n💡 Or disable watching:")
+            print("   bengal site serve --no-watch")
+            logger.error(
+                "watchdog_not_installed",
+                suggestion="pip install bengal[server]",
+                alternative="--no-watch flag",
+            )
+            raise ImportError(
+                "watchdog is required for file watching. "
+                "Install with: pip install bengal[server]"
+            )
 
         # Import watchdog lazily and allow selecting a backend to avoid loading
         # platform-specific C extensions under free-threaded Python by default.
@@ -281,6 +300,11 @@ class DevServer:
             except Exception:
                 # Fall through to auto native backend when detection fails
                 pass
+
+        # Import BuildHandler only after GIL check (avoids loading native watchdog at import time)
+        from bengal.server.build_handler import BuildHandler
+
+        event_handler = BuildHandler(self.site, self.host, actual_port)
 
         ObserverClass = None
         if backend == "polling":
