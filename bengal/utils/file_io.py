@@ -27,6 +27,31 @@ from bengal.utils.logger import get_logger
 logger = get_logger(__name__)
 
 
+def _strip_bom(content: str, file_path: Path, encoding: str, caller: str | None = None) -> str:
+    """
+    Strip UTF-8 BOM from content if present.
+
+    Args:
+        content: File content
+        file_path: Path to file (for logging)
+        encoding: Encoding used (for logging)
+        caller: Caller identifier for logging
+
+    Returns:
+        Content with BOM removed if present, otherwise unchanged
+    """
+    if content and content[0] == "\ufeff":
+        logger.debug(
+            "bom_stripped",
+            path=str(file_path),
+            encoding=encoding,
+            caller=caller or "file_io",
+        )
+        # Remove only the first BOM character
+        return content[1:]
+    return content
+
+
 def read_text_file(
     file_path: Path | str,
     encoding: str = "utf-8",
@@ -96,15 +121,7 @@ def read_text_file(
             content = f.read()
 
         # Strip UTF-8 BOM if present to avoid confusing downstream parsers
-        if content and content[0] == "\ufeff":
-            logger.debug(
-                "bom_stripped",
-                path=str(file_path),
-                encoding=encoding,
-                caller=caller or "file_io",
-            )
-            # Remove only the first BOM instance
-            content = content[1:]
+        content = _strip_bom(content, file_path, encoding, caller)
 
         logger.debug(
             "file_read",
@@ -123,6 +140,9 @@ def read_text_file(
             try:
                 with open(file_path, encoding="utf-8-sig") as f:
                     content = f.read()
+
+                # utf-8-sig automatically strips BOM, but apply for consistency
+                content = _strip_bom(content, file_path, "utf-8-sig", caller)
 
                 logger.debug(
                     "file_read_utf8_sig",

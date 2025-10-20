@@ -266,6 +266,8 @@ class ContentDiscovery:
 
             if cached_metadata and self._cache_is_valid(page, cached_metadata):
                 # Page is unchanged - create PageProxy instead
+                # Capture page.lang and page._section at call time to avoid closure issues
+                # where loop variables would otherwise be shared across iterations
                 def make_loader(source_path, current_lang, section):
                     def loader(_):
                         # Load full page from disk when needed
@@ -275,6 +277,7 @@ class ContentDiscovery:
 
                     return loader
 
+                # Pass page.lang and page._section explicitly to bind current iteration values
                 proxy = PageProxy(
                     source_path=page.source_path,
                     metadata=cached_metadata,
