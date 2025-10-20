@@ -1,4 +1,13 @@
 # Testing Strategy
+## New Resilience & Cycle Tests (Phase 1)
+
+- Cache corruption/resilience: truncated/invalid/empty `.bengal-cache.json` loads fresh cache without crashing.
+- Template cycles: include/extends self or indirect cycles surface as Jinja2 errors during render.
+- Menu cycles: cycle detection raises `ValueError` during hierarchy build.
+- BOM handling & config fuzz: UTF-8 BOM in frontmatter handled; config validator fuzzed (no crashes, validation errors acceptable).
+- Concurrent builds: multi-threaded full builds complete without corrupting cache.
+
+See RFC `plan/active/rfc-test-gaps-and-resilience.md` for details and roadmap.
 
 Bengal uses a comprehensive testing approach with pytest and coverage tracking.
 

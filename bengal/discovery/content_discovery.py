@@ -17,6 +17,16 @@ from bengal.utils.logger import get_logger
 class ContentDiscovery:
     """
     Discovers and organizes content files into pages and sections.
+
+    Notes:
+    - YAML errors in front matter are downgraded to debug; we fall back to using the content
+      and synthesize minimal metadata to keep the build progressing.
+    - UTF-8 BOM is stripped at read time by `bengal.utils.file_io.read_text_file` to avoid
+      confusing the YAML/front matter parser.
+    - I18n dir-prefix strategy is supported (e.g., `content/en/...`); hidden files/dirs are
+      skipped except `_index.md`.
+    - Parsing uses a thread pool for concurrency; unchanged pages can be represented as
+      `PageProxy` in lazy modes.
     """
 
     def __init__(self, content_dir: Path, site: Any | None = None) -> None:
@@ -256,11 +266,11 @@ class ContentDiscovery:
 
             if cached_metadata and self._cache_is_valid(page, cached_metadata):
                 # Page is unchanged - create PageProxy instead
-                def make_loader(source_path):
+                def make_loader(source_path, current_lang=page.lang, section=page._section):
                     def loader(_):
                         # Load full page from disk when needed
                         return self._create_page(
-                            source_path, current_lang=page.lang, section=page._section
+                            source_path, current_lang=current_lang, section=section
                         )
 
                     return loader
@@ -274,7 +284,7 @@ class ContentDiscovery:
                 # Copy section and site relationships
                 proxy._section = page._section
                 proxy._site = page._site
-                
+
                 # Copy output_path for postprocessing (needed for .txt/.json generation)
                 if page.output_path:
                     proxy.output_path = page.output_path
@@ -338,11 +348,7 @@ class ContentDiscovery:
 
         # Section
         page_section_str = str(page._section.path) if page._section else None
-        if page_section_str != cached_metadata.section:
-            return False
-
-        # If we got here, cache is valid
-        return True
+        return page_section_str == cached_metadata.section
 
     def _walk_directory(
         self, directory: Path, parent_section: Section, current_lang: str | None = None

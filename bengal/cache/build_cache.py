@@ -83,6 +83,11 @@ class BuildCache:
         """
         Load build cache from disk.
 
+        Loader behavior:
+        - Tolerant to malformed JSON: On parse errors or schema mismatches, returns a fresh
+          `BuildCache` instance and logs a warning.
+        - Version mismatches: Logs a warning and best-effort loads known fields.
+
         Args:
             cache_path: Path to cache file
 
@@ -143,6 +148,12 @@ class BuildCache:
     def save(self, cache_path: Path) -> None:
         """
         Save build cache to disk.
+
+        Persistence semantics:
+        - Atomic writes: Uses `AtomicFile` (temp-write → atomic rename) to prevent partial files
+          on crash/interruption.
+        - Last writer wins: Concurrent saves produce a valid file from the last successful
+          writer; no advisory locking is used.
 
         Args:
             cache_path: Path to cache file

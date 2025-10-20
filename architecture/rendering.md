@@ -269,6 +269,12 @@ Mistune is recommended for most use cases due to faster performance.
 - Template dependency tracking for incremental builds
 - Tracks includes, extends, and imports automatically
 
+### Behavior Notes
+
+- Bytecode cache: When enabled (default), compiled templates are cached under `output/.bengal-cache/templates` for faster rebuilds. Jinja2 invalidates entries when source templates change.
+- Strict/auto-reload: `strict_mode` enables `StrictUndefined` to surface missing variables; `dev_server` enables `auto_reload` for fast iteration.
+- Include/extends cycles: Cycle detection relies on Jinja2. Recursive includes or self-extends surface as `TemplateError` or `RecursionError` at render time and are logged with context.
+
 ## Renderer (`bengal/rendering/renderer.py`)
 
 - Applies templates to pages

@@ -19,6 +19,12 @@ Tracks file changes between builds using SHA256 hashing and dependency graphs. P
 | `get_all_tags()` | Get all known tags from previous build |
 | `save()` / `load()` | Persist cache between builds |
 
+### Persistence Semantics
+
+- Atomic writes: Cache persistence uses a temp-write → atomic-rename pattern via `AtomicFile` to avoid partially written files on crash/interruption.
+- Last writer wins: Concurrent saves result in a valid file produced by the last successful writer; advisory locking is not used.
+- Tolerant loads: On malformed JSON or version mismatches, the loader returns a fresh cache and logs a warning; known fields are loaded best-effort.
+
 ### Inverted Index Pattern
 
 The cache stores a bidirectional mapping between pages and tags:
@@ -38,6 +44,11 @@ pages_for_tag = [current_page_map[path] for path in cache.get_pages_for_tag('pyt
 
 ### Key Design Principle
 "Never persist object references across builds" - cache stores paths and hashes, relationships are reconstructed from current objects each build.
+
+### Additional Indexes
+
+- Parsed content caching enables skipping markdown parsing when only templates change.
+- Taxonomy index and page discovery metadata are persisted under `.bengal/` for faster incremental detection and regeneration.
 
 ## Dependency Tracker (`bengal/cache/dependency_tracker.py`)
 

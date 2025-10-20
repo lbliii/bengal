@@ -53,7 +53,11 @@ def read_text_file(
         caller: Caller identifier for logging context
 
     Returns:
-        File contents as string, or None/empty string based on on_error
+        File contents as string, or None/empty string based on on_error.
+
+    Encoding notes:
+    - Strips UTF-8 BOM when present.
+    - If primary decode fails, tries `utf-8-sig` before the configured fallback.
 
     Raises:
         FileNotFoundError: If file doesn't exist and on_error='raise'
