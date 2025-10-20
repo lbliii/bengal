@@ -94,6 +94,13 @@ class MenuItem:
 class MenuBuilder:
     """
     Builds hierarchical menu structures from various sources.
+
+    Behavior notes:
+    - Identifiers: Each `MenuItem` has an `identifier` (slug from name by default). Parent
+      references use identifiers.
+    - Cycle detection: `build_hierarchy()` detects circular references in the built tree
+      and raises `ValueError` when a cycle is found. Consumers should surface this early
+      as a configuration error.
     """
 
     def __init__(self):

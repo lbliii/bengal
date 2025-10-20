@@ -21,6 +21,15 @@ logger = get_logger(__name__)
 class TemplateEngine:
     """
     Template engine for rendering pages with Jinja2 templates.
+
+    Notes:
+    - Bytecode cache: When enabled via config, compiled templates are cached under
+      `output/.bengal-cache/templates` using a stable filename pattern. Jinja2 invalidates
+      entries when source templates change.
+    - Strict mode and auto reload: `strict_mode` enables `StrictUndefined`; `dev_server`
+      enables `auto_reload` for faster iteration.
+    - Include/extends cycles: Cycle detection is delegated to Jinja2. Recursive includes or
+      self-extends surface as `TemplateError` or `RecursionError` from Jinja2 during render.
     """
 
     def __init__(self, site: Any) -> None:

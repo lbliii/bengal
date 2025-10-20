@@ -27,6 +27,31 @@ from bengal.utils.logger import get_logger
 logger = get_logger(__name__)
 
 
+def _strip_bom(content: str, file_path: Path, encoding: str, caller: str | None = None) -> str:
+    """
+    Strip UTF-8 BOM from content if present.
+
+    Args:
+        content: File content
+        file_path: Path to file (for logging)
+        encoding: Encoding used (for logging)
+        caller: Caller identifier for logging
+
+    Returns:
+        Content with BOM removed if present, otherwise unchanged
+    """
+    if content and content[0] == "\ufeff":
+        logger.debug(
+            "bom_stripped",
+            path=str(file_path),
+            encoding=encoding,
+            caller=caller or "file_io",
+        )
+        # Remove only the first BOM character
+        return content[1:]
+    return content
+
+
 def read_text_file(
     file_path: Path | str,
     encoding: str = "utf-8",
@@ -53,7 +78,11 @@ def read_text_file(
         caller: Caller identifier for logging context
 
     Returns:
-        File contents as string, or None/empty string based on on_error
+        File contents as string, or None/empty string based on on_error.
+
+    Encoding notes:
+    - Strips UTF-8 BOM when present.
+    - If primary decode fails, tries `utf-8-sig` before the configured fallback.
 
     Raises:
         FileNotFoundError: If file doesn't exist and on_error='raise'
@@ -91,6 +120,9 @@ def read_text_file(
         with open(file_path, encoding=encoding) as f:
             content = f.read()
 
+        # Strip UTF-8 BOM if present to avoid confusing downstream parsers
+        content = _strip_bom(content, file_path, encoding, caller)
+
         logger.debug(
             "file_read",
             path=str(file_path),
@@ -104,6 +136,26 @@ def read_text_file(
     except UnicodeDecodeError as e:
         # Try fallback encoding if available
         if fallback_encoding:
+            # First, attempt UTF-8 with BOM if primary UTF-8 failed
+            try:
+                with open(file_path, encoding="utf-8-sig") as f:
+                    content = f.read()
+
+                # utf-8-sig automatically strips BOM, but apply for consistency
+                content = _strip_bom(content, file_path, "utf-8-sig", caller)
+
+                logger.debug(
+                    "file_read_utf8_sig",
+                    path=str(file_path),
+                    encoding="utf-8-sig",
+                    size_bytes=len(content),
+                    caller=caller or "file_io",
+                )
+                return content
+            except Exception:
+                # Fall through to configured fallback
+                pass
+
             logger.warning(
                 "encoding_fallback",
                 path=str(file_path),

@@ -33,7 +33,8 @@ Walks the content directory recursively to create Page and Section objects
 
 ### Features
 - Encoding fallback (UTF-8 → latin-1)
-- Error handling for malformed files
+- UTF-8 BOM stripping during read to avoid confusing frontmatter parsing
+- Error handling for malformed files (frontmatter syntax errors fall back to content-only)
 - Automatic section creation
 - Hierarchical organization
 - Cross-reference index building

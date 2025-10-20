@@ -1,3 +1,8 @@
+import pytest
+
+# Auto-apply the stateful marker to tests in this package
+pytestmark = pytest.mark.stateful
+
 """
 Stateful integration tests using Hypothesis.
 
