@@ -1,3 +1,31 @@
+import os
+import shutil
+from datetime import datetime
+from pathlib import Path
+
+import pytest
+
+from bengal.core.site import Site
+from bengal.utils.file_io import write_text_file
+
+
+def pytest_configure(config: pytest.Config) -> None:
+    """Configure Hypothesis and scaling knobs for CI speed vs nightly depth.
+
+    Environment-controlled profiles:
+    - BENGAL_CI_FAST=1: reduce Hypothesis examples and scale of long tests.
+    """
+    if os.environ.get("BENGAL_CI_FAST") == "1":
+        try:
+            from hypothesis import settings
+
+            settings.register_profile("ci-fast", max_examples=10, deadline=None)
+            settings.load_profile("ci-fast")
+        except Exception:
+            # Hypothesis not installed; nothing to do
+            pass
+
+
 """
 Global pytest configuration and fixtures.
 
@@ -7,15 +35,6 @@ This file provides:
 - Automatic test output capture
 - Testing infrastructure plugins
 """
-
-import shutil
-from datetime import datetime
-from pathlib import Path
-
-import pytest
-
-from bengal.core.site import Site
-from bengal.utils.file_io import write_text_file
 
 # ============================================================================
 # TESTING INFRASTRUCTURE
@@ -191,7 +210,7 @@ def reset_bengal_state():
     - Rich console is reset (prevents Live display conflicts)
     - Logger state is cleared (prevents file handle leaks)
     - Theme cache is cleared (ensures fresh theme discovery)
-    
+
     Future expansions:
     - PageProxyCache (if added as singleton)
     - TaxonomyIndex caching state
@@ -200,26 +219,29 @@ def reset_bengal_state():
     """
     # Setup: Nothing needed before test
     yield
-    
+
     # Teardown: Reset all stateful components after each test
-    
+
     # 1. Reset Rich console
     try:
         from bengal.utils.rich_console import reset_console
+
         reset_console()
     except ImportError:
         pass
-    
+
     # 2. Reset logger state (close file handles, clear registry)
     try:
         from bengal.utils.logger import reset_loggers
+
         reset_loggers()
     except ImportError:
         pass
-    
+
     # 3. Clear theme cache (forces fresh discovery)
     try:
         from bengal.utils.theme_registry import clear_theme_cache
+
         clear_theme_cache()
     except ImportError:
         pass
@@ -289,4 +311,3 @@ Content for page {i}.""",
     output_dir = site_dir / "public"
     if output_dir.exists():
         shutil.rmtree(output_dir)
-
