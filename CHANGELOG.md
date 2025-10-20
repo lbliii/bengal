@@ -283,7 +283,7 @@ Run specific test cases: `pytest -k "cpp_programming"` or `pytest -k "api"`
 
 ### Initial Alpha Release
 
-Bengal 0.1.0 is an alpha release of a high-performance static site generator optimized for Python 3.13+.
+Bengal 0.1.0 is an alpha release of a high-performance static site generator optimized for Python 3.14+.
 
 #### Core Features
 
@@ -339,7 +339,7 @@ Bengal 0.1.0 is an alpha release of a high-performance static site generator opt
 
 #### Requirements
 
-- **Python 3.13+** (3.14t recommended for 1.8x speedup)
+- **Python 3.14+** (3.14t recommended for 1.8x speedup with free-threading)
 - See `pyproject.toml` for dependencies
 
 ---
@@ -350,7 +350,7 @@ Bengal 0.1.0 is an alpha release of a high-performance static site generator opt
 - ✅ Documentation sites (100-5,000 pages)
 - ✅ Blogs and content sites
 - ✅ Projects needing AST-based API docs
-- ✅ Python 3.13+ projects
+- ✅ Python 3.14+ projects
 
 **Not yet recommended for:**
 - ❌ Mission-critical production without testing

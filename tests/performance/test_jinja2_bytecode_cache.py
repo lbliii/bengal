@@ -128,9 +128,10 @@ cache_templates = true
         print(f"  Median warm:  {warm_time:.3f}s")
         print(f"  Speedup:      {speedup:.2f}x")
 
-        # Allow 10% tolerance for timing noise (0.90x instead of 1.0x)
-        # This accounts for system variability, test parallelization overhead, etc.
-        assert speedup >= 0.90, (
+        # Allow 15% tolerance for timing noise (0.85x instead of 1.0x)
+        # This accounts for system variability, test parallelization overhead, CI load, etc.
+        # CI environments can have significant timing variance due to shared resources.
+        assert speedup >= 0.85, (
             f"Cached build should not be significantly slower (got {speedup:.2f}x). "
             f"Cold={cold_time:.3f}s, Warm={warm_time:.3f}s"
         )

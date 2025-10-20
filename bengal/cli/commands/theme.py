@@ -302,7 +302,7 @@ def new(slug: str, mode: str, output: str, extends: str, force: bool) -> None:
             "[project]\n"
             f'name = "{package_name}"\n'
             'version = "0.1.0"\n'
-            'requires-python = ">=3.12"\n'
+            'requires-python = ">=3.14"\n'
             'description = "A starter theme for Bengal SSG"\n'
             'readme = "README.md"\n'
             'license = {text = "MIT"}\n'

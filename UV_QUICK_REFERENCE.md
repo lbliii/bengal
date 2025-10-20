@@ -124,9 +124,9 @@ uv --version
 ### Wrong Python version
 ```bash
 # Specify Python version
-uv venv --python 3.12
+uv venv --python 3.14
 
-# Or use .python-version file (already set to 3.12)
+# Or use .python-version file (already set to 3.14)
 ```
 
 ### Dependency conflicts

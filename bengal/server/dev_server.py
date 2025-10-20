@@ -559,8 +559,10 @@ class DevServer:
         console.print()
 
         # Request log header
-        console.print(f"  [dim]{'TIME':8} │ {'METHOD':6} │ {'STATUS':3} │ PATH[/dim]")
-        console.print(f"  [dim]{'─' * 8}─┼─{'─' * 6}─┼─{'─' * 3}─┼─{'─' * 60}[/dim]")
+        from bengal.utils.cli_output import CLIOutput
+
+        cli = CLIOutput()
+        cli.request_log_header()
 
     def _open_browser_delayed(self, port: int) -> None:
         """

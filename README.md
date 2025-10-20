@@ -5,7 +5,7 @@
 [![Python Version](https://img.shields.io/pypi/pyversions/bengal.svg)](https://pypi.org/project/bengal/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-A Python static site generator.
+A pythonic static site generator.
 
 ## Features
 
