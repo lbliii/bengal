@@ -103,7 +103,8 @@ def read_text_file(
                 encoding=encoding,
                 caller=caller or "file_io",
             )
-            content = content.lstrip("\ufeff")
+            # Remove only the first BOM instance
+            content = content[1:]
 
         logger.debug(
             "file_read",

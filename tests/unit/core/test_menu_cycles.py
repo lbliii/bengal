@@ -22,7 +22,8 @@ class TestMenuCircularDependencies:
         p = by_id["p"]
         c = by_id["c"]
         # Force a cycle
-        p.children.append(c) if c not in p.children else None
+        if c not in p.children:
+            p.children.append(c)
         c.children.append(p)
 
         # Now the cycle should be detected by the cycle checker when rebuilding

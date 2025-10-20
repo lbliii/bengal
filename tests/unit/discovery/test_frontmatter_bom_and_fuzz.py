@@ -20,9 +20,15 @@ class TestFrontmatterBOM:
 
 
 class TestConfigFuzzing:
-    @pytest.mark.skipif(
-        pytest.importorskip("hypothesis") is None, reason="hypothesis not installed"
-    )
+    # Determine hypothesis availability at import time
+    try:
+        import hypothesis  # noqa: F401
+
+        _HYPOTHESIS_AVAILABLE = True
+    except Exception:  # pragma: no cover - environment dependent
+        _HYPOTHESIS_AVAILABLE = False
+
+    @pytest.mark.skipif(not _HYPOTHESIS_AVAILABLE, reason="hypothesis not installed")
     def test_config_validator_fuzz(self):
         from hypothesis import given
         from hypothesis import strategies as st
