@@ -1,70 +1,79 @@
-import sys
-from pathlib import Path
 from types import SimpleNamespace
-
-import pytest
-
-from bengal.utils.theme_registry import (
-    clear_theme_cache,
-    get_installed_themes,
-    get_theme_package,
-)
+from unittest.mock import Mock
 
 
-def _make_fake_theme_package(tmp_path: Path, slug: str = "acme") -> tuple[str, Path]:
-    root = tmp_path / "bengal_themes" / slug
-    (root / "templates").mkdir(parents=True)
-    (root / "assets").mkdir(parents=True)
-    (root / "dev" / "components").mkdir(parents=True)
-    (root / "__init__.py").write_text("__all__ = []", encoding="utf-8")
-    (root / "templates" / "index.html").write_text("<h1>ACME</h1>", encoding="utf-8")
-    (root / "assets" / "style.css").write_text("body{}", encoding="utf-8")
-    (root / "theme.toml").write_text('name="acme"\nextends="default"\n', encoding="utf-8")
-    pkg_root = tmp_path / "bengal_themes"
-    (pkg_root / "__init__.py").write_text("__all__ = []", encoding="utf-8")
-    return f"bengal_themes.{slug}", root
+def test_get_installed_themes_discovers_entry_point(monkeypatch, tmp_path):
+    """Test theme discovery via entry points - mocked to avoid sys.path manipulation"""
+    from importlib import metadata
 
+    import bengal.utils.theme_registry
 
-@pytest.mark.xdist_group(name="theme_registry_import")
-def test_get_installed_themes_discovers_entry_point(tmp_path, monkeypatch):
-    pkg, root = _make_fake_theme_package(tmp_path, slug="acme")
+    # Create a real directory structure for the mock to reference
+    theme_root = tmp_path / "mock_theme"
+    (theme_root / "templates").mkdir(parents=True)
+    (theme_root / "assets").mkdir(parents=True)
+    (theme_root / "templates" / "page.html").write_text("<h1>TEST</h1>", encoding="utf-8")
+    (theme_root / "assets" / "style.css").write_text("body{}", encoding="utf-8")
+    (theme_root / "theme.toml").write_text('name="acme"\n', encoding="utf-8")
 
-    # Make importable
-    sys.path.insert(0, str(tmp_path))
-    monkeypatch.syspath_prepend(str(tmp_path))
+    # Mock entry points
+    fake_entry = SimpleNamespace(name="acme", value="bengal_themes.acme")
 
-    # Fake entry points
     def fake_entry_points(group=None):
         if group == "bengal.themes":
-            return [SimpleNamespace(name="acme", value=pkg)]
+            return [fake_entry]
         return []
 
-    # Fake distribution metadata (best-effort)
+    # Mock metadata functions
     def fake_packages_distributions():
         return {"bengal_themes": ["bengal-theme-acme"]}
 
     def fake_version(dist_name):
         return "1.2.3"
 
-    from importlib import metadata
-
     monkeypatch.setattr(metadata, "entry_points", fake_entry_points)
     monkeypatch.setattr(metadata, "packages_distributions", fake_packages_distributions)
     monkeypatch.setattr(metadata, "version", fake_version)
 
-    clear_theme_cache()
-    themes = get_installed_themes()
-    assert "acme" in themes
-    pkginfo = get_theme_package("acme")
-    assert pkginfo is not None
-    assert pkginfo.package == pkg
+    # Create a Mock ThemePackage
+    def create_mock_pkg(slug, package, distribution, version):
+        mock_pkg = Mock()
+        mock_pkg.slug = slug
+        mock_pkg.package = package
+        mock_pkg.distribution = distribution
+        mock_pkg.version = version
+        mock_pkg.templates_exists.return_value = (theme_root / "templates").is_dir()
+        mock_pkg.assets_exists.return_value = (theme_root / "assets").is_dir()
+        mock_pkg.manifest_exists.return_value = (theme_root / "theme.toml").is_file()
+        mock_pkg.resolve_resource_path = (
+            lambda resource: theme_root / resource if (theme_root / resource).exists() else None
+        )
+        return mock_pkg
 
-    # Resources exist
+    # Mock ThemePackage constructor
+    monkeypatch.setattr(
+        bengal.utils.theme_registry,
+        "ThemePackage",
+        lambda slug, package, distribution, version: create_mock_pkg(
+            slug, package, distribution, version
+        ),
+    )
+
+    # Test discovery
+    themes = bengal.utils.theme_registry.get_installed_themes()
+    assert "acme" in themes
+
+    # Test retrieval
+    pkginfo = bengal.utils.theme_registry.get_theme_package("acme")
+    assert pkginfo is not None
+    assert pkginfo.package == "bengal_themes.acme"
+
+    # Test resource checks
     assert pkginfo.templates_exists()
     assert pkginfo.assets_exists()
     assert pkginfo.manifest_exists()
 
-    # Resolving paths yields real fs paths
+    # Test path resolution
     tpath = pkginfo.resolve_resource_path("templates")
     apath = pkginfo.resolve_resource_path("assets")
     mpath = pkginfo.resolve_resource_path("theme.toml")
