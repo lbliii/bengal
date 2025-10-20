@@ -36,8 +36,9 @@ class TestListTableDirective:
         assert "<thead>" in html
         assert "<tbody>" in html
         assert "<th>Name</th>" in html
-        assert "<td>foo</td>" in html
-        assert "<td>str</td>" in html
+        # Check for data-label attributes in responsive table format
+        assert 'data-label="Name">foo</td>' in html
+        assert 'data-label="Type">str</td>' in html
 
     def test_list_table_with_widths(self, parser):
         """Test list-table with column widths."""
@@ -79,7 +80,7 @@ class TestListTableDirective:
 
         # Verify pipes in content don't break the table
         assert "<table" in html
-        assert "<td>" in html
+        assert 'data-label="' in html  # Check for responsive data-label attributes
         # Backticks should render as code tags
         assert "<code>str | None</code>" in html
         assert "<code>int | float</code>" in html
@@ -125,7 +126,8 @@ class TestListTableDirective:
         assert "<table" in html
         assert "<thead>" not in html
         assert "<tbody>" in html
-        assert "<td>A</td>" in html
+        # With no header, first row still gets data-labels based on column position
+        assert ">A</td>" in html
 
     def test_list_table_with_css_class(self, parser):
         """Test list-table with custom CSS class."""

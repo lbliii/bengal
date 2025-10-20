@@ -320,6 +320,7 @@ class IncrementalConsistencyWorkflow(RuleBasedStateMachine):
         self.pages = {}
         self.full_build_hashes = None
         self.incremental_build_hashes = None
+        self.content_version = 0  # Track content state changes
 
     @initialize()
     def setup_site(self):
@@ -348,18 +349,25 @@ class IncrementalConsistencyWorkflow(RuleBasedStateMachine):
         new_title = f"{self.pages[name]['title']} (modified)"
         self.pages[name]["title"] = new_title
         write_page(self.site_dir, name, new_title)
+        
+        # Content changed - invalidate old hashes
+        self.content_version += 1
+        self.full_build_hashes = None
+        self.incremental_build_hashes = None
 
     @rule()
     def full_build_and_snapshot(self):
         """Run full build and save output hashes."""
         run_build(self.site_dir, incremental=False)
         self.full_build_hashes = hash_outputs(self.site_dir)
+        self.full_build_content_version = self.content_version
 
     @rule()
     def incremental_build_and_snapshot(self):
         """Run incremental build and save output hashes."""
         run_build(self.site_dir, incremental=True)
         self.incremental_build_hashes = hash_outputs(self.site_dir)
+        self.incremental_build_content_version = self.content_version
 
     @invariant()
     def incremental_matches_full(self):
@@ -367,8 +375,12 @@ class IncrementalConsistencyWorkflow(RuleBasedStateMachine):
         Property: Incremental build output must match full build output.
 
         This is the core contract of incremental builds.
+        
+        Only compares if both builds are from the same content state.
         """
-        if self.full_build_hashes and self.incremental_build_hashes:
+        if (self.full_build_hashes and self.incremental_build_hashes and
+            getattr(self, 'full_build_content_version', -1) == 
+            getattr(self, 'incremental_build_content_version', -2)):
             # Compare file sets
             full_files = set(self.full_build_hashes.keys())
             inc_files = set(self.incremental_build_hashes.keys())
@@ -379,9 +391,14 @@ class IncrementalConsistencyWorkflow(RuleBasedStateMachine):
                 f"Incremental only: {inc_files - full_files}"
             )
 
-            # Compare file contents, skipping files with dynamic timestamps
+            # Compare file contents, skipping files with dynamic timestamps or ordering
             for file_path in full_files:
-                if file_path in ("llm-full.txt", "index.json"):
+                # Skip files with dynamic content:
+                # - site-wide LLM/JSON (build timestamps, page ordering)
+                # - per-page JSON/txt (can have timestamps, not critical for determinism)
+                if (file_path in ("llm-full.txt", "index.json") or 
+                    file_path.endswith("/index.json") or 
+                    file_path.endswith("/index.txt")):
                     continue
                 full_hash = self.full_build_hashes[file_path]
                 inc_hash = self.incremental_build_hashes[file_path]

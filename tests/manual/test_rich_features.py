@@ -28,9 +28,7 @@ def test_rich_traceback():
         print("✓ Rich traceback handler installed successfully")
     except Exception as e:
         print(f"✗ Failed to install Rich traceback: {e}")
-        return False
-
-    return True
+        raise
 
 
 def test_logger_markup():
@@ -61,9 +59,7 @@ def test_logger_markup():
         import traceback
 
         traceback.print_exc()
-        return False
-
-    return True
+        raise
 
 
 def test_pretty_print_config():
@@ -92,9 +88,7 @@ def test_pretty_print_config():
         import traceback
 
         traceback.print_exc()
-        return False
-
-    return True
+        raise
 
 
 def test_rich_console():
@@ -163,9 +157,7 @@ def test_rich_console():
         import traceback
 
         traceback.print_exc()
-        return False
-
-    return True
+        raise
 
 
 def test_status_spinner():
@@ -181,7 +173,7 @@ def test_status_spinner():
 
         if not should_use_rich():
             print("⚠ Skipping spinner test (no TTY)")
-            return True
+            return
 
         console = get_console()
 
@@ -197,9 +189,7 @@ def test_status_spinner():
         import traceback
 
         traceback.print_exc()
-        return False
-
-    return True
+        raise
 
 
 def test_rich_prompt():
@@ -213,9 +203,7 @@ def test_rich_prompt():
         print("  (Interactive testing skipped - use 'bengal clean' to test)")
     except Exception as e:
         print(f"✗ Rich prompt test failed: {e}")
-        return False
-
-    return True
+        raise
 
 
 def main():
@@ -236,8 +224,8 @@ def main():
     results = []
     for test in tests:
         try:
-            result = test()
-            results.append(result)
+            test()
+            results.append(True)  # If no exception, test passed
         except Exception as e:
             print(f"\n✗ Test failed with exception: {e}")
             import traceback

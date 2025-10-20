@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import pytest
 
 pytest.skip(
@@ -5,8 +7,6 @@ pytest.skip(
     allow_module_level=True,
 )
 """Tests for HTML live reload injection and SSE notify flow."""
-
-from __future__ import annotations
 
 import io
 from pathlib import Path

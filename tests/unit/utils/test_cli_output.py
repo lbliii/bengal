@@ -89,6 +89,7 @@ class TestColorTheming:
         """Paths should use [path] semantic style."""
         cli = CLIOutput(use_rich=True, quiet=False)
 
+        import re
         from io import StringIO
 
         buffer = StringIO()
@@ -97,8 +98,11 @@ class TestColorTheming:
         cli.path("/path/to/output")
         output = buffer.getvalue()
 
-        # Should contain path styling
-        assert "[path]" in output or "/path/to/output" in output
+        # Strip ANSI codes for checking (Rich applies automatic highlighting)
+        plain_output = re.sub(r"\x1b\[[0-9;]+m", "", output)
+
+        # Should contain path styling - check plain text since Rich applies ANSI codes
+        assert "/path/to/output" in plain_output
 
     def test_uses_semantic_metric_styles(self):
         """Metrics should use [metric_label] and [metric_value] styles."""

@@ -406,8 +406,10 @@ class ConfigLoader:
         Only applies when config baseurl is empty or missing.
         """
         try:
+            # Only apply env overrides if baseurl is not set to a non-empty value
+            # Empty string ("") or missing baseurl allows env overrides
             baseurl_current = config.get("baseurl", "")
-            if baseurl_current:
+            if baseurl_current:  # Non-empty string means explicit config, don't override
                 return config
 
             # 1) Explicit override

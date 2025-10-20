@@ -22,11 +22,11 @@ Note:
     See plan/LIVE_RELOAD_ARCHITECTURE_PROPOSAL.md for implementation details.
 """
 
+import json
 import os
 import threading
 
 from bengal.utils.logger import get_logger
-import json
 
 logger = get_logger(__name__)
 
@@ -37,7 +37,7 @@ _reload_condition = threading.Condition()
 
 
 # Live reload script to inject into HTML pages
-LIVE_RELOAD_SCRIPT = """
+LIVE_RELOAD_SCRIPT = r"""
 <script>
 (function() {
     // Bengal Live Reload
@@ -398,6 +398,7 @@ def send_reload_payload(action: str, reason: str, changed_paths: list[str]) -> N
         changed=len(changed_paths),
         generation=_reload_generation,
     )
+
 
 def set_reload_action(action: str) -> None:
     """
