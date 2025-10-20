@@ -4,6 +4,9 @@ Output validator - checks generated pages and assets.
 Migrated from Site._validate_build_health() with improvements.
 """
 
+
+from __future__ import annotations
+
 from typing import TYPE_CHECKING, override
 
 from bengal.health.base import BaseValidator
@@ -30,7 +33,7 @@ class OutputValidator(BaseValidator):
     MIN_SIZE = 1000  # Configurable via site.config
 
     @override
-    def validate(self, site: "Site") -> list[CheckResult]:
+    def validate(self, site: Site) -> list[CheckResult]:
         """Run output validation checks."""
         results = []
 
@@ -45,7 +48,7 @@ class OutputValidator(BaseValidator):
 
         return results
 
-    def _check_page_sizes(self, site: "Site") -> list[CheckResult]:
+    def _check_page_sizes(self, site: Site) -> list[CheckResult]:
         """Check if any pages are suspiciously small."""
         results = []
         min_size = site.config.get("min_page_size", 1000)
@@ -73,7 +76,7 @@ class OutputValidator(BaseValidator):
 
         return results
 
-    def _check_assets(self, site: "Site") -> list[CheckResult]:
+    def _check_assets(self, site: Site) -> list[CheckResult]:
         """Check if theme assets are present in output."""
         results = []
         assets_dir = site.output_dir / "assets"
@@ -113,7 +116,7 @@ class OutputValidator(BaseValidator):
 
         return results
 
-    def _check_output_directory(self, site: "Site") -> list[CheckResult]:
+    def _check_output_directory(self, site: Site) -> list[CheckResult]:
         """Check output directory structure."""
         results = []
 

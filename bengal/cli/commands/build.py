@@ -1,5 +1,8 @@
 """Build command for generating the static site."""
 
+
+from __future__ import annotations
+
 from pathlib import Path
 
 import click

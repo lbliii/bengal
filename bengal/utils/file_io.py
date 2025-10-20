@@ -18,6 +18,9 @@ Example:
     data = load_data_file(path)  # Works for .json, .yaml, .toml
 """
 
+
+from __future__ import annotations
+
 import json
 from pathlib import Path
 from typing import Any

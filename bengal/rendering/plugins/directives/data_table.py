@@ -5,6 +5,9 @@ Provides interactive tables for hardware/software support matrices and other
 complex tabular data with filtering, sorting, and searching capabilities.
 """
 
+
+from __future__ import annotations
+
 import csv
 import hashlib
 import json

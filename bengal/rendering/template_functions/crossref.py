@@ -129,7 +129,7 @@ def ref(path: str, index: dict, baseurl: str = "", text: str | None = None) -> M
     # Generate link
     link_text = text or page.title
     url = page.url if hasattr(page, "url") else f"/{page.slug}/"
-    
+
     # Apply base URL prefix if configured
     if baseurl:
         baseurl = baseurl.rstrip("/")
@@ -268,7 +268,7 @@ def anchor(heading: str, index: dict, baseurl: str = "", page_path: str | None =
     # Use first match
     page, anchor_id = results[0]
     url = page.url if hasattr(page, "url") else f"/{page.slug}/"
-    
+
     # Apply base URL prefix if configured
     if baseurl:
         baseurl = baseurl.rstrip("/")
@@ -309,9 +309,9 @@ def relref(path: str, index: dict, baseurl: str = "") -> str:
     page = doc(path, index)
     if not page:
         return ""
-    
+
     url = page.url if hasattr(page, "url") else f"/{page.slug}/"
-    
+
     # Apply base URL prefix if configured
     if baseurl:
         baseurl = baseurl.rstrip("/")
@@ -323,5 +323,5 @@ def relref(path: str, index: dict, baseurl: str = "") -> str:
         else:
             base_path = "/" + baseurl.lstrip("/")
             return f"{base_path}{url}"
-    
+
     return url

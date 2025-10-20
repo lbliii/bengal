@@ -4,6 +4,9 @@ File system event handler for automatic site rebuilds.
 Watches for file changes and triggers incremental rebuilds with debouncing.
 """
 
+
+from __future__ import annotations
+
 import threading
 import time
 from datetime import datetime
@@ -12,8 +15,8 @@ from typing import Any
 
 from watchdog.events import FileSystemEvent, FileSystemEventHandler
 
-from bengal.server.live_reload import notify_clients_reload
 from bengal.utils.build_stats import display_build_stats, show_building_indicator, show_error
+from bengal.utils.cli_output import CLIOutput
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -197,9 +200,10 @@ class BuildHandler(FileSystemEventHandler):
             self.pending_changes.clear()
 
             timestamp = datetime.now().strftime("%H:%M:%S")
-            print(f"\n  \033[90m{'─' * 78}\033[0m")
-            print(f"  {timestamp} │ \033[33m📝 File changed:\033[0m {file_name}")
-            print(f"  \033[90m{'─' * 78}\033[0m\n")
+
+            # Use CLIOutput for consistent formatting
+            cli = CLIOutput()
+            cli.file_change_notice(file_name=file_name, timestamp=timestamp)
             show_building_indicator("Rebuilding")
 
             build_start = time.time()
@@ -231,12 +235,8 @@ class BuildHandler(FileSystemEventHandler):
                 display_build_stats(stats, show_art=False, output_dir=str(self.site.output_dir))
 
                 # Show server URL after rebuild for easy access
-                print(
-                    f"\n  \033[36m➜\033[0m  Local: \033[1mhttp://{self.host}:{self.port}/\033[0m\n"
-                )
-
-                print(f"  \033[90m{'TIME':8} │ {'METHOD':6} │ {'STATUS':3} │ PATH\033[0m")
-                print(f"  \033[90m{'─' * 8}─┼─{'─' * 6}─┼─{'─' * 3}─┼─{'─' * 60}\033[0m")
+                cli.server_url_inline(host=self.host, port=self.port)
+                cli.request_log_header()
 
                 logger.info(
                     "rebuild_complete",
@@ -275,8 +275,8 @@ class BuildHandler(FileSystemEventHandler):
                 build_duration = time.time() - build_start
 
                 show_error(f"Build failed: {e}", show_art=False)
-                print(f"\n  \033[90m{'TIME':8} │ {'METHOD':6} │ {'STATUS':3} │ PATH\033[0m")
-                print(f"  \033[90m{'─' * 8}─┼─{'─' * 6}─┼─{'─' * 3}─┼─{'─' * 60}\033[0m")
+                cli.blank()
+                cli.request_log_header()
 
                 logger.error(
                     "rebuild_failed",
@@ -341,6 +341,7 @@ class BuildHandler(FileSystemEventHandler):
             # Allow override via config: dev.watch.debounce_ms or env BENGAL_DEBOUNCE_MS
             delay = self.DEBOUNCE_DELAY
             import os as _os
+
             from bengal.server.utils import get_dev_config, safe_int
 
             debounce_ms_env = _os.environ.get("BENGAL_DEBOUNCE_MS")

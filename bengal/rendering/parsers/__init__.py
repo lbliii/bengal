@@ -6,6 +6,9 @@ Supports multiple parser engines:
 - mistune: Fast, subset of features
 """
 
+
+from __future__ import annotations
+
 from bengal.rendering.parsers.base import BaseMarkdownParser
 from bengal.rendering.parsers.mistune import MistuneParser
 from bengal.rendering.parsers.python_markdown import PythonMarkdownParser

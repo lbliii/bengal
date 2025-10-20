@@ -6,6 +6,9 @@ Provides safe normalization helpers for section references that may be either
 runtime vs cached/incremental data structures).
 """
 
+
+from __future__ import annotations
+
 from typing import Any
 
 

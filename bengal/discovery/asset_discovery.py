@@ -2,6 +2,9 @@
 Asset discovery - finds and organizes static assets.
 """
 
+
+from __future__ import annotations
+
 from pathlib import Path
 
 from bengal.core.asset import Asset
@@ -60,11 +63,14 @@ class AssetDiscovery:
 
                 self.assets.append(asset)
 
-        # Validate warning-only
+        # Validate assets (debug-level only - small assets are normal)
         for asset in self.assets:
             try:
-                if Path(asset.source_path).stat().st_size < 1000:
-                    logger.warning(f"Small asset: {asset.source_path}")
+                size = Path(asset.source_path).stat().st_size
+                if size < 1000:
+                    # Debug only: Small assets (favicons, icons, etc.) are perfectly normal
+                    logger.debug("small_asset_discovered", path=str(asset.source_path), size_bytes=size)
             except (AttributeError, FileNotFoundError):
-                logger.warning(f"Asset without valid path: {asset}")
+                # This indicates a bug in asset creation - log as warning
+                logger.warning("asset_missing_path", asset=str(asset))
         return self.assets

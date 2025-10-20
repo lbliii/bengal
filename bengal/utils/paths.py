@@ -4,6 +4,9 @@ Path utilities for Bengal SSG.
 Provides consistent path management for temporary files, logs, and profiles.
 """
 
+
+from __future__ import annotations
+
 from pathlib import Path
 
 

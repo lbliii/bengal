@@ -1,9 +1,13 @@
 import concurrent.futures
 from pathlib import Path
 
+import pytest
+
 from bengal.core.site import Site
 
 
+@pytest.mark.serial
+@pytest.mark.parallel_unsafe
 class TestConcurrentBuilds:
     def test_concurrent_full_builds(self, tmp_path):
         site_root = Path(tmp_path)

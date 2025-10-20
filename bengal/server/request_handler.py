@@ -4,6 +4,9 @@ Custom HTTP request handler for the dev server.
 Provides beautiful logging, custom 404 pages, and live reload support.
 """
 
+
+from __future__ import annotations
+
 import http.server
 import re
 import threading

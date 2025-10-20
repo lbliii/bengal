@@ -4,6 +4,9 @@ Math functions for templates.
 Provides 6 essential mathematical operations for calculations in templates.
 """
 
+
+from __future__ import annotations
+
 import math
 from typing import TYPE_CHECKING
 
@@ -15,7 +18,7 @@ if TYPE_CHECKING:
 type Number = int | float
 
 
-def register(env: "Environment", site: "Site") -> None:
+def register(env: Environment, site: Site) -> None:
     """Register math functions with Jinja2 environment."""
     env.filters.update(
         {

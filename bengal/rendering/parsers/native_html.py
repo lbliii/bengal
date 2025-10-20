@@ -16,6 +16,9 @@ Performance:
 - Suitable for high-volume build-time validation
 """
 
+
+from __future__ import annotations
+
 from html.parser import HTMLParser
 
 
@@ -74,7 +77,7 @@ class NativeHTMLParser(HTMLParser):
         if not self.in_code_block and not self.in_script and not self.in_style:
             self.text_parts.append(data)
 
-    def feed(self, data: str) -> "NativeHTMLParser":
+    def feed(self, data: str) -> NativeHTMLParser:
         """
         Parse HTML content and return self for chaining.
 

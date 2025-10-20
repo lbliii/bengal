@@ -5,6 +5,9 @@ Provides note, warning, tip, danger, and other callout boxes with
 full markdown support.
 """
 
+
+from __future__ import annotations
+
 from mistune.directives import DirectivePlugin
 
 from bengal.utils.logger import get_logger

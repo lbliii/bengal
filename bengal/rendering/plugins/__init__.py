@@ -35,6 +35,9 @@ For detailed documentation on each plugin, see:
     - directives/ package
 """
 
+
+from __future__ import annotations
+
 import warnings
 
 from bengal.rendering.plugins.badges import BadgePlugin

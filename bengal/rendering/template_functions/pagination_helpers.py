@@ -4,6 +4,9 @@ Pagination helper functions for templates.
 Provides 3 functions for building pagination controls.
 """
 
+
+from __future__ import annotations
+
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
@@ -12,7 +15,7 @@ if TYPE_CHECKING:
     from bengal.core.site import Site
 
 
-def register(env: "Environment", site: "Site") -> None:
+def register(env: Environment, site: Site) -> None:
     """Register pagination helper functions with Jinja2 environment."""
     env.filters.update(
         {

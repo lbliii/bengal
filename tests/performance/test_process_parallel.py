@@ -42,10 +42,13 @@ def render_page_process(args):
 
 
 @pytest.mark.slow
+@pytest.mark.serial
+@pytest.mark.parallel_unsafe
 def test_thread_vs_process_rendering():
     """Compare thread-based vs process-based rendering.
-    
+
     Marked slow: Creates and renders 1000 complex pages (~117s).
+    Marked serial/parallel_unsafe: Uses ProcessPoolExecutor which conflicts with pytest-xdist.
     """
 
     # Create test site

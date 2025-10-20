@@ -14,6 +14,9 @@ Helps improve:
 - User navigation
 """
 
+
+from __future__ import annotations
+
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
@@ -41,8 +44,8 @@ class LinkSuggestion:
         reasons: List of reasons why this link is suggested
     """
 
-    source: "Page"
-    target: "Page"
+    source: Page
+    target: Page
     score: float
     reasons: list[str] = field(default_factory=list)
 
@@ -67,7 +70,7 @@ class LinkSuggestionResults:
     total_suggestions: int
     pages_analyzed: int
 
-    def get_suggestions_for_page(self, page: "Page", limit: int = 10) -> list[LinkSuggestion]:
+    def get_suggestions_for_page(self, page: Page, limit: int = 10) -> list[LinkSuggestion]:
         """
         Get link suggestions for a specific page.
 
@@ -85,7 +88,7 @@ class LinkSuggestionResults:
         """Get top N suggestions across all pages."""
         return sorted(self.suggestions, key=lambda x: x.score, reverse=True)[:limit]
 
-    def get_suggestions_by_target(self, target: "Page") -> list[LinkSuggestion]:
+    def get_suggestions_by_target(self, target: Page) -> list[LinkSuggestion]:
         """Get all suggestions that point to a specific target page."""
         return [s for s in self.suggestions if s.target == target]
 
@@ -108,7 +111,7 @@ class LinkSuggestionEngine:
     """
 
     def __init__(
-        self, graph: "KnowledgeGraph", min_score: float = 0.3, max_suggestions_per_page: int = 10
+        self, graph: KnowledgeGraph, min_score: float = 0.3, max_suggestions_per_page: int = 10
     ):
         """
         Initialize link suggestion engine.
@@ -180,12 +183,12 @@ class LinkSuggestionEngine:
 
     def _generate_suggestions_for_page(
         self,
-        source: "Page",
-        all_pages: list["Page"],
-        page_tags: dict["Page", set[str]],
-        page_categories: dict["Page", set[str]],
-        pagerank_scores: dict["Page", float],
-        betweenness_scores: dict["Page", float],
+        source: Page,
+        all_pages: list[Page],
+        page_tags: dict[Page, set[str]],
+        page_categories: dict[Page, set[str]],
+        pagerank_scores: dict[Page, float],
+        betweenness_scores: dict[Page, float],
     ) -> list[LinkSuggestion]:
         """Generate link suggestions for a single page."""
         # Get existing links from this page
@@ -220,12 +223,12 @@ class LinkSuggestionEngine:
 
     def _calculate_link_score(
         self,
-        source: "Page",
-        target: "Page",
-        page_tags: dict["Page", set[str]],
-        page_categories: dict["Page", set[str]],
-        pagerank_scores: dict["Page", float],
-        betweenness_scores: dict["Page", float],
+        source: Page,
+        target: Page,
+        page_tags: dict[Page, set[str]],
+        page_categories: dict[Page, set[str]],
+        pagerank_scores: dict[Page, float],
+        betweenness_scores: dict[Page, float],
     ) -> tuple[float, list[str]]:
         """
         Calculate link score between two pages.
@@ -292,7 +295,7 @@ class LinkSuggestionEngine:
 
         return score, reasons
 
-    def _build_tag_map(self, pages: list["Page"]) -> dict["Page", set[str]]:
+    def _build_tag_map(self, pages: list[Page]) -> dict[Page, set[str]]:
         """Build mapping of page -> set of tags."""
         tag_map = {}
         for page in pages:
@@ -302,7 +305,7 @@ class LinkSuggestionEngine:
             tag_map[page] = tags
         return tag_map
 
-    def _build_category_map(self, pages: list["Page"]) -> dict["Page", set[str]]:
+    def _build_category_map(self, pages: list[Page]) -> dict[Page, set[str]]:
         """Build mapping of page -> set of categories."""
         category_map = {}
         for page in pages:
@@ -316,7 +319,7 @@ class LinkSuggestionEngine:
 
 
 def suggest_links(
-    graph: "KnowledgeGraph", min_score: float = 0.3, max_suggestions_per_page: int = 10
+    graph: KnowledgeGraph, min_score: float = 0.3, max_suggestions_per_page: int = 10
 ) -> LinkSuggestionResults:
     """
     Convenience function for link suggestions.

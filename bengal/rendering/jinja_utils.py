@@ -5,6 +5,9 @@ Provides helpers for working with Jinja2's Undefined objects and accessing
 template context safely.
 """
 
+
+from __future__ import annotations
+
 from typing import Any
 
 from jinja2 import is_undefined as jinja_is_undefined

@@ -7,7 +7,7 @@ name = "bengal"
 version = "0.1.2"
 description = "A high-performance static site generator with modular architecture"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.14"
 license = "MIT"
 authors = [{ name = "Bengal Contributors", email = "lbeeze@icloud.com" }]
 keywords = [
@@ -23,7 +23,6 @@ classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
     "Topic :: Documentation",
     "Topic :: Software Development :: Documentation",
@@ -35,7 +34,6 @@ dependencies = [
     "jinja2>=3.1.0",
     "pyyaml>=6.0",
     "toml>=0.10.0",
-    "watchdog>=3.0.0",
     "pygments>=2.18.0",
     "python-frontmatter>=1.0.0",
     "csscompressor>=0.9.5",
@@ -47,6 +45,9 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+server = [
+    "watchdog>=3.0.0", # File watching for dev server auto-reload
+]
 css = [
     "lightningcss>=0.2.0", # CSS bundling and optimization (Rust-based, may not support all Python versions)
 ]
@@ -58,8 +59,9 @@ dev = [
     "pytest-timeout>=2.2.0",
     "hypothesis>=6.92.0",
     "mypy>=1.11.0",
-    "ruff>=0.6.0",
+    "ruff>=0.14.0",  # 0.14+ required for Python 3.14 support
     "beautifulsoup4>=4.12.0", # For HTML validation in integration tests only
+    "watchdog>=3.0.0",        # Required for dev server tests
 ]
 # Note: parsing extra removed - Bengal uses stdlib html.parser (NativeHTMLParser)
 # for build-time validation. BS4/lxml were removed for performance.
@@ -87,7 +89,7 @@ bengal = [
 
 [tool.ruff]
 line-length = 100
-target-version = "py312"
+target-version = "py314"
 
 [tool.ruff.lint]
 # Enable Python upgrade rules and other quality checks
@@ -107,7 +109,7 @@ select = [
 "tests/**/*.py" = ["S101"] # Allow assert in tests
 
 [tool.mypy]
-python_version = "3.12"
+python_version = "3.14"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true

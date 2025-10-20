@@ -4,6 +4,9 @@ Base classes for autodoc system.
 Provides common interfaces for all documentation extractors.
 """
 
+
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -39,7 +42,7 @@ class DocElement:
     source_file: Path | None = None
     line_number: int | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
-    children: list["DocElement"] = field(default_factory=list)
+    children: list[DocElement] = field(default_factory=list)
     examples: list[str] = field(default_factory=list)
     see_also: list[str] = field(default_factory=list)
     deprecated: str | None = None
@@ -61,7 +64,7 @@ class DocElement:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "DocElement":
+    def from_dict(cls, data: dict[str, Any]) -> DocElement:
         """Create from dictionary (for cache loading)."""
         children = [cls.from_dict(child) for child in data.get("children", [])]
         source_file = Path(data["source_file"]) if data.get("source_file") else None

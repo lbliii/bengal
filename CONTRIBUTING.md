@@ -6,7 +6,7 @@ Thank you for your interest in contributing to Bengal! This document provides gu
 
 ### Prerequisites
 
-- Python 3.12 or higher
+- Python 3.14 or higher
 - [uv](https://docs.astral.sh/uv/) (recommended) or pip
 - Git
 
@@ -115,7 +115,7 @@ mypy bengal/
 
 ### Python Style
 
-Bengal uses **Python 3.12+** features and modern syntax:
+Bengal uses **Python 3.14+** features and modern syntax:
 
 **Type Hints:**
 - ✅ Use `X | Y` instead of `Union[X, Y]`
@@ -198,7 +198,7 @@ def test_simple_build(site, build_site):
     """Test basic site building."""
     # site is pre-configured from test-basic root
     build_site()
-    
+
     # Assert on results
     assert len(site.pages) == 1
     assert (site.output_dir / "index.html").exists()
@@ -233,18 +233,18 @@ from tests._testing.cli import run_cli
 def test_version_command():
     """Test version command."""
     result = run_cli(["--version"])
-    
+
     # Assertions
     result.assert_ok()  # returncode == 0
     assert "Bengal" in result.stdout
-    
+
     # Errors are automatically stripped of ANSI codes
 
 
 def test_build_command_failure():
     """Test build command with invalid site."""
     result = run_cli(["site", "build"], cwd="/nonexistent")
-    
+
     result.assert_fail_with()  # returncode != 0
     result.assert_stderr_contains("not found")
 ```
@@ -260,10 +260,10 @@ def test_asset_hashing(site, build_site):
     """Test asset hashing in output."""
     build_site()
     html = (site.output_dir / "index.html").read_text()
-    
+
     # Normalize volatile elements (paths, hashes, timestamps)
     norm_html = normalize_html(html)
-    
+
     # Assert on stable patterns
     assert 'href="/assets/css/style.HASH.css"' in norm_html
 ```
@@ -279,14 +279,14 @@ def test_external_links(site, build_site, http_server, tmp_path):
     fixtures = tmp_path / "fixtures"
     fixtures.mkdir()
     (fixtures / "test.html").write_text("<h1>Test</h1>")
-    
+
     # Start server
     base_url = http_server.start(fixtures)
-    
+
     # Build site with links to server
     # ... configure site to link to base_url ...
     build_site()
-    
+
     # Assert link checking works
     # ...
 ```

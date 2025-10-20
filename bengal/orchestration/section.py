@@ -5,6 +5,9 @@ Handles section lifecycle: ensuring all sections have index pages,
 validation, and structural integrity.
 """
 
+
+from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
 from bengal.content_types.registry import detect_content_type, get_strategy
@@ -34,7 +37,7 @@ class SectionOrchestrator:
     separate from cross-cutting concerns like taxonomies (tags, categories).
     """
 
-    def __init__(self, site: "Site"):
+    def __init__(self, site: Site):
         """
         Initialize section orchestrator.
 
@@ -84,7 +87,7 @@ class SectionOrchestrator:
 
         logger.info("section_finalization_complete", archives_created=archive_count)
 
-    def _finalize_recursive_filtered(self, section: "Section", affected_sections: set[str]) -> int:
+    def _finalize_recursive_filtered(self, section: Section, affected_sections: set[str]) -> int:
         """
         Recursively finalize only affected sections (incremental optimization).
 
@@ -124,7 +127,7 @@ class SectionOrchestrator:
 
         return archive_count
 
-    def _finalize_recursive(self, section: "Section") -> int:
+    def _finalize_recursive(self, section: Section) -> int:
         """
         Recursively finalize a section and its subsections.
 
@@ -167,7 +170,7 @@ class SectionOrchestrator:
 
         return archive_count
 
-    def _detect_content_type(self, section: "Section") -> str:
+    def _detect_content_type(self, section: Section) -> str:
         """
         Detect what kind of content this section contains.
 
@@ -181,7 +184,7 @@ class SectionOrchestrator:
         """
         return detect_content_type(section)
 
-    def _should_paginate(self, section: "Section", content_type: str) -> bool:
+    def _should_paginate(self, section: Section, content_type: str) -> bool:
         """
         Determine if section should have pagination.
 
@@ -220,7 +223,7 @@ class SectionOrchestrator:
         strategy = get_strategy(content_type)
         return strategy.get_template()
 
-    def _prepare_posts_list(self, section: "Section", content_type: str) -> list["Page"]:
+    def _prepare_posts_list(self, section: Section, content_type: str) -> list[Page]:
         """
         Prepare the posts list for a section using content type strategy.
 
@@ -241,7 +244,7 @@ class SectionOrchestrator:
         # Sort according to content type
         return strategy.sort_pages(filtered_pages)
 
-    def _create_archive_index(self, section: "Section") -> "Page":
+    def _create_archive_index(self, section: Section) -> Page:
         """
         Create an auto-generated index page for a section.
 
@@ -316,7 +319,7 @@ class SectionOrchestrator:
 
         return archive_page
 
-    def _enrich_existing_index(self, section: "Section") -> None:
+    def _enrich_existing_index(self, section: Section) -> None:
         """
         Enrich an existing user-created index page with section context.
 
@@ -390,7 +393,7 @@ class SectionOrchestrator:
             errors.extend(self._validate_recursive(section))
         return errors
 
-    def _validate_recursive(self, section: "Section") -> list[str]:
+    def _validate_recursive(self, section: Section) -> list[str]:
         """
         Recursively validate a section and its subsections.
 

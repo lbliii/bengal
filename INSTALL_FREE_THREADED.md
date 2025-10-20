@@ -194,36 +194,31 @@ ls -la /usr/local/bin/python3.14t
 export PATH="/Library/Frameworks/Python.framework/Versions/3.14/bin:$PATH"
 ```
 
-### RuntimeWarning about GIL being enabled
+### File Watching in Dev Server
 
-You may see warnings like:
+Bengal's dev server (`bengal site serve`) automatically avoids GIL warnings by using a polling-based file watcher when the GIL is disabled, rather than loading native extensions.
 
-```
-RuntimeWarning: The global interpreter lock (GIL) has been enabled to load module '_watchdog_fsevents',
-which has not declared that it can run safely without the GIL.
-```
-
-**This is expected and safe to ignore.** Here's why:
-
-- The warning comes from third-party libraries (like `watchdog` for file monitoring) that haven't been updated yet to declare GIL-safety
-- Python 3.14t is being conservative and temporarily enables the GIL just for those specific modules
-- **Your build performance is not affected** - Bengal's parallel rendering code doesn't depend on these libraries
-- The ~1.8x speedup for rendering still applies
-
-**To suppress the warning**, set `PYTHON_GIL=0` in your shell:
+If you want to use the dev server without any file watching dependencies:
 
 ```bash
-# Run with warnings suppressed
-PYTHON_GIL=0 bengal site build
+# Install without watchdog (optional)
+pip install bengal
 
-# Or combine with --fast for maximum speed
-PYTHON_GIL=0 bengal site build --fast
-
-# Make it permanent (add to ~/.zshrc or ~/.bashrc)
-export PYTHON_GIL=0
+# Run dev server without file watching
+bengal site serve --no-watch
 ```
 
-⚠️ **Note:** Setting `PYTHON_GIL=0` forces the GIL to stay disabled even for modules that might need it. This is generally safe for Bengal, but use at your own risk.
+Or install with dev server support:
+
+```bash
+# Install with file watching support
+pip install bengal[server]
+
+# Dev server with auto-reload (automatically uses polling in free-threaded Python)
+bengal site serve
+```
+
+**Note:** In free-threaded Python with GIL disabled, Bengal automatically uses a pure-Python polling watcher instead of native file system extensions, so you won't see GIL warnings.
 
 ### Import errors with native extensions
 

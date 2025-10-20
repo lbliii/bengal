@@ -4,6 +4,9 @@ Debug utility functions for templates.
 Provides 3 functions for debugging templates during development.
 """
 
+
+from __future__ import annotations
+
 import pprint
 from typing import TYPE_CHECKING, Any
 
@@ -13,7 +16,7 @@ if TYPE_CHECKING:
     from bengal.core.site import Site
 
 
-def register(env: "Environment", site: "Site") -> None:
+def register(env: Environment, site: Site) -> None:
     """Register debug utility functions with Jinja2 environment."""
     env.filters.update(
         {

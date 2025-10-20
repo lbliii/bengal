@@ -2,6 +2,9 @@
 Generate CSS for self-hosted fonts.
 """
 
+
+from __future__ import annotations
+
 from bengal.fonts.downloader import FontVariant
 
 

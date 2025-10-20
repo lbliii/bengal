@@ -5,6 +5,9 @@ Caches parsed directive content by content hash to avoid expensive
 re-parsing of identical directive blocks.
 """
 
+
+from __future__ import annotations
+
 import hashlib
 from collections import OrderedDict
 from typing import Any

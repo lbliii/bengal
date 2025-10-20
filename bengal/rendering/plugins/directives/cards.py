@@ -39,6 +39,9 @@ Examples:
     ::::
 """
 
+
+from __future__ import annotations
+
 from re import Match
 from typing import Any
 

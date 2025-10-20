@@ -5,6 +5,9 @@ Handles taxonomy collection (tags, categories) and dynamic page generation
 (tag pages, archive pages, etc.).
 """
 
+
+from __future__ import annotations
+
 import concurrent.futures
 from datetime import datetime
 from pathlib import Path
@@ -39,7 +42,7 @@ class TaxonomyOrchestrator:
     Note: Section archive pages are now handled by SectionOrchestrator
     """
 
-    def __init__(self, site: "Site", threshold: int = 20, parallel: bool = True):
+    def __init__(self, site: Site, threshold: int = 20, parallel: bool = True):
         """
         Initialize taxonomy orchestrator.
 
@@ -94,7 +97,7 @@ class TaxonomyOrchestrator:
             )
 
     def collect_and_generate_incremental(
-        self, changed_pages: list["Page"], cache: "BuildCache"
+        self, changed_pages: list[Page], cache: BuildCache
     ) -> set[str]:
         """
         Incrementally update taxonomies for changed pages only.
@@ -268,7 +271,7 @@ class TaxonomyOrchestrator:
             total_pages_checked=len(self.site.pages),
         )
 
-    def _rebuild_taxonomy_structure_from_cache(self, cache: "BuildCache") -> None:
+    def _rebuild_taxonomy_structure_from_cache(self, cache: BuildCache) -> None:
         """
         Rebuild site.taxonomies from cache using CURRENT Page objects.
 
@@ -341,7 +344,7 @@ class TaxonomyOrchestrator:
         self.generate_dynamic_pages_for_tags_with_cache(affected_tags, taxonomy_index=None)
 
     def generate_dynamic_pages_for_tags_with_cache(
-        self, affected_tags: set, taxonomy_index: "TaxonomyIndex" = None
+        self, affected_tags: set, taxonomy_index: TaxonomyIndex = None
     ) -> None:
         """
         Generate dynamic pages only for specific affected tags with TaxonomyIndex optimization (Phase 2c.2).
@@ -627,7 +630,7 @@ class TaxonomyOrchestrator:
 
         return len(all_generated_pages)
 
-    def _create_tag_index_page(self) -> "Page":
+    def _create_tag_index_page(self) -> Page:
         """
         Create the main tags index page.
 
@@ -657,7 +660,7 @@ class TaxonomyOrchestrator:
 
         return tag_index
 
-    def _create_tag_index_page_for(self, tags: dict[str, Any]) -> "Page":
+    def _create_tag_index_page_for(self, tags: dict[str, Any]) -> Page:
         from bengal.core.page import Page
 
         virtual_path = self.url_strategy.make_virtual_path(self.site, "tags")
@@ -676,7 +679,7 @@ class TaxonomyOrchestrator:
         tag_index.output_path = self.url_strategy.compute_tag_index_output_path(self.site)
         return tag_index
 
-    def _create_tag_pages(self, tag_slug: str, tag_data: dict[str, Any]) -> list["Page"]:
+    def _create_tag_pages(self, tag_slug: str, tag_data: dict[str, Any]) -> list[Page]:
         """
         Create pages for an individual tag (with pagination if needed).
 
@@ -731,7 +734,7 @@ class TaxonomyOrchestrator:
 
     def _create_tag_pages_for_lang(
         self, tag_slug: str, tag_data: dict[str, Any], lang: str
-    ) -> list["Page"]:
+    ) -> list[Page]:
         from bengal.core.page import Page
         from bengal.utils.pagination import Paginator
 
@@ -765,7 +768,7 @@ class TaxonomyOrchestrator:
         return pages_to_create
 
     def generate_tag_pages(
-        self, tags: list, selective: bool = False, context: "BuildContext" = None
+        self, tags: list, selective: bool = False, context: BuildContext = None
     ):
         if context:
             self.threshold = context.get("threshold", 20)  # DI from context

@@ -1,5 +1,8 @@
 """Bridge pages and navigation bottleneck analysis command."""
 
+
+from __future__ import annotations
+
 import json
 from pathlib import Path
 

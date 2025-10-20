@@ -8,6 +8,9 @@ The engine pre-computes page-section relationships for O(1) top-level
 page detection, improving performance from O(n²) to O(n).
 """
 
+
+from __future__ import annotations
+
 from typing import Any
 
 from bengal.utils.logger import get_logger

@@ -22,6 +22,9 @@ Usage:
     stats = orchestrator.build(parallel=True, incremental=True)
 """
 
+
+from __future__ import annotations
+
 from bengal.orchestration.asset import AssetOrchestrator
 from bengal.orchestration.build import BuildOrchestrator
 from bengal.orchestration.content import ContentOrchestrator

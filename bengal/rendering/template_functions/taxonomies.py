@@ -4,6 +4,9 @@ Taxonomy helper functions for templates.
 Provides 4 functions for working with tags, categories, and related content.
 """
 
+
+from __future__ import annotations
+
 from typing import TYPE_CHECKING, Any
 
 try:
@@ -24,7 +27,7 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
-def register(env: "Environment", site: "Site") -> None:
+def register(env: Environment, site: Site) -> None:
     """Register taxonomy helper functions with Jinja2 environment."""
 
     # Create closures that have access to site
@@ -49,10 +52,10 @@ def register(env: "Environment", site: "Site") -> None:
         prefix = ""
         if strategy == "prefix" and lang and (default_in_subdir or lang != default_lang):
             prefix = f"/{lang}"
-        
+
         # Generate tag URL and apply base URL
         relative_url = f"{prefix}{tag_url(tag)}"
-        
+
         # Apply base URL prefix if configured
         baseurl = site.config.get("baseurl", "") or ""
         if baseurl:
@@ -66,7 +69,7 @@ def register(env: "Environment", site: "Site") -> None:
             else:
                 base_path = "/" + baseurl.lstrip("/")
                 return f"{base_path}{relative_url}"
-        
+
         return relative_url
 
     env.filters.update(

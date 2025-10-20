@@ -56,7 +56,7 @@ Welcome to Bengal SSG! This guide will help you get up and running.
 
 ## Prerequisites
 
-- Python 3.12 or higher
+- Python 3.14 or higher
 - [uv](https://docs.astral.sh/uv/) (recommended) or pip
 - Basic knowledge of Markdown
 
@@ -679,7 +679,7 @@ bengal theme new <slug>      # Scaffold a theme (use --mode site|package)
 
 ## Running Tests on Python 3.14
 
-Bengal requires Python 3.13+, but tests must use 3.14+ for compatibility (e.g., free-threading perf).
+Bengal requires Python 3.14+ for compatibility (including free-threading perf).
 
 1. Ensure venv-3.14 is created: `python3.14 -m venv venv-3.14 && source venv-3.14/bin/activate && pip install -e .[dev]`.
 

@@ -4,6 +4,9 @@ Font downloader using Google Fonts API.
 No external dependencies - uses only Python stdlib.
 """
 
+
+from __future__ import annotations
+
 import re
 import ssl
 import urllib.error

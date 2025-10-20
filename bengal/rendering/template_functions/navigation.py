@@ -4,6 +4,9 @@ Navigation helper functions for templates.
 Provides functions for breadcrumbs, navigation trails, and hierarchical navigation.
 """
 
+
+from __future__ import annotations
+
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
@@ -13,7 +16,7 @@ if TYPE_CHECKING:
     from bengal.core.site import Site
 
 
-def register(env: "Environment", site: "Site") -> None:
+def register(env: Environment, site: Site) -> None:
     """Register navigation functions with Jinja2 environment."""
     env.globals.update(
         {
@@ -26,7 +29,7 @@ def register(env: "Environment", site: "Site") -> None:
     )
 
 
-def get_breadcrumbs(page: "Page") -> list[dict[str, Any]]:
+def get_breadcrumbs(page: Page) -> list[dict[str, Any]]:
     """
     Get breadcrumb items for a page.
 
@@ -400,7 +403,7 @@ def get_pagination_items(
 
 
 def get_nav_tree(
-    page: "Page", root_section: Any | None = None, mark_active_trail: bool = True
+    page: Page, root_section: Any | None = None, mark_active_trail: bool = True
 ) -> list[dict[str, Any]]:
     """
     Build navigation tree with active trail marking.
@@ -563,7 +566,7 @@ def get_nav_tree(
     return build_tree_recursive(root_section)
 
 
-def get_auto_nav(site: "Site") -> list[dict[str, Any]]:
+def get_auto_nav(site: Site) -> list[dict[str, Any]]:
     """
     Auto-discover top-level navigation from site sections.
 

@@ -8,6 +8,9 @@ Validates:
 - Basic dependency tracking works
 """
 
+
+from __future__ import annotations
+
 import json
 from pathlib import Path
 from typing import TYPE_CHECKING, override
@@ -40,7 +43,7 @@ class CacheValidator(BaseValidator):
     enabled_by_default = True
 
     @override
-    def validate(self, site: "Site") -> list[CheckResult]:
+    def validate(self, site: Site) -> list[CheckResult]:
         """Run cache validation checks."""
         results = []
 

@@ -5,6 +5,9 @@ Returns NativeHTMLParser, optimized for build-time validation and health checks.
 Replaced BeautifulSoup4 for performance (~5-10x faster for text extraction).
 """
 
+
+from __future__ import annotations
+
 from bengal.utils.logger import get_logger
 
 from .native_html import NativeHTMLParser

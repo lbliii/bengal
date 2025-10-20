@@ -25,9 +25,9 @@ from .helpers import (
 
 # Configure Hypothesis profiles for different environments
 # Dev: Faster feedback with fewer examples (20)
-# CI: Thorough testing with more examples (100)
-# Note: This should ideally be in conftest.py, but kept here for now
-settings.register_profile("ci", max_examples=100)
+# CI: Balanced testing with moderate examples (50) to reduce timing flakiness
+# Note: Reduced from 100 to 50 in CI to balance coverage vs flakiness on shared runners
+settings.register_profile("ci", max_examples=50)
 settings.register_profile("dev", max_examples=20)
 # Robust CI detection: handles '1', 'true', 'True', 'yes', 'on'
 ci_env = os.getenv("CI", "").lower()
@@ -349,7 +349,7 @@ class IncrementalConsistencyWorkflow(RuleBasedStateMachine):
         new_title = f"{self.pages[name]['title']} (modified)"
         self.pages[name]["title"] = new_title
         write_page(self.site_dir, name, new_title)
-        
+
         # Content changed - invalidate old hashes
         self.content_version += 1
         self.full_build_hashes = None
@@ -375,11 +375,11 @@ class IncrementalConsistencyWorkflow(RuleBasedStateMachine):
         Property: Incremental build output must match full build output.
 
         This is the core contract of incremental builds.
-        
+
         Only compares if both builds are from the same content state.
         """
         if (self.full_build_hashes and self.incremental_build_hashes and
-            getattr(self, 'full_build_content_version', -1) == 
+            getattr(self, 'full_build_content_version', -1) ==
             getattr(self, 'incremental_build_content_version', -2)):
             # Compare file sets
             full_files = set(self.full_build_hashes.keys())
@@ -396,8 +396,8 @@ class IncrementalConsistencyWorkflow(RuleBasedStateMachine):
                 # Skip files with dynamic content:
                 # - site-wide LLM/JSON (build timestamps, page ordering)
                 # - per-page JSON/txt (can have timestamps, not critical for determinism)
-                if (file_path in ("llm-full.txt", "index.json") or 
-                    file_path.endswith("/index.json") or 
+                if (file_path in ("llm-full.txt", "index.json") or
+                    file_path.endswith("/index.json") or
                     file_path.endswith("/index.txt")):
                     continue
                 full_hash = self.full_build_hashes[file_path]

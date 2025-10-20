@@ -4,6 +4,9 @@ Table functions for templates.
 Provides functions for rendering interactive data tables from YAML/CSV files.
 """
 
+
+from __future__ import annotations
+
 from typing import TYPE_CHECKING, Any
 
 from jinja2 import pass_environment
@@ -25,7 +28,7 @@ logger = get_logger(__name__)
 __all__ = ["register", "data_table"]
 
 
-def register(env: "Environment", site: "Site") -> None:
+def register(env: Environment, site: Site) -> None:
     """
     Register table functions with Jinja2 environment.
 
@@ -41,7 +44,7 @@ def register(env: "Environment", site: "Site") -> None:
 
 
 @pass_environment
-def data_table(env: "Environment", path: str, **options: Any) -> Markup:
+def data_table(env: Environment, path: str, **options: Any) -> Markup:
     """
     Render interactive data table from YAML or CSV file.
 

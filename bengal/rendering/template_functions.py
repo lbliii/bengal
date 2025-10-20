@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from bengal.orchestration.related_posts import compute_related
 
 

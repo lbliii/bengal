@@ -35,6 +35,9 @@ Example:
     >>> page = Page(source_path=Path('content/post.md'))
 """
 
+
+from __future__ import annotations
+
 from bengal.core.asset import Asset
 from bengal.core.menu import MenuBuilder, MenuItem
 from bengal.core.page import Page

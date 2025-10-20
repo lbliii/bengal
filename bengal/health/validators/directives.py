@@ -9,6 +9,9 @@ Validates:
 - Performance warnings for directive-heavy pages
 """
 
+
+from __future__ import annotations
+
 import re
 from collections import defaultdict
 from pathlib import Path
@@ -62,7 +65,7 @@ class DirectiveValidator(BaseValidator):
     MAX_TABS_PER_BLOCK = 10  # Warn if single tabs block has more than this
 
     @override
-    def validate(self, site: "Site") -> list[CheckResult]:
+    def validate(self, site: Site) -> list[CheckResult]:
         """Run directive validation checks."""
         results = []
 
@@ -83,7 +86,7 @@ class DirectiveValidator(BaseValidator):
 
         return results
 
-    def _analyze_directives(self, site: "Site") -> dict[str, Any]:
+    def _analyze_directives(self, site: Site) -> dict[str, Any]:
         """
         Analyze all directives in site source files.
 
@@ -500,7 +503,7 @@ class DirectiveValidator(BaseValidator):
 
         return results
 
-    def _check_directive_rendering(self, site: "Site", data: dict[str, Any]) -> list[CheckResult]:
+    def _check_directive_rendering(self, site: Site, data: dict[str, Any]) -> list[CheckResult]:
         """Check that directives rendered properly in output HTML."""
         results = []
         issues = []

@@ -5,6 +5,9 @@ Validates site connectivity, identifies orphaned pages, over-connected hubs,
 and provides insights for better content structure.
 """
 
+
+from __future__ import annotations
+
 from typing import TYPE_CHECKING, override
 
 from bengal.health.base import BaseValidator
@@ -35,7 +38,7 @@ class ConnectivityValidator(BaseValidator):
     enabled_by_default = True  # Enabled in dev profile
 
     @override
-    def validate(self, site: "Site") -> list[CheckResult]:
+    def validate(self, site: Site) -> list[CheckResult]:
         """
         Validate site connectivity.
 

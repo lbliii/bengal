@@ -5,6 +5,9 @@ Provides [[link]] syntax for internal page references with O(1) lookup
 performance using pre-built xref_index.
 """
 
+
+from __future__ import annotations
+
 import re
 from re import Match
 from typing import Any

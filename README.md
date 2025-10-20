@@ -5,7 +5,7 @@
 [![Python Version](https://img.shields.io/pypi/pyversions/bengal.svg)](https://pypi.org/project/bengal/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-A Python static site generator.
+A pythonic static site generator.
 
 ## Features
 
@@ -84,20 +84,32 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 
 # Install Bengal in editable mode for development
 uv pip install -e .
+
+# Or with dev server support (file watching auto-reload)
+uv pip install -e ".[server]"
 ```
 
 **Using pip:**
 
 ```bash
 pip install -e .
+
+# Or with dev server support (file watching auto-reload)
+pip install -e ".[server]"
 ```
 
 For the released version (once available on PyPI):
 
 ```bash
 pip install bengal
-# or with uv: uv pip install bengal
+
+# Or with dev server support
+pip install bengal[server]
 ```
+
+**Optional Dependencies:**
+- `server` - File watching for dev server auto-reload (uses `watchdog`)
+- `css` - Advanced CSS optimization (uses `lightningcss`)
 
 ## Quick Start
 

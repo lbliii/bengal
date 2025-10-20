@@ -9,6 +9,9 @@ Validates:
 - Dates are in RFC 822 format
 """
 
+
+from __future__ import annotations
+
 import xml.etree.ElementTree as ET
 from typing import TYPE_CHECKING, override
 
@@ -36,7 +39,7 @@ class RSSValidator(BaseValidator):
     enabled_by_default = True
 
     @override
-    def validate(self, site: "Site") -> list[CheckResult]:
+    def validate(self, site: Site) -> list[CheckResult]:
         """Run RSS validation checks."""
         results = []
 
@@ -202,7 +205,7 @@ class RSSValidator(BaseValidator):
 
         return results
 
-    def _check_feed_urls(self, root: ET.Element, site: "Site") -> list[CheckResult]:
+    def _check_feed_urls(self, root: ET.Element, site: Site) -> list[CheckResult]:
         """Check URLs in feed are properly formatted."""
         results = []
 

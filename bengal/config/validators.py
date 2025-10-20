@@ -5,6 +5,9 @@ Provides type-safe configuration validation with helpful error messages,
 following Bengal's minimal dependencies and single-responsibility principles.
 """
 
+
+from __future__ import annotations
+
 from pathlib import Path
 from typing import Any
 

@@ -4,9 +4,13 @@ Request logging utilities for the dev server.
 Provides beautiful, minimal logging for HTTP requests with color-coded output.
 """
 
+
+from __future__ import annotations
+
 from datetime import datetime
 from typing import Any
 
+from bengal.utils.cli_output import CLIOutput
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -76,29 +80,17 @@ class RequestLogger:
             client_address=getattr(self, "client_address", ["unknown", 0])[0],
         )
 
-        # Colorize status codes
-        status_color = self._get_status_color(status_code)
-        method_color = self._get_method_color(method)
-
-        # Format path nicely
-        display_path = request_path
-        if len(request_path) > 60:
-            display_path = request_path[:57] + "..."
-
         # Get timestamp
         timestamp = datetime.now().strftime("%H:%M:%S")
 
-        # Add emoji indicators for different types
-        indicator = ""
-        if not is_asset:
-            if status_code.startswith("2"):
-                indicator = "📄 "  # Page load
-            elif status_code.startswith("4"):
-                indicator = "❌ "  # Error
-
-        # Beautiful output
-        print(
-            f"  {timestamp} │ {method_color}{method:6}{self._reset()} │ {status_color}{status_code:3}{self._reset()} │ {indicator}{display_path}"
+        # Use CLIOutput for consistent formatting
+        cli = CLIOutput()
+        cli.http_request(
+            timestamp=timestamp,
+            method=method,
+            status_code=status_code,
+            path=request_path,
+            is_asset=is_asset,
         )
 
     def log_error(self, format: str, *args: Any) -> None:
@@ -124,35 +116,3 @@ class RequestLogger:
         # All other error logging is handled in log_message with proper filtering
         # This prevents duplicate error messages
         pass
-
-    def _get_status_color(self, status: str) -> str:
-        """Get ANSI color code for status code."""
-        try:
-            code = int(status)
-            if 200 <= code < 300:
-                return "\033[32m"  # Green
-            elif code == 304:
-                return "\033[90m"  # Gray
-            elif 300 <= code < 400:
-                return "\033[36m"  # Cyan
-            elif 400 <= code < 500:
-                return "\033[33m"  # Yellow
-            else:
-                return "\033[31m"  # Red
-        except (ValueError, TypeError):
-            return ""
-
-    def _get_method_color(self, method: str) -> str:
-        """Get ANSI color code for HTTP method."""
-        colors = {
-            "GET": "\033[36m",  # Cyan
-            "POST": "\033[33m",  # Yellow
-            "PUT": "\033[35m",  # Magenta
-            "DELETE": "\033[31m",  # Red
-            "PATCH": "\033[35m",  # Magenta
-        }
-        return colors.get(method, "\033[37m")  # Default white
-
-    def _reset(self) -> str:
-        """Get ANSI reset code."""
-        return "\033[0m"

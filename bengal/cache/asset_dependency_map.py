@@ -24,14 +24,17 @@ Asset Types Tracked:
 - Other: data URLs, imports, includes
 """
 
+
+from __future__ import annotations
+
 import json
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from bengal.utils.logger import get_logger
 from bengal.utils.atomic_write import AtomicFile
+from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -61,7 +64,7 @@ class AssetDependencyEntry:
         }
 
     @staticmethod
-    def from_dict(data: dict[str, Any]) -> "AssetDependencyEntry":
+    def from_dict(data: dict[str, Any]) -> AssetDependencyEntry:
         return AssetDependencyEntry(
             assets=set(data["assets"]),
             tracked_at=data["tracked_at"],

@@ -12,6 +12,9 @@ Available tests:
   - translated: Check if page has translations
 """
 
+
+from __future__ import annotations
+
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
@@ -23,7 +26,7 @@ if TYPE_CHECKING:
     from bengal.core.site import Site
 
 
-def register(env: "Environment", site: "Site") -> None:
+def register(env: Environment, site: Site) -> None:
     """
     Register custom template tests with Jinja2 environment.
 

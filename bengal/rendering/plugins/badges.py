@@ -6,6 +6,9 @@ Provides Sphinx-Design badge syntax: {bdg-color}`text`
 Supports badge colors that map to Bengal's design system.
 """
 
+
+from __future__ import annotations
+
 import re
 
 from bengal.utils.logger import get_logger

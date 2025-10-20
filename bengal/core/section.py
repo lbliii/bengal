@@ -2,6 +2,9 @@
 Section Object - Represents a folder or logical grouping of pages.
 """
 
+
+from __future__ import annotations
+
 from dataclasses import dataclass, field
 from functools import cached_property
 from operator import attrgetter

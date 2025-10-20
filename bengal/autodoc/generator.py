@@ -2,6 +2,9 @@
 Documentation generator - renders DocElements to markdown using templates.
 """
 
+
+from __future__ import annotations
+
 import concurrent.futures
 import hashlib
 import json

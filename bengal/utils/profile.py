@@ -17,6 +17,9 @@ Example:
         pass
 """
 
+
+from __future__ import annotations
+
 from enum import Enum
 from typing import Any
 
@@ -36,7 +39,7 @@ class BuildProfile(Enum):
     DEVELOPER = "dev"
 
     @classmethod
-    def from_string(cls, value: str) -> "BuildProfile":
+    def from_string(cls, value: str) -> BuildProfile:
         """
         Parse profile from string.
 
@@ -73,7 +76,7 @@ class BuildProfile(Enum):
         theme_dev: bool = False,
         verbose: bool = False,
         debug: bool = False,
-    ) -> "BuildProfile":
+    ) -> BuildProfile:
         """
         Determine profile from CLI arguments with proper precedence.
 

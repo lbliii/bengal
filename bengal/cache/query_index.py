@@ -19,6 +19,9 @@ Example:
     site.indexes.status.get('published')    # O(1) - published posts
 """
 
+
+from __future__ import annotations
+
 import hashlib
 import json
 from abc import ABC, abstractmethod
@@ -82,7 +85,7 @@ class IndexEntry(Generic[T]):
         }
 
     @staticmethod
-    def from_dict(data: dict[str, Any]) -> "IndexEntry":
+    def from_dict(data: dict[str, Any]) -> IndexEntry:
         """Deserialize from dict."""
         return IndexEntry(
             key=data["key"],
@@ -132,7 +135,7 @@ class QueryIndex(ABC):
         self._load_from_disk()
 
     @abstractmethod
-    def extract_keys(self, page: "Page") -> list[tuple[str, dict[str, Any]]]:
+    def extract_keys(self, page: Page) -> list[tuple[str, dict[str, Any]]]:
         """
         Extract index keys from a page.
 
@@ -160,7 +163,7 @@ class QueryIndex(ABC):
         """
         pass
 
-    def update_page(self, page: "Page", build_cache: "BuildCache") -> set[str]:
+    def update_page(self, page: Page, build_cache: BuildCache) -> set[str]:
         """
         Update index for a single page.
 

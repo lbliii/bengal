@@ -50,11 +50,16 @@ pytest_plugins = ["tests._testing.fixtures", "tests._testing.markers"]
 
 def pytest_collection_modifyitems(config, items):
     """
-    Modify collected test items to filter out non-test functions.
+    Modify collected test items to:
+    1. Filter out non-test functions
+    2. Configure xdist scheduling for parallel-unsafe tests
 
     This prevents pytest from collecting functions like test_draft() from
     bengal/rendering/template_tests.py which are Jinja2 template tests,
     not pytest tests.
+
+    For xdist: Tests marked with 'serial' or 'parallel_unsafe' are assigned
+    to the same worker to prevent "node down" errors from nested multiprocessing.
     """
     # Filter out items that are collected from outside the tests directory
     filtered_items = []
@@ -66,6 +71,12 @@ def pytest_collection_modifyitems(config, items):
         try:
             fspath.relative_to(tests_dir)
             filtered_items.append(item)
+
+            # Mark parallel-unsafe tests for xdist
+            # Tests with these markers should run on the same worker sequentially
+            if any(marker in item.keywords for marker in ["serial", "parallel_unsafe"]):
+                # Add xdist marker to schedule these tests on same worker
+                item.add_marker(pytest.mark.xdist_group(name="serial_group"))
         except ValueError:
             # File is not relative to tests_dir, skip it
             pass

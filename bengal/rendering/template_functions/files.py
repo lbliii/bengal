@@ -4,6 +4,9 @@ File system functions for templates.
 Provides 3 functions for reading files and checking file existence.
 """
 
+
+from __future__ import annotations
+
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -17,7 +20,7 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
-def register(env: "Environment", site: "Site") -> None:
+def register(env: Environment, site: Site) -> None:
     """Register file system functions with Jinja2 environment."""
 
     # Create closures that have access to site

@@ -15,6 +15,9 @@ Example:
         logger.debug("parsed_frontmatter", page=page.path, keys=list(metadata.keys()))
 """
 
+
+from __future__ import annotations
+
 import json
 import time
 import tracemalloc

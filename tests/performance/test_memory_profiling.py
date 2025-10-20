@@ -19,10 +19,11 @@ import statistics
 from pathlib import Path
 
 import pytest
-from memory_test_helpers import MemoryProfiler, profile_memory
 
 from bengal.core.site import Site
 from bengal.utils.logger import LogLevel, _loggers, close_all_loggers, configure_logging
+
+from .memory_test_helpers import MemoryProfiler, profile_memory
 
 
 @pytest.fixture

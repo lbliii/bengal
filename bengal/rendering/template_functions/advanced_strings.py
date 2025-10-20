@@ -4,6 +4,9 @@ Advanced string manipulation functions for templates.
 Provides 5 advanced string transformation functions.
 """
 
+
+from __future__ import annotations
+
 import re
 from typing import TYPE_CHECKING
 
@@ -13,7 +16,7 @@ if TYPE_CHECKING:
     from bengal.core.site import Site
 
 
-def register(env: "Environment", site: "Site") -> None:
+def register(env: Environment, site: Site) -> None:
     """Register advanced string functions with Jinja2 environment."""
     env.filters.update(
         {

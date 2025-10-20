@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import click
 
 from bengal.cli.base import BengalGroup

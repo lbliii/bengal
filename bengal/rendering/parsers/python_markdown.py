@@ -1,5 +1,8 @@
 """Python-markdown parser implementation."""
 
+
+from __future__ import annotations
+
 from typing import Any, override
 
 from bengal.rendering.parsers.base import BaseMarkdownParser

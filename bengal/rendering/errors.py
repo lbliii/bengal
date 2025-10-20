@@ -2,6 +2,9 @@
 Rich template error objects with line numbers, context, and suggestions.
 """
 
+
+from __future__ import annotations
+
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -63,7 +66,7 @@ class TemplateRenderError:
     @classmethod
     def from_jinja2_error(
         cls, error: Exception, template_name: str, page_source: Path | None, template_engine: Any
-    ) -> "TemplateRenderError":
+    ) -> TemplateRenderError:
         """
         Extract rich error information from Jinja2 exception.
 
