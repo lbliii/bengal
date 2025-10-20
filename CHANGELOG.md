@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.3] - 2025-10-20
+
+### Major Release: Performance, Stability, Theme Enhancements & Critical Bug Fixes
+
+This release delivers significant performance improvements, critical bug fixes for incremental builds, comprehensive CLI theming, and extensive theme enhancements. Includes major refactoring for better architecture and a complete test infrastructure overhaul.
+
 ### Added
 
 - **CLI Output Theming**: Introduced branded color palette and semantic styling system
@@ -63,6 +69,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Changed autodoc command template to set `type: cli-reference` instead of `type: cli-command`
   - Ensures individual CLI command pages use the `cli-reference/single.html` template with proper sidebar navigation
   - Pages now correctly render with the full documentation layout including command navigation
+
+- **CRITICAL: Incremental build non-determinism**: Fixed bug where incremental and full builds produced different HTML output, violating core SSG contract
+  - **Root causes identified and fixed:**
+    1. PageProxy missing `permalink` property → broken navigation links in incremental builds
+    2. PageProxy missing `_site` reference → permalink couldn't resolve baseurl
+    3. PageProxy missing `output_path` → postprocessing skipped cached pages (.txt/.json not generated)
+    4. Stale PageProxy objects in `site.pages` during postprocessing → generated output with old content
+    5. Navigation cross-dependencies not tracked → adjacent pages not rebuilt when page title changed
+  - **Solutions implemented:**
+    - Added PageProxy.permalink property with lazy delegation to full Page
+    - Set `_site` and `output_path` on PageProxy during discovery
+    - Transfer `_site`/`_section` when lazy-loading full page
+    - Added Phase 8.4 in build orchestrator: replace stale proxies with fresh pages before postprocessing
+    - Track navigation dependencies: rebuild prev/next pages when page changes
+  - **Impact:** Incremental builds now produce byte-identical output to full builds
+  - **Testing:** Comprehensive deterministic test validates incremental == full for same content
 
 - **Incremental build regression**: Fixed critical `'str' object has no attribute 'path'` error blocking rebuild scenarios
   - PageProxy stores section metadata as string path, not Section object
