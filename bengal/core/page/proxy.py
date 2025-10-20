@@ -381,6 +381,18 @@ class PageProxy:
         self._ensure_loaded()
         return self._full_page.prev if self._full_page else None
 
+    @property
+    def next_in_section(self) -> Page | None:
+        """Get next page in same section."""
+        self._ensure_loaded()
+        return self._full_page.next_in_section if self._full_page else None
+
+    @property
+    def prev_in_section(self) -> Page | None:
+        """Get previous page in same section."""
+        self._ensure_loaded()
+        return self._full_page.prev_in_section if self._full_page else None
+
     # ============================================================================
     # Methods - Delegate to full page
     # ============================================================================
