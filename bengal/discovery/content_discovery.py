@@ -266,7 +266,7 @@ class ContentDiscovery:
 
             if cached_metadata and self._cache_is_valid(page, cached_metadata):
                 # Page is unchanged - create PageProxy instead
-                def make_loader(source_path, current_lang=page.lang, section=page._section):
+                def make_loader(source_path, current_lang, section):
                     def loader(_):
                         # Load full page from disk when needed
                         return self._create_page(
@@ -278,7 +278,7 @@ class ContentDiscovery:
                 proxy = PageProxy(
                     source_path=page.source_path,
                     metadata=cached_metadata,
-                    loader=make_loader(page.source_path),
+                    loader=make_loader(page.source_path, page.lang, page._section),
                 )
 
                 # Copy section and site relationships
