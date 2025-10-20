@@ -1,5 +1,8 @@
 """Autodoc commands for generating API and CLI documentation."""
 
+
+from __future__ import annotations
+
 from pathlib import Path
 
 import click

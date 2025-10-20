@@ -1,5 +1,8 @@
 """Smart link suggestion command for improving internal linking."""
 
+
+from __future__ import annotations
+
 import json
 from pathlib import Path
 

@@ -8,6 +8,9 @@ Validates:
 - SEO metadata present
 """
 
+
+from __future__ import annotations
+
 from typing import TYPE_CHECKING, override
 
 from bengal.health.base import BaseValidator
@@ -34,7 +37,7 @@ class RenderingValidator(BaseValidator):
     enabled_by_default = True
 
     @override
-    def validate(self, site: "Site") -> list[CheckResult]:
+    def validate(self, site: Site) -> list[CheckResult]:
         """Run rendering validation checks."""
         results = []
 
@@ -52,7 +55,7 @@ class RenderingValidator(BaseValidator):
 
         return results
 
-    def _check_html_structure(self, site: "Site") -> list[CheckResult]:
+    def _check_html_structure(self, site: Site) -> list[CheckResult]:
         """Check basic HTML structure in output pages."""
         results = []
         issues = []
@@ -96,7 +99,7 @@ class RenderingValidator(BaseValidator):
 
         return results
 
-    def _check_unrendered_jinja2(self, site: "Site") -> list[CheckResult]:
+    def _check_unrendered_jinja2(self, site: Site) -> list[CheckResult]:
         """Check for unrendered Jinja2 syntax in output."""
         results = []
         issues = []
@@ -159,7 +162,7 @@ class RenderingValidator(BaseValidator):
             # Fallback regex (no bs4)
             return any(p in html_content for p in ["{{ page.", "{{ site."])
 
-    def _check_template_functions(self, site: "Site") -> list[CheckResult]:
+    def _check_template_functions(self, site: Site) -> list[CheckResult]:
         """Check that template functions are registered."""
         results = []
 
@@ -211,7 +214,7 @@ class RenderingValidator(BaseValidator):
 
         return results
 
-    def _check_seo_metadata(self, site: "Site") -> list[CheckResult]:
+    def _check_seo_metadata(self, site: Site) -> list[CheckResult]:
         """Check for basic SEO metadata in pages."""
         results = []
         issues = []

@@ -5,6 +5,9 @@ Provides collapsible sections with markdown support including
 nested directives and code blocks.
 """
 
+
+from __future__ import annotations
+
 from mistune.directives import DirectivePlugin
 
 from bengal.utils.logger import get_logger

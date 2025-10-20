@@ -5,6 +5,9 @@ Provides MyST-style list-table directive for creating tables from nested lists,
 avoiding the pipe character collision issue in type annotations.
 """
 
+
+from __future__ import annotations
+
 import re
 from re import Match
 from typing import Any

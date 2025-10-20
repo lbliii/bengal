@@ -4,6 +4,9 @@ Configuration loader for autodoc.
 Loads autodoc settings from bengal.toml or provides sensible defaults.
 """
 
+
+from __future__ import annotations
+
 from pathlib import Path
 from typing import Any
 

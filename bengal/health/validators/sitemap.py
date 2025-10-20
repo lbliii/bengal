@@ -9,6 +9,9 @@ Validates:
 - Sitemap follows protocol
 """
 
+
+from __future__ import annotations
+
 import xml.etree.ElementTree as ET
 from typing import TYPE_CHECKING, override
 
@@ -37,7 +40,7 @@ class SitemapValidator(BaseValidator):
     enabled_by_default = True
 
     @override
-    def validate(self, site: "Site") -> list[CheckResult]:
+    def validate(self, site: Site) -> list[CheckResult]:
         """Run sitemap validation checks."""
         results = []
 
@@ -114,7 +117,7 @@ class SitemapValidator(BaseValidator):
 
         return results
 
-    def _check_sitemap_urls(self, root: ET.Element, site: "Site") -> list[CheckResult]:
+    def _check_sitemap_urls(self, root: ET.Element, site: Site) -> list[CheckResult]:
         """Check URLs in sitemap are properly formatted."""
         results = []
 
@@ -217,7 +220,7 @@ class SitemapValidator(BaseValidator):
 
         return results
 
-    def _check_sitemap_coverage(self, root: ET.Element, site: "Site") -> list[CheckResult]:
+    def _check_sitemap_coverage(self, root: ET.Element, site: Site) -> list[CheckResult]:
         """Check sitemap includes expected pages."""
         results = []
 

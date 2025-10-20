@@ -5,6 +5,9 @@ Reads collected metrics from .bengal-metrics/ and provides analysis,
 visualization, and trend detection.
 """
 
+
+from __future__ import annotations
+
 import json
 from dataclasses import dataclass
 from datetime import datetime
@@ -58,7 +61,7 @@ class BuildMetric:
         return datetime.fromisoformat(self.timestamp.replace("Z", "+00:00"))
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "BuildMetric":
+    def from_dict(cls, data: dict[str, Any]) -> BuildMetric:
         """Create from dictionary."""
         return cls(
             timestamp=data.get("timestamp", ""),

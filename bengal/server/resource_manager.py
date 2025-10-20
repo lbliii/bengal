@@ -9,6 +9,9 @@ Provides centralized cleanup handling for all termination scenarios:
 - Exceptions (context manager __exit__)
 """
 
+
+from __future__ import annotations
+
 import atexit
 import contextlib
 import signal

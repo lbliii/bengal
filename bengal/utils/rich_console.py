@@ -7,6 +7,9 @@ Provides a singleton console instance that respects:
 - CI/CD environments
 """
 
+
+from __future__ import annotations
+
 import os
 
 from rich.console import Console

@@ -4,6 +4,9 @@ Content transformation functions for templates.
 Provides 6 functions for HTML/content manipulation and transformation.
 """
 
+
+from __future__ import annotations
+
 import html as html_module
 import re
 from typing import TYPE_CHECKING
@@ -14,7 +17,7 @@ if TYPE_CHECKING:
     from bengal.core.site import Site
 
 
-def register(env: "Environment", site: "Site") -> None:
+def register(env: Environment, site: Site) -> None:
     """Register content transformation functions with Jinja2 environment."""
     env.filters.update(
         {

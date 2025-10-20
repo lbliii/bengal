@@ -8,6 +8,9 @@ Each module self-registers its functions to avoid god objects and maintain
 clean separation of concerns.
 """
 
+
+from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
 from bengal.utils.logger import get_logger
@@ -41,7 +44,7 @@ from . import (
 logger = get_logger(__name__)
 
 
-def register_all(env: "Environment", site: "Site") -> None:
+def register_all(env: Environment, site: Site) -> None:
     """
     Register all template functions with Jinja2 environment.
 

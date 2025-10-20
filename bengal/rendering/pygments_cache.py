@@ -12,6 +12,9 @@ Performance Impact (measured on 826-page site):
 - After: ~29s (3× faster)
 """
 
+
+from __future__ import annotations
+
 import threading
 
 from pygments.lexers import get_lexer_by_name, guess_lexer

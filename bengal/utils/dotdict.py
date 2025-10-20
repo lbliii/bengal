@@ -5,6 +5,9 @@ Provides clean attribute-style access to dictionary data while avoiding
 Jinja2 template gotchas (like .items, .keys, .values accessing methods).
 """
 
+
+from __future__ import annotations
+
 from collections.abc import Iterator
 from typing import Any
 
@@ -190,7 +193,7 @@ class DotDict:
         return self._data.items()
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "DotDict":
+    def from_dict(cls, data: dict[str, Any]) -> DotDict:
         """
         Create DotDict from a regular dict, recursively wrapping nested dicts.
 

@@ -4,6 +4,9 @@ Date and time functions for templates.
 Provides 3 functions for date formatting and display.
 """
 
+
+from __future__ import annotations
+
 from datetime import datetime
 from typing import TYPE_CHECKING
 
@@ -13,7 +16,7 @@ if TYPE_CHECKING:
     from bengal.core.site import Site
 
 
-def register(env: "Environment", site: "Site") -> None:
+def register(env: Environment, site: Site) -> None:
     """Register date functions with Jinja2 environment."""
     env.filters.update(
         {

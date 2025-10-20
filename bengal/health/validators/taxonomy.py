@@ -8,6 +8,9 @@ Validates:
 - Pagination works correctly
 """
 
+
+from __future__ import annotations
+
 from typing import TYPE_CHECKING, override
 
 from bengal.health.base import BaseValidator
@@ -33,7 +36,7 @@ class TaxonomyValidator(BaseValidator):
     enabled_by_default = True
 
     @override
-    def validate(self, site: "Site") -> list[CheckResult]:
+    def validate(self, site: Site) -> list[CheckResult]:
         """Run taxonomy validation checks."""
         results = []
 
@@ -51,7 +54,7 @@ class TaxonomyValidator(BaseValidator):
 
         return results
 
-    def _check_tag_pages(self, site: "Site") -> list[CheckResult]:
+    def _check_tag_pages(self, site: Site) -> list[CheckResult]:
         """Check that all tags have corresponding tag pages."""
         results = []
 
@@ -125,7 +128,7 @@ class TaxonomyValidator(BaseValidator):
 
         return results
 
-    def _check_archive_pages(self, site: "Site") -> list[CheckResult]:
+    def _check_archive_pages(self, site: Site) -> list[CheckResult]:
         """Check that sections with content have archive pages."""
         results = []
         issues = []
@@ -163,7 +166,7 @@ class TaxonomyValidator(BaseValidator):
 
         return results
 
-    def _check_taxonomy_consistency(self, site: "Site") -> list[CheckResult]:
+    def _check_taxonomy_consistency(self, site: Site) -> list[CheckResult]:
         """Check taxonomy data consistency."""
         results = []
         issues = []
@@ -208,7 +211,7 @@ class TaxonomyValidator(BaseValidator):
 
         return results
 
-    def _check_pagination(self, site: "Site") -> list[CheckResult]:
+    def _check_pagination(self, site: Site) -> list[CheckResult]:
         """Check pagination integrity."""
         results = []
         issues = []

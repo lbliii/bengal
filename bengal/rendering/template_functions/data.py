@@ -4,6 +4,9 @@ Data manipulation functions for templates.
 Provides 8 functions for working with JSON, YAML, and nested data structures.
 """
 
+
+from __future__ import annotations
+
 import json
 from typing import TYPE_CHECKING, Any
 
@@ -17,7 +20,7 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
-def register(env: "Environment", site: "Site") -> None:
+def register(env: Environment, site: Site) -> None:
     """Register data manipulation functions with Jinja2 environment."""
 
     # Create closures that have access to site

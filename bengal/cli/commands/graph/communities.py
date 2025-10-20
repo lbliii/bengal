@@ -1,5 +1,8 @@
 """Community detection command for discovering topical clusters."""
 
+
+from __future__ import annotations
+
 import json
 from pathlib import Path
 

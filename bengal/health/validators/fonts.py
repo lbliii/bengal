@@ -9,6 +9,9 @@ Validates:
 - Reasonable font file sizes
 """
 
+
+from __future__ import annotations
+
 import re
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, override
@@ -40,7 +43,7 @@ class FontValidator(BaseValidator):
     MAX_FONT_SIZE_KB = 500
 
     @override
-    def validate(self, site: "Site") -> list[CheckResult]:
+    def validate(self, site: Site) -> list[CheckResult]:
         """Run font validation checks."""
         results = []
 

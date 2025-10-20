@@ -13,6 +13,9 @@ Example:
     excerpt = truncate_words("Long text here...", 10)
 """
 
+
+from __future__ import annotations
+
 import html as html_module
 import re
 

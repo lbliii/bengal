@@ -5,6 +5,9 @@ Provides multi-language code examples with tabbed interface for easy
 comparison across programming languages.
 """
 
+
+from __future__ import annotations
+
 import html as html_lib
 import re
 

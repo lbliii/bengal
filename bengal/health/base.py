@@ -4,6 +4,9 @@ Base validator interface for health checks.
 All validators should inherit from BaseValidator and implement the validate() method.
 """
 
+
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
@@ -50,7 +53,7 @@ class BaseValidator(ABC):
     enabled_by_default: bool = True
 
     @abstractmethod
-    def validate(self, site: "Site") -> list["CheckResult"]:
+    def validate(self, site: Site) -> list[CheckResult]:
         """
         Run validation checks and return results.
 

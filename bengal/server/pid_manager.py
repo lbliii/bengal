@@ -30,6 +30,9 @@ automatically cleaned up on normal server shutdown. If the server crashes or
 is killed, the PID file remains and is detected on next startup.
 """
 
+
+from __future__ import annotations
+
 import contextlib
 import os
 import signal

@@ -2,6 +2,8 @@
 Asset Object - Handles images, CSS, JS, and other static files.
 """
 
+from __future__ import annotations
+
 import hashlib
 import shutil
 from dataclasses import dataclass
@@ -96,7 +98,7 @@ class Asset:
         """
         return self.asset_type == "css" and not self.is_css_entry_point()
 
-    def minify(self) -> "Asset":
+    def minify(self) -> Asset:
         """
         Minify the asset (for CSS and JS).
 
@@ -267,7 +269,7 @@ class Asset:
         self.fingerprint = hasher.hexdigest()[:8]
         return self.fingerprint
 
-    def optimize(self) -> "Asset":
+    def optimize(self) -> Asset:
         """
         Optimize the asset (especially for images).
 

@@ -17,6 +17,9 @@ Performance Impact:
 - Avoid full taxonomy structure rebuild
 """
 
+
+from __future__ import annotations
+
 import json
 from dataclasses import dataclass
 from datetime import datetime
@@ -48,7 +51,7 @@ class TagEntry:
         }
 
     @staticmethod
-    def from_dict(data: dict[str, Any]) -> "TagEntry":
+    def from_dict(data: dict[str, Any]) -> TagEntry:
         return TagEntry(
             tag_slug=data["tag_slug"],
             tag_name=data["tag_name"],

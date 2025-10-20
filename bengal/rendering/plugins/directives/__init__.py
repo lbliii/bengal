@@ -9,6 +9,9 @@ Also provides:
 - Error handling and validation
 """
 
+
+from __future__ import annotations
+
 from bengal.rendering.plugins.directives.admonitions import AdmonitionDirective
 from bengal.rendering.plugins.directives.button import ButtonDirective
 from bengal.rendering.plugins.directives.cache import (

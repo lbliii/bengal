@@ -4,6 +4,9 @@ Theme configuration object for Bengal SSG.
 Provides theme-related configuration accessible in templates as `site.theme`.
 """
 
+
+from __future__ import annotations
+
 from dataclasses import dataclass
 from typing import Any
 

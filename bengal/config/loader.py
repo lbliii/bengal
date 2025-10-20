@@ -2,6 +2,9 @@
 Configuration loader supporting TOML and YAML formats.
 """
 
+
+from __future__ import annotations
+
 import difflib
 import multiprocessing
 import os

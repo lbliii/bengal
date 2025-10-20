@@ -3,6 +3,9 @@
 Keeping these in one module ensures docs and defaults stay consistent.
 """
 
+
+from __future__ import annotations
+
 DEFAULT_DEV_HOST: str = "localhost"
 DEFAULT_DEV_PORT: int = 5173
 

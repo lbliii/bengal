@@ -2,6 +2,9 @@
 Renderer for converting pages to final HTML output.
 """
 
+
+from __future__ import annotations
+
 import re
 from typing import Any
 

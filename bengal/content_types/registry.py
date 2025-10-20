@@ -4,6 +4,9 @@ Content type strategy registry.
 Maps content type names to their strategies and provides lookup functionality.
 """
 
+
+from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
 from .base import ContentTypeStrategy
@@ -53,7 +56,7 @@ def get_strategy(content_type: str) -> ContentTypeStrategy:
     return CONTENT_TYPE_REGISTRY.get(content_type, PageStrategy())
 
 
-def detect_content_type(section: "Section") -> str:
+def detect_content_type(section: Section) -> str:
     """
     Auto-detect content type from section characteristics.
 

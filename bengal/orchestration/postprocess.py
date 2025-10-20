@@ -4,6 +4,9 @@ Post-processing orchestration for Bengal SSG.
 Handles post-build tasks like sitemap generation, RSS feeds, and link validation.
 """
 
+
+from __future__ import annotations
+
 import concurrent.futures
 from collections.abc import Callable
 from threading import Lock
@@ -35,7 +38,7 @@ class PostprocessOrchestrator:
         - Parallel/sequential execution of tasks
     """
 
-    def __init__(self, site: "Site"):
+    def __init__(self, site: Site):
         """
         Initialize postprocess orchestrator.
 

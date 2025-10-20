@@ -4,6 +4,9 @@ Request logging utilities for the dev server.
 Provides beautiful, minimal logging for HTTP requests with color-coded output.
 """
 
+
+from __future__ import annotations
+
 from datetime import datetime
 from typing import Any
 

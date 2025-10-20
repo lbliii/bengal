@@ -17,6 +17,9 @@ Usage:
     rss.generate()
 """
 
+
+from __future__ import annotations
+
 from bengal.postprocess.output_formats import OutputFormatsGenerator
 from bengal.postprocess.rss import RSSGenerator
 from bengal.postprocess.sitemap import SitemapGenerator

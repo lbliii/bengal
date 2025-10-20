@@ -4,6 +4,9 @@ Base strategy class for content types.
 Defines the interface that all content type strategies must implement.
 """
 
+
+from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -27,7 +30,7 @@ class ContentTypeStrategy:
     default_template = "index.html"
     allows_pagination = False
 
-    def sort_pages(self, pages: list["Page"]) -> list["Page"]:
+    def sort_pages(self, pages: list[Page]) -> list[Page]:
         """
         Sort pages for display in list views.
 
@@ -42,8 +45,8 @@ class ContentTypeStrategy:
         return sorted(pages, key=lambda p: (p.metadata.get("weight", 999999), p.title.lower()))
 
     def filter_display_pages(
-        self, pages: list["Page"], index_page: "Page | None" = None
-    ) -> list["Page"]:
+        self, pages: list[Page], index_page: Page | None = None
+    ) -> list[Page]:
         """
         Filter which pages to show in list views.
 
@@ -88,7 +91,7 @@ class ContentTypeStrategy:
         """
         return self.default_template
 
-    def detect_from_section(self, section: "Section") -> bool:
+    def detect_from_section(self, section: Section) -> bool:
         """
         Determine if this strategy applies to a section based on heuristics.
 

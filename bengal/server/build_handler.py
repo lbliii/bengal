@@ -4,6 +4,9 @@ File system event handler for automatic site rebuilds.
 Watches for file changes and triggers incremental rebuilds with debouncing.
 """
 
+
+from __future__ import annotations
+
 import threading
 import time
 from datetime import datetime
@@ -12,7 +15,6 @@ from typing import Any
 
 from watchdog.events import FileSystemEvent, FileSystemEventHandler
 
-from bengal.server.live_reload import notify_clients_reload
 from bengal.utils.build_stats import display_build_stats, show_building_indicator, show_error
 from bengal.utils.cli_output import CLIOutput
 from bengal.utils.logger import get_logger
@@ -339,6 +341,7 @@ class BuildHandler(FileSystemEventHandler):
             # Allow override via config: dev.watch.debounce_ms or env BENGAL_DEBOUNCE_MS
             delay = self.DEBOUNCE_DELAY
             import os as _os
+
             from bengal.server.utils import get_dev_config, safe_int
 
             debounce_ms_env = _os.environ.get("BENGAL_DEBOUNCE_MS")

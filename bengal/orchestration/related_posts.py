@@ -4,6 +4,9 @@ Related Posts orchestration for Bengal SSG.
 Builds related posts index during build phase for O(1) template access.
 """
 
+
+from __future__ import annotations
+
 import concurrent.futures
 from typing import TYPE_CHECKING
 
@@ -31,7 +34,7 @@ class RelatedPostsOrchestrator:
     to build-time (O(n·t)), resulting in O(1) template access.
     """
 
-    def __init__(self, site: "Site"):
+    def __init__(self, site: Site):
         """
         Initialize related posts orchestrator.
 
@@ -41,7 +44,7 @@ class RelatedPostsOrchestrator:
         self.site = site
 
     def build_index(
-        self, limit: int = 5, parallel: bool = True, affected_pages: list["Page"] | None = None
+        self, limit: int = 5, parallel: bool = True, affected_pages: list[Page] | None = None
     ) -> None:
         """
         Compute related posts for pages using tag-based matching.
@@ -109,8 +112,8 @@ class RelatedPostsOrchestrator:
 
     def _build_sequential(
         self,
-        pages: list["Page"],
-        page_tags_map: dict["Page", set[str]],
+        pages: list[Page],
+        page_tags_map: dict[Page, set[str]],
         tags_dict: dict[str, dict],
         limit: int,
     ) -> int:
@@ -142,8 +145,8 @@ class RelatedPostsOrchestrator:
 
     def _build_parallel(
         self,
-        pages: list["Page"],
-        page_tags_map: dict["Page", set[str]],
+        pages: list[Page],
+        page_tags_map: dict[Page, set[str]],
         tags_dict: dict[str, dict],
         limit: int,
     ) -> int:
@@ -211,7 +214,7 @@ class RelatedPostsOrchestrator:
         for page in self.site.pages:
             page.related_posts = []
 
-    def _build_page_tags_map(self) -> dict["Page", set[str]]:
+    def _build_page_tags_map(self) -> dict[Page, set[str]]:
         """
         Build mapping of page -> set of tag slugs.
 
@@ -233,11 +236,11 @@ class RelatedPostsOrchestrator:
 
     def _find_related_posts(
         self,
-        page: "Page",
-        page_tags_map: dict["Page", set[str]],
+        page: Page,
+        page_tags_map: dict[Page, set[str]],
         tags_dict: dict[str, dict],
         limit: int,
-    ) -> list["Page"]:
+    ) -> list[Page]:
         """
         Find related posts for a single page using tag overlap scoring.
 

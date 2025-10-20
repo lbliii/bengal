@@ -7,6 +7,9 @@ Many of these functions are now thin wrappers around bengal.utils.text utilities
 to avoid code duplication and ensure consistency.
 """
 
+
+from __future__ import annotations
+
 import re
 from typing import TYPE_CHECKING
 
@@ -18,7 +21,7 @@ if TYPE_CHECKING:
     from bengal.core.site import Site
 
 
-def register(env: "Environment", site: "Site") -> None:
+def register(env: Environment, site: Site) -> None:
     """Register string functions with Jinja2 environment."""
     env.filters.update(
         {

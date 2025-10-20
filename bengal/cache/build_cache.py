@@ -2,6 +2,9 @@
 Build Cache - Tracks file changes and dependencies for incremental builds.
 """
 
+
+from __future__ import annotations
+
 import hashlib
 import json
 from dataclasses import dataclass, field
@@ -79,7 +82,7 @@ class BuildCache:
         # Parsed content is already in dict format (no conversion needed)
 
     @classmethod
-    def load(cls, cache_path: Path) -> "BuildCache":
+    def load(cls, cache_path: Path) -> BuildCache:
         """
         Load build cache from disk.
 

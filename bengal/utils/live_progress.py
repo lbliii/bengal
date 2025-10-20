@@ -5,6 +5,9 @@ Provides in-place progress updates that minimize terminal scrolling
 while showing appropriate detail for each user profile.
 """
 
+
+from __future__ import annotations
+
 import time
 from dataclasses import dataclass, field
 from enum import Enum

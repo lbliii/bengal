@@ -4,6 +4,9 @@ Utility functions for autodoc system.
 Provides text sanitization and common helpers for all extractors.
 """
 
+
+from __future__ import annotations
+
 import re
 import textwrap
 

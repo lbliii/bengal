@@ -14,6 +14,9 @@ References:
       web search engine. Computer networks and ISDN systems.
 """
 
+
+from __future__ import annotations
+
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -40,12 +43,12 @@ class PageRankResults:
         converged: Whether the algorithm converged within max_iterations
     """
 
-    scores: dict["Page", float]
+    scores: dict[Page, float]
     iterations: int
     converged: bool
     damping_factor: float
 
-    def get_top_pages(self, limit: int = 20) -> list[tuple["Page", float]]:
+    def get_top_pages(self, limit: int = 20) -> list[tuple[Page, float]]:
         """
         Get top-ranked pages.
 
@@ -58,7 +61,7 @@ class PageRankResults:
         sorted_pages = sorted(self.scores.items(), key=lambda x: x[1], reverse=True)
         return sorted_pages[:limit]
 
-    def get_pages_above_percentile(self, percentile: int) -> set["Page"]:
+    def get_pages_above_percentile(self, percentile: int) -> set[Page]:
         """
         Get pages above a certain percentile.
 
@@ -79,7 +82,7 @@ class PageRankResults:
 
         return {page for page, score in self.scores.items() if score >= threshold_score}
 
-    def get_score(self, page: "Page") -> float:
+    def get_score(self, page: Page) -> float:
         """Get PageRank score for a specific page."""
         return self.scores.get(page, 0.0)
 
@@ -106,7 +109,7 @@ class PageRankCalculator:
 
     def __init__(
         self,
-        graph: "KnowledgeGraph",
+        graph: KnowledgeGraph,
         damping: float = 0.85,
         max_iterations: int = 100,
         convergence_threshold: float = 1e-6,
@@ -133,7 +136,7 @@ class PageRankCalculator:
         self.threshold = convergence_threshold
 
     def compute(
-        self, seed_pages: set["Page"] | None = None, personalized: bool = False
+        self, seed_pages: set[Page] | None = None, personalized: bool = False
     ) -> PageRankResults:
         """
         Compute PageRank scores for all pages.
@@ -231,7 +234,7 @@ class PageRankCalculator:
             damping_factor=self.damping,
         )
 
-    def compute_personalized(self, seed_pages: set["Page"]) -> PageRankResults:
+    def compute_personalized(self, seed_pages: set[Page]) -> PageRankResults:
         """
         Compute personalized PageRank from seed pages.
 
@@ -251,8 +254,8 @@ class PageRankCalculator:
 
 
 def analyze_page_importance(
-    graph: "KnowledgeGraph", damping: float = 0.85, top_n: int = 20
-) -> list[tuple["Page", float]]:
+    graph: KnowledgeGraph, damping: float = 0.85, top_n: int = 20
+) -> list[tuple[Page, float]]:
     """
     Convenience function to analyze page importance.
 

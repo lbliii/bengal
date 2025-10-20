@@ -4,6 +4,9 @@ Incremental build orchestration for Bengal SSG.
 Handles cache management, change detection, and determining what needs rebuilding.
 """
 
+
+from __future__ import annotations
+
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -32,7 +35,7 @@ class IncrementalOrchestrator:
         - Determining what needs rebuilding
     """
 
-    def __init__(self, site: "Site"):
+    def __init__(self, site: Site):
         """
         Initialize incremental orchestrator.
 
@@ -46,7 +49,7 @@ class IncrementalOrchestrator:
         self.tracker: DependencyTracker | None = None
         self.logger = get_logger(__name__)
 
-    def initialize(self, enabled: bool = False) -> tuple["BuildCache", "DependencyTracker"]:
+    def initialize(self, enabled: bool = False) -> tuple[BuildCache, DependencyTracker]:
         """
         Initialize cache and tracker.
 
@@ -150,7 +153,7 @@ class IncrementalOrchestrator:
 
     def find_work_early(
         self, verbose: bool = False
-    ) -> tuple[list["Page"], list["Asset"], dict[str, list]]:
+    ) -> tuple[list[Page], list[Asset], dict[str, list]]:
         """
         Find pages/assets that need rebuilding (early version - before taxonomy generation).
 
@@ -316,7 +319,7 @@ class IncrementalOrchestrator:
 
     def find_work(
         self, verbose: bool = False
-    ) -> tuple[list["Page"], list["Asset"], dict[str, list]]:
+    ) -> tuple[list[Page], list[Asset], dict[str, list]]:
         """
         Find pages/assets that need rebuilding (legacy version - after taxonomy generation).
 
@@ -524,7 +527,7 @@ class IncrementalOrchestrator:
 
         output_path = self.site.output_dir / rel_html
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        
+
         # Write diagnostic placeholder with timestamp and path for debugging
         timestamp = datetime.datetime.now().isoformat()
         diagnostic_content = f"[TEST BRIDGE] Updated at {timestamp}\nSource: {path}\nOutput: {rel_html}"
@@ -609,7 +612,7 @@ class IncrementalOrchestrator:
                 deleted_sources=len(deleted_sources),
             )
 
-    def save_cache(self, pages_built: list["Page"], assets_processed: list["Asset"]) -> None:
+    def save_cache(self, pages_built: list[Page], assets_processed: list[Asset]) -> None:
         """
         Update cache with processed files.
 
@@ -648,7 +651,7 @@ class IncrementalOrchestrator:
         # Save cache
         self.cache.save(cache_path)
 
-    def _find_cascade_affected_pages(self, index_page: "Page") -> set[Path]:
+    def _find_cascade_affected_pages(self, index_page: Page) -> set[Path]:
         """
         Find all pages affected by a cascade change in a section index.
 

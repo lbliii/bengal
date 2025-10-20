@@ -17,11 +17,11 @@ if TYPE_CHECKING:
 
 def register(env: Environment, site: Site) -> None:
     """Register collection functions with Jinja2 environment."""
-    
+
     # Create closure for resolve_pages with access to site
     def resolve_pages_with_site(page_paths: list[str]) -> list:
         return resolve_pages(page_paths, site)
-    
+
     env.filters.update(
         {
             "where": where,
@@ -268,7 +268,7 @@ def flatten(items: list[list[Any]]) -> list[Any]:
     return result
 
 
-def resolve_pages(page_paths: list[str], site: "Site") -> list:
+def resolve_pages(page_paths: list[str], site: Site) -> list:
     """
     Resolve page paths to Page objects.
     
@@ -292,15 +292,15 @@ def resolve_pages(page_paths: list[str], site: "Site") -> list:
     """
     if not page_paths:
         return []
-    
+
     # Build lookup map: path -> page (O(n) once, then O(1) per lookup)
     page_map = {str(p.source_path): p for p in site.pages}
-    
+
     # Resolve paths to pages
     pages = []
     for path in page_paths:
         page = page_map.get(path)
         if page:
             pages.append(page)
-    
+
     return pages

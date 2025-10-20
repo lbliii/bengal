@@ -6,6 +6,9 @@ This module provides a strategy pattern for handling different content types
 filtering, pagination, and templating.
 """
 
+
+from __future__ import annotations
+
 from .base import ContentTypeStrategy
 from .registry import CONTENT_TYPE_REGISTRY, get_strategy, register_strategy
 

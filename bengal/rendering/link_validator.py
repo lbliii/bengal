@@ -2,6 +2,9 @@
 Link validation for catching broken links.
 """
 
+
+from __future__ import annotations
+
 from typing import Any
 
 from bengal.core.page import Page

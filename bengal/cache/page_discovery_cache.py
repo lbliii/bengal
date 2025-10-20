@@ -17,14 +17,17 @@ Performance Impact:
 - Incremental builds only load changed pages fresh
 """
 
+
+from __future__ import annotations
+
 import json
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from bengal.utils.logger import get_logger
 from bengal.utils.atomic_write import AtomicFile
+from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -48,7 +51,7 @@ class PageMetadata:
         return asdict(self)
 
     @staticmethod
-    def from_dict(data: dict[str, Any]) -> "PageMetadata":
+    def from_dict(data: dict[str, Any]) -> PageMetadata:
         """Create from dictionary."""
         return PageMetadata(**data)
 
@@ -69,7 +72,7 @@ class PageDiscoveryCacheEntry:
         }
 
     @staticmethod
-    def from_dict(data: dict[str, Any]) -> "PageDiscoveryCacheEntry":
+    def from_dict(data: dict[str, Any]) -> PageDiscoveryCacheEntry:
         metadata = PageMetadata.from_dict(data["metadata"])
         return PageDiscoveryCacheEntry(
             metadata=metadata,

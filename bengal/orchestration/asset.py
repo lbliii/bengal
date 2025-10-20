@@ -4,6 +4,9 @@ Asset processing orchestration for Bengal SSG.
 Handles asset copying, minification, optimization, and fingerprinting.
 """
 
+
+from __future__ import annotations
+
 import concurrent.futures
 import time
 from pathlib import Path
@@ -32,7 +35,7 @@ class AssetOrchestrator:
         - Parallel/sequential processing
     """
 
-    def __init__(self, site: "Site"):
+    def __init__(self, site: Site):
         """
         Initialize asset orchestrator.
 
@@ -47,7 +50,7 @@ class AssetOrchestrator:
         self._cached_assets_id: int | None = None
         self._cached_assets_len: int | None = None
 
-    def _get_site_css_entries_cached(self) -> list["Asset"]:
+    def _get_site_css_entries_cached(self) -> list[Asset]:
         """
         Return cached list of CSS entry points from the full site asset list.
 
@@ -82,7 +85,7 @@ class AssetOrchestrator:
 
         return self._cached_css_entry_points
 
-    def process(self, assets: list["Asset"], parallel: bool = True, progress_manager=None) -> None:
+    def process(self, assets: list[Asset], parallel: bool = True, progress_manager=None) -> None:
         """
         Process and copy assets to output directory.
 
@@ -224,7 +227,7 @@ class AssetOrchestrator:
         )
 
     def _process_css_entry(
-        self, css_entry: "Asset", minify: bool, optimize: bool, fingerprint: bool
+        self, css_entry: Asset, minify: bool, optimize: bool, fingerprint: bool
     ) -> None:
         """
         Process a CSS entry point (e.g., style.css) with bundling.
@@ -273,7 +276,7 @@ class AssetOrchestrator:
 
     def _process_sequential(
         self,
-        assets: list["Asset"],
+        assets: list[Asset],
         minify: bool,
         optimize: bool,
         fingerprint: bool,
@@ -324,7 +327,7 @@ class AssetOrchestrator:
 
     def _process_parallel(
         self,
-        assets: list["Asset"],
+        assets: list[Asset],
         minify: bool,
         optimize: bool,
         fingerprint: bool,
@@ -390,7 +393,7 @@ class AssetOrchestrator:
             )
 
     def _process_single_asset(
-        self, asset: "Asset", assets_output: Path, minify: bool, optimize: bool, fingerprint: bool
+        self, asset: Asset, assets_output: Path, minify: bool, optimize: bool, fingerprint: bool
     ) -> None:
         """
         Process a single asset (called in parallel).

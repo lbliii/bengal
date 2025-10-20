@@ -4,6 +4,9 @@ SEO helper functions for templates.
 Provides 4 functions for generating SEO-friendly meta tags and content.
 """
 
+
+from __future__ import annotations
+
 import re
 from typing import TYPE_CHECKING
 
@@ -13,7 +16,7 @@ if TYPE_CHECKING:
     from bengal.core.site import Site
 
 
-def register(env: "Environment", site: "Site") -> None:
+def register(env: Environment, site: Site) -> None:
     """Register SEO helper functions with Jinja2 environment."""
 
     # Create closures that have access to site

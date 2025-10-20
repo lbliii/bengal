@@ -4,6 +4,9 @@ CLI documentation extractor for autodoc system.
 Extracts documentation from command-line applications built with Click, argparse, or Typer.
 """
 
+
+from __future__ import annotations
+
 import inspect
 from pathlib import Path
 from typing import Any, override

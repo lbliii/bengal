@@ -2,6 +2,9 @@
 Dependency Tracker - Tracks dependencies during the build process.
 """
 
+
+from __future__ import annotations
+
 import threading
 from pathlib import Path
 

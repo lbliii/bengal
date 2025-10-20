@@ -2,6 +2,9 @@
 Command-line interface for Bengal SSG.
 """
 
+
+from __future__ import annotations
+
 import click
 
 from bengal import __version__

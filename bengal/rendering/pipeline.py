@@ -2,6 +2,9 @@
 Rendering Pipeline - Orchestrates the parsing, AST building, templating, and output rendering.
 """
 
+
+from __future__ import annotations
+
 import re
 import threading
 from pathlib import Path

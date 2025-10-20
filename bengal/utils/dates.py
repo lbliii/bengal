@@ -5,6 +5,9 @@ Provides centralized date parsing, formatting, and manipulation functions
 to eliminate duplicate logic across templates and core code.
 """
 
+
+from __future__ import annotations
+
 from datetime import UTC, datetime
 from datetime import date as date_type
 

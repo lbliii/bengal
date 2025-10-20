@@ -4,6 +4,9 @@ Rich error reporting for directive parsing.
 Provides detailed, helpful error messages when directives fail to parse.
 """
 
+
+from __future__ import annotations
+
 from pathlib import Path
 
 

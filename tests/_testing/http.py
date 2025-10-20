@@ -29,7 +29,7 @@ def wait_for_port(port: int, host: str = "localhost", timeout: float = 5.0) -> N
         try:
             with socket.create_connection((host, port), timeout=0.5):
                 return  # Port is listening
-        except (socket.timeout, ConnectionRefusedError, OSError):
+        except (TimeoutError, ConnectionRefusedError, OSError):
             time.sleep(0.1)
     raise TimeoutError(f"Port {port} not listening after {timeout}s")
 

@@ -7,13 +7,8 @@ and various template patterns to ensure ALL URLs are correct throughout.
 This is the ultimate regression test - if this passes, URLs work everywhere.
 """
 
-from pathlib import Path
-from tempfile import TemporaryDirectory
 
 import pytest
-
-from bengal.core.site import Site
-from bengal.orchestration.build import BuildOrchestrator
 
 
 @pytest.mark.slow

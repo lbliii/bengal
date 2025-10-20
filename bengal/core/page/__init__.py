@@ -5,6 +5,9 @@ This module provides the main Page class, which combines multiple mixins
 to provide a complete page interface while maintaining separation of concerns.
 """
 
+
+from __future__ import annotations
+
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any

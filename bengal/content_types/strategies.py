@@ -4,6 +4,9 @@ Concrete content type strategies.
 Implements specific strategies for different content types like blog, docs, etc.
 """
 
+
+from __future__ import annotations
+
 from datetime import datetime
 from typing import TYPE_CHECKING
 
@@ -20,11 +23,11 @@ class BlogStrategy(ContentTypeStrategy):
     default_template = "blog/list.html"
     allows_pagination = True
 
-    def sort_pages(self, pages: list["Page"]) -> list["Page"]:
+    def sort_pages(self, pages: list[Page]) -> list[Page]:
         """Sort by date (newest first)."""
         return sorted(pages, key=lambda p: p.date if p.date else datetime.min, reverse=True)
 
-    def detect_from_section(self, section: "Section") -> bool:
+    def detect_from_section(self, section: Section) -> bool:
         """Detect blog sections by name or date-heavy content."""
         name = section.name.lower()
 
@@ -56,11 +59,11 @@ class DocsStrategy(ContentTypeStrategy):
     default_template = "doc/list.html"
     allows_pagination = False  # Docs should not be paginated
 
-    def sort_pages(self, pages: list["Page"]) -> list["Page"]:
+    def sort_pages(self, pages: list[Page]) -> list[Page]:
         """Sort by weight, then title (keeps manual ordering)."""
         return sorted(pages, key=lambda p: (p.metadata.get("weight", 999999), p.title.lower()))
 
-    def detect_from_section(self, section: "Section") -> bool:
+    def detect_from_section(self, section: Section) -> bool:
         """Detect docs sections by name."""
         name = section.name.lower()
         return name in ("docs", "documentation", "guides", "reference")
@@ -72,11 +75,11 @@ class ApiReferenceStrategy(ContentTypeStrategy):
     default_template = "api-reference/list.html"
     allows_pagination = False
 
-    def sort_pages(self, pages: list["Page"]) -> list["Page"]:
+    def sort_pages(self, pages: list[Page]) -> list[Page]:
         """Keep original discovery order (alphabetical)."""
         return list(pages)  # No resorting
 
-    def detect_from_section(self, section: "Section") -> bool:
+    def detect_from_section(self, section: Section) -> bool:
         """Detect API sections by name or content."""
         name = section.name.lower()
 
@@ -99,11 +102,11 @@ class CliReferenceStrategy(ContentTypeStrategy):
     default_template = "cli-reference/list.html"
     allows_pagination = False
 
-    def sort_pages(self, pages: list["Page"]) -> list["Page"]:
+    def sort_pages(self, pages: list[Page]) -> list[Page]:
         """Keep original discovery order (alphabetical)."""
         return list(pages)
 
-    def detect_from_section(self, section: "Section") -> bool:
+    def detect_from_section(self, section: Section) -> bool:
         """Detect CLI sections by name or content."""
         name = section.name.lower()
 
@@ -126,11 +129,11 @@ class TutorialStrategy(ContentTypeStrategy):
     default_template = "tutorial/list.html"
     allows_pagination = False
 
-    def sort_pages(self, pages: list["Page"]) -> list["Page"]:
+    def sort_pages(self, pages: list[Page]) -> list[Page]:
         """Sort by weight (for sequential tutorials)."""
         return sorted(pages, key=lambda p: (p.metadata.get("weight", 999999), p.title.lower()))
 
-    def detect_from_section(self, section: "Section") -> bool:
+    def detect_from_section(self, section: Section) -> bool:
         """Detect tutorial sections by name."""
         name = section.name.lower()
         return name in ("tutorials", "guides", "how-to")
@@ -142,11 +145,11 @@ class ChangelogStrategy(ContentTypeStrategy):
     default_template = "changelog/list.html"
     allows_pagination = False
 
-    def sort_pages(self, pages: list["Page"]) -> list["Page"]:
+    def sort_pages(self, pages: list[Page]) -> list[Page]:
         """Sort by date (newest first) or by version number."""
         return sorted(pages, key=lambda p: p.date if p.date else datetime.min, reverse=True)
 
-    def detect_from_section(self, section: "Section") -> bool:
+    def detect_from_section(self, section: Section) -> bool:
         """Detect changelog sections by name."""
         name = section.name.lower()
         return name in ("changelog", "releases", "release-notes", "releasenotes", "changes")
@@ -158,6 +161,6 @@ class PageStrategy(ContentTypeStrategy):
     default_template = "index.html"
     allows_pagination = False
 
-    def sort_pages(self, pages: list["Page"]) -> list["Page"]:
+    def sort_pages(self, pages: list[Page]) -> list[Page]:
         """Sort by weight, then title."""
         return sorted(pages, key=lambda p: (p.metadata.get("weight", 999999), p.title.lower()))

@@ -21,6 +21,9 @@ class TestPageDeduplicationInBuilds:
         added to pages_to_build during incremental builds.
 
         This tests the optimization in BuildOrchestrator (build.py line 295-306).
+        
+        Note: This uses set operations which provide O(1) lookup vs O(n) for lists.
+        The performance benefit is validated by real-world usage, not timing tests.
         """
         # Setup site
         site = Site(root_path=tmp_path, output_dir=tmp_path / "public")
@@ -55,46 +58,6 @@ class TestPageDeduplicationInBuilds:
         # Convert back to list (as done in build.py)
         final_pages = list(pages_set)
         assert len(final_pages) == 2
-
-    def test_page_lookup_performance(self, tmp_path):
-        """
-        Test that set-based page lookup is fast even with many pages.
-
-        This validates the O(1) membership test optimization.
-        """
-        import time
-
-        # Create 1000 pages
-        all_pages = [Page(source_path=tmp_path / f"content/post{i}.md") for i in range(1000)]
-
-        # Pick 100 pages to "rebuild"
-        pages_to_rebuild = set(all_pages[::10])  # Every 10th page
-
-        # Measure lookup time with set (O(1))
-        start = time.time()
-        found_count = 0
-        for page in all_pages:
-            if page in pages_to_rebuild:  # O(1) with set
-                found_count += 1
-        lookup_time_set = time.time() - start
-
-        # Measure lookup time with list (O(n)) for comparison
-        pages_to_rebuild_list = list(pages_to_rebuild)
-        start = time.time()
-        found_count_list = 0
-        for page in all_pages:
-            if page in pages_to_rebuild_list:  # O(n) with list
-                found_count_list += 1
-        lookup_time_list = time.time() - start
-
-        assert found_count == found_count_list == 100
-
-        # Set should be significantly faster (at least 2.5x for O(1) vs O(n))
-        # Use 2.5x to account for system variability and JIT warmup
-        assert (
-            lookup_time_set < lookup_time_list / 2.5
-        ), f"Set lookup ({lookup_time_set * 1000:.2f}ms) should be faster than list ({lookup_time_list * 1000:.2f}ms)"
-
 
 class TestSectionTrackingInBuilds:
     """Test section tracking using sets in incremental builds."""

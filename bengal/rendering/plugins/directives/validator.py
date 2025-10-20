@@ -5,6 +5,9 @@ Validates directive syntax before parsing to catch errors early with
 helpful messages.
 """
 
+
+from __future__ import annotations
+
 import re
 from pathlib import Path
 from typing import Any

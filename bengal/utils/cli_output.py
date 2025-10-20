@@ -8,6 +8,9 @@ Provides a unified interface for all CLI messaging with:
 - Rich/fallback rendering
 """
 
+
+from __future__ import annotations
+
 from enum import Enum
 from typing import Any
 

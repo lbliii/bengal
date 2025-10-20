@@ -5,6 +5,9 @@ Handles content and asset discovery, page/section reference setup,
 and cascading frontmatter.
 """
 
+
+from __future__ import annotations
+
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -26,7 +29,7 @@ class ContentOrchestrator:
         - Apply cascading frontmatter from sections to pages
     """
 
-    def __init__(self, site: "Site"):
+    def __init__(self, site: Site):
         """
         Initialize content orchestrator.
 
@@ -198,7 +201,7 @@ class ContentOrchestrator:
             # Recursively set for subsections
             self._setup_section_references(section)
 
-    def _setup_section_references(self, section: "Section") -> None:
+    def _setup_section_references(self, section: Section) -> None:
         """
         Recursively set up references for a section and its subsections.
 

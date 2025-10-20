@@ -4,6 +4,9 @@ URL manipulation functions for templates.
 Provides 4 functions for working with URLs in templates.
 """
 
+
+from __future__ import annotations
+
 from typing import TYPE_CHECKING
 from urllib.parse import quote, unquote
 
@@ -13,7 +16,7 @@ if TYPE_CHECKING:
     from bengal.core.site import Site
 
 
-def register(env: "Environment", site: "Site") -> None:
+def register(env: Environment, site: Site) -> None:
     """Register URL functions with Jinja2 environment."""
 
     # Create closures that have access to site

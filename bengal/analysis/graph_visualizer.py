@@ -5,6 +5,9 @@ Generates interactive D3.js visualizations of the site's knowledge graph.
 Inspired by Obsidian's graph view.
 """
 
+
+from __future__ import annotations
+
 import json
 from dataclasses import asdict, dataclass
 from typing import TYPE_CHECKING, Any
@@ -81,7 +84,7 @@ class GraphVisualizer:
         >>> Path('graph.html').write_text(html)
     """
 
-    def __init__(self, site: "Site", graph: "KnowledgeGraph"):
+    def __init__(self, site: Site, graph: KnowledgeGraph):
         """
         Initialize graph visualizer.
 

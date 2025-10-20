@@ -4,6 +4,9 @@ Health check report formatting and data structures.
 Provides structured reporting of health check results with multiple output formats.
 """
 
+
+from __future__ import annotations
+
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
@@ -39,7 +42,7 @@ class CheckResult:
     validator: str = ""
 
     @classmethod
-    def success(cls, message: str, validator: str = "") -> "CheckResult":
+    def success(cls, message: str, validator: str = "") -> CheckResult:
         """Create a success result."""
         return cls(CheckStatus.SUCCESS, message, validator=validator)
 
@@ -50,7 +53,7 @@ class CheckResult:
         recommendation: str | None = None,
         details: list[str] | None = None,
         validator: str = "",
-    ) -> "CheckResult":
+    ) -> CheckResult:
         """Create an info result."""
         return cls(CheckStatus.INFO, message, recommendation, details, validator=validator)
 
@@ -61,7 +64,7 @@ class CheckResult:
         recommendation: str | None = None,
         details: list[str] | None = None,
         validator: str = "",
-    ) -> "CheckResult":
+    ) -> CheckResult:
         """Create a warning result."""
         return cls(CheckStatus.WARNING, message, recommendation, details, validator=validator)
 
@@ -72,7 +75,7 @@ class CheckResult:
         recommendation: str | None = None,
         details: list[str] | None = None,
         validator: str = "",
-    ) -> "CheckResult":
+    ) -> CheckResult:
         """Create an error result."""
         return cls(CheckStatus.ERROR, message, recommendation, details, validator=validator)
 

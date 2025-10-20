@@ -14,6 +14,9 @@ Provides clean button syntax for CTAs and navigation:
 Replaces Sphinx-Design's complex button-ref syntax with a simpler approach.
 """
 
+
+from __future__ import annotations
+
 from re import Match
 from typing import Any
 

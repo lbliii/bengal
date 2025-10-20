@@ -1,5 +1,8 @@
 """Performance metrics and analysis commands."""
 
+
+from __future__ import annotations
+
 import click
 
 from bengal.cli.base import BengalCommand

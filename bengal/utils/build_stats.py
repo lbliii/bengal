@@ -2,6 +2,9 @@
 Build statistics display with colorful output and ASCII art.
 """
 
+
+from __future__ import annotations
+
 from dataclasses import dataclass
 from typing import Any
 

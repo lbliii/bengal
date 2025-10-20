@@ -9,7 +9,7 @@ from bengal.cache.indexes.author_index import AuthorIndex
 from bengal.cache.indexes.category_index import CategoryIndex
 from bengal.cache.indexes.date_range_index import DateRangeIndex
 from bengal.cache.indexes.section_index import SectionIndex
-from bengal.cache.query_index import IndexEntry, QueryIndex
+from bengal.cache.query_index import IndexEntry
 from bengal.core.page import Page
 from bengal.core.section import Section
 

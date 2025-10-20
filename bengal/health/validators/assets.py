@@ -9,6 +9,9 @@ Validates:
 - Reasonable asset sizes
 """
 
+
+from __future__ import annotations
+
 import itertools
 from collections import defaultdict
 from pathlib import Path
@@ -43,7 +46,7 @@ class AssetValidator(BaseValidator):
     LARGE_IMAGE_KB = 1000
 
     @override
-    def validate(self, site: "Site") -> list[CheckResult]:
+    def validate(self, site: Site) -> list[CheckResult]:
         """Run asset validation checks."""
         results = []
 
@@ -111,7 +114,7 @@ class AssetValidator(BaseValidator):
 
         return results
 
-    def _check_asset_sizes(self, assets_dir: Path, site: "Site") -> list[CheckResult]:
+    def _check_asset_sizes(self, assets_dir: Path, site: Site) -> list[CheckResult]:
         """Check asset sizes are reasonable."""
         results = []
 
@@ -230,7 +233,7 @@ class AssetValidator(BaseValidator):
 
         return results
 
-    def _check_minification_hints(self, assets_dir: Path, site: "Site") -> list[CheckResult]:
+    def _check_minification_hints(self, assets_dir: Path, site: Site) -> list[CheckResult]:
         """Check if assets appear to be minified based on file size patterns."""
         results = []
 

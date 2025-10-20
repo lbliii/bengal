@@ -4,6 +4,9 @@ Configuration validator wrapper.
 Integrates the existing ConfigValidator into the health check system.
 """
 
+
+from __future__ import annotations
+
 from typing import TYPE_CHECKING, override
 
 from bengal.health.base import BaseValidator
@@ -27,7 +30,7 @@ class ConfigValidatorWrapper(BaseValidator):
     enabled_by_default = True
 
     @override
-    def validate(self, site: "Site") -> list[CheckResult]:
+    def validate(self, site: Site) -> list[CheckResult]:
         """Validate configuration."""
         results = []
 

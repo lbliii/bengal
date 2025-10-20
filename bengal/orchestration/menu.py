@@ -4,6 +4,9 @@ Menu orchestration for Bengal SSG.
 Handles navigation menu building from config and page frontmatter.
 """
 
+
+from __future__ import annotations
+
 import hashlib
 import json
 from pathlib import Path
@@ -29,7 +32,7 @@ class MenuOrchestrator:
         - Cache menus when config/pages unchanged (incremental optimization)
     """
 
-    def __init__(self, site: "Site"):
+    def __init__(self, site: Site):
         """
         Initialize menu orchestrator.
 
@@ -222,7 +225,7 @@ class MenuOrchestrator:
 
         return True
 
-    def mark_active(self, current_page: "Page") -> None:
+    def mark_active(self, current_page: Page) -> None:
         """
         Mark active menu items for the current page being rendered.
         Called during rendering for each page.

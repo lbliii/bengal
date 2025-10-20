@@ -7,6 +7,9 @@ Supports:
 - Sphinx style (:param name:, :returns:, :raises:)
 """
 
+
+from __future__ import annotations
+
 import re
 from typing import Any
 

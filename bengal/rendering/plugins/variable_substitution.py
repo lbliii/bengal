@@ -5,6 +5,9 @@ Provides safe {{ variable }} replacement in markdown content while keeping
 code blocks literal and maintaining clear separation from template logic.
 """
 
+
+from __future__ import annotations
+
 import re
 from re import Match
 from typing import Any

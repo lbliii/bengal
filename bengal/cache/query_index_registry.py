@@ -14,6 +14,9 @@ Architecture:
 - Incremental updates with dependency tracking
 """
 
+
+from __future__ import annotations
+
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -46,7 +49,7 @@ class QueryIndexRegistry:
         blog_posts = registry.get('section').get('blog')
     """
 
-    def __init__(self, site: "Site", cache_dir: Path):
+    def __init__(self, site: Site, cache_dir: Path):
         """
         Initialize registry.
 
@@ -84,7 +87,7 @@ class QueryIndexRegistry:
         except Exception as e:
             logger.warning("builtin_indexes_registration_failed", error=str(e))
 
-    def register(self, name: str, index: "QueryIndex") -> None:
+    def register(self, name: str, index: QueryIndex) -> None:
         """
         Register a query index.
 
@@ -104,8 +107,8 @@ class QueryIndexRegistry:
 
     def build_all(
         self,
-        pages: list["Page"],
-        build_cache: "BuildCache",
+        pages: list[Page],
+        build_cache: BuildCache,
         skip_generated: bool = True,
     ) -> None:
         """
@@ -145,8 +148,8 @@ class QueryIndexRegistry:
 
     def update_incremental(
         self,
-        changed_pages: list["Page"],
-        build_cache: "BuildCache",
+        changed_pages: list[Page],
+        build_cache: BuildCache,
         skip_generated: bool = True,
     ) -> dict[str, set[str]]:
         """
@@ -194,7 +197,7 @@ class QueryIndexRegistry:
 
         return affected_by_index
 
-    def get(self, index_name: str) -> "QueryIndex | None":
+    def get(self, index_name: str) -> QueryIndex | None:
         """
         Get index by name.
 
@@ -207,7 +210,7 @@ class QueryIndexRegistry:
         self._ensure_initialized()
         return self.indexes.get(index_name)
 
-    def __getattr__(self, name: str) -> "QueryIndex":
+    def __getattr__(self, name: str) -> QueryIndex:
         """
         Allow attribute-style access: registry.section instead of registry.get('section').
 

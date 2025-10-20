@@ -2,6 +2,8 @@
 Menu system for navigation.
 """
 
+from __future__ import annotations
+
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -26,7 +28,7 @@ class MenuItem:
     weight: int = 0
     parent: str | None = None
     identifier: str | None = None
-    children: list["MenuItem"] = field(default_factory=list)
+    children: list[MenuItem] = field(default_factory=list)
 
     # Runtime state (set during rendering)
     active: bool = False
@@ -38,7 +40,7 @@ class MenuItem:
             # Convert name to slug-like identifier
             self.identifier = self.name.lower().replace(" ", "-").replace("_", "-")
 
-    def add_child(self, child: "MenuItem") -> None:
+    def add_child(self, child: MenuItem) -> None:
         """Add a child menu item and sort by weight."""
         self.children.append(child)
         self.children.sort(key=lambda x: x.weight)

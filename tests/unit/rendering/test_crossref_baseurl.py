@@ -255,13 +255,13 @@ output_dir = "public"
         )
 
         site = Site.from_config(site_dir)
-        
+
         # Create a page and add to index
         page = Page(source_path=Path("api/reference.md"))
         page.metadata = {"title": "API Reference"}
         page.output_path = site_dir / "public" / "api" / "reference" / "index.html"
         page._site = site
-        
+
         # Build xref index
         site.xref_index = {
             "by_path": {"api/reference": page},
@@ -272,11 +272,11 @@ output_dir = "public"
 
         # Create template engine and render template with ref() function
         engine = TemplateEngine(site)
-        
+
         # Test ref function in template
         template_str = "{{ ref('api/reference') }}"
         result = engine.render_string(template_str, {})
-        
+
         assert "/docs/api/reference/" in result
         assert "API Reference" in result
 

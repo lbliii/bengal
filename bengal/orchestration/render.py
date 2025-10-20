@@ -163,7 +163,7 @@ class RenderOrchestrator:
 
         # Try to use rich progress if available (but not if Live display already active)
         try:
-            from bengal.utils.rich_console import should_use_rich, is_live_display_active
+            from bengal.utils.rich_console import is_live_display_active, should_use_rich
 
             # Don't create Progress if there's already a Live display (e.g., LiveProgressManager)
             use_rich = should_use_rich() and not quiet and len(pages) > 5 and not is_live_display_active()
@@ -250,7 +250,7 @@ class RenderOrchestrator:
 
         # Try to use rich progress if available (but not if Live display already active)
         try:
-            from bengal.utils.rich_console import should_use_rich, is_live_display_active
+            from bengal.utils.rich_console import is_live_display_active, should_use_rich
 
             # Don't create Progress if there's already a Live display (e.g., LiveProgressManager)
             use_rich = should_use_rich() and not quiet and len(pages) > 5 and not is_live_display_active()

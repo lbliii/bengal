@@ -7,6 +7,9 @@ Handles generation of special pages that don't come from markdown content:
 - other static utility pages
 """
 
+
+from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
 from bengal.utils.logger import get_logger
@@ -33,7 +36,7 @@ class SpecialPagesGenerator:
     - sitemap.html: Human-readable sitemap
     """
 
-    def __init__(self, site: "Site") -> None:
+    def __init__(self, site: Site) -> None:
         """
         Initialize special pages generator.
 

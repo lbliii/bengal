@@ -2,6 +2,9 @@
 Asset discovery - finds and organizes static assets.
 """
 
+
+from __future__ import annotations
+
 from pathlib import Path
 
 from bengal.core.asset import Asset

@@ -6,6 +6,9 @@ document hierarchy or table of contents. Perfect for API documentation
 section labels like "Parameters:", "Returns:", "Raises:", etc.
 """
 
+
+from __future__ import annotations
+
 from mistune.directives import DirectivePlugin
 
 __all__ = ["RubricDirective", "render_rubric"]

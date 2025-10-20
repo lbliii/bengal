@@ -5,6 +5,9 @@ Provides pure utility functions for computing output paths and URLs.
 Used by orchestrators to ensure consistent path generation across the system.
 """
 
+
+from __future__ import annotations
+
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -30,7 +33,7 @@ class URLStrategy:
 
     @staticmethod
     def compute_regular_page_output_path(
-        page: "Page", site: "Site", pre_cascade: bool = False
+        page: Page, site: Site, pre_cascade: bool = False
     ) -> Path:
         """
         Compute output path for a regular content page.
@@ -91,7 +94,7 @@ class URLStrategy:
         return site.output_dir / output_rel_path
 
     @staticmethod
-    def compute_archive_output_path(section: "Section", page_num: int, site: "Site") -> Path:
+    def compute_archive_output_path(section: Section, page_num: int, site: Site) -> Path:
         """
         Compute output path for a section archive page.
 
@@ -123,7 +126,7 @@ class URLStrategy:
         return path / "index.html"
 
     @staticmethod
-    def compute_tag_output_path(tag_slug: str, page_num: int, site: "Site") -> Path:
+    def compute_tag_output_path(tag_slug: str, page_num: int, site: Site) -> Path:
         """
         Compute output path for a tag listing page.
 
@@ -159,7 +162,7 @@ class URLStrategy:
         return path / "index.html"
 
     @staticmethod
-    def compute_tag_index_output_path(site: "Site") -> Path:
+    def compute_tag_index_output_path(site: Site) -> Path:
         """
         Compute output path for the main tags index page.
 
@@ -186,7 +189,7 @@ class URLStrategy:
         return base_path / "tags" / "index.html"
 
     @staticmethod
-    def url_from_output_path(output_path: Path, site: "Site") -> str:
+    def url_from_output_path(output_path: Path, site: Site) -> str:
         """
         Generate clean URL from output path.
 
@@ -235,7 +238,7 @@ class URLStrategy:
         return url
 
     @staticmethod
-    def make_virtual_path(site: "Site", *parts: str) -> Path:
+    def make_virtual_path(site: Site, *parts: str) -> Path:
         """
         Create virtual source path for generated pages.
 

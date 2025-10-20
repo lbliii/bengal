@@ -426,7 +426,7 @@ class PageProxy:
         }
 
     @classmethod
-    def from_page(cls, page: Page, metadata: Any) -> PageProxy:
+    def from_page(cls, page: "Page", metadata: Any) -> "PageProxy":
         """Create proxy from full page (for testing)."""
 
         # This is mainly for testing - normally you'd create from metadata

@@ -17,7 +17,6 @@ import os
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Tuple
 
 
 @dataclass(frozen=True)
@@ -28,14 +27,14 @@ class SnapshotEntry:
 
 @dataclass
 class OutputSnapshot:
-    files: Dict[str, SnapshotEntry]
+    files: dict[str, SnapshotEntry]
 
 
 @dataclass
 class ReloadDecision:
     action: str  # 'none' | 'reload-css' | 'reload'
     reason: str
-    changed_paths: List[str]
+    changed_paths: list[str]
 
 
 MAX_CHANGED_PATHS_TO_SEND = 20
@@ -52,7 +51,7 @@ class ReloadController:
         return int(time.monotonic() * 1000)
 
     def _take_snapshot(self, output_dir: Path) -> OutputSnapshot:
-        files: Dict[str, SnapshotEntry] = {}
+        files: dict[str, SnapshotEntry] = {}
         base = output_dir.resolve()
         if not base.exists():
             return OutputSnapshot(files)
@@ -68,9 +67,9 @@ class ReloadController:
                 files[rel] = SnapshotEntry(size=st.st_size, mtime=st.st_mtime)
         return OutputSnapshot(files)
 
-    def _diff(self, prev: OutputSnapshot, curr: OutputSnapshot) -> Tuple[List[str], List[str]]:
-        changed: List[str] = []
-        css_changed: List[str] = []
+    def _diff(self, prev: OutputSnapshot, curr: OutputSnapshot) -> tuple[list[str], list[str]]:
+        changed: list[str] = []
+        css_changed: list[str] = []
 
         prev_files = prev.files
         curr_files = curr.files

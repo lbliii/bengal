@@ -2,6 +2,9 @@
 Page Metadata Mixin - Basic properties and type checking.
 """
 
+
+from __future__ import annotations
+
 from datetime import datetime
 from functools import cached_property
 from typing import Any

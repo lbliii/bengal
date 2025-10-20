@@ -2,6 +2,9 @@
 Development server with file watching and hot reload.
 """
 
+
+from __future__ import annotations
+
 import os
 import socket
 import socketserver

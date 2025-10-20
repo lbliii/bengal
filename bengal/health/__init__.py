@@ -19,6 +19,9 @@ Usage:
     print(report.format_console())
 """
 
+
+from __future__ import annotations
+
 from bengal.health.base import BaseValidator
 from bengal.health.health_check import HealthCheck
 from bengal.health.report import CheckResult, CheckStatus, HealthReport

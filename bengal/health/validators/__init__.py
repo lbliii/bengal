@@ -29,6 +29,9 @@ Phase 5 (Knowledge Graph):
 - ConnectivityValidator: Page connectivity and orphan detection
 """
 
+
+from __future__ import annotations
+
 from bengal.health.validators.assets import AssetValidator
 from bengal.health.validators.cache import CacheValidator
 from bengal.health.validators.config import ConfigValidatorWrapper
