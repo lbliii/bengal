@@ -91,6 +91,16 @@ def read_text_file(
         with open(file_path, encoding=encoding) as f:
             content = f.read()
 
+        # Strip UTF-8 BOM if present to avoid confusing downstream parsers
+        if content and content[0] == "\ufeff":
+            logger.debug(
+                "bom_stripped",
+                path=str(file_path),
+                encoding=encoding,
+                caller=caller or "file_io",
+            )
+            content = content.lstrip("\ufeff")
+
         logger.debug(
             "file_read",
             path=str(file_path),
@@ -104,6 +114,23 @@ def read_text_file(
     except UnicodeDecodeError as e:
         # Try fallback encoding if available
         if fallback_encoding:
+            # First, attempt UTF-8 with BOM if primary UTF-8 failed
+            try:
+                with open(file_path, encoding="utf-8-sig") as f:
+                    content = f.read()
+
+                logger.debug(
+                    "file_read_utf8_sig",
+                    path=str(file_path),
+                    encoding="utf-8-sig",
+                    size_bytes=len(content),
+                    caller=caller or "file_io",
+                )
+                return content
+            except Exception:
+                # Fall through to configured fallback
+                pass
+
             logger.warning(
                 "encoding_fallback",
                 path=str(file_path),
