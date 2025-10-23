@@ -8,7 +8,7 @@ Tests the system's ability to handle and recover from various error conditions:
 - Build failures
 """
 
-from pathlib import Path
+import contextlib
 
 import pytest
 
@@ -33,13 +33,13 @@ baseurl = "/"
 [build]
 output_dir = "public"
 content_dir = "content"
-"""
+""",
         )
-        
+
         # Create content directory
         content_dir = tmp_path / "content"
         content_dir.mkdir()
-        
+
         # Create a valid page
         valid_page = content_dir / "valid.md"
         write_text_file(
@@ -48,9 +48,9 @@ content_dir = "content"
 title: Valid Page
 ---
 This is valid content.
-"""
+""",
         )
-        
+
         # Create a page with problematic frontmatter
         broken_page = content_dir / "broken.md"
         write_text_file(
@@ -62,13 +62,13 @@ custom_data:
   - item2
 ---
 Content with {{ page.custom_data.nonexistent }} reference.
-"""
+""",
         )
-        
+
         # Create templates directory
         templates_dir = tmp_path / "templates"
         templates_dir.mkdir()
-        
+
         # Create a basic template
         base_template = templates_dir / "base.html"
         write_text_file(
@@ -78,25 +78,25 @@ Content with {{ page.custom_data.nonexistent }} reference.
 <head><title>{{ page.title }}</title></head>
 <body>{{ content }}</body>
 </html>
-"""
+""",
         )
-        
+
         # Build site
         site = Site.from_config(tmp_path, config_path=config_file)
         site.discover_content()
         site.discover_assets()
-        
+
         try:
             # Build with error collection
             stats = site.build(parallel=False)
-            
+
             # Should complete build even with errors
             assert stats is not None
-            
+
             # Valid page should be built
             output_dir = tmp_path / "public"
             assert output_dir.exists()
-            
+
         except Exception as e:
             # Even if exception is raised, it should be handled gracefully
             assert "template" in str(e).lower() or "error" in str(e).lower()
@@ -113,13 +113,13 @@ baseurl = "/"
 
 [build]
 output_dir = "public"
-"""
+""",
         )
-        
+
         # Create content with multiple template errors
         content_dir = tmp_path / "content"
         content_dir.mkdir()
-        
+
         for i in range(3):
             page_file = content_dir / f"page{i}.md"
             write_text_file(
@@ -128,13 +128,13 @@ output_dir = "public"
 title: Page {i}
 ---
 Content
-"""
+""",
             )
-        
+
         # Create templates with errors
         templates_dir = tmp_path / "templates"
         templates_dir.mkdir()
-        
+
         # Template with undefined variable
         base_template = templates_dir / "base.html"
         write_text_file(
@@ -144,18 +144,16 @@ Content
 <head><title>{{ page.title }}</title></head>
 <body>{{ content }}{{ undefined_var }}</body>
 </html>
-"""
+""",
         )
-        
+
         site = Site.from_config(tmp_path, config_path=config_file)
         site.discover_content()
-        
+
         # Build should collect errors
-        try:
+        # Errors expected, but should be collected
+        with contextlib.suppress(Exception):
             site.build(parallel=False)
-        except Exception:
-            # Errors expected, but should be collected
-            pass
 
     def test_recovery_from_missing_template(self, tmp_path):
         """Test recovery when custom template is missing."""
@@ -168,12 +166,12 @@ title = "Test Site"
 
 [build]
 output_dir = "public"
-"""
+""",
         )
-        
+
         content_dir = tmp_path / "content"
         content_dir.mkdir()
-        
+
         # Page requesting non-existent template
         page_file = content_dir / "page.md"
         write_text_file(
@@ -183,12 +181,12 @@ title: Test Page
 layout: nonexistent
 ---
 Content
-"""
+""",
         )
-        
+
         site = Site.from_config(tmp_path, config_path=config_file)
         site.discover_content()
-        
+
         # Should handle missing template gracefully
         try:
             site.build(parallel=False)
@@ -211,12 +209,12 @@ title = "Test Site"
 
 [build]
 output_dir = "public"
-"""
+""",
         )
-        
+
         content_dir = tmp_path / "content"
         content_dir.mkdir()
-        
+
         # Page with reference to missing image
         page_file = content_dir / "page.md"
         write_text_file(
@@ -227,13 +225,13 @@ title: Test Page
 # Page with Image
 
 ![Missing image](/assets/missing.png)
-"""
+""",
         )
-        
+
         site = Site.from_config(tmp_path, config_path=config_file)
         site.discover_content()
         site.discover_assets()
-        
+
         # Build should complete despite missing asset
         stats = site.build(parallel=False)
         assert stats is not None
@@ -249,12 +247,12 @@ title = "Test Site"
 
 [build]
 output_dir = "public"
-"""
+""",
         )
-        
+
         content_dir = tmp_path / "content"
         content_dir.mkdir()
-        
+
         # Page with broken internal link
         page_file = content_dir / "page.md"
         write_text_file(
@@ -263,12 +261,12 @@ output_dir = "public"
 title: Test Page
 ---
 Check out [this page](/nonexistent-page/) for more info.
-"""
+""",
         )
-        
+
         site = Site.from_config(tmp_path, config_path=config_file)
         site.discover_content()
-        
+
         # Build should complete and potentially warn about broken link
         stats = site.build(parallel=False)
         assert stats is not None
@@ -285,13 +283,13 @@ class TestInvalidConfigurationRecovery:
             """
 [site
 title = "Broken TOML"
-"""
+""",
         )
-        
+
         # Should raise appropriate error
         with pytest.raises(Exception) as exc_info:
             Site.from_config(tmp_path, config_path=config_file)
-        
+
         # Error should be about config parsing
         assert "toml" in str(exc_info.value).lower() or "config" in str(exc_info.value).lower()
 
@@ -303,9 +301,9 @@ title = "Broken TOML"
             """
 [build]
 output_dir = "public"
-"""
+""",
         )
-        
+
         # Should use defaults for missing site config
         try:
             site = Site.from_config(tmp_path, config_path=config_file)
@@ -326,9 +324,9 @@ baseurl = true
 
 [build]
 parallel = "yes"
-"""
+""",
         )
-        
+
         # Should handle type errors gracefully
         try:
             site = Site.from_config(tmp_path, config_path=config_file)
@@ -353,12 +351,12 @@ title = "Test Site"
 
 [build]
 output_dir = "public"
-"""
+""",
         )
-        
+
         content_dir = tmp_path / "content"
         content_dir.mkdir()
-        
+
         # Create multiple pages, some valid, some with issues
         valid_page = content_dir / "valid.md"
         write_text_file(
@@ -367,9 +365,9 @@ output_dir = "public"
 title: Valid Page
 ---
 This is valid.
-"""
+""",
         )
-        
+
         another_valid = content_dir / "another.md"
         write_text_file(
             str(another_valid),
@@ -377,17 +375,17 @@ This is valid.
 title: Another Valid Page
 ---
 Also valid.
-"""
+""",
         )
-        
+
         site = Site.from_config(tmp_path, config_path=config_file)
         site.discover_content()
         site.discover_assets()
-        
+
         # Build should complete
         stats = site.build(parallel=False)
         assert stats is not None
-        
+
         # Output should exist for valid pages
         output_dir = tmp_path / "public"
         assert output_dir.exists()
@@ -404,12 +402,12 @@ title = "Test Site"
 [build]
 output_dir = "public"
 incremental = true
-"""
+""",
         )
-        
+
         content_dir = tmp_path / "content"
         content_dir.mkdir()
-        
+
         # Initial page
         page_file = content_dir / "page.md"
         write_text_file(
@@ -418,15 +416,15 @@ incremental = true
 title: Test Page
 ---
 Initial content.
-"""
+""",
         )
-        
+
         # First build
         site1 = Site.from_config(tmp_path, config_path=config_file)
         site1.discover_content()
         stats1 = site1.build(parallel=False)
         assert stats1 is not None
-        
+
         # Modify page
         write_text_file(
             str(page_file),
@@ -434,9 +432,9 @@ Initial content.
 title: Updated Page
 ---
 Updated content.
-"""
+""",
         )
-        
+
         # Incremental rebuild
         site2 = Site.from_config(tmp_path, config_path=config_file)
         site2.discover_content()
@@ -459,12 +457,12 @@ title = "Test Site"
 [build]
 output_dir = "public"
 parallel = true
-"""
+""",
         )
-        
+
         content_dir = tmp_path / "content"
         content_dir.mkdir()
-        
+
         # Create multiple pages
         for i in range(10):
             page_file = content_dir / f"page{i}.md"
@@ -474,12 +472,12 @@ parallel = true
 title: Page {i}
 ---
 Content {i}
-"""
+""",
             )
-        
+
         site = Site.from_config(tmp_path, config_path=config_file)
         site.discover_content()
-        
+
         # Parallel build should handle errors in isolation
         try:
             stats = site.build(parallel=True)

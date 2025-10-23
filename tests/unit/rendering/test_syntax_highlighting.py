@@ -3,7 +3,17 @@ Tests for syntax highlighting behavior, including language aliasing and
 special handling for client-side rendered languages like Mermaid.
 """
 
-from bengal.rendering.parsers import MistuneParser, PythonMarkdownParser
+import pytest
+
+from bengal.rendering.parsers import MistuneParser
+
+# python-markdown is optional (mistune is default)
+try:
+    from bengal.rendering.parsers import PythonMarkdownParser
+
+    HAS_MARKDOWN = True
+except ImportError:
+    HAS_MARKDOWN = False
 
 
 class TestMistuneHighlightingAliasesAndMermaid:
@@ -41,6 +51,7 @@ A --> B
         assert "&gt;" in html or "graph LR" in html
 
 
+@pytest.mark.skipif(not HAS_MARKDOWN, reason="python-markdown not installed (optional dependency)")
 class TestPythonMarkdownHighlightingAliases:
     def setup_method(self):
         self.parser = PythonMarkdownParser()

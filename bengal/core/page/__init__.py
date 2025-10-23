@@ -5,7 +5,6 @@ This module provides the main Page class, which combines multiple mixins
 to provide a complete page interface while maintaining separation of concerns.
 """
 
-
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -90,7 +89,7 @@ class Page(
     tags: list[str] = field(default_factory=list)
     version: str | None = None
     toc: str | None = None
-    related_posts: list["Page"] = field(default_factory=list)  # Pre-computed during build
+    related_posts: list[Page] = field(default_factory=list)  # Pre-computed during build
 
     # Internationalization (i18n)
     # Language code for this page (e.g., 'en', 'fr'). When i18n is disabled, remains None.
