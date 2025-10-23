@@ -5,7 +5,7 @@ type: cli-reference
 css_class: api-content
 description: "Copy a theme template/partial to project templates/ and track provenance."
 source_file: "bengal/bengal/cli/commands/theme.py"
-source_line: 24
+source_line: 23
 ---
 
 # swizzle

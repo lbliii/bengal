@@ -1,6 +1,5 @@
 """Community detection command for discovering topical clusters."""
 
-
 from __future__ import annotations
 
 import json
@@ -234,3 +233,7 @@ def communities(
         raise click.Abort() from e
     finally:
         close_all_loggers()
+
+
+# Compatibility export expected by tests
+communities_command = communities

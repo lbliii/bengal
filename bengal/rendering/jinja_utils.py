@@ -5,7 +5,6 @@ Provides helpers for working with Jinja2's Undefined objects and accessing
 template context safely.
 """
 
-
 from __future__ import annotations
 
 from typing import Any
@@ -93,7 +92,7 @@ def safe_get(obj: Any, attr: str, default: Any = None) -> Any:
                 pass
             # If we got None but attribute doesn't exist, return default
             # This likely came from __getattr__ returning None
-            if value is None and default is not None:
+            if default is not None:
                 return default
 
         return value

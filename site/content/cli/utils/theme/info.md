@@ -5,7 +5,7 @@ type: cli-reference
 css_class: api-content
 description: "Show theme info for a slug (source, version, paths)."
 source_file: "bengal/bengal/cli/commands/theme.py"
-source_line: 115
+source_line: 114
 ---
 
 # info

@@ -5,7 +5,7 @@ type: cli-reference
 css_class: api-content
 description: "Update swizzled templates if unchanged locally."
 source_file: "bengal/bengal/cli/commands/theme.py"
-source_line: 51
+source_line: 50
 ---
 
 # swizzle-update

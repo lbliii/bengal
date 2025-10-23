@@ -20,3 +20,8 @@ def site_cli():
 site_cli.add_command(build)
 site_cli.add_command(serve)
 site_cli.add_command(clean)
+
+# Compatibility exports expected by some tests
+build_command = build
+serve_command = serve
+clean_command = clean

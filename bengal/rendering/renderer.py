@@ -2,7 +2,6 @@
 Renderer for converting pages to final HTML output.
 """
 
-
 from __future__ import annotations
 
 import re
@@ -230,9 +229,6 @@ class Renderer:
 
             # Fallback to simple HTML
             return self._render_fallback(page, content)
-        finally:
-            # No global language mutation needed; helpers read from template context
-            pass
 
     def _add_generated_page_context(self, page: Page, context: dict[str, Any]) -> None:
         """

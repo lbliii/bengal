@@ -1,6 +1,5 @@
 """Theme-related CLI commands (themes, swizzle)."""
 
-
 from __future__ import annotations
 
 import re

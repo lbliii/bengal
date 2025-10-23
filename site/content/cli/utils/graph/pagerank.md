@@ -5,7 +5,7 @@ type: cli-reference
 css_class: api-content
 description: "🏆 Analyze page importance using PageRank algorithm.  Computes PageRank scores for all pages based on their link structure. Pages that are linked to by many important pages recei..."
 source_file: "bengal/bengal/cli/commands/graph/pagerank.py"
-source_line: 17
+source_line: 16
 ---
 
 # pagerank

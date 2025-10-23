@@ -1,6 +1,5 @@
 """PageRank analysis command for identifying important pages."""
 
-
 from __future__ import annotations
 
 import json
@@ -209,3 +208,7 @@ def pagerank(top_n: int, damping: float, format: str, config: str, source: str) 
         raise click.Abort() from e
     finally:
         close_all_loggers()
+
+
+# Compatibility export expected by tests
+pagerank_command = pagerank

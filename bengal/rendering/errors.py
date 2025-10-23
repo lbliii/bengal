@@ -2,7 +2,6 @@
 Rich template error objects with line numbers, context, and suggestions.
 """
 
-
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -110,8 +109,10 @@ class TemplateRenderError:
         error_str = str(error).lower()
 
         # Check for filter errors first (can be TemplateAssertionError or part of other errors)
-        if "no filter named" in error_str or (
-            "filter" in error_str and ("unknown" in error_str or "not found" in error_str)
+        if (
+            "no filter named" in error_str
+            or ("filter" in error_str and ("unknown" in error_str or "not found" in error_str))
+            or (isinstance(error, TemplateAssertionError) and "unknown filter" in error_str)
         ):
             return "filter"
 
@@ -119,13 +120,20 @@ class TemplateRenderError:
             return "syntax"
         elif isinstance(error, TemplateAssertionError):
             # Filter errors during compilation
-            if "filter" in error_str:
+            if "filter" in error_str or "unknown filter" in error_str:
                 return "filter"
             return "syntax"
         elif isinstance(error, UndefinedError):
             return "undefined"
         elif isinstance(error, TemplateRuntimeError):
             return "runtime"
+        # Fallback: In Jinja2 <3.0, or in some sandboxed/embedded environments,
+        # TemplateAssertionError may not be raised for unknown filters; instead,
+        # a generic exception with a message containing "unknown filter" may be raised.
+        # See test_classify_unknown_filter_in_assertion in tests/unit/rendering/test_template_error_edge_cases.py
+        # for coverage of this behavior.
+        if "unknown filter" in error_str:
+            return "filter"
         return "other"
 
     @staticmethod
@@ -287,10 +295,8 @@ def _display_template_error_rich(error: TemplateRenderError) -> None:
         # Extract code around error
         code_lines = []
 
-        for i, (line_num, line_content) in enumerate(ctx.surrounding_lines):
+        for _line_num, line_content in ctx.surrounding_lines:
             code_lines.append(line_content)
-            if line_num == ctx.line_number:
-                i + 1  # Syntax uses 1-based indexing
 
         code_text = "\n".join(code_lines)
 

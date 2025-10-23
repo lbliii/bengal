@@ -6,7 +6,6 @@ Supports multiple parser engines:
 - mistune: Fast, subset of features
 """
 
-
 from __future__ import annotations
 
 from bengal.rendering.parsers.base import BaseMarkdownParser
@@ -45,13 +44,20 @@ def create_markdown_parser(engine: str | None = None) -> BaseMarkdownParser:
 
     Raises:
         ValueError: If engine is not supported
+        ImportError: If python-markdown is requested but not installed
     """
     engine = (engine or "mistune").lower()
 
     if engine == "mistune":
         return MistuneParser()
     elif engine in ("python-markdown", "python_markdown", "markdown"):
-        return PythonMarkdownParser()
+        try:
+            return PythonMarkdownParser()
+        except ImportError:
+            raise ImportError(
+                "python-markdown parser requested but not installed. "
+                "Install with: pip install markdown"
+            ) from None
     else:
         raise ValueError(
             f"Unsupported markdown engine: {engine}. Choose from: 'python-markdown', 'mistune'"

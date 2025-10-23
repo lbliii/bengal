@@ -455,7 +455,7 @@ def config(key: str, value: str, set_value: bool, list_all: bool) -> None:
             toml_lines.append(f"[{section}]")
             for k, v in section_config.items():
                 if isinstance(v, bool):
-                    toml_lines.append(f'{k} = {"true" if v else "false"}')
+                    toml_lines.append(f"{k} = {'true' if v else 'false'}")
                 elif isinstance(v, int | float):
                     toml_lines.append(f"{k} = {v}")
                 else:
@@ -475,3 +475,7 @@ def config(key: str, value: str, set_value: bool, list_all: bool) -> None:
 
 
 project_cli.add_command(init)
+
+# Compatibility export for tests expecting validate_command symbol
+# (Click command function is named `validate` in this module.)
+validate_command = validate

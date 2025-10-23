@@ -94,22 +94,19 @@ uv pip install -e ".[server]"
 ```bash
 pip install -e .
 
-# Or with dev server support (file watching auto-reload)
-pip install -e ".[server]"
+# All features included by default (hot reload, minification, etc.)
 ```
 
 For the released version (once available on PyPI):
 
 ```bash
 pip install bengal
-
-# Or with dev server support
-pip install bengal[server]
 ```
 
 **Optional Dependencies:**
-- `server` - File watching for dev server auto-reload (uses `watchdog`)
 - `css` - Advanced CSS optimization (uses `lightningcss`)
+
+**Note**: python-markdown parser is available if manually installed (`pip install markdown`). Bengal defaults to mistune for better performance
 
 ## Quick Start
 
