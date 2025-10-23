@@ -533,8 +533,7 @@ def init(
             cli.blank()
 
         # Next steps
-        cli.blank()
-        cli.header("📚 Next steps:")
+        cli.subheader("Next steps:", icon="📚")
         cli.info("  1. Run 'bengal serve' to preview your site")
         cli.info("  2. Edit files in content/ to add your content")
         cli.blank()

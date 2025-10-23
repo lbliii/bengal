@@ -278,18 +278,16 @@ def info() -> None:
         build_config = config.get("build", {})
 
         # Site info
-        cli.header("Site Configuration:")
+        cli.subheader("Site Configuration", trailing_blank=False)
         cli.info(f"  Title:     {site_config.get('title', '(not set)')}")
         cli.info(f"  Base URL:  {site_config.get('baseurl', '(not set)')}")
         cli.info(f"  Theme:     {site_config.get('theme', 'default')}")
-        cli.blank()
 
         # Build info
-        cli.header("Build Settings:")
+        cli.subheader("Build Settings", trailing_blank=False)
         cli.info(f"  Output:    {build_config.get('output_dir', 'public')}")
         cli.info(f"  Parallel:  {'Yes' if build_config.get('parallel', True) else 'No'}")
         cli.info(f"  Incremental: {'Yes' if build_config.get('incremental', True) else 'No'}")
-        cli.blank()
 
         # Content stats
         content_dir = Path("content")
@@ -297,10 +295,9 @@ def info() -> None:
             md_files = list(content_dir.rglob("*.md"))
             dirs = [d for d in content_dir.iterdir() if d.is_dir()]
 
-            cli.header("Content:")
+            cli.subheader("Content", trailing_blank=False)
             cli.info(f"  Pages:    {len(md_files)}")
             cli.info(f"  Sections: {len(dirs)}")
-            cli.blank()
 
         # Asset stats
         assets_dir = Path("assets")
@@ -315,11 +312,10 @@ def info() -> None:
                 if f.is_file() and f.suffix.lower() in img_extensions
             ]
 
-            cli.header("Assets:")
+            cli.subheader("Assets", trailing_blank=False)
             cli.info(f"  CSS:    {len(css_files)} files")
             cli.info(f"  JS:     {len(js_files)} files")
             cli.info(f"  Images: {len(img_files)} files")
-            cli.blank()
 
         # Template stats
         templates_dir = Path("templates")
@@ -331,10 +327,11 @@ def info() -> None:
                 else []
             )
 
-            cli.header("Templates:")
+            cli.subheader("Templates", trailing_blank=False)
             cli.info(f"  Templates: {len(templates)}")
             cli.info(f"  Partials:  {len(partials)}")
-            cli.blank()
+
+        cli.blank()
 
     except click.Abort:
         raise
@@ -377,22 +374,19 @@ def config(key: str, value: str, set_value: bool, list_all: bool) -> None:
         if list_all:
             cli.blank()
             cli.header("📋 Available Configuration Options")
-            cli.blank()
 
-            cli.header("[site]")
+            cli.subheader("[site]", trailing_blank=False)
             cli.info("  title           Site title (required)")
             cli.info("  baseurl         Base URL for the site (required)")
             cli.info("  description     Site description")
             cli.info("  theme           Theme name (default: 'default')")
-            cli.blank()
 
-            cli.header("[build]")
+            cli.subheader("[build]", trailing_blank=False)
             cli.info("  output_dir      Output directory (default: 'public')")
             cli.info("  parallel        Enable parallel processing (default: true)")
             cli.info("  incremental     Enable incremental builds (default: true)")
-            cli.blank()
 
-            cli.header("[assets]")
+            cli.subheader("[assets]", trailing_blank=False)
             cli.info("  minify          Minify CSS/JS (default: true)")
             cli.info("  fingerprint     Add cache-busting fingerprints (default: true)")
             cli.blank()

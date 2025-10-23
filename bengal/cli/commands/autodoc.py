@@ -221,8 +221,6 @@ def _generate_python_docs(
     cli.success(f"   ✓ Extracted {len(all_elements)} modules in {extraction_time:.2f}s")
 
     # Generate documentation
-    cli.blank()
-    cli.header("Generating documentation...")
     gen_start = time.time()
 
     generator = DocumentationGenerator(extractor, {"python": python_config})
@@ -237,15 +235,13 @@ def _generate_python_docs(
     cli.info(f"   📁 Output: {output_dir}")
 
     if stats:
-        cli.blank()
-        cli.header("📊 Performance Statistics:")
+        cli.subheader("Performance Statistics:", icon="📊")
         cli.info(f"   Extraction time:  {extraction_time:.2f}s")
         cli.info(f"   Generation time:  {generation_time:.2f}s")
         cli.info(f"   Total time:       {total_time:.2f}s")
         cli.info(f"   Throughput:       {len(generated) / total_time:.1f} pages/sec")
 
-    cli.blank()
-    cli.header("💡 Next steps:")
+    cli.subheader("Next steps:", icon="💡")
     cli.tip(f"View docs: ls {output_dir}")
     cli.tip("Build site: bengal build")
     cli.blank()
@@ -326,8 +322,6 @@ def _generate_cli_docs(
                     cli.info(f"  • {cmd.name}")
 
     # Generate documentation
-    cli.blank()
-    cli.header("Generating documentation...")
     gen_start = time.time()
 
     generator = DocumentationGenerator(extractor, {"cli": cli_config})
@@ -339,20 +333,21 @@ def _generate_cli_docs(
     # Display results
     cli.blank()
     cli.success("✅ CLI Documentation Generated!")
+
+    cli.subheader("Statistics:", icon="📊")
+    cli.info(f"   • Commands: {command_count}")
+    cli.info(f"   • Options:  {option_count}")
+    cli.info(f"   • Pages:    {len(generated_files)}")
+
+    cli.subheader("Performance:", icon="⚡")
+    cli.info(f"   • Extraction: {extraction_time:.3f}s")
+    cli.info(f"   • Generation: {gen_time:.3f}s")
+    cli.info(f"   • Total:      {total_time:.3f}s")
+
     cli.blank()
-    cli.header("   📊 Statistics:")
-    cli.info(f"      • Commands: {command_count}")
-    cli.info(f"      • Options:  {option_count}")
-    cli.info(f"      • Pages:    {len(generated_files)}")
-    cli.blank()
-    cli.info("   ⚡ Performance:")
-    cli.info(f"      • Extraction: {extraction_time:.3f}s")
-    cli.info(f"      • Generation: {gen_time:.3f}s")
-    cli.info(f"      • Total:      {total_time:.3f}s")
-    cli.blank()
-    cli.info(f"   📂 Output: {output_dir}")
-    cli.blank()
-    cli.header("💡 Next steps:")
+    cli.info(f"📂 Output: {output_dir}")
+
+    cli.subheader("Next steps:", icon="💡")
     cli.tip(f"View docs: ls {output_dir}")
     cli.tip("Build site: bengal build")
     cli.blank()
@@ -488,8 +483,6 @@ def autodoc_cli(
                         cli.info(f"  • {cmd.name}")
 
         # Generate documentation
-        cli.blank()
-        cli.header("Generating documentation...")
         gen_start = time.time()
 
         generator = DocumentationGenerator(extractor, cli_config)
@@ -501,16 +494,16 @@ def autodoc_cli(
         # Display results
         cli.blank()
         cli.success("✅ CLI Documentation Generated!")
-        cli.blank()
-        cli.info("   📊 Statistics:")
-        cli.info(f"      • Commands: {command_count}")
-        cli.info(f"      • Options:  {option_count}")
-        cli.info(f"      • Pages:    {len(generated_files)}")
-        cli.blank()
-        cli.info("   ⚡ Performance:")
-        cli.info(f"      • Extraction: {extraction_time:.3f}s")
-        cli.info(f"      • Generation: {gen_time:.3f}s")
-        cli.info(f"      • Total:      {total_time:.3f}s")
+
+        cli.subheader("Statistics:", icon="📊")
+        cli.info(f"   • Commands: {command_count}")
+        cli.info(f"   • Options:  {option_count}")
+        cli.info(f"   • Pages:    {len(generated_files)}")
+
+        cli.subheader("Performance:", icon="⚡")
+        cli.info(f"   • Extraction: {extraction_time:.3f}s")
+        cli.info(f"   • Generation: {gen_time:.3f}s")
+        cli.info(f"   • Total:      {total_time:.3f}s")
         cli.blank()
         cli.info(f"   📂 Output: {output_dir}")
         cli.blank()

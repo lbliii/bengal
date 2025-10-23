@@ -391,8 +391,7 @@ Thumbs.db
             )
 
         # Show next steps
-        cli.blank()
-        cli.header("📚 Next steps:")
+        cli.subheader("Next steps:", icon="📚")
         cli.info(f"   ├─ cd {site_dir_name}")
         cli.info("   └─ bengal site serve")
         cli.blank()
@@ -833,8 +832,7 @@ document.addEventListener('DOMContentLoaded', function() {
         cli.success("✅ Theme created successfully!")
 
         # Show next steps
-        cli.blank()
-        cli.header("📚 Next steps:")
+        cli.subheader("Next steps:", icon="📚")
         if in_site:
             cli.tip(f'Update bengal.toml: theme = "{slug}"')
             cli.tip("Run 'bengal serve'")

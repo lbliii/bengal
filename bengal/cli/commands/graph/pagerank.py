@@ -180,10 +180,7 @@ def pagerank(top_n: int, damping: float, format: str, config: str, source: str) 
 
         # Show insights
         if format != "json" and results.converged:
-            cli.blank()
-            cli.info("=" * 60)
-            cli.header("📊 Insights")
-            cli.info("=" * 60)
+            cli.subheader("Insights", icon="📊")
 
             # Calculate some basic stats
             scores_list = sorted(results.scores.values(), reverse=True)

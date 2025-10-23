@@ -159,6 +159,62 @@ class CLIOutput:
             suffix = "\n" if trailing_blank else ""
             click.echo(f"{prefix}    {mascot_str}{text}{suffix}", color=True)
 
+    def subheader(
+        self,
+        text: str,
+        icon: str | None = None,
+        leading_blank: bool = True,
+        trailing_blank: bool = False,
+        width: int = 60,
+    ) -> None:
+        """
+        Print a subheader with subtle border (lighter than header).
+
+        Creates a horizontal line with text, providing visual structure
+        without the weight of a full boxed header.
+
+        Args:
+            text: The subheader text
+            icon: Optional icon/emoji to display before text
+            leading_blank: Add blank line before (default: True)
+            trailing_blank: Add blank line after (default: False)
+            width: Total width of the border line (default: 60)
+
+        Example:
+            === 📊 Statistics ========================================
+            === 💡 Next steps ========================================
+        """
+        if not self.should_show(MessageLevel.INFO):
+            return
+
+        if leading_blank:
+            self.blank()
+
+        # Format: === icon text ========================================
+        icon_str = f"{icon} " if icon else ""
+        label = f"{icon_str}{text}"
+
+        # Calculate remaining border length
+        # Account for: "=== " (4) + label + " " (1) + remaining equals
+        label_len = len(label)
+        prefix = "=== "
+        remaining = width - len(prefix) - label_len - 1
+        if remaining < 0:
+            remaining = 0
+
+        border = "=" * remaining
+
+        if self.use_rich:
+            line = f"{prefix}[header]{label}[/header] {border}"
+            self.console.print(line)
+        else:
+            # Fallback: ASCII with bold
+            line = f"{prefix}{label} {border}"
+            click.echo(click.style(line, bold=True))
+
+        if trailing_blank:
+            self.blank()
+
     def phase(
         self,
         name: str,
