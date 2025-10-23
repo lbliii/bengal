@@ -13,11 +13,9 @@ from pathlib import Path
 import click
 
 from bengal.cli.base import BengalGroup
-from bengal.cli.click_extensions import verbosity_option
-from bengal.cli.helpers.cli_output import CLIOutput
-from bengal.config.loader import load_config
 from bengal.core.site import Site
 from bengal.health.linkcheck.orchestrator import LinkCheckOrchestrator
+from bengal.utils.cli_output import CLIOutput
 
 
 @click.group("health", cls=BengalGroup)
@@ -90,7 +88,6 @@ def health_cli():
     type=click.Path(),
     help="Output file (for JSON format)",
 )
-@verbosity_option()
 def linkcheck(
     external_only: bool,
     internal_only: bool,
@@ -125,8 +122,8 @@ def linkcheck(
         cli.header("🔗 Link Checker", bold=True)
         cli.info("Loading site...")
 
-        config = load_config()
-        site = Site(config)
+        root_path = Path.cwd()
+        site = Site.from_config(root_path)
         site.discover_content()
         site.discover_assets()
 
@@ -142,7 +139,7 @@ def linkcheck(
 
     # Build config from CLI flags and site config
     linkcheck_config = _build_config(
-        config,
+        site.config,
         max_concurrency,
         per_host_limit,
         timeout,
