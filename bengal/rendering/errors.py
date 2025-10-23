@@ -127,7 +127,11 @@ class TemplateRenderError:
             return "undefined"
         elif isinstance(error, TemplateRuntimeError):
             return "runtime"
-        # Fallback: some environments construct TemplateAssertionError differently; inspect message
+        # Fallback: In Jinja2 <3.0, or in some sandboxed/embedded environments,
+        # TemplateAssertionError may not be raised for unknown filters; instead,
+        # a generic exception with a message containing "unknown filter" may be raised.
+        # See test_classify_unknown_filter_in_assertion in tests/unit/rendering/test_template_error_edge_cases.py
+        # for coverage of this behavior.
         if "unknown filter" in error_str:
             return "filter"
         return "other"

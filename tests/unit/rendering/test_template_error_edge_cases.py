@@ -208,26 +208,46 @@ class TestErrorClassificationEdgeCases:
     def test_classify_filter_error_in_runtime(self):
         """Test classifying filter error that appears as runtime error."""
         error = TemplateRuntimeError("No filter named 'custom' found")
-        error_type = TemplateRenderError._classify_error(error)
-        assert error_type == "filter"
+        mock_engine = Mock()
+        mock_engine._find_template_path = Mock(return_value=None)
+        mock_engine.env = Mock()
+        mock_engine.env.filters = {}
+
+        tre = TemplateRenderError.from_jinja2_error(error, "test.html", None, mock_engine)
+        assert tre.error_type == "filter"
 
     def test_classify_unknown_filter_in_assertion(self):
         """Test classifying unknown filter in assertion error."""
         error = TemplateAssertionError("unknown filter: custom_filter", 1)
-        error_type = TemplateRenderError._classify_error(error)
-        assert error_type == "filter"
+        mock_engine = Mock()
+        mock_engine._find_template_path = Mock(return_value=None)
+        mock_engine.env = Mock()
+        mock_engine.env.filters = {}
+
+        tre = TemplateRenderError.from_jinja2_error(error, "test.html", None, mock_engine)
+        assert tre.error_type == "filter"
 
     def test_classify_non_filter_assertion_error(self):
         """Test classifying assertion error that's not about filters."""
         error = TemplateAssertionError("Some assertion failed", 1)
-        error_type = TemplateRenderError._classify_error(error)
-        assert error_type == "syntax"
+        mock_engine = Mock()
+        mock_engine._find_template_path = Mock(return_value=None)
+        mock_engine.env = Mock()
+        mock_engine.env.filters = {}
+
+        tre = TemplateRenderError.from_jinja2_error(error, "test.html", None, mock_engine)
+        assert tre.error_type == "syntax"
 
     def test_classify_generic_exception(self):
         """Test classifying generic exception."""
         error = Exception("Generic error")
-        error_type = TemplateRenderError._classify_error(error)
-        assert error_type == "other"
+        mock_engine = Mock()
+        mock_engine._find_template_path = Mock(return_value=None)
+        mock_engine.env = Mock()
+        mock_engine.env.filters = {}
+
+        tre = TemplateRenderError.from_jinja2_error(error, "test.html", None, mock_engine)
+        assert tre.error_type == "other"
 
 
 class TestContextExtractionEdgeCases:
