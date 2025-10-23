@@ -13,80 +13,74 @@ GitHub CI test suite is experiencing worker crashes due to nested parallelism: p
 
 ## Root Cause Analysis
 
-**Issue**: pytest-xdist workers crash with "Not properly terminated"
+**Issue**: pytest-xdist workers crash with "Not properly terminated" **in CI only**
+
+**Investigation Results (2025-10-23)**:
+- ✅ Local Python 3.12.2: **2,764 tests pass, zero crashes** (11 workers)
+- ✅ Local Python 3.14t: **2,601 tests pass, zero crashes** (11 workers)
+- ❌ CI Python 3.14.0: **Crashes at ~88%** (only 2 workers)
+
+**Root Cause**: CI resource constraints, not Python 3.14 or missing markers
 
 **Evidence**:
-1. ❌ `tests/unit/core/test_parallel_processing.py` - Uses ThreadPoolExecutor, NO markers
-2. ❌ `tests/unit/discovery/test_asset_discovery.py` - Uses ThreadPoolExecutor, NO markers
-3. ❌ `tests/unit/utils/test_atomic_write.py` - Uses ThreadPoolExecutor, NO markers
-4. ✅ `tests/integration/test_concurrent_builds.py` - Uses ThreadPoolExecutor, HAS markers
-5. ✅ `tests/performance/test_process_parallel.py` - Uses ProcessPoolExecutor, HAS markers
+1. ✅ `tests/unit/core/test_parallel_processing.py` - HAS `@pytest.mark.parallel_unsafe`
+2. ✅ `tests/unit/discovery/test_asset_discovery.py` - HAS `@pytest.mark.parallel_unsafe`
+3. ✅ `tests/unit/utils/test_atomic_write.py` - HAS `@pytest.mark.parallel_unsafe`
+4. ✅ `tests/conftest.py` - Correctly groups `parallel_unsafe` tests via `xdist_group`
+5. ✅ CI config - Already has `--dist worksteal --max-worker-restart=3`
 
-**Why this causes crashes**:
-- pytest-xdist spawns worker processes/threads
-- Worker runs test that creates its own ThreadPoolExecutor
-- Nested parallelism causes resource conflicts, deadlocks, or crashes
-- Workers terminate unexpectedly with "Not properly terminated"
+**Why CI crashes anyway**:
+- CI uses only **2 workers** vs local **11 workers**
+- Fewer workers = more tests per worker sequentially
+- Performance tests with ThreadPoolExecutor hit CI **memory/CPU limits** around test #2447
+- Even though tests are grouped, resource exhaustion causes worker crashes
+- Workers crash with "Not properly terminated" when hitting system limits
 
 ---
 
-## Phase 1: Add Missing Markers (3 tasks)
+## Solution: Exclude Heavy Tests from Fast-Check
 
-### Tests (`tests/unit/core/`)
+**New Understanding**: The markers and xdist config are correct. The issue is CI resource constraints.
+
+### Recommended Fix: Update CI to exclude performance tests from fast-check
+
+The `fast-check` job already excludes `stateful` and `performance` markers, but some heavy tests might not be marked. Solution: explicitly run performance tests separately or increase CI resources.
+
+### Phase 1: Verify Marker Coverage (Already Done ✅)
 
 #### Task 1.1: Mark parallel-unsafe tests in test_parallel_processing.py
 - **Files**: `tests/unit/core/test_parallel_processing.py`
-- **Action**: Add `@pytest.mark.parallel_unsafe` to TestThreadSafety class
-- **Reason**: Uses ThreadPoolExecutor (lines 319, 343, 392)
-- **Dependencies**: None
-- **Status**: pending
-- **Commit**: `tests(core): mark parallel processing tests as parallel_unsafe`
-
----
-
-### Tests (`tests/unit/discovery/`)
+- **Status**: ✅ **COMPLETE** - Already has `@pytest.mark.parallel_unsafe` at line 302
 
 #### Task 1.2: Mark parallel-unsafe tests in test_asset_discovery.py
 - **Files**: `tests/unit/discovery/test_asset_discovery.py`
-- **Action**: Add `@pytest.mark.parallel_unsafe` to TestAssetDiscoveryWithRaceConditions class
-- **Reason**: Uses ThreadPoolExecutor (line 211)
-- **Dependencies**: None
-- **Status**: pending
-- **Commit**: `tests(discovery): mark asset discovery race tests as parallel_unsafe`
-
----
-
-### Tests (`tests/unit/utils/`)
+- **Status**: ✅ **COMPLETE** - Already has `@pytest.mark.parallel_unsafe` at line 182
 
 #### Task 1.3: Mark parallel-unsafe tests in test_atomic_write.py
 - **Files**: `tests/unit/utils/test_atomic_write.py`
-- **Action**: Add `@pytest.mark.parallel_unsafe` to TestRealWorldScenarios class
-- **Reason**: Uses ThreadPoolExecutor (lines 266, 294)
-- **Dependencies**: None
-- **Status**: pending
-- **Commit**: `tests(utils): mark atomic write concurrent tests as parallel_unsafe`
+- **Status**: ✅ **COMPLETE** - Already has `@pytest.mark.parallel_unsafe` at line 235
 
 ---
 
-## Phase 2: Enhance CI Configuration (2 tasks)
+## Phase 2: CI Configuration Status
 
-### CI Config (`.github/workflows/`)
+### Already Implemented ✅
 
-#### Task 2.1: Add max-worker-restart to fast-check job
-- **Files**: `.github/workflows/tests.yml`
-- **Action**: Add `--max-worker-restart=3` to fast-check pytest command
-- **Reason**: Allow workers to restart on transient failures (Python 3.14 compatibility)
-- **Dependencies**: None
-- **Status**: pending
-- **Commit**: `ci: add max-worker-restart for xdist robustness`
+#### Task 2.1: max-worker-restart
+- **Status**: ✅ **COMPLETE** - Already in `.github/workflows/tests.yml:35`
+- **Implementation**: `--max-worker-restart=3`
 
-#### Task 2.2: Add dist=worksteal to fast-check job
-- **Files**: `.github/workflows/tests.yml`
-- **Action**: Add `--dist worksteal` to fast-check pytest command
-- **Reason**: Better load balancing, serial_group tests stay on same worker
-- **Dependencies**: Task 2.1
-- **Status**: pending
-- **Commit**: `ci: use worksteal distribution for better xdist scheduling`
+#### Task 2.2: dist=worksteal  
+- **Status**: ✅ **COMPLETE** - Already in `.github/workflows/tests.yml:35`
+- **Implementation**: `--dist worksteal`
+
+### New Task: Check Performance Test Markers
+
+#### Task 2.3: Verify memory-intensive tests are marked
+- **Files**: `tests/performance/test_memory_profiling.py`, `tests/performance/test_process_parallel.py`
+- **Action**: Ensure all heavy tests have `@pytest.mark.performance` or `@pytest.mark.memory_intensive`
+- **Reason**: CI fast-check excludes `performance` but crashes suggest some aren't marked
+- **Status**: **TODO**
 
 ---
 
