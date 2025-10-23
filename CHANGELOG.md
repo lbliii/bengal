@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **CI Test Stability**: Fixed pytest-xdist worker crashes in GitHub Actions
+  - Added `@pytest.mark.parallel_unsafe` to tests using ThreadPoolExecutor internally
+  - Added `--dist worksteal` and `--max-worker-restart=3` to CI configuration for robustness
+  - Documented parallel test safety guidelines in tests/README.md
+  - Eliminated "node down: Not properly terminated" errors from nested parallelism
+
 ## [0.1.3] - 2025-10-20
 
 ### Major Release: Performance, Stability, Theme Enhancements & Critical Bug Fixes
