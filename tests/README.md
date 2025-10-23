@@ -37,7 +37,57 @@ Markers help control execution. See `pytest.ini` for full list.
 
 - `integration`: Multi-component workflows (e.g., full-to-incremental sequences).
 
+- `parallel_unsafe`: Tests using `ThreadPoolExecutor`/`ProcessPoolExecutor` internally.  
+  **Critical**: Mark tests with `@pytest.mark.parallel_unsafe` if they spawn their own thread/process pools.  
+  Reason: pytest-xdist runs tests in parallel workers. If a test creates its own pool, this causes nested parallelism → worker crashes ("node down: Not properly terminated").  
+  Examples: `TestThreadSafety`, `TestAssetDiscoveryWithRaceConditions`, `TestRealWorldScenarios`.
+
 List markers: `pytest --markers`.
+
+## Parallel Test Safety
+
+⚠️ **Important**: When writing tests that use parallelism internally, mark them `@pytest.mark.parallel_unsafe`.
+
+### Why This Matters
+pytest uses xdist (`-n auto`) to run tests in parallel workers for faster execution. However, if a test itself spawns threads or processes (e.g., `ThreadPoolExecutor`), this creates **nested parallelism** that causes worker crashes.
+
+### How to Mark Tests
+```python
+import concurrent.futures
+import pytest
+
+@pytest.mark.parallel_unsafe
+class TestConcurrentOperations:
+    """Tests that use ThreadPoolExecutor internally.
+
+    Marked parallel_unsafe: Prevents pytest-xdist worker crashes from nested parallelism.
+    """
+
+    def test_concurrent_writes(self):
+        with concurrent.futures.ThreadPoolExecutor(max_workers=4) as ex:
+            # Test code that uses thread pool
+            ...
+```
+
+### When to Mark Tests
+- Uses `concurrent.futures.ThreadPoolExecutor`
+- Uses `concurrent.futures.ProcessPoolExecutor`
+- Uses `multiprocessing.Pool`
+- Modifies global state accessed by other tests
+- Creates temporary processes/threads
+
+### What Happens Without Markers
+Without `@pytest.mark.parallel_unsafe`:
+- ❌ Worker crashes: "node down: Not properly terminated"
+- ❌ Flaky test results
+- ❌ CI failures requiring re-runs
+- ❌ Hard-to-debug intermittent issues
+
+With `@pytest.mark.parallel_unsafe`:
+- ✅ Tests run sequentially on same worker (via `xdist_group`)
+- ✅ No worker crashes
+- ✅ Reliable CI results
+- ✅ Clear documentation of test requirements
 
 ## Fixtures for Efficiency
 Fixtures reduce redundant setups like site builds (1-2s each).
