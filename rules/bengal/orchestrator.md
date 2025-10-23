@@ -1,7 +1,7 @@
 ---
-description: Central command interface for intelligent routing and task orchestration based on user intent
+description: Intelligent rule selection and routing (invoked via ::auto from main OS)
 globs: ["**/*.py", "**/*.md", "**/*.toml"]
-alwaysApply: true
+alwaysApply: false
 ---
 
 # Bengal Orchestrator

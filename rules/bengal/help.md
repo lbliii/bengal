@@ -1,7 +1,7 @@
 ---
-description: Context-aware help system and comprehensive command reference
+description: Context-aware help system and comprehensive command reference (invoked via ::? or ::help from main OS)
 globs: ["**/*"]
-alwaysApply: true
+alwaysApply: false
 ---
 
 # Bengal Help System
