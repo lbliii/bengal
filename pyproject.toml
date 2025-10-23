@@ -42,6 +42,7 @@ dependencies = [
     "rich>=13.7.0",              # Enhanced terminal output
     "questionary>=2.0.0",        # Interactive CLI prompts with arrow key navigation
     "watchdog>=3.0.0",           # File watching for dev server (bengal site serve)
+    "httpx>=0.27.0",             # Async HTTP client for link checking
 ]
 
 [project.optional-dependencies]
@@ -54,6 +55,7 @@ dev = [
     "pytest-mock>=3.11.0",
     "pytest-xdist>=3.3.0",
     "pytest-timeout>=2.2.0",
+    "pytest-asyncio>=0.23.0",
     "hypothesis>=6.92.0",
     "mypy>=1.11.0",
     "ruff>=0.14.0",           # 0.14+ required for Python 3.14 support

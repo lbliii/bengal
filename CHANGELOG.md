@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Link Checker**: New `bengal health linkcheck` command for comprehensive link validation
+  - Async external link checking with HTTP requests (powered by httpx)
+  - Internal link validation for page-to-page and anchor links
+  - Configurable concurrency (default: 20 concurrent, 4 per-host to avoid rate limits)
+  - Exponential backoff with jitter for failed requests
+  - Intelligent retry logic (default: 2 retries with 0.5s base backoff)
+  - HEAD first with fallback to GET on 405/501 responses
+  - Ignore policies: URL patterns (regex), domains, and status code ranges
+  - Multiple output formats: console (default) and JSON
+  - CLI flags: `--external-only`, `--internal-only`, `--format json`, `--exclude`, `--ignore-status`
+  - Configuration via `[health.linkcheck]` in bengal.toml
+  - Example: `bengal health linkcheck --ignore-status "500-599" --format json --output report.json`
+  - Perfect for CI/CD pipelines to catch broken links before deployment
+
 ### Fixed
 - **CI Test Stability**: Fixed pytest-xdist worker crashes in GitHub Actions
   - Added `@pytest.mark.parallel_unsafe` to tests using ThreadPoolExecutor internally

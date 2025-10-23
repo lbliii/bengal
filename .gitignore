@@ -67,7 +67,6 @@ examples/showcase/content/cli/
 # Linters, type-checkers, editor state
 .ruff_cache/
 .mypy_cache/
-.cursor/
 .python-version
 .bengal-metrics
 

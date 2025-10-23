@@ -130,3 +130,32 @@ app_module = "bengal.cli:main"  # module_path:attribute format
 output_dir = "content/cli"
 framework = "click"  # click, argparse, or typer
 include_hidden = false  # Include hidden commands
+
+# Health check configuration
+[health.linkcheck]
+# Async HTTP checker settings
+max_concurrency = 20      # Maximum concurrent HTTP requests
+per_host_limit = 4        # Maximum concurrent requests per host (avoid rate limits)
+timeout = 10.0            # Request timeout in seconds
+retries = 2               # Number of retry attempts for failed requests
+retry_backoff = 0.5       # Base backoff time for exponential backoff (seconds)
+
+# What to check
+external = true           # Check external links (http/https)
+internal = true           # Check internal links (page-to-page, anchors)
+
+# Ignore policies
+exclude = [               # URL patterns to ignore (regex)
+    "^/api/preview/",     # Example: Exclude preview endpoints
+]
+exclude_domain = [        # Domains to ignore
+    "localhost",
+    "127.0.0.1",
+]
+ignore_status = [         # HTTP status codes/ranges to ignore
+    "500-599",            # Ignore all 5xx errors (server errors)
+    "403",                # Ignore forbidden responses
+]
+
+# Cache settings (future enhancement)
+# cache_ttl_hours = 24  # Cache link check results for 24 hours
