@@ -16,6 +16,7 @@ from bengal.server.constants import DEFAULT_DEV_HOST, DEFAULT_DEV_PORT
 from bengal.server.pid_manager import PIDManager
 from bengal.server.request_handler import BengalRequestHandler
 from bengal.server.resource_manager import ResourceManager
+from bengal.server.utils import clear_build_cache
 from bengal.utils.build_stats import display_build_stats, show_building_indicator
 from bengal.utils.logger import get_logger
 
@@ -87,11 +88,12 @@ class DevServer:
 
         This method:
         1. Checks for and handles stale processes
-        2. Performs an initial build
-        3. Creates HTTP server (with port fallback if needed)
-        4. Starts file watcher (if enabled)
-        5. Opens browser (if requested)
-        6. Runs until interrupted (Ctrl+C, SIGTERM, etc.)
+        2. Prepares dev-specific configuration
+        3. Performs an initial build
+        4. Creates HTTP server (with port fallback if needed)
+        5. Starts file watcher (if enabled)
+        6. Opens browser (if requested)
+        7. Runs until interrupted (Ctrl+C, SIGTERM, etc.)
 
         The server uses ResourceManager for comprehensive cleanup handling,
         ensuring all resources are properly released on shutdown regardless
@@ -101,7 +103,6 @@ class DevServer:
             OSError: If no available port can be found
             KeyboardInterrupt: When user presses Ctrl+C (handled gracefully)
         """
-        # Use debug level to avoid noise in normal output
         logger.debug(
             "dev_server_starting",
             host=self.host,
@@ -112,55 +113,20 @@ class DevServer:
             site_root=str(self.site.root_path),
         )
 
-        # Check for and handle stale processes
+        # 1. Check for and handle stale processes
         self._check_stale_processes()
 
         # Use ResourceManager for comprehensive cleanup handling
         with ResourceManager() as rm:
             # Mark process as dev server for CLI output tuning
-            try:
-                import os as _os
-
-                _os.environ["BENGAL_DEV_SERVER"] = "1"
-            except Exception:
-                pass
-            # Always do an initial build to ensure site is up to date
-            # Use WRITER profile for clean, minimal output in dev server
+            os.environ["BENGAL_DEV_SERVER"] = "1"
+            
+            # 2. Prepare dev-specific configuration
             from bengal.utils.profile import BuildProfile
+            baseurl_was_cleared = self._prepare_dev_config()
 
-            # Development defaults: disable asset fingerprinting/minify for stable
-            # URLs & faster rebuilds
-            try:
-                cfg = self.site.config
-                cfg["dev_server"] = True
-                # Prefer stable CSS/JS filenames in dev so reload-css works without
-                # full page reloads
-                cfg["fingerprint_assets"] = False
-                # Avoid minification in dev to maximize CSS source stability and speed
-                cfg.setdefault("minify_assets", False)
-                # Clear baseurl during local development so the site is served at '/'
-                # This applies to both path-only (/bengal) and absolute URLs (https://example.com)
-                try:
-                    baseurl_value = (cfg.get("baseurl", "") or "").strip()
-                except Exception:
-                    baseurl_value = ""
-                baseurl_was_cleared = False
-                if baseurl_value:
-                    # Store original and clear for dev server
-                    cfg["_dev_original_baseurl"] = baseurl_value
-                    cfg["baseurl"] = ""
-                    baseurl_was_cleared = True
-                    logger.info(
-                        "dev_server_baseurl_ignored",
-                        original=baseurl_value,
-                        effective=cfg.get("baseurl", ""),
-                        action="forcing_clean_rebuild",
-                    )
-            except Exception:
-                baseurl_was_cleared = False
-
+            # 3. Initial build
             show_building_indicator("Initial build")
-            # Force clean rebuild if baseurl was cleared to regenerate HTML with correct paths
             stats = self.site.build(
                 profile=BuildProfile.WRITER, incremental=not baseurl_was_cleared
             )
@@ -172,23 +138,23 @@ class DevServer:
                 duration_ms=stats.build_time_ms,
             )
 
-            # Create and register PID file for this process
+            # 4. Create and register PID file for this process
             pid_file = PIDManager.get_pid_file(self.site.root_path)
             PIDManager.write_pid_file(pid_file)
             rm.register_pidfile(pid_file)
 
-            # Create HTTP server (determines actual port)
+            # 5. Create HTTP server (determines actual port)
             httpd, actual_port = self._create_server()
             rm.register_server(httpd)
 
-            # Start file watcher if enabled (needs actual_port for rebuild messages)
+            # 6. Start file watcher if enabled (needs actual_port for rebuild messages)
             if self.watch:
                 observer = self._create_observer(actual_port)
                 rm.register_observer(observer)
                 observer.start()
                 logger.info("file_watcher_started", watch_dirs=self._get_watched_directories())
 
-            # Open browser if requested
+            # 7. Open browser if requested
             if self.open_browser:
                 self._open_browser_delayed(actual_port)
                 logger.debug("browser_opening", url=f"http://{self.host}:{actual_port}/")
@@ -204,7 +170,7 @@ class DevServer:
                 watch_enabled=self.watch,
             )
 
-            # Run until interrupted (cleanup happens automatically via ResourceManager)
+            # 8. Run until interrupted (cleanup happens automatically via ResourceManager)
             try:
                 httpd.serve_forever()
             except KeyboardInterrupt:
@@ -212,6 +178,50 @@ class DevServer:
                 print("\n  👋 Shutting down server...")
                 logger.info("dev_server_shutdown", reason="keyboard_interrupt")
             # ResourceManager cleanup happens automatically via __exit__
+
+    def _prepare_dev_config(self) -> bool:
+        """
+        Prepare site configuration for development mode.
+        
+        Sets development-specific defaults:
+        - Disables asset fingerprinting (stable URLs for hot reload)
+        - Disables minification (faster rebuilds, easier debugging)
+        - Clears baseurl (serves from root '/' not subdirectory)
+        
+        When baseurl is cleared, also clears the build cache to prevent
+        stale baseurl values from persisting in cached data.
+        
+        Returns:
+            True if baseurl was cleared (requires clean rebuild)
+        """
+        cfg = self.site.config
+        
+        # Development defaults for faster iteration
+        cfg["dev_server"] = True
+        cfg["fingerprint_assets"] = False  # Stable CSS/JS filenames
+        cfg.setdefault("minify_assets", False)  # Faster builds
+        
+        # Clear baseurl for local development
+        # This prevents 404s since dev server serves from '/' not '/baseurl'
+        baseurl_value = (cfg.get("baseurl", "") or "").strip()
+        if not baseurl_value:
+            return False  # No baseurl to clear
+        
+        # Store original and clear for dev server
+        cfg["_dev_original_baseurl"] = baseurl_value
+        cfg["baseurl"] = ""
+        
+        logger.info(
+            "dev_server_baseurl_ignored",
+            original=baseurl_value,
+            effective="",
+            action="forcing_clean_rebuild",
+        )
+        
+        # Clear build cache to prevent stale baseurl from persisting
+        clear_build_cache(self.site.root_path, logger)
+        
+        return True  # Baseurl was cleared
 
     def _get_watched_directories(self) -> list:
         """

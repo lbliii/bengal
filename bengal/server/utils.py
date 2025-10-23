@@ -48,3 +48,36 @@ def safe_int(value, default: int = 0) -> int:
         return default
 
 
+def clear_build_cache(site_root_path, logger=None) -> bool:
+    """
+    Clear Bengal's build cache to force a clean rebuild.
+    
+    Useful when:
+    - Config changes in ways that affect output (baseurl, theme, etc.)
+    - Stale cache is suspected
+    - Forcing a complete regeneration
+    
+    Args:
+        site_root_path: Path to site root directory
+        logger: Optional logger for debug output
+        
+    Returns:
+        True if cache was cleared, False if no cache existed
+    """
+    from pathlib import Path
+    
+    cache_dir = Path(site_root_path) / ".bengal"
+    cache_path = cache_dir / "cache.json"
+    
+    if not cache_path.exists():
+        return False
+    
+    try:
+        cache_path.unlink()
+        if logger:
+            logger.debug("build_cache_cleared", cache_path=str(cache_path))
+        return True
+    except Exception as e:
+        if logger:
+            logger.warning("cache_clear_failed", error=str(e), cache_path=str(cache_path))
+        return False
