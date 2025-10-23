@@ -120,9 +120,10 @@ class DevServer:
         with ResourceManager() as rm:
             # Mark process as dev server for CLI output tuning
             os.environ["BENGAL_DEV_SERVER"] = "1"
-            
+
             # 2. Prepare dev-specific configuration
             from bengal.utils.profile import BuildProfile
+
             baseurl_was_cleared = self._prepare_dev_config()
 
             # 3. Initial build
@@ -182,45 +183,51 @@ class DevServer:
     def _prepare_dev_config(self) -> bool:
         """
         Prepare site configuration for development mode.
-        
+
         Sets development-specific defaults:
         - Disables asset fingerprinting (stable URLs for hot reload)
         - Disables minification (faster rebuilds, easier debugging)
         - Clears baseurl (serves from root '/' not subdirectory)
-        
+
         When baseurl is cleared, also clears the build cache to prevent
         stale baseurl values from persisting in cached data.
-        
+
         Returns:
             True if baseurl was cleared (requires clean rebuild)
         """
         cfg = self.site.config
-        
+
         # Development defaults for faster iteration
         cfg["dev_server"] = True
         cfg["fingerprint_assets"] = False  # Stable CSS/JS filenames
         cfg.setdefault("minify_assets", False)  # Faster builds
-        
+
         # Clear baseurl for local development
         # This prevents 404s since dev server serves from '/' not '/baseurl'
         baseurl_value = (cfg.get("baseurl", "") or "").strip()
         if not baseurl_value:
             return False  # No baseurl to clear
-        
+
         # Store original and clear for dev server
         cfg["_dev_original_baseurl"] = baseurl_value
         cfg["baseurl"] = ""
-        
+
         logger.info(
             "dev_server_baseurl_ignored",
             original=baseurl_value,
             effective="",
             action="forcing_clean_rebuild",
         )
-        
-        # Clear build cache to prevent stale baseurl from persisting
+
+        # Clear build cache AND output directory to prevent stale baseurl from persisting
+        # The cache stores incremental build state, but HTML files in public/ may have
+        # the old baseurl baked into meta tags like <meta name="bengal:index_url" content="/baseurl/index.json">
         clear_build_cache(self.site.root_path, logger)
-        
+
+        from bengal.server.utils import clear_output_directory
+
+        clear_output_directory(self.site.output_dir, logger)
+
         return True  # Baseurl was cleared
 
     def _get_watched_directories(self) -> list:
