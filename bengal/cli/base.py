@@ -66,7 +66,7 @@ class BengalCommand(click.Command):
             # Options
             options = [p for p in self.params if isinstance(p, click.Option)]
             if options:
-                cli.header("Options:")
+                cli.subheader("Options:", leading_blank=False, trailing_blank=False)
                 for param in options:
                     opts = "/".join(param.opts)
                     help_text = param.help or ""
@@ -84,7 +84,7 @@ class BengalCommand(click.Command):
             # Arguments
             arguments = [p for p in self.params if isinstance(p, click.Argument)]
             if arguments:
-                cli.header("Arguments:")
+                cli.subheader("Arguments:", leading_blank=False, trailing_blank=False)
                 for param in arguments:
                     name = param.human_readable_name.upper()
                     help_text = param.help or ""
@@ -145,7 +145,7 @@ class BengalGroup(click.Group):
 
         # Quick Start section (styled like Options/Commands) - only for root
         if ctx.command_path == "bengal":
-            cli.header("Quick Start:", leading_blank=False)
+            cli.subheader("Quick Start:", leading_blank=False)
             if cli.use_rich:
                 cli.console.print("  [info]bengal site build[/info]     Build your site")
                 cli.console.print(
@@ -169,7 +169,7 @@ class BengalGroup(click.Group):
 
         # Options
         if self.params:
-            cli.header("Options:")
+            cli.subheader("Options:", leading_blank=False, trailing_blank=False)
             for param in self.params:
                 opts = "/".join(param.opts)
                 help_text = param.help or ""
@@ -181,7 +181,7 @@ class BengalGroup(click.Group):
         if commands:
             if not self.params:
                 cli.blank()
-            cli.header("Commands:")
+            cli.subheader("Commands:", leading_blank=False, trailing_blank=False)
             for name in commands:
                 cmd = self.get_command(ctx, name)
                 if cmd and not cmd.hidden:
