@@ -796,8 +796,11 @@ $ bengal build  # Fast, just regenerate HTML
    - Category organization
    - Icons and visual hierarchy
    - Responsive design
+7. **Critical CLI commands**
+   - `bengal hub status` - operational visibility (2 hours)
+   - `bengal hub sync` - force refresh satellites (1 hour)
 
-**Success criteria**: Can build hub with 50+ satellites, search works, handles failures gracefully.
+**Success criteria**: Can build hub with 50+ satellites, search works, handles failures gracefully, operators have visibility and control.
 
 ### Phase 3: Advanced Features (1-2 weeks)
 
@@ -814,12 +817,13 @@ $ bengal build  # Fast, just regenerate HTML
 3. Analytics stubs
    - Track most-viewed products
    - Freshness indicators
-4. Hub CLI commands
-   - `bengal hub validate` - check all satellites reachable
-   - `bengal hub sync` - force refresh all caches
-   - `bengal hub status` - show health of all satellites
+4. **Additional CLI commands**
+   - `bengal hub validate` - pre-deploy validation with cross-link checking (3-4 hours)
+   - `bengal hub add` - convenience command to add satellites (2 hours)
+   - `bengal hub info` - detailed satellite information (1 hour)
+   - `bengal hub cache clear` - debug cache issues (30 min)
 
-**Success criteria**: Can cross-link between products, search multiple versions, monitor hub health.
+**Success criteria**: Can cross-link between products, search multiple versions, comprehensive operational tooling, ready for enterprise deployment.
 
 ---
 
