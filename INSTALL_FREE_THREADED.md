@@ -198,27 +198,18 @@ export PATH="/Library/Frameworks/Python.framework/Versions/3.14/bin:$PATH"
 
 Bengal's dev server (`bengal site serve`) automatically avoids GIL warnings by using a polling-based file watcher when the GIL is disabled, rather than loading native extensions.
 
-If you want to use the dev server without any file watching dependencies:
+Bengal includes `watchdog` for dev server file watching. In free-threaded Python with GIL disabled, Bengal automatically uses a pure-Python polling watcher instead of native file system extensions to avoid GIL warnings:
 
 ```bash
-# Install without watchdog (optional)
+# Install Bengal (includes watchdog)
 pip install bengal
-
-# Run dev server without file watching
-bengal site serve --no-watch
-```
-
-Or install with dev server support:
-
-```bash
-# Install with file watching support
-pip install bengal[server]
 
 # Dev server with auto-reload (automatically uses polling in free-threaded Python)
 bengal site serve
-```
 
-**Note:** In free-threaded Python with GIL disabled, Bengal automatically uses a pure-Python polling watcher instead of native file system extensions, so you won't see GIL warnings.
+# Or disable file watching if preferred
+bengal site serve --no-watch
+```
 
 ### Import errors with native extensions
 

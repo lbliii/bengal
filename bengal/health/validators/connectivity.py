@@ -82,7 +82,18 @@ class ConnectivityValidator(BaseValidator):
             # Build knowledge graph
             logger.debug("connectivity_validator_start", total_pages=len(site.pages))
 
-            graph = KnowledgeGraph(site)  # type: ignore[operator]
+            try:
+                graph = KnowledgeGraph(site)  # type: ignore[operator]
+            except ImportError as e:  # Align behavior with import-path failure for tests
+                msg = "Knowledge graph analysis unavailable"
+                results.append(
+                    CheckResult.error(
+                        msg,
+                        recommendation="Ensure bengal.analysis module is properly installed",
+                        details=[str(e)],
+                    )
+                )
+                return results
             graph.build()
 
             # Normalize helpers to be robust to mocks
@@ -253,6 +264,17 @@ class ConnectivityValidator(BaseValidator):
                 avg_connectivity=avg_connectivity,
             )
 
+        except ImportError as e:
+            # Catch late ImportError (e.g., patched KnowledgeGraph raising ImportError on call)
+            msg = "Knowledge graph analysis unavailable"
+            results.append(
+                CheckResult.error(
+                    msg,
+                    recommendation="Ensure bengal.analysis module is properly installed",
+                    details=[str(e)],
+                )
+            )
+            return results
         except Exception as e:
             logger.error("connectivity_validator_error", error=str(e))
             results.append(

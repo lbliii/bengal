@@ -2,7 +2,6 @@
 Development server with file watching and hot reload.
 """
 
-
 from __future__ import annotations
 
 import os
@@ -163,8 +162,7 @@ class DevServer:
             show_building_indicator("Initial build")
             # Force clean rebuild if baseurl was cleared to regenerate HTML with correct paths
             stats = self.site.build(
-                profile=BuildProfile.WRITER, 
-                incremental=False if baseurl_was_cleared else True
+                profile=BuildProfile.WRITER, incremental=not baseurl_was_cleared
             )
             display_build_stats(stats, show_art=False, output_dir=str(self.site.output_dir))
 
@@ -262,28 +260,7 @@ class DevServer:
         Returns:
             Configured Observer instance (not yet started)
 
-        Raises:
-            ImportError: If watchdog is not installed (prompts user to install it)
         """
-        # Check if watchdog is installed
-        try:
-            import watchdog  # noqa: F401
-        except ImportError:
-            print("\n❌ File watching requires the 'watchdog' package.")
-            print("\n📦 Install it with:")
-            print("   pip install bengal[server]")
-            print("\n💡 Or disable watching:")
-            print("   bengal site serve --no-watch")
-            logger.error(
-                "watchdog_not_installed",
-                suggestion="pip install bengal[server]",
-                alternative="--no-watch flag",
-            )
-            raise ImportError(
-                "watchdog is required for file watching. "
-                "Install with: pip install bengal[server]"
-            )
-
         # Import watchdog lazily and allow selecting a backend to avoid loading
         # platform-specific C extensions under free-threaded Python by default.
         # Users can force a backend via BENGAL_WATCHDOG_BACKEND=polling|auto.
