@@ -127,9 +127,9 @@ class TestParallelAssetProcessing:
         # Compare files
         assert parallel_files.keys() == sequential_files.keys()
         for filename in parallel_files:
-            assert (
-                parallel_files[filename] == sequential_files[filename]
-            ), f"File {filename} differs"
+            assert parallel_files[filename] == sequential_files[filename], (
+                f"File {filename} differs"
+            )
 
     def test_asset_processing_with_errors(self, temp_site_dir):
         """Test that errors in one asset don't crash entire build."""
@@ -299,8 +299,13 @@ max_workers = 8
         shutil.rmtree(temp_dir)
 
 
+@pytest.mark.parallel_unsafe
 class TestThreadSafety:
-    """Test thread safety of parallel operations."""
+    """Test thread safety of parallel operations.
+
+    Marked parallel_unsafe: Uses ThreadPoolExecutor internally, which conflicts
+    with pytest-xdist's parallel test execution (nested parallelism causes worker crashes).
+    """
 
     def test_concurrent_directory_creation(self):
         """Test that concurrent directory creation doesn't cause errors."""

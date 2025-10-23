@@ -179,8 +179,13 @@ class TestAssetDiscovery:
         shutil.rmtree(temp_dir)
 
 
+@pytest.mark.parallel_unsafe
 class TestAssetDiscoveryWithRaceConditions:
-    """Test asset discovery behavior during parallel operations."""
+    """Test asset discovery behavior during parallel operations.
+
+    Marked parallel_unsafe: Uses ThreadPoolExecutor internally, which conflicts
+    with pytest-xdist's parallel test execution (nested parallelism causes worker crashes).
+    """
 
     def test_ignores_temp_files_during_parallel_processing(self):
         """Test that temp files created during parallel processing are ignored."""
