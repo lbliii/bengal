@@ -209,8 +209,8 @@ This is a dataclass.
 
 {% if cls.children | selectattr('element_type', 'equalto', 'method') | list %}
 {# Split methods into own vs inherited #}
-{% set own_methods = cls.children | selectattr('element_type', 'equalto', 'method') | rejectattr('metadata.synthetic', 'equalto', true) | list %}
-{% set inherited_methods = cls.children | selectattr('element_type', 'equalto', 'method') | selectattr('metadata.synthetic', 'equalto', true) | list %}
+{% set own_methods = cls.children | selectattr('element_type', 'equalto', 'method') | rejectattr('metadata.synthetic') | list %}
+{% set inherited_methods = cls.children | selectattr('element_type', 'equalto', 'method') | selectattr('metadata.synthetic') | list %}
 
 {% if own_methods %}
 :::{rubric} Methods

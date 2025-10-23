@@ -579,7 +579,7 @@ class PythonExtractor(Extractor):
                 inherited_member = DocElement(
                     name=member.name,
                     qualified_name=f"{class_elem.qualified_name}.{member.name}",
-                    description=f"Inherited from `{base_name}`",
+                    description=f"Inherited from `{base_elem.qualified_name}`",
                     element_type=member.element_type,
                     source_file=member.source_file,
                     line_number=member.line_number,
