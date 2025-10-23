@@ -4,7 +4,6 @@ Configuration loader for autodoc.
 Loads autodoc settings from bengal.toml or provides sensible defaults.
 """
 
-
 from __future__ import annotations
 
 from pathlib import Path
@@ -38,6 +37,13 @@ def load_autodoc_config(config_path: Path | None = None) -> dict[str, Any]:
             "docstring_style": "auto",
             "include_private": False,
             "include_special": False,
+            # Alias and inherited member features
+            "include_inherited": False,
+            "include_inherited_by_type": {
+                "class": False,
+                "exception": False,
+            },
+            "alias_strategy": "canonical",  # Options: canonical, duplicate, list-only
         },
         "openapi": {
             "enabled": False,
@@ -67,7 +73,16 @@ def load_autodoc_config(config_path: Path | None = None) -> dict[str, Any]:
 
             # Merge Python config
             if "python" in autodoc_config:
-                default_config["python"].update(autodoc_config["python"])
+                python_user_config = autodoc_config["python"]
+                # Handle nested include_inherited_by_type dict
+                if "include_inherited_by_type" in python_user_config:
+                    default_config["python"]["include_inherited_by_type"].update(
+                        python_user_config["include_inherited_by_type"]
+                    )
+                    # Remove from user config to avoid overwriting default dict
+                    python_user_config = dict(python_user_config)
+                    python_user_config.pop("include_inherited_by_type")
+                default_config["python"].update(python_user_config)
 
             # Merge OpenAPI config
             if "openapi" in autodoc_config:

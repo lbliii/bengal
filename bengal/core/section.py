@@ -2,7 +2,6 @@
 Section Object - Represents a folder or logical grouping of pages.
 """
 
-
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -58,10 +57,10 @@ class Section:
     name: str = "root"
     path: Path = Path(".")
     pages: list[Page] = field(default_factory=list)
-    subsections: list["Section"] = field(default_factory=list)
+    subsections: list[Section] = field(default_factory=list)
     metadata: dict[str, Any] = field(default_factory=dict)
     index_page: Page | None = None
-    parent: "Section | None" = None
+    parent: Section | None = None
 
     # Reference to site (set during site building)
     _site: Any | None = field(default=None, repr=False)
@@ -89,7 +88,7 @@ class Section:
         return len(self.hierarchy)
 
     @property
-    def root(self) -> "Section":
+    def root(self) -> Section:
         """
         Get the root section of this section's hierarchy.
 
@@ -122,7 +121,7 @@ class Section:
         return [p for p in self.pages if not isinstance(p, Section)]
 
     @property
-    def sections(self) -> list["Section"]:
+    def sections(self) -> list[Section]:
         """
         Get immediate child sections.
 
@@ -174,7 +173,7 @@ class Section:
         return [wp.page for wp in sorted(weighted, key=attrgetter("weight", "title_lower"))]
 
     @cached_property
-    def sorted_subsections(self) -> list["Section"]:
+    def sorted_subsections(self) -> list[Section]:
         """
         Get subsections sorted by weight (ascending), then by title (CACHED).
 
@@ -351,7 +350,7 @@ class Section:
                 metadata_keys=list(page.metadata.keys()),
             )
 
-    def add_subsection(self, section: "Section") -> None:
+    def add_subsection(self, section: Section) -> None:
         """
         Add a subsection to this section.
 
@@ -491,7 +490,7 @@ class Section:
         # Template rendering will be handled by the template engine
         return ""
 
-    def walk(self) -> list["Section"]:
+    def walk(self) -> list[Section]:
         """
         Iteratively walk through all sections in the hierarchy.
 

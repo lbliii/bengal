@@ -35,14 +35,12 @@ bengal utils graph analyze [ARGUMENTS] [OPTIONS]
 Path to config file (default: bengal.toml)
 
 **Type:** `path`
-**Default:** `Sentinel.UNSET`
 
 ### --output
 
 Generate interactive visualization to file (e.g., public/graph.html)
 
 **Type:** `path`
-**Default:** `Sentinel.UNSET`
 
 ### --stats
 

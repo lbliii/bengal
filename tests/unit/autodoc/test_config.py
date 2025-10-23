@@ -140,3 +140,78 @@ def test_config_cli_disabled_by_default():
     config = load_autodoc_config(Path("nonexistent.toml"))
 
     assert config["cli"]["enabled"] is False
+
+
+def test_config_alias_and_inherited_defaults():
+    """Test default values for alias and inherited member features."""
+    config = load_autodoc_config(Path("nonexistent.toml"))
+
+    assert config["python"]["include_inherited"] is False
+    assert config["python"]["include_inherited_by_type"]["class"] is False
+    assert config["python"]["include_inherited_by_type"]["exception"] is False
+    assert config["python"]["alias_strategy"] == "canonical"
+
+
+def test_config_load_include_inherited(tmp_path):
+    """Test loading include_inherited configuration."""
+    config_path = tmp_path / "bengal.toml"
+    config_path.write_text(
+        dedent("""
+        [autodoc.python]
+        include_inherited = true
+    """)
+    )
+
+    config = load_autodoc_config(config_path)
+
+    assert config["python"]["include_inherited"] is True
+
+
+def test_config_load_include_inherited_by_type(tmp_path):
+    """Test loading per-type inherited member configuration."""
+    config_path = tmp_path / "bengal.toml"
+    config_path.write_text(
+        dedent("""
+        [autodoc.python.include_inherited_by_type]
+        class = true
+        exception = false
+    """)
+    )
+
+    config = load_autodoc_config(config_path)
+
+    assert config["python"]["include_inherited_by_type"]["class"] is True
+    assert config["python"]["include_inherited_by_type"]["exception"] is False
+
+
+def test_config_load_alias_strategy(tmp_path):
+    """Test loading alias strategy configuration."""
+    config_path = tmp_path / "bengal.toml"
+    config_path.write_text(
+        dedent("""
+        [autodoc.python]
+        alias_strategy = "list-only"
+    """)
+    )
+
+    config = load_autodoc_config(config_path)
+
+    assert config["python"]["alias_strategy"] == "list-only"
+
+
+def test_config_partial_include_inherited_by_type_merge(tmp_path):
+    """Test that partial per-type config merges with defaults."""
+    config_path = tmp_path / "bengal.toml"
+    config_path.write_text(
+        dedent("""
+        [autodoc.python.include_inherited_by_type]
+        class = true
+    """)
+    )
+
+    config = load_autodoc_config(config_path)
+
+    # User override
+    assert config["python"]["include_inherited_by_type"]["class"] is True
+    # Default preserved
+    assert config["python"]["include_inherited_by_type"]["exception"] is False

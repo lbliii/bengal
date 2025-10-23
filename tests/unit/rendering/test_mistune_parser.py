@@ -6,6 +6,14 @@ import pytest
 
 from bengal.rendering.parsers import BaseMarkdownParser, MistuneParser, create_markdown_parser
 
+# python-markdown is optional (mistune is default)
+try:
+    import importlib.util
+
+    HAS_MARKDOWN = importlib.util.find_spec("markdown") is not None
+except ImportError:
+    HAS_MARKDOWN = False
+
 
 class TestParserFactory:
     """Test the parser factory function."""
@@ -16,6 +24,9 @@ class TestParserFactory:
         assert isinstance(parser, MistuneParser)
         assert isinstance(parser, BaseMarkdownParser)
 
+    @pytest.mark.skipif(
+        not HAS_MARKDOWN, reason="python-markdown not installed (optional dependency)"
+    )
     def test_create_python_markdown_parser(self):
         """Test creating a python-markdown parser."""
         parser = create_markdown_parser("python-markdown")

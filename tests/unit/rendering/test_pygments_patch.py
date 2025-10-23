@@ -3,11 +3,28 @@ Tests for PygmentsPatch - the performance optimization for Pygments lexer cachin
 
 These tests verify that the patch can be safely applied, removed, and used
 as a context manager without side effects.
+
+Note: These tests require python-markdown (optional dependency).
 """
 
 import pytest
 
-from bengal.rendering.parsers.pygments_patch import PygmentsPatch
+# python-markdown is optional (mistune is default)
+# PygmentsPatch only applies to python-markdown parser
+try:
+    import importlib.util
+
+    HAS_MARKDOWN = importlib.util.find_spec("markdown") is not None
+except ImportError:
+    HAS_MARKDOWN = False
+
+# Skip entire module if markdown not available
+pytestmark = pytest.mark.skipif(
+    not HAS_MARKDOWN,
+    reason="python-markdown not installed (optional dependency, required for PygmentsPatch)",
+)
+
+from bengal.rendering.parsers.pygments_patch import PygmentsPatch  # noqa: E402
 
 
 @pytest.fixture

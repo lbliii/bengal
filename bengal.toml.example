@@ -107,6 +107,16 @@ exclude = [
 include_private = false  # Include _private methods
 include_special = false  # Include __special__ methods
 
+# Alias and inherited member features (optional, OFF by default)
+# Aliases are always detected; inherited members require opt-in
+# include_inherited = true  # Show inherited methods from base classes
+# alias_strategy = "canonical"  # How to render aliases: canonical, duplicate, list-only
+
+# Per-type control (more granular than global include_inherited)
+# [autodoc.python.include_inherited_by_type]
+# class = true      # Show inherited methods on classes
+# exception = false # Don't show for exceptions
+
 # Future: OpenAPI autodoc
 [autodoc.openapi]
 enabled = false
