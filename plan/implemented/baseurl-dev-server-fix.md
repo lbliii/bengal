@@ -82,10 +82,10 @@ def _validate_baseurl_consistency(self) -> bool:
     index_html = self.site.output_dir / "index.html"
     if not index_html.exists():
         return True  # No conflict if no build exists
-    
+
     html_content = index_html.read_text()
     current_baseurl = self.site.config.get("baseurl", "").strip()
-    
+
     # Check for baseurl in meta tags
     import re
     meta_match = re.search(r'<meta name="bengal:baseurl" content="([^"]*)"', html_content)
@@ -210,14 +210,14 @@ def _check_build_metadata(self) -> bool:
     metadata_path = self.site.output_dir / ".bengal-build-info.json"
     if not metadata_path.exists():
         return False  # No metadata = needs rebuild
-    
+
     try:
         with open(metadata_path) as f:
             metadata = json.load(f)
-        
+
         current_baseurl = self.site.config.get("baseurl", "")
         build_baseurl = metadata.get("baseurl", "")
-        
+
         if current_baseurl != build_baseurl:
             logger.info(
                 "rebuild_required_baseurl_changed",
@@ -225,7 +225,7 @@ def _check_build_metadata(self) -> bool:
                 new=current_baseurl
             )
             return False
-        
+
         return True  # Metadata matches config
     except Exception as e:
         logger.warning("metadata_check_failed", error=str(e))
@@ -295,4 +295,3 @@ def _check_build_metadata(self) -> bool:
 
 **Author**: Bengal Team
 **Last Updated**: 2025-10-23
-
