@@ -20,12 +20,12 @@ def test_bytecode_cache_improves_performance():
     start1 = time.time()
     site.build(parallel=False, incremental=False)
     time1 = time.time() - start1
-    
+
     # Second build (warm cache)
     start2 = time.time()
     site2.build(parallel=False, incremental=False)
     time2 = time.time() - start2
-    
+
     speedup = time1 / time2
     assert speedup >= 1.0  # ❌ Too strict!
 ```
@@ -80,7 +80,7 @@ Looking at the similar test `test_parsed_content_cache_speeds_up_builds` in `tes
 def test_bytecode_cache_improves_performance():
     """Test that bytecode cache improves build performance."""
     temp_dir = Path(tempfile.mkdtemp())
-    
+
     try:
         # Create more pages for clearer effect
         (temp_dir / "content").mkdir()
@@ -90,7 +90,7 @@ title: Home
 # Home
 Welcome to the test site.
 """)
-        
+
         # ✅ Increase to 20 pages for more pronounced effect
         for i in range(20):
             (temp_dir / "content" / f"page-{i}.md").write_text(f"""---
@@ -101,7 +101,7 @@ title: Page {i}
 
 Content for page {i}.
 """)
-        
+
         (temp_dir / "bengal.toml").write_text("""
 [site]
 title = "Test Site"
@@ -109,45 +109,45 @@ title = "Test Site"
 [build]
 cache_templates = true
 """)
-        
+
         # ✅ Run multiple builds for statistical stability
         cold_times = []
         warm_times = []
-        
+
         # First build (cold cache) - run 2x and take best
         for _ in range(2):
             site = Site.from_config(temp_dir)
             start = time.time()
             site.build(parallel=False, incremental=False)
             cold_times.append(time.time() - start)
-        
+
         # Warm builds - run 3x to average out noise
         for _ in range(3):
             site = Site.from_config(temp_dir)
             start = time.time()
             site.build(parallel=False, incremental=False)
             warm_times.append(time.time() - start)
-        
+
         # Use statistics
         cold_time = min(cold_times)  # Best cold time
         warm_time = statistics.median(warm_times)  # Median warm time
         speedup = cold_time / warm_time if warm_time > 0 else 1.0
-        
+
         print("\nBytecode Cache Performance:")
         print(f"  Cold builds:  {cold_times}")
         print(f"  Warm builds:  {warm_times}")
         print(f"  Best cold:    {cold_time:.3f}s")
         print(f"  Median warm:  {warm_time:.3f}s")
         print(f"  Speedup:      {speedup:.2f}x")
-        
+
         # ✅ Allow 5% tolerance for timing noise
         assert speedup >= 0.95, f"Cached build should not be significantly slower (got {speedup:.2f}x)"
-        
+
         if speedup >= 1.05:
             print(f"  ✅ Bytecode caching provides {speedup:.2f}x speedup")
         else:
             print(f"  ⚠️  Speedup marginal ({speedup:.2f}x) - cache working but effect small")
-    
+
     finally:
         shutil.rmtree(temp_dir)
 ```
@@ -167,28 +167,28 @@ cache_templates = true
 def test_bytecode_cache_is_used():
     """Test that bytecode cache is created and reused."""
     temp_dir = Path(tempfile.mkdtemp())
-    
+
     try:
         # Setup site...
-        
+
         # First build
         site = Site.from_config(temp_dir)
         site.build(parallel=False, incremental=False)
-        
+
         # Check cache was created
         cache_dir = site.output_dir / ".bengal-cache" / "templates"
         assert cache_dir.exists()
         cache_files = list(cache_dir.glob("*.cache"))
         assert len(cache_files) > 0
-        
+
         # Get cache file mtimes
         cache_mtimes = {f.name: f.stat().st_mtime for f in cache_files}
-        
+
         # Second build
         time.sleep(0.1)  # Ensure different timestamp
         site2 = Site.from_config(temp_dir)
         site2.build(parallel=False, incremental=False)
-        
+
         # Verify cache files NOT recreated (mtimes unchanged)
         for cache_file in cache_files:
             cache_file.resolve()  # Refresh
@@ -196,9 +196,9 @@ def test_bytecode_cache_is_used():
             current_mtime = cache_file.stat().st_mtime
             assert current_mtime == original_mtime, \
                 f"Cache file {cache_file.name} was recreated (not reused)"
-        
+
         print("\n✅ Bytecode cache is created and reused correctly")
-    
+
     finally:
         shutil.rmtree(temp_dir)
 ```
@@ -339,4 +339,3 @@ The fix made the tests robust by:
 - Pytest config: `pytest.ini` (uses `-n auto` for parallel execution)
 - Related markers: `@pytest.mark.slow`, `@pytest.mark.serial`
 - Commits: See git history for detailed changes
-

@@ -23,7 +23,7 @@ from .memory_test_helpers import MemoryProfiler, profile_memory
 ### 2. ✅ Missing `slow` Marker in `pytest.ini`
 
 **Problem:**
-- Multiple tests used `@pytest.mark.slow` 
+- Multiple tests used `@pytest.mark.slow`
 - Marker not registered → 58 warnings in CI
 
 **Fix:**
@@ -138,4 +138,3 @@ pytest tests/performance/test_jinja2_bytecode_cache.py::test_bytecode_cache_impr
 - **No functionality compromised** - tests still validate correctness
 
 The fixes are conservative and focused on making tests more robust to environmental variance, not weakening test assertions.
-
