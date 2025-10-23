@@ -140,11 +140,34 @@ description: "{% if element.description %}{% set lines = element.description.spl
 
 ---
 
+{% if element.children | selectattr('element_type', 'equalto', 'alias') | list %}
+## Aliases
+
+{% for alias in element.children | selectattr('element_type', 'equalto', 'alias') %}
+### `{{ alias.name }}` 🔗
+
+```{info} Alias
+This is an alias of [`{{ alias.metadata.alias_of }}`](#{{ alias.metadata.alias_of.split('.')[-1] | lower }})
+```
+
+Defined at line {{ alias.line_number }} in `{{ alias.source_file | project_relative }}`
+
+---
+{% endfor %}
+{% endif %}
+
 {% if element.children | selectattr('element_type', 'equalto', 'class') | list %}
 ## Classes
 
 {% for cls in element.children | selectattr('element_type', 'equalto', 'class') %}
 ### `{{ cls.name }}`
+
+{% if cls.metadata.aliases %}
+```{note} Also known as
+This element has aliases: {% for alias in cls.metadata.aliases %}`{{ alias }}`{% if not loop.last %}, {% endif %}{% endfor %}
+```
+
+{% endif %}
 
 {% if cls.metadata.bases %}
 **Inherits from:** {% for base in cls.metadata.bases %}`{{ base }}`{% if not loop.last %}, {% endif %}{% endfor %}
@@ -185,10 +208,15 @@ This is a dataclass.
 {% endif %}
 
 {% if cls.children | selectattr('element_type', 'equalto', 'method') | list %}
+{# Split methods into own vs inherited #}
+{% set own_methods = cls.children | selectattr('element_type', 'equalto', 'method') | rejectattr('metadata.synthetic', 'equalto', true) | list %}
+{% set inherited_methods = cls.children | selectattr('element_type', 'equalto', 'method') | selectattr('metadata.synthetic', 'equalto', true) | list %}
+
+{% if own_methods %}
 :::{rubric} Methods
 :class: rubric-methods
 :::
-{% for method in cls.children | selectattr('element_type', 'equalto', 'method') %}
+{% for method in own_methods %}
 {% if not method.name.startswith('_') or method.name.startswith('__') %}
 #### `{{ method.name }}`{% if method.metadata.is_async %} @async{% endif %}{% if method.metadata.is_classmethod %} @classmethod{% endif %}{% if method.metadata.is_staticmethod %} @staticmethod{% endif %}
 
@@ -241,6 +269,31 @@ This is an asynchronous method. Use `await` when calling.
 {% endfor %}
 {% endif %}
 
+{% if inherited_methods %}
+:::{rubric} Inherited Members
+:class: rubric-inherited-members
+:::
+
+::::{dropdown} {{ inherited_methods | length }} inherited members (click to expand)
+:open: false
+
+{% for base_class, methods in inherited_methods | groupby('metadata.inherited_from') %}
+**From `{{ base_class.split('.')[-1] }}`:**
+
+{% for method in methods %}
+{% if not method.name.startswith('_') or method.name.startswith('__') %}
+- **`{{ method.name }}`**{% if method.metadata.is_async %} (async){% endif %}{% if method.metadata.is_classmethod %} (classmethod){% endif %}{% if method.metadata.is_staticmethod %} (staticmethod){% endif %}
+  - {{ method.description }}
+{% endif %}
+{% endfor %}
+
+{% endfor %}
+
+::::
+
+{% endif %}
+{% endif %}
+
 {% endfor %}
 {% endif %}
 
@@ -250,6 +303,13 @@ This is an asynchronous method. Use `await` when calling.
 {% for func in element.children | selectattr('element_type', 'equalto', 'function') %}
 {% if not func.name.startswith('_') %}
 ### `{{ func.name }}`{% if func.metadata.is_async %} @async{% endif %}
+
+{% if func.metadata.aliases %}
+```{note} Also known as
+This function has aliases: {% for alias in func.metadata.aliases %}`{{ alias }}`{% if not loop.last %}, {% endif %}{% endfor %}
+```
+
+{% endif %}
 
 ```python
 {{ func.metadata.signature }}

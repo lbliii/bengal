@@ -260,3 +260,265 @@ def test_extract_properties(tmp_path):
 
     assert prop.name == "value"
     assert "value" in prop.description.lower()
+
+
+def test_extract_function_alias(tmp_path):
+    """Test extraction of function aliases."""
+    source = tmp_path / "test.py"
+    source.write_text(
+        dedent("""
+        def original_function():
+            '''The original function.'''
+            pass
+
+        # Create an alias
+        alias_function = original_function
+    """)
+    )
+
+    extractor = PythonExtractor()
+    elements = extractor.extract(source)
+
+    module = elements[0]
+
+    # Should have both original and alias
+    assert len(module.children) == 2
+
+    # Find original and alias
+    original = [c for c in module.children if c.name == "original_function"][0]
+    alias = [c for c in module.children if c.name == "alias_function"][0]
+
+    assert original.element_type == "function"
+    assert alias.element_type == "alias"
+    assert "alias_of" in alias.metadata
+    assert alias.metadata["alias_of"].endswith(".original_function")
+
+    # Original should track its aliases
+    assert "aliases" in original.metadata
+    assert "alias_function" in original.metadata["aliases"]
+
+
+def test_extract_class_alias(tmp_path):
+    """Test extraction of class aliases."""
+    source = tmp_path / "test.py"
+    source.write_text(
+        dedent("""
+        class OriginalClass:
+            '''The original class.'''
+            pass
+
+        # Create an alias
+        AliasClass = OriginalClass
+    """)
+    )
+
+    extractor = PythonExtractor()
+    elements = extractor.extract(source)
+
+    module = elements[0]
+
+    # Should have both original and alias
+    assert len(module.children) == 2
+
+    # Find original and alias
+    original = [c for c in module.children if c.name == "OriginalClass"][0]
+    alias = [c for c in module.children if c.name == "AliasClass"][0]
+
+    assert original.element_type == "class"
+    assert alias.element_type == "alias"
+    assert alias.metadata["alias_kind"] == "assignment"
+
+
+def test_extract_attribute_alias(tmp_path):
+    """Test extraction of attribute/qualified aliases."""
+    source = tmp_path / "test.py"
+    source.write_text(
+        dedent("""
+        def original_function():
+            '''The original function.'''
+            pass
+
+        # Qualified alias (module.attr pattern)
+        import os
+        path_join = os.path.join
+    """)
+    )
+
+    extractor = PythonExtractor()
+    elements = extractor.extract(source)
+
+    module = elements[0]
+
+    # Should have original function and path_join alias
+    aliases = [c for c in module.children if c.element_type == "alias"]
+    assert len(aliases) == 1
+
+    path_join_alias = aliases[0]
+    assert path_join_alias.name == "path_join"
+    assert "os.path.join" in path_join_alias.metadata["alias_of"]
+
+
+def test_extract_inherited_members_disabled_by_default(tmp_path):
+    """Test that inherited members are not extracted by default."""
+    source = tmp_path / "test.py"
+    source.write_text(
+        dedent("""
+        class Base:
+            '''Base class.'''
+            def base_method(self):
+                '''A base method.'''
+                pass
+
+        class Derived(Base):
+            '''Derived class.'''
+            def derived_method(self):
+                '''A derived method.'''
+                pass
+    """)
+    )
+
+    extractor = PythonExtractor()
+    elements = extractor.extract(source)
+
+    module = elements[0]
+    derived_cls = [c for c in module.children if c.name == "Derived"][0]
+
+    # Should only have its own method
+    method_names = [m.name for m in derived_cls.children]
+    assert "derived_method" in method_names
+    assert "base_method" not in method_names
+
+
+def test_extract_inherited_members_when_enabled(tmp_path):
+    """Test extraction of inherited members when enabled."""
+    source = tmp_path / "test.py"
+    source.write_text(
+        dedent("""
+        class Base:
+            '''Base class.'''
+            def base_method(self):
+                '''A base method.'''
+                pass
+
+        class Derived(Base):
+            '''Derived class.'''
+            def derived_method(self):
+                '''A derived method.'''
+                pass
+    """)
+    )
+
+    config = {"include_inherited": True}
+    extractor = PythonExtractor(config=config)
+    elements = extractor.extract(source)
+
+    module = elements[0]
+    derived_cls = [c for c in module.children if c.name == "Derived"][0]
+
+    # Should have both own method and inherited method
+    method_names = [m.name for m in derived_cls.children]
+    assert "derived_method" in method_names
+    assert "base_method" in method_names
+
+    # Check inherited method has proper metadata
+    base_method = [m for m in derived_cls.children if m.name == "base_method"][0]
+    assert "inherited_from" in base_method.metadata
+    assert base_method.metadata["synthetic"] is True
+
+
+def test_extract_inherited_members_no_override(tmp_path):
+    """Test that overridden methods are not duplicated."""
+    source = tmp_path / "test.py"
+    source.write_text(
+        dedent("""
+        class Base:
+            '''Base class.'''
+            def method(self):
+                '''Base method.'''
+                pass
+
+        class Derived(Base):
+            '''Derived class.'''
+            def method(self):
+                '''Overridden method.'''
+                pass
+    """)
+    )
+
+    config = {"include_inherited": True}
+    extractor = PythonExtractor(config=config)
+    elements = extractor.extract(source)
+
+    module = elements[0]
+    derived_cls = [c for c in module.children if c.name == "Derived"][0]
+
+    # Should only have one "method" (the override)
+    methods = [m for m in derived_cls.children if m.name == "method"]
+    assert len(methods) == 1
+
+    # Should be the derived class's own method (not synthetic)
+    assert not methods[0].metadata.get("synthetic", False)
+
+
+def test_extract_inherited_members_respects_private_setting(tmp_path):
+    """Test that private inherited members are filtered unless configured."""
+    source = tmp_path / "test.py"
+    source.write_text(
+        dedent("""
+        class Base:
+            '''Base class.'''
+            def public_method(self):
+                '''Public method.'''
+                pass
+
+            def _private_method(self):
+                '''Private method.'''
+                pass
+
+        class Derived(Base):
+            '''Derived class.'''
+            pass
+    """)
+    )
+
+    config = {"include_inherited": True, "include_private": False}
+    extractor = PythonExtractor(config=config)
+    elements = extractor.extract(source)
+
+    module = elements[0]
+    derived_cls = [c for c in module.children if c.name == "Derived"][0]
+
+    # Should have public but not private inherited method
+    method_names = [m.name for m in derived_cls.children]
+    assert "public_method" in method_names
+    assert "_private_method" not in method_names
+
+
+def test_extract_inherited_members_by_type(tmp_path):
+    """Test per-type inherited member configuration."""
+    source = tmp_path / "test.py"
+    source.write_text(
+        dedent("""
+        class Base:
+            '''Base class.'''
+            def base_method(self):
+                '''A base method.'''
+                pass
+
+        class Derived(Base):
+            '''Derived class.'''
+            pass
+    """)
+    )
+
+    # Enable only for class type
+    config = {"include_inherited": False, "include_inherited_by_type": {"class": True}}
+    extractor = PythonExtractor(config=config)
+    elements = extractor.extract(source)
+
+    module = elements[0]
+    derived_cls = [c for c in module.children if c.name == "Derived"][0]
+
+    # Should have inherited method via per-type setting
+    method_names = [m.name for m in derived_cls.children]
+    assert "base_method" in method_names
