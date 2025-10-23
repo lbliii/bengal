@@ -32,7 +32,7 @@ jobs:
         OMP_NUM_THREADS: "1"
       run: |
         echo "Running fast test suite (excluding performance/stateful)..."
-        pytest -n auto -v --tb=short -m "not performance and not stateful"
+        pytest -n auto -v --tb=short --dist worksteal --max-worker-restart=3 -m "not performance and not stateful"
 
   # Baseurl spot-checks + Coverage (single-process)
   full-suite:
