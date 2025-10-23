@@ -277,7 +277,7 @@ After analyzing the codebase and CLI output patterns, I recommend **Option 2** f
    cli.blank()
    cli.info("   ⚡ Performance:")       # Should be H3 or just bold
    ```
-   
+
    This shows a natural two-level pattern: major sections get boxes, subsections don't.
 
 5. **Consistent with web design best practices** - Most web/doc designs use 2-3 heading levels, with H1 being most prominent and H2/H3 being simpler
@@ -296,22 +296,22 @@ def subheader(
 ) -> None:
     """
     Print a subheader (lighter than header).
-    
+
     Example: "💡 Next steps:"
     """
     if not self.should_show(MessageLevel.INFO):
         return
-    
+
     if leading_blank:
         self.blank()
-    
+
     if self.use_rich:
         icon_str = f"{icon} " if icon else ""
         self.console.print(f"{icon_str}[header]{text}[/header]")
     else:
         icon_str = f"{icon} " if icon else ""
         click.echo(click.style(f"{icon_str}{text}", bold=True))
-    
+
     if trailing_blank:
         self.blank()
 ```
@@ -412,7 +412,7 @@ Should `subheader()` behavior vary by profile?
 ### Risk 1: "Not Bold Enough"
 **Risk**: Developers might worry that plain text with an icon isn't prominent enough for subsections.
 
-**Mitigation**: 
+**Mitigation**:
 - Use Rich's `[header]` style which is bold + orange
 - Test with real output to validate readability
 - Can add subtle border if needed (e.g., single underline: `──────────`)
@@ -555,7 +555,7 @@ def subheader(
     prefix = "=== "
     remaining = width - len(prefix) - len(label) - 1
     border = "=" * remaining
-    
+
     if self.use_rich:
         line = f"{prefix}[header]{label}[/header] {border}"
         self.console.print(line)
@@ -707,4 +707,3 @@ def subheader(
 **Implementation Confidence**: 95% 🟢
 
 The implementation exceeded expectations. ASCII borders provide universal compatibility while maintaining clear hierarchy. User validation on autodoc output confirms improved readability and reduced noise.
-
