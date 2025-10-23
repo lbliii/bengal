@@ -61,12 +61,11 @@ class BengalCommand(click.Command):
                 cli.console.print(f"[header]Usage:[/header] {' '.join(pieces)}")
             else:
                 cli.info(f"Usage: {' '.join(pieces)}")
-            cli.blank()
 
             # Options
             options = [p for p in self.params if isinstance(p, click.Option)]
             if options:
-                cli.subheader("Options:", leading_blank=False, trailing_blank=False)
+                cli.subheader("Options:", trailing_blank=False)
                 for param in options:
                     opts = "/".join(param.opts)
                     help_text = param.help or ""
@@ -84,7 +83,7 @@ class BengalCommand(click.Command):
             # Arguments
             arguments = [p for p in self.params if isinstance(p, click.Argument)]
             if arguments:
-                cli.subheader("Arguments:", leading_blank=False, trailing_blank=False)
+                cli.subheader("Arguments:", trailing_blank=False)
                 for param in arguments:
                     name = param.human_readable_name.upper()
                     help_text = param.help or ""
@@ -157,7 +156,7 @@ class BengalGroup(click.Group):
                 cli.info("  bengal site serve     Start dev server with live reload")
                 cli.info("  bengal new site       Create a new site")
             cli.blank()
-            cli.info("For more commands: bengal --help")
+            cli.tip("For more commands: bengal --help")
             cli.blank()
 
         # Usage pattern
@@ -165,11 +164,10 @@ class BengalGroup(click.Group):
         cli.console.print(
             f"[header]Usage:[/header] {prog_name} [dim][OPTIONS][/dim] [info]COMMAND[/info] [dim][ARGS]...[/dim]"
         )
-        # Do not add an extra blank here; options/commands sections manage spacing.
 
         # Options
         if self.params:
-            cli.subheader("Options:", leading_blank=False, trailing_blank=False)
+            cli.subheader("Options:", trailing_blank=False)
             for param in self.params:
                 opts = "/".join(param.opts)
                 help_text = param.help or ""
@@ -179,9 +177,7 @@ class BengalGroup(click.Group):
         # Commands
         commands = self.list_commands(ctx)
         if commands:
-            if not self.params:
-                cli.blank()
-            cli.subheader("Commands:", leading_blank=False, trailing_blank=False)
+            cli.subheader("Commands:", trailing_blank=False)
             for name in commands:
                 cmd = self.get_command(ctx, name)
                 if cmd and not cmd.hidden:
