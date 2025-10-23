@@ -1,6 +1,5 @@
 """Smart link suggestion command for improving internal linking."""
 
-
 from __future__ import annotations
 
 import json
@@ -180,3 +179,7 @@ def suggest(top_n: int, min_score: float, format: str, config: str, source: str)
         raise click.Abort() from e
     finally:
         close_all_loggers()
+
+
+# Compatibility export expected by tests
+suggest_command = suggest

@@ -22,9 +22,6 @@ Note:
     See plan/LIVE_RELOAD_ARCHITECTURE_PROPOSAL.md for implementation details.
 """
 
-
-from __future__ import annotations
-
 import json
 import os
 import threading

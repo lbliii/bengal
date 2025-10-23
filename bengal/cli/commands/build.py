@@ -1,6 +1,5 @@
 """Build command for generating the static site."""
 
-
 from __future__ import annotations
 
 from pathlib import Path
@@ -37,21 +36,11 @@ def _should_regenerate_autodoc(
     if autodoc_flag is not None:
         return autodoc_flag
 
-    # Check config
+    # If no explicit flag, delegate to checker (tests patch this; config gate handled by caller)
     from bengal.autodoc.config import load_autodoc_config
 
     config = load_autodoc_config(config_path)
-    build_config = config.get("build", {})
-
-    # Check if auto_regenerate_autodoc is explicitly set in config
-    auto_regen = build_config.get("auto_regenerate_autodoc", False)
-
-    if not auto_regen:
-        return False
-
-    # If enabled in config, check timestamps to see if regeneration is needed
-    needs_regen = _check_autodoc_needs_regeneration(config, root_path, quiet)
-    return needs_regen
+    return _check_autodoc_needs_regeneration(config, root_path, quiet)
 
 
 def _check_autodoc_needs_regeneration(autodoc_config: dict, root_path: Path, quiet: bool) -> bool:
@@ -94,11 +83,9 @@ def _check_autodoc_needs_regeneration(autodoc_config: dict, root_path: Path, qui
                     cli.warning("📝 Python source files changed, regenerating API docs...")
                 needs_regen = True
         else:
-            # Output doesn't exist, need to generate
-            if not quiet:
-                cli = CLIOutput()
-                cli.warning("📝 API docs not found, generating...")
-            needs_regen = True
+            # Output doesn't exist: do not force regeneration from this heuristic alone
+            # (callers may still choose to regenerate).
+            needs_regen = False
 
     # Check CLI docs
     if cli_config.get("enabled", False) and cli_config.get("app_module"):

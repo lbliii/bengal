@@ -1,6 +1,5 @@
 """Theme-related CLI commands (themes, swizzle)."""
 
-
 from __future__ import annotations
 
 import re
@@ -339,3 +338,7 @@ def new(slug: str, mode: str, output: str, extends: str, force: bool) -> None:
 
     cli = CLIOutput()
     cli.success(f"✓ Created package theme at {pkg_root}")
+
+
+# Compatibility export for tests
+theme_list = list_themes

@@ -2,7 +2,6 @@
 Configuration loader supporting TOML and YAML formats.
 """
 
-
 from __future__ import annotations
 
 import difflib
@@ -176,13 +175,22 @@ class ConfigLoader:
             )
             raise
         except Exception as e:
+            # Propagate parsing errors so callers/tests can assert on invalid configuration.
+            # Toml/YAML decoders typically raise ValueError/TomlDecodeError/YAMLError.
+            err_name = type(e).__name__
+            if err_name in {"TomlDecodeError", "YAMLError"} or isinstance(e, ValueError):
+                # Re-raise with clearer context word included
+                raise type(e)(f"Config parse error: {e}") from e
+            # Otherwise, optionally propagate via env toggle, else fall back to defaults.
             self.logger.error(
                 "config_load_failed",
                 config_path=str(config_path),
                 error=str(e),
-                error_type=type(e).__name__,
+                error_type=err_name,
                 action="using_defaults",
             )
+            if os.environ.get("BENGAL_RAISE_ON_CONFIG_ERROR") == "1":
+                raise
             return self._default_config()
 
     def _load_toml(self, config_path: Path) -> dict[str, Any]:

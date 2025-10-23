@@ -1,6 +1,5 @@
 """Assets CLI for Bengal."""
 
-
 from __future__ import annotations
 
 import time
@@ -58,3 +57,7 @@ def build(watch: bool, source: str) -> None:
     except KeyboardInterrupt:
         cli.blank()
         cli.warning("Stopped asset watcher.")
+
+
+# Compatibility export expected by tests
+assets_command = assets

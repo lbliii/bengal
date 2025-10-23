@@ -2,7 +2,6 @@
 Content discovery - finds and organizes pages and sections.
 """
 
-
 from __future__ import annotations
 
 import os
@@ -119,7 +118,6 @@ class ContentDiscovery:
             strategy = i18n.get("strategy", "none")
             content_structure = i18n.get("content_structure", "dir")
             default_lang = i18n.get("default_language", "en")
-            bool(i18n.get("default_in_subdir", False))
             langs = i18n.get("languages") or []
             # languages may be list of dicts with 'code'
             for entry in langs:
@@ -487,8 +485,6 @@ class ContentDiscovery:
                     i18n = self.site.config.get("i18n", {}) or {}
                     strategy = i18n.get("strategy", "none")
                     content_structure = i18n.get("content_structure", "dir")
-                    i18n.get("default_language", "en")
-                    bool(i18n.get("default_in_subdir", False))
                     if (
                         not page.translation_key
                         and strategy == "prefix"
