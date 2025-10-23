@@ -44,7 +44,6 @@ bengal utils graph pagerank [ARGUMENTS] [OPTIONS]
 Path to config file (default: bengal.toml)
 
 **Type:** `path`
-**Default:** `Sentinel.UNSET`
 
 ### --damping, -d
 

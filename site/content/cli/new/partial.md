@@ -5,7 +5,7 @@ type: cli-reference
 css_class: api-content
 description: "🧩 Create a new partial template.  Partials are reusable template fragments included in other templates. Example: "sidebar" → templates/partials/sidebar.html"
 source_file: "bengal/bengal/cli/commands/new.py"
-source_line: 559
+source_line: 558
 ---
 
 # partial
@@ -28,7 +28,6 @@ bengal new partial [ARGUMENTS]
 
 **Type:** `text`
 **Required:** No
-**Default:** `Sentinel.UNSET`
 
 
 

@@ -5,7 +5,7 @@ type: cli-reference
 css_class: api-content
 description: "⚙️  Manage Bengal configuration."
 source_file: "bengal/bengal/cli/commands/project.py"
-source_line: 346
+source_line: 343
 ---
 
 # config
@@ -25,13 +25,11 @@ bengal project config [ARGUMENTS] [OPTIONS]
 
 **Type:** `text`
 **Required:** No
-**Default:** `Sentinel.UNSET`
 
 ### value
 
 **Type:** `text`
 **Required:** No
-**Default:** `Sentinel.UNSET`
 
 
 ## Options

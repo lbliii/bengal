@@ -5,7 +5,7 @@ type: cli-reference
 css_class: api-content
 description: "📄 Create a new page.  The page name will be automatically slugified for the filename. Example: "My Awesome Page" → my-awesome-page.md"
 source_file: "bengal/bengal/cli/commands/new.py"
-source_line: 440
+source_line: 439
 ---
 
 # page
@@ -28,7 +28,6 @@ bengal new page [ARGUMENTS] [OPTIONS]
 
 **Type:** `text`
 **Required:** Yes
-**Default:** `Sentinel.UNSET`
 
 
 ## Options
