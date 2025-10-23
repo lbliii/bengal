@@ -417,12 +417,12 @@ class TestIntegrationScenarios:
 
         # Verify generated indexes for others
         assert docs.index_page.metadata.get("_generated"), "docs should have auto-generated index"
-        assert markdown.index_page.metadata.get(
-            "_generated"
-        ), "markdown should have auto-generated index"
-        assert templates.index_page.metadata.get(
-            "_generated"
-        ), "templates should have auto-generated index"
+        assert markdown.index_page.metadata.get("_generated"), (
+            "markdown should have auto-generated index"
+        )
+        assert templates.index_page.metadata.get("_generated"), (
+            "templates should have auto-generated index"
+        )
 
         # Validate no errors
         errors = orchestrator.validate_sections()
@@ -463,3 +463,51 @@ class TestIntegrationScenarios:
         # Validate
         errors = orchestrator.validate_sections()
         assert len(errors) == 0
+
+    def test_incremental_build_finalizesections_without_indexes(self, site, tmp_path):
+        """
+        Test that sections without indexes are finalized even in incremental builds.
+
+        This tests the fix for the autodoc bug where sections created by autodoc
+        (which don't have _index.md files) would never get indexes in incremental builds
+        because they weren't marked as "affected".
+        """
+        # Create an API section like autodoc would (no _index.md)
+        api = Section(name="api", path=tmp_path / "content" / "api")
+        api_page = Page(
+            source_path=tmp_path / "content" / "api" / "module.md",
+            metadata={"title": "Module"},
+        )
+        api.add_page(api_page)
+
+        # Create subsection also without index
+        apps = Section(name="apps", path=tmp_path / "content" / "api" / "apps")
+        apps_page = Page(
+            source_path=tmp_path / "content" / "api" / "apps" / "app1.md",
+            metadata={"title": "App 1"},
+        )
+        apps.add_page(apps_page)
+        api.add_subsection(apps)
+
+        site.sections = [api]
+
+        # Simulate incremental build where this section isn't "affected"
+        # (no pages changed in this section)
+        affected_sections = set()  # Empty - nothing changed
+
+        orchestrator = SectionOrchestrator(site)
+        orchestrator.finalize_sections(affected_sections=affected_sections)
+
+        # CRITICAL: Even though section wasn't affected, it should still get indexes
+        # because it was missing them
+        assert api.index_page is not None, "API section should have auto-generated index"
+        assert api.index_page.metadata.get("_generated"), "Index should be auto-generated"
+
+        assert apps.index_page is not None, "Apps subsection should have auto-generated index"
+        assert apps.index_page.metadata.get("_generated"), (
+            "Subsection index should be auto-generated"
+        )
+
+        # Validate - should pass
+        errors = orchestrator.validate_sections()
+        assert len(errors) == 0, f"Should have no validation errors: {errors}"

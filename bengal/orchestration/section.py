@@ -5,7 +5,6 @@ Handles section lifecycle: ensuring all sections have index pages,
 validation, and structural integrity.
 """
 
-
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -63,6 +62,11 @@ class SectionOrchestrator:
             affected_sections: Set of section paths that were affected by changes.
                              If None, finalize all sections (full build).
                              If provided, only finalize affected sections (incremental).
+
+        Note:
+            Even in incremental mode, sections without index pages are always finalized.
+            This prevents issues where autodoc or other generators create sections without
+            indexes, and subsequent incremental builds skip them.
         """
         logger.info(
             "section_finalization_start",
@@ -72,12 +76,25 @@ class SectionOrchestrator:
 
         archive_count = 0
         for section in self.site.sections:
-            # In incremental mode, skip sections not affected by changes
-            if affected_sections is not None and str(section.path) not in affected_sections:
-                # Still need to recursively check subsections
+            # ALWAYS finalize sections that lack index pages (even in incremental mode)
+            # This is defensive: ensures the post-condition "all sections have indexes" holds
+            needs_finalization = self._needs_finalization(section)
+
+            if needs_finalization:
+                # Section is missing indexes - must finalize completely
+                archives_created = self._finalize_recursive(section)
+                logger.debug(
+                    "section_forced_finalization",
+                    section=section.name,
+                    reason="missing_index_page",
+                )
+            elif affected_sections is not None and str(section.path) not in affected_sections:
+                # Incremental mode: section not affected and has indexes - selective finalization
                 archives_created = self._finalize_recursive_filtered(section, affected_sections)
             else:
+                # Full build or affected section - finalize normally
                 archives_created = self._finalize_recursive(section)
+
             archive_count += archives_created
 
         # Invalidate page caches once after all sections are finalized
@@ -126,6 +143,31 @@ class SectionOrchestrator:
                     )
 
         return archive_count
+
+    def _needs_finalization(self, section: Section) -> bool:
+        """
+        Check if a section or any of its subsections needs finalization.
+
+        A section needs finalization if it or any subsection lacks an index page.
+        This is used to ensure sections are finalized even in incremental builds.
+
+        Args:
+            section: Section to check
+
+        Returns:
+            True if section or any subsection lacks an index page
+        """
+        # Skip root section (doesn't need index)
+        if section.name == "root":
+            # Check subsections
+            return any(self._needs_finalization(subsection) for subsection in section.subsections)
+
+        # Check if this section lacks an index
+        if not section.index_page:
+            return True
+
+        # Recursively check subsections
+        return any(self._needs_finalization(subsection) for subsection in section.subsections)
 
     def _finalize_recursive(self, section: Section) -> int:
         """

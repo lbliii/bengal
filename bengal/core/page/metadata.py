@@ -2,7 +2,6 @@
 Page Metadata Mixin - Basic properties and type checking.
 """
 
-
 from __future__ import annotations
 
 from datetime import datetime
@@ -27,8 +26,32 @@ class PageMetadataMixin:
 
     @property
     def title(self) -> str:
-        """Get page title from metadata or generate from filename."""
-        return self.metadata.get("title", self.source_path.stem.replace("-", " ").title())
+        """
+        Get page title from metadata or generate intelligently from context.
+
+        For index pages (_index.md or index.md) without explicit titles,
+        uses the parent directory name humanized instead of showing "Index"
+        which is not user-friendly in menus, navigation, or page titles.
+
+        Examples:
+            api/_index.md → "Api"
+            docs/index.md → "Docs"
+            data-designer/_index.md → "Data Designer"
+            my_module/index.md → "My Module"
+            about.md → "About"
+        """
+        # Check metadata first (explicit titles always win)
+        if "title" in self.metadata:
+            return self.metadata["title"]
+
+        # Special handling for index pages - use directory name instead of "Index"
+        if self.source_path.stem in ("_index", "index"):
+            dir_name = self.source_path.parent.name
+            # Humanize: replace separators with spaces and title case
+            return dir_name.replace("-", " ").replace("_", " ").title()
+
+        # Regular pages use filename (humanized)
+        return self.source_path.stem.replace("-", " ").title()
 
     @property
     def date(self) -> datetime | None:

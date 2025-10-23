@@ -6,4 +6,3 @@ template: cli-reference/list.html
 cli_name: project
 css_class: api-content
 ---
-
