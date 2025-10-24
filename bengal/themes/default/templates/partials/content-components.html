@@ -130,6 +130,8 @@ subsection.metadata.get('description', '') else '',
 {# Add pages with metadata #}
 {% if posts %}
 {% for post in posts %}
+{# Skip the current section index page if it appears in child posts #}
+{% if not (page and post.permalink == page.permalink) %}
 {% set _ = all_items.append({
 'type': 'page',
 'obj': post,
@@ -140,6 +142,7 @@ subsection.metadata.get('description', '') else '',
 'weight': post.metadata.get('weight', 999999) if post.metadata else 999999,
 'date': post.date if post.date else none
 }) %}
+{% endif %}
 {% endfor %}
 {% endif %}
 

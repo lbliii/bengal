@@ -299,9 +299,7 @@
     {# Footer #}
     <footer role="contentinfo">
         <div class="container">
-            {# Popular Tags Widget - dogfooding popular_tags() function #}
-            {% from 'partials/content-components.html' import popular_tags_widget with context %}
-            {{ popular_tags_widget(limit=10) }}
+            {# Popular Tags Widget removed to avoid duplicate tags on section index pages #}
 
             <div class="footer-bottom">
                 <div class="footer-left">

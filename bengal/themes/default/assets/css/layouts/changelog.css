@@ -10,7 +10,7 @@
    ============================================ */
 
 .changelog-container {
-    max-width: var(--max-width-prose);
+    max-width: var(--prose-width);
     margin: 0 auto;
     padding: var(--space-8) var(--space-6);
 }
@@ -255,7 +255,7 @@
    ============================================ */
 
 .changelog-single {
-    max-width: var(--max-width-prose);
+    max-width: var(--prose-width);
     margin: 0 auto;
     padding: var(--space-8) var(--space-6);
 }
@@ -374,9 +374,7 @@
 }
 
 .changelog-content {
-    margin-top: var(--space-10);
-    padding-top: var(--space-8);
-    border-top: 1px solid var(--color-border-light);
+    margin-top: var(--space-6);
 }
 
 /* ============================================

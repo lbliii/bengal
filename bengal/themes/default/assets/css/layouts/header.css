@@ -13,8 +13,12 @@ header[role="banner"] {
   z-index: var(--z-sticky);
   background-color: var(--color-bg-primary);
   border-bottom: 1px solid var(--color-border);
-  backdrop-filter: blur(8px);
+  /* Glass when enabled */
+  overflow: visible;
+  /* allow dropdowns to overflow */
 }
+
+/* (removed glass overlay) */
 
 [data-theme="dark"] header[role="banner"] {
   background-color: rgba(26, 26, 26, 0.95);
@@ -348,7 +352,8 @@ header .container {
   position: fixed;
   left: 50%;
   right: auto;
-  bottom: 80px; /* Position above the footer */
+  bottom: 80px;
+  /* Position above the footer */
   top: auto;
   transform: translateX(-50%) translateY(8px);
   width: calc(100% - 2rem);

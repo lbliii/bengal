@@ -568,6 +568,43 @@
   box-shadow: var(--shadow-xl);
 }
 
+/* Elevation utilities (preferred over shadow-*) */
+.elevation-none {
+  box-shadow: var(--elevation-none);
+}
+
+.elevation-subtle {
+  box-shadow: var(--elevation-subtle);
+}
+
+.elevation-low {
+  box-shadow: var(--elevation-low);
+}
+
+.elevation-medium {
+  box-shadow: var(--elevation-medium);
+}
+
+.elevation-high {
+  box-shadow: var(--elevation-high);
+}
+
+.elevation-highest {
+  box-shadow: var(--elevation-highest);
+}
+
+.elevation-card {
+  box-shadow: var(--elevation-card);
+}
+
+.elevation-card-hover {
+  box-shadow: var(--elevation-card-hover);
+}
+
+.elevation-popover {
+  box-shadow: var(--elevation-popover);
+}
+
 /* ============================================
    OPACITY UTILITIES
    ============================================ */
@@ -659,6 +696,8 @@
 .z-50 {
   z-index: var(--z-50);
 }
+
+/* (removed glass utilities) */
 
 /* ============================================
    OVERFLOW UTILITIES
