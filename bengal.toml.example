@@ -36,6 +36,13 @@ fast_mode = true
 # Template caching (10-15% faster builds)
 # Caches compiled Jinja2 templates to .bengal-cache/templates/
 cache_templates = true
+# HTML Output Formatting (advanced)
+# Controls whitespace and comment handling; overrides minify_html when set
+# [html_output]
+# mode = "minify"           # Options: "minify", "pretty", "raw"
+# remove_comments = true     # Strip HTML comments (excludes IE conditionals)
+# collapse_blank_lines = true
+
 
 # Auto-regenerate autodoc before builds
 # Automatically regenerates Python/CLI docs if source files are newer than generated docs

@@ -2,7 +2,6 @@
 Rendering Pipeline - Orchestrates the parsing, AST building, templating, and output rendering.
 """
 
-
 from __future__ import annotations
 
 import re
@@ -209,6 +208,32 @@ class RenderingPipeline:
                     page.extract_links()
                     html_content = self.renderer.render_content(parsed_content)
                     page.rendered_html = self.renderer.render_page(page, html_content)
+
+                    # HTML formatting on cache-hit path as well
+                    try:
+                        from bengal.postprocess.html_output import format_html_output
+
+                        if page.metadata.get("no_format") is True:
+                            mode = "raw"
+                            options = {}
+                        else:
+                            html_cfg = self.site.config.get("html_output", {}) or {}
+                            mode = html_cfg.get(
+                                "mode",
+                                "minify" if self.site.config.get("minify_html", True) else "pretty",
+                            )
+                            options = {
+                                "remove_comments": html_cfg.get(
+                                    "remove_comments", mode == "minify"
+                                ),
+                                "collapse_blank_lines": html_cfg.get("collapse_blank_lines", True),
+                            }
+                        page.rendered_html = format_html_output(
+                            page.rendered_html, mode=mode, options=options
+                        )
+                    except Exception:
+                        pass
+
                     self._write_output(page)
 
                     if self.dependency_tracker and not page.metadata.get("_generated"):
@@ -368,7 +393,31 @@ class RenderingPipeline:
         # Stage 5: Apply template (with dependency tracking already set in __init__)
         page.rendered_html = self.renderer.render_page(page, html_content)
 
-        # Stage 6: Write output
+        # Stage 6: HTML formatting (pristine output)
+        try:
+            from bengal.postprocess.html_output import format_html_output
+
+            # Resolve mode from config with backward compatibility
+            # Priority: page.metadata.no_format → html_output.mode → minify_html
+            if page.metadata.get("no_format") is True:
+                mode = "raw"
+                options = {}
+            else:
+                html_cfg = self.site.config.get("html_output", {}) or {}
+                mode = html_cfg.get(
+                    "mode",
+                    "minify" if self.site.config.get("minify_html", True) else "pretty",
+                )
+                options = {
+                    "remove_comments": html_cfg.get("remove_comments", mode == "minify"),
+                    "collapse_blank_lines": html_cfg.get("collapse_blank_lines", True),
+                }
+            page.rendered_html = format_html_output(page.rendered_html, mode=mode, options=options)
+        except Exception:
+            # Never fail the build on formatter errors; fall back to raw HTML
+            pass
+
+        # Stage 7: Write output
         self._write_output(page)
 
         # End page tracking
