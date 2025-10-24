@@ -108,8 +108,7 @@ def format_html_output(html: str, mode: str = "raw", options: dict[str, Any] | N
 
     result = "".join(out)
 
-    # Final stabilization: strip trailing spaces and ensure single trailing newline
-    result = _strip_trailing_whitespace(result)
+    # Final stabilization: ensure single trailing newline (do not strip spaces inside protected regions)
     if not result.endswith("\n"):
         result += "\n"
     return result
