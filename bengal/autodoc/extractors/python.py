@@ -670,13 +670,27 @@ class PythonExtractor(Extractor):
         """
         Get output path for element.
 
+        Packages (modules from __init__.py) generate _index.md files to act as
+        section indexes, matching the CLI extractor behavior. This ensures proper
+        template selection with sidebars when the package has submodules.
+
         Examples:
+            bengal (package) → bengal/_index.md
+            bengal.core (package) → bengal/core/_index.md
             bengal.core.site (module) → bengal/core/site.md
             bengal.core.site.Site (class) → bengal/core/site.md (part of module)
         """
         if element.element_type == "module":
-            # Module gets its own file
-            return Path(element.qualified_name.replace(".", "/") + ".md")
+            # Check if this is a package (__init__.py file)
+            is_package = element.source_file and element.source_file.name == "__init__.py"
+
+            if is_package:
+                # Packages get _index.md to act as section indexes
+                module_path = element.qualified_name.replace(".", "/")
+                return Path(module_path) / "_index.md"
+            else:
+                # Regular modules get their own file
+                return Path(element.qualified_name.replace(".", "/") + ".md")
         else:
             # Classes/functions are part of module file
             parts = element.qualified_name.split(".")

@@ -106,17 +106,18 @@ details.dropdown summary:focus:not(:focus-visible) {
     opacity: 0;
     transform: translateY(-8px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
   }
 }
 
-.dropdown-content > *:first-child {
+.dropdown-content>*:first-child {
   margin-top: 0;
 }
 
-.dropdown-content > *:last-child {
+.dropdown-content>*:last-child {
   margin-bottom: 0;
 }
 
