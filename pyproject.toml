@@ -60,6 +60,7 @@ dev = [
     "mypy>=1.11.0",
     "ruff>=0.14.0",           # 0.14+ required for Python 3.14 support
     "beautifulsoup4>=4.12.0", # For HTML validation in integration tests only
+    "markdown>=3.5.0",        # Optional parser for tests
 ]
 # Note: parsing extra removed - Bengal uses stdlib html.parser (NativeHTMLParser)
 # for build-time validation. BS4/lxml were removed for performance.

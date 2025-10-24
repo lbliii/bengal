@@ -141,9 +141,9 @@ class TestUrlFromOutputPathProperties:
             url = URLStrategy.url_from_output_path(output_path, mock_site)
 
             assert ".html" not in url, f"Pretty URL '{url}' should not contain .html"
-            assert (
-                "index" not in url or url == "/"
-            ), f"Pretty URL '{url}' should not contain 'index' (except root)"
+            # Don't check for 'index' string - it's valid in directory names
+            # Just ensure we're not exposing index.html in the URL
+            assert "index.html" not in url, f"Pretty URL '{url}' should not contain index.html"
 
     @pytest.mark.hypothesis
     @given(depth=st.integers(min_value=0, max_value=10))
@@ -170,9 +170,9 @@ class TestUrlFromOutputPathProperties:
             # Count slashes (excluding leading/trailing)
             url_parts = [p for p in url.split("/") if p]
 
-            assert (
-                len(url_parts) == depth
-            ), f"URL '{url}' depth ({len(url_parts)}) doesn't match path depth ({depth})"
+            assert len(url_parts) == depth, (
+                f"URL '{url}' depth ({len(url_parts)}) doesn't match path depth ({depth})"
+            )
 
     @pytest.mark.hypothesis
     @given(
@@ -223,9 +223,9 @@ class TestMakeVirtualPathProperties:
 
             virtual_path = URLStrategy.make_virtual_path(mock_site, *segments)
 
-            assert (
-                virtual_path.name == "index.md"
-            ), f"Virtual path should end with index.md: {virtual_path}"
+            assert virtual_path.name == "index.md", (
+                f"Virtual path should end with index.md: {virtual_path}"
+            )
 
     @pytest.mark.hypothesis
     @given(
@@ -247,12 +247,12 @@ class TestMakeVirtualPathProperties:
 
             virtual_path = URLStrategy.make_virtual_path(mock_site, *segments)
 
-            assert (
-                ".bengal" in virtual_path.parts
-            ), f"Virtual path should be under .bengal: {virtual_path}"
-            assert (
-                "generated" in virtual_path.parts
-            ), f"Virtual path should be under generated: {virtual_path}"
+            assert ".bengal" in virtual_path.parts, (
+                f"Virtual path should be under .bengal: {virtual_path}"
+            )
+            assert "generated" in virtual_path.parts, (
+                f"Virtual path should be under generated: {virtual_path}"
+            )
 
     @pytest.mark.hypothesis
     @given(
@@ -301,9 +301,9 @@ class TestMakeVirtualPathProperties:
             last_index = -1
             for segment in segments:
                 index = path_str.find(segment, last_index + 1)
-                assert (
-                    index > last_index
-                ), f"Segment '{segment}' not found in order in {virtual_path}"
+                assert index > last_index, (
+                    f"Segment '{segment}' not found in order in {virtual_path}"
+                )
                 last_index = index
 
 
@@ -331,17 +331,17 @@ class TestArchiveOutputPathProperties:
 
             if page_num == 1:
                 # Page 1 at root: /blog/index.html
-                assert "page" not in str(
-                    output_path
-                ), f"Page 1 should not have /page/ in path: {output_path}"
+                assert "page" not in str(output_path), (
+                    f"Page 1 should not have /page/ in path: {output_path}"
+                )
             else:
                 # Page 2+ has /page/N/: /blog/page/2/index.html
-                assert "page" in str(
-                    output_path
-                ), f"Page {page_num} should have /page/ in path: {output_path}"
-                assert str(page_num) in str(
-                    output_path
-                ), f"Page {page_num} should have {page_num} in path: {output_path}"
+                assert "page" in str(output_path), (
+                    f"Page {page_num} should have /page/ in path: {output_path}"
+                )
+                assert str(page_num) in str(output_path), (
+                    f"Page {page_num} should have {page_num} in path: {output_path}"
+                )
 
     @pytest.mark.hypothesis
     @given(section_name=st.text(alphabet=string.ascii_lowercase, min_size=1, max_size=20))
@@ -359,9 +359,9 @@ class TestArchiveOutputPathProperties:
 
             output_path = URLStrategy.compute_archive_output_path(section, 1, mock_site)
 
-            assert (
-                output_path.name == "index.html"
-            ), f"Archive path should end with index.html: {output_path}"
+            assert output_path.name == "index.html", (
+                f"Archive path should end with index.html: {output_path}"
+            )
 
 
 class TestTagOutputPathProperties:
@@ -398,9 +398,9 @@ class TestTagOutputPathProperties:
 
             output_path = URLStrategy.compute_tag_index_output_path(mock_site)
 
-            assert (
-                output_path == mock_site.output_dir / "tags" / "index.html"
-            ), f"Tag index should be at /tags/index.html: {output_path}"
+            assert output_path == mock_site.output_dir / "tags" / "index.html", (
+                f"Tag index should be at /tags/index.html: {output_path}"
+            )
 
 
 # Example output documentation
