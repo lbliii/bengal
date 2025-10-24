@@ -23,6 +23,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Perfect for CI/CD pipelines to catch broken links before deployment
 
 ### Fixed
+- **Search Result Links**: Fixed broken search result links on deployed sites with baseurl
+  - Search results now correctly navigate to pages on GitHub Pages and similar deployments
+  - Links now properly include the baseurl prefix (e.g., `/bengal/cli/new/site/`)
+  - Changed priority from `page.uri` to `page.url` in search result href construction
+  - Maintains backward compatibility with sites without baseurl
 - **CI Test Stability**: Fixed pytest-xdist worker crashes in GitHub Actions
   - Added `@pytest.mark.parallel_unsafe` to tests using ThreadPoolExecutor internally
   - Added `--dist worksteal` and `--max-worker-restart=3` to CI configuration for robustness
