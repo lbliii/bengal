@@ -41,12 +41,14 @@
     gap: var(--space-2);
     font-size: var(--text-sm);
     line-height: 1.5;
+    min-width: 0; /* Allow flex item to shrink below content size */
 }
 
 .reference-metadata-item strong {
     color: var(--color-text-primary-muted);
     font-weight: 600;
     min-width: 60px;
+    flex-shrink: 0; /* Prevent label from shrinking */
 }
 
 .reference-metadata-item code {
@@ -56,6 +58,19 @@
     padding: 0.125rem 0.375rem;
     border-radius: var(--radius-sm);
     color: var(--color-code-text);
+    /* Responsive overflow handling - truncate from left */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    direction: rtl; /* Truncate from left (shows filename at end) */
+    text-align: left;
+    min-width: 0; /* Allow shrinking */
+    flex: 1; /* Take available space */
+}
+
+/* Ensure text inside still reads left-to-right */
+.reference-metadata-item code::before {
+    content: '\200E'; /* Left-to-right mark for proper text rendering */
 }
 
 /* Reference Content Wrapper */
@@ -365,6 +380,7 @@
     background: var(--color-surface);
     border-radius: var(--radius-md);
     border: 1px solid var(--color-border);
+    min-width: 0; /* Allow container to shrink */
 }
 
 .api-reference-page .api-meta-item {
@@ -372,12 +388,14 @@
     gap: var(--space-2);
     font-size: var(--text-sm);
     line-height: 1.5;
+    min-width: 0; /* Allow flex item to shrink */
 }
 
 .api-reference-page .api-meta-item strong {
     color: var(--color-text-primary-muted);
     font-weight: 600;
     min-width: 60px;
+    flex-shrink: 0; /* Prevent label from shrinking */
 }
 
 .api-reference-page .api-meta-item code {
@@ -387,6 +405,19 @@
     padding: 0.125rem 0.375rem;
     border-radius: var(--radius-sm);
     color: var(--color-code-text);
+    /* Responsive overflow handling - truncate from left */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    direction: rtl; /* Truncate from left (shows filename at end) */
+    text-align: left;
+    min-width: 0; /* Allow shrinking */
+    flex: 1; /* Take available space */
+}
+
+/* Ensure text inside still reads left-to-right */
+.api-reference-page .api-meta-item code::before {
+    content: '\200E'; /* Left-to-right mark */
 }
 
 /* ============================================
