@@ -204,6 +204,23 @@ Example:
 {{ tag_list(page.tags) }}
 {{ tag_list(article.tags, small=True, linkable=False) }}
 #}
+{#
+Reusable iterator that skips the current page/item.
+
+Usage:
+{% from 'partials/content-components.html' import for_each_item_excluding_current with context %}
+{% call (post) for_each_item_excluding_current(posts) %}
+  ... render using `post` ...
+{% endcall %}
+#}
+{% macro for_each_item_excluding_current(items) %}
+{%- for item in items -%}
+{%- if not (page and item.permalink == page.permalink) -%}
+{{ caller(item) }}
+{%- endif -%}
+{%- endfor -%}
+{% endmacro %}
+
 {% macro tag_list(tags, small=False, linkable=True) %}
 <div class="tags {% if small %}tags-small{% endif %}">
   {% for tag in tags %}

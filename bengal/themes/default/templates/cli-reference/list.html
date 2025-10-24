@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% from 'partials/navigation-components.html' import breadcrumbs with context %}
+{% from 'partials/content-components.html' import for_each_item_excluding_current with context %}
 
 {#
   CLI Reference List Template
@@ -56,7 +57,7 @@
             <section class="cli-section">
                 <h2 class="cli-section-title">Commands</h2>
                 <div class="cli-items-list">
-                    {% for command in posts %}
+                    {% call (command) for_each_item_excluding_current(posts) %}
                     <article class="cli-item">
                         <div class="cli-item-icon">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -83,7 +84,7 @@
                             </span>
                         </div>
                     </article>
-                    {% endfor %}
+                    {% endcall %}
                 </div>
             </section>
             {% endif %}

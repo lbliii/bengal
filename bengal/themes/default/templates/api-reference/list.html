@@ -1,179 +1,187 @@
 {% extends "base.html" %}
 {% from 'partials/navigation-components.html' import breadcrumbs with context %}
+{% from 'partials/content-components.html' import for_each_item_excluding_current with context %}
 
 {#
-  API Reference List Template
+API Reference List Template
 
-  Used for API documentation section indexes (module/package overview).
-  Shows modules and packages in a clean, reference-style layout.
+Used for API documentation section indexes (module/package overview).
+Shows modules and packages in a clean, reference-style layout.
 
-  Context variables:
-    - section: Section object with API modules
-    - posts: List of module pages (may be empty)
-    - subsections: List of package/module subsections
-    - content_type: 'api-reference'
+Context variables:
+- section: Section object with API modules
+- posts: List of module pages (may be empty)
+- subsections: List of package/module subsections
+- content_type: 'api-reference'
 #}
 
 {% block content %}
 {# Three-column documentation layout #}
 <div class="docs-layout">
-  {# Left Sidebar: API Navigation #}
-  <aside class="docs-sidebar" id="docs-sidebar" role="navigation" aria-label="API navigation">
-    {% include 'partials/docs-nav.html' %}
-  </aside>
+    {# Left Sidebar: API Navigation #}
+    <aside class="docs-sidebar" id="docs-sidebar" role="navigation" aria-label="API navigation">
+        {% include 'partials/docs-nav.html' %}
+    </aside>
 
-  {# Main Content #}
-  <div class="docs-main">
-    {# Breadcrumbs #}
-    {{ breadcrumbs(section if section is defined else page) }}
+    {# Main Content #}
+    <div class="docs-main">
+        {# Breadcrumbs #}
+        {{ breadcrumbs(section if section is defined else page) }}
 
-    <div class="api-reference-container">
-        <header class="api-reference-header">
-            <h1>📦 {{ section.title if section else title | default('API Reference') }}</h1>
+        <div class="api-reference-container">
+            <header class="api-reference-header">
+                <h1>📦 {{ section.title if section else title | default('API Reference') }}</h1>
 
-            {% if section and section.metadata.get('description', '') %}
-            <p class="api-reference-description">{{ section.metadata.get('description', '') }}</p>
+                {% if section and section.metadata.get('description', '') %}
+                <p class="api-reference-description">{{ section.metadata.get('description', '') }}</p>
+                {% else %}
+                <p class="api-reference-description">Complete API documentation and reference</p>
+                {% endif %}
+            </header>
+
+            {# API Statistics #}
+            {% if section %}
+            <div class="api-stats">
+                {% set module_count = (posts | length) + (subsections | length) %}
+                {% set all_pages = section.regular_pages_recursive %}
+
+                <div class="api-stat">
+                    <strong>{{ module_count }}</strong>
+                    <span>{{ 'module' if module_count == 1 else 'modules' }}</span>
+                </div>
+
+                {% if subsections %}
+                <div class="api-stat">
+                    <strong>{{ subsections | length }}</strong>
+                    <span>{{ 'package' if subsections | length == 1 else 'packages' }}</span>
+                </div>
+                {% endif %}
+
+                {% if all_pages %}
+                <div class="api-stat">
+                    <strong>{{ all_pages | length }}</strong>
+                    <span>total pages</span>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            {# Package/Module Grid #}
+            {% if subsections or posts %}
+            <div class="api-modules">
+
+                {# Subsections (packages with multiple modules) #}
+                {% if subsections %}
+                <section class="api-section">
+                    <h2 class="api-section-title">Packages</h2>
+                    <div class="api-items-list">
+                        {% for subsection in subsections %}
+                        <article class="api-item">
+                            <div class="api-item-icon">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path
+                                        d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z">
+                                    </path>
+                                </svg>
+                            </div>
+
+                            <div class="api-item-content">
+                                <span class="api-item-title">
+                                    <a href="{{ subsection.permalink }}">{{ subsection.title }}</a>
+
+                                    {% if subsection.metadata.get('description', '') %}
+                                    <span class="api-item-description">{{ subsection.metadata.get('description', '')
+                                        }}</span>
+                                    {% endif %}
+
+                                    <span class="api-item-meta">
+                                        {% if subsection.regular_pages %}
+                                        {# Count only non-index pages #}
+                                        {% set content_pages = subsection.regular_pages | rejectattr('url', 'equalto',
+                                        subsection.index_page.url if subsection.index_page else '') | list %}
+                                        {% if content_pages %}
+                                        <span class="meta-item">{{ content_pages | length }} module{{ 's' if
+                                            content_pages | length != 1 }}</span>
+                                        {% endif %}
+                                        {% endif %}
+                                    </span>
+                                </span>
+                            </div>
+                        </article>
+                        {% endfor %}
+                    </div>
+                </section>
+                {% endif %}
+
+                {# Direct module pages #}
+                {% if posts %}
+                <section class="api-section">
+                    <h2 class="api-section-title">Modules</h2>
+                    <div class="api-items-list">
+                        {% call (post) for_each_item_excluding_current(posts) %}
+                        <article class="api-item">
+                            <div class="api-item-icon">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                    <polyline points="14 2 14 8 20 8"></polyline>
+                                </svg>
+                            </div>
+
+                            <div class="api-item-content">
+                                <span class="api-item-title">
+                                    <a href="{{ post.permalink }}">{{ post.title }}</a>
+
+                                    {% if post.metadata.get('description') %}
+                                    <span class="api-item-description">{{ post.metadata.get('description') }}</span>
+                                    {% elif post.content %}
+                                    <span class="api-item-description">{{ post.content | striptags | truncate(120)
+                                        }}</span>
+                                    {% endif %}
+
+                                    <span class="api-item-meta">
+                                        {% if post.metadata.get('classes') %}
+                                        <span class="meta-item">{{ post.metadata.get('classes') | length }} class{{ 'es'
+                                            if post.metadata.get('classes') | length != 1 else '' }}</span>
+                                        {% endif %}
+                                        {% if post.metadata.get('functions') %}
+                                        <span class="meta-item">{{ post.metadata.get('functions') | length }} function{{
+                                            's' if post.metadata.get('functions') | length != 1 }}</span>
+                                        {% endif %}
+                                    </span>
+                                </span>
+                            </div>
+                        </article>
+                        {% endcall %}
+                    </div>
+                </section>
+                {% endif %}
+
+            </div>
             {% else %}
-            <p class="api-reference-description">Complete API documentation and reference</p>
-            {% endif %}
-        </header>
-
-        {# API Statistics #}
-        {% if section %}
-        <div class="api-stats">
-            {% set module_count = (posts | length) + (subsections | length) %}
-            {% set all_pages = section.regular_pages_recursive %}
-
-            <div class="api-stat">
-                <strong>{{ module_count }}</strong>
-                <span>{{ 'module' if module_count == 1 else 'modules' }}</span>
-            </div>
-
-            {% if subsections %}
-            <div class="api-stat">
-                <strong>{{ subsections | length }}</strong>
-                <span>{{ 'package' if subsections | length == 1 else 'packages' }}</span>
+            {# Empty state #}
+            <div class="api-empty">
+                <p>No API documentation available yet.</p>
             </div>
             {% endif %}
 
-            {% if all_pages %}
-            <div class="api-stat">
-                <strong>{{ all_pages | length }}</strong>
-                <span>total pages</span>
-            </div>
-            {% endif %}
-        </div>
-        {% endif %}
-
-        {# Package/Module Grid #}
-        {% if subsections or posts %}
-        <div class="api-modules">
-
-            {# Subsections (packages with multiple modules) #}
-            {% if subsections %}
-            <section class="api-section">
-                <h2 class="api-section-title">Packages</h2>
-                <div class="api-items-list">
-                    {% for subsection in subsections %}
-                    <article class="api-item">
-                        <div class="api-item-icon">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
-                            </svg>
-                        </div>
-
-                        <div class="api-item-content">
-                            <span class="api-item-title">
-                                <a href="{{ subsection.permalink }}">{{ subsection.title }}</a>
-
-                                {% if subsection.metadata.get('description', '') %}
-                                <span class="api-item-description">{{ subsection.metadata.get('description', '') }}</span>
-                                {% endif %}
-
-                                <span class="api-item-meta">
-                                    {% if subsection.regular_pages %}
-                                    {# Count only non-index pages #}
-                                    {% set content_pages = subsection.regular_pages | rejectattr('url', 'equalto', subsection.index_page.url if subsection.index_page else '') | list %}
-                                    {% if content_pages %}
-                                    <span class="meta-item">{{ content_pages | length }} module{{ 's' if content_pages | length != 1 }}</span>
-                                    {% endif %}
-                                    {% endif %}
-                                </span>
-                            </span>
-                        </div>
-                    </article>
-                    {% endfor %}
-                </div>
-            </section>
-            {% endif %}
-
-            {# Direct module pages #}
-            {% if posts %}
-            <section class="api-section">
-                <h2 class="api-section-title">Modules</h2>
-                <div class="api-items-list">
-                    {% for post in posts %}
-                    <article class="api-item">
-                        <div class="api-item-icon">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                                <polyline points="14 2 14 8 20 8"></polyline>
-                            </svg>
-                        </div>
-
-                        <div class="api-item-content">
-                            <span class="api-item-title">
-                                <a href="{{ post.permalink }}">{{ post.title }}</a>
-
-                                {% if post.metadata.get('description') %}
-                                <span class="api-item-description">{{ post.metadata.get('description') }}</span>
-                                {% elif post.content %}
-                                <span class="api-item-description">{{ post.content | striptags | truncate(120) }}</span>
-                                {% endif %}
-
-                                <span class="api-item-meta">
-                                    {% if post.metadata.get('classes') %}
-                                    <span class="meta-item">{{ post.metadata.get('classes') | length }} class{{ 'es' if post.metadata.get('classes') | length != 1 else '' }}</span>
-                                    {% endif %}
-                                    {% if post.metadata.get('functions') %}
-                                    <span class="meta-item">{{ post.metadata.get('functions') | length }} function{{ 's' if post.metadata.get('functions') | length != 1 }}</span>
-                                    {% endif %}
-                                </span>
-                            </span>
-                        </div>
-                    </article>
-                    {% endfor %}
-                </div>
-            </section>
-            {% endif %}
+            {# NO PAGINATION - Reference docs should not be paginated #}
 
         </div>
-        {% else %}
-        {# Empty state #}
-        <div class="api-empty">
-            <p>No API documentation available yet.</p>
-        </div>
-        {% endif %}
-
-        {# NO PAGINATION - Reference docs should not be paginated #}
-
     </div>
-  </div>
 
-  {# Right Sidebar: Optional space for future TOC or related content #}
+    {# Right Sidebar: Optional space for future TOC or related content #}
 </div>
 
 {# Mobile sidebar toggle button #}
-<button
-  class="docs-sidebar-toggle"
-  aria-label="Toggle navigation sidebar"
-  aria-expanded="false"
-  aria-controls="docs-sidebar">
-  <svg viewBox="0 0 24 24">
-    <line x1="3" y1="12" x2="21" y2="12"></line>
-    <line x1="3" y1="6" x2="21" y2="6"></line>
-    <line x1="3" y1="18" x2="21" y2="18"></line>
-  </svg>
+<button class="docs-sidebar-toggle" aria-label="Toggle navigation sidebar" aria-expanded="false"
+    aria-controls="docs-sidebar">
+    <svg viewBox="0 0 24 24">
+        <line x1="3" y1="12" x2="21" y2="12"></line>
+        <line x1="3" y1="6" x2="21" y2="6"></line>
+        <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
 </button>
 
 {# Sidebar overlay for mobile #}
