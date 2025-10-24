@@ -127,7 +127,7 @@ title: "{{ element.name }}"
 type: python-module
 source_file: "{{ element.source_file | project_relative }}"
 css_class: api-content
-description: "{% if element.description %}{% set lines = element.description.split('\n') %}{% set desc_lines = [] %}{% for line in lines %}{% if not line.strip().startswith('#') %}{% set _ = desc_lines.append(line) %}{% endif %}{% endfor %}{{ desc_lines | join(' ') | truncate(200, True, '...') }}{% else %}Python module documentation{% endif %}"
+description: "{% if element.description %}{% set lines = element.description.split('\n') %}{% set desc_lines = [] %}{% for line in lines %}{% if not line.strip().startswith('#') %}{% set _ = desc_lines.append(line) %}{% endif %}{% endfor %}{{ desc_lines | join(' ') | truncate(200, True, '...') | replace('"', '\\"') }}{% else %}Python module documentation{% endif %}"
 ---
 
 # {{ element.name }}

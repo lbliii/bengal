@@ -3,7 +3,7 @@
 title: "page"
 type: cli-reference
 css_class: api-content
-description: "📄 Create a new page.  The page name will be automatically slugified for the filename. Example: "My Awesome Page" → my-awesome-page.md"
+description: "📄 Create a new page.  The page name will be automatically slugified for the filename. Example: \"My Awesome Page\" → my-awesome-page.md"
 source_file: "bengal/bengal/cli/commands/new.py"
 source_line: 439
 ---
