@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **HTML Output Formatter**: Produce pristine HTML by default with safe formatting
+  - New module `bengal.postprocess.html_output.format_html_output`
+  - Modes: `raw`, `pretty`, `minify` (default driven by `minify_html` or `[html_output]`)
+  - Preserves whitespace inside `pre`, `code`, `textarea`, `script`, `style`
+  - Optional comment stripping (keeps IE conditionals)
+  - Config: `[html_output] mode, remove_comments, collapse_blank_lines`
+  - Per-page escape hatch: `no_format: true` in front matter
+  - Integrated into rendering pipeline before write (cache-hit path included)
 - **Link Checker**: New `bengal health linkcheck` command for comprehensive link validation
   - Async external link checking with HTTP requests (powered by httpx)
   - Internal link validation for page-to-page and anchor links
