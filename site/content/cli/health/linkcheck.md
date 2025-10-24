@@ -31,18 +31,18 @@ bengal health linkcheck [OPTIONS]
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `--exclude` |`text` |`Sentinel.UNSET` |URL pattern to exclude (repeatable, regex supported) |
-| `--exclude-domain` |`text` |`Sentinel.UNSET` |Domain to exclude (repeatable, e.g., 'localhost') |
+| `--exclude` |`text` | |URL pattern to exclude (repeatable, regex supported) |
+| `--exclude-domain` |`text` | |Domain to exclude (repeatable, e.g., 'localhost') |
 | `--external-only` |Flag |`False` |Only check external links (skip internal validation) |
-| `--ignore-status` |`text` |`Sentinel.UNSET` |Status code or range to ignore (repeatable, e.g., '500-599', '403') |
+| `--ignore-status` |`text` | |Status code or range to ignore (repeatable, e.g., '500-599', '403') |
 | `--internal-only` |Flag |`False` |Only check internal links (skip external validation) |
-| `--max-concurrency` |`integer` |`Sentinel.UNSET` |Maximum concurrent HTTP requests (default: 20) |
-| `--output` |`path` |`Sentinel.UNSET` |Output file (for JSON format) |
+| `--max-concurrency` |`integer` |`20` |Maximum concurrent HTTP requests |
+| `--output` |`path` | |Output file (for JSON format) |
 | `--format` |`choice` |`console` |Output format |
-| `--per-host-limit` |`integer` |`Sentinel.UNSET` |Maximum concurrent requests per host (default: 4) |
-| `--retries` |`integer` |`Sentinel.UNSET` |Number of retry attempts (default: 2) |
-| `--retry-backoff` |`float` |`Sentinel.UNSET` |Base backoff time for exponential backoff in seconds (default: 0.5) |
-| `--timeout` |`float` |`Sentinel.UNSET` |Request timeout in seconds (default: 10.0) |
+| `--per-host-limit` |`integer` |`4` |Maximum concurrent requests per host |
+| `--retries` |`integer` |`2` |Number of retry attempts |
+| `--retry-backoff` |`float` |`0.5` |Base backoff time for exponential backoff in seconds |
+| `--timeout` |`float` |`10.0` |Request timeout in seconds |
 
 ````
 

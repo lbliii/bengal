@@ -229,7 +229,7 @@ def _ensure_site_built(site: Site, cli: CLIOutput) -> None:
         cli.info("Building site before checking links...")
 
         # Purge cache for clean build (link checking requires fresh output)
-        from bengal.server.utils import clear_build_cache
+        from bengal.cache import clear_build_cache
 
         if clear_build_cache(site.root_path):
             cli.info("Purged build cache for clean build")

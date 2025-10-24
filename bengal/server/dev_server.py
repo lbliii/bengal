@@ -12,11 +12,11 @@ import time
 from pathlib import Path
 from typing import Any
 
+from bengal.cache import clear_build_cache, clear_output_directory
 from bengal.server.constants import DEFAULT_DEV_HOST, DEFAULT_DEV_PORT
 from bengal.server.pid_manager import PIDManager
 from bengal.server.request_handler import BengalRequestHandler
 from bengal.server.resource_manager import ResourceManager
-from bengal.server.utils import clear_build_cache
 from bengal.utils.build_stats import display_build_stats, show_building_indicator
 from bengal.utils.logger import get_logger
 
@@ -223,9 +223,6 @@ class DevServer:
         # The cache stores incremental build state, but HTML files in public/ may have
         # the old baseurl baked into meta tags like <meta name="bengal:index_url" content="/baseurl/index.json">
         clear_build_cache(self.site.root_path, logger)
-
-        from bengal.server.utils import clear_output_directory
-
         clear_output_directory(self.site.output_dir, logger)
 
         return True  # Baseurl was cleared
