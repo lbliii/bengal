@@ -135,35 +135,73 @@ class LinkCheckOrchestrator:
 
     def _extract_links(self) -> tuple[list[tuple[str, str]], list[tuple[str, str]]]:
         """
-        Extract all links from pages, separated by internal vs external.
+        Extract all links from built HTML files, separated by internal vs external.
 
         Returns:
             Tuple of (internal_links, external_links) where each is a list of
             (url, page_path) tuples
         """
+        from html.parser import HTMLParser
+
         internal_links: list[tuple[str, str]] = []
         external_links: list[tuple[str, str]] = []
 
-        for page in self.site.pages:
-            page_path = str(page.source_path) if hasattr(page, "source_path") else "unknown"
+        # Get output directory
+        output_dir = self.site.output_dir
+        if not output_dir.exists():
+            logger.warning(
+                "output_dir_not_found",
+                path=str(output_dir),
+                suggestion="build the site first with 'bengal site build'",
+            )
+            return internal_links, external_links
 
-            # Extract links from page
-            links = getattr(page, "links", [])
+        class LinkExtractor(HTMLParser):
+            """Extract links from HTML."""
 
-            for link in links:
-                # Skip mailto, tel, data URIs
-                if link.startswith(("mailto:", "tel:", "data:")):
-                    continue
+            def __init__(self):
+                super().__init__()
+                self.links: list[str] = []
 
-                # Skip empty anchors
-                if link == "#" or not link:
-                    continue
+            def handle_starttag(self, tag, attrs):
+                if tag == "a":
+                    for attr, value in attrs:
+                        if attr == "href" and value:
+                            self.links.append(value)
 
-                # Classify as internal or external
-                if link.startswith(("http://", "https://")):
-                    external_links.append((link, page_path))
-                else:
-                    internal_links.append((link, page_path))
+        # Scan all HTML files
+        for html_file in output_dir.rglob("*.html"):
+            try:
+                html_content = html_file.read_text(encoding="utf-8")
+                parser = LinkExtractor()
+                parser.feed(html_content)
+
+                # Get relative path for reference
+                rel_path = html_file.relative_to(output_dir)
+                page_ref = str(rel_path)
+
+                for link in parser.links:
+                    # Skip mailto, tel, data URIs
+                    if link.startswith(("mailto:", "tel:", "data:", "javascript:")):
+                        continue
+
+                    # Skip empty anchors
+                    if link == "#" or not link:
+                        continue
+
+                    # Classify as internal or external
+                    if link.startswith(("http://", "https://")):
+                        external_links.append((link, page_ref))
+                    else:
+                        internal_links.append((link, page_ref))
+
+            except Exception as e:
+                logger.warning(
+                    "failed_to_parse_html",
+                    file=str(html_file),
+                    error=str(e),
+                )
+                continue
 
         return internal_links, external_links
 

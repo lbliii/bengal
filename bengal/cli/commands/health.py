@@ -119,7 +119,7 @@ def linkcheck(
 
     # Load site
     try:
-        cli.header("🔗 Link Checker", bold=True)
+        cli.header("🔗 Link Checker")
         cli.info("Loading site...")
 
         root_path = Path.cwd()
@@ -136,6 +136,14 @@ def linkcheck(
     # Determine what to check
     check_internal = not external_only
     check_external = not internal_only
+
+    # Ensure site is built before checking internal links
+    if check_internal:
+        try:
+            _ensure_site_built(site, cli)
+        except Exception as e:
+            cli.error(f"Failed to build site: {e}")
+            raise click.Abort() from e
 
     # Build config from CLI flags and site config
     linkcheck_config = _build_config(
@@ -187,6 +195,48 @@ def linkcheck(
     except Exception as e:
         cli.error(f"Link check failed: {e}")
         raise click.Abort() from e
+
+
+def _ensure_site_built(site: Site, cli: CLIOutput) -> None:
+    """
+    Ensure the site is built before checking links.
+
+    Checks if output directory exists and contains recent files.
+    If not, automatically builds the site.
+
+    Args:
+        site: Site instance
+        cli: CLI output helper
+    """
+    from bengal.orchestration.build import BuildOrchestrator
+
+    output_dir = site.output_dir
+    needs_build = False
+
+    if not output_dir.exists():
+        cli.warning(f"Output directory '{output_dir}' does not exist")
+        needs_build = True
+    else:
+        # Check if output directory has any HTML files
+        html_files = list(output_dir.rglob("*.html"))
+        if not html_files:
+            cli.warning("Output directory is empty")
+            needs_build = True
+        else:
+            cli.info(f"Found {len(html_files)} HTML files in output directory")
+
+    if needs_build:
+        cli.info("Building site before checking links...")
+
+        # Purge cache for clean build (link checking requires fresh output)
+        from bengal.server.utils import clear_build_cache
+
+        if clear_build_cache(site.root_path):
+            cli.info("Purged build cache for clean build")
+
+        orchestrator = BuildOrchestrator(site)
+        orchestrator.build()
+        cli.success("Site built successfully")
 
 
 def _build_config(

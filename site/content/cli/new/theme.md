@@ -28,6 +28,7 @@ bengal new theme [ARGUMENTS]
 
 **Type:** `text`
 **Required:** No
+**Default:** `Sentinel.UNSET`
 
 
 

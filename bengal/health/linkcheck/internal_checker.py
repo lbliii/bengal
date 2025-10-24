@@ -4,6 +4,7 @@ Internal link checker for page-to-page and anchor validation.
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import TYPE_CHECKING
 from urllib.parse import urlparse
 
@@ -41,25 +42,47 @@ class InternalLinkChecker:
         """
         self.site = site
         self.ignore_policy = ignore_policy or IgnorePolicy()
+        self.output_dir = site.output_dir
 
-        # Build index of output paths for fast lookup
+        # Get baseurl to strip from URLs
+        baseurl = site.config.get("baseurl", "")
+        if baseurl:
+            # Parse baseurl to get just the path part
+            from urllib.parse import urlparse
+
+            parsed = urlparse(baseurl)
+            self.baseurl_path = parsed.path.rstrip("/")
+        else:
+            self.baseurl_path = ""
+
+        # Build index from actual files in output directory
         self._output_paths: set[str] = set()
         self._anchors_by_page: dict[str, set[str]] = {}
 
-        for page in site.pages:
-            if page.output_path:
-                # Normalize to URL format
-                url = page.url if hasattr(page, "url") else f"/{page.slug}/"
-                self._output_paths.add(url.rstrip("/"))
-                self._output_paths.add(url)  # Also with trailing slash
+        if self.output_dir.exists():
+            # Scan all HTML files and build URL index
+            for html_file in self.output_dir.rglob("*.html"):
+                # Convert file path to URL
+                rel_path = html_file.relative_to(self.output_dir)
 
-                # Extract anchors from page TOC or metadata
-                if hasattr(page, "toc") and page.toc:
-                    anchors = set()
-                    for item in page.toc:
-                        if "id" in item:
-                            anchors.add(item["id"])
-                    self._anchors_by_page[url] = anchors
+                # Convert path/index.html -> /path/
+                # Convert path.html -> /path
+                if rel_path.name == "index.html":
+                    url = "/" if rel_path.parent == Path(".") else f"/{rel_path.parent}/"
+                else:
+                    url = f"/{rel_path.with_suffix('')}"
+
+                # Add both with and without trailing slash
+                self._output_paths.add(url)
+                self._output_paths.add(url.rstrip("/"))
+                if url != "/":
+                    self._output_paths.add(url.rstrip("/") + "/")
+
+        logger.debug(
+            "internal_checker_initialized",
+            output_paths_count=len(self._output_paths),
+            output_dir=str(self.output_dir),
+        )
 
     def check_links(self, links: list[tuple[str, str]]) -> dict[str, LinkCheckResult]:
         """
@@ -115,6 +138,12 @@ class InternalLinkChecker:
         path = parsed.path
         fragment = parsed.fragment
 
+        # Strip baseurl from path if present
+        if self.baseurl_path and path.startswith(self.baseurl_path):
+            path = path[len(self.baseurl_path) :]
+            if not path:  # Handle case where path becomes empty
+                path = "/"
+
         # Handle relative paths (resolve to absolute)
         if not path.startswith("/"):
             # For now, treat relative as potentially valid
@@ -133,9 +162,8 @@ class InternalLinkChecker:
                 metadata={"note": "relative path - validation skipped"},
             )
 
-        # Check if page exists
-        path_normalized = path.rstrip("/")
-        page_exists = path_normalized in self._output_paths or path in self._output_paths
+        # Check if page exists (with or without trailing slash)
+        page_exists = path in self._output_paths or path.rstrip("/") in self._output_paths
 
         if not page_exists:
             logger.debug("internal_link_broken_page_not_found", url=url, path=path)
@@ -150,8 +178,8 @@ class InternalLinkChecker:
 
         # If fragment specified, check if anchor exists
         if fragment:
-            # Find the page
-            page_url = path if path in self._output_paths else path_normalized
+            # Find the page (try both with and without trailing slash)
+            page_url = path if path in self._output_paths else path.rstrip("/")
             anchors = self._anchors_by_page.get(page_url, set())
 
             if anchors and fragment not in anchors:
