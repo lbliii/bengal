@@ -6,10 +6,8 @@
 ---
 title: "{{ element.name }}"
 description: "{% if element.description %}{% set lines = element.description.split('\n') %}{% set desc_lines = [] %}{% for line in lines %}{% if not line.strip().startswith('#') %}{% set _ = desc_lines.append(line) %}{% endif %}{% endfor %}{{ desc_lines | join(' ') | truncate(180, True, '...') }}{% else %}Command-line interface reference and documentation{% endif %}"
-type: cli-reference
-template: cli-reference/list.html
+type: doc
 cli_name: {{ element.name }}
-css_class: api-content
 ---
 
 {# Note: Individual commands are automatically shown as cards by the cli-reference/list.html template #}

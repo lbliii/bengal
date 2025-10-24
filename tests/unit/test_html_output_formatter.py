@@ -23,9 +23,10 @@ def test_collapse_blank_lines_pretty() -> None:
 
 
 def test_minify_collapses_intertag_whitespace() -> None:
-    src = "<div>   </div>    <span> x </span>\n\n\n"
+    src = '<head>\n    <meta charset="utf-8">    </head>\n<div>   </div>    <span> x </span>\n\n\n'
     out = format_html_output(src, mode="minify")
-    assert "> <" in out  # inter-tag gap collapsed
+    # inter-tag gap collapsed (space or preserved newline)
+    assert "> <" in out or ">\n<" in out
     assert "\n\n\n" not in out
 
 

@@ -4,6 +4,22 @@ import re
 from typing import Any
 
 _WS_SENSITIVE_TAGS = ("pre", "code", "textarea", "script", "style")
+_VOID_TAGS = {
+    "area",
+    "base",
+    "br",
+    "col",
+    "embed",
+    "hr",
+    "img",
+    "input",
+    "link",
+    "meta",
+    "param",
+    "source",
+    "track",
+    "wbr",
+}
 
 
 def _split_protected_regions(html: str) -> list[tuple[str, bool]]:
@@ -48,9 +64,15 @@ def _strip_trailing_whitespace(text: str) -> str:
 
 
 def _collapse_intertag_whitespace(text: str) -> str:
-    # Collapse whitespace between tags: ">   <" -> "> <"
-    # Avoid touching text content; this focuses on inter-tag gaps only
-    text = re.sub(r">\s+<", "> <", text)
+    # Collapse whitespace between tags while preserving line breaks if present
+    # Example:
+    #   ">   <"     -> "> <"
+    #   ">\n   <"  -> ">\n<" (keeps a single newline for structure)
+    def _repl(match: re.Match[str]) -> str:
+        s = match.group(0)
+        return ">\n<" if "\n" in s else "> <"
+
+    text = re.sub(r">\s+<", _repl, text)
     # Collapse runs of blank lines to single newline
     text = re.sub(r"\n{3,}", "\n\n", text)
     return text
@@ -59,6 +81,69 @@ def _collapse_intertag_whitespace(text: str) -> str:
 def _remove_html_comments(text: str) -> str:
     # Remove standard HTML comments, preserve conditional IE comments `<!--[if ...]>` and `<![endif]-->`
     return re.sub(r"<!--(?!\[if|<!\s*\[endif\])(?:(?!-->).)*-->", "", text, flags=re.DOTALL)
+
+
+def _normalize_class_attributes(text: str) -> str:
+    # Collapse internal whitespace inside class attributes: class="a   b c" -> class="a b c"
+    def _repl(match: re.Match[str]) -> str:
+        before, value, after = match.group(1), match.group(2), match.group(3)
+        normalized = " ".join(value.split())
+        return f"{before}{normalized}{after}"
+
+    return re.sub(r"(class=\")([^\"]*)(\")", _repl, text)
+
+
+def _trim_title_text(text: str) -> str:
+    # Trim and collapse whitespace inside <title> ... </title>
+    def _repl(match: re.Match[str]) -> str:
+        start, value, end = match.group(1), match.group(2), match.group(3)
+        collapsed = " ".join(value.split())
+        return f"{start}{collapsed}{end}"
+
+    return re.sub(r"(<title>)([\s\S]*?)(</title>)", _repl, text, flags=re.IGNORECASE)
+
+
+def _pretty_indent_html(html: str) -> str:
+    """
+    Indent non-protected HTML lines with two spaces per nesting level.
+
+    Depth carries across protected segments, but protected content is left untouched.
+    """
+    segments = _split_protected_regions(html)
+    depth = 0
+    result_parts: list[str] = []
+
+    open_tag_re = re.compile(r"^<([a-zA-Z0-9:_-]+)(?:\s[^>]*)?>\s*$")
+    close_tag_re = re.compile(r"^</([a-zA-Z0-9:_-]+)\s*>\s*$")
+
+    for seg, is_protected in segments:
+        if is_protected:
+            result_parts.append(seg)
+            continue
+
+        for raw_line in seg.splitlines(keepends=True):
+            line = raw_line[:-1] if raw_line.endswith("\n") else raw_line
+            stripped = line.strip()
+
+            if stripped == "":
+                result_parts.append(raw_line)
+                continue
+
+            # Outdent on closing tag lines first
+            if close_tag_re.match(stripped):
+                depth = max(depth - 1, 0)
+
+            indent = "  " * depth
+            result_parts.append(f"{indent}{stripped}{'\n' if raw_line.endswith('\n') else ''}")
+
+            # Increase depth after opening tag (non-void, not self-closing)
+            m_open = open_tag_re.match(stripped)
+            if m_open and not stripped.endswith("/>"):
+                tag_name = m_open.group(1).lower()
+                if tag_name not in _VOID_TAGS and not tag_name.startswith("!"):
+                    depth += 1
+
+    return "".join(result_parts)
 
 
 def format_html_output(html: str, mode: str = "raw", options: dict[str, Any] | None = None) -> str:
@@ -99,10 +184,16 @@ def format_html_output(html: str, mode: str = "raw", options: dict[str, Any] | N
         if mode == "pretty":
             if collapse_blanks:
                 transformed = _collapse_blank_lines(transformed)
+            # Apply indentation for readability
+            transformed = _pretty_indent_html(transformed)
         elif mode == "minify":
             transformed = _collapse_intertag_whitespace(transformed)
             if collapse_blanks:
                 transformed = _collapse_blank_lines(transformed)
+
+        # Attribute and inline text normalizations (safe, tag-scoped)
+        transformed = _normalize_class_attributes(transformed)
+        transformed = _trim_title_text(transformed)
 
         out.append(transformed)
 
