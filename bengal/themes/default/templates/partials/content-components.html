@@ -210,7 +210,7 @@ Reusable iterator that skips the current page/item.
 Usage:
 {% from 'partials/content-components.html' import for_each_item_excluding_current with context %}
 {% call (post) for_each_item_excluding_current(posts) %}
-  ... render using `post` ...
+... render using `post` ...
 {% endcall %}
 #}
 {% macro for_each_item_excluding_current(items) %}

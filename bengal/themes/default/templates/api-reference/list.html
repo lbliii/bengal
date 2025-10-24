@@ -39,21 +39,23 @@ Context variables:
                 {% endif %}
             </header>
 
-            {# API Statistics #}
-            {% if section %}
-            <div class="api-stats">
-                {% set module_count = (posts | length) + (subsections | length) %}
-                {% set all_pages = section.regular_pages_recursive %}
+        {# API Statistics #}
+        {% if section %}
+        <div class="api-stats">
+            {% set filtered_posts = (posts | rejectattr('permalink', 'equalto', page.permalink) | list) if posts else [] %}
+            {% set filtered_subsections = (subsections | rejectattr('permalink', 'equalto', page.permalink) | list) if subsections else [] %}
+            {% set module_count = filtered_posts | length %}
+            {% set all_pages = section.regular_pages_recursive %}
 
                 <div class="api-stat">
                     <strong>{{ module_count }}</strong>
                     <span>{{ 'module' if module_count == 1 else 'modules' }}</span>
                 </div>
 
-                {% if subsections %}
+            {% if filtered_subsections %}
                 <div class="api-stat">
-                    <strong>{{ subsections | length }}</strong>
-                    <span>{{ 'package' if subsections | length == 1 else 'packages' }}</span>
+                <strong>{{ filtered_subsections | length }}</strong>
+                <span>{{ 'package' if filtered_subsections | length == 1 else 'packages' }}</span>
                 </div>
                 {% endif %}
 
