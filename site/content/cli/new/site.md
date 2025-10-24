@@ -25,6 +25,7 @@ bengal new site [ARGUMENTS] [OPTIONS]
 
 **Type:** `text`
 **Required:** No
+**Default:** `Sentinel.UNSET`
 
 
 ## Options
@@ -34,6 +35,7 @@ bengal new site [ARGUMENTS] [OPTIONS]
 Initialize with preset (blog, docs, portfolio, business, resume) without prompting
 
 **Type:** `text`
+**Default:** `Sentinel.UNSET`
 
 ### --no-init
 

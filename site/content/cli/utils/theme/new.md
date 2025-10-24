@@ -27,6 +27,7 @@ bengal utils theme new [ARGUMENTS] [OPTIONS]
 
 **Type:** `text`
 **Required:** Yes
+**Default:** `Sentinel.UNSET`
 
 
 ## Options
