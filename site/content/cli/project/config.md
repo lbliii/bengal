@@ -25,13 +25,11 @@ bengal project config [ARGUMENTS] [OPTIONS]
 
 **Type:** `text`
 **Required:** No
-**Default:** `Sentinel.UNSET`
 
 ### value
 
 **Type:** `text`
 **Required:** No
-**Default:** `Sentinel.UNSET`
 
 
 ## Options

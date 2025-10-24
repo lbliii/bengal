@@ -36,7 +36,7 @@ bengal site serve [ARGUMENTS] [OPTIONS]
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `--auto-port` |Flag |`True` |Find available port if specified port is taken (default: enabled) |
-| `--config` |`path` |`Sentinel.UNSET` |Path to config file (default: bengal.toml) |
+| `--config` |`path` |- |Path to config file (default: bengal.toml) |
 | `--debug` |Flag |`False` |Show debug output and full tracebacks (port checks, PID files, observer setup) |
 | `--host` |`text` |`localhost` |Server host address |
 | `--open`, `-o` |Flag |`False` |Open browser automatically after server starts |

@@ -31,18 +31,18 @@ bengal health linkcheck [OPTIONS]
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `--exclude` |`text` | |URL pattern to exclude (repeatable, regex supported) |
-| `--exclude-domain` |`text` | |Domain to exclude (repeatable, e.g., 'localhost') |
+| `--exclude` |`text` |- |URL pattern to exclude (repeatable, regex supported) |
+| `--exclude-domain` |`text` |- |Domain to exclude (repeatable, e.g., 'localhost') |
 | `--external-only` |Flag |`False` |Only check external links (skip internal validation) |
-| `--ignore-status` |`text` | |Status code or range to ignore (repeatable, e.g., '500-599', '403') |
+| `--ignore-status` |`text` |- |Status code or range to ignore (repeatable, e.g., '500-599', '403') |
 | `--internal-only` |Flag |`False` |Only check internal links (skip external validation) |
-| `--max-concurrency` |`integer` |`20` |Maximum concurrent HTTP requests |
-| `--output` |`path` | |Output file (for JSON format) |
+| `--max-concurrency` |`integer` |- |Maximum concurrent HTTP requests (default: 20) |
+| `--output` |`path` |- |Output file (for JSON format) |
 | `--format` |`choice` |`console` |Output format |
-| `--per-host-limit` |`integer` |`4` |Maximum concurrent requests per host |
-| `--retries` |`integer` |`2` |Number of retry attempts |
-| `--retry-backoff` |`float` |`0.5` |Base backoff time for exponential backoff in seconds |
-| `--timeout` |`float` |`10.0` |Request timeout in seconds |
+| `--per-host-limit` |`integer` |- |Maximum concurrent requests per host (default: 4) |
+| `--retries` |`integer` |- |Number of retry attempts (default: 2) |
+| `--retry-backoff` |`float` |- |Base backoff time for exponential backoff in seconds (default: 0.5) |
+| `--timeout` |`float` |- |Request timeout in seconds (default: 10.0) |
 
 ````
 

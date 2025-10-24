@@ -4,7 +4,6 @@ Post-processing orchestration for Bengal SSG.
 Handles post-build tasks like sitemap generation, RSS feeds, and link validation.
 """
 
-
 from __future__ import annotations
 
 import concurrent.futures
@@ -85,6 +84,12 @@ class PostprocessOrchestrator:
         # Always generate special pages (404, etc.) - important for deployment
         tasks.append(("special pages", self._generate_special_pages))
 
+        # CRITICAL: Always generate output formats (index.json, llm-full.txt)
+        # These are essential for search functionality and must reflect current site state
+        output_formats_config = self.site.config.get("output_formats", {})
+        if output_formats_config.get("enabled", True):
+            tasks.append(("output formats", self._generate_output_formats))
+
         # OPTIMIZATION: For incremental builds with small changes, skip some postprocessing
         # This is safe because:
         # - Sitemaps update on full builds (periodic refresh)
@@ -98,16 +103,12 @@ class PostprocessOrchestrator:
             if self.site.config.get("generate_rss", True):
                 tasks.append(("rss", self._generate_rss))
 
-            # Custom output formats (JSON, LLM text, etc.)
-            output_formats_config = self.site.config.get("output_formats", {})
-            if output_formats_config.get("enabled", True):
-                tasks.append(("output formats", self._generate_output_formats))
-
             if self.site.config.get("validate_links", True):
                 tasks.append(("link validation", self._validate_links))
         else:
-            # Incremental: only regenerate if explicitly requested
+            # Incremental: only regenerate sitemap/RSS/validation if explicitly requested
             # (Most users don't need updated sitemaps/RSS for every content change)
+            # Note: Output formats ARE still generated (see above) because search requires it
             logger.info(
                 "postprocessing_incremental",
                 reason="skipping_sitemap_rss_validation_for_speed",

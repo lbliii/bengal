@@ -41,7 +41,7 @@ bengal site clean [ARGUMENTS] [OPTIONS]
 |--------|------|---------|-------------|
 | `--cache` |Flag |`False` |Also remove build cache (.bengal/ directory) |
 | `--all` |Flag |`False` |Remove everything (output + cache) |
-| `--config` |`path` |`Sentinel.UNSET` |Path to config file (default: bengal.toml) |
+| `--config` |`path` |- |Path to config file (default: bengal.toml) |
 | `--force`, `-f` |Flag |`False` |Skip confirmation prompt |
 | `--stale-server` |Flag |`False` |Clean up stale 'bengal serve' processes |
 
