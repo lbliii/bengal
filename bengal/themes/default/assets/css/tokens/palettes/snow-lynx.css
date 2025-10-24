@@ -60,6 +60,14 @@ html[data-palette="snow-lynx"] {
     --color-info-bg: #EDF7F9;
     --color-info-border: #8AC9D9;
     --color-info-text: #1E5C6B;
+
+    /* Code colors (icy blue-teal with cream undertones) */
+    --color-code-type: #4FA8A0;
+    --color-code-type-bg: #FAF7F2;
+    --color-code-keyword: #3D9DAF;
+    --color-code-string: #4A8570;
+    --color-code-number: #B8845A;
+    --color-code-text: #5F5B56;
 }
 
 /* Dark-mode adjustments while Snow Lynx palette is active */
@@ -112,6 +120,14 @@ html[data-theme="dark"][data-palette="snow-lynx"] {
     --color-info-bg: rgba(30, 136, 229, 0.15);
     --color-info-border: #1976D2;
     --color-info-text: #90CAF9;
+
+    /* Code colors for dark mode (moonlit ice teal) */
+    --color-code-type: #6EC4BC;
+    --color-code-type-bg: rgba(110, 196, 188, 0.10);
+    --color-code-keyword: #87D3CC;
+    --color-code-string: #7FAA8E;
+    --color-code-number: #CCA173;
+    --color-code-text: #D9E5E3;
 }
 
 /* ============================================

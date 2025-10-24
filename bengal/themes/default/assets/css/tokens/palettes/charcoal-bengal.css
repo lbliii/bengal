@@ -60,6 +60,14 @@ html[data-palette="charcoal-bengal"] {
     --color-info-bg: #EFF6FD;
     --color-info-border: #93C5FD;
     --color-info-text: #1E3A8A;
+
+    /* Code colors (moody steel-gray palette for editorial feel) */
+    --color-code-type: #3E4C5A;
+    --color-code-type-bg: #E5E9EC;
+    --color-code-keyword: #4A5761;
+    --color-code-string: #3A6B4F;
+    --color-code-number: #9B6B47;
+    --color-code-text: #2C3942;
 }
 
 /* Dark-mode adjustments while Charcoal Bengal palette is active */
@@ -112,6 +120,14 @@ html[data-theme="dark"][data-palette="charcoal-bengal"] {
     --color-info-bg: rgba(25, 118, 210, 0.15);
     --color-info-border: #1976D2;
     --color-info-text: #93C5FD;
+
+    /* Code colors for dark mode (refined steel with subtle warmth) */
+    --color-code-type: #8A99A8;
+    --color-code-type-bg: rgba(138, 153, 168, 0.10);
+    --color-code-keyword: #9BAAB9;
+    --color-code-string: #7FAA8E;
+    --color-code-number: #CCA173;
+    --color-code-text: #C8D1DA;
 }
 
 /* ============================================

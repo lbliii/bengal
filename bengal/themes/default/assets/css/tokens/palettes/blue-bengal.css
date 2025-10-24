@@ -60,6 +60,14 @@ html[data-palette="blue-bengal"] {
     --color-info-bg: #F0F7FF;
     --color-info-border: #93C5FD;
     --color-info-text: #1E3A8A;
+
+    /* Code colors (harmonized with powder blue palette) */
+    --color-code-type: #5680A7;
+    --color-code-type-bg: #EDF4FB;
+    --color-code-keyword: #6B7FA3;
+    --color-code-string: #4A7C5E;
+    --color-code-number: #B8845A;
+    --color-code-text: #526578;
 }
 
 /* Dark-mode adjustments while Blue Bengal palette is active */
@@ -112,6 +120,14 @@ html[data-theme="dark"][data-palette="blue-bengal"] {
     --color-info-bg: rgba(25, 118, 210, 0.15);
     --color-info-border: #1976D2;
     --color-info-text: #93C5FD;
+
+    /* Code colors for dark mode (glowing powder blue theme) */
+    --color-code-type: #9DBDD9;
+    --color-code-type-bg: rgba(157, 189, 217, 0.12);
+    --color-code-keyword: #A4B5D8;
+    --color-code-string: #7FC09D;
+    --color-code-number: #E6B98C;
+    --color-code-text: #D3DFEB;
 }
 
 /* ============================================

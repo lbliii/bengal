@@ -60,6 +60,14 @@ html[data-palette="brown-bengal"] {
     --color-info-bg: #FFF5E6;
     --color-info-border: #D9A55F;
     --color-info-text: #804F0A;
+
+    /* Code colors (warm amber/gold palette - classic Bengal) */
+    --color-code-type: #D4850F;
+    --color-code-type-bg: #FFF6E1;
+    --color-code-keyword: #B8751F;
+    --color-code-string: #4A7550;
+    --color-code-number: #C66B1E;
+    --color-code-text: #664D2F;
 }
 
 /* Dark-mode adjustments while Brown Bengal palette is active */
@@ -112,6 +120,14 @@ html[data-theme="dark"][data-palette="brown-bengal"] {
     --color-info-bg: rgba(25, 118, 210, 0.15);
     --color-info-border: #1976D2;
     --color-info-text: #93C5FD;
+
+    /* Code colors for dark mode (glowing warm amber) */
+    --color-code-type: #FFAD3D;
+    --color-code-type-bg: rgba(255, 173, 61, 0.12);
+    --color-code-keyword: #E9B96F;
+    --color-code-string: #7FC09D;
+    --color-code-number: #FFB85C;
+    --color-code-text: #E8D3B5;
 }
 
 /* ============================================

@@ -60,6 +60,14 @@ html[data-palette="silver-bengal"] {
     --color-info-bg: #F0F7FF;
     --color-info-border: #93C5FD;
     --color-info-text: #1E3A8A;
+
+    /* Code colors (pure monochrome - high contrast) */
+    --color-code-type: #374151;
+    --color-code-type-bg: #F9FAFB;
+    --color-code-keyword: #1F2937;
+    --color-code-string: #4B5563;
+    --color-code-number: #6B7280;
+    --color-code-text: #374151;
 }
 
 /* Dark-mode adjustments while Silver Bengal palette is active */
@@ -112,6 +120,14 @@ html[data-theme="dark"][data-palette="silver-bengal"] {
     --color-info-bg: rgba(25, 118, 210, 0.15);
     --color-info-border: #1976D2;
     --color-info-text: #93C5FD;
+
+    /* Code colors for dark mode (bright monochrome - pure contrast) */
+    --color-code-type: #D1D5DB;
+    --color-code-type-bg: rgba(209, 213, 219, 0.08);
+    --color-code-keyword: #E5E7EB;
+    --color-code-string: #9CA3AF;
+    --color-code-number: #B8BFC7;
+    --color-code-text: #D1D5DB;
 }
 
 /* ============================================
