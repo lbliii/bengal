@@ -61,6 +61,13 @@ html[data-palette="snow-lynx"] {
     --color-info-border: #8AC9D9;
     --color-info-text: #1E5C6B;
 
+    /* Accent color (ice blue-teal accent) */
+    --color-accent: #5BB8AF;
+    --color-accent-hover: #4FA8A0;
+    --color-accent-active: #3D9287;
+    --color-accent-light: #7FC9C2;
+    --color-accent-dark: #2D7B72;
+
     /* Code colors (icy blue-teal with cream undertones) */
     --color-code-type: #4FA8A0;
     --color-code-type-bg: #FAF7F2;
@@ -120,6 +127,11 @@ html[data-theme="dark"][data-palette="snow-lynx"] {
     --color-info-bg: rgba(30, 136, 229, 0.15);
     --color-info-border: #1976D2;
     --color-info-text: #90CAF9;
+
+    /* Accent color for dark mode */
+    --color-accent: #6EC4BC;
+    --color-accent-hover: #87D3CC;
+    --color-accent-active: #5AAFA7;
 
     /* Code colors for dark mode (moonlit ice teal) */
     --color-code-type: #6EC4BC;

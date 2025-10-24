@@ -61,6 +61,13 @@ html[data-palette="silver-bengal"] {
     --color-info-border: #93C5FD;
     --color-info-text: #1E3A8A;
 
+    /* Accent color (pure silver - monochromatic) */
+    --color-accent: #4B5563;
+    --color-accent-hover: #374151;
+    --color-accent-active: #1F2937;
+    --color-accent-light: #9CA3AF;
+    --color-accent-dark: #111827;
+
     /* Code colors (pure monochrome - high contrast) */
     --color-code-type: #374151;
     --color-code-type-bg: #F9FAFB;
@@ -120,6 +127,11 @@ html[data-theme="dark"][data-palette="silver-bengal"] {
     --color-info-bg: rgba(25, 118, 210, 0.15);
     --color-info-border: #1976D2;
     --color-info-text: #93C5FD;
+
+    /* Accent color for dark mode */
+    --color-accent: #D1D5DB;
+    --color-accent-hover: #E5E7EB;
+    --color-accent-active: #9CA3AF;
 
     /* Code colors for dark mode (bright monochrome - pure contrast) */
     --color-code-type: #D1D5DB;

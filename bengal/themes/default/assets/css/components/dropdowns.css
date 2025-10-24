@@ -172,54 +172,54 @@ details.dropdown.minimal[open] {
 
 /* Success variant */
 details.dropdown.success {
-  border-left-color: #10b981; /* green-500 */
+  border-left-color: var(--color-success);
 }
 
 details.dropdown.success summary {
-  color: #047857; /* green-700 */
+  color: var(--color-success-text);
 }
 
 details.dropdown.success[open] {
-  background-color: #ecfdf5; /* green-50 */
+  background-color: var(--color-success-bg);
 }
 
 /* Warning variant */
 details.dropdown.warning {
-  border-left-color: #f59e0b; /* amber-500 */
+  border-left-color: var(--color-warning);
 }
 
 details.dropdown.warning summary {
-  color: #d97706; /* amber-600 */
+  color: var(--color-warning-text);
 }
 
 details.dropdown.warning[open] {
-  background-color: #fffbeb; /* amber-50 */
+  background-color: var(--color-warning-bg);
 }
 
 /* Danger variant */
 details.dropdown.danger {
-  border-left-color: #ef4444; /* red-500 */
+  border-left-color: var(--color-error);
 }
 
 details.dropdown.danger summary {
-  color: #dc2626; /* red-600 */
+  color: var(--color-error-text);
 }
 
 details.dropdown.danger[open] {
-  background-color: #fef2f2; /* red-50 */
+  background-color: var(--color-error-bg);
 }
 
 /* Info variant */
 details.dropdown.info {
-  border-left-color: #3b82f6; /* blue-500 */
+  border-left-color: var(--color-info);
 }
 
 details.dropdown.info summary {
-  color: #1e40af; /* blue-800 */
+  color: var(--color-info-text);
 }
 
 details.dropdown.info[open] {
-  background-color: #eff6ff; /* blue-50 */
+  background-color: var(--color-info-bg);
 }
 
 /* ============================================
@@ -249,38 +249,7 @@ details.dropdown.info[open] {
   border-top-color: var(--color-border-dark);
 }
 
-/* Dark mode variants */
-[data-theme="dark"] details.dropdown.success[open] {
-  background-color: rgba(16, 185, 129, 0.1);
-}
-
-[data-theme="dark"] details.dropdown.success summary {
-  color: #6ee7b7; /* green-300 */
-}
-
-[data-theme="dark"] details.dropdown.warning[open] {
-  background-color: rgba(245, 158, 11, 0.1);
-}
-
-[data-theme="dark"] details.dropdown.warning summary {
-  color: #fcd34d; /* amber-300 */
-}
-
-[data-theme="dark"] details.dropdown.danger[open] {
-  background-color: rgba(239, 68, 68, 0.1);
-}
-
-[data-theme="dark"] details.dropdown.danger summary {
-  color: #fca5a5; /* red-300 */
-}
-
-[data-theme="dark"] details.dropdown.info[open] {
-  background-color: rgba(59, 130, 246, 0.1);
-}
-
-[data-theme="dark"] details.dropdown.info summary {
-  color: #93c5fd; /* blue-300 */
-}
+/* Dark mode variants - semantic tokens already handle dark mode overrides */
 
 /* ============================================
    RESPONSIVE

@@ -61,6 +61,13 @@ html[data-palette="brown-bengal"] {
     --color-info-border: #D9A55F;
     --color-info-text: #804F0A;
 
+    /* Accent color (rich golden amber - warm Bengal accent) */
+    --color-accent: #E69A25;
+    --color-accent-hover: #D4850F;
+    --color-accent-active: #B87110;
+    --color-accent-light: #FFB85C;
+    --color-accent-dark: #9C5D0E;
+
     /* Code colors (warm amber/gold palette - classic Bengal) */
     --color-code-type: #D4850F;
     --color-code-type-bg: #FFF6E1;
@@ -120,6 +127,11 @@ html[data-theme="dark"][data-palette="brown-bengal"] {
     --color-info-bg: rgba(25, 118, 210, 0.15);
     --color-info-border: #1976D2;
     --color-info-text: #93C5FD;
+
+    /* Accent color for dark mode */
+    --color-accent: #FFAD3D;
+    --color-accent-hover: #FFC266;
+    --color-accent-active: #FF9B1F;
 
     /* Code colors for dark mode (glowing warm amber) */
     --color-code-type: #FFAD3D;

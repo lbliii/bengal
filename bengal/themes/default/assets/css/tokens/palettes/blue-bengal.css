@@ -61,6 +61,13 @@ html[data-palette="blue-bengal"] {
     --color-info-border: #93C5FD;
     --color-info-text: #1E3A8A;
 
+    /* Accent color (harmonized with blue palette) */
+    --color-accent: #6991B5;
+    --color-accent-hover: #5680A7;
+    --color-accent-active: #4A6E91;
+    --color-accent-light: #9DBDD9;
+    --color-accent-dark: #3D6080;
+
     /* Code colors (harmonized with powder blue palette) */
     --color-code-type: #5680A7;
     --color-code-type-bg: #EDF4FB;
@@ -120,6 +127,11 @@ html[data-theme="dark"][data-palette="blue-bengal"] {
     --color-info-bg: rgba(25, 118, 210, 0.15);
     --color-info-border: #1976D2;
     --color-info-text: #93C5FD;
+
+    /* Accent color for dark mode */
+    --color-accent: #9DBDD9;
+    --color-accent-hover: #B4CFE6;
+    --color-accent-active: #86ABCC;
 
     /* Code colors for dark mode (glowing powder blue theme) */
     --color-code-type: #9DBDD9;

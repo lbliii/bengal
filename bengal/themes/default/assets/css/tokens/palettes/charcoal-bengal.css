@@ -61,6 +61,13 @@ html[data-palette="charcoal-bengal"] {
     --color-info-border: #93C5FD;
     --color-info-text: #1E3A8A;
 
+    /* Accent color (moody teal-gray) */
+    --color-accent: #4A6876;
+    --color-accent-hover: #3E5564;
+    --color-accent-active: #2E4251;
+    --color-accent-light: #6B8594;
+    --color-accent-dark: #2A3F4F;
+
     /* Code colors (moody steel-gray palette for editorial feel) */
     --color-code-type: #3E4C5A;
     --color-code-type-bg: #E5E9EC;
@@ -120,6 +127,11 @@ html[data-theme="dark"][data-palette="charcoal-bengal"] {
     --color-info-bg: rgba(25, 118, 210, 0.15);
     --color-info-border: #1976D2;
     --color-info-text: #93C5FD;
+
+    /* Accent color for dark mode */
+    --color-accent: #8A99A8;
+    --color-accent-hover: #9BAAB9;
+    --color-accent-active: #798897;
 
     /* Code colors for dark mode (refined steel with subtle warmth) */
     --color-code-type: #8A99A8;
