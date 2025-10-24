@@ -306,7 +306,7 @@
             <div class="footer-bottom">
                 <div class="footer-left">
                     <p class="footer-copyright">
-                        &copy; 2025 {{ site.config.title }}
+                        &copy; {{ site.build_time | dateformat('%Y') }} {{ site.config.title }}
                     </p>
                     {% set footer_menu = get_menu_lang('footer', current_lang()) %}
                     {% if footer_menu %}

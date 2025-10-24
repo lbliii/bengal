@@ -1,24 +1,24 @@
 {# Appearance Dropdown (mode + brand) #}
 <div class="theme-controls">
     <div class="theme-dropdown">
-        <button class="theme-dropdown__button" aria-haspopup="menu" aria-expanded="false" title="Theme presets">
+        <button class="theme-dropdown__button" aria-haspopup="true" aria-expanded="false" title="Theme presets">
             Theme
             <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                 <path
                     d="M5.23 7.21a.75.75 0 011.06.02L10 11.178l3.71-3.947a.75.75 0 111.08 1.04l-4.24 4.51a.75.75 0 01-1.08 0L5.25 8.27a.75.75 0 01-.02-1.06z" />
             </svg>
         </button>
-        <ul class="theme-dropdown__menu" role="menu">
-            <li role="menuitem"><button data-appearance="system">System</button></li>
-            <li role="menuitem"><button data-appearance="light">Light</button></li>
-            <li role="menuitem"><button data-appearance="dark">Dark</button></li>
-            <li role="separator" class="separator"></li>
-            <li role="menuitem"><button data-palette="">Default</button></li>
-            <li role="menuitem"><button data-palette="snow-lynx">Snow Lynx</button></li>
-            <li role="menuitem"><button data-palette="brown-bengal">Brown Bengal</button></li>
-            <li role="menuitem"><button data-palette="silver-bengal">Silver Bengal</button></li>
-            <li role="menuitem"><button data-palette="charcoal-bengal">Charcoal Bengal</button></li>
-            <li role="menuitem"><button data-palette="blue-bengal">Blue Bengal</button></li>
+        <ul class="theme-dropdown__menu">
+            <li><button data-appearance="system">System</button></li>
+            <li><button data-appearance="light">Light</button></li>
+            <li><button data-appearance="dark">Dark</button></li>
+            <li class="separator" aria-hidden="true"></li>
+            <li><button data-palette="">Default</button></li>
+            <li><button data-palette="snow-lynx">Snow Lynx</button></li>
+            <li><button data-palette="brown-bengal">Brown Bengal</button></li>
+            <li><button data-palette="silver-bengal">Silver Bengal</button></li>
+            <li><button data-palette="charcoal-bengal">Charcoal Bengal</button></li>
+            <li><button data-palette="blue-bengal">Blue Bengal</button></li>
         </ul>
     </div>
 </div>
