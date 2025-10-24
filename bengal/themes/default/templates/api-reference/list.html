@@ -39,23 +39,25 @@ Context variables:
                 {% endif %}
             </header>
 
-        {# API Statistics #}
-        {% if section %}
-        <div class="api-stats">
-            {% set filtered_posts = (posts | rejectattr('permalink', 'equalto', page.permalink) | list) if posts else [] %}
-            {% set filtered_subsections = (subsections | rejectattr('permalink', 'equalto', page.permalink) | list) if subsections else [] %}
-            {% set module_count = filtered_posts | length %}
-            {% set all_pages = section.regular_pages_recursive %}
+            {# API Statistics #}
+            {% if section %}
+            <div class="api-stats">
+                {% set filtered_posts = (posts | rejectattr('permalink', 'equalto', page.permalink) | list) if posts
+                else [] %}
+                {% set filtered_subsections = (subsections | rejectattr('permalink', 'equalto', page.permalink) | list)
+                if subsections else [] %}
+                {% set module_count = filtered_posts | length %}
+                {% set all_pages = section.regular_pages_recursive %}
 
                 <div class="api-stat">
                     <strong>{{ module_count }}</strong>
                     <span>{{ 'module' if module_count == 1 else 'modules' }}</span>
                 </div>
 
-            {% if filtered_subsections %}
+                {% if filtered_subsections %}
                 <div class="api-stat">
-                <strong>{{ filtered_subsections | length }}</strong>
-                <span>{{ 'package' if filtered_subsections | length == 1 else 'packages' }}</span>
+                    <strong>{{ filtered_subsections | length }}</strong>
+                    <span>{{ 'package' if filtered_subsections | length == 1 else 'packages' }}</span>
                 </div>
                 {% endif %}
 
@@ -68,16 +70,18 @@ Context variables:
             </div>
             {% endif %}
 
-            {# Package/Module Grid #}
-            {% if subsections or posts %}
+        {# Package/Module Grid #}
+        {% set filtered_posts = (posts | rejectattr('permalink', 'equalto', page.permalink) | list) if posts else [] %}
+        {% set filtered_subsections = (subsections | rejectattr('permalink', 'equalto', page.permalink) | list) if subsections else [] %}
+        {% if filtered_subsections or filtered_posts %}
             <div class="api-modules">
 
                 {# Subsections (packages with multiple modules) #}
-                {% if subsections %}
+            {% if filtered_subsections %}
                 <section class="api-section">
                     <h2 class="api-section-title">Packages</h2>
                     <div class="api-items-list">
-                        {% for subsection in subsections %}
+                    {% for subsection in filtered_subsections %}
                         <article class="api-item">
                             <div class="api-item-icon">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -117,11 +121,11 @@ Context variables:
                 {% endif %}
 
                 {# Direct module pages #}
-                {% if posts %}
+            {% if filtered_posts %}
                 <section class="api-section">
                     <h2 class="api-section-title">Modules</h2>
                     <div class="api-items-list">
-                        {% call (post) for_each_item_excluding_current(posts) %}
+                    {% call (post) for_each_item_excluding_current(filtered_posts) %}
                         <article class="api-item">
                             <div class="api-item-icon">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
