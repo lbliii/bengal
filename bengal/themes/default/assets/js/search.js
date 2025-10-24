@@ -10,7 +10,7 @@
  * - Accessible with ARIA labels
  */
 
-(function() {
+(function () {
   'use strict';
 
   // ====================================
@@ -87,7 +87,7 @@
       searchData = data;
 
       // Build Lunr index
-      searchIndex = lunr(function() {
+      searchIndex = lunr(function () {
         // Configure reference field (use objectID if available, fallback to url)
         this.ref('objectID');
 
