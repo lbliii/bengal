@@ -173,8 +173,8 @@
         if (page) {
           return {
             ...page,
-            // Use uri for navigation (relative path works for local/deployed sites)
-            href: page.uri || page.url,
+            // Use url (includes baseurl) for navigation to work with GitHub Pages and similar deployments
+            href: page.url || page.uri,
             score: result.score,
             matchData: result.matchData,
           };
