@@ -127,6 +127,10 @@ class ConfigDirectoryLoader:
         # Expand feature groups (must happen after all merges)
         config = expand_features(config)
 
+        # Flatten config for backward compatibility with old loader
+        # (site.title → title, build.parallel → parallel)
+        config = self._flatten_config(config)
+
         logger.debug(
             "config_loaded",
             environment=environment,
@@ -270,3 +274,33 @@ class ConfigDirectoryLoader:
             Origin tracker, or None if tracking disabled
         """
         return self.origin_tracker
+
+    def _flatten_config(self, config: dict[str, Any]) -> dict[str, Any]:
+        """
+        Flatten nested config for backward compatibility with old ConfigLoader.
+
+        Extracts common sections to top level:
+        - site.title → title
+        - build.parallel → parallel
+
+        Args:
+            config: Nested configuration dictionary
+
+        Returns:
+            Flattened configuration (sections preserved, values also at top level)
+        """
+        flat = dict(config)
+
+        # Extract site section to top level
+        if "site" in config and isinstance(config["site"], dict):
+            for key, value in config["site"].items():
+                if key not in flat:
+                    flat[key] = value
+
+        # Extract build section to top level
+        if "build" in config and isinstance(config["build"], dict):
+            for key, value in config["build"].items():
+                if key not in flat:
+                    flat[key] = value
+
+        return flat

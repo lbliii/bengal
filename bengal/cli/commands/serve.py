@@ -38,6 +38,17 @@ from bengal.utils.traceback_config import (
     help="Open browser automatically after server starts",
 )
 @click.option(
+    "--environment",
+    "-e",
+    type=str,
+    help="Environment name (local, preview, production) - defaults to 'local' for dev server",
+)
+@click.option(
+    "--profile",
+    type=click.Choice(["writer", "theme-dev", "dev"]),
+    help="Config profile to use: writer, theme-dev, or dev",
+)
+@click.option(
     "--verbose",
     "-v",
     is_flag=True,
@@ -63,6 +74,8 @@ def serve(
     watch: bool,
     auto_port: bool,
     open_browser: bool,
+    environment: str | None,
+    profile: str | None,
     verbose: bool,
     debug: bool,
     traceback: str | None,
@@ -110,8 +123,11 @@ def serve(
 
         config_path = Path(config).resolve() if config else None
 
+        # Default to 'local' environment for dev server (unless explicitly specified)
+        dev_environment = environment or "local"
+
         # Create site
-        site = Site.from_config(root_path, config_path)
+        site = Site.from_config(root_path, config_path, environment=dev_environment, profile=profile)
 
         # Apply file-based traceback config and re-install
         try:

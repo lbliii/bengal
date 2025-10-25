@@ -2,6 +2,7 @@
 title: Installation
 description: How to install bengal
 weight: 20
+categories: ["onboarding"]
 ---
 
 ## Before You Start
@@ -46,15 +47,28 @@ Download from [python.org/downloads](python.org/downloads).
 
 ::::{tab-set}
 
+:::{tab-item} UV
+
+```bash
+uv pip install bengal
+```
+
+:::
+
 :::{tab-item} PyPi
 
-hello
+```bash
+pip install bengal
+```
 
 :::
 
 :::{tab-item} Development Version
 
-goodbye
+```bash
+git clone https://github.com/llane/bengal.git
+cd bengal
+```
 
 :::
 
