@@ -384,6 +384,12 @@ class ConfigLoader:
             "parallel": True,
             "incremental": True,  # Fast incremental builds by default (18-42x faster)
             "minify_html": True,  # Minify HTML output by default (15-25% smaller)
+            # HTML output formatting (advanced controls)
+            "html_output": {
+                "mode": "minify",  # minify | pretty | raw (overrides minify_html)
+                "remove_comments": True,
+                "collapse_blank_lines": True,
+            },
             "max_workers": default_workers,  # Auto-detected based on CPU cores
             "pretty_urls": True,
             "minify_assets": True,

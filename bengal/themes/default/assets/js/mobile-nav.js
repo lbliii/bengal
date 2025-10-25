@@ -10,15 +10,61 @@
   let toggleBtn = null;
   let closeBtn = null;
   let isOpen = false;
+  let prevFocused = null;
+  const FOCUSABLE = 'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])';
+
+  function setBackgroundInert(inert) {
+    const regions = document.querySelectorAll('header[role="banner"], main[role="main"], footer[role="contentinfo"]');
+    const inertSupported = 'inert' in HTMLElement.prototype;
+    regions.forEach(function(el) {
+      if (!el) return;
+      if (inert) {
+        if (inertSupported) {
+          try { el.inert = true; } catch (e) { /* no-op if unsupported */ }
+        } else {
+          el.setAttribute('aria-hidden', 'true');
+        }
+      } else {
+        if (inertSupported) {
+          try { el.inert = false; } catch (e) { /* no-op if unsupported */ }
+        } else {
+          el.removeAttribute('aria-hidden');
+        }
+      }
+    });
+  }
+
+  function trapFocus(e) {
+    if (!isOpen || e.key !== 'Tab' || !mobileNav) return;
+    const focusables = mobileNav.querySelectorAll(FOCUSABLE);
+    if (!focusables.length) return;
+    const first = focusables[0];
+    const last = focusables[focusables.length - 1];
+    const active = document.activeElement;
+    if (e.shiftKey) {
+      if (active === first || !mobileNav.contains(active)) {
+        e.preventDefault();
+        last.focus();
+      }
+    } else {
+      if (active === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+  }
 
   /**
    * Open mobile navigation
    */
   function openNav() {
     if (mobileNav) {
+      prevFocused = document.activeElement;
       mobileNav.classList.add('is-open');
       document.body.style.overflow = 'hidden';
       isOpen = true;
+
+      setBackgroundInert(true);
 
       // Set focus to close button
       if (closeBtn) {
@@ -29,6 +75,8 @@
       if (toggleBtn) {
         toggleBtn.setAttribute('aria-expanded', 'true');
       }
+
+      document.addEventListener('keydown', trapFocus);
     }
   }
 
@@ -41,11 +89,21 @@
       document.body.style.overflow = '';
       isOpen = false;
 
+      setBackgroundInert(false);
+
       // Return focus to toggle button
       if (toggleBtn) {
         toggleBtn.focus();
         toggleBtn.setAttribute('aria-expanded', 'false');
       }
+
+      // Restore previously focused element when applicable
+      if (prevFocused && typeof prevFocused.focus === 'function') {
+        try { prevFocused.focus(); } catch (e) { /* ignore */ }
+      }
+      prevFocused = null;
+
+      document.removeEventListener('keydown', trapFocus);
     }
   }
 

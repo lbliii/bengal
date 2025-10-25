@@ -161,13 +161,14 @@
    /* 11px - for badges, captions, micro text */
    --text-xs: clamp(var(--font-size-12), 0.7rem + 0.2vw, var(--font-size-12));
    --text-sm: clamp(var(--font-size-14), 0.8rem + 0.3vw, var(--font-size-14));
-   --text-base: clamp(var(--font-size-16), 0.95rem + 0.3vw, var(--font-size-18));
-   --text-lg: clamp(var(--font-size-18), 1rem + 0.5vw, var(--font-size-20));
-   --text-xl: clamp(var(--font-size-20), 1.1rem + 0.7vw, var(--font-size-24));
-   --text-2xl: clamp(var(--font-size-24), 1.3rem + 1vw, var(--font-size-30));
-   --text-3xl: clamp(var(--font-size-30), 1.5rem + 1.5vw, var(--font-size-36));
-   --text-4xl: clamp(var(--font-size-36), 1.8rem + 2vw, var(--font-size-48));
-   --text-5xl: clamp(var(--font-size-48), 2.5rem + 2.5vw, var(--font-size-72));
+   /* Downshift all larger scales by one step to reduce overall size */
+   --text-base: clamp(var(--font-size-14), 0.95rem + 0.3vw, var(--font-size-16));
+   --text-lg: clamp(var(--font-size-16), 1rem + 0.5vw, var(--font-size-18));
+   --text-xl: clamp(var(--font-size-18), 1.1rem + 0.7vw, var(--font-size-20));
+   --text-2xl: clamp(var(--font-size-20), 1.3rem + 1vw, var(--font-size-24));
+   --text-3xl: clamp(var(--font-size-24), 1.5rem + 1.5vw, var(--font-size-30));
+   --text-4xl: clamp(var(--font-size-30), 1.8rem + 2vw, var(--font-size-36));
+   --text-5xl: clamp(var(--font-size-36), 2.5rem + 2.5vw, var(--font-size-48));
 
    /* Heading Sizes - Increase by one step for better readability */
    --text-heading-1: var(--text-5xl);
@@ -252,11 +253,7 @@
      SEMANTIC ELEVATION (Shadows)
      ============================================ */
 
-   /* Shadow aliases */
-   --shadow-sm: var(--shadow-sm);
-   --shadow-md: var(--shadow-md);
-   --shadow-lg: var(--shadow-lg);
-   --shadow-xl: var(--shadow-xl);
+  /* Shadow aliases removed as they were redundant; elevation tokens provide the same values */
 
    --elevation-none: var(--shadow-none);
    --elevation-subtle: var(--shadow-xs);
@@ -272,6 +269,8 @@
    --elevation-dropdown: var(--elevation-high);
    --elevation-modal: var(--elevation-highest);
    --elevation-tooltip: var(--elevation-medium);
+   /* Common flyout/popover elevation */
+   --elevation-popover: var(--elevation-high);
 
    /* ============================================
      SEMANTIC BORDERS
@@ -377,6 +376,7 @@
    --breakpoint-lg: 1024px;
    --breakpoint-xl: 1280px;
    --breakpoint-2xl: 1536px;
+
 }
 
 /* ============================================

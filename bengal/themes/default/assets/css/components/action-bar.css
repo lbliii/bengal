@@ -266,6 +266,8 @@
   z-index: 1000;
 }
 
+/* (removed glass material) */
+
 .action-bar-share-dropdown[aria-hidden="false"] {
   opacity: 1;
   visibility: visible;

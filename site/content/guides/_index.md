@@ -5,6 +5,7 @@ type: doc
 weight: 20
 cascade:
   type: doc
+tags: ["hi","bye"]
 ---
 
 # Guides

@@ -1,14 +1,11 @@
 
 ---
 title: "list"
-type: cli-reference
-css_class: api-content
+type: doc
 description: "List available themes (project, installed, bundled)."
 source_file: "bengal/bengal/cli/commands/theme.py"
 source_line: 63
 ---
-
-# list
 
 List available themes (project, installed, bundled).
 

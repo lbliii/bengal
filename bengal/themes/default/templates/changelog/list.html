@@ -37,6 +37,12 @@ Supports two modes:
         {% endif %}
     </header>
 
+    {% if content and content.strip() %}
+    <section class="changelog-content prose">
+        {{ content | safe }}
+    </section>
+    {% endif %}
+
     {# Data-driven mode: Use changelog.yaml #}
     {% if changelog_data and changelog_data.get('releases') %}
     <section class="changelog-timeline">
@@ -251,11 +257,6 @@ Supports two modes:
     </div>
     {% endif %}
 
-    {# Page content (optional intro text) #}
-    {% if content and content.strip() %}
-    <section class="changelog-content">
-        {{ content | safe }}
-    </section>
-    {% endif %}
+
 </div>
 {% endblock %}

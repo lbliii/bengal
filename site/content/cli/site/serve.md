@@ -1,14 +1,11 @@
 
 ---
 title: "serve"
-type: cli-reference
-css_class: api-content
+type: doc
 description: "🚀 Start development server with hot reload.  Watches for changes in content, assets, and templates, automatically rebuilding the site when files are modified."
 source_file: "bengal/bengal/cli/commands/serve.py"
 source_line: 17
 ---
-
-# serve
 
 🚀 Start development server with hot reload.
 

@@ -122,8 +122,11 @@
           btn.classList.remove('active');
         }
       });
+
     });
   }
+
+
 
   /**
    * Setup theme toggle button
@@ -184,6 +187,8 @@
       // Set initial active states
       updateActiveStates();
     });
+
+
   }
 
   /**
@@ -215,6 +220,7 @@
 
   // Initialize immediately to prevent flash of wrong theme
   initTheme();
+
 
   // Setup after DOM is ready
   if (document.readyState === 'loading') {

@@ -1,14 +1,11 @@
 
 ---
 title: "info"
-type: cli-reference
-css_class: api-content
+type: doc
 description: "ℹ️  Display project information and statistics.  Shows:     - Site title, baseurl, theme     - Content statistics (pages, sections)     - Asset counts     - Configuration paths"
 source_file: "bengal/bengal/cli/commands/project.py"
 source_line: 247
 ---
-
-# info
 
 ℹ️  Display project information and statistics.
 

@@ -311,7 +311,7 @@ header .lead {
 .prose img {
   margin: var(--space-8) auto;
   border-radius: var(--radius-md);
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--elevation-medium);
 }
 
 .prose figure {

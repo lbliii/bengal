@@ -1,14 +1,11 @@
 
 ---
 title: "install"
-type: cli-reference
-css_class: api-content
+type: doc
 description: "Install a theme via uv pip.  NAME may be a package or a slug. If a slug without prefix is provided, suggest canonical 'bengal-theme-<slug>'."
 source_file: "bengal/bengal/cli/commands/theme.py"
 source_line: 169
 ---
-
-# install
 
 Install a theme via uv pip.
 

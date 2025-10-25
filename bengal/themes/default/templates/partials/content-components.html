@@ -130,6 +130,8 @@ subsection.metadata.get('description', '') else '',
 {# Add pages with metadata #}
 {% if posts %}
 {% for post in posts %}
+{# Skip the current section index page if it appears in child posts #}
+{% if not ((page is defined and page) and (post.permalink == page.permalink)) %}
 {% set _ = all_items.append({
 'type': 'page',
 'obj': post,
@@ -140,6 +142,7 @@ subsection.metadata.get('description', '') else '',
 'weight': post.metadata.get('weight', 999999) if post.metadata else 999999,
 'date': post.date if post.date else none
 }) %}
+{% endif %}
 {% endfor %}
 {% endif %}
 
@@ -201,6 +204,48 @@ Example:
 {{ tag_list(page.tags) }}
 {{ tag_list(article.tags, small=True, linkable=False) }}
 #}
+{#
+Reusable iterator that skips the current page/item.
+
+Usage:
+{% from 'partials/content-components.html' import for_each_item_excluding_current with context %}
+{% call (post) for_each_item_excluding_current(posts) %}
+... render using `post` ...
+{% endcall %}
+#}
+{% macro for_each_item_excluding_current(items) %}
+{%- for item in items -%}
+{%- if not (page and item.permalink == page.permalink) -%}
+{{ caller(item) }}
+{%- endif -%}
+{%- endfor -%}
+{% endmacro %}
+
+{#
+Render a section with a title only if there are any items.
+
+Args:
+- items: list to check (required)
+- title: section title string (required)
+- section_class: optional additional CSS classes on the section
+
+Usage:
+{% from 'partials/content-components.html' import render_section_if_any with context %}
+{% call (items) render_section_if_any(my_list, 'Functions', 'api-section') %}
+<div class="api-items-list">
+  <!-- render items here -->
+</div>
+{% endcall %}
+#}
+{% macro render_section_if_any(items, title, section_class='') %}
+{% if items and (items | length) > 0 %}
+<section class="{{ section_class }}">
+  <h2 class="api-section-title">{{ title }}</h2>
+  {{ caller(items) }}
+</section>
+{% endif %}
+{% endmacro %}
+
 {% macro tag_list(tags, small=False, linkable=True) %}
 <div class="tags {% if small %}tags-small{% endif %}">
   {% for tag in tags %}

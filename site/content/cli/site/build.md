@@ -1,14 +1,11 @@
 
 ---
 title: "build"
-type: cli-reference
-css_class: api-content
+type: doc
 description: "🔨 Build the static site.  Generates HTML files from your content, applies templates, processes assets, and outputs a production-ready site."
 source_file: "bengal/bengal/cli/commands/build.py"
 source_line: 161
 ---
-
-# build
 
 🔨 Build the static site.
 

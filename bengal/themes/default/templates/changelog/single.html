@@ -151,7 +151,7 @@ fixed:
 
         {# Main content (detailed release notes) #}
         {% if content and content.strip() %}
-        <section class="release-details">
+        <section class="release-details prose">
             {{ content | safe }}
         </section>
         {% endif %}

@@ -1,14 +1,11 @@
 
 ---
 title: "autodoc"
-type: cli-reference
-css_class: api-content
+type: doc
 description: "📚 Generate comprehensive API documentation (Python + CLI).  Automatically generates both Python API docs and CLI docs based on your bengal.toml configuration. Use --python-only ..."
 source_file: "bengal/bengal/cli/commands/autodoc.py"
 source_line: 18
 ---
-
-# autodoc
 
 📚 Generate comprehensive API documentation (Python + CLI).
 

@@ -124,13 +124,10 @@
 
 ---
 title: "{{ element.name }}"
-type: python-module
+type: doc
 source_file: "{{ element.source_file | project_relative }}"
-css_class: api-content
 description: "{% if element.description %}{% set lines = element.description.split('\n') %}{% set desc_lines = [] %}{% for line in lines %}{% if not line.strip().startswith('#') %}{% set _ = desc_lines.append(line) %}{% endif %}{% endfor %}{{ desc_lines | join(' ') | truncate(200, True, '...') | replace('"', '\\"') }}{% else %}Python module documentation{% endif %}"
 ---
-
-# {{ element.name }}
 
 {% if element.description %}
 {{ element.description }}
@@ -297,10 +294,11 @@ This is an asynchronous method. Use `await` when calling.
 {% endfor %}
 {% endif %}
 
-{% if element.children | selectattr('element_type', 'equalto', 'function') | list %}
+{% set public_functions = element.children | selectattr('element_type', 'equalto', 'function') | list %}
+{% if public_functions %}
 ## Functions
 
-{% for func in element.children | selectattr('element_type', 'equalto', 'function') %}
+{% for func in public_functions %}
 {% if not func.name.startswith('_') %}
 ### `{{ func.name }}`{% if func.metadata.is_async %} @async{% endif %}
 

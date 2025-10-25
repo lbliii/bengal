@@ -1,14 +1,11 @@
 
 ---
 title: "suggest"
-type: cli-reference
-css_class: api-content
+type: doc
 description: "💡 Generate smart link suggestions to improve internal linking.  Analyzes your content to recommend links based on: - Topic similarity (shared tags/categories) - Page importance ..."
 source_file: "bengal/bengal/cli/commands/graph/suggest.py"
 source_line: 16
 ---
-
-# suggest
 
 💡 Generate smart link suggestions to improve internal linking.
 

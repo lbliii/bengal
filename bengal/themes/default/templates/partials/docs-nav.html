@@ -33,7 +33,7 @@ Usage:
     {# Strategy: If current page has a section, find its root ancestor #}
     {# This allows the nav to be scoped to just the docs tree, not the entire site #}
     {# Get the root section to display the navigation tree from the top #}
-    {% set root_section = page._section.root if page._section else none %}
+    {% set root_section = page._section.root if (page is defined and page and page._section) else none %}
 
     {# If we have a root section, show only its tree #}
     {% if root_section %}
@@ -47,7 +47,7 @@ Usage:
     {# Show the section's index page if it exists #}
     {% if root_section.index_page %}
     <a href="{{ root_section.index_page.permalink }}"
-      class="docs-nav-link {% if page.url == root_index_url %}active{% endif %}">
+      class="docs-nav-link {% if (page is defined and page and page.url == root_index_url) %}active{% endif %}">
       {{ root_section.index_page.title }}
     </a>
     {% endif %}
@@ -56,7 +56,8 @@ Usage:
     {% for p in sorted_pages %}
     {# Skip root index and subsection index pages - now O(1) set lookup! #}
     {% if p.url != root_index_url and p.url not in subsection_index_urls %}
-    <a href="{{ p.permalink }}" class="docs-nav-link {% if page.url == p.url %}active{% endif %}">
+    <a href="{{ p.permalink }}"
+      class="docs-nav-link {% if (page is defined and page and page.url == p.url) %}active{% endif %}">
       {{ p.title }}
     </a>
     {% endif %}
@@ -75,7 +76,8 @@ Usage:
     {% set top_pages = site.pages | selectattr('_section', 'none') | rejectattr('metadata._generated', 'defined') | list
     %}
     {% for p in top_pages %}
-    <a href="{{ p.permalink }}" class="docs-nav-link {% if page.url == p.url %}active{% endif %}">
+    <a href="{{ p.permalink }}"
+      class="docs-nav-link {% if (page is defined and page and page.url == p.url) %}active{% endif %}">
       {{ p.title }}
     </a>
     {% endfor %}

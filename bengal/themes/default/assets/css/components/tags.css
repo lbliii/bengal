@@ -79,6 +79,8 @@
   background-color: var(--color-primary);
 }
 
+/* (removed glass enhancement) */
+
 /* ============================================
    BADGES
    ============================================ */
@@ -172,7 +174,7 @@
   border-color: var(--color-primary);
   color: var(--color-text-inverse);
   transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--elevation-medium);
 }
 
 .tag-name {

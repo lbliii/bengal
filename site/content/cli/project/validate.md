@@ -1,14 +1,11 @@
 
 ---
 title: "validate"
-type: cli-reference
-css_class: api-content
+type: doc
 description: "✓ Validate Bengal project configuration and structure.  Checks:     ✓ bengal.toml exists and is valid     ✓ Required configuration fields     ✓ Directory structure (content/, te..."
 source_file: "bengal/bengal/cli/commands/project.py"
 source_line: 150
 ---
-
-# validate
 
 ✓ Validate Bengal project configuration and structure.
 

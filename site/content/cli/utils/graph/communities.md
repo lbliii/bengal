@@ -1,14 +1,11 @@
 
 ---
 title: "communities"
-type: cli-reference
-css_class: api-content
+type: doc
 description: "🔍 Discover topical communities in your content.  Uses the Louvain algorithm to find natural clusters of related pages. Communities represent topic areas or content groups based ..."
 source_file: "bengal/bengal/cli/commands/graph/communities.py"
 source_line: 16
 ---
-
-# communities
 
 🔍 Discover topical communities in your content.
 

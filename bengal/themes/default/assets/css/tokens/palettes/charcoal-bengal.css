@@ -75,6 +75,7 @@ html[data-palette="charcoal-bengal"] {
     --color-code-string: #3A6B4F;
     --color-code-number: #9B6B47;
     --color-code-text: #2C3942;
+
 }
 
 /* Dark-mode adjustments while Charcoal Bengal palette is active */
@@ -140,6 +141,7 @@ html[data-theme="dark"][data-palette="charcoal-bengal"] {
     --color-code-string: #7FAA8E;
     --color-code-number: #CCA173;
     --color-code-text: #C8D1DA;
+
 }
 
 /* ============================================

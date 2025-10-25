@@ -252,6 +252,27 @@ output_dir = "content/cli"
 framework = "click"                 # Options: click, argparse, typer
 ```
 
+### HTML Output Formatting
+
+Control whitespace and comments in generated HTML. Defaults keep output compact and safe.
+
+```toml
+# Backwards-compatibility: simple boolean toggle
+# minify_html = true   # Enabled by default; set false to keep more whitespace
+
+# Advanced controls (overrides minify_html when set)
+[html_output]
+mode = "minify"            # Options: "minify", "pretty", "raw"
+remove_comments = true     # Strip HTML comments (keeps IE conditionals)
+collapse_blank_lines = true
+```
+
+- "minify": collapses inter-tag whitespace and blank lines, keeps protected regions (`pre`, `code`, `textarea`, `script`, `style`) intact.
+- "pretty": removes consecutive blank lines and trailing whitespace between tags for stable diffs.
+- "raw": no formatting.
+
+Per-page escape hatch: add `no_format: true` in a page's front matter to skip formatting for that page.
+
 **Default Features** (enabled automatically, no config needed):
 
 - ✅ Parallel builds

@@ -1,14 +1,11 @@
 
 ---
 title: "build"
-type: cli-reference
-css_class: api-content
+type: doc
 description: "Build assets using the configured pipeline (if enabled)."
 source_file: "bengal/bengal/cli/commands/assets.py"
 source_line: 24
 ---
-
-# build
 
 Build assets using the configured pipeline (if enabled).
 
