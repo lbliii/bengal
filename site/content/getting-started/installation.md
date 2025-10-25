@@ -39,6 +39,23 @@ pyenv global 3.14.0
 Download from [python.org/downloads](python.org/downloads).
 
 :::
+
 ::::
 
 ## Install
+
+::::{tab-set}
+
+:::{tab-item} PyPi
+
+hello
+
+:::
+
+:::{tab-item} Development Version
+
+goodbye
+
+:::
+
+::::
