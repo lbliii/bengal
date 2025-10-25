@@ -1,5 +1,30 @@
 # Bengal SSG Configuration Example
 #
+# 🆕 NEW: Config Directory Structure (RECOMMENDED)
+# ================================================
+# For new projects, we recommend using the config/ directory structure:
+#
+#   config/
+#   ├── _default/           # Base configuration
+#   │   ├── site.yaml       # Site metadata, menus
+#   │   ├── build.yaml      # Build settings
+#   │   └── features.yaml   # Feature toggles
+#   ├── environments/       # Environment-specific (local, preview, production)
+#   └── profiles/          # Build profiles (writer, theme-dev, dev)
+#
+# Benefits:
+#   ✅ Environment-aware (auto-detects Netlify, Vercel, GitHub Actions)
+#   ✅ Profile-based workflows (optimize for your use case)
+#   ✅ Better organization (split concerns across files)
+#   ✅ Introspection tools (bengal config show/diff/doctor)
+#
+# See: config.example/ directory for full annotated examples
+# See: examples/blog/ for a working example
+#
+# This single-file format still works and is maintained for simplicity!
+#
+# ================================================
+#
 # Bengal uses sensible defaults - you only need to configure what you want to change!
 #
 # Default settings (no config needed):
