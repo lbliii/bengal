@@ -13,6 +13,7 @@ from bengal.cli.commands.project import project_cli
 from bengal.cli.commands.site import site_cli
 from bengal.cli.commands.utils import utils_cli
 from bengal.utils.cli_output import CLIOutput
+from bengal.utils.traceback_config import TracebackConfig
 
 # Import commands from new modular structure
 from .base import BengalCommand, BengalGroup
@@ -23,25 +24,9 @@ from .base import BengalCommand, BengalGroup
 @click.version_option(version=__version__, prog_name="Bengal SSG")
 def main(ctx) -> None:
     """ """
-    # Install rich traceback handler for beautiful error messages (unless in CI)
-    import os
-
-    if not os.getenv("CI"):
-        try:
-            from rich.traceback import install
-
-            from bengal.utils.rich_console import get_console
-
-            install(
-                console=get_console(),
-                show_locals=True,
-                suppress=[click],  # Don't show click internals
-                max_frames=20,
-                width=None,  # Auto-detect terminal width
-            )
-        except ImportError:
-            # Rich not available, skip
-            pass
+    # Install rich traceback handler using centralized configuration
+    # Style is determined by env (BENGAL_TRACEBACK) → defaults
+    TracebackConfig.from_environment().install()
 
     # Show welcome banner if no command provided (but not if --help was used)
     if ctx.invoked_subcommand is None and not ctx.resilient_parsing:

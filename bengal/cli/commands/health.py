@@ -7,6 +7,7 @@ Commands:
 
 from __future__ import annotations
 
+import contextlib
 import json
 from pathlib import Path
 
@@ -16,6 +17,11 @@ from bengal.cli.base import BengalGroup
 from bengal.core.site import Site
 from bengal.health.linkcheck.orchestrator import LinkCheckOrchestrator
 from bengal.utils.cli_output import CLIOutput
+from bengal.utils.traceback_config import (
+    TracebackConfig,
+    TracebackStyle,
+    set_effective_style_from_cli,
+)
 
 
 @click.group("health", cls=BengalGroup)
@@ -88,6 +94,11 @@ def health_cli():
     type=click.Path(),
     help="Output file (for JSON format)",
 )
+@click.option(
+    "--traceback",
+    type=click.Choice([s.value for s in TracebackStyle]),
+    help="Traceback verbosity: full | compact | minimal | off",
+)
 def linkcheck(
     external_only: bool,
     internal_only: bool,
@@ -101,6 +112,7 @@ def linkcheck(
     ignore_status: tuple[str, ...],
     output_format: str,
     output_file: str | None,
+    traceback: str | None,
 ) -> None:
     """
     Check internal and external links in the site.
@@ -117,6 +129,10 @@ def linkcheck(
     """
     cli = CLIOutput()
 
+    # Configure traceback behavior
+    set_effective_style_from_cli(traceback)
+    TracebackConfig.from_environment().install()
+
     # Load site
     try:
         cli.header("🔗 Link Checker")
@@ -124,6 +140,15 @@ def linkcheck(
 
         root_path = Path.cwd()
         site = Site.from_config(root_path)
+
+        # Apply file-based traceback config and re-install
+        try:
+            from bengal.utils.traceback_config import apply_file_traceback_to_env
+
+            apply_file_traceback_to_env(site.config)
+            TracebackConfig.from_environment().install()
+        except Exception:
+            pass
         site.discover_content()
         site.discover_assets()
 
@@ -131,6 +156,8 @@ def linkcheck(
 
     except Exception as e:
         cli.error(f"Failed to load site: {e}")
+        with contextlib.suppress(Exception):
+            TracebackConfig.from_environment().get_renderer().display_exception(e)
         raise click.Abort() from e
 
     # Determine what to check
@@ -143,6 +170,8 @@ def linkcheck(
             _ensure_site_built(site, cli)
         except Exception as e:
             cli.error(f"Failed to build site: {e}")
+            with contextlib.suppress(Exception):
+                TracebackConfig.from_environment().get_renderer().display_exception(e)
             raise click.Abort() from e
 
     # Build config from CLI flags and site config
@@ -194,6 +223,8 @@ def linkcheck(
         raise
     except Exception as e:
         cli.error(f"Link check failed: {e}")
+        with contextlib.suppress(Exception):
+            TracebackConfig.from_environment().get_renderer().display_exception(e)
         raise click.Abort() from e
 
 

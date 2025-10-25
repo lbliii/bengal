@@ -207,9 +207,13 @@ class Renderer:
             if strict_mode:
                 display_template_error(rich_error)
                 if debug_mode:
-                    import traceback
+                    # Use configured traceback renderer for consistency
+                    try:
+                        from bengal.utils.traceback_config import TracebackConfig
 
-                    traceback.print_exc()
+                        TracebackConfig.from_environment().get_renderer().display_exception(e)
+                    except Exception:
+                        pass
                 # Wrap in RuntimeError for consistent error handling
                 raise RuntimeError(
                     f"Template error in strict mode: {truncate_error(rich_error.message)}"
@@ -223,9 +227,13 @@ class Renderer:
                 display_template_error(rich_error)
 
             if debug_mode:
-                import traceback
+                # Show exception using the configured renderer
+                try:
+                    from bengal.utils.traceback_config import TracebackConfig
 
-                traceback.print_exc()
+                    TracebackConfig.from_environment().get_renderer().display_exception(e)
+                except Exception:
+                    pass
 
             # Fallback to simple HTML
             return self._render_fallback(page, content)

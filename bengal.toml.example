@@ -166,3 +166,17 @@ ignore_status = [         # HTTP status codes/ranges to ignore
 
 # Cache settings (future enhancement)
 # cache_ttl_hours = 24  # Cache link check results for 24 hours
+
+# Development configuration
+[dev]
+
+# Traceback configuration (configurable error display)
+[dev.traceback]
+# style: full | compact | minimal | off
+style = "compact"
+# Show local variables in tracebacks (only meaningful for 'full')
+show_locals = false
+# Maximum stack frames to display
+max_frames = 10
+# Libraries to suppress in tracebacks (hide internal frames)
+suppress = ["click", "jinja2"]
