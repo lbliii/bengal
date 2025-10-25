@@ -3,104 +3,113 @@
 {% from 'partials/content-components.html' import for_each_item_excluding_current with context %}
 
 {#
-  CLI Reference List Template
+CLI Reference List Template
 
-  Used for CLI documentation section indexes (command overview).
-  Shows commands in a clean, scannable reference layout.
+Used for CLI documentation section indexes (command overview).
+Shows commands in a clean, scannable reference layout.
 
-  Context variables:
-    - section: Section object with CLI commands
-    - posts: List of command pages
-    - subsections: List of command group subsections
-    - content_type: 'cli-reference'
+Context variables:
+- section: Section object with CLI commands
+- posts: List of command pages
+- subsections: List of command group subsections
+- content_type: 'cli-reference'
 #}
 
 {% block content %}
 {# Three-column documentation layout #}
 <div class="docs-layout">
-  {# Left Sidebar: CLI Navigation #}
-  <aside class="docs-sidebar" id="docs-sidebar" role="navigation" aria-label="CLI navigation">
-    {% include 'partials/docs-nav.html' %}
-  </aside>
+    {# Left Sidebar: CLI Navigation #}
+    <aside class="docs-sidebar" id="docs-sidebar" role="navigation" aria-label="CLI navigation">
+        {% include 'partials/docs-nav.html' %}
+    </aside>
 
-  {# Main Content #}
-  <div class="docs-main">
-    {# Breadcrumbs #}
-    {{ breadcrumbs(section if section is defined else page) }}
+    {# Main Content #}
+    <div class="docs-main">
+        {# Breadcrumbs #}
+        {{ breadcrumbs(section if section is defined else page) }}
 
-    <div class="cli-reference-container">
-        <header class="cli-reference-header">
-            <h1>⌨️  {{ (section.title if section else title) | default('CLI Reference') | upper }}</h1>
+        <div class="cli-reference-container">
+            <header class="cli-reference-header">
+                <h1>⌨️ {{ (section.title if section else title) | default('CLI Reference') | upper }}</h1>
 
-            {% if section and section.metadata.get('description', '') %}
-            <p class="cli-reference-description">{{ section.metadata.get('description', '') }}</p>
-            {% else %}
-            <p class="cli-reference-description">Command-line interface reference and documentation</p>
-            {% endif %}
-        </header>
+                {% if section and section.metadata.get('description', '') %}
+                <p class="cli-reference-description">{{ section.metadata.get('description', '') }}</p>
+                {% else %}
+                <p class="cli-reference-description">Command-line interface reference and documentation</p>
+                {% endif %}
+            </header>
 
-        {# Quick Start Section - if index page has content, show it #}
-        {% if section is defined and section and section.index_page and section.index_page.parsed_ast %}
-        <section class="cli-intro">
-            <div class="prose">
-                {{ section.index_page.parsed_ast | safe }}
-            </div>
-        </section>
-        {% endif %}
-
-        {# Commands Section #}
-        {% set filtered_posts = (posts | rejectattr('permalink', 'equalto', page.permalink) | list) if posts else [] %}
-        {% set filtered_subsections = (subsections | rejectattr('permalink', 'equalto', page.permalink) | list) if subsections else [] %}
-        {% if filtered_posts or filtered_subsections %}
-        <div class="cli-commands">
-
-            {# Show all direct commands (pages in this section) #}
-            {% if filtered_posts %}
-            <section class="cli-section">
-                <h2 class="cli-section-title">Commands</h2>
-                <div class="cli-items-list">
-                    {% call (command) for_each_item_excluding_current(filtered_posts) %}
-                    <article class="cli-item">
-                        <div class="cli-item-icon">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <polyline points="4 17 10 11 4 5"></polyline>
-                                <line x1="12" y1="19" x2="20" y2="19"></line>
-                            </svg>
-                        </div>
-
-                        <div class="cli-item-content">
-                            <span class="cli-item-title">
-                                <a href="{{ command.permalink }}">{{ command.title }}</a>
-
-                                {% if command.metadata.get('description', '') %}
-                                <span class="cli-item-description">{{ command.metadata.get('description', '') }}</span>
-                                {% elif command.content %}
-                                <span class="cli-item-description">{{ command.content | striptags | truncate(120) }}</span>
-                                {% endif %}
-
-                                {% if command.metadata.get('usage') %}
-                                <span class="cli-item-meta">
-                                    <span class="meta-item meta-usage"><code>{{ command.metadata.get('usage') }}</code></span>
-                                </span>
-                                {% endif %}
-                            </span>
-                        </div>
-                    </article>
-                    {% endcall %}
+            {# Quick Start Section - if index page has content, show it #}
+            {% if section is defined and section and section.index_page and section.index_page.parsed_ast %}
+            <section class="cli-intro">
+                <div class="prose">
+                    {{ section.index_page.parsed_ast | safe }}
                 </div>
             </section>
             {% endif %}
 
-            {# Show command groups (subsections) #}
-            {% if filtered_subsections %}
+            {# Commands Section #}
+            {% set filtered_posts = (posts | rejectattr('permalink', 'equalto', page.permalink) | list) if posts else []
+            %}
+            {% set filtered_subsections = (subsections | rejectattr('permalink', 'equalto', page.permalink) | list) if
+            subsections else [] %}
+            {% if filtered_posts or filtered_subsections %}
+            <div class="cli-commands">
+
+                {# Show all direct commands (pages in this section) #}
+                {% if filtered_posts %}
+                <section class="cli-section">
+                    <h2 class="cli-section-title">Commands</h2>
+                    <div class="cli-items-list">
+                        {% call (command) for_each_item_excluding_current(filtered_posts) %}
+                        <article class="cli-item">
+                            <div class="cli-item-icon">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <polyline points="4 17 10 11 4 5"></polyline>
+                                    <line x1="12" y1="19" x2="20" y2="19"></line>
+                                </svg>
+                            </div>
+
+                            <div class="cli-item-content">
+                                <span class="cli-item-title">
+                                    <a href="{{ command.permalink }}">{{ command.title }}</a>
+
+                                    {% if command.metadata.get('description', '') %}
+                                    <span class="cli-item-description">{{ command.metadata.get('description', '')
+                                        }}</span>
+                                    {% elif command.content %}
+                                    <span class="cli-item-description">{{ command.content | striptags | truncate(120)
+                                        }}</span>
+                                    {% endif %}
+
+                                    {% if command.metadata.get('usage') %}
+                                    <span class="cli-item-meta">
+                                        <span
+                                            class="meta-item meta-usage"><code>{{ command.metadata.get('usage') }}</code></span>
+                                    </span>
+                                    {% endif %}
+                                </span>
+                            </div>
+                        </article>
+                        {% endcall %}
+                    </div>
+                </section>
+                {% endif %}
+
+                {# Show command groups (subsections) #}
+                {% if filtered_subsections %}
                 <section class="cli-section">
                     <h2 class="cli-section-title">Command Groups</h2>
                     <div class="cli-items-list">
                         {% for subsection in filtered_subsections %}
                         <article class="cli-item">
                             <div class="cli-item-icon">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path
+                                        d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z">
+                                    </path>
                                 </svg>
                             </div>
 
@@ -109,15 +118,18 @@
                                     <a href="{{ subsection.permalink }}">{{ subsection.title }}</a>
 
                                     {% if subsection.metadata.get('description', '') %}
-                                    <span class="cli-item-description">{{ subsection.metadata.get('description', '') }}</span>
+                                    <span class="cli-item-description">{{ subsection.metadata.get('description', '')
+                                        }}</span>
                                     {% endif %}
 
                                     <span class="cli-item-meta">
                                         {% if subsection.regular_pages %}
                                         {# Count only non-index pages #}
-                                        {% set content_pages = subsection.regular_pages | rejectattr('url', 'equalto', subsection.index_page.url if subsection.index_page else '') | list %}
+                                        {% set content_pages = subsection.regular_pages | rejectattr('url', 'equalto',
+                                        subsection.index_page.url if subsection.index_page else '') | list %}
                                         {% if content_pages %}
-                                        <span class="meta-item">{{ content_pages | length }} command{{ 's' if content_pages | length != 1 }}</span>
+                                        <span class="meta-item">{{ content_pages | length }} command{{ 's' if
+                                            content_pages | length != 1 }}</span>
                                         {% endif %}
                                         {% endif %}
                                     </span>
@@ -127,47 +139,44 @@
                         {% endfor %}
                     </div>
                 </section>
+                {% endif %}
+
+            </div>
+            {% else %}
+            {# Empty state #}
+            <div class="cli-empty">
+                <p>No CLI documentation available yet.</p>
+            </div>
             {% endif %}
 
-        </div>
-        {% else %}
-        {# Empty state #}
-        <div class="cli-empty">
-            <p>No CLI documentation available yet.</p>
-        </div>
-        {% endif %}
-
-        {# Getting Help Section #}
-        <section class="cli-help">
-            <h2>Getting Help</h2>
-            <div class="cli-help-content prose">
-                <pre><code class="language-bash"># Show help for main command
+            {# Getting Help Section #}
+            <section class="cli-help">
+                <h2>Getting Help</h2>
+                <div class="cli-help-content prose">
+                    <pre><code class="language-bash"># Show help for main command
 {{ (section.metadata.cli_name if section is defined and section else 'command') | default('command') }} --help
 
 # Show help for specific command
 {{ (section.metadata.cli_name if section is defined and section else 'command') | default('command') }} COMMAND --help</code></pre>
-            </div>
-        </section>
+                </div>
+            </section>
 
-        {# NO PAGINATION - Reference docs should not be paginated #}
+            {# NO PAGINATION - Reference docs should not be paginated #}
 
+        </div>
     </div>
-  </div>
 
-  {# Right Sidebar: Optional space for future TOC or related content #}
+    {# Right Sidebar: Optional space for future TOC or related content #}
 </div>
 
 {# Mobile sidebar toggle button #}
-<button
-  class="docs-sidebar-toggle"
-  aria-label="Toggle navigation sidebar"
-  aria-expanded="false"
-  aria-controls="docs-sidebar">
-  <svg viewBox="0 0 24 24">
-    <line x1="3" y1="12" x2="21" y2="12"></line>
-    <line x1="3" y1="6" x2="21" y2="6"></line>
-    <line x1="3" y1="18" x2="21" y2="18"></line>
-  </svg>
+<button class="docs-sidebar-toggle" aria-label="Toggle navigation sidebar" aria-expanded="false"
+    aria-controls="docs-sidebar">
+    <svg viewBox="0 0 24 24">
+        <line x1="3" y1="12" x2="21" y2="12"></line>
+        <line x1="3" y1="6" x2="21" y2="6"></line>
+        <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
 </button>
 
 {# Sidebar overlay for mobile #}

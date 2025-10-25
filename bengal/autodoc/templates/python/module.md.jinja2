@@ -294,7 +294,7 @@ This is an asynchronous method. Use `await` when calling.
 {% endfor %}
 {% endif %}
 
-{% set public_functions = element.children | selectattr('element_type', 'equalto', 'function') | rejectattr('name', 'matches', '^_') | list %}
+{% set public_functions = element.children | selectattr('element_type', 'equalto', 'function') | list %}
 {% if public_functions %}
 ## Functions
 
