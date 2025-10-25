@@ -1,0 +1,85 @@
+# Production Environment
+# ======================
+#
+# Configuration for production deployments.
+# Auto-detected when:
+#   - Netlify: CONTEXT=production
+#   - Vercel: VERCEL_ENV=production
+#   - GitHub Actions: GITHUB_ACTIONS=true
+#   - Explicit: BENGAL_ENV=production
+#
+# Characteristics:
+#   - Maximum performance
+#   - Strict quality gates
+#   - All features enabled
+#   - Optimized assets
+#
+# Precedence: _default → production → profile → env vars → CLI
+
+site:
+  # Production URL (your actual domain)
+  baseurl: "https://yourdomain.com"
+  
+  # Enable search engine indexing
+  robots: "index, follow"
+  
+  # Analytics (optional)
+  # analytics:
+  #   google: "G-XXXXXXXXXX"
+  #   plausible: "yourdomain.com"
+
+build:
+  # Maximum parallelization for speed
+  parallel: true
+  max_workers: null  # Auto-detect (use all cores)
+  
+  # Incremental builds if cache available
+  incremental: true
+  
+  # Strict mode ON (fail on any errors)
+  strict_mode: true
+  
+  # Fast mode (max speed, minimal output)
+  fast_mode: false  # Set true if build time is critical
+
+features:
+  # Enable all production features
+  rss: true
+  sitemap: true
+  search: true
+  json: true
+  syntax_highlighting: true
+  reading_time: true
+  related_pages: true  # Enable in production (worth the compute)
+
+assets:
+  # Enable asset pipeline for production
+  pipeline: true
+  
+  # Minify everything
+  minify:
+    css: true
+    js: true
+  
+  # Cache busting with fingerprints
+  fingerprint: true
+
+health_check:
+  # Comprehensive checks
+  enabled: true
+  fail_on_error: true  # Fail build if critical issues found
+  validators:
+    - links
+    - frontmatter
+    - images
+
+markdown:
+  highlight:
+    style: "github-dark"
+  
+# Production-specific settings
+# No verbose logging, no debug output
+dev:
+  verbose: false
+  show_errors: false  # Log to file instead of console
+

@@ -1,0 +1,100 @@
+# Features Configuration
+# ======================
+#
+# High-level feature toggles that expand into detailed configuration.
+# Use these for easy enable/disable of common features.
+#
+# Each feature expands into specific config settings:
+#   - rss: true → generate_rss: true, output_formats: [rss]
+#   - sitemap: true → generate_sitemap: true
+#   - search: true → search.enabled: true, search.preload: smart
+#   - json: true → output_formats: [json], generate_index: true
+#
+# You can override expanded settings by defining them explicitly.
+
+features:
+  # RSS Feed Generation
+  # Expands to: generate_rss: true, output_formats: [rss]
+  rss: true
+  
+  # Sitemap Generation (sitemap.xml)
+  # Expands to: generate_sitemap: true
+  sitemap: true
+  
+  # Search (client-side search index)
+  # Expands to: search.enabled: true, search.preload: smart
+  search: true
+  
+  # JSON Index (content API)
+  # Expands to: output_formats: [json], generate_index: true
+  json: true
+  
+  # Syntax Highlighting (in code blocks)
+  # Expands to: syntax_highlighting.enabled: true
+  syntax_highlighting: true
+  
+  # Reading Time Estimates
+  # Expands to: reading_time.enabled: true
+  reading_time: true
+  
+  # Related Pages (ML-based recommendations)
+  # Expands to: related_pages.enabled: true
+  related_pages: false  # Disabled by default (compute intensive)
+
+# Detailed Configuration (for fine-tuning)
+# =========================================
+
+# RSS Configuration (if you need more control than feature toggle)
+# rss:
+#   enabled: true
+#   filename: "feed.xml"
+#   limit: 20
+#   include_content: true
+
+# Sitemap Configuration
+# sitemap:
+#   enabled: true
+#   filename: "sitemap.xml"
+#   change_freq: "weekly"
+#   priority: 0.5
+
+# Search Configuration
+# search:
+#   enabled: true
+#   preload: "smart"  # smart, all, none
+#   index_fields:
+#     - title
+#     - description
+#     - content
+#   stopwords: true
+
+# Output Formats (what gets generated)
+# ====================================
+
+outputs:
+  # Site-wide outputs (for index pages, taxonomies)
+  site_wide:
+    - html
+    - rss      # From features.rss: true
+    - json     # From features.json: true
+  
+  # Page-level outputs (for individual content)
+  page:
+    - html
+
+# Health Checks (validate content during build)
+# =============================================
+
+health_check:
+  enabled: true
+  validators:
+    - links      # Check for broken links
+    - frontmatter  # Validate front matter schema
+    - images      # Check for missing images
+  
+  # Fail build on errors
+  fail_on_error: false
+  
+  # Report file
+  report_file: ".bengal/health-report.json"
+

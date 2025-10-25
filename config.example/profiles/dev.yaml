@@ -1,0 +1,132 @@
+# Developer Profile
+# =================
+#
+# Maximum observability for Bengal core development and debugging.
+# Use: bengal build --profile dev
+#      bengal serve --profile dev
+#      Or shorthand: bengal build --dev
+#
+# Goals:
+#   - Full visibility into build process
+#   - Detailed error messages and tracebacks
+#   - Performance profiling
+#   - Memory tracking
+#
+# Perfect for:
+#   - Bengal core development
+#   - Debugging complex build issues
+#   - Performance optimization
+#   - Understanding build internals
+#
+# Precedence: _default → environment → dev → env vars → CLI
+
+build:
+  # Disable parallelization (easier debugging, breakpoints work)
+  parallel: false
+  
+  # Incremental OFF (test full builds)
+  incremental: false
+  
+  # Strict mode ON (catch all issues)
+  strict_mode: true
+  
+  # Fast mode OFF (we want full output)
+  fast_mode: false
+
+features:
+  # Enable everything (test all code paths)
+  rss: true
+  sitemap: true
+  search: true
+  json: true
+  syntax_highlighting: true
+  reading_time: true
+  related_pages: true
+
+assets:
+  # Test asset pipeline
+  pipeline: true
+  minify:
+    css: true
+    js: true
+  fingerprint: true
+
+health_check:
+  # Comprehensive validation
+  enabled: true
+  fail_on_error: true
+  validators:
+    - links
+    - frontmatter
+    - images
+
+# Debug settings
+debug: true
+
+# Observability: MAXIMUM
+logging:
+  level: "debug"  # Show everything
+  file: true  # Log to .bengal-build.log
+  verbose_build_stats: true  # Detailed timing
+  track_memory: true  # Memory profiling
+  
+# Traceback configuration
+traceback:
+  style: "full"  # Full stack traces
+  show_locals: true  # Show local variables
+  suppress_frameworks: false  # Show all frames
+
+# Developer-specific settings
+dev:
+  # Show everything
+  show_errors: true
+  verbose: true
+  
+  # Performance profiling
+  profile_build: true
+  profile_templates: true
+  profile_markdown: true
+  
+  # Memory tracking
+  track_memory: true
+  memory_snapshots: true
+  
+  # Validation
+  validate_templates: true
+  validate_config: true
+  
+  # Warnings
+  show_deprecations: true
+  show_future_warnings: true
+  
+  # Cache debugging
+  show_cache_stats: true
+  explain_cache_misses: true
+  
+  # Live reload
+  live_reload: true
+
+# Markdown (with all extensions)
+markdown:
+  parser: "mistune"
+  extensions:
+    - strikethrough
+    - table
+    - footnotes
+    - task_lists
+    - def_list
+    - abbr
+    - attr_list
+  
+  highlight:
+    enabled: true
+    style: "monokai"
+    line_numbers: true
+    wrap: true
+
+# Performance benchmarking
+benchmark:
+  enabled: true
+  export_json: true
+  output: ".bengal/benchmarks/"
+

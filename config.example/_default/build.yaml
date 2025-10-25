@@ -1,0 +1,81 @@
+# Build Configuration
+# ===================
+#
+# Controls how Bengal builds your site. These settings affect:
+#   - Build performance (parallelization, incremental builds)
+#   - Output directory
+#   - Asset processing
+#   - Markdown rendering
+#
+# Override per environment (e.g., local.yaml can disable parallel for debugging)
+# Override per profile (e.g., dev.yaml can enable full observability)
+
+build:
+  # Parallelization (faster builds, use all CPU cores)
+  # Set to false for debugging or in CI with limited resources
+  parallel: true
+  max_workers: 8  # null = auto (CPU count), or explicit number
+  
+  # Incremental builds (only rebuild changed files)
+  # Requires .bengal/ cache directory
+  incremental: true
+  
+  # Output directory (relative to project root)
+  output_dir: "public"
+  
+  # Strict mode (fail on errors instead of warnings)
+  # Recommended for CI/CD
+  strict_mode: false
+  
+  # Fast mode (optimize for speed over observability)
+  # Quiet output, guaranteed parallel, max speed
+  fast_mode: false
+
+# Markdown Configuration
+# ======================
+
+markdown:
+  # Parser: mistune (recommended, fastest) or markdown-it
+  parser: "mistune"
+  
+  # Extensions (mistune only)
+  extensions:
+    - strikethrough
+    - table
+    - footnotes
+    - task_lists
+    - def_list
+  
+  # Code highlighting
+  highlight:
+    enabled: true
+    style: "github-dark"
+    line_numbers: false
+    
+  # Smart typography
+  smartypants: true
+
+# Assets Configuration
+# ====================
+
+assets:
+  # Node-based asset pipeline (requires npm/yarn)
+  # Provides: minification, bundling, Sass compilation, PostCSS
+  pipeline: false
+  
+  # Minification (requires pipeline)
+  minify:
+    css: true
+    js: true
+  
+  # Cache busting (append hash to filenames)
+  fingerprint: true
+
+# Pagination
+# ==========
+
+pagination:
+  enabled: true
+  per_page: 10
+  path: "page"  # /blog/page/2/
+

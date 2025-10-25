@@ -1,0 +1,68 @@
+# Writer Profile
+# ==============
+#
+# Optimized for content creators and writers.
+# Use: bengal build --profile writer
+#      bengal serve --profile writer
+#
+# Goals:
+#   - Fast build times (prioritize speed)
+#   - Clean output (minimal noise)
+#   - Focus on content quality
+#
+# Perfect for:
+#   - Writing/editing content
+#   - Quick previews
+#   - Content-focused workflows
+#
+# Precedence: _default → environment → writer → env vars → CLI
+
+build:
+  # Fast, quiet builds
+  parallel: true
+  fast_mode: true  # Minimal output, max speed
+  
+  # Incremental for instant rebuilds
+  incremental: true
+
+features:
+  # Essential features only
+  sitemap: true
+  reading_time: true
+  
+  # Skip heavy features
+  search: false  # Faster builds
+  related_pages: false
+  syntax_highlighting: false  # Unless you write code docs
+
+assets:
+  # Skip asset pipeline (faster)
+  pipeline: false
+  minify:
+    css: false
+    js: false
+
+health_check:
+  # Basic content validation
+  enabled: true
+  fail_on_error: false
+  validators:
+    - frontmatter  # Validate your content structure
+
+# Writer-friendly settings
+markdown:
+  # Fast parser
+  parser: "mistune"
+  
+  # Smart quotes and typography
+  smartypants: true
+  
+  # Simple highlighting (if needed)
+  highlight:
+    enabled: false
+
+# Observability: minimal
+logging:
+  level: "warning"  # Only show important stuff
+  file: false  # No log files
+
