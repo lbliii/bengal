@@ -32,5 +32,10 @@ weight: 30
    bengal site serve
    ```
 
-5. Navigate to `http://localhost:5173/`. 
+5. Navigate to `http://localhost:5173/`.
 
+:::{tip} Already know your site sections?
+
+Choose **Custom** and pass in a comma-separated list of top-level sections for your site (e.g., `about, get started, guides, troubleshooting`)
+
+:::

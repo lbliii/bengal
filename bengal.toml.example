@@ -49,6 +49,13 @@ baseurl = "https://example.com"
 # logo_text = "My Brand"            # Text logo fallback
 # favicon = "/assets/favicon.png"   # Custom favicon path
 
+# Default content type for all pages/sections (can be overridden via frontmatter)
+# Options: doc, blog, tutorial, page, api-reference, cli-reference, changelog, archive, list
+# If unset, Bengal will auto-detect based on directory structure or fall back to "list"
+# default_content_type = "doc"     # Great for documentation sites
+# default_content_type = "blog"    # Great for blog sites
+# default_content_type = "page"    # Great for general websites
+
 [build]
 output_dir = "public"
 

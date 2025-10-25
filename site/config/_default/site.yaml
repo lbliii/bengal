@@ -3,13 +3,15 @@
 
 site:
   title: "Bengal"
-  baseurl: "https://bengal.readthedocs.io"  # Production URL
+  baseurl: ""  # Empty allows env override (GitHub Actions sets this)
   logo_text: "ᓚᘏᗢ"
   description: "A modern Python static site generator"
   language: "en"
-  
+  # Default content type for all pages (can be overridden per-section or per-page)
+  # Options: doc, blog, tutorial, page, api-reference, cli-reference, changelog, archive
+  default_content_type: "doc"
+
 theme:
   name: "default"
   default_appearance: "dark"
   default_palette: "snow-lynx"
-

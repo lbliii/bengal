@@ -14,28 +14,35 @@ site:
   # Site identity (override baseurl per environment)
   title: "My Awesome Site"
   author: "Your Name"
-  
+
   # Base URL (override in environments/production.yaml)
   # Local: http://localhost:8000
   # Production: https://yourdomain.com
   baseurl: "https://example.com"
-  
+
   # Site metadata
   description: "A beautiful static site built with Bengal"
   language: "en"
-  
+
+  # Default content type for all pages/sections (can be overridden via frontmatter)
+  # Options: doc, blog, tutorial, page, api-reference, cli-reference, changelog, archive, list
+  # If unset, Bengal will auto-detect based on directory structure or fall back to "list"
+  # default_content_type: "doc"     # Uncomment for documentation sites
+  # default_content_type: "blog"    # Uncomment for blog sites
+  # default_content_type: "page"    # Uncomment for general websites
+
   # Social & SEO
   keywords:
     - static site
     - documentation
     - bengal
-  
+
   # Theme configuration
   theme:
     name: "default"
     default_appearance: "system"  # auto, light, dark, system
     default_palette: ""
-    
+
   # Menu configuration (define navigation menus)
   menu:
     main:
@@ -51,16 +58,15 @@ site:
       - name: "About"
         url: "/about/"
         weight: 4
-    
+
     footer:
       - name: "Privacy"
         url: "/privacy/"
       - name: "Terms"
         url: "/terms/"
-  
+
   # Taxonomies (content classification)
   taxonomies:
     - tags
     - categories
     - series
-

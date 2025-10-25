@@ -4,10 +4,9 @@ Content type strategy registry.
 Maps content type names to their strategies and provides lookup functionality.
 """
 
-
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from .base import ContentTypeStrategy
 from .strategies import (
@@ -56,7 +55,7 @@ def get_strategy(content_type: str) -> ContentTypeStrategy:
     return CONTENT_TYPE_REGISTRY.get(content_type, PageStrategy())
 
 
-def detect_content_type(section: Section) -> str:
+def detect_content_type(section: Section, config: dict[str, Any] | None = None) -> str:
     """
     Auto-detect content type from section characteristics.
 
@@ -66,10 +65,12 @@ def detect_content_type(section: Section) -> str:
     1. Explicit type in section metadata
     2. Cascaded type from parent section
     3. Auto-detection via strategy heuristics
-    4. Default to "list"
+    4. Config-based default (site.default_content_type)
+    5. Default to "list"
 
     Args:
         section: Section to analyze
+        config: Optional site config for default_content_type lookup
 
     Returns:
         Content type name
@@ -77,6 +78,11 @@ def detect_content_type(section: Section) -> str:
     Example:
         >>> content_type = detect_content_type(blog_section)
         >>> assert content_type == "blog"
+
+    Example with config default:
+        >>> config = {"site": {"default_content_type": "doc"}}
+        >>> content_type = detect_content_type(section, config)
+        >>> # Returns "doc" if no other detection succeeds
     """
     # 1. Explicit override (highest priority)
     if "content_type" in section.metadata:
@@ -102,7 +108,14 @@ def detect_content_type(section: Section) -> str:
         if strategy.detect_from_section(section):
             return content_type
 
-    # 4. Default fallback
+    # 4. Config-based default (NEW!)
+    if config:
+        site_config = config.get("site", {})
+        default_type = site_config.get("default_content_type")
+        if default_type and default_type in CONTENT_TYPE_REGISTRY:
+            return default_type
+
+    # 5. Final fallback
     return "list"
 
 

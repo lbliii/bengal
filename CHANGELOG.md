@@ -8,6 +8,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Config Directory Structure (v2.0)**: Major configuration system overhaul
+  - Hugo-style `config/` directory with `_default/`, `environments/`, and `profiles/` subdirectories
+  - Environment-aware configuration: auto-detects Netlify, Vercel, GitHub Actions, or defaults to `local`
+  - Build profiles for different personas: `writer` (fast/quiet), `theme-dev` (template debugging), `dev` (full observability)
+  - Feature toggles that expand intelligently (e.g., `rss: true` → `generate_rss: true`, `output_formats: [rss]`)
+  - Configuration precedence: `_default → environment → profile → env vars → CLI flags`
+  - Origin tracking: know exactly where each config value comes from
+  - Introspection CLI commands:
+    - `bengal config show [--origin] [--environment ENV]` - Display merged configuration
+    - `bengal config doctor` - Validate configuration with helpful error messages
+    - `bengal config diff --environment ENV --against OTHER` - Compare configurations
+    - `bengal config init [--type directory]` - Scaffold new config structure
+  - New CLI flags: `--environment/-e` and `--profile` for `bengal build` and `bengal serve`
+  - Backward compatible: single-file configs (bengal.toml/bengal.yaml) still fully supported
+  - Comprehensive examples in `config.example/` and `examples/blog/`
+  - 109 tests (95 unit + 14 integration) with 100% coverage of new modules
+  - Main documentation site (`site/`) migrated to new system
+  - Deep merge engine with nested key support and list appending
+  - YAML-first (recommended) with TOML backward compatibility
 - **HTML Output Formatter**: Produce pristine HTML by default with safe formatting
   - New module `bengal.postprocess.html_output.format_html_output`
   - Modes: `raw`, `pretty`, `minify` (default driven by `minify_html` or `[html_output]`)

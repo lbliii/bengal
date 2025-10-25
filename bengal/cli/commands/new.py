@@ -1,6 +1,5 @@
 """Commands for creating new sites and pages."""
 
-
 from __future__ import annotations
 
 from datetime import datetime
@@ -12,6 +11,7 @@ from bengal.cli.base import BengalGroup
 from bengal.cli.site_templates import get_template
 
 # Add these imports
+from bengal.utils.atomic_write import atomic_write_text
 from bengal.utils.build_stats import show_error
 from bengal.utils.cli_output import CLIOutput
 
@@ -63,6 +63,102 @@ PRESETS = {
         "template_id": "resume",
     },
 }
+
+
+def _create_config_directory(site_path: Path, site_title: str, theme: str, cli: CLIOutput) -> None:
+    """Create config directory structure with sensible defaults."""
+    import yaml
+
+    config_dir = site_path / "config"
+
+    # Create directories
+    defaults = config_dir / "_default"
+    defaults.mkdir(parents=True, exist_ok=True)
+
+    envs = config_dir / "environments"
+    envs.mkdir(exist_ok=True)
+
+    # Create default configs
+    site_config = {
+        "site": {
+            "title": site_title,
+            "baseurl": "https://example.com",
+            "description": f"{site_title} - Built with Bengal",
+            "language": "en",
+        },
+        "theme": {
+            "name": theme,
+        },
+    }
+
+    build_config = {
+        "build": {
+            "output_dir": "public",
+            "parallel": True,
+            "incremental": True,
+        },
+        "assets": {
+            "minify": True,
+            "fingerprint": True,
+        },
+    }
+
+    features_config = {
+        "features": {
+            "rss": True,
+            "sitemap": True,
+            "search": True,
+        }
+    }
+
+    # Write default configs
+    (defaults / "site.yaml").write_text(
+        yaml.dump(site_config, default_flow_style=False, sort_keys=False)
+    )
+    (defaults / "build.yaml").write_text(
+        yaml.dump(build_config, default_flow_style=False, sort_keys=False)
+    )
+    (defaults / "features.yaml").write_text(
+        yaml.dump(features_config, default_flow_style=False, sort_keys=False)
+    )
+
+    # Create environment configs
+    local_config = {
+        "site": {
+            "baseurl": "http://localhost:8000",
+        },
+        "build": {
+            "parallel": False,  # Easier debugging
+        },
+        "assets": {
+            "minify": False,  # Faster builds
+            "fingerprint": False,
+        },
+    }
+
+    production_config = {
+        "site": {
+            "baseurl": "https://example.com",  # User will update this
+        },
+        "build": {
+            "parallel": True,
+            "strict_mode": True,
+        },
+    }
+
+    (envs / "local.yaml").write_text(
+        yaml.dump(local_config, default_flow_style=False, sort_keys=False)
+    )
+    (envs / "production.yaml").write_text(
+        yaml.dump(production_config, default_flow_style=False, sort_keys=False)
+    )
+
+    cli.info("   ├─ Created config/ directory:")
+    cli.info("   │  ├─ _default/site.yaml")
+    cli.info("   │  ├─ _default/build.yaml")
+    cli.info("   │  ├─ _default/features.yaml")
+    cli.info("   │  ├─ environments/local.yaml")
+    cli.info("   │  └─ environments/production.yaml")
 
 
 def _should_run_init_wizard(template: str, no_init: bool, init_preset: str) -> bool:
@@ -287,24 +383,8 @@ def site(name: str, theme: str, template: str, no_init: bool, init_preset: str) 
 
         cli.info("   ├─ Created directory structure")
 
-        # Create config file using site_title for the title field
-        config_content = f"""[site]
-title = "{site_title}"
-baseurl = ""
-theme = "{theme}"
-
-[build]
-output_dir = "public"
-parallel = true
-
-[assets]
-minify = true
-fingerprint = true
-"""
-        from bengal.utils.atomic_write import atomic_write_text
-
-        atomic_write_text(site_path / "bengal.toml", config_content)
-        cli.info("   ├─ Created bengal.toml")
+        # Create config directory structure (new system)
+        _create_config_directory(site_path, site_title, theme, cli)
 
         # Create .gitignore
         gitignore_content = """# Bengal build outputs
@@ -393,7 +473,13 @@ Thumbs.db
         # Show next steps
         cli.subheader("Next steps:", icon="📚")
         cli.info(f"   ├─ cd {site_dir_name}")
+        cli.info("   ├─ Edit config/_default/site.yaml (update baseurl)")
         cli.info("   └─ bengal site serve")
+        cli.blank()
+        cli.tip("💡 Config uses environment-aware directory structure!")
+        cli.tip("   • Local dev: config/environments/local.yaml")
+        cli.tip("   • Production: config/environments/production.yaml")
+        cli.tip("   • Run 'bengal config show' to see merged config")
         cli.blank()
 
     except Exception as e:

@@ -1,9 +1,0 @@
-# Local Development
-# ==================
-
-site:
-  baseurl: "http://localhost:8000"
-
-build:
-  parallel: false  # Easier debugging
-
