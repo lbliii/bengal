@@ -1,0 +1,11 @@
+# Features Configuration
+# ======================
+
+features:
+  # Enable common blog features
+  rss: true
+  sitemap: true
+  search: true
+  syntax_highlighting: true
+  reading_time: true
+

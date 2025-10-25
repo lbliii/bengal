@@ -1,0 +1,23 @@
+# Build Configuration
+# ===================
+
+build:
+  output_dir: "public"
+  parallel: true
+  incremental: true
+
+markdown:
+  parser: "mistune"
+  extensions:
+    - strikethrough
+    - table
+    - footnotes
+  highlight:
+    enabled: true
+    style: "github-dark"
+  smartypants: true
+
+pagination:
+  enabled: true
+  per_page: 10
+
