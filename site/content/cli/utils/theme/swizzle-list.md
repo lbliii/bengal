@@ -1,14 +1,11 @@
 
 ---
 title: "swizzle-list"
-type: cli-reference
-css_class: api-content
+type: doc
 description: "List swizzled templates."
 source_file: "bengal/bengal/cli/commands/theme.py"
 source_line: 35
 ---
-
-# swizzle-list
 
 List swizzled templates.
 

@@ -1,14 +1,11 @@
 
 ---
 title: "linkcheck"
-type: cli-reference
-css_class: api-content
+type: doc
 description: "Check internal and external links in the site.  Validates that all links in your site work correctly: - Internal links point to existing pages and anchors - External links retur..."
 source_file: "bengal/bengal/cli/commands/health.py"
 source_line: 27
 ---
-
-# linkcheck
 
 Check internal and external links in the site.
 

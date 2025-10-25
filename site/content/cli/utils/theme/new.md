@@ -1,14 +1,11 @@
 
 ---
 title: "new"
-type: cli-reference
-css_class: api-content
+type: doc
 description: "Create a new theme scaffold.  SLUG is the theme identifier used in config (e.g., [site].theme = SLUG)."
 source_file: "bengal/bengal/cli/commands/theme.py"
 source_line: 227
 ---
-
-# new
 
 Create a new theme scaffold.
 

@@ -18,14 +18,14 @@
     <meta name="description" content="{{ meta_desc }}">
 
     {# Meta Keywords - use page.keywords or fallback to tags #}
-    {% if page and page.keywords is defined and page.keywords %}
+    {% if page is defined and page and page.keywords is defined and page.keywords %}
     <meta name="keywords" content="{{ page.keywords | join(', ') }}">
-    {% elif page and page.tags is defined and page.tags %}
+    {% elif page is defined and page and page.tags is defined and page.tags %}
     <meta name="keywords" content="{{ page.tags | meta_keywords(10) }}">
     {% endif %}
 
     {# Open Graph / Facebook #}
-    <meta property="og:type" content="{% if page %}article{% else %}website{% endif %}">
+    <meta property="og:type" content="{% if page is defined and page %}article{% else %}website{% endif %}">
     <meta property="og:title"
         content="{{ (page.title if page is defined and page and page.title is defined else site.config.title) }}">
     {% if meta_desc %}
@@ -36,7 +36,7 @@
         content="{{ canonical_url((page.url if page is defined and page and page.url is defined else '/')) }}">
     {% endif %}
     {# Open Graph Image #}
-    {% if page and page.metadata is defined and page.metadata.get('image') %}
+    {% if page is defined and page and page.metadata is defined and page.metadata.get('image') %}
     <meta property="og:image" content="{{ og_image(page.metadata.get('image')) }}">
     {% elif site.config.get('og_image') %}
     <meta property="og:image" content="{{ og_image(site.config.get('og_image')) }}">
@@ -49,7 +49,7 @@
     {% if meta_desc %}
     <meta name="twitter:description" content="{{ meta_desc }}">
     {% endif %}
-    {% if page and page.metadata is defined and page.metadata.get('image') %}
+    {% if page is defined and page and page.metadata is defined and page.metadata.get('image') %}
     <meta name="twitter:image" content="{{ og_image(page.metadata.get('image')) }}">
     {% elif site.config.get('og_image') %}
     <meta name="twitter:image" content="{{ og_image(site.config.get('og_image')) }}">
@@ -127,7 +127,7 @@
 </head>
 
 <body
-    class="page-kind-{{ page.kind if page and page.kind is defined else 'page' }} {% if page and page.draft is defined and page.draft %}draft-page{% endif %} {% if page and page.tags is defined and (page | has_tag('featured')) %}featured-content{% endif %}">
+    class="page-kind-{{ page.kind if (page is defined and page and page.kind is defined) else 'page' }} {% if (page is defined and page and page.draft is defined and page.draft) %}draft-page{% endif %} {% if (page is defined and page and page.tags is defined and (page | has_tag('featured'))) %}featured-content{% endif %}">
     {# Skip to main content for accessibility #}
     <a href="#main-content" class="skip-link">Skip to main content</a>
 
@@ -179,11 +179,12 @@
                         {# Auto-discovered nav items (if no manual config) #}
                         {% if auto_nav %}
                         {# Always show Home first in auto mode #}
-                        <li class="{{ 'active' if page.url == '/' else '' }}">
+                        <li class="{{ 'active' if (page is defined and page and page.url == '/') else '' }}">
                             <a href="{{ '/' | absolute_url }}">Home</a>
                         </li>
                         {% for item in auto_nav %}
-                        <li class="{{ 'active' if page.url.startswith(item.url) and item.url != '/' else '' }}">
+                        <li
+                            class="{{ 'active' if (page is defined and page and page.url and page.url.startswith(item.url) and item.url != '/') else '' }}">
                             <a href="{{ item.url | absolute_url }}">{{ item.name }}</a>
                         </li>
                         {% endfor %}
@@ -269,11 +270,12 @@
             {# Auto-discovered nav items (if no manual config) #}
             {% if auto_nav %}
             {# Always show Home first in auto mode #}
-            <li class="{{ 'active' if page.url == '/' else '' }}">
+            <li class="{{ 'active' if (page is defined and page and page.url == '/') else '' }}">
                 <a href="{{ '/' | absolute_url }}">Home</a>
             </li>
             {% for item in auto_nav %}
-            <li class="{{ 'active' if page.url.startswith(item.url) and item.url != '/' else '' }}">
+            <li
+                class="{{ 'active' if (page is defined and page and page.url and page.url.startswith(item.url) and item.url != '/') else '' }}">
                 <a href="{{ item.url | absolute_url }}">{{ item.name }}</a>
             </li>
             {% endfor %}

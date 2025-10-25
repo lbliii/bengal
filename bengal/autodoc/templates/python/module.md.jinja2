@@ -294,10 +294,11 @@ This is an asynchronous method. Use `await` when calling.
 {% endfor %}
 {% endif %}
 
-{% if element.children | selectattr('element_type', 'equalto', 'function') | list %}
+{% set public_functions = element.children | selectattr('element_type', 'equalto', 'function') | rejectattr('name', 'matches', '^_') | list %}
+{% if public_functions %}
 ## Functions
 
-{% for func in element.children | selectattr('element_type', 'equalto', 'function') %}
+{% for func in public_functions %}
 {% if not func.name.startswith('_') %}
 ### `{{ func.name }}`{% if func.metadata.is_async %} @async{% endif %}
 

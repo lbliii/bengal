@@ -1,14 +1,11 @@
 
 ---
 title: "profile"
-type: cli-reference
-css_class: api-content
+type: doc
 description: "👤 Set your Bengal working profile / persona.  Profiles customize CLI behavior and output format based on your role:      dev       👨‍💻  Full debug output, performance metrics, a..."
 source_file: "bengal/bengal/cli/commands/project.py"
 source_line: 68
 ---
-
-# profile
 
 👤 Set your Bengal working profile / persona.
 

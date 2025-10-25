@@ -131,7 +131,7 @@ subsection.metadata.get('description', '') else '',
 {% if posts %}
 {% for post in posts %}
 {# Skip the current section index page if it appears in child posts #}
-{% if not (page and post.permalink == page.permalink) %}
+{% if not ((page is defined and page) and (post.permalink == page.permalink)) %}
 {% set _ = all_items.append({
 'type': 'page',
 'obj': post,

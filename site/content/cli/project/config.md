@@ -1,14 +1,11 @@
 
 ---
 title: "config"
-type: cli-reference
-css_class: api-content
+type: doc
 description: "⚙️  Manage Bengal configuration."
 source_file: "bengal/bengal/cli/commands/project.py"
 source_line: 343
 ---
-
-# config
 
 ⚙️  Manage Bengal configuration.
 

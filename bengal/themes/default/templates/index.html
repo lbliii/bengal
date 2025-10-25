@@ -1,20 +1,20 @@
 {% extends "base.html" %}
 
 {#
-  Generic Section Index Template
+Generic Section Index Template
 
-  Used for non-chronological section landing pages.
-  Falls back when no specialized template exists.
+Used for non-chronological section landing pages.
+Falls back when no specialized template exists.
 
-  Context variables:
-    - section: Section object (for auto-generated pages)
-    - page: Page object (for explicit _index.md files)
-    - posts: Child pages (_posts)
-    - subsections: Child sections (_subsections)
+Context variables:
+- section: Section object (for auto-generated pages)
+- page: Page object (for explicit _index.md files)
+- posts: Child pages (_posts)
+- subsections: Child sections (_subsections)
 
-  Frontmatter options:
-    - show_children: true/false (default: true)
-      Controls whether child pages and subsections are displayed as tiles
+Frontmatter options:
+- show_children: true/false (default: true)
+Controls whether child pages and subsections are displayed as tiles
 #}
 
 {% from 'partials/navigation-components.html' import breadcrumbs %}
@@ -25,9 +25,9 @@
 
 <div class="section-index">
     <header class="section-header">
-        <h1>{{ page.title if page else section.title if section else site.config.title }}</h1>
+        <h1>{{ page.title if (page is defined and page) else section.title if section else site.config.title }}</h1>
 
-        {% if page and page.metadata.get('description', '') %}
+        {% if (page is defined and page) and page.metadata.get('description', '') %}
         <p class="section-description">{{ page.metadata.get('description', '') }}</p>
         {% elif section and section.metadata.get('description') %}
         <p class="section-description">{{ section.metadata.get('description', '') }}</p>
@@ -42,9 +42,9 @@
     {% endif %}
 
     {# Child content display - can be disabled via frontmatter: show_children: false #}
-    {% set show_children = page.metadata.get('show_children', true) if page else true %}
+    {% set show_children = page.metadata.get('show_children', true) if (page is defined and page) else true %}
     {% if show_children %}
-        {{ child_page_tiles(posts=posts, subsections=subsections) }}
+    {{ child_page_tiles(posts=posts, subsections=subsections) }}
     {% endif %}
 
     {# Empty state if no children to display #}
@@ -57,9 +57,12 @@
             <div class="empty-help">
                 <p><strong>To add content:</strong></p>
                 <ul>
-                    <li>Create a page: <code>content/{{ section.path.relative_to(site.content_dir) }}/my-page.md</code></li>
-                    <li>Add a custom index: <code>content/{{ section.path.relative_to(site.content_dir) }}/_index.md</code></li>
-                    <li>Create a subsection: <code>content/{{ section.path.relative_to(site.content_dir) }}/subsection/</code></li>
+                    <li>Create a page: <code>content/{{ section.path.relative_to(site.content_dir) }}/my-page.md</code>
+                    </li>
+                    <li>Add a custom index:
+                        <code>content/{{ section.path.relative_to(site.content_dir) }}/_index.md</code></li>
+                    <li>Create a subsection:
+                        <code>content/{{ section.path.relative_to(site.content_dir) }}/subsection/</code></li>
                 </ul>
             </div>
             {% endif %}

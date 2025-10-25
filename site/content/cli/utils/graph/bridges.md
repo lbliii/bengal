@@ -1,14 +1,11 @@
 
 ---
 title: "bridges"
-type: cli-reference
-css_class: api-content
+type: doc
 description: "🌉 Identify bridge pages and navigation bottlenecks.  Analyzes navigation paths to find: - Bridge pages (high betweenness): Pages that connect different parts of the site - Acces..."
 source_file: "bengal/bengal/cli/commands/graph/bridges.py"
 source_line: 17
 ---
-
-# bridges
 
 🌉 Identify bridge pages and navigation bottlenecks.
 

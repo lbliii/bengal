@@ -1,14 +1,11 @@
 
 ---
 title: "perf"
-type: cli-reference
-css_class: api-content
+type: doc
 description: "Show performance metrics and trends.  Displays build performance metrics collected from previous builds. Metrics are automatically saved to .bengal-metrics/ directory."
 source_file: "bengal/bengal/cli/commands/perf.py"
 source_line: 11
 ---
-
-# perf
 
 Show performance metrics and trends.
 

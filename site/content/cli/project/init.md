@@ -1,14 +1,11 @@
 
 ---
 title: "init"
-type: cli-reference
-css_class: api-content
+type: doc
 description: "🏗️  Initialize site structure with sections and pages."
 source_file: "bengal/bengal/cli/commands/init.py"
 source_line: 365
 ---
-
-# init
 
 🏗️  Initialize site structure with sections and pages.
 

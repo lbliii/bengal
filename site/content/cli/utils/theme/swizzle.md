@@ -1,14 +1,11 @@
 
 ---
 title: "swizzle"
-type: cli-reference
-css_class: api-content
+type: doc
 description: "Copy a theme template/partial to project templates/ and track provenance."
 source_file: "bengal/bengal/cli/commands/theme.py"
 source_line: 23
 ---
-
-# swizzle
 
 Copy a theme template/partial to project templates/ and track provenance.
 

@@ -1,5 +1,8 @@
-"""Resume template definition."""
+"""Resume site template.
 
+Provides a resume/CV scaffold with a data file and a homepage configured to
+use the resume layout.
+"""
 
 from __future__ import annotations
 
@@ -9,7 +12,15 @@ from ..base import SiteTemplate, TemplateFile
 
 
 def _load_file(filename: str, subdir: str = "pages") -> str:
-    """Load a file from the template directory."""
+    """Load a file from this template's directory.
+
+    Args:
+        filename: File name within the subdirectory.
+        subdir: Subdirectory under this template (``pages`` or ``data``).
+
+    Returns:
+        The file contents as a string.
+    """
     template_dir = Path(__file__).parent
     file_path = template_dir / subdir / filename
 
@@ -18,7 +29,11 @@ def _load_file(filename: str, subdir: str = "pages") -> str:
 
 
 def _create_resume_template() -> SiteTemplate:
-    """Create the resume site template."""
+    """Construct the resume template definition.
+
+    Returns:
+        A :class:`SiteTemplate` for a data‑driven resume/CV site.
+    """
 
     files = [
         TemplateFile(

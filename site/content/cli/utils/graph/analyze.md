@@ -1,14 +1,11 @@
 
 ---
 title: "analyze"
-type: cli-reference
-css_class: api-content
+type: doc
 description: "📊 Analyze site structure and connectivity."
 source_file: "bengal/bengal/cli/commands/graph/__main__.py"
 source_line: 27
 ---
-
-# analyze
 
 📊 Analyze site structure and connectivity.
 

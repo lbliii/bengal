@@ -1,5 +1,12 @@
-"""Blog template definition."""
+"""Blog site template.
 
+Provides a starter blog with a landing page, an about page, and two example
+posts. Demonstrates how templates can perform simple token substitution (e.g.
+injecting the current date) when loading bundled content files.
+
+Exported objects:
+- ``TEMPLATE``: the concrete :class:`~bengal.cli.templates.base.SiteTemplate`.
+"""
 
 from __future__ import annotations
 
@@ -10,7 +17,16 @@ from ..base import SiteTemplate, TemplateFile
 
 
 def _load_template_file(relative_path: str) -> str:
-    """Load a template file from the pages directory."""
+    """Load and lightly render a page from the template's ``pages/`` dir.
+
+    Replaces ``{{date}}`` placeholders with today's date (``YYYY-MM-DD``).
+
+    Args:
+        relative_path: Path inside this template's ``pages/`` directory.
+
+    Returns:
+        The file contents with simple substitutions applied.
+    """
     template_dir = Path(__file__).parent
     file_path = template_dir / "pages" / relative_path
 
@@ -25,7 +41,11 @@ def _load_template_file(relative_path: str) -> str:
 
 
 def _create_blog_template() -> SiteTemplate:
-    """Create the blog site template."""
+    """Construct the blog template definition.
+
+    Returns:
+        A :class:`SiteTemplate` that scaffolds a minimal blog.
+    """
 
     files = [
         TemplateFile(

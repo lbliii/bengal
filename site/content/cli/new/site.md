@@ -1,14 +1,11 @@
 
 ---
 title: "site"
-type: cli-reference
-css_class: api-content
+type: doc
 description: "🏗️  Create a new Bengal site with optional structure initialization."
 source_file: "bengal/bengal/cli/commands/new.py"
 source_line: 196
 ---
-
-# site
 
 🏗️  Create a new Bengal site with optional structure initialization.
 

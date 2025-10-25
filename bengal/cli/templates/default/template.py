@@ -1,5 +1,13 @@
-"""Default template definition."""
+"""Default site template.
 
+This module defines the minimal starter template shipped with Bengal. It
+creates a single ``content/index.md`` file so users can bootstrap a site with
+one command, and serves as a reference implementation for custom templates.
+
+Exported objects:
+- ``TEMPLATE``: the concrete :class:`~bengal.cli.templates.base.SiteTemplate`
+  instance discovered by the template registry.
+"""
 
 from __future__ import annotations
 
@@ -9,7 +17,14 @@ from ..base import SiteTemplate, TemplateFile
 
 
 def _load_template_file(relative_path: str) -> str:
-    """Load a template file from the pages directory."""
+    """Load a static page stub bundled with this template.
+
+    Args:
+        relative_path: Path inside this template's ``pages/`` directory.
+
+    Returns:
+        The raw file contents for inclusion in a :class:`TemplateFile`.
+    """
     template_dir = Path(__file__).parent
     file_path = template_dir / "pages" / relative_path
 
@@ -18,7 +33,13 @@ def _load_template_file(relative_path: str) -> str:
 
 
 def _create_default_template() -> SiteTemplate:
-    """Create the default site template."""
+    """Construct the default site template definition.
+
+    The template provisions a single welcome page at ``content/index.md``.
+
+    Returns:
+        A fully populated :class:`SiteTemplate` instance.
+    """
 
     files = [
         TemplateFile(
