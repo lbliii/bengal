@@ -77,22 +77,58 @@ flowchart TD
 - **Rich Context**: Templates have access to entire site, page navigation, taxonomies, 80+ functions
 - **Atomic Writes**: Crash-safe file writing with atomic operations
 
-## Parser (`bengal/rendering/parser.py`)
+## Parser System (`bengal/rendering/parsers/`)
 
-### Multi-Engine Architecture
-Supports multiple Markdown parsers with unified interface
+### Architecture
+The parser system is organized into a modular directory structure for maintainability:
+
+```
+bengal/rendering/parsers/
+├── __init__.py              # Public API and factory
+├── base.py                  # BaseMarkdownParser ABC
+├── mistune_parser.py        # Mistune implementation
+├── python_markdown.py       # Python-Markdown implementation
+├── common.py                # Shared utilities (TOC, heading IDs)
+└── toc_processor.py         # TOC extraction logic
+```
 
 ### Base Parser Interface
-`BaseMarkdownParser` ABC defines contract for all parsers
+`BaseMarkdownParser` ABC defines contract for all parsers:
+
+```python
+class BaseMarkdownParser(ABC):
+    @abstractmethod
+    def parse(self, content: str) -> str:
+        """Parse markdown to HTML."""
+        pass
+
+    @abstractmethod
+    def parse_with_toc_and_context(
+        self,
+        content: str,
+        context: dict
+    ) -> tuple[str, list]:
+        """Parse with TOC extraction and variable substitution."""
+        pass
+```
 
 ### Factory Pattern
 `create_markdown_parser(engine)` returns appropriate parser instance
 
+```python
+from bengal.rendering.parsers import create_markdown_parser
+
+parser = create_markdown_parser('mistune')  # or 'python-markdown'
+html = parser.parse(markdown_content)
+```
+
 ### Thread-Local Caching
 Parser instances reused per thread for performance
 
-### Uses Utilities
-Delegates to `bengal.utils.text.slugify()` for heading ID generation
+### Shared Utilities
+- `bengal.rendering.parsers.common` - Heading ID generation, anchors
+- `bengal.rendering.parsers.toc_processor` - TOC extraction
+- `bengal.utils.text.slugify()` - URL-safe slug generation
 
 ### Supported Engines
 
