@@ -1,0 +1,23 @@
+# Production Environment
+# =======================
+
+site:
+  baseurl: "https://bengal.readthedocs.io"
+
+build:
+  # Enable parallelization for fast production builds
+  parallel: true
+  max_workers: null  # Auto-detect
+  
+  # Strict mode for production
+  strict_mode: true
+
+assets:
+  # Full optimization for production
+  minify: true
+  fingerprint: true
+
+features:
+  # Enable analytics in production
+  analytics: true
+

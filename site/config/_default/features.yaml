@@ -1,0 +1,25 @@
+# Bengal Documentation Features
+# ==============================
+
+features:
+  # Enable syntax highlighting for code blocks
+  syntax_highlighting: true
+  
+  # Enable client-side search
+  search: true
+  
+  # RSS feed for updates
+  rss: true
+  
+  # Sitemap for SEO
+  sitemap: true
+  
+  # JSON index for API access
+  json: true
+  
+  # Reading time estimates
+  reading_time: true
+  
+  # Analytics disabled by default
+  analytics: false
+

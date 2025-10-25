@@ -1,0 +1,19 @@
+# Local Development Environment
+# ==============================
+
+site:
+  # Use relative baseurl for local development
+  baseurl: "/bengal"
+
+build:
+  # Disable parallelization for easier debugging
+  parallel: false
+  
+  # Enable incremental builds for fast development
+  incremental: true
+
+assets:
+  # Disable minification for easier debugging
+  minify: false
+  fingerprint: false
+

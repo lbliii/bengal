@@ -1,0 +1,15 @@
+# Bengal Documentation Site Configuration
+# =======================================
+
+site:
+  title: "Bengal"
+  baseurl: "https://bengal.readthedocs.io"  # Production URL
+  logo_text: "ᓚᘏᗢ"
+  description: "A modern Python static site generator"
+  language: "en"
+  
+theme:
+  name: "default"
+  default_appearance: "dark"
+  default_palette: "snow-lynx"
+
