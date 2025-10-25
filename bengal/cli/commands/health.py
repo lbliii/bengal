@@ -145,7 +145,7 @@ def linkcheck(
         try:
             from bengal.utils.traceback_config import apply_file_traceback_to_env
 
-            apply_file_traceback_to_env(site.config.get("dev") and {"dev": site.config.get("dev")})
+            apply_file_traceback_to_env(site.config)
             TracebackConfig.from_environment().install()
         except Exception:
             pass
