@@ -21,6 +21,12 @@ from bengal.utils.logger import (
     print_all_summaries,
     truncate_error,
 )
+from bengal.utils.traceback_config import (
+    TracebackConfig,
+    TracebackStyle,
+    map_debug_flag_to_traceback,
+    set_effective_style_from_cli,
+)
 
 
 def _should_regenerate_autodoc(
@@ -207,6 +213,11 @@ def _run_autodoc_before_build(config_path: Path, root_path: Path, quiet: bool) -
     "--debug", is_flag=True, help="Show debug output and full tracebacks (maps to dev profile)"
 )
 @click.option(
+    "--traceback",
+    type=click.Choice([s.value for s in TracebackStyle]),
+    help="Traceback verbosity: full | compact | minimal | off",
+)
+@click.option(
     "--validate", is_flag=True, help="Validate templates before building (catch errors early)"
 )
 @click.option(
@@ -248,6 +259,7 @@ def build(
     verbose: bool,
     strict: bool,
     debug: bool,
+    traceback: str | None,
     validate: bool,
     assets_pipeline: bool,
     autodoc: bool,
@@ -331,11 +343,27 @@ def build(
     )
 
     try:
+        # Configure traceback behavior from CLI flags and install rich handler
+        # Map legacy --debug to full unless user explicitly set --traceback
+        map_debug_flag_to_traceback(debug, traceback)
+        set_effective_style_from_cli(traceback)
+        TracebackConfig.from_environment().install()
+
         root_path = Path(source).resolve()
         config_path = Path(config).resolve() if config else None
 
         # Create and build site
         site = Site.from_config(root_path, config_path)
+
+        # Apply file-based traceback config ([dev.traceback]) with lowest precedence
+        # after site config is available, then re-install in case values changed
+        try:
+            from bengal.utils.traceback_config import apply_file_traceback_to_env
+
+            apply_file_traceback_to_env(site.config.get("dev") and {"dev": site.config.get("dev")})
+            TracebackConfig.from_environment().install()
+        except Exception:
+            pass
 
         # Check if fast_mode is enabled in config (CLI flag takes precedence)
         if fast is None:
@@ -507,6 +535,12 @@ def build(
         show_error(f"Build failed: {truncate_error(e)}", show_art=True)
         if debug:
             raise
+        # Show configured traceback renderer for better diagnostics
+        try:
+            renderer = TracebackConfig.from_environment().get_renderer()
+            renderer.display_exception(e)
+        except Exception:
+            pass
         raise click.Abort() from e
     finally:
         # Always close log file handles

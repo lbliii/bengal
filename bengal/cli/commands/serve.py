@@ -1,6 +1,5 @@
 """Development server command."""
 
-
 from __future__ import annotations
 
 from pathlib import Path
@@ -12,6 +11,12 @@ from bengal.core.site import Site
 from bengal.server.constants import DEFAULT_DEV_HOST, DEFAULT_DEV_PORT
 from bengal.utils.build_stats import show_error
 from bengal.utils.logger import LogLevel, configure_logging, truncate_error
+from bengal.utils.traceback_config import (
+    TracebackConfig,
+    TracebackStyle,
+    map_debug_flag_to_traceback,
+    set_effective_style_from_cli,
+)
 
 
 @click.command(cls=BengalCommand)
@@ -44,6 +49,11 @@ from bengal.utils.logger import LogLevel, configure_logging, truncate_error
     help="Show debug output and full tracebacks (port checks, PID files, observer setup)",
 )
 @click.option(
+    "--traceback",
+    type=click.Choice([s.value for s in TracebackStyle]),
+    help="Traceback verbosity: full | compact | minimal | off",
+)
+@click.option(
     "--config", type=click.Path(exists=True), help="Path to config file (default: bengal.toml)"
 )
 @click.argument("source", type=click.Path(exists=True), default=".")
@@ -55,6 +65,7 @@ def serve(
     open_browser: bool,
     verbose: bool,
     debug: bool,
+    traceback: str | None,
     config: str,
     source: str,
 ) -> None:
@@ -90,6 +101,10 @@ def serve(
     )
 
     try:
+        # Configure traceback behavior and install rich handler
+        map_debug_flag_to_traceback(debug, traceback)
+        set_effective_style_from_cli(traceback)
+        TracebackConfig.from_environment().install()
         # Welcome banner removed for consistency with build command
         # The "Building your site..." header is sufficient
 
@@ -97,6 +112,15 @@ def serve(
 
         # Create site
         site = Site.from_config(root_path, config_path)
+
+        # Apply file-based traceback config and re-install
+        try:
+            from bengal.utils.traceback_config import apply_file_traceback_to_env
+
+            apply_file_traceback_to_env(site.config.get("dev") and {"dev": site.config.get("dev")})
+            TracebackConfig.from_environment().install()
+        except Exception:
+            pass
 
         # Enable strict mode in development (fail fast on errors)
         site.config["strict_mode"] = True
@@ -112,4 +136,9 @@ def serve(
 
     except Exception as e:
         show_error(f"Server failed: {truncate_error(e)}", show_art=True)
+        try:
+            renderer = TracebackConfig.from_environment().get_renderer()
+            renderer.display_exception(e)
+        except Exception:
+            pass
         raise click.Abort() from e
