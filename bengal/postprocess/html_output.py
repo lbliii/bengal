@@ -55,7 +55,7 @@ def _split_protected_regions(html: str) -> list[tuple[str, bool]]:
 
 
 def _collapse_blank_lines(text: str) -> str:
-    # Replace 3+ newlines or 2+ blank lines with a single blank line
+    # Replace 2+ consecutive blank lines with a single blank line
     return re.sub(r"\n\s*\n(\s*\n)+", "\n\n", text)
 
 

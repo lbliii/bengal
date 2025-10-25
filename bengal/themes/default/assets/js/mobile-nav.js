@@ -15,14 +15,21 @@
 
   function setBackgroundInert(inert) {
     const regions = document.querySelectorAll('header[role="banner"], main[role="main"], footer[role="contentinfo"]');
+    const inertSupported = 'inert' in HTMLElement.prototype;
     regions.forEach(function(el) {
       if (!el) return;
       if (inert) {
-        el.setAttribute('aria-hidden', 'true');
-        try { el.inert = true; } catch (e) { /* no-op if unsupported */ }
+        if (inertSupported) {
+          try { el.inert = true; } catch (e) { /* no-op if unsupported */ }
+        } else {
+          el.setAttribute('aria-hidden', 'true');
+        }
       } else {
-        el.removeAttribute('aria-hidden');
-        try { el.inert = false; } catch (e) { /* no-op if unsupported */ }
+        if (inertSupported) {
+          try { el.inert = false; } catch (e) { /* no-op if unsupported */ }
+        } else {
+          el.removeAttribute('aria-hidden');
+        }
       }
     });
   }

@@ -253,7 +253,7 @@
      SEMANTIC ELEVATION (Shadows)
      ============================================ */
 
-   /* Shadow aliases removed to avoid circular references; use elevation tokens instead */
+  /* Shadow aliases removed as they were redundant; elevation tokens provide the same values */
 
    --elevation-none: var(--shadow-none);
    --elevation-subtle: var(--shadow-xs);
