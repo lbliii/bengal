@@ -1,5 +1,6 @@
 ---
 title: "Welcome to My Blog"
+description: "A simple blog built with Bengal, demonstrating the new config directory structure"
 ---
 
 # Welcome to My Blog

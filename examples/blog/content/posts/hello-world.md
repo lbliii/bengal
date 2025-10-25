@@ -1,5 +1,6 @@
 ---
 title: "Hello World"
+description: "My first post using Bengal with the new config directory structure"
 date: 2025-01-15
 tags: [introduction, bengal]
 categories: [blog]
