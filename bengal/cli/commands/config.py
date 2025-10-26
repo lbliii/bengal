@@ -296,7 +296,9 @@ def _validate_config_values(config: dict, environment: str, errors: list, warnin
         max_workers = config["build"].get("max_workers")
         if max_workers is not None:
             if not isinstance(max_workers, int):
-                errors.append(f"'build.max_workers' must be integer, got {type(max_workers).__name__}")
+                errors.append(
+                    f"'build.max_workers' must be integer, got {type(max_workers).__name__}"
+                )
             elif max_workers < 0:
                 errors.append("'build.max_workers' must be >= 0")
             elif max_workers > 100:
@@ -320,7 +322,7 @@ def _check_unknown_keys(config: dict, warnings: list) -> None:
         "output_formats",
     }
 
-    for key in config.keys():
+    for key in config:
         if key not in known_sections:
             # Check for typos
             suggestions = difflib.get_close_matches(key, known_sections, n=1, cutoff=0.6)
@@ -536,7 +538,9 @@ def _create_directory_structure(config_dir: Path, template: str, cli: CLIOutput)
         }
     }
 
-    features_config = {"features": {"rss": True, "sitemap": True, "search": True}}
+    features_config = {
+        "features": {"rss": True, "sitemap": True, "search": True, "json": True, "llm_txt": True}
+    }
 
     # Write default configs
     (defaults / "site.yaml").write_text(
@@ -584,7 +588,7 @@ def _create_directory_structure(config_dir: Path, template: str, cli: CLIOutput)
         )
     )
 
-    cli.success(f"✨ Created config structure:")
+    cli.success("✨ Created config structure:")
     cli.info(f"   {config_dir}/_default/site.yaml")
     cli.info(f"   {config_dir}/_default/build.yaml")
     cli.info(f"   {config_dir}/_default/features.yaml")
@@ -619,4 +623,3 @@ def _create_single_file(root_path: Path, template: str, cli: CLIOutput) -> None:
     config_file.write_text(yaml.dump(config, default_flow_style=False, sort_keys=False))
 
     cli.success(f"✨ Created {config_file}")
-

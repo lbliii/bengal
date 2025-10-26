@@ -65,7 +65,9 @@ PRESETS = {
 }
 
 
-def _create_config_directory(site_path: Path, site_title: str, theme: str, cli: CLIOutput, template: str = "default") -> None:
+def _create_config_directory(
+    site_path: Path, site_title: str, theme: str, cli: CLIOutput, template: str = "default"
+) -> None:
     """Create config directory structure with sensible defaults."""
     import yaml
 
@@ -170,6 +172,7 @@ def _create_config_directory(site_path: Path, site_title: str, theme: str, cli: 
             "sitemap": True,
             "search": True,
             "json": True,
+            "llm_txt": True,
             "syntax_highlighting": True,
         }
     }

@@ -8,14 +8,14 @@ features:
   rss: true        # Generate rss.xml feed
   sitemap: true    # Generate sitemap.xml for SEO
   search: true     # Generate search index (index.json)
-  json: true       # Generate per-page JSON files (page.json, index.txt)
-  
+  json: true       # Generate per-page JSON files (page.json)
+  llm_txt: true    # Generate LLM-friendly text files (index.txt, llm-full.txt)
+
   # Processing Capabilities (affects rendering)
   # Note: Currently always enabled - wiring to parser is a future enhancement
   syntax_highlighting: true  # Code block highlighting with Pygments
-  
-  # Note: Some content properties like reading_time, excerpt, toc are 
+
+  # Note: Some content properties like reading_time, excerpt, toc are
   # ALWAYS computed by Bengal. They're controlled by:
   #   - content.yaml: HOW to compute (reading_speed, excerpt_length, etc.)
   #   - theme.yaml: WHETHER to display (show_reading_time, etc.)
-
