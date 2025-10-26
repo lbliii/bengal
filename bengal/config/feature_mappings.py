@@ -42,6 +42,11 @@ FEATURE_MAPPINGS: dict[str, dict[str, Any]] = {
         "minify_html": True,
         "html_output.mode": "minify",
     },
+    # NOTE: syntax_highlighting is reserved for future use
+    # Currently always enabled - parser integration not yet wired to config.
+    # MistuneParser has enable_highlighting parameter but it's not threaded
+    # through create_markdown_parser() → _get_thread_parser() chain yet.
+    # This mapping ensures config validation doesn't complain about the feature flag.
     "syntax_highlighting": {
         "syntax_highlighting.enabled": True,
     },

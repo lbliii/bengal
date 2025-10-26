@@ -8,25 +8,64 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- **Config Directory Structure (v2.0)**: Major configuration system overhaul
-  - Hugo-style `config/` directory with `_default/`, `environments/`, and `profiles/` subdirectories
-  - Environment-aware configuration: auto-detects Netlify, Vercel, GitHub Actions, or defaults to `local`
-  - Build profiles for different personas: `writer` (fast/quiet), `theme-dev` (template debugging), `dev` (full observability)
-  - Feature toggles that expand intelligently (e.g., `rss: true` → `generate_rss: true`, `output_formats: [rss]`)
-  - Configuration precedence: `_default → environment → profile → env vars → CLI flags`
-  - Origin tracking: know exactly where each config value comes from
-  - Introspection CLI commands:
-    - `bengal config show [--origin] [--environment ENV]` - Display merged configuration
-    - `bengal config doctor` - Validate configuration with helpful error messages
-    - `bengal config diff --environment ENV --against OTHER` - Compare configurations
-    - `bengal config init [--type directory]` - Scaffold new config structure
-  - New CLI flags: `--environment/-e` and `--profile` for `bengal build` and `bengal serve`
-  - Backward compatible: single-file configs (bengal.toml/bengal.yaml) still fully supported
-  - Comprehensive examples in `config.example/` and `examples/blog/`
-  - 109 tests (95 unit + 14 integration) with 100% coverage of new modules
-  - Main documentation site (`site/`) migrated to new system
-  - Deep merge engine with nested key support and list appending
-  - YAML-first (recommended) with TOML backward compatibility
+- **Config Directory Structure (v2.0)**: Major configuration system overhaul (#48)
+  - **Directory-Based Configuration**: Hugo-style `config/` directory structure
+    - `_default/`: Base configuration (site.yaml, build.yaml, content.yaml, theme.yaml, features.yaml, params.yaml)
+    - `environments/`: Environment-specific overrides (local.yaml, preview.yaml, production.yaml)
+    - `profiles/`: Persona-based configs (writer.yaml, theme-dev.yaml, dev.yaml)
+  - **Intelligent Environment Detection**: Auto-detects deployment context
+    - Netlify, Vercel, GitHub Actions, or defaults to `local`
+    - Override with `--environment/-e` flag or `BENGAL_ENV` variable
+  - **Build Profiles**: Optimize for different workflows
+    - `writer`: Fast builds with quiet output
+    - `theme-dev`: Template debugging with verbose errors
+    - `dev`: Full observability with all checks enabled
+  - **Smart Feature Toggles**: Ergonomic feature expansion
+    - `rss: true` → `generate_rss: true`, `output_formats: [rss]`
+    - `search: true` → `search.enabled: true`, `search.preload: smart`
+    - `json: true` → `output_formats: [json]`, generate JSON content API
+    - See `bengal/config/feature_mappings.py` for all mappings
+  - **Configuration Precedence** (lowest to highest priority):
+    - `_default/*.yaml` → `environments/{env}.yaml` → `profiles/{profile}.yaml` → env vars → CLI flags
+  - **Origin Tracking**: Introspection shows where each config value originates
+  - **Introspection CLI Commands**:
+    - `bengal config show [--origin] [--environment ENV]` - Display merged config with optional origin tracking
+    - `bengal config doctor` - Validate YAML syntax, types, and values with helpful error messages
+    - `bengal config diff --environment ENV --against OTHER` - Compare configurations between environments
+    - `bengal config init [--type directory]` - Scaffold new config/ structure for existing projects
+  - **CLI Integration**: New flags for build/serve commands
+    - `--environment/-e ENV`: Select environment configuration
+    - `--profile PROFILE`: Apply build profile
+    - `bengal serve` defaults to `local` environment
+  - **Backward Compatibility**: Seamless migration path
+    - Single-file configs (bengal.toml/bengal.yaml) still fully supported
+    - Config directory takes precedence when both exist
+    - No breaking changes for existing projects
+  - **Comprehensive Examples**:
+    - `config.example/`: Fully annotated reference configs with inline documentation
+    - Main documentation site (`site/`) migrated to new system as real-world example
+  - **Test Coverage**: 109 tests (95 unit + 14 integration)
+    - 100% coverage of new config modules
+    - Environment override tests
+    - Profile precedence tests
+    - Feature expansion validation
+    - Error handling and edge cases
+  - **Deep Merge Engine**: Intelligent config merging
+    - Nested key support (e.g., `search.enabled`)
+    - List appending (not replacing)
+    - Deterministic merge order
+  - **Configuration Organization**: Clear separation of concerns
+    - `site.yaml`: Site metadata (title, baseurl, languages)
+    - `build.yaml`: Build settings (output_dir, parallel, caching)
+    - `content.yaml`: Content processing (reading_speed, excerpt_length, toc_depth)
+    - `theme.yaml`: Appearance and display (palette, navigation, sidebar)
+    - `features.yaml`: What gets generated (rss, sitemap, search, json)
+    - `params.yaml`: Custom user-defined parameters
+  - **YAML-First Design**: Recommended format with TOML backward compatibility
+  - **New Site Templates**: `bengal new site` creates complete config/ directory structure
+    - Template-specific sensible defaults (blog vs docs)
+    - All 6 config files scaffolded with comments
+    - Users can customize without creating files from scratch
 - **HTML Output Formatter**: Produce pristine HTML by default with safe formatting
   - New module `bengal.postprocess.html_output.format_html_output`
   - Modes: `raw`, `pretty`, `minify` (default driven by `minify_html` or `[html_output]`)
