@@ -245,9 +245,16 @@ class TestSectionPageIntegration:
 
     def test_tracking_affected_sections(self, tmp_path):
         """Real-world use case: tracking affected sections."""
+        from bengal.core.site import Site
+
         # Create sections
         blog_section = Section(name="blog", path=tmp_path / "blog")
         docs_section = Section(name="docs", path=tmp_path / "docs")
+
+        # Create a site with section registry
+        site = Site(root_path=tmp_path, config={})
+        site.sections = [blog_section, docs_section]
+        site.register_sections()
 
         # Create pages
         pages = [
@@ -257,7 +264,10 @@ class TestSectionPageIntegration:
             Page(source_path=tmp_path / "blog/post3.md"),
         ]
 
-        # Assign pages to sections
+        # Assign pages to sections with site reference
+        for page in pages:
+            page._site = site
+
         pages[0]._section = blog_section
         pages[1]._section = blog_section
         pages[2]._section = docs_section

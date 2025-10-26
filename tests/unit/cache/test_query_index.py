@@ -29,6 +29,8 @@ def build_cache(tmp_path):
 @pytest.fixture
 def sample_page():
     """Create a sample page for testing."""
+    from bengal.core.site import Site
+
     page = Page(
         source_path=Path("content/blog/test-post.md"),
         content="Test content",
@@ -39,8 +41,15 @@ def sample_page():
             "date": "2024-01-15",
         },
     )
-    # Mock section
-    page._section = Section(name="blog", path=Path("content/blog"))
+
+    # Create a mock site with section registry
+    site = Site(root_path=Path("."), config={})
+    blog_section = Section(name="blog", path=Path("content/blog"))
+    site.sections = [blog_section]
+    site.register_sections()
+
+    page._site = site
+    page._section = blog_section
     return page
 
 
@@ -316,4 +325,3 @@ class TestIncrementalUpdates:
         assert len(pages) == 2
         assert str(page1.source_path) in pages
         assert str(page2.source_path) in pages
-
