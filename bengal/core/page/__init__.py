@@ -15,6 +15,7 @@ from .computed import PageComputedMixin
 from .metadata import PageMetadataMixin
 from .navigation import PageNavigationMixin
 from .operations import PageOperationsMixin
+from .page_core import PageCore
 from .proxy import PageProxy
 from .relationships import PageRelationshipsMixin
 
@@ -86,6 +87,11 @@ class Page(
     # The dict is bounded to max 100 entries (oldest removed when limit reached).
     _global_missing_section_warnings: ClassVar[dict[str, int]] = {}
     _MAX_WARNING_KEYS: ClassVar[int] = 100
+
+    # PageCore: Cacheable metadata (single source of truth for Page/PageMetadata/PageProxy)
+    # This field holds all cacheable page metadata. Making it optional initially
+    # for incremental migration - will become required once all instantiation updated.
+    core: PageCore | None = None
 
     source_path: Path
     content: str = ""
