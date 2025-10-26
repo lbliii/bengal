@@ -1,11 +1,12 @@
 # Theme Configuration
 # ===================
+# Controls theme appearance and behavior
 
 theme:
   name: "default"
-  default_appearance: "dark"
-  default_palette: "snow-lynx"
-
-  # Display preferences for default theme
-  show_reading_time: true
-  show_breadcrumbs: true
+  default_appearance: "dark"     # Options: "light", "dark", "system"
+  default_palette: "snow-lynx"   # Options: "", "snow-lynx", "brown-bengal", etc.
+  
+  # Custom theme settings (accessible via site.theme_config.config in templates)
+  # Any additional keys here can be used by custom themes
+  # Example: sidebar_position: "right"

@@ -8,8 +8,8 @@
 # What this configures:
 #   - Which theme to use
 #   - Theme appearance (dark/light mode)
-#   - Display toggles (show/hide features)
-#   - Visual preferences (layout options)
+#   - Color palette selection
+#   - Display toggles (show/hide features) - if theme implements them
 #
 # What this does NOT configure:
 #   - Content processing (use content.yaml)
@@ -20,44 +20,71 @@ theme:
   # Theme Selection
   # ---------------
   name: "default"
-
-  # Appearance
-  # ----------
+  
+  # Appearance (Implemented in Default Theme)
+  # ------------------------------------------
   default_appearance: "system"  # Options: "light", "dark", "system"
-  default_palette: ""           # Theme-specific palette name
+  default_palette: ""           # Options: "", "snow-lynx", "brown-bengal", 
+                                #          "silver-bengal", "charcoal-bengal", "blue-bengal"
+  
+  # Custom Theme Settings
+  # ---------------------
+  # Any additional keys you add here are accessible via site.theme_config.config
+  # in templates. Theme developers can use this for theme-specific options.
+  #
+  # Example:
+  # sidebar_position: "right"       # Themes can read: site.theme_config.config.sidebar_position
+  # enable_animations: true         # Themes can read: site.theme_config.config.enable_animations
+  
+  # Display Preferences (NOT YET IMPLEMENTED - Future Enhancement)
+  # ---------------------------------------------------------------
+  # These settings are planned but not yet implemented in the default theme.
+  # If you're developing a custom theme, you can check these via site.theme_config.config
+  #
+  # Author display:
+  # show_author: true               # Display author on pages
+  # author_format: "name"           # Options: "name", "name_email", "full"
+  #
+  # Reading time display:
+  # show_reading_time: true         # Display "X min read" on pages
+  #
+  # Child pages display:
+  # show_children_default: true     # Show child pages in index by default
+  # show_subsections_default: true  # Show subsections in index by default
+  # show_excerpts_default: true     # Show excerpts in child page cards
+  #
+  # Taxonomy display:
+  # max_tags_display: 10            # Maximum tags to show in tag clouds
+  # popular_tags_count: 20          # Number of tags in "popular" widget
+  #
+  # Navigation:
+  # show_breadcrumbs: true          # Display breadcrumb navigation
+  # show_prev_next: true            # Display previous/next page links
+  #
+  # Comments:
+  # comments_enabled: false         # Enable comment system integration
+  # comments_provider: "disqus"     # Options: "disqus", "giscus", etc.
+  #
+  # Analytics:
+  # analytics_enabled: false        # Enable analytics integration
+  # analytics_provider: "plausible" # Options: "plausible", "google", etc.
 
-  # Display Preferences
-  # -------------------
-  # These are RECOMMENDATIONS to the theme. Themes may or may not implement them.
-  # Check your theme's documentation for supported features.
+# Available Palettes (Default Theme)
+# -----------------------------------
+# ""               : Default palette (adapts to light/dark mode)
+# "snow-lynx"      : Warm teal + cream (light), ice blue (dark)
+# "brown-bengal"   : Warm brown + tan tones
+# "silver-bengal"  : Cool silver + gray tones
+# "charcoal-bengal": Dark charcoal + slate tones
+# "blue-bengal"    : Deep blue + sky blue tones
+#
+# Palettes apply CSS custom properties and are activated via:
+# <html data-palette="snow-lynx">
 
-  # Author display
-  # show_author: true            # Display author on pages
-  # author_format: "name"        # Options: "name", "name_email", "full"
-
-  # Reading time display
-  # show_reading_time: true      # Display "X min read" on pages
-
-  # Child pages display
-  # show_children_default: true      # Show child pages in index by default
-  # show_subsections_default: true   # Show subsections in index by default
-  # show_excerpts_default: true      # Show excerpts in child page cards
-
-  # Taxonomy display
-  # max_tags_display: 10         # Maximum tags to show in tag clouds
-  # popular_tags_count: 20       # Number of tags in "popular" widget
-
-  # Navigation
-  # show_breadcrumbs: true       # Display breadcrumb navigation
-  # show_prev_next: true         # Display previous/next page links
-
-  # Comments
-  # comments_enabled: false      # Enable comment system integration
-  # comments_provider: "disqus"  # Options: "disqus", "giscus", etc.
-
-  # Analytics
-  # analytics_enabled: false     # Enable analytics integration
-  # analytics_provider: "plausible"  # Options: "plausible", "google", etc.
-
-# Note: The 'default' theme supports all these settings.
-# Custom themes may support a subset. Check theme documentation.
+# Template Access
+# ---------------
+# In Jinja templates:
+#   {{ site.theme_config.name }}                # "default"
+#   {{ site.theme_config.default_appearance }}  # "system", "light", or "dark"
+#   {{ site.theme_config.default_palette }}     # "" or palette name
+#   {{ site.theme_config.config.custom_key }}   # Any custom settings you add

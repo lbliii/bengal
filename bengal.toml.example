@@ -143,11 +143,16 @@ code = "JetBrains Mono:400"          # Code blocks
 [theme]
 name = "default"  # Which theme to use (default, or name of custom theme in themes/ directory)
 
-# Appearance
+# Appearance (Implemented in Default Theme)
 default_appearance = "system"  # Options: "light", "dark", "system" (follows OS preference)
-default_palette = ""  # Options: "" (default), "snow-lynx", or custom palette name
+default_palette = ""  # Options: "" (default), "snow-lynx", "brown-bengal", "silver-bengal", "charcoal-bengal", "blue-bengal"
 
-# Display preferences (theme-specific - themes may or may not honor these)
+# Custom theme settings (accessible via site.theme_config.config in templates)
+# Any additional keys here can be used by custom themes to control their behavior
+# Example: sidebar_position = "right"  # Custom themes can read site.theme_config.config.sidebar_position
+
+# Display preferences (NOT YET IMPLEMENTED - future enhancement)
+# These settings are planned but not yet implemented in the default theme
 # show_reading_time = true      # Display "X min read" on pages
 # show_author = true            # Display author on pages
 # show_breadcrumbs = true       # Display breadcrumb navigation
