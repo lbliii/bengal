@@ -65,7 +65,7 @@ PRESETS = {
 }
 
 
-def _create_config_directory(site_path: Path, site_title: str, theme: str, cli: CLIOutput) -> None:
+def _create_config_directory(site_path: Path, site_title: str, theme: str, cli: CLIOutput, template: str = "default") -> None:
     """Create config directory structure with sensible defaults."""
     import yaml
 
@@ -85,11 +85,72 @@ def _create_config_directory(site_path: Path, site_title: str, theme: str, cli: 
             "baseurl": "https://example.com",
             "description": f"{site_title} - Built with Bengal",
             "language": "en",
-        },
+        }
+    }
+
+    # Theme config (separate file now)
+    theme_config = {
         "theme": {
             "name": theme,
-        },
+            "default_appearance": "dark",
+            "default_palette": "snow-lynx",
+            # Display preferences (all default to true)
+            "show_reading_time": True,
+            "show_author": True,
+            "show_prev_next": True,
+            "show_children_default": True,
+            "show_excerpts_default": True,
+            "max_tags_display": 10,
+            "popular_tags_count": 20,
+        }
     }
+
+    # Content config - varies by template type
+    content_config = {"content": {}}
+    if template == "blog":
+        content_config["content"] = {
+            "default_type": "blog",
+            "excerpt_length": 200,
+            "reading_speed": 200,
+            "related_count": 5,
+            "sort_pages_by": "date",
+            "sort_order": "desc",  # Newest first for blogs
+        }
+    elif template in ["docs", "documentation"]:
+        content_config["content"] = {
+            "default_type": "doc",
+            "excerpt_length": 200,
+            "reading_speed": 200,
+            "toc_depth": 4,
+            "toc_min_headings": 2,
+            "sort_pages_by": "weight",
+            "sort_order": "asc",
+        }
+    elif template == "resume":
+        content_config["content"] = {
+            "default_type": "resume",
+            "excerpt_length": 150,
+            "sort_pages_by": "weight",
+            "sort_order": "asc",
+        }
+    elif template == "portfolio":
+        content_config["content"] = {
+            "default_type": "page",
+            "excerpt_length": 200,
+            "sort_pages_by": "date",
+            "sort_order": "desc",
+        }
+    else:  # default
+        content_config["content"] = {
+            "default_type": "page",
+            "excerpt_length": 200,
+            "reading_speed": 200,
+            "sort_pages_by": "weight",
+            "sort_order": "asc",
+        }
+
+    # Params config (empty by default, user can add custom variables)
+    params_config = {"params": {}}
 
     build_config = {
         "build": {
@@ -114,6 +175,15 @@ def _create_config_directory(site_path: Path, site_title: str, theme: str, cli: 
     # Write default configs
     (defaults / "site.yaml").write_text(
         yaml.dump(site_config, default_flow_style=False, sort_keys=False)
+    )
+    (defaults / "theme.yaml").write_text(
+        yaml.dump(theme_config, default_flow_style=False, sort_keys=False)
+    )
+    (defaults / "content.yaml").write_text(
+        yaml.dump(content_config, default_flow_style=False, sort_keys=False)
+    )
+    (defaults / "params.yaml").write_text(
+        yaml.dump(params_config, default_flow_style=False, sort_keys=False)
     )
     (defaults / "build.yaml").write_text(
         yaml.dump(build_config, default_flow_style=False, sort_keys=False)
@@ -155,6 +225,9 @@ def _create_config_directory(site_path: Path, site_title: str, theme: str, cli: 
 
     cli.info("   ├─ Created config/ directory:")
     cli.info("   │  ├─ _default/site.yaml")
+    cli.info("   │  ├─ _default/theme.yaml")
+    cli.info("   │  ├─ _default/content.yaml")
+    cli.info("   │  ├─ _default/params.yaml")
     cli.info("   │  ├─ _default/build.yaml")
     cli.info("   │  ├─ _default/features.yaml")
     cli.info("   │  ├─ environments/local.yaml")
@@ -384,7 +457,7 @@ def site(name: str, theme: str, template: str, no_init: bool, init_preset: str) 
         cli.info("   ├─ Created directory structure")
 
         # Create config directory structure (new system)
-        _create_config_directory(site_path, site_title, theme, cli)
+        _create_config_directory(site_path, site_title, theme, cli, effective_template)
 
         # Create .gitignore
         gitignore_content = """# Bengal build outputs
