@@ -7,6 +7,7 @@ from __future__ import annotations
 import click
 
 from bengal import __version__
+from bengal.cli.commands.config import config_cli
 from bengal.cli.commands.health import health_cli
 from bengal.cli.commands.new import new
 from bengal.cli.commands.project import project_cli
@@ -42,6 +43,7 @@ def main(ctx) -> None:
 
 # Register commands from new modular structure
 main.add_command(site_cli)
+main.add_command(config_cli)
 main.add_command(health_cli)
 main.add_command(utils_cli)
 main.add_command(new)

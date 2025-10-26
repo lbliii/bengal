@@ -1,6 +1,0 @@
-nav:
-  search: "Rechercher"
-  docs: "Documentation"
-footer:
-  rights: "Tous droits réservés."
-greeting: "Bonjour {name}"

@@ -6,29 +6,36 @@ weight: 30
 
 # Quick Start
 
-Get your first project running in just a few minutes.
+1. Open a terminal and navigate to a location where you'd like to create your Bengal project.
+2. Run the following command:
 
-## Step 1: Create a New Project
+   ```sh
+   bengal new site <my-site>
+   ```
 
-```bash
-your-command new my-project
-cd my-project
-```
+3. Choose from one of the following setup scenarios:
 
-## Step 2: Start Development Server
+   ```sh
+   » 📝 Blog          - Personal or professional blog
+   📚 Documentation   - Technical docs or guides
+   💼 Portfolio       - Showcase your work
+   🏢 Business        - Company or product site
+   📄 Resume          - Professional resume/CV site
+   📦 Blank           - Empty site, no initial structure
+   ⚙️  Custom         - Define your own structure
+   ```
 
-```bash
-your-command serve
-```
+4. Run the following commands to open and run the project:
 
-## Step 3: Build for Production
+   ```sh
+   cd <my-site>
+   bengal site serve
+   ```
 
-```bash
-your-command build
-```
+5. Navigate to `http://localhost:5173/`.
 
-## What's Next?
+:::{tip} Already know your site sections?
 
-- Explore the [Guides](../../guides/) section
-- Check out the [API Reference](../../api/)
-- Learn more from our documentation
+Choose **Custom** and pass in a comma-separated list of top-level sections for your site (e.g., `about, get started, guides, troubleshooting`)
+
+:::

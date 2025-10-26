@@ -1,33 +1,75 @@
 ---
 title: Installation
-description: How to install
+description: How to install bengal
 weight: 20
+categories: ["onboarding"]
 ---
 
-# Installation
+## Before You Start
 
-Learn how to install and set up your environment.
+Bengal is built with Python 3.14t free-threaded features in mind. We recommend creating an environment that is 3.14t+.
 
-## Using pip
-
-```bash
-pip install your-package
-```
-
-## Using uv
+::::{tab-set}
+:::{tab-item} pyenv
 
 ```bash
-uv pip install your-package
+# Install pyenv (see https://github.com/pyenv/pyenv for full instructions)
+brew install pyenv  # On macOS with Homebrew
+# or: curl https://pyenv.run | bash
+
+pyenv install 3.14.0
+pyenv global 3.14.0
+
+# Initialize pyenv in your shell profile (add these lines to ~/.zshrc or ~/.bash_profile):
+# export PYENV_ROOT="$HOME/.pyenv"
+# export PATH="$PYENV_ROOT/bin:$PATH"
+# eval "$(pyenv init --path)"
+# eval "$(pyenv init -)"
+# eval "$(pyenv virtualenv-init -)"
+#
+# Then reload your shell:
+# source ~/.zshrc  # or source ~/.bash_profile
+#
+# Verify with: python --version (should show 3.14.0)
 ```
 
-## Verify Installation
+:::
 
-Check that everything is installed correctly:
+:::{tab-item} Official Installer
+
+Download from [python.org/downloads](python.org/downloads).
+
+:::
+
+::::
+
+## Install
+
+::::{tab-set}
+
+:::{tab-item} UV
 
 ```bash
-your-command --version
+uv pip install bengal
 ```
 
-## Next Steps
+:::
 
-Continue with the [Quick Start Guide](quickstart/).
+:::{tab-item} PyPi
+
+```bash
+pip install bengal
+```
+
+:::
+
+:::{tab-item} Development Version
+
+```bash
+git clone https://github.com/llane/bengal.git
+cd bengal
+```
+
+:::
+
+::::

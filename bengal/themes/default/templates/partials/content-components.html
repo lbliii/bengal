@@ -64,18 +64,18 @@ Example:
       </time>
       {% endif %}
 
-      {% if article.metadata.get('author') %}
+      {% if article.metadata.get('author') and site.theme_config.config.get('show_author', true) %}
       <span class="author">{{ article.metadata.get('author') }}</span>
       {% endif %}
 
-      {% if article.content %}
+      {% if article.content and site.theme_config.config.get('show_reading_time', true) %}
       <span class="reading-time">
         {{ article.content | reading_time }} min read
       </span>
       {% endif %}
     </div>
 
-    {% if show_excerpt %}
+    {% if show_excerpt and site.theme_config.config.get('show_excerpts_default', true) %}
     <p class="article-card-excerpt">
       {% if article.metadata.get('description') %}
       {{ article.metadata.get('description') }}
@@ -247,8 +247,10 @@ Usage:
 {% endmacro %}
 
 {% macro tag_list(tags, small=False, linkable=True) %}
+{% set max_display = site.theme_config.config.get('max_tags_display', none) %}
+{% set display_tags = tags[:max_display] if max_display else tags %}
 <div class="tags {% if small %}tags-small{% endif %}">
-  {% for tag in tags %}
+  {% for tag in display_tags %}
   {% if linkable %}
   {# Locale-aware tag link: if prefix strategy and non-default or default_in_subdir, prefix with language #}
   {% set _i18n = site.config.get('i18n', {}) %}
@@ -266,6 +268,9 @@ Usage:
   <span class="tag">{{ tag }}</span>
   {% endif %}
   {% endfor %}
+  {% if max_display and tags|length > max_display %}
+  <span class="tag tag-more">+{{ tags|length - max_display }} more</span>
+  {% endif %}
 </div>
 {% endmacro %}
 
@@ -280,8 +285,9 @@ limit: Number of tags to show (default: 10)
 Example:
 {{ popular_tags(limit=20) }}
 #}
-{% macro popular_tags_widget(limit=10) %}
-{% set top_tags = popular_tags(limit=limit) %}
+{% macro popular_tags_widget(limit=None) %}
+{% set tag_limit = limit if limit is not none else site.theme_config.config.get('popular_tags_count', 10) %}
+{% set top_tags = popular_tags(limit=tag_limit) %}
 {% if top_tags %}
 <div class="popular-tags-widget">
   <h3>Popular Topics</h3>

@@ -124,20 +124,37 @@ The variable-substitution path (Mistune) restores escaped placeholders as HTML e
 
 This overview provides a high-level view of Bengal's architecture. For detailed documentation on specific components, see:
 
+### Core Systems
 - [Object Model](./object-model.md) - Site, Page, Section, Asset, Menu objects
+- [Orchestration](./orchestration.md) - Build coordination and phase management
+- [Content Types](./content-types.md) - Content strategies (blog, docs, portfolio)
 - [Cache System](./cache.md) - Incremental builds and dependency tracking
+
+### Rendering & Content
 - [Rendering Pipeline](./rendering.md) - Markdown parsing, templates, plugins
-- [Autodoc System](./autodoc.md) - AST-based documentation generation
 - [Discovery System](./discovery.md) - Content and asset discovery
-- [Fonts System](./fonts.md) - Google Fonts self-hosting
+- [Asset Pipeline](./assets-pipeline.md) - Asset processing and optimization
+
+### Documentation & Analysis
+- [Autodoc System](./autodoc.md) - AST-based documentation generation
+- [Analysis System](./analysis.md) - Graph analysis, PageRank, communities
+- [Health Checks](./health.md) - Build validation system
+
+### Configuration & Output
 - [Configuration](./config.md) - Configuration loading and management
 - [Post-Processing](./postprocess.md) - Sitemap, RSS, link validation
+- [Fonts System](./fonts.md) - Google Fonts self-hosting
+
+### Development Tools
 - [Development Server](./server.md) - File watching and live reload
-- [Health Checks](./health.md) - Build validation system
-- [Analysis System](./analysis.md) - Graph analysis, PageRank, communities
 - [CLI](./cli.md) - Command-line interface structure
 - [Utilities](./utils.md) - Shared utility modules
+
+### Design & Extension
 - [Design Principles](./design-principles.md) - Core architectural patterns
+- [Extension Points](./extension-points.md) - Customization and plugins
+
+### Operations
 - [Performance](./performance.md) - Performance characteristics and benchmarks
 - [File Organization](./file-organization.md) - Directory structure and file management
 - [Testing](./testing.md) - Testing strategy and coverage

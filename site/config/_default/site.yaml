@@ -1,0 +1,11 @@
+# Bengal Documentation Site Configuration
+# =======================================
+
+site:
+  title: "Bengal"
+  baseurl: ""  # Empty allows env override (GitHub Actions sets this)
+  logo_text: "ᓚᘏᗢ"
+  description: "A modern Python static site generator"
+  language: "en"
+
+# Note: Theme settings moved to theme.yaml

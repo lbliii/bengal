@@ -56,8 +56,8 @@ def test_cli_build_flag_overrides_pipeline(tmp_path: Path, monkeypatch):
 
     real_from_config = Site.from_config
 
-    def fake_from_config(root_path: Path, config_path=None):
-        site = real_from_config(root_path, config_path)
+    def fake_from_config(root_path: Path, config_path=None, environment=None, profile=None):
+        site = real_from_config(root_path, config_path, environment=environment, profile=profile)
         site.config["assets"] = {"pipeline": False}
         return site
 

@@ -1,6 +1,5 @@
 """Commands for creating new sites and pages."""
 
-
 from __future__ import annotations
 
 from datetime import datetime
@@ -12,6 +11,7 @@ from bengal.cli.base import BengalGroup
 from bengal.cli.site_templates import get_template
 
 # Add these imports
+from bengal.utils.atomic_write import atomic_write_text
 from bengal.utils.build_stats import show_error
 from bengal.utils.cli_output import CLIOutput
 
@@ -63,6 +63,177 @@ PRESETS = {
         "template_id": "resume",
     },
 }
+
+
+def _create_config_directory(site_path: Path, site_title: str, theme: str, cli: CLIOutput, template: str = "default") -> None:
+    """Create config directory structure with sensible defaults."""
+    import yaml
+
+    config_dir = site_path / "config"
+
+    # Create directories
+    defaults = config_dir / "_default"
+    defaults.mkdir(parents=True, exist_ok=True)
+
+    envs = config_dir / "environments"
+    envs.mkdir(exist_ok=True)
+
+    # Create default configs
+    site_config = {
+        "site": {
+            "title": site_title,
+            "baseurl": "https://example.com",
+            "description": f"{site_title} - Built with Bengal",
+            "language": "en",
+        }
+    }
+
+    # Theme config (separate file now)
+    theme_config = {
+        "theme": {
+            "name": theme,
+            "default_appearance": "dark",
+            "default_palette": "snow-lynx",
+            # Display preferences (all default to true)
+            "show_reading_time": True,
+            "show_author": True,
+            "show_prev_next": True,
+            "show_children_default": True,
+            "show_excerpts_default": True,
+            "max_tags_display": 10,
+            "popular_tags_count": 20,
+        }
+    }
+
+    # Content config - varies by template type
+    content_config = {"content": {}}
+    if template == "blog":
+        content_config["content"] = {
+            "default_type": "blog",
+            "excerpt_length": 200,
+            "reading_speed": 200,
+            "related_count": 5,
+            "sort_pages_by": "date",
+            "sort_order": "desc",  # Newest first for blogs
+        }
+    elif template in ["docs", "documentation"]:
+        content_config["content"] = {
+            "default_type": "doc",
+            "excerpt_length": 200,
+            "reading_speed": 200,
+            "toc_depth": 4,
+            "toc_min_headings": 2,
+            "sort_pages_by": "weight",
+            "sort_order": "asc",
+        }
+    elif template == "resume":
+        content_config["content"] = {
+            "default_type": "resume",
+            "excerpt_length": 150,
+            "sort_pages_by": "weight",
+            "sort_order": "asc",
+        }
+    elif template == "portfolio":
+        content_config["content"] = {
+            "default_type": "page",
+            "excerpt_length": 200,
+            "sort_pages_by": "date",
+            "sort_order": "desc",
+        }
+    else:  # default
+        content_config["content"] = {
+            "default_type": "page",
+            "excerpt_length": 200,
+            "reading_speed": 200,
+            "sort_pages_by": "weight",
+            "sort_order": "asc",
+        }
+
+    # Params config (empty by default, user can add custom variables)
+    params_config = {"params": {}}
+
+    build_config = {
+        "build": {
+            "output_dir": "public",
+            "parallel": True,
+            "incremental": True,
+        },
+        "assets": {
+            "minify": True,
+            "fingerprint": True,
+        },
+    }
+
+    features_config = {
+        "features": {
+            "rss": True,
+            "sitemap": True,
+            "search": True,
+            "json": True,
+            "syntax_highlighting": True,
+        }
+    }
+
+    # Write default configs
+    (defaults / "site.yaml").write_text(
+        yaml.dump(site_config, default_flow_style=False, sort_keys=False)
+    )
+    (defaults / "theme.yaml").write_text(
+        yaml.dump(theme_config, default_flow_style=False, sort_keys=False)
+    )
+    (defaults / "content.yaml").write_text(
+        yaml.dump(content_config, default_flow_style=False, sort_keys=False)
+    )
+    (defaults / "params.yaml").write_text(
+        yaml.dump(params_config, default_flow_style=False, sort_keys=False)
+    )
+    (defaults / "build.yaml").write_text(
+        yaml.dump(build_config, default_flow_style=False, sort_keys=False)
+    )
+    (defaults / "features.yaml").write_text(
+        yaml.dump(features_config, default_flow_style=False, sort_keys=False)
+    )
+
+    # Create environment configs
+    local_config = {
+        "site": {
+            "baseurl": "http://localhost:8000",
+        },
+        "build": {
+            "parallel": False,  # Easier debugging
+        },
+        "assets": {
+            "minify": False,  # Faster builds
+            "fingerprint": False,
+        },
+    }
+
+    production_config = {
+        "site": {
+            "baseurl": "https://example.com",  # User will update this
+        },
+        "build": {
+            "parallel": True,
+            "strict_mode": True,
+        },
+    }
+
+    (envs / "local.yaml").write_text(
+        yaml.dump(local_config, default_flow_style=False, sort_keys=False)
+    )
+    (envs / "production.yaml").write_text(
+        yaml.dump(production_config, default_flow_style=False, sort_keys=False)
+    )
+
+    cli.info("   ├─ Created config/ directory:")
+    cli.info("   │  ├─ _default/site.yaml")
+    cli.info("   │  ├─ _default/theme.yaml")
+    cli.info("   │  ├─ _default/content.yaml")
+    cli.info("   │  ├─ _default/params.yaml")
+    cli.info("   │  ├─ _default/build.yaml")
+    cli.info("   │  ├─ _default/features.yaml")
+    cli.info("   │  ├─ environments/local.yaml")
+    cli.info("   │  └─ environments/production.yaml")
 
 
 def _should_run_init_wizard(template: str, no_init: bool, init_preset: str) -> bool:
@@ -287,24 +458,8 @@ def site(name: str, theme: str, template: str, no_init: bool, init_preset: str) 
 
         cli.info("   ├─ Created directory structure")
 
-        # Create config file using site_title for the title field
-        config_content = f"""[site]
-title = "{site_title}"
-baseurl = ""
-theme = "{theme}"
-
-[build]
-output_dir = "public"
-parallel = true
-
-[assets]
-minify = true
-fingerprint = true
-"""
-        from bengal.utils.atomic_write import atomic_write_text
-
-        atomic_write_text(site_path / "bengal.toml", config_content)
-        cli.info("   ├─ Created bengal.toml")
+        # Create config directory structure (new system)
+        _create_config_directory(site_path, site_title, theme, cli, effective_template)
 
         # Create .gitignore
         gitignore_content = """# Bengal build outputs
@@ -393,7 +548,13 @@ Thumbs.db
         # Show next steps
         cli.subheader("Next steps:", icon="📚")
         cli.info(f"   ├─ cd {site_dir_name}")
+        cli.info("   ├─ Edit config/_default/site.yaml (update baseurl)")
         cli.info("   └─ bengal site serve")
+        cli.blank()
+        cli.tip("💡 Config uses environment-aware directory structure!")
+        cli.tip("   • Local dev: config/environments/local.yaml")
+        cli.tip("   • Production: config/environments/production.yaml")
+        cli.tip("   • Run 'bengal config show' to see merged config")
         cli.blank()
 
     except Exception as e:

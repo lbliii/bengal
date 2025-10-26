@@ -1,0 +1,24 @@
+# Custom Parameters
+# =================
+#
+# Define custom variables that can be accessed in templates and markdown.
+# This is useful for:
+#   - Product names, versions, URLs
+#   - API endpoints and configuration
+#   - Feature flags and conditional rendering
+#   - Reusable constants across your site
+#
+# Access in templates:
+#   {{ site.config.params.product_name }}
+#   {% if site.config.params.beta_mode %}...
+#
+# Access in markdown:
+#   Welcome to {{ site.config.params.product_name }}!
+#   Visit {{ site.config.params.api_url }}/docs
+
+params:
+  # Example: Uncomment and customize these for your site
+  # product_name: "My Product"
+  # version: "1.0.0"
+  # api_url: "https://api.example.com"
+  # support_email: "support@example.com"

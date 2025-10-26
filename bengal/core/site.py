@@ -265,45 +265,73 @@ class Site:
         self._regular_pages_cache = None
 
     @classmethod
-    def from_config(cls, root_path: Path, config_path: Path | None = None) -> Site:
+    def from_config(
+        cls,
+        root_path: Path,
+        config_path: Path | None = None,
+        environment: str | None = None,
+        profile: str | None = None,
+    ) -> Site:
         """
-        Create a Site instance from a configuration file.
+        Create a Site instance from configuration.
 
         This is the PREFERRED way to create a Site - it loads configuration
-        from bengal.toml (or bengal.yaml) and applies all settings properly.
+        from config/ directory or single config file and applies all settings.
 
-        Config Loading:
-            1. Searches for config file: bengal.toml, bengal.yaml, bengal.yml
-            2. Parses and validates configuration
-            3. Flattens nested sections for easy access
-            4. Returns Site with all settings applied
+        Config Loading (Priority):
+            1. config/ directory (if exists) - Environment-aware, profile-native
+            2. bengal.yaml / bengal.toml (single file) - Traditional
+            3. Auto-detect environment from platform (Netlify, Vercel, GitHub Actions)
+
+        Directory Structure (Recommended):
+            config/
+            ├── _default/          # Base config
+            │   ├── site.yaml
+            │   ├── build.yaml
+            │   └── features.yaml
+            ├── environments/      # Environment overrides
+            │   ├── local.yaml
+            │   ├── preview.yaml
+            │   └── production.yaml
+            └── profiles/          # Build profiles
+                ├── writer.yaml
+                ├── theme-dev.yaml
+                └── dev.yaml
 
         Important Config Sections:
             - [site]: title, baseurl, author, etc.
             - [build]: parallel, max_workers, incremental, etc.
             - [markdown]: parser selection ('mistune' recommended)
-            - [features]: syntax_highlighting, search, etc.
+            - [features]: rss, sitemap, search, json, etc.
             - [taxonomies]: tags, categories, series
 
         Args:
             root_path: Root directory of the site (Path object)
-                      The folder containing bengal.toml/bengal.yaml
             config_path: Optional explicit path to config file (Path object)
-                        If not provided, searches in root_path for:
-                        bengal.toml → bengal.yaml → bengal.yml
+                        Only used for single-file configs, ignored if config/ exists
+            environment: Environment name (e.g., 'production', 'local')
+                        Auto-detected if not specified (Netlify, Vercel, GitHub)
+            profile: Profile name (e.g., 'writer', 'dev')
+                        Optional, only applies if config/ directory exists
 
         Returns:
             Configured Site instance with all settings loaded
 
         Examples:
-            # Auto-detect config file in site directory
+            # Auto-detect config (prefers config/ directory)
             site = Site.from_config(Path('/path/to/site'))
-            # Loads /path/to/site/bengal.toml (or .yaml/.yml)
 
-            # Explicit config file path
+            # Explicit environment
             site = Site.from_config(
                 Path('/path/to/site'),
-                config_path=Path('/path/to/site/bengal.toml')
+                environment='production'
+            )
+
+            # With profile
+            site = Site.from_config(
+                Path('/path/to/site'),
+                environment='local',
+                profile='dev'
             )
 
         For Testing:
@@ -314,10 +342,20 @@ class Site:
             - Site() - Direct constructor for advanced use cases
             - Site.for_testing() - Factory for test sites
         """
-        from bengal.config.loader import ConfigLoader
+        config_dir = root_path / "config"
 
-        loader = ConfigLoader(root_path)
-        config = loader.load(config_path)
+        # Check if config directory exists (new system)
+        if config_dir.exists() and config_dir.is_dir():
+            from bengal.config.directory_loader import ConfigDirectoryLoader
+
+            loader = ConfigDirectoryLoader()
+            config = loader.load(config_dir, environment=environment, profile=profile)
+        else:
+            # Fall back to single-file config (old system)
+            from bengal.config.loader import ConfigLoader
+
+            loader = ConfigLoader(root_path)
+            config = loader.load(config_path)
 
         return cls(root_path=root_path, config=config)
 

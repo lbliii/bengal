@@ -45,10 +45,63 @@ pages_for_tag = [current_page_map[path] for path in cache.get_pages_for_tag('pyt
 ### Key Design Principle
 "Never persist object references across builds" - cache stores paths and hashes, relationships are reconstructed from current objects each build.
 
-### Additional Indexes
+### Query Indexes (`bengal/cache/indexes/`)
 
-- Parsed content caching enables skipping markdown parsing when only templates change.
-- Taxonomy index and page discovery metadata are persisted under `.bengal/` for faster incremental detection and regeneration.
+Bengal provides specialized indexes for efficient querying:
+
+**Purpose**: O(1) or O(log n) lookups for common query patterns
+
+**Available Indexes**:
+
+| Index | File | Purpose |
+|-------|------|---------|
+| **CategoryIndex** | `category_index.py` | Fast lookup of pages by category |
+| **AuthorIndex** | `author_index.py` | Fast lookup of pages by author |
+| **DateRangeIndex** | `date_range_index.py` | Fast lookup of pages by date range |
+| **SectionIndex** | `section_index.py` | Fast lookup of pages by section |
+
+**Implementation Pattern**:
+```python
+class CategoryIndex(QueryIndex):
+    """Index pages by category for fast lookups."""
+
+    def __init__(self):
+        self._index: Dict[str, Set[Path]] = defaultdict(set)
+
+    def add(self, page: Page) -> None:
+        for category in page.categories:
+            self._index[category].add(page.source_path)
+
+    def query(self, category: str) -> Set[Path]:
+        return self._index.get(category, set())
+
+    def serialize(self) -> dict:
+        return {cat: list(paths) for cat, paths in self._index.items()}
+```
+
+**Usage**:
+```python
+from bengal.cache.indexes import CategoryIndex
+
+# Build index
+index = CategoryIndex()
+for page in site.pages:
+    index.add(page)
+
+# Query index
+python_pages = index.query('python')  # O(1) lookup
+```
+
+**Integration**:
+- Indexes persisted in `.bengal-cache.json`
+- Rebuilt incrementally as pages change
+- Used by taxonomy orchestrator for fast page filtering
+
+### Additional Caching
+
+- **Parsed Content**: Markdown AST cached to skip parsing when only templates change
+- **Page Discovery**: Metadata persisted under `.bengal/` for faster incremental detection
+- **Template Bytecode**: Jinja2 bytecode cached in `public/.bengal-cache/templates/`
 
 ## Dependency Tracker (`bengal/cache/dependency_tracker.py`)
 

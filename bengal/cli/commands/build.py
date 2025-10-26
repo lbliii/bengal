@@ -181,6 +181,12 @@ def _run_autodoc_before_build(config_path: Path, root_path: Path, quiet: bool) -
     help="Use streaming build for memory efficiency (best for 5K+ pages)",
 )
 @click.option(
+    "--environment",
+    "-e",
+    type=str,
+    help="Environment name (local, preview, production) - auto-detects if not specified",
+)
+@click.option(
     "--profile",
     type=click.Choice(["writer", "theme-dev", "dev"]),
     help="Build profile: writer (fast/clean), theme-dev (templates), dev (full debug)",
@@ -252,6 +258,7 @@ def build(
     parallel: bool,
     incremental: bool,
     memory_optimized: bool,
+    environment: str | None,
     profile: str,
     perf_profile: str,
     use_theme_dev: bool,
@@ -353,7 +360,7 @@ def build(
         config_path = Path(config).resolve() if config else None
 
         # Create and build site
-        site = Site.from_config(root_path, config_path)
+        site = Site.from_config(root_path, config_path, environment=environment, profile=profile)
 
         # Apply file-based traceback config ([dev.traceback]) with lowest precedence
         # after site config is available, then re-install in case values changed

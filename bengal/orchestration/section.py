@@ -217,6 +217,7 @@ class SectionOrchestrator:
         Detect what kind of content this section contains.
 
         Delegates to the content type registry's detection logic.
+        Respects site-level default_content_type configuration.
 
         Args:
             section: Section to analyze
@@ -224,7 +225,7 @@ class SectionOrchestrator:
         Returns:
             Content type name (e.g., 'blog', 'doc', 'api-reference')
         """
-        return detect_content_type(section)
+        return detect_content_type(section, self.site.config)
 
     def _should_paginate(self, section: Section, content_type: str) -> bool:
         """

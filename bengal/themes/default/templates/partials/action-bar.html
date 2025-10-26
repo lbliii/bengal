@@ -150,7 +150,7 @@ Requires: page object in context
     {% if has_metadata %}
     <div class="action-bar-metadata" id="action-bar-metadata" aria-hidden="true">
         <div class="action-bar-metadata-content">
-            {% if page.metadata.get('author') %}
+            {% if page.metadata.get('author') and site.theme_config.config.get('show_author', true) %}
             <span class="action-bar-meta-item">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"></path>
@@ -160,7 +160,7 @@ Requires: page object in context
             </span>
             {% endif %}
 
-            {% if page.content %}
+            {% if page.content and site.theme_config.config.get('show_reading_time', true) %}
             <span class="action-bar-meta-item">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <circle cx="12" cy="12" r="10"></circle>

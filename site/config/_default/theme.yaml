@@ -1,0 +1,27 @@
+# Theme Configuration
+# ===================
+# Controls theme appearance and display behavior
+
+theme:
+  name: "default"
+  
+  # Appearance
+  default_appearance: "dark"     # Options: "light", "dark", "system"
+  default_palette: "snow-lynx"   # Warm teal + cream (light), ice blue (dark)
+  
+  # Display Preferences
+  # All features below are enabled by default; set to false to disable
+  
+  show_reading_time: true        # Display "X min read" on pages
+  show_author: true              # Display author information when present
+  show_prev_next: true           # Display previous/next navigation links
+  show_children_default: true    # Show child pages in section indexes
+  show_excerpts_default: true    # Show excerpts in article cards
+  
+  # Tag Display Limits
+  max_tags_display: 10           # Maximum tags before "+N more" indicator
+  popular_tags_count: 20         # Number of tags in popular tags widget
+  
+# Available Palettes:
+# "" (default), "snow-lynx", "brown-bengal", "silver-bengal", 
+# "charcoal-bengal", "blue-bengal"

@@ -195,6 +195,118 @@ class TabItemDirective(DirectivePlugin):
 # Render functions
 
 
+def _extract_tab_items(text: str) -> list[tuple[str, str, str]]:
+    """
+    Extract tab-item divs from rendered HTML, handling nested divs correctly.
+
+    This function properly matches opening and closing div tags by counting
+    nesting levels, which is necessary because tab content may contain
+    nested divs (e.g., code blocks, admonitions).
+
+    Args:
+        text: Rendered HTML containing tab-item divs
+
+    Returns:
+        List of (title, selected, content) tuples
+    """
+    import re
+
+    matches = []
+    pattern = re.compile(
+        r'<div class="tab-item" data-title="([^"]*)" data-selected="([^"]*)">', re.DOTALL
+    )
+
+    pos = 0
+    while True:
+        match = pattern.search(text, pos)
+        if not match:
+            break
+
+        title = match.group(1)
+        selected = match.group(2)
+        start = match.end()
+
+        # Find the matching closing </div> by counting nesting levels
+        depth = 1
+        i = start
+        while i < len(text) and depth > 0:
+            if text[i:i+5] == '<div ':
+                depth += 1
+                i += 5
+            elif text[i:i+5] == '<div>':
+                depth += 1
+                i += 5
+            elif text[i:i+6] == '</div>':
+                depth -= 1
+                if depth == 0:
+                    content = text[start:i]
+                    matches.append((title, selected, content))
+                    pos = i + 6
+                    break
+                i += 6
+            else:
+                i += 1
+        else:
+            # No matching closing tag found, skip this match
+            pos = match.end()
+
+    return matches
+
+
+def _extract_legacy_tab_items(text: str) -> list[tuple[str, str, str]]:
+    """
+    Extract legacy-tab-item divs from rendered HTML, handling nested divs correctly.
+
+    Args:
+        text: Rendered HTML containing legacy-tab-item divs
+
+    Returns:
+        List of (title, selected, content) tuples
+    """
+    import re
+
+    matches = []
+    pattern = re.compile(
+        r'<div class="legacy-tab-item" data-title="([^"]*)" data-selected="([^"]*)">', re.DOTALL
+    )
+
+    pos = 0
+    while True:
+        match = pattern.search(text, pos)
+        if not match:
+            break
+
+        title = match.group(1)
+        selected = match.group(2)
+        start = match.end()
+
+        # Find the matching closing </div> by counting nesting levels
+        depth = 1
+        i = start
+        while i < len(text) and depth > 0:
+            if text[i:i+5] == '<div ':
+                depth += 1
+                i += 5
+            elif text[i:i+5] == '<div>':
+                depth += 1
+                i += 5
+            elif text[i:i+6] == '</div>':
+                depth -= 1
+                if depth == 0:
+                    content = text[start:i]
+                    matches.append((title, selected, content))
+                    pos = i + 6
+                    break
+                i += 6
+            else:
+                i += 1
+        else:
+            # No matching closing tag found, skip this match
+            pos = match.end()
+
+    return matches
+
+
 def render_tab_set(renderer, text: str, **attrs) -> str:
     """
     Render tab-set container to HTML.
@@ -215,12 +327,8 @@ def render_tab_set(renderer, text: str, **attrs) -> str:
 
     # Extract tab items from rendered HTML
     # Pattern: <div class="tab-item" data-title="..." data-selected="...">content</div>
-    import re
-
-    tab_pattern = re.compile(
-        r'<div class="tab-item" data-title="([^"]*)" data-selected="([^"]*)">(.*?)</div>', re.DOTALL
-    )
-    matches = tab_pattern.findall(text)
+    # NOTE: Cannot use simple regex because content may contain nested divs
+    matches = _extract_tab_items(text)
 
     if not matches:
         # Fallback: just wrap the content
@@ -329,11 +437,8 @@ def render_tabs(renderer, text: str, **attrs) -> str:
 
     # Extract tab items from rendered HTML
     # Pattern: <div class="legacy-tab-item" data-title="..." data-selected="...">content</div>
-    tab_pattern = re.compile(
-        r'<div class="legacy-tab-item" data-title="([^"]*)" data-selected="([^"]*)">(.*?)</div>',
-        re.DOTALL,
-    )
-    matches = tab_pattern.findall(text)
+    # NOTE: Cannot use simple regex because content may contain nested divs
+    matches = _extract_legacy_tab_items(text)
 
     if not matches:
         # Fallback: just wrap the content
