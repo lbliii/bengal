@@ -143,12 +143,15 @@ code = "JetBrains Mono:400"          # Code blocks
 [theme]
 name = "default"  # Which theme to use (default, or name of custom theme in themes/ directory)
 
-# Default appearance mode for new visitors (overridden by localStorage once user makes a choice)
+# Appearance
 default_appearance = "system"  # Options: "light", "dark", "system" (follows OS preference)
-
-# Default color palette (leave empty for default theme palette)
 default_palette = ""  # Options: "" (default), "snow-lynx", or custom palette name
-# Example: default_palette = "snow-lynx"  # Warm teal + cream palette for light mode, ice-blue for dark
+
+# Display preferences (theme-specific - themes may or may not honor these)
+# show_reading_time = true      # Display "X min read" on pages
+# show_author = true            # Display author on pages
+# show_breadcrumbs = true       # Display breadcrumb navigation
+# show_children_default = true  # Show child pages in index by default
 
 # Internationalization (optional)
 [i18n]
@@ -172,7 +175,7 @@ per_page = 10
 
 # Content Configuration (optional)
 # =================================
-# Controls how content is organized, displayed, and rendered
+# Controls how Bengal COMPUTES and ORGANIZES content (theme-independent)
 [content]
 # Default content type for all pages/sections (can be overridden via frontmatter)
 # Options: doc, blog, tutorial, page, api-reference, cli-reference, changelog, archive, list
@@ -181,31 +184,25 @@ per_page = 10
 # default_type = "blog"    # Great for blog sites
 # default_type = "page"    # Great for general websites
 
-# Excerpt & summaries
-# excerpt_length = 200      # Characters for auto-generated excerpts
-# summary_length = 160      # Characters for meta descriptions (SEO)
+# Excerpt & summaries (affects page.excerpt, page.meta_description)
+# excerpt_length = 200      # Characters for page.excerpt
+# summary_length = 160      # Characters for page.meta_description (SEO)
 
-# Reading time
-# reading_speed = 200       # Words per minute
-# show_reading_time = true
+# Reading time (affects page.reading_time)
+# reading_speed = 200       # Words per minute for calculation
 
-# Related content
-# related_count = 3         # Number of related posts to show
+# Related content (affects page.related_posts)
+# related_count = 3         # Number of related posts Bengal computes
 # related_threshold = 0.3   # Minimum tag similarity (0.0-1.0)
 
 # Date formatting
 # date_format = "long"      # Options: "short", "medium", "long", "iso"
 
-# Table of contents
-# toc_depth = 3             # Maximum heading depth (1-6)
-# toc_min_headings = 2      # Minimum headings to show TOC
+# Table of contents (affects page.toc, page.toc_items)
+# toc_depth = 3             # Maximum heading depth (1-6) Bengal extracts
+# toc_min_headings = 2      # Minimum headings before Bengal generates TOC
 
-# Child pages display
-# show_children_default = true
-# show_subsections_default = true
-# show_excerpts_default = true
-
-# Content organization
+# Content organization (affects section.pages ordering)
 # sort_pages_by = "weight"  # Options: "weight", "date", "title", "modified"
 # sort_order = "asc"        # Options: "asc", "desc"
 

@@ -8,7 +8,4 @@ site:
   description: "A modern Python static site generator"
   language: "en"
 
-theme:
-  name: "default"
-  default_appearance: "dark"
-  default_palette: "snow-lynx"
+# Note: Theme settings moved to theme.yaml

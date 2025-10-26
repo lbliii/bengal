@@ -64,7 +64,9 @@ site:
     - categories
     - series
 
-# Note: Custom parameters and content settings have been moved to separate files:
+# Note: Other settings are organized in separate files:
 #   - params.yaml: Custom user variables
-#   - content.yaml: Content display and organization settings
+#   - content.yaml: Content processing (Bengal's core API)
+#   - theme.yaml: Theme selection and display preferences
+#   - build.yaml: Build performance settings
 # This keeps site.yaml focused on site identity and metadata.

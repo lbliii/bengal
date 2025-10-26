@@ -1,0 +1,63 @@
+# Theme Configuration
+# ===================
+# Controls theme selection and theme-specific display preferences.
+#
+# These settings control PRESENTATION and DISPLAY, not content processing.
+# Theme developers decide whether to honor these settings.
+#
+# What this configures:
+#   - Which theme to use
+#   - Theme appearance (dark/light mode)
+#   - Display toggles (show/hide features)
+#   - Visual preferences (layout options)
+#
+# What this does NOT configure:
+#   - Content processing (use content.yaml)
+#   - Site identity (use site.yaml)
+#   - User variables (use params.yaml)
+
+theme:
+  # Theme Selection
+  # ---------------
+  name: "default"
+
+  # Appearance
+  # ----------
+  default_appearance: "system"  # Options: "light", "dark", "system"
+  default_palette: ""           # Theme-specific palette name
+
+  # Display Preferences
+  # -------------------
+  # These are RECOMMENDATIONS to the theme. Themes may or may not implement them.
+  # Check your theme's documentation for supported features.
+
+  # Author display
+  # show_author: true            # Display author on pages
+  # author_format: "name"        # Options: "name", "name_email", "full"
+
+  # Reading time display
+  # show_reading_time: true      # Display "X min read" on pages
+
+  # Child pages display
+  # show_children_default: true      # Show child pages in index by default
+  # show_subsections_default: true   # Show subsections in index by default
+  # show_excerpts_default: true      # Show excerpts in child page cards
+
+  # Taxonomy display
+  # max_tags_display: 10         # Maximum tags to show in tag clouds
+  # popular_tags_count: 20       # Number of tags in "popular" widget
+
+  # Navigation
+  # show_breadcrumbs: true       # Display breadcrumb navigation
+  # show_prev_next: true         # Display previous/next page links
+
+  # Comments
+  # comments_enabled: false      # Enable comment system integration
+  # comments_provider: "disqus"  # Options: "disqus", "giscus", etc.
+
+  # Analytics
+  # analytics_enabled: false     # Enable analytics integration
+  # analytics_provider: "plausible"  # Options: "plausible", "google", etc.
+
+# Note: The 'default' theme supports all these settings.
+# Custom themes may support a subset. Check theme documentation.
