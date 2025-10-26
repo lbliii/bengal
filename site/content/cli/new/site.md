@@ -4,7 +4,7 @@ title: "site"
 type: doc
 description: "🏗️  Create a new Bengal site with optional structure initialization."
 source_file: "bengal/bengal/cli/commands/new.py"
-source_line: 196
+source_line: 367
 ---
 
 🏗️  Create a new Bengal site with optional structure initialization.

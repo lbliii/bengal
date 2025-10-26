@@ -4,7 +4,7 @@ title: "theme"
 type: doc
 description: "🎨 Create a new theme scaffold.  Themes are self-contained template and asset packages. Example: \"my-theme\" → themes/my-theme/ with templates, partials, and assets"
 source_file: "bengal/bengal/cli/commands/new.py"
-source_line: 622
+source_line: 783
 ---
 
 🎨 Create a new theme scaffold.

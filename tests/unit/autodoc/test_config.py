@@ -15,7 +15,7 @@ def test_load_default_config_when_no_file(tmp_path):
     config = load_autodoc_config(config_path)
 
     assert "python" in config
-    assert config["python"]["enabled"] is True
+    assert config["python"]["enabled"] is False  # Disabled by default (opt-in)
     assert config["python"]["output_dir"] == "content/api"
     assert config["python"]["docstring_style"] == "auto"
 
@@ -48,6 +48,7 @@ def test_config_merges_with_defaults(tmp_path):
     config_path.write_text(
         dedent("""
         [autodoc.python]
+        enabled = true
         output_dir = "custom/api"
     """)
     )
@@ -57,8 +58,9 @@ def test_config_merges_with_defaults(tmp_path):
     # Custom value
     assert config["python"]["output_dir"] == "custom/api"
 
-    # Default values preserved
+    # Explicitly enabled in config
     assert config["python"]["enabled"] is True
+    # Default values preserved
     assert config["python"]["docstring_style"] == "auto"
     assert config["python"]["include_private"] is False
 
@@ -109,7 +111,7 @@ def test_config_handles_invalid_toml(tmp_path):
     config = load_autodoc_config(config_path)
 
     assert "python" in config
-    assert config["python"]["enabled"] is True
+    assert config["python"]["enabled"] is False  # Disabled by default
 
 
 def test_config_supports_multiple_source_dirs(tmp_path):
@@ -215,3 +217,83 @@ def test_config_partial_include_inherited_by_type_merge(tmp_path):
     assert config["python"]["include_inherited_by_type"]["class"] is True
     # Default preserved
     assert config["python"]["include_inherited_by_type"]["exception"] is False
+
+
+def test_config_loads_from_directory_structure(tmp_path, monkeypatch):
+    """Test loading autodoc config from config/ directory structure."""
+    import yaml
+
+    # Change to tmp_path for config/ to be found
+    monkeypatch.chdir(tmp_path)
+
+    # Create directory-based config
+    config_dir = tmp_path / "config"
+    config_dir.mkdir()
+
+    default_dir = config_dir / "_default"
+    default_dir.mkdir()
+
+    autodoc_config = {
+        "autodoc": {
+            "python": {
+                "enabled": True,
+                "source_dirs": ["../bengal"],
+                "output_dir": "content/api",
+            },
+            "cli": {
+                "enabled": True,
+                "app_module": "bengal.cli:main",
+            },
+        }
+    }
+
+    (default_dir / "autodoc.yaml").write_text(yaml.dump(autodoc_config))
+
+    # Load config - should find config/ directory
+    config = load_autodoc_config()
+
+    # Verify directory config was loaded
+    assert config["python"]["enabled"] is True
+    assert config["python"]["source_dirs"] == ["../bengal"]
+    assert config["cli"]["enabled"] is True
+    assert config["cli"]["app_module"] == "bengal.cli:main"
+
+
+def test_config_directory_takes_precedence_over_toml(tmp_path, monkeypatch):
+    """Test that config/ directory takes precedence over bengal.toml."""
+    import yaml
+
+    monkeypatch.chdir(tmp_path)
+
+    # Create both config/ directory and bengal.toml
+    config_dir = tmp_path / "config"
+    config_dir.mkdir()
+    default_dir = config_dir / "_default"
+    default_dir.mkdir()
+
+    # Directory config says enabled
+    autodoc_config = {
+        "autodoc": {
+            "python": {
+                "enabled": True,
+                "output_dir": "content/api-from-dir",
+            }
+        }
+    }
+    (default_dir / "autodoc.yaml").write_text(yaml.dump(autodoc_config))
+
+    # TOML config says disabled
+    bengal_toml = tmp_path / "bengal.toml"
+    bengal_toml.write_text(
+        dedent("""
+        [autodoc.python]
+        enabled = false
+        output_dir = "content/api-from-toml"
+    """)
+    )
+
+    config = load_autodoc_config()
+
+    # Directory config should win
+    assert config["python"]["enabled"] is True
+    assert config["python"]["output_dir"] == "content/api-from-dir"
