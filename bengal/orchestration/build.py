@@ -269,7 +269,7 @@ class BuildOrchestrator:
         # Save page discovery metadata for incremental builds and lazy loading
         with self.logger.phase("cache_discovery_metadata", enabled=True):
             try:
-                from bengal.cache.page_discovery_cache import PageDiscoveryCache, PageMetadata
+                from bengal.cache.page_discovery_cache import PageDiscoveryCache
 
                 page_cache = PageDiscoveryCache(
                     self.site.root_path / ".bengal" / "page_metadata.json"
@@ -277,28 +277,9 @@ class BuildOrchestrator:
 
                 # Extract metadata from discovered pages (AFTER cascades applied)
                 for page in self.site.pages:
-                    # Use relative path format (consistent with ContentDiscovery)
-                    if page.source_path.is_absolute():
-                        try:
-                            rel_path = page.source_path.relative_to(self.site.root_path)
-                            source_path_str = str(rel_path)
-                        except ValueError:
-                            source_path_str = str(page.source_path)
-                    else:
-                        source_path_str = str(page.source_path)
-
-                    metadata = PageMetadata(
-                        source_path=source_path_str,
-                        title=page.title,
-                        date=page.date.isoformat() if page.date else None,
-                        tags=page.tags,
-                        section=str(page._section_path) if page._section_path else None,
-                        slug=page.slug,
-                        weight=page.metadata.get("weight"),
-                        lang=page.lang,
-                        type=page.metadata.get("type"),  # Include cascaded type
-                    )
-                    page_cache.add_metadata(metadata)
+                    # THE BIG PAYOFF: Just use page.core directly! (PageMetadata = PageCore)
+                    # This is now 1 line instead of 11 lines of manual field copying!
+                    page_cache.add_metadata(page.core)
 
                 # Persist cache to disk
                 page_cache.save_to_disk()
