@@ -267,10 +267,14 @@ class ContentDiscovery:
 
             if cached_metadata and self._cache_is_valid(page, cached_metadata):
                 # Page is unchanged - create PageProxy instead
-                # Capture page.lang and page._section at call time to avoid closure issues
+                # Capture page.lang and page._section_path at call time to avoid closure issues
                 # where loop variables would otherwise be shared across iterations
-                def make_loader(source_path, current_lang, section):
+                def make_loader(source_path, current_lang, section_path):
                     def loader(_):
+                        # Resolve section from path when loading
+                        section = (
+                            self.site.get_section_by_path(section_path) if section_path else None
+                        )
                         # Load full page from disk when needed
                         return self._create_page(
                             source_path, current_lang=current_lang, section=section
@@ -278,15 +282,15 @@ class ContentDiscovery:
 
                     return loader
 
-                # Pass page.lang and page._section explicitly to bind current iteration values
+                # Pass page.lang and page._section_path explicitly to bind current iteration values
                 proxy = PageProxy(
                     source_path=page.source_path,
                     metadata=cached_metadata,
-                    loader=make_loader(page.source_path, page.lang, page._section),
+                    loader=make_loader(page.source_path, page.lang, page._section_path),
                 )
 
-                # Copy section and site relationships
-                proxy._section = page._section
+                # Copy section path and site relationships (avoid triggering lazy lookup)
+                proxy._section_path = page._section_path
                 proxy._site = page._site
 
                 # Copy output_path for postprocessing (needed for .txt/.json generation)
