@@ -1,25 +1,20 @@
-# Bengal Documentation Features
-# ==============================
+# Features Configuration
+# ======================
+# Controls what gets GENERATED during postprocessing.
+# These are expensive operations that produce output files.
 
 features:
-  # Enable syntax highlighting for code blocks
-  syntax_highlighting: true
+  # Output Formats (files generated during build)
+  rss: true        # Generate rss.xml feed
+  sitemap: true    # Generate sitemap.xml for SEO
+  search: true     # Generate search index (index.json)
+  json: true       # Generate per-page JSON files (page.json, index.txt)
   
-  # Enable client-side search
-  search: true
+  # Processing Capabilities (affects rendering)
+  syntax_highlighting: true  # Code block highlighting with Pygments
   
-  # RSS feed for updates
-  rss: true
-  
-  # Sitemap for SEO
-  sitemap: true
-  
-  # JSON index for API access
-  json: true
-  
-  # Reading time estimates
-  reading_time: true
-  
-  # Analytics disabled by default
-  analytics: false
+  # Note: Some content properties like reading_time, excerpt, toc are 
+  # ALWAYS computed by Bengal. They're controlled by:
+  #   - content.yaml: HOW to compute (reading_speed, excerpt_length, etc.)
+  #   - theme.yaml: WHETHER to display (show_reading_time, etc.)
 

@@ -1,45 +1,76 @@
 # Features Configuration
 # ======================
+# Controls what gets GENERATED during postprocessing.
+# These are expensive operations that produce output files.
 #
-# High-level feature toggles that expand into detailed configuration.
-# Use these for easy enable/disable of common features.
+# Mental Model: "What do I want my site to DO?"
+# - Simple boolean toggles for entire subsystems
+# - Controls what gets generated during postprocessing
+# - One file to enable/disable major capabilities
 #
-# Each feature expands into specific config settings:
+# What belongs here:
+#   ✓ Postprocessing tasks (rss, sitemap, search)
+#   ✓ Expensive optional computations (related_pages)
+#   ✓ Processing capabilities (syntax_highlighting)
+#   ✗ Always-on properties (reading_time, excerpt, toc)
+#   ✗ Display preferences (those go in theme.yaml)
+#
+# Each feature expands into detailed configuration:
 #   - rss: true → generate_rss: true, output_formats: [rss]
 #   - sitemap: true → generate_sitemap: true
 #   - search: true → search.enabled: true, search.preload: smart
 #   - json: true → output_formats: [json], generate_index: true
-#
-# You can override expanded settings by defining them explicitly.
 
 features:
-  # RSS Feed Generation
+  # Output Formats (files generated during postprocessing)
+  # -------------------------------------------------------
+  
+  # RSS Feed Generation (rss.xml)
   # Expands to: generate_rss: true, output_formats: [rss]
   rss: true
   
-  # Sitemap Generation (sitemap.xml)
+  # Sitemap Generation (sitemap.xml for SEO)
   # Expands to: generate_sitemap: true
   sitemap: true
   
-  # Search (client-side search index)
+  # Search (client-side search with index.json)
   # Expands to: search.enabled: true, search.preload: smart
   search: true
   
-  # JSON Index (content API)
-  # Expands to: output_formats: [json], generate_index: true
+  # JSON Content API (per-page .json + index.json + .txt files)
+  # Expands to: output_formats: [json, llm_txt], generate_index: true
   json: true
   
-  # Syntax Highlighting (in code blocks)
+  # Processing Capabilities (affects rendering)
+  # -------------------------------------------
+  
+  # Syntax Highlighting (code blocks with Pygments)
   # Expands to: syntax_highlighting.enabled: true
   syntax_highlighting: true
   
-  # Reading Time Estimates
-  # Expands to: reading_time.enabled: true
-  reading_time: true
+  # Expensive Optional Computations
+  # --------------------------------
   
-  # Related Pages (ML-based recommendations)
+  # Related Pages (ML-based recommendations via tag similarity)
   # Expands to: related_pages.enabled: true
+  # Note: Always computed when content.related_count > 0
   related_pages: false  # Disabled by default (compute intensive)
+
+# Note: Always-Computed Properties
+# =================================
+# Some content properties are ALWAYS available and cannot be toggled:
+#   - page.reading_time: Controlled by content.reading_speed
+#   - page.excerpt: Controlled by content.excerpt_length
+#   - page.toc: Controlled by content.toc_depth
+#   - page.meta_description: Controlled by content.summary_length
+#
+# To control DISPLAY of these properties, use theme.yaml:
+#   - theme.show_reading_time: true/false
+#   - theme.show_excerpts_default: true/false
+#
+# To control HOW they're computed, use content.yaml:
+#   - content.reading_speed: 200 (WPM)
+#   - content.excerpt_length: 200 (characters)
 
 # Detailed Configuration (for fine-tuning)
 # =========================================

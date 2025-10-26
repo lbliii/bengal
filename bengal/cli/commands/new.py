@@ -169,6 +169,8 @@ def _create_config_directory(site_path: Path, site_title: str, theme: str, cli: 
             "rss": True,
             "sitemap": True,
             "search": True,
+            "json": True,
+            "syntax_highlighting": True,
         }
     }
 

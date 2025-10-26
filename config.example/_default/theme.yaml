@@ -41,22 +41,17 @@ theme:
   # These settings control what the default theme displays.
   # All settings default to true/enabled unless otherwise noted.
   #
-  # Author display (✅ IMPLEMENTED):
   # show_author: true               # Display author on pages and blog posts
   #
-  # Reading time display (✅ IMPLEMENTED):
   # show_reading_time: true         # Display "X min read" on pages
   #
-  # Child pages display (✅ IMPLEMENTED):
   # show_children_default: true     # Show child pages in section indexes by default
   # show_subsections_default: true  # Show subsections in section indexes by default
   # show_excerpts_default: true     # Show excerpts in article cards and child page tiles
   #
-  # Taxonomy display (✅ IMPLEMENTED):
   # max_tags_display: 10            # Maximum tags to show (displays "+N more" if exceeded)
   # popular_tags_count: 20          # Number of tags in "popular tags" widget
   #
-  # Navigation (✅ IMPLEMENTED):
   # show_prev_next: true            # Display previous/next page navigation links
   # Note: Breadcrumbs are always shown in action bar (core navigation feature)
   #
