@@ -277,8 +277,18 @@ class BuildOrchestrator:
 
                 # Extract metadata from discovered pages (AFTER cascades applied)
                 for page in self.site.pages:
+                    # Use relative path format (consistent with ContentDiscovery)
+                    if page.source_path.is_absolute():
+                        try:
+                            rel_path = page.source_path.relative_to(self.site.root_path)
+                            source_path_str = str(rel_path)
+                        except ValueError:
+                            source_path_str = str(page.source_path)
+                    else:
+                        source_path_str = str(page.source_path)
+
                     metadata = PageMetadata(
-                        source_path=str(page.source_path),
+                        source_path=source_path_str,
                         title=page.title,
                         date=page.date.isoformat() if page.date else None,
                         tags=page.tags,
