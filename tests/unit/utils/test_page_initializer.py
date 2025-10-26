@@ -193,6 +193,9 @@ class TestPageInitializer:
         page = Page(source_path=tmp_path / "docs" / "_index.md", metadata={"title": "Docs"})
         page.output_path = mock_site.output_dir / "docs" / "index.html"
 
+        # Register section in site registry for path-based lookup
+        mock_site._section_registry[section.path] = section
+
         initializer.ensure_initialized_for_section(page, section)
 
         assert page._site == mock_site
@@ -206,8 +209,13 @@ class TestPageInitializer:
         section2 = Section(name="blog", path=tmp_path / "content" / "blog")
 
         page = Page(source_path=tmp_path / "test.md", metadata={"title": "Test"})
-        page._section = section1  # Already set
         page.output_path = mock_site.output_dir / "test" / "index.html"
+
+        # Register sections in site registry for path-based lookup
+        mock_site._section_registry[section1.path] = section1
+        mock_site._section_registry[section2.path] = section2
+        page._site = mock_site
+        page._section = section1  # Already set
 
         initializer.ensure_initialized_for_section(page, section2)
 
@@ -232,6 +240,9 @@ class TestPageInitializer:
 
         page = Page(source_path=tmp_path / "test.md", metadata={"title": "Test"})
         page.output_path = tmp_path / "other" / "test.html"  # Outside output_dir
+
+        # Register section in site registry for path-based lookup
+        mock_site._section_registry[section.path] = section
 
         # Should not raise - Page.url falls back gracefully
         initializer.ensure_initialized_for_section(page, section)
@@ -321,6 +332,9 @@ class TestPageInitializer:
         )
         archive_page.output_path = mock_site.output_dir / "blog" / "index.html"
 
+        # Register section in site registry for path-based lookup
+        mock_site._section_registry[section.path] = section
+
         # Initialize
         initializer.ensure_initialized_for_section(archive_page, section)
 
@@ -391,6 +405,9 @@ class TestPageInitializer:
             metadata={"title": "Documentation"},
         )
         index_page.output_path = mock_site.output_dir / "docs" / "index.html"
+
+        # Register section in site registry for path-based lookup
+        mock_site._section_registry[section.path] = section
 
         initializer.ensure_initialized_for_section(index_page, section)
 

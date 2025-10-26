@@ -333,7 +333,9 @@ class TestCacheIntegrationEndToEnd:
         # Load raw JSON to check versions
         with open(cache_dir / "page_metadata.json") as f:
             page_data = json.load(f)
-        assert page_data.get("version") == 1, "PageDiscoveryCache version incorrect"
+        assert page_data.get("version") == 3, (
+            "PageDiscoveryCache version incorrect (bumped to 3 for PageCore)"
+        )
 
         with open(cache_dir / "asset_deps.json") as f:
             asset_data = json.load(f)

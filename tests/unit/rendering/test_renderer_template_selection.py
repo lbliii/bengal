@@ -31,7 +31,10 @@ class MockSection:
     """Mock section for testing."""
 
     def __init__(self, name):
+        from pathlib import Path
+
         self.name = name
+        self.path = Path(f"/content/{name}")  # Add required path attribute
 
 
 class TestTemplateSelection:
