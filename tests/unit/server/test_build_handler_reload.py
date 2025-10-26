@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from bengal.server.build_handler import BuildHandler
 from bengal.server.reload_controller import ReloadDecision
@@ -16,7 +16,7 @@ class DummyStats:
 class DummySite:
     def __init__(self, root_path):
         self.root_path = root_path
-        self.output_dir = root_path
+        self.output_dir = root_path / "public"  # Separate output directory
         self.pages = []
         self.sections = []
         self.assets = []
@@ -96,3 +96,100 @@ def test_mixed_changes_trigger_full_reload(tmp_path, monkeypatch):
         handler._trigger_build()
 
     assert called.get("action") == "reload"
+
+
+def test_on_created_triggers_rebuild(tmp_path):
+    """Test that file creation events trigger rebuilds."""
+    handler = _make_handler(tmp_path)
+
+    # Create a test file
+    test_file = tmp_path / "content" / "new-page.md"
+    test_file.parent.mkdir(parents=True, exist_ok=True)
+    test_file.touch()
+
+    # Mock the event
+    event = MagicMock()
+    event.is_directory = False
+    event.src_path = str(test_file)
+
+    # Call the handler
+    handler.on_created(event)
+
+    # Verify the file was added to pending changes
+    assert str(test_file) in handler.pending_changes
+    assert handler.debounce_timer is not None
+
+
+def test_on_deleted_triggers_rebuild(tmp_path):
+    """Test that file deletion events trigger rebuilds."""
+    handler = _make_handler(tmp_path)
+
+    # Mock the event for a deleted file
+    test_file = tmp_path / "content" / "deleted-page.md"
+    event = MagicMock()
+    event.is_directory = False
+    event.src_path = str(test_file)
+
+    # Call the handler
+    handler.on_deleted(event)
+
+    # Verify the file was added to pending changes
+    assert str(test_file) in handler.pending_changes
+    assert handler.debounce_timer is not None
+
+
+def test_on_moved_triggers_rebuild(tmp_path):
+    """Test that file move/rename events trigger rebuilds."""
+    handler = _make_handler(tmp_path)
+
+    # Mock the event for a moved file
+    old_path = tmp_path / "content" / "old-name.md"
+    new_path = tmp_path / "content" / "new-name.md"
+    event = MagicMock()
+    event.is_directory = False
+    event.src_path = str(old_path)
+    event.dest_path = str(new_path)
+
+    # Call the handler
+    handler.on_moved(event)
+
+    # Verify both paths were added to pending changes
+    assert str(old_path) in handler.pending_changes
+    assert str(new_path) in handler.pending_changes
+    assert handler.debounce_timer is not None
+
+
+def test_ignores_output_directory_on_create(tmp_path):
+    """Test that files created in the output directory are ignored."""
+    handler = _make_handler(tmp_path)
+
+    # Mock the event for a file in the output directory
+    output_file = tmp_path / "public" / "index.html"
+    event = MagicMock()
+    event.is_directory = False
+    event.src_path = str(output_file)
+
+    # Call the handler
+    handler.on_created(event)
+
+    # Verify the file was NOT added to pending changes
+    assert str(output_file) not in handler.pending_changes
+    assert handler.debounce_timer is None
+
+
+def test_ignores_temp_files_on_create(tmp_path):
+    """Test that temp files are ignored on creation."""
+    handler = _make_handler(tmp_path)
+
+    # Mock the event for a temp file
+    temp_file = tmp_path / "content" / "page.md.swp"
+    event = MagicMock()
+    event.is_directory = False
+    event.src_path = str(temp_file)
+
+    # Call the handler
+    handler.on_created(event)
+
+    # Verify the file was NOT added to pending changes
+    assert str(temp_file) not in handler.pending_changes
+    assert handler.debounce_timer is None

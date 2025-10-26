@@ -4,7 +4,6 @@ File system event handler for automatic site rebuilds.
 Watches for file changes and triggers incremental rebuilds with debouncing.
 """
 
-
 from __future__ import annotations
 
 import threading
@@ -31,12 +30,13 @@ class BuildHandler(FileSystemEventHandler):
     rebuild, preventing excessive rebuilds when multiple files are saved at once.
 
     Features:
-    - Debounced rebuilds (0.2s delay to batch changes)
+    - Debounced rebuilds (0.3s delay to batch changes)
     - Incremental builds for speed (5-10x faster)
     - Parallel rendering
     - Stale object reference prevention (clears ephemeral state)
     - Build error recovery (errors don't crash server)
     - Automatic cache invalidation for config/template changes
+    - Handles all file events: create, modify, delete, move/rename
 
     Ignored files:
     - Output directory (public/)
@@ -70,6 +70,7 @@ class BuildHandler(FileSystemEventHandler):
         self.port = port
         self.building = False
         self.pending_changes: set[str] = set()
+        self.pending_event_types: set[str] = set()  # Track event types for build strategy
         self.debounce_timer: threading.Timer | None = None
         self.timer_lock = threading.Lock()
 
@@ -190,14 +191,24 @@ class BuildHandler(FileSystemEventHandler):
                 if file_count > 1:
                     file_name = f"{file_name} (+{file_count - 1} more)"
 
+            # Determine build strategy based on event types
+            # Force full rebuild for structural changes (created/deleted/moved files).
+            # These events can affect section relationships and require a cascade rebuild,
+            # since adding, removing, or moving files may change the structure of the site.
+            # Use incremental only for modifications to existing files.
+            needs_full_rebuild = bool({"created", "deleted", "moved"} & self.pending_event_types)
+
             logger.info(
                 "rebuild_triggered",
                 changed_file_count=file_count,
                 changed_files=changed_files[:10],  # Limit to first 10 for readability
                 trigger_file=str(changed_files[0]) if changed_files else None,
+                event_types=list(self.pending_event_types),
+                build_strategy="full" if needs_full_rebuild else "incremental",
             )
 
             self.pending_changes.clear()
+            self.pending_event_types.clear()  # Clear event types for next batch
 
             timestamp = datetime.now().strftime("%H:%M:%S")
 
@@ -227,8 +238,13 @@ class BuildHandler(FileSystemEventHandler):
                 except Exception:
                     pass
 
+                # Use incremental builds only for file modifications
+                # Force full rebuild for structural changes (created/deleted/moved)
+                # to ensure proper section relationships and cascade application
+                use_incremental = not needs_full_rebuild
+
                 stats = self.site.build(
-                    parallel=True, incremental=True, profile=BuildProfile.WRITER
+                    parallel=True, incremental=use_incremental, profile=BuildProfile.WRITER
                 )
                 build_duration = time.time() - build_start
 
@@ -251,6 +267,7 @@ class BuildHandler(FileSystemEventHandler):
                     logger.info("reload_suppressed", reason="build_skipped")
                 else:
                     from bengal.server.reload_controller import controller
+
                     decision = controller.decide_and_update(self.site.output_dir)
 
                     if decision.action == "none":
@@ -288,9 +305,9 @@ class BuildHandler(FileSystemEventHandler):
             finally:
                 self.building = False
 
-    def on_modified(self, event: FileSystemEvent) -> None:
+    def _handle_file_event(self, event: FileSystemEvent, event_type: str) -> None:
         """
-        Handle file modification events with debouncing.
+        Common handler for file system events with debouncing.
 
         Multiple rapid file changes are batched together and trigger a single
         rebuild after a short delay (DEBOUNCE_DELAY seconds).
@@ -300,6 +317,7 @@ class BuildHandler(FileSystemEventHandler):
 
         Args:
             event: File system event
+            event_type: Type of event (created, modified, deleted, moved)
 
         Note:
             This method implements debouncing by canceling the previous timer
@@ -321,13 +339,15 @@ class BuildHandler(FileSystemEventHandler):
             logger.debug("file_change_ignored", file=event.src_path, reason="ignored_pattern")
             return
 
-        # Add to pending changes
+        # Add to pending changes and track event type
         is_new = event.src_path not in self.pending_changes
         self.pending_changes.add(event.src_path)
+        self.pending_event_types.add(event_type)  # Track event type for build strategy
 
         logger.debug(
             "file_change_detected",
             file=event.src_path,
+            event_type=event_type,
             pending_count=len(self.pending_changes),
             is_new_in_batch=is_new,
         )
@@ -350,10 +370,66 @@ class BuildHandler(FileSystemEventHandler):
                 if hasattr(self.site, "config")
                 else None
             )
-            debounce_ms = safe_int(debounce_ms_env if debounce_ms_env is not None else debounce_ms_cfg, 0)
+            debounce_ms = safe_int(
+                debounce_ms_env if debounce_ms_env is not None else debounce_ms_cfg, 0
+            )
             if debounce_ms > 0:
                 delay = debounce_ms / 1000.0
 
             self.debounce_timer = threading.Timer(delay, self._trigger_build)
             self.debounce_timer.daemon = True
             self.debounce_timer.start()
+
+    def on_created(self, event: FileSystemEvent) -> None:
+        """
+        Handle file creation events.
+
+        Args:
+            event: File system event
+        """
+        self._handle_file_event(event, "created")
+
+    def on_modified(self, event: FileSystemEvent) -> None:
+        """
+        Handle file modification events.
+
+        Args:
+            event: File system event
+        """
+        self._handle_file_event(event, "modified")
+
+    def on_deleted(self, event: FileSystemEvent) -> None:
+        """
+        Handle file deletion events.
+
+        Args:
+            event: File system event
+        """
+        self._handle_file_event(event, "deleted")
+
+    def on_moved(self, event: FileSystemEvent) -> None:
+        """
+        Handle file move/rename events.
+
+        Args:
+            event: File system event with src_path and dest_path
+        """
+        # For moved files, we need to track both source and destination
+        # The _handle_file_event will handle src_path, and we manually add dest_path
+        self._handle_file_event(event, "moved")
+
+        # Also add the destination path if it's not in the output directory
+        if hasattr(event, "dest_path"):
+            try:
+                Path(event.dest_path).relative_to(self.site.output_dir)
+                return
+            except ValueError:
+                pass
+
+            if not self._should_ignore_file(event.dest_path):
+                self.pending_changes.add(event.dest_path)
+                logger.debug(
+                    "file_move_destination_tracked",
+                    dest_path=event.dest_path,
+                    pending_count=len(self.pending_changes),
+                )

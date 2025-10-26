@@ -4,7 +4,7 @@ title: "partial"
 type: doc
 description: "🧩 Create a new partial template.  Partials are reusable template fragments included in other templates. Example: \"sidebar\" → templates/partials/sidebar.html"
 source_file: "bengal/bengal/cli/commands/new.py"
-source_line: 719
+source_line: 722
 ---
 
 🧩 Create a new partial template.
