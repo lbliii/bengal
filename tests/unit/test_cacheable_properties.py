@@ -10,12 +10,7 @@ import json
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any
-
-try:
-    from typing import Self  # Python 3.11+
-except ImportError:
-    from typing import Self  # Python 3.10
+from typing import Any, Self
 
 import pytest
 
