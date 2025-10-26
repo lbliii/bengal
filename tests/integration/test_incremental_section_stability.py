@@ -292,7 +292,9 @@ def test_section_reference_performance(test_site_dir):
     """Test that section lookups remain fast during rebuilds."""
     # Create more pages for meaningful performance test
     blog = test_site_dir / "content" / "blog"
-    for i in range(20):  # Reduced to avoid date issues
+    # Create 20 additional posts (reduced from higher number to avoid filesystem
+    # timestamp collisions on fast test execution that could cause flaky tests)
+    for i in range(20):
         (blog / f"post{i + 10}.md").write_text(f"""---
 title: Post {i + 10}
 ---

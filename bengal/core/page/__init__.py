@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, ClassVar
 
 from .computed import PageComputedMixin
 from .metadata import PageMetadataMixin
@@ -79,6 +79,12 @@ class Page(
         related_posts: Related pages (pre-computed during build based on tag overlap)
     """
 
+    # Class-level warning counter (shared across all Page instances)
+    # This prevents unbounded memory growth in long-running dev servers where
+    # pages are recreated frequently. Warnings are suppressed globally after
+    # the first 3 occurrences per unique warning key.
+    _global_missing_section_warnings: ClassVar[dict[str, int]] = {}
+
     source_path: Path
     content: str = ""
     metadata: dict[str, Any] = field(default_factory=dict)
@@ -101,8 +107,6 @@ class Page(
     _site: Any | None = field(default=None, repr=False)
     # Path-based section reference (stable across rebuilds)
     _section_path: Path | None = field(default=None, repr=False)
-    # Counter for missing section warnings (prevents log spam)
-    _missing_section_warnings: dict[str, int] = field(default_factory=dict, repr=False, init=False)
 
     # Private cache for lazy toc_items property
     _toc_items_cache: list[dict[str, Any]] | None = field(default=None, repr=False, init=False)
@@ -168,9 +172,9 @@ class Page(
             return None
 
         if self._site is None:
-            # Warn once per page about missing site reference
+            # Warn globally about missing site reference (class-level counter)
             warn_key = "missing_site"
-            if self._missing_section_warnings.get(warn_key, 0) < 3:
+            if self._global_missing_section_warnings.get(warn_key, 0) < 3:
                 from bengal.utils.logger import get_logger
 
                 logger = get_logger(__name__)
@@ -179,8 +183,8 @@ class Page(
                     page=str(self.source_path),
                     section_path=str(self._section_path),
                 )
-                self._missing_section_warnings[warn_key] = (
-                    self._missing_section_warnings.get(warn_key, 0) + 1
+                self._global_missing_section_warnings[warn_key] = (
+                    self._global_missing_section_warnings.get(warn_key, 0) + 1
                 )
             return None
 
@@ -188,9 +192,9 @@ class Page(
         section = self._site.get_section_by_path(self._section_path)
 
         if section is None:
-            # Counter-gated warning to prevent log spam
+            # Counter-gated warning to prevent log spam (class-level counter)
             warn_key = str(self._section_path)
-            count = self._missing_section_warnings.get(warn_key, 0)
+            count = self._global_missing_section_warnings.get(warn_key, 0)
 
             if count < 3:
                 from bengal.utils.logger import get_logger
@@ -202,7 +206,7 @@ class Page(
                     section_path=str(self._section_path),
                     count=count + 1,
                 )
-                self._missing_section_warnings[warn_key] = count + 1
+                self._global_missing_section_warnings[warn_key] = count + 1
             elif count == 3:
                 # Show summary after 3rd warning, then go silent
                 from bengal.utils.logger import get_logger
@@ -215,7 +219,7 @@ class Page(
                     total_warnings=count + 1,
                     note="Further warnings for this section will be suppressed",
                 )
-                self._missing_section_warnings[warn_key] = count + 1
+                self._global_missing_section_warnings[warn_key] = count + 1
 
         return section
 
