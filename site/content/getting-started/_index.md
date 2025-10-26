@@ -41,9 +41,9 @@ Bengal serves different roles in your workflow. Pick the path that matches your 
     - Fix bugs or add features
     - Improve Bengal's core
     - Submit pull requests
-* - **[→ Writer Quickstart](/getting-started/writer-quickstart/)**
-  - **[→ Themer Quickstart](/getting-started/themer-quickstart/)**
-  - **[→ Contributor Quickstart](/getting-started/contributor-quickstart/)**
+* - **[→ Writer Quickstart](./getting-started/writer-quickstart/)**
+  - **[→ Themer Quickstart](./getting-started/themer-quickstart/)**
+  - **[→ Contributor Quickstart](./getting-started/contributor-quickstart/)**
 :::
 
 ## All Paths Start Here
