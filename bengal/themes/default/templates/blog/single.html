@@ -42,7 +42,7 @@ Context variables:
             {# Post Metadata #}
             <div class="blog-post-meta">
                 {# Author Info #}
-                {% if page.metadata.get('author') %}
+                {% if page.metadata.get('author') and site.theme_config.config.get('show_author', true) %}
                 <div class="blog-post-author">
                     {% if page.metadata.get('author_avatar') %}
                     <img src="{{ page.metadata.get('author_avatar') }}" alt="{{ page.metadata.get('author') }}"
@@ -67,7 +67,7 @@ Context variables:
                     {% endif %}
 
                     {# Reading Time #}
-                    {% if page.content %}
+                    {% if page.content and site.theme_config.config.get('show_reading_time', true) %}
                     <span class="reading-time">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                             stroke-width="2">
@@ -115,7 +115,7 @@ Context variables:
             {% endif %}
 
             {# Author Bio #}
-            {% if page.metadata.get('author') and page.metadata.get('author_bio') %}
+            {% if page.metadata.get('author') and page.metadata.get('author_bio') and site.theme_config.config.get('show_author', true) %}
             <div class="author-bio">
                 <div class="author-bio-header">
                     {% if page.metadata.get('author_avatar') %}

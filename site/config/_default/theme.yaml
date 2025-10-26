@@ -7,6 +7,11 @@ theme:
   default_appearance: "dark"     # Options: "light", "dark", "system"
   default_palette: "snow-lynx"   # Options: "", "snow-lynx", "brown-bengal", etc.
   
-  # Custom theme settings (accessible via site.theme_config.config in templates)
-  # Any additional keys here can be used by custom themes
-  # Example: sidebar_position: "right"
+  # Display preferences (all default to true)
+  show_reading_time: true        # Display "X min read"
+  show_author: true              # Display author information
+  show_prev_next: true           # Display previous/next navigation
+  show_children_default: true    # Show child pages in section indexes
+  show_excerpts_default: true    # Show excerpts in article cards
+  max_tags_display: 10           # Maximum tags to show before "+N more"
+  popular_tags_count: 20         # Number of tags in popular tags widget

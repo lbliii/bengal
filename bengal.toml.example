@@ -151,12 +151,15 @@ default_palette = ""  # Options: "" (default), "snow-lynx", "brown-bengal", "sil
 # Any additional keys here can be used by custom themes to control their behavior
 # Example: sidebar_position = "right"  # Custom themes can read site.theme_config.config.sidebar_position
 
-# Display preferences (NOT YET IMPLEMENTED - future enhancement)
-# These settings are planned but not yet implemented in the default theme
+# Display preferences (IMPLEMENTED - Default Theme)
+# Control what the default theme displays (all default to true)
 # show_reading_time = true      # Display "X min read" on pages
-# show_author = true            # Display author on pages
-# show_breadcrumbs = true       # Display breadcrumb navigation
-# show_children_default = true  # Show child pages in index by default
+# show_author = true            # Display author on pages and blog posts
+# show_prev_next = true         # Display previous/next page navigation
+# show_children_default = true  # Show child pages in section indexes
+# show_excerpts_default = true  # Show excerpts in article cards
+# max_tags_display = 10         # Maximum tags before "+N more" indicator
+# popular_tags_count = 20       # Number of tags in popular tags widget
 
 # Internationalization (optional)
 [i18n]
