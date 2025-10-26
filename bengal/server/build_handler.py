@@ -192,8 +192,10 @@ class BuildHandler(FileSystemEventHandler):
                     file_name = f"{file_name} (+{file_count - 1} more)"
 
             # Determine build strategy based on event types
-            # Force full rebuild for structural changes (created/deleted/moved files)
-            # Use incremental only for modifications to existing files
+            # Force full rebuild for structural changes (created/deleted/moved files).
+            # These events can affect section relationships and require a cascade rebuild,
+            # since adding, removing, or moving files may change the structure of the site.
+            # Use incremental only for modifications to existing files.
             needs_full_rebuild = bool({"created", "deleted", "moved"} & self.pending_event_types)
 
             logger.info(
