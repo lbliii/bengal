@@ -275,7 +275,7 @@ class BuildOrchestrator:
                     self.site.root_path / ".bengal" / "page_metadata.json"
                 )
 
-                # Extract metadata from discovered pages
+                # Extract metadata from discovered pages (AFTER cascades applied)
                 for page in self.site.pages:
                     metadata = PageMetadata(
                         source_path=str(page.source_path),
@@ -286,6 +286,7 @@ class BuildOrchestrator:
                         slug=page.slug,
                         weight=page.metadata.get("weight"),
                         lang=page.lang,
+                        type=page.metadata.get("type"),  # Include cascaded type
                     )
                     page_cache.add_metadata(metadata)
 

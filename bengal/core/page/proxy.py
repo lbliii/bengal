@@ -122,6 +122,7 @@ class PageProxy:
         self.slug = metadata.slug
         self.weight = metadata.weight
         self.lang = metadata.lang
+        self.type = metadata.type if hasattr(metadata, "type") else None  # Cascaded type
         self.output_path: Path | None = None  # Will be set during rendering or computed on demand
 
     def _parse_date(self, date_str: str) -> datetime | None:
@@ -175,9 +176,29 @@ class PageProxy:
 
     @property
     def metadata(self) -> dict[str, Any]:
-        """Get full metadata dict (lazy-loaded)."""
-        self._ensure_loaded()
-        return self._full_page.metadata if self._full_page else {}
+        """
+        Get metadata dict from cache (no lazy load).
+
+        Returns cached metadata including cascaded fields like 'type'.
+        This allows templates to check page.metadata.get("type") without
+        triggering a full page load.
+        """
+        # Build metadata dict from cached fields
+        cached_metadata = {}
+        if self.type:
+            cached_metadata["type"] = self.type
+        if self.weight is not None:
+            cached_metadata["weight"] = self.weight
+        if self.tags:
+            cached_metadata["tags"] = self.tags
+        if self.date:
+            cached_metadata["date"] = self.date
+
+        # If fully loaded, use full page metadata (more complete)
+        if self._lazy_loaded and self._full_page:
+            return self._full_page.metadata
+
+        return cached_metadata
 
     @property
     def rendered_html(self) -> str:

@@ -44,6 +44,7 @@ class PageMetadata:
     weight: int | None = None  # Sort weight in section
     lang: str | None = None  # Language code for i18n
     file_hash: str | None = None  # Hash of source file for validation
+    type: str | None = None  # Page type (cascaded from section)
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
@@ -107,7 +108,7 @@ class PageDiscoveryCache:
     }
     """
 
-    VERSION = 2  # Bumped for stable section references (path-based storage)
+    VERSION = 3  # Bumped for cascaded metadata storage (type field)
     CACHE_FILE = ".bengal/page_metadata.json"
 
     def __init__(self, cache_path: Path | None = None):
