@@ -41,7 +41,7 @@ Bengal uses three systems for state management:
 
 ### Pain Points
 
-**Problem 1: Object Identityis Unstable**
+**Problem 1: Object Identity is Unstable**
 
 ```python
 # Build 1
