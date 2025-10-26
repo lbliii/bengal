@@ -4,7 +4,7 @@ title: "linkcheck"
 type: doc
 description: "Check internal and external links in the site.  Validates that all links in your site work correctly: - Internal links point to existing pages and anchors - External links retur..."
 source_file: "bengal/bengal/cli/commands/health.py"
-source_line: 27
+source_line: 33
 ---
 
 Check internal and external links in the site.
@@ -23,7 +23,7 @@ bengal health linkcheck [OPTIONS]
 
 ## Options
 
-````{dropdown} Options (12 total)
+````{dropdown} Options (13 total)
 :open: false
 
 | Option | Type | Default | Description |
@@ -40,6 +40,7 @@ bengal health linkcheck [OPTIONS]
 | `--retries` |`integer` |- |Number of retry attempts (default: 2) |
 | `--retry-backoff` |`float` |- |Base backoff time for exponential backoff in seconds (default: 0.5) |
 | `--timeout` |`float` |- |Request timeout in seconds (default: 10.0) |
+| `--traceback` |`choice` |- |Traceback verbosity: full | compact | minimal | off |
 
 ````
 
