@@ -138,9 +138,12 @@ class Page(
         This allows existing code that creates Page objects without passing
         core to continue working. Once all instantiation is updated, this
         can be removed and core made required.
+
+        Note: Initially creates PageCore with absolute paths, but normalize_core_paths()
+        should be called before caching to convert to relative paths.
         """
         self.core = PageCore(
-            source_path=str(self.source_path),  # Convert Path to str
+            source_path=str(self.source_path),  # May be absolute initially
             title=self.metadata.get("title", ""),
             date=self.metadata.get("date"),
             tags=self.tags or [],
@@ -150,6 +153,39 @@ class Page(
             type=self.metadata.get("type"),
             section=str(self._section_path) if self._section_path else None,
             file_hash=None,  # Will be populated during caching
+        )
+
+    def normalize_core_paths(self) -> None:
+        """
+        Normalize PageCore paths to be relative (for cache consistency).
+
+        This should be called before caching to ensure all paths are relative
+        to the site root, preventing absolute path leakage into cache.
+        """
+        if not self._site or not self.core:
+            return
+
+        # Convert absolute source_path to relative
+        source_path_str = self.core.source_path
+        if Path(source_path_str).is_absolute():
+            try:
+                rel_path = Path(source_path_str).relative_to(self._site.root_path)
+                source_path_str = str(rel_path)
+            except (ValueError, AttributeError):
+                pass  # Keep absolute if not under root
+
+        # Recreate PageCore with normalized paths
+        self.core = PageCore(
+            source_path=source_path_str,
+            title=self.core.title,
+            date=self.core.date,
+            tags=self.core.tags,
+            slug=self.core.slug,
+            weight=self.core.weight,
+            lang=self.core.lang,
+            type=self.core.type,
+            section=self.core.section,
+            file_hash=self.core.file_hash,
         )
 
     def __hash__(self) -> int:

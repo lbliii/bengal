@@ -277,6 +277,8 @@ class BuildOrchestrator:
 
                 # Extract metadata from discovered pages (AFTER cascades applied)
                 for page in self.site.pages:
+                    # Normalize paths to relative before caching (prevents absolute path leakage)
+                    page.normalize_core_paths()
                     # THE BIG PAYOFF: Just use page.core directly! (PageMetadata = PageCore)
                     # This is now 1 line instead of 11 lines of manual field copying!
                     page_cache.add_metadata(page.core)
