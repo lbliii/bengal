@@ -25,6 +25,8 @@ from bengal.utils.logger import get_logger
 if TYPE_CHECKING:
     from bengal.core.page import Page
 
+from .page_core import PageCore
+
 logger = get_logger(__name__)
 
 
@@ -93,40 +95,86 @@ class PageProxy:
     def __init__(
         self,
         source_path: Path,
-        metadata: Any,
+        metadata: PageCore,  # Now explicitly PageCore (or PageMetadata alias)
         loader: callable,
     ):
         """
-        Initialize PageProxy with metadata and loader.
+        Initialize PageProxy with PageCore metadata and loader.
 
         Args:
             source_path: Path to source content file
-            metadata: PageMetadata from cache (has title, date, tags, etc.)
+            metadata: PageCore with cached page metadata (title, date, tags, etc.)
             loader: Callable that loads full Page(source_path) -> Page
         """
         self.source_path = source_path
-        self._metadata = metadata
+        self.core = metadata  # Wrap PageCore directly (single source of truth!)
         self._loader = loader
         self._lazy_loaded = False
         self._full_page: Page | None = None
         self._related_posts_cache: list | None = None
 
         # Path-based section reference (stable across rebuilds)
-        self._section_path: Path | None = None
+        # Initialized from core.section if available
+        self._section_path: Path | None = Path(self.core.section) if self.core.section else None
 
-        # Populate metadata fields from cache for immediate access
-        self.title = metadata.title if hasattr(metadata, "title") else ""
-        self.date = self._parse_date(metadata.date) if metadata.date else None
-        self.tags = metadata.tags if metadata.tags else []
-        self.section = metadata.section
-        self.slug = metadata.slug
-        self.weight = metadata.weight
-        self.lang = metadata.lang
-        self.type = metadata.type if hasattr(metadata, "type") else None  # Cascaded type
-        self.output_path: Path | None = None  # Will be set during rendering or computed on demand
+        # Output path will be set during rendering or computed on demand
+        self.output_path: Path | None = None
+
+    # ============================================================================
+    # PageCore Property Delegates - Expose cached metadata without lazy load
+    # ============================================================================
+
+    @property
+    def title(self) -> str:
+        """Get page title from cached metadata."""
+        return self.core.title
+
+    @property
+    def date(self) -> datetime | None:
+        """Get page date from cached metadata (parsed from ISO string)."""
+        if not self.core.date:
+            return None
+        # Parse ISO date string to datetime if it's a string
+        if isinstance(self.core.date, str):
+            try:
+                return datetime.fromisoformat(self.core.date)
+            except (ValueError, TypeError):
+                return None
+        # If it's already a datetime object, return it
+        return self.core.date
+
+    @property
+    def tags(self) -> list[str]:
+        """Get page tags from cached metadata."""
+        return self.core.tags or []
+
+    @property
+    def slug(self) -> str | None:
+        """Get URL slug from cached metadata."""
+        return self.core.slug
+
+    @property
+    def weight(self) -> int | None:
+        """Get sort weight from cached metadata."""
+        return self.core.weight
+
+    @property
+    def lang(self) -> str | None:
+        """Get language code from cached metadata."""
+        return self.core.lang
+
+    @property
+    def type(self) -> str | None:
+        """Get page type from cached metadata (cascaded)."""
+        return self.core.type
+
+    @property
+    def section(self) -> str | None:
+        """Get section path from cached metadata."""
+        return self.core.section
 
     def _parse_date(self, date_str: str) -> datetime | None:
-        """Parse ISO date string to datetime."""
+        """Parse ISO date string to datetime (deprecated, use date property)."""
         if not date_str:
             return None
         try:
@@ -183,20 +231,24 @@ class PageProxy:
         This allows templates to check page.metadata.get("type") without
         triggering a full page load.
         """
-        # Build metadata dict from cached fields
-        cached_metadata = {}
-        if self.type:
-            cached_metadata["type"] = self.type
-        if self.weight is not None:
-            cached_metadata["weight"] = self.weight
-        if self.tags:
-            cached_metadata["tags"] = self.tags
-        if self.date:
-            cached_metadata["date"] = self.date
-
         # If fully loaded, use full page metadata (more complete)
         if self._lazy_loaded and self._full_page:
             return self._full_page.metadata
+
+        # Build metadata dict from cached PageCore fields
+        cached_metadata = {}
+        if self.core.type:
+            cached_metadata["type"] = self.core.type
+        if self.core.weight is not None:
+            cached_metadata["weight"] = self.core.weight
+        if self.core.tags:
+            cached_metadata["tags"] = self.core.tags
+        if self.core.date:
+            cached_metadata["date"] = self.core.date
+        if self.core.slug:
+            cached_metadata["slug"] = self.core.slug
+        if self.core.lang:
+            cached_metadata["lang"] = self.core.lang
 
         return cached_metadata
 
