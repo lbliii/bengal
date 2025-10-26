@@ -83,7 +83,9 @@ class Page(
     # This prevents unbounded memory growth in long-running dev servers where
     # pages are recreated frequently. Warnings are suppressed globally after
     # the first 3 occurrences per unique warning key.
+    # The dict is bounded to max 100 entries (oldest removed when limit reached).
     _global_missing_section_warnings: ClassVar[dict[str, int]] = {}
+    _MAX_WARNING_KEYS: ClassVar[int] = 100
 
     source_path: Path
     content: str = ""
@@ -183,6 +185,11 @@ class Page(
                     page=str(self.source_path),
                     section_path=str(self._section_path),
                 )
+                # Bound the warning dict to prevent unbounded growth
+                if len(self._global_missing_section_warnings) >= self._MAX_WARNING_KEYS:
+                    # Remove oldest entry (first key in dict)
+                    first_key = next(iter(self._global_missing_section_warnings))
+                    del self._global_missing_section_warnings[first_key]
                 self._global_missing_section_warnings[warn_key] = (
                     self._global_missing_section_warnings.get(warn_key, 0) + 1
                 )
@@ -206,6 +213,11 @@ class Page(
                     section_path=str(self._section_path),
                     count=count + 1,
                 )
+                # Bound the warning dict to prevent unbounded growth
+                if len(self._global_missing_section_warnings) >= self._MAX_WARNING_KEYS:
+                    # Remove oldest entry (first key in dict)
+                    first_key = next(iter(self._global_missing_section_warnings))
+                    del self._global_missing_section_warnings[first_key]
                 self._global_missing_section_warnings[warn_key] = count + 1
             elif count == 3:
                 # Show summary after 3rd warning, then go silent
@@ -219,6 +231,11 @@ class Page(
                     total_warnings=count + 1,
                     note="Further warnings for this section will be suppressed",
                 )
+                # Bound the warning dict to prevent unbounded growth
+                if len(self._global_missing_section_warnings) >= self._MAX_WARNING_KEYS:
+                    # Remove oldest entry (first key in dict)
+                    first_key = next(iter(self._global_missing_section_warnings))
+                    del self._global_missing_section_warnings[first_key]
                 self._global_missing_section_warnings[warn_key] = count + 1
 
         return section
