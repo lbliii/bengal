@@ -4,7 +4,7 @@ title: "diff"
 type: doc
 description: "🔍 Compare configurations.  Shows differences between two configurations (environments, profiles, or files)."
 source_file: "bengal/bengal/cli/commands/config.py"
-source_line: 331
+source_line: 333
 ---
 
 🔍 Compare configurations.

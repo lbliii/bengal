@@ -11,6 +11,7 @@ cascade:
 
 Bengal is a Python-based static site generator built for speed and developer experience. It combines parallel processing, incremental builds, and modern features like auto-regenerating API docs.
 
+
 ## Choose Your Path
 
 Bengal serves different roles in your workflow. Pick the path that matches your goal:

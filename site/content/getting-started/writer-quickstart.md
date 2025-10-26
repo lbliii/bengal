@@ -32,7 +32,7 @@ Choose a preset that matches your goal:
   📄 Resume        - Professional resume/CV site
 ```
 
-:::tip
+:::{tip}
 Choose **Blog** if you're unsure. It's a great starting point.
 :::
 
@@ -50,7 +50,7 @@ bengal site serve
 
 Open **http://localhost:5173/** in your browser. You'll see your new site!
 
-:::note
+:::{note}
 The dev server automatically rebuilds when you save changes. Keep it running while you work.
 :::
 

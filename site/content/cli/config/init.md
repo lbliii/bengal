@@ -4,7 +4,7 @@ title: "init"
 type: doc
 description: "✨ Initialize configuration structure.  Creates config directory with examples, or a single config file."
 source_file: "bengal/bengal/cli/commands/config.py"
-source_line: 442
+source_line: 444
 ---
 
 ✨ Initialize configuration structure.
