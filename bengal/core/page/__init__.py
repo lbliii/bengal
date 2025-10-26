@@ -131,6 +131,13 @@ class Page(
         # This provides backward compatibility until all instantiation updated
         self._init_core_from_fields()
 
+        # Validation: Ensure core was initialized successfully
+        if self.core is None:
+            raise ValueError(
+                f"PageCore initialization failed for {self.source_path}. "
+                "This should never happen - please report as a bug."
+            )
+
     def _init_core_from_fields(self) -> None:
         """
         Initialize PageCore from Page fields (backward compatibility helper).

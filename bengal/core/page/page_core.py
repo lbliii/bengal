@@ -158,6 +158,24 @@ class PageCore:
         - No circular references (enables straightforward serialization)
         - No computed fields that require full content (those go in Page)
 
+    Why Strings Instead of Path Objects?
+        1. JSON Serialization: Path objects cannot be directly JSON-serialized.
+           Using strings allows cache files to be saved/loaded without custom handlers.
+
+        2. Cache Portability: String paths work across systems without Path object
+           compatibility concerns (Windows vs Unix path separators handled by Path
+           when converting back).
+
+        3. Type Consistency: PageMetadata IS PageCore (type alias). Cache expects
+           strings, so PageCore must use strings for type compatibility.
+
+        4. Performance: String comparison for cache lookups is marginally faster
+           than Path comparison (matters for incremental builds with 1000+ pages).
+
+        Convert at boundaries:
+        - Input: Path → str when creating PageCore (Page.__post_init__)
+        - Output: str → Path when using paths (PageProxy, lookups)
+
     Cache Lifecycle:
         1. Page created with PageCore during discovery
         2. PageCore serialized to JSON and saved to cache
