@@ -8,14 +8,6 @@ site:
   description: "A modern Python static site generator"
   language: "en"
 
-# Custom site-specific params
-params:
-  project_status: "beta"
-
-# Content defaults
-content:
-  default_type: "doc"
-
 theme:
   name: "default"
   default_appearance: "dark"

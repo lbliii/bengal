@@ -1,0 +1,10 @@
+# Content Configuration
+# =====================
+# Fine-tunes Bengal's content processing (independent of theme)
+
+content:
+  # Default content type for documentation site
+  default_type: "doc"
+
+  # Future: customize excerpt length, reading speed, etc.
+  # See config.example/_default/content.yaml for all options
