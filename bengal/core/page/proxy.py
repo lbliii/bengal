@@ -111,6 +111,9 @@ class PageProxy:
         self._full_page: Page | None = None
         self._related_posts_cache: list | None = None
 
+        # Path-based section reference (stable across rebuilds)
+        self._section_path: Path | None = None
+
         # Populate metadata fields from cache for immediate access
         self.title = metadata.title if hasattr(metadata, "title") else ""
         self.date = self._parse_date(metadata.date) if metadata.date else None
@@ -143,8 +146,9 @@ class PageProxy:
             if self._full_page:
                 if hasattr(self, "_site"):
                     self._full_page._site = self._site
-                if hasattr(self, "_section"):
-                    self._full_page._section = self._section
+                # Transfer section path (not object) for stable references
+                if self._section_path is not None:
+                    self._full_page._section_path = self._section_path
 
             # Apply any pending attributes that were set before loading
             if hasattr(self, "_pending_output_path") and self._full_page:
@@ -402,6 +406,49 @@ class PageProxy:
         self._ensure_loaded()
         if self._full_page:
             self._full_page.extract_links()
+
+    # ============================================================================
+    # Section Property - Path-based lookup
+    # ============================================================================
+
+    @property
+    def _section(self) -> Any | None:
+        """
+        Get the section this page belongs to (lazy lookup via path).
+
+        If the page is loaded, delegates to the full page's _section property.
+        Otherwise, performs path-based lookup via site registry without forcing load.
+
+        Returns:
+            Section object if found, None otherwise
+        """
+        # If page is loaded, delegate to full page
+        if self._lazy_loaded and self._full_page:
+            return self._full_page._section
+
+        # Otherwise, perform lookup via path without forcing load
+        if self._section_path is None:
+            return None
+
+        if not hasattr(self, "_site") or self._site is None:
+            return None
+
+        # Perform O(1) lookup via site registry
+        return self._site.get_section_by_path(self._section_path)
+
+    @_section.setter
+    def _section(self, value: Any) -> None:
+        """
+        Set the section this page belongs to (stores path, not object).
+
+        Args:
+            value: Section object or None
+        """
+        if value is None:
+            self._section_path = None
+        else:
+            # Extract and store path from Section object
+            self._section_path = value.path
 
     def __hash__(self) -> int:
         """Hash based on source_path (same as Page)."""
