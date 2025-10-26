@@ -11,6 +11,7 @@ features:
   json: true       # Generate per-page JSON files (page.json, index.txt)
   
   # Processing Capabilities (affects rendering)
+  # Note: Currently always enabled - wiring to parser is a future enhancement
   syntax_highlighting: true  # Code block highlighting with Pygments
   
   # Note: Some content properties like reading_time, excerpt, toc are 

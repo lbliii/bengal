@@ -46,6 +46,7 @@ features:
   
   # Syntax Highlighting (code blocks with Pygments)
   # Expands to: syntax_highlighting.enabled: true
+  # Note: Currently always enabled (wiring to parser is a future enhancement)
   syntax_highlighting: true
   
   # Expensive Optional Computations
