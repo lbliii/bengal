@@ -132,7 +132,8 @@ class TestConfigDirectoryLoader:
         """Test origin tracking when enabled."""
         loader = ConfigDirectoryLoader(track_origins=True)
 
-        config = loader.load(config_dir, environment="production")
+        # Load config (we only care about origin tracking, not the config itself)
+        loader.load(config_dir, environment="production")
 
         tracker = loader.get_origin_tracker()
         assert tracker is not None
@@ -172,8 +173,15 @@ class TestConfigDirectoryLoader:
         with pytest.raises(ConfigLoadError, match="Invalid YAML"):
             loader.load(config_dir, environment="local")
 
-    def test_load_missing_defaults_warns(self, tmp_path):
+    def test_load_missing_defaults_warns(self, tmp_path, monkeypatch):
         """Test loading without _default/ directory warns but continues."""
+        # Clear GitHub Actions env vars to get truly empty config
+        monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
+        monkeypatch.delenv("GITHUB_REPOSITORY", raising=False)
+        monkeypatch.delenv("NETLIFY", raising=False)
+        monkeypatch.delenv("VERCEL", raising=False)
+        monkeypatch.delenv("BENGAL_BASEURL", raising=False)
+
         config_dir = tmp_path / "config"
         config_dir.mkdir()
 
@@ -182,7 +190,7 @@ class TestConfigDirectoryLoader:
         # Should not raise, just warn (check logs if needed)
         config = loader.load(config_dir, environment="local")
 
-        assert config == {}  # Empty config
+        assert config == {}  # Empty config (no env overrides)
 
     def test_load_multiple_yaml_files_merged(self, config_dir):
         """Test multiple .yaml files in _default/ are merged."""
