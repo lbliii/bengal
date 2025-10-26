@@ -2,9 +2,9 @@
 
 **Based on**: RFC: Stable State Management for Incremental Builds  
 **Created**: 2025-10-26  
-**Status**: Phase 2 Complete (Validation & Testing)  
-**Estimated Time**: 5 days  
-**Complexity**: Moderate
+**Status**: ⚠️ PAUSED - Uncovered Deeper Issue (See Retrospective Below)  
+**Estimated Time**: 5 days (original estimate)  
+**Complexity**: Moderate → High (cache contract issues discovered)
 
 ---
 
@@ -734,5 +734,152 @@ cd site && bengal site serve
 
 ---
 
-**Status**: Ready to implement  
-**Recommended Next Command**: `::implement Task 1.1` (start with site registry)
+## 🔍 Retrospective: What Actually Happened
+
+### What We Built (Phase 1 ✅ Complete)
+1. ✅ **Section Registry** (`Site._section_registry`, `get_section_by_path()`)
+2. ✅ **Path-Based References** (`Page._section_path`, `PageProxy._section_path`)
+3. ✅ **Lazy Lookup** (Property getters with registry lookup)
+4. ✅ **Unit Tests** (Registry, path normalization, property behavior)
+5. ✅ **Integration Tests** (Section stability, cascade inheritance)
+
+**Result**: Section references DO survive rebuilds, registry works perfectly.
+
+### What Actually Broke the Dev Server 🐛
+
+The user-reported issues were NOT caused by section object identity:
+
+1. **Missing PageProxy Properties** → Blank breadcrumbs
+   - Templates accessed `page.parent` and `page.ancestors`
+   - PageProxy didn't implement these properties
+   - **Fix**: Added `parent` and `ancestors` properties to PageProxy
+
+2. **Stale Cache Data** → Wrong page types, broken layouts
+   - `page_metadata.json` saved BEFORE cascades applied
+   - PageProxy loaded `type: None` instead of `type: doc`
+   - **Fix**: Save cache AFTER cascades, add `type` to PageMetadata
+
+3. **Duplicate Cache Entries** → Inconsistent metadata
+   - Cache stored same page twice (absolute + relative paths)
+   - Lookups matched wrong entry with incomplete metadata
+   - **Fix**: Normalize to relative paths before saving
+
+4. **Infinite Rebuild Loop** → Manual refresh required
+   - `.bengal-serve.log` triggered file watcher
+   - **Fix**: Ignore log file in build handler
+
+### The Real Problem: Contract Enforcement ⚠️
+
+**Root Cause**: We have **3 representations of a page** with no automatic sync:
+
+```python
+# 1. Full Page (source of truth)
+class Page:
+    title: str
+    type: str | None  # Cascaded field
+    parent: Section | None
+
+# 2. Cached Metadata (must match!)  
+@dataclass
+class PageMetadata:
+    title: str
+    type: str | None  # MUST REMEMBER TO ADD THIS
+    # parent: ???     # FORGOT THIS - breaks templates
+
+# 3. Lazy Proxy (must match both!)
+class PageProxy:
+    title: str
+    type: str | None  # MUST REMEMBER TO ADD THIS
+    parent: ???       # FORGOT THIS - blank breadcrumbs
+```
+
+**The Bug Pattern**:
+1. Add field to `Page` (e.g., template accesses `page.parent`)
+2. ❌ Forget to add to `PageMetadata` → cache incomplete
+3. ❌ Forget to add to `PageProxy` → `AttributeError` or wrong values
+4. ✅ Unit tests pass (don't use cache)
+5. ❌ Dev server breaks (uses cache)
+
+**This WILL happen again** unless we fix the contract enforcement.
+
+### Is This Plan Still Relevant? 🤔
+
+**What This Plan Solved**:
+- ✅ Section object identity issues (real but minor)
+- ✅ Registry infrastructure (solid, working)
+- ✅ Path normalization (cross-platform, correct)
+
+**What This Plan MISSED**:
+- ❌ Cache-Proxy contract enforcement (the REAL problem)
+- ❌ Tests that validate incremental cache behavior
+- ❌ Systemic issue affecting ALL cached data (not just sections)
+
+**Remaining Work from Original Plan**:
+- Phase 2: ⚠️ Tests written but didn't catch cache issues
+- Phase 3: 📝 Documentation (mostly done in `architecture/object-model.md`)
+- Phase 4: ✅ Manual validation done (dev server works)
+
+### Recommendation: Pivot to Contract Enforcement 🎯
+
+**Option A: Close This Out, Start New Plan** (Recommended)
+1. ✅ Merge current PR (bugs fixed, registry works)
+2. 📝 Move this plan to `plan/implemented/`
+3. 🆕 Create `plan-cache-proxy-contract.md` with proper scope:
+   - Problem: Manual 3-way sync between Page/PageMetadata/PageProxy
+   - Solution: Shared base class (Option 1 from object-model.md)
+   - Estimated: 2-3 days for refactoring
+   - Impact: Prevents entire class of cache-related bugs
+
+**Option B: Finish This Plan As-Is** (Not Recommended)
+1. Complete Phase 3 (documentation already 80% done)
+2. Complete Phase 4 (manual validation already done)
+3. Still leaves contract enforcement issue unresolved
+4. Will have same bugs again next time we add a field
+
+**Option C: Hybrid Approach** (Middle Ground)
+1. ✅ Merge current PR with "stable section references" as the win
+2. 📝 Add Task 4.2 to this plan: "Create RFC for cache-proxy contract"
+3. 🔄 Continue with contract refactoring in next iteration
+4. Treats this as "Phase 1" of a larger effort
+
+### What Should You Do? 💡
+
+**My recommendation**: **Option A** (pivot to new plan)
+
+**Why**:
+- The immediate crisis is solved (dev server works)
+- Section references are stable (plan's original goal achieved)
+- The contract issue is SYSTEMIC (affects BuildCache, TaxonomyIndex, QueryIndex too)
+- A focused RFC on contract enforcement will be more valuable than finishing this plan
+- You'll prevent future bugs across ALL caches, not just pages
+
+**If you choose Option A, next steps**:
+```bash
+# 1. Commit current state
+git add -A && git commit -m "docs(architecture): document cache-proxy contract requirements and refactoring options"
+
+# 2. Close out this plan
+mv plan/active/plan-stable-section-references.md plan/implemented/
+
+# 3. Update changelog
+# Add entry about stable section references + cache fixes
+
+# 4. Create new RFC
+::rfc "How should we enforce the Page/PageMetadata/PageProxy contract to prevent cache bugs?"
+```
+
+**If you choose Option B** (finish this plan):
+- You'll document something that's mostly already done
+- The deeper problem persists
+- Next time someone adds a field, same bugs reappear
+
+**If you choose Option C** (hybrid):
+- Good if you want to ship the section registry as a "feature"
+- But be honest that the real win was fixing the cache bugs
+
+---
+
+**Bottom Line**: The plan WAS worthwhile (it works!), but it revealed a much larger architectural issue. Time to level up the architecture rather than just document the current state.
+
+**Status**: ⏸️ Paused - Awaiting decision on pivot vs finish  
+**Recommended Next Command**: `::rfc cache-proxy contract enforcement` (Option A)

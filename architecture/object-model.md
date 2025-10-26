@@ -74,6 +74,365 @@ Splitting the Page class into modules provides:
 - **Easier testing**: Test modules independently
 - **Better code organization**: Related functionality grouped together
 
+## PageProxy & Cache Contract (`bengal/core/page/proxy.py`, `bengal/cache/page_discovery_cache.py`)
+
+### Purpose
+Enables incremental builds by caching page metadata and lazy-loading full content only when needed.
+
+### The Contract Problem
+We have **three representations** of a page that must stay in sync:
+
+| Representation | File | Purpose | Risk |
+|----------------|------|---------|------|
+| **Page** | `core/page/__init__.py` | Full page with content | Source of truth |
+| **PageProxy** | `core/page/proxy.py` | Lazy-loaded wrapper | Must implement **ALL** properties templates use |
+| **PageMetadata** | `cache/page_discovery_cache.py` | Cached metadata | Must store **ALL** fields needed without loading |
+
+**Critical Invariant**: Any property/field added to Page that templates access **MUST** also be added to PageProxy AND PageMetadata.
+
+### What Goes in PageMetadata Cache?
+
+**MUST cache** (templates access these):
+- `title`, `date`, `tags`, `slug`, `lang` - Core metadata
+- `type`, `weight` - **Cascaded from section** (applied before cache save)
+- `section` - Section path (for navigation)
+
+**DO NOT cache** (requires full load):
+- `content`, `rendered_html` - Full page content
+- `toc`, `toc_items` - Generated from content
+- `meta_description`, `excerpt` - Computed from content
+
+### Path Handling Contract
+
+**CRITICAL**: All paths must use **consistent format** in cache:
+```python
+# ✅ CORRECT: Relative to site root
+"content/blog/post.md"
+
+# ❌ WRONG: Absolute paths (causes duplicates)
+"/Users/name/site/content/blog/post.md"
+```
+
+**Why this matters**:
+- Cache lookup uses paths as keys
+- Inconsistent paths → duplicate entries → wrong metadata loaded
+- Use `page.source_path.relative_to(site.root_path)` when saving cache
+
+### PageProxy Implementation Requirements
+
+When adding a new Page property that templates use:
+
+1. **Add to PageMetadata** (`cache/page_discovery_cache.py`):
+   ```python
+   @dataclass
+   class PageMetadata:
+       # ... existing fields ...
+       new_field: str | None = None  # Add your field
+   ```
+
+2. **Save to cache** (`orchestration/build.py`, Phase 1.25):
+   ```python
+   metadata = PageMetadata(
+       # ... existing fields ...
+       new_field=page.metadata.get("new_field"),
+   )
+   ```
+
+3. **Add to PageProxy** (`core/page/proxy.py`):
+   ```python
+   def __init__(...):
+       # Populate from cache for immediate access
+       self.new_field = metadata.new_field if hasattr(metadata, "new_field") else None
+
+   @property
+   def new_field(self) -> str:
+       """Get new_field (NO lazy load if cached)."""
+       if not self._lazy_loaded:
+           return self._new_field_from_cache
+       return self._full_page.new_field if self._full_page else default
+   ```
+
+### Common Pitfalls & Fixes
+
+| Problem | Symptom | Fix |
+|---------|---------|-----|
+| **Missing PageProxy property** | `AttributeError` in templates after file change | Add property to PageProxy that returns cached value |
+| **Missing PageMetadata field** | Wrong template/layout after rebuild | Add field to PageMetadata, save from page.metadata |
+| **Duplicate cache entries** | Cache has 2x pages, wrong metadata loaded | Use relative paths when saving cache |
+| **Missing cascaded field** | Properties like `type` are None | Ensure cache saved AFTER cascades applied |
+
+### Testing Requirements
+
+**Unit tests are NOT enough** - they don't use cache! You must test:
+
+1. **Full build → incremental rebuild cycle**:
+   ```python
+   # Initial build (saves cache)
+   site.build(incremental=False)
+
+   # Load from cache
+   cache = PageDiscoveryCache(...)
+   site.build(incremental=True, cache=cache)
+
+   # Verify cached pages have correct properties
+   page = [p for p in site.pages if isinstance(p, PageProxy)][0]
+   assert page.type == "doc"  # Must work without forcing load
+   ```
+
+2. **Cascade inheritance in incremental builds**:
+   ```python
+   # Change section cascade
+   edit_section_index(type="article")
+   site.reset_ephemeral_state()
+   site.discover_content(incremental=True, cache=cache)
+
+   # Pages should have new cascaded value
+   assert page.type == "article"
+   ```
+
+### Refactoring Recommendations
+
+**Problem**: Three places to update for every new field (error-prone). This is a **systemic design issue** affecting multiple caches (PageMetadata, BuildCache, TaxonomyIndex).
+
+**The Root Cause**: We're manually maintaining parallel representations of data:
+- Live objects (Page, Section, Asset)
+- Cached metadata (PageMetadata, TagEntry, IndexEntry)  
+- Lazy proxies (PageProxy)
+
+**Solution Options** (ranked by effectiveness):
+
+#### 1. Shared Base Class (Best - Type Safe + DRY)
+
+```python
+from dataclasses import dataclass
+from typing import Protocol
+
+@dataclass
+class PageCore:
+    """Shared fields between Page, PageProxy, and PageMetadata.
+
+    This is the SINGLE SOURCE OF TRUTH for cacheable fields.
+    Any field added here automatically works in all three representations.
+    """
+    source_path: Path
+    title: str
+    date: datetime | None = None
+    tags: list[str] = field(default_factory=list)
+    type: str | None = None
+    weight: int | None = None
+    lang: str | None = None
+    slug: str | None = None
+
+# Page extends with full content
+@dataclass
+class Page(PageCore):
+    content: str
+    rendered_html: str
+    toc: str
+    _section: Section | None = None
+
+# PageMetadata IS PageCore (no duplication!)
+PageMetadata = PageCore
+
+# PageProxy wraps PageCore
+class PageProxy:
+    def __init__(self, core: PageCore, loader: callable):
+        self._core = core
+        self._loader = loader
+
+    @property
+    def title(self) -> str:
+        return self._core.title  # Delegate to core
+```
+
+**Benefits**:
+- ✅ Define field once, works everywhere
+- ✅ Type checker catches missing fields
+- ✅ Impossible to have PageMetadata/PageProxy mismatch
+- ✅ Clear separation: PageCore = cacheable, Page adds non-cacheable
+
+**Tradeoffs**:
+- ⚠️ Requires refactoring Page to use composition (breaking change)
+- ⚠️ ~2-3 days of work
+
+#### 2. Decorator-Based Field Registration (Good - Automatic)
+
+```python
+from dataclasses import dataclass, fields
+from typing import get_type_hints
+
+# Use Page as source of truth
+@cacheable_fields(["title", "date", "tags", "type", "weight", "lang", "slug"])
+@dataclass
+class Page:
+    title: str
+    date: datetime | None
+    tags: list[str]
+    type: str | None
+    weight: int | None
+    # ... more fields ...
+
+    content: str  # NOT cacheable
+    rendered_html: str  # NOT cacheable
+
+# Auto-generate from decorator metadata
+def generate_metadata_class(page_class):
+    cacheable = getattr(page_class, "__cacheable_fields__")
+    hints = get_type_hints(page_class)
+    return make_dataclass(
+        "PageMetadata",
+        [(f, hints[f]) for f in cacheable]
+    )
+
+PageMetadata = generate_metadata_class(Page)
+
+# PageProxy auto-delegates
+class PageProxy:
+    def __init__(self, metadata: PageMetadata, loader):
+        self._metadata = metadata
+        self._loader = loader
+
+    def __getattr__(self, name):
+        # Auto-delegate cacheable fields to metadata
+        if hasattr(self._metadata, name):
+            return getattr(self._metadata, name)
+        # Force load for non-cacheable
+        self._ensure_loaded()
+        return getattr(self._full_page, name)
+```
+
+**Benefits**:
+- ✅ Single source of truth (Page class)
+- ✅ Auto-generates PageMetadata and PageProxy delegation
+- ✅ Less invasive refactoring
+
+**Tradeoffs**:
+- ⚠️ Magic behavior (`__getattr__`) can be hard to debug
+- ⚠️ ~1-2 days of work
+
+#### 3. Protocol + Runtime Validation (Good - Defensive)
+
+```python
+from typing import Protocol, runtime_checkable
+
+@runtime_checkable
+class Cacheable(Protocol):
+    """Contract for fields that must be cacheable."""
+    source_path: Path
+    title: str
+    date: datetime | None
+    tags: list[str]
+    type: str | None
+    weight: int | None
+
+# Page implements protocol
+@dataclass
+class Page(Cacheable):
+    # ... all fields ...
+    pass
+
+# PageMetadata also implements
+@dataclass  
+class PageMetadata(Cacheable):
+    # Must have same fields or type checker fails
+    pass
+
+# Runtime validation
+def save_to_cache(page: Page) -> PageMetadata:
+    # Build metadata from page
+    metadata = PageMetadata(...)
+
+    # Runtime check - ensures all Cacheable fields copied
+    for field in Cacheable.__annotations__:
+        assert hasattr(metadata, field), f"Missing {field}"
+
+    return metadata
+```
+
+**Benefits**:
+- ✅ Type checker validates at compile time
+- ✅ Runtime checks catch errors in dev
+- ✅ Minimal refactoring (~1 day)
+
+**Tradeoffs**:
+- ⚠️ Still manual duplication between Page/PageMetadata
+- ⚠️ Runtime checks add overhead
+
+#### 4. Pydantic Models (Industry Standard - Automatic Serialization)
+
+```python
+from pydantic import BaseModel, Field
+
+class PageMetadata(BaseModel):
+    """Pydantic auto-handles serialization/validation."""
+    source_path: Path
+    title: str
+    date: datetime | None = None
+    tags: list[str] = Field(default_factory=list)
+    type: str | None = None
+
+    class Config:
+        # Auto-convert from Page objects
+        from_attributes = True
+
+# Save to cache - automatic!
+metadata = PageMetadata.from_orm(page)
+json_str = metadata.model_dump_json()
+
+# Load from cache - automatic!
+metadata = PageMetadata.model_validate_json(json_str)
+```
+
+**Benefits**:
+- ✅ Industry-standard (FastAPI, Django Ninja use this)
+- ✅ Auto JSON serialization/deserialization  
+- ✅ Built-in validation
+- ✅ Great documentation
+
+**Tradeoffs**:
+- ⚠️ New dependency (pydantic ~600KB)
+- ⚠️ Slower than dataclasses (~2-3x)
+- ⚠️ Overkill for internal caching?
+
+#### 5. Code Generation (Hugo's Approach - Type Safe)
+
+```python
+# schema.yaml (single source of truth)
+cacheable_fields:
+  - name: title
+    type: str
+  - name: date
+    type: datetime | None
+  - name: type
+    type: str | None
+
+# generate_classes.py (run at dev time)
+def generate_from_schema(schema):
+    # Generate Page class
+    # Generate PageMetadata class  
+    # Generate PageProxy delegation
+    # All guaranteed to match!
+```
+
+**Benefits**:
+- ✅ Compile-time type safety
+- ✅ Zero runtime overhead
+- ✅ Single source of truth (schema file)
+
+**Tradeoffs**:
+- ⚠️ Build step complexity
+- ⚠️ Overkill for Python (lose dynamic benefits)
+
+### Debug Checklist
+
+When dev server shows wrong layouts/nav after file changes:
+
+1. ✅ Does PageProxy implement `.type`, `.parent`, `.ancestors`?
+2. ✅ Does PageMetadata have `type` field?
+3. ✅ Is cache saved AFTER cascades applied? (check build.py Phase 1.25)
+4. ✅ Are paths consistent (relative format)? Check cache file size
+5. ✅ Do tests actually use cache? (not just `discover_content()`)
+
 ## Section Object (`bengal/core/section.py`)
 
 ### Purpose
