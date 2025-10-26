@@ -208,11 +208,15 @@ from dataclasses import dataclass
 from typing import Protocol
 
 @dataclass
-class PageCore:
+class PageCore(Cacheable):
     """Shared fields between Page, PageProxy, and PageMetadata.
 
     This is the SINGLE SOURCE OF TRUTH for cacheable fields.
     Any field added here automatically works in all three representations.
+
+    Implements the Cacheable protocol for type-safe serialization:
+    - to_cache_dict(): Serializes to JSON-compatible dict (datetime → ISO string)
+    - from_cache_dict(): Deserializes from cache dict back to PageCore
     """
     source_path: Path
     title: str
@@ -250,6 +254,7 @@ class PageProxy:
 - ✅ Type checker catches missing fields
 - ✅ Impossible to have PageMetadata/PageProxy mismatch
 - ✅ Clear separation: PageCore = cacheable, Page adds non-cacheable
+- ✅ Type-safe serialization via Cacheable protocol (prevents cache bugs)
 
 **Tradeoffs**:
 - ⚠️ Requires refactoring Page to use composition (breaking change)
