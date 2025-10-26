@@ -3,6 +3,7 @@
 from dataclasses import asdict
 from datetime import datetime
 
+from bengal.cache.cacheable import Cacheable
 from bengal.core.page.page_core import PageCore
 
 
@@ -158,3 +159,100 @@ class TestPageCoreSerialization:
         assert reconstructed.type == original.type
         assert reconstructed.section == original.section
         assert reconstructed.file_hash == original.file_hash
+
+
+class TestPageCoreCacheableProtocol:
+    """Test PageCore implementation of Cacheable protocol."""
+
+    def test_pagecore_implements_cacheable(self):
+        """PageCore should implement Cacheable protocol."""
+        core = PageCore(source_path="test.md", title="Test")
+        assert isinstance(core, Cacheable)
+
+    def test_to_cache_dict_returns_dict(self):
+        """to_cache_dict() should return a dictionary."""
+        core = PageCore(source_path="test.md", title="Test")
+        data = core.to_cache_dict()
+        assert isinstance(data, dict)
+
+    def test_to_cache_dict_serializes_datetime(self):
+        """to_cache_dict() should serialize datetime as ISO string."""
+        core = PageCore(
+            source_path="test.md",
+            title="Test",
+            date=datetime(2025, 10, 26, 12, 30, 45),
+        )
+        data = core.to_cache_dict()
+        assert data["date"] == "2025-10-26T12:30:45"
+        assert isinstance(data["date"], str)
+
+    def test_to_cache_dict_handles_none_datetime(self):
+        """to_cache_dict() should handle None datetime."""
+        core = PageCore(source_path="test.md", title="Test", date=None)
+        data = core.to_cache_dict()
+        assert data["date"] is None
+
+    def test_from_cache_dict_deserializes_datetime(self):
+        """from_cache_dict() should deserialize ISO string to datetime."""
+        data = {
+            "source_path": "test.md",
+            "title": "Test",
+            "date": "2025-10-26T12:30:45",
+            "tags": [],
+        }
+        core = PageCore.from_cache_dict(data)
+        assert core.date == datetime(2025, 10, 26, 12, 30, 45)
+
+    def test_from_cache_dict_handles_none_datetime(self):
+        """from_cache_dict() should handle None datetime."""
+        data = {
+            "source_path": "test.md",
+            "title": "Test",
+            "date": None,
+            "tags": [],
+        }
+        core = PageCore.from_cache_dict(data)
+        assert core.date is None
+
+    def test_cacheable_roundtrip_minimal(self):
+        """Minimal PageCore should roundtrip via Cacheable protocol."""
+        original = PageCore(source_path="test.md", title="Test")
+        data = original.to_cache_dict()
+        loaded = PageCore.from_cache_dict(data)
+        assert loaded == original
+
+    def test_cacheable_roundtrip_full(self):
+        """Full PageCore should roundtrip via Cacheable protocol."""
+        original = PageCore(
+            source_path="content/posts/my-post.md",
+            title="My Post",
+            date=datetime(2025, 10, 26, 12, 30, 45),
+            tags=["python", "web", "django"],
+            slug="my-custom-slug",
+            weight=42,
+            lang="en",
+            type="doc",
+            section="content/posts",
+            file_hash="abc123def456",
+        )
+        data = original.to_cache_dict()
+        loaded = PageCore.from_cache_dict(data)
+        assert loaded == original
+
+    def test_cacheable_roundtrip_with_empty_fields(self):
+        """PageCore with empty fields should roundtrip correctly."""
+        original = PageCore(
+            source_path="test.md",
+            title="Test",
+            date=None,
+            tags=[],
+            slug=None,
+            weight=None,
+            lang=None,
+            type=None,
+            section=None,
+            file_hash=None,
+        )
+        data = original.to_cache_dict()
+        loaded = PageCore.from_cache_dict(data)
+        assert loaded == original
