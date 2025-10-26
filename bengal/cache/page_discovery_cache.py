@@ -156,7 +156,8 @@ class PageDiscoveryCache:
 
             # Atomic write to avoid partial/corrupt files on crash
             with AtomicFile(self.cache_path, "w", encoding="utf-8") as f:
-                json.dump(data, f, indent=2)
+                # Use custom default handler for datetime objects
+                json.dump(data, f, indent=2, default=str)
 
             logger.info(
                 "page_discovery_cache_saved",
