@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Cacheable Protocol**: Type-safe cache contracts for all cacheable types
+  - Generic `Cacheable` protocol with `to_cache_dict()` and `from_cache_dict()` methods
+  - `CacheStore` helper for type-safe save/load operations with version management
+  - Adopted in `PageCore`, `TagEntry`, and `AssetDependencyEntry`
+  - Comprehensive test coverage (63 tests for protocol, roundtrip, and properties)
+  - Documentation in code with extensive examples and guidelines
 - **Config Directory Structure (v2.0)**: Major configuration system overhaul (#48)
   - **Directory-Based Configuration**: Hugo-style `config/` directory structure
     - `_default/`: Base configuration (site.yaml, build.yaml, content.yaml, theme.yaml, features.yaml, params.yaml)

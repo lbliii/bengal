@@ -24,6 +24,7 @@ FEATURE_MAPPINGS: dict[str, dict[str, Any]] = {
     "search": {
         "search.enabled": True,
         "search.preload": "smart",
+        "output_formats.site_wide": ["index_json"],
     },
     "json": {
         "output_formats.per_page": ["json"],

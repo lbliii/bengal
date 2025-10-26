@@ -45,6 +45,87 @@ pages_for_tag = [current_page_map[path] for path in cache.get_pages_for_tag('pyt
 ### Key Design Principle
 "Never persist object references across builds" - cache stores paths and hashes, relationships are reconstructed from current objects each build.
 
+## Cacheable Protocol (`bengal/cache/cacheable.py`)
+
+### Purpose
+Type-safe cache contracts for all cacheable types, preventing cache serialization bugs through compile-time validation.
+
+### Protocol Definition
+
+```python
+@runtime_checkable
+class Cacheable(Protocol):
+    """Protocol for types that can be cached to disk."""
+
+    def to_cache_dict(self) -> dict[str, Any]:
+        """Serialize to JSON-compatible dictionary."""
+        ...
+
+    @classmethod
+    def from_cache_dict(cls, data: dict[str, Any]) -> T:
+        """Deserialize from cache dictionary."""
+        ...
+```
+
+### Contract Requirements
+
+1. **JSON Primitives Only**: `to_cache_dict()` must return only JSON-serializable types (str, int, float, bool, None, list, dict)
+2. **Type Conversion**: Complex types must be converted:
+   - `datetime` → ISO-8601 string (via `datetime.isoformat()`)
+   - `Path` → str (via `str(path)`)
+   - `set` → sorted list (for stability)
+3. **No Object References**: Never serialize live objects (Page, Section, Asset). Use stable identifiers (paths as strings)
+4. **Roundtrip Invariant**: `T.from_cache_dict(obj.to_cache_dict())` must reconstruct an equivalent object
+
+### Types Implementing Cacheable
+
+| Type | Module | Purpose |
+|------|--------|---------|
+| **PageCore** | `bengal/core/page/page_core.py` | Cacheable page metadata (title, date, tags, etc.) |
+| **TagEntry** | `bengal/cache/taxonomy_index.py` | Tag-to-pages mappings for taxonomy |
+| **AssetDependencyEntry** | `bengal/cache/asset_dependency_map.py` | Page-to-asset dependency tracking |
+
+**Not Implementing**: `BuildCache` intentionally does NOT implement Cacheable (uses pickle for performance, custom version handling)
+
+### CacheStore Helper (`bengal/cache/cache_store.py`)
+
+Generic cache storage for Cacheable types with type-safe operations:
+
+```python
+from bengal.cache.cache_store import CacheStore
+from bengal.cache.taxonomy_index import TagEntry
+
+# Create store
+store = CacheStore(Path('.bengal/tags.json'))
+
+# Save entries (type-safe)
+tags: list[TagEntry] = [...]
+store.save(tags, version=1)
+
+# Load entries (type-safe, tolerant)
+loaded_tags = store.load(TagEntry, expected_version=1)  # Returns [] on version mismatch
+```
+
+**Features**:
+- Version management (tolerant loading on mismatch)
+- Type-safe save/load with mypy validation
+- Automatic directory creation
+- Consistent error handling (returns empty list, logs warning)
+
+### When to Use Cacheable vs *Core Pattern
+
+**Use Cacheable Protocol**:
+- Type needs disk persistence (cache files, indexes)
+- Consistent serialization desired
+- No three-way split (live/cache/proxy)
+
+**Use *Core base class** (like PageCore):
+- Type has three-way split (Live → Cache → Proxy)
+- Templates access many properties (lazy loading matters)
+- Manual sync between representations causes bugs
+
+**Example**: PageCore uses both patterns - it's a base class for Page/PageMetadata/PageProxy AND implements the Cacheable protocol for serialization.
+
 ### Query Indexes (`bengal/cache/indexes/`)
 
 Bengal provides specialized indexes for efficient querying:

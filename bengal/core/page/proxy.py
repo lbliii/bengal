@@ -118,7 +118,8 @@ class PageProxy:
         self._section_path: Path | None = Path(self.core.section) if self.core.section else None
 
         # Output path will be set during rendering or computed on demand
-        self.output_path: Path | None = None
+        # Stored in _pending_output_path to avoid forcing lazy load
+        self._pending_output_path: Path | None = None
 
     # ============================================================================
     # PageCore Property Delegates - Expose cached metadata without lazy load
@@ -299,6 +300,10 @@ class PageProxy:
     @property
     def output_path(self) -> Path | None:
         """Get output path (lazy-loaded)."""
+        # Check if output_path was set before loading
+        if hasattr(self, "_pending_output_path"):
+            return self._pending_output_path
+
         self._ensure_loaded()
         return self._full_page.output_path if self._full_page else None
 
@@ -308,17 +313,15 @@ class PageProxy:
         # For proxies that haven't been loaded yet, we can set output_path
         # directly without loading the full page
         if not self._lazy_loaded and self._full_page is None:
-            # Create a minimal full page if needed just to set output_path
-            # Or store it temporarily
-            if not hasattr(self, "_pending_output_path"):
-                self._pending_output_path = value
-            else:
-                self._pending_output_path = value
+            # Store in pending until loaded
+            self._pending_output_path = value
         else:
             # If loaded, set on full page
             self._ensure_loaded()
             if self._full_page:
                 self._full_page.output_path = value
+                # Also update pending to keep them in sync
+                self._pending_output_path = value
 
     @property
     def parsed_ast(self) -> Any:

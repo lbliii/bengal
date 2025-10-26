@@ -106,10 +106,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
+from typing import Any
+
+from bengal.cache.cacheable import Cacheable
 
 
 @dataclass
-class PageCore:
+class PageCore(Cacheable):
     """
     Cacheable page metadata shared between Page, PageMetadata, and PageProxy.
 
@@ -224,3 +227,52 @@ class PageCore:
         # Ensure tags is a list (not None)
         if self.tags is None:
             self.tags = []
+
+    def to_cache_dict(self) -> dict[str, Any]:
+        """
+        Serialize PageCore to cache-friendly dictionary.
+
+        Implements the Cacheable protocol for type-safe caching.
+
+        Returns:
+            Dictionary with all PageCore fields, suitable for JSON serialization.
+            datetime fields are serialized as ISO-8601 strings.
+        """
+        return {
+            "source_path": self.source_path,
+            "title": self.title,
+            "date": self.date.isoformat() if self.date else None,
+            "tags": self.tags,
+            "slug": self.slug,
+            "weight": self.weight,
+            "lang": self.lang,
+            "type": self.type,
+            "section": self.section,
+            "file_hash": self.file_hash,
+        }
+
+    @classmethod
+    def from_cache_dict(cls, data: dict[str, Any]) -> PageCore:
+        """
+        Deserialize PageCore from cache dictionary.
+
+        Implements the Cacheable protocol for type-safe caching.
+
+        Args:
+            data: Dictionary from cache (JSON-deserialized)
+
+        Returns:
+            Reconstructed PageCore instance
+        """
+        return cls(
+            source_path=data["source_path"],
+            title=data["title"],
+            date=datetime.fromisoformat(data["date"]) if data.get("date") else None,
+            tags=data.get("tags", []),
+            slug=data.get("slug"),
+            weight=data.get("weight"),
+            lang=data.get("lang"),
+            type=data.get("type"),
+            section=data.get("section"),
+            file_hash=data.get("file_hash"),
+        )

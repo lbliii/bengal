@@ -2,7 +2,6 @@
 Build Cache - Tracks file changes and dependencies for incremental builds.
 """
 
-
 from __future__ import annotations
 
 import hashlib
@@ -26,6 +25,18 @@ class BuildCache:
     - This cache must NEVER contain object references (Page, Section, Asset objects)
     - All data must be JSON-serializable (paths, strings, numbers, lists, dicts, sets)
     - Object relationships are rebuilt each build from cached paths
+
+    NOTE: BuildCache intentionally does NOT implement the Cacheable protocol.
+    Rationale:
+    - Uses pickle for performance (faster than JSON for sets/complex structures)
+    - Has tolerant loader with custom version handling logic
+    - Contains many specialized fields (dependencies, hashes, etc.)
+    - Designed for internal build state, not type-safe caching contracts
+
+    For type-safe caching, use types that implement the Cacheable protocol:
+    - PageCore (bengal/core/page/page_core.py)
+    - TagEntry (bengal/cache/taxonomy_index.py)
+    - AssetDependencyEntry (bengal/cache/asset_dependency_map.py)
 
     Attributes:
         file_hashes: Mapping of file paths to their SHA256 hashes
