@@ -5,6 +5,8 @@ Tests for autodoc configuration loader.
 from pathlib import Path
 from textwrap import dedent
 
+import yaml
+
 from bengal.autodoc.config import get_python_config, load_autodoc_config
 
 
@@ -221,8 +223,6 @@ def test_config_partial_include_inherited_by_type_merge(tmp_path):
 
 def test_config_loads_from_directory_structure(tmp_path, monkeypatch):
     """Test loading autodoc config from config/ directory structure."""
-    import yaml
-
     # Change to tmp_path for config/ to be found
     monkeypatch.chdir(tmp_path)
 
@@ -261,8 +261,6 @@ def test_config_loads_from_directory_structure(tmp_path, monkeypatch):
 
 def test_config_directory_takes_precedence_over_toml(tmp_path, monkeypatch):
     """Test that config/ directory takes precedence over bengal.toml."""
-    import yaml
-
     monkeypatch.chdir(tmp_path)
 
     # Create both config/ directory and bengal.toml
