@@ -7,9 +7,14 @@ site:
   logo_text: "ᓚᘏᗢ"
   description: "A modern Python static site generator"
   language: "en"
-  # Default content type for all pages (can be overridden per-section or per-page)
-  # Options: doc, blog, tutorial, page, api-reference, cli-reference, changelog, archive
-  default_content_type: "doc"
+
+# Custom site-specific params
+params:
+  project_status: "beta"
+
+# Content defaults
+content:
+  default_type: "doc"
 
 theme:
   name: "default"

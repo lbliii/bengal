@@ -24,13 +24,6 @@ site:
   description: "A beautiful static site built with Bengal"
   language: "en"
 
-  # Default content type for all pages/sections (can be overridden via frontmatter)
-  # Options: doc, blog, tutorial, page, api-reference, cli-reference, changelog, archive, list
-  # If unset, Bengal will auto-detect based on directory structure or fall back to "list"
-  # default_content_type: "doc"     # Uncomment for documentation sites
-  # default_content_type: "blog"    # Uncomment for blog sites
-  # default_content_type: "page"    # Uncomment for general websites
-
   # Social & SEO
   keywords:
     - static site
@@ -70,3 +63,80 @@ site:
     - tags
     - categories
     - series
+
+# Custom Parameters
+# =================
+# User-defined variables accessible in templates and markdown
+# Access via: {{ site.params.product_name }} or {{ site.config.params.product_name }}
+
+params:
+  # Example custom variables
+  # product_name: "Bengal"
+  # product_version: "1.0.0"
+  # api_url: "https://api.example.com"
+  # support_email: "support@example.com"
+
+# Content Configuration
+# =====================
+# Controls how content is organized, displayed, and rendered
+
+content:
+  # Default content type for all pages/sections (can be overridden via frontmatter)
+  # Options: doc, blog, tutorial, page, api-reference, cli-reference, changelog, archive, list
+  # If unset, Bengal will auto-detect based on directory structure or fall back to "list"
+  # default_type: "doc"     # Great for documentation sites
+  # default_type: "blog"    # Great for blog sites
+  # default_type: "page"    # Great for general websites
+
+  # Excerpt & Summaries
+  # -------------------
+  # excerpt_length: 200      # Characters for auto-generated excerpts
+  # summary_length: 160      # Characters for meta descriptions (SEO)
+  # excerpt_end: "sentence"  # How to truncate: "sentence", "word", or "character"
+
+  # Reading Time
+  # ------------
+  # reading_speed: 200       # Words per minute for reading time calculation
+  # show_reading_time: true  # Display reading time on pages
+
+  # Related Content
+  # ---------------
+  # related_count: 3         # Number of related posts to show
+  # related_threshold: 0.3   # Minimum tag similarity (0.0-1.0) for related content
+
+  # Date Formatting
+  # ---------------
+  # date_format: "long"      # Options: "short", "medium", "long", "iso"
+  #                          # short: "Jan 2, 2025"
+  #                          # medium: "January 2, 2025"
+  #                          # long: "January 2, 2025 at 3:04 PM"
+  #                          # iso: "2025-01-02T15:04:05Z"
+
+  # Table of Contents
+  # -----------------
+  # toc_depth: 3             # Maximum heading depth (1-6)
+  # toc_min_headings: 2      # Minimum headings required to show TOC
+  # toc_style: "nested"      # Options: "nested", "flat"
+
+  # Child Pages Display
+  # -------------------
+  # show_children_default: true    # Show child pages in index by default
+  # show_subsections_default: true # Show subsections in index by default
+  # show_excerpts_default: true    # Show excerpts in child page cards
+
+  # Taxonomies (Tags, Categories, etc.)
+  # ------------------------------------
+  # See site.taxonomies above for which ones are enabled
+  # max_tags_display: 10     # Maximum tags to show in tag clouds
+  # popular_tags_count: 20   # Number of tags in "popular" widget
+
+  # Author Information
+  # ------------------
+  # show_author: true        # Display author on pages
+  # author_format: "name"    # Options: "name", "name_email", "full"
+
+  # Content Organization
+  # --------------------
+  # sort_pages_by: "weight"  # Default sort: "weight", "date", "title", "modified"
+  # sort_order: "asc"        # Options: "asc", "desc"
+  # group_by_year: false     # Group blog posts by year

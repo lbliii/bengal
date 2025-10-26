@@ -65,7 +65,7 @@ def detect_content_type(section: Section, config: dict[str, Any] | None = None) 
     1. Explicit type in section metadata
     2. Cascaded type from parent section
     3. Auto-detection via strategy heuristics
-    4. Config-based default (site.default_content_type)
+    4. Config-based default (content.default_type or site.default_content_type)
     5. Default to "list"
 
     Args:
@@ -80,9 +80,14 @@ def detect_content_type(section: Section, config: dict[str, Any] | None = None) 
         >>> assert content_type == "blog"
 
     Example with config default:
-        >>> config = {"site": {"default_content_type": "doc"}}
+        >>> config = {"content": {"default_type": "doc"}}
         >>> content_type = detect_content_type(section, config)
         >>> # Returns "doc" if no other detection succeeds
+
+    Example with legacy config (backward compatible):
+        >>> config = {"site": {"default_content_type": "doc"}}
+        >>> content_type = detect_content_type(section, config)
+        >>> # Also works for backward compatibility
     """
     # 1. Explicit override (highest priority)
     if "content_type" in section.metadata:
@@ -110,8 +115,15 @@ def detect_content_type(section: Section, config: dict[str, Any] | None = None) 
 
     # 4. Config-based default (NEW!)
     if config:
-        site_config = config.get("site", {})
-        default_type = site_config.get("default_content_type")
+        # Try new location first: content.default_type
+        content_config = config.get("content", {})
+        default_type = content_config.get("default_type")
+
+        # Fall back to legacy location: site.default_content_type (backward compat)
+        if not default_type:
+            site_config = config.get("site", {})
+            default_type = site_config.get("default_content_type")
+
         if default_type and default_type in CONTENT_TYPE_REGISTRY:
             return default_type
 
