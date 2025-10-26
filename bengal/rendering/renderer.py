@@ -167,7 +167,7 @@ class Renderer:
 
         # Handle root index pages (top-level _index.md without enclosing section)
         # Provide context for ALL root index pages, regardless of type
-        elif is_index_page and not hasattr(page, "_section"):
+        elif is_index_page and page._section is None:
             # For root home page, provide site-level context as fallback
             # Filter to top-level items only (exclude nested sections/pages)
             top_level_pages = [
