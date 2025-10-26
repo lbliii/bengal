@@ -17,7 +17,6 @@ Performance Impact:
 - Avoid full taxonomy structure rebuild
 """
 
-
 from __future__ import annotations
 
 import json
@@ -26,14 +25,19 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from bengal.cache.cacheable import Cacheable
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
 
 @dataclass
-class TagEntry:
-    """Entry for a single tag in the index."""
+class TagEntry(Cacheable):
+    """
+    Entry for a single tag in the index.
+
+    Implements the Cacheable protocol for type-safe serialization.
+    """
 
     tag_slug: str  # Normalized tag identifier
     tag_name: str  # Original tag name (for display)
@@ -41,7 +45,8 @@ class TagEntry:
     updated_at: str  # ISO timestamp of last update
     is_valid: bool = True  # Whether entry is still valid
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_cache_dict(self) -> dict[str, Any]:
+        """Serialize to cache-friendly dictionary (Cacheable protocol)."""
         return {
             "tag_slug": self.tag_slug,
             "tag_name": self.tag_name,
@@ -50,15 +55,26 @@ class TagEntry:
             "is_valid": self.is_valid,
         }
 
-    @staticmethod
-    def from_dict(data: dict[str, Any]) -> TagEntry:
-        return TagEntry(
+    @classmethod
+    def from_cache_dict(cls, data: dict[str, Any]) -> TagEntry:
+        """Deserialize from cache dictionary (Cacheable protocol)."""
+        return cls(
             tag_slug=data["tag_slug"],
             tag_name=data["tag_name"],
             page_paths=data["page_paths"],
             updated_at=data["updated_at"],
             is_valid=data.get("is_valid", True),
         )
+
+    # Backward compatibility (deprecated, remove in next minor release)
+    def to_dict(self) -> dict[str, Any]:
+        """Deprecated: Use to_cache_dict() instead."""
+        return self.to_cache_dict()
+
+    @staticmethod
+    def from_dict(data: dict[str, Any]) -> TagEntry:
+        """Deprecated: Use from_cache_dict() instead."""
+        return TagEntry.from_cache_dict(data)
 
 
 class TaxonomyIndex:
