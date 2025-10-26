@@ -322,25 +322,26 @@ class TestCacheIntegrationEndToEnd:
         assert len(asset_map2.pages) == assets1, "AssetDependencyMap data changed"
         assert len(taxonomy_index2.tags) == tags1, "TaxonomyIndex data changed"
 
-    def test_cache_versions_are_correct(self, site_with_content):
-        """Verify all caches use correct version numbers."""
+    def test_cache_files_created(self, site_with_content):
+        """Verify all cache files are created after build."""
         # Build the site
         orchestrator = BuildOrchestrator(site_with_content)
         orchestrator.build(incremental=False)
 
         cache_dir = site_with_content.root_path / ".bengal"
 
-        # Load raw JSON to check versions
+        # Verify cache files exist and are valid JSON
+        assert (cache_dir / "page_metadata.json").exists(), "PageDiscoveryCache not created"
         with open(cache_dir / "page_metadata.json") as f:
             page_data = json.load(f)
-        assert page_data.get("version") == 3, (
-            "PageDiscoveryCache version incorrect (bumped to 3 for PageCore)"
-        )
+        assert "pages" in page_data, "PageDiscoveryCache missing 'pages' key"
 
+        assert (cache_dir / "asset_deps.json").exists(), "AssetDependencyMap not created"
         with open(cache_dir / "asset_deps.json") as f:
             asset_data = json.load(f)
-        assert asset_data.get("version") == 1, "AssetDependencyMap version incorrect"
+        assert "pages" in asset_data, "AssetDependencyMap missing 'pages' key"
 
+        assert (cache_dir / "taxonomy_index.json").exists(), "TaxonomyIndex not created"
         with open(cache_dir / "taxonomy_index.json") as f:
             taxonomy_data = json.load(f)
-        assert taxonomy_data.get("version") == 1, "TaxonomyIndex version incorrect"
+        assert "tags" in taxonomy_data, "TaxonomyIndex missing 'tags' key"

@@ -76,7 +76,6 @@ class PageDiscoveryCache:
 
     Cache Format (JSON):
     {
-        "version": 3,
         "pages": {
             "content/index.md": {
                 "metadata": {
@@ -90,11 +89,9 @@ class PageDiscoveryCache:
         }
     }
 
-    Note: Version is bumped when cache format changes. No migration - old caches
-    are invalidated and rebuilt from scratch.
+    Note: If cache format changes, load will fail and cache rebuilds automatically.
     """
 
-    VERSION = 3
     CACHE_FILE = ".bengal/page_metadata.json"
 
     def __init__(self, cache_path: Path | None = None):
@@ -120,17 +117,7 @@ class PageDiscoveryCache:
             with open(self.cache_path) as f:
                 data = json.load(f)
 
-            # Validate version
-            if data.get("version") != self.VERSION:
-                logger.warning(
-                    "page_discovery_cache_version_mismatch",
-                    expected=self.VERSION,
-                    found=data.get("version"),
-                )
-                self.pages = {}
-                return
-
-            # Load cache entries
+            # Load cache entries (no version check - just fail and rebuild if format changed)
             for path_str, entry_data in data.get("pages", {}).items():
                 self.pages[path_str] = PageDiscoveryCacheEntry.from_dict(entry_data)
 
@@ -153,7 +140,6 @@ class PageDiscoveryCache:
             self.cache_path.parent.mkdir(parents=True, exist_ok=True)
 
             data = {
-                "version": self.VERSION,
                 "pages": {path: entry.to_dict() for path, entry in self.pages.items()},
             }
 
