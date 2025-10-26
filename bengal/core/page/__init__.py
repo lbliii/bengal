@@ -88,12 +88,14 @@ class Page(
     _global_missing_section_warnings: ClassVar[dict[str, int]] = {}
     _MAX_WARNING_KEYS: ClassVar[int] = 100
 
-    # PageCore: Cacheable metadata (single source of truth for Page/PageMetadata/PageProxy)
-    # This field holds all cacheable page metadata. Making it optional initially
-    # for incremental migration - will become required once all instantiation updated.
-    core: PageCore | None = None
-
+    # Required field (no default)
     source_path: Path
+
+    # PageCore: Cacheable metadata (single source of truth for Page/PageMetadata/PageProxy)
+    # Auto-created in __post_init__ from Page fields for backward compatibility
+    core: PageCore = field(default=None, init=False)
+
+    # Optional fields (with defaults)
     content: str = ""
     metadata: dict[str, Any] = field(default_factory=dict)
     parsed_ast: Any | None = None
@@ -120,10 +122,35 @@ class Page(
     _toc_items_cache: list[dict[str, Any]] | None = field(default=None, repr=False, init=False)
 
     def __post_init__(self) -> None:
-        """Initialize computed fields."""
+        """Initialize computed fields and PageCore."""
         if self.metadata:
             self.tags = self.metadata.get("tags", [])
             self.version = self.metadata.get("version")
+
+        # Auto-create PageCore from Page fields
+        # This provides backward compatibility until all instantiation updated
+        self._init_core_from_fields()
+
+    def _init_core_from_fields(self) -> None:
+        """
+        Initialize PageCore from Page fields (backward compatibility helper).
+
+        This allows existing code that creates Page objects without passing
+        core to continue working. Once all instantiation is updated, this
+        can be removed and core made required.
+        """
+        self.core = PageCore(
+            source_path=str(self.source_path),  # Convert Path to str
+            title=self.metadata.get("title", ""),
+            date=self.metadata.get("date"),
+            tags=self.tags or [],
+            slug=self.metadata.get("slug"),
+            weight=self.metadata.get("weight"),
+            lang=self.lang,
+            type=self.metadata.get("type"),
+            section=str(self._section_path) if self._section_path else None,
+            file_hash=None,  # Will be populated during caching
+        )
 
     def __hash__(self) -> int:
         """
