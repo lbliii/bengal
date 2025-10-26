@@ -66,16 +66,6 @@ class TagEntry(Cacheable):
             is_valid=data.get("is_valid", True),
         )
 
-    # Backward compatibility (deprecated, remove in next minor release)
-    def to_dict(self) -> dict[str, Any]:
-        """Deprecated: Use to_cache_dict() instead."""
-        return self.to_cache_dict()
-
-    @staticmethod
-    def from_dict(data: dict[str, Any]) -> TagEntry:
-        """Deprecated: Use from_cache_dict() instead."""
-        return TagEntry.from_cache_dict(data)
-
 
 class TaxonomyIndex:
     """
@@ -140,7 +130,7 @@ class TaxonomyIndex:
 
             # Load tag entries
             for tag_slug, entry_data in data.get("tags", {}).items():
-                self.tags[tag_slug] = TagEntry.from_dict(entry_data)
+                self.tags[tag_slug] = TagEntry.from_cache_dict(entry_data)
 
             logger.info(
                 "taxonomy_index_loaded",
@@ -162,7 +152,7 @@ class TaxonomyIndex:
 
             data = {
                 "version": self.VERSION,
-                "tags": {tag_slug: entry.to_dict() for tag_slug, entry in self.tags.items()},
+                "tags": {tag_slug: entry.to_cache_dict() for tag_slug, entry in self.tags.items()},
             }
 
             with open(self.cache_path, "w") as f:
@@ -399,5 +389,5 @@ class TaxonomyIndex:
             "total_unique_pages": len(unique_pages),
             "total_page_tag_pairs": total_page_tag_pairs,
             "avg_tags_per_page": avg_tags_per_page,
-            "cache_size_bytes": len(json.dumps([e.to_dict() for e in self.tags.values()])),
+            "cache_size_bytes": len(json.dumps([e.to_cache_dict() for e in self.tags.values()])),
         }
