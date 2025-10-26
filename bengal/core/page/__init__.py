@@ -131,13 +131,6 @@ class Page(
         # This provides backward compatibility until all instantiation updated
         self._init_core_from_fields()
 
-        # Validation: Ensure core was initialized successfully
-        if self.core is None:
-            raise ValueError(
-                f"PageCore initialization failed for {self.source_path}. "
-                "This should never happen - please report as a bug."
-            )
-
     def _init_core_from_fields(self) -> None:
         """
         Initialize PageCore from Page fields (backward compatibility helper).
@@ -168,6 +161,8 @@ class Page(
 
         This should be called before caching to ensure all paths are relative
         to the site root, preventing absolute path leakage into cache.
+
+        Note: Directly mutates self.core.source_path since dataclasses are mutable.
         """
         if not self._site or not self.core:
             return
@@ -177,23 +172,10 @@ class Page(
         if Path(source_path_str).is_absolute():
             try:
                 rel_path = Path(source_path_str).relative_to(self._site.root_path)
-                source_path_str = str(rel_path)
+                # Directly update the field - no need to recreate entire PageCore
+                self.core.source_path = str(rel_path)
             except (ValueError, AttributeError):
                 pass  # Keep absolute if not under root
-
-        # Recreate PageCore with normalized paths
-        self.core = PageCore(
-            source_path=source_path_str,
-            title=self.core.title,
-            date=self.core.date,
-            tags=self.core.tags,
-            slug=self.core.slug,
-            weight=self.core.weight,
-            lang=self.core.lang,
-            type=self.core.type,
-            section=self.core.section,
-            file_hash=self.core.file_hash,
-        )
 
     def __hash__(self) -> int:
         """
