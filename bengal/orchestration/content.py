@@ -5,7 +5,6 @@ Handles content and asset discovery, page/section reference setup,
 and cascading frontmatter.
 """
 
-
 from __future__ import annotations
 
 from pathlib import Path
@@ -100,6 +99,11 @@ class ContentOrchestrator:
             proxies=proxy_count,
             full_pages=full_page_count,
         )
+
+        # Build section registry for path-based lookups (MUST come before _setup_page_references)
+        # This enables O(1) section lookups via page._section property
+        self.site.register_sections()
+        self.logger.debug("section_registry_built")
 
         # Set up page references for navigation
         self._setup_page_references()

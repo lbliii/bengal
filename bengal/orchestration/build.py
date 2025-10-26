@@ -275,17 +275,28 @@ class BuildOrchestrator:
                     self.site.root_path / ".bengal" / "page_metadata.json"
                 )
 
-                # Extract metadata from discovered pages
+                # Extract metadata from discovered pages (AFTER cascades applied)
                 for page in self.site.pages:
+                    # Use relative path format (consistent with ContentDiscovery)
+                    if page.source_path.is_absolute():
+                        try:
+                            rel_path = page.source_path.relative_to(self.site.root_path)
+                            source_path_str = str(rel_path)
+                        except ValueError:
+                            source_path_str = str(page.source_path)
+                    else:
+                        source_path_str = str(page.source_path)
+
                     metadata = PageMetadata(
-                        source_path=str(page.source_path),
+                        source_path=source_path_str,
                         title=page.title,
                         date=page.date.isoformat() if page.date else None,
                         tags=page.tags,
-                        section=str(page._section.path) if page._section else None,
+                        section=str(page._section_path) if page._section_path else None,
                         slug=page.slug,
                         weight=page.metadata.get("weight"),
                         lang=page.lang,
+                        type=page.metadata.get("type"),  # Include cascaded type
                     )
                     page_cache.add_metadata(metadata)
 

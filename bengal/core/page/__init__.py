@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, ClassVar
 
 from .computed import PageComputedMixin
 from .metadata import PageMetadataMixin
@@ -79,6 +79,14 @@ class Page(
         related_posts: Related pages (pre-computed during build based on tag overlap)
     """
 
+    # Class-level warning counter (shared across all Page instances)
+    # This prevents unbounded memory growth in long-running dev servers where
+    # pages are recreated frequently. Warnings are suppressed globally after
+    # the first 3 occurrences per unique warning key.
+    # The dict is bounded to max 100 entries (oldest removed when limit reached).
+    _global_missing_section_warnings: ClassVar[dict[str, int]] = {}
+    _MAX_WARNING_KEYS: ClassVar[int] = 100
+
     source_path: Path
     content: str = ""
     metadata: dict[str, Any] = field(default_factory=dict)
@@ -99,7 +107,8 @@ class Page(
 
     # References for navigation (set during site building)
     _site: Any | None = field(default=None, repr=False)
-    _section: Any | None = field(default=None, repr=False)
+    # Path-based section reference (stable across rebuilds)
+    _section_path: Path | None = field(default=None, repr=False)
 
     # Private cache for lazy toc_items property
     _toc_items_cache: list[dict[str, Any]] | None = field(default=None, repr=False, init=False)
@@ -144,6 +153,110 @@ class Page(
 
     def __repr__(self) -> str:
         return f"Page(title='{self.title}', source='{self.source_path}')"
+
+    @property
+    def _section(self) -> Any | None:
+        """
+        Get the section this page belongs to (lazy lookup via path).
+
+        This property performs a path-based lookup in the site's section registry,
+        enabling stable section references across rebuilds when Section objects
+        are recreated.
+
+        Returns:
+            Section object if found, None if page has no section or section not found
+
+        Implementation Note:
+            Uses counter-gated warnings to prevent log spam when sections are
+            missing (warns first 3 times, shows summary, then silent).
+        """
+        if self._section_path is None:
+            return None
+
+        if self._site is None:
+            # Warn globally about missing site reference (class-level counter)
+            warn_key = "missing_site"
+            if self._global_missing_section_warnings.get(warn_key, 0) < 3:
+                from bengal.utils.logger import get_logger
+
+                logger = get_logger(__name__)
+                logger.warning(
+                    "page_section_lookup_no_site",
+                    page=str(self.source_path),
+                    section_path=str(self._section_path),
+                )
+                # Bound the warning dict to prevent unbounded growth
+                if len(self._global_missing_section_warnings) >= self._MAX_WARNING_KEYS:
+                    # Remove oldest entry (first key in dict)
+                    first_key = next(iter(self._global_missing_section_warnings))
+                    del self._global_missing_section_warnings[first_key]
+                self._global_missing_section_warnings[warn_key] = (
+                    self._global_missing_section_warnings.get(warn_key, 0) + 1
+                )
+            return None
+
+        # Perform O(1) lookup via site registry
+        section = self._site.get_section_by_path(self._section_path)
+
+        if section is None:
+            # Counter-gated warning to prevent log spam (class-level counter)
+            warn_key = str(self._section_path)
+            count = self._global_missing_section_warnings.get(warn_key, 0)
+
+            if count < 3:
+                from bengal.utils.logger import get_logger
+
+                logger = get_logger(__name__)
+                logger.warning(
+                    "page_section_not_found",
+                    page=str(self.source_path),
+                    section_path=str(self._section_path),
+                    count=count + 1,
+                )
+                # Bound the warning dict to prevent unbounded growth
+                if len(self._global_missing_section_warnings) >= self._MAX_WARNING_KEYS:
+                    # Remove oldest entry (first key in dict)
+                    first_key = next(iter(self._global_missing_section_warnings))
+                    del self._global_missing_section_warnings[first_key]
+                self._global_missing_section_warnings[warn_key] = count + 1
+            elif count == 3:
+                # Show summary after 3rd warning, then go silent
+                from bengal.utils.logger import get_logger
+
+                logger = get_logger(__name__)
+                logger.warning(
+                    "page_section_not_found_summary",
+                    page=str(self.source_path),
+                    section_path=str(self._section_path),
+                    total_warnings=count + 1,
+                    note="Further warnings for this section will be suppressed",
+                )
+                # Bound the warning dict to prevent unbounded growth
+                if len(self._global_missing_section_warnings) >= self._MAX_WARNING_KEYS:
+                    # Remove oldest entry (first key in dict)
+                    first_key = next(iter(self._global_missing_section_warnings))
+                    del self._global_missing_section_warnings[first_key]
+                self._global_missing_section_warnings[warn_key] = count + 1
+
+        return section
+
+    @_section.setter
+    def _section(self, value: Any) -> None:
+        """
+        Set the section this page belongs to (stores path, not object).
+
+        This setter extracts the path from the Section object and stores it
+        in _section_path, enabling stable references when Section objects
+        are recreated during incremental rebuilds.
+
+        Args:
+            value: Section object or None
+        """
+        if value is None:
+            self._section_path = None
+        else:
+            # Extract path from Section object
+            self._section_path = value.path
 
 
 __all__ = ["Page", "PageProxy"]

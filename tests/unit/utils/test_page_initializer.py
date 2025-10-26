@@ -31,6 +31,9 @@ class TestPageInitializer:
         site.output_dir = tmp_path / "public"
         site.output_dir.mkdir(parents=True)
         site.config = {"site": {"base_url": "https://example.com"}}
+        # Mock section registry for path-based section lookups
+        site._section_registry = {}
+        site.get_section_by_path = Mock(side_effect=lambda path: site._section_registry.get(path))
         return site
 
     @pytest.fixture
@@ -400,6 +403,9 @@ class TestPageInitializer:
         parent = Section(name="docs", path=tmp_path / "content" / "docs")
         child = Section(name="guides", path=tmp_path / "content" / "docs" / "guides")
         parent.add_subsection(child)
+
+        # Register section in mock site's registry for path-based lookup
+        mock_site._section_registry[child.path] = child
 
         page = Page(
             source_path=tmp_path / "content" / "docs" / "guides" / "intro.md",

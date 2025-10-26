@@ -19,9 +19,24 @@ def temp_site(tmp_path):
 
 
 @pytest.fixture
-def sample_pages():
+def sample_pages(temp_site):
     """Create sample pages for testing."""
+    from unittest.mock import Mock
+
     pages = []
+
+    # Create sections
+    blog_section = Section(name="blog", path=Path("content/blog"))
+    docs_section = Section(name="docs", path=Path("content/docs"))
+
+    # Set up site registry
+    temp_site._section_registry = {
+        blog_section.path: blog_section,
+        docs_section.path: docs_section,
+    }
+    temp_site.get_section_by_path = Mock(
+        side_effect=lambda path: temp_site._section_registry.get(path)
+    )
 
     # Blog posts
     for i in range(3):
@@ -32,10 +47,11 @@ def sample_pages():
                 "title": f"Post {i}",
                 "author": "Jane Smith",
                 "category": "tutorial",
-                "date": f"2024-01-{i+10}",
+                "date": f"2024-01-{i + 10}",
             },
         )
-        page._section = Section(name="blog", path=Path("content/blog"))
+        page._site = temp_site
+        page._section = blog_section  # This stores the path
         pages.append(page)
 
     # Docs pages
@@ -47,10 +63,11 @@ def sample_pages():
                 "title": f"Doc {i}",
                 "author": "Bob Jones",
                 "category": "guide",
-                "date": f"2024-02-{i+10}",
+                "date": f"2024-02-{i + 10}",
             },
         )
-        page._section = Section(name="docs", path=Path("content/docs"))
+        page._site = temp_site
+        page._section = docs_section  # This stores the path
         pages.append(page)
 
     return pages
@@ -110,7 +127,7 @@ class TestQueryIndexRegistry:
         registry = QueryIndexRegistry(temp_site, cache_dir)
 
         with pytest.raises(AttributeError):
-            registry.nonexistent_index
+            _ = registry.nonexistent_index
 
     def test_build_all(self, temp_site, sample_pages, tmp_path):
         """Test building all indexes."""
@@ -236,4 +253,3 @@ class TestQueryIndexRegistry:
         jane_pages = registry.author.get("Jane")
         assert len(jane_pages) == 1
         assert str(page2.source_path) not in jane_pages
-

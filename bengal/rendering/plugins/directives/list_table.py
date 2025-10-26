@@ -140,14 +140,14 @@ class ListTableDirective(DirectivePlugin):
                 cell_content = re.sub(r"^  -\s*", "", line).strip()
                 current_cell_lines = [cell_content] if cell_content else []
 
+            # Blank line inside a cell - preserve for paragraph breaks
+            elif not stripped and current_cell_lines:
+                current_cell_lines.append("")  # Blank line for paragraph break
+
             # Continuation line (must be indented with 4+ spaces)
             elif line.startswith("    ") and current_cell_lines:
                 content = line[4:]  # Remove 4-space indent
-                # Preserve blank lines for paragraph breaks
-                if not content.strip():
-                    current_cell_lines.append("")  # Blank line for paragraph break
-                else:
-                    current_cell_lines.append(content)
+                current_cell_lines.append(content)
 
             # Empty line outside of cells - skip
             elif not stripped:

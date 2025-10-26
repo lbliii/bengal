@@ -122,6 +122,7 @@ class BuildHandler(FileSystemEventHandler):
             ".DS_Store",
             ".bengal-cache.json",
             ".bengal-build.log",
+            ".bengal-serve.log",  # Dev server log (prevents rebuild loops)
         }
 
         # Ignore when file lives under these directories anywhere in the path

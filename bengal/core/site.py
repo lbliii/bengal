@@ -101,6 +101,9 @@ class Site:
     _theme_obj: Theme | None = field(default=None, repr=False, init=False)
     _query_registry: Any = field(default=None, repr=False, init=False)
 
+    # Section registry for path-based lookups (O(1) section access by path)
+    _section_registry: dict[Path, Section] = field(default_factory=dict, repr=False, init=False)
+
     def __post_init__(self) -> None:
         """Initialize site from configuration."""
         # Ensure root_path is a Path object
@@ -426,6 +429,9 @@ class Site:
 
         discovery = ContentDiscovery(content_dir, site=self)
         self.sections, self.pages = discovery.discover()
+
+        # Build section registry for path-based lookups (MUST come before _setup_page_references)
+        self.register_sections()
 
         # Set up page references for navigation
         self._setup_page_references()
@@ -797,3 +803,158 @@ class Site:
 
         # Cached properties
         self.invalidate_regular_pages_cache()
+
+        # Section registry (rebuilt from sections)
+        self._section_registry = {}
+
+    def _normalize_section_path(self, path: Path) -> Path:
+        """
+        Normalize a section path for registry lookups.
+
+        Normalization ensures consistent lookups across platforms:
+        - Resolves symlinks to canonical paths
+        - Makes path relative to content/ directory
+        - Lowercases on case-insensitive filesystems (macOS, Windows)
+
+        Args:
+            path: Absolute or relative section path
+
+        Returns:
+            Normalized path suitable for registry keys
+
+        Examples:
+            /site/content/blog → blog
+            /site/content/docs/guides → docs/guides
+            content/BLOG → blog (on macOS/Windows)
+        """
+        import platform
+
+        # Resolve symlinks to canonical path
+        resolved = path.resolve()
+
+        # Make relative to content/ directory
+        content_dir = (self.root_path / "content").resolve()
+        try:
+            relative = resolved.relative_to(content_dir)
+        except ValueError:
+            # Path not under content/, use as-is
+            relative = resolved
+
+        # Lowercase on case-insensitive filesystems (macOS, Windows)
+        system = platform.system()
+        if system in ("Darwin", "Windows"):
+            # Convert to lowercase string then back to Path
+            relative = Path(str(relative).lower())
+
+        return relative
+
+    def get_section_by_path(self, path: Path | str) -> Section | None:
+        """
+        Look up a section by its path (O(1) operation).
+
+        Uses the section registry for fast lookups without scanning the section tree.
+        Paths are normalized before lookup to handle case-insensitive filesystems
+        and symlinks consistently.
+
+        Args:
+            path: Section path (absolute, relative to content/, or relative to root)
+
+        Returns:
+            Section object if found, None otherwise
+
+        Examples:
+            >>> section = site.get_section_by_path("blog")
+            >>> section = site.get_section_by_path("docs/guides")
+            >>> section = site.get_section_by_path(Path("/site/content/blog"))
+
+        Performance:
+            O(1) lookup after registry is built (via register_sections)
+        """
+        if isinstance(path, str):
+            path = Path(path)
+
+        # Handle relative paths that might be relative to root_path
+        if not path.is_absolute():
+            # Try as relative to content/ first
+            content_relative = self.root_path / "content" / path
+            if content_relative.exists():
+                path = content_relative
+            else:
+                # Try as relative to root_path
+                root_relative = self.root_path / path
+                if root_relative.exists():
+                    path = root_relative
+
+        normalized = self._normalize_section_path(path)
+        section = self._section_registry.get(normalized)
+
+        if section is None:
+            logger.debug(
+                "section_not_found_in_registry",
+                path=str(path),
+                normalized=str(normalized),
+                registry_size=len(self._section_registry),
+            )
+
+        return section
+
+    def register_sections(self) -> None:
+        """
+        Build the section registry for path-based lookups.
+
+        Scans all sections recursively and populates _section_registry with
+        normalized path → Section mappings. This enables O(1) section lookups
+        without scanning the section hierarchy.
+
+        Must be called after discover_content() and before any code that uses
+        get_section_by_path() or page._section property.
+
+        Build ordering invariant:
+            1. discover_content()       → Creates Page/Section objects
+            2. register_sections()      → Builds path→section registry (THIS)
+            3. setup_page_references()  → Sets page._section via property setter
+            4. apply_cascades()         → Lookups resolve via registry
+            5. generate_urls()          → Uses correct section hierarchy
+
+        Performance:
+            O(n) where n = number of sections. Typical: < 10ms for 1000 sections.
+
+        Examples:
+            >>> site.discover_content()
+            >>> site.register_sections()  # Build registry
+            >>> section = site.get_section_by_path("blog")  # O(1) lookup
+        """
+        import time
+
+        start = time.time()
+        self._section_registry = {}
+
+        # Register all sections recursively
+        for section in self.sections:
+            self._register_section_recursive(section)
+
+        elapsed_ms = (time.time() - start) * 1000
+
+        logger.debug(
+            "section_registry_built",
+            sections_registered=len(self._section_registry),
+            elapsed_ms=f"{elapsed_ms:.2f}",
+            avg_us_per_section=f"{(elapsed_ms * 1000 / len(self._section_registry)):.2f}"
+            if self._section_registry
+            else "0",
+        )
+
+    def _register_section_recursive(self, section: Section) -> None:
+        """
+        Recursively register a section and its subsections in the registry.
+
+        Args:
+            section: Section to register (along with all its subsections)
+        """
+        # Register this section
+        normalized = self._normalize_section_path(section.path)
+        self._section_registry[normalized] = section
+
+        # Register subsections recursively
+        for subsection in section.subsections:
+            self._register_section_recursive(subsection)
