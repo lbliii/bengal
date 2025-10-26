@@ -42,6 +42,9 @@ FEATURE_MAPPINGS: dict[str, dict[str, Any]] = {
         "minify_html": True,
         "html_output.mode": "minify",
     },
+    "syntax_highlighting": {
+        "syntax_highlighting.enabled": True,
+    },
 }
 
 
