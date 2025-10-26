@@ -147,6 +147,16 @@ class DevServer:
             except Exception:
                 pass  # Cache might not be initialized yet, ignore
 
+            # Initialize reload controller baseline after initial build
+            # This prevents the first file change from being treated as "baseline" (which skips reload)
+            try:
+                from bengal.server.reload_controller import controller
+
+                controller.decide_and_update(self.site.output_dir)
+                logger.debug("reload_controller_baseline_initialized")
+            except Exception as e:
+                logger.warning("reload_controller_init_failed", error=str(e))
+
             # 4. Create and register PID file for this process
             pid_file = PIDManager.get_pid_file(self.site.root_path)
             PIDManager.write_pid_file(pid_file)
