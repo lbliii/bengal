@@ -285,17 +285,35 @@ class TestIncrementalUpdates:
 
     def test_page_moved_between_keys(self, build_cache, temp_cache_path):
         """Test page moving from one key to another."""
+        from unittest.mock import Mock
+
+        from bengal.core.site import Site
+
         index = SectionIndex(temp_cache_path)
 
+        # Create a mock site with section registry
+        mock_site = Mock(spec=Site)
+        mock_site._section_registry = {}
+        mock_site.get_section_by_path = Mock(
+            side_effect=lambda path: mock_site._section_registry.get(path)
+        )
+
         # First update - page in 'blog'
+        blog_section = Section(name="blog", path=Path("content/blog"))
+        mock_site._section_registry[blog_section.path] = blog_section
+
         page = Page(source_path=Path("content/post.md"), content="Test")
-        page._section = Section(name="blog", path=Path("content/blog"))
+        page._site = mock_site
+        page._section = blog_section  # This stores the path
         index.update_page(page, build_cache)
 
         assert str(page.source_path) in index.get("blog")
 
         # Second update - page moved to 'docs'
-        page._section = Section(name="docs", path=Path("content/docs"))
+        docs_section = Section(name="docs", path=Path("content/docs"))
+        mock_site._section_registry[docs_section.path] = docs_section
+
+        page._section = docs_section  # This updates the path
         affected = index.update_page(page, build_cache)
 
         assert "blog" in affected  # Removed from blog

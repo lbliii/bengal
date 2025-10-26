@@ -136,7 +136,6 @@ class TestLazyLoadingDiscovery:
         sections2, pages2 = discovery2.discover(use_cache=True, cache=cache)
 
         # Should have mix of Page and PageProxy
-        page_count = sum(1 for p in pages2 if isinstance(p, Page) and not isinstance(p, PageProxy))
         proxy_count = sum(1 for p in pages2 if isinstance(p, PageProxy))
 
         # We should have proxies (unchanged pages)
@@ -154,6 +153,10 @@ class TestLazyLoadingDiscovery:
         # Get one page
         page = full_pages[0]
 
+        # Register sections so paths can be resolved
+        site.sections = sections
+        site.register_sections()
+
         # Build cache
         cache = PageDiscoveryCache(tmpdir_path / ".bengal" / "page_metadata.json")
         for p in full_pages:
@@ -162,7 +165,8 @@ class TestLazyLoadingDiscovery:
                 title=p.title,
                 date=p.date.isoformat() if p.date else None,
                 tags=p.tags,
-                section=str(p._section.path) if p._section else None,
+                # Store the section path directly (what's actually in _section_path)
+                section=str(p._section_path) if p._section_path else None,
                 slug=p.slug,
             )
             cache.add_metadata(metadata)
@@ -267,7 +271,7 @@ class TestLazyLoadingIntegration:
         assert len(page_dict) == len(pages2)
 
         # Test iteration works
-        for i, page in enumerate(pages2):
+        for _i, page in enumerate(pages2):
             assert page.source_path.exists()
 
 

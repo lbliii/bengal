@@ -21,7 +21,7 @@ class TestPageDeduplicationInBuilds:
         added to pages_to_build during incremental builds.
 
         This tests the optimization in BuildOrchestrator (build.py line 295-306).
-        
+
         Note: This uses set operations which provide O(1) lookup vs O(n) for lists.
         The performance benefit is validated by real-world usage, not timing tests.
         """
@@ -59,6 +59,7 @@ class TestPageDeduplicationInBuilds:
         final_pages = list(pages_set)
         assert len(final_pages) == 2
 
+
 class TestSectionTrackingInBuilds:
     """Test section tracking using sets in incremental builds."""
 
@@ -68,10 +69,26 @@ class TestSectionTrackingInBuilds:
 
         This tests the optimization in IncrementalOrchestrator (incremental.py line 249).
         """
+        from unittest.mock import Mock
+
+        from bengal.core.site import Site
+
+        # Create a mock site with section registry
+        mock_site = Mock(spec=Site)
+        mock_site._section_registry = {}
+        mock_site.get_section_by_path = Mock(
+            side_effect=lambda path: mock_site._section_registry.get(path)
+        )
+
         # Create sections
         blog_section = Section(name="blog", path=tmp_path / "blog")
         docs_section = Section(name="docs", path=tmp_path / "docs")
         tutorials_section = Section(name="tutorials", path=tmp_path / "tutorials")
+
+        # Register sections
+        mock_site._section_registry[blog_section.path] = blog_section
+        mock_site._section_registry[docs_section.path] = docs_section
+        mock_site._section_registry[tutorials_section.path] = tutorials_section
 
         # Create pages in sections
         pages = [
@@ -83,7 +100,11 @@ class TestSectionTrackingInBuilds:
             Page(source_path=tmp_path / "docs/guide2.md"),
         ]
 
-        # Assign pages to sections
+        # Set up pages with site and sections
+        for page in pages:
+            page._site = mock_site
+
+        # Assign pages to sections (stores paths)
         pages[0]._section = blog_section
         pages[1]._section = blog_section
         pages[2]._section = docs_section

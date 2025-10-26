@@ -467,6 +467,10 @@ class ContentDiscovery:
                 metadata=metadata,
             )
 
+            # Set site reference for path-based section lookups
+            if self.site is not None:
+                page._site = self.site
+
             # Attach section relationship post-construction when provided
             if section is not None:
                 page._section = section
