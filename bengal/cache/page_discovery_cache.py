@@ -20,40 +20,22 @@ Performance Impact:
 from __future__ import annotations
 
 import json
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from bengal.core.page.page_core import PageCore
 from bengal.utils.atomic_write import AtomicFile
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
 
-@dataclass
-class PageMetadata:
-    """Minimal page metadata needed for navigation and filtering."""
-
-    source_path: str  # Path to source file
-    title: str  # Page title
-    date: str | None = None  # Publication date (ISO format)
-    tags: list[str] = field(default_factory=list)  # Associated tags
-    section: str | None = None  # Section path
-    slug: str | None = None  # URL slug
-    weight: int | None = None  # Sort weight in section
-    lang: str | None = None  # Language code for i18n
-    file_hash: str | None = None  # Hash of source file for validation
-    type: str | None = None  # Page type (cascaded from section)
-
-    def to_dict(self) -> dict[str, Any]:
-        """Convert to dictionary for JSON serialization."""
-        return asdict(self)
-
-    @staticmethod
-    def from_dict(data: dict[str, Any]) -> PageMetadata:
-        """Create from dictionary."""
-        return PageMetadata(**data)
+# PageMetadata IS PageCore - no field duplication!
+# This type alias eliminates ~40 lines of duplicate field definitions.
+# All fields are defined once in PageCore and automatically available here.
+PageMetadata = PageCore
 
 
 @dataclass
@@ -66,14 +48,15 @@ class PageDiscoveryCacheEntry:
 
     def to_dict(self) -> dict[str, Any]:
         return {
-            "metadata": self.metadata.to_dict(),
+            "metadata": asdict(self.metadata),  # asdict() works directly with PageCore
             "cached_at": self.cached_at,
             "is_valid": self.is_valid,
         }
 
     @staticmethod
     def from_dict(data: dict[str, Any]) -> PageDiscoveryCacheEntry:
-        metadata = PageMetadata.from_dict(data["metadata"])
+        # PageMetadata = PageCore, so PageCore(**data) works
+        metadata = PageCore(**data["metadata"])
         return PageDiscoveryCacheEntry(
             metadata=metadata,
             cached_at=data["cached_at"],

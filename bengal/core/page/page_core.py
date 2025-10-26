@@ -34,11 +34,10 @@ What Goes in PageCore?
 
 Example Usage:
     # Creating a PageCore
-    from pathlib import Path
     from datetime import datetime
 
     core = PageCore(
-        source_path=Path("content/posts/my-post.md"),
+        source_path="content/posts/my-post.md",  # String path for JSON compatibility
         title="My Post",
         date=datetime(2025, 10, 26),
         tags=["python", "web"],
@@ -107,7 +106,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from pathlib import Path
 
 
 @dataclass
@@ -176,7 +174,7 @@ class PageCore:
     """
 
     # Required fields
-    source_path: Path  # Path to source file (cache key)
+    source_path: str  # Path to source file (cache key, stored as string for JSON)
     title: str  # Page title (frontmatter or filename)
 
     # Frontmatter fields (optional)
@@ -201,10 +199,6 @@ class PageCore:
 
         This runs automatically after dataclass initialization.
         """
-        # Ensure source_path is a Path object
-        if not isinstance(self.source_path, Path):
-            self.source_path = Path(self.source_path)
-
         # Ensure title is not empty
         if not self.title:
             self.title = "Untitled"

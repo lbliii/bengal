@@ -64,12 +64,14 @@ class TestPageMetadata:
 
     def test_to_dict(self):
         """Test converting PageMetadata to dictionary."""
+        from dataclasses import asdict
+
         metadata = PageMetadata(
             source_path="content/index.md",
             title="Home",
             tags=["nav"],
         )
-        data = metadata.to_dict()
+        data = asdict(metadata)  # Use asdict() instead of .to_dict()
         assert data["source_path"] == "content/index.md"
         assert data["title"] == "Home"
         assert data["tags"] == ["nav"]
@@ -87,7 +89,7 @@ class TestPageMetadata:
             "lang": None,
             "file_hash": None,
         }
-        metadata = PageMetadata.from_dict(data)
+        metadata = PageMetadata(**data)  # Use PageCore(**data) instead of .from_dict()
         assert metadata.source_path == "content/index.md"
         assert metadata.title == "Home"
 
