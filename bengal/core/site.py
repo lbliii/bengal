@@ -430,6 +430,9 @@ class Site:
         discovery = ContentDiscovery(content_dir, site=self)
         self.sections, self.pages = discovery.discover()
 
+        # Build section registry for path-based lookups (MUST come before _setup_page_references)
+        self.register_sections()
+
         # Set up page references for navigation
         self._setup_page_references()
 
