@@ -5,7 +5,6 @@ Provides type-safe configuration validation with helpful error messages,
 following Bengal's minimal dependencies and single-responsibility principles.
 """
 
-
 from __future__ import annotations
 
 from pathlib import Path
@@ -50,6 +49,7 @@ class ConfigValidator:
         "strict_mode",
         "debug",
         "validate_build",
+        "stable_section_references",  # Path-based section references
         "expose_metadata_json",  # Opt-in JSON bootstrap in head
     }
 

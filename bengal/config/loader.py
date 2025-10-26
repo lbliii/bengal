@@ -402,6 +402,7 @@ class ConfigLoader:
             "strict_mode": False,  # Fail on template errors instead of fallback
             "debug": False,  # Show verbose debug output and tracebacks
             "validate_build": True,  # Run post-build health checks
+            "stable_section_references": True,  # Use path-based section references (rollback safety)
             "min_page_size": 1000,  # Minimum expected page size in bytes
             # Theme configuration
             "theme": {
