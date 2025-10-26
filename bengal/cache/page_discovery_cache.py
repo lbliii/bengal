@@ -76,7 +76,7 @@ class PageDiscoveryCache:
 
     Cache Format (JSON):
     {
-        "version": 1,
+        "version": 3,
         "pages": {
             "content/index.md": {
                 "metadata": {
@@ -89,9 +89,12 @@ class PageDiscoveryCache:
             }
         }
     }
+
+    Note: Version is bumped when cache format changes. No migration - old caches
+    are invalidated and rebuilt from scratch.
     """
 
-    VERSION = 3  # Bumped for cascaded metadata storage (type field)
+    VERSION = 3
     CACHE_FILE = ".bengal/page_metadata.json"
 
     def __init__(self, cache_path: Path | None = None):
