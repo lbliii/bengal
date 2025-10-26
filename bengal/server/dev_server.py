@@ -139,6 +139,14 @@ class DevServer:
                 duration_ms=stats.build_time_ms,
             )
 
+            # Clear HTML cache after initial build to ensure fresh pages with live reload script
+            try:
+                with BengalRequestHandler._html_cache_lock:
+                    BengalRequestHandler._html_cache.clear()
+                logger.debug("html_cache_cleared_after_initial_build")
+            except Exception:
+                pass  # Cache might not be initialized yet, ignore
+
             # 4. Create and register PID file for this process
             pid_file = PIDManager.get_pid_file(self.site.root_path)
             PIDManager.write_pid_file(pid_file)
