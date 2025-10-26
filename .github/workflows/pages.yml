@@ -29,19 +29,11 @@ jobs:
       - name: Install bengal
         run: pip install -e .
 
-      - name: Compute baseurl for GitHub Pages
-        id: baseurl
-        run: |
-          REPO=${GITHUB_REPOSITORY#*/}
-          OWNER=${GITHUB_REPOSITORY%/*}
-          echo "baseurl=https://${OWNER}.github.io/${REPO}" >> $GITHUB_OUTPUT
-
       - name: Build site
         working-directory: site
         run: python -m bengal.cli site build --autodoc
         env:
           PYTHON_GIL: 0
-          BENGAL_BASEURL: ${{ steps.baseurl.outputs.baseurl }}
 
       - name: Add .nojekyll
         run: touch site/public/.nojekyll
