@@ -330,6 +330,36 @@ class PageProxy:
         return self._full_page.keywords if self._full_page else []
 
     # ============================================================================
+    # Navigation Properties - Section relationships
+    # ============================================================================
+
+    @property
+    def parent(self) -> Any:
+        """
+        Get the parent section of this page.
+
+        Returns parent section without forcing full page load (uses _section).
+        """
+        return self._section
+
+    @property
+    def ancestors(self) -> list[Any]:
+        """
+        Get all ancestor sections of this page.
+
+        Returns list of ancestor sections from immediate parent to root
+        without forcing full page load (uses _section property).
+        """
+        result = []
+        current = self._section
+
+        while current:
+            result.append(current)
+            current = getattr(current, "parent", None)
+
+        return result
+
+    # ============================================================================
     # Type/Kind Properties - Metadata-based type checking
     # ============================================================================
 
