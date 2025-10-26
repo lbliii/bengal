@@ -5,6 +5,25 @@
 content:
   # Default content type for documentation site
   default_type: "doc"
-
-  # Future: customize excerpt length, reading speed, etc.
-  # See config.example/_default/content.yaml for all options
+  
+  # Excerpt & Summaries
+  excerpt_length: 200        # Characters for page.excerpt
+  summary_length: 160        # Characters for page.meta_description (SEO)
+  
+  # Reading Time
+  reading_speed: 200         # Words per minute for calculation
+  
+  # Related Content
+  related_count: 5           # Number of related pages to compute
+  related_threshold: 0.25    # Minimum tag similarity (0.0-1.0)
+  
+  # Table of Contents
+  toc_depth: 4               # Maximum heading depth (1-6) - deeper for docs
+  toc_min_headings: 2        # Minimum headings before generating TOC
+  toc_style: "nested"        # Structure: "nested" or "flat"
+  
+  # Content Organization
+  sort_pages_by: "weight"    # Options: "weight", "date", "title", "modified"
+  sort_order: "asc"          # Options: "asc", "desc"
+  
+# See config.example/_default/content.yaml for all available options
