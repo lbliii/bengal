@@ -24,7 +24,6 @@ Asset Types Tracked:
 - Other: data URLs, imports, includes
 """
 
-
 from __future__ import annotations
 
 import json
@@ -33,6 +32,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from bengal.cache.cacheable import Cacheable
 from bengal.utils.atomic_write import AtomicFile
 from bengal.utils.logger import get_logger
 
@@ -49,23 +49,29 @@ class AssetReference:
 
 
 @dataclass
-class AssetDependencyEntry:
-    """Cache entry for asset dependencies."""
+class AssetDependencyEntry(Cacheable):
+    """
+    Cache entry for asset dependencies.
+
+    Implements the Cacheable protocol for type-safe serialization.
+    """
 
     assets: set[str]  # Set of asset URLs/paths
     tracked_at: str  # ISO timestamp when tracked
     is_valid: bool = True  # Whether entry is still valid
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_cache_dict(self) -> dict[str, Any]:
+        """Serialize to cache-friendly dictionary (Cacheable protocol)."""
         return {
             "assets": sorted(list(self.assets)),  # Sort for consistency
             "tracked_at": self.tracked_at,
             "is_valid": self.is_valid,
         }
 
-    @staticmethod
-    def from_dict(data: dict[str, Any]) -> AssetDependencyEntry:
-        return AssetDependencyEntry(
+    @classmethod
+    def from_cache_dict(cls, data: dict[str, Any]) -> AssetDependencyEntry:
+        """Deserialize from cache dictionary (Cacheable protocol)."""
+        return cls(
             assets=set(data["assets"]),
             tracked_at=data["tracked_at"],
             is_valid=data.get("is_valid", True),
@@ -137,7 +143,7 @@ class AssetDependencyMap:
 
             # Load dependency entries
             for path_str, entry_data in data.get("pages", {}).items():
-                self.pages[path_str] = AssetDependencyEntry.from_dict(entry_data)
+                self.pages[path_str] = AssetDependencyEntry.from_cache_dict(entry_data)
 
             logger.info(
                 "asset_dependency_map_loaded",
@@ -159,7 +165,7 @@ class AssetDependencyMap:
 
             data = {
                 "version": self.VERSION,
-                "pages": {path: entry.to_dict() for path, entry in self.pages.items()},
+                "pages": {path: entry.to_cache_dict() for path, entry in self.pages.items()},
             }
 
             # Atomic write to avoid partial/corrupt files on crash
@@ -325,7 +331,7 @@ class AssetDependencyMap:
             "invalid_pages": invalid,
             "unique_assets": len(all_assets),
             "avg_assets_per_page": avg_assets,
-            "cache_size_bytes": len(json.dumps([e.to_dict() for e in self.pages.values()])),
+            "cache_size_bytes": len(json.dumps([e.to_cache_dict() for e in self.pages.values()])),
         }
 
     def get_asset_pages(self, asset_url: str) -> set[str]:
