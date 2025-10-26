@@ -322,3 +322,106 @@ Content for post {i + 10}.
         _ = page._section
         lookup_elapsed = time.perf_counter() - lookup_start
         assert lookup_elapsed < 0.001, f"Lookup too slow: {lookup_elapsed:.6f}s"
+
+
+def test_section_rename_treated_as_delete_create(test_site_dir):
+    """Test that section rename/move triggers graceful degradation."""
+    # Initial build
+    site = Site.from_config(test_site_dir)
+    site.discover_content()
+
+    # Get initial blog posts
+    blog_posts = [p for p in site.pages if "blog" in str(p.source_path)]
+    assert len(blog_posts) >= 2
+
+    # Verify pages have section references
+    for post in blog_posts:
+        assert post._section is not None
+        assert post._section.name == "blog"
+
+    # Simulate section rename (move blog to articles)
+    blog_dir = test_site_dir / "content" / "blog"
+    articles_dir = test_site_dir / "content" / "articles"
+    blog_dir.rename(articles_dir)
+
+    # Rebuild - this should handle the missing section gracefully
+    site.reset_ephemeral_state()
+    site.discover_content()
+
+    # Find the posts in their new location
+    articles_posts = [p for p in site.pages if "articles" in str(p.source_path)]
+    assert len(articles_posts) >= 2
+
+    # Posts should now have the new section
+    articles_section = next(s for s in site.sections if s.name == "articles")
+    for post in articles_posts:
+        assert post._section == articles_section
+
+
+def test_section_move_detection(test_site_dir):
+    """Test that moved sections are detected and handled correctly."""
+    # Initial build
+    site = Site.from_config(test_site_dir)
+    site.discover_content()
+
+    initial_sections = {s.name for s in site.sections}
+    assert "blog" in initial_sections
+    assert "docs" in initial_sections
+
+    # Create a new nested structure
+    archive_dir = test_site_dir / "content" / "archive"
+    archive_dir.mkdir()
+    (archive_dir / "_index.md").write_text("""---
+title: Archive
+---
+
+Archive section.
+""")
+
+    # Move blog into archive
+    blog_dir = test_site_dir / "content" / "blog"
+    archived_blog = archive_dir / "blog"
+    blog_dir.rename(archived_blog)
+
+    # Rebuild
+    site.reset_ephemeral_state()
+    site.discover_content()
+
+    # Verify new structure
+    archive_section = next((s for s in site.sections if s.name == "archive"), None)
+    assert archive_section is not None
+
+    # Blog should now be a subsection of archive
+    blog_subsection = next((s for s in archive_section.subsections if s.name == "blog"), None)
+    assert blog_subsection is not None
+
+    # Blog posts should reference the moved section
+    blog_posts = [p for p in site.pages if "blog" in str(p.source_path)]
+    for post in blog_posts:
+        assert post._section == blog_subsection
+
+
+def test_section_delete_graceful_fallback(test_site_dir):
+    """Test that deleted sections are handled gracefully."""
+    import shutil
+
+    # Initial build
+    site = Site.from_config(test_site_dir)
+    site.discover_content()
+
+    # Store blog post paths
+    blog_posts = [p for p in site.pages if "blog" in str(p.source_path)]
+    blog_post_paths = [p.source_path for p in blog_posts]
+    assert len(blog_post_paths) >= 2
+
+    # Delete entire blog section
+    blog_dir = test_site_dir / "content" / "blog"
+    shutil.rmtree(blog_dir)
+
+    # Rebuild
+    site.reset_ephemeral_state()
+    site.discover_content()
+
+    # Blog section and posts should be gone
+    assert not any(s.name == "blog" for s in site.sections)
+    assert not any("blog" in str(p.source_path) for p in site.pages)
