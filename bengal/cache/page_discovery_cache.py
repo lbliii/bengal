@@ -17,7 +17,6 @@ Performance Impact:
 - Incremental builds only load changed pages fresh
 """
 
-
 from __future__ import annotations
 
 import json
@@ -108,7 +107,7 @@ class PageDiscoveryCache:
     }
     """
 
-    VERSION = 1
+    VERSION = 2  # Bumped for stable section references (path-based storage)
     CACHE_FILE = ".bengal/page_metadata.json"
 
     def __init__(self, cache_path: Path | None = None):
