@@ -413,56 +413,11 @@ class ConfigLoader:
 
     def _apply_env_overrides(self, config: dict[str, Any]) -> dict[str, Any]:
         """
-        Apply environment-based overrides for ergonomics across hosts.
+        Apply environment-based overrides for deployment platforms.
 
-        Priority:
-        1) BENGAL_BASEURL (explicit override)
-        2) Netlify (URL/DEPLOY_PRIME_URL)
-        3) Vercel (VERCEL_URL)
-        4) GitHub Pages (owner.github.io/repo) when running in Actions
-        Only applies when config baseurl is empty or missing.
+        Delegates to shared utility function.
+        Kept as method for backward compatibility.
         """
-        try:
-            # Only apply env overrides if baseurl is not set to a non-empty value
-            # Empty string ("") or missing baseurl allows env overrides
-            baseurl_current = config.get("baseurl", "")
-            if baseurl_current:  # Non-empty string means explicit config, don't override
-                return config
+        from bengal.config.env_overrides import apply_env_overrides
 
-            # 1) Explicit override
-            explicit = os.environ.get("BENGAL_BASEURL") or os.environ.get("BENGAL_BASE_URL")
-            if explicit:
-                config["baseurl"] = explicit.rstrip("/")
-                return config
-
-            # 2) Netlify
-            if os.environ.get("NETLIFY") == "true":
-                # Production has URL; previews have DEPLOY_PRIME_URL
-                netlify_url = os.environ.get("URL") or os.environ.get("DEPLOY_PRIME_URL")
-                if netlify_url:
-                    config["baseurl"] = netlify_url.rstrip("/")
-                    return config
-
-            # 3) Vercel
-            if os.environ.get("VERCEL") == "1" or os.environ.get("VERCEL") == "true":
-                vercel_host = os.environ.get("VERCEL_URL")
-                if vercel_host:
-                    prefix = (
-                        "https://" if not vercel_host.startswith(("http://", "https://")) else ""
-                    )
-                    config["baseurl"] = f"{prefix}{vercel_host}".rstrip("/")
-                    return config
-
-            # 4) GitHub Pages in Actions (best-effort)
-            if os.environ.get("GITHUB_ACTIONS") == "true":
-                repo = os.environ.get("GITHUB_REPOSITORY", "")  # owner/repo
-                if repo and "/" in repo:
-                    owner, name = repo.split("/", 1)
-                    config["baseurl"] = f"https://{owner}.github.io/{name}".rstrip("/")
-                    return config
-
-        except Exception:
-            # Never fail build due to env override logic
-            return config
-
-        return config
+        return apply_env_overrides(config)

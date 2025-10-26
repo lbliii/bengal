@@ -131,6 +131,12 @@ class ConfigDirectoryLoader:
         # (site.title → title, build.parallel → parallel)
         config = self._flatten_config(config)
 
+        # Apply environment-based overrides (GitHub Actions, Netlify, Vercel)
+        # Must happen after flattening so baseurl is at top level
+        from bengal.config.env_overrides import apply_env_overrides
+
+        config = apply_env_overrides(config)
+
         logger.debug(
             "config_loaded",
             environment=environment,
