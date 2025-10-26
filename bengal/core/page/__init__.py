@@ -213,7 +213,7 @@ class Page(
                     page=str(self.source_path),
                     section_path=str(self._section_path),
                     total_warnings=count + 1,
-                    message="Further warnings for this section will be suppressed",
+                    note="Further warnings for this section will be suppressed",
                 )
                 self._missing_section_warnings[warn_key] = count + 1
 
