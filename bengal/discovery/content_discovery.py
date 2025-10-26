@@ -350,8 +350,9 @@ class ContentDiscovery:
         if page.slug != cached_metadata.slug:
             return False
 
-        # Section
-        page_section_str = str(page._section.path) if page._section else None
+        # Section (compare paths, not object identity)
+        # Use _section_path directly to avoid triggering lazy lookup
+        page_section_str = str(page._section_path) if page._section_path else None
         return page_section_str == cached_metadata.section
 
     def _walk_directory(
