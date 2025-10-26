@@ -6,6 +6,8 @@ the required methods (to_cache_dict and from_cache_dict) and rejects types
 that don't.
 """
 
+from __future__ import annotations
+
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
