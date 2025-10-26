@@ -162,6 +162,52 @@
   font-weight: var(--font-semibold);
 }
 
+/* List-table cell content with markdown support */
+.bengal-list-table .cell-content {
+  /* Allow block elements in table cells */
+}
+
+.bengal-list-table .cell-content p {
+  margin: 0.25em 0;
+  line-height: var(--leading-normal);
+}
+
+.bengal-list-table .cell-content p:first-child {
+  margin-top: 0;
+}
+
+.bengal-list-table .cell-content p:last-child {
+  margin-bottom: 0;
+}
+
+.bengal-list-table .cell-content ul,
+.bengal-list-table .cell-content ol {
+  margin: 0.25em 0;
+  padding-left: 1.5em;
+  line-height: var(--leading-normal);
+}
+
+.bengal-list-table .cell-content ul {
+  list-style-type: disc;
+}
+
+.bengal-list-table .cell-content ol {
+  list-style-type: decimal;
+}
+
+.bengal-list-table .cell-content li {
+  margin: 0.15em 0;
+}
+
+.bengal-list-table .cell-content pre {
+  margin: 0.5em 0;
+  font-size: 0.9em;
+}
+
+.bengal-list-table .cell-content code {
+  font-size: 0.9em;
+}
+
 /* ============================================
    HORIZONTAL RULES
    ============================================ */

@@ -5,7 +5,6 @@ Provides MyST-style list-table directive for creating tables from nested lists,
 avoiding the pipe character collision issue in type annotations.
 """
 
-
 from __future__ import annotations
 
 import re
@@ -116,16 +115,11 @@ class ListTableDirective(DirectivePlugin):
             line = lines[i]
             stripped = line.strip()
 
-            # Skip completely empty lines
-            if not stripped:
-                i += 1
-                continue
-
             # Check for new row marker: "* -" at start
             if re.match(r"^\*\s+-\s*", line):
                 # Save previous cell and row if they exist
                 if current_cell_lines:
-                    current_row.append(" ".join(current_cell_lines).strip())
+                    current_row.append("\n".join(current_cell_lines).strip())
                     current_cell_lines = []
                 if current_row:
                     rows.append(current_row)
@@ -139,7 +133,7 @@ class ListTableDirective(DirectivePlugin):
             elif re.match(r"^  -\s*", line):
                 # Save previous cell
                 if current_cell_lines:
-                    current_row.append(" ".join(current_cell_lines).strip())
+                    current_row.append("\n".join(current_cell_lines).strip())
                     current_cell_lines = []
 
                 # Start new cell
@@ -148,7 +142,16 @@ class ListTableDirective(DirectivePlugin):
 
             # Continuation line (must be indented with 4+ spaces)
             elif line.startswith("    ") and current_cell_lines:
-                current_cell_lines.append(line[4:])  # Remove 4-space indent
+                content = line[4:]  # Remove 4-space indent
+                # Preserve blank lines for paragraph breaks
+                if not content.strip():
+                    current_cell_lines.append("")  # Blank line for paragraph break
+                else:
+                    current_cell_lines.append(content)
+
+            # Empty line outside of cells - skip
+            elif not stripped:
+                pass  # Skip empty lines between rows/cells
 
             # Any other line - ignore (shouldn't happen in well-formed input)
 
@@ -156,7 +159,7 @@ class ListTableDirective(DirectivePlugin):
 
         # Save last cell and row
         if current_cell_lines:
-            current_row.append(" ".join(current_cell_lines).strip())
+            current_row.append("\n".join(current_cell_lines).strip())
         if current_row:
             rows.append(current_row)
 
@@ -198,17 +201,23 @@ def render_list_table(renderer: Any, text: str, **attrs: Any) -> str:
     inline_md = mistune.create_markdown(renderer="html", plugins=[])
 
     def render_cell(cell_content: str) -> str:
-        """Render cell content with inline markdown (backticks, etc.)."""
+        """Render cell content with full markdown support (lists, paragraphs, etc.)."""
         # Normalize placeholder '-' which would otherwise render as an empty list
         if cell_content.strip() == "-":
             return '<span class="table-empty">—</span>'
 
-        # Parse as markdown
+        # Parse as full markdown (allows paragraphs, lists, etc.)
         html = inline_md(cell_content)
-        # Strip wrapping <p> tags if present
         html = html.strip()
-        if html.startswith("<p>") and html.endswith("</p>"):
+
+        # If only a single paragraph, unwrap it for cleaner inline display
+        if html.count("<p>") == 1 and html.startswith("<p>") and html.endswith("</p>"):
             html = html[3:-4]
+
+        # Wrap in cell-content div for proper CSS styling
+        if "<p>" in html or "<ul>" in html or "<ol>" in html or "<pre>" in html:
+            return f'<div class="cell-content">{html}</div>'
+
         return html
 
     # Build HTML
