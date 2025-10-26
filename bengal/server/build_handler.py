@@ -70,6 +70,7 @@ class BuildHandler(FileSystemEventHandler):
         self.port = port
         self.building = False
         self.pending_changes: set[str] = set()
+        self.pending_event_types: set[str] = set()  # Track event types for build strategy
         self.debounce_timer: threading.Timer | None = None
         self.timer_lock = threading.Lock()
 
@@ -190,14 +191,22 @@ class BuildHandler(FileSystemEventHandler):
                 if file_count > 1:
                     file_name = f"{file_name} (+{file_count - 1} more)"
 
+            # Determine build strategy based on event types
+            # Force full rebuild for structural changes (created/deleted/moved files)
+            # Use incremental only for modifications to existing files
+            needs_full_rebuild = bool({"created", "deleted", "moved"} & self.pending_event_types)
+
             logger.info(
                 "rebuild_triggered",
                 changed_file_count=file_count,
                 changed_files=changed_files[:10],  # Limit to first 10 for readability
                 trigger_file=str(changed_files[0]) if changed_files else None,
+                event_types=list(self.pending_event_types),
+                build_strategy="full" if needs_full_rebuild else "incremental",
             )
 
             self.pending_changes.clear()
+            self.pending_event_types.clear()  # Clear event types for next batch
 
             timestamp = datetime.now().strftime("%H:%M:%S")
 
@@ -227,8 +236,13 @@ class BuildHandler(FileSystemEventHandler):
                 except Exception:
                     pass
 
+                # Use incremental builds only for file modifications
+                # Force full rebuild for structural changes (created/deleted/moved)
+                # to ensure proper section relationships and cascade application
+                use_incremental = not needs_full_rebuild
+
                 stats = self.site.build(
-                    parallel=True, incremental=True, profile=BuildProfile.WRITER
+                    parallel=True, incremental=use_incremental, profile=BuildProfile.WRITER
                 )
                 build_duration = time.time() - build_start
 
@@ -323,9 +337,10 @@ class BuildHandler(FileSystemEventHandler):
             logger.debug("file_change_ignored", file=event.src_path, reason="ignored_pattern")
             return
 
-        # Add to pending changes
+        # Add to pending changes and track event type
         is_new = event.src_path not in self.pending_changes
         self.pending_changes.add(event.src_path)
+        self.pending_event_types.add(event_type)  # Track event type for build strategy
 
         logger.debug(
             "file_change_detected",
