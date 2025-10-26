@@ -282,7 +282,7 @@ class BuildOrchestrator:
                         title=page.title,
                         date=page.date.isoformat() if page.date else None,
                         tags=page.tags,
-                        section=str(page._section.path) if page._section else None,
+                        section=str(page._section_path) if page._section_path else None,
                         slug=page.slug,
                         weight=page.metadata.get("weight"),
                         lang=page.lang,
