@@ -64,12 +64,14 @@ class TestPageMetadata:
 
     def test_to_dict(self):
         """Test converting PageMetadata to dictionary."""
+        from dataclasses import asdict
+
         metadata = PageMetadata(
             source_path="content/index.md",
             title="Home",
             tags=["nav"],
         )
-        data = metadata.to_dict()
+        data = asdict(metadata)  # Use asdict() instead of .to_dict()
         assert data["source_path"] == "content/index.md"
         assert data["title"] == "Home"
         assert data["tags"] == ["nav"]
@@ -87,7 +89,7 @@ class TestPageMetadata:
             "lang": None,
             "file_hash": None,
         }
-        metadata = PageMetadata.from_dict(data)
+        metadata = PageMetadata(**data)  # Use PageCore(**data) instead of .from_dict()
         assert metadata.source_path == "content/index.md"
         assert metadata.title == "Home"
 
@@ -203,14 +205,22 @@ class TestPageDiscoveryCache:
         assert len(cache.pages) == 0
 
     def test_save_and_load(self, cache_dir):
-        """Test saving and loading cache from disk."""
-        # Create and populate cache
+        """Test saving and loading cache from disk with full field coverage."""
+        from datetime import datetime
+
+        # Create and populate cache with REALISTIC data (including datetime!)
         cache1 = PageDiscoveryCache(cache_dir / "cache.json")
         cache1.add_metadata(
             PageMetadata(
                 source_path="content/index.md",
                 title="Home",
-                tags=["nav"],
+                date=datetime(2025, 10, 26, 12, 30),  # Real datetime object!
+                tags=["nav", "featured"],
+                slug="home",
+                weight=1,
+                lang="en",
+                type="page",
+                section="content",
             )
         )
         cache1.save_to_disk()
@@ -221,7 +231,13 @@ class TestPageDiscoveryCache:
 
         assert metadata is not None
         assert metadata.title == "Home"
-        assert metadata.tags == ["nav"]
+        assert metadata.tags == ["nav", "featured"]
+        # Date should be loaded as string (JSON can't store datetime objects)
+        assert metadata.date is not None
+        assert metadata.slug == "home"
+        assert metadata.weight == 1
+        assert metadata.lang == "en"
+        assert metadata.type == "page"
 
     def test_save_nonexistent_directory(self, tmp_path):
         """Test saving cache creates directories if needed."""

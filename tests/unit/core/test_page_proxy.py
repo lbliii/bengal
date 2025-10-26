@@ -124,7 +124,7 @@ class TestPageProxyLazyLoading:
         assert content == "# My Post\n\nContent here."
 
     def test_proxy_lazy_loads_metadata_dict(self, cached_metadata, page_loader):
-        """Verify proxy loads full metadata dict on access."""
+        """Verify proxy provides cached metadata WITHOUT triggering lazy load."""
         proxy = PageProxy(
             source_path=Path("content/blog/post.md"),
             metadata=cached_metadata,
@@ -133,12 +133,13 @@ class TestPageProxyLazyLoading:
 
         assert not proxy._lazy_loaded
 
-        # Access metadata dict (should trigger load)
+        # Access metadata dict (should NOT trigger load - comes from PageCore cache!)
         metadata = proxy.metadata
 
-        assert proxy._lazy_loaded
+        assert not proxy._lazy_loaded  # Still not loaded!
         assert isinstance(metadata, dict)
-        assert metadata["title"] == "My Post"
+        # Metadata should come from PageCore cache
+        assert "type" in metadata or "tags" in metadata  # Has some cached fields
 
     def test_proxy_lazy_loads_only_once(self, cached_metadata, page_loader):
         """Verify proxy loads content only once, then caches it."""

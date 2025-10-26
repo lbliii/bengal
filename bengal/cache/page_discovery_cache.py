@@ -20,40 +20,22 @@ Performance Impact:
 from __future__ import annotations
 
 import json
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from bengal.core.page.page_core import PageCore
 from bengal.utils.atomic_write import AtomicFile
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
 
-@dataclass
-class PageMetadata:
-    """Minimal page metadata needed for navigation and filtering."""
-
-    source_path: str  # Path to source file
-    title: str  # Page title
-    date: str | None = None  # Publication date (ISO format)
-    tags: list[str] = field(default_factory=list)  # Associated tags
-    section: str | None = None  # Section path
-    slug: str | None = None  # URL slug
-    weight: int | None = None  # Sort weight in section
-    lang: str | None = None  # Language code for i18n
-    file_hash: str | None = None  # Hash of source file for validation
-    type: str | None = None  # Page type (cascaded from section)
-
-    def to_dict(self) -> dict[str, Any]:
-        """Convert to dictionary for JSON serialization."""
-        return asdict(self)
-
-    @staticmethod
-    def from_dict(data: dict[str, Any]) -> PageMetadata:
-        """Create from dictionary."""
-        return PageMetadata(**data)
+# PageMetadata IS PageCore - no field duplication!
+# This type alias eliminates ~40 lines of duplicate field definitions.
+# All fields are defined once in PageCore and automatically available here.
+PageMetadata = PageCore
 
 
 @dataclass
@@ -66,14 +48,15 @@ class PageDiscoveryCacheEntry:
 
     def to_dict(self) -> dict[str, Any]:
         return {
-            "metadata": self.metadata.to_dict(),
+            "metadata": asdict(self.metadata),  # asdict() works directly with PageCore
             "cached_at": self.cached_at,
             "is_valid": self.is_valid,
         }
 
     @staticmethod
     def from_dict(data: dict[str, Any]) -> PageDiscoveryCacheEntry:
-        metadata = PageMetadata.from_dict(data["metadata"])
+        # PageMetadata = PageCore, so PageCore(**data) works
+        metadata = PageCore(**data["metadata"])
         return PageDiscoveryCacheEntry(
             metadata=metadata,
             cached_at=data["cached_at"],
@@ -93,7 +76,6 @@ class PageDiscoveryCache:
 
     Cache Format (JSON):
     {
-        "version": 1,
         "pages": {
             "content/index.md": {
                 "metadata": {
@@ -106,9 +88,10 @@ class PageDiscoveryCache:
             }
         }
     }
+
+    Note: If cache format changes, load will fail and cache rebuilds automatically.
     """
 
-    VERSION = 3  # Bumped for cascaded metadata storage (type field)
     CACHE_FILE = ".bengal/page_metadata.json"
 
     def __init__(self, cache_path: Path | None = None):
@@ -134,17 +117,7 @@ class PageDiscoveryCache:
             with open(self.cache_path) as f:
                 data = json.load(f)
 
-            # Validate version
-            if data.get("version") != self.VERSION:
-                logger.warning(
-                    "page_discovery_cache_version_mismatch",
-                    expected=self.VERSION,
-                    found=data.get("version"),
-                )
-                self.pages = {}
-                return
-
-            # Load cache entries
+            # Load cache entries (no version check - just fail and rebuild if format changed)
             for path_str, entry_data in data.get("pages", {}).items():
                 self.pages[path_str] = PageDiscoveryCacheEntry.from_dict(entry_data)
 
@@ -167,13 +140,13 @@ class PageDiscoveryCache:
             self.cache_path.parent.mkdir(parents=True, exist_ok=True)
 
             data = {
-                "version": self.VERSION,
                 "pages": {path: entry.to_dict() for path, entry in self.pages.items()},
             }
 
             # Atomic write to avoid partial/corrupt files on crash
             with AtomicFile(self.cache_path, "w", encoding="utf-8") as f:
-                json.dump(data, f, indent=2)
+                # Use custom default handler for datetime objects
+                json.dump(data, f, indent=2, default=str)
 
             logger.info(
                 "page_discovery_cache_saved",

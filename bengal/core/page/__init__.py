@@ -15,6 +15,7 @@ from .computed import PageComputedMixin
 from .metadata import PageMetadataMixin
 from .navigation import PageNavigationMixin
 from .operations import PageOperationsMixin
+from .page_core import PageCore
 from .proxy import PageProxy
 from .relationships import PageRelationshipsMixin
 
@@ -87,7 +88,14 @@ class Page(
     _global_missing_section_warnings: ClassVar[dict[str, int]] = {}
     _MAX_WARNING_KEYS: ClassVar[int] = 100
 
+    # Required field (no default)
     source_path: Path
+
+    # PageCore: Cacheable metadata (single source of truth for Page/PageMetadata/PageProxy)
+    # Auto-created in __post_init__ from Page fields for backward compatibility
+    core: PageCore = field(default=None, init=False)
+
+    # Optional fields (with defaults)
     content: str = ""
     metadata: dict[str, Any] = field(default_factory=dict)
     parsed_ast: Any | None = None
@@ -114,10 +122,60 @@ class Page(
     _toc_items_cache: list[dict[str, Any]] | None = field(default=None, repr=False, init=False)
 
     def __post_init__(self) -> None:
-        """Initialize computed fields."""
+        """Initialize computed fields and PageCore."""
         if self.metadata:
             self.tags = self.metadata.get("tags", [])
             self.version = self.metadata.get("version")
+
+        # Auto-create PageCore from Page fields
+        # This provides backward compatibility until all instantiation updated
+        self._init_core_from_fields()
+
+    def _init_core_from_fields(self) -> None:
+        """
+        Initialize PageCore from Page fields (backward compatibility helper).
+
+        This allows existing code that creates Page objects without passing
+        core to continue working. Once all instantiation is updated, this
+        can be removed and core made required.
+
+        Note: Initially creates PageCore with absolute paths, but normalize_core_paths()
+        should be called before caching to convert to relative paths.
+        """
+        self.core = PageCore(
+            source_path=str(self.source_path),  # May be absolute initially
+            title=self.metadata.get("title", ""),
+            date=self.metadata.get("date"),
+            tags=self.tags or [],
+            slug=self.metadata.get("slug"),
+            weight=self.metadata.get("weight"),
+            lang=self.lang,
+            type=self.metadata.get("type"),
+            section=str(self._section_path) if self._section_path else None,
+            file_hash=None,  # Will be populated during caching
+        )
+
+    def normalize_core_paths(self) -> None:
+        """
+        Normalize PageCore paths to be relative (for cache consistency).
+
+        This should be called before caching to ensure all paths are relative
+        to the site root, preventing absolute path leakage into cache.
+
+        Note: Directly mutates self.core.source_path since dataclasses are mutable.
+        """
+        if not self._site or not self.core:
+            return
+
+        # Convert absolute source_path to relative
+        source_path_str = self.core.source_path
+        if Path(source_path_str).is_absolute():
+            try:
+                rel_path = Path(source_path_str).relative_to(self._site.root_path)
+                # Directly update the field - no need to recreate entire PageCore
+                self.core.source_path = str(rel_path)
+            except (ValueError, AttributeError):
+                pass  # Keep absolute if not under root
 
     def __hash__(self) -> int:
         """

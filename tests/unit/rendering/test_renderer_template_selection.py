@@ -31,11 +31,29 @@ class MockSection:
     """Mock section for testing."""
 
     def __init__(self, name):
+        from pathlib import Path
+
         self.name = name
+        self.path = Path(f"/content/{name}")  # Add required path attribute
 
 
 class TestTemplateSelection:
     """Tests for Renderer._get_template_name() logic."""
+
+    def _setup_page_with_section(self, source_path, metadata, section_name):
+        """Helper to set up a page with a mock section and site registry."""
+        from bengal.core.site import Site
+
+        page = Page(source_path=source_path, metadata=metadata)
+        section = MockSection(section_name)
+
+        # Create minimal mock site with section registry
+        site = Site(root_path=Path("/site"), config={})
+        site._section_registry[section.path] = section
+
+        page._site = site
+        page._section = section
+        return page
 
     def test_explicit_template_highest_priority(self):
         """Test that explicit template in frontmatter has highest priority."""
@@ -43,8 +61,9 @@ class TestTemplateSelection:
         engine = MockTemplateEngine(available_templates=["custom.html"])
         renderer = Renderer(engine)
 
-        page = Page(source_path=Path("/content/docs/page.md"), metadata={"template": "custom.html"})
-        page._section = MockSection("docs")
+        page = self._setup_page_with_section(
+            Path("/content/docs/page.md"), {"template": "custom.html"}, "docs"
+        )
 
         # Test
         template_name = renderer._get_template_name(page)
@@ -58,8 +77,7 @@ class TestTemplateSelection:
         engine = MockTemplateEngine(available_templates=["docs.html"])
         renderer = Renderer(engine)
 
-        page = Page(source_path=Path("/content/docs/page.md"), metadata={})
-        page._section = MockSection("docs")
+        page = self._setup_page_with_section(Path("/content/docs/page.md"), {}, "docs")
 
         # Test
         template_name = renderer._get_template_name(page)
@@ -73,8 +91,7 @@ class TestTemplateSelection:
         engine = MockTemplateEngine(available_templates=["docs/single.html"])
         renderer = Renderer(engine)
 
-        page = Page(source_path=Path("/content/docs/page.md"), metadata={})
-        page._section = MockSection("docs")
+        page = self._setup_page_with_section(Path("/content/docs/page.md"), {}, "docs")
 
         # Test
         template_name = renderer._get_template_name(page)
@@ -88,8 +105,7 @@ class TestTemplateSelection:
         engine = MockTemplateEngine(available_templates=["docs/page.html"])
         renderer = Renderer(engine)
 
-        page = Page(source_path=Path("/content/docs/page.md"), metadata={})
-        page._section = MockSection("docs")
+        page = self._setup_page_with_section(Path("/content/docs/page.md"), {}, "docs")
 
         # Test
         template_name = renderer._get_template_name(page)
@@ -103,8 +119,7 @@ class TestTemplateSelection:
         engine = MockTemplateEngine(available_templates=["docs.html"])
         renderer = Renderer(engine)
 
-        page = Page(source_path=Path("/content/docs/_index.md"), metadata={})
-        page._section = MockSection("docs")
+        page = self._setup_page_with_section(Path("/content/docs/_index.md"), {}, "docs")
 
         # Test
         template_name = renderer._get_template_name(page)
@@ -118,8 +133,7 @@ class TestTemplateSelection:
         engine = MockTemplateEngine(available_templates=["docs/list.html"])
         renderer = Renderer(engine)
 
-        page = Page(source_path=Path("/content/docs/_index.md"), metadata={})
-        page._section = MockSection("docs")
+        page = self._setup_page_with_section(Path("/content/docs/_index.md"), {}, "docs")
 
         # Test
         template_name = renderer._get_template_name(page)
@@ -133,8 +147,7 @@ class TestTemplateSelection:
         engine = MockTemplateEngine(available_templates=["docs/index.html"])
         renderer = Renderer(engine)
 
-        page = Page(source_path=Path("/content/docs/_index.md"), metadata={})
-        page._section = MockSection("docs")
+        page = self._setup_page_with_section(Path("/content/docs/_index.md"), {}, "docs")
 
         # Test
         template_name = renderer._get_template_name(page)
@@ -148,8 +161,7 @@ class TestTemplateSelection:
         engine = MockTemplateEngine(available_templates=["docs-list.html"])
         renderer = Renderer(engine)
 
-        page = Page(source_path=Path("/content/docs/_index.md"), metadata={})
-        page._section = MockSection("docs")
+        page = self._setup_page_with_section(Path("/content/docs/_index.md"), {}, "docs")
 
         # Test
         template_name = renderer._get_template_name(page)
@@ -168,8 +180,7 @@ class TestTemplateSelection:
         )
         renderer = Renderer(engine)
 
-        page = Page(source_path=Path("/content/docs/page.md"), metadata={})
-        page._section = MockSection("docs")
+        page = self._setup_page_with_section(Path("/content/docs/page.md"), {}, "docs")
 
         # Test
         template_name = renderer._get_template_name(page)
@@ -183,8 +194,7 @@ class TestTemplateSelection:
         engine = MockTemplateEngine(available_templates=["page.html"])
         renderer = Renderer(engine)
 
-        page = Page(source_path=Path("/content/docs/page.md"), metadata={})
-        page._section = MockSection("docs")
+        page = self._setup_page_with_section(Path("/content/docs/page.md"), {}, "docs")
 
         # Test
         template_name = renderer._get_template_name(page)
@@ -198,8 +208,7 @@ class TestTemplateSelection:
         engine = MockTemplateEngine(available_templates=["index.html"])
         renderer = Renderer(engine)
 
-        page = Page(source_path=Path("/content/docs/_index.md"), metadata={})
-        page._section = MockSection("docs")
+        page = self._setup_page_with_section(Path("/content/docs/_index.md"), {}, "docs")
 
         # Test
         template_name = renderer._get_template_name(page)
@@ -228,11 +237,11 @@ class TestTemplateSelection:
         engine = MockTemplateEngine(available_templates=["page.html"])
         renderer = Renderer(engine)
 
-        page = Page(
-            source_path=Path("/content/docs/guide.md"),
-            metadata={"type": "guide"},  # Semantic metadata, not for template selection
+        page = self._setup_page_with_section(
+            Path("/content/docs/guide.md"),
+            {"type": "guide"},  # Semantic metadata, not for template selection
+            "docs",
         )
-        page._section = MockSection("docs")
 
         # Test
         template_name = renderer._get_template_name(page)
@@ -249,18 +258,17 @@ class TestTemplateSelection:
         renderer = Renderer(engine)
 
         # Test docs section
-        docs_page = Page(source_path=Path("/content/docs/page.md"), metadata={})
-        docs_page._section = MockSection("docs")
+        docs_page = self._setup_page_with_section(Path("/content/docs/page.md"), {}, "docs")
         assert renderer._get_template_name(docs_page) == "docs.html"
 
         # Test blog section
-        blog_page = Page(source_path=Path("/content/blog/post.md"), metadata={})
-        blog_page._section = MockSection("blog")
+        blog_page = self._setup_page_with_section(Path("/content/blog/post.md"), {}, "blog")
         assert renderer._get_template_name(blog_page) == "blog.html"
 
         # Test tutorials section
-        tutorial_page = Page(source_path=Path("/content/tutorials/intro.md"), metadata={})
-        tutorial_page._section = MockSection("tutorials")
+        tutorial_page = self._setup_page_with_section(
+            Path("/content/tutorials/intro.md"), {}, "tutorials"
+        )
         assert renderer._get_template_name(tutorial_page) == "tutorials.html"
 
 

@@ -102,6 +102,9 @@ class TestPageAncestors:
         section.add_page(page)
         section._site = site
         page._site = site
+
+        # Register section in site registry for path-based lookup
+        site._section_registry[section.path] = section
         page._section = section
 
         ancestors = page.ancestors
@@ -126,6 +129,10 @@ class TestPageAncestors:
         parent._site = site
         child._site = site
         page._site = site
+
+        # Register sections in site registry for path-based lookup
+        site._section_registry[parent.path] = parent
+        site._section_registry[child.path] = child
         page._section = child
 
         ancestors = page.ancestors
@@ -149,6 +156,10 @@ class TestPageAncestors:
         root._site = site
         section._site = site
         page._site = site
+
+        # Register sections in site registry for path-based lookup
+        site._section_registry[root.path] = root
+        site._section_registry[section.path] = section
         page._section = section
 
         ancestors = page.ancestors
@@ -180,6 +191,11 @@ class TestPageAncestors:
         level2._site = site
         level3._site = site
         page._site = site
+
+        # Register sections in site registry for path-based lookup
+        site._section_registry[level1.path] = level1
+        site._section_registry[level2.path] = level2
+        site._section_registry[level3.path] = level3
         page._section = level3
 
         ancestors = page.ancestors
@@ -207,6 +223,9 @@ class TestBreadcrumbLogic:
 
         docs._site = site
         page._site = site
+
+        # Register section in site registry for path-based lookup
+        site._section_registry[docs.path] = docs
         page._section = docs
 
         # Get ancestors (no root)
@@ -239,6 +258,10 @@ class TestBreadcrumbLogic:
         api._site = site
         v2._site = site
         page._site = site
+
+        # Register sections in site registry for path-based lookup
+        site._section_registry[api.path] = api
+        site._section_registry[v2.path] = v2
         page._section = v2
 
         # Get ancestors (no root)
@@ -268,10 +291,16 @@ class TestNavigationEdgeCases:
 
     def test_page_parent_property(self):
         """Test that page.parent returns the section."""
+        site = Site(root_path=Path("/site"), config={})
         section = Section(name="docs", path=Path("/content/docs"))
         page = Page(source_path=Path("/content/docs/page.md"), metadata={"title": "Page"})
 
         section.add_page(page)
+        section._site = site
+        page._site = site
+
+        # Register section in site registry for path-based lookup
+        site._section_registry[section.path] = section
         page._section = section
 
         assert page.parent == section
