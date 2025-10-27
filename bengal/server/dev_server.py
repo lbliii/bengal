@@ -84,7 +84,7 @@ class DevServer:
         self.open_browser = open_browser
 
         # Mark site as running in dev mode to prevent timestamp churn in output files
-        self.site._dev_mode = True
+        self.site.dev_mode = True
 
     def start(self) -> None:
         """
