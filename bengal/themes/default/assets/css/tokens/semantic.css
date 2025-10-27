@@ -170,19 +170,19 @@
    --text-4xl: clamp(var(--font-size-30), 1.8rem + 2vw, var(--font-size-36));
    --text-5xl: clamp(var(--font-size-36), 2.5rem + 2.5vw, var(--font-size-48));
 
-   /* Heading Sizes - Increase by one step for better readability */
-   --text-heading-1: var(--text-5xl);
-   /* 48-72px */
-   --text-heading-2: var(--text-4xl);
-   /* 36-48px */
-   --text-heading-3: var(--text-3xl);
-   /* 30-36px */
-   --text-heading-4: var(--text-2xl);
-   /* 24-30px */
-   --text-heading-5: var(--text-xl);
-   /* 20-24px */
-   --text-heading-6: var(--text-lg);
-   /* 18-20px */
+  /* Heading Sizes - Increase by one step for better readability */
+  --text-heading-1: var(--text-5xl);
+  /* 36-48px */
+  --text-heading-2: var(--text-5xl);
+  /* 36-48px */
+  --text-heading-3: var(--text-4xl);
+  /* 30-36px */
+  --text-heading-4: var(--text-3xl);
+  /* 24-30px */
+  --text-heading-5: var(--text-2xl);
+  /* 20-24px */
+  --text-heading-6: var(--text-xl);
+  /* 18-20px */
 
    /* Role-based Type Tokens (Content) */
    --type-display: var(--text-5xl);
