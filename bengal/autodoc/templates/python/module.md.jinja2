@@ -117,11 +117,9 @@
 ```{warning}
 {{ warning }}
 ```
-
 {% endfor %}
 {% endif %}
-{% endmacro %}
-
+{% endmacro -%}
 ---
 title: "{{ element.name }}"
 type: doc
@@ -135,8 +133,6 @@ description: "{% if element.description %}{% set lines = element.description.spl
 *No module description provided.*
 {% endif %}
 
----
-
 {% if element.children | selectattr('element_type', 'equalto', 'alias') | list %}
 ## Aliases
 
@@ -149,7 +145,6 @@ This is an alias of [`{{ alias.metadata.alias_of }}`](#{{ alias.metadata.alias_o
 
 Defined at line {{ alias.line_number }} in `{{ alias.source_file | project_relative }}`
 
----
 {% endfor %}
 {% endif %}
 
@@ -261,7 +256,6 @@ This is an asynchronous method. Use `await` when calling.
 **See Also:** {% for ref in method.metadata.parsed_doc.see_also %}{{ ref }}{% if not loop.last %}, {% endif %}{% endfor %}
 
 {% endif %}
----
 {% endif %}
 {% endfor %}
 {% endif %}
@@ -351,7 +345,6 @@ This is an asynchronous function. Use `await` when calling.
 **See Also:** {% for ref in func.metadata.parsed_doc.see_also %}{{ ref }}{% if not loop.last %}, {% endif %}{% endfor %}
 
 {% endif %}
----
 {% endif %}
 {% endfor %}
 {% endif %}

@@ -41,10 +41,10 @@ html[data-palette="snow-lynx"] {
     --color-border-focus: #4FA8A0;
 
     /* Semantic states (harmonized with icy cream) */
-    --color-success: #2E7D32;
-    --color-success-bg: #EEF8EF;
-    --color-success-border: #A5D6A7;
-    --color-success-text: #1B5E20;
+    --color-success: #2E7D5A;
+    --color-success-bg: #EEF8F4;
+    --color-success-border: #8AC9B5;
+    --color-success-text: #1B5E42;
 
     --color-warning: #D97706;
     --color-warning-bg: #FFFAF0;
@@ -108,10 +108,10 @@ html[data-theme="dark"][data-palette="snow-lynx"] {
     --color-border-strong: #4F5356;
 
     /* Semantic states for dark mode (notices/admonitions) */
-    --color-success: #66BB6A;
-    --color-success-bg: rgba(46, 125, 50, 0.15);
-    --color-success-border: #388E3C;
-    --color-success-text: #A5D6A7;
+    --color-success: #5FB8A5;
+    --color-success-bg: rgba(46, 125, 90, 0.15);
+    --color-success-border: #3D9287;
+    --color-success-text: #8AC9B5;
 
     --color-warning: #FFA726;
     --color-warning-bg: rgba(217, 119, 6, 0.15);

@@ -56,9 +56,9 @@ Usage:
 
     {# Regular pages in this section (excluding index page) - sorted by weight #}
     {% for p in section_sorted_pages %}
-    {% if p.url != section_index_url %}
+    {% if p.url != section_index_url and p.title %}
     {# Extract short name for nested items (e.g., "admonitions" from "directives.admonitions") #}
-    {% set display_title = p.title.split('.')[-1] if '.' in p.title else p.title %}
+    {% set display_title = p.title.split('.')[-1] if ('.' in p.title) else p.title %}
     <a href="{{ p.permalink }}"
       class="docs-nav-link {% if (page is defined and page and page.url == p.url) %}active{% endif %}">
       {{ display_title }}

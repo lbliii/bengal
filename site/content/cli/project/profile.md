@@ -29,6 +29,7 @@ bengal project profile [ARGUMENTS]
 
 **Type:** `text`
 **Required:** No
+**Default:** `Sentinel.UNSET`
 
 
 

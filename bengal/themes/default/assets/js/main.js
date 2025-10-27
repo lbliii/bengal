@@ -3,15 +3,15 @@
  * Main JavaScript
  */
 
-(function() {
+(function () {
   'use strict';
 
   /**
    * Smooth scroll for anchor links
    */
   function setupSmoothScroll() {
-    document.querySelectorAll('a[href^="#"]').forEach(function(anchor) {
-      anchor.addEventListener('click', function(e) {
+    document.querySelectorAll('a[href^="#"]').forEach(function (anchor) {
+      anchor.addEventListener('click', function (e) {
         const href = this.getAttribute('href');
 
         // Skip empty anchors
@@ -19,7 +19,9 @@
           return;
         }
 
-        const target = document.querySelector(href);
+        // Extract ID from href (remove the '#')
+        const id = href.substring(1);
+        const target = document.getElementById(id);
         if (target) {
           e.preventDefault();
           target.scrollIntoView({
@@ -42,7 +44,7 @@
    */
   function setupExternalLinks() {
     const links = document.querySelectorAll('a[href^="http"]');
-    links.forEach(function(link) {
+    links.forEach(function (link) {
       const href = link.getAttribute('href');
 
       // Check if external (not same domain)
@@ -63,7 +65,7 @@
   function setupCodeCopyButtons() {
     const codeBlocks = document.querySelectorAll('pre code');
 
-    codeBlocks.forEach(function(codeBlock) {
+    codeBlocks.forEach(function (codeBlock) {
       const pre = codeBlock.parentElement;
 
       // Skip if already processed
@@ -82,14 +84,6 @@
       // Create header container
       const header = document.createElement('div');
       header.className = 'code-header-inline';
-      header.style.position = 'absolute';
-      header.style.top = '0.5rem';
-      header.style.right = '0.5rem';
-      header.style.left = '0.5rem';
-      header.style.display = 'flex';
-      header.style.justifyContent = 'space-between';
-      header.style.alignItems = 'center';
-      header.style.pointerEvents = 'none';
 
       // Create language label if detected
       if (language) {
@@ -125,19 +119,29 @@
 
       header.appendChild(button);
 
-      // Insert header
-      pre.style.position = 'relative';
+      // Wrap pre in a container and place button outside the scrolling area
+      const wrapper = document.createElement('div');
+      wrapper.className = 'code-block-wrapper';
+      wrapper.style.position = 'relative';
+
+      // Insert wrapper before pre, then move pre into wrapper
+      pre.parentNode.insertBefore(wrapper, pre);
+      wrapper.appendChild(pre);
+
+      // Add header to wrapper (not inside pre)
+      wrapper.appendChild(header);
+
+      // Adjust pre padding
       pre.style.paddingTop = '2.5rem'; // Make room for header
-      pre.insertBefore(header, pre.firstChild);
 
       // Copy functionality
-      button.addEventListener('click', function(e) {
+      button.addEventListener('click', function (e) {
         e.preventDefault();
         const code = codeBlock.textContent;
 
         // Use Clipboard API if available
         if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(code).then(function() {
+          navigator.clipboard.writeText(code).then(function () {
             // Show success
             button.innerHTML = `
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -148,7 +152,7 @@
             button.classList.add('copied');
 
             // Reset after 2 seconds
-            setTimeout(function() {
+            setTimeout(function () {
               button.innerHTML = `
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
@@ -158,11 +162,11 @@
               `;
               button.classList.remove('copied');
             }, 2000);
-          }).catch(function(err) {
+          }).catch(function (err) {
             console.error('Failed to copy code:', err);
             button.textContent = 'Failed';
 
-            setTimeout(function() {
+            setTimeout(function () {
               button.innerHTML = `
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
@@ -186,7 +190,7 @@
             button.innerHTML = '<span>Copied!</span>';
             button.classList.add('copied');
 
-            setTimeout(function() {
+            setTimeout(function () {
               button.innerHTML = '<span>Copy</span>';
               button.classList.remove('copied');
             }, 2000);
@@ -205,8 +209,8 @@
    */
   function setupLazyLoading() {
     if ('IntersectionObserver' in window) {
-      const imageObserver = new IntersectionObserver(function(entries) {
-        entries.forEach(function(entry) {
+      const imageObserver = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
           if (entry.isIntersecting) {
             const img = entry.target;
             if (img.dataset.src) {
@@ -218,12 +222,12 @@
         });
       });
 
-      document.querySelectorAll('img[data-src]').forEach(function(img) {
+      document.querySelectorAll('img[data-src]').forEach(function (img) {
         imageObserver.observe(img);
       });
     } else {
       // Fallback for older browsers
-      document.querySelectorAll('img[data-src]').forEach(function(img) {
+      document.querySelectorAll('img[data-src]').forEach(function (img) {
         img.src = img.dataset.src;
       });
     }
@@ -241,18 +245,21 @@
 
     if (headings.length === 0 || tocLinks.length === 0) return;
 
-    const observer = new IntersectionObserver(function(entries) {
-      entries.forEach(function(entry) {
+    const observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
         if (entry.isIntersecting) {
           const id = entry.target.getAttribute('id');
 
           // Remove active class from all links
-          tocLinks.forEach(function(link) {
+          tocLinks.forEach(function (link) {
             link.classList.remove('active');
           });
 
           // Add active class to current link
-          const activeLink = toc.querySelector('a[href="#' + id + '"]');
+          // Use find() to match href ending with the ID (handles IDs starting with numbers)
+          const activeLink = Array.from(tocLinks).find(function (link) {
+            return link.getAttribute('href') === '#' + id;
+          });
           if (activeLink) {
             activeLink.classList.add('active');
           }
@@ -262,7 +269,7 @@
       rootMargin: '-80px 0px -80% 0px'
     });
 
-    headings.forEach(function(heading) {
+    headings.forEach(function (heading) {
       observer.observe(heading);
     });
   }
@@ -272,14 +279,14 @@
    */
   function setupKeyboardDetection() {
     // Add class to body when user tabs (keyboard navigation)
-    document.addEventListener('keydown', function(e) {
+    document.addEventListener('keydown', function (e) {
       if (e.key === 'Tab') {
         document.body.classList.add('user-is-tabbing');
       }
     });
 
     // Remove class when user clicks (mouse navigation)
-    document.addEventListener('mousedown', function() {
+    document.addEventListener('mousedown', function () {
       document.body.classList.remove('user-is-tabbing');
     });
   }

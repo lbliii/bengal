@@ -41,10 +41,10 @@ html[data-palette="brown-bengal"] {
     --color-border-focus: #D4850F;
 
     /* Semantic states (warmer tones, harmonized with amber) */
-    --color-success: #2E7D32;
-    --color-success-bg: #F0F7EB;
-    --color-success-border: #A5D6A7;
-    --color-success-text: #1B5E20;
+    --color-success: #5A7D3A;
+    --color-success-bg: #F5F7EC;
+    --color-success-border: #B5CC8A;
+    --color-success-text: #3D5225;
 
     --color-warning: #CC7000;
     --color-warning-bg: #FFF4DC;
@@ -108,10 +108,10 @@ html[data-theme="dark"][data-palette="brown-bengal"] {
     --color-border-strong: #4F4740;
 
     /* Semantic states for dark mode */
-    --color-success: #66BB6A;
-    --color-success-bg: rgba(46, 125, 50, 0.15);
-    --color-success-border: #388E3C;
-    --color-success-text: #A5D6A7;
+    --color-success: #8BB56A;
+    --color-success-bg: rgba(90, 125, 58, 0.15);
+    --color-success-border: #5A7D3A;
+    --color-success-text: #B5CC8A;
 
     --color-warning: #FFB020;
     --color-warning-bg: rgba(217, 119, 6, 0.15);

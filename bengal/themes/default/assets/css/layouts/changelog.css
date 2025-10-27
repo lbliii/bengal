@@ -20,12 +20,7 @@
     text-align: center;
 }
 
-.changelog-header h1 {
-    font-size: var(--text-4xl);
-    font-weight: var(--font-bold);
-    margin: 0 0 var(--space-4) 0;
-    color: var(--color-text-primary);
-}
+/* Moved to layouts/page-header.css - use .page-header.page-header--centered */
 
 .changelog-description {
     font-size: var(--text-lg);

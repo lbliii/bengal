@@ -359,13 +359,20 @@ class OutputFormatsGenerator:
         excerpt_length = options.get("excerpt_length", 200)
 
         # Build site metadata (per-locale when i18n is enabled)
+        site_metadata = {
+            "title": self.site.config.get("title", "Bengal Site"),
+            "description": self.site.config.get("description", ""),
+            "baseurl": self.site.config.get("baseurl", ""),
+        }
+
+        # Only include build_time in production builds to avoid spurious dev server reloads
+        # In dev mode, changing timestamp causes unnecessary page refreshes
+        # Skip build_time only when explicitly in dev server mode
+        if not self.site.config.get("dev_server", False):
+            site_metadata["build_time"] = datetime.now().isoformat()
+
         site_data = {
-            "site": {
-                "title": self.site.config.get("title", "Bengal Site"),
-                "description": self.site.config.get("description", ""),
-                "baseurl": self.site.config.get("baseurl", ""),
-                "build_time": datetime.now().isoformat(),
-            },
+            "site": site_metadata,
             "pages": [],
             "sections": {},
             "tags": {},
@@ -416,8 +423,19 @@ class OutputFormatsGenerator:
                 index_path = self.site.output_dir / "index.json"
         else:
             index_path = self.site.output_dir / "index.json"
-        with AtomicFile(index_path, "w", encoding="utf-8") as f:
-            json.dump(site_data, f, indent=indent, ensure_ascii=False)
+        # Only write if content actually changed (stabilize mtimes in dev)
+        new_json_str = json.dumps(site_data, indent=indent, ensure_ascii=False)
+        try:
+            existing = None
+            if index_path.exists():
+                with open(index_path, encoding="utf-8") as rf:
+                    existing = rf.read()
+            if existing != new_json_str:
+                with AtomicFile(index_path, "w", encoding="utf-8") as f:
+                    f.write(new_json_str)
+        except Exception:
+            with AtomicFile(index_path, "w", encoding="utf-8") as f:
+                f.write(new_json_str)
 
         logger.debug(
             "site_index_json_written",
@@ -453,7 +471,12 @@ class OutputFormatsGenerator:
         lines.append(f"# {title}\n")
         if baseurl:
             lines.append(f"Site: {baseurl}")
-        lines.append(f"Build Date: {datetime.now().isoformat()}")
+
+        # Only include build date in production to avoid spurious dev server reloads
+        # Skip build date only when explicitly in dev server mode
+        if not self.site.config.get("dev_server", False):
+            lines.append(f"Build Date: {datetime.now().isoformat()}")
+
         lines.append(f"Total Pages: {len(pages)}\n")
         lines.append(separator + "\n")
 
@@ -491,8 +514,19 @@ class OutputFormatsGenerator:
         from bengal.utils.atomic_write import AtomicFile
 
         llm_path = self.site.output_dir / "llm-full.txt"
-        with AtomicFile(llm_path, "w", encoding="utf-8") as f:
-            f.write("\n".join(lines))
+        # Only write if content actually changed (stabilize mtimes in dev)
+        new_text = "\n".join(lines)
+        try:
+            existing = None
+            if llm_path.exists():
+                with open(llm_path, encoding="utf-8") as rf:
+                    existing = rf.read()
+            if existing != new_text:
+                with AtomicFile(llm_path, "w", encoding="utf-8") as f:
+                    f.write(new_text)
+        except Exception:
+            with AtomicFile(llm_path, "w", encoding="utf-8") as f:
+                f.write(new_text)
 
     def _page_to_json(
         self,

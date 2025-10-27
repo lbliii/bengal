@@ -41,25 +41,25 @@ html[data-palette="blue-bengal"] {
     --color-border-focus: #7FA3C3;
 
     /* Semantic states (harmonized with blue theme) */
-    --color-success: #2E7D32;
-    --color-success-bg: #F0F9F3;
-    --color-success-border: #A5D6A7;
-    --color-success-text: #1B5E20;
+    --color-success: #2E7D5F;
+    --color-success-bg: #EEF7F5;
+    --color-success-border: #80C5B8;
+    --color-success-text: #1B5E4A;
 
-    --color-warning: #D97706;
-    --color-warning-bg: #FFFAEF;
-    --color-warning-border: #FCD34D;
-    --color-warning-text: #92400E;
+    --color-warning: #D4850F;
+    --color-warning-bg: #FFF8EE;
+    --color-warning-border: #F9C96D;
+    --color-warning-text: #804F0A;
 
     --color-error: #C62828;
     --color-error-bg: #FFF6F6;
     --color-error-border: #FCA5A5;
     --color-error-text: #7F1D1D;
 
-    --color-info: #1976D2;
-    --color-info-bg: #F0F7FF;
-    --color-info-border: #93C5FD;
-    --color-info-text: #1E3A8A;
+    --color-info: #5680A7;
+    --color-info-bg: #EEF4F9;
+    --color-info-border: #9DBDD9;
+    --color-info-text: #3D6080;
 
     /* Accent color (harmonized with blue palette) */
     --color-accent: #6991B5;
@@ -108,10 +108,10 @@ html[data-theme="dark"][data-palette="blue-bengal"] {
     --color-border-strong: #3D4E61;
 
     /* Semantic states for dark mode */
-    --color-success: #66BB6A;
-    --color-success-bg: rgba(46, 125, 50, 0.15);
-    --color-success-border: #388E3C;
-    --color-success-text: #A5D6A7;
+    --color-success: #5FB8A8;
+    --color-success-bg: rgba(46, 125, 95, 0.15);
+    --color-success-border: #3D9287;
+    --color-success-text: #8AC9C1;
 
     --color-warning: #FFB020;
     --color-warning-bg: rgba(217, 119, 6, 0.15);
@@ -123,10 +123,10 @@ html[data-theme="dark"][data-palette="blue-bengal"] {
     --color-error-border: #C62828;
     --color-error-text: #FCA5A5;
 
-    --color-info: #42A5F5;
-    --color-info-bg: rgba(25, 118, 210, 0.15);
-    --color-info-border: #1976D2;
-    --color-info-text: #93C5FD;
+    --color-info: #9DBDD9;
+    --color-info-bg: rgba(125, 163, 195, 0.15);
+    --color-info-border: #5680A7;
+    --color-info-text: #B4CFE6;
 
     /* Accent color for dark mode */
     --color-accent: #9DBDD9;

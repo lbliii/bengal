@@ -6,20 +6,19 @@ Provides Server-Sent Events (SSE) endpoint and HTML injection for hot reload.
 Architecture:
 - SSE Endpoint (/__bengal_reload__): Maintains persistent connections to clients
 - Live Reload Script: Injected into HTML pages to connect to SSE endpoint
-- Client Queue: Each connected browser gets a queue for messages
-- Reload Notifications: Broadcast to all clients when build completes
+- Reload Notifications: Broadcast to all clients when build completes using a
+  global generation counter and condition variable (no per-client queues)
 
 SSE Protocol:
     Client: EventSource('/__bengal_reload__')
-    Server: data: reload\n\n  (triggers page refresh)
-    Server: : keepalive\n\n  (every 30s to prevent timeout)
+    Server (init): retry: 2000\n\n  (client waits 2s before reconnect after disconnect)
+    Server (events): data: {json payload}|reload\n\n  (triggers reload/css update)
+    Server (idle): : keepalive\n\n  (sent on interval; ignored by client)
 
-The live reload system enables automatic browser refresh after file changes
-are detected and the site is rebuilt, providing a seamless development experience.
-
-Note:
-    Live reload currently requires manual implementation in the request handler.
-    See plan/LIVE_RELOAD_ARCHITECTURE_PROPOSAL.md for implementation details.
+Dev behavior:
+- Keepalive interval is configurable via env BENGAL_SSE_KEEPALIVE_SECS (default 15s).
+- On new connections/reconnects, last_seen_generation is initialized to the current
+  generation so we do not replay the last reload event to the client.
 """
 
 import json
@@ -34,6 +33,15 @@ logger = get_logger(__name__)
 _reload_generation: int = 0
 _last_action: str = "reload"
 _reload_condition = threading.Condition()
+
+
+# Diagnostic: allow suppressing reload events via environment variable
+def _reload_events_disabled() -> bool:
+    try:
+        val = (os.environ.get("BENGAL_DISABLE_RELOAD_EVENTS", "") or "").strip().lower()
+        return val in ("1", "true", "yes", "on")
+    except Exception:
+        return False
 
 
 # Live reload script to inject into HTML pages
@@ -138,8 +146,8 @@ class LiveReloadMixin:
     - handle_sse(): Handles the SSE endpoint (/__bengal_reload__)
     - serve_html_with_live_reload(): Injects the live reload script into HTML
 
-    The SSE connection remains open, sending keepalive comments every 30 seconds
-    and "reload" messages when the site is rebuilt.
+    The SSE connection remains open, sending keepalive comments roughly every
+    9 seconds and "reload" messages (or JSON payloads) when the site is rebuilt.
 
     Example:
         class CustomHandler(LiveReloadMixin, http.server.SimpleHTTPRequestHandler):
@@ -172,8 +180,15 @@ class LiveReloadMixin:
             # Send SSE headers
             self.send_response(200)
             self.send_header("Content-Type", "text/event-stream")
-            self.send_header("Cache-Control", "no-cache")
+            # Prevent intermediaries from buffering or closing the stream
+            # no-transform avoids proxy transformations; private disables shared caches
+            self.send_header(
+                "Cache-Control",
+                "no-store, no-cache, must-revalidate, max-age=0, private, no-transform",
+            )
             self.send_header("Connection", "keep-alive")
+            # Explicitly disable Nginx/Apache proxy buffering behaviors if present
+            self.send_header("X-Accel-Buffering", "no")
             # Allow any origin during local development (dev server only)
             self.send_header("Access-Control-Allow-Origin", "*")
             self.end_headers()
@@ -184,14 +199,26 @@ class LiveReloadMixin:
 
             keepalive_count = 0
             message_count = 0
-            last_seen_generation = 0
+            # IMPORTANT: Initialize last_seen_generation to current to avoid replaying
+            # the last action on new connections/reconnects
+            with _reload_condition:
+                last_seen_generation = _reload_generation
+
+            # Keepalive interval (seconds). Default 15s; override via env BENGAL_SSE_KEEPALIVE_SECS
+            try:
+                ka_env = os.environ.get("BENGAL_SSE_KEEPALIVE_SECS", "15").strip()
+                keepalive_interval = max(5, min(120, int(ka_env)))
+            except Exception:
+                keepalive_interval = 15
+
+            logger.info("sse_stream_started", keepalive_interval_secs=keepalive_interval)
 
             # Keep connection alive and send messages when generation increments
             while True:
                 try:
                     with _reload_condition:
-                        # Wait up to 10s for a generation change, then send keepalive
-                        _reload_condition.wait(timeout=10)
+                        # Wait up to keepalive_interval for a generation change, then send keepalive
+                        _reload_condition.wait(timeout=keepalive_interval)
                         current_generation = _reload_generation
 
                     if current_generation != last_seen_generation:
@@ -207,10 +234,15 @@ class LiveReloadMixin:
                             message_count=message_count,
                         )
                     else:
-                        # Send keepalive comment
+                        # Send keepalive comment (interval-based) to keep the connection alive
                         self.wfile.write(b": keepalive\n\n")
                         self.wfile.flush()
                         keepalive_count += 1
+                        logger.debug(
+                            "sse_keepalive_sent",
+                            client_address=client_addr,
+                            keepalives_sent=keepalive_count,
+                        )
                 except (BrokenPipeError, ConnectionResetError) as e:
                     # Client disconnected
                     logger.debug(
@@ -343,6 +375,21 @@ class LiveReloadMixin:
             )
             return False
 
+    def _inject_live_reload(self, response: bytes) -> bytes:
+        """
+        Inject live reload script into an HTTP response.
+
+        This method is provided for test compatibility and wraps the
+        module-level inject_live_reload_into_response function.
+
+        Args:
+            response: Complete HTTP response (headers + body)
+
+        Returns:
+            Modified response with live reload script injected
+        """
+        return inject_live_reload_into_response(response)
+
 
 def notify_clients_reload() -> None:
     """
@@ -357,6 +404,9 @@ def notify_clients_reload() -> None:
         This is thread-safe and can be called from the build handler thread
     """
     global _reload_generation
+    if _reload_events_disabled():
+        logger.info("reload_notification_suppressed", reason="env_BENGAL_DISABLE_RELOAD_EVENTS")
+        return
     with _reload_condition:
         _reload_generation += 1
         _reload_condition.notify_all()
@@ -373,6 +423,13 @@ def send_reload_payload(action: str, reason: str, changed_paths: list[str]) -> N
         changed_paths: list of changed output paths (relative to output dir)
     """
     global _reload_generation, _last_action
+    if _reload_events_disabled():
+        logger.info(
+            "reload_notification_suppressed",
+            reason="env_BENGAL_DISABLE_RELOAD_EVENTS",
+            action=action,
+        )
+        return
     try:
         payload = json.dumps(
             {
@@ -414,3 +471,78 @@ def set_reload_action(action: str) -> None:
         action = "reload"
     _last_action = action
     logger.debug("reload_action_set", action=_last_action)
+
+
+def inject_live_reload_into_response(response: bytes) -> bytes:
+    """
+    Inject live reload script into an HTTP response.
+
+    Args:
+        response: Complete HTTP response (headers + body)
+
+    Returns:
+        Modified response with live reload script injected
+    """
+    try:
+        # HTTP response format: headers\r\n\r\nbody
+        if b"\r\n\r\n" not in response:
+            return response
+
+        headers_end = response.index(b"\r\n\r\n")
+        headers = response[:headers_end]
+        body = response[headers_end + 4 :]
+
+        # Inject script before </body> or </html> (case-insensitive)
+        script_bytes = LIVE_RELOAD_SCRIPT.encode("utf-8")
+
+        # Try to find </body> (case-insensitive search in bytes)
+        body_tag_lower = b"</body>"
+        body_tag_upper = b"</BODY>"
+        body_idx = body.rfind(body_tag_lower)
+        if body_idx == -1:
+            body_idx = body.rfind(body_tag_upper)
+
+        if body_idx != -1:
+            # Inject before </body>
+            modified_body = body[:body_idx] + script_bytes + body[body_idx:]
+        else:
+            # Fallback: try </html>
+            html_tag_lower = b"</html>"
+            html_tag_upper = b"</HTML>"
+            html_idx = body.rfind(html_tag_lower)
+            if html_idx == -1:
+                html_idx = body.rfind(html_tag_upper)
+
+            if html_idx != -1:
+                modified_body = body[:html_idx] + script_bytes + body[html_idx:]
+            else:
+                # Last resort: append at end
+                modified_body = body + script_bytes
+
+        # Update Content-Length header if present
+        headers_str = headers.decode("latin-1")
+        header_lines = headers_str.split("\r\n")
+        new_header_lines = []
+        content_length_updated = False
+
+        for line in header_lines:
+            if line.lower().startswith("content-length:"):
+                new_header_lines.append(f"Content-Length: {len(modified_body)}")
+                content_length_updated = True
+            else:
+                new_header_lines.append(line)
+
+        # If Content-Length wasn't present, add it
+        if not content_length_updated:
+            new_header_lines.append(f"Content-Length: {len(modified_body)}")
+
+        new_headers = "\r\n".join(new_header_lines).encode("latin-1")
+        return new_headers + b"\r\n\r\n" + modified_body
+
+    except Exception as e:
+        logger.warning(
+            "live_reload_response_injection_failed",
+            error=str(e),
+            error_type=type(e).__name__,
+        )
+        return response

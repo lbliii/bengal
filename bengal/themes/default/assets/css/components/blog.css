@@ -21,12 +21,7 @@
     text-align: center;
 }
 
-.blog-header h1 {
-    font-size: var(--text-3xl);
-    font-weight: 700;
-    color: var(--color-text-primary);
-    margin-bottom: var(--space-3);
-}
+/* Moved to layouts/page-header.css - use .page-header.page-header--centered */
 
 .blog-description {
     font-size: var(--text-lg);
@@ -359,7 +354,7 @@
     color: var(--color-text-primary-muted);
 }
 
-.blog-post-details > * {
+.blog-post-details>* {
     display: flex;
     align-items: center;
     gap: var(--space-2);
@@ -556,6 +551,7 @@
 
 /* Mobile Responsive */
 @media (max-width: 768px) {
+
     .blog-post-header,
     .blog-post-footer {
         padding: var(--space-4) 0;

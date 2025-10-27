@@ -30,7 +30,7 @@ Context variables:
 {% include 'partials/action-bar.html' with context %}
 
 <div class="blog-container">
-    <header class="blog-header">
+    <header class="page-header page-header--centered">
         <h1>✍️ {{ section.title if section else title | default('Blog') }}</h1>
 
         {% if section and section.metadata.get('description', '') %}

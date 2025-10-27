@@ -27,7 +27,7 @@ Supports two modes:
 {% set changelog_data = site.data.get('changelog') if site.data is defined and site.data else none %}
 
 <div class="changelog-container">
-    <header class="changelog-header">
+    <header class="page-header page-header--centered">
         <h1>📋 {{ section.title if section else title | default('Changelog') }}</h1>
 
         {% if section and section.metadata.get('description', '') %}

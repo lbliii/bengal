@@ -29,7 +29,7 @@ Context variables:
         {{ breadcrumbs(section if section is defined else page) }}
 
         <div class="cli-reference-container">
-            <header class="cli-reference-header">
+            <header class="page-header page-header--centered page-header--bordered">
                 <h1>⌨️ {{ (section.title if section else title) | default('CLI Reference') | upper }}</h1>
 
                 {% if section and section.metadata.get('description', '') %}

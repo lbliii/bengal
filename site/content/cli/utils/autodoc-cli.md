@@ -24,12 +24,12 @@ bengal utils autodoc-cli [OPTIONS]
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `--app`, `-a` |`text` |- |CLI app module (e.g., bengal.cli:main) |
+| `--app`, `-a` |`text` |`Sentinel.UNSET` |CLI app module (e.g., bengal.cli:main) |
 | `--clean` |Flag |`False` |Clean output directory before generating |
-| `--config` |`path` |- |Path to config file (default: bengal.toml) |
+| `--config` |`path` |`Sentinel.UNSET` |Path to config file (default: bengal.toml) |
 | `--framework`, `-f` |`choice` |`click` |CLI framework (default: click) |
 | `--include-hidden` |Flag |`False` |Include hidden commands |
-| `--output`, `-o` |`path` |- |Output directory for generated docs (default: content/cli) |
+| `--output`, `-o` |`path` |`Sentinel.UNSET` |Output directory for generated docs (default: content/cli) |
 | `--verbose`, `-v` |Flag |`False` |Show detailed progress |
 
 

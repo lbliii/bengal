@@ -153,8 +153,8 @@
       'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans',
       'Droid Sans', 'Helvetica Neue', system-ui, sans-serif;
    --font-serif: Georgia, Cambria, 'Times New Roman', Times, serif;
-   --font-mono: 'SF Mono', 'Monaco', 'Cascadia Code', 'Roboto Mono',
-      'Consolas', 'Liberation Mono', 'Courier New', monospace;
+   --font-mono: 'Consolas', 'Monaco', 'SF Mono', 'JetBrains Mono',
+      'Fira Code', 'Cascadia Code', 'Courier New', monospace;
 
    /* Font Sizes (Fluid Typography) */
    --text-xxs: 0.6875rem;
@@ -172,7 +172,7 @@
 
    /* Heading Sizes - Increase by one step for better readability */
    --text-heading-1: var(--text-5xl);
-   /* 48-72px */
+   /* 36-48px */
    --text-heading-2: var(--text-4xl);
    /* 36-48px */
    --text-heading-3: var(--text-3xl);
@@ -196,6 +196,7 @@
    --type-body: var(--text-base);
    --type-body-small: var(--text-sm);
    --type-caption: var(--text-xs);
+   --type-code: var(--text-sm);
 
    /* Role-based Type Tokens (UI/Components) */
    --type-ui-title: var(--text-2xl);
@@ -209,6 +210,7 @@
    --text-body: var(--text-base);
    --text-body-small: var(--text-sm);
    --text-caption: var(--text-xs);
+   --text-code: var(--text-xs);
 
    /* Line Heights (aliases for foundation tokens) */
    --leading-none: var(--line-height-none);
@@ -253,7 +255,7 @@
      SEMANTIC ELEVATION (Shadows)
      ============================================ */
 
-  /* Shadow aliases removed as they were redundant; elevation tokens provide the same values */
+   /* Shadow aliases removed as they were redundant; elevation tokens provide the same values */
 
    --elevation-none: var(--shadow-none);
    --elevation-subtle: var(--shadow-xs);
@@ -473,8 +475,12 @@
    --color-primary: var(--blue-400);
    --color-primary-hover: var(--blue-300);
    --color-primary-active: var(--blue-200);
+   --color-primary-light: rgba(59, 130, 246, 0.15);
+   --color-primary-dark: var(--blue-200);
    --color-secondary: var(--green-400);
+   --color-secondary-light: rgba(76, 175, 80, 0.15);
    --color-accent: var(--orange-400);
+   --color-accent-light: rgba(251, 146, 60, 0.15);
 }
 
 /* ============================================
@@ -507,8 +513,12 @@
 
       --color-primary: var(--blue-400);
       --color-primary-hover: var(--blue-300);
+      --color-primary-light: rgba(59, 130, 246, 0.15);
+      --color-primary-dark: var(--blue-200);
       --color-secondary: var(--green-400);
+      --color-secondary-light: rgba(76, 175, 80, 0.15);
       --color-accent: var(--orange-400);
+      --color-accent-light: rgba(251, 146, 60, 0.15);
    }
 }
 

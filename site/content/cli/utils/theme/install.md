@@ -25,6 +25,7 @@ bengal utils theme install [ARGUMENTS] [OPTIONS]
 
 **Type:** `text`
 **Required:** Yes
+**Default:** `Sentinel.UNSET`
 
 
 ## Options

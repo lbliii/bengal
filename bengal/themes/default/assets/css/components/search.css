@@ -366,11 +366,7 @@
   margin-bottom: 2rem;
 }
 
-.search-page-header h1 {
-  margin: 0 0 0.5rem 0;
-  font-size: var(--text-4xl);
-  font-weight: var(--font-weight-extrabold);
-}
+/* Moved to layouts/page-header.css - use .page-header.page-header--centered */
 
 .search-page-description {
   margin: 0;
@@ -385,7 +381,7 @@
 
 .search-tips h2 {
   margin: 0 0 1.5rem 0;
-  font-size: var(--text-2xl);
+  font-size: var(--type-h2);
   font-weight: var(--font-weight-bold);
   text-align: center;
 }
@@ -450,7 +446,7 @@
 
 .popular-searches h2 {
   margin: 0 0 1.5rem 0;
-  font-size: var(--text-2xl);
+  font-size: var(--type-h2);
   font-weight: var(--font-weight-bold);
   text-align: center;
 }

@@ -85,6 +85,10 @@
 }
 
 @layer pages {
+  @import url('layouts/page-header.css');
+}
+
+@layer pages {
   @import url('layouts/footer.css');
 }
 

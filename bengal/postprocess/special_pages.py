@@ -7,7 +7,6 @@ Handles generation of special pages that don't come from markdown content:
 - other static utility pages
 """
 
-
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -131,12 +130,22 @@ class SpecialPagesGenerator:
             # Render 404 page (template functions are already registered in TemplateEngine.__init__)
             rendered_html = template_engine.render("404.html", context)
 
-            # Write to output directory
+            # Write to output directory only if content changed (avoid churn)
             output_path = self.site.output_dir / "404.html"
             output_path.parent.mkdir(parents=True, exist_ok=True)
 
-            with open(output_path, "w", encoding="utf-8") as f:
-                f.write(rendered_html)
+            try:
+                existing = ""
+                if output_path.exists():
+                    with open(output_path, encoding="utf-8") as f:
+                        existing = f.read()
+                if existing != rendered_html:
+                    with open(output_path, "w", encoding="utf-8") as f:
+                        f.write(rendered_html)
+            except Exception:
+                # Best-effort diff; on any error just write
+                with open(output_path, "w", encoding="utf-8") as f:
+                    f.write(rendered_html)
 
             return True
 

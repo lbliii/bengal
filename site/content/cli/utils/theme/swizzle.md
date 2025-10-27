@@ -22,6 +22,7 @@ bengal utils theme swizzle [ARGUMENTS]
 
 **Type:** `text`
 **Required:** Yes
+**Default:** `Sentinel.UNSET`
 
 ### source
 

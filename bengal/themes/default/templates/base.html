@@ -393,10 +393,7 @@
 
     {% block extra_js %}{% endblock %}
 
-    {# Dev-only live reload include (Phase 3) #}
-    {% if site.config.get('dev_server') %}
-    {% include 'partials/dev-reload.html' %}
-    {% endif %}
+    {# Dev-only live reload is now injected by the server automatically via LiveReloadMixin #}
 </body>
 
 </html>

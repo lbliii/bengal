@@ -91,24 +91,7 @@
   font-weight: inherit;
 }
 
-/* Page header titles: ensure token-driven sizes when outside .prose */
-.docs-header h1 {
-  font-size: 2.5rem;
-  line-height: var(--leading-tight);
-  font-weight: var(--font-extrabold);
-}
-
-.docs-header h2 {
-  font-size: 2rem;
-  line-height: var(--leading-tight);
-  font-weight: var(--font-bold);
-}
-
-.docs-header h3 {
-  font-size: 1.75rem;
-  line-height: var(--leading-tight);
-  font-weight: var(--font-semibold);
-}
+/* Page header styles moved to layouts/page-header.css */
 
 /* Paragraphs */
 .prose p {
@@ -140,11 +123,11 @@
 }
 
 /* Lead in header contexts - add border for visual separation */
-.docs-header .lead,
+/* .docs-header .lead,
 header .lead {
   padding-bottom: var(--space-6);
   border-bottom: 1px solid var(--color-border);
-}
+} */
 
 /* Responsive lead styles */
 @media (max-width: 768px) {

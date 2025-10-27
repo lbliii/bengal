@@ -11,7 +11,8 @@ Defaults to minimal (generator only).
     content="{{ bengal.theme.name }}{% if bengal.theme.version %}@{{ bengal.theme.version }}{% endif %}">
 {% endif %}
 
-{% if bengal.build is defined and bengal.build.timestamp %}
+{# Suppress build timestamp in dev to avoid content churn and spurious reloads #}
+{% if (not config.get('dev_server')) and (bengal.build is defined and bengal.build.timestamp) %}
 <meta name="bengal:build" content="{{ bengal.build.timestamp }}">
 {% endif %}
 
