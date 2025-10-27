@@ -24,7 +24,7 @@
 
 pre {
   position: relative;
-  margin: var(--space-6) 0;
+  margin: 0;
   padding: var(--space-6);
   background-color: var(--color-bg-code);
   border: none;
@@ -63,6 +63,25 @@ pre code {
   border-radius: var(--radius-md) var(--radius-md) 0 0;
 }
 
+/* Code block wrapper - contains pre and button */
+.code-block-wrapper {
+  position: relative;
+  margin: var(--space-6) 0;
+}
+
+/* Inline code header (positioned absolutely relative to wrapper, not inside scrolling pre) */
+.code-header-inline {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  z-index: 1;
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: flex-end;
+  pointer-events: none;
+}
+
 .code-language {
   font-size: var(--text-xs);
   font-weight: var(--font-semibold);
@@ -85,6 +104,7 @@ pre code {
   cursor: pointer;
   transition: all var(--transition-fast);
   box-shadow: var(--elevation-subtle);
+  flex-shrink: 0;
 }
 
 .code-copy-button:hover {

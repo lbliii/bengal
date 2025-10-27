@@ -84,14 +84,6 @@
       // Create header container
       const header = document.createElement('div');
       header.className = 'code-header-inline';
-      header.style.position = 'absolute';
-      header.style.top = '0.5rem';
-      header.style.right = '0.5rem';
-      header.style.left = '0.5rem';
-      header.style.display = 'flex';
-      header.style.justifyContent = 'space-between';
-      header.style.alignItems = 'center';
-      header.style.pointerEvents = 'none';
 
       // Create language label if detected
       if (language) {
@@ -127,10 +119,20 @@
 
       header.appendChild(button);
 
-      // Insert header
-      pre.style.position = 'relative';
+      // Wrap pre in a container and place button outside the scrolling area
+      const wrapper = document.createElement('div');
+      wrapper.className = 'code-block-wrapper';
+      wrapper.style.position = 'relative';
+
+      // Insert wrapper before pre, then move pre into wrapper
+      pre.parentNode.insertBefore(wrapper, pre);
+      wrapper.appendChild(pre);
+
+      // Add header to wrapper (not inside pre)
+      wrapper.appendChild(header);
+
+      // Adjust pre padding
       pre.style.paddingTop = '2.5rem'; // Make room for header
-      pre.insertBefore(header, pre.firstChild);
 
       // Copy functionality
       button.addEventListener('click', function (e) {

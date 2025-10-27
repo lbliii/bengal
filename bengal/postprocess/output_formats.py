@@ -359,13 +359,20 @@ class OutputFormatsGenerator:
         excerpt_length = options.get("excerpt_length", 200)
 
         # Build site metadata (per-locale when i18n is enabled)
+        site_metadata = {
+            "title": self.site.config.get("title", "Bengal Site"),
+            "description": self.site.config.get("description", ""),
+            "baseurl": self.site.config.get("baseurl", ""),
+        }
+
+        # Only include build_time in production builds to avoid spurious dev server reloads
+        # In dev mode, changing timestamp causes unnecessary page refreshes
+        is_dev_mode = getattr(self.site, "_dev_mode", False)
+        if not is_dev_mode:
+            site_metadata["build_time"] = datetime.now().isoformat()
+
         site_data = {
-            "site": {
-                "title": self.site.config.get("title", "Bengal Site"),
-                "description": self.site.config.get("description", ""),
-                "baseurl": self.site.config.get("baseurl", ""),
-                "build_time": datetime.now().isoformat(),
-            },
+            "site": site_metadata,
             "pages": [],
             "sections": {},
             "tags": {},
@@ -453,7 +460,12 @@ class OutputFormatsGenerator:
         lines.append(f"# {title}\n")
         if baseurl:
             lines.append(f"Site: {baseurl}")
-        lines.append(f"Build Date: {datetime.now().isoformat()}")
+
+        # Only include build date in production to avoid spurious dev server reloads
+        is_dev_mode = getattr(self.site, "_dev_mode", False)
+        if not is_dev_mode:
+            lines.append(f"Build Date: {datetime.now().isoformat()}")
+
         lines.append(f"Total Pages: {len(pages)}\n")
         lines.append(separator + "\n")
 

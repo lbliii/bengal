@@ -82,6 +82,9 @@ class DevServer:
         self.auto_port = auto_port
         self.open_browser = open_browser
 
+        # Mark site as running in dev mode to prevent timestamp churn in output files
+        self.site._dev_mode = True
+
     def start(self) -> None:
         """
         Start the development server with robust resource cleanup.

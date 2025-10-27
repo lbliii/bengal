@@ -41,25 +41,25 @@ html[data-palette="silver-bengal"] {
     --color-border-focus: #6B7280;
 
     /* Semantic states (cool tones) */
-    --color-success: #2E7D32;
-    --color-success-bg: #F0F9F1;
-    --color-success-border: #A5D6A7;
-    --color-success-text: #1B5E20;
+    --color-success: #3F6D47;
+    --color-success-bg: #F3F6F4;
+    --color-success-border: #9BB29F;
+    --color-success-text: #2A4A30;
 
-    --color-warning: #D97706;
-    --color-warning-bg: #FFFBF0;
-    --color-warning-border: #FCD34D;
-    --color-warning-text: #92400E;
+    --color-warning: #CA8A04;
+    --color-warning-bg: #FEFCE8;
+    --color-warning-border: #FDE047;
+    --color-warning-text: #713F12;
 
     --color-error: #C62828;
     --color-error-bg: #FFF5F5;
     --color-error-border: #FCA5A5;
     --color-error-text: #7F1D1D;
 
-    --color-info: #1976D2;
-    --color-info-bg: #F0F7FF;
-    --color-info-border: #93C5FD;
-    --color-info-text: #1E3A8A;
+    --color-info: #4B5563;
+    --color-info-bg: #F3F4F6;
+    --color-info-border: #9CA3AF;
+    --color-info-text: #1F2937;
 
     /* Accent color (pure silver - monochromatic) */
     --color-accent: #4B5563;
@@ -108,10 +108,10 @@ html[data-theme="dark"][data-palette="silver-bengal"] {
     --color-border-strong: #404040;
 
     /* Semantic states for dark mode */
-    --color-success: #66BB6A;
-    --color-success-bg: rgba(46, 125, 50, 0.15);
-    --color-success-border: #388E3C;
-    --color-success-text: #A5D6A7;
+    --color-success: #6B9B6F;
+    --color-success-bg: rgba(63, 109, 71, 0.15);
+    --color-success-border: #4A7450;
+    --color-success-text: #9BB29F;
 
     --color-warning: #FFB020;
     --color-warning-bg: rgba(217, 119, 6, 0.15);
@@ -123,10 +123,10 @@ html[data-theme="dark"][data-palette="silver-bengal"] {
     --color-error-border: #C62828;
     --color-error-text: #FCA5A5;
 
-    --color-info: #42A5F5;
-    --color-info-bg: rgba(25, 118, 210, 0.15);
-    --color-info-border: #1976D2;
-    --color-info-text: #93C5FD;
+    --color-info: #D1D5DB;
+    --color-info-bg: rgba(107, 114, 128, 0.15);
+    --color-info-border: #6B7280;
+    --color-info-text: #E5E7EB;
 
     /* Accent color for dark mode */
     --color-accent: #D1D5DB;

@@ -41,10 +41,10 @@ html[data-palette="charcoal-bengal"] {
     --color-border-focus: #3E4C5A;
 
     /* Semantic states (muted but clear) */
-    --color-success: #2E7D32;
-    --color-success-bg: #EEF7EF;
-    --color-success-border: #A5D6A7;
-    --color-success-text: #1B5E20;
+    --color-success: #3A6B4F;
+    --color-success-bg: #EEF4F1;
+    --color-success-border: #8FA99A;
+    --color-success-text: #254438;
 
     --color-warning: #D97706;
     --color-warning-bg: #FFF9EE;
@@ -109,10 +109,10 @@ html[data-theme="dark"][data-palette="charcoal-bengal"] {
     --color-border-strong: #343D49;
 
     /* Semantic states for dark mode */
-    --color-success: #66BB6A;
-    --color-success-bg: rgba(46, 125, 50, 0.15);
-    --color-success-border: #388E3C;
-    --color-success-text: #A5D6A7;
+    --color-success: #6B9B7E;
+    --color-success-bg: rgba(58, 107, 79, 0.15);
+    --color-success-border: #4A7A5C;
+    --color-success-text: #8FA99A;
 
     --color-warning: #FFB020;
     --color-warning-bg: rgba(217, 119, 6, 0.15);

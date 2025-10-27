@@ -153,8 +153,8 @@
       'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans',
       'Droid Sans', 'Helvetica Neue', system-ui, sans-serif;
    --font-serif: Georgia, Cambria, 'Times New Roman', Times, serif;
-   --font-mono: 'SF Mono', 'Monaco', 'Cascadia Code', 'Roboto Mono',
-      'Consolas', 'Liberation Mono', 'Courier New', monospace;
+   --font-mono: 'Consolas', 'Monaco', 'SF Mono', 'JetBrains Mono',
+      'Fira Code', 'Cascadia Code', 'Courier New', monospace;
 
    /* Font Sizes (Fluid Typography) */
    --text-xxs: 0.6875rem;
@@ -475,8 +475,12 @@
    --color-primary: var(--blue-400);
    --color-primary-hover: var(--blue-300);
    --color-primary-active: var(--blue-200);
+   --color-primary-light: rgba(59, 130, 246, 0.15);
+   --color-primary-dark: var(--blue-200);
    --color-secondary: var(--green-400);
+   --color-secondary-light: rgba(76, 175, 80, 0.15);
    --color-accent: var(--orange-400);
+   --color-accent-light: rgba(251, 146, 60, 0.15);
 }
 
 /* ============================================
@@ -509,8 +513,12 @@
 
       --color-primary: var(--blue-400);
       --color-primary-hover: var(--blue-300);
+      --color-primary-light: rgba(59, 130, 246, 0.15);
+      --color-primary-dark: var(--blue-200);
       --color-secondary: var(--green-400);
+      --color-secondary-light: rgba(76, 175, 80, 0.15);
       --color-accent: var(--orange-400);
+      --color-accent-light: rgba(251, 146, 60, 0.15);
    }
 }
 
