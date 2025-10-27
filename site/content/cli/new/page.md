@@ -25,6 +25,7 @@ bengal new page [ARGUMENTS] [OPTIONS]
 
 **Type:** `text`
 **Required:** Yes
+**Default:** `Sentinel.UNSET`
 
 
 ## Options

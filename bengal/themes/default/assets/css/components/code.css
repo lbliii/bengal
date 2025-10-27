@@ -41,12 +41,12 @@ pre:hover {
 
 pre code {
   padding: 0;
+  font-family: var(--font-mono);
   font-size: var(--text-body-small);
   color: var(--color-text-primary);
   background: none;
   border: none;
   border-radius: 0;
-  font-weight: var(--font-weight-normal);
 }
 
 /* ============================================
