@@ -14,6 +14,7 @@ from typing import Any
 
 from watchdog.events import FileSystemEvent, FileSystemEventHandler
 
+from bengal.server.reload_controller import ReloadDecision, controller
 from bengal.utils.build_stats import display_build_stats, show_building_indicator, show_error
 from bengal.utils.cli_output import CLIOutput
 from bengal.utils.logger import get_logger
@@ -270,8 +271,6 @@ class BuildHandler(FileSystemEventHandler):
                 if getattr(stats, "skipped", False):
                     logger.info("reload_suppressed", reason="build_skipped")
                 else:
-                    from bengal.server.reload_controller import controller
-
                     # 1) Source-gated quick path: if we know which sources changed, decide directly
                     #    CSS-only → reload-css; otherwise full reload. This avoids output churn.
                     if changed_files:
@@ -283,25 +282,13 @@ class BuildHandler(FileSystemEventHandler):
                             ]
                             css_only = bool(src_only) and all(p.endswith(".css") for p in src_only)
                             if css_only:
-                                decision = type(
-                                    "_D",
-                                    (),
-                                    {
-                                        "action": "reload-css",
-                                        "reason": "css-only",
-                                        "changed_paths": [],
-                                    },
-                                )()
+                                decision = ReloadDecision(
+                                    action="reload-css", reason="css-only", changed_paths=[]
+                                )
                             else:
-                                decision = type(
-                                    "_D",
-                                    (),
-                                    {
-                                        "action": "reload",
-                                        "reason": "source-change",
-                                        "changed_paths": [],
-                                    },
-                                )()
+                                decision = ReloadDecision(
+                                    action="reload", reason="source-change", changed_paths=[]
+                                )
                         except Exception:
                             decision = None
                     else:
@@ -315,11 +302,9 @@ class BuildHandler(FileSystemEventHandler):
 
                     # 3) No source change, no builder hints → suppress reload (dev: source-gated only)
                     if decision is None:
-                        decision = type(
-                            "_D",
-                            (),
-                            {"action": "none", "reason": "no-source-change", "changed_paths": []},
-                        )()
+                        decision = ReloadDecision(
+                            action="none", reason="no-source-change", changed_paths=[]
+                        )
 
                     if decision.action == "none":
                         logger.info("reload_suppressed", reason=decision.reason)

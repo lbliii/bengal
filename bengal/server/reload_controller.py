@@ -176,8 +176,8 @@ class ReloadController:
                     try:
                         # Compute current content hash (md5 fallback; xxhash could be used if available)
                         abs_path = (output_dir / path).resolve()
-                        h = hashlib.md5()
-                        with open(abs_path, "rb") as f:  # noqa: S324 (md5 acceptable for change detection)
+                        h = hashlib.md5(usedforsecurity=False)
+                        with open(abs_path, "rb") as f:
                             for chunk in iter(lambda: f.read(1 << 16), b""):
                                 h.update(chunk)
                         digest = h.hexdigest()
