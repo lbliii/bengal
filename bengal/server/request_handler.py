@@ -4,7 +4,6 @@ Custom HTTP request handler for the dev server.
 Provides beautiful logging, custom 404 pages, and live reload support.
 """
 
-
 from __future__ import annotations
 
 import http.server
@@ -105,8 +104,10 @@ class BengalRequestHandler(RequestLogger, LiveReloadMixin, http.server.SimpleHTT
             self.handle_sse()
             return
 
-        # Serve files normally (Phase 3: live reload provided via template include)
-        super().do_GET()
+        # Try to serve HTML with injected live reload script
+        # If not HTML or injection fails, fall back to normal file serving
+        if not self.serve_html_with_live_reload():
+            super().do_GET()
 
     def _handle_component_preview(self) -> None:
         try:

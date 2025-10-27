@@ -408,8 +408,9 @@ class TestDoGetIntegrationMinimal:
         handler.do_GET()
         result = output.getvalue().decode("utf-8", errors="replace")
 
-        # Phase 3: injection may be handled via dev include; accept either pattern
-        assert ("__bengal_reload__" in result) or ("live-reload.js" in result)
+        # Verify server-injected live reload script is present
+        assert "__bengal_reload__" in result
+        assert "Bengal Live Reload" in result  # Comment from injected script
         assert "Test" in result  # Original content preserved
 
     def test_do_get_bypasses_non_html(self, monkeypatch):

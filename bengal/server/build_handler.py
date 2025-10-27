@@ -128,6 +128,7 @@ class BuildHandler(FileSystemEventHandler):
         # Ignore when file lives under these directories anywhere in the path
         dir_ignores = {
             ".git",
+            ".bengal",  # Build cache and server state (prevents rebuild loops)
             "node_modules",
             "__pycache__",
             ".pytest_cache",
