@@ -21,12 +21,7 @@
     text-align: center;
 }
 
-.blog-header h1 {
-    font-size: var(--type-h1);
-    font-weight: 700;
-    color: var(--color-text-primary);
-    margin-bottom: var(--space-3);
-}
+/* Moved to layouts/page-header.css - use .page-header.page-header--centered */
 
 .blog-description {
     font-size: var(--text-lg);

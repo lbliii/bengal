@@ -1,0 +1,227 @@
+/**
+ * Bengal SSG Default Theme
+ * Page Header Component
+ *
+ * Standardized page header styling for all content types.
+ * Replaces individual header classes (docs-header, blog-header, tutorial-header, etc.)
+ *
+ * Usage:
+ * <header class="page-header">
+ *   <h1>Page Title</h1>
+ *   <p class="lead">Optional description</p>
+ * </header>
+ *
+ * Modifiers:
+ * .page-header--centered    - Center-aligned header
+ * .page-header--compact     - Smaller heading sizes for dense layouts
+ * .page-header--bordered    - Add bottom border
+ */
+
+/* ============================================
+   BASE PAGE HEADER
+   ============================================ */
+
+.page-header {
+  margin-bottom: var(--space-8);
+}
+
+.page-header h1 {
+  font-size: var(--type-h1);
+  line-height: var(--leading-tight);
+  font-weight: var(--font-extrabold);
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-3) 0;
+  letter-spacing: var(--letter-spacing-tight);
+}
+
+.page-header h2 {
+  font-size: var(--type-h2);
+  line-height: var(--leading-tight);
+  font-weight: var(--font-bold);
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-2) 0;
+}
+
+.page-header h3 {
+  font-size: var(--type-h3);
+  line-height: var(--leading-tight);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-2) 0;
+}
+
+/* Lead paragraph styling (defined in typography.css, reinforced here for specificity) */
+.page-header .lead {
+  font-size: var(--text-lg);
+  color: var(--color-text-secondary);
+  font-weight: 400;
+  line-height: 1.7;
+  letter-spacing: 0.01em;
+  margin-bottom: var(--space-6);
+  padding-bottom: var(--space-6);
+  border-bottom: 1px solid var(--color-border);
+}
+
+/* ============================================
+   MODIFIERS
+   ============================================ */
+
+/* Centered variant - for landing pages, blog indexes, etc. */
+.page-header--centered {
+  text-align: center;
+  padding: var(--space-8) 0;
+}
+
+.page-header--centered .lead {
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Compact variant - smaller headings for dense layouts */
+.page-header--compact h1 {
+  font-size: var(--text-3xl);
+  margin-bottom: var(--space-2);
+}
+
+.page-header--compact h2 {
+  font-size: var(--text-2xl);
+}
+
+.page-header--compact h3 {
+  font-size: var(--text-xl);
+}
+
+.page-header--compact .lead {
+  font-size: var(--text-base);
+  padding-bottom: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+/* Bordered variant - adds bottom border to entire header */
+.page-header--bordered {
+  padding-bottom: var(--space-6);
+  border-bottom: 1px solid var(--color-border);
+}
+
+/* No-margin variant - for tight layouts */
+.page-header--no-margin {
+  margin-bottom: 0;
+}
+
+/* ============================================
+   HEADER METADATA
+   ============================================ */
+
+/* Optional metadata/stats section in header */
+.page-header__meta {
+  display: flex;
+  gap: var(--space-6);
+  margin-top: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border-light);
+}
+
+.page-header__meta-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+}
+
+/* Icons in header (optional) */
+.page-header__icon {
+  font-size: var(--text-3xl);
+  line-height: 1;
+  margin-bottom: var(--space-3);
+}
+
+.page-header--centered .page-header__icon {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
+@media (max-width: 768px) {
+  .page-header h1 {
+    font-size: var(--text-3xl);
+  }
+
+  .page-header h2 {
+    font-size: var(--text-2xl);
+  }
+
+  .page-header h3 {
+    font-size: var(--text-xl);
+  }
+
+  .page-header .lead {
+    font-size: var(--text-base);
+    padding-bottom: var(--space-4);
+    margin-bottom: var(--space-4);
+  }
+
+  .page-header--centered {
+    padding: var(--space-6) 0;
+  }
+
+  .page-header__meta {
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+}
+
+@media (max-width: 480px) {
+  .page-header h1 {
+    font-size: var(--text-2xl);
+  }
+
+  .page-header h2 {
+    font-size: var(--text-xl);
+  }
+
+  .page-header--centered {
+    padding: var(--space-4) 0;
+  }
+}
+
+/* ============================================
+   LEGACY ALIASES (for backwards compatibility)
+   Remove these after template updates
+   ============================================ */
+
+.docs-header {
+  /* Inherits from .page-header via template update */
+}
+
+.blog-header {
+  /* Will be removed - use .page-header.page-header--centered */
+}
+
+.tutorial-header {
+  /* Will be removed - use .page-header.page-header--centered */
+}
+
+.api-reference-header {
+  /* Will be removed - use .page-header.page-header--centered.page-header--bordered */
+}
+
+.cli-reference-header {
+  /* Will be removed - use .page-header.page-header--centered.page-header--bordered */
+}
+
+.archive-header {
+  /* Will be removed - use .page-header.page-header--centered */
+}
+
+.changelog-header {
+  /* Will be removed - use .page-header.page-header--centered */
+}
+
+.search-page-header {
+  /* Will be removed - use .page-header.page-header--centered */
+}

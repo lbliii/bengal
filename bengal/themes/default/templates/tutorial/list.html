@@ -21,7 +21,7 @@ Context variables:
 {% include 'partials/action-bar.html' with context %}
 
 <div class="tutorial-container">
-    <header class="tutorial-header">
+    <header class="page-header page-header--centered">
         <h1>📚 {{ section.title if section else title | default('Tutorials') }}</h1>
 
         {% if section and section.metadata.get('description', '') %}
