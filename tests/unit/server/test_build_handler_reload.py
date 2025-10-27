@@ -124,7 +124,8 @@ def test_prefers_changed_outputs_over_snapshot_diff(tmp_path, monkeypatch):
     monkeypatch.setattr("bengal.server.build_handler.show_building_indicator", lambda *a, **k: None)
 
     with (
-        patch("bengal.server.reload_controller.controller") as mock_controller,
+        # Patch controller at the import site (build_handler module)
+        patch("bengal.server.build_handler.controller") as mock_controller,
         patch("bengal.server.live_reload.send_reload_payload", fake_send_reload),
         patch("bengal.server.request_handler.BengalRequestHandler"),
     ):

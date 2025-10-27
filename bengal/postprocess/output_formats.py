@@ -367,8 +367,8 @@ class OutputFormatsGenerator:
 
         # Only include build_time in production builds to avoid spurious dev server reloads
         # In dev mode, changing timestamp causes unnecessary page refreshes
-        is_dev_mode = getattr(self.site, "_dev_mode", False)
-        if not is_dev_mode:
+        # Skip build_time only when explicitly in dev server mode
+        if not self.site.config.get("dev_server", False):
             site_metadata["build_time"] = datetime.now().isoformat()
 
         site_data = {
@@ -473,8 +473,8 @@ class OutputFormatsGenerator:
             lines.append(f"Site: {baseurl}")
 
         # Only include build date in production to avoid spurious dev server reloads
-        is_dev_mode = getattr(self.site, "_dev_mode", False)
-        if not is_dev_mode:
+        # Skip build date only when explicitly in dev server mode
+        if not self.site.config.get("dev_server", False):
             lines.append(f"Build Date: {datetime.now().isoformat()}")
 
         lines.append(f"Total Pages: {len(pages)}\n")

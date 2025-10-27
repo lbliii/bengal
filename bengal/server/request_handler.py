@@ -55,9 +55,11 @@ class BengalRequestHandler(RequestLogger, LiveReloadMixin, http.server.SimpleHTT
         properly set these during normal HTTP request handling.
         """
         super().__init__(*args, **kwargs)
-        # Initialize with empty HTTPMessage
+        # Initialize with empty HTTPMessage and default values for testing
         self.headers = HTTPMessage()
         self.request_version = "HTTP/1.1"
+        self.requestline = ""
+        self.command = ""  # HTTP command (GET, POST, etc.)
 
     # In dev, aggressively prevent browser caching to avoid stale assets
     def end_headers(self) -> None:  # type: ignore[override]

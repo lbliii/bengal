@@ -375,6 +375,21 @@ class LiveReloadMixin:
             )
             return False
 
+    def _inject_live_reload(self, response: bytes) -> bytes:
+        """
+        Inject live reload script into an HTTP response.
+
+        This method is provided for test compatibility and wraps the
+        module-level inject_live_reload_into_response function.
+
+        Args:
+            response: Complete HTTP response (headers + body)
+
+        Returns:
+            Modified response with live reload script injected
+        """
+        return inject_live_reload_into_response(response)
+
 
 def notify_clients_reload() -> None:
     """
@@ -456,3 +471,78 @@ def set_reload_action(action: str) -> None:
         action = "reload"
     _last_action = action
     logger.debug("reload_action_set", action=_last_action)
+
+
+def inject_live_reload_into_response(response: bytes) -> bytes:
+    """
+    Inject live reload script into an HTTP response.
+
+    Args:
+        response: Complete HTTP response (headers + body)
+
+    Returns:
+        Modified response with live reload script injected
+    """
+    try:
+        # HTTP response format: headers\r\n\r\nbody
+        if b"\r\n\r\n" not in response:
+            return response
+
+        headers_end = response.index(b"\r\n\r\n")
+        headers = response[:headers_end]
+        body = response[headers_end + 4 :]
+
+        # Inject script before </body> or </html> (case-insensitive)
+        script_bytes = LIVE_RELOAD_SCRIPT.encode("utf-8")
+
+        # Try to find </body> (case-insensitive search in bytes)
+        body_tag_lower = b"</body>"
+        body_tag_upper = b"</BODY>"
+        body_idx = body.rfind(body_tag_lower)
+        if body_idx == -1:
+            body_idx = body.rfind(body_tag_upper)
+
+        if body_idx != -1:
+            # Inject before </body>
+            modified_body = body[:body_idx] + script_bytes + body[body_idx:]
+        else:
+            # Fallback: try </html>
+            html_tag_lower = b"</html>"
+            html_tag_upper = b"</HTML>"
+            html_idx = body.rfind(html_tag_lower)
+            if html_idx == -1:
+                html_idx = body.rfind(html_tag_upper)
+
+            if html_idx != -1:
+                modified_body = body[:html_idx] + script_bytes + body[html_idx:]
+            else:
+                # Last resort: append at end
+                modified_body = body + script_bytes
+
+        # Update Content-Length header if present
+        headers_str = headers.decode("latin-1")
+        header_lines = headers_str.split("\r\n")
+        new_header_lines = []
+        content_length_updated = False
+
+        for line in header_lines:
+            if line.lower().startswith("content-length:"):
+                new_header_lines.append(f"Content-Length: {len(modified_body)}")
+                content_length_updated = True
+            else:
+                new_header_lines.append(line)
+
+        # If Content-Length wasn't present, add it
+        if not content_length_updated:
+            new_header_lines.append(f"Content-Length: {len(modified_body)}")
+
+        new_headers = "\r\n".join(new_header_lines).encode("latin-1")
+        return new_headers + b"\r\n\r\n" + modified_body
+
+    except Exception as e:
+        logger.warning(
+            "live_reload_response_injection_failed",
+            error=str(e),
+            error_type=type(e).__name__,
+        )
+        return response
