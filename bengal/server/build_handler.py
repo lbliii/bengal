@@ -25,9 +25,11 @@ class BuildHandler(FileSystemEventHandler):
     """
     File system event handler that triggers site rebuild with debouncing.
 
-    Watches for file changes and automatically rebuilds the site when changes
-    are detected. Uses debouncing to batch multiple rapid changes into a single
-    rebuild, preventing excessive rebuilds when multiple files are saved at once.
+    Dev reload policy (source-gated):
+    - Only source edits (markdown/content, config, templates, theme assets) trigger reloads.
+    - CSS-only source edits send reload-css; any other source edits send full reload.
+    - We do NOT scan output directories for diffs in dev; this avoids dev-only churn
+      (timestamps, site-wide JSON/TXT) from causing spurious reloads.
 
     Features:
     - Debounced rebuilds (0.3s delay to batch changes)
@@ -264,13 +266,60 @@ class BuildHandler(FileSystemEventHandler):
                     parallel=stats.parallel,
                 )
 
-                # Output-diff–driven reload decision
+                # Reload decision (prefer source-gated, then builder hints, then output diff)
                 if getattr(stats, "skipped", False):
                     logger.info("reload_suppressed", reason="build_skipped")
                 else:
                     from bengal.server.reload_controller import controller
 
-                    decision = controller.decide_and_update(self.site.output_dir)
+                    # 1) Source-gated quick path: if we know which sources changed, decide directly
+                    #    CSS-only → reload-css; otherwise full reload. This avoids output churn.
+                    if changed_files:
+                        try:
+                            lower = [str(p).lower() for p in changed_files]
+                            # Ignore any changes that might have slipped from output dir just in case
+                            src_only = [
+                                p for p in lower if "/public/" not in p and "\\public\\" not in p
+                            ]
+                            css_only = bool(src_only) and all(p.endswith(".css") for p in src_only)
+                            if css_only:
+                                decision = type(
+                                    "_D",
+                                    (),
+                                    {
+                                        "action": "reload-css",
+                                        "reason": "css-only",
+                                        "changed_paths": [],
+                                    },
+                                )()
+                            else:
+                                decision = type(
+                                    "_D",
+                                    (),
+                                    {
+                                        "action": "reload",
+                                        "reason": "source-change",
+                                        "changed_paths": [],
+                                    },
+                                )()
+                        except Exception:
+                            decision = None
+                    else:
+                        decision = None
+
+                    # 2) Prefer builder-provided changed outputs if available
+                    if decision is None:
+                        changed_outputs = getattr(stats, "changed_outputs", None)
+                        if isinstance(changed_outputs, (list, tuple)) and changed_outputs:
+                            decision = controller.decide_from_changed_paths(list(changed_outputs))
+
+                    # 3) No source change, no builder hints → suppress reload (dev: source-gated only)
+                    if decision is None:
+                        decision = type(
+                            "_D",
+                            (),
+                            {"action": "none", "reason": "no-source-change", "changed_paths": []},
+                        )()
 
                     if decision.action == "none":
                         logger.info("reload_suppressed", reason=decision.reason)

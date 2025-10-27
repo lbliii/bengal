@@ -2,7 +2,6 @@
 Build statistics display with colorful output and ASCII art.
 """
 
-
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -78,6 +77,10 @@ class BuildStats:
 
     # Output directory (for display)
     output_dir: str = None
+
+    # Optional: builder-provided list of changed output paths (relative to output dir)
+    # When provided, the dev server will prefer this over snapshot diffing for reload decisions.
+    changed_outputs: list[str] | None = None
 
     # Warnings and errors
     warnings: list = None

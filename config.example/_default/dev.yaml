@@ -1,0 +1,20 @@
+dev:
+  watch:
+    # Debounce file watcher events (ms) to coalesce noisy editor saves
+    debounce_ms: 300
+    # Optional: force watchdog backend (auto | polling)
+    backend: auto
+
+  reload:
+    # Paths/globs relative to output dir (public/) to ignore during dev reload
+    ignore_paths:
+      - index.json
+      - search/**
+
+    # Minimum interval between reload notifications (ms)
+    min_notify_interval_ms: 300
+
+    # Conditional hashing to suppress spurious reloads when only mtime changes
+    hash_on_suspect: true
+    suspect_hash_limit: 200
+    suspect_size_limit_bytes: 2000000

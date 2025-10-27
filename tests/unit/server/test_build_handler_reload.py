@@ -11,6 +11,8 @@ class DummyStats:
         self.incremental = True
         self.parallel = True
         self.skipped = False
+        # Optional attribute used by BuildHandler when present
+        self.changed_outputs = None
 
 
 class DummySite:
@@ -96,6 +98,55 @@ def test_mixed_changes_trigger_full_reload(tmp_path, monkeypatch):
         handler._trigger_build()
 
     assert called.get("action") == "reload"
+
+
+def test_prefers_changed_outputs_over_snapshot_diff(tmp_path, monkeypatch):
+    handler = _make_handler(tmp_path)
+
+    # Prepare DummySite.build to return stats with changed_outputs
+    stats = DummyStats()
+    stats.changed_outputs = ["assets/style.css"]
+
+    def fake_build(*args, **kwargs):
+        return stats
+
+    handler.site.build = fake_build
+
+    # Capture payload and track which controller API was called
+    called = {"api": None}
+
+    def fake_send_reload(action, reason, changed_paths):
+        called["action"] = action
+        called["reason"] = reason
+        called["changed_paths"] = list(changed_paths)
+
+    monkeypatch.setattr("bengal.server.build_handler.display_build_stats", lambda *a, **k: None)
+    monkeypatch.setattr("bengal.server.build_handler.show_building_indicator", lambda *a, **k: None)
+
+    with (
+        patch("bengal.server.reload_controller.controller") as mock_controller,
+        patch("bengal.server.live_reload.send_reload_payload", fake_send_reload),
+        patch("bengal.server.request_handler.BengalRequestHandler"),
+    ):
+        # decide_from_changed_paths should be used, not decide_and_update
+        def _decide_from_changed_paths(paths):
+            called["api"] = "decide_from_changed_paths"
+            return ReloadDecision(action="reload-css", reason="css-only", changed_paths=paths)
+
+        mock_controller.decide_from_changed_paths.side_effect = _decide_from_changed_paths
+        # Make decide_and_update obvious if called erroneously
+        mock_controller.decide_and_update.return_value = ReloadDecision(
+            action="reload",
+            reason="snapshot",
+            changed_paths=["should-not-be-used"],
+        )
+
+        handler._trigger_build()
+
+    # Assert builder-provided path was used and CSS-only classification occurred
+    assert called.get("api") == "decide_from_changed_paths"
+    assert called.get("action") == "reload-css"
+    assert called.get("changed_paths") == ["assets/style.css"]
 
 
 def test_on_created_triggers_rebuild(tmp_path):

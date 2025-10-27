@@ -163,8 +163,8 @@ class TestIsHtmlResponse:
         assert self.handler._is_html_response(response) is True
 
 
-class TestInjectLiveReload:
-    """Test _inject_live_reload() script injection."""
+class TestServeHtmlWithLiveReload:
+    """Test serve_html_with_live_reload() script injection via mixin path."""
 
     def setup_method(self):
         """Set up test handler."""
@@ -178,132 +178,137 @@ class TestInjectLiveReload:
                 request=request, client_address=("127.0.0.1", 12345), server=Mock()
             )
 
-    def test_inject_before_body_tag(self):
-        """Test script injection before </body> tag."""
-        response = b"HTTP/1.1 200 OK\r\n\r\n<html><body>Content</body></html>"
-        result = self.handler._inject_live_reload(response)
+    def _serve_temp_html(self, tmp_path, html: str) -> str:
+        # Create a temporary HTML file
+        tmp_path.mkdir(parents=True, exist_ok=True)
+        p = tmp_path / "index.html"
+        p.write_text(html)
 
-        # Decode to check content
-        result_str = result.decode("utf-8", errors="replace")
+        # Point handler to directory serving
+        mock_server = Mock()
+        mock_server.directory = str(tmp_path)
+        self.handler.server = mock_server
+        self.handler.path = "/index.html"
 
-        # Script should be present
+        # Stub translate_path to map to tmp file
+        def fake_translate_path(_self, path):
+            from pathlib import Path as _P
+
+            return str(_P(str(tmp_path)) / path.lstrip("/"))
+
+        with patch.object(BengalRequestHandler, "translate_path", fake_translate_path):
+            # Capture output
+            buf = BytesIO()
+            self.handler.wfile = buf
+            served = self.handler.serve_html_with_live_reload()
+            assert served is True
+            return buf.getvalue().decode("utf-8", errors="replace")
+
+    def test_inject_before_body_tag(self, tmp_path):
+        """Script should be injected before </body> when present."""
+        result_str = self._serve_temp_html(tmp_path, "<html><body>Content</body></html>")
         assert "__bengal_reload__" in result_str
         assert "EventSource" in result_str
+        assert result_str.find("__bengal_reload__") < result_str.find("</body>")
 
-        # Script should be before </body>
-        script_pos = result_str.find("__bengal_reload__")
-        body_pos = result_str.find("</body>")
-        assert script_pos < body_pos
+    def test_inject_before_html_tag(self, tmp_path):
+        """Script should be injected before </html> when no </body>."""
+        result_str = self._serve_temp_html(tmp_path, "<html><p>Content</p></html>")
+        assert "__bengal_reload__" in result_str
+        assert result_str.find("__bengal_reload__") < result_str.find("</html>")
 
-    def test_inject_before_html_tag(self):
-        """Test script injection before </html> when no </body>."""
-        response = b"HTTP/1.1 200 OK\r\n\r\n<html><p>Content</p></html>"
-        result = self.handler._inject_live_reload(response)
-
-        result_str = result.decode("utf-8", errors="replace")
-
-        # Script should be present
+    def test_inject_at_end_minimal_html(self, tmp_path):
+        """Script should be appended when no closing tags are found."""
+        result_str = self._serve_temp_html(tmp_path, "<h1>Title</h1><p>Content</p>")
         assert "__bengal_reload__" in result_str
 
-        # Script should be before </html>
-        script_pos = result_str.find("__bengal_reload__")
-        html_pos = result_str.find("</html>")
-        assert script_pos < html_pos
-
-    def test_inject_at_end_minimal_html(self):
-        """Test script injection at end for minimal HTML."""
-        response = b"HTTP/1.1 200 OK\r\n\r\n<h1>Title</h1><p>Content</p>"
-        result = self.handler._inject_live_reload(response)
-
-        result_str = result.decode("utf-8", errors="replace")
-
-        # Script should be present
+    def test_case_insensitive_tag_matching(self, tmp_path):
+        """Tags are matched case-insensitively for injection location."""
+        result_str = self._serve_temp_html(tmp_path, "<HTML><BODY>Content</BODY></HTML>")
         assert "__bengal_reload__" in result_str
+        assert result_str.lower().find("__bengal_reload__") < result_str.find("</BODY>")
 
-    def test_case_insensitive_tag_matching(self):
-        """Test tags are matched case-insensitively."""
-        response = b"HTTP/1.1 200 OK\r\n\r\n<HTML><BODY>Content</BODY></HTML>"
-        result = self.handler._inject_live_reload(response)
+    def test_content_length_header_set(self, tmp_path):
+        """Serve path should set Content-Length matching body size."""
+        # Serve simple HTML and capture raw bytes
+        tmp_path.mkdir(parents=True, exist_ok=True)
+        (tmp_path / "index.html").write_text("<html><body></body></html>")
 
-        result_str = result.decode("utf-8", errors="replace")
+        mock_server = Mock()
+        mock_server.directory = str(tmp_path)
+        self.handler.server = mock_server
+        self.handler.path = "/index.html"
 
-        # Script should be injected before </BODY>
-        assert "__bengal_reload__" in result_str
-        script_pos = result_str.lower().find("__bengal_reload__")
-        body_pos = result_str.find("</BODY>")
-        assert script_pos < body_pos
+        buf = BytesIO()
+        self.handler.wfile = buf
 
-    def test_content_length_updated(self):
-        """Test Content-Length header is updated."""
-        response = b"HTTP/1.1 200 OK\r\nContent-Length: 30\r\n\r\n<html><body></body></html>"
-        result = self.handler._inject_live_reload(response)
+        def fake_translate_path(_self, path):
+            return str((tmp_path / path.lstrip("/")).resolve())
 
-        # Check that Content-Length was updated
-        headers_end = result.index(b"\r\n\r\n")
-        headers = result[:headers_end].decode("latin-1")
+        with patch.object(BengalRequestHandler, "translate_path", fake_translate_path):
+            served = self.handler.serve_html_with_live_reload()
+            assert served is True
+            raw = buf.getvalue()
+            headers_end = raw.index(b"\r\n\r\n")
+            headers = raw[:headers_end].decode("latin-1")
+            body = raw[headers_end + 4 :]
+            # Should include Content-Length of modified content
+            assert "Content-Length:" in headers
+            length = None
+            for line in headers.split("\r\n"):
+                if line.lower().startswith("content-length:"):
+                    length = int(line.split(":", 1)[1].strip())
+                    break
+            assert length == len(body)
 
-        # Should have a Content-Length header
-        assert "Content-Length:" in headers
-
-        # Extract Content-Length value
-        for line in headers.split("\r\n"):
-            if line.startswith("Content-Length:"):
-                length = int(line.split(":")[1].strip())
-                # Body length should match
-                body = result[headers_end + 4 :]
-                assert length == len(body)
-
-    def test_utf8_content_preserved(self):
-        """Test UTF-8 content is preserved."""
-        response = (
-            b"HTTP/1.1 200 OK\r\n\r\n<html><body>Hello \xe4\xb8\x96\xe7\x95\x8c</body></html>"
-        )
-        result = self.handler._inject_live_reload(response)
-
-        result_str = result.decode("utf-8", errors="replace")
-
-        # Original UTF-8 content should be preserved
+    def test_utf8_content_preserved(self, tmp_path):
+        """UTF-8 content is preserved during injection."""
+        result_str = self._serve_temp_html(tmp_path, "<html><body>Hello 世界</body></html>")
         assert "Hello 世界" in result_str
         assert "__bengal_reload__" in result_str
 
-    def test_multiple_body_tags(self):
-        """Test injection with multiple </body> tags (uses last one)."""
-        response = b"HTTP/1.1 200 OK\r\n\r\n<html><body><div>First</body><body>Last</body></html>"
-        result = self.handler._inject_live_reload(response)
-
-        result_str = result.decode("utf-8", errors="replace")
-
-        # Should inject before the LAST </body>
+    def test_multiple_body_tags(self, tmp_path):
+        """Injection should target the last </body> occurrence."""
+        html = "<html><body><div>First</body><body>Last</body></html>"
+        result_str = self._serve_temp_html(tmp_path, html)
         last_body_pos = result_str.rfind("</body>")
         script_pos = result_str.rfind("__bengal_reload__")
-
-        # Script should be before last </body>
         assert script_pos < last_body_pos
 
-    def test_error_returns_original(self):
-        """Test that errors return original response."""
-        # Create a response that will cause an error during injection
-        # (invalid UTF-8 that can't be decoded)
-        response = b"HTTP/1.1 200 OK\r\n\r\n\xff\xfe"
+    def test_error_returns_404_on_missing_file(self, tmp_path):
+        """Missing files should return 404 and not crash."""
+        mock_server = Mock()
+        mock_server.directory = str(tmp_path)
+        self.handler.server = mock_server
+        self.handler.path = "/does-not-exist.html"
+        buf = BytesIO()
+        self.handler.wfile = buf
+        served = self.handler.serve_html_with_live_reload()
+        assert served is True  # handler wrote an error response
 
-        result = self.handler._inject_live_reload(response)
+    def test_no_cache_headers_set(self, tmp_path):
+        """Dev no-cache headers should be present on served HTML."""
+        tmp_path.mkdir(parents=True, exist_ok=True)
+        (tmp_path / "index.html").write_text("<html><body></body></html>")
 
-        # Should return original response on error
-        # (or a close approximation - errors='replace' might modify it)
-        assert result is not None
-        assert len(result) > 0
+        mock_server = Mock()
+        mock_server.directory = str(tmp_path)
+        self.handler.server = mock_server
+        self.handler.path = "/index.html"
 
-    def test_preserves_headers(self):
-        """Test that other headers are preserved."""
-        response = b"HTTP/1.1 200 OK\r\nServer: Bengal/1.0\r\nCache-Control: no-cache\r\n\r\n<html><body></body></html>"
-        result = self.handler._inject_live_reload(response)
+        buf = BytesIO()
+        self.handler.wfile = buf
 
-        headers_end = result.index(b"\r\n\r\n")
-        headers = result[:headers_end].decode("latin-1")
+        def fake_translate_path(_self, path):
+            return str((tmp_path / path.lstrip("/")).resolve())
 
-        # Other headers should be preserved
-        assert "Server: Bengal/1.0" in headers
-        assert "Cache-Control: no-cache" in headers
+        with patch.object(BengalRequestHandler, "translate_path", fake_translate_path):
+            served = self.handler.serve_html_with_live_reload()
+            assert served is True
+            raw = buf.getvalue()
+            headers_end = raw.index(b"\r\n\r\n")
+            headers = raw[:headers_end].decode("latin-1").lower()
+            assert "cache-control:" in headers
 
 
 class TestRequestHandlerIntegration:

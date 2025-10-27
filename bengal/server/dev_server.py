@@ -9,6 +9,7 @@ import socket
 import socketserver
 import threading
 import time
+from contextlib import suppress
 from pathlib import Path
 from typing import Any
 
@@ -154,6 +155,43 @@ class DevServer:
             # This prevents the first file change from being treated as "baseline" (which skips reload)
             try:
                 from bengal.server.reload_controller import controller
+                from bengal.server.utils import get_dev_config
+
+                # Apply runtime controller configuration from dev config
+                cfg = getattr(self.site, "config", {}) or {}
+                try:
+                    min_interval = get_dev_config(
+                        cfg, "reload", "min_notify_interval_ms", default=300
+                    )
+                    controller.set_min_notify_interval_ms(min_interval)
+                except Exception:
+                    pass
+                try:
+                    # Provide sensible defaults to suppress known benign churn in dev
+                    default_ignores = [
+                        "index.json",
+                        "index.txt",
+                        "search/**",
+                        "llm-full.txt",
+                    ]
+                    ignore_paths = get_dev_config(
+                        cfg, "reload", "ignore_paths", default=default_ignores
+                    )
+                    controller.set_ignored_globs(ignore_paths)
+                except Exception:
+                    pass
+                with suppress(Exception):
+                    controller.set_hashing_options(
+                        hash_on_suspect=bool(
+                            get_dev_config(cfg, "reload", "hash_on_suspect", default=True)
+                        ),
+                        suspect_hash_limit=get_dev_config(
+                            cfg, "reload", "suspect_hash_limit", default=200
+                        ),
+                        suspect_size_limit_bytes=get_dev_config(
+                            cfg, "reload", "suspect_size_limit_bytes", default=2_000_000
+                        ),
+                    )
 
                 controller.decide_and_update(self.site.output_dir)
                 logger.debug("reload_controller_baseline_initialized")
@@ -222,6 +260,8 @@ class DevServer:
         cfg["dev_server"] = True
         cfg["fingerprint_assets"] = False  # Stable CSS/JS filenames
         cfg.setdefault("minify_assets", False)  # Faster builds
+        # Disable search index preloading in dev to avoid background index.json fetches
+        cfg.setdefault("search_preload", "off")
 
         # Clear baseurl for local development
         # This prevents 404s since dev server serves from '/' not '/baseurl'

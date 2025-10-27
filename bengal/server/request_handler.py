@@ -7,14 +7,13 @@ Provides beautiful logging, custom 404 pages, and live reload support.
 from __future__ import annotations
 
 import http.server
-import re
 import threading
 from http.client import HTTPMessage
 from pathlib import Path
 from typing import override
 
 from bengal.server.component_preview import ComponentPreviewServer
-from bengal.server.live_reload import LIVE_RELOAD_SCRIPT, LiveReloadMixin
+from bengal.server.live_reload import LiveReloadMixin
 from bengal.server.request_logger import RequestLogger
 from bengal.utils.logger import get_logger, truncate_str
 
@@ -34,6 +33,8 @@ class BengalRequestHandler(RequestLogger, LiveReloadMixin, http.server.SimpleHTT
     # Suppress default server version header
     server_version = "Bengal/1.0"
     sys_version = ""
+    # Ensure HTTP/1.1 for proper keep-alive behavior on SSE
+    protocol_version = "HTTP/1.1"
 
     # Cached Site instance for component preview (avoids expensive reconstruction on every request)
     _cached_site = None
@@ -62,9 +63,12 @@ class BengalRequestHandler(RequestLogger, LiveReloadMixin, http.server.SimpleHTT
     def end_headers(self) -> None:  # type: ignore[override]
         try:
             # If cache headers not already set, add sensible dev defaults
-            if not any(
-                h.lower().startswith(b"cache-control:")
-                for h in getattr(self, "_headers_buffer", [])
+            if (
+                not any(
+                    h.lower().startswith(b"cache-control:")
+                    for h in getattr(self, "_headers_buffer", [])
+                )
+                and getattr(self, "path", "") != "/__bengal_reload__"
             ):
                 from bengal.server.utils import apply_dev_no_cache_headers
 
@@ -252,72 +256,6 @@ class BengalRequestHandler(RequestLogger, LiveReloadMixin, http.server.SimpleHTT
         except Exception as e:
             logger.debug("html_detection_failed", error=str(e), error_type=type(e).__name__)
             return False
-
-    def _inject_live_reload(self, response_data: bytes) -> bytes:
-        """
-        Inject live reload script into HTML response.
-
-        Args:
-            response_data: Complete HTTP response (headers + body)
-
-        Returns:
-            Modified HTTP response with injected script
-        """
-        try:
-            # Split headers and body
-            headers_end = response_data.index(b"\r\n\r\n")
-            headers_bytes = response_data[: headers_end + 4]
-            body = response_data[headers_end + 4 :]
-
-            # Decode body as UTF-8 (with error handling)
-            html = body.decode("utf-8", errors="replace")
-
-            # Inject script before </body> (case-insensitive)
-            html_lower = html.lower()
-
-            if "</body>" in html_lower:
-                # Find last occurrence of </body>
-                idx = html_lower.rfind("</body>")
-                # Get actual index in original (preserving case)
-                html = html[:idx] + LIVE_RELOAD_SCRIPT + html[idx:]
-            elif "</html>" in html_lower:
-                # Fallback: inject before </html>
-                idx = html_lower.rfind("</html>")
-                html = html[:idx] + LIVE_RELOAD_SCRIPT + html[idx:]
-            else:
-                # Last resort: append at end
-                html += LIVE_RELOAD_SCRIPT
-
-            # Re-encode body
-            new_body = html.encode("utf-8")
-
-            # Update Content-Length header if present
-            headers = headers_bytes.decode("latin-1", errors="ignore")
-
-            if "Content-Length:" in headers:
-                # Replace Content-Length with new value
-                headers = re.sub(
-                    r"Content-Length:\s*\d+",
-                    f"Content-Length: {len(new_body)}",
-                    headers,
-                    flags=re.IGNORECASE,
-                )
-
-            new_headers = headers.encode("latin-1")
-
-            logger.debug(
-                "live_reload_injected",
-                original_size=len(body),
-                new_size=len(new_body),
-                script_size=len(LIVE_RELOAD_SCRIPT),
-            )
-
-            return new_headers + new_body
-
-        except Exception as e:
-            # If injection fails, return original response
-            logger.error("injection_failed", error=str(e), error_type=type(e).__name__)
-            return response_data
 
     def send_error(self, code: int, message: str | None = None, explain: str | None = None) -> None:
         """
