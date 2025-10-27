@@ -22,7 +22,7 @@
 }
 
 .tutorial-header h1 {
-    font-size: var(--text-3xl);
+    font-size: var(--type-h1);
     font-weight: 700;
     color: var(--color-text-primary);
     margin-bottom: var(--space-3);

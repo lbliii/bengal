@@ -9,7 +9,7 @@
 
 .related-posts h2 {
     margin-bottom: var(--space-8);
-    font-size: var(--text-2xl);
+    font-size: var(--type-h2);
     font-weight: var(--font-bold);
 }
 

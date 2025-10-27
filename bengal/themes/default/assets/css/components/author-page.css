@@ -141,7 +141,7 @@
 }
 
 .author-posts h2 {
-    font-size: var(--text-3xl);
+    font-size: var(--type-h2);
     font-weight: var(--font-bold);
     color: var(--color-text-primary);
     margin: 0 0 var(--space-6) 0;
