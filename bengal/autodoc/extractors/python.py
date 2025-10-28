@@ -254,8 +254,11 @@ class PythonExtractor(Extractor):
         if not docstring and not children:
             return None
 
+        # Use just the last component for display name (e.g., "cli" instead of "autodoc.extractors.cli")
+        display_name = module_name.split(".")[-1] if "." in module_name else module_name
+
         return DocElement(
-            name=module_name,
+            name=display_name,
             qualified_name=module_name,
             description=sanitize_text(docstring),
             element_type="module",
