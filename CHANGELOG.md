@@ -105,6 +105,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added `--dist worksteal` and `--max-worker-restart=3` to CI configuration for robustness
   - Documented parallel test safety guidelines in tests/README.md
   - Eliminated "node down: Not properly terminated" errors from nested parallelism
+- **Dev Server Stability**: Fixed incremental build issues causing broken URLs and layouts
+  - Section references now survive object recreation across rebuilds via path-based section registry
+  - Fixed PageProxy missing `parent` and `ancestors` properties (broken breadcrumbs and navigation)
+  - Fixed cache saving stale data before cascades applied (wrong page types, broken layouts)
+  - Fixed duplicate cache entries from path normalization issues (inconsistent metadata)
+  - Fixed infinite rebuild loop from `.bengal-serve.log` triggering file watcher
+  - Added O(1) path-based section registry for stable lookups across incremental rebuilds
+  - Comprehensive test coverage for section stability and cache consistency
 
 ## [0.1.3] - 2025-10-20
 
