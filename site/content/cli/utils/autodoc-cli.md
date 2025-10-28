@@ -4,7 +4,7 @@ title: "autodoc-cli"
 type: doc
 description: "⌨️  Generate CLI documentation from Click/argparse/typer apps.  Extracts documentation from command-line interfaces to create comprehensive command reference documentation."
 source_file: "bengal/bengal/cli/commands/autodoc.py"
-source_line: 356
+source_line: 355
 ---
 
 ⌨️  Generate CLI documentation from Click/argparse/typer apps.
