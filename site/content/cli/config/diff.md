@@ -34,7 +34,6 @@ bengal config diff [ARGUMENTS] [OPTIONS]
 Environment or file to compare against
 
 **Type:** `text`
-**Default:** `Sentinel.UNSET`
 **Required:** Yes
 
 ### --environment, -e
@@ -42,7 +41,6 @@ Environment or file to compare against
 Environment to compare (default: local)
 
 **Type:** `text`
-**Default:** `Sentinel.UNSET`
 
 
 

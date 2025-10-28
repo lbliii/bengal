@@ -36,14 +36,14 @@ bengal site serve [ARGUMENTS] [OPTIONS]
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `--auto-port` |Flag |`True` |Find available port if specified port is taken (default: enabled) |
-| `--config` |`path` |`Sentinel.UNSET` |Path to config file (default: bengal.toml) |
+| `--config` |`path` |- |Path to config file (default: bengal.toml) |
 | `--debug` |Flag |`False` |Show debug output and full tracebacks (port checks, PID files, observer setup) |
-| `--environment`, `-e` |`text` |`Sentinel.UNSET` |Environment name (local, preview, production) - defaults to 'local' for dev server |
+| `--environment`, `-e` |`text` |- |Environment name (local, preview, production) - defaults to 'local' for dev server |
 | `--host` |`text` |`localhost` |Server host address |
 | `--open`, `-o` |Flag |`False` |Open browser automatically after server starts |
 | `--port`, `-p` |`integer` |`5173` |Server port number |
-| `--profile` |`choice` |`Sentinel.UNSET` |Config profile to use: writer, theme-dev, or dev |
-| `--traceback` |`choice` |`Sentinel.UNSET` |Traceback verbosity: full | compact | minimal | off |
+| `--profile` |`choice` |- |Config profile to use: writer, theme-dev, or dev |
+| `--traceback` |`choice` |- |Traceback verbosity: full | compact | minimal | off |
 | `--verbose`, `-v` |Flag |`False` |Show detailed server activity (file watches, rebuilds, HTTP details) |
 | `--watch` |Flag |`True` |Watch for file changes and rebuild (default: enabled) |
 

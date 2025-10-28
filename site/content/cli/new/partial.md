@@ -25,7 +25,6 @@ bengal new partial [ARGUMENTS]
 
 **Type:** `text`
 **Required:** No
-**Default:** `Sentinel.UNSET`
 
 
 

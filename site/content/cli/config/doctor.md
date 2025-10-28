@@ -40,7 +40,6 @@ bengal config doctor [ARGUMENTS] [OPTIONS]
 Environment to validate (default: all)
 
 **Type:** `text`
-**Default:** `Sentinel.UNSET`
 
 
 

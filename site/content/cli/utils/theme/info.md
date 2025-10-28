@@ -22,7 +22,6 @@ bengal utils theme info [ARGUMENTS]
 
 **Type:** `text`
 **Required:** Yes
-**Default:** `Sentinel.UNSET`
 
 ### source
 

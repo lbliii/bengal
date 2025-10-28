@@ -23,6 +23,11 @@ autodoc:
     include_private: false  # Skip _private methods
     include_special: false  # Skip __special__ methods
 
+    # URL Grouping (NEW!) - Auto-detect groups from package structure
+    strip_prefix: "bengal."
+    grouping:
+      mode: "auto"  # Automatically group by __init__.py hierarchy
+
   # CLI Documentation
   cli:
     enabled: true
