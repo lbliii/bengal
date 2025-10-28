@@ -91,22 +91,23 @@ def auto_detect_prefix_map(source_dirs: list[Path], strip_prefix: str = "") -> d
     Auto-detect grouping from __init__.py hierarchy.
 
     Scans source directories for packages (dirs with __init__.py) and
-    builds a prefix map where each package maps to its last component name.
+    builds a prefix map. Only top-level packages (direct children after
+    strip_prefix) become groups.
 
     Args:
         source_dirs: Directories to scan for packages
         strip_prefix: Optional prefix to strip from module names
 
     Returns:
-        Prefix map: {"package.path": "group_name"}
+        Prefix map: {"package": "group_name"}
 
     Example:
         >>> auto_detect_prefix_map([Path("bengal")], "bengal.")
         {
-            "cli.templates": "templates",
             "cli": "cli",
             "core": "core",
             "cache": "cache",
+            # Note: cli.commands, cli.templates NOT here (nested under cli)
         }
     """
     prefix_map = {}
@@ -147,9 +148,11 @@ def auto_detect_prefix_map(source_dirs: list[Path], strip_prefix: str = "") -> d
             if not module_name:
                 continue
 
-            # Group name = last component
-            group_name = module_parts[-1]
-            prefix_map[module_name] = group_name
+            # ONLY add top-level packages (no dots in the name after stripping)
+            # This ensures cli.commands doesn't become its own group
+            if "." not in module_name:
+                group_name = module_parts[-1]
+                prefix_map[module_name] = group_name
 
     return prefix_map
 
@@ -186,12 +189,18 @@ def apply_grouping(qualified_name: str, config: dict[str, Any]) -> tuple[str | N
         return None, qualified_name
 
     # Find longest matching prefix
+    # Check for exact match first (package is the group itself)
+    if qualified_name in prefix_map:
+        return prefix_map[qualified_name], ""
+
+    # Find longest matching parent prefix
     best_match = None
     best_length = 0
 
     for prefix in prefix_map:
         # Check if qualified_name starts with this prefix (dot-separated)
-        if qualified_name == prefix or qualified_name.startswith(prefix + "."):
+        # Only match parent packages (not exact matches, handled above)
+        if qualified_name.startswith(prefix + "."):
             prefix_length = len(prefix)
             if prefix_length > best_length:
                 best_match = prefix

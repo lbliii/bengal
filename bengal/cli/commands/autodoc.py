@@ -1,6 +1,5 @@
 """Autodoc commands for generating API and CLI documentation."""
 
-
 from __future__ import annotations
 
 from pathlib import Path
@@ -189,7 +188,7 @@ def _generate_python_docs(
     cli.info("🔍 Extracting Python API documentation...")
     start_time = time.time()
 
-    extractor = PythonExtractor(exclude_patterns=exclude_patterns)
+    extractor = PythonExtractor(exclude_patterns=exclude_patterns, config=python_config)
     all_elements = []
 
     for source_path in sources:

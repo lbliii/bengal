@@ -41,15 +41,24 @@ class PythonExtractor(Extractor):
 
         Args:
             exclude_patterns: Glob patterns to exclude (e.g., "*/tests/*")
-            config: Configuration dict with include_inherited, etc.
+            config: Configuration dict with include_inherited, exclude_patterns, etc.
         """
-        self.exclude_patterns = exclude_patterns or [
-            "*/tests/*",
-            "*/test_*.py",
-            "*/__pycache__/*",
-        ]
         self.config = config or {}
+
+        # Read exclude_patterns from parameter, config, or use defaults
+        if exclude_patterns is not None:
+            self.exclude_patterns = exclude_patterns
+        elif "exclude_patterns" in self.config:
+            self.exclude_patterns = self.config["exclude_patterns"]
+        else:
+            self.exclude_patterns = [
+                "*/tests/*",
+                "*/test_*.py",
+                "*/__pycache__/*",
+            ]
+
         self.class_index: dict[str, DocElement] = {}
+        self._source_root: Path | None = None  # Track source root for module name resolution
 
         # Initialize grouping configuration
         self._grouping_config = self._init_grouping()
@@ -95,9 +104,12 @@ class PythonExtractor(Extractor):
         Returns:
             List of DocElement objects
         """
+        # Store source root for module name resolution
         if source.is_file():
+            self._source_root = source.parent
             return self._extract_file(source)
         elif source.is_dir():
+            self._source_root = source
             return self._extract_directory(source)
         else:
             raise ValueError(f"Source must be a file or directory: {source}")
@@ -512,20 +524,34 @@ class PythonExtractor(Extractor):
             return ast.dump(expr)
 
     def _infer_module_name(self, file_path: Path) -> str:
-        """Infer module name from file path."""
-        # Remove .py extension
-        parts = list(file_path.parts)
+        """
+        Infer module name from file path relative to source root.
 
-        # Find the start of the package (look for __init__.py)
-        package_start = 0
-        for i in range(len(parts) - 1, -1, -1):
-            parent = Path(*parts[: i + 1])
-            if (parent / "__init__.py").exists():
-                package_start = i
-                break
+        Examples:
+            source_root: bengal/
+            file_path: bengal/cli/commands/build.py
+            result: cli.commands.build
+        """
+        if self._source_root is None:
+            # Fallback to old behavior if source root not set
+            parts = list(file_path.parts)
+            package_start = 0
+            for i in range(len(parts) - 1, -1, -1):
+                parent = Path(*parts[: i + 1])
+                if (parent / "__init__.py").exists():
+                    package_start = i
+                    break
+            module_parts = parts[package_start:]
+        else:
+            # Use source root to compute relative path
+            try:
+                rel_path = file_path.relative_to(self._source_root)
+                module_parts = list(rel_path.parts)
+            except ValueError:
+                # File not under source root, use absolute path
+                module_parts = list(file_path.parts)
 
-        # Build module name
-        module_parts = parts[package_start:]
+        # Handle __init__.py (package) vs regular module
         if module_parts[-1] == "__init__.py":
             module_parts = module_parts[:-1]
         elif module_parts[-1].endswith(".py"):
@@ -720,8 +746,18 @@ class PythonExtractor(Extractor):
 
         # Apply strip_prefix if configured
         strip_prefix = self.config.get("strip_prefix", "")
-        if strip_prefix and qualified_name.startswith(strip_prefix):
-            qualified_name = qualified_name[len(strip_prefix) :]
+        if strip_prefix:
+            # Check if this is the stripped prefix itself
+            # (e.g., "mypackage" when strip_prefix="mypackage.")
+            strip_prefix_base = strip_prefix.rstrip(".")
+            if qualified_name == strip_prefix_base:
+                # Don't generate output for the stripped prefix package itself
+                # Return a path that won't be used (it will be filtered out)
+                return Path(".skip")
+
+            # Strip the prefix if present
+            if qualified_name.startswith(strip_prefix):
+                qualified_name = qualified_name[len(strip_prefix) :]
 
         # Apply grouping
         group_name, remaining = apply_grouping(qualified_name, self._grouping_config)

@@ -2,7 +2,6 @@
 Documentation generator - renders DocElements to markdown using templates.
 """
 
-
 from __future__ import annotations
 
 import concurrent.futures
@@ -201,6 +200,11 @@ class DocumentationGenerator:
 
         for element in elements:
             try:
+                # Check if element should be skipped (e.g., stripped prefix packages)
+                output_path = self.extractor.get_output_path(element)
+                if output_path.name == ".skip":
+                    continue
+
                 path = self.generate_single(element, output_dir)
                 generated.append(path)
             except Exception as e:
@@ -216,12 +220,17 @@ class DocumentationGenerator:
             "autodoc_parallel_generation", element_count=len(elements), max_workers=self.max_workers
         )
 
+        # Filter out elements marked for skipping
+        elements_to_generate = [
+            e for e in elements if self.extractor.get_output_path(e).name != ".skip"
+        ]
+
         generated = []
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=self.max_workers) as executor:
             futures = {
                 executor.submit(self.generate_single, element, output_dir): element
-                for element in elements
+                for element in elements_to_generate
             }
 
             for future in concurrent.futures.as_completed(futures):

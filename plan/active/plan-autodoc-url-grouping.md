@@ -1,9 +1,66 @@
 # Implementation Plan: Autodoc URL Grouping
 
 **Source RFC**: [rfc-autodoc-url-grouping.md](rfc-autodoc-url-grouping.md)  
-**Status**: Ready for Implementation  
+**Status**: ✅ COMPLETED (2025-10-28)  
 **Est. Duration**: 2-3 weeks  
+**Actual Duration**: 1 day (2025-10-28)  
 **Priority**: High (Strategic differentiation feature)
+
+---
+
+## 🎉 Implementation Complete!
+
+**Date**: 2025-10-28  
+**Commits**: 7 atomic commits on branch `enh/autodoc-url-grouping`
+
+### What Was Delivered
+
+✅ **Phase 1: Core Infrastructure**
+- Config schema with `strip_prefix` and `grouping` (mode + prefix_map)
+- Auto-detection algorithm (`auto_detect_prefix_map`)
+- PythonExtractor integration with longest-prefix matching
+- Full backward compatibility (default: mode="off")
+
+✅ **Phase 2: Testing**
+- Unit tests for config loading/merging (41/41 passing)
+- Unit tests for auto-detection and grouping logic
+- Integration tests for all three modes (off/auto/explicit)
+- Test root with realistic package structure
+
+✅ **Phase 3: Documentation**
+- `architecture/autodoc.md`: New "URL Grouping" section
+- `config.example/_default/autodoc.yaml`: NEW comprehensive config file
+  - Examples for all three modes
+  - Real-world Django-like structure demo
+  - Migration guide and troubleshooting FAQ
+  - Comparison vs. Sphinx/MkDocs
+
+✅ **Phase 4: Dogfooding**
+- Enabled auto mode on Bengal's own site (261 modules)
+- Validated URL structure with `strip_prefix: "bengal."`
+- Verified nested package detection (commands, indexes, extractors)
+- **Before**: `/api/bengal/autodoc/extractors/python/`
+- **After**: `/api/extractors/python/`
+
+### Key Achievements
+
+1. **Zero Breaking Changes**: Default behavior preserved (mode="off")
+2. **Smart Automation**: Auto mode reduces manual maintenance to zero
+3. **Competitive Edge**: Bengal's auto-detection beats Sphinx/MkDocs for ease of use
+4. **Production Validated**: Running on Bengal's own 261-module codebase
+
+### Ready for Merge
+
+All success criteria met:
+- [x] Config loader supports `grouping.mode` with all three modes
+- [x] Auto-detection respects `__init__.py` hierarchy
+- [x] Longest-prefix matching works correctly
+- [x] Default behavior unchanged (100% backward compatible)
+- [x] All tests pass (unit + integration)
+- [x] Bengal's own site uses auto mode successfully
+- [x] Documentation updated with examples
+
+---
 
 ## Overview
 
