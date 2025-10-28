@@ -236,6 +236,52 @@ include_undocumented = false
 - `include_private`: Include `_private` members
 - `include_undocumented`: Include items without docstrings
 
+## URL Grouping
+
+Autodoc supports **three modes** for organizing API documentation URLs:
+
+### Mode: Off (Default)
+URLs follow Python package structure exactly (deepest `__init__.py`):
+- **Config**: None required (default behavior)
+- **Example**: `mypackage.core.site` → `/api/mypackage/core/site/`
+- **Use when**: Simple projects, no special organization needed
+
+### Mode: Auto (Recommended)
+Auto-detects groups from `__init__.py` hierarchy:
+```yaml
+autodoc:
+  python:
+    strip_prefix: "mypackage."
+    grouping:
+      mode: "auto"
+```
+- **Scans** all `__init__.py` files in source directories
+- **Groups** modules under their parent package
+- **Zero maintenance** - adapts to new packages automatically
+- **Example**: `cli.templates.blog` → `/api/templates/blog/` (grouped under templates)
+
+### Mode: Explicit
+Manual control with custom group names:
+```yaml
+autodoc:
+  python:
+    strip_prefix: "mypackage."
+    grouping:
+      mode: "explicit"
+      prefix_map:
+        cli.templates: "template-system"
+        core: "core-api"
+```
+- **Custom names** for groups
+- **Use when**: Need non-standard organization or custom naming
+
+### Benefits vs. Sphinx/MkDocs
+- **Sphinx**: Requires manual `toctree` entries (high maintenance)
+- **MkDocs**: Requires separate `.md` files + nav config (very high maintenance)
+- **Bengal Auto**: Zero config maintenance, adapts automatically
+
+See `plan/active/rfc-autodoc-url-grouping.md` for detailed design.
+
 ## CLI Integration
 
 ```bash
