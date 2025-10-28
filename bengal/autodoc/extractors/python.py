@@ -13,7 +13,7 @@ from typing import override
 
 from bengal.autodoc.base import DocElement, Extractor
 from bengal.autodoc.docstring_parser import parse_docstring
-from bengal.autodoc.utils import sanitize_text
+from bengal.autodoc.utils import apply_grouping, auto_detect_prefix_map, sanitize_text
 
 
 class PythonExtractor(Extractor):
@@ -50,6 +50,39 @@ class PythonExtractor(Extractor):
         ]
         self.config = config or {}
         self.class_index: dict[str, DocElement] = {}
+
+        # Initialize grouping configuration
+        self._grouping_config = self._init_grouping()
+
+    def _init_grouping(self) -> dict:
+        """
+        Initialize grouping configuration.
+
+        Returns:
+            Grouping config dict with mode and prefix_map
+        """
+        grouping = self.config.get("grouping", {})
+        mode = grouping.get("mode", "off")
+
+        # Mode "off" - return early
+        if mode == "off":
+            return {"mode": "off", "prefix_map": {}}
+
+        # Mode "auto" - detect from source directories
+        if mode == "auto":
+            source_dirs = [Path(d) for d in self.config.get("source_dirs", ["."])]
+            strip_prefix = self.config.get("strip_prefix", "")
+            prefix_map = auto_detect_prefix_map(source_dirs, strip_prefix)
+            return {"mode": "auto", "prefix_map": prefix_map}
+
+        # Mode "explicit" - use provided prefix_map
+        if mode == "explicit":
+            prefix_map = grouping.get("prefix_map", {})
+            return {"mode": "explicit", "prefix_map": prefix_map}
+
+        # Unknown mode - log warning and use off
+        print(f"⚠️  Warning: Unknown grouping mode: {mode}, using 'off'")
+        return {"mode": "off", "prefix_map": {}}
 
     @override
     def extract(self, source: Path) -> list[DocElement]:
@@ -671,28 +704,74 @@ class PythonExtractor(Extractor):
         Get output path for element.
 
         Packages (modules from __init__.py) generate _index.md files to act as
-        section indexes, matching the CLI extractor behavior. This ensures proper
-        template selection with sidebars when the package has submodules.
+        section indexes. With grouping enabled, modules are organized under
+        group directories based on package hierarchy or explicit configuration.
 
-        Examples:
+        Examples (without grouping):
             bengal (package) → bengal/_index.md
             bengal.core (package) → bengal/core/_index.md
             bengal.core.site (module) → bengal/core/site.md
-            bengal.core.site.Site (class) → bengal/core/site.md (part of module)
+
+        Examples (with grouping, strip_prefix="bengal."):
+            bengal.core (package) → core/_index.md
+            bengal.cli.templates.blog (module) → templates/blog.md
         """
+        qualified_name = element.qualified_name
+
+        # Apply strip_prefix if configured
+        strip_prefix = self.config.get("strip_prefix", "")
+        if strip_prefix and qualified_name.startswith(strip_prefix):
+            qualified_name = qualified_name[len(strip_prefix) :]
+
+        # Apply grouping
+        group_name, remaining = apply_grouping(qualified_name, self._grouping_config)
+
         if element.element_type == "module":
             # Check if this is a package (__init__.py file)
             is_package = element.source_file and element.source_file.name == "__init__.py"
 
             if is_package:
                 # Packages get _index.md to act as section indexes
-                module_path = element.qualified_name.replace(".", "/")
-                return Path(module_path) / "_index.md"
+                if group_name:
+                    # Grouped: {group}/{remaining}/_index.md
+                    if remaining:
+                        path = Path(group_name) / remaining.replace(".", "/")
+                    else:
+                        # Package is the group itself
+                        path = Path(group_name)
+                    return path / "_index.md"
+                else:
+                    # Ungrouped: {qualified_name}/_index.md
+                    module_path = remaining.replace(".", "/")
+                    return Path(module_path) / "_index.md"
             else:
                 # Regular modules get their own file
-                return Path(element.qualified_name.replace(".", "/") + ".md")
+                if group_name:
+                    # Grouped: {group}/{remaining}.md
+                    if remaining:
+                        return Path(group_name) / f"{remaining.replace('.', '/')}.md"
+                    else:
+                        # Module is the group itself
+                        return Path(f"{group_name}.md")
+                else:
+                    # Ungrouped: {qualified_name}.md
+                    return Path(f"{remaining.replace('.', '/')}.md")
         else:
             # Classes/functions are part of module file
-            parts = element.qualified_name.split(".")
+            # Use the already-processed qualified_name (with strip_prefix applied)
+            parts = remaining.split(".") if group_name is None else qualified_name.split(".")
             module_parts = parts[:-1] if len(parts) > 1 else parts
-            return Path("/".join(module_parts) + ".md")
+
+            # If we have a group, the remaining is already module-relative
+            if group_name:
+                # Build path from remaining (minus class/function name)
+                if len(remaining.split(".")) > 1:
+                    module_path = ".".join(remaining.split(".")[:-1])
+                    return Path(group_name) / f"{module_path.replace('.', '/')}.md"
+                else:
+                    # Class/function at group root
+                    return Path(f"{group_name}.md")
+            else:
+                # No grouping - use qualified_name directly
+                module_path = ".".join(module_parts)
+                return Path(f"{module_path.replace('.', '/')}.md")
