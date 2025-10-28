@@ -1,0 +1,99 @@
+---
+globs: *.py
+description: State management and avoiding global mutable state
+---
+
+# No Global Mutable State
+
+Bengal avoids global mutable state to ensure thread safety and predictable builds.
+
+## The Rule
+
+**No global mutable state** except for:
+1. Class-level caches with bounded size
+2. Module-level constants (immutable)
+3. Loggers
+
+## Anti-Pattern: Global State
+
+```python
+# ❌ WRONG - Global mutable state
+_current_site = None
+_build_cache = {}
+
+def render_page(page: Page) -> str:
+    global _current_site
+    return template.render(page=page, site=_current_site)
+```
+
+## Pattern: Explicit State
+
+```python
+# ✅ CORRECT - Pass state explicitly
+def render_page(page: Page, site: Site) -> str:
+    return template.render(page=page, site=site)
+
+# ✅ CORRECT - Use context object
+@dataclass
+class BuildContext:
+    site: Site
+    cache: BuildCache
+    config: dict[str, Any]
+
+def render_page(page: Page, context: BuildContext) -> str:
+    return template.render(page=page, site=context.site)
+```
+
+## Acceptable: Bounded Cache
+
+```python
+# ✅ CORRECT - Bounded class-level cache
+class Page:
+    _warnings_seen: dict[str, int] = {}
+    _MAX_WARNINGS = 100
+
+    @classmethod
+    def _record_warning(cls, key: str) -> bool:
+        """Record warning, return True if should display."""
+        if key in cls._warnings_seen:
+            cls._warnings_seen[key] += 1
+            return False
+
+        # Bound cache size
+        if len(cls._warnings_seen) >= cls._MAX_WARNINGS:
+            # Remove oldest entry
+            oldest = next(iter(cls._warnings_seen))
+            del cls._warnings_seen[oldest]
+
+        cls._warnings_seen[key] = 1
+        return True
+```
+
+## Acceptable: Module Constants
+
+```python
+# ✅ CORRECT - Immutable constants
+DEFAULT_THEME = "default"
+MAX_RECURSION_DEPTH = 1000
+SUPPORTED_EXTENSIONS = frozenset(['.md', '.markdown'])
+```
+
+## Thread Safety
+
+When using parallel processing, ensure thread safety:
+
+```python
+from threading import Lock
+
+# ✅ CORRECT - Thread-safe shared state
+_cache_lock = Lock()
+_cache: dict[str, Any] = {}
+
+def get_cached(key: str) -> Any | None:
+    with _cache_lock:
+        return _cache.get(key)
+```
+
+## Related
+
+- [architecture/design-principles.md](mdc:architecture/design-principles.md)

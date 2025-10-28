@@ -1,0 +1,461 @@
+---
+globs: *.py
+description: Documentation requirements and standards for Bengal codebase
+---
+
+# Documentation Standards for Bengal
+
+All Bengal code must be well-documented with docstrings, comments, and architecture references.
+
+## Module Docstrings (Required)
+
+Every Python module needs a comprehensive module docstring:
+
+```python
+"""
+Short one-line summary of the module.
+
+Longer description explaining:
+- What this module does
+- How it fits into the larger system
+- Key classes/functions it provides
+- Important patterns or conventions
+
+Organization Pattern:
+    Details about file structure if this is a package.
+
+Architecture:
+    High-level architecture notes, especially for core modules.
+    Explain separation of concerns, design decisions.
+
+Related:
+    - Links to related modules (use relative paths)
+    - Links to architecture docs
+    - Links to planning docs if applicable
+
+Example:
+    >>> from bengal.core import Site
+    >>> site = Site(root_path=Path('.'))
+"""
+from __future__ import annotations
+
+# ... rest of module
+```
+
+**Real Example** from `bengal/core/__init__.py`:
+
+```python
+"""
+Core domain models for Bengal SSG.
+
+This package contains the foundational data models that represent
+the content structure of a Bengal site:
+
+Data Models:
+    - Page: Individual content pages (complex model with mixins)
+    - Section: Content groupings and hierarchy
+    - Site: Top-level site container
+    - Asset: Static assets (CSS, JS, images)
+    - Menu: Navigation menus
+
+Organization Pattern:
+    - Simple models (< 400 lines): Single file (e.g., section.py)
+    - Complex models (> 400 lines): Package (e.g., page/)
+
+Architecture:
+    Core models are passive data structures with computed properties.
+    They do not perform I/O, logging, or side effects. Operations on
+    models are handled by orchestrators (see bengal/orchestration/).
+
+Related:
+    - Operations on models: bengal/orchestration/
+    - Discovery of models: bengal/discovery/
+    - Rendering of models: bengal/rendering/
+"""
+```
+
+## Class Docstrings (Required)
+
+All classes need docstrings with:
+- Purpose and responsibility
+- Key attributes
+- Lifecycle or usage notes
+- Examples if complex
+
+```python
+@dataclass
+class Page:
+    """
+    Represents a single content page.
+
+    HASHABILITY:
+    ============
+    Pages are hashable based on their source_path, allowing them to be
+    stored in sets and used as dictionary keys.
+
+    BUILD LIFECYCLE:
+    ================
+    Pages progress through distinct build phases:
+
+    1. Discovery - Metadata available, content parsed
+    2. Parsing - AST and TOC available
+    3. Rendering - Full HTML and output paths available
+
+    Attributes:
+        source_path: Path to the source content file
+        content: Raw content (Markdown, etc.)
+        metadata: Frontmatter metadata (title, date, tags, etc.)
+        rendered_html: Rendered HTML output
+
+    Example:
+        >>> page = Page(source_path=Path("content/post.md"))
+        >>> page.title  # From metadata
+        "My Post"
+    """
+    source_path: Path
+    content: str
+    metadata: dict[str, Any]
+```
+
+## Function Docstrings (Google Style)
+
+All public functions need docstrings:
+
+```python
+def parse_content(
+    file_path: Path,
+    encoding: str = 'utf-8'
+) -> tuple[str, dict[str, Any]]:
+    """
+    Parse content file and extract frontmatter.
+
+    Reads a markdown file with YAML frontmatter and separates the
+    frontmatter metadata from the content body.
+
+    Args:
+        file_path: Path to content file (markdown with YAML frontmatter)
+        encoding: File encoding, defaults to UTF-8
+
+    Returns:
+        Tuple of (content, metadata) where:
+        - content: Markdown body text
+        - metadata: Parsed frontmatter as dict
+
+    Raises:
+        FileNotFoundError: If file_path does not exist
+        ValueError: If frontmatter YAML is invalid
+        UnicodeDecodeError: If file encoding is incorrect
+
+    Example:
+        >>> content, meta = parse_content(Path("post.md"))
+        >>> meta['title']
+        "My Post"
+        >>> content[:20]
+        "# Introduction\\n\\nHello"
+    """
+    # Implementation
+    pass
+```
+
+### When to Document Parameters
+
+**Always document**:
+- Non-obvious parameters
+- Parameters with specific format requirements
+- Optional parameters with side effects
+
+**Can skip for obvious cases**:
+```python
+def get_title(page: Page) -> str:
+    """Get the page title."""
+    # No need to document 'page' parameter - obvious from signature
+    return page.title
+```
+
+## Property Docstrings
+
+Properties need docstrings explaining what they return:
+
+```python
+@property
+def url(self) -> str:
+    """
+    Public URL path for this page.
+
+    Constructs URL from site baseurl, section path, and page slug.
+    Always starts with '/' and never includes file extension.
+
+    Example:
+        >>> page.url
+        "/blog/my-post"
+    """
+    return self._build_url()
+```
+
+## Inline Comments
+
+### When to Add Comments
+
+**✅ DO comment**:
+- Complex algorithms or logic
+- Non-obvious workarounds
+- Performance optimizations
+- TODOs or known limitations
+
+```python
+# ✅ CORRECT - Explains non-obvious behavior
+# Use thread-safe dict with size limit to prevent unbounded growth
+# in long-running dev servers where pages are recreated frequently
+_warnings_seen: dict[str, int] = {}
+_MAX_WARNINGS = 100
+
+# ✅ CORRECT - Explains performance choice
+# Use iterative walk() instead of recursion to avoid stack overflow
+# on deeply nested section hierarchies (>1000 levels)
+for section in root.walk():
+    process(section)
+```
+
+**❌ DON'T comment obvious code**:
+```python
+# ❌ WRONG - Comment adds no value
+# Increment counter
+counter += 1
+
+# ❌ WRONG - Comment just restates code
+# Get the page title
+title = page.title
+```
+
+### TODO Comments
+
+Use TODO comments for known limitations:
+
+```python
+# TODO(username): Add support for custom taxonomy templates
+# Currently falls back to built-in tag template only
+
+# TODO: Optimize for large sites (>10k pages)
+# Current implementation loads all pages into memory
+```
+
+## Architecture References
+
+Link to architecture documentation for design decisions:
+
+```python
+"""
+PageCore - Cacheable page metadata.
+
+This module defines PageCore, the single source of truth for all
+cacheable page metadata. See architecture/object-model.md for the
+full PageProxy & Cache Contract design.
+
+Design Rationale:
+    Why strings instead of Path objects? See "Cache Contract" section
+    in architecture/cache.md for performance and serialization tradeoffs.
+"""
+```
+
+## Type Hints as Documentation
+
+Type hints are documentation - use descriptive type aliases:
+
+```python
+# ✅ CORRECT - Self-documenting types
+type PageID = str
+type Slug = str
+type URLPath = str
+
+def build_url(slug: Slug, baseurl: URLPath) -> URLPath:
+    """Build full URL from slug and baseurl."""
+    return f"{baseurl}/{slug}"
+
+# ❌ LESS CLEAR - Generic types
+def build_url(slug: str, baseurl: str) -> str:
+    """Build full URL from slug and baseurl."""
+    return f"{baseurl}/{slug}"
+```
+
+## Docstring Sections
+
+### Standard Sections (in order)
+
+1. **Summary** - One-line description
+2. **Detailed description** - Multiple paragraphs if needed
+3. **Args** - Parameter descriptions
+4. **Returns** - Return value description
+5. **Raises** - Exceptions that may be raised
+6. **Example** - Usage examples
+7. **Note** - Additional notes
+8. **Warning** - Important warnings
+9. **See Also** - Related functions/classes
+
+```python
+def complex_function(x: int, y: str = "default") -> dict[str, Any]:
+    """
+    One-line summary goes here.
+
+    Longer description with more details about what this function
+    does, how it works, and when to use it. Multiple paragraphs
+    are fine.
+
+    Args:
+        x: Description of x parameter
+        y: Description of y parameter with default value
+
+    Returns:
+        Dictionary containing:
+        - 'result': The computed result
+        - 'metadata': Additional metadata
+
+    Raises:
+        ValueError: If x is negative
+        TypeError: If y is not a string
+
+    Example:
+        >>> result = complex_function(42)
+        >>> result['result']
+        84
+
+    Note:
+        This function is thread-safe for parallel processing.
+
+    Warning:
+        Large values of x (>1000) may cause memory issues.
+
+    See Also:
+        - simple_function: Simpler alternative
+        - other_function: Related functionality
+    """
+    pass
+```
+
+## Examples in Docstrings
+
+Good examples make APIs self-documenting:
+
+```python
+def create_menu(items: list[dict], parent: str | None = None) -> Menu:
+    """
+    Create navigation menu from config items.
+
+    Args:
+        items: List of menu item dicts with 'name' and 'url' keys
+        parent: Optional parent menu item name
+
+    Returns:
+        Constructed Menu object with hierarchy
+
+    Example:
+        >>> items = [
+        ...     {'name': 'Home', 'url': '/'},
+        ...     {'name': 'Blog', 'url': '/blog', 'children': [
+        ...         {'name': 'Archive', 'url': '/blog/archive'}
+        ...     ]}
+        ... ]
+        >>> menu = create_menu(items)
+        >>> menu.items[0].name
+        'Home'
+        >>> menu.items[1].children[0].name
+        'Archive'
+    """
+    pass
+```
+
+## Package-Level Documentation
+
+For packages (directories with `__init__.py`), document in the package's `__init__.py`:
+
+```python
+# bengal/core/page/__init__.py
+"""
+Page Object - Represents a single content page.
+
+This module provides the main Page class, which combines multiple mixins
+to provide a complete page interface while maintaining separation of concerns.
+
+Structure:
+    - page_core.py: Cacheable core metadata (PageCore)
+    - metadata.py: Metadata extraction (PageMetadataMixin)
+    - navigation.py: Navigation helpers (PageNavigationMixin)
+    - computed.py: Computed properties (PageComputedMixin)
+    - relationships.py: Page relationships (PageRelationshipsMixin)
+    - operations.py: Page operations (PageOperationsMixin)
+    - proxy.py: Lazy-loading proxy (PageProxy)
+
+See Also:
+    - architecture/object-model.md: Page object design
+    - tests/unit/test_page.py: Page tests
+"""
+```
+
+## README Files for Complex Subsystems
+
+Add README.md files for complex subsystems:
+
+```markdown
+# Rendering Subsystem
+
+This directory contains the rendering pipeline components.
+
+## Overview
+
+The rendering subsystem transforms parsed markdown into HTML...
+
+## Key Components
+
+- `pipeline.py` - Main rendering pipeline
+- `markdown_parser.py` - Markdown to AST parsing
+- `template_engine.py` - Jinja2 template rendering
+
+## Usage
+
+```python
+from bengal.rendering import render_page
+
+html = render_page(page, template_env)
+```
+
+## Architecture
+
+See `architecture/rendering.md` for full details.
+```
+
+## Documentation Checklist
+
+Before submitting code, verify:
+
+- [ ] Module docstring explains purpose and architecture
+- [ ] All public classes have docstrings
+- [ ] All public functions have docstrings with Args/Returns
+- [ ] Complex logic has explanatory comments
+- [ ] Type hints are used throughout
+- [ ] Examples provided for non-obvious APIs
+- [ ] Architecture docs referenced for design decisions
+- [ ] No redundant comments (that just restate code)
+
+## Tools
+
+### Generate Documentation
+```bash
+# Use autodoc to generate API docs
+python -m bengal.autodoc --input bengal/ --output docs/api/
+
+# Or via CLI
+bengal autodoc --input bengal/ --output docs/api/
+```
+
+### Check Documentation Coverage
+```bash
+# Use interrogate to check docstring coverage
+interrogate -v bengal/
+
+# Target: >90% coverage
+```
+
+## Related Documentation
+
+- [CONTRIBUTING.md](mdc:CONTRIBUTING.md) - Documentation guidelines
+- [bengal/autodoc/README.md](mdc:bengal/autodoc/README.md) - Autodoc system
+- [architecture/](mdc:architecture/) - Architecture documentation

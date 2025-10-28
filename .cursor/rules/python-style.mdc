@@ -1,0 +1,223 @@
+---
+globs: *.py
+description: Python 3.14+ coding standards and style conventions for Bengal
+---
+
+# Python Style Guide for Bengal
+
+Bengal uses **Python 3.14+** features and modern syntax. Follow these conventions:
+
+## Type Hints (REQUIRED)
+
+### Modern Union Syntax
+```python
+# ✅ CORRECT - Use pipe operator
+def parse(content: str | None) -> dict[str, Any]:
+    pass
+
+# ❌ WRONG - Don't use Union/Optional
+from typing import Union, Optional
+def parse(content: Optional[str]) -> Union[dict, None]:
+    pass
+```
+
+### Type Aliases
+```python
+# ✅ CORRECT - Use 'type' keyword (PEP 695)
+type PageID = str | int
+type PathLike = str | Path
+
+# ❌ WRONG - Don't use TypeAlias
+from typing import TypeAlias
+PageID: TypeAlias = Union[str, int]
+```
+
+### Generic Classes
+```python
+# ✅ CORRECT - Use PEP 695 generic syntax
+class Container[T]:
+    def __init__(self, value: T) -> None:
+        self.value = value
+
+# ❌ WRONG - Don't use Generic base class
+from typing import Generic, TypeVar
+T = TypeVar('T')
+class Container(Generic[T]):
+    pass
+```
+
+### Modern isinstance
+```python
+# ✅ CORRECT - Use pipe operator
+if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef):
+    handle_function(node)
+
+# ❌ WRONG - Don't use tuple
+if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+    pass
+```
+
+## Import Organization
+
+```python
+# REQUIRED - Always first import
+from __future__ import annotations
+
+# Standard library (alphabetical)
+import json
+from dataclasses import dataclass
+from pathlib import Path
+
+# Third-party (alphabetical)
+import jinja2
+from click import command
+
+# Local imports (alphabetical)
+from bengal.core import Page, Site
+from bengal.utils import normalize_path
+```
+
+## Code Style
+
+### Line Length
+- **Maximum 100 characters** (configured in ruff)
+- Break long lines at logical points
+
+### Dataclasses
+```python
+# ✅ CORRECT - Use dataclasses for data models
+from dataclasses import dataclass, field
+
+@dataclass
+class PageCore:
+    source_path: str
+    title: str
+    tags: list[str] = field(default_factory=list)
+```
+
+### Docstrings (Google Style)
+```python
+def parse_content(file_path: Path, encoding: str = 'utf-8') -> tuple[str, dict[str, Any]]:
+    """
+    Parse content file and extract frontmatter.
+
+    Args:
+        file_path: Path to content file
+        encoding: File encoding
+
+    Returns:
+        Tuple of (content, metadata)
+
+    Raises:
+        ValueError: If file format is invalid
+    """
+    pass
+```
+
+## Function Signatures
+
+### Always include return types
+```python
+# ✅ CORRECT
+def build_site(site: Site) -> None:
+    pass
+
+def get_pages() -> list[Page]:
+    pass
+
+# ❌ WRONG - Missing return type
+def build_site(site: Site):
+    pass
+```
+
+### Use descriptive parameter names
+```python
+# ✅ CORRECT
+def create_page(source_path: Path, content: str, metadata: dict[str, Any]) -> Page:
+    pass
+
+# ❌ WRONG - Unclear names
+def create_page(sp: Path, c: str, m: dict) -> Page:
+    pass
+```
+
+## Project-Specific Conventions
+
+### Path Handling
+```python
+# ✅ CORRECT - Use pathlib.Path
+from pathlib import Path
+
+content_dir = Path("content")
+file_path = content_dir / "post.md"
+
+# ❌ WRONG - Don't use os.path
+import os
+file_path = os.path.join("content", "post.md")
+```
+
+### Error Messages
+```python
+# ✅ CORRECT - Descriptive with context
+if not file_path.exists():
+    raise FileNotFoundError(
+        f"Content file not found: {file_path}\n"
+        f"Expected location: {content_dir}"
+    )
+
+# ❌ WRONG - Generic message
+if not file_path.exists():
+    raise FileNotFoundError("File not found")
+```
+
+### Logging (when needed in orchestrators only)
+```python
+# Models should NOT log - orchestrators handle logging
+# ✅ CORRECT in orchestrator
+logger.info(f"Rendering {len(pages)} pages")
+
+# ❌ WRONG in model
+class Page:
+    def render(self):
+        logger.info("Rendering page")  # NO! Models don't log
+```
+
+## Type Checking
+
+Bengal requires type checking with mypy:
+
+```bash
+# Run mypy on changes
+mypy bengal/
+
+# Configuration in pyproject.toml:
+# - python_version = "3.14"
+# - warn_return_any = true
+# - disallow_untyped_defs = true
+```
+
+## Linting
+
+Use ruff for formatting and linting:
+
+```bash
+# Format code
+ruff format bengal/
+
+# Lint and auto-fix
+ruff check --fix bengal/
+```
+
+## Key Principles
+
+1. **Type hints everywhere** - No untyped public functions
+2. **Modern Python** - Use 3.14+ features (no legacy syntax)
+3. **Explicit is better** - Clear names, explicit types
+4. **Composition over inheritance** - Prefer mixins and delegation
+5. **No magic** - Avoid metaclasses, descriptors unless necessary
+
+## Related Files
+
+- See [pyproject.toml](mdc:pyproject.toml) for ruff/mypy configuration
+- See [CONTRIBUTING.md](mdc:CONTRIBUTING.md) for full guidelines
+- See [architecture/design-principles.md](mdc:architecture/design-principles.md) for patterns

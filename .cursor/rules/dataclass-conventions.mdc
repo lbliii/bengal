@@ -1,0 +1,438 @@
+---
+globs: *.py
+description: Dataclass patterns and conventions for Bengal data models
+---
+
+# Dataclass Conventions for Bengal
+
+Bengal uses Python dataclasses extensively for data models. Follow these conventions.
+
+## Basic Dataclass
+
+```python
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any
+
+@dataclass
+class Page:
+    """
+    Represents a content page.
+
+    Attributes:
+        source_path: Path to source file
+        content: Raw markdown content
+        metadata: Frontmatter metadata
+    """
+    source_path: Path
+    content: str
+    metadata: dict[str, Any] = field(default_factory=dict)
+```
+
+## Mutable Defaults
+
+**Never use mutable defaults directly** - always use `field(default_factory=...)`:
+
+```python
+# ❌ WRONG - Mutable default (all instances share same list!)
+@dataclass
+class Page:
+    tags: list[str] = []  # BUG! Shared across instances
+
+# ✅ CORRECT - Use default_factory
+@dataclass
+class Page:
+    tags: list[str] = field(default_factory=list)
+    metadata: dict[str, Any] = field(default_factory=dict)
+```
+
+## Field Options
+
+### Common Field Options
+
+```python
+from dataclasses import dataclass, field
+
+@dataclass
+class Page:
+    # Required field (no default)
+    source_path: Path
+
+    # Optional field with None default
+    date: datetime | None = None
+
+    # Mutable default with factory
+    tags: list[str] = field(default_factory=list)
+
+    # Private field (excluded from repr)
+    _cache: dict[str, Any] = field(default_factory=dict, repr=False)
+
+    # Field excluded from comparison
+    timestamp: datetime = field(default=None, compare=False)
+
+    # Field excluded from init (computed in __post_init__)
+    url: str = field(init=False)
+
+    def __post_init__(self) -> None:
+        """Compute derived fields after init."""
+        self.url = self._build_url()
+```
+
+## Frozen Dataclasses (Immutable)
+
+Use `frozen=True` for immutable data:
+
+```python
+@dataclass(frozen=True)
+class PageCore:
+    """
+    Immutable page metadata for caching.
+
+    Frozen dataclasses are hashable and thread-safe.
+    """
+    source_path: str
+    title: str
+    date: datetime | None = None
+
+    # Can't modify fields after creation
+    # page_core.title = "New"  # Raises FrozenInstanceError
+```
+
+**When to use frozen**:
+- Cache data (PageCore, PageMetadata)
+- Configuration objects
+- Value objects that shouldn't change
+- Objects used as dict keys
+
+## Post-Init Processing
+
+Use `__post_init__` for validation or computed fields:
+
+```python
+@dataclass
+class Page:
+    source_path: Path
+    content: str
+    url: str = field(init=False)  # Computed, not in __init__
+
+    def __post_init__(self) -> None:
+        """Validate inputs and compute derived fields."""
+        # Validation
+        if not self.source_path.exists():
+            raise FileNotFoundError(f"Source not found: {self.source_path}")
+
+        # Computed fields
+        self.url = self._build_url()
+
+    def _build_url(self) -> str:
+        """Build URL from source path."""
+        return f"/{self.source_path.stem}"
+```
+
+## Inheritance and Mixins
+
+For complex models, use mixins instead of inheritance:
+
+```python
+# ✅ CORRECT - Composition with mixins
+from dataclasses import dataclass
+
+class PageMetadataMixin:
+    """Mixin for page metadata access."""
+    core: PageCore  # Reference to core data
+
+    @property
+    def title(self) -> str:
+        return self.core.title
+
+class PageNavigationMixin:
+    """Mixin for navigation helpers."""
+    core: PageCore
+
+    @property
+    def url(self) -> str:
+        return self._build_url()
+
+@dataclass
+class Page(PageMetadataMixin, PageNavigationMixin):
+    """Full page with all mixins."""
+    core: PageCore
+    content: str
+    rendered_html: str | None = None
+```
+
+See: [bengal/core/page/__init__.py](mdc:bengal/core/page/__init__.py)
+
+## Hashability
+
+Make dataclasses hashable for use in sets and dicts:
+
+```python
+@dataclass(frozen=True)  # frozen makes it hashable
+class PageCore:
+    source_path: str
+    title: str
+
+# Or manually define __hash__
+@dataclass
+class Page:
+    source_path: Path
+    content: str
+
+    def __hash__(self) -> int:
+        """Hash based on source_path (immutable)."""
+        return hash(self.source_path)
+
+    def __eq__(self, other: object) -> bool:
+        """Equal if source_path matches."""
+        if not isinstance(other, Page):
+            return NotImplemented
+        return self.source_path == other.source_path
+
+# Usage
+pages = {page1, page2}  # Set of pages
+page_map = {page1: data}  # Page as dict key
+```
+
+## Serialization
+
+For JSON serialization, use `asdict()`:
+
+```python
+from dataclasses import asdict, dataclass
+import json
+
+@dataclass
+class PageCore:
+    source_path: str
+    title: str
+    date: datetime | None = None
+
+# Serialize
+core = PageCore(source_path="post.md", title="Post", date=datetime.now())
+data = asdict(core)
+json_str = json.dumps(data, default=str)  # default=str for datetime
+
+# Deserialize
+loaded_data = json.loads(json_str)
+loaded_core = PageCore(**loaded_data)
+```
+
+**Note**: For complex serialization, consider inheriting from `Cacheable`:
+
+```python
+from bengal.cache.cacheable import Cacheable
+
+@dataclass
+class PageCore(Cacheable):
+    """Cacheable data with built-in serialization."""
+    source_path: str
+    title: str
+```
+
+See: [bengal/cache/cacheable.py](mdc:bengal/cache/cacheable.py)
+
+## Field Ordering
+
+Fields must be ordered: required → optional:
+
+```python
+# ✅ CORRECT - Required before optional
+@dataclass
+class Page:
+    source_path: Path  # Required
+    content: str       # Required
+    date: datetime | None = None  # Optional
+    tags: list[str] = field(default_factory=list)  # Optional
+
+# ❌ WRONG - Optional before required
+@dataclass
+class Page:
+    tags: list[str] = field(default_factory=list)  # Optional
+    source_path: Path  # ERROR! Required after optional
+```
+
+## Slots for Memory Efficiency
+
+Use `slots=True` for memory-efficient dataclasses (Python 3.10+):
+
+```python
+@dataclass(slots=True)
+class PageCore:
+    """
+    Memory-efficient page core with __slots__.
+
+    Reduces memory overhead by ~40% per instance.
+    """
+    source_path: str
+    title: str
+    tags: list[str] = field(default_factory=list)
+```
+
+**Trade-off**: Can't add attributes dynamically, but saves memory.
+
+## repr and str
+
+Customize string representation:
+
+```python
+@dataclass
+class Page:
+    source_path: Path
+    content: str
+    _cache: dict = field(default_factory=dict, repr=False)  # Exclude from repr
+
+    def __repr__(self) -> str:
+        """Custom repr."""
+        return f"Page(source={self.source_path}, len={len(self.content)})"
+
+    def __str__(self) -> str:
+        """User-friendly string."""
+        return f"Page: {self.source_path.name}"
+
+# Usage
+>>> page
+Page(source=Path('post.md'), len=1234)
+>>> print(page)
+Page: post.md
+```
+
+## Comparison
+
+Control how dataclasses compare:
+
+```python
+# Default: compare all fields
+@dataclass
+class Page:
+    title: str
+    content: str
+
+# Custom: compare only specific fields
+@dataclass(order=True)  # Enable <, >, <=, >=
+class Page:
+    title: str = field(compare=True)
+    content: str = field(compare=False)  # Don't compare content
+    weight: int = 0
+
+# Sort pages by weight
+pages = sorted(pages, key=lambda p: p.weight)
+```
+
+## Type Hints in Dataclasses
+
+Always include full type hints:
+
+```python
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Any
+
+# ✅ CORRECT - Full type hints
+@dataclass
+class Page:
+    source_path: Path
+    metadata: dict[str, Any]
+    tags: list[str] = field(default_factory=list)
+    date: datetime | None = None
+
+# ❌ WRONG - Missing or incomplete types
+@dataclass
+class Page:
+    source_path  # Missing type hint
+    metadata: dict  # Incomplete (dict[str, Any])
+    tags = []  # Missing type and wrong default
+```
+
+## Documentation in Dataclasses
+
+Document dataclass fields in docstring:
+
+```python
+@dataclass
+class Page:
+    """
+    Represents a content page.
+
+    Attributes:
+        source_path: Path to source markdown file
+        content: Raw markdown content
+        metadata: Frontmatter metadata (title, date, tags, etc.)
+        rendered_html: Rendered HTML output (None before rendering)
+        tags: List of tags from frontmatter
+    """
+    source_path: Path
+    content: str
+    metadata: dict[str, Any] = field(default_factory=dict)
+    rendered_html: str | None = None
+    tags: list[str] = field(default_factory=list)
+```
+
+## Common Patterns
+
+### Builder Pattern with Dataclass
+
+```python
+@dataclass
+class PageBuilder:
+    """Builder for complex Page construction."""
+    source_path: Path | None = None
+    content: str = ""
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+    def with_source(self, path: Path) -> PageBuilder:
+        self.source_path = path
+        return self
+
+    def with_content(self, content: str) -> PageBuilder:
+        self.content = content
+        return self
+
+    def build(self) -> Page:
+        if not self.source_path:
+            raise ValueError("source_path is required")
+        return Page(
+            source_path=self.source_path,
+            content=self.content,
+            metadata=self.metadata,
+        )
+
+# Usage
+page = (PageBuilder()
+    .with_source(Path("post.md"))
+    .with_content("# Hello")
+    .build())
+```
+
+### Factory Methods
+
+```python
+@dataclass
+class Page:
+    source_path: Path
+    content: str
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+    @classmethod
+    def from_file(cls, file_path: Path) -> Page:
+        """Create page from file."""
+        content = file_path.read_text()
+        # Parse frontmatter...
+        return cls(
+            source_path=file_path,
+            content=content,
+            metadata=metadata,
+        )
+
+# Usage
+page = Page.from_file(Path("post.md"))
+```
+
+## Related Documentation
+
+- [Python dataclasses docs](https://docs.python.org/3/library/dataclasses.html)
+- [bengal/core/page/page_core.py](mdc:bengal/core/page/page_core.py) - PageCore example
+- [architecture/object-model.md](mdc:architecture/object-model.md) - Object model design

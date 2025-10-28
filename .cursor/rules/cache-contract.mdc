@@ -1,0 +1,319 @@
+---
+globs: bengal/core/**/*.py,bengal/cache/**/*.py
+description: Cache and proxy patterns for PageCore, PageMetadata, and PageProxy
+---
+
+# Cache Contract and Proxy Pattern
+
+Bengal uses a specific pattern for cacheable data to enable fast incremental builds.
+
+## The PageCore Pattern
+
+**PageCore** is the single source of truth for all cacheable page metadata.
+
+```python
+@dataclass
+class PageCore(Cacheable):
+    """
+    Cacheable page metadata shared between Page, PageMetadata, and PageProxy.
+
+    All fields here are JSON-serializable and stable across rebuilds.
+    """
+    # Required fields
+    source_path: str  # String, not Path (JSON compatibility)
+    title: str
+
+    # Optional metadata
+    date: datetime | None = None
+    tags: list[str] = field(default_factory=list)
+    slug: str | None = None
+    weight: int | None = None
+    type: str | None = None
+    section: str | None = None  # Path as string
+    file_hash: str | None = None
+```
+
+See: [bengal/core/page/page_core.py](mdc:bengal/core/page/page_core.py)
+
+## What Goes in PageCore?
+
+### ✅ DO Include If:
+
+- Field comes from **frontmatter** (title, date, tags, slug, etc.)
+- Field is computed **without full content parsing** (URL path components)
+- Field needs to be **accessible in templates without lazy loading**
+- Field is **cascaded from section** `_index.md` (type, layout, etc.)
+- Field is **JSON-serializable** (strings, numbers, lists, dicts)
+
+### ❌ DO NOT Include If:
+
+- Field requires **full content parsing** (toc, excerpt, meta_description)
+- Field is a **build artifact** (output_path, links, rendered_html)
+- Field **changes every build** (timestamp, render_time)
+- Field is **computed from other non-cacheable fields**
+- Field contains **object references** (Section object, Page object)
+
+## Adding New Cacheable Fields
+
+When adding a new field to PageCore, you must update **three locations**:
+
+### 1. Add to PageCore
+```python
+# bengal/core/page/page_core.py
+@dataclass
+class PageCore(Cacheable):
+    # ... existing fields ...
+    author: str | None = None  # NEW FIELD
+```
+
+### 2. Add Property Delegate to Page
+```python
+# bengal/core/page/__init__.py
+class Page:
+    core: PageCore
+
+    @property
+    def author(self) -> str | None:
+        """Author from frontmatter."""
+        return self.core.author
+```
+
+### 3. Add Property Delegate to PageProxy
+```python
+# bengal/core/page/proxy.py
+class PageProxy:
+    def __init__(self, core: PageCore, loader: Callable):
+        self._core = core
+        self._loader = loader
+
+    @property
+    def author(self) -> str | None:
+        """Author without lazy loading (from core)."""
+        return self._core.author
+```
+
+**That's it!** The field is now available everywhere and the compiler will enforce consistency.
+
+## Why Strings Instead of Path Objects?
+
+PageCore uses **strings for paths**, not Path objects:
+
+```python
+# ✅ CORRECT
+@dataclass
+class PageCore:
+    source_path: str  # String!
+    section: str | None  # String!
+
+# ❌ WRONG
+@dataclass
+class PageCore:
+    source_path: Path  # Can't serialize to JSON
+    section: Section | None  # Object reference breaks cache
+```
+
+**Reasons**:
+
+1. **JSON Serialization** - Path objects can't be directly JSON-serialized
+2. **Cache Portability** - String paths work across systems
+3. **Type Consistency** - PageMetadata IS PageCore (type alias)
+4. **Performance** - String comparison faster for cache lookups
+
+**Convert at boundaries**:
+```python
+# Input: Path → str when creating PageCore
+page = Page(source_path=Path("content/post.md"))  # Path in
+# Page.__post_init__ converts to string internally
+
+# Output: str → Path when using paths
+path = Path(page.source_path)  # Convert back when needed
+```
+
+## The Three Representations
+
+### 1. PageCore (Cacheable Data)
+```python
+core = PageCore(
+    source_path="content/posts/my-post.md",
+    title="My Post",
+    date=datetime(2025, 10, 26),
+    tags=["python", "web"],
+)
+```
+
+### 2. Page (Full Object)
+```python
+page = Page(
+    core=core,  # Composition, not inheritance
+    content="# Hello World",
+    rendered_html="<h1>Hello World</h1>",
+    toc="<nav>...</nav>",  # Not cacheable - requires parsing
+)
+
+# Access via property delegates
+assert page.title == "My Post"  # Delegates to page.core.title
+```
+
+### 3. PageProxy (Lazy Loader)
+```python
+# Created from cache on incremental rebuild
+proxy = PageProxy(core=core, loader=load_page_fn)
+
+# Cacheable fields - no lazy load
+assert proxy.title == "My Post"  # Direct from core
+assert proxy.tags == ["python", "web"]  # Direct from core
+
+# Non-cacheable fields - triggers lazy load
+html = proxy.rendered_html  # Loads full page via loader
+```
+
+## Cache Lifecycle
+
+```
+1. Discovery Phase
+   ├─ Parse frontmatter
+   ├─ Create PageCore with metadata
+   └─ Create Page with PageCore + content
+
+2. Build Phase
+   ├─ Render pages
+   └─ Serialize PageCore to JSON (.bengal/page_metadata.json)
+
+3. Incremental Rebuild
+   ├─ Load PageCore from cache (JSON → PageCore)
+   ├─ Create PageProxy wrapping PageCore
+   ├─ Templates access core fields (no load)
+   └─ Full page loaded only if non-core field accessed
+```
+
+## Cacheable Base Class
+
+For custom cacheable types, inherit from `Cacheable`:
+
+```python
+from bengal.cache.cacheable import Cacheable
+from dataclasses import dataclass
+
+@dataclass
+class CustomMetadata(Cacheable):
+    """Custom cacheable metadata."""
+    name: str
+    value: str | None = None
+
+    # Must be JSON-serializable!
+```
+
+See: [bengal/cache/cacheable.py](mdc:bengal/cache/cacheable.py)
+
+## No Circular References
+
+Cached objects must not have circular references:
+
+```python
+# ✅ CORRECT - Store path as string
+@dataclass
+class PageCore:
+    section: str | None  # Path to section, not Section object
+
+# ❌ WRONG - Circular reference
+@dataclass
+class PageCore:
+    section: Section | None  # Can't serialize!
+```
+
+Resolve references at runtime:
+```python
+# In PageProxy or Page
+@property
+def section_obj(self) -> Section | None:
+    """Resolve section from registry."""
+    if self.section:
+        return site.get_section(self.section)
+    return None
+```
+
+## Type Alias for Cache
+
+```python
+# PageMetadata IS PageCore (type alias)
+from bengal.core.page.page_core import PageCore
+
+PageMetadata = PageCore  # Used in cache layer
+```
+
+This ensures perfect consistency - there's literally no way to have mismatched fields between PageMetadata and PageCore.
+
+## Performance Characteristics
+
+- **PageCore size**: ~500 bytes per page
+- **10,000 pages**: ~5MB for all cores (acceptable)
+- **Serialization**: ~10µs per page with `asdict()`
+- **Memory overhead**: Negligible vs full Page objects
+
+## Testing Cached Data
+
+```python
+def test_page_core_serialization():
+    """Test PageCore can be serialized to JSON."""
+    core = PageCore(
+        source_path="content/test.md",
+        title="Test",
+        tags=["python"],
+    )
+
+    # Serialize
+    import json
+    from dataclasses import asdict
+    data = asdict(core)
+    json_str = json.dumps(data, default=str)  # default=str for datetime
+
+    # Deserialize
+    loaded_data = json.loads(json_str)
+    loaded_core = PageCore(**loaded_data)
+
+    assert loaded_core.title == "Test"
+    assert loaded_core.tags == ["python"]
+```
+
+## Common Mistakes
+
+### Mistake 1: Adding Non-Serializable Fields
+```python
+# ❌ WRONG
+@dataclass
+class PageCore:
+    template_obj: Template  # Can't serialize!
+```
+
+**Solution**: Store identifier, resolve at runtime:
+```python
+# ✅ CORRECT
+@dataclass
+class PageCore:
+    template_name: str  # Store name, not object
+```
+
+### Mistake 2: Forgetting Property Delegates
+```python
+# ❌ WRONG - Added to PageCore but not Page/PageProxy
+# Now templates can't access the field!
+```
+
+**Solution**: Add property delegates to both Page and PageProxy (compiler will remind you).
+
+### Mistake 3: Adding Build Artifacts to Cache
+```python
+# ❌ WRONG
+@dataclass
+class PageCore:
+    rendered_html: str  # Changes every build!
+```
+
+**Solution**: Keep build artifacts out of PageCore, put them in Page only.
+
+## Related Documentation
+
+- [architecture/object-model.md](mdc:architecture/object-model.md) - PageProxy & Cache Contract section
+- [architecture/cache.md](mdc:architecture/cache.md) - Caching system overview
+- [plan/active/rfc-cache-proxy-contract.md](mdc:plan/active/rfc-cache-proxy-contract.md) - Design rationale
+- [bengal/core/page/page_core.py](mdc:bengal/core/page/page_core.py) - Implementation

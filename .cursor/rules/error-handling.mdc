@@ -1,0 +1,370 @@
+---
+globs: *.py
+description: Error handling standards and graceful degradation patterns
+---
+
+# Error Handling for Bengal
+
+Bengal follows specific error handling patterns to provide helpful feedback while allowing builds to continue when possible.
+
+## Core Principles
+
+### 1. Graceful Degradation in Development Mode
+
+Allow builds to continue with warnings when possible:
+
+```python
+# ✅ CORRECT - Warn and continue
+try:
+    template = env.get_template(template_name)
+except TemplateNotFound:
+    logger.warning(f"Template not found: {template_name}, using default")
+    template = env.get_template("default.html")
+
+# ✅ CORRECT - Warn on invalid frontmatter
+try:
+    metadata = yaml.safe_load(frontmatter)
+except yaml.YAMLError as e:
+    logger.warning(f"Invalid frontmatter in {file_path}: {e}")
+    metadata = {}  # Use empty dict
+```
+
+### 2. Fail-Fast in Strict Mode
+
+Stop the build immediately for critical errors:
+
+```python
+# ✅ CORRECT - Fail fast in strict mode
+if site.config.get("build", {}).get("strict_mode", False):
+    if not template_exists:
+        raise TemplateNotFoundError(
+            f"Template required but not found: {template_name}\n"
+            f"Searched in: {search_paths}"
+        )
+```
+
+### 3. User-Friendly Error Messages
+
+Always include context and suggestions:
+
+```python
+# ✅ CORRECT - Detailed error with context
+if not content_dir.exists():
+    raise FileNotFoundError(
+        f"Content directory not found: {content_dir}\n"
+        f"Expected location: {site.root_path / 'content'}\n"
+        f"Tip: Run 'bengal init' to create site structure"
+    )
+
+# ❌ WRONG - Generic error
+if not content_dir.exists():
+    raise FileNotFoundError("Directory not found")
+```
+
+## Error Message Format
+
+### Components of a Good Error Message
+
+1. **What failed** - Clear description
+2. **Why it failed** - Root cause
+3. **Where it failed** - File path and line number
+4. **How to fix** - Suggestion or tip
+
+```python
+# ✅ CORRECT - All four components
+raise ValueError(
+    f"Invalid baseurl configuration: '{baseurl}'\n"  # What
+    f"Reason: baseurl must start with '/' or be empty\n"  # Why
+    f"Location: {config_path}:12\n"  # Where
+    f"Tip: Use baseurl: '/' for root or baseurl: '/blog' for subdirectory"  # How
+)
+```
+
+## Specific Exception Types
+
+### Use Built-in Exceptions When Appropriate
+
+```python
+# File not found
+raise FileNotFoundError(f"Template not found: {path}")
+
+# Invalid value
+raise ValueError(f"Invalid configuration: {key}")
+
+# Type mismatch
+raise TypeError(f"Expected str, got {type(value).__name__}")
+
+# Key not in dict
+raise KeyError(f"Required config key missing: {key}")
+
+# Not implemented
+raise NotImplementedError(f"Parser '{engine}' not yet supported")
+```
+
+### Custom Exceptions for Domain Logic
+
+```python
+# ✅ CORRECT - Custom exception with context
+class TemplateRenderError(Exception):
+    """Raised when template rendering fails."""
+    def __init__(self, template_name: str, page_path: str, original_error: Exception):
+        self.template_name = template_name
+        self.page_path = page_path
+        self.original_error = original_error
+        super().__init__(
+            f"Failed to render template '{template_name}' for page '{page_path}'\n"
+            f"Original error: {original_error}"
+        )
+```
+
+## Logging Levels
+
+### When to Use Each Level
+
+```python
+import logging
+
+# DEBUG - Detailed diagnostic info
+logger.debug(f"Parsing frontmatter for {file_path}")
+
+# INFO - Normal operations
+logger.info(f"Building site: {site.title}")
+logger.info(f"Rendered {len(pages)} pages in {duration:.2f}s")
+
+# WARNING - Recoverable issues
+logger.warning(f"Missing title in {file_path}, using filename")
+logger.warning(f"Template not found: {template}, using default")
+
+# ERROR - Errors that don't stop the build
+logger.error(f"Failed to minify {asset_path}: {error}")
+logger.error(f"Broken link in {page.source_path}: {url}")
+
+# CRITICAL - Errors that stop the build
+logger.critical(f"Cache corruption detected, aborting incremental build")
+```
+
+## Context Managers for Error Handling
+
+```python
+# ✅ CORRECT - Context manager for file operations
+from contextlib import contextmanager
+
+@contextmanager
+def safe_write(path: Path):
+    """Safely write to file with rollback on error."""
+    temp_path = path.with_suffix('.tmp')
+    try:
+        with open(temp_path, 'w') as f:
+            yield f
+        temp_path.rename(path)  # Atomic rename
+    except Exception:
+        if temp_path.exists():
+            temp_path.unlink()  # Cleanup on error
+        raise
+```
+
+## Validation Error Collection
+
+For multiple validation errors, collect and report all at once:
+
+```python
+# ✅ CORRECT - Collect all errors
+errors: list[str] = []
+
+if not site.title:
+    errors.append("site.title is required")
+
+if not site.baseurl.startswith('/'):
+    errors.append(f"site.baseurl must start with '/': {site.baseurl}")
+
+if site.output_dir == site.content_dir:
+    errors.append("output_dir cannot be the same as content_dir")
+
+if errors:
+    raise ValueError(
+        "Configuration validation failed:\n" +
+        "\n".join(f"  - {err}" for err in errors)
+    )
+```
+
+## Exception Chaining
+
+Preserve original exception context:
+
+```python
+# ✅ CORRECT - Chain exceptions
+try:
+    data = json.loads(content)
+except json.JSONDecodeError as e:
+    raise ValueError(
+        f"Invalid JSON in cache file: {cache_path}\n"
+        f"Line {e.lineno}, column {e.colno}: {e.msg}"
+    ) from e  # Preserve original exception
+
+# ❌ WRONG - Lose context
+try:
+    data = json.loads(content)
+except json.JSONDecodeError:
+    raise ValueError("Invalid JSON")  # Where? What line?
+```
+
+## Try-Except Placement
+
+### Specific Exceptions First
+
+```python
+# ✅ CORRECT - Specific to general
+try:
+    page = load_page(path)
+except FileNotFoundError:
+    logger.warning(f"Page not found: {path}")
+    return None
+except PermissionError:
+    logger.error(f"Permission denied: {path}")
+    return None
+except Exception as e:
+    logger.error(f"Unexpected error loading {path}: {e}")
+    return None
+```
+
+### Don't Catch Too Broadly
+
+```python
+# ❌ WRONG - Catches KeyboardInterrupt, SystemExit, etc.
+try:
+    build_site()
+except:  # Don't do this!
+    logger.error("Build failed")
+
+# ✅ CORRECT - Catch specific exceptions
+try:
+    build_site()
+except (ValueError, FileNotFoundError) as e:
+    logger.error(f"Build failed: {e}")
+except Exception as e:
+    logger.error(f"Unexpected error: {e}")
+    raise  # Re-raise unexpected errors
+```
+
+## Error Recovery
+
+### Retry Logic (when appropriate)
+
+```python
+# ✅ CORRECT - Retry with exponential backoff
+from time import sleep
+
+def fetch_external_resource(url: str, max_retries: int = 3) -> str:
+    """Fetch resource with retry logic."""
+    for attempt in range(max_retries):
+        try:
+            return fetch(url)
+        except NetworkError as e:
+            if attempt == max_retries - 1:
+                raise  # Last attempt, give up
+            wait = 2 ** attempt  # Exponential backoff
+            logger.warning(f"Fetch failed (attempt {attempt + 1}), retrying in {wait}s")
+            sleep(wait)
+    raise RuntimeError("Should not reach here")
+```
+
+## File-Specific Error Context
+
+When processing multiple files, provide clear context:
+
+```python
+# ✅ CORRECT - File context in error
+for file_path in content_files:
+    try:
+        page = parse_page(file_path)
+        pages.append(page)
+    except Exception as e:
+        logger.error(
+            f"Error processing {file_path.relative_to(content_dir)}\n"
+            f"  {type(e).__name__}: {e}"
+        )
+        if strict_mode:
+            raise
+        # Continue processing other files
+```
+
+## Assertion Messages
+
+Always include message in assertions:
+
+```python
+# ✅ CORRECT - Informative assertion
+assert len(pages) > 0, f"No pages found in {content_dir}"
+assert baseurl.startswith('/'), f"Invalid baseurl: {baseurl}"
+
+# ❌ WRONG - No message
+assert len(pages) > 0
+assert baseurl.startswith('/')
+```
+
+## Common Error Patterns
+
+### Missing Configuration
+```python
+def get_required_config(config: dict, key: str) -> Any:
+    """Get required config or raise with helpful message."""
+    if key not in config:
+        raise KeyError(
+            f"Required configuration missing: {key}\n"
+            f"Available keys: {', '.join(config.keys())}\n"
+            f"Tip: Check your bengal.yaml or config/_default/ files"
+        )
+    return config[key]
+```
+
+### Invalid Template Syntax
+```python
+try:
+    template.render(**context)
+except TemplateError as e:
+    raise TemplateRenderError(
+        f"Template syntax error in {template.name}\n"
+        f"Line {e.lineno}: {e.message}\n"
+        f"Template source: {template.filename}\n"
+        f"Context: Rendering page {page.source_path}"
+    ) from e
+```
+
+### Broken Links
+```python
+# Don't stop build for broken links - collect and report
+broken_links: list[tuple[str, str]] = []  # (page_path, url)
+
+for page in pages:
+    for link in page.links:
+        if not link_exists(link):
+            broken_links.append((str(page.source_path), link))
+
+if broken_links:
+    message = "Broken links found:\n" + "\n".join(
+        f"  {page}: {url}" for page, url in broken_links
+    )
+    if strict_mode:
+        raise ValueError(message)
+    else:
+        logger.warning(message)
+```
+
+## Testing Error Conditions
+
+Always test error paths:
+
+```python
+def test_invalid_config_raises_helpful_error():
+    """Test that invalid config provides helpful error message."""
+    with pytest.raises(ValueError, match="baseurl must start with '/'"):
+        Site.from_config(
+            Path("."),
+            {"site": {"baseurl": "no-leading-slash"}}
+        )
+```
+
+## Related Documentation
+
+- [architecture/design-principles.md](mdc:architecture/design-principles.md) - Error handling section
+- [CONTRIBUTING.md](mdc:CONTRIBUTING.md) - Error handling guidelines

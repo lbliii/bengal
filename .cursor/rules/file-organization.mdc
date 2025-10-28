@@ -1,0 +1,101 @@
+---
+alwaysApply: true
+description: File and directory organization standards for Bengal project
+---
+
+# File Organization for Bengal
+
+Bengal follows specific directory structure and file organization patterns.
+
+## Top-Level Structure
+
+```
+bengal/
+├── bengal/              # Main package
+├── tests/              # Test suite
+├── architecture/       # Architecture documentation
+├── benchmarks/         # Performance benchmarks
+├── plan/               # Planning and design documents
+├── site/               # Example/documentation site
+└── scripts/            # Utility scripts
+```
+
+## Package Structure (bengal/)
+
+```
+bengal/
+├── core/              # Passive data models (no I/O, no logging)
+├── orchestration/     # Build coordination and operations
+├── rendering/         # Template and content rendering
+├── discovery/         # Content/asset discovery
+├── cache/            # Caching infrastructure
+├── postprocess/      # Post-processing (sitemap, RSS)
+├── health/           # Validation and health checks
+├── config/           # Configuration system
+├── cli/              # Command-line interface
+├── utils/            # Shared utilities
+└── themes/           # Default themes
+```
+
+## Module Responsibilities
+
+### bengal/core/
+**Passive data models only** - No I/O, no logging, no side effects
+- `site.py` - Site container
+- `page/` - Page model (package due to >400 lines)
+- `section.py` - Section/directory model
+- `asset.py` - Asset model
+- `menu.py` - Menu builder
+
+### bengal/orchestration/
+**Build operations and coordination**
+- `build_orchestrator.py` - Main build coordinator
+- `render_orchestrator.py` - Page rendering
+- `content_orchestrator.py` - Content discovery
+- `asset_orchestrator.py` - Asset processing
+
+### bengal/rendering/
+**Template and content rendering**
+- `template_engine.py` - Jinja2 setup
+- `markdown_parser.py` - Markdown parsing
+- `shortcodes.py` - Shortcode system
+- `filters.py` - Jinja filters
+
+## Test Structure (tests/)
+
+```
+tests/
+├── unit/              # Fast, isolated component tests
+├── integration/       # Multi-component workflow tests
+├── performance/       # Performance benchmarks
+├── roots/            # Reusable test site fixtures
+├── _testing/         # Shared test utilities
+└── conftest.py       # Pytest configuration
+```
+
+## Documentation Structure
+
+```
+architecture/          # Technical architecture docs
+├── overview.md
+├── object-model.md
+├── orchestration.md
+└── ...
+
+plan/                 # Planning and design
+├── active/          # Current work
+├── completed/       # Done but not implemented
+└── implemented/     # Done and shipped
+```
+
+## File Naming
+
+- Python modules: `snake_case.py`
+- Test files: `test_*.py`
+- Documentation: `kebab-case.md`
+- Configuration: `kebab-case.yaml` or `snake_case.toml`
+
+## Related Files
+
+- [architecture/file-organization.md](mdc:architecture/file-organization.md)
+- [CONTRIBUTING.md](mdc:CONTRIBUTING.md)
