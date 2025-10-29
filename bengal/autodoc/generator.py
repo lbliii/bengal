@@ -202,7 +202,7 @@ class DocumentationGenerator:
             try:
                 # Check if element should be skipped (e.g., stripped prefix packages)
                 output_path = self.extractor.get_output_path(element)
-                if output_path.name == ".skip":
+                if output_path is None:
                     continue
 
                 path = self.generate_single(element, output_dir)
@@ -222,7 +222,7 @@ class DocumentationGenerator:
 
         # Filter out elements marked for skipping
         elements_to_generate = [
-            e for e in elements if self.extractor.get_output_path(e).name != ".skip"
+            e for e in elements if self.extractor.get_output_path(e) is not None
         ]
 
         generated = []

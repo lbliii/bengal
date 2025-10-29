@@ -209,11 +209,14 @@ def auto_detect_prefix_map(source_dirs: list[Path], strip_prefix: str = "") -> d
             if not module_name:
                 continue
 
-            # ONLY add top-level packages (no dots in the name after stripping)
-            # This ensures cli.commands doesn't become its own group
-            if "." not in module_name:
-                group_name = module_parts[-1]
-                prefix_map[module_name] = group_name
+            # Add all packages (both top-level and nested) to the prefix map
+            # The group name is the last component of the module name
+            # Examples:
+            #   "cli" → group "cli"
+            #   "cli.templates" → group "templates"
+            # This allows longest-prefix matching in apply_grouping()
+            group_name = module_name.split(".")[-1]
+            prefix_map[module_name] = group_name
 
     return prefix_map
 

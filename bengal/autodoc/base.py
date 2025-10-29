@@ -4,7 +4,6 @@ Base classes for autodoc system.
 Provides common interfaces for all documentation extractors.
 """
 
-
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -133,7 +132,7 @@ class Extractor(ABC):
         pass
 
     @abstractmethod
-    def get_output_path(self, element: DocElement) -> Path:
+    def get_output_path(self, element: DocElement) -> Path | None:
         """
         Determine output path for an element.
 
@@ -141,7 +140,8 @@ class Extractor(ABC):
             element: Element to generate path for
 
         Returns:
-            Relative path for the generated markdown file
+            Relative path for the generated markdown file, or None if the
+            element should be skipped (e.g., stripped prefix packages)
 
         Example:
             For Python: bengal.core.site.Site → bengal/core/site.md

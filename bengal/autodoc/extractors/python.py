@@ -105,11 +105,22 @@ class PythonExtractor(Extractor):
             List of DocElement objects
         """
         # Store source root for module name resolution
-        if source.is_file():
+        # Use source_dirs from config if available, otherwise use the source parameter
+        source_dirs = self.config.get("source_dirs", [])
+        if source_dirs:
+            # Use the first source_dir that is a parent of the source
+            source_path = (
+                Path(source_dirs[0]) if isinstance(source_dirs[0], str) else source_dirs[0]
+            )
+            self._source_root = source_path
+        elif source.is_file():
             self._source_root = source.parent
+        else:
+            self._source_root = source
+
+        if source.is_file():
             return self._extract_file(source)
         elif source.is_dir():
-            self._source_root = source
             return self._extract_directory(source)
         else:
             raise ValueError(f"Source must be a file or directory: {source}")
@@ -200,7 +211,7 @@ class PythonExtractor(Extractor):
 
         for node in tree.body:
             if isinstance(node, ast.ClassDef):
-                class_elem = self._extract_class(node, file_path)
+                class_elem = self._extract_class(node, file_path, module_name)
                 if class_elem:
                     children.append(class_elem)
                     defined_names.add(node.name)
@@ -208,6 +219,8 @@ class PythonExtractor(Extractor):
             elif isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef):
                 func_elem = self._extract_function(node, file_path)
                 if func_elem:
+                    # Update qualified_name to include module for consistency
+                    func_elem.qualified_name = f"{module_name}.{func_elem.name}"
                     children.append(func_elem)
                     defined_names.add(node.name)
 
@@ -728,7 +741,7 @@ class PythonExtractor(Extractor):
         return "python"
 
     @override
-    def get_output_path(self, element: DocElement) -> Path:
+    def get_output_path(self, element: DocElement) -> Path | None:
         """
         Get output path for element.
 
@@ -744,6 +757,9 @@ class PythonExtractor(Extractor):
         Examples (with grouping, strip_prefix="bengal."):
             bengal.core (package) → core/_index.md
             bengal.cli.templates.blog (module) → templates/blog.md
+
+        Returns:
+            Path object for output location, or None if element should be skipped
         """
         qualified_name = element.qualified_name
 
@@ -755,8 +771,8 @@ class PythonExtractor(Extractor):
             strip_prefix_base = strip_prefix.rstrip(".")
             if qualified_name == strip_prefix_base:
                 # Don't generate output for the stripped prefix package itself
-                # Return a path that won't be used (it will be filtered out)
-                return Path(".skip")
+                # Return None to signal this element should be skipped
+                return None  # type: ignore[return-value]
 
             # Strip the prefix if present
             if qualified_name.startswith(strip_prefix):
