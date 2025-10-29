@@ -418,6 +418,12 @@ class PythonExtractor(Extractor):
 
         element_type = "method" if parent_name else "function"
 
+        # Filter out self/cls for methods (but not for staticmethods)
+        if element_type == "method" and not is_staticmethod:
+            # Remove first argument (self for regular methods, cls for classmethods)
+            if args and args[0]["name"] in ("self", "cls"):
+                args = args[1:]
+
         # Merge parsed docstring args with signature args
         merged_args = args  # Start with signature args
         if parsed_doc and parsed_doc.args:
