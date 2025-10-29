@@ -12,6 +12,60 @@ from pathlib import Path
 from typing import Any
 
 
+def _convert_sphinx_roles(text: str) -> str:
+    """
+    Convert Sphinx-style cross-reference roles to inline code.
+
+    Handles common Sphinx roles:
+    - :class:`ClassName` or :class:`~module.ClassName` → `ClassName`
+    - :func:`function_name` → `function_name()`
+    - :meth:`method_name` → `method_name()`
+    - :mod:`module_name` → `module_name`
+    - :attr:`attribute_name` → `attribute_name`
+    - :exc:`ExceptionName` → `ExceptionName`
+
+    Args:
+        text: Text containing Sphinx roles
+
+    Returns:
+        Text with roles converted to inline code
+
+    Example:
+        >>> _convert_sphinx_roles("Use :class:`~bengal.core.Site` class")
+        'Use `Site` class'
+    """
+    # Pattern: :role:`~module.path.ClassName` or :role:`ClassName`
+    # The ~ prefix means "show only the last component"
+    # Add leading space to prevent running into previous word (markdown collapses multiple spaces)
+
+    # :class:`~module.ClassName` → `ClassName`
+    # :class:`ClassName` → `ClassName`
+    text = re.sub(r":class:`~?(?:[a-zA-Z0-9_.]+\.)?([a-zA-Z0-9_]+)`", r" `\1`", text)
+
+    # :func:`function_name` → `function_name()`
+    text = re.sub(r":func:`~?(?:[a-zA-Z0-9_.]+\.)?([a-zA-Z0-9_]+)`", r" `\1()`", text)
+
+    # :meth:`method_name` → `method_name()`
+    text = re.sub(r":meth:`~?(?:[a-zA-Z0-9_.]+\.)?([a-zA-Z0-9_]+)`", r" `\1()`", text)
+
+    # :mod:`module.name` → `module.name` (keep full module path)
+    text = re.sub(r":mod:`~?([a-zA-Z0-9_.]+)`", r" `\1`", text)
+
+    # :attr:`attribute_name` → `attribute_name`
+    text = re.sub(r":attr:`~?(?:[a-zA-Z0-9_.]+\.)?([a-zA-Z0-9_]+)`", r" `\1`", text)
+
+    # :exc:`ExceptionName` → `ExceptionName`
+    text = re.sub(r":exc:`~?(?:[a-zA-Z0-9_.]+\.)?([a-zA-Z0-9_]+)`", r" `\1`", text)
+
+    # :const:`CONSTANT_NAME` → `CONSTANT_NAME`
+    text = re.sub(r":const:`~?(?:[a-zA-Z0-9_.]+\.)?([a-zA-Z0-9_]+)`", r" `\1`", text)
+
+    # :data:`variable_name` → `variable_name`
+    text = re.sub(r":data:`~?(?:[a-zA-Z0-9_.]+\.)?([a-zA-Z0-9_]+)`", r" `\1`", text)
+
+    return text
+
+
 def sanitize_text(text: str | None) -> str:
     """
     Clean user-provided text for markdown generation.
@@ -51,6 +105,13 @@ def sanitize_text(text: str | None) -> str:
 
     # Normalize line endings (Windows → Unix)
     text = text.replace("\r\n", "\n")
+
+    # Convert Sphinx-style cross-references to inline code
+    # :class:`ClassName` or :class:`~module.ClassName` → `ClassName`
+    # :func:`function_name` → `function_name()`
+    # :meth:`method_name` → `method_name()`
+    # :mod:`module_name` → `module_name`
+    text = _convert_sphinx_roles(text)
 
     # Collapse multiple blank lines to maximum of 2
     # (2 blank lines = paragraph break in markdown, more is excessive)
