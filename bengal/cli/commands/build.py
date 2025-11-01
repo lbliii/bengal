@@ -154,6 +154,7 @@ def _run_autodoc_before_build(config_path: Path, root_path: Path, quiet: bool) -
                 clean=False,
                 verbose=False,
                 cli_config=cli_config,
+                autodoc_config=autodoc_config,
             )
         except Exception as e:
             if not quiet:

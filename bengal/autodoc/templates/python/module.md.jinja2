@@ -148,10 +148,17 @@ Defined at line {{ alias.line_number }} in `{{ alias.source_file | project_relat
 {% endfor %}
 {% endif %}
 
-{% if element.children | selectattr('element_type', 'equalto', 'class') | list %}
+{% set all_classes = element.children | selectattr('element_type', 'equalto', 'class') | list %}
+{% set public_classes = [] %}
+{% for cls in all_classes %}
+  {% if not cls.name.startswith('_') %}
+    {% set _ = public_classes.append(cls) %}
+  {% endif %}
+{% endfor %}
+{% if public_classes %}
 ## Classes
 
-{% for cls in element.children | selectattr('element_type', 'equalto', 'class') %}
+{% for cls in public_classes %}
 ### `{{ cls.name }}`
 
 {% if cls.metadata.aliases %}
@@ -288,12 +295,17 @@ This is an asynchronous method. Use `await` when calling.
 {% endfor %}
 {% endif %}
 
-{% set public_functions = element.children | selectattr('element_type', 'equalto', 'function') | list %}
+{% set all_functions = element.children | selectattr('element_type', 'equalto', 'function') | list %}
+{% set public_functions = [] %}
+{% for func in all_functions %}
+  {% if not func.name.startswith('_') %}
+    {% set _ = public_functions.append(func) %}
+  {% endif %}
+{% endfor %}
 {% if public_functions %}
 ## Functions
 
 {% for func in public_functions %}
-{% if not func.name.startswith('_') %}
 ### `{{ func.name }}`{% if func.metadata.is_async %} @async{% endif %}
 
 {% if func.metadata.aliases %}
@@ -344,7 +356,6 @@ This is an asynchronous function. Use `await` when calling.
 {% if func.metadata.parsed_doc.see_also %}
 **See Also:** {% for ref in func.metadata.parsed_doc.see_also %}{{ ref }}{% if not loop.last %}, {% endif %}{% endfor %}
 
-{% endif %}
 {% endif %}
 {% endfor %}
 {% endif %}

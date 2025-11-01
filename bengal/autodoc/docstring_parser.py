@@ -7,7 +7,6 @@ Supports:
 - Sphinx style (:param name:, :returns:, :raises:)
 """
 
-
 from __future__ import annotations
 
 import re
@@ -308,11 +307,21 @@ class GoogleDocstringParser:
         if not section:
             return examples
 
-        # Look for >>> or code blocks
+        # Check if section contains explicit code block markers
+        lines = section.split("\n")
+        has_explicit_markers = any(
+            ">>>" in line or line.strip().startswith("```") for line in lines
+        )
+
+        if not has_explicit_markers:
+            # No explicit markers - treat entire section as one code example
+            return [section.strip()]
+
+        # Otherwise, look for >>> or explicit code blocks
         in_example = False
         current_example = []
 
-        for line in section.split("\n"):
+        for line in lines:
             if ">>>" in line or line.strip().startswith("```"):
                 in_example = True
                 current_example.append(line)

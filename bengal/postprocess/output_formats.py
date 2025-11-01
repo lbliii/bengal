@@ -835,6 +835,15 @@ class OutputFormatsGenerator:
         Returns:
             URL string (relative to baseurl)
         """
+        # Check if page has a direct URL property
+        if hasattr(page, "url") and callable(getattr(page, "url", None)):
+            try:
+                return page.url
+            except Exception:
+                pass  # Fall back to output_path computation
+        elif hasattr(page, "url") and isinstance(page.url, str):
+            return page.url
+
         if not page.output_path:
             return f"/{getattr(page, 'slug', page.source_path.stem)}/"
 

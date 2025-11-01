@@ -23,7 +23,7 @@ autodoc:
     source_dirs: ["../bengal"]  # Document the main Bengal package
     output_dir: "content/api"   # Generated API docs go here
     docstring_style: "auto"     # Auto-detect docstring format
-    
+
     # Exclude test and cache files
     exclude:
       - "*/tests/*"
@@ -31,14 +31,13 @@ autodoc:
       - "*/__pycache__/*"
       - "*/migrations/*"
       - "*/.pytest_cache/*"
-    
+
     # Member visibility
     include_private: false  # Skip _private methods
     include_special: false  # Skip __special__ methods
-  
+
   cli:
     enabled: true
     app_module: "bengal.cli:main"
     framework: "click"
     output_dir: "content/cli"
-

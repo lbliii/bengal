@@ -67,6 +67,10 @@ class BuildCache:
     known_tags: set[str] = field(default_factory=set)
 
     parsed_content: dict[str, dict[str, Any]] = field(default_factory=dict)
+
+    # Synthetic page cache (for autodoc, etc.)
+    synthetic_pages: dict[str, dict[str, Any]] = field(default_factory=dict)
+
     last_build: str | None = None
 
     def __post_init__(self) -> None:
@@ -91,6 +95,7 @@ class BuildCache:
         if isinstance(self.known_tags, list):
             self.known_tags = set(self.known_tags)
         # Parsed content is already in dict format (no conversion needed)
+        # Synthetic pages is already in dict format (no conversion needed)
 
     @classmethod
     def load(cls, cache_path: Path) -> BuildCache:
@@ -456,6 +461,7 @@ class BuildCache:
         self.page_tags.clear()
         self.tag_to_pages.clear()
         self.known_tags.clear()
+        self.synthetic_pages.clear()
         self.last_build = None
 
     def invalidate_file(self, file_path: Path) -> None:
@@ -480,6 +486,9 @@ class BuildCache:
         # Remove page tags
         self.page_tags.pop(file_key, None)
 
+        # Remove synthetic page cache
+        self.synthetic_pages.pop(file_key, None)
+
     def get_stats(self) -> dict[str, int]:
         """
         Get cache statistics with logging.
@@ -496,6 +505,37 @@ class BuildCache:
 
         logger.debug("cache_stats", **stats)
         return stats
+
+    def get_page_cache(self, cache_key: str) -> dict[str, Any] | None:
+        """
+        Get cached data for a synthetic page.
+
+        Args:
+            cache_key: Unique cache key for the page
+
+        Returns:
+            Cached page data or None if not found
+        """
+        return self.synthetic_pages.get(cache_key)
+
+    def set_page_cache(self, cache_key: str, page_data: dict[str, Any]) -> None:
+        """
+        Cache data for a synthetic page.
+
+        Args:
+            cache_key: Unique cache key for the page
+            page_data: Page data to cache
+        """
+        self.synthetic_pages[cache_key] = page_data
+
+    def invalidate_page_cache(self, cache_key: str) -> None:
+        """
+        Remove cached data for a synthetic page.
+
+        Args:
+            cache_key: Cache key to invalidate
+        """
+        self.synthetic_pages.pop(cache_key, None)
 
     def __repr__(self) -> str:
         stats = self.get_stats()

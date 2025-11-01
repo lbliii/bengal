@@ -49,6 +49,12 @@ def load_autodoc_config(config_path: Path | None = None) -> dict[str, Any]:
                 "exception": False,
             },
             "alias_strategy": "canonical",  # Options: canonical, duplicate, list-only
+            # URL grouping configuration
+            "strip_prefix": None,  # Optional: prefix to strip from module names
+            "grouping": {
+                "mode": "off",  # Options: off, auto, explicit
+                "prefix_map": {},  # For explicit mode: {"module.path": "group_name"}
+            },
         },
         "openapi": {
             "enabled": False,
@@ -111,9 +117,15 @@ def _merge_autodoc_config(
     Returns:
         Merged configuration
     """
+    # Merge top-level settings (like use_html_renderer)
+    for key, value in autodoc_config.items():
+        if key not in ["python", "openapi", "cli"]:
+            default_config[key] = value
+
     # Merge Python config
     if "python" in autodoc_config:
         python_user_config = autodoc_config["python"]
+
         # Handle nested include_inherited_by_type dict
         if "include_inherited_by_type" in python_user_config:
             default_config["python"]["include_inherited_by_type"].update(
@@ -122,6 +134,21 @@ def _merge_autodoc_config(
             # Remove from user config to avoid overwriting default dict
             python_user_config = dict(python_user_config)
             python_user_config.pop("include_inherited_by_type")
+
+        # Handle nested grouping dict
+        if "grouping" in python_user_config:
+            grouping_config = python_user_config["grouping"]
+            # Validate mode if present
+            if "mode" in grouping_config:
+                mode = grouping_config["mode"]
+                if mode not in ["off", "auto", "explicit"]:
+                    print(f"⚠️  Warning: Invalid grouping mode '{mode}', using 'off'")
+                    grouping_config["mode"] = "off"
+            default_config["python"]["grouping"].update(grouping_config)
+            # Remove from user config to avoid overwriting default dict
+            python_user_config = dict(python_user_config)
+            python_user_config.pop("grouping")
+
         default_config["python"].update(python_user_config)
 
     # Merge OpenAPI config
@@ -148,3 +175,23 @@ def get_openapi_config(config: dict[str, Any]) -> dict[str, Any]:
 def get_cli_config(config: dict[str, Any]) -> dict[str, Any]:
     """Get CLI autodoc configuration."""
     return config.get("cli", {})
+
+
+def get_grouping_config(config: dict[str, Any]) -> dict[str, Any]:
+    """
+    Get grouping configuration from Python autodoc config.
+
+    Args:
+        config: Full autodoc configuration dict
+
+    Returns:
+        Grouping configuration with mode and prefix_map
+
+    Example:
+        >>> config = load_autodoc_config()
+        >>> grouping = get_grouping_config(config)
+        >>> grouping["mode"]
+        "off"
+    """
+    python_config = get_python_config(config)
+    return python_config.get("grouping", {"mode": "off", "prefix_map": {}})
