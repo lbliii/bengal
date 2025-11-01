@@ -27,11 +27,11 @@ bengal utils autodoc [OPTIONS]
 |--------|------|---------|-------------|
 | `--clean` |Flag |`False` |Clean output directory before generating |
 | `--cli-only` |Flag |`False` |Only generate CLI docs (skip Python API docs) |
-| `--config` |`path` |- |Path to config file (default: bengal.toml) |
-| `--output`, `-o` |`path` |- |Output directory for generated docs (default: from config or content/api) |
+| `--config` |`path` |`Sentinel.UNSET` |Path to config file (default: bengal.toml) |
+| `--output`, `-o` |`path` |`Sentinel.UNSET` |Output directory for generated docs (default: from config or content/api) |
 | `--parallel` |Flag |`True` |Use parallel processing (default: enabled) |
 | `--python-only` |Flag |`False` |Only generate Python API docs (skip CLI docs) |
-| `--source`, `-s` |`path` |- |Source directory to document (can specify multiple) |
+| `--source`, `-s` |`path` |`Sentinel.UNSET` |Source directory to document (can specify multiple) |
 | `--stats` |Flag |`False` |Show performance statistics |
 | `--verbose`, `-v` |Flag |`False` |Show detailed progress |
 

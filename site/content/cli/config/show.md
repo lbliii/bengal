@@ -32,11 +32,11 @@ bengal config show [ARGUMENTS] [OPTIONS]
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `--environment`, `-e` |`text` |- |Environment to load (auto-detected if not specified) |
+| `--environment`, `-e` |`text` |`Sentinel.UNSET` |Environment to load (auto-detected if not specified) |
 | `--format` |`choice` |`yaml` |Output format |
 | `--origin` |Flag |`False` |Show which file contributed each config key |
-| `--profile`, `-p` |`text` |- |Profile to load (optional) |
-| `--section`, `-s` |`text` |- |Show only specific section (e.g., 'site', 'build') |
+| `--profile`, `-p` |`text` |`Sentinel.UNSET` |Profile to load (optional) |
+| `--section`, `-s` |`text` |`Sentinel.UNSET` |Show only specific section (e.g., 'site', 'build') |
 
 
 ## Examples

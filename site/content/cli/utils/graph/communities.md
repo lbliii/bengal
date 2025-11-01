@@ -38,11 +38,11 @@ bengal utils graph communities [ARGUMENTS] [OPTIONS]
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `--config` |`path` |- |Path to config file (default: bengal.toml) |
+| `--config` |`path` |`Sentinel.UNSET` |Path to config file (default: bengal.toml) |
 | `--format`, `-f` |`choice` |`table` |Output format (default: table) |
 | `--min-size`, `-m` |`integer` |`2` |Minimum community size to show (default: 2) |
 | `--resolution`, `-r` |`float` |`1.0` |Resolution parameter (higher = more communities, default: 1.0) |
-| `--seed` |`integer` |- |Random seed for reproducibility |
+| `--seed` |`integer` |`Sentinel.UNSET` |Random seed for reproducibility |
 | `--top-n`, `-n` |`integer` |`10` |Number of communities to show (default: 10) |
 
 

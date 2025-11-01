@@ -43,6 +43,7 @@ bengal utils graph bridges [ARGUMENTS] [OPTIONS]
 Path to config file (default: bengal.toml)
 
 **Type:** `path`
+**Default:** `Sentinel.UNSET`
 
 ### --format, -f
 

@@ -86,6 +86,8 @@ class ContentOrchestrator:
         use_cache = incremental and cache is not None
         self.site.sections, self.site.pages = discovery.discover(use_cache=use_cache, cache=cache)
 
+        # Note: Autodoc synthetic pages disabled - using traditional Markdown generation
+
         # Track how many pages are proxies (for logging)
         from bengal.core.page.proxy import PageProxy
 
@@ -117,6 +119,16 @@ class ContentOrchestrator:
         # This ensures page.url works correctly before rendering
         self._set_output_paths()
         self.logger.debug("output_paths_set")
+
+    def _discover_autodoc_content(self) -> list[Any]:
+        """
+        Generate autodoc synthetic pages if enabled.
+
+        Returns:
+            Empty list - HTML renderer disabled, using traditional Markdown generation
+        """
+        # HTML renderer disabled - return empty list
+        return []
 
         # Check for missing weight metadata (info logging to educate users)
         self._check_weight_metadata()
@@ -288,23 +300,28 @@ class ContentOrchestrator:
         - Navigation links have proper URLs
         """
         from bengal.utils.url_strategy import URLStrategy
+        # SyntheticPage import removed - using traditional pages only
 
         paths_set = 0
         already_set = 0
+        synthetic_paths_set = 0
 
         for page in self.site.pages:
+            # Note: SyntheticPage handling removed - using traditional pages only
+
             # Skip if already set (e.g., generated pages, or set by section orchestrator)
             if page.output_path:
                 already_set += 1
                 continue
 
-            # Compute output path using centralized strategy
+            # Compute output path using centralized strategy for regular pages
             page.output_path = URLStrategy.compute_regular_page_output_path(page, self.site)
             paths_set += 1
 
         self.logger.debug(
             "output_paths_configured",
             paths_set=paths_set,
+            synthetic_paths_set=synthetic_paths_set,
             already_set=already_set,
             total_pages=len(self.site.pages),
         )
