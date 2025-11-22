@@ -120,6 +120,12 @@ class ContentOrchestrator:
         self._set_output_paths()
         self.logger.debug("output_paths_set")
 
+        # Build cross-reference index for O(1) lookups
+        self._build_xref_index()
+        self.logger.debug(
+            "xref_index_built", index_size=len(self.site.xref_index.get("by_path", {}))
+        )
+
     def _discover_autodoc_content(self) -> list[Any]:
         """
         Generate autodoc synthetic pages if enabled.

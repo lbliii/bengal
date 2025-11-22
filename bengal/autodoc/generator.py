@@ -388,6 +388,9 @@ class DocumentationGenerator:
         else:
             result = self._generate_sequential(elements, output_dir)
 
+        # Create _index.md files for parent directories that don't have them
+        self._create_parent_index_files(result, output_dir)
+
         # Report template errors if any occurred
         if self.error_reporter.has_errors() or self.error_reporter.has_warnings():
             error_summary = self.error_reporter.get_summary_report()
@@ -721,3 +724,53 @@ Error: {str(error)[:ERROR_MESSAGE_MAX_LENGTH]}{"..." if len(str(error)) > ERROR_
             self._validate_all_templates()
 
         logger.info("templates_reloaded", template_dirs=[str(d) for d in template_dirs])
+
+    def _create_parent_index_files(self, generated_paths: list[Path], output_dir: Path) -> None:
+        """
+        Create _index.md files for parent directories that don't have them.
+
+        When generating nested documentation (e.g., cli/templates/base.md),
+        we need to ensure parent directories have index files (e.g., cli/templates/_index.md).
+
+        Args:
+            generated_paths: List of paths to generated files
+            output_dir: Root output directory
+        """
+        # Collect all parent directories
+        parent_dirs: set[Path] = set()
+
+        for path in generated_paths:
+            # Get relative path from output_dir
+            try:
+                rel_path = path.relative_to(output_dir)
+            except ValueError:
+                # Path is not under output_dir, skip
+                continue
+
+            # Add all parent directories
+            parent = rel_path.parent
+            while parent != Path(".") and parent != Path():
+                parent_dirs.add(output_dir / parent)
+                parent = parent.parent
+
+        # Create _index.md for each parent directory that doesn't have one
+        for parent_dir in parent_dirs:
+            index_file = parent_dir / "_index.md"
+            if not index_file.exists():
+                # Create a simple index file
+                # Use the directory name as the title
+                dir_name = parent_dir.name or "Documentation"
+                content = f"""---
+title: {dir_name.title()}
+---
+
+# {dir_name.title()}
+
+This section contains documentation for {dir_name}.
+"""
+                index_file.write_text(content, encoding="utf-8")
+                logger.debug(
+                    "autodoc_parent_index_created",
+                    path=str(index_file),
+                    parent_dir=str(parent_dir),
+                )

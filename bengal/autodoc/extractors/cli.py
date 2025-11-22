@@ -561,6 +561,16 @@ class CLIExtractor(Extractor):
         return None
 
     @override
+    def get_template_dir(self) -> str:
+        """
+        Get the template directory name for this extractor.
+
+        Returns:
+            Template directory name (e.g., 'cli', 'python', 'openapi')
+        """
+        return "cli"
+
+    @override
     def get_output_path(self, element: DocElement) -> Path:
         """
         Determine output path for CLI element.

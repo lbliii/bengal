@@ -13,12 +13,12 @@ Provides a comprehensive view of the entire API with endpoints grouped by tags.
 
 {% block badges %}
 ```{badge} API Documentation
-:class: badge-api-overview
+:class: badge-primary
 ```
 
 {% if element.metadata.version %}
 ```{badge} v{{ element.metadata.version }}
-:class: badge-api-version
+:class: badge-secondary
 ```
 {% endif %}
 {% endblock %}

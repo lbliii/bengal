@@ -13,12 +13,12 @@ Provides detailed information about API data structures.
 
 {% block badges %}
 ```{badge} Data Schema
-:class: badge-api-schema
+:class: badge-info
 ```
 
 {% if element.metadata.type %}
 ```{badge} {{ element.metadata.type | title }}
-:class: badge-schema-type
+:class: badge-secondary
 ```
 {% endif %}
 {% endblock %}

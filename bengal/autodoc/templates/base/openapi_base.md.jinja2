@@ -18,25 +18,25 @@ All OpenAPI documentation templates should extend this.
 {% if element %}
 {% if element.metadata and element.metadata.method %}
 ```{badge} {{ element.metadata.method | upper }}
-:class: badge-http-{{ element.metadata.method | lower }}
+:class: badge-primary
 ```
 {% endif %}
 
 {% if element.metadata and element.metadata.deprecated %}
 ```{badge} Deprecated
-:class: badge-deprecated
+:class: badge-danger
 ```
 {% endif %}
 
 {% if element.metadata and element.metadata.experimental %}
 ```{badge} Experimental
-:class: badge-experimental
+:class: badge-warning
 ```
 {% endif %}
 
 {% if element.metadata and element.metadata.auth_required %}
 ```{badge} Auth Required
-:class: badge-auth-required
+:class: badge-info
 ```
 {% endif %}
 {% endif %}

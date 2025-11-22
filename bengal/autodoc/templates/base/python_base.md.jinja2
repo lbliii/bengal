@@ -17,31 +17,31 @@ All Python documentation templates should extend this.
 {% if element %}
 {% if element.element_type == "class" %}
 ```{badge} Class
-:class: badge-python-class
+:class: api-badge api-badge-class
 ```
 {% elif element.element_type == "function" %}
 ```{badge} Function
-:class: badge-python-function
+:class: api-badge
 ```
 {% elif element.element_type == "method" %}
 ```{badge} Method
-:class: badge-python-method
+:class: api-badge
 ```
 {% elif element.element_type == "module" %}
 ```{badge} Module
-:class: badge-python-module
+:class: api-badge
 ```
 {% endif %}
 
 {% if element.metadata and element.metadata.deprecated %}
 ```{badge} Deprecated
-:class: badge-deprecated
+:class: api-badge api-badge-deprecated
 ```
 {% endif %}
 
 {% if element.metadata and element.metadata.is_async %}
 ```{badge} Async
-:class: badge-async
+:class: api-badge api-badge-async
 ```
 {% endif %}
 {% endif %}

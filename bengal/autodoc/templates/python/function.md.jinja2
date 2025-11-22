@@ -15,18 +15,18 @@ Extends Python base template with function-specific features.
 
 {% block badges %}
 ```{badge} Function
-:class: badge-python-function
+:class: api-badge
 ```
 
 {% if element.metadata.is_async %}
 ```{badge} Async
-:class: badge-async
+:class: api-badge api-badge-async
 ```
 {% endif %}
 
 {% if element.metadata.deprecated %}
 ```{badge} Deprecated
-:class: badge-deprecated
+:class: api-badge api-badge-deprecated
 ```
 {% endif %}
 {% endblock %}
