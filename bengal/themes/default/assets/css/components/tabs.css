@@ -138,6 +138,11 @@
 .tab-pane.active {
   display: block;
   animation: fadeIn 0.3s var(--ease-smooth);
+
+  /* View Transitions API for smooth tab switching */
+  @supports (view-transition-name: tab-pane) {
+    view-transition-name: tab-pane;
+  }
 }
 
 @keyframes fadeIn {

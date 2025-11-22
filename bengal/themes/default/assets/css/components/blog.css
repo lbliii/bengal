@@ -87,6 +87,11 @@
   contain-intrinsic-size: 200px;
 }
 
+/* Scroll-driven animations for blog posts */
+.blog-post-list.stagger-fade-in > * {
+  /* Will be animated by scroll-animations.css */
+}
+
 /* Blog Post Cards */
 .blog-post-card,
 .blog-featured-card {

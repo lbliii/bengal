@@ -19,6 +19,11 @@
       var(--color-bg-secondary) 100%);
   border-bottom: 1px solid var(--color-border-light);
   overflow: hidden;
+
+  /* Scroll-driven fade-in for hero content */
+  &.fade-in-on-scroll {
+    /* Will be animated by scroll-animations.css */
+  }
 }
 
 [data-theme="dark"] .hero {
@@ -58,6 +63,11 @@
   line-height: var(--type-leading-heading);
   letter-spacing: var(--letter-spacing-tighter);
   color: var(--color-text-primary);
+
+  /* Scroll-driven slide-up animation */
+  &.slide-up-on-scroll {
+    /* Will be animated by scroll-animations.css */
+  }
 }
 
 .hero__subtitle {

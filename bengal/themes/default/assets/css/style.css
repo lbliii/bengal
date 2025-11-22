@@ -54,6 +54,7 @@
 
 @layer utilities {
   @import url('utilities/motion.css');
+  @import url('utilities/scroll-animations.css');
 }
 
 @layer base {

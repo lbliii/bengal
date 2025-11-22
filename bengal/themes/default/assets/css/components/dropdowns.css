@@ -100,6 +100,11 @@ details.dropdown summary:focus:not(:focus-visible) {
   border-top: 1px solid var(--color-border);
   animation: slideDown 0.2s var(--ease-out);
   will-change: transform, opacity;
+
+  /* View Transitions API for smooth expand/collapse */
+  @supports (view-transition-name: dropdown) {
+    view-transition-name: dropdown-content;
+  }
 }
 
 /* Use GPU-accelerated transform for smoother animation */

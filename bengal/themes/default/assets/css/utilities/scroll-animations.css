@@ -1,0 +1,209 @@
+/**
+ * Scroll-Driven Animations
+ * Modern CSS animations that respond to scroll position
+ * 
+ * Browser Support: Chrome 115+, Firefox (experimental)
+ * Falls back gracefully for unsupported browsers
+ */
+
+/* ============================================
+   FADE IN ON SCROLL
+   ============================================ */
+
+@keyframes fade-in-scroll {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 20px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+/* Scroll-driven fade-in animation */
+@supports (animation-timeline: scroll()) {
+  .fade-in-on-scroll {
+    opacity: 0;
+    transform: translate3d(0, 20px, 0);
+    animation: fade-in-scroll linear;
+    animation-timeline: scroll();
+    animation-range: entry 0% entry 50%;
+  }
+
+  /* Fade in when element enters viewport */
+  .fade-in-on-scroll.is-visible {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+    animation: none;
+  }
+}
+
+/* Fallback: Use Intersection Observer (JS) */
+@supports not (animation-timeline: scroll()) {
+  .fade-in-on-scroll {
+    opacity: 0;
+    transform: translate3d(0, 20px, 0);
+    transition: opacity var(--transition-smooth), transform var(--transition-smooth);
+  }
+
+  .fade-in-on-scroll.is-visible {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+/* ============================================
+   SLIDE UP ON SCROLL
+   ============================================ */
+
+@keyframes slide-up-scroll {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 40px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@supports (animation-timeline: scroll()) {
+  .slide-up-on-scroll {
+    opacity: 0;
+    transform: translate3d(0, 40px, 0);
+    animation: slide-up-scroll linear;
+    animation-timeline: scroll();
+    animation-range: entry 0% entry 60%;
+  }
+
+  .slide-up-on-scroll.is-visible {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+    animation: none;
+  }
+}
+
+@supports not (animation-timeline: scroll()) {
+  .slide-up-on-scroll {
+    opacity: 0;
+    transform: translate3d(0, 40px, 0);
+    transition: opacity var(--transition-smooth), transform var(--transition-smooth);
+  }
+
+  .slide-up-on-scroll.is-visible {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+/* ============================================
+   SCALE IN ON SCROLL
+   ============================================ */
+
+@keyframes scale-in-scroll {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@supports (animation-timeline: scroll()) {
+  .scale-in-on-scroll {
+    opacity: 0;
+    transform: scale(0.9);
+    animation: scale-in-scroll linear;
+    animation-timeline: scroll();
+    animation-range: entry 0% entry 50%;
+  }
+
+  .scale-in-on-scroll.is-visible {
+    opacity: 1;
+    transform: scale(1);
+    animation: none;
+  }
+}
+
+@supports not (animation-timeline: scroll()) {
+  .scale-in-on-scroll {
+    opacity: 0;
+    transform: scale(0.9);
+    transition: opacity var(--transition-smooth), transform var(--transition-smooth);
+  }
+
+  .scale-in-on-scroll.is-visible {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ============================================
+   STAGGERED ANIMATIONS (for lists)
+   ============================================ */
+
+@supports (animation-timeline: scroll()) {
+  .stagger-fade-in > * {
+    opacity: 0;
+    transform: translate3d(0, 20px, 0);
+    animation: fade-in-scroll linear;
+    animation-timeline: scroll();
+  }
+
+  .stagger-fade-in > *:nth-child(1) {
+    animation-range: entry 0% entry 30%;
+  }
+
+  .stagger-fade-in > *:nth-child(2) {
+    animation-range: entry 10% entry 40%;
+  }
+
+  .stagger-fade-in > *:nth-child(3) {
+    animation-range: entry 20% entry 50%;
+  }
+
+  .stagger-fade-in > *:nth-child(4) {
+    animation-range: entry 30% entry 60%;
+  }
+
+  .stagger-fade-in > *:nth-child(5) {
+    animation-range: entry 40% entry 70%;
+  }
+
+  .stagger-fade-in > *:nth-child(n+6) {
+    animation-range: entry 50% entry 80%;
+  }
+}
+
+@supports not (animation-timeline: scroll()) {
+  .stagger-fade-in > * {
+    opacity: 0;
+    transform: translate3d(0, 20px, 0);
+    transition: opacity var(--transition-smooth), transform var(--transition-smooth);
+  }
+
+  .stagger-fade-in > *.is-visible {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+/* ============================================
+   RESPECT REDUCED MOTION
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .fade-in-on-scroll,
+  .slide-up-on-scroll,
+  .scale-in-on-scroll,
+  .stagger-fade-in > * {
+    animation: none !important;
+    transition: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
