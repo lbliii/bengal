@@ -122,6 +122,38 @@ pre code {
   margin: var(--space-6) 0;
 }
 
+/* Keep animated borders outside the scrolling <pre> */
+.code-block-wrapper.gradient-border,
+.code-block-wrapper.gradient-border-subtle,
+.code-block-wrapper.gradient-border-strong,
+.code-block-wrapper.fluid-border,
+.code-block-wrapper.fluid-combined {
+  border-radius: var(--radius-2xl);
+  overflow: hidden;
+  isolation: isolate;
+  box-shadow: var(--elevation-card);
+  transition: box-shadow var(--transition-base);
+}
+
+.code-block-wrapper.gradient-border:hover,
+.code-block-wrapper.gradient-border-subtle:hover,
+.code-block-wrapper.gradient-border-strong:hover,
+.code-block-wrapper.fluid-border:hover,
+.code-block-wrapper.fluid-combined:hover {
+  box-shadow: var(--elevation-card-hover);
+}
+
+.code-block-wrapper.gradient-border pre,
+.code-block-wrapper.gradient-border-subtle pre,
+.code-block-wrapper.gradient-border-strong pre,
+.code-block-wrapper.fluid-border pre,
+.code-block-wrapper.fluid-combined pre {
+  border: none;
+  border-radius: inherit;
+  margin: 0;
+  box-shadow: none;
+}
+
 /* Inline code header (positioned absolutely relative to wrapper, not inside scrolling pre) */
 .code-header-inline {
   position: absolute;

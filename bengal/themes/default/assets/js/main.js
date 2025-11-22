@@ -124,6 +124,21 @@
       wrapper.className = 'code-block-wrapper';
       wrapper.style.position = 'relative';
 
+      // Move decorative border classes to wrapper so pseudo-borders stay fixed while <pre> scrolls
+      const borderClasses = [
+        'gradient-border',
+        'gradient-border-subtle',
+        'gradient-border-strong',
+        'fluid-border',
+        'fluid-combined'
+      ];
+      borderClasses.forEach(function (cls) {
+        if (pre.classList.contains(cls)) {
+          pre.classList.remove(cls);
+          wrapper.classList.add(cls);
+        }
+      });
+
       // Insert wrapper before pre, then move pre into wrapper
       pre.parentNode.insertBefore(wrapper, pre);
       wrapper.appendChild(pre);
