@@ -28,6 +28,12 @@
   gap: 0.25rem;
 }
 
+/* Performance optimization: Content visibility for long nav trees */
+.docs-nav-tree > * {
+  content-visibility: auto;
+  contain-intrinsic-size: 40px;
+}
+
 /* Navigation Groups (Sections) */
 .docs-nav-group {
   display: flex;

@@ -24,8 +24,9 @@
 
 .docs-layout {
   display: grid;
-  grid-template-columns:
-    [sidebar-start] minmax(240px, 280px) [content-start] minmax(0, 1fr) [toc-start] minmax(200px, 260px) [end];
+  grid-template-areas:
+    "sidebar content toc";
+  grid-template-columns: minmax(240px, 280px) minmax(0, 1fr) minmax(200px, 260px);
   gap: 2rem;
   max-width: 1600px;
   margin: 0 auto;
@@ -42,7 +43,7 @@
 
 /* Left Sidebar (Navigation) */
 .docs-sidebar {
-  grid-column: sidebar-start / content-start;
+  grid-area: sidebar;
   position: sticky;
   top: 80px;
   /* Account for fixed header */
@@ -54,7 +55,7 @@
 
 /* Main Content */
 .docs-main {
-  grid-column: content-start / toc-start;
+  grid-area: content;
   min-width: 0;
   /* Prevent grid blowout */
   /* max-width removed - let grid control width */
@@ -62,7 +63,7 @@
 
 /* Right Sidebar (TOC) */
 .docs-toc {
-  grid-column: toc-start / end;
+  grid-area: toc;
   position: sticky;
   top: 80px;
   max-height: calc(100vh - 100px);
@@ -78,13 +79,14 @@
 /* Laptop and below (lg breakpoint) */
 @media (max-width: 1024px) {
   .docs-layout {
-    grid-template-columns:
-      [sidebar-start] minmax(240px, 260px) [content-start] minmax(0, 1fr) [end];
+    grid-template-areas:
+      "sidebar content";
+    grid-template-columns: minmax(240px, 260px) minmax(0, 1fr);
     gap: 2rem;
   }
 
   .docs-main {
-    grid-column: content-start / end;
+    grid-area: content;
   }
 
   .docs-toc {
@@ -99,13 +101,15 @@
 /* Tablet and below (md breakpoint) */
 @media (max-width: 768px) {
   .docs-layout {
+    grid-template-areas:
+      "content";
     grid-template-columns: 1fr;
     padding: 1rem;
     gap: 1rem;
   }
 
   .docs-main {
-    grid-column: 1;
+    grid-area: content;
   }
 
   .docs-sidebar {

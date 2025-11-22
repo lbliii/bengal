@@ -20,6 +20,16 @@
               border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* Cards with images get different layout structure */
+.card:has(.card-image) {
+  grid-template-rows: auto 1fr auto;
+}
+
+/* Cards without images get more padding */
+.card:not(:has(.card-image)) {
+  padding: 1.5rem;
+}
+
 /* When card is a link, remove underlines */
 a.card {
   text-decoration: none;
@@ -44,7 +54,7 @@ a.card {
 
 .card-image {
   width: 100%;
-  height: 200px;
+  aspect-ratio: 16 / 9;
   object-fit: cover;
 }
 
@@ -174,7 +184,7 @@ a.card {
 
 .article-card-image {
   width: 100%;
-  height: 200px;
+  aspect-ratio: 16 / 9;
   object-fit: cover;
 }
 
@@ -478,14 +488,48 @@ a.card {
    CARD GRID LAYOUTS (New - from card/cards directives)
    ============================================ */
 
+/* Container for card grid - enables container queries */
+.card-grid-container {
+  container-type: inline-size;
+  container-name: card-grid;
+}
+
 .card-grid {
   display: grid;
   gap: var(--card-gap, 1.5rem);
   margin: 2rem 0;
 
-  /* Auto-fit: Cards fill available space */
-  grid-template-columns: repeat(var(--card-columns, auto-fit),
-      minmax(min(100%, 280px), 1fr));
+  /* Mobile-first: Single column */
+  grid-template-columns: 1fr;
+}
+
+/* Container query: 2 columns at 400px container width */
+@container card-grid (min-width: 400px) {
+  .card-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Container query: 3 columns at 600px container width */
+@container card-grid (min-width: 600px) {
+  .card-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* Container query: 4 columns at 800px container width */
+@container card-grid (min-width: 800px) {
+  .card-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* Fallback for browsers without container query support */
+@supports not (container-type: inline-size) {
+  .card-grid {
+    grid-template-columns: repeat(var(--card-columns, auto-fit),
+        minmax(min(100%, 280px), 1fr));
+  }
 }
 
 /* Gap Sizes */
@@ -619,6 +663,13 @@ a.card {
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 1.5rem;
   margin: 2rem 0;
+}
+
+/* Performance optimization: Content visibility for card grids */
+.cards-grid > *,
+.feature-cards > * {
+  content-visibility: auto;
+  contain-intrinsic-size: 300px;
 }
 
 .cards-grid--2 {

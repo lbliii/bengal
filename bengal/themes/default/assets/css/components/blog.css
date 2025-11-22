@@ -76,9 +76,15 @@
 }
 
 .blog-post-list {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+/* Performance optimization: Content visibility for long lists */
+.blog-post-list > * {
+  content-visibility: auto;
+  contain-intrinsic-size: 200px;
 }
 
 /* Blog Post Cards */
