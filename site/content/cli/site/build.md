@@ -1,11 +1,23 @@
 
 ---
 title: "build"
-type: doc
-description: "🔨 Build the static site.  Generates HTML files from your content, applies templates, processes assets, and outputs a production-ready site."
+type: "cli-reference"
 source_file: "bengal/bengal/cli/commands/build.py"
-source_line: 168
+line_number: 168
+description: "🔨 Build the static site. Generates HTML files from your content, applies templates, processes assets, and outputs a production-ready site."
 ---
+
+# build
+**Type:** Command
+**Source:** [View source](bengal/bengal/cli/commands/build.py#L168)
+
+```{badge} Command
+:class: badge-cli-command
+```
+
+
+
+**Command:** `bengal.site.build`
 
 🔨 Build the static site.
 
@@ -13,56 +25,298 @@ Generates HTML files from your content, applies templates,
 processes assets, and outputs a production-ready site.
 
 
+🔨 Build the static site.
+
+Generates HTML files from your content, applies templates,
+processes assets, and outputs a production-ready site.
+
+
+
+
 ## Usage
 
 ```bash
-bengal site build [ARGUMENTS] [OPTIONS]
+build [OPTIONS] [ARGUMENTS]
 ```
+
+
+
 
 ## Arguments
 
-### source
+### `source`
+
+*No description provided.*
 
 **Type:** `path`
-**Required:** No
+
 **Default:** `.`
+
+```{info}
+This argument is optional.
+```
+
+
+
+
+
+
 
 
 ## Options
 
-````{dropdown} Options (20 total)
-:open: false
+### `parallel`
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `--assets-pipeline` |Flag |- |Enable/disable Node-based assets pipeline (overrides config) |
-| `--autodoc` |Flag |- |Force regenerate autodoc before building (overrides config) |
-| `--config` |`path` |`Sentinel.UNSET` |Path to config file (default: bengal.toml) |
-| `--debug` |Flag |`False` |Show debug output and full tracebacks (maps to dev profile) |
-| `--environment`, `-e` |`text` |`Sentinel.UNSET` |Environment name (local, preview, production) - auto-detects if not specified |
-| `--fast` |Flag |- |Fast mode: quiet output, guaranteed parallel, max speed (overrides config) |
-| `--full-output` |Flag |`False` |Show full traditional output instead of live progress (useful for debugging) |
-| `--incremental` |Flag |- |Incremental mode: auto when omitted (uses cache if present). |
-| `--log-file` |`path` |`Sentinel.UNSET` |Write detailed logs to file (default: .bengal-build.log) |
-| `--memory-optimized` |Flag |`False` |Use streaming build for memory efficiency (best for 5K+ pages) |
-| `--parallel` |Flag |`True` |Enable parallel processing for faster builds (default: enabled) |
-| `--perf-profile` |`path` |`Sentinel.UNSET` |Enable performance profiling and save to file (default: .bengal/profiles/profile.stats) |
-| `--profile` |`choice` |`Sentinel.UNSET` |Build profile: writer (fast/clean), theme-dev (templates), dev (full debug) |
-| `--quiet`, `-q` |Flag |`False` |Minimal output - only show errors and summary |
-| `--strict` |Flag |`False` |Fail on template errors (recommended for CI/CD) |
-| `--traceback` |`choice` |`Sentinel.UNSET` |Traceback verbosity: full | compact | minimal | off |
-| `--dev` |Flag |`False` |Use developer profile with full observability (shorthand for --profile dev) |
-| `--theme-dev` |Flag |`False` |Use theme developer profile (shorthand for --profile theme-dev) |
-| `--validate` |Flag |`False` |Validate templates before building (catch errors early) |
-| `--verbose`, `-v` |Flag |`False` |Show detailed build information (maps to theme-dev profile) |
 
-````
+Enable parallel processing for faster builds (default: enabled)
+
+**Type:** `boolean`
+
+**Default:** `True`
 
 
 
 
-## Help
 
-```bash
-bengal site build --help
-```
+### `incremental`
+
+
+Incremental mode: auto when omitted (uses cache if present).
+
+**Type:** `boolean`
+
+
+
+
+
+
+### `memory_optimized`
+
+
+Use streaming build for memory efficiency (best for 5K+ pages)
+
+**Type:** `boolean`
+
+**Default:** `False`
+
+
+
+
+
+### `environment`
+
+
+Environment name (local, preview, production) - auto-detects if not specified
+
+**Type:** `text`
+
+
+
+
+
+
+### `profile`
+
+
+Build profile: writer (fast/clean), theme-dev (templates), dev (full debug)
+
+**Type:** `choice`
+
+
+
+
+
+
+### `perf_profile`
+
+
+Enable performance profiling and save to file (default: .bengal/profiles/profile.stats)
+
+**Type:** `path`
+
+
+
+
+
+
+### `use_theme_dev`
+
+
+Use theme developer profile (shorthand for --profile theme-dev)
+
+**Type:** `boolean`
+
+**Default:** `False`
+
+
+
+
+
+### `use_dev`
+
+
+Use developer profile with full observability (shorthand for --profile dev)
+
+**Type:** `boolean`
+
+**Default:** `False`
+
+
+
+
+
+### `verbose`
+
+
+Show detailed build information (maps to theme-dev profile)
+
+**Type:** `boolean`
+
+**Default:** `False`
+
+
+
+
+
+### `strict`
+
+
+Fail on template errors (recommended for CI/CD)
+
+**Type:** `boolean`
+
+**Default:** `False`
+
+
+
+
+
+### `debug`
+
+
+Show debug output and full tracebacks (maps to dev profile)
+
+**Type:** `boolean`
+
+**Default:** `False`
+
+
+
+
+
+### `traceback`
+
+
+Traceback verbosity: full | compact | minimal | off
+
+**Type:** `choice`
+
+
+
+
+
+
+### `validate`
+
+
+Validate templates before building (catch errors early)
+
+**Type:** `boolean`
+
+**Default:** `False`
+
+
+
+
+
+### `assets_pipeline`
+
+
+Enable/disable Node-based assets pipeline (overrides config)
+
+**Type:** `boolean`
+
+
+
+
+
+
+### `autodoc`
+
+
+Force regenerate autodoc before building (overrides config)
+
+**Type:** `boolean`
+
+
+
+
+
+
+### `config`
+
+
+Path to config file (default: bengal.toml)
+
+**Type:** `path`
+
+
+
+
+
+
+### `quiet`
+
+
+Minimal output - only show errors and summary
+
+**Type:** `boolean`
+
+**Default:** `False`
+
+
+
+
+
+### `fast`
+
+
+Fast mode: quiet output, guaranteed parallel, max speed (overrides config)
+
+**Type:** `boolean`
+
+
+
+
+
+
+### `full_output`
+
+
+Show full traditional output instead of live progress (useful for debugging)
+
+**Type:** `boolean`
+
+**Default:** `False`
+
+
+
+
+
+### `log_file`
+
+
+Write detailed logs to file (default: .bengal-build.log)
+
+**Type:** `path`
+
+
+
+
+
+
+
+
+
+---
+*Generated by Bengal autodoc from `bengal/bengal/cli/commands/build.py`*

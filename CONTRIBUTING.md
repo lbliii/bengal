@@ -384,6 +384,20 @@ def test_page_extracts_links():
 - Log warnings for recoverable errors
 - Fail fast for critical errors
 
+### Debugging Template Issues
+
+For template-related debugging, Bengal provides several tools:
+
+- **CLI tools**: `bengal template-dev debug <template>` for interactive debugging
+- **Standalone scripts**:
+  - `python debug_template_rendering.py [source_file]` for comprehensive template debugging
+  - `python debug_macro_error.py` for focused macro testing and validation
+  - `python test_macro_step_by_step.py [source_file]` for step-by-step macro syntax validation
+- **Template validation**: `bengal template-dev validate <template>` for syntax checking
+- **Performance profiling**: `bengal template-dev profile <template>` for performance analysis
+
+The standalone debug scripts are particularly useful for quickly diagnosing template rendering issues during development. Use `debug_macro_error.py` for testing specific macros, `debug_template_rendering.py` for full template analysis, and `test_macro_step_by_step.py` for progressive macro syntax validation.
+
 ## Release Process
 
 1. Update version in `pyproject.toml` and `__init__.py`

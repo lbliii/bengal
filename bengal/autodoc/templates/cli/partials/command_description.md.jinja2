@@ -1,0 +1,24 @@
+{#-
+CLI Command Description Component
+
+Renders command description with safe error handling.
+Handles cases where description is missing or malformed.
+-#}
+
+{% if element.description %}
+{{ element.description }}
+{% else %}
+*No command description provided.*
+{% endif %}
+
+{% if element.metadata.deprecated %}
+```{warning} Deprecated Command
+{{ element.metadata.deprecated }}
+```
+{% endif %}
+
+{% if element.metadata.experimental %}
+```{note} Experimental Command
+This command is experimental and may change in future versions.
+```
+{% endif %}

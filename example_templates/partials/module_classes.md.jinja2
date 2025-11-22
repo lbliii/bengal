@@ -1,0 +1,9 @@
+{#- Module classes partial - focused on just classes -#}
+{% set classes = element.children | selectattr('element_type', 'equalto', 'class') | list %}
+{% if classes %}
+## Classes
+
+{% for cls in classes %}
+{% include 'autodoc/partials/class_section.md.jinja2' %}
+{% endfor %}
+{% endif %}

@@ -495,7 +495,7 @@ def autodoc_cli(
         # Generate documentation
         gen_start = time.time()
 
-        generator = DocumentationGenerator(extractor, cli_config)
+        generator = DocumentationGenerator(extractor, {"autodoc": {"cli": cli_config}})
         generated_files = generator.generate_all(elements, output_dir)
 
         gen_time = time.time() - gen_start

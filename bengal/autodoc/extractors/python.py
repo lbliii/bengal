@@ -419,10 +419,14 @@ class PythonExtractor(Extractor):
         element_type = "method" if parent_name else "function"
 
         # Filter out self/cls for methods (but not for staticmethods)
-        if element_type == "method" and not is_staticmethod:
-            # Remove first argument (self for regular methods, cls for classmethods)
-            if args and args[0]["name"] in ("self", "cls"):
-                args = args[1:]
+        # Remove first argument (self for regular methods, cls for classmethods)
+        if (
+            element_type == "method"
+            and not is_staticmethod
+            and args
+            and args[0]["name"] in ("self", "cls")
+        ):
+            args = args[1:]
 
         # Merge parsed docstring args with signature args
         merged_args = args  # Start with signature args
@@ -740,11 +744,6 @@ class PythonExtractor(Extractor):
                                 exports.append(elt.value)
                         return exports
         return None
-
-    @override
-    def get_template_dir(self) -> str:
-        """Get template directory name."""
-        return "python"
 
     @override
     def get_output_path(self, element: DocElement) -> Path | None:

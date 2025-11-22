@@ -1,0 +1,18 @@
+{#- BLENDED: Small focused partial + Hugo-style safety -#}
+{% set classes = element.children | selectattr('element_type', 'equalto', 'class') | list %}
+
+{#- Hugo-style conditional rendering -#}
+{% if classes %}
+## Classes
+
+{% for cls in classes %}
+  {#- Hugo-style error boundary for each class -#}
+  {% call safe_render("class", cls) %}
+    {% include 'autodoc/partials/class_detail.md.jinja2' %}
+  {% endcall %}
+{% endfor %}
+
+{% else %}
+{#- Graceful fallback when no classes -#}
+*No classes defined in this module.*
+{% endif %}

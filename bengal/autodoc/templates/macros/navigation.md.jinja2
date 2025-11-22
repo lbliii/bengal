@@ -1,0 +1,167 @@
+{#-
+Navigation and Cross-Reference Macros
+
+Provides consistent navigation, linking, and cross-reference patterns
+across all documentation types.
+-#}
+
+{% from 'macros/safe_macros.md.jinja2' import safe_attr, safe_var %}
+
+{#- Generate safe anchor links -#}
+{% macro safe_anchor(text) %}
+{%- if text -%}
+{{ text | lower | replace(' ', '-') | replace('.', '-') | replace('_', '-') | replace('(', '') | replace(')', '') }}
+{%- endif -%}
+{% endmacro %}
+
+{#- Internal documentation link -#}
+{% macro doc_link(target, text=None, anchor=None) %}
+{%- set link_text = text or target -%}
+{%- if anchor -%}
+[{{ link_text }}]({{ target }}#{{ safe_anchor(anchor) }})
+{%- else -%}
+[{{ link_text }}]({{ target }})
+{%- endif -%}
+{% endmacro %}
+
+{#- Cross-reference to another element -#}
+{% macro xref(element_name, element_type="", text=None) %}
+{%- set link_text = text or element_name -%}
+{%- if element_type == "class" -%}
+{{ doc_link("/api/" + element_name.lower().replace('.', '/') + "/", link_text) }}
+{%- elif element_type == "function" -%}
+{{ doc_link("/api/" + element_name.lower().replace('.', '/') + "/", link_text) }}
+{%- elif element_type == "command" -%}
+{{ doc_link("/cli/" + element_name.lower().replace(' ', '/') + "/", link_text) }}
+{%- else -%}
+`{{ link_text }}`
+{%- endif -%}
+{% endmacro %}
+
+{#- Source code link -#}
+{% macro source_link(source_file, line_number=None, text="View source") %}
+{% if source_file %}
+{%- set clean_path = source_file | project_relative -%}
+{%- if line_number -%}
+[{{ text }}]({{ clean_path }}#L{{ line_number }})
+{%- else -%}
+[{{ text }}]({{ clean_path }})
+{%- endif -%}
+{% endif %}
+{% endmacro %}
+
+{#- Breadcrumb navigation -#}
+{% macro breadcrumbs(element) %}
+{% if element and safe_attr(element, 'qualified_name', '') %}
+{%- set parts = element.qualified_name.split('.') -%}
+{% if parts|length > 1 %}
+**Navigation:**
+{% for part in parts %}
+{%- if loop.last -%}
+{{ part }}
+{%- else -%}
+{{ doc_link("/api/" + (parts[:loop.index]|join('/')|lower) + "/", part) }} ›
+{%- endif -%}
+{% endfor %}
+{% endif %}
+{% endif %}
+{% endmacro %}
+
+{#- Table of contents for long pages -#}
+{% macro table_of_contents(sections, title="Contents") %}
+{% if sections and sections|length > 1 %}
+
+**{{ title }}:**
+
+{% for section in sections %}
+- [{{ section.title }}](#{{ safe_anchor(section.title) }})
+{% if section.subsections %}
+{% for subsection in section.subsections %}
+  - [{{ subsection.title }}](#{{ safe_anchor(subsection.title) }})
+{% endfor %}
+{% endif %}
+{% endfor %}
+
+{% endif %}
+{% endmacro %}
+
+{#- Related links section -#}
+{% macro related_links(links, title="See Also") %}
+{% if links and links|length > 0 %}
+
+## {{ title }}
+
+{% for link in links %}
+{% if link is string %}
+- {{ link }}
+{% else %}
+- {{ doc_link(safe_attr(link, 'url', ''), safe_attr(link, 'title', 'Related')) }}{% if safe_attr(link, 'description', '') %} - {{ link.description }}{% endif %}
+{% endif %}
+{% endfor %}
+
+{% endif %}
+{% endmacro %}
+
+{#- Inheritance chain for classes -#}
+{% macro inheritance_chain(bases, title="Inheritance") %}
+{% if bases and bases|length > 0 %}
+
+**{{ title }}:**
+{% for base in bases %}
+{{ xref(base, "class") }}{% if not loop.last %} → {% endif %}
+{% endfor %}
+
+{% endif %}
+{% endmacro %}
+
+{#- Method/function signatures with links -#}
+{% macro signature_with_links(signature, element) %}
+{% if signature %}
+```python
+{{ signature }}
+```
+{% if element and safe_attr(element, 'source_file', '') %}
+
+{{ source_link(element.source_file, safe_attr(element, 'line_number', None)) }}
+{% endif %}
+{% endif %}
+{% endmacro %}
+
+{#- API endpoint navigation -#}
+{% macro api_endpoint_nav(method, path, title=None) %}
+{%- set display_title = title or (method.upper() + " " + path) -%}
+**{{ display_title }}**
+
+`{{ method.upper() }} {{ path }}`
+{% endmacro %}
+
+{#- CLI command navigation -#}
+{% macro cli_command_nav(command_path, description=None) %}
+**Command:** `{{ command_path }}`
+{% if description %}
+
+{{ description }}
+{% endif %}
+{% endmacro %}
+
+{#- Back to parent navigation -#}
+{% macro back_to_parent(parent_name, parent_url, parent_type="module") %}
+
+---
+
+← Back to {{ doc_link(parent_url, parent_name + " " + parent_type) }}
+{% endmacro %}
+
+{#- External link with icon -#}
+{% macro external_link(url, text, description=None) %}
+[{{ text }} ↗]({{ url }}){% if description %} - {{ description }}{% endif %}
+{% endmacro %}
+
+{#- GitHub link helper -#}
+{% macro github_link(repo, path=None, text="GitHub") %}
+{%- set full_url = "https://github.com/" + repo -%}
+{%- if path -%}
+{%- set full_url = full_url + "/blob/main/" + path -%}
+{%- endif -%}
+{{ external_link(full_url, text) }}
+{% endmacro %}

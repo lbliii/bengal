@@ -391,6 +391,18 @@ bengal utils graph pagerank
 bengal utils graph communities
 bengal utils graph bridges
 bengal utils graph suggest
+
+# Template development tools
+bengal template-dev validate python/module.md.jinja2
+bengal template-dev debug python/module.md.jinja2 --element-type module
+bengal template-dev profile cli/command.md.jinja2 --iterations 100
+bengal template-dev generate-sample --element-type command --output sample.json
+bengal template-dev watch --command "bengal site build"
+
+# Standalone debugging scripts (for quick diagnostics)
+python debug_template_rendering.py [source_file]  # Comprehensive template debugging
+python debug_macro_error.py                       # Focused macro testing
+python test_macro_step_by_step.py [source_file]   # Step-by-step macro validation
 ```
 
 ## Themes
@@ -485,6 +497,9 @@ include_hidden = false         # Include hidden commands
 
 - **AST-based extraction** - No imports required, works with any Python code
 - **Multiple docstring formats** - Supports Google, NumPy, and Sphinx styles
+- **Template safety** - Hugo-style error boundaries prevent silent failures
+- **Graceful fallbacks** - Template errors generate structured fallback content
+- **Development tools** - Sample data generation, template debugging, performance profiling, and hot-reloading
 - **Auto-regeneration** - Set `auto_regenerate_autodoc = true` in `[build]` to automatically update docs when source changes
 - **CLI frameworks** - Built-in support for Click, Argparse, and Typer
 - **Smart filtering** - Exclude tests, caches, and private members

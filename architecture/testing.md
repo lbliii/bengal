@@ -57,8 +57,8 @@ Bengal uses a comprehensive testing approach with pytest and coverage tracking.
 | **Overall** | **85%** | **~68%** | 🎯 **Gap: 17%** (improved +4%) |
 
 **Test Statistics:**
-- Total tests: 1,084+ passing
-- Test execution time: ~20 seconds (excluding performance benchmarks)
+- Total tests: 1,100+ passing (includes new template safety tests)
+- Test execution time: ~22 seconds (excluding performance benchmarks)
 - Performance benchmarks: Separate suite with longer-running tests
 
 ## Test Types
@@ -72,6 +72,7 @@ Bengal uses a comprehensive testing approach with pytest and coverage tracking.
      - `tests/unit/utils/test_dates.py` (56 tests, 91% coverage)
      - `tests/unit/utils/test_file_io.py` (54 tests, 23-91% coverage)
      - `tests/unit/utils/test_pagination.py` (10 tests, 96% coverage)
+     - `tests/unit/autodoc/test_template_safety_comprehensive.py` (21 tests, comprehensive template safety coverage)
 
 2. **Integration Tests**
    - Test component interactions
@@ -88,6 +89,14 @@ Bengal uses a comprehensive testing approach with pytest and coverage tracking.
    - Build speed benchmarks (`tests/performance/benchmark_*.py`)
    - Memory usage profiling (`tests/performance/test_memory_profiling.py`)
    - Large site stress tests
+
+5. **Template Safety Tests**
+   - Comprehensive error boundary testing (`tests/unit/autodoc/test_template_safety_comprehensive.py`)
+   - Template fallback mechanism validation
+   - Safe macro and filter testing
+   - Performance testing with large contexts (1000+ items)
+   - Integration testing with real template files
+   - Error collection and reporting validation
 
 ## Running Tests
 

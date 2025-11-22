@@ -243,6 +243,22 @@ Make sure your templates are in:
 2. `themes/<theme>/templates/` (theme templates)
 3. Bengal's built-in default templates
 
+### Template Rendering Issues
+
+For debugging template problems:
+```bash
+# Quick template diagnostics
+python debug_template_rendering.py [source_file]  # Comprehensive debugging
+python debug_macro_error.py                       # Focused macro testing
+python test_macro_step_by_step.py [source_file]   # Step-by-step macro validation
+
+# Validate template syntax
+bengal template-dev validate <template_name>
+
+# Interactive debugging with sample data
+bengal template-dev debug <template_name> --element-type module
+```
+
 ### Import Errors
 
 Make sure all dependencies are installed:

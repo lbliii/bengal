@@ -1,0 +1,16 @@
+{#-
+Module Description Component
+
+Renders the main module description and metadata section.
+Handles cases where description is missing or malformed.
+-#}
+
+{% from 'macros/safe_macros.md.jinja2' import safe_section, safe_var %}
+
+{% call safe_section("module_description") %}
+{% if element.description %}
+{{ element.description }}
+{% else %}
+*No module description provided.*
+{% endif %}
+{% endcall %}

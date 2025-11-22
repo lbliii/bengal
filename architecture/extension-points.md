@@ -88,6 +88,8 @@ def register_custom_functions(engine: TemplateEngine):
 {{ page.title | custom }}
 ```
 
+**Examples**: See [`example_templates/filters/safe_filters.py`](../example_templates/filters/safe_filters.py) for real-world custom filter implementations.
+
 **Future**: Plugin system will formalize this
 
 ## 4. Custom Post-Processors

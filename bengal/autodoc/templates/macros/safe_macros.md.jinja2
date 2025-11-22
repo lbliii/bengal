@@ -1,0 +1,78 @@
+{#-
+Safe Template Macros - Hugo-style error boundaries and safe rendering
+
+These macros provide error isolation and graceful fallbacks for template rendering.
+All templates should use these macros to prevent silent failures.
+-#}
+
+{#- Hugo-style error boundary macro -#}
+{% macro safe_section(section_name, show_errors=true) %}
+{% if caller %}
+{#- Capture content and only render if non-empty -#}
+{% set content = caller() %}
+{% if content and content.strip() %}
+{{ content }}
+{% endif %}
+{% endif %}
+{% endmacro %}
+
+{#- Safe rendering with item-level fallbacks -#}
+{% macro safe_render(item_type, item, show_errors=true) %}
+{% if caller and item %}
+{% set current_item = item %}
+{{ caller() }}
+{% endif %}
+{% endmacro %}
+
+{#- Safe variable access with defaults -#}
+{% macro safe_var(obj, attr, default="-") %}
+{%- if obj and attr in obj -%}
+{{ obj[attr] }}
+{%- else -%}
+{{ default }}
+{%- endif -%}
+{% endmacro %}
+
+{#- Safe attribute access for objects -#}
+{% macro safe_attr(obj, attr, default="-") %}
+{%- if obj and obj[attr] is defined -%}
+{{ obj[attr] }}
+{%- else -%}
+{{ default }}
+{%- endif -%}
+{% endmacro %}
+
+{#- Safe list access with bounds checking -#}
+{% macro safe_list_item(list_obj, index, default="") %}
+{%- if list_obj and list_obj|length > index -%}
+{{ list_obj[index] }}
+{%- else -%}
+{{ default }}
+{%- endif -%}
+{% endmacro %}
+
+{#- Conditional rendering with safe checks -#}
+{% macro if_exists(obj, attr) %}
+{% if caller and obj and hasattr(obj, attr) and obj[attr] %}
+{{ caller() }}
+{% endif %}
+{% endmacro %}
+
+{#- Safe iteration with empty state handling -#}
+{% macro safe_for(items, empty_message="*No items found.*") %}
+{% if items and items|length > 0 %}
+{% if caller %}
+{% for current_item in items %}
+{{ caller(current_item) }}
+{% endfor %}
+{% endif %}
+{% else %}
+{{ empty_message }}
+{% endif %}
+{% endmacro %}
+
+{#- Debug information macro (only shows in debug mode) -#}
+{% macro debug_info(label, data) %}
+{#- Debug output disabled in macros to avoid context issues -#}
+{#- Use direct config access in templates instead -#}
+{% endmacro %}

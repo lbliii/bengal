@@ -1,0 +1,35 @@
+{#- BLENDED: Focused partial + Hugo-style macros + safe filters -#}
+### `{{ cls.name }}`
+
+{#- Hugo-style safe description rendering -#}
+{% with description = cls.description | default("*No class description provided.*") %}
+{{ description }}
+{% endwith %}
+
+{#- Use Hugo-style reusable macro from shared file -#}
+{% if cls.metadata.bases %}
+{{ render_inheritance_chain(cls.metadata.bases) }}
+{% endif %}
+
+{#- Hugo-style conditional sections -#}
+{% set methods = cls.children | selectattr('element_type', 'equalto', 'method') | rejectattr('name', 'startswith', '_') | list %}
+{% if methods %}
+#### Methods
+{% for method in methods %}
+  {#- Each method gets its own safe context -#}
+  {% call safe_render("method", method) %}
+    {% include 'autodoc/partials/method_detail.md.jinja2' %}
+  {% endcall %}
+{% endfor %}
+{% endif %}
+
+{#- Properties section with error boundary -#}
+{% set properties = cls.children | selectattr('element_type', 'equalto', 'property') | list %}
+{% if properties %}
+{% call safe_section("properties") %}
+#### Properties
+{% for prop in properties %}
+{{ render_property(prop) }}
+{% endfor %}
+{% endcall %}
+{% endif %}

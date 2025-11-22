@@ -5,6 +5,8 @@ Unified documentation generation system for Bengal static sites.
 ## Features
 
 - **Python API Documentation**: AST-based extraction (no imports required)
+- **Template Safety**: Hugo-style error boundaries prevent silent failures
+- **Graceful Fallbacks**: Template errors generate structured fallback content
 - **Alias Detection**: Automatically detects and documents assignment aliases
 - **Inherited Members**: Optionally show inherited methods from base classes
 - **OpenAPI/REST Documentation**: Generate docs from OpenAPI specs
@@ -265,6 +267,68 @@ def example(x: int) -> int:
 ```
 
 All sections are parsed and rendered appropriately in templates.
+
+## Template Safety System
+
+Bengal's autodoc includes a **Hugo-style safe template rendering system** that eliminates silent failures and provides graceful error handling.
+
+### Error Boundaries
+
+Templates use error boundaries to isolate failures and prevent one broken section from breaking the entire page:
+
+```jinja2
+{# Safe section rendering with error boundaries #}
+{% call safe_section("description") %}
+  {% include 'python/partials/module_description.md.jinja2' %}
+{% endcall %}
+```
+
+### Graceful Fallbacks
+
+When templates encounter errors, structured fallback content is automatically generated:
+
+```markdown
+# ModuleName
+
+```{error}
+Template Syntax Error: python/module.md.jinja2
+Undefined variable: 'invalid_var'
+```
+
+## Basic Information
+
+**Type:** module
+**Source:** src/mylib/core.py
+
+Module description from docstring...
+
+*Note: Template has syntax errors. This is fallback content.*
+```
+
+### Safe Filters
+
+Built-in template filters prevent common rendering errors:
+
+- `safe_description`: YAML-safe description formatting for frontmatter
+- `code_or_dash`: Wraps values in code backticks or shows dash for empty values
+- `safe_anchor`: Generates safe anchor links from text
+- `project_relative`: Converts absolute paths to project-relative paths
+
+```jinja2
+{# Safe variable access with fallbacks #}
+**Type:** {{ element.element_type | default('Unknown') }}
+**Source:** {{ element.source_file | project_relative }}
+**Description:** {{ element.description | safe_description }}
+```
+
+### Error Reporting
+
+The template safety system provides comprehensive error reporting:
+
+- **Error categorization**: Template not found, undefined variables, syntax errors
+- **Context preservation**: Records element names and template context
+- **Human-readable summaries**: Clear error reports for debugging
+- **Structured logging**: Detailed error information for development
 
 ## Templates
 

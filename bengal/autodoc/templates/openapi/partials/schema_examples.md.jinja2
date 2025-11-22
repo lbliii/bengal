@@ -1,0 +1,43 @@
+{#-
+Schema Examples Component
+
+Renders schema examples with proper JSON formatting.
+Handles multiple examples and validation scenarios safely.
+-#}
+
+{% from 'macros/safe_macros.md.jinja2' import safe_section, safe_for %}
+{% from 'macros/code_blocks.md.jinja2' import code_block %}
+
+{% if element.metadata.example or element.metadata.examples %}
+{% call safe_section("schema_examples") %}
+## Examples
+
+{% if element.metadata.example %}
+### Example
+
+{{ code_block(element.metadata.example | tojson(indent=2), 'json', 'Schema Example') }}
+{% endif %}
+
+{% if element.metadata.examples %}
+### Multiple Examples
+
+{% call(item) safe_for(element.metadata.examples.items(), "*No examples provided.*") %}
+{% set example_name = item[0] %}
+{% set example_data = item[1] %}
+
+#### {{ example_name | title }}
+
+{% if example_data.summary %}
+{{ example_data.summary }}
+{% endif %}
+
+{% if example_data.description %}
+{{ example_data.description }}
+{% endif %}
+
+{{ code_block(example_data.value | tojson(indent=2), 'json') }}
+
+{% endcall %}
+{% endif %}
+{% endcall %}
+{% endif %}

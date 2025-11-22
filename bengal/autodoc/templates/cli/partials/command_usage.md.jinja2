@@ -1,0 +1,24 @@
+{#-
+CLI Command Usage Component
+
+Renders command usage syntax with safe error boundaries.
+Shows command signature and basic usage patterns.
+-#}
+
+{% from 'macros/code_blocks.md.jinja2' import usage_block %}
+
+## Usage
+
+{% if element.metadata.usage %}
+{{ usage_block(element.metadata.usage, "Usage", "bash") }}
+{% elif element.metadata.signature %}
+{{ usage_block(element.metadata.signature, "Usage", "bash") }}
+{% else %}
+```bash
+{{ element.name | default('command') }} [OPTIONS] [ARGUMENTS]
+```
+{% endif %}
+
+{% if element.metadata.aliases %}
+**Aliases:** {% for alias in element.metadata.aliases %}`{{ alias }}`{% if not loop.last %}, {% endif %}{% endfor %}
+{% endif %}

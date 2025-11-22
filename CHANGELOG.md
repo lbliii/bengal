@@ -48,6 +48,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Config directory takes precedence when both exist
     - No breaking changes for existing projects
   - **Comprehensive Examples**:
+
+### Enhanced
+- **Autodoc Template Cache**: Intelligent LRU caching system for template rendering
+  - Configurable cache size (default: 1000 entries) with automatic eviction
+  - LRU (Least Recently Used) eviction strategy removes 20% of entries when cache is full
+  - Built-in performance tracking with hit rate and usage statistics
+  - Template hash-based cache invalidation for changed templates
+  - Memory-efficient access time tracking for optimal performance
+  - Cache statistics API for monitoring and debugging
     - `config.example/`: Fully annotated reference configs with inline documentation
     - Main documentation site (`site/`) migrated to new system as real-world example
   - **Test Coverage**: 109 tests (95 unit + 14 integration)

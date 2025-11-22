@@ -1,0 +1,28 @@
+{#-
+Class Description Component
+
+Renders class description with inheritance and metadata information.
+Handles cases where description is missing or malformed.
+-#}
+
+{% if element.description %}
+{{ element.description }}
+{% else %}
+*No class description provided.*
+{% endif %}
+
+{% if element.metadata.bases %}
+**Inherits from:** {% for base in element.metadata.bases %}`{{ base }}`{% if not loop.last %}, {% endif %}{% endfor %}
+{% endif %}
+
+{% if element.metadata.aliases %}
+```{note} Also known as
+This class has aliases: {% for alias in element.metadata.aliases %}`{{ alias }}`{% if not loop.last %}, {% endif %}{% endfor %}
+```
+{% endif %}
+
+{% if element.metadata.is_dataclass %}
+```{info}
+This is a dataclass.
+```
+{% endif %}

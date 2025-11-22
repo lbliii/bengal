@@ -96,8 +96,8 @@ class Extractor(ABC):
                 # Extract Python API docs via AST
                 ...
 
-            def get_template_dir(self) -> str:
-                return "python"
+            # Templates are now unified under bengal/autodoc/templates/
+            # with python/, cli/, openapi/ subdirectories
     """
 
     @abstractmethod
@@ -113,21 +113,6 @@ class Extractor(ABC):
 
         Note:
             This should be fast and not have side effects (no imports, no network calls)
-        """
-        pass
-
-    @abstractmethod
-    def get_template_dir(self) -> str:
-        """
-        Get template directory name for this extractor.
-
-        Returns:
-            Directory name (e.g., 'python', 'openapi', 'cli')
-
-        Example:
-            Templates will be loaded from:
-            - templates/autodoc/{template_dir}/
-            - Built-in: bengal/autodoc/templates/{template_dir}/
         """
         pass
 

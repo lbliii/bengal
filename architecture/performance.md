@@ -78,7 +78,13 @@
    - Parsed Markdown AST cached
    - **Impact**: Enables fast incremental builds
 
-7. **Minimal Dependencies**
+7. **Template Caching** (Enhanced 2025-11-01)
+   - LRU cache for rendered autodoc templates with intelligent eviction
+   - Configurable cache size (default: 1000 entries)
+   - Automatic cache statistics and hit rate tracking
+   - **Impact**: Reduces template rendering overhead for repeated documentation builds
+
+8. **Minimal Dependencies**
    - Only necessary libraries included
    - **Impact**: Fast pip install, small footprint
 

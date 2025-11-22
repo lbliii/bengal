@@ -1,0 +1,23 @@
+{#- Hugo-inspired Jinja2 template -#}
+---
+title: "{{ element.name }}"
+type: doc
+description: "{{ element.description | safe_description }}"
+---
+
+{#- Use Jinja2's call blocks (similar to Hugo's define/template) -#}
+{% call render_section("description") %}
+  {{ element.description | default("*No module description provided.*") }}
+{% endcall %}
+
+{% call render_section("classes") %}
+  {% for cls in element.children | selectattr('element_type', 'equalto', 'class') %}
+    {% call render_class(cls) %}{% endcall %}
+  {% endfor %}
+{% endcall %}
+
+{% call render_section("functions") %}
+  {% for func in element.children | selectattr('element_type', 'equalto', 'function') %}
+    {% call render_function(func) %}{% endcall %}
+  {% endfor %}
+{% endcall %}

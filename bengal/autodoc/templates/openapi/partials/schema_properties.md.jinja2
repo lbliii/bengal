@@ -1,0 +1,46 @@
+{#-
+Schema Properties Component
+
+Renders schema properties in a detailed table format.
+Handles nested schemas and complex property types safely.
+-#}
+
+{% from 'macros/safe_macros.md.jinja2' import safe_section, safe_render, safe_for %}
+{% from 'macros/parameter_table.md.jinja2' import attribute_table %}
+
+{% if element.metadata.properties %}
+{% call safe_section("schema_properties") %}
+## Properties
+
+| Name | Type | Required | Description | Constraints |
+|------|------|----------|-------------|-------------|
+{% call(item) safe_for(element.metadata.properties.items(), "*No properties defined.*") %}
+{% set prop_name = item[0] %}
+{% set prop_info = item[1] %}
+{% call safe_render("property", prop_info) %}
+| `{{ prop_name }}` | `{{ prop_info.type | default('any') }}` | {% if element.metadata.required and prop_name in element.metadata.required %}✓{% else %}-{% endif %} | {{ prop_info.description | default('*No description*') }} | {% if prop_info.enum %}Enum: {{ prop_info.enum | format_list }}{% elif prop_info.minimum or prop_info.maximum %}Range: {{ prop_info.minimum | default('∞') }} - {{ prop_info.maximum | default('∞') }}{% elif prop_info.min_length or prop_info.max_length %}Length: {{ prop_info.min_length | default('0') }} - {{ prop_info.max_length | default('∞') }}{% else %}-{% endif %} |
+{% endcall %}
+{% endcall %}
+
+{% if element.metadata.required %}
+### Required Properties
+
+The following properties are required:
+{% call(required_prop) safe_for(element.metadata.required, "*No required properties.*") %}
+- `{{ required_prop }}`
+{% endcall %}
+{% endif %}
+
+{% if element.metadata.additional_properties %}
+### Additional Properties
+
+{% if element.metadata.additional_properties == true %}
+This schema allows additional properties of any type.
+{% elif element.metadata.additional_properties == false %}
+This schema does not allow additional properties.
+{% else %}
+Additional properties must conform to: `{{ element.metadata.additional_properties.type | default('any') }}`
+{% endif %}
+{% endif %}
+{% endcall %}
+{% endif %}

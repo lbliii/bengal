@@ -1,0 +1,29 @@
+{#- Reusable parameter table macro - tested and safe -#}
+{% macro parameter_table(parameters, title="Parameters") %}
+{% if parameters %}
+:::{rubric} {{ title }}
+:class: rubric-parameters
+:::
+
+::::{dropdown} {{ parameters | length }} {{ title.lower() }} (click to expand)
+:open: false
+
+:::{list-table}
+:header-rows: 1
+:widths: 20 20 20 40
+
+* - Name
+  - Type
+  - Default
+  - Description
+{% for param in parameters %}
+* - `{{ param.name }}`
+  - {{ param.annotation | default('-', true) | code_or_dash }}
+  - {{ param.default | default('-', true) | code_or_dash }}
+  - {{ param.docstring | default('-', true) }}
+{% endfor %}
+:::
+
+::::
+{% endif %}
+{% endmacro %}

@@ -1,0 +1,86 @@
+{#-
+Module Functions Component
+
+Renders all public functions in the module with comprehensive documentation.
+Uses shared components for consistency with method documentation.
+-#}
+
+{% from 'macros/safe_macros.md.jinja2' import safe_section, safe_render, safe_for %}
+{% from 'macros/code_blocks.md.jinja2' import signature_block %}
+{% from 'macros/parameter_table.md.jinja2' import parameter_table %}
+
+{% set all_functions = element.children | selectattr('element_type', 'equalto', 'function') | list %}
+{% set public_functions = [] %}
+{% for func in all_functions %}
+  {% if not func.name.startswith('_') %}
+    {% set _ = public_functions.append(func) %}
+  {% endif %}
+{% endfor %}
+
+{% if public_functions %}
+{% call safe_section("functions") %}
+## Functions
+
+{% call(current_item) safe_for(public_functions, "*No public functions found.*") %}
+{% call safe_render("function", current_item) %}
+### `{{ current_item.name }}`{% if current_item.metadata.is_async %} @async{% endif %}
+
+{% if current_item.metadata.aliases %}
+```{note} Also known as
+This function has aliases: {% for alias in current_item.metadata.aliases %}`{{ alias }}`{% if not loop.last %}, {% endif %}{% endfor %}
+```
+
+{% endif %}
+
+{{ signature_block(current_item.metadata.signature | default(''), 'function') }}
+
+{% if current_item.description %}
+{{ current_item.description }}
+{% else %}
+*No description provided.*
+{% endif %}
+
+{% if current_item.metadata.parsed_doc.deprecated %}
+```{warning} Deprecated
+{{ current_item.metadata.parsed_doc.deprecated }}
+```
+
+{% endif %}
+
+{% if current_item.metadata.is_async %}
+```{info} Async Function
+This is an asynchronous function. Use `await` when calling.
+```
+
+{% endif %}
+
+{#- Parameters section -#}
+{% if current_item.metadata.args %}
+{{ parameter_table(current_item.metadata.args, "Parameters", show_types=true, show_defaults=true) }}
+{% endif %}
+
+{#- Returns section -#}
+{% if current_item.metadata.returns %}
+:::{rubric} Returns
+:class: rubric-returns
+:::
+`{{ current_item.metadata.returns }}`{%- if current_item.metadata.parsed_doc.returns %} - {{ current_item.metadata.parsed_doc.returns }}{%- endif %}
+
+{% endif %}
+
+{#- Reuse shared method components -#}
+{% with item = current_item %}
+{% include 'python/partials/method_raises.md.jinja2' %}
+{% include 'python/partials/method_examples.md.jinja2' %}
+{% include 'python/partials/method_notes.md.jinja2' %}
+{% endwith %}
+
+{% if current_item.metadata.parsed_doc.see_also %}
+**See Also:** {% for ref in current_item.metadata.parsed_doc.see_also %}{{ ref }}{% if not loop.last %}, {% endif %}{% endfor %}
+
+{% endif %}
+
+{% endcall %}
+{% endcall %}
+{% endcall %}
+{% endif %}
