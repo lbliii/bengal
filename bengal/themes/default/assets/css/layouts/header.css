@@ -109,6 +109,7 @@ header .container {
   align-items: center;
   gap: var(--space-2);
   padding: var(--space-2) var(--space-4);
+  font-size: var(--text-sm);
   font-weight: var(--font-medium);
   color: var(--color-text-secondary);
   text-decoration: none;
@@ -456,8 +457,8 @@ header .container {
 }
 
 .theme-dropdown__icon svg {
-  width: 1.1rem;
-  height: 1.1rem;
+  width: 0.95rem;
+  height: 0.95rem;
   display: block;
 }
 

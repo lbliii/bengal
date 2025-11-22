@@ -151,28 +151,30 @@ def auto_detect_prefix_map(source_dirs: list[Path], strip_prefix: str = "") -> d
     """
     Auto-detect grouping from __init__.py hierarchy.
 
-    Scans source directories for packages (dirs with __init__.py) and
-    builds a prefix map. Only the first component after strip_prefix
-    becomes a group so nested packages remain under their parent
-    directories (e.g., cli/templates lives under cli/).
+    Scans source directories for packages (directories containing __init__.py)
+    and builds a prefix map that includes every package path. Each entry maps
+    the full dotted module path to its final component, which becomes the
+    group label (e.g., "cli.templates" → "templates").
 
     Args:
         source_dirs: Directories to scan for packages
-        strip_prefix: Optional prefix to strip from module names
+        strip_prefix: Optional dotted prefix to remove from detected modules
 
     Returns:
-        Prefix map: {"package": "group_name"}
+        Prefix map: {"package.path": "group_name"}
 
     Example:
         >>> auto_detect_prefix_map([Path("bengal")], "bengal.")
         {
             "cli": "cli",
+            "cli.templates": "templates",
             "core": "core",
             "cache": "cache",
         }
     """
-    prefix_map = {}
-    strip_base = strip_prefix.rstrip(".") if strip_prefix else ""
+    prefix_map: dict[str, str] = {}
+    normalized_strip = strip_prefix.rstrip(".") if strip_prefix else ""
+    strip_with_dot = f"{normalized_strip}." if normalized_strip else ""
 
     for source_dir in source_dirs:
         # Ensure source_dir is a Path
@@ -202,27 +204,24 @@ def auto_detect_prefix_map(source_dirs: list[Path], strip_prefix: str = "") -> d
 
             module_name = ".".join(module_parts)
 
-            # Strip prefix if configured
-            if strip_prefix and module_name.startswith(strip_prefix):
-                module_name = module_name[len(strip_prefix) :]
+            # Strip prefix if configured, respecting dot boundaries
+            if normalized_strip:
+                if module_name == normalized_strip:
+                    continue
+                if strip_with_dot and module_name.startswith(strip_with_dot):
+                    module_name = module_name[len(strip_with_dot) :]
+                elif strip_prefix and module_name.startswith(strip_prefix):
+                    # Handles cases where strip_prefix includes additional segments
+                    module_name = module_name[len(strip_prefix) :].lstrip(".")
+
+            module_name = module_name.lstrip(".")
 
             # Skip if empty after stripping
             if not module_name:
                 continue
 
-            # Only add top-level packages (direct children after strip_prefix)
-            module_parts = module_name.split(".")
-            if not module_parts:
-                continue
-
-            top_level = module_parts[0]
-
-            # Skip the stripped prefix base package itself (e.g., "mypackage")
-            if strip_base and top_level == strip_base and len(module_parts) == 1:
-                continue
-
-            if top_level not in prefix_map:
-                prefix_map[top_level] = top_level
+            display_name = module_name.split(".")[-1]
+            prefix_map.setdefault(module_name, display_name)
 
     return prefix_map
 
