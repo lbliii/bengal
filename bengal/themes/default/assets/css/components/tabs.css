@@ -20,6 +20,12 @@
    TAB NAVIGATION
    ============================================ */
 
+/* Tab navigation container for container queries */
+.tabs-container {
+  container-type: inline-size;
+  container-name: tabs;
+}
+
 .tab-nav {
   display: flex;
   align-items: center;
@@ -31,6 +37,26 @@
   overflow-x: auto;
   overflow-y: hidden;
   scrollbar-width: thin;
+}
+
+/* Container query: Stack tabs vertically on small containers */
+@container tabs (max-width: 400px) {
+  .tab-nav {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .tab-nav a {
+    border-bottom: none;
+    border-left: 2px solid transparent;
+    margin-bottom: 0;
+    margin-left: -2px;
+  }
+
+  .tab-nav li.active a {
+    border-left-color: var(--color-primary);
+    border-bottom-color: transparent;
+  }
 }
 
 /* Override prose list styles for tab navigation */

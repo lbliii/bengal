@@ -16,15 +16,15 @@ details.dropdown {
   border-radius: var(--radius-md);
   background-color: var(--color-bg-secondary);
   transition: all var(--transition-normal) var(--ease-out);
-}
 
-details.dropdown:hover {
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
+  &:hover {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
 
-details.dropdown[open] {
-  background-color: var(--color-bg-primary);
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  &[open] {
+    background-color: var(--color-bg-primary);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
 }
 
 /* ============================================
@@ -44,39 +44,39 @@ details.dropdown summary {
   align-items: center;
   gap: var(--space-2);
   transition: color var(--transition-fast) var(--ease-out);
-}
 
-/* Remove default marker */
-details.dropdown summary::-webkit-details-marker {
-  display: none;
-}
+  /* Remove default marker */
+  &::-webkit-details-marker {
+    display: none;
+  }
 
-details.dropdown summary::marker {
-  display: none;
-}
+  &::marker {
+    display: none;
+  }
 
-/* Custom arrow */
-details.dropdown summary::after {
-  content: '▶';
-  position: absolute;
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: var(--text-sm);
-  color: var(--color-text-secondary);
-  transition: transform var(--transition-fast) var(--ease-out);
+  /* Custom arrow */
+  &::after {
+    content: '▶';
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: var(--text-sm);
+    color: var(--color-text-secondary);
+    transition: transform var(--transition-fast) var(--ease-out);
+  }
+
+  &:hover {
+    color: var(--color-accent);
+
+    &::after {
+      color: var(--color-accent);
+    }
+  }
 }
 
 details.dropdown[open] summary::after {
   transform: translateY(-50%) rotate(90deg);
-}
-
-details.dropdown summary:hover {
-  color: var(--color-accent);
-}
-
-details.dropdown summary:hover::after {
-  color: var(--color-accent);
 }
 
 /* Focus state for accessibility */

@@ -18,27 +18,27 @@
   transition: box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1),
               transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
               border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
 
-/* Cards with images get different layout structure */
-.card:has(.card-image) {
-  grid-template-rows: auto 1fr auto;
-}
+  /* Cards with images get different layout structure */
+  &:has(.card-image) {
+    grid-template-rows: auto 1fr auto;
+  }
 
-/* Cards without images get more padding */
-.card:not(:has(.card-image)) {
-  padding: 1.5rem;
-}
+  /* Cards without images get more padding */
+  &:not(:has(.card-image)) {
+    padding: 1.5rem;
+  }
 
-/* When card is a link, remove underlines */
-a.card {
-  text-decoration: none;
-  color: inherit;
-}
+  /* When card is a link, remove underlines */
+  a& {
+    text-decoration: none;
+    color: inherit;
+  }
 
-.card:hover {
-  box-shadow: var(--elevation-high);
-  transform: translate3d(0, calc(-1 * var(--motion-distance-2)), 0);
+  &:hover {
+    box-shadow: var(--elevation-high);
+    transform: translate3d(0, calc(-1 * var(--motion-distance-2)), 0);
+  }
 }
 
 /* Disable transform animations on mobile for performance */

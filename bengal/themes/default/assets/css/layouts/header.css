@@ -83,15 +83,33 @@ header .container {
    MAIN NAVIGATION
    ============================================ */
 
+/* Navigation container for container queries */
+.nav-container {
+  container-type: inline-size;
+  container-name: nav;
+}
+
 .nav-main {
   display: none;
 }
 
-@media (min-width: 768px) {
+/* Container query: Show nav at 600px container width */
+@container nav (min-width: 600px) {
   .nav-main {
     display: flex;
     align-items: center;
     gap: var(--space-2);
+  }
+}
+
+/* Fallback: Media query for browsers without container query support */
+@supports not (container-type: inline-size) {
+  @media (min-width: 768px) {
+    .nav-main {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+    }
   }
 }
 

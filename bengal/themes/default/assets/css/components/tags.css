@@ -33,6 +33,18 @@
   touch-action: manipulation;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
+
+  &:hover {
+    color: var(--color-text-inverse);
+    background-color: var(--color-primary);
+    border-color: var(--color-primary);
+    text-decoration: none;
+  }
+
+  /* Tags with icons */
+  &:has(.tag-icon) {
+    gap: var(--space-2);
+  }
 }
 
 /* XXS adjustments (<= --breakpoint-xxs): fit chip rows without wrapping */
@@ -46,13 +58,6 @@
     font-size: var(--text-xxs);
     gap: 0.25rem;
   }
-}
-
-.tag:hover {
-  color: var(--color-text-inverse);
-  background-color: var(--color-primary);
-  border-color: var(--color-primary);
-  text-decoration: none;
 }
 
 /* ============================================

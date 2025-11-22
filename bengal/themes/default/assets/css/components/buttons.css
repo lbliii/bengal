@@ -22,16 +22,21 @@
   cursor: pointer;
   transition: color var(--motion-medium), background-color var(--motion-medium), border-color var(--motion-medium), box-shadow var(--motion-medium), transform var(--motion-medium);
   white-space: nowrap;
-}
 
-.button:hover {
-  transform: translateY(calc(-1 * var(--motion-distance-1)));
-  box-shadow: var(--elevation-medium);
-}
+  &:hover {
+    transform: translate3d(0, calc(-1 * var(--motion-distance-1)), 0);
+    box-shadow: var(--elevation-medium);
+  }
 
-.button:active {
-  transform: scale(var(--motion-scale-down));
-  box-shadow: var(--elevation-low);
+  &:active {
+    transform: translate3d(0, 0, 0) scale(var(--motion-scale-down));
+    box-shadow: var(--elevation-low);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-border-focus);
+    outline-offset: 2px;
+  }
 }
 
 /* Button text and icon alignment */
@@ -53,66 +58,66 @@
 .button-primary {
   background-color: #3b82f6;
   color: white;
-}
 
-.button-primary:hover {
-  background-color: #2563eb;
-  color: white;
+  &:hover {
+    background-color: #2563eb;
+    color: white;
+  }
 }
 
 /* Secondary */
 .button-secondary {
   background-color: #6b7280;
   color: white;
-}
 
-.button-secondary:hover {
-  background-color: #4b5563;
-  color: white;
+  &:hover {
+    background-color: #4b5563;
+    color: white;
+  }
 }
 
 /* Success */
 .button-success {
   background-color: #10b981;
   color: white;
-}
 
-.button-success:hover {
-  background-color: #059669;
-  color: white;
+  &:hover {
+    background-color: #059669;
+    color: white;
+  }
 }
 
 /* Danger */
 .button-danger {
   background-color: #ef4444;
   color: white;
-}
 
-.button-danger:hover {
-  background-color: #dc2626;
-  color: white;
+  &:hover {
+    background-color: #dc2626;
+    color: white;
+  }
 }
 
 /* Warning */
 .button-warning {
   background-color: #f59e0b;
   color: #1f2937;
-}
 
-.button-warning:hover {
-  background-color: #d97706;
-  color: #1f2937;
+  &:hover {
+    background-color: #d97706;
+    color: #1f2937;
+  }
 }
 
 /* Info */
 .button-info {
   background-color: #3b82f6;
   color: white;
-}
 
-.button-info:hover {
-  background-color: #2563eb;
-  color: white;
+  &:hover {
+    background-color: #2563eb;
+    color: white;
+  }
 }
 
 /* Light */
@@ -120,22 +125,22 @@
   background-color: #f3f4f6;
   color: #1f2937;
   border-color: #d1d5db;
-}
 
-.button-light:hover {
-  background-color: #e5e7eb;
-  color: #1f2937;
+  &:hover {
+    background-color: #e5e7eb;
+    color: #1f2937;
+  }
 }
 
 /* Dark */
 .button-dark {
   background-color: #1f2937;
   color: white;
-}
 
-.button-dark:hover {
-  background-color: #111827;
-  color: white;
+  &:hover {
+    background-color: #111827;
+    color: white;
+  }
 }
 
 /* (removed glass treatment) */
@@ -153,46 +158,46 @@
 .button-outline {
   background-color: transparent;
   border-color: currentColor;
-}
 
-.button-outline.button-primary {
-  color: #3b82f6;
-  border-color: #3b82f6;
-}
+  &.button-primary {
+    color: #3b82f6;
+    border-color: #3b82f6;
 
-.button-outline.button-primary:hover {
-  background-color: #3b82f6;
-  color: white;
-}
+    &:hover {
+      background-color: #3b82f6;
+      color: white;
+    }
+  }
 
-.button-outline.button-secondary {
-  color: #6b7280;
-  border-color: #6b7280;
-}
+  &.button-secondary {
+    color: #6b7280;
+    border-color: #6b7280;
 
-.button-outline.button-secondary:hover {
-  background-color: #6b7280;
-  color: white;
-}
+    &:hover {
+      background-color: #6b7280;
+      color: white;
+    }
+  }
 
-.button-outline.button-success {
-  color: #10b981;
-  border-color: #10b981;
-}
+  &.button-success {
+    color: #10b981;
+    border-color: #10b981;
 
-.button-outline.button-success:hover {
-  background-color: #10b981;
-  color: white;
-}
+    &:hover {
+      background-color: #10b981;
+      color: white;
+    }
+  }
 
-.button-outline.button-danger {
-  color: #ef4444;
-  border-color: #ef4444;
-}
+  &.button-danger {
+    color: #ef4444;
+    border-color: #ef4444;
 
-.button-outline.button-danger:hover {
-  background-color: #ef4444;
-  color: white;
+    &:hover {
+      background-color: #ef4444;
+      color: white;
+    }
+  }
 }
 
 /* ============================================
@@ -230,19 +235,19 @@
     background-color: #374151;
     color: #f3f4f6;
     border-color: #4b5563;
-  }
 
-  .button-light:hover {
-    background-color: #4b5563;
-    color: #f3f4f6;
+    &:hover {
+      background-color: #4b5563;
+      color: #f3f4f6;
+    }
   }
 
   .button-warning {
     color: #111827;
-  }
 
-  .button-warning:hover {
-    color: #111827;
+    &:hover {
+      color: #111827;
+    }
   }
 }
 
@@ -278,9 +283,9 @@ a.button {
   .button-group {
     flex-direction: column;
     width: 100%;
-  }
 
-  .button-group .button {
-    width: 100%;
+    .button {
+      width: 100%;
+    }
   }
 }

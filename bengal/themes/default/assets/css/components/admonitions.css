@@ -13,11 +13,16 @@
   background-color: var(--color-bg-secondary);
   box-shadow: var(--elevation-card);
   transition: all var(--transition-base);
-}
 
-.admonition:hover {
-  box-shadow: var(--elevation-card-hover);
-  transform: translate3d(0, -1px, 0);
+  &:hover {
+    box-shadow: var(--elevation-card-hover);
+    transform: translate3d(0, -1px, 0);
+  }
+
+  /* Admonitions with icons */
+  &:has(.admonition-icon) {
+    padding-left: 3rem;
+  }
 }
 
 /* Admonition Title */
@@ -30,17 +35,17 @@
   align-items: center;
   gap: 0.5rem;
   letter-spacing: var(--letter-spacing-normal);
-}
 
-.admonition-title::before {
-  content: '';
-  display: inline-block;
-  width: 20px;
-  height: 20px;
-  background-size: contain;
-  background-repeat: no-repeat;
-  background-position: center;
-  flex-shrink: 0;
+  &::before {
+    content: '';
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    flex-shrink: 0;
+  }
 }
 
 /* Admonition Content */
