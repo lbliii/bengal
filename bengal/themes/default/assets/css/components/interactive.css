@@ -297,25 +297,17 @@ img[data-lightbox]:hover {
    ANIMATIONS
    ============================================ */
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-
-  to {
-    opacity: 1;
-  }
-}
+/* fadeIn is defined above for lightbox - using GPU-accelerated version */
 
 @keyframes scaleIn {
   from {
     opacity: 0;
-    transform: scale(0.9);
+    transform: translate3d(-50%, -50%, 0) scale(0.95);
   }
 
   to {
     opacity: 1;
-    transform: scale(1);
+    transform: translate3d(-50%, -50%, 0) scale(1);
   }
 }
 
