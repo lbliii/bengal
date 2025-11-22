@@ -647,6 +647,17 @@ a.card {
   }
 }
 
+/* Force single column on very small screens (redundant but explicit) */
+@media (max-width: 399px) {
+  .cards-grid,
+  .cards-grid--2,
+  .cards-grid--3,
+  .cards-grid--4,
+  .feature-cards {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ============================================
    RESPONSIVE
    ============================================ */

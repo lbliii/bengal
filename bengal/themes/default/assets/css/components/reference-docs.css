@@ -262,6 +262,13 @@
     gap: var(--space-6);
 }
 
+/* Force single column on very small screens */
+@media (max-width: 399px) {
+    .api-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
 @media (max-width: 640px) {
     .api-grid {
         grid-template-columns: 1fr;

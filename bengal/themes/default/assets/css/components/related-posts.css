@@ -20,6 +20,13 @@
     margin-top: var(--space-6);
 }
 
+/* Force single column on very small screens */
+@media (max-width: 399px) {
+    .related-posts-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
 .related-post-card {
     padding: var(--space-6);
     background: var(--bg-primary);

@@ -153,6 +153,20 @@
   gap: 1.5rem;
 }
 
+/* Force single column on very small screens */
+@media (max-width: 399px) {
+  .subsection-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Additional breakpoint for very small screens */
+@media (max-width: 399px) {
+  .section-stats {
+    gap: 0.75rem;
+  }
+}
+
 .subsection-card {
   padding: 1.5rem;
   background: var(--color-bg-secondary);

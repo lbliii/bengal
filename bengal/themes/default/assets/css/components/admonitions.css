@@ -314,3 +314,11 @@
     font-size: var(--text-sm);
   }
 }
+
+/* Further reduce padding on very small screens */
+@media (max-width: 399px) {
+  .admonition {
+    padding: var(--space-2) var(--space-3);
+    margin: var(--space-3) 0;
+  }
+}
