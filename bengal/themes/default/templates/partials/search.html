@@ -36,7 +36,7 @@ This component includes inline
 
 <div class="search-container" id="search-container">
   {# Search Input #}
-  <div class="search-input-wrapper">
+  <div class="search-input-wrapper gradient-border">
     <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
       <circle cx="11" cy="11" r="8"></circle>
       <path d="m21 21-4.35-4.35"></path>
@@ -541,6 +541,9 @@ This component includes inline
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    background-color: var(--color-bg-elevated);
+    border-radius: var(--border-radius-large);
+    /* Border handled by gradient-border class */
   }
 
   .search-icon {
@@ -548,6 +551,7 @@ This component includes inline
     left: 1rem;
     color: var(--color-text-tertiary);
     pointer-events: none;
+    z-index: 1;
   }
 
   .search-input {
@@ -556,21 +560,24 @@ This component includes inline
     font-size: var(--text-body);
     font-family: inherit;
     color: var(--color-text-primary);
-    background-color: var(--color-bg-elevated);
-    border: 2px solid var(--color-border);
+    background-color: transparent;
+    border: 2px solid transparent; /* Keep space for focus ring */
     border-radius: var(--border-radius-large);
-    box-shadow: var(--elevation-subtle);
     transition: all var(--transition-fast);
   }
 
   .search-input:hover {
-    border-color: var(--color-border-dark);
+    /* handled by wrapper */
   }
 
   .search-input:focus {
     outline: none;
-    border-color: var(--color-border-focus);
+    /* Focus ring */
+  }
+
+  .search-input-wrapper:focus-within {
     box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
+    border-color: var(--color-border-focus);
   }
 
   /* Keyboard shortcut hint */

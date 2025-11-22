@@ -15,7 +15,7 @@
 
 .back-to-top {
   position: fixed;
-  bottom: 2rem;
+  bottom: 5rem;
   right: 2rem;
   width: 3rem;
   height: 3rem;
@@ -64,7 +64,7 @@
 /* Mobile adjustments */
 @media (max-width: 768px) {
   .back-to-top {
-    bottom: 1rem;
+    bottom: 4rem;
     right: 1rem;
     width: 2.5rem;
     height: 2.5rem;
