@@ -140,8 +140,8 @@
   color: var(--color-text-secondary);
   text-decoration: none;
   border-radius: var(--border-radius-small);
-  border-left: 2px solid transparent;
-  margin-left: -2px;
+  border-inline-start: 2px solid transparent;
+  margin-inline-start: -2px;
   transition: all var(--transition-fast);
 }
 
@@ -154,7 +154,7 @@
   color: var(--color-primary);
   font-weight: var(--font-weight-medium);
   background: var(--color-primary-light);
-  border-left-color: var(--color-primary);
+  border-inline-start-color: var(--color-primary);
 }
 
 [data-theme="dark"] .docs-nav-link.active {

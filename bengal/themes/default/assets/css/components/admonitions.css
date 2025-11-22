@@ -6,9 +6,9 @@
 /* Base Admonition Styles */
 .admonition {
   position: relative;
-  margin: 1.5rem 0;
+  margin-block: 1.5rem;
   padding: 1rem 1.25rem;
-  border-left: 4px solid var(--color-border);
+  border-inline-start: 4px solid var(--color-border);
   border-radius: 0 var(--border-radius-large) var(--border-radius-large) 0;
   background-color: var(--color-bg-secondary);
   box-shadow: var(--elevation-card);
@@ -21,7 +21,7 @@
 
   /* Admonitions with icons */
   &:has(.admonition-icon) {
-    padding-left: 3rem;
+    padding-inline-start: 3rem;
   }
 }
 

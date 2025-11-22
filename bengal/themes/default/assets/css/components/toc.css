@@ -347,8 +347,8 @@
     line-height: 1.5;
     color: var(--color-text-secondary);
     text-decoration: none;
-    border-left: 2px solid transparent;
-    margin-left: -2px;
+    border-inline-start: 2px solid transparent;
+    margin-inline-start: -2px;
     border-radius: var(--border-radius-small);
     transition: all var(--transition-fast);
     word-wrap: break-word;
@@ -365,7 +365,7 @@
 .toc-link.active {
     color: var(--color-primary);
     font-weight: var(--font-weight-medium);
-    border-left-color: var(--color-primary);
+    border-inline-start-color: var(--color-primary);
 }
 
 /* ============================================================================

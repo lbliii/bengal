@@ -357,9 +357,9 @@
   gap: 1rem;
   padding: 1.25rem;
   background: var(--color-bg-secondary);
-  border-left: 4px solid var(--color-primary);
+  border-inline-start: 4px solid var(--color-primary);
   border-radius: 0 var(--border-radius-medium) var(--border-radius-medium) 0;
-  margin: 1.5rem 0;
+  margin-block: 1.5rem;
 }
 
 .callout-card__icon {
