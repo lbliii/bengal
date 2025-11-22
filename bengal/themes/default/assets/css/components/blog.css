@@ -139,7 +139,7 @@
 
 .blog-post-card .blog-card-image {
     flex: 0 0 280px;
-    min-height: 200px;
+    aspect-ratio: 16 / 9;
 }
 
 @media (max-width: 768px) {
