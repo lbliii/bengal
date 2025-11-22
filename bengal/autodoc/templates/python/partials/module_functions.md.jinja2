@@ -64,9 +64,7 @@ This is an asynchronous function. Use `await` when calling.
 {#- Returns section -#}
 {% if current_item.metadata.returns %}
 {% call rubric_shell() %}
-:::{rubric} Returns
-:class: rubric-returns
-:::
+**Returns**
 {% endcall %}
 
 `{{ current_item.metadata.returns }}`{% if current_item.metadata.parsed_doc.returns %} - {{ current_item.metadata.parsed_doc.returns }}{% endif %}

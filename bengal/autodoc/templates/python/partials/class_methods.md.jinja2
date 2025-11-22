@@ -16,9 +16,7 @@ parameters, returns, raises, examples, and inherited methods.
 {% if own_methods %}
 {% call safe_section("class_methods") %}
 {% call rubric_shell() %}
-:::{rubric} Methods
-:class: rubric-methods
-:::
+## Methods
 {% endcall %}
 
 {% call(method_item) safe_for(own_methods, "*No methods found.*") %}
@@ -56,9 +54,7 @@ This is an asynchronous method. Use `await` when calling.
 {#- Returns section -#}
 {% if method_item.metadata.returns %}
 {% call rubric_shell() %}
-:::{rubric} Returns
-:class: rubric-returns
-:::
+**Returns**
 {% endcall %}
 
 `{{ method_item.metadata.returns }}`{% if method_item.metadata.parsed_doc.returns %} - {{ method_item.metadata.parsed_doc.returns }}{% endif %}
@@ -84,9 +80,7 @@ This is an asynchronous method. Use `await` when calling.
 {#- Inherited methods section -#}
 {% if inherited_methods %}
 {% call safe_section("inherited_methods") %}
-:::{rubric} Inherited Members
-:class: rubric-inherited-members
-:::
+## Inherited Members
 
 ::::{dropdown} {{ inherited_methods | length }} inherited members (click to expand)
 :open: false

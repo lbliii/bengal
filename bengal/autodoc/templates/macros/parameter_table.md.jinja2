@@ -101,9 +101,7 @@ CRITICAL: Newlines between rows, not within rows
 
 {#- Dropdown format for large parameter lists -#}
 {% macro parameter_dropdown(parameters, title, show_types, show_defaults, show_required) %}
-:::{rubric} {{ title }}
-:class: rubric-parameters
-:::
+**{{ title }}**
 
 ::::{dropdown} {{ parameters|length }} {{ title.lower() }} (click to expand)
 :open: false
