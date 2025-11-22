@@ -307,11 +307,15 @@
    --ease-in: var(--ease-in);
    --ease-out: var(--ease-out);
    --ease-in-out: var(--ease-in-out);
+   --ease-smooth: var(--ease-smooth);
 
    --transition-fast: var(--duration-150) var(--ease-out);
    --transition-base: var(--duration-200) var(--ease-out);
    --transition-slow: var(--duration-300) var(--ease-in-out);
    --transition-slower: var(--duration-500) var(--ease-in-out);
+   
+   /* Smooth drawer/panel transitions */
+   --transition-smooth: var(--duration-500) var(--ease-smooth);
 
    /* Semantic Motion Aliases (composed from durations/easing) */
    --motion-fast: var(--duration-150) var(--ease-out);

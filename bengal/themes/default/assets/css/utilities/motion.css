@@ -84,6 +84,179 @@
     .stagger-children>*:nth-child(4) {
         transition-delay: 90ms;
     }
+
+    /* ============================================
+       SMOOTH DRAWER/PANEL ANIMATIONS (Fern-inspired)
+       ============================================ */
+
+    /**
+     * Smooth drawer/panel base class
+     * Uses GPU acceleration and optimized easing for buttery-smooth animations
+     */
+    .smooth-drawer {
+        touch-action: none;
+        will-change: transform;
+        transition: transform var(--transition-smooth);
+    }
+
+    /* Drawer directions */
+    .smooth-drawer-bottom {
+        transform: translate3d(0, 100%, 0);
+    }
+
+    .smooth-drawer-bottom[data-open="true"],
+    .smooth-drawer-bottom.is-open {
+        transform: translate3d(0, 0, 0);
+    }
+
+    .smooth-drawer-top {
+        transform: translate3d(0, -100%, 0);
+    }
+
+    .smooth-drawer-top[data-open="true"],
+    .smooth-drawer-top.is-open {
+        transform: translate3d(0, 0, 0);
+    }
+
+    .smooth-drawer-left {
+        transform: translate3d(-100%, 0, 0);
+    }
+
+    .smooth-drawer-left[data-open="true"],
+    .smooth-drawer-left.is-open {
+        transform: translate3d(0, 0, 0);
+    }
+
+    .smooth-drawer-right {
+        transform: translate3d(100%, 0, 0);
+    }
+
+    .smooth-drawer-right[data-open="true"],
+    .smooth-drawer-right.is-open {
+        transform: translate3d(0, 0, 0);
+    }
+
+    /* Remove will-change after animation completes to avoid memory overhead */
+    .smooth-drawer[data-open="true"],
+    .smooth-drawer.is-open {
+        will-change: auto;
+    }
+
+    /**
+     * Smooth panel overlay (backdrop)
+     */
+    .smooth-overlay {
+        will-change: opacity;
+        transition: opacity var(--transition-smooth);
+        opacity: 0;
+    }
+
+    .smooth-overlay[data-open="true"],
+    .smooth-overlay.is-open {
+        opacity: 1;
+        will-change: auto;
+    }
+
+    /**
+     * Smooth slide animations (GPU-accelerated)
+     * Use these instead of standard slide-in classes for better performance
+     */
+    .smooth-slide-up {
+        opacity: 0;
+        transform: translate3d(0, var(--motion-distance-3), 0);
+        transition: opacity var(--transition-smooth), transform var(--transition-smooth);
+        will-change: transform, opacity;
+    }
+
+    .smooth-slide-up.is-visible,
+    .smooth-slide-up[data-visible="true"] {
+        opacity: 1;
+        transform: translate3d(0, 0, 0);
+        will-change: auto;
+    }
+
+    .smooth-slide-down {
+        opacity: 0;
+        transform: translate3d(0, calc(-1 * var(--motion-distance-3)), 0);
+        transition: opacity var(--transition-smooth), transform var(--transition-smooth);
+        will-change: transform, opacity;
+    }
+
+    .smooth-slide-down.is-visible,
+    .smooth-slide-down[data-visible="true"] {
+        opacity: 1;
+        transform: translate3d(0, 0, 0);
+        will-change: auto;
+    }
+
+    .smooth-slide-left {
+        opacity: 0;
+        transform: translate3d(var(--motion-distance-3), 0, 0);
+        transition: opacity var(--transition-smooth), transform var(--transition-smooth);
+        will-change: transform, opacity;
+    }
+
+    .smooth-slide-left.is-visible,
+    .smooth-slide-left[data-visible="true"] {
+        opacity: 1;
+        transform: translate3d(0, 0, 0);
+        will-change: auto;
+    }
+
+    .smooth-slide-right {
+        opacity: 0;
+        transform: translate3d(calc(-1 * var(--motion-distance-3)), 0, 0);
+        transition: opacity var(--transition-smooth), transform var(--transition-smooth);
+        will-change: transform, opacity;
+    }
+
+    .smooth-slide-right.is-visible,
+    .smooth-slide-right[data-visible="true"] {
+        opacity: 1;
+        transform: translate3d(0, 0, 0);
+        will-change: auto;
+    }
+
+    /**
+     * Smooth fade with scale (for modals, popovers)
+     */
+    .smooth-fade-scale {
+        opacity: 0;
+        transform: translate3d(-50%, -50%, 0) scale(0.95);
+        transition: opacity var(--transition-smooth), transform var(--transition-smooth);
+        will-change: transform, opacity;
+    }
+
+    .smooth-fade-scale.is-visible,
+    .smooth-fade-scale[data-visible="true"] {
+        opacity: 1;
+        transform: translate3d(-50%, -50%, 0) scale(1);
+        will-change: auto;
+    }
+
+    /**
+     * Smooth raise (GPU-accelerated hover effect)
+     */
+    .smooth-raise {
+        transition: transform var(--transition-base), box-shadow var(--transition-base);
+        will-change: transform;
+    }
+
+    .smooth-raise:hover {
+        transform: translate3d(0, calc(-1 * var(--motion-distance-2)), 0);
+        box-shadow: var(--elevation-card-hover);
+    }
+
+    .smooth-raise:hover {
+        will-change: auto;
+    }
+
+    /* Disable will-change on mobile for performance */
+    @media (max-width: 768px) {
+        .smooth-raise {
+            will-change: auto;
+        }
+    }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -95,9 +268,19 @@
         .fade-in,
         .slide-in-up,
         .slide-in-down,
-        .stagger-children>* {
+        .stagger-children>*,
+        .smooth-drawer,
+        .smooth-overlay,
+        .smooth-slide-up,
+        .smooth-slide-down,
+        .smooth-slide-left,
+        .smooth-slide-right,
+        .smooth-fade-scale,
+        .smooth-raise {
             transition: none !important;
+            animation: none !important;
             transform: none !important;
+            will-change: auto !important;
         }
     }
 }

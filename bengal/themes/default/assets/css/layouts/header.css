@@ -252,7 +252,15 @@ header .container {
   overflow-y: auto;
   touch-action: pan-y;
   overscroll-behavior: contain;
+  /* Use smooth drawer animation */
+  transform: translate3d(0, -100%, 0);
+  transition: transform var(--transition-smooth);
   will-change: transform;
+}
+
+.mobile-nav.is-open {
+  transform: translate3d(0, 0, 0);
+  will-change: auto;
 }
 
 .mobile-nav.is-open {

@@ -197,6 +197,23 @@
   cursor: zoom-out;
   animation: fadeIn 200ms ease-out;
   will-change: opacity, transform;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+.lightbox.active {
+  will-change: auto;
 }
 
 .lightbox.active {
