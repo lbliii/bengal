@@ -27,12 +27,16 @@ pre {
   margin: 0;
   padding: var(--space-6);
   background-color: var(--color-bg-code);
-  border: none;
+  border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: var(--radius-xl);
   overflow-x: auto;
   line-height: var(--line-height-relaxed);
   box-shadow: var(--elevation-card);
   transition: box-shadow var(--transition-base);
+}
+
+[data-theme="dark"] pre {
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 /* Break out of container padding on mobile for better scrolling */
@@ -137,7 +141,9 @@ pre code {
   font-size: var(--text-xs);
   font-weight: var(--font-weight-medium);
   color: var(--color-text-secondary);
-  background: var(--color-bg-secondary);
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   border: 1px solid var(--color-border);
   border-radius: var(--border-radius-small);
   cursor: pointer;
@@ -147,6 +153,23 @@ pre code {
   touch-action: manipulation;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
+}
+
+/* Fallback for browsers without backdrop-filter */
+@supports not (backdrop-filter: blur(8px)) {
+  .code-copy-button {
+    background: var(--color-bg-secondary);
+  }
+}
+
+[data-theme="dark"] .code-copy-button {
+  background: rgba(26, 26, 26, 0.8);
+}
+
+@supports not (backdrop-filter: blur(8px)) {
+  [data-theme="dark"] .code-copy-button {
+    background: var(--color-bg-secondary);
+  }
 }
 
 .code-copy-button:hover {
