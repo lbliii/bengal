@@ -348,11 +348,12 @@
   /* Create a vibrant gradient background using theme blob colors */
   background-image: radial-gradient(
     circle at 50% 50%,
-    var(--blob-color-1) 0%,
-    var(--blob-color-2) 40%,
-    var(--blob-color-1) 80%
+    var(--color-accent) 0%,
+    var(--color-primary) 25%,
+    var(--color-accent) 50%,
+    var(--color-primary) 75%
   );
-  background-size: 200% 200%;
+  background-size: 300% 300%;
   
   /* Clip background to text */
   -webkit-background-clip: text;
@@ -362,10 +363,10 @@
   color: transparent;
   
   /* Animate background to simulate fluid movement */
-  animation: fluid-text-flow var(--blob-duration-fast) ease infinite;
+  animation: fluid-text-flow 6s ease infinite;
   
   /* Ensure readability with a subtle shadow (outside the clip) */
-  filter: drop-shadow(0 1px 1px rgba(0,0,0,0.1));
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.15));
 }
 
 @keyframes fluid-text-flow {
