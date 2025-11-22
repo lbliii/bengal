@@ -69,11 +69,11 @@
   color: var(--color-text-inverse);
   border-color: var(--color-primary);
   box-shadow: var(--elevation-low);
-  transform: translateY(-1px);
+  transform: translate3d(0, -1px, 0);
 }
 
 .pagination a:active {
-  transform: translateY(0);
+  transform: translate3d(0, 0, 0);
 }
 
 .pagination a:focus-visible {

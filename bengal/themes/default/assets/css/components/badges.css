@@ -104,7 +104,7 @@
 }
 
 .featured-card:hover {
-  transform: translateY(-4px);
+  transform: translate3d(0, -4px, 0);
   box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
 }
 

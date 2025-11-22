@@ -28,7 +28,7 @@ a.card {
 
 .card:hover {
   box-shadow: var(--elevation-high);
-  transform: translateY(calc(-1 * var(--motion-distance-2)));
+  transform: translate3d(0, calc(-1 * var(--motion-distance-2)), 0);
 }
 
 /* Disable transform animations on mobile for performance */
@@ -168,7 +168,7 @@ a.card {
 
 .article-card:hover {
   box-shadow: var(--elevation-high);
-  transform: translateY(calc(-1 * var(--motion-distance-2)));
+  transform: translate3d(0, calc(-1 * var(--motion-distance-2)), 0);
   border-color: var(--color-primary);
 }
 
@@ -266,7 +266,7 @@ a.card {
 
 .feature-card:hover {
   box-shadow: var(--elevation-card-hover);
-  transform: translateY(calc(-1 * var(--motion-distance-2)));
+  transform: translate3d(0, calc(-1 * var(--motion-distance-2)), 0);
   transition: box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1),
               transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -430,7 +430,7 @@ a.card {
 }
 
 .link-card:hover .card {
-  transform: translateY(-4px);
+  transform: translate3d(0, -4px, 0);
   border-color: var(--color-primary);
   box-shadow: var(--elevation-high);
 }

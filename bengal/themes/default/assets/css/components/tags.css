@@ -173,7 +173,7 @@
   background-color: var(--color-primary);
   border-color: var(--color-primary);
   color: var(--color-text-inverse);
-  transform: translateY(-2px);
+  transform: translate3d(0, -2px, 0);
   box-shadow: var(--elevation-medium);
 }
 
