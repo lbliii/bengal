@@ -196,6 +196,7 @@
   padding: 2rem;
   cursor: zoom-out;
   animation: fadeIn 200ms ease-out;
+  will-change: opacity, transform;
 }
 
 .lightbox.active {
