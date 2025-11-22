@@ -448,6 +448,23 @@ header .container {
     -0.5px -0.5px 1px rgba(255, 255, 255, 0.3);
 }
 
+.theme-dropdown__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.theme-dropdown__icon svg {
+  width: 1.1rem;
+  height: 1.1rem;
+  display: block;
+}
+
+.theme-dropdown__icon circle {
+  transform-origin: center;
+}
+
 .theme-dropdown__button:hover {
   color: var(--color-primary);
   background: var(--color-bg-secondary);
