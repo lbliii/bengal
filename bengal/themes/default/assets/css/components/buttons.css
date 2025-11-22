@@ -101,9 +101,18 @@
   background-color: #10b981;
   color: white;
 
-  &:hover {
-    background-color: #059669;
-    color: white;
+  @supports (color-mix(in srgb, white, black)) {
+    &:hover {
+      background-color: color-mix(in srgb, #10b981 90%, black);
+      color: white;
+    }
+  }
+
+  @supports not (color-mix(in srgb, white, black)) {
+    &:hover {
+      background-color: #059669;
+      color: white;
+    }
   }
 }
 
@@ -112,9 +121,18 @@
   background-color: #ef4444;
   color: white;
 
-  &:hover {
-    background-color: #dc2626;
-    color: white;
+  @supports (color-mix(in srgb, white, black)) {
+    &:hover {
+      background-color: color-mix(in srgb, #ef4444 90%, black);
+      color: white;
+    }
+  }
+
+  @supports not (color-mix(in srgb, white, black)) {
+    &:hover {
+      background-color: #dc2626;
+      color: white;
+    }
   }
 }
 
