@@ -504,6 +504,15 @@
     justify-content: flex-end;
   }
 
+  /* More aggressive truncation for XXS screens */
+  .action-bar-breadcrumb-link {
+    max-width: 60px;  /* Reduced from 80px */
+  }
+
+  .action-bar-breadcrumb-current {
+    max-width: 80px;  /* Reduced from 100px */
+  }
+
   /* Center dropdown on very small screens */
   .action-bar-share-dropdown {
     right: auto;

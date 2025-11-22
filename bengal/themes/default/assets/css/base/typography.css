@@ -149,6 +149,8 @@ header .lead {
   text-decoration-thickness: 1px;
   transition: all var(--transition-fast);
   font-weight: var(--font-weight-medium);
+  word-break: break-word;  /* Break long URLs */
+  overflow-wrap: break-word;
 }
 
 .prose a:hover {
@@ -292,9 +294,16 @@ header .lead {
 
 /* Images */
 .prose img {
-  margin: var(--space-8) auto;
+  margin: var(--space-6) auto;  /* Reduced from space-8 */
   border-radius: var(--radius-md);
   box-shadow: var(--elevation-medium);
+}
+
+/* Further reduce margins on mobile */
+@media (max-width: 640px) {
+  .prose img {
+    margin: var(--space-4) auto;  /* 16px on mobile */
+  }
 }
 
 .prose figure {

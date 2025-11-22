@@ -132,6 +132,23 @@ pre {
   line-height: var(--leading-relaxed);
 }
 
+/* Break out of container padding on mobile for better scrolling */
+@media (max-width: 639px) {
+  pre {
+    margin-left: calc(-1 * var(--space-3));
+    margin-right: calc(-1 * var(--space-3));
+    padding-left: var(--space-4);
+    padding-right: var(--space-4);
+  }
+}
+
+@media (min-width: 400px) and (max-width: 639px) {
+  pre {
+    margin-left: calc(-1 * var(--space-4));
+    margin-right: calc(-1 * var(--space-4));
+  }
+}
+
 pre code {
   padding: 0;
   background: none;

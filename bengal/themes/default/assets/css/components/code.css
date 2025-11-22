@@ -35,6 +35,24 @@ pre {
   transition: box-shadow var(--transition-base);
 }
 
+/* Break out of container padding on mobile for better scrolling */
+@media (max-width: 639px) {
+  pre {
+    margin-left: calc(-1 * var(--space-3));
+    margin-right: calc(-1 * var(--space-3));
+    padding-left: var(--space-4);
+    padding-right: var(--space-4);
+    border-radius: var(--radius-md);
+  }
+}
+
+@media (min-width: 400px) and (max-width: 639px) {
+  pre {
+    margin-left: calc(-1 * var(--space-4));
+    margin-right: calc(-1 * var(--space-4));
+  }
+}
+
 pre:hover {
   box-shadow: var(--elevation-card-hover);
 }

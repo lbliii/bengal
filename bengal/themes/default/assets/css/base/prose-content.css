@@ -104,6 +104,8 @@
   color: var(--color-primary);
   text-decoration: underline;
   text-underline-offset: 2px;
+  word-break: break-word;  /* Break long URLs */
+  overflow-wrap: break-word;
 }
 
 .has-prose-content a:hover {

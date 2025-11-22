@@ -115,8 +115,8 @@
     /* Mobile header height */
     left: 0;
     bottom: 0;
-    width: 280px;
-    max-width: 80vw;
+    width: min(280px, 90vw);  /* Use 90vw for very small screens */
+    max-width: 90vw;  /* Increased from 80vw for better usability */
     max-height: calc(100vh - 60px);
     padding: 1rem;
     background: var(--color-bg-primary);
