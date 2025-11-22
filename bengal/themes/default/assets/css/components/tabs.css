@@ -77,6 +77,9 @@
   transition: all var(--transition-fast) var(--ease-out);
   white-space: nowrap;
   opacity: 0.7;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .tab-nav a:hover {

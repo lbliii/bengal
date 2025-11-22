@@ -62,6 +62,9 @@
   background-color: var(--color-bg-elevated);
   border: 1px solid var(--color-border);
   box-shadow: var(--elevation-subtle);
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .pagination a:hover {

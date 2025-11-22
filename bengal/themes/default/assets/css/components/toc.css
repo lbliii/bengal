@@ -93,6 +93,9 @@
     color: var(--color-text-tertiary);
     cursor: pointer;
     transition: all var(--transition-fast);
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .toc-settings-btn:hover {
@@ -131,6 +134,9 @@
     border-radius: var(--border-radius-small);
     cursor: pointer;
     transition: all var(--transition-fast);
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .toc-settings-menu button:hover {
@@ -250,6 +256,9 @@
     cursor: pointer;
     transition: all var(--transition-fast);
     flex-shrink: 0;
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .toc-count-toggle:hover {

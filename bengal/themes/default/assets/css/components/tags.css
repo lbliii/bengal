@@ -30,6 +30,9 @@
   border-radius: var(--radius-full);
   text-decoration: none;
   transition: all var(--transition-fast) var(--ease-out);
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* XXS adjustments (<= --breakpoint-xxs): fit chip rows without wrapping */
@@ -167,6 +170,9 @@
   border-radius: var(--radius-lg);
   text-decoration: none;
   transition: all var(--transition-base) var(--ease-out);
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .tag-link:hover {

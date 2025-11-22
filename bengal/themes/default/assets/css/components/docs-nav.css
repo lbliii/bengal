@@ -57,6 +57,9 @@
   border: none;
   cursor: pointer;
   transition: all var(--transition-fast);
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .docs-nav-group-toggle svg {
@@ -85,6 +88,8 @@
   text-decoration: none;
   border-radius: var(--border-radius-small);
   transition: all var(--transition-fast);
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .docs-nav-group-link:hover {
