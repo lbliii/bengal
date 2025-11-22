@@ -26,17 +26,11 @@ Automatically generates both Python API docs and CLI docs based on
 your bengal.toml configuration. Use --python-only or --cli-only to
 generate specific types.
 
-
-
-
 ## Usage
 
 ```bash
 autodoc [OPTIONS] [ARGUMENTS]
 ```
-
-
-
 
 ## Options
 
@@ -51,14 +45,12 @@ Source directory to document (can specify multiple)
 
 
 
-
 ### `output`
 
 
 Output directory for generated docs (default: from config or content/api)
 
 **Type:** `path`
-
 
 
 
@@ -76,7 +68,6 @@ Clean output directory before generating
 
 
 
-
 ### `parallel`
 
 
@@ -85,7 +76,6 @@ Use parallel processing (default: enabled)
 **Type:** `boolean`
 
 **Default:** `True`
-
 
 
 
@@ -102,7 +92,6 @@ Show detailed progress
 
 
 
-
 ### `stats`
 
 
@@ -115,14 +104,12 @@ Show performance statistics
 
 
 
-
 ### `config`
 
 
 Path to config file (default: bengal.toml)
 
 **Type:** `path`
-
 
 
 
@@ -140,7 +127,6 @@ Only generate Python API docs (skip CLI docs)
 
 
 
-
 ### `cli_only`
 
 
@@ -149,11 +135,6 @@ Only generate CLI docs (skip Python API docs)
 **Type:** `boolean`
 
 **Default:** `False`
-
-
-
-
-
 
 
 

@@ -186,7 +186,14 @@
     gap: 0.75rem;
     padding: 0.5rem 1rem;
     border-bottom: 1px solid var(--color-border);
+    border-radius: var(--radius-lg); /* Added rounding (8px) */
     transition: all 0.2s ease;
+}
+
+/* Gradient border support */
+.api-item.gradient-border,
+.api-item.gradient-border-subtle {
+    border-bottom: none;
 }
 
 .api-item:last-child {
@@ -509,7 +516,14 @@
     gap: 0.75rem;
     padding: 0.5rem 1rem;
     border-bottom: 1px solid var(--color-border);
+    border-radius: var(--radius-lg); /* Added rounding (8px) */
     transition: all 0.2s ease;
+}
+
+/* Gradient border support */
+.cli-item.gradient-border,
+.cli-item.gradient-border-subtle {
+    border-bottom: none;
 }
 
 .cli-item:last-child {

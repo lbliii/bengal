@@ -96,12 +96,24 @@
 .blog-post-card,
 .blog-featured-card {
     background: var(--color-surface);
-    border-radius: var(--radius-xl);
+    border-radius: var(--radius-xl); /* Already 12px - good! */
     overflow: hidden;
     box-shadow: var(--elevation-card);
     transition: all 0.2s ease;
     display: flex;
     flex-direction: column;
+    border: 1px solid var(--color-border);
+}
+
+/* Gradient border support */
+.blog-post-card.gradient-border,
+.blog-featured-card.gradient-border {
+    border: none;
+}
+
+.blog-post-card.fluid-combined,
+.blog-featured-card.fluid-combined {
+    border: none;
 }
 
 .blog-post-card:hover,

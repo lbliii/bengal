@@ -25,17 +25,11 @@ Show performance metrics and trends.
 Displays build performance metrics collected from previous builds.
 Metrics are automatically saved to .bengal-metrics/ directory.
 
-
-
-
 ## Usage
 
 ```bash
 perf [OPTIONS] [ARGUMENTS]
 ```
-
-
-
 
 ## Options
 
@@ -47,7 +41,6 @@ Show last N builds (default: 10)
 **Type:** `integer`
 
 **Default:** `10`
-
 
 
 
@@ -64,7 +57,6 @@ Output format
 
 
 
-
 ### `compare`
 
 
@@ -73,11 +65,6 @@ Compare last two builds
 **Type:** `boolean`
 
 **Default:** `False`
-
-
-
-
-
 
 
 

@@ -55,6 +55,8 @@
 @layer utilities {
   @import url('utilities/motion.css');
   @import url('utilities/scroll-animations.css');
+  @import url('utilities/gradient-borders.css');
+  @import url('utilities/fluid-blobs.css');
 }
 
 @layer base {

@@ -29,17 +29,11 @@ Options:
   --all           Remove both output and cache
   --stale-server  Clean up stale 'bengal serve' processes
 
-
-
-
 ## Usage
 
 ```bash
 clean [OPTIONS] [ARGUMENTS]
 ```
-
-
-
 
 ## Arguments
 
@@ -55,13 +49,6 @@ clean [OPTIONS] [ARGUMENTS]
 This argument is optional.
 ```
 
-
-
-
-
-
-
-
 ## Options
 
 ### `force`
@@ -72,7 +59,6 @@ Skip confirmation prompt
 **Type:** `boolean`
 
 **Default:** `False`
-
 
 
 
@@ -89,7 +75,6 @@ Also remove build cache (.bengal/ directory)
 
 
 
-
 ### `clean_all`
 
 
@@ -98,7 +83,6 @@ Remove everything (output + cache)
 **Type:** `boolean`
 
 **Default:** `False`
-
 
 
 
@@ -115,19 +99,12 @@ Clean up stale 'bengal serve' processes
 
 
 
-
 ### `config`
 
 
 Path to config file (default: bengal.toml)
 
 **Type:** `path`
-
-
-
-
-
-
 
 
 

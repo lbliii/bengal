@@ -78,7 +78,7 @@ Context variables:
             <h2 class="tutorial-section-title">Categories</h2>
             <div class="tutorial-grid">
                 {% for subsection in subsections %}
-                <article class="tutorial-card">
+                <article class="tutorial-card gradient-border fluid-combined">
                     <div class="tutorial-card-header">
                         <span class="tutorial-icon">📁</span>
                         <h3 class="tutorial-title">
@@ -118,7 +118,7 @@ Context variables:
             <h2 class="tutorial-section-title">All Tutorials</h2>
             <div class="tutorial-grid">
                 {% for tutorial in posts %}
-                <article class="tutorial-card">
+                <article class="tutorial-card gradient-border fluid-combined">
                     <div class="tutorial-card-header">
                         {% if tutorial.metadata.get('icon') %}
                         <span class="tutorial-icon">{{ tutorial.metadata.get('icon') }}</span>

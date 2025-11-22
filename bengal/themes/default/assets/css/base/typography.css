@@ -366,10 +366,36 @@ header .lead {
   padding: var(--space-3) var(--space-4);
   border-inline-start: 2px solid var(--color-border-light);
   background-color: transparent;
-  border-radius: 0;
+  border-radius: var(--radius-lg); /* Added rounding! Changed from 0 → 8px */
   font-style: italic;
   color: var(--color-text-secondary);
   opacity: 0.9;
+}
+
+/* Auto-apply gradient border to blockquotes */
+.prose blockquote {
+  position: relative;
+}
+
+.prose blockquote::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-lg);
+  padding: 1px;
+  background: var(--gradient-border);
+  -webkit-mask: 
+    linear-gradient(#fff 0 0) content-box, 
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  opacity: 0.2;
+  z-index: -1;
+}
+
+.prose blockquote.gradient-border {
+  border-inline-start: 2px solid var(--color-primary);
 }
 
 .prose blockquote p {
@@ -420,9 +446,35 @@ header .lead {
   padding: var(--space-4);
   background-color: var(--color-bg-code);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-2xl); /* Increased from --radius-md (4px → 16px) */
   overflow-x: auto;
   line-height: var(--leading-relaxed);
+  position: relative;
+}
+
+/* Auto-apply gradient border and fluid effect to code blocks */
+.prose pre::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-2xl);
+  padding: 1px;
+  background: var(--gradient-border);
+  background-size: 200% 200%;
+  -webkit-mask: 
+    linear-gradient(#fff 0 0) content-box, 
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  opacity: 0.5;
+  animation: gradient-flow 8s ease infinite;
+  z-index: 0;
+}
+
+.prose pre code {
+  position: relative;
+  z-index: 1;
 }
 
 .prose pre code {
@@ -444,7 +496,7 @@ header .lead {
   max-width: 100%;
   height: auto;
   margin: var(--space-6) auto;  /* Reduced from space-8 */
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg); /* Increased from --radius-md (4px → 8px) */
   box-shadow: var(--elevation-medium);
   display: block;
 }
@@ -705,4 +757,18 @@ header .lead {
 
 .font-mono {
   font-family: var(--font-mono);
+}
+
+/* ============================================
+   AUTO-APPLIED GRADIENT EFFECTS
+   ============================================ */
+
+/* Gradient flow animation for code blocks */
+@keyframes gradient-flow {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
 }

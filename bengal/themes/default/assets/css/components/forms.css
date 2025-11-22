@@ -71,8 +71,15 @@
   color: var(--color-text-primary);
   background-color: var(--color-bg-primary);
   border: 2px solid var(--color-border);
-  border-radius: var(--border-radius-medium);
+  border-radius: var(--radius-lg); /* Increased from --border-radius-medium (4px → 8px) */
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.form-input.gradient-border,
+.form-textarea.gradient-border,
+.form-select.gradient-border {
+  border: none;
+}
 
   &:hover {
     border-color: var(--color-border-dark);

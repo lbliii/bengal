@@ -22,17 +22,11 @@ description: "Show theme info for a slug (source, version, paths)."
 
 Show theme info for a slug (source, version, paths).
 
-
-
-
 ## Usage
 
 ```bash
 info [OPTIONS] [ARGUMENTS]
 ```
-
-
-
 
 ## Arguments
 
@@ -50,7 +44,6 @@ This argument is required.
 
 
 
-
 ### `source`
 
 *No description provided.*
@@ -62,11 +55,6 @@ This argument is required.
 ```{info}
 This argument is optional.
 ```
-
-
-
-
-
 
 
 

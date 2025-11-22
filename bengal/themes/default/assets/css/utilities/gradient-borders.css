@@ -1,0 +1,255 @@
+/**
+ * Bengal SSG - Gradient Border Utilities
+ * Theme-aware gradient borders that adapt to each palette
+ * 
+ * Usage: Add .gradient-border class to cards, code blocks, buttons, etc.
+ */
+
+/* ============================================
+   GRADIENT BORDER VARIABLES
+   ============================================ */
+
+:root {
+  /* Default gradient (uses primary + accent from current palette) */
+  --gradient-border: linear-gradient(
+    135deg,
+    var(--color-primary) 0%,
+    var(--color-accent) 50%,
+    var(--color-primary) 100%
+  );
+  
+  /* Subtle gradient (lighter, more muted) */
+  --gradient-border-subtle: linear-gradient(
+    135deg,
+    var(--color-primary-light) 0%,
+    var(--color-accent-light) 50%,
+    var(--color-primary-light) 100%
+  );
+  
+  /* Strong gradient (darker, more vibrant) */
+  --gradient-border-strong: linear-gradient(
+    135deg,
+    var(--color-primary) 0%,
+    var(--color-accent) 50%,
+    var(--color-primary-dark) 100%
+  );
+  
+  /* Hover gradient (enhanced) */
+  --gradient-border-hover: linear-gradient(
+    135deg,
+    var(--color-primary-hover) 0%,
+    var(--color-accent-hover) 50%,
+    var(--color-primary-hover) 100%
+  );
+  
+  /* Primary button gradient */
+  --button-primary-gradient: var(--gradient-border);
+}
+
+/* ============================================
+   GRADIENT BORDER BASE CLASS
+   ============================================ */
+
+.gradient-border {
+  position: relative;
+  border: none;
+}
+
+.gradient-border::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: var(--gradient-border);
+  -webkit-mask: 
+    linear-gradient(#fff 0 0) content-box, 
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  opacity: 0.6;
+  transition: opacity var(--transition-base);
+}
+
+.gradient-border:hover::before {
+  opacity: 1;
+  background: var(--gradient-border-hover);
+}
+
+/* Subtle variant */
+.gradient-border-subtle::before {
+  background: var(--gradient-border-subtle);
+  opacity: 0.4;
+}
+
+.gradient-border-subtle:hover::before {
+  opacity: 0.7;
+}
+
+/* Strong variant */
+.gradient-border-strong::before {
+  background: var(--gradient-border-strong);
+  opacity: 0.8;
+}
+
+.gradient-border-strong:hover::before {
+  opacity: 1;
+}
+
+/* ============================================
+   PALETTE-SPECIFIC GRADIENT OVERRIDES
+   ============================================ */
+
+/* Blue Bengal - Soft powder blue gradients */
+[data-palette="blue-bengal"] {
+  --gradient-border: linear-gradient(
+    135deg,
+    var(--color-primary) 0%,
+    var(--color-accent) 50%,
+    var(--color-primary-dark) 100%
+  );
+  
+  --gradient-border-subtle: linear-gradient(
+    135deg,
+    var(--color-primary-light) 0%,
+    #B4CFE6 50%,
+    var(--color-primary-light) 100%
+  );
+  
+  --button-primary-gradient: linear-gradient(
+    135deg,
+    var(--color-primary) 0%,
+    var(--color-accent) 100%
+  );
+}
+
+/* Brown Bengal - Warm amber/gold gradients */
+[data-palette="brown-bengal"] {
+  --gradient-border: linear-gradient(
+    135deg,
+    var(--color-primary) 0%,
+    var(--color-accent) 50%,
+    var(--color-primary-dark) 100%
+  );
+  
+  --gradient-border-subtle: linear-gradient(
+    135deg,
+    var(--color-primary-light) 0%,
+    #FFC266 50%,
+    var(--color-primary-light) 100%
+  );
+  
+  --button-primary-gradient: linear-gradient(
+    135deg,
+    var(--color-primary) 0%,
+    var(--color-accent) 100%
+  );
+}
+
+/* Silver Bengal - Cool silver/steel gradients */
+[data-palette="silver-bengal"] {
+  --gradient-border: linear-gradient(
+    135deg,
+    var(--color-primary) 0%,
+    var(--color-accent) 50%,
+    var(--color-primary-dark) 100%
+  );
+  
+  --gradient-border-subtle: linear-gradient(
+    135deg,
+    var(--color-primary-light) 0%,
+    var(--color-accent-light) 50%,
+    var(--color-primary-light) 100%
+  );
+  
+  --button-primary-gradient: linear-gradient(
+    135deg,
+    var(--color-primary) 0%,
+    var(--color-accent) 100%
+  );
+}
+
+/* Charcoal Bengal - Rich dark gradients */
+[data-palette="charcoal-bengal"] {
+  --gradient-border: linear-gradient(
+    135deg,
+    var(--color-primary) 0%,
+    var(--color-accent) 50%,
+    var(--color-primary-dark) 100%
+  );
+  
+  --gradient-border-subtle: linear-gradient(
+    135deg,
+    var(--color-primary-light) 0%,
+    var(--color-accent-light) 50%,
+    var(--color-primary-light) 100%
+  );
+  
+  --button-primary-gradient: linear-gradient(
+    135deg,
+    var(--color-primary) 0%,
+    var(--color-accent) 100%
+  );
+}
+
+/* ============================================
+   DARK MODE ADJUSTMENTS
+   ============================================ */
+
+[data-theme="dark"] .gradient-border::before {
+  opacity: 0.4; /* More subtle in dark mode */
+}
+
+[data-theme="dark"] .gradient-border:hover::before {
+  opacity: 0.7;
+}
+
+[data-theme="dark"] .gradient-border-subtle::before {
+  opacity: 0.2;
+}
+
+[data-theme="dark"] .gradient-border-subtle:hover::before {
+  opacity: 0.5;
+}
+
+[data-theme="dark"] .gradient-border-strong::before {
+  opacity: 0.6;
+}
+
+[data-theme="dark"] .gradient-border-strong:hover::before {
+  opacity: 0.9;
+}
+
+/* ============================================
+   FALLBACK FOR BROWSERS WITHOUT MASK SUPPORT
+   ============================================ */
+
+@supports not (-webkit-mask-composite: xor) {
+  .gradient-border {
+    border: 1px solid var(--color-primary);
+    border-image: var(--gradient-border) 1;
+  }
+  
+  .gradient-border::before {
+    display: none;
+  }
+}
+
+/* ============================================
+   ACCESSIBILITY
+   ============================================ */
+
+/* Respect reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .gradient-border::before {
+    transition: none;
+  }
+}
+
+/* Ensure sufficient contrast */
+.gradient-border:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+}
+

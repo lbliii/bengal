@@ -49,80 +49,80 @@ All Python documentation templates should extend this.
 
 {% block content %}
 {#- Main description -#}
-{% call safe_section("description") %}
-{% if element and element.description %}
-{{ element.description }}
-{% else %}
+{%- call safe_section("description") -%}
+{%- if element and element.description -%}
+{{- element.description -}}
+{%- else -%}
 *No description provided.*
-{% endif %}
-{% endcall %}
+{%- endif -%}
+{%- endcall -%}
 
 {#- Deprecation warning -#}
-{% if element and element.metadata and element.metadata.deprecated %}
-{% call safe_section("deprecation") %}
+{%- if element and element.metadata and element.metadata.deprecated -%}
+{%- call safe_section("deprecation") -%}
 ```{warning} Deprecated
-{{ element.metadata.deprecated }}
+{{- element.metadata.deprecated -}}
 ```
-{% endcall %}
-{% endif %}
+{%- endcall -%}
+{%- endif -%}
 
 {#- Signature for functions/methods -#}
-{% if element and element.element_type in ["function", "method"] %}
-{% call safe_section("signature") %}
-{% if element.metadata and element.metadata.signature %}
+{%- if element and element.element_type in ["function", "method"] -%}
+{%- call safe_section("signature") -%}
+{%- if element.metadata and element.metadata.signature -%}
 ## Signature
 
-{{ signature_block(element.metadata.signature) }}
-{% endif %}
-{% endcall %}
-{% endif %}
+{{- signature_block(element.metadata.signature) -}}
+{%- endif -%}
+{%- endcall -%}
+{%- endif -%}
 
 {#- Inheritance for classes -#}
-{% if element and element.element_type == "class" and element.metadata and element.metadata.bases %}
-{% call safe_section("inheritance") %}
+{%- if element and element.element_type == "class" and element.metadata and element.metadata.bases -%}
+{%- call safe_section("inheritance") -%}
 ## Inheritance
 
-{{ inheritance_chain(element.metadata.bases) }}
-{% endcall %}
-{% endif %}
+{{- inheritance_chain(element.metadata.bases) -}}
+{%- endcall -%}
+{%- endif -%}
 
 {#- Parameters for functions/methods -#}
-{% if element and element.metadata and element.metadata.args %}
-{% call safe_section("parameters") %}
+{%- if element and element.metadata and element.metadata.args -%}
+{%- call safe_section("parameters") -%}
 ## Parameters
 
-{{ python_parameters(element.metadata.args) }}
-{% endcall %}
-{% endif %}
+{{- python_parameters(element.metadata.args) -}}
+{%- endcall -%}
+{%- endif -%}
 
 {#- Returns information -#}
-{% if element and element.metadata and element.metadata.returns %}
-{% call safe_section("returns") %}
+{%- if element and element.metadata and element.metadata.returns -%}
+{%- call safe_section("returns") -%}
 ## Returns
 
-{{ returns_table(element.metadata.returns) }}
-{% endcall %}
-{% endif %}
+{{- returns_table(element.metadata.returns) -}}
+{%- endcall -%}
+{%- endif -%}
 
 {#- Raises information -#}
-{% if element and element.metadata and element.metadata.raises %}
-{% call safe_section("raises") %}
+{%- if element and element.metadata and element.metadata.raises -%}
+{%- call safe_section("raises") -%}
 ## Raises
 
-{% for exc in element.metadata.raises %}
-- **`{{ exc.type }}`**{% if exc.description %}: {{ exc.description }}{% endif %}
-{% endfor %}
-{% endcall %}
-{% endif %}
+{%- for exc in element.metadata.raises -%}
+- **`{{- exc.type -}}`**{%- if exc.description -%}: {{- exc.description -}}{%- endif -%}
+{%- endfor -%}
+{%- endcall -%}
+{%- endif -%}
 
 {#- Examples -#}
-{% if element and element.examples %}
-{% call safe_section("examples") %}
+{%- if element and element.examples -%}
+{%- call safe_section("examples") -%}
 ## Examples
 
-{{ code_examples(element.examples) }}
-{% endcall %}
-{% endif %}
+{{- code_examples(element.examples) -}}
+{%- endcall -%}
+{%- endif -%}
 
 {#- Child elements (methods, attributes, etc.) -#}
 {% block child_elements %}

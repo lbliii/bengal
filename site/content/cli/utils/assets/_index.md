@@ -22,17 +22,11 @@ description: "Manage and build assets."
 
 Manage and build assets.
 
-
-
-
 ## Usage
 
 ```bash
 assets [OPTIONS] [ARGUMENTS]
 ```
-
-
-
 
 ## Subcommands
 
@@ -41,11 +35,6 @@ assets [OPTIONS] [ARGUMENTS]
 Build assets using the configured pipeline (if enabled).
 
 **Usage:** `assets build [OPTIONS]`
-
-
-
-
-
 
 
 

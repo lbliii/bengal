@@ -7,10 +7,10 @@ Handles cases where description is missing or malformed.
 
 {% from 'macros/safe_macros.md.jinja2' import safe_section, safe_var %}
 
-{% call safe_section("module_description") %}
+{#- Note: Content should end cleanly - root layout adds spacing between sections -#}
 {% if element.description %}
-{{ element.description }}
+{{ element.description | trim }}
+
 {% else %}
 *No module description provided.*
 {% endif %}
-{% endcall %}

@@ -25,17 +25,11 @@ description: "🧩 Create a new partial template. Partials are reusable template
 Partials are reusable template fragments included in other templates.
 Example: "sidebar" → templates/partials/sidebar.html
 
-
-
-
 ## Usage
 
 ```bash
 partial [OPTIONS] [ARGUMENTS]
 ```
-
-
-
 
 ## Arguments
 
@@ -49,11 +43,6 @@ partial [OPTIONS] [ARGUMENTS]
 ```{info}
 This argument is optional.
 ```
-
-
-
-
-
 
 
 

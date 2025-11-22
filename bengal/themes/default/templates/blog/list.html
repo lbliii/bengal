@@ -55,7 +55,7 @@ Context variables:
         <h2 class="blog-section-title">Featured Posts</h2>
         <div class="blog-featured-grid">
             {% for post in featured_posts %}
-            <article class="blog-featured-card">
+            <article class="blog-featured-card gradient-border-strong fluid-bg">
                 {% if post.metadata.get('image') or post.metadata.get('cover') %}
                 <div class="blog-card-image">
                     <a href="{{ post.permalink }}">
@@ -122,7 +122,7 @@ Context variables:
 
         <div class="blog-post-list">
             {% for post in regular_posts %}
-            <article class="blog-post-card">
+            <article class="blog-post-card gradient-border fluid-combined">
                 {% if post.metadata.get('image') or post.metadata.get('cover') %}
                 <div class="blog-card-image">
                 <a href="{{ post.permalink }}">

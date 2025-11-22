@@ -108,9 +108,9 @@
       button.setAttribute('aria-label', 'Copy code to clipboard');
       button.style.pointerEvents = 'auto';
 
-      // Add copy icon (SVG)
+      // Add copy icon (SVG) - icon only, no text
       button.innerHTML = `
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
           <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
         </svg>
@@ -142,38 +142,42 @@
         // Use Clipboard API if available
         if (navigator.clipboard && navigator.clipboard.writeText) {
           navigator.clipboard.writeText(code).then(function () {
-            // Show success
+            // Show success - icon only
             button.innerHTML = `
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="20 6 9 17 4 12"></polyline>
               </svg>
               <span>Copied!</span>
             `;
             button.classList.add('copied');
+            button.setAttribute('aria-label', 'Code copied!');
 
             // Reset after 2 seconds
             setTimeout(function () {
               button.innerHTML = `
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
                   <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
                 </svg>
                 <span>Copy</span>
               `;
               button.classList.remove('copied');
+              button.setAttribute('aria-label', 'Copy code to clipboard');
             }, 2000);
           }).catch(function (err) {
             console.error('Failed to copy code:', err);
-            button.textContent = 'Failed';
-
+            button.setAttribute('aria-label', 'Failed to copy');
+            
+            // Show error state briefly
             setTimeout(function () {
               button.innerHTML = `
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
                   <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
                 </svg>
                 <span>Copy</span>
               `;
+              button.setAttribute('aria-label', 'Copy code to clipboard');
             }, 2000);
           });
         } else {
@@ -187,12 +191,25 @@
 
           try {
             document.execCommand('copy');
-            button.innerHTML = '<span>Copied!</span>';
+            button.innerHTML = `
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+              <span>Copied!</span>
+            `;
             button.classList.add('copied');
+            button.setAttribute('aria-label', 'Code copied!');
 
             setTimeout(function () {
-              button.innerHTML = '<span>Copy</span>';
+              button.innerHTML = `
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+                <span>Copy</span>
+              `;
               button.classList.remove('copied');
+              button.setAttribute('aria-label', 'Copy code to clipboard');
             }, 2000);
           } catch (err) {
             console.error('Failed to copy code:', err);

@@ -12,12 +12,22 @@
   flex-direction: column;
   background-color: var(--color-bg-primary);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-xl); /* Increased from --radius-lg (8px → 12px) */
   box-shadow: var(--elevation-low);
   overflow: hidden;
   transition: box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1),
               transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
               border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Cards with gradient borders and fluid effects */
+.card.gradient-border {
+  border: none;
+}
+
+.card.fluid-combined {
+  border: none;
+}
 
   /* Cards with images get different layout structure */
   &:has(.card-image) {
@@ -170,10 +180,18 @@
   display: block;
   background-color: var(--color-bg-primary);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-xl); /* Increased from --radius-lg (8px → 12px) */
   overflow: hidden;
   text-decoration: none;
   transition: box-shadow var(--motion-medium), transform var(--motion-medium), border-color var(--motion-medium);
+}
+
+.article-card.gradient-border {
+  border: none;
+}
+
+.article-card.fluid-combined {
+  border: none;
 }
 
 .article-card:hover {
@@ -268,10 +286,18 @@
   padding: 1.5rem;
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border-light);
-  border-radius: var(--border-radius-large);
+  border-radius: var(--radius-xl); /* Increased from --border-radius-large (8px → 12px) */
   box-shadow: var(--elevation-card);
   transition: box-shadow var(--motion-medium), transform var(--motion-medium);
   height: 100%;
+}
+
+.feature-card.gradient-border {
+  border: none;
+}
+
+.feature-card.fluid-combined {
+  border: none;
 }
 
 .feature-card:hover {
@@ -462,7 +488,7 @@
   padding: 2rem 1.5rem;
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border-light);
-  border-radius: var(--border-radius-large);
+  border-radius: var(--radius-xl); /* Increased from --border-radius-large (8px → 12px) */
   box-shadow: var(--elevation-card);
 }
 
@@ -737,6 +763,33 @@
   .feature-cards {
     grid-template-columns: 1fr;
   }
+}
+
+/* ============================================
+   AUTO-APPLY GRADIENT BORDERS & FLUID EFFECTS
+   ============================================ */
+
+/* Automatically apply gradient borders and fluid effects to common card patterns */
+.article-card:not(.no-gradient),
+.feature-card:not(.no-gradient),
+.stat-card:not(.no-gradient) {
+  /* Classes are added via templates, but this ensures they work */
+}
+
+/* Support for gradient borders on cards */
+.article-card.gradient-border,
+.feature-card.gradient-border,
+.stat-card.gradient-border {
+  border: none;
+}
+
+.article-card.fluid-combined,
+.feature-card.fluid-combined {
+  border: none;
+}
+
+.feature-card.gradient-border-strong.fluid-bg {
+  border: none;
 }
 
 /* ============================================

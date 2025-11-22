@@ -29,17 +29,11 @@ Commands:
     info       Display project information and statistics
     config     View and manage configuration settings
 
-
-
-
 ## Usage
 
 ```bash
 project [OPTIONS] [ARGUMENTS]
 ```
-
-
-
 
 ## Subcommands
 
@@ -48,7 +42,6 @@ project [OPTIONS] [ARGUMENTS]
 ⚙️  Manage Bengal configuration.
 
 **Usage:** `project config [OPTIONS]`
-
 
 
 
@@ -68,13 +61,11 @@ Shows:
 
 
 
-
 ### `init`
 
 🏗️  Initialize site structure with sections and pages.
 
 **Usage:** `project init [OPTIONS]`
-
 
 
 
@@ -95,7 +86,6 @@ Profiles customize CLI behavior and output format based on your role:
 
 
 
-
 ### `validate`
 
 ✓ Validate Bengal project configuration and structure.
@@ -108,11 +98,6 @@ Checks:
     ✓ Content files parseable
 
 **Usage:** `project validate [OPTIONS]`
-
-
-
-
-
 
 
 

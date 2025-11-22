@@ -1,0 +1,373 @@
+/**
+ * Border Style Experiments for Bengal Theme
+ * 
+ * This file contains experimental border styles for testing.
+ * Import selectively or use as reference for final implementation.
+ */
+
+/* ============================================
+   OPTION 1: REFINED MINIMALISM
+   Increased border radius for softer feel
+   ============================================ */
+
+.border-refined .card {
+  border-radius: var(--radius-xl); /* 12px instead of 8px */
+}
+
+.border-refined pre {
+  border-radius: var(--radius-2xl); /* 16px instead of 12px */
+}
+
+.border-refined .form-input,
+.border-refined .form-textarea,
+.border-refined .form-select {
+  border-radius: 0.375rem; /* 6px - between md and lg */
+}
+
+/* ============================================
+   OPTION 2: ASYMMETRIC BORDERS
+   Thicker top border (Bengal-inspired)
+   ============================================ */
+
+.border-asymmetric .card {
+  border-top: 2px solid var(--color-primary);
+  border-right: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+  border-left: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  transition: border-color var(--transition-base);
+}
+
+.border-asymmetric .card:hover {
+  border-top-color: var(--color-primary-hover);
+  border-right-color: var(--color-border-dark);
+  border-bottom-color: var(--color-border-dark);
+  border-left-color: var(--color-border-dark);
+}
+
+/* Subtle variant - thinner accent */
+.border-asymmetric-subtle .card {
+  border-top: 1.5px solid var(--color-primary-light);
+  border-right: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+  border-left: 1px solid var(--color-border);
+}
+
+/* ============================================
+   OPTION 3: GRADIENT BORDERS
+   Modern gradient border effect
+   ============================================ */
+
+.border-gradient .card {
+  position: relative;
+  background: var(--color-bg-primary);
+  border-radius: var(--radius-xl);
+  border: none;
+}
+
+.border-gradient .card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-xl);
+  padding: 1px;
+  background: linear-gradient(
+    135deg,
+    var(--color-primary) 0%,
+    var(--color-accent) 50%,
+    var(--color-primary) 100%
+  );
+  -webkit-mask: 
+    linear-gradient(#fff 0 0) content-box, 
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  opacity: 0.6;
+  transition: opacity var(--transition-base);
+}
+
+.border-gradient .card:hover::before {
+  opacity: 1;
+}
+
+/* Subtle gradient variant */
+.border-gradient-subtle .card::before {
+  background: linear-gradient(
+    135deg,
+    var(--color-border) 0%,
+    var(--color-primary-light) 50%,
+    var(--color-border) 100%
+  );
+  opacity: 0.4;
+}
+
+/* ============================================
+   OPTION 4: DOUBLE BORDER
+   Elegant two-tone border frame
+   ============================================ */
+
+.border-double .card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  outline: 1px solid var(--color-border-light);
+  outline-offset: -2px;
+}
+
+.border-double .card:hover {
+  border-color: var(--color-border-dark);
+  outline-color: var(--color-primary-light);
+}
+
+/* Alternative using box-shadow */
+.border-double-shadow .card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  box-shadow: 
+    0 0 0 1px var(--color-bg-primary),
+    0 0 0 2px var(--color-border-light);
+}
+
+/* ============================================
+   OPTION 5: CORNER ACCENTS
+   Small accent marks in corners (Bengal signature)
+   ============================================ */
+
+.border-corner-accent .card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  position: relative;
+}
+
+.border-corner-accent .card::before,
+.border-corner-accent .card::after {
+  content: '';
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border: 2px solid var(--color-primary);
+  border-radius: 50%;
+  opacity: 0.3;
+  transition: opacity var(--transition-base);
+}
+
+.border-corner-accent .card::before {
+  top: 12px;
+  left: 12px;
+}
+
+.border-corner-accent .card::after {
+  bottom: 12px;
+  right: 12px;
+}
+
+.border-corner-accent .card:hover::before,
+.border-corner-accent .card:hover::after {
+  opacity: 0.6;
+}
+
+/* Square variant */
+.border-corner-accent-square .card::before,
+.border-corner-accent-square .card::after {
+  border-radius: 2px;
+  width: 6px;
+  height: 6px;
+  border-width: 1.5px;
+}
+
+/* Single corner variant (top-left only) */
+.border-corner-accent-single .card::after {
+  display: none;
+}
+
+/* ============================================
+   OPTION 6: SOFT SHADOW BORDERS
+   Depth without heavy lines
+   ============================================ */
+
+.border-shadow .card {
+  border: none;
+  border-radius: var(--radius-xl);
+  box-shadow: 
+    0 1px 3px rgba(0, 0, 0, 0.05),
+    0 0 0 1px var(--color-border-light);
+  transition: box-shadow var(--transition-base);
+}
+
+.border-shadow .card:hover {
+  box-shadow: 
+    0 4px 12px rgba(0, 0, 0, 0.08),
+    0 0 0 1px var(--color-border);
+}
+
+/* More pronounced shadow */
+.border-shadow-strong .card {
+  box-shadow: 
+    0 2px 8px rgba(0, 0, 0, 0.08),
+    0 0 0 1px var(--color-border);
+}
+
+/* ============================================
+   OPTION 7: ROUNDED WITH NOTCH
+   Modern tech-inspired notch detail
+   ============================================ */
+
+.border-notch .card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  position: relative;
+}
+
+.border-notch .card::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 12px;
+  width: 24px;
+  height: 8px;
+  background: var(--color-bg-primary);
+  border-left: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+  border-radius: 0 0 0 var(--radius-sm);
+}
+
+/* ============================================
+   COMBINATIONS
+   Mix and match approaches
+   ============================================ */
+
+/* Refined + Asymmetric */
+.border-refined-asymmetric .card {
+  border-top: 2px solid var(--color-primary);
+  border-right: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+  border-left: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+}
+
+/* Refined + Corner Accents */
+.border-refined-accent .card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  position: relative;
+}
+
+.border-refined-accent .card::before {
+  content: '';
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  width: 6px;
+  height: 6px;
+  background: var(--color-primary);
+  border-radius: 50%;
+  opacity: 0.4;
+}
+
+/* Shadow + Refined */
+.border-shadow-refined .card {
+  border: none;
+  border-radius: var(--radius-xl);
+  box-shadow: 
+    0 1px 3px rgba(0, 0, 0, 0.05),
+    0 0 0 1px var(--color-border-light);
+}
+
+/* ============================================
+   CODE BLOCK VARIANTS
+   ============================================ */
+
+.border-refined pre {
+  border-radius: var(--radius-2xl);
+}
+
+.border-asymmetric pre {
+  border-top: 2px solid var(--color-primary-light);
+  border-right: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+  border-left: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+}
+
+.border-shadow pre {
+  border: none;
+  box-shadow: 
+    0 2px 8px rgba(0, 0, 0, 0.06),
+    0 0 0 1px var(--color-border-light);
+}
+
+/* ============================================
+   ADMONITION VARIANTS
+   ============================================ */
+
+.border-refined .admonition {
+  border-radius: 0 var(--radius-xl) var(--radius-xl) 0;
+}
+
+.border-asymmetric .admonition {
+  border-inline-start-width: 5px;
+  border-radius: 0 var(--radius-xl) var(--radius-xl) 0;
+}
+
+/* ============================================
+   DARK MODE ADJUSTMENTS
+   ============================================ */
+
+[data-theme="dark"] .border-gradient .card::before {
+  opacity: 0.4;
+}
+
+[data-theme="dark"] .border-gradient .card:hover::before {
+  opacity: 0.7;
+}
+
+[data-theme="dark"] .border-corner-accent .card::before,
+[data-theme="dark"] .border-corner-accent .card::after {
+  opacity: 0.2;
+}
+
+[data-theme="dark"] .border-corner-accent .card:hover::before,
+[data-theme="dark"] .border-corner-accent .card:hover::after {
+  opacity: 0.5;
+}
+
+[data-theme="dark"] .border-shadow .card {
+  box-shadow: 
+    0 1px 3px rgba(0, 0, 0, 0.3),
+    0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+/* ============================================
+   UTILITY CLASSES
+   Quick application for testing
+   ============================================ */
+
+/* Apply to body or container for site-wide testing */
+.border-experiment-1 {
+  /* Refined Minimalism */
+}
+
+.border-experiment-2 {
+  /* Asymmetric Borders */
+}
+
+.border-experiment-3 {
+  /* Gradient Borders */
+}
+
+.border-experiment-4 {
+  /* Double Border */
+}
+
+.border-experiment-5 {
+  /* Corner Accents */
+}
+
+.border-experiment-6 {
+  /* Soft Shadow Borders */
+}
+
+.border-experiment-7 {
+  /* Rounded with Notch */
+}
+

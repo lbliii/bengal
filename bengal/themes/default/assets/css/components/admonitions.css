@@ -9,10 +9,34 @@
   margin-block: 1.5rem;
   padding: 1rem 1.25rem;
   border-inline-start: 4px solid var(--color-border);
-  border-radius: 0 var(--border-radius-large) var(--border-radius-large) 0;
+  border-radius: 0 var(--radius-xl) var(--radius-xl) 0; /* Increased from --border-radius-large (8px → 12px) */
   background-color: var(--color-bg-secondary);
   box-shadow: var(--elevation-card);
   transition: all var(--transition-base);
+}
+
+/* Auto-apply gradient border to admonitions */
+.admonition::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 0 var(--radius-xl) var(--radius-xl) 0;
+  padding: 1px;
+  background: var(--gradient-border);
+  -webkit-mask: 
+    linear-gradient(#fff 0 0) content-box, 
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  opacity: 0.3;
+  z-index: 0;
+}
+}
+
+.admonition.gradient-border {
+  border-inline-start: 4px solid var(--color-primary);
+}
 
   &:hover {
     box-shadow: var(--elevation-card-hover);

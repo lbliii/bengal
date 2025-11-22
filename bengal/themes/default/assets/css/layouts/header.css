@@ -439,14 +439,46 @@ header .container {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   cursor: pointer;
-  transition: all var(--transition-fast) var(--ease-out);
+  transition: all var(--transition-fast) var(--ease-out), box-shadow 0.2s ease;
+  /* Neumorphic shadow - refined depth */
+  box-shadow: 
+    inset 0.5px 0.5px 1px rgba(255, 255, 255, 0.4),
+    inset -0.5px -0.5px 1px rgba(0, 0, 0, 0.15),
+    1px 1px 2px rgba(0, 0, 0, 0.08),
+    -0.5px -0.5px 1px rgba(255, 255, 255, 0.3);
 }
 
-.theme-dropdown__button:hover,
+.theme-dropdown__button:hover {
+  color: var(--color-primary);
+  background: var(--color-bg-secondary);
+  border-color: var(--color-primary);
+  /* Neumorphic hover - refined raised effect */
+  box-shadow: 
+    inset 0.5px 0.5px 1.5px rgba(255, 255, 255, 0.5),
+    inset -0.5px -0.5px 1.5px rgba(0, 0, 0, 0.12),
+    2px 2px 6px rgba(0, 0, 0, 0.1),
+    -1px -1px 3px rgba(255, 255, 255, 0.4);
+}
+
+.theme-dropdown__button:active {
+  /* Neumorphic pressed state */
+  box-shadow: 
+    inset 1px 1px 2px rgba(0, 0, 0, 0.15),
+    inset -0.5px -0.5px 1px rgba(255, 255, 255, 0.2),
+    1px 1px 2px rgba(0, 0, 0, 0.05);
+  background: var(--color-bg-secondary);
+}
+
 .theme-dropdown__button[aria-expanded="true"] {
   color: var(--color-primary);
   background: var(--color-bg-secondary);
   border-color: var(--color-primary);
+  /* Neumorphic shadow when expanded */
+  box-shadow: 
+    inset 0.5px 0.5px 1px rgba(255, 255, 255, 0.4),
+    inset -0.5px -0.5px 1px rgba(0, 0, 0, 0.12),
+    2px 2px 6px rgba(0, 0, 0, 0.1),
+    -1px -1px 3px rgba(255, 255, 255, 0.3);
 }
 
 .theme-dropdown__menu {
@@ -458,10 +490,16 @@ header .container {
   background: var(--color-bg-primary);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  box-shadow: var(--elevation-dropdown);
+  /* Neumorphic shadow for dropdown */
+  box-shadow: 
+    inset 0.5px 0.5px 1px rgba(255, 255, 255, 0.3),
+    inset -0.5px -0.5px 1px rgba(0, 0, 0, 0.1),
+    4px 4px 12px rgba(0, 0, 0, 0.12),
+    -2px -2px 6px rgba(255, 255, 255, 0.2);
   list-style: none;
   display: none;
   z-index: var(--z-dropdown);
+  transition: box-shadow 0.2s ease;
 }
 
 .theme-dropdown__menu.open {
@@ -494,12 +532,22 @@ header .container {
   padding: 0.5rem 0.5rem;
   border-radius: var(--radius-sm);
   cursor: pointer;
+  transition: all var(--transition-fast) var(--ease-out), box-shadow 0.2s ease;
 }
 
 .theme-dropdown__menu button:hover,
 .theme-dropdown__menu button:focus {
   background: var(--color-bg-secondary);
   color: var(--color-primary);
+}
+
+.theme-dropdown__menu button:active {
+  /* Neumorphic pressed state for menu items */
+  box-shadow: 
+    inset 1px 1px 2px rgba(0, 0, 0, 0.1),
+    inset -0.5px -0.5px 1px rgba(255, 255, 255, 0.15),
+    0.5px 0.5px 1px rgba(0, 0, 0, 0.05);
+  background: var(--color-bg-tertiary);
 }
 
 .theme-dropdown__menu button.active {
@@ -515,4 +563,60 @@ header .container {
   right: 0.5rem;
   color: var(--color-primary);
   font-size: var(--text-base);
+}
+
+/* ============================================
+   DARK MODE - Theme Dropdown
+   ============================================ */
+
+[data-theme="dark"] .theme-dropdown__button {
+  /* Neumorphic shadow for dark mode */
+  box-shadow: 
+    inset 0.5px 0.5px 1px rgba(255, 255, 255, 0.08),
+    inset -0.5px -0.5px 1px rgba(0, 0, 0, 0.4),
+    1px 1px 3px rgba(0, 0, 0, 0.25),
+    -0.5px -0.5px 1px rgba(255, 255, 255, 0.05);
+}
+
+[data-theme="dark"] .theme-dropdown__button:hover {
+  /* Neumorphic hover for dark mode */
+  box-shadow: 
+    inset 0.5px 0.5px 1.5px rgba(255, 255, 255, 0.12),
+    inset -0.5px -0.5px 1.5px rgba(0, 0, 0, 0.5),
+    2px 2px 6px rgba(0, 0, 0, 0.35),
+    -1px -1px 3px rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="dark"] .theme-dropdown__button:active {
+  /* Neumorphic pressed state for dark mode */
+  box-shadow: 
+    inset 1px 1px 2px rgba(0, 0, 0, 0.4),
+    inset -0.5px -0.5px 1px rgba(255, 255, 255, 0.1),
+    1px 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+[data-theme="dark"] .theme-dropdown__button[aria-expanded="true"] {
+  /* Neumorphic shadow when expanded - dark mode */
+  box-shadow: 
+    inset 0.5px 0.5px 1px rgba(255, 255, 255, 0.12),
+    inset -0.5px -0.5px 1px rgba(0, 0, 0, 0.4),
+    2px 2px 6px rgba(0, 0, 0, 0.35),
+    -1px -1px 3px rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="dark"] .theme-dropdown__menu {
+  /* Neumorphic shadow for dark mode dropdown */
+  box-shadow: 
+    inset 0.5px 0.5px 1px rgba(255, 255, 255, 0.08),
+    inset -0.5px -0.5px 1px rgba(0, 0, 0, 0.4),
+    4px 4px 12px rgba(0, 0, 0, 0.3),
+    -2px -2px 6px rgba(255, 255, 255, 0.05);
+}
+
+[data-theme="dark"] .theme-dropdown__menu button:active {
+  /* Neumorphic pressed state for menu items - dark mode */
+  box-shadow: 
+    inset 1px 1px 2px rgba(0, 0, 0, 0.3),
+    inset -0.5px -0.5px 1px rgba(255, 255, 255, 0.08),
+    0.5px 0.5px 1px rgba(0, 0, 0, 0.15);
 }

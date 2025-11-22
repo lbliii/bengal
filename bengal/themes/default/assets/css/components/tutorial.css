@@ -107,11 +107,21 @@
 /* Tutorial Card */
 .tutorial-card {
     background: var(--color-surface);
-    border-radius: var(--radius-xl);
+    border-radius: var(--radius-xl); /* Already 12px - good! */
     padding: var(--space-6);
     box-shadow: var(--elevation-card);
     transition: all 0.2s ease;
     transform: translateY(0);
+    border: 1px solid var(--color-border);
+}
+
+/* Gradient border support */
+.tutorial-card.gradient-border {
+    border: none;
+}
+
+.tutorial-card.fluid-combined {
+    border: none;
 }
 
 .tutorial-card:hover {

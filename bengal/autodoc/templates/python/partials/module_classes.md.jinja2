@@ -5,7 +5,7 @@ Renders all public classes in the module with safe error boundaries.
 Includes class descriptions, inheritance, and nested components.
 -#}
 
-{% from 'macros/safe_macros.md.jinja2' import safe_section, safe_render, safe_for %}
+{% from 'macros/safe_macros.md.jinja2' import safe_section, safe_render, safe_for, section_shell, subsection_shell %}
 
 {% set all_classes = element.children | selectattr('element_type', 'equalto', 'class') | list %}
 {% set public_classes = [] %}
@@ -16,44 +16,50 @@ Includes class descriptions, inheritance, and nested components.
 {% endfor %}
 
 {% if public_classes %}
-{% call safe_section("classes") %}
+{% call section_shell() %}
 ## Classes
+{% endcall %}
 
 {% call(current_item) safe_for(public_classes, "*No public classes found.*") %}
 {% call safe_render("class", current_item) %}
+{% call subsection_shell() %}
 ### `{{ current_item.name }}`
+{% endcall %}
 
 {% if current_item.metadata.aliases %}
 ```{note} Also known as
-This element has aliases: {% for alias in current_item.metadata.aliases %}`{{ alias }}`{% if not loop.last %}, {% endif %}{% endfor %}
+This element has aliases: {%- for alias in current_item.metadata.aliases -%}`{{- alias -}}`{%- if not loop.last -%}, {%- endif -%}{%- endfor -%}
 ```
 
 {% endif %}
-
 {% if current_item.metadata.bases %}
-**Inherits from:** {% for base in current_item.metadata.bases %}`{{ base }}`{% if not loop.last %}, {% endif %}{% endfor %}
-{% endif %}
+**Inherits from:** {%- for base in current_item.metadata.bases -%}`{{- base -}}`{%- if not loop.last -%}, {%- endif -%}{%- endfor -%}
 
+{% endif %}
 {% if current_item.description %}
-{{ current_item.description }}
+{{ current_item.description | trim }}
+
 {% else %}
 *No class description provided.*
-{% endif %}
 
+{% endif %}
 {% if current_item.metadata.is_dataclass %}
+
 ```{info}
 This is a dataclass.
 ```
+
 {% endif %}
 
 {#- Include class components with proper context -#}
+{#- Note: Blank lines between includes ensure proper spacing between sections -#}
 {% with item = current_item %}
 {% include 'python/partials/class_attributes.md.jinja2' %}
+
 {% include 'python/partials/class_properties.md.jinja2' %}
+
 {% include 'python/partials/class_methods.md.jinja2' %}
 {% endwith %}
-
-{% endcall %}
 {% endcall %}
 {% endcall %}
 {% endif %}

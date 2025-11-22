@@ -31,25 +31,25 @@ Extends Python base template with class-specific features.
 
 {% block content %}
 {#- Class description -#}
-{% call safe_section("description") %}
-  {% include 'python/partials/class_description.md.jinja2' %}
-{% endcall %}
+{%- call safe_section("description") -%}
+{%- include 'python/partials/class_description.md.jinja2' -%}
+{%- endcall -%}
 
 {#- Pass element as item for class component partials -#}
-{% with item = element %}
+{%- with item = element -%}
 {#- Class attributes -#}
-{% call safe_section("attributes") %}
-  {% include 'python/partials/class_attributes.md.jinja2' %}
-{% endcall %}
+{%- call safe_section("attributes") -%}
+{%- include 'python/partials/class_attributes.md.jinja2' -%}
+{%- endcall -%}
 
 {#- Class properties -#}
-{% call safe_section("properties") %}
-  {% include 'python/partials/class_properties.md.jinja2' %}
-{% endcall %}
+{%- call safe_section("properties") -%}
+{%- include 'python/partials/class_properties.md.jinja2' -%}
+{%- endcall -%}
 
 {#- Class methods -#}
-{% call safe_section("methods") %}
-  {% include 'python/partials/class_methods.md.jinja2' %}
-{% endcall %}
-{% endwith %}
+{%- call safe_section("methods") -%}
+{%- include 'python/partials/class_methods.md.jinja2' -%}
+{%- endcall -%}
+{%- endwith -%}
 {% endblock %}

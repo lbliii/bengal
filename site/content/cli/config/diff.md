@@ -24,17 +24,11 @@ description: "🔍 Compare configurations. Shows differences between two configu
 
 Shows differences between two configurations (environments, profiles, or files).
 
-
-
-
 ## Usage
 
 ```bash
 diff [OPTIONS] [ARGUMENTS]
 ```
-
-
-
 
 ## Arguments
 
@@ -49,13 +43,6 @@ diff [OPTIONS] [ARGUMENTS]
 ```{info}
 This argument is optional.
 ```
-
-
-
-
-
-
-
 
 ## Options
 
@@ -73,19 +60,12 @@ This option is required.
 
 
 
-
 ### `environment`
 
 
 Environment to compare (default: local)
 
 **Type:** `text`
-
-
-
-
-
-
 
 
 

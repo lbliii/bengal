@@ -29,17 +29,11 @@ Profiles customize CLI behavior and output format based on your role:
     writer    ✍️  Simple UX, focus on content, minimal tech details
     ai        🤖  Machine-readable output, JSON formats
 
-
-
-
 ## Usage
 
 ```bash
 profile [OPTIONS] [ARGUMENTS]
 ```
-
-
-
 
 ## Arguments
 
@@ -53,11 +47,6 @@ profile [OPTIONS] [ARGUMENTS]
 ```{info}
 This argument is optional.
 ```
-
-
-
-
-
 
 
 

@@ -24,17 +24,11 @@ Create a new theme scaffold.
 
 SLUG is the theme identifier used in config (e.g., [site].theme = SLUG).
 
-
-
-
 ## Usage
 
 ```bash
 new [OPTIONS] [ARGUMENTS]
 ```
-
-
-
 
 ## Arguments
 
@@ -49,13 +43,6 @@ new [OPTIONS] [ARGUMENTS]
 This argument is required.
 ```
 
-
-
-
-
-
-
-
 ## Options
 
 ### `mode`
@@ -66,7 +53,6 @@ Scaffold locally under themes/ or an installable package
 **Type:** `choice`
 
 **Default:** `site`
-
 
 
 
@@ -83,7 +69,6 @@ Output directory (for site mode: site root; for package mode: parent dir)
 
 
 
-
 ### `extends`
 
 
@@ -96,7 +81,6 @@ Parent theme to extend
 
 
 
-
 ### `force`
 
 
@@ -105,11 +89,6 @@ Overwrite existing directory if present
 **Type:** `boolean`
 
 **Default:** `False`
-
-
-
-
-
 
 
 

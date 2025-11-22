@@ -22,17 +22,11 @@ description: "List available themes (project, installed, bundled)."
 
 List available themes (project, installed, bundled).
 
-
-
-
 ## Usage
 
 ```bash
 list [OPTIONS] [ARGUMENTS]
 ```
-
-
-
 
 ## Arguments
 
@@ -47,11 +41,6 @@ list [OPTIONS] [ARGUMENTS]
 ```{info}
 This argument is optional.
 ```
-
-
-
-
-
 
 
 

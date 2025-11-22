@@ -5,7 +5,7 @@ Renders all public functions in the module with comprehensive documentation.
 Uses shared components for consistency with method documentation.
 -#}
 
-{% from 'macros/safe_macros.md.jinja2' import safe_section, safe_render, safe_for %}
+{% from 'macros/safe_macros.md.jinja2' import safe_section, safe_render, safe_for, rubric_shell, section_shell, subsection_shell %}
 {% from 'macros/code_blocks.md.jinja2' import signature_block %}
 {% from 'macros/parameter_table.md.jinja2' import parameter_table %}
 
@@ -17,54 +17,59 @@ Uses shared components for consistency with method documentation.
   {% endif %}
 {% endfor %}
 
+{#- Note: No trailing newline - root layout controls spacing -#}
 {% if public_functions %}
-{% call safe_section("functions") %}
+{% call section_shell() %}
 ## Functions
-
+{% endcall %}
 {% call(current_item) safe_for(public_functions, "*No public functions found.*") %}
 {% call safe_render("function", current_item) %}
+{% call subsection_shell() %}
 ### `{{ current_item.name }}`{% if current_item.metadata.is_async %} @async{% endif %}
+{% endcall %}
 
 {% if current_item.metadata.aliases %}
 ```{note} Also known as
-This function has aliases: {% for alias in current_item.metadata.aliases %}`{{ alias }}`{% if not loop.last %}, {% endif %}{% endfor %}
+This function has aliases: {%- for alias in current_item.metadata.aliases -%}`{{- alias -}}`{%- if not loop.last -%}, {%- endif -%}{%- endfor -%}
 ```
 
 {% endif %}
-
 {{ signature_block(current_item.metadata.signature | default(''), 'function') }}
 
+
 {% if current_item.description %}
-{{ current_item.description }}
+{{ current_item.description | trim }}
+
 {% else %}
 *No description provided.*
-{% endif %}
 
+{% endif %}
 {% if current_item.metadata.parsed_doc.deprecated %}
 ```{warning} Deprecated
-{{ current_item.metadata.parsed_doc.deprecated }}
+{{- current_item.metadata.parsed_doc.deprecated -}}
 ```
 
 {% endif %}
-
 {% if current_item.metadata.is_async %}
 ```{info} Async Function
 This is an asynchronous function. Use `await` when calling.
 ```
 
 {% endif %}
-
 {#- Parameters section -#}
 {% if current_item.metadata.args %}
 {{ parameter_table(current_item.metadata.args, "Parameters", show_types=true, show_defaults=true) }}
-{% endif %}
 
+{% endif %}
 {#- Returns section -#}
 {% if current_item.metadata.returns %}
+{% call rubric_shell() %}
 :::{rubric} Returns
 :class: rubric-returns
 :::
-`{{ current_item.metadata.returns }}`{%- if current_item.metadata.parsed_doc.returns %} - {{ current_item.metadata.parsed_doc.returns }}{%- endif %}
+{% endcall %}
+
+`{{ current_item.metadata.returns }}`{% if current_item.metadata.parsed_doc.returns %} - {{ current_item.metadata.parsed_doc.returns }}{% endif %}
 
 {% endif %}
 
@@ -76,11 +81,8 @@ This is an asynchronous function. Use `await` when calling.
 {% endwith %}
 
 {% if current_item.metadata.parsed_doc.see_also %}
-**See Also:** {% for ref in current_item.metadata.parsed_doc.see_also %}{{ ref }}{% if not loop.last %}, {% endif %}{% endfor %}
-
+**See Also:** {%- for ref in current_item.metadata.parsed_doc.see_also -%}{{- ref -}}{%- if not loop.last -%}, {%- endif -%}{%- endfor -%}
 {% endif %}
-
-{% endcall %}
 {% endcall %}
 {% endcall %}
 {% endif %}

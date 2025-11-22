@@ -5,23 +5,32 @@ These macros provide error isolation and graceful fallbacks for template renderi
 All templates should use these macros to prevent silent failures.
 -#}
 
-{#- Hugo-style error boundary macro -#}
+{#-
+Hugo-style error boundary macro
+
+CRITICAL: Whitespace control for clean markdown output
+- Strips ALL leading/trailing whitespace from content
+- Preserves internal blank lines (needed for markdown structure)
+- Adds newline after content so root layout spacing works correctly
+- Root layout controls spacing between major sections (blank lines between safe_section calls)
+- Partials control spacing between their own internal elements (headings, rubrics, code blocks)
+-#}
 {% macro safe_section(section_name, show_errors=true) %}
-{% if caller %}
-{#- Capture content and only render if non-empty -#}
-{% set content = caller() %}
-{% if content and content.strip() %}
-{{ content }}
-{% endif %}
-{% endif %}
+{%- if caller -%}
+{%- set content = caller() -%}
+{%- if content and content.strip() -%}
+{%- set prepared = content.lstrip() -%}
+{{- prepared.rstrip() ~ '\n\n' }}
+{%- endif -%}
+{%- endif -%}
 {% endmacro %}
 
 {#- Safe rendering with item-level fallbacks -#}
 {% macro safe_render(item_type, item, show_errors=true) %}
-{% if caller and item %}
-{% set current_item = item %}
-{{ caller() }}
-{% endif %}
+{%- if caller and item -%}
+{%- set current_item = item -%}
+{{- caller() -}}
+{%- endif -%}
 {% endmacro %}
 
 {#- Safe variable access with defaults -#}
@@ -75,4 +84,74 @@ All templates should use these macros to prevent silent failures.
 {% macro debug_info(label, data) %}
 {#- Debug output disabled in macros to avoid context issues -#}
 {#- Use direct config access in templates instead -#}
+{% endmacro %}
+
+{#-
+Spacing Shell Macros - Consistent spacing wrapper pattern
+
+RECOMMENDED: Use shells for major structural elements only (sections, subsections, rubrics).
+For simple content (descriptions, inline text), use manual spacing with consistent patterns.
+
+Shells provide:
+- Guaranteed spacing (blank lines before/after)
+- Self-documenting component types
+- Centralized spacing logic
+
+Use shells for:
+- section_shell: Major sections (## Classes, ## Functions)
+- subsection_shell: Subsections (### `name`)  
+- rubric_shell: Rubrics (:::{rubric})
+
+Manual spacing for:
+- Descriptions/text content (add blank line after if followed by component)
+- Code blocks (add blank line before/after)
+- Tables (already handled by parameter_table macro)
+
+Example:
+  {% call section_shell() %}
+  ## Classes
+  {% endcall %}
+  
+  {% call subsection_shell() %}
+  ### `Community`
+  {% endcall %}
+  
+  {{ element.description }}
+  
+  ```{info}
+  This is a dataclass.
+  ```
+-#}
+
+{#- Major section shell (## Classes, ## Functions) -#}
+{% macro section_shell() %}
+{%- if caller -%}
+{%- set content = caller() -%}
+{%- if content and content.strip() -%}
+{%- set trimmed = content.strip() -%}
+{{- '\n\n' ~ trimmed ~ '\n\n' }}
+{%- endif -%}
+{%- endif -%}
+{% endmacro %}
+
+{#- Subsection shell (### `name`) -#}
+{% macro subsection_shell() %}
+{%- if caller -%}
+{%- set content = caller() -%}
+{%- if content and content.strip() -%}
+{%- set trimmed = content.strip() -%}
+{{- '\n\n' ~ trimmed ~ '\n\n' }}
+{%- endif -%}
+{%- endif -%}
+{% endmacro %}
+
+{#- Rubric shell (:::{rubric}) -#}
+{% macro rubric_shell() %}
+{%- if caller -%}
+{%- set content = caller() -%}
+{%- if content and content.strip() -%}
+{%- set trimmed = content.strip() -%}
+{{- '\n\n' ~ trimmed ~ '\n\n' }}
+{%- endif -%}
+{%- endif -%}
 {% endmacro %}

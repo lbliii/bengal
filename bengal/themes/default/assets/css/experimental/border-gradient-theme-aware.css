@@ -1,0 +1,348 @@
+/**
+ * Option D: Modern Gradient Borders - Theme-Aware
+ * 
+ * Uses theme color tokens to create palette-specific gradient borders.
+ * Each Bengal palette (blue, brown, silver, charcoal) gets its own unique gradient.
+ * 
+ * This file should be imported after palette tokens but before component styles.
+ */
+
+/* ============================================
+   GRADIENT BORDER UTILITIES
+   ============================================ */
+
+/* Define gradient border variables using theme tokens */
+:root {
+  /* Default gradient (uses primary + accent from current palette) */
+  --gradient-border: linear-gradient(
+    135deg,
+    var(--color-primary) 0%,
+    var(--color-accent) 50%,
+    var(--color-primary) 100%
+  );
+  
+  /* Subtle gradient (lighter, more muted) */
+  --gradient-border-subtle: linear-gradient(
+    135deg,
+    var(--color-primary-light) 0%,
+    var(--color-accent-light) 50%,
+    var(--color-primary-light) 100%
+  );
+  
+  /* Strong gradient (darker, more vibrant) */
+  --gradient-border-strong: linear-gradient(
+    135deg,
+    var(--color-primary) 0%,
+    var(--color-accent) 50%,
+    var(--color-primary-dark) 100%
+  );
+  
+  /* Hover gradient (enhanced) */
+  --gradient-border-hover: linear-gradient(
+    135deg,
+    var(--color-primary-hover) 0%,
+    var(--color-accent-hover) 50%,
+    var(--color-primary-hover) 100%
+  );
+}
+
+/* ============================================
+   GRADIENT BORDER MIXIN (Reusable Pattern)
+   ============================================ */
+
+/* 
+ * Usage: Apply .gradient-border class to any element
+ * Or use the gradient-border() pattern in your component CSS
+ */
+
+.gradient-border {
+  position: relative;
+  border: none;
+}
+
+.gradient-border::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: var(--gradient-border);
+  -webkit-mask: 
+    linear-gradient(#fff 0 0) content-box, 
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  opacity: 0.6;
+  transition: opacity var(--transition-base);
+}
+
+.gradient-border:hover::before {
+  opacity: 1;
+  background: var(--gradient-border-hover);
+}
+
+/* Subtle variant */
+.gradient-border-subtle::before {
+  background: var(--gradient-border-subtle);
+  opacity: 0.4;
+}
+
+.gradient-border-subtle:hover::before {
+  opacity: 0.7;
+}
+
+/* Strong variant */
+.gradient-border-strong::before {
+  background: var(--gradient-border-strong);
+  opacity: 0.8;
+}
+
+.gradient-border-strong:hover::before {
+  opacity: 1;
+}
+
+/* ============================================
+   COMPONENT-SPECIFIC GRADIENT BORDERS
+   ============================================ */
+
+/* Cards with gradient borders */
+.card.gradient-border,
+.article-card.gradient-border,
+.feature-card.gradient-border {
+  border-radius: var(--radius-xl); /* 12px */
+  box-shadow: 
+    0 1px 3px rgba(0, 0, 0, 0.05),
+    0 0 0 1px rgba(0, 0, 0, 0.05);
+}
+
+.card.gradient-border:hover,
+.article-card.gradient-border:hover,
+.feature-card.gradient-border:hover {
+  box-shadow: 
+    0 4px 12px rgba(0, 0, 0, 0.08),
+    0 0 0 1px rgba(0, 0, 0, 0.1);
+}
+
+/* Code blocks with gradient borders */
+pre.gradient-border {
+  border-radius: var(--radius-2xl); /* 16px */
+  border: none;
+  box-shadow: 
+    0 2px 8px rgba(0, 0, 0, 0.1),
+    0 0 0 1px rgba(0, 0, 0, 0.1);
+}
+
+pre.gradient-border::before {
+  opacity: 0.5; /* More subtle for code blocks */
+}
+
+pre.gradient-border:hover::before {
+  opacity: 0.7;
+}
+
+/* Buttons with gradient borders */
+.button.gradient-border {
+  border-radius: var(--radius-lg); /* 8px */
+  background: var(--color-bg-primary);
+  box-shadow: 
+    0 1px 2px rgba(0, 0, 0, 0.05),
+    0 0 0 1px rgba(0, 0, 0, 0.05);
+}
+
+.button.gradient-border::before {
+  padding: 2px; /* Thicker border for buttons */
+  opacity: 0.8;
+}
+
+.button.gradient-border:hover {
+  box-shadow: 
+    0 4px 8px rgba(0, 0, 0, 0.1),
+    0 0 0 1px rgba(0, 0, 0, 0.1);
+}
+
+/* Primary buttons don't need gradient border (they're already filled) */
+.button-primary.gradient-border::before {
+  display: none;
+}
+
+/* Form inputs with gradient borders */
+.form-input.gradient-border,
+.form-textarea.gradient-border,
+.form-select.gradient-border {
+  border-radius: var(--radius-lg); /* 8px */
+  border: none;
+  box-shadow: 
+    0 1px 2px rgba(0, 0, 0, 0.05),
+    0 0 0 1px rgba(0, 0, 0, 0.1);
+}
+
+.form-input.gradient-border::before,
+.form-textarea.gradient-border::before,
+.form-select.gradient-border::before {
+  opacity: 0.3; /* Very subtle for inputs */
+}
+
+.form-input.gradient-border:focus::before,
+.form-textarea.gradient-border:focus::before,
+.form-select.gradient-border:focus::before {
+  opacity: 0.8;
+  background: var(--gradient-border-hover);
+}
+
+/* Blockquotes with gradient borders */
+.prose blockquote.gradient-border {
+  border-radius: var(--radius-lg); /* 8px */
+  border-left: 4px solid var(--color-primary);
+  box-shadow: 
+    0 1px 3px rgba(0, 0, 0, 0.05),
+    0 0 0 1px rgba(0, 0, 0, 0.05);
+}
+
+.prose blockquote.gradient-border::before {
+  opacity: 0.2; /* Very subtle for blockquotes */
+}
+
+/* Admonitions with gradient borders */
+.admonition.gradient-border {
+  border-radius: 0 var(--radius-xl) var(--radius-xl) 0;
+  border-inline-start-width: 4px;
+}
+
+.admonition.gradient-border::before {
+  opacity: 0.3;
+  border-radius: 0 var(--radius-xl) var(--radius-xl) 0;
+}
+
+/* ============================================
+   PALETTE-SPECIFIC GRADIENT ADJUSTMENTS
+   ============================================ */
+
+/* Blue Bengal - Soft powder blue gradients */
+[data-palette="blue-bengal"] {
+  --gradient-border: linear-gradient(
+    135deg,
+    var(--color-primary) 0%,
+    var(--color-accent) 50%,
+    var(--color-primary-dark) 100%
+  );
+  
+  --gradient-border-subtle: linear-gradient(
+    135deg,
+    var(--color-primary-light) 0%,
+    #B4CFE6 50%,
+    var(--color-primary-light) 100%
+  );
+}
+
+/* Brown Bengal - Warm amber/gold gradients */
+[data-palette="brown-bengal"] {
+  --gradient-border: linear-gradient(
+    135deg,
+    var(--color-primary) 0%,
+    var(--color-accent) 50%,
+    var(--color-primary-dark) 100%
+  );
+  
+  --gradient-border-subtle: linear-gradient(
+    135deg,
+    var(--color-primary-light) 0%,
+    #FFC266 50%,
+    var(--color-primary-light) 100%
+  );
+}
+
+/* Silver Bengal - Cool silver/steel gradients */
+[data-palette="silver-bengal"] {
+  --gradient-border: linear-gradient(
+    135deg,
+    var(--color-primary) 0%,
+    var(--color-accent) 50%,
+    var(--color-primary-dark) 100%
+  );
+  
+  --gradient-border-subtle: linear-gradient(
+    135deg,
+    var(--color-primary-light) 0%,
+    var(--color-accent-light) 50%,
+    var(--color-primary-light) 100%
+  );
+}
+
+/* Charcoal Bengal - Rich dark gradients */
+[data-palette="charcoal-bengal"] {
+  --gradient-border: linear-gradient(
+    135deg,
+    var(--color-primary) 0%,
+    var(--color-accent) 50%,
+    var(--color-primary-dark) 100%
+  );
+  
+  --gradient-border-subtle: linear-gradient(
+    135deg,
+    var(--color-primary-light) 0%,
+    var(--color-accent-light) 50%,
+    var(--color-primary-light) 100%
+  );
+}
+
+/* ============================================
+   DARK MODE ADJUSTMENTS
+   ============================================ */
+
+[data-theme="dark"] .gradient-border::before {
+  opacity: 0.4; /* More subtle in dark mode */
+}
+
+[data-theme="dark"] .gradient-border:hover::before {
+  opacity: 0.7;
+}
+
+[data-theme="dark"] .gradient-border-subtle::before {
+  opacity: 0.2;
+}
+
+[data-theme="dark"] .gradient-border-subtle:hover::before {
+  opacity: 0.5;
+}
+
+[data-theme="dark"] .gradient-border-strong::before {
+  opacity: 0.6;
+}
+
+[data-theme="dark"] .gradient-border-strong:hover::before {
+  opacity: 0.9;
+}
+
+/* ============================================
+   FALLBACK FOR BROWSERS WITHOUT MASK SUPPORT
+   ============================================ */
+
+@supports not (-webkit-mask-composite: xor) {
+  .gradient-border {
+    border: 1px solid var(--color-primary);
+    border-image: var(--gradient-border) 1;
+  }
+  
+  .gradient-border::before {
+    display: none;
+  }
+}
+
+/* ============================================
+   ACCESSIBILITY
+   ============================================ */
+
+/* Respect reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .gradient-border::before {
+    transition: none;
+  }
+}
+
+/* Ensure sufficient contrast */
+.gradient-border:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+}
+

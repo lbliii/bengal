@@ -25,17 +25,11 @@ description: "⌨️  Generate CLI documentation from Click/argparse/typer apps.
 Extracts documentation from command-line interfaces to create
 comprehensive command reference documentation.
 
-
-
-
 ## Usage
 
 ```bash
 autodoc-cli [OPTIONS] [ARGUMENTS]
 ```
-
-
-
 
 ## Options
 
@@ -45,7 +39,6 @@ autodoc-cli [OPTIONS] [ARGUMENTS]
 CLI app module (e.g., bengal.cli:main)
 
 **Type:** `text`
-
 
 
 
@@ -63,14 +56,12 @@ CLI framework (default: click)
 
 
 
-
 ### `output`
 
 
 Output directory for generated docs (default: content/cli)
 
 **Type:** `path`
-
 
 
 
@@ -88,7 +79,6 @@ Include hidden commands
 
 
 
-
 ### `clean`
 
 
@@ -97,7 +87,6 @@ Clean output directory before generating
 **Type:** `boolean`
 
 **Default:** `False`
-
 
 
 
@@ -114,19 +103,12 @@ Show detailed progress
 
 
 
-
 ### `config`
 
 
 Path to config file (default: bengal.toml)
 
 **Type:** `path`
-
-
-
-
-
-
 
 
 

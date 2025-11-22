@@ -22,17 +22,11 @@ description: "Build assets using the configured pipeline (if enabled)."
 
 Build assets using the configured pipeline (if enabled).
 
-
-
-
 ## Usage
 
 ```bash
 build [OPTIONS] [ARGUMENTS]
 ```
-
-
-
 
 ## Arguments
 
@@ -48,13 +42,6 @@ build [OPTIONS] [ARGUMENTS]
 This argument is optional.
 ```
 
-
-
-
-
-
-
-
 ## Options
 
 ### `watch`
@@ -65,11 +52,6 @@ Watch assets and rebuild on changes
 **Type:** `boolean`
 
 **Default:** `False`
-
-
-
-
-
 
 
 

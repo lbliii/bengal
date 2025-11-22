@@ -22,17 +22,11 @@ description: "List swizzlable templates from the active theme chain."
 
 List swizzlable templates from the active theme chain.
 
-
-
-
 ## Usage
 
 ```bash
 discover [OPTIONS] [ARGUMENTS]
 ```
-
-
-
 
 ## Arguments
 
@@ -47,11 +41,6 @@ discover [OPTIONS] [ARGUMENTS]
 ```{info}
 This argument is optional.
 ```
-
-
-
-
-
 
 
 

@@ -11,9 +11,13 @@
   position: relative;
   margin: var(--space-6) 0;
   border: 1px solid var(--color-border-light);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg); /* Increased from --radius-md (4px → 8px) */
   background-color: var(--color-bg-primary);
   overflow: hidden;
+}
+
+.tabs.gradient-border {
+  border: none;
 }
 
 /* ============================================

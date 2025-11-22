@@ -18,10 +18,25 @@
   text-align: center;
   text-decoration: none;
   border: 2px solid transparent;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg); /* Increased from --radius-md (4px → 8px) */
   cursor: pointer;
   transition: color var(--motion-medium), background-color var(--motion-medium), border-color var(--motion-medium), box-shadow var(--motion-medium), transform var(--motion-medium);
   white-space: nowrap;
+}
+
+.button.gradient-border {
+  border: none;
+  background: var(--color-bg-primary);
+}
+
+.button-primary {
+  background: var(--button-primary-gradient);
+  color: white;
+}
+
+.button-primary.gradient-border::before {
+  display: none; /* No border needed on filled button */
+}
 
   &:hover {
     transform: translate3d(0, calc(-1 * var(--motion-distance-1)), 0);

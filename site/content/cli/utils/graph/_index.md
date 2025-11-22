@@ -22,17 +22,11 @@ description: "Commands for analyzing the site\'s knowledge graph."
 
 Commands for analyzing the site's knowledge graph.
 
-
-
-
 ## Usage
 
 ```bash
 graph [OPTIONS] [ARGUMENTS]
 ```
-
-
-
 
 ## Subcommands
 
@@ -41,7 +35,6 @@ graph [OPTIONS] [ARGUMENTS]
 📊 Analyze site structure and connectivity.
 
 **Usage:** `graph analyze [OPTIONS]`
-
 
 
 
@@ -66,7 +59,6 @@ Use path analysis to:
 
 
 
-
 ### `communities`
 
 🔍 Discover topical communities in your content.
@@ -81,7 +73,6 @@ Use community detection to:
 - Guide taxonomy creation
 
 **Usage:** `graph communities [OPTIONS]`
-
 
 
 
@@ -104,7 +95,6 @@ Use PageRank to:
 
 
 
-
 ### `suggest`
 
 💡 Generate smart link suggestions to improve internal linking.
@@ -122,11 +112,6 @@ Use link suggestions to:
 - Fill navigation gaps
 
 **Usage:** `graph suggest [OPTIONS]`
-
-
-
-
-
 
 
 

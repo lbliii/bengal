@@ -31,17 +31,11 @@ Use community detection to:
 - Identify topic clusters
 - Guide taxonomy creation
 
-
-
-
 ## Usage
 
 ```bash
 communities [OPTIONS] [ARGUMENTS]
 ```
-
-
-
 
 ## Arguments
 
@@ -57,13 +51,6 @@ communities [OPTIONS] [ARGUMENTS]
 This argument is optional.
 ```
 
-
-
-
-
-
-
-
 ## Options
 
 ### `min_size`
@@ -74,7 +61,6 @@ Minimum community size to show (default: 2)
 **Type:** `integer`
 
 **Default:** `2`
-
 
 
 
@@ -91,7 +77,6 @@ Resolution parameter (higher = more communities, default: 1.0)
 
 
 
-
 ### `top_n`
 
 
@@ -100,7 +85,6 @@ Number of communities to show (default: 10)
 **Type:** `integer`
 
 **Default:** `10`
-
 
 
 
@@ -117,7 +101,6 @@ Output format (default: table)
 
 
 
-
 ### `seed`
 
 
@@ -129,19 +112,12 @@ Random seed for reproducibility
 
 
 
-
 ### `config`
 
 
 Path to config file (default: bengal.toml)
 
 **Type:** `path`
-
-
-
-
-
-
 
 
 

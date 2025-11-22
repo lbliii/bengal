@@ -25,17 +25,11 @@ description: "🔨 Build the static site. Generates HTML files from your content
 Generates HTML files from your content, applies templates,
 processes assets, and outputs a production-ready site.
 
-
-
-
 ## Usage
 
 ```bash
 build [OPTIONS] [ARGUMENTS]
 ```
-
-
-
 
 ## Arguments
 
@@ -51,13 +45,6 @@ build [OPTIONS] [ARGUMENTS]
 This argument is optional.
 ```
 
-
-
-
-
-
-
-
 ## Options
 
 ### `parallel`
@@ -72,14 +59,12 @@ Enable parallel processing for faster builds (default: enabled)
 
 
 
-
 ### `incremental`
 
 
 Incremental mode: auto when omitted (uses cache if present).
 
 **Type:** `boolean`
-
 
 
 
@@ -97,14 +82,12 @@ Use streaming build for memory efficiency (best for 5K+ pages)
 
 
 
-
 ### `environment`
 
 
 Environment name (local, preview, production) - auto-detects if not specified
 
 **Type:** `text`
-
 
 
 
@@ -121,14 +104,12 @@ Build profile: writer (fast/clean), theme-dev (templates), dev (full debug)
 
 
 
-
 ### `perf_profile`
 
 
 Enable performance profiling and save to file (default: .bengal/profiles/profile.stats)
 
 **Type:** `path`
-
 
 
 
@@ -146,7 +127,6 @@ Use theme developer profile (shorthand for --profile theme-dev)
 
 
 
-
 ### `use_dev`
 
 
@@ -155,7 +135,6 @@ Use developer profile with full observability (shorthand for --profile dev)
 **Type:** `boolean`
 
 **Default:** `False`
-
 
 
 
@@ -172,7 +151,6 @@ Show detailed build information (maps to theme-dev profile)
 
 
 
-
 ### `strict`
 
 
@@ -181,7 +159,6 @@ Fail on template errors (recommended for CI/CD)
 **Type:** `boolean`
 
 **Default:** `False`
-
 
 
 
@@ -198,14 +175,12 @@ Show debug output and full tracebacks (maps to dev profile)
 
 
 
-
 ### `traceback`
 
 
 Traceback verbosity: full | compact | minimal | off
 
 **Type:** `choice`
-
 
 
 
@@ -223,14 +198,12 @@ Validate templates before building (catch errors early)
 
 
 
-
 ### `assets_pipeline`
 
 
 Enable/disable Node-based assets pipeline (overrides config)
 
 **Type:** `boolean`
-
 
 
 
@@ -247,14 +220,12 @@ Force regenerate autodoc before building (overrides config)
 
 
 
-
 ### `config`
 
 
 Path to config file (default: bengal.toml)
 
 **Type:** `path`
-
 
 
 
@@ -272,14 +243,12 @@ Minimal output - only show errors and summary
 
 
 
-
 ### `fast`
 
 
 Fast mode: quiet output, guaranteed parallel, max speed (overrides config)
 
 **Type:** `boolean`
-
 
 
 
@@ -297,19 +266,12 @@ Show full traditional output instead of live progress (useful for debugging)
 
 
 
-
 ### `log_file`
 
 
 Write detailed logs to file (default: .bengal-build.log)
 
 **Type:** `path`
-
-
-
-
-
-
 
 
 

@@ -22,17 +22,11 @@ description: "📊 Analyze site structure and connectivity."
 
 📊 Analyze site structure and connectivity.
 
-
-
-
 ## Usage
 
 ```bash
 analyze [OPTIONS] [ARGUMENTS]
 ```
-
-
-
 
 ## Arguments
 
@@ -48,13 +42,6 @@ analyze [OPTIONS] [ARGUMENTS]
 This argument is optional.
 ```
 
-
-
-
-
-
-
-
 ## Options
 
 ### `show_stats`
@@ -65,7 +52,6 @@ Show graph statistics (default: enabled)
 **Type:** `boolean`
 
 **Default:** `True`
-
 
 
 
@@ -82,7 +68,6 @@ Show site structure as tree visualization
 
 
 
-
 ### `output`
 
 
@@ -94,19 +79,12 @@ Generate interactive visualization to file (e.g., public/graph.html)
 
 
 
-
 ### `config`
 
 
 Path to config file (default: bengal.toml)
 
 **Type:** `path`
-
-
-
-
-
-
 
 
 
