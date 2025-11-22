@@ -31,14 +31,21 @@
   max-width: 1600px;
   margin: 0 auto;
   padding-block: 1rem 2rem; /* Reduced top from 2rem to 1rem for tighter spacing beneath navbar */
+  padding-inline: var(--space-4); /* Default padding when NOT inside container */
   align-items: start;
 }
 
 /* Remove container constraints for docs layout */
+/* When docs-layout is inside a container, remove container padding to avoid double padding */
 .container>.docs-layout {
   max-width: 100%;
   margin: 0;
-  padding-inline: var(--space-4); /* Reduced from 2rem (32px) to --space-4 (16px) for tighter horizontal spacing */
+  padding-inline: 0; /* Remove padding when inside container - container already provides padding */
+}
+
+/* Docs layout provides its own padding when NOT inside a container */
+.docs-layout:not(.container > *) {
+  padding-inline: var(--space-4);
 }
 
 /* Left Sidebar (Navigation) */
