@@ -15,7 +15,9 @@
   border-radius: var(--radius-lg);
   box-shadow: var(--elevation-low);
   overflow: hidden;
-  transition: box-shadow var(--motion-medium), transform var(--motion-medium), border-color var(--motion-medium);
+  transition: box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+              border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* When card is a link, remove underlines */
@@ -27,6 +29,13 @@ a.card {
 .card:hover {
   box-shadow: var(--elevation-high);
   transform: translateY(calc(-1 * var(--motion-distance-2)));
+}
+
+/* Disable transform animations on mobile for performance */
+@media (max-width: 768px) {
+  .card:hover {
+    transform: none;
+  }
 }
 
 /* ============================================
