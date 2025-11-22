@@ -28,7 +28,8 @@ fixed:
 {% from 'partials/navigation-components.html' import breadcrumbs %}
 
 {% block content %}
-{{ breadcrumbs(page) }}
+{# Action Bar: Breadcrumbs + Share #}
+{% include 'partials/action-bar.html' %}
 
 <article class="changelog-single">
     <header class="release-header">
