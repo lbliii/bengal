@@ -254,11 +254,12 @@
     background: transparent;
     border: none;
     cursor: pointer;
-    transition: all var(--transition-fast);
+    transition: transform var(--transition-smooth);
     flex-shrink: 0;
     touch-action: manipulation;
     user-select: none;
     -webkit-tap-highlight-color: transparent;
+    will-change: transform;
 }
 
 .toc-count-toggle:hover {
