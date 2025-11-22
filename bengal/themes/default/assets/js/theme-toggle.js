@@ -44,8 +44,12 @@
   }
 
   function setPalette(palette) {
-    if (palette) {
-      document.documentElement.setAttribute('data-palette', palette);
+    if (palette !== null) {
+      if (palette) {
+        document.documentElement.setAttribute('data-palette', palette);
+      } else {
+        document.documentElement.removeAttribute('data-palette');
+      }
       localStorage.setItem(PALETTE_KEY, palette);
     } else {
       document.documentElement.removeAttribute('data-palette');
