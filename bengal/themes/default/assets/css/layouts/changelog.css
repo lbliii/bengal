@@ -365,13 +365,13 @@
 .release-details {
     margin-top: var(--space-8);
     padding-top: var(--space-8);
-    border-top: 1px solid var(--color-border-light);
+    border-block-start: 1px solid var(--color-border-light); /* Changed from border-top */
 }
 
 .release-footer {
     margin-top: var(--space-8);
     padding-top: var(--space-6);
-    border-top: 1px solid var(--color-border-light);
+    border-block-start: 1px solid var(--color-border-light); /* Changed from border-top */
 }
 
 .release-links {
