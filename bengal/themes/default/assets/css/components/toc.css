@@ -349,6 +349,8 @@
     word-wrap: break-word;
     overflow-wrap: break-word;
     hyphens: auto;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .toc-link:hover {
