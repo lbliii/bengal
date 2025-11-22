@@ -265,6 +265,8 @@ header .container {
 
 .mobile-nav.is-open {
   display: block;
+  transform: translate3d(0, 0, 0);
+  will-change: auto;
 }
 
 .mobile-nav-header {
