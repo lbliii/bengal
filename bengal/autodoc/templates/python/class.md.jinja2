@@ -1,0 +1,55 @@
+{#-
+Python Class Template
+
+Template for individual Python class documentation.
+Extends Python base template with class-specific features.
+-#}
+
+{% extends "base/python_base.md.jinja2" %}
+
+{% from 'macros/safe_macros.md.jinja2' import safe_section %}
+
+{% block doc_type %}python-class{% endblock %}
+
+{% block badges %}
+```{badge} Class
+:class: api-badge api-badge-class
+```
+
+{% if element.metadata.is_dataclass %}
+```{badge} Dataclass
+:class: api-badge api-badge-dataclass
+```
+{% endif %}
+
+{% if element.metadata.deprecated %}
+```{badge} Deprecated
+:class: api-badge api-badge-deprecated
+```
+{% endif %}
+{% endblock %}
+
+{% block content %}
+{#- Class description -#}
+{% call safe_section("description") %}
+  {% include 'python/partials/class_description.md.jinja2' %}
+{% endcall %}
+
+{#- Pass element as item for class component partials -#}
+{% with item = element %}
+{#- Class attributes -#}
+{% call safe_section("attributes") %}
+  {% include 'python/partials/class_attributes.md.jinja2' %}
+{% endcall %}
+
+{#- Class properties -#}
+{% call safe_section("properties") %}
+  {% include 'python/partials/class_properties.md.jinja2' %}
+{% endcall %}
+
+{#- Class methods -#}
+{% call safe_section("methods") %}
+  {% include 'python/partials/class_methods.md.jinja2' %}
+{% endcall %}
+{% endwith %}
+{% endblock %}

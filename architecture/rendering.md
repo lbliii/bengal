@@ -365,3 +365,14 @@ Provide 75+ custom filters and functions for Jinja2 templates
 | **navigation.py** | 4 | `breadcrumbs`, `active_menu`, `menu_tree`, navigation helpers |
 
 **Total**: 75+ functions across 17 modules
+
+### Example Custom Filters
+
+The `example_templates/filters/` directory contains example implementations of custom Jinja2 filters for specific use cases:
+
+- **`safe_filters.py`** - Filters for safer template rendering, particularly useful for autodoc templates:
+  - `safe_description` - Safely formats text for YAML frontmatter
+  - `code_or_dash` - Wraps values in code backticks or shows dash
+  - `safe_anchor` - Generates safe anchor links
+
+See [`example_templates/README.md`](../example_templates/README.md) for usage examples.

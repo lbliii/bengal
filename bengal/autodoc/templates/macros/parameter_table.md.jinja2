@@ -1,0 +1,149 @@
+{#-
+Unified Parameter Table Macro
+
+This macro creates consistent parameter/argument tables across all documentation types:
+- Python function parameters
+- CLI command options and arguments
+- OpenAPI endpoint parameters
+- Class method parameters
+-#}
+
+{% from 'macros/safe_macros.md.jinja2' import safe_render, safe_var, safe_attr %}
+
+{#- Main parameter table macro -#}
+{% macro parameter_table(parameters, title="Parameters", show_types=true, show_defaults=true, show_required=false, table_style="list") %}
+{% if parameters and parameters|length > 0 %}
+
+{% if table_style == "dropdown" %}
+{{ parameter_dropdown(parameters, title, show_types, show_defaults, show_required) }}
+{% else %}
+{{ parameter_list_table(parameters, title, show_types, show_defaults, show_required) }}
+{% endif %}
+
+{% endif %}
+{% endmacro %}
+
+{#- List table format (default) -#}
+{% macro parameter_list_table(parameters, title, show_types, show_defaults, show_required) %}
+**{{ title }}:**
+
+| Name | {% if show_types %}Type | {% endif %}{% if show_defaults %}Default | {% endif %}{% if show_required %}Required | {% endif %}Description |
+|------|{% if show_types %}------|{% endif %}{% if show_defaults %}---------|{% endif %}{% if show_required %}----------|{% endif %}-------------|
+{%- for param in parameters %}
+{%- call safe_render("parameter", param) %}
+| `{{ safe_attr(param, 'name', 'unknown') }}` | {% if show_types %}{{ param_type(param) }} | {% endif %}{% if show_defaults %}{{ param_default(param) }} | {% endif %}{% if show_required %}{{ param_required(param) }} | {% endif %}{{ param_description(param) }} |
+{%- endcall %}
+{%- endfor %}
+{% endmacro %}
+
+{#- Dropdown format for large parameter lists -#}
+{% macro parameter_dropdown(parameters, title, show_types, show_defaults, show_required) %}
+:::{rubric} {{ title }}
+:class: rubric-parameters
+:::
+
+::::{dropdown} {{ parameters|length }} {{ title.lower() }} (click to expand)
+:open: false
+
+{{ parameter_list_table(parameters, title, show_types, show_defaults, show_required) }}
+
+::::
+{% endmacro %}
+
+{#- Helper macros for parameter properties -#}
+{% macro param_type(param) %}
+{%- set type_val = safe_attr(param, 'type', '') or safe_attr(param, 'annotation', '') -%}
+{%- if type_val and type_val != 'None' -%}
+`{{ type_val }}`
+{%- else -%}
+-
+{%- endif -%}
+{% endmacro %}
+
+{% macro param_default(param) %}
+{%- set default_val = safe_attr(param, 'default', '') -%}
+{%- set default_str = default_val|string -%}
+{%- if default_val and default_str not in ['None', '', 'null'] and 'Sentinel' not in default_str -%}
+`{{ default_val }}`
+{%- else -%}
+-
+{%- endif -%}
+{% endmacro %}
+
+{% macro param_required(param) %}
+{%- set required = safe_attr(param, 'required', false) -%}
+{%- if required -%}
+✓
+{%- else -%}
+-
+{%- endif -%}
+{% endmacro %}
+
+{% macro param_description(param) %}
+{%- set desc = safe_attr(param, 'description', '') or safe_attr(param, 'docstring', '') -%}
+{%- if desc -%}
+{{ desc }}
+{%- else -%}
+*No description provided.*
+{%- endif -%}
+{% endmacro %}
+
+{#- Specialized parameter tables for different contexts -#}
+
+{#- Python function parameters -#}
+{% macro python_parameters(args, title="Parameters") %}
+{{ parameter_table(args, title, show_types=true, show_defaults=true, show_required=false) }}
+{% endmacro %}
+
+{#- CLI command options -#}
+{% macro cli_options(options, title="Options") %}
+{{ parameter_table(options, title, show_types=true, show_defaults=true, show_required=true) }}
+{% endmacro %}
+
+{#- CLI command arguments -#}
+{% macro cli_arguments(arguments, title="Arguments") %}
+{{ parameter_table(arguments, title, show_types=true, show_defaults=false, show_required=true) }}
+{% endmacro %}
+
+{#- OpenAPI parameters (query, path, header) -#}
+{% macro openapi_parameters(parameters, title="Parameters") %}
+{{ parameter_table(parameters, title, show_types=true, show_defaults=true, show_required=true) }}
+{% endmacro %}
+
+{#- Class attributes table -#}
+{% macro attribute_table(attributes, title="Attributes") %}
+{% if attributes and attributes|length > 0 %}
+
+**{{ title }}:**
+
+| Name | Type | Description |
+|------|------|-------------|
+{%- for attr in attributes %}
+{%- call safe_render("attribute", attr) %}
+| `{{ safe_attr(attr, 'name', 'unknown') }}` | {{ param_type(attr) }} | {{ param_description(attr) }} |
+{%- endcall %}
+{%- endfor %}
+
+{% endif %}
+{% endmacro %}
+
+{#- Returns/Response table -#}
+{% macro returns_table(returns_info, title="Returns") %}
+{% if returns_info %}
+
+**{{ title }}:**
+
+| Type | Description |
+|------|-------------|
+{%- if returns_info is iterable and returns_info is not string %}
+{%- for return_item in returns_info %}
+{%- call safe_render("return", return_item) %}
+| {{ param_type(return_item) }} | {{ param_description(return_item) }} |
+{%- endcall %}
+{%- endfor %}
+{%- else %}
+| {{ param_type(returns_info) }} | {{ param_description(returns_info) }} |
+{%- endif %}
+
+{% endif %}
+{% endmacro %}

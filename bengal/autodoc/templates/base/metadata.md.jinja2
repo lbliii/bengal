@@ -1,0 +1,71 @@
+{#-
+Shared Metadata Template
+
+Provides consistent frontmatter generation across all documentation types.
+Can be included or extended by other templates.
+-#}
+
+{#- Standard metadata that all docs should have -#}
+{% macro standard_metadata(element, doc_type="doc", extra_metadata={}) %}
+---
+title: "{{ element.name | default('Documentation') }}"
+type: "{{ doc_type }}"
+{% if element and element.source_file %}
+source_file: "{{ element.source_file | project_relative }}"
+{% endif %}
+{% if element and element.line_number %}
+line_number: {{ element.line_number }}
+{% endif %}
+description: "{{ element.description | safe_description | default('Documentation') }}"
+{% if element and element.element_type %}
+element_type: "{{ element.element_type }}"
+{% endif %}
+{% if element and element.qualified_name %}
+qualified_name: "{{ element.qualified_name }}"
+{% endif %}
+
+{#- Add any extra metadata passed in -#}
+{% for key, value in extra_metadata.items() %}
+{{ key }}: {{ value | tojson }}
+{% endfor %}
+
+{#- Auto-generated metadata -#}
+generated_at: "{{ moment().isoformat() }}"
+generator: "bengal-autodoc"
+---
+{% endmacro %}
+
+{#- Python-specific metadata -#}
+{% macro python_metadata(element, extra_metadata={}) %}
+{{ standard_metadata(element, "python-api", {
+    "module_path": element.qualified_name if element else "",
+    "is_class": element.element_type == "class" if element else false,
+    "is_function": element.element_type == "function" if element else false,
+    "is_method": element.element_type == "method" if element else false
+}) }}
+{% endmacro %}
+
+{#- CLI-specific metadata -#}
+{% macro cli_metadata(element, extra_metadata={}) %}
+{{ standard_metadata(element, "cli-reference", {
+    "command_path": element.qualified_name if element else "",
+    "is_command_group": element.element_type == "command-group" if element else false,
+    "is_command": element.element_type == "command" if element else false
+}) }}
+{% endmacro %}
+
+{#- OpenAPI-specific metadata -#}
+{% macro openapi_metadata(element, extra_metadata={}) %}
+{{ standard_metadata(element, "api-endpoint", {
+    "endpoint_path": element.qualified_name if element else "",
+    "http_method": element.metadata.method if element and element.metadata else "",
+    "is_endpoint": element.element_type == "endpoint" if element else false,
+    "is_schema": element.element_type == "schema" if element else false
+}) }}
+{% endmacro %}
+
+{#- Utility function to get current timestamp -#}
+{% macro moment() %}
+{#- This would ideally use a proper datetime function, but for now use a placeholder -#}
+{{ "2024-01-01T00:00:00Z" }}
+{% endmacro %}

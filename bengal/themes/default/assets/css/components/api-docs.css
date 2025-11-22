@@ -238,6 +238,12 @@
   border: 1px solid var(--color-primary);
 }
 
+.api-badge-class {
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  border: 1px solid var(--color-primary);
+}
+
 /* CSS-based badges using pseudo-elements */
 .prose h4.api-property::after,
 .prose h3.api-async::after,

@@ -4,7 +4,6 @@ CLI documentation extractor for autodoc system.
 Extracts documentation from command-line applications built with Click, argparse, or Typer.
 """
 
-
 from __future__ import annotations
 
 import inspect
@@ -15,6 +14,54 @@ import click
 
 from bengal.autodoc.base import DocElement, Extractor
 from bengal.autodoc.utils import sanitize_text
+
+
+def _is_sentinel_value(value: Any) -> bool:
+    """
+    Check if a value is a Click sentinel (like UNSET).
+
+    Click uses sentinel objects to distinguish between "not provided" and None.
+    These should not appear in user-facing documentation.
+
+    Args:
+        value: Value to check
+
+    Returns:
+        True if value is a sentinel that should be filtered
+    """
+    if value is None:
+        return False
+
+    # Convert to string and check for sentinel markers
+    value_str = str(value)
+
+    # Common sentinel patterns in Click
+    if any(marker in value_str for marker in ["Sentinel", "UNSET", "_missing"]):
+        return True
+
+    # Check if it's Click's actual _missing sentinel
+    return (
+        hasattr(click, "core") and hasattr(click.core, "_missing") and value is click.core._missing
+    )
+
+
+def _format_default_value(value: Any) -> str | None:
+    """
+    Format a default value for display, filtering sentinel values.
+
+    Args:
+        value: The default value to format
+
+    Returns:
+        Formatted string or None if value should not be displayed
+    """
+    if value is None:
+        return None
+
+    if _is_sentinel_value(value):
+        return None
+
+    return str(value)
 
 
 class CLIExtractor(Extractor):
@@ -299,7 +346,7 @@ class CLIExtractor(Extractor):
             "param_type": param.__class__.__name__,
             "type": type_name,
             "required": param.required,
-            "default": str(param.default) if param.default is not None else None,
+            "default": _format_default_value(param.default),
             "multiple": getattr(param, "multiple", False),
             "is_flag": getattr(param, "is_flag", False),
             "count": getattr(param, "count", False),
@@ -516,10 +563,10 @@ class CLIExtractor(Extractor):
     @override
     def get_template_dir(self) -> str:
         """
-        Get template directory name for CLI documentation.
+        Get the template directory name for this extractor.
 
         Returns:
-            'cli'
+            Template directory name (e.g., 'cli', 'python', 'openapi')
         """
         return "cli"
 

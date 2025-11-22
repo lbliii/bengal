@@ -1,0 +1,18 @@
+{
+  "enabled": true,
+  "name": "Code Quality Analyzer",
+  "description": "Monitors source code files for changes and provides suggestions for code quality improvements including code smells, design patterns, and best practices while maintaining functionality",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "bengal/**/*.py",
+      "tests/**/*.py",
+      "*.py"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Analyze the modified Python code for potential improvements. Focus on:\n\n1. **Code Smells**: Identify long methods, large classes, duplicate code, complex conditionals, and other maintainability issues\n2. **Design Patterns**: Suggest appropriate design patterns that could improve the code structure\n3. **Best Practices**: Check for Python best practices including:\n   - Type hints and annotations\n   - Docstring quality and completeness\n   - Error handling patterns\n   - Import organization\n   - Variable and function naming\n   - Code organization and modularity\n4. **Performance**: Identify potential performance optimizations\n5. **Readability**: Suggest improvements for code clarity and maintainability\n6. **Testing**: Recommend testing improvements if test files are modified\n\nProvide specific, actionable suggestions while preserving the existing functionality. Consider the Bengal project's architecture patterns (dependency injection, modular design, protocol-based interfaces) and coding standards (ruff formatting, type hints, structured exceptions)."
+  }
+}

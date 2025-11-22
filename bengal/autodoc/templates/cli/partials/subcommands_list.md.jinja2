@@ -1,0 +1,40 @@
+{#-
+CLI Subcommands List Component
+
+Renders nested subcommands with navigation links.
+Provides overview of available subcommands with descriptions.
+-#}
+
+{% from 'macros/safe_macros.md.jinja2' import safe_render, safe_for %}
+{% from 'macros/navigation.md.jinja2' import doc_link %}
+
+{% set subcommands = element.children | selectattr('element_type', 'equalto', 'command') | list %}
+
+{% if subcommands %}
+## Subcommands
+
+{% call(current_item) safe_for(subcommands, "*No subcommands available.*") %}
+{% call safe_render("subcommand", current_item) %}
+### `{{ current_item.name }}`
+
+{% if current_item.description %}
+{{ current_item.description }}
+{% else %}
+*No description provided.*
+{% endif %}
+
+**Usage:** `{{ element.name }} {{ current_item.name }} [OPTIONS]`
+
+{% if current_item.metadata.aliases %}
+**Aliases:** {% for alias in current_item.metadata.aliases %}`{{ alias }}`{% if not loop.last %}, {% endif %}{% endfor %}
+{% endif %}
+
+{% if current_item.metadata.deprecated %}
+```{warning}
+This subcommand is deprecated: {{ current_item.metadata.deprecated }}
+```
+{% endif %}
+
+{% endcall %}
+{% endcall %}
+{% endif %}

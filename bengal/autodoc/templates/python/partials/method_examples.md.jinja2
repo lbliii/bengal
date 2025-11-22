@@ -1,0 +1,21 @@
+{#-
+Method Examples Component
+
+Renders code examples for methods and functions.
+Handles both pre-formatted and raw code examples safely.
+-#}
+
+{% from 'macros/safe_macros.md.jinja2' import safe_section, safe_for %}
+{% from 'macros/code_blocks.md.jinja2' import code_block %}
+
+{% if item.metadata.parsed_doc.examples %}
+{% call safe_section("method_examples") %}
+:::{rubric} Examples
+:class: rubric-examples
+:::
+
+{% call(current_item) safe_for(item.metadata.parsed_doc.examples, "*No examples provided.*") %}
+{{ code_block(current_item, 'python') }}
+{% endcall %}
+{% endcall %}
+{% endif %}

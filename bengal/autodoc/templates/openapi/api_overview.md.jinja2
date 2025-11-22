@@ -1,0 +1,51 @@
+{#-
+OpenAPI API Overview Template
+
+Main template for API documentation overview.
+Provides a comprehensive view of the entire API with endpoints grouped by tags.
+-#}
+
+{% extends "base/openapi_base.md.jinja2" %}
+
+{% from 'macros/safe_macros.md.jinja2' import safe_section %}
+
+{% block doc_type %}api-overview{% endblock %}
+
+{% block badges %}
+```{badge} API Documentation
+:class: badge-primary
+```
+
+{% if element.metadata.version %}
+```{badge} v{{ element.metadata.version }}
+:class: badge-secondary
+```
+{% endif %}
+{% endblock %}
+
+{% block content %}
+{#- API description -#}
+{% call safe_section("description") %}
+  {% include 'openapi/partials/api_description.md.jinja2' %}
+{% endcall %}
+
+{#- API information -#}
+{% call safe_section("api_info") %}
+  {% include 'openapi/partials/api_info.md.jinja2' %}
+{% endcall %}
+
+{#- Authentication overview -#}
+{% call safe_section("authentication") %}
+  {% include 'openapi/partials/api_authentication.md.jinja2' %}
+{% endcall %}
+
+{#- Endpoints by tags -#}
+{% call safe_section("endpoints") %}
+  {% include 'openapi/partials/endpoints_overview.md.jinja2' %}
+{% endcall %}
+
+{#- Data schemas -#}
+{% call safe_section("schemas") %}
+  {% include 'openapi/partials/schemas_overview.md.jinja2' %}
+{% endcall %}
+{% endblock %}

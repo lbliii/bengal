@@ -1,0 +1,32 @@
+{#-
+Method Notes and Warnings Component
+
+Renders notes and warnings for methods and functions.
+Uses MyST admonitions for proper formatting.
+-#}
+
+{% from 'macros/safe_macros.md.jinja2' import safe_section, safe_for %}
+
+{#- Notes section -#}
+{% if item.metadata.parsed_doc.notes %}
+{% call safe_section("method_notes") %}
+{% call(current_item) safe_for(item.metadata.parsed_doc.notes, "") %}
+```{note}
+{{ current_item }}
+```
+
+{% endcall %}
+{% endcall %}
+{% endif %}
+
+{#- Warnings section -#}
+{% if item.metadata.parsed_doc.warnings %}
+{% call safe_section("method_warnings") %}
+{% call(current_item) safe_for(item.metadata.parsed_doc.warnings, "") %}
+```{warning}
+{{ current_item }}
+```
+
+{% endcall %}
+{% endcall %}
+{% endif %}

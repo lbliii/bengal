@@ -1,0 +1,52 @@
+{#-
+Schema Description Component
+
+Renders schema description with type information and constraints.
+Handles different schema types and validation rules safely.
+-#}
+
+{% from 'macros/safe_macros.md.jinja2' import safe_section %}
+
+{% call safe_section("schema_description") %}
+{% if element.description %}
+{{ element.description }}
+{% else %}
+*No schema description provided.*
+{% endif %}
+
+{% if element.metadata.type %}
+**Type:** `{{ element.metadata.type }}`
+{% endif %}
+
+{% if element.metadata.format %}
+**Format:** `{{ element.metadata.format }}`
+{% endif %}
+
+{% if element.metadata.title %}
+**Title:** {{ element.metadata.title }}
+{% endif %}
+
+{% if element.metadata.deprecated %}
+```{warning} Deprecated Schema
+This schema is deprecated and may be removed in future versions.
+```
+{% endif %}
+
+{% if element.metadata.read_only %}
+```{info}
+This schema is read-only.
+```
+{% endif %}
+
+{% if element.metadata.write_only %}
+```{info}
+This schema is write-only.
+```
+{% endif %}
+
+{% if element.metadata.nullable %}
+```{note}
+This schema allows null values.
+```
+{% endif %}
+{% endcall %}

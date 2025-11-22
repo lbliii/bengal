@@ -2,6 +2,7 @@
 Tests for Python AST-based extractor.
 """
 
+from pathlib import Path
 from textwrap import dedent
 
 from bengal.autodoc.extractors.python import PythonExtractor
@@ -522,3 +523,209 @@ def test_extract_inherited_members_by_type(tmp_path):
     # Should have inherited method via per-type setting
     method_names = [m.name for m in derived_cls.children]
     assert "base_method" in method_names
+
+
+# ===== URL Grouping Tests =====
+
+
+def test_get_output_path_no_grouping(tmp_path):
+    """Test get_output_path without grouping (default behavior)."""
+    source = tmp_path / "mypackage" / "core"
+    source.mkdir(parents=True)
+    (source / "__init__.py").write_text("'''Core module.'''")
+
+    config = {"source_dirs": [str(tmp_path / "mypackage")]}
+    extractor = PythonExtractor(config=config)
+    elements = extractor.extract(source)
+
+    module = elements[0]
+    output_path = extractor.get_output_path(module)
+
+    # Without grouping: core/_index.md
+    assert output_path == Path("core/_index.md")
+
+
+def test_get_output_path_auto_mode(tmp_path):
+    """Test get_output_path with auto mode grouping."""
+    # Create structure: mypackage/cli/__init__.py, cli/templates/__init__.py
+    cli_dir = tmp_path / "mypackage" / "cli"
+    cli_dir.mkdir(parents=True)
+    (cli_dir / "__init__.py").write_text("'''CLI module.'''")
+
+    templates_dir = cli_dir / "templates"
+    templates_dir.mkdir()
+    (templates_dir / "__init__.py").write_text("'''Templates module.'''")
+
+    config = {
+        "source_dirs": [str(tmp_path / "mypackage")],
+        "strip_prefix": "mypackage.",
+        "grouping": {"mode": "auto"},
+    }
+    extractor = PythonExtractor(config=config)
+    elements = extractor.extract(templates_dir)
+
+    templates_module = elements[0]
+    output_path = extractor.get_output_path(templates_module)
+
+    # With auto mode: templates/_index.md
+    assert output_path == Path("templates/_index.md")
+
+
+def test_get_output_path_explicit_mode(tmp_path):
+    """Test get_output_path with explicit mode grouping."""
+    source = tmp_path / "mypackage" / "core"
+    source.mkdir(parents=True)
+    (source / "__init__.py").write_text("'''Core module.'''")
+
+    config = {
+        "source_dirs": [str(tmp_path / "mypackage")],
+        "strip_prefix": "mypackage.",
+        "grouping": {
+            "mode": "explicit",
+            "prefix_map": {"core": "core-api"},
+        },
+    }
+    extractor = PythonExtractor(config=config)
+    elements = extractor.extract(source)
+
+    module = elements[0]
+    output_path = extractor.get_output_path(module)
+
+    # With explicit mode and custom group name: core-api/_index.md
+    assert output_path == Path("core-api/_index.md")
+
+
+def test_get_output_path_with_strip_prefix(tmp_path):
+    """Test get_output_path applies strip_prefix."""
+    source = tmp_path / "mypackage" / "utils"
+    source.mkdir(parents=True)
+    (source / "helper.py").write_text("'''Helper module.'''")
+
+    config = {
+        "source_dirs": [str(tmp_path / "mypackage")],
+        "strip_prefix": "mypackage.",
+    }
+    extractor = PythonExtractor(config=config)
+    elements = extractor.extract(source / "helper.py")
+
+    module = elements[0]
+    output_path = extractor.get_output_path(module)
+
+    # With strip_prefix: utils/helper.md (not mypackage/utils/helper.md)
+    assert output_path == Path("utils/helper.md")
+
+
+def test_get_output_path_nested_module_under_group(tmp_path):
+    """Test nested modules are placed under group correctly."""
+    # Create: mypackage/cli/templates/blog/template.py
+    blog_dir = tmp_path / "mypackage" / "cli" / "templates" / "blog"
+    blog_dir.mkdir(parents=True)
+
+    # Create parent __init__.py files
+    (tmp_path / "mypackage" / "cli" / "__init__.py").touch()
+    (tmp_path / "mypackage" / "cli" / "templates" / "__init__.py").touch()
+
+    (blog_dir / "template.py").write_text("'''Blog template.'''")
+
+    config = {
+        "source_dirs": [str(tmp_path / "mypackage")],
+        "strip_prefix": "mypackage.",
+        "grouping": {"mode": "auto"},
+    }
+    extractor = PythonExtractor(config=config)
+    elements = extractor.extract(blog_dir / "template.py")
+
+    module = elements[0]
+    output_path = extractor.get_output_path(module)
+
+    # Should be grouped under templates: templates/blog/template.md
+    assert output_path == Path("templates/blog/template.md")
+
+
+def test_get_output_path_package_vs_module(tmp_path):
+    """Test packages get _index.md, modules get .md."""
+    # Create package and module
+    core_dir = tmp_path / "mypackage" / "core"
+    core_dir.mkdir(parents=True)
+    (core_dir / "__init__.py").write_text("'''Core package.'''")
+    (core_dir / "site.py").write_text("'''Site module.'''")
+
+    config = {
+        "source_dirs": [str(tmp_path / "mypackage")],
+        "strip_prefix": "mypackage.",
+        "grouping": {"mode": "auto"},
+    }
+    extractor = PythonExtractor(config=config)
+
+    # Extract package
+    package_elements = extractor.extract(core_dir / "__init__.py")
+    package_module = package_elements[0]
+    package_path = extractor.get_output_path(package_module)
+    assert package_path == Path("core/_index.md")  # Package → _index.md
+
+    # Extract module
+    module_elements = extractor.extract(core_dir / "site.py")
+    site_module = module_elements[0]
+    module_path = extractor.get_output_path(site_module)
+    assert module_path == Path("core/site.md")  # Module → .md
+
+
+def test_get_output_path_class_in_grouped_module(tmp_path):
+    """Test classes are part of their module file with grouping."""
+    # Create: mypackage/core/site.py with Site class
+    core_dir = tmp_path / "mypackage" / "core"
+    core_dir.mkdir(parents=True)
+    (core_dir / "__init__.py").touch()
+    (core_dir / "site.py").write_text(
+        dedent("""
+        class Site:
+            '''Site class.'''
+            pass
+    """)
+    )
+
+    config = {
+        "source_dirs": [str(tmp_path / "mypackage")],
+        "strip_prefix": "mypackage.",
+        "grouping": {"mode": "auto"},
+    }
+    extractor = PythonExtractor(config=config)
+    elements = extractor.extract(core_dir / "site.py")
+
+    module = elements[0]
+    site_class = module.children[0]
+
+    # Class output path should match module path
+    class_path = extractor.get_output_path(site_class)
+    module_path = extractor.get_output_path(module)
+
+    assert class_path == module_path == Path("core/site.md")
+
+
+def test_get_output_path_longest_prefix_wins(tmp_path):
+    """Test longest prefix wins when multiple match."""
+    # Create: mypackage/cli/templates/__init__.py
+    templates_dir = tmp_path / "mypackage" / "cli" / "templates"
+    templates_dir.mkdir(parents=True)
+    (tmp_path / "mypackage" / "cli" / "__init__.py").touch()
+    (templates_dir / "__init__.py").write_text("'''Templates module.'''")
+
+    config = {
+        "source_dirs": [str(tmp_path / "mypackage")],
+        "strip_prefix": "mypackage.",
+        "grouping": {
+            "mode": "explicit",
+            "prefix_map": {
+                "cli": "cli",
+                "cli.templates": "templates",  # Longer, should win
+            },
+        },
+    }
+    extractor = PythonExtractor(config=config)
+    elements = extractor.extract(templates_dir)
+
+    module = elements[0]
+    output_path = extractor.get_output_path(module)
+
+    # Should match longer prefix: templates/_index.md (not cli/templates/_index.md)
+    assert output_path == Path("templates/_index.md")

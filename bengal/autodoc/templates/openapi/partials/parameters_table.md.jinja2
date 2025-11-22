@@ -1,0 +1,69 @@
+{#-
+API Parameters Table Component
+
+Renders API parameters (query, path, header, cookie) using the unified parameter table.
+Handles different parameter types and locations safely.
+-#}
+
+{% from 'macros/safe_macros.md.jinja2' import safe_section, safe_render, safe_for %}
+{% from 'macros/parameter_table.md.jinja2' import openapi_parameters %}
+
+{% set parameters = element.children | selectattr('element_type', 'equalto', 'parameter') | list %}
+
+{% if parameters %}
+{% call safe_section("api_parameters") %}
+## Parameters
+
+{#- Group parameters by location -#}
+{% set params_by_location = parameters | groupby('metadata.in') %}
+
+{% call safe_for(params_by_location, "*No parameters found.*") %}
+{% set location = item[0] | default('query') %}
+{% set location_params = item[1] %}
+
+### {{ location | title }} Parameters
+
+{% call safe_for(location_params, "*No " + location + " parameters.*") %}
+{% call safe_render("parameter", item) %}
+#### `{{ item.name }}`
+
+{% if item.description %}
+{{ item.description }}
+{% else %}
+*No description provided.*
+{% endif %}
+
+**Type:** `{{ item.metadata.type | default('string') }}`
+
+{% if item.metadata.required %}
+```{note}
+This parameter is required.
+```
+{% else %}
+```{info}
+This parameter is optional.
+```
+{% endif %}
+
+{% if item.metadata.default %}
+**Default:** `{{ item.metadata.default }}`
+{% endif %}
+
+{% if item.metadata.enum %}
+**Allowed Values:** {{ item.metadata.enum | format_list }}
+{% endif %}
+
+{% if item.metadata.format %}
+**Format:** `{{ item.metadata.format }}`
+{% endif %}
+
+{% if item.metadata.example %}
+**Example:** `{{ item.metadata.example }}`
+{% endif %}
+
+{% endcall %}
+{% endcall %}
+
+{% endcall %}
+{% endcall %}
+{% endif %}

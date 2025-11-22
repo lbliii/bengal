@@ -1,0 +1,91 @@
+{#-
+Python Function Template
+
+Template for individual Python function documentation.
+Extends Python base template with function-specific features.
+-#}
+
+{% extends "base/python_base.md.jinja2" %}
+
+{% from 'macros/safe_macros.md.jinja2' import safe_section %}
+{% from 'macros/code_blocks.md.jinja2' import signature_block %}
+{% from 'macros/parameter_table.md.jinja2' import python_parameters %}
+
+{% block doc_type %}python-function{% endblock %}
+
+{% block badges %}
+```{badge} Function
+:class: api-badge
+```
+
+{% if element.metadata.is_async %}
+```{badge} Async
+:class: api-badge api-badge-async
+```
+{% endif %}
+
+{% if element.metadata.deprecated %}
+```{badge} Deprecated
+:class: api-badge api-badge-deprecated
+```
+{% endif %}
+{% endblock %}
+
+{% block content %}
+{#- Function signature -#}
+{% call safe_section("signature") %}
+{{ signature_block(element.metadata.signature | default(''), 'function') }}
+{% endcall %}
+
+{#- Function description -#}
+{% call safe_section("description") %}
+{% if element.description %}
+{{ element.description }}
+{% else %}
+*No function description provided.*
+{% endif %}
+
+{% if element.metadata.parsed_doc.deprecated %}
+```{warning} Deprecated Function
+{{ element.metadata.parsed_doc.deprecated }}
+```
+{% endif %}
+
+{% if element.metadata.is_async %}
+```{info} Async Function
+This is an asynchronous function. Use `await` when calling.
+```
+{% endif %}
+{% endcall %}
+
+{#- Parameters -#}
+{% if element.metadata.args %}
+{% call safe_section("parameters") %}
+{{ python_parameters(element.metadata.args, "Parameters") }}
+{% endcall %}
+{% endif %}
+
+{#- Returns -#}
+{% if element.metadata.returns %}
+{% call safe_section("returns") %}
+## Returns
+
+`{{ element.metadata.returns }}`{%- if element.metadata.parsed_doc.returns %} - {{ element.metadata.parsed_doc.returns }}{%- endif %}
+{% endcall %}
+{% endif %}
+
+{#- Function documentation components -#}
+{% with item = element %}
+{% call safe_section("raises") %}
+  {% include 'python/partials/method_raises.md.jinja2' %}
+{% endcall %}
+
+{% call safe_section("examples") %}
+  {% include 'python/partials/method_examples.md.jinja2' %}
+{% endcall %}
+
+{% call safe_section("notes") %}
+  {% include 'python/partials/method_notes.md.jinja2' %}
+{% endcall %}
+{% endwith %}
+{% endblock %}

@@ -1,0 +1,42 @@
+{#-
+Schemas Overview Component
+
+Renders an overview of all data schemas/models in the API.
+Provides links and basic information about each schema.
+-#}
+
+{% from 'macros/safe_macros.md.jinja2' import safe_section, safe_render, safe_for %}
+{% from 'macros/navigation.md.jinja2' import doc_link %}
+
+{% set schemas = element.children | selectattr('element_type', 'equalto', 'schema') | list %}
+
+{% if schemas %}
+{% call safe_section("schemas_overview") %}
+## Data Schemas
+
+{% call safe_for(schemas, "*No schemas defined.*") %}
+{% call safe_render("schema", item) %}
+### {{ item.name }}
+
+{% if item.description %}
+{{ item.description | truncate_text(150) }}
+{% else %}
+*No description provided.*
+{% endif %}
+
+{% if item.metadata.type %}
+**Type:** `{{ item.metadata.type }}`
+{% endif %}
+
+{% if item.metadata.properties %}
+**Properties:** {{ item.metadata.properties | length }} fields
+{% endif %}
+
+{% if item.metadata.required %}
+**Required Fields:** {{ item.metadata.required | format_list }}
+{% endif %}
+
+{% endcall %}
+{% endcall %}
+{% endcall %}
+{% endif %}

@@ -4,7 +4,6 @@ Base classes for autodoc system.
 Provides common interfaces for all documentation extractors.
 """
 
-
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -97,8 +96,8 @@ class Extractor(ABC):
                 # Extract Python API docs via AST
                 ...
 
-            def get_template_dir(self) -> str:
-                return "python"
+            # Templates are now unified under bengal/autodoc/templates/
+            # with python/, cli/, openapi/ subdirectories
     """
 
     @abstractmethod
@@ -118,22 +117,7 @@ class Extractor(ABC):
         pass
 
     @abstractmethod
-    def get_template_dir(self) -> str:
-        """
-        Get template directory name for this extractor.
-
-        Returns:
-            Directory name (e.g., 'python', 'openapi', 'cli')
-
-        Example:
-            Templates will be loaded from:
-            - templates/autodoc/{template_dir}/
-            - Built-in: bengal/autodoc/templates/{template_dir}/
-        """
-        pass
-
-    @abstractmethod
-    def get_output_path(self, element: DocElement) -> Path:
+    def get_output_path(self, element: DocElement) -> Path | None:
         """
         Determine output path for an element.
 
@@ -141,7 +125,8 @@ class Extractor(ABC):
             element: Element to generate path for
 
         Returns:
-            Relative path for the generated markdown file
+            Relative path for the generated markdown file, or None if the
+            element should be skipped (e.g., stripped prefix packages)
 
         Example:
             For Python: bengal.core.site.Site → bengal/core/site.md

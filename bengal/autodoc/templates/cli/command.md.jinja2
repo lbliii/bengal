@@ -1,151 +1,42 @@
-{#
-  Command Template
+{#-
+CLI Individual Command Template
 
-  Generates documentation for a single CLI command with enhanced formatting.
-#}
+Template for individual CLI command documentation.
+Extends base template and includes comprehensive command details.
+-#}
 
-{#- Macro: Render options as table or list based on count -#}
-{% macro render_options(options) %}
-{% set option_count = options | length %}
-{% if option_count >= 5 %}
-{#- Use table format for 5+ options -#}
-{% if option_count >= 10 %}
-````{dropdown} Options ({{ option_count }} total)
-:open: false
+{% extends "base/cli_base.md.jinja2" %}
 
-{% endif %}
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-{% for option in options | sort(attribute='name') %}
-| `{{ option.metadata.opts | join('`, `') }}` | {%- if option.metadata.is_flag %}Flag{%- elif option.metadata.count %}Counter{%- elif option.metadata.type %}`{{ option.metadata.type }}`{%- else %}-{%- endif %} | {%- if option.metadata.default %}`{{ option.metadata.default }}`{%- else %}-{%- endif %} | {%- if option.description %}{{ option.description }}{%- else %}-{%- endif -%}{%- if option.metadata.required %} **(Required)**{%- endif -%}{%- if option.metadata.envvar %} <br>*Env: `{{ option.metadata.envvar }}`*{%- endif %} |
-{% endfor %}
-{% if option_count >= 10 %}
+{% from 'macros/safe_macros.md.jinja2' import safe_section %}
 
-````
-{% endif %}
-{% else %}
-{#- Use list format for < 5 options -#}
-{% for option in options | sort(attribute='name') %}
-### {{ option.metadata.opts | join(', ') }}
+{% block content %}
+{#- Command description -#}
+{% call safe_section("description") %}
+  {% include 'cli/partials/command_description.md.jinja2' %}
+{% endcall %}
 
-{% if option.description %}
-{{ option.description }}
+{#- Usage information -#}
+{% call safe_section("usage") %}
+  {% include 'cli/partials/command_usage.md.jinja2' %}
+{% endcall %}
 
-{% endif %}
-{%- if option.metadata.type and not option.metadata.is_flag %}
-**Type:** `{{ option.metadata.type }}`
-{% endif -%}
-{%- if option.metadata.is_flag %}
-**Type:** Flag (boolean)
-{% endif -%}
-{%- if option.metadata.count %}
-**Type:** Counter (counts occurrences)
-{% endif -%}
-{%- if option.metadata.default %}
-**Default:** `{{ option.metadata.default }}`
-{% endif -%}
-{%- if option.metadata.required %}
-**Required:** Yes
-{% endif -%}
-{%- if option.metadata.multiple %}
-**Multiple:** Can be specified multiple times
-{% endif -%}
-{%- if option.metadata.envvar %}
-**Environment variable:** `{{ option.metadata.envvar }}`
-{% endif %}
+{#- Command arguments -#}
+{% call safe_section("arguments") %}
+  {% include 'cli/partials/command_arguments.md.jinja2' %}
+{% endcall %}
 
-{% endfor %}
-{% endif %}
-{% endmacro %}
+{#- Command options -#}
+{% call safe_section("options") %}
+  {% include 'cli/partials/command_options.md.jinja2' %}
+{% endcall %}
 
----
-title: "{{ element.name }}"
-type: doc
-description: "{% set lines = element.description.split('\n') %}{% set desc_lines = [] %}{% for line in lines %}{% if not line.strip().startswith('#') %}{% set _ = desc_lines.append(line) %}{% endif %}{% endfor %}{{ desc_lines | join(' ') | truncate(180, True, '...') | replace('"', '\\"') }}"
-{% if element.source_file %}source_file: "{{ element.source_file | project_relative }}"
-source_line: {{ element.line_number }}
-{% endif %}---
+{#- Command examples -#}
+{% call safe_section("examples") %}
+  {% include 'cli/partials/command_examples.md.jinja2' %}
+{% endcall %}
 
-{% if element.description %}
-{{ element.description }}
-{% else %}
-*No description provided.*
-{% endif %}
-
-{% if element.deprecated %}
-
-```{warning} Deprecated
-{{ element.deprecated }}
-```
-{% endif %}
-
-## Usage
-
-```bash
-{{ element.qualified_name | replace('.', ' ') }}{% if element.children | selectattr('element_type', 'equalto', 'argument') | list %} [ARGUMENTS]{% endif %}{% if element.children | selectattr('element_type', 'equalto', 'option') | list %} [OPTIONS]{% endif %}
-
-```
-
-{% set arguments = element.children | selectattr('element_type', 'equalto', 'argument') | list %}
-{% if arguments %}
-## Arguments
-
-{% for arg in arguments %}
-### {{ arg.name }}
-
-{% if arg.description %}
-{{ arg.description }}
-
-{% endif %}
-{%- if arg.metadata.type %}
-**Type:** `{{ arg.metadata.type }}`
-{% endif -%}
-{%- if arg.metadata.required %}
-**Required:** Yes
-{% else %}
-**Required:** No
-{% endif -%}
-{%- if arg.metadata.default %}
-**Default:** `{{ arg.metadata.default }}`
-{% endif %}
-
-{% endfor %}
-{% endif %}
-
-{% set options = element.children | selectattr('element_type', 'equalto', 'option') | list %}
-{% if options %}
-## Options
-
-{{ render_options(options) }}
-{% endif %}
-
-{% if element.examples %}
-## Examples
-
-{% for example in element.examples %}
-{% if not example.strip().startswith('```') %}
-```bash
-{% for line in example.split('\n') %}
-{{ line.strip() }}
-{% endfor %}
-```
-{% else %}
-{{ example }}
-{% endif %}
-
-{% endfor %}
-{% endif %}
-
-{% if element.see_also %}
-## See Also
-
-{% for ref in element.see_also %}
-- [[{{ ref }}]]
-{% endfor %}
-{% endif %}
-
-## Help
-
-```bash
-{{ element.qualified_name | replace('.', ' ') }} --help
-```
+{#- Subcommands (if any) -#}
+{% call safe_section("subcommands") %}
+  {% include 'cli/partials/subcommands_list.md.jinja2' %}
+{% endcall %}
+{% endblock %}

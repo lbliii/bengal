@@ -1,6 +1,5 @@
 """Autodoc commands for generating API and CLI documentation."""
 
-
 from __future__ import annotations
 
 from pathlib import Path
@@ -75,6 +74,8 @@ def autodoc(
         python_config = autodoc_config.get("python", {})
         cli_config = autodoc_config.get("cli", {})
 
+        # HTML renderer removed - using traditional Markdown generation
+
         # Determine what to generate
         generate_python = not cli_only and (python_only or python_config.get("enabled", True))
         generate_cli = not python_only and (
@@ -125,6 +126,7 @@ def autodoc(
                 clean=clean,
                 verbose=verbose,
                 cli_config=cli_config,
+                autodoc_config=autodoc_config,
             )
 
         # Summary
@@ -189,7 +191,7 @@ def _generate_python_docs(
     cli.info("🔍 Extracting Python API documentation...")
     start_time = time.time()
 
-    extractor = PythonExtractor(exclude_patterns=exclude_patterns)
+    extractor = PythonExtractor(exclude_patterns=exclude_patterns, config=python_config)
     all_elements = []
 
     for source_path in sources:
@@ -223,15 +225,20 @@ def _generate_python_docs(
     # Generate documentation
     gen_start = time.time()
 
-    generator = DocumentationGenerator(extractor, {"python": python_config})
+    config = {"autodoc": python_config}
+    generator = DocumentationGenerator(extractor, config)
+
+    # Use traditional markdown generation
+    cli.info("📝 Generating markdown files...")
     generated = generator.generate_all(all_elements, output_dir, parallel=parallel)
+    generated_count = len(generated)
 
     generation_time = time.time() - gen_start
     total_time = time.time() - start_time
 
     # Success message
     cli.blank()
-    cli.success(f"✅ Generated {len(generated)} documentation pages")
+    cli.success(f"✅ Generated {generated_count} documentation pages")
     cli.info(f"   📁 Output: {output_dir}")
 
     if stats:
@@ -239,7 +246,7 @@ def _generate_python_docs(
         cli.info(f"   Extraction time:  {extraction_time:.2f}s")
         cli.info(f"   Generation time:  {generation_time:.2f}s")
         cli.info(f"   Total time:       {total_time:.2f}s")
-        cli.info(f"   Throughput:       {len(generated) / total_time:.1f} pages/sec")
+        cli.info(f"   Throughput:       {generated_count / total_time:.1f} pages/sec")
 
     cli.subheader("Next steps:", icon="💡")
     cli.tip(f"View docs: ls {output_dir}")
@@ -255,6 +262,7 @@ def _generate_cli_docs(
     clean: bool,
     verbose: bool,
     cli_config: dict,
+    autodoc_config: dict,
 ) -> None:
     """Generate CLI documentation."""
     import importlib
@@ -264,6 +272,8 @@ def _generate_cli_docs(
 
     cli.header("⌨️  CLI Documentation")
     cli.blank()
+
+    # Use traditional markdown generation
 
     output_dir = Path(output)
 
@@ -324,7 +334,7 @@ def _generate_cli_docs(
     # Generate documentation
     gen_start = time.time()
 
-    generator = DocumentationGenerator(extractor, {"cli": cli_config})
+    generator = DocumentationGenerator(extractor, {"autodoc": {"cli": cli_config}})
     generated_files = generator.generate_all(elements, output_dir)
 
     gen_time = time.time() - gen_start
@@ -485,7 +495,7 @@ def autodoc_cli(
         # Generate documentation
         gen_start = time.time()
 
-        generator = DocumentationGenerator(extractor, cli_config)
+        generator = DocumentationGenerator(extractor, {"autodoc": {"cli": cli_config}})
         generated_files = generator.generate_all(elements, output_dir)
 
         gen_time = time.time() - gen_start

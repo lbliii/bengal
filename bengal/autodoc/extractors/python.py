@@ -13,7 +13,7 @@ from typing import override
 
 from bengal.autodoc.base import DocElement, Extractor
 from bengal.autodoc.docstring_parser import parse_docstring
-from bengal.autodoc.utils import sanitize_text
+from bengal.autodoc.utils import apply_grouping, auto_detect_prefix_map, sanitize_text
 
 
 class PythonExtractor(Extractor):
@@ -41,15 +41,57 @@ class PythonExtractor(Extractor):
 
         Args:
             exclude_patterns: Glob patterns to exclude (e.g., "*/tests/*")
-            config: Configuration dict with include_inherited, etc.
+            config: Configuration dict with include_inherited, exclude_patterns, etc.
         """
-        self.exclude_patterns = exclude_patterns or [
-            "*/tests/*",
-            "*/test_*.py",
-            "*/__pycache__/*",
-        ]
         self.config = config or {}
+
+        # Read exclude_patterns from parameter, config, or use defaults
+        if exclude_patterns is not None:
+            self.exclude_patterns = exclude_patterns
+        elif "exclude_patterns" in self.config:
+            self.exclude_patterns = self.config["exclude_patterns"]
+        else:
+            self.exclude_patterns = [
+                "*/tests/*",
+                "*/test_*.py",
+                "*/__pycache__/*",
+            ]
+
         self.class_index: dict[str, DocElement] = {}
+        self._source_root: Path | None = None  # Track source root for module name resolution
+
+        # Initialize grouping configuration
+        self._grouping_config = self._init_grouping()
+
+    def _init_grouping(self) -> dict:
+        """
+        Initialize grouping configuration.
+
+        Returns:
+            Grouping config dict with mode and prefix_map
+        """
+        grouping = self.config.get("grouping", {})
+        mode = grouping.get("mode", "off")
+
+        # Mode "off" - return early
+        if mode == "off":
+            return {"mode": "off", "prefix_map": {}}
+
+        # Mode "auto" - detect from source directories
+        if mode == "auto":
+            source_dirs = [Path(d) for d in self.config.get("source_dirs", ["."])]
+            strip_prefix = self.config.get("strip_prefix", "")
+            prefix_map = auto_detect_prefix_map(source_dirs, strip_prefix)
+            return {"mode": "auto", "prefix_map": prefix_map}
+
+        # Mode "explicit" - use provided prefix_map
+        if mode == "explicit":
+            prefix_map = grouping.get("prefix_map", {})
+            return {"mode": "explicit", "prefix_map": prefix_map}
+
+        # Unknown mode - log warning and use off
+        print(f"⚠️  Warning: Unknown grouping mode: {mode}, using 'off'")
+        return {"mode": "off", "prefix_map": {}}
 
     @override
     def extract(self, source: Path) -> list[DocElement]:
@@ -62,6 +104,20 @@ class PythonExtractor(Extractor):
         Returns:
             List of DocElement objects
         """
+        # Store source root for module name resolution
+        # Use source_dirs from config if available, otherwise use the source parameter
+        source_dirs = self.config.get("source_dirs", [])
+        if source_dirs:
+            # Use the first source_dir that is a parent of the source
+            source_path = (
+                Path(source_dirs[0]) if isinstance(source_dirs[0], str) else source_dirs[0]
+            )
+            self._source_root = source_path
+        elif source.is_file():
+            self._source_root = source.parent
+        else:
+            self._source_root = source
+
         if source.is_file():
             return self._extract_file(source)
         elif source.is_dir():
@@ -155,7 +211,7 @@ class PythonExtractor(Extractor):
 
         for node in tree.body:
             if isinstance(node, ast.ClassDef):
-                class_elem = self._extract_class(node, file_path)
+                class_elem = self._extract_class(node, file_path, module_name)
                 if class_elem:
                     children.append(class_elem)
                     defined_names.add(node.name)
@@ -163,6 +219,8 @@ class PythonExtractor(Extractor):
             elif isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef):
                 func_elem = self._extract_function(node, file_path)
                 if func_elem:
+                    # Update qualified_name to include module for consistency
+                    func_elem.qualified_name = f"{module_name}.{func_elem.name}"
                     children.append(func_elem)
                     defined_names.add(node.name)
 
@@ -209,8 +267,11 @@ class PythonExtractor(Extractor):
         if not docstring and not children:
             return None
 
+        # Use just the last component for display name (e.g., "cli" instead of "autodoc.extractors.cli")
+        display_name = module_name.split(".")[-1] if "." in module_name else module_name
+
         return DocElement(
-            name=module_name,
+            name=display_name,
             qualified_name=module_name,
             description=sanitize_text(docstring),
             element_type="module",
@@ -357,6 +418,16 @@ class PythonExtractor(Extractor):
 
         element_type = "method" if parent_name else "function"
 
+        # Filter out self/cls for methods (but not for staticmethods)
+        # Remove first argument (self for regular methods, cls for classmethods)
+        if (
+            element_type == "method"
+            and not is_staticmethod
+            and args
+            and args[0]["name"] in ("self", "cls")
+        ):
+            args = args[1:]
+
         # Merge parsed docstring args with signature args
         merged_args = args  # Start with signature args
         if parsed_doc and parsed_doc.args:
@@ -479,20 +550,34 @@ class PythonExtractor(Extractor):
             return ast.dump(expr)
 
     def _infer_module_name(self, file_path: Path) -> str:
-        """Infer module name from file path."""
-        # Remove .py extension
-        parts = list(file_path.parts)
+        """
+        Infer module name from file path relative to source root.
 
-        # Find the start of the package (look for __init__.py)
-        package_start = 0
-        for i in range(len(parts) - 1, -1, -1):
-            parent = Path(*parts[: i + 1])
-            if (parent / "__init__.py").exists():
-                package_start = i
-                break
+        Examples:
+            source_root: bengal/
+            file_path: bengal/cli/commands/build.py
+            result: cli.commands.build
+        """
+        if self._source_root is None:
+            # Fallback to old behavior if source root not set
+            parts = list(file_path.parts)
+            package_start = 0
+            for i in range(len(parts) - 1, -1, -1):
+                parent = Path(*parts[: i + 1])
+                if (parent / "__init__.py").exists():
+                    package_start = i
+                    break
+            module_parts = parts[package_start:]
+        else:
+            # Use source root to compute relative path
+            try:
+                rel_path = file_path.relative_to(self._source_root)
+                module_parts = list(rel_path.parts)
+            except ValueError:
+                # File not under source root, use absolute path
+                module_parts = list(file_path.parts)
 
-        # Build module name
-        module_parts = parts[package_start:]
+        # Handle __init__.py (package) vs regular module
         if module_parts[-1] == "__init__.py":
             module_parts = module_parts[:-1]
         elif module_parts[-1].endswith(".py"):
@@ -661,38 +746,92 @@ class PythonExtractor(Extractor):
         return None
 
     @override
-    def get_template_dir(self) -> str:
-        """Get template directory name."""
-        return "python"
-
-    @override
-    def get_output_path(self, element: DocElement) -> Path:
+    def get_output_path(self, element: DocElement) -> Path | None:
         """
         Get output path for element.
 
         Packages (modules from __init__.py) generate _index.md files to act as
-        section indexes, matching the CLI extractor behavior. This ensures proper
-        template selection with sidebars when the package has submodules.
+        section indexes. With grouping enabled, modules are organized under
+        group directories based on package hierarchy or explicit configuration.
 
-        Examples:
+        Examples (without grouping):
             bengal (package) → bengal/_index.md
             bengal.core (package) → bengal/core/_index.md
             bengal.core.site (module) → bengal/core/site.md
-            bengal.core.site.Site (class) → bengal/core/site.md (part of module)
+
+        Examples (with grouping, strip_prefix="bengal."):
+            bengal.core (package) → core/_index.md
+            bengal.cli.templates.blog (module) → templates/blog.md
+
+        Returns:
+            Path object for output location, or None if element should be skipped
         """
+        qualified_name = element.qualified_name
+
+        # Apply strip_prefix if configured
+        strip_prefix = self.config.get("strip_prefix", "")
+        if strip_prefix:
+            # Check if this is the stripped prefix itself
+            # (e.g., "mypackage" when strip_prefix="mypackage.")
+            strip_prefix_base = strip_prefix.rstrip(".")
+            if qualified_name == strip_prefix_base:
+                # Don't generate output for the stripped prefix package itself
+                # Return None to signal this element should be skipped
+                return None  # type: ignore[return-value]
+
+            # Strip the prefix if present
+            if qualified_name.startswith(strip_prefix):
+                qualified_name = qualified_name[len(strip_prefix) :]
+
+        # Apply grouping
+        group_name, remaining = apply_grouping(qualified_name, self._grouping_config)
+
         if element.element_type == "module":
             # Check if this is a package (__init__.py file)
             is_package = element.source_file and element.source_file.name == "__init__.py"
 
             if is_package:
                 # Packages get _index.md to act as section indexes
-                module_path = element.qualified_name.replace(".", "/")
-                return Path(module_path) / "_index.md"
+                if group_name:
+                    # Grouped: {group}/{remaining}/_index.md
+                    if remaining:
+                        path = Path(group_name) / remaining.replace(".", "/")
+                    else:
+                        # Package is the group itself
+                        path = Path(group_name)
+                    return path / "_index.md"
+                else:
+                    # Ungrouped: {qualified_name}/_index.md
+                    module_path = remaining.replace(".", "/")
+                    return Path(module_path) / "_index.md"
             else:
                 # Regular modules get their own file
-                return Path(element.qualified_name.replace(".", "/") + ".md")
+                if group_name:
+                    # Grouped: {group}/{remaining}.md
+                    if remaining:
+                        return Path(group_name) / f"{remaining.replace('.', '/')}.md"
+                    else:
+                        # Module is the group itself
+                        return Path(f"{group_name}.md")
+                else:
+                    # Ungrouped: {qualified_name}.md
+                    return Path(f"{remaining.replace('.', '/')}.md")
         else:
             # Classes/functions are part of module file
-            parts = element.qualified_name.split(".")
+            # Use the already-processed qualified_name (with strip_prefix applied)
+            parts = remaining.split(".") if group_name is None else qualified_name.split(".")
             module_parts = parts[:-1] if len(parts) > 1 else parts
-            return Path("/".join(module_parts) + ".md")
+
+            # If we have a group, the remaining is already module-relative
+            if group_name:
+                # Build path from remaining (minus class/function name)
+                if len(remaining.split(".")) > 1:
+                    module_path = ".".join(remaining.split(".")[:-1])
+                    return Path(group_name) / f"{module_path.replace('.', '/')}.md"
+                else:
+                    # Class/function at group root
+                    return Path(f"{group_name}.md")
+            else:
+                # No grouping - use qualified_name directly
+                module_path = ".".join(module_parts)
+                return Path(f"{module_path.replace('.', '/')}.md")

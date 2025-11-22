@@ -1,0 +1,42 @@
+{#-
+API Information Component
+
+Renders API metadata including version, servers, and basic information.
+Uses safe rendering to handle missing or malformed API data.
+-#}
+
+{% from 'macros/safe_macros.md.jinja2' import safe_section, safe_for %}
+
+{% call safe_section("api_info") %}
+## API Information
+
+{% if element.metadata.version %}
+**Version:** {{ element.metadata.version }}
+{% endif %}
+
+{% if element.metadata.base_url %}
+**Base URL:** `{{ element.metadata.base_url }}`
+{% endif %}
+
+{% if element.metadata.servers %}
+**Servers:**
+
+{% call safe_for(element.metadata.servers, "*No servers configured.*") %}
+- **{{ item.description | default('Server') }}:** `{{ item.url }}`
+{% endcall %}
+{% endif %}
+
+{% if element.metadata.content_types %}
+**Content Types:**
+{% call safe_for(element.metadata.content_types, "*No content types specified.*") %}
+- `{{ item }}`
+{% endcall %}
+{% endif %}
+
+{% if element.metadata.tags %}
+**Available Tags:**
+{% call safe_for(element.metadata.tags, "*No tags defined.*") %}
+- **{{ item.name }}**{% if item.description %}: {{ item.description }}{% endif %}
+{% endcall %}
+{% endif %}
+{% endcall %}

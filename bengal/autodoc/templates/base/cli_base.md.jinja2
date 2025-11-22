@@ -1,0 +1,53 @@
+{#-
+CLI Documentation Base Template
+
+Extends the main base template with CLI-specific features and layout.
+All CLI documentation templates should extend this.
+-#}
+
+{% extends "base/base.md.jinja2" %}
+
+{% from 'macros/safe_macros.md.jinja2' import safe_section %}
+{% from 'macros/parameter_table.md.jinja2' import cli_options, cli_arguments %}
+{% from 'macros/code_blocks.md.jinja2' import usage_block, cli_examples %}
+{% from 'macros/navigation.md.jinja2' import cli_command_nav %}
+
+{% block doc_type %}cli-reference{% endblock %}
+
+{% block badges %}
+{% if element %}
+{% if element.element_type == "command-group" %}
+```{badge} Command Group
+:class: badge-secondary
+```
+{% elif element.element_type == "command" %}
+```{badge} Command
+:class: badge-secondary
+```
+{% endif %}
+
+{% if element.metadata and element.metadata.deprecated %}
+```{badge} Deprecated
+:class: badge-danger
+```
+{% endif %}
+
+{% if element.metadata and element.metadata.hidden %}
+```{badge} Hidden
+:class: badge-light
+```
+{% endif %}
+{% endif %}
+{% endblock %}
+
+{% block navigation %}
+{#- CLI-specific navigation -#}
+{% if element %}
+{{ cli_command_nav(element.qualified_name) }}
+{% endif %}
+{% endblock %}
+
+{% block content %}
+{#- Child templates implement specific content layout -#}
+{#- Base template provides structure only, no default rendering -#}
+{% endblock %}

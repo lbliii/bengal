@@ -1,0 +1,167 @@
+{#-
+OpenAPI Documentation Base Template
+
+Extends the main base template with OpenAPI/REST API specific features and layout.
+All OpenAPI documentation templates should extend this.
+-#}
+
+{% extends "base/base.md.jinja2" %}
+
+{% from 'macros/safe_macros.md.jinja2' import safe_section %}
+{% from 'macros/parameter_table.md.jinja2' import openapi_parameters %}
+{% from 'macros/code_blocks.md.jinja2' import http_examples %}
+{% from 'macros/navigation.md.jinja2' import api_endpoint_nav %}
+
+{% block doc_type %}api-endpoint{% endblock %}
+
+{% block badges %}
+{% if element %}
+{% if element.metadata and element.metadata.method %}
+```{badge} {{ element.metadata.method | upper }}
+:class: badge-primary
+```
+{% endif %}
+
+{% if element.metadata and element.metadata.deprecated %}
+```{badge} Deprecated
+:class: badge-danger
+```
+{% endif %}
+
+{% if element.metadata and element.metadata.experimental %}
+```{badge} Experimental
+:class: badge-warning
+```
+{% endif %}
+
+{% if element.metadata and element.metadata.auth_required %}
+```{badge} Auth Required
+:class: badge-info
+```
+{% endif %}
+{% endif %}
+{% endblock %}
+
+{% block navigation %}
+{#- API-specific navigation -#}
+{% if element and element.metadata %}
+{{ api_endpoint_nav(element.metadata.method, element.metadata.path, element.name) }}
+{% endif %}
+{% endblock %}
+
+{% block content %}
+{#- Main description -#}
+{% call safe_section("description") %}
+{% if element and element.description %}
+{{ element.description }}
+{% else %}
+*No description provided.*
+{% endif %}
+{% endcall %}
+
+{#- Endpoint information -#}
+{% if element and element.metadata %}
+{% call safe_section("endpoint_info") %}
+## Endpoint Information
+
+**Method:** `{{ element.metadata.method | upper | default('GET') }}`
+**Path:** `{{ element.metadata.path | default('/') }}`
+
+{% if element.metadata.summary %}
+**Summary:** {{ element.metadata.summary }}
+{% endif %}
+
+{% if element.metadata.tags %}
+**Tags:** {{ element.metadata.tags | format_list }}
+{% endif %}
+{% endcall %}
+{% endif %}
+
+{#- Authentication -#}
+{% if element and element.metadata and element.metadata.auth_required %}
+{% call safe_section("authentication") %}
+## Authentication
+
+{% if element.metadata.auth_type %}
+**Type:** {{ element.metadata.auth_type }}
+{% endif %}
+
+{% if element.metadata.auth_description %}
+{{ element.metadata.auth_description }}
+{% else %}
+This endpoint requires authentication.
+{% endif %}
+{% endcall %}
+{% endif %}
+
+{#- Parameters -#}
+{% if element and element.children %}
+{% set parameters = element.children | selectattr('element_type', 'equalto', 'parameter') | list %}
+{% if parameters %}
+{% call safe_section("parameters") %}
+## Parameters
+
+{{ openapi_parameters(parameters) }}
+{% endcall %}
+{% endif %}
+{% endif %}
+
+{#- Request Body -#}
+{% if element and element.metadata and element.metadata.request_body %}
+{% call safe_section("request_body") %}
+## Request Body
+
+{% if element.metadata.request_body.description %}
+{{ element.metadata.request_body.description }}
+{% endif %}
+
+{% if element.metadata.request_body.content_type %}
+**Content Type:** `{{ element.metadata.request_body.content_type }}`
+{% endif %}
+
+{% if element.metadata.request_body.schema %}
+**Schema:**
+```json
+{{ element.metadata.request_body.schema | tojson(indent=2) }}
+```
+{% endif %}
+{% endcall %}
+{% endif %}
+
+{#- Responses -#}
+{% if element and element.metadata and element.metadata.responses %}
+{% call safe_section("responses") %}
+## Responses
+
+{% for status_code, response in element.metadata.responses.items() %}
+### {{ status_code }} - {{ response.description | default('Response') }}
+
+{% if response.content_type %}
+**Content Type:** `{{ response.content_type }}`
+{% endif %}
+
+{% if response.schema %}
+**Schema:**
+```json
+{{ response.schema | tojson(indent=2) }}
+```
+{% endif %}
+
+{% endfor %}
+{% endcall %}
+{% endif %}
+
+{#- Examples -#}
+{% if element and element.examples %}
+{% call safe_section("examples") %}
+## Examples
+
+{{ http_examples(element.examples) }}
+{% endcall %}
+{% endif %}
+
+{#- Child elements -#}
+{% block child_elements %}
+{#- Override in specific templates -#}
+{% endblock %}
+{% endblock %}

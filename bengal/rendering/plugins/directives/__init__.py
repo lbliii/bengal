@@ -13,6 +13,7 @@ Also provides:
 from __future__ import annotations
 
 from bengal.rendering.plugins.directives.admonitions import AdmonitionDirective
+from bengal.rendering.plugins.directives.badge import BadgeDirective
 from bengal.rendering.plugins.directives.button import ButtonDirective
 from bengal.rendering.plugins.directives.cache import (
     DirectiveCache,
@@ -63,6 +64,7 @@ def create_documentation_directives():
 
     Provides:
     - admonitions: note, tip, warning, danger, error, info, example, success
+    - badge: MyST badge directive with custom CSS classes
     - tabs: Tabbed content with full markdown support
     - dropdown: Collapsible sections with markdown
     - code-tabs: Code examples in multiple languages
@@ -96,6 +98,7 @@ def create_documentation_directives():
             # Build directive list
             directives_list = [
                 AdmonitionDirective(),  # Supports note, tip, warning, etc.
+                BadgeDirective(),  # MyST badge directive: {badge} Text :class: badge-class
                 TabsDirective(),  # Legacy tabs (backward compatibility)
                 TabSetDirective(),  # Modern MyST tab-set
                 TabItemDirective(),  # Modern MyST tab-item
