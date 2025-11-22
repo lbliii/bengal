@@ -18,6 +18,7 @@ Bengal configuration follows a **Three-Layer Architecture** to separate concerns
 2. **`content`** (Processing Pipeline)
    - How Bengal computes content: excerpts, reading time, TOC depth
    - *This is the API that themes rely on.*
+   - **Why separate this?** It allows you to switch themes without breaking your content model or SEO metadata. The theme just displays what Bengal computed.
 
 3. **`params`** (User Variables)
    - Custom site-specific data
@@ -136,6 +137,10 @@ json_indent = 2
 ### `[params]`
 
 Arbitrary user parameters.
+
+:::{warning}
+**Security Warning**: Do not put secrets (API keys, passwords) in your configuration files if you commit them to public repositories. Bengal does not currently support environment variable substitution for arbitrary parameters.
+:::
 
 ```toml
 [params]

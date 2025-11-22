@@ -15,7 +15,7 @@ By default, Bengal uses a pure Python pipeline that requires no external depende
 - **Discovery**: Automatically finds assets in `assets/` and theme directories.
 - **Minification**: Minifies CSS and JS using `lightningcss` and `rjsmin`.
 - **Image Optimization**: Compresses and converts images (WebP support) using Pillow.
-- **Fingerprinting**: Adds SHA256 hashes to filenames for cache busting (`style.abc123.css`).
+- **Fingerprinting**: Adds SHA256 hashes to filenames for cache busting (`style.abc123.css`). This forces browsers to download the new version when the file changes.
 - **Incremental Builds**: Only reprocesses changed assets.
 
 ### Usage

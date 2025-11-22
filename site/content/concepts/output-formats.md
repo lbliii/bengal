@@ -13,7 +13,7 @@ Bengal can generate multiple output formats for your content, enabling search fu
 Generated for every page in your site:
 
 - **JSON** (`index.json`): Structured data including metadata, HTML content, and plain text.
-- **LLM Text** (`index.txt`): AI-friendly plain text format optimized for RAG (Retrieval-Augmented Generation) and LLM consumption.
+- **LLM Text** (`index.txt`): AI-friendly plain text format optimized for **RAG** (Retrieval-Augmented Generation) and LLM consumption. RAG allows AI models to "read" your documentation to answer questions accurately.
 
 ### Site-Wide Formats
 
@@ -37,7 +37,12 @@ include_html_content = true    # Include full HTML in JSON
 include_plain_text = true      # Include plain text in JSON
 excerpt_length = 200           # Excerpt length for site index
 json_indent = 2                # Pretty-print JSON (use null for compact)
+# exclude_sections = ["private"] # Sections to exclude from output formats
 ```
+
+:::{note}
+**Visibility**: Output formats currently expose all rendered pages unless specifically excluded via `exclude_sections` or `exclude_patterns`. Drafts are handled by the main build configuration (excluded by default unless `--drafts` is used).
+:::
 
 ## Use Cases
 
@@ -45,14 +50,46 @@ json_indent = 2                # Pretty-print JSON (use null for compact)
 
 Fetch the site index to implement fast, client-side search without a backend.
 
-```javascript
-fetch('/index.json')
-  .then(response => response.json())
-  .then(data => {
-    const results = data.pages.filter(page => 
-      page.title.includes(query) || page.excerpt.includes(query)
-    );
+```html
+<!-- Simple search UI -->
+<input type="text" id="search-input" placeholder="Search...">
+<ul id="search-results"></ul>
+
+<script>
+  const searchInput = document.getElementById('search-input');
+  const resultsList = document.getElementById('search-results');
+  let searchIndex = [];
+
+  // Fetch index once
+  fetch('/index.json')
+    .then(response => response.json())
+    .then(data => {
+      searchIndex = data.pages;
+    });
+
+  // Filter and display results
+  searchInput.addEventListener('input', (e) => {
+    const query = e.target.value.toLowerCase();
+    if (query.length < 2) {
+      resultsList.innerHTML = '';
+      return;
+    }
+
+    const results = searchIndex.filter(page => 
+      (page.title && page.title.toLowerCase().includes(query)) || 
+      (page.excerpt && page.excerpt.toLowerCase().includes(query))
+    ).slice(0, 10); // Limit to 10 results
+
+    resultsList.innerHTML = results.map(page => `
+      <li>
+        <a href="${page.url}">
+          <strong>${page.title}</strong>
+          <p>${page.excerpt}</p>
+        </a>
+      </li>
+    `).join('');
   });
+</script>
 ```
 
 ### 2. AI & LLM Discovery
