@@ -26,8 +26,8 @@ jobs:
           python-version: '3.14t'
           allow-prereleases: true
 
-      - name: Install bengal
-        run: pip install -e .
+      - name: Install bengal with CSS extras
+        run: pip install -e '.[css]'
 
       - name: Build site
         working-directory: site
