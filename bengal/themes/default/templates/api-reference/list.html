@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from 'partials/navigation-components.html' import breadcrumbs with context %}
+{# Breadcrumbs import removed as it is replaced by action-bar #}
 {% from 'partials/content-components.html' import for_each_item_excluding_current with context %}
 
 {#
@@ -25,8 +25,12 @@ Context variables:
 
     {# Main Content #}
     <div class="docs-main">
-        {# Breadcrumbs #}
-        {{ breadcrumbs(section if section is defined else (page if page is defined else none)) }}
+        {# Action Bar: Breadcrumbs + Share #}
+        {# Ensure page is defined for action-bar #}
+        {% if not page is defined and section is defined %}
+            {% set page = section %}
+        {% endif %}
+        {% include 'partials/action-bar.html' %}
 
         <div class="api-reference-container">
             <header class="page-header page-header--centered page-header--bordered">
