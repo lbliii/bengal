@@ -184,10 +184,7 @@
 
 .lightbox {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  inset: 0;
   background-color: rgba(0, 0, 0, 0.9);
   z-index: var(--z-modal);
   display: none;
@@ -199,6 +196,11 @@
   will-change: opacity, transform;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
+
+  /* View Transitions API for smooth open/close */
+  @supports (view-transition-name: lightbox) {
+    view-transition-name: lightbox;
+  }
 }
 
 @keyframes fadeIn {

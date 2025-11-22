@@ -2,6 +2,8 @@
 title: Concepts
 description: Core concepts and architecture of Bengal
 weight: 30
+cascade:
+  type: doc
 ---
 
 Understand the core concepts and architecture behind Bengal.

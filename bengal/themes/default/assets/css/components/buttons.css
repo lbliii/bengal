@@ -81,9 +81,18 @@
   background-color: #6b7280;
   color: white;
 
-  &:hover {
-    background-color: #4b5563;
-    color: white;
+  @supports (color-mix(in srgb, white, black)) {
+    &:hover {
+      background-color: color-mix(in srgb, #6b7280 90%, black);
+      color: white;
+    }
+  }
+
+  @supports not (color-mix(in srgb, white, black)) {
+    &:hover {
+      background-color: #4b5563;
+      color: white;
+    }
   }
 }
 
