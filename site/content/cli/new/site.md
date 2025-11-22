@@ -22,17 +22,11 @@ description: "🏗️  Create a new Bengal site with optional structure initiali
 
 🏗️  Create a new Bengal site with optional structure initialization.
 
-
-
-
 ## Usage
 
 ```bash
 site [OPTIONS] [ARGUMENTS]
 ```
-
-
-
 
 ## Arguments
 
@@ -47,13 +41,6 @@ site [OPTIONS] [ARGUMENTS]
 This argument is optional.
 ```
 
-
-
-
-
-
-
-
 ## Options
 
 ### `theme`
@@ -64,7 +51,6 @@ Theme to use
 **Type:** `text`
 
 **Default:** `default`
-
 
 
 
@@ -81,7 +67,6 @@ Site template (default, blog, docs, portfolio, resume, landing)
 
 
 
-
 ### `no_init`
 
 
@@ -94,19 +79,12 @@ Skip structure initialization wizard
 
 
 
-
 ### `init_preset`
 
 
 Initialize with preset (blog, docs, portfolio, business, resume) without prompting
 
 **Type:** `text`
-
-
-
-
-
-
 
 
 

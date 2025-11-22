@@ -29,17 +29,11 @@ Subcommands:
     partial   Create a new partial template in templates/partials/
     theme     Create a new theme scaffold with templates and assets
 
-
-
-
 ## Usage
 
 ```bash
 new [OPTIONS] [ARGUMENTS]
 ```
-
-
-
 
 ## Subcommands
 
@@ -51,7 +45,6 @@ Layouts are reusable HTML templates used by pages.
 Example: "article" → templates/layouts/article.html
 
 **Usage:** `new layout [OPTIONS]`
-
 
 
 
@@ -68,7 +61,6 @@ Example: "My Awesome Page" → my-awesome-page.md
 
 
 
-
 ### `partial`
 
 🧩 Create a new partial template.
@@ -77,7 +69,6 @@ Partials are reusable template fragments included in other templates.
 Example: "sidebar" → templates/partials/sidebar.html
 
 **Usage:** `new partial [OPTIONS]`
-
 
 
 
@@ -91,7 +82,6 @@ Example: "sidebar" → templates/partials/sidebar.html
 
 
 
-
 ### `theme`
 
 🎨 Create a new theme scaffold.
@@ -100,11 +90,6 @@ Themes are self-contained template and asset packages.
 Example: "my-theme" → themes/my-theme/ with templates, partials, and assets
 
 **Usage:** `new theme [OPTIONS]`
-
-
-
-
-
 
 
 

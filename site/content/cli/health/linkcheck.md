@@ -26,17 +26,11 @@ Validates that all links in your site work correctly:
 - Internal links point to existing pages and anchors
 - External links return successful HTTP status codes
 
-
-
-
 ## Usage
 
 ```bash
 linkcheck [OPTIONS] [ARGUMENTS]
 ```
-
-
-
 
 ## Options
 
@@ -48,7 +42,6 @@ Only check external links (skip internal validation)
 **Type:** `boolean`
 
 **Default:** `False`
-
 
 
 
@@ -65,14 +58,12 @@ Only check internal links (skip external validation)
 
 
 
-
 ### `max_concurrency`
 
 
 Maximum concurrent HTTP requests (default: 20)
 
 **Type:** `integer`
-
 
 
 
@@ -89,14 +80,12 @@ Maximum concurrent requests per host (default: 4)
 
 
 
-
 ### `timeout`
 
 
 Request timeout in seconds (default: 10.0)
 
 **Type:** `float`
-
 
 
 
@@ -113,14 +102,12 @@ Number of retry attempts (default: 2)
 
 
 
-
 ### `retry_backoff`
 
 
 Base backoff time for exponential backoff in seconds (default: 0.5)
 
 **Type:** `float`
-
 
 
 
@@ -137,7 +124,6 @@ URL pattern to exclude (repeatable, regex supported)
 
 
 
-
 ### `exclude_domain`
 
 
@@ -149,14 +135,12 @@ Domain to exclude (repeatable, e.g., 'localhost')
 
 
 
-
 ### `ignore_status`
 
 
 Status code or range to ignore (repeatable, e.g., '500-599', '403')
 
 **Type:** `text`
-
 
 
 
@@ -174,7 +158,6 @@ Output format
 
 
 
-
 ### `output_file`
 
 
@@ -186,19 +169,12 @@ Output file (for JSON format)
 
 
 
-
 ### `traceback`
 
 
 Traceback verbosity: full | compact | minimal | off
 
 **Type:** `choice`
-
-
-
-
-
-
 
 
 

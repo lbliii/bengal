@@ -25,17 +25,11 @@ description: "🎨 Create a new theme scaffold. Themes are self-contained templa
 Themes are self-contained template and asset packages.
 Example: "my-theme" → themes/my-theme/ with templates, partials, and assets
 
-
-
-
 ## Usage
 
 ```bash
 theme [OPTIONS] [ARGUMENTS]
 ```
-
-
-
 
 ## Arguments
 
@@ -49,11 +43,6 @@ theme [OPTIONS] [ARGUMENTS]
 ```{info}
 This argument is optional.
 ```
-
-
-
-
-
 
 
 

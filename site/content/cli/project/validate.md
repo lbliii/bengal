@@ -29,15 +29,11 @@ Checks:
     ✓ Theme configuration
     ✓ Content files parseable
 
-
-
-
 ## Usage
 
 ```bash
 validate [OPTIONS] [ARGUMENTS]
 ```
-
 
 
 

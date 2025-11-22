@@ -6,7 +6,9 @@
     <header class="hero hero--large">
         <div class="hero__container">
             <div class="hero__content">
-                <h1 class="hero__title">{{ page.title | default(site.config.title) }}</h1>
+                <h1 class="hero__title">
+                    <span class="fluid-text">{{ page.title | default(site.config.title) }}</span>
+                </h1>
                 {% if page.metadata.get('description', '') %}
                 <p class="hero__subtitle">{{ page.metadata.get('description', '') }}</p>
                 {% endif %}
@@ -15,7 +17,7 @@
                 <div class="hero__actions">
                     {% for button in page.metadata.get('cta_buttons') %}
                     <a href="{{ button.url }}"
-                        class="hero__button hero__button--{{ button.style | default('primary') }}">
+                        class="hero__button hero__button--{{ button.style | default('primary') }} {% if button.style != 'primary' %}gradient-border{% endif %}">
                         {{ button.text }}
                     </a>
                     {% endfor %}
@@ -30,7 +32,7 @@
     <section class="features">
         <div class="features-grid">
             {% for feature in page.metadata.get('features') %}
-            <div class="feature-card">
+            <div class="feature-card gradient-border-strong fluid-bg">
                 {% if feature.icon %}
                 <div class="feature-icon">{{ feature.icon }}</div>
                 {% endif %}
@@ -77,7 +79,7 @@
     <section class="stats">
         <div class="stats-grid">
             {% for stat in page.metadata.get('stats') %}
-            <div class="stat-card">
+            <div class="stat-card gradient-border-subtle">
                 <div class="stat-value">{{ stat.value }}</div>
                 <div class="stat-label">{{ stat.label }}</div>
             </div>

@@ -12,13 +12,18 @@
 
 .hero {
   position: relative;
-  padding: 4rem 0;
+  padding-block: 3rem 4rem; /* Reduced top from 4rem to 3rem for tighter spacing beneath navbar */
   text-align: center;
   background: linear-gradient(135deg,
       var(--color-bg-elevated) 0%,
       var(--color-bg-secondary) 100%);
-  border-bottom: 1px solid var(--color-border-light);
+  border-block-end: 1px solid var(--color-border-light); /* Changed from border-bottom */
   overflow: hidden;
+
+  /* Scroll-driven fade-in for hero content */
+  &.fade-in-on-scroll {
+    /* Will be animated by scroll-animations.css */
+  }
 }
 
 [data-theme="dark"] .hero {
@@ -30,7 +35,7 @@
 .hero__container {
   max-width: var(--container-lg);
   margin: 0 auto;
-  padding: 0 1.5rem;
+  padding-inline: var(--space-4); /* Changed from 1.5rem (24px) to --space-4 (16px) for tighter horizontal spacing */
 }
 
 .hero__content {
@@ -58,6 +63,11 @@
   line-height: var(--type-leading-heading);
   letter-spacing: var(--letter-spacing-tighter);
   color: var(--color-text-primary);
+
+  /* Scroll-driven slide-up animation */
+  &.slide-up-on-scroll {
+    /* Will be animated by scroll-animations.css */
+  }
 }
 
 .hero__subtitle {

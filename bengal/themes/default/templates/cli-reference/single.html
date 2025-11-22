@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% from 'partials/reference-components.html' import reference_header, reference_metadata %}
-{% from 'partials/navigation-components.html' import breadcrumbs, page_navigation, toc with context %}
+{% from 'partials/navigation-components.html' import page_navigation, toc with context %}
 {% from 'partials/content-components.html' import tag_list %}
 
 {#
@@ -26,7 +26,8 @@
   {# Main Content #}
   <div class="docs-main">
     {# Breadcrumbs #}
-    {{ breadcrumbs(page) }}
+    {# Action Bar: Breadcrumbs + Share #}
+    {% include 'partials/action-bar.html' %}
 
     {# Article Content #}
     <article class="prose cli-reference-page reference-page--cli {% if page.metadata.get('css_class') %}{{ page.metadata.get('css_class') }}{% endif %}">

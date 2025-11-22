@@ -28,6 +28,27 @@ html {
   scroll-behavior: smooth;
 }
 
+/* View Transitions API - Smooth page transitions */
+@supports (view-transition-name: root) {
+  @view-transition {
+    navigation: auto;
+  }
+
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: 0.3s;
+    animation-timing-function: var(--ease-smooth);
+  }
+
+  ::view-transition-old(root) {
+    z-index: 1;
+  }
+
+  ::view-transition-new(root) {
+    z-index: 2;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
@@ -73,17 +94,19 @@ p {
   margin: 0;
 }
 
+/* Base link reset - minimal, let prose/content styles handle link appearance */
 a {
-  color: var(--color-primary);
+  color: inherit; /* Don't force color - let content styles handle it */
   text-decoration: none;
-  transition: color var(--transition-fast) var(--ease-out);
+  /* Transition removed - let content-specific styles handle transitions */
 }
 
+/* Base hover - minimal, content styles override */
 a:hover {
-  color: var(--color-primary-dark);
-  text-decoration: underline;
+  /* Let content styles handle hover */
 }
 
+/* Base focus - accessible outline */
 a:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
@@ -130,6 +153,23 @@ pre {
   border-radius: var(--radius-md);
   overflow-x: auto;
   line-height: var(--leading-relaxed);
+}
+
+/* Break out of container padding on mobile for better scrolling */
+@media (max-width: 639px) {
+  pre {
+    margin-left: calc(-1 * var(--space-3));
+    margin-right: calc(-1 * var(--space-3));
+    padding-left: var(--space-4);
+    padding-right: var(--space-4);
+  }
+}
+
+@media (min-width: 400px) and (max-width: 639px) {
+  pre {
+    margin-left: calc(-1 * var(--space-4));
+    margin-right: calc(-1 * var(--space-4));
+  }
 }
 
 pre code {
@@ -306,9 +346,22 @@ summary {
 
 :focus-visible {
   outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
+  outline-offset: 3px;
+  border-radius: var(--radius-sm);
+  box-shadow: 0 0 0 4px rgba(var(--color-primary-rgb, 33, 150, 243), 0.1);
 }
 
 :focus:not(:focus-visible) {
   outline: none;
+}
+
+/* Enhanced focus for interactive elements */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb, 33, 150, 243), 0.15);
 }

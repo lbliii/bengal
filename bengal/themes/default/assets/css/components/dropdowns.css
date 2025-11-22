@@ -13,18 +13,42 @@ details.dropdown {
   padding: var(--space-4) var(--space-5);
   border: 1px solid var(--color-border);
   border-left: 4px solid var(--color-accent);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg); /* Increased from --radius-md (4px → 8px) */
   background-color: var(--color-bg-secondary);
-  transition: all var(--transition-normal) var(--ease-out);
+  transition: all var(--transition-normal) var(--ease-out), box-shadow 0.2s ease;
+  /* Neumorphic shadow - refined depth */
+  box-shadow: 
+    inset 0.5px 0.5px 1px rgba(255, 255, 255, 0.3),
+    inset -0.5px -0.5px 1px rgba(0, 0, 0, 0.1),
+    1px 1px 2px rgba(0, 0, 0, 0.08),
+    -0.5px -0.5px 1px rgba(255, 255, 255, 0.2);
+}
+
+/* Gradient border support */
+details.dropdown.gradient-border {
+  border: none;
+  border-left: none;
+}
+
 }
 
 details.dropdown:hover {
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  /* Neumorphic hover - refined raised effect */
+  box-shadow: 
+    inset 0.5px 0.5px 1.5px rgba(255, 255, 255, 0.4),
+    inset -0.5px -0.5px 1.5px rgba(0, 0, 0, 0.12),
+    2px 2px 6px rgba(0, 0, 0, 0.1),
+    -1px -1px 3px rgba(255, 255, 255, 0.3);
 }
 
 details.dropdown[open] {
   background-color: var(--color-bg-primary);
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  /* Neumorphic shadow when open - more pronounced */
+  box-shadow: 
+    inset 0.5px 0.5px 1px rgba(255, 255, 255, 0.4),
+    inset -0.5px -0.5px 1px rgba(0, 0, 0, 0.15),
+    3px 3px 8px rgba(0, 0, 0, 0.12),
+    -1px -1px 4px rgba(255, 255, 255, 0.25);
 }
 
 /* ============================================
@@ -44,39 +68,39 @@ details.dropdown summary {
   align-items: center;
   gap: var(--space-2);
   transition: color var(--transition-fast) var(--ease-out);
-}
 
-/* Remove default marker */
-details.dropdown summary::-webkit-details-marker {
-  display: none;
-}
+  /* Remove default marker */
+  &::-webkit-details-marker {
+    display: none;
+  }
 
-details.dropdown summary::marker {
-  display: none;
-}
+  &::marker {
+    display: none;
+  }
 
-/* Custom arrow */
-details.dropdown summary::after {
-  content: '▶';
-  position: absolute;
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: var(--text-sm);
-  color: var(--color-text-secondary);
-  transition: transform var(--transition-fast) var(--ease-out);
+  /* Custom arrow */
+  &::after {
+    content: '▶';
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: var(--text-sm);
+    color: var(--color-text-secondary);
+    transition: transform var(--transition-fast) var(--ease-out);
+  }
+
+  &:hover {
+    color: var(--color-accent);
+
+    &::after {
+      color: var(--color-accent);
+    }
+  }
 }
 
 details.dropdown[open] summary::after {
   transform: translateY(-50%) rotate(90deg);
-}
-
-details.dropdown summary:hover {
-  color: var(--color-accent);
-}
-
-details.dropdown summary:hover::after {
-  color: var(--color-accent);
 }
 
 /* Focus state for accessibility */
@@ -99,6 +123,24 @@ details.dropdown summary:focus:not(:focus-visible) {
   padding-top: var(--space-4);
   border-top: 1px solid var(--color-border);
   animation: slideDown 0.2s var(--ease-out);
+  will-change: transform, opacity;
+
+  /* View Transitions API for smooth expand/collapse */
+  @supports (view-transition-name: dropdown) {
+    view-transition-name: dropdown-content;
+  }
+}
+
+/* Use GPU-accelerated transform for smoother animation */
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translate3d(0, -8px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
 }
 
 @keyframes slideDown {
@@ -240,10 +282,31 @@ details.dropdown.info[open] {
 [data-theme="dark"] details.dropdown {
   border-color: var(--color-border-dark);
   background-color: var(--color-bg-secondary-dark);
+  /* Neumorphic shadow for dark mode */
+  box-shadow: 
+    inset 0.5px 0.5px 1px rgba(255, 255, 255, 0.08),
+    inset -0.5px -0.5px 1px rgba(0, 0, 0, 0.4),
+    1px 1px 3px rgba(0, 0, 0, 0.25),
+    -0.5px -0.5px 1px rgba(255, 255, 255, 0.05);
+}
+
+[data-theme="dark"] details.dropdown:hover {
+  /* Neumorphic hover for dark mode */
+  box-shadow: 
+    inset 0.5px 0.5px 1.5px rgba(255, 255, 255, 0.12),
+    inset -0.5px -0.5px 1.5px rgba(0, 0, 0, 0.5),
+    2px 2px 6px rgba(0, 0, 0, 0.35),
+    -1px -1px 3px rgba(255, 255, 255, 0.08);
 }
 
 [data-theme="dark"] details.dropdown[open] {
   background-color: var(--color-bg-primary-dark);
+  /* Neumorphic shadow when open - dark mode */
+  box-shadow: 
+    inset 0.5px 0.5px 1px rgba(255, 255, 255, 0.12),
+    inset -0.5px -0.5px 1px rgba(0, 0, 0, 0.5),
+    3px 3px 8px rgba(0, 0, 0, 0.4),
+    -1px -1px 4px rgba(255, 255, 255, 0.08);
 }
 
 [data-theme="dark"] .dropdown-content {
@@ -305,8 +368,12 @@ details.dropdown.info[open] {
    ============================================ */
 
 @media (prefers-reduced-motion: reduce) {
-  .dropdown-content {
+  .dropdown-content,
+  .action-bar-metadata {
     animation: none;
+    transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+                transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+                visibility 0.2s;
   }
 
   details.dropdown summary::after {

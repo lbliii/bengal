@@ -1,0 +1,444 @@
+/**
+ * Bengal SSG - Fluid Blob Effects
+ * Subtle fluid/blob-like animations inspired by Bengal cat rosettes and spots
+ * 
+ * Usage: Add .fluid-bg, .fluid-border, .blob-spots, or .fluid-combined classes
+ */
+
+/* ============================================
+   FLUID BLOB VARIABLES
+   ============================================ */
+
+:root {
+  /* Blob animation durations */
+  --blob-duration-slow: 20s;
+  --blob-duration-medium: 12s;
+  --blob-duration-fast: 8s;
+  
+  /* Blob opacity levels */
+  --blob-opacity-subtle: 0.04;
+  --blob-opacity-normal: 0.06;
+  --blob-opacity-strong: 0.08;
+  
+  /* Blob colors (using theme colors) */
+  --blob-color-1: var(--color-primary);
+  --blob-color-2: var(--color-accent);
+}
+
+/* ============================================
+   FLUID BACKGROUND BLOB
+   ============================================ */
+
+.fluid-bg {
+  position: relative;
+  overflow: hidden;
+}
+
+.fluid-bg::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -20%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(
+    circle at 30% 30%,
+    color-mix(in srgb, var(--blob-color-1) var(--blob-opacity-normal), transparent) 0%,
+    color-mix(in srgb, var(--blob-color-2) var(--blob-opacity-subtle), transparent) 30%,
+    transparent 60%
+  );
+  border-radius: 50%;
+  animation: blob-morph var(--blob-duration-slow) ease-in-out infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.fluid-bg::after {
+  content: '';
+  position: absolute;
+  bottom: -40%;
+  left: -15%;
+  width: 180%;
+  height: 180%;
+  background: radial-gradient(
+    circle at 70% 70%,
+    color-mix(in srgb, var(--blob-color-2) var(--blob-opacity-normal), transparent) 0%,
+    color-mix(in srgb, var(--blob-color-1) var(--blob-opacity-subtle), transparent) 25%,
+    transparent 55%
+  );
+  border-radius: 50%;
+  animation: blob-morph-reverse calc(var(--blob-duration-slow) * 1.25) ease-in-out infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.fluid-bg > * {
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes blob-morph {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+    border-radius: 50% 40% 60% 30%;
+  }
+  25% {
+    transform: translate(5%, -8%) scale(1.1);
+    border-radius: 60% 30% 50% 40%;
+  }
+  50% {
+    transform: translate(-5%, 5%) scale(0.95);
+    border-radius: 40% 60% 30% 50%;
+  }
+  75% {
+    transform: translate(8%, 3%) scale(1.05);
+    border-radius: 50% 30% 60% 40%;
+  }
+}
+
+@keyframes blob-morph-reverse {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+    border-radius: 40% 50% 30% 60%;
+  }
+  25% {
+    transform: translate(-5%, 8%) scale(0.9);
+    border-radius: 30% 60% 40% 50%;
+  }
+  50% {
+    transform: translate(5%, -5%) scale(1.1);
+    border-radius: 60% 30% 50% 40%;
+  }
+  75% {
+    transform: translate(-8%, -3%) scale(0.95);
+    border-radius: 50% 40% 60% 30%;
+  }
+}
+
+/* Fallback for browsers without color-mix */
+@supports not (color-mix(in srgb, black, white)) {
+  .fluid-bg::before {
+    background: radial-gradient(
+      circle at 30% 30%,
+      rgba(59, 130, 246, 0.06) 0%,
+      rgba(139, 92, 246, 0.04) 30%,
+      transparent 60%
+    );
+  }
+  
+  .fluid-bg::after {
+    background: radial-gradient(
+      circle at 70% 70%,
+      rgba(139, 92, 246, 0.06) 0%,
+      rgba(59, 130, 246, 0.04) 25%,
+      transparent 55%
+    );
+  }
+}
+
+/* ============================================
+   FLOWING GRADIENT BORDER
+   ============================================ */
+
+.fluid-border {
+  position: relative;
+}
+
+.fluid-border::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: var(--gradient-border);
+  background-size: 200% 200%;
+  -webkit-mask: 
+    linear-gradient(#fff 0 0) content-box, 
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  opacity: 0.6;
+  animation: gradient-flow var(--blob-duration-fast) ease infinite;
+}
+
+@keyframes gradient-flow {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+/* ============================================
+   FLOATING BLOB SPOTS (Rosette-inspired)
+   ============================================ */
+
+.blob-spots {
+  position: relative;
+  overflow: hidden;
+}
+
+.blob-spots::before {
+  content: '';
+  position: absolute;
+  top: 20%;
+  right: 15%;
+  width: 80px;
+  height: 80px;
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--blob-color-1) 12%, transparent) 0%,
+    color-mix(in srgb, var(--blob-color-2) 8%, transparent) 40%,
+    transparent 70%
+  );
+  border-radius: 50%;
+  animation: blob-float-1 var(--blob-duration-medium) ease-in-out infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.blob-spots::after {
+  content: '';
+  position: absolute;
+  bottom: 25%;
+  left: 20%;
+  width: 60px;
+  height: 60px;
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--blob-color-2) 10%, transparent) 0%,
+    color-mix(in srgb, var(--blob-color-1) 6%, transparent) 35%,
+    transparent 65%
+  );
+  border-radius: 50%;
+  animation: blob-float-2 calc(var(--blob-duration-medium) * 1.25) ease-in-out infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.blob-spots > * {
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes blob-float-1 {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.6;
+  }
+  33% {
+    transform: translate(10px, -15px) scale(1.2);
+    opacity: 0.8;
+  }
+  66% {
+    transform: translate(-8px, 10px) scale(0.9);
+    opacity: 0.5;
+  }
+}
+
+@keyframes blob-float-2 {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.5;
+  }
+  33% {
+    transform: translate(-12px, 12px) scale(1.1);
+    opacity: 0.7;
+  }
+  66% {
+    transform: translate(15px, -8px) scale(0.95);
+    opacity: 0.4;
+  }
+}
+
+/* Fallback for browsers without color-mix */
+@supports not (color-mix(in srgb, black, white)) {
+  .blob-spots::before {
+    background: radial-gradient(
+      circle,
+      rgba(59, 130, 246, 0.12) 0%,
+      rgba(139, 92, 246, 0.08) 40%,
+      transparent 70%
+    );
+  }
+  
+  .blob-spots::after {
+    background: radial-gradient(
+      circle,
+      rgba(139, 92, 246, 0.1) 0%,
+      rgba(59, 130, 246, 0.06) 35%,
+      transparent 65%
+    );
+  }
+}
+
+/* ============================================
+   COMBINED FLUID EFFECT (Recommended)
+   ============================================ */
+
+.fluid-combined {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Fluid background */
+.fluid-combined::before {
+  content: '';
+  position: absolute;
+  top: -30%;
+  right: -10%;
+  width: 150%;
+  height: 150%;
+  background: radial-gradient(
+    circle at 40% 40%,
+    color-mix(in srgb, var(--blob-color-1) var(--blob-opacity-normal), transparent) 0%,
+    color-mix(in srgb, var(--blob-color-2) var(--blob-opacity-subtle), transparent) 25%,
+    transparent 50%
+  );
+  border-radius: 50%;
+  animation: blob-morph var(--blob-duration-slow) ease-in-out infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Flowing border */
+.fluid-combined::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: var(--gradient-border);
+  background-size: 200% 200%;
+  -webkit-mask: 
+    linear-gradient(#fff 0 0) content-box, 
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  opacity: 0.5;
+  animation: gradient-flow var(--blob-duration-fast) ease infinite;
+  z-index: 1;
+}
+
+.fluid-combined > * {
+  position: relative;
+  z-index: 2;
+}
+
+/* Fallback for browsers without color-mix */
+@supports not (color-mix(in srgb, black, white)) {
+  .fluid-combined::before {
+    background: radial-gradient(
+      circle at 40% 40%,
+      rgba(59, 130, 246, 0.06) 0%,
+      rgba(139, 92, 246, 0.04) 25%,
+      transparent 50%
+    );
+  }
+}
+
+/* ============================================
+   FLUID TEXT EFFECT (Masked blobs)
+   ============================================ */
+
+.fluid-text {
+  /* Create a vibrant gradient background using theme blob colors */
+  background-image: radial-gradient(
+    circle at 50% 50%,
+    var(--color-accent) 0%,
+    var(--color-primary) 25%,
+    var(--color-accent) 50%,
+    var(--color-primary) 75%
+  );
+  background-size: 300% 300%;
+  
+  /* Clip background to text */
+  -webkit-background-clip: text;
+  background-clip: text;
+  
+  /* Hide original text color */
+  color: transparent;
+  
+  /* Animate background to simulate fluid movement */
+  animation: fluid-text-flow 6s ease infinite;
+  
+  /* Ensure readability with a subtle shadow (outside the clip) */
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.15));
+}
+
+[data-theme="dark"] .fluid-text {
+  /* Brighter/lighter gradient for dark mode to ensure legibility */
+  background-image: radial-gradient(
+    circle at 50% 50%,
+    var(--color-accent) 0%,
+    #fff 25%,
+    var(--color-primary) 50%,
+    var(--color-accent) 75%
+  );
+  
+  /* Glow effect instead of dark shadow */
+  filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.3));
+}
+
+@keyframes fluid-text-flow {
+  0% {
+    background-position: 0% 50%;
+  }
+  33% {
+    background-position: 100% 0%;
+  }
+  66% {
+    background-position: 50% 100%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* ============================================
+   REDUCED MOTION
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .fluid-bg::before,
+  .fluid-bg::after,
+  .fluid-border::before,
+  .blob-spots::before,
+  .blob-spots::after,
+  .fluid-combined::before,
+  .fluid-combined::after,
+  .fluid-text {
+    animation: none !important;
+    background-position: 0% 50% !important;
+  }
+}
+
+/* ============================================
+   PERFORMANCE OPTIMIZATIONS
+   ============================================ */
+
+.fluid-bg::before,
+.fluid-bg::after,
+.fluid-border::before,
+.blob-spots::before,
+.blob-spots::after,
+.fluid-combined::before,
+.fluid-combined::after {
+  will-change: transform, opacity;
+}
+
+/* Only enable will-change when animating */
+@media (prefers-reduced-motion: reduce) {
+  .fluid-bg::before,
+  .fluid-bg::after,
+  .fluid-border::before,
+  .blob-spots::before,
+  .blob-spots::after,
+  .fluid-combined::before,
+  .fluid-combined::after {
+    will-change: auto;
+  }
+}

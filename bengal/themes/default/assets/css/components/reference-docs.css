@@ -47,7 +47,7 @@
 
 .reference-metadata-item strong {
     color: var(--color-text-secondary);
-    font-weight: 600;
+    font-weight: var(--font-semibold);
     min-width: 60px;
     flex-shrink: 0;
     /* Prevent label from shrinking */
@@ -109,7 +109,7 @@
 .api-reference-description {
     font-size: var(--text-lg);
     color: var(--color-text-secondary);
-    font-weight: 400;
+    font-weight: var(--font-normal);
     line-height: 1.7;
     max-width: 700px;
     margin: 0 auto;
@@ -141,7 +141,7 @@
 
 .api-stat strong {
     font-size: var(--text-2xl);
-    font-weight: 700;
+    font-weight: var(--font-bold);
     color: var(--color-primary);
 }
 
@@ -163,7 +163,7 @@
 
 .api-section-title {
     font-size: var(--text-xl);
-    font-weight: 600;
+    font-weight: var(--font-semibold);
     color: var(--color-text-primary);
     margin-bottom: var(--space-4);
     padding-bottom: var(--space-3);
@@ -186,7 +186,14 @@
     gap: 0.75rem;
     padding: 0.5rem 1rem;
     border-bottom: 1px solid var(--color-border);
+    border-radius: var(--radius-lg); /* Added rounding (8px) */
     transition: all 0.2s ease;
+}
+
+/* Gradient border support */
+.api-item.gradient-border,
+.api-item.gradient-border-subtle {
+    border-bottom: none;
 }
 
 .api-item:last-child {
@@ -262,6 +269,13 @@
     gap: var(--space-6);
 }
 
+/* Force single column on very small screens */
+@media (max-width: 399px) {
+    .api-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
 @media (max-width: 640px) {
     .api-grid {
         grid-template-columns: 1fr;
@@ -298,7 +312,7 @@
 
 .api-module-title {
     font-size: var(--text-xl);
-    font-weight: 600;
+    font-weight: var(--font-semibold);
     line-height: 1.3;
     margin: 0 0 var(--space-3) 0;
 }
@@ -395,7 +409,7 @@
 
 .api-reference-page .api-meta-item strong {
     color: var(--color-text-secondary);
-    font-weight: 600;
+    font-weight: var(--font-semibold);
     min-width: 60px;
     flex-shrink: 0;
     /* Prevent label from shrinking */
@@ -448,7 +462,7 @@
 .cli-reference-description {
     font-size: var(--text-lg);
     color: var(--color-text-secondary);
-    font-weight: 400;
+    font-weight: var(--font-normal);
     line-height: 1.7;
     max-width: 700px;
     padding-bottom: var(--space-6);
@@ -479,7 +493,7 @@
 
 .cli-section-title {
     font-size: var(--text-xl);
-    font-weight: 600;
+    font-weight: var(--font-semibold);
     color: var(--color-text-primary);
     margin-bottom: var(--space-4);
     padding-bottom: var(--space-3);
@@ -502,7 +516,14 @@
     gap: 0.75rem;
     padding: 0.5rem 1rem;
     border-bottom: 1px solid var(--color-border);
+    border-radius: var(--radius-lg); /* Added rounding (8px) */
     transition: all 0.2s ease;
+}
+
+/* Gradient border support */
+.cli-item.gradient-border,
+.cli-item.gradient-border-subtle {
+    border-bottom: none;
 }
 
 .cli-item:last-child {
@@ -622,7 +643,7 @@
 
 .cli-command-title {
     font-size: var(--text-xl);
-    font-weight: 600;
+    font-weight: var(--font-semibold);
     line-height: 1.3;
     margin: 0 0 var(--space-3) 0;
 }
@@ -681,7 +702,7 @@
     color: var(--color-primary);
     text-decoration: none;
     font-size: var(--text-sm);
-    font-weight: 500;
+    font-weight: var(--font-medium);
 }
 
 .cli-command-link:hover {
@@ -703,7 +724,7 @@
 
 .cli-help h2 {
     font-size: var(--type-h2);
-    font-weight: 600;
+    font-weight: var(--font-semibold);
     margin-bottom: var(--space-4);
 }
 
@@ -745,7 +766,7 @@
 .cli-reference-page .cli-usage-header strong {
     display: block;
     font-size: var(--text-sm);
-    font-weight: 600;
+    font-weight: var(--font-semibold);
     color: var(--color-text-primary-muted);
     margin-bottom: var(--space-2);
 }

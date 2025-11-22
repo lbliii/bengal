@@ -12,23 +12,29 @@ safe error boundaries and decomposed partials for maintainability.
 {% block doc_type %}python-module{% endblock %}
 
 {% block content %}
+{#-
+CRITICAL: Root layout controls all spacing between major sections
+- Each safe_section call adds a newline after it (except the last)
+- Partials should NOT add trailing newlines - they end cleanly
+- This centralizes spacing control in one place
+-#}
 {#- Module description -#}
-{% call safe_section("description") %}
-  {% include 'python/partials/module_description.md.jinja2' %}
-{% endcall %}
+{%- call safe_section("description") -%}
+{%- include 'python/partials/module_description.md.jinja2' -%}
+{%- endcall -%}
 
 {#- Module aliases -#}
-{% call safe_section("aliases") %}
-  {% include 'python/partials/module_aliases.md.jinja2' %}
-{% endcall %}
+{%- call safe_section("aliases") -%}
+{%- include 'python/partials/module_aliases.md.jinja2' -%}
+{%- endcall -%}
 
 {#- Module classes -#}
-{% call safe_section("classes") %}
-  {% include 'python/partials/module_classes.md.jinja2' %}
-{% endcall %}
+{%- call safe_section("classes") -%}
+{%- include 'python/partials/module_classes.md.jinja2' -%}
+{%- endcall -%}
 
 {#- Module functions -#}
-{% call safe_section("functions") %}
-  {% include 'python/partials/module_functions.md.jinja2' %}
-{% endcall %}
+{%- call safe_section("functions") -%}
+{%- include 'python/partials/module_functions.md.jinja2' -%}
+{%- endcall -%}
 {% endblock %}

@@ -11,14 +11,24 @@
   position: relative;
   margin: var(--space-6) 0;
   border: 1px solid var(--color-border-light);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg); /* Increased from --radius-md (4px → 8px) */
   background-color: var(--color-bg-primary);
   overflow: hidden;
+}
+
+.tabs.gradient-border {
+  border: none;
 }
 
 /* ============================================
    TAB NAVIGATION
    ============================================ */
+
+/* Tab navigation container for container queries */
+.tabs-container {
+  container-type: inline-size;
+  container-name: tabs;
+}
 
 .tab-nav {
   display: flex;
@@ -31,6 +41,26 @@
   overflow-x: auto;
   overflow-y: hidden;
   scrollbar-width: thin;
+}
+
+/* Container query: Stack tabs vertically on small containers */
+@container tabs (max-width: 400px) {
+  .tab-nav {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .tab-nav a {
+    border-bottom: none;
+    border-left: 2px solid transparent;
+    margin-bottom: 0;
+    margin-left: -2px;
+  }
+
+  .tab-nav li.active a {
+    border-left-color: var(--color-primary);
+    border-bottom-color: transparent;
+  }
 }
 
 /* Override prose list styles for tab navigation */
@@ -77,6 +107,9 @@
   transition: all var(--transition-fast) var(--ease-out);
   white-space: nowrap;
   opacity: 0.7;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .tab-nav a:hover {
@@ -108,17 +141,22 @@
 
 .tab-pane.active {
   display: block;
-  animation: fadeIn 0.2s var(--ease-out);
+  animation: fadeIn 0.3s var(--ease-smooth);
+
+  /* View Transitions API for smooth tab switching */
+  @supports (view-transition-name: tab-pane) {
+    view-transition-name: tab-pane;
+  }
 }
 
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(4px);
+    transform: translate3d(0, 8px, 0);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translate3d(0, 0, 0);
   }
 }
 

@@ -24,17 +24,11 @@ description: "✨ Initialize configuration structure. Creates config directory w
 
 Creates config directory with examples, or a single config file.
 
-
-
-
 ## Usage
 
 ```bash
 init [OPTIONS] [ARGUMENTS]
 ```
-
-
-
 
 ## Arguments
 
@@ -50,13 +44,6 @@ init [OPTIONS] [ARGUMENTS]
 This argument is optional.
 ```
 
-
-
-
-
-
-
-
 ## Options
 
 ### `init_type`
@@ -67,7 +54,6 @@ Config structure type (default: directory)
 **Type:** `choice`
 
 **Default:** `directory`
-
 
 
 
@@ -84,7 +70,6 @@ Config template (default: docs)
 
 
 
-
 ### `force`
 
 
@@ -93,11 +78,6 @@ Overwrite existing config files
 **Type:** `boolean`
 
 **Default:** `False`
-
-
-
-
-
 
 
 

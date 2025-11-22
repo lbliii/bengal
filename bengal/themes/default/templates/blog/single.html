@@ -223,7 +223,7 @@ Context variables:
         <h2>Related Posts</h2>
         <div class="blog-featured-grid">
             {% for post in related %}
-            <article class="blog-post-card">
+            <article class="blog-post-card gradient-border fluid-combined">
                 {% if post.metadata.get('image') or post.metadata.get('cover') %}
                 <div class="blog-card-image">
                     <a href="{{ post.permalink }}">

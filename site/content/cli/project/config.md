@@ -22,17 +22,11 @@ description: "⚙️  Manage Bengal configuration."
 
 ⚙️  Manage Bengal configuration.
 
-
-
-
 ## Usage
 
 ```bash
 config [OPTIONS] [ARGUMENTS]
 ```
-
-
-
 
 ## Arguments
 
@@ -50,7 +44,6 @@ This argument is optional.
 
 
 
-
 ### `value`
 
 *No description provided.*
@@ -61,13 +54,6 @@ This argument is optional.
 ```{info}
 This argument is optional.
 ```
-
-
-
-
-
-
-
 
 ## Options
 
@@ -83,7 +69,6 @@ Set a configuration value
 
 
 
-
 ### `list_all`
 
 
@@ -92,11 +77,6 @@ List all configuration options
 **Type:** `boolean`
 
 **Default:** `False`
-
-
-
-
-
 
 
 

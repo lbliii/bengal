@@ -31,17 +31,11 @@ Use PageRank to:
 - Guide navigation and sitemap design
 - Find underlinked valuable content
 
-
-
-
 ## Usage
 
 ```bash
 pagerank [OPTIONS] [ARGUMENTS]
 ```
-
-
-
 
 ## Arguments
 
@@ -57,13 +51,6 @@ pagerank [OPTIONS] [ARGUMENTS]
 This argument is optional.
 ```
 
-
-
-
-
-
-
-
 ## Options
 
 ### `top_n`
@@ -74,7 +61,6 @@ Number of top pages to show (default: 20)
 **Type:** `integer`
 
 **Default:** `20`
-
 
 
 
@@ -91,7 +77,6 @@ PageRank damping factor (default: 0.85)
 
 
 
-
 ### `format`
 
 
@@ -104,19 +89,12 @@ Output format (default: table)
 
 
 
-
 ### `config`
 
 
 Path to config file (default: bengal.toml)
 
 **Type:** `path`
-
-
-
-
-
-
 
 
 

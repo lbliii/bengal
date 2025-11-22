@@ -45,8 +45,15 @@ description: "{% block description %}{{ element.description | safe_description |
 {% endblock %}
 
 {% block navigation %}
-{#- Breadcrumb navigation for nested elements -#}
+{#- Breadcrumb navigation and action bar -#}
 {% if element %}
+{# Note: In a real template context, we would include the action-bar partial #}
+{# But for autodoc (which renders markdown first), we rely on the theme to #}
+{# render the action bar if we provide the right metadata/structure. #}
+{# However, if this template is used directly by the engine, we might want #}
+{# to simulate the action bar structure or just use breadcrumbs. #}
+
+{# For now, let's keep breadcrumbs but ensure they look correct #}
 {{ breadcrumbs(element) }}
 {% endif %}
 {% endblock %}

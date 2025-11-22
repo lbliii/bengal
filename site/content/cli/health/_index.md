@@ -22,17 +22,11 @@ description: "Health check and validation commands."
 
 Health check and validation commands.
 
-
-
-
 ## Usage
 
 ```bash
 health [OPTIONS] [ARGUMENTS]
 ```
-
-
-
 
 ## Subcommands
 
@@ -45,11 +39,6 @@ Validates that all links in your site work correctly:
 - External links return successful HTTP status codes
 
 **Usage:** `health linkcheck [OPTIONS]`
-
-
-
-
-
 
 
 

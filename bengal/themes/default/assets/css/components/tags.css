@@ -30,6 +30,21 @@
   border-radius: var(--radius-full);
   text-decoration: none;
   transition: all var(--transition-fast) var(--ease-out);
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+
+  &:hover {
+    color: var(--color-text-inverse);
+    background-color: var(--color-primary);
+    border-color: var(--color-primary);
+    text-decoration: none;
+  }
+
+  /* Tags with icons */
+  &:has(.tag-icon) {
+    gap: var(--space-2);
+  }
 }
 
 /* XXS adjustments (<= --breakpoint-xxs): fit chip rows without wrapping */
@@ -43,13 +58,6 @@
     font-size: var(--text-xxs);
     gap: 0.25rem;
   }
-}
-
-.tag:hover {
-  color: var(--color-text-inverse);
-  background-color: var(--color-primary);
-  border-color: var(--color-primary);
-  text-decoration: none;
 }
 
 /* ============================================
@@ -167,13 +175,16 @@
   border-radius: var(--radius-lg);
   text-decoration: none;
   transition: all var(--transition-base) var(--ease-out);
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .tag-link:hover {
   background-color: var(--color-primary);
   border-color: var(--color-primary);
   color: var(--color-text-inverse);
-  transform: translateY(-2px);
+  transform: translate3d(0, -2px, 0);
   box-shadow: var(--elevation-medium);
 }
 

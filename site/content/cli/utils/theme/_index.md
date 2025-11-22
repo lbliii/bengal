@@ -22,17 +22,11 @@ description: "Theme utilities (list/info/discover/install, swizzle)."
 
 Theme utilities (list/info/discover/install, swizzle).
 
-
-
-
 ## Usage
 
 ```bash
 theme [OPTIONS] [ARGUMENTS]
 ```
-
-
-
 
 ## Subcommands
 
@@ -45,13 +39,11 @@ List swizzlable templates from the active theme chain.
 
 
 
-
 ### `info`
 
 Show theme info for a slug (source, version, paths).
 
 **Usage:** `theme info [OPTIONS]`
-
 
 
 
@@ -68,13 +60,11 @@ suggest canonical 'bengal-theme-<slug>'.
 
 
 
-
 ### `list`
 
 List available themes (project, installed, bundled).
 
 **Usage:** `theme list [OPTIONS]`
-
 
 
 
@@ -90,13 +80,11 @@ SLUG is the theme identifier used in config (e.g., [site].theme = SLUG).
 
 
 
-
 ### `swizzle`
 
 Copy a theme template/partial to project templates/ and track provenance.
 
 **Usage:** `theme swizzle [OPTIONS]`
-
 
 
 
@@ -110,17 +98,11 @@ List swizzled templates.
 
 
 
-
 ### `swizzle-update`
 
 Update swizzled templates if unchanged locally.
 
 **Usage:** `theme swizzle-update [OPTIONS]`
-
-
-
-
-
 
 
 

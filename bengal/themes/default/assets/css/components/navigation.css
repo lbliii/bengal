@@ -2,13 +2,43 @@
 .page-navigation {
   margin: 3rem 0;
   padding-top: 2rem;
-  border-top: 1px solid var(--color-border);
+  border-block-start: 1px solid var(--color-border);
 }
 
 .nav-links {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 2rem;
+
+  & > .nav-next:only-child {
+    grid-column: 2;
+    justify-self: end;
+  }
+
+  & a {
+    display: flex;
+    flex-direction: column;
+    padding: 1rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg); /* Increased from 8px to use token (8px) */
+    text-decoration: none;
+    color: var(--color-text-primary);
+    transition: color var(--motion-fast), background-color var(--motion-fast), border-color var(--motion-fast), box-shadow var(--motion-fast), transform var(--motion-fast);
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+
+    &:hover {
+      border-color: var(--color-primary);
+      background: var(--color-bg-secondary);
+      transform: translate3d(0, calc(-1 * var(--motion-distance-2)), 0);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+
+      @supports (color-mix(in srgb, white, black)) {
+        background: color-mix(in srgb, var(--color-bg-secondary) 95%, var(--color-primary));
+      }
+    }
+  }
 }
 
 .nav-previous,
@@ -23,31 +53,7 @@
 
 .nav-next {
   justify-self: end;
-  text-align: right;
-}
-
-/* Ensure when only Next exists it sits in the right column */
-.nav-links>.nav-next:only-child {
-  grid-column: 2;
-  justify-self: end;
-}
-
-.nav-links a {
-  display: flex;
-  flex-direction: column;
-  padding: 1rem;
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  text-decoration: none;
-  color: var(--color-text-primary);
-  transition: color var(--motion-fast), background-color var(--motion-fast), border-color var(--motion-fast), box-shadow var(--motion-fast), transform var(--motion-fast);
-}
-
-.nav-links a:hover {
-  border-color: var(--color-primary);
-  background: var(--color-bg-secondary);
-  transform: translateY(calc(-1 * var(--motion-distance-2)));
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  text-align: end; /* Changed from right */
 }
 
 .nav-subtitle {
@@ -57,70 +63,25 @@
 }
 
 .nav-title {
-  font-weight: 600;
+  font-weight: var(--font-semibold);
   color: var(--color-primary);
 }
 
-/* Breadcrumbs */
-.breadcrumbs {
-  margin: 1rem 0 2rem;
-  padding: 0.75rem 0;
-  font-size: 0.875rem;
-}
-
-.breadcrumbs ol {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  flex-wrap: wrap;
-}
-
-.breadcrumbs li {
-  display: flex;
-  align-items: center;
-}
-
-.breadcrumbs li:not(:last-child)::after {
-  content: '/';
-  margin-left: 0.5rem;
-  color: var(--color-text-secondary);
-}
-
-.breadcrumbs a {
-  color: var(--color-primary);
-  text-decoration: none;
-}
-
-.breadcrumbs a:hover {
-  text-decoration: underline;
-}
-
-.breadcrumbs li[aria-current="page"] {
-  color: var(--color-text-secondary);
-  font-weight: 500;
-}
+/* Breadcrumbs - moved to style.css to avoid duplication */
 
 /* Mobile responsive */
 @media (max-width: 768px) {
   .nav-links {
     grid-template-columns: 1fr;
+
+    & > .nav-next:only-child {
+      grid-column: auto;
+      justify-self: end;
+    }
   }
 
   .nav-next {
-    text-align: right;
+    text-align: end; /* Changed from right */
     justify-self: end;
-  }
-
-  /* Reset placement when single item on mobile */
-  .nav-links>.nav-next:only-child {
-    grid-column: auto;
-    justify-self: end;
-  }
-
-  .breadcrumbs {
-    font-size: 0.8125rem;
   }
 }

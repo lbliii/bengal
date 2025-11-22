@@ -20,12 +20,28 @@
     margin-top: var(--space-6);
 }
 
+/* Force single column on very small screens */
+@media (max-width: 399px) {
+    .related-posts-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
 .related-post-card {
     padding: var(--space-6);
     background: var(--bg-primary);
     border: 1px solid var(--border-color);
-    border-radius: var(--radius-lg);
+    border-radius: var(--radius-xl); /* Increased from --radius-lg (8px → 12px) */
     transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Gradient border support */
+.related-post-card.gradient-border {
+    border: none;
+}
+
+.related-post-card.fluid-combined {
+    border: none;
 }
 
 .related-post-card:hover {

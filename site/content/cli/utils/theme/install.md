@@ -25,17 +25,11 @@ Install a theme via uv pip.
 NAME may be a package or a slug. If a slug without prefix is provided,
 suggest canonical 'bengal-theme-<slug>'.
 
-
-
-
 ## Usage
 
 ```bash
 install [OPTIONS] [ARGUMENTS]
 ```
-
-
-
 
 ## Arguments
 
@@ -50,13 +44,6 @@ install [OPTIONS] [ARGUMENTS]
 This argument is required.
 ```
 
-
-
-
-
-
-
-
 ## Options
 
 ### `force`
@@ -67,11 +54,6 @@ Install even if name is non-canonical
 **Type:** `boolean`
 
 **Default:** `False`
-
-
-
-
-
 
 
 

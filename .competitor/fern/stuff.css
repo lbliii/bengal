@@ -1,0 +1,34 @@
+.react-json-view .icon-container {
+  transform:translateY(2px)
+}
+.react-json-view .object-size {
+  font-style:unset!important
+}
+.show-strings-on-one-line .variable-row,
+.show-strings-on-one-line .variable-row>span {
+  display:flex
+}
+.show-strings-on-one-line .variable-row>span>.object-key {
+  display:flex!important
+}
+.show-strings-on-one-line .variable-row>.variable-value {
+  flex:1;
+  min-width:0
+}
+.show-strings-on-one-line .variable-row>.variable-value>div {
+  width:100%
+}
+.show-strings-on-one-line .variable-row>.variable-value>div .string-value {
+  display:flex!important;
+  min-width:0
+}
+.show-strings-on-one-line .variable-row>.variable-value>div .string-value>span {
+  flex:1;
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap
+}
+.show-strings-on-one-line .variable-row>.variable-value>div .string-value>span>span {
+  display:none!important
+}

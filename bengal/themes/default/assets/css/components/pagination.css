@@ -20,37 +20,37 @@
   flex-direction: column;
   gap: 1rem;
   align-items: center;
-}
 
-.pagination ul {
-  list-style: none;
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
-  padding: 0;
-  margin: 0;
-  flex-wrap: wrap;
-  justify-content: center;
-}
+  ul {
+    list-style: none;
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    padding: 0;
+    margin: 0;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
 
-.pagination li {
-  margin: 0;
-}
+  li {
+    margin: 0;
+  }
 
-.pagination a,
-.pagination span {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.375rem;
-  min-width: 2.5rem;
-  height: 2.5rem;
-  padding: 0 0.75rem;
-  border-radius: var(--border-radius-medium);
-  text-decoration: none;
-  font-size: var(--text-body-small);
-  font-weight: var(--font-weight-medium);
-  transition: all var(--transition-fast);
+  a,
+  span {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
+    min-width: 2.5rem;
+    height: 2.5rem;
+    padding: 0 0.75rem;
+    border-radius: var(--border-radius-medium);
+    text-decoration: none;
+    font-size: var(--text-body-small);
+    font-weight: var(--font-weight-medium);
+    transition: all var(--transition-fast);
+  }
 }
 
 /* ============================================
@@ -62,23 +62,26 @@
   background-color: var(--color-bg-elevated);
   border: 1px solid var(--color-border);
   box-shadow: var(--elevation-subtle);
-}
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
 
-.pagination a:hover {
-  background-color: var(--color-primary);
-  color: var(--color-text-inverse);
-  border-color: var(--color-primary);
-  box-shadow: var(--elevation-low);
-  transform: translateY(-1px);
-}
+  &:hover {
+    background-color: var(--color-primary);
+    color: var(--color-text-inverse);
+    border-color: var(--color-primary);
+    box-shadow: var(--elevation-low);
+    transform: translate3d(0, -1px, 0);
+  }
 
-.pagination a:active {
-  transform: translateY(0);
-}
+  &:active {
+    transform: translate3d(0, 0, 0);
+  }
 
-.pagination a:focus-visible {
-  outline: 2px solid var(--color-border-focus);
-  outline-offset: 2px;
+  &:focus-visible {
+    outline: 2px solid var(--color-border-focus);
+    outline-offset: 2px;
+  }
 }
 
 /* ============================================

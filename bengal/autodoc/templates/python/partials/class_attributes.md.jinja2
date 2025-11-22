@@ -13,5 +13,6 @@ Uses the shared parameter table macro for consistency.
 {% if attributes %}
 {% call safe_section("class_attributes") %}
 {{ parameter_table(attributes, "Attributes", show_types=true, show_defaults=false) }}
+
 {% endcall %}
 {% endif %}

@@ -22,17 +22,11 @@ description: "Utility commands for development and maintenance."
 
 Utility commands for development and maintenance.
 
-
-
-
 ## Usage
 
 ```bash
 utils [OPTIONS] [ARGUMENTS]
 ```
-
-
-
 
 ## Subcommands
 
@@ -49,7 +43,6 @@ generate specific types.
 
 
 
-
 ### `autodoc-cli`
 
 ⌨️  Generate CLI documentation from Click/argparse/typer apps.
@@ -62,7 +55,6 @@ comprehensive command reference documentation.
 
 
 
-
 ### `perf`
 
 Show performance metrics and trends.
@@ -71,11 +63,6 @@ Displays build performance metrics collected from previous builds.
 Metrics are automatically saved to .bengal-metrics/ directory.
 
 **Usage:** `utils perf [OPTIONS]`
-
-
-
-
-
 
 
 

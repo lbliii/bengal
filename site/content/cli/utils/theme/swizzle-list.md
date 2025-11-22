@@ -22,17 +22,11 @@ description: "List swizzled templates."
 
 List swizzled templates.
 
-
-
-
 ## Usage
 
 ```bash
 swizzle-list [OPTIONS] [ARGUMENTS]
 ```
-
-
-
 
 ## Arguments
 
@@ -47,11 +41,6 @@ swizzle-list [OPTIONS] [ARGUMENTS]
 ```{info}
 This argument is optional.
 ```
-
-
-
-
-
 
 
 

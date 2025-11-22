@@ -88,6 +88,13 @@
   margin: var(--space-8) 0;
 }
 
+/* Force single column on very small screens */
+@media (max-width: 399px) {
+  .category-container[data-layout="grid"] {
+    grid-template-columns: 1fr;
+  }
+}
+
 .category-container[data-layout="list"] {
   display: flex;
   flex-direction: column;

@@ -22,17 +22,11 @@ description: "🏗️  Initialize site structure with sections and pages."
 
 🏗️  Initialize site structure with sections and pages.
 
-
-
-
 ## Usage
 
 ```bash
 init [OPTIONS] [ARGUMENTS]
 ```
-
-
-
 
 ## Options
 
@@ -44,7 +38,6 @@ Content sections to create (e.g., blog posts about). Default: blog
 **Type:** `text`
 
 **Default:** `('blog',)`
-
 
 
 
@@ -61,7 +54,6 @@ Generate sample content in each section
 
 
 
-
 ### `pages_per_section`
 
 
@@ -70,7 +62,6 @@ Number of sample pages per section (with --with-content)
 **Type:** `integer`
 
 **Default:** `3`
-
 
 
 
@@ -87,7 +78,6 @@ Preview what would be created without creating files
 
 
 
-
 ### `force`
 
 
@@ -96,11 +86,6 @@ Overwrite existing sections and files
 **Type:** `boolean`
 
 **Default:** `False`
-
-
-
-
-
 
 
 

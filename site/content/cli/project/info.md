@@ -28,15 +28,11 @@ Shows:
     - Asset counts
     - Configuration paths
 
-
-
-
 ## Usage
 
 ```bash
 info [OPTIONS] [ARGUMENTS]
 ```
-
 
 
 

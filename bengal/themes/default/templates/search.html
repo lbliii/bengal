@@ -11,63 +11,67 @@ Can be accessed directly at /search/ or used as a fallback.
 
 {% block content %}
 <div class="search-page">
+  <div class="search-hero fluid-bg">
     <header class="page-header page-header--centered">
-    <h1>🔍 Search</h1>
-    <p class="search-page-description">
-      Search through {{ site.pages | length }} pages of documentation, tutorials, and guides.
-    </p>
-  </header>
+      <h1>🔍 Search</h1>
+      <p class="search-page-description">
+        Search through {{ site.pages | length }} pages of documentation, tutorials, and guides.
+      </p>
+    </header>
 
-  {# Search Component #}
-  {% include 'partials/search.html' %}
+    {# Search Component #}
+    {% include 'partials/search.html' %}
+  </div>
 
-  {# Search Tips #}
+  {# Search Tips - Compact & Slick #}
   <div class="search-tips">
-    <h2>Search Tips</h2>
-
-    <div class="tips-grid">
-      <div class="tip-card">
-        <h3>💡 Keyboard Shortcuts</h3>
-        <ul>
-          <li><kbd>⌘</kbd> + <kbd>K</kbd> - Focus search (Mac)</li>
-          <li><kbd>Ctrl</kbd> + <kbd>K</kbd> - Focus search (Windows/Linux)</li>
-          <li><kbd>Esc</kbd> - Clear search or close</li>
-        </ul>
+    <div class="tips-grid tips-grid--compact">
+      <div class="tip-card gradient-border-subtle">
+        <div class="tip-header">
+          <span class="tip-icon">⌨️</span>
+          <h3>Shortcuts</h3>
+        </div>
+        <div class="tip-body">
+          <span class="tip-pill"><kbd>⌘/Ctrl</kbd> + <kbd>K</kbd></span>
+          <span class="tip-pill"><kbd>Esc</kbd></span>
+        </div>
       </div>
 
-      <div class="tip-card">
-        <h3>🎯 Search Operators</h3>
-        <ul>
-          <li><code>+python</code> - Must include "python"</li>
-          <li><code>-deprecated</code> - Exclude "deprecated"</li>
-          <li><code>tutorial~2</code> - Fuzzy match (tolerance 2)</li>
-          <li><code>title:bengal</code> - Search in title only</li>
-        </ul>
+      <div class="tip-card gradient-border-subtle">
+        <div class="tip-header">
+          <span class="tip-icon">🎯</span>
+          <h3>Operators</h3>
+        </div>
+        <div class="tip-body">
+          <span class="tip-pill" title="Must include"><code>+term</code></span>
+          <span class="tip-pill" title="Exclude"><code>-term</code></span>
+          <span class="tip-pill" title="Fuzzy match"><code>term~2</code></span>
+        </div>
       </div>
 
-      <div class="tip-card">
-        <h3>🔍 Advanced Search</h3>
-        <ul>
-          <li>Use filters to narrow results by section, type, or tags</li>
-          <li>Multiple word queries search for all terms</li>
-          <li>Results are ranked by relevance</li>
-          <li>Content includes titles, descriptions, and body text</li>
-        </ul>
+      <div class="tip-card gradient-border-subtle">
+        <div class="tip-header">
+          <span class="tip-icon">🔍</span>
+          <h3>Filters</h3>
+        </div>
+        <div class="tip-body">
+          <span class="tip-text">Filter by section, type, or tags</span>
+        </div>
       </div>
 
-      <div class="tip-card">
-        <h3>📚 What's Indexed?</h3>
-        <ul>
-          <li>All documentation pages</li>
-          <li>Blog posts and tutorials</li>
-          <li>API and CLI reference</li>
-          <li>Guides and examples</li>
-        </ul>
+      <div class="tip-card gradient-border-subtle">
+        <div class="tip-header">
+          <span class="tip-icon">📚</span>
+          <h3>Index</h3>
+        </div>
+        <div class="tip-body">
+          <span class="tip-text">Docs, Blog, API, & CLI</span>
+        </div>
       </div>
     </div>
   </div>
 
-  {# Popular Searches (optional - can be customized) #}
+  {# Popular Searches #}
   <div class="popular-searches">
     <h2>Popular Searches</h2>
     <div class="popular-search-links">

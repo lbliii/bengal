@@ -34,17 +34,11 @@ Use link suggestions to:
 - Increase content discoverability
 - Fill navigation gaps
 
-
-
-
 ## Usage
 
 ```bash
 suggest [OPTIONS] [ARGUMENTS]
 ```
-
-
-
 
 ## Arguments
 
@@ -60,13 +54,6 @@ suggest [OPTIONS] [ARGUMENTS]
 This argument is optional.
 ```
 
-
-
-
-
-
-
-
 ## Options
 
 ### `top_n`
@@ -77,7 +64,6 @@ Number of suggestions to show (default: 50)
 **Type:** `integer`
 
 **Default:** `50`
-
 
 
 
@@ -94,7 +80,6 @@ Minimum score threshold (default: 0.3)
 
 
 
-
 ### `format`
 
 
@@ -107,19 +92,12 @@ Output format (default: table)
 
 
 
-
 ### `config`
 
 
 Path to config file (default: bengal.toml)
 
 **Type:** `path`
-
-
-
-
-
-
 
 
 

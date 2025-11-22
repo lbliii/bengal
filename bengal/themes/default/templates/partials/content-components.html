@@ -30,7 +30,7 @@ Example:
 {{ article_card(post, show_image=True, show_excerpt=True) }}
 #}
 {% macro article_card(article, show_excerpt=True, show_image=False) %}
-<article class="article-card {% if article | has_tag('featured') %}featured-card{% endif %}">
+<article class="article-card gradient-border fluid-combined {% if article | has_tag('featured') %}featured-card{% endif %}">
   {% if show_image and article.metadata.get('image') %}
   {# Responsive image with srcset - dogfooding image_srcset() #}
   <img src="{{ image_url(article.metadata.get('image'), width=800) }}"

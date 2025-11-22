@@ -33,17 +33,11 @@ Use path analysis to:
 - Improve content discoverability
 - Find navigation gaps
 
-
-
-
 ## Usage
 
 ```bash
 bridges [OPTIONS] [ARGUMENTS]
 ```
-
-
-
 
 ## Arguments
 
@@ -59,13 +53,6 @@ bridges [OPTIONS] [ARGUMENTS]
 This argument is optional.
 ```
 
-
-
-
-
-
-
-
 ## Options
 
 ### `top_n`
@@ -76,7 +63,6 @@ Number of pages to show (default: 20)
 **Type:** `integer`
 
 **Default:** `20`
-
 
 
 
@@ -93,7 +79,6 @@ Centrality metric to display (default: both)
 
 
 
-
 ### `format`
 
 
@@ -106,19 +91,12 @@ Output format (default: table)
 
 
 
-
 ### `config`
 
 
 Path to config file (default: bengal.toml)
 
 **Type:** `path`
-
-
-
-
-
-
 
 
 

@@ -22,15 +22,11 @@ description: "Documentation"
 
 *No command description provided.*
 
-
-
-
 ## Usage
 
 ```bash
 bengal [OPTIONS] [ARGUMENTS]
 ```
-
 
 
 

@@ -152,8 +152,9 @@ def auto_detect_prefix_map(source_dirs: list[Path], strip_prefix: str = "") -> d
     Auto-detect grouping from __init__.py hierarchy.
 
     Scans source directories for packages (dirs with __init__.py) and
-    builds a prefix map. Only top-level packages (direct children after
-    strip_prefix) become groups.
+    builds a prefix map. Only the first component after strip_prefix
+    becomes a group so nested packages remain under their parent
+    directories (e.g., cli/templates lives under cli/).
 
     Args:
         source_dirs: Directories to scan for packages
@@ -168,10 +169,10 @@ def auto_detect_prefix_map(source_dirs: list[Path], strip_prefix: str = "") -> d
             "cli": "cli",
             "core": "core",
             "cache": "cache",
-            # Note: cli.commands, cli.templates NOT here (nested under cli)
         }
     """
     prefix_map = {}
+    strip_base = strip_prefix.rstrip(".") if strip_prefix else ""
 
     for source_dir in source_dirs:
         # Ensure source_dir is a Path
@@ -209,14 +210,19 @@ def auto_detect_prefix_map(source_dirs: list[Path], strip_prefix: str = "") -> d
             if not module_name:
                 continue
 
-            # Add all packages (both top-level and nested) to the prefix map
-            # The group name is the last component of the module name
-            # Examples:
-            #   "cli" → group "cli"
-            #   "cli.templates" → group "templates"
-            # This allows longest-prefix matching in apply_grouping()
-            group_name = module_name.split(".")[-1]
-            prefix_map[module_name] = group_name
+            # Only add top-level packages (direct children after strip_prefix)
+            module_parts = module_name.split(".")
+            if not module_parts:
+                continue
+
+            top_level = module_parts[0]
+
+            # Skip the stripped prefix base package itself (e.g., "mypackage")
+            if strip_base and top_level == strip_base and len(module_parts) == 1:
+                continue
+
+            if top_level not in prefix_map:
+                prefix_map[top_level] = top_level
 
     return prefix_map
 

@@ -25,17 +25,11 @@ description: "📋 Display merged configuration. Shows the effective configurati
 Shows the effective configuration after merging defaults, environment,
 and profile settings.
 
-
-
-
 ## Usage
 
 ```bash
 show [OPTIONS] [ARGUMENTS]
 ```
-
-
-
 
 ## Arguments
 
@@ -51,13 +45,6 @@ show [OPTIONS] [ARGUMENTS]
 This argument is optional.
 ```
 
-
-
-
-
-
-
-
 ## Options
 
 ### `environment`
@@ -71,14 +58,12 @@ Environment to load (auto-detected if not specified)
 
 
 
-
 ### `profile`
 
 
 Profile to load (optional)
 
 **Type:** `text`
-
 
 
 
@@ -96,14 +81,12 @@ Show which file contributed each config key
 
 
 
-
 ### `section`
 
 
 Show only specific section (e.g., 'site', 'build')
 
 **Type:** `text`
-
 
 
 
@@ -117,11 +100,6 @@ Output format
 **Type:** `choice`
 
 **Default:** `yaml`
-
-
-
-
-
 
 
 

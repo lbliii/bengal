@@ -5,7 +5,7 @@ Renders class methods with comprehensive documentation including
 parameters, returns, raises, examples, and inherited methods.
 -#}
 
-{% from 'macros/safe_macros.md.jinja2' import safe_section, safe_render, safe_for %}
+{% from 'macros/safe_macros.md.jinja2' import safe_section, safe_render, safe_for, rubric_shell %}
 {% from 'macros/code_blocks.md.jinja2' import signature_block %}
 {% from 'macros/parameter_table.md.jinja2' import parameter_table %}
 
@@ -15,49 +15,49 @@ parameters, returns, raises, examples, and inherited methods.
 
 {% if own_methods %}
 {% call safe_section("class_methods") %}
-:::{rubric} Methods
-:class: rubric-methods
-:::
+{% call rubric_shell() %}
+## Methods
+{% endcall %}
 
 {% call(method_item) safe_for(own_methods, "*No methods found.*") %}
 {% call safe_render("method", method_item) %}
 {% if not method_item.name.startswith('_') or method_item.name.startswith('__') %}
+
 #### `{{ method_item.name }}`{% if method_item.metadata.is_async %} @async{% endif %}{% if method_item.metadata.is_classmethod %} @classmethod{% endif %}{% if method_item.metadata.is_staticmethod %} @staticmethod{% endif %}
 
 {{ signature_block(method_item.metadata.signature | default(''), 'method') }}
 
 {% if method_item.description %}
-{{ method_item.description }}
+{{ method_item.description | trim }}
+
 {% else %}
 *No description provided.*
-{% endif %}
 
+{% endif %}
 {% if method_item.metadata.parsed_doc.deprecated %}
 ```{warning} Deprecated
-{{ method_item.metadata.parsed_doc.deprecated }}
+{{- method_item.metadata.parsed_doc.deprecated -}}
 ```
 
 {% endif %}
-
 {% if method_item.metadata.is_async %}
 ```{info} Async Method
 This is an asynchronous method. Use `await` when calling.
 ```
 
 {% endif %}
-
 {#- Parameters section -#}
 {% if method_item.metadata.args %}
 {{ parameter_table(method_item.metadata.args, "Parameters", show_types=true, show_defaults=true) }}
-{% endif %}
 
+{% endif %}
 {#- Returns section -#}
 {% if method_item.metadata.returns %}
-:::{rubric} Returns
-:class: rubric-returns
-:::
+{% call rubric_shell() %}
+**Returns**
+{% endcall %}
 
-`{{ method_item.metadata.returns }}`{%- if method_item.metadata.parsed_doc.returns %} - {{ method_item.metadata.parsed_doc.returns }}{%- endif %}
+`{{ method_item.metadata.returns }}`{% if method_item.metadata.parsed_doc.returns %} - {{ method_item.metadata.parsed_doc.returns }}{% endif %}
 
 {% endif %}
 
@@ -69,8 +69,7 @@ This is an asynchronous method. Use `await` when calling.
 {% endwith %}
 
 {% if method_item.metadata.parsed_doc.see_also %}
-**See Also:** {% for ref in method_item.metadata.parsed_doc.see_also %}{{ ref }}{% if not loop.last %}, {% endif %}{% endfor %}
-
+**See Also:** {%- for ref in method_item.metadata.parsed_doc.see_also -%}{{- ref -}}{%- if not loop.last -%}, {%- endif -%}{%- endfor -%}
 {% endif %}
 {% endif %}
 {% endcall %}
@@ -81,9 +80,7 @@ This is an asynchronous method. Use `await` when calling.
 {#- Inherited methods section -#}
 {% if inherited_methods %}
 {% call safe_section("inherited_methods") %}
-:::{rubric} Inherited Members
-:class: rubric-inherited-members
-:::
+## Inherited Members
 
 ::::{dropdown} {{ inherited_methods | length }} inherited members (click to expand)
 :open: false

@@ -25,17 +25,11 @@ description: "📄 Create a new page. The page name will be automatically slugif
 The page name will be automatically slugified for the filename.
 Example: "My Awesome Page" → my-awesome-page.md
 
-
-
-
 ## Usage
 
 ```bash
 page [OPTIONS] [ARGUMENTS]
 ```
-
-
-
 
 ## Arguments
 
@@ -50,13 +44,6 @@ page [OPTIONS] [ARGUMENTS]
 This argument is required.
 ```
 
-
-
-
-
-
-
-
 ## Options
 
 ### `section`
@@ -65,12 +52,6 @@ This argument is required.
 Section to create page in
 
 **Type:** `text`
-
-
-
-
-
-
 
 
 

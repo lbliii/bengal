@@ -10,17 +10,27 @@
 /* Container */
 .container {
   width: 100%;
-  margin-left: auto;
-  margin-right: auto;
-  padding-left: var(--space-4);
-  padding-right: var(--space-4);
+  margin-inline: auto; /* Changed from margin-left/right */
+  padding-inline: var(--space-3); /* Changed from padding-left/right - 12px for very small screens */
+}
+
+/* Increase padding at 400px for better spacing */
+@media (min-width: 400px) {
+  .container {
+    padding-inline: var(--space-4); /* Changed from padding-left/right - 16px */
+  }
 }
 
 @media (min-width: 640px) {
   .container {
     max-width: var(--container-sm);
-    padding-left: var(--space-6);
-    padding-right: var(--space-6);
+    padding-inline: var(--space-4); /* Reduced from --space-6 (24px) to --space-4 (16px) for tighter spacing */
+  }
+}
+
+@media (min-width: 1024px) {
+  .container {
+    padding-inline: var(--space-5); /* 20px at desktop - tighter than before */
   }
 }
 
@@ -776,5 +786,29 @@
 @media (max-width: 768px) {
   .visible-desktop {
     display: none !important;
+  }
+}
+
+/* ============================================
+   VERY SMALL VIEWPORT HANDLING (< 320px)
+   ============================================ */
+
+/* Handle extremely small windows (desktop users who didn't maximize) */
+@media (max-width: 319px) {
+  .container {
+    padding-inline: var(--space-2);  /* 8px for tiny windows */
+  }
+  
+  /* Ensure critical interactive elements remain usable */
+  .mobile-nav-toggle {
+    min-width: 36px;  /* Smaller but still tappable */
+    min-height: 36px;
+  }
+  
+  button,
+  .btn,
+  a.button {
+    min-height: 44px;  /* Maintain touch target */
+    min-width: 44px;
   }
 }

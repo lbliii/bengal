@@ -22,17 +22,11 @@ description: "Site building and serving commands."
 
 Site building and serving commands.
 
-
-
-
 ## Usage
 
 ```bash
 site [OPTIONS] [ARGUMENTS]
 ```
-
-
-
 
 ## Subcommands
 
@@ -44,7 +38,6 @@ Generates HTML files from your content, applies templates,
 processes assets, and outputs a production-ready site.
 
 **Usage:** `site build [OPTIONS]`
-
 
 
 
@@ -65,7 +58,6 @@ Options:
 
 
 
-
 ### `serve`
 
 🚀 Start development server with hot reload.
@@ -74,11 +66,6 @@ Watches for changes in content, assets, and templates,
 automatically rebuilding the site when files are modified.
 
 **Usage:** `site serve [OPTIONS]`
-
-
-
-
-
 
 
 

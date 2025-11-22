@@ -22,17 +22,11 @@ description: "Copy a theme template/partial to project templates/ and track prov
 
 Copy a theme template/partial to project templates/ and track provenance.
 
-
-
-
 ## Usage
 
 ```bash
 swizzle [OPTIONS] [ARGUMENTS]
 ```
-
-
-
 
 ## Arguments
 
@@ -50,7 +44,6 @@ This argument is required.
 
 
 
-
 ### `source`
 
 *No description provided.*
@@ -62,11 +55,6 @@ This argument is required.
 ```{info}
 This argument is optional.
 ```
-
-
-
-
-
 
 
 

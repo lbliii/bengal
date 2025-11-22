@@ -28,17 +28,11 @@ Commands:
     diff     Compare configurations
     init     Initialize config structure
 
-
-
-
 ## Usage
 
 ```bash
 config [OPTIONS] [ARGUMENTS]
 ```
-
-
-
 
 ## Subcommands
 
@@ -49,7 +43,6 @@ config [OPTIONS] [ARGUMENTS]
 Shows differences between two configurations (environments, profiles, or files).
 
 **Usage:** `config diff [OPTIONS]`
-
 
 
 
@@ -71,7 +64,6 @@ Checks for:
 
 
 
-
 ### `init`
 
 ✨ Initialize configuration structure.
@@ -79,7 +71,6 @@ Checks for:
 Creates config directory with examples, or a single config file.
 
 **Usage:** `config init [OPTIONS]`
-
 
 
 
@@ -92,11 +83,6 @@ Shows the effective configuration after merging defaults, environment,
 and profile settings.
 
 **Usage:** `config show [OPTIONS]`
-
-
-
-
-
 
 
 

@@ -22,17 +22,11 @@ description: "Update swizzled templates if unchanged locally."
 
 Update swizzled templates if unchanged locally.
 
-
-
-
 ## Usage
 
 ```bash
 swizzle-update [OPTIONS] [ARGUMENTS]
 ```
-
-
-
 
 ## Arguments
 
@@ -47,11 +41,6 @@ swizzle-update [OPTIONS] [ARGUMENTS]
 ```{info}
 This argument is optional.
 ```
-
-
-
-
-
 
 
 

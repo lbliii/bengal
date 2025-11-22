@@ -30,17 +30,11 @@ Checks for:
 - Value ranges
 - Deprecated keys
 
-
-
-
 ## Usage
 
 ```bash
 doctor [OPTIONS] [ARGUMENTS]
 ```
-
-
-
 
 ## Arguments
 
@@ -56,13 +50,6 @@ doctor [OPTIONS] [ARGUMENTS]
 This argument is optional.
 ```
 
-
-
-
-
-
-
-
 ## Options
 
 ### `environment`
@@ -71,12 +58,6 @@ This argument is optional.
 Environment to validate (default: all)
 
 **Type:** `text`
-
-
-
-
-
-
 
 
 

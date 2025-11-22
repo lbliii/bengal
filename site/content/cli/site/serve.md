@@ -25,17 +25,11 @@ description: "🚀 Start development server with hot reload. Watches for changes
 Watches for changes in content, assets, and templates,
 automatically rebuilding the site when files are modified.
 
-
-
-
 ## Usage
 
 ```bash
 serve [OPTIONS] [ARGUMENTS]
 ```
-
-
-
 
 ## Arguments
 
@@ -51,13 +45,6 @@ serve [OPTIONS] [ARGUMENTS]
 This argument is optional.
 ```
 
-
-
-
-
-
-
-
 ## Options
 
 ### `host`
@@ -68,7 +55,6 @@ Server host address
 **Type:** `text`
 
 **Default:** `localhost`
-
 
 
 
@@ -85,7 +71,6 @@ Server port number
 
 
 
-
 ### `watch`
 
 
@@ -94,7 +79,6 @@ Watch for file changes and rebuild (default: enabled)
 **Type:** `boolean`
 
 **Default:** `True`
-
 
 
 
@@ -111,7 +95,6 @@ Find available port if specified port is taken (default: enabled)
 
 
 
-
 ### `open_browser`
 
 
@@ -120,7 +103,6 @@ Open browser automatically after server starts
 **Type:** `boolean`
 
 **Default:** `False`
-
 
 
 
@@ -136,14 +118,12 @@ Environment name (local, preview, production) - defaults to 'local' for dev serv
 
 
 
-
 ### `profile`
 
 
 Config profile to use: writer, theme-dev, or dev
 
 **Type:** `choice`
-
 
 
 
@@ -161,7 +141,6 @@ Show detailed server activity (file watches, rebuilds, HTTP details)
 
 
 
-
 ### `debug`
 
 
@@ -170,7 +149,6 @@ Show debug output and full tracebacks (port checks, PID files, observer setup)
 **Type:** `boolean`
 
 **Default:** `False`
-
 
 
 
@@ -186,19 +164,12 @@ Traceback verbosity: full | compact | minimal | off
 
 
 
-
 ### `config`
 
 
 Path to config file (default: bengal.toml)
 
 **Type:** `path`
-
-
-
-
-
-
 
 
 

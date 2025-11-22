@@ -25,17 +25,11 @@ description: "📋 Create a new layout template. Layouts are reusable HTML templ
 Layouts are reusable HTML templates used by pages.
 Example: "article" → templates/layouts/article.html
 
-
-
-
 ## Usage
 
 ```bash
 layout [OPTIONS] [ARGUMENTS]
 ```
-
-
-
 
 ## Arguments
 
@@ -49,11 +43,6 @@ layout [OPTIONS] [ARGUMENTS]
 ```{info}
 This argument is optional.
 ```
-
-
-
-
-
 
 
 

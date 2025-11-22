@@ -8,19 +8,24 @@ Handles nested schemas and complex property types safely.
 {% from 'macros/safe_macros.md.jinja2' import safe_section, safe_render, safe_for %}
 {% from 'macros/parameter_table.md.jinja2' import attribute_table %}
 
+{#-
+CRITICAL: Table row whitespace pattern (see parameter_table.md.jinja2 for details)
+- Build row as single string without safe_render wrapper (it adds newlines)
+- Use whitespace control on conditionals to prevent newlines within row
+- DO NOT use whitespace control on cell content to preserve spaces around pipes
+- Result: Each row is a single line with proper spacing: `| `name` | `type` | ... |`
+-#}
 {% if element.metadata.properties %}
 {% call safe_section("schema_properties") %}
 ## Properties
 
 | Name | Type | Required | Description | Constraints |
 |------|------|----------|-------------|-------------|
-{% call(item) safe_for(element.metadata.properties.items(), "*No properties defined.*") %}
+{% for item in element.metadata.properties.items() %}
 {% set prop_name = item[0] %}
 {% set prop_info = item[1] %}
-{% call safe_render("property", prop_info) %}
-| `{{ prop_name }}` | `{{ prop_info.type | default('any') }}` | {% if element.metadata.required and prop_name in element.metadata.required %}✓{% else %}-{% endif %} | {{ prop_info.description | default('*No description*') }} | {% if prop_info.enum %}Enum: {{ prop_info.enum | format_list }}{% elif prop_info.minimum or prop_info.maximum %}Range: {{ prop_info.minimum | default('∞') }} - {{ prop_info.maximum | default('∞') }}{% elif prop_info.min_length or prop_info.max_length %}Length: {{ prop_info.min_length | default('0') }} - {{ prop_info.max_length | default('∞') }}{% else %}-{% endif %} |
-{% endcall %}
-{% endcall %}
+| `{{ prop_name }}` | `{{ prop_info.type | default('any') }}` | {%- if element.metadata.required and prop_name in element.metadata.required -%}✓{%- else -%}-{%- endif -%} | {{ prop_info.description | default('*No description*') }} | {%- if prop_info.enum -%}Enum: {{ prop_info.enum | format_list }}{%- elif prop_info.minimum or prop_info.maximum -%}Range: {{ prop_info.minimum | default('∞') }} - {{ prop_info.maximum | default('∞') }}{%- elif prop_info.min_length or prop_info.max_length -%}Length: {{ prop_info.min_length | default('0') }} - {{ prop_info.max_length | default('∞') }}{%- else -%}-{%- endif -%} |
+{% endfor %}
 
 {% if element.metadata.required %}
 ### Required Properties
