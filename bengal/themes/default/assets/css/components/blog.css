@@ -97,6 +97,16 @@
 .blog-featured-card:hover {
     box-shadow: var(--elevation-high);
     transform: translateY(-2px);
+    transition: box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+                transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Disable transform animations on mobile for performance */
+@media (max-width: 768px) {
+    .blog-post-card:hover,
+    .blog-featured-card:hover {
+        transform: none;
+    }
 }
 
 /* Horizontal layout for list items */
