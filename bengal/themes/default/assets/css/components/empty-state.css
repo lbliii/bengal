@@ -3,8 +3,9 @@
 .empty-state {
     text-align: center;
     max-width: 600px;
-    margin: var(--space-20) auto;
-    padding: var(--space-8);
+    margin-block: var(--space-12) auto; /* Reduced top from --space-20 (80px) to --space-12 (48px) for tighter spacing */
+    margin-inline: auto;
+    padding: var(--space-6); /* Reduced from --space-8 (32px) to --space-6 (24px) */
     animation: fadeIn 0.4s var(--ease-smooth);
 
     /* Scroll-driven animation support */
