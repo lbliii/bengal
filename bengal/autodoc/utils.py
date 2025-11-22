@@ -26,6 +26,12 @@ def _convert_sphinx_role(
 
     Returns:
         Text with the specified role converted to inline code
+
+    Example:
+        >>> _convert_sphinx_role("Use :class:`Site`", "class")
+        'Use  `Site`'
+        >>> _convert_sphinx_role("Call :func:`build`", "func", suffix="()")
+        'Call  `build()`'
     """
     if keep_full_path:
         # For :mod:, keep the full path
