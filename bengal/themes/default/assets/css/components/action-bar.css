@@ -94,7 +94,7 @@
 
 .action-bar-breadcrumb-current {
   color: var(--color-text-primary);
-  font-weight: 500;
+  font-weight: var(--font-medium);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -211,7 +211,7 @@
   border-radius: var(--border-radius-md);
   color: var(--color-text-primary);
   font-size: 0.8125rem;
-  font-weight: 500;
+  font-weight: var(--font-medium);
   cursor: pointer;
   transition: all 0.15s ease;
   white-space: nowrap;
@@ -362,7 +362,7 @@
 .action-bar-share-section-header {
   padding: 0.5rem 0.75rem 0.25rem;
   font-size: 0.75rem;
-  font-weight: 600;
+  font-weight: var(--font-semibold);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--color-text-secondary);

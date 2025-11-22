@@ -208,7 +208,7 @@ footer .container {
 .cat-body,
 .cat-head {
   display: inline-block;
-  font-weight: 300;
+  font-weight: var(--font-light);
   /* Lighter weight prevents thickness at small sizes */
 }
 
@@ -266,7 +266,7 @@ footer .container {
 }
 
 .bengal-badge .cat {
-  font-size: 15px; /* Slightly larger for visibility */
+  font-size: var(--text-sm); /* Slightly larger for visibility (14px) */
 }
 
 .bengal-badge:hover {

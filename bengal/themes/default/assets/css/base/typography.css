@@ -116,7 +116,7 @@
   .prose ul,
   .prose ol {
     margin: var(--space-4) 0;
-    padding-left: var(--space-6);
+    padding-inline-start: var(--space-6);
   }
   
   /* Better blockquote spacing */
@@ -142,7 +142,7 @@
 .prose .lead {
   font-size: var(--text-lg);
   color: var(--color-text-secondary);
-  font-weight: 400;
+  font-weight: var(--font-normal);
   line-height: 1.7;
   letter-spacing: 0.01em;
   margin-bottom: var(--space-6);
@@ -166,29 +166,150 @@ header .lead {
   }
 }
 
-/* Links */
+/* ============================================
+   MODERN LINK STYLING
+   ============================================ */
+
+/* Base link styles - Modern animated underline */
 .prose a {
   color: var(--color-text-link);
-  text-decoration: underline;
-  text-decoration-color: var(--color-primary-light);
-  text-underline-offset: 0.2em;
-  text-decoration-thickness: 1px;
-  transition: all var(--transition-fast);
-  font-weight: var(--font-weight-medium);
-  word-break: break-word;  /* Break long URLs */
+  text-decoration: none;
+  /* Animated gradient underline */
+  background-image: linear-gradient(
+    to right,
+    var(--color-primary-light) 0%,
+    var(--color-primary-light) 100%
+  );
+  background-repeat: no-repeat;
+  background-size: 0% 2px;
+  background-position: 0% 100%;
+  padding-bottom: 0.1em;
+  transition: 
+    color var(--transition-base),
+    background-size var(--transition-base),
+    background-position var(--transition-base);
+  font-weight: var(--font-medium);
+  word-break: break-word;
   overflow-wrap: break-word;
+  position: relative;
 }
 
+/* Hover state - Animated underline expansion */
 .prose a:hover {
   color: var(--color-text-link-hover);
-  text-decoration-color: var(--color-text-link-hover);
-  text-decoration-thickness: 2px;
+  background-size: 100% 2px;
+  background-image: linear-gradient(
+    to right,
+    var(--color-text-link-hover) 0%,
+    var(--color-text-link-hover) 100%
+  );
 }
 
+/* Focus state - Accessible outline */
 .prose a:focus-visible {
   outline: 2px solid var(--color-border-focus);
   outline-offset: 2px;
   border-radius: var(--border-radius-small);
+  background-size: 100% 2px; /* Show underline on focus */
+}
+
+/* Active state */
+.prose a:active {
+  color: var(--color-primary-active);
+  background-image: linear-gradient(
+    to right,
+    var(--color-primary-active) 0%,
+    var(--color-primary-active) 100%
+  );
+}
+
+/* ============================================
+   EXTERNAL LINKS
+   ============================================ */
+
+/* Detect external links (http/https) or target="_blank" */
+/* Note: We detect http/https links. For same-domain detection, add data-external="true" attribute */
+.prose a[href^="http"]:not([href^="/"]):not([href^="#"]),
+.prose a[target="_blank"],
+.prose a[rel*="external"],
+.prose a[rel*="noopener"]:not([href^="/"]):not([href^="#"]),
+.prose a[data-external="true"] {
+  /* External link indicator */
+  padding-right: 1.2em;
+  position: relative;
+}
+
+/* External link icon (opens in new tab indicator) */
+.prose a[href^="http"]:not([href^="/"]):not([href^="#"])::after,
+.prose a[target="_blank"]::after,
+.prose a[rel*="external"]::after,
+.prose a[rel*="noopener"]:not([href^="/"]):not([href^="#"])::after,
+.prose a[data-external="true"]::after {
+  content: '';
+  display: inline-block;
+  width: 0.75em;
+  height: 0.75em;
+  margin-left: 0.25em;
+  margin-right: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none' stroke='currentColor' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10 2h2v2M9 9L3 3M11 1H7M11 1v4M11 1L7 5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  opacity: 0.6;
+  vertical-align: baseline;
+  position: absolute;
+  right: 0;
+  top: 0.1em;
+  transition: opacity var(--transition-fast), transform var(--transition-fast);
+}
+
+/* External link icon hover */
+.prose a[href^="http"]:not([href^="/"]):not([href^="#"]):hover::after,
+.prose a[target="_blank"]:hover::after,
+.prose a[rel*="external"]:hover::after,
+.prose a[rel*="noopener"]:not([href^="/"]):not([href^="#"]):hover::after,
+.prose a[data-external="true"]:hover::after {
+  opacity: 1;
+  transform: translate(1px, -1px);
+}
+
+/* ============================================
+   INTERNAL/ANCHOR LINKS
+   ============================================ */
+
+/* Anchor links (same page) - Subtle styling */
+.prose a[href^="#"] {
+  color: var(--color-text-secondary);
+  background-image: linear-gradient(
+    to right,
+    var(--color-border-light) 0%,
+    var(--color-border-light) 100%
+  );
+}
+
+.prose a[href^="#"]:hover {
+  color: var(--color-text-link);
+  background-image: linear-gradient(
+    to right,
+    var(--color-text-link) 0%,
+    var(--color-text-link) 100%
+  );
+}
+
+/* ============================================
+   SPECIAL LINK TYPES
+   ============================================ */
+
+/* Email links - Same styling as regular links */
+/* File download links - Same styling as regular links */
+/* (Can be extended with icons if needed) */
+
+/* Disabled/broken links (accessibility) */
+.prose a[aria-disabled="true"],
+.prose a[href=""] {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
 }
 
 /* Strong & Emphasis */
@@ -205,7 +326,7 @@ header .lead {
 .prose ul,
 .prose ol {
   margin: var(--space-6) 0;
-  padding-left: var(--space-8);
+  padding-inline-start: var(--space-8);
 }
 
 .prose ul {
@@ -243,7 +364,7 @@ header .lead {
 .prose blockquote {
   margin: var(--space-6) 0;
   padding: var(--space-3) var(--space-4);
-  border-left: 2px solid var(--color-border-light);
+  border-inline-start: 2px solid var(--color-border-light);
   background-color: transparent;
   border-radius: 0;
   font-style: italic;

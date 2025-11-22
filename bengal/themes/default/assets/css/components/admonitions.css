@@ -83,7 +83,7 @@
 /* List styling in admonitions */
 .admonition ul,
 .admonition ol {
-  padding-left: var(--space-8);
+  padding-inline-start: var(--space-8);
   margin: 0.75rem 0;
 }
 
@@ -132,7 +132,7 @@
 /* Note / Info */
 .admonition.note,
 .admonition.info {
-  border-left-color: var(--color-info-border);
+  border-inline-start-color: var(--color-info-border);
   background-color: var(--color-info-bg);
 }
 
@@ -150,7 +150,7 @@
 [data-theme="dark"] .admonition.note,
 [data-theme="dark"] .admonition.info {
   background-color: var(--color-info-bg);
-  border-left-color: var(--color-info-border);
+  border-inline-start-color: var(--color-info-border);
 }
 
 [data-theme="dark"] .admonition.note .admonition-title,
@@ -161,7 +161,7 @@
 /* Tip / Success */
 .admonition.tip,
 .admonition.success {
-  border-left-color: var(--color-success-border);
+  border-inline-start-color: var(--color-success-border);
   background-color: var(--color-success-bg);
 }
 
@@ -183,7 +183,7 @@
 [data-theme="dark"] .admonition.tip,
 [data-theme="dark"] .admonition.success {
   background-color: var(--color-success-bg);
-  border-left-color: var(--color-success-border);
+  border-inline-start-color: var(--color-success-border);
 }
 
 [data-theme="dark"] .admonition.tip .admonition-title,
@@ -194,7 +194,7 @@
 /* Warning / Caution */
 .admonition.warning,
 .admonition.caution {
-  border-left-color: var(--color-warning-border);
+  border-inline-start-color: var(--color-warning-border);
   background-color: var(--color-warning-bg);
 }
 
@@ -212,7 +212,7 @@
 [data-theme="dark"] .admonition.warning,
 [data-theme="dark"] .admonition.caution {
   background-color: var(--color-warning-bg);
-  border-left-color: var(--color-warning-border);
+  border-inline-start-color: var(--color-warning-border);
 }
 
 [data-theme="dark"] .admonition.warning .admonition-title,
@@ -223,7 +223,7 @@
 /* Danger / Error */
 .admonition.danger,
 .admonition.error {
-  border-left-color: var(--color-error-border);
+  border-inline-start-color: var(--color-error-border);
   background-color: var(--color-error-bg);
 }
 
@@ -241,7 +241,7 @@
 [data-theme="dark"] .admonition.danger,
 [data-theme="dark"] .admonition.error {
   background-color: var(--color-error-bg);
-  border-left-color: var(--color-error-border);
+  border-inline-start-color: var(--color-error-border);
 }
 
 [data-theme="dark"] .admonition.danger .admonition-title,
@@ -251,7 +251,7 @@
 
 /* Example */
 .admonition.example {
-  border-left-color: #8b5cf6; /* violet-500 */
+  border-inline-start-color: #8b5cf6; /* violet-500 */
   background-color: #f5f3ff; /* violet-50 */
 }
 
@@ -265,7 +265,7 @@
 }
 
 [data-theme="dark"] .admonition.example {
-  border-left-color: #a78bfa; /* violet-400 */
+  border-inline-start-color: #a78bfa; /* violet-400 */
   background-color: rgba(139, 92, 246, 0.1);
 }
 
@@ -283,7 +283,7 @@
 
 .admonition.collapsible .admonition-title::after {
   content: '▼';
-  margin-left: auto;
+  margin-inline-start: auto;
   font-size: var(--text-sm);
   transition: transform var(--transition-fast) var(--ease-out);
 }

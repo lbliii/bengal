@@ -296,7 +296,7 @@
     min-inline-size: 20px;
     block-size: 20px;
     padding-inline: 0.375rem;
-    font-size: 11px;
+    font-size: var(--text-xxs); /* 11px - smallest defined size */
     font-weight: var(--font-weight-medium);
     color: var(--color-text-tertiary);
     background: var(--color-bg-secondary, #f5f5f5);

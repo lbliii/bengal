@@ -19,7 +19,7 @@
 
 .has-prose-content ul,
 .has-prose-content ol {
-  padding-left: var(--space-8);
+  padding-inline-start: var(--space-8);
   margin: var(--space-3) 0;
 }
 
@@ -100,16 +100,73 @@
   /* No additional styling to prevent conflicts */
 }
 
+/* Modern link styling for prose content */
 .has-prose-content a {
-  color: var(--color-primary);
-  text-decoration: underline;
-  text-underline-offset: 2px;
-  word-break: break-word;  /* Break long URLs */
+  color: var(--color-text-link);
+  text-decoration: none;
+  background-image: linear-gradient(
+    to right,
+    var(--color-primary-light) 0%,
+    var(--color-primary-light) 100%
+  );
+  background-repeat: no-repeat;
+  background-size: 0% 2px;
+  background-position: 0% 100%;
+  padding-bottom: 0.1em;
+  transition: 
+    color var(--transition-base),
+    background-size var(--transition-base);
+  font-weight: var(--font-medium);
+  word-break: break-word;
   overflow-wrap: break-word;
+  position: relative;
 }
 
 .has-prose-content a:hover {
-  color: var(--color-primary-hover);
+  color: var(--color-text-link-hover);
+  background-size: 100% 2px;
+  background-image: linear-gradient(
+    to right,
+    var(--color-text-link-hover) 0%,
+    var(--color-text-link-hover) 100%
+  );
+}
+
+/* External links in prose content */
+.has-prose-content a[href^="http"]:not([href*="{{ site.config.baseurl or '' }}"]),
+.has-prose-content a[target="_blank"],
+.has-prose-content a[rel*="external"],
+.has-prose-content a[rel*="noopener"] {
+  padding-right: 1.2em;
+}
+
+.has-prose-content a[href^="http"]:not([href*="{{ site.config.baseurl or '' }}"])::after,
+.has-prose-content a[target="_blank"]::after,
+.has-prose-content a[rel*="external"]::after,
+.has-prose-content a[rel*="noopener"]::after {
+  content: '';
+  display: inline-block;
+  width: 0.75em;
+  height: 0.75em;
+  margin-left: 0.25em;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none' stroke='currentColor' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10 2h2v2M9 9L3 3M11 1H7M11 1v4M11 1L7 5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  opacity: 0.6;
+  vertical-align: baseline;
+  position: absolute;
+  right: 0;
+  top: 0.1em;
+  transition: opacity var(--transition-fast), transform var(--transition-fast);
+}
+
+.has-prose-content a[href^="http"]:not([href*="{{ site.config.baseurl or '' }}"]):hover::after,
+.has-prose-content a[target="_blank"]:hover::after,
+.has-prose-content a[rel*="external"]:hover::after,
+.has-prose-content a[rel*="noopener"]:hover::after {
+  opacity: 1;
+  transform: translate(1px, -1px);
 }
 
 /* ============================================
@@ -119,7 +176,7 @@
 .has-prose-content blockquote {
   margin: var(--space-6) 0;
   padding: var(--space-3) var(--space-4);
-  border-left: 2px solid var(--color-border-light);
+  border-inline-start: 2px solid var(--color-border-light);
   color: var(--color-text-secondary);
   font-style: italic;
   opacity: 0.9;
@@ -156,7 +213,7 @@
 .has-prose-content td {
   padding: var(--space-2) var(--space-3);
   border: 1px solid var(--color-border);
-  text-align: left;
+  text-align: start;
 }
 
 .has-prose-content th {
@@ -185,7 +242,7 @@
 .bengal-list-table .cell-content ul,
 .bengal-list-table .cell-content ol {
   margin: 0.25em 0;
-  padding-left: 1.5em;
+  padding-inline-start: 1.5em;
   line-height: var(--leading-normal);
 }
 
@@ -245,7 +302,7 @@
 }
 
 .has-prose-content dd {
-  margin-left: var(--space-6);
+  margin-inline-start: var(--space-6);
   margin-bottom: var(--space-2);
 }
 
@@ -264,7 +321,7 @@
 .has-prose-content .breadcrumbs,
 .has-prose-content .pagination {
   /* UI components override prose styles */
-  padding-left: 0;
+  padding-inline-start: 0;
   list-style: none;
 }
 
@@ -276,7 +333,7 @@
 
   .has-prose-content ul,
   .has-prose-content ol {
-    padding-left: var(--space-6);
+    padding-inline-start: var(--space-6);
   }
 
   .has-prose-content table {

@@ -47,7 +47,7 @@
 
 .reference-metadata-item strong {
     color: var(--color-text-secondary);
-    font-weight: 600;
+    font-weight: var(--font-semibold);
     min-width: 60px;
     flex-shrink: 0;
     /* Prevent label from shrinking */
@@ -109,7 +109,7 @@
 .api-reference-description {
     font-size: var(--text-lg);
     color: var(--color-text-secondary);
-    font-weight: 400;
+    font-weight: var(--font-normal);
     line-height: 1.7;
     max-width: 700px;
     margin: 0 auto;
@@ -141,7 +141,7 @@
 
 .api-stat strong {
     font-size: var(--text-2xl);
-    font-weight: 700;
+    font-weight: var(--font-bold);
     color: var(--color-primary);
 }
 
@@ -163,7 +163,7 @@
 
 .api-section-title {
     font-size: var(--text-xl);
-    font-weight: 600;
+    font-weight: var(--font-semibold);
     color: var(--color-text-primary);
     margin-bottom: var(--space-4);
     padding-bottom: var(--space-3);
@@ -305,7 +305,7 @@
 
 .api-module-title {
     font-size: var(--text-xl);
-    font-weight: 600;
+    font-weight: var(--font-semibold);
     line-height: 1.3;
     margin: 0 0 var(--space-3) 0;
 }
@@ -402,7 +402,7 @@
 
 .api-reference-page .api-meta-item strong {
     color: var(--color-text-secondary);
-    font-weight: 600;
+    font-weight: var(--font-semibold);
     min-width: 60px;
     flex-shrink: 0;
     /* Prevent label from shrinking */
@@ -455,7 +455,7 @@
 .cli-reference-description {
     font-size: var(--text-lg);
     color: var(--color-text-secondary);
-    font-weight: 400;
+    font-weight: var(--font-normal);
     line-height: 1.7;
     max-width: 700px;
     padding-bottom: var(--space-6);
@@ -486,7 +486,7 @@
 
 .cli-section-title {
     font-size: var(--text-xl);
-    font-weight: 600;
+    font-weight: var(--font-semibold);
     color: var(--color-text-primary);
     margin-bottom: var(--space-4);
     padding-bottom: var(--space-3);
@@ -629,7 +629,7 @@
 
 .cli-command-title {
     font-size: var(--text-xl);
-    font-weight: 600;
+    font-weight: var(--font-semibold);
     line-height: 1.3;
     margin: 0 0 var(--space-3) 0;
 }
@@ -688,7 +688,7 @@
     color: var(--color-primary);
     text-decoration: none;
     font-size: var(--text-sm);
-    font-weight: 500;
+    font-weight: var(--font-medium);
 }
 
 .cli-command-link:hover {
@@ -710,7 +710,7 @@
 
 .cli-help h2 {
     font-size: var(--type-h2);
-    font-weight: 600;
+    font-weight: var(--font-semibold);
     margin-bottom: var(--space-4);
 }
 
@@ -752,7 +752,7 @@
 .cli-reference-page .cli-usage-header strong {
     display: block;
     font-size: var(--text-sm);
-    font-weight: 600;
+    font-weight: var(--font-semibold);
     color: var(--color-text-primary-muted);
     margin-bottom: var(--space-2);
 }
