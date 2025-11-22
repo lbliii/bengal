@@ -10,6 +10,9 @@
   text-transform: uppercase;
   letter-spacing: 0.5px;
   white-space: nowrap;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* Standard Badge Colors (Sphinx-Design compatible) */
@@ -17,42 +20,90 @@
 .badge-primary {
   background-color: #3b82f6;
   color: white;
+
+  @supports (color-mix(in srgb, white, black)) {
+    &:hover {
+      background-color: color-mix(in srgb, #3b82f6 90%, black);
+    }
+  }
 }
 
 .badge-secondary {
   background-color: #6b7280;
   color: white;
+
+  @supports (color-mix(in srgb, white, black)) {
+    &:hover {
+      background-color: color-mix(in srgb, #6b7280 90%, black);
+    }
+  }
 }
 
 .badge-success {
   background-color: #10b981;
   color: white;
+
+  @supports (color-mix(in srgb, white, black)) {
+    &:hover {
+      background-color: color-mix(in srgb, #10b981 90%, black);
+    }
+  }
 }
 
 .badge-danger {
   background-color: #ef4444;
   color: white;
+
+  @supports (color-mix(in srgb, white, black)) {
+    &:hover {
+      background-color: color-mix(in srgb, #ef4444 90%, black);
+    }
+  }
 }
 
 .badge-warning {
   background-color: #f59e0b;
   color: #1f2937;
+
+  @supports (color-mix(in srgb, white, black)) {
+    &:hover {
+      background-color: color-mix(in srgb, #f59e0b 90%, black);
+    }
+  }
 }
 
 .badge-info {
   background-color: #3b82f6;
   color: white;
+
+  @supports (color-mix(in srgb, white, black)) {
+    &:hover {
+      background-color: color-mix(in srgb, #3b82f6 90%, black);
+    }
+  }
 }
 
 .badge-light {
   background-color: #f3f4f6;
   color: #1f2937;
   border: 1px solid #d1d5db;
+
+  @supports (color-mix(in srgb, white, black)) {
+    &:hover {
+      background-color: color-mix(in srgb, #f3f4f6 90%, black);
+    }
+  }
 }
 
 .badge-dark {
   background-color: #1f2937;
   color: white;
+
+  @supports (color-mix(in srgb, white, black)) {
+    &:hover {
+      background-color: color-mix(in srgb, #1f2937 90%, white);
+    }
+  }
 }
 
 /* Custom Badge Styles (Bengal-specific) */
@@ -101,11 +152,15 @@
     var(--color-bg-primary),
     var(--color-bg-secondary)
   );
-}
 
-.featured-card:hover {
-  transform: translate3d(0, -4px, 0);
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+  &:hover {
+    transform: translate3d(0, -4px, 0);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+
+    @supports (color-mix(in srgb, white, black)) {
+      border-color: color-mix(in srgb, var(--color-primary) 90%, black);
+    }
+  }
 }
 
 /* Page Kind Body Classes */
