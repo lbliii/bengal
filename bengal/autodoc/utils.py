@@ -152,22 +152,24 @@ def auto_detect_prefix_map(source_dirs: list[Path], strip_prefix: str = "") -> d
     Auto-detect grouping from __init__.py hierarchy.
 
     Scans source directories for packages (directories containing __init__.py)
-    and builds a prefix map that includes every package path. Each entry maps
-    the full dotted module path to its final component, which becomes the
-    group label (e.g., "cli.templates" → "templates").
+    and builds a prefix map for every package path. Each entry maps the full
+    dotted module path to its slash-separated path relative to the stripped
+    prefix (e.g., "cli.templates" → "cli/templates"). Using the full path
+    ensures nested packages stay under their parent directories (cli/templates
+    lives under cli/).
 
     Args:
         source_dirs: Directories to scan for packages
         strip_prefix: Optional dotted prefix to remove from detected modules
 
     Returns:
-        Prefix map: {"package.path": "group_name"}
+        Prefix map: {"package.path": "group_path"}
 
     Example:
         >>> auto_detect_prefix_map([Path("bengal")], "bengal.")
         {
             "cli": "cli",
-            "cli.templates": "templates",
+            "cli.templates": "cli/templates",
             "core": "core",
             "cache": "cache",
         }
@@ -220,8 +222,8 @@ def auto_detect_prefix_map(source_dirs: list[Path], strip_prefix: str = "") -> d
             if not module_name:
                 continue
 
-            display_name = module_name.split(".")[-1]
-            prefix_map.setdefault(module_name, display_name)
+            display_path = module_name.replace(".", "/")
+            prefix_map.setdefault(module_name, display_path)
 
     return prefix_map
 
