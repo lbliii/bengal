@@ -22,7 +22,7 @@
    ============================================ */
 
 .page-header {
-  margin-bottom: var(--space-8);
+  margin-bottom: var(--space-6); /* Reduced from --space-8 (32px) to --space-6 (24px) for tighter spacing */
 
   & h1 {
     font-size: var(--type-h1);
