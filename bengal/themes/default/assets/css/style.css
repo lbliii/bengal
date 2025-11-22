@@ -244,7 +244,7 @@
 /* Main Content Area */
 main {
   flex: 1 0 auto;
-  padding: var(--space-10) 0;
+  padding-block: var(--space-6) var(--space-10); /* Reduced top from --space-10 (40px) to --space-6 (24px) for tighter spacing beneath navbar */
 }
 
 /* Home Page Hero: moved to components/hero.css; keep this section empty intentionally */

@@ -40,7 +40,7 @@ header[role="banner"] {
 }
 
 header nav {
-  padding: var(--space-3) 0;
+  padding-block: var(--space-2) var(--space-3); /* Reduced top from --space-3 to --space-2 for tighter navbar */
 }
 
 header .container {

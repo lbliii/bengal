@@ -27,10 +27,10 @@
   grid-template-areas:
     "sidebar content toc";
   grid-template-columns: minmax(240px, 280px) minmax(0, 1fr) minmax(200px, 260px);
-  gap: 2rem;
+  gap: 1.5rem; /* Reduced from 2rem for tighter spacing */
   max-width: 1600px;
   margin: 0 auto;
-  padding: 2rem 0;
+  padding-block: 1rem 2rem; /* Reduced top from 2rem to 1rem for tighter spacing beneath navbar */
   align-items: start;
 }
 
@@ -38,7 +38,7 @@
 .container>.docs-layout {
   max-width: 100%;
   margin: 0;
-  padding: 2rem;
+  padding-inline: var(--space-4); /* Reduced from 2rem (32px) to --space-4 (16px) for tighter horizontal spacing */
 }
 
 /* Left Sidebar (Navigation) */
@@ -82,7 +82,7 @@
     grid-template-areas:
       "sidebar content";
     grid-template-columns: minmax(240px, 260px) minmax(0, 1fr);
-    gap: 2rem;
+    gap: 1.5rem; /* Reduced from 2rem for tighter spacing */
   }
 
   .docs-main {
@@ -104,7 +104,8 @@
     grid-template-areas:
       "content";
     grid-template-columns: 1fr;
-    padding: 1rem;
+    padding-block: 0.75rem 1rem; /* Reduced top from 1rem to 0.75rem */
+    padding-inline: var(--space-4); /* Use consistent spacing */
     gap: 1rem;
   }
 

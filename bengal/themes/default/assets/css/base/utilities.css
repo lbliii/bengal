@@ -10,25 +10,27 @@
 /* Container */
 .container {
   width: 100%;
-  margin-left: auto;
-  margin-right: auto;
-  padding-left: var(--space-3);  /* 12px for very small screens */
-  padding-right: var(--space-3);
+  margin-inline: auto; /* Changed from margin-left/right */
+  padding-inline: var(--space-3); /* Changed from padding-left/right - 12px for very small screens */
 }
 
 /* Increase padding at 400px for better spacing */
 @media (min-width: 400px) {
   .container {
-    padding-left: var(--space-4);  /* 16px */
-    padding-right: var(--space-4);
+    padding-inline: var(--space-4); /* Changed from padding-left/right - 16px */
   }
 }
 
 @media (min-width: 640px) {
   .container {
     max-width: var(--container-sm);
-    padding-left: var(--space-6);
-    padding-right: var(--space-6);
+    padding-inline: var(--space-4); /* Reduced from --space-6 (24px) to --space-4 (16px) for tighter spacing */
+  }
+}
+
+@media (min-width: 1024px) {
+  .container {
+    padding-inline: var(--space-5); /* 20px at desktop - tighter than before */
   }
 }
 
