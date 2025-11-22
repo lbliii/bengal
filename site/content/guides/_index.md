@@ -14,6 +14,4 @@ Practical guides to help you accomplish specific tasks.
 
 ## Available Guides
 
-This section will contain practical guides to help you get the most out of the system.
-
-Each guide provides detailed, step-by-step instructions to help you accomplish specific goals.
+- **[Deployment Guide](deployment/)**: How to build and deploy your site to production (GitHub Pages, Netlify, Vercel).

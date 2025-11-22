@@ -9,6 +9,7 @@ cd bengal
 pip install -e .
 
 # Or with uv
+uv venv
 uv pip install -e .
 ```
 
