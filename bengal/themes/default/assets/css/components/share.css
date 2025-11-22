@@ -4,6 +4,7 @@
     display: flex;
     gap: var(--space-3);
     margin: var(--space-6) 0;
+    flex-wrap: wrap;
 }
 
 .share-button {
@@ -12,31 +13,97 @@
     justify-content: center;
     width: 40px;
     height: 40px;
+    aspect-ratio: 1 / 1; /* Added */
     color: var(--color-text-inverse);
     background-color: var(--color-text-muted);
     border-radius: var(--radius-md);
     text-decoration: none;
-    transition: all var(--transition-fast) var(--ease-out);
+    transition: all var(--transition-smooth) var(--ease-smooth);
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    will-change: transform, box-shadow;
+    position: relative;
+    overflow: hidden;
+
+    /* Subtle shine effect on hover */
+    &::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, transparent 50%);
+        opacity: 0;
+        transition: opacity var(--transition-smooth) var(--ease-smooth);
+    }
+
+    &:hover {
+        transform: translate3d(0, -2px, 0) scale(1.05);
+        box-shadow: var(--elevation-medium);
+
+        &::before {
+            opacity: 1;
+        }
+
+        @supports (color-mix(in srgb, white, black)) {
+            background-color: color-mix(in srgb, var(--color-text-muted) 90%, black);
+        }
+    }
+
+    &:active {
+        transform: translate3d(0, 0, 0) scale(0.95);
+    }
+
+    /* Platform brand colors (scoped vars for optional overrides) */
+    &.twitter {
+        background-color: var(--share-twitter, #1da1f2);
+
+        &:hover {
+            @supports (color-mix(in srgb, white, black)) {
+                background-color: color-mix(in srgb, #1da1f2 90%, black);
+            }
+        }
+    }
+
+    &.facebook {
+        background-color: var(--share-facebook, #1877f2);
+
+        &:hover {
+            @supports (color-mix(in srgb, white, black)) {
+                background-color: color-mix(in srgb, #1877f2 90%, black);
+            }
+        }
+    }
+
+    &.linkedin {
+        background-color: var(--share-linkedin, #0077b5);
+
+        &:hover {
+            @supports (color-mix(in srgb, white, black)) {
+                background-color: color-mix(in srgb, #0077b5 90%, black);
+            }
+        }
+    }
+
+    &.reddit {
+        background-color: var(--share-reddit, #ff4500);
+
+        &:hover {
+            @supports (color-mix(in srgb, white, black)) {
+                background-color: color-mix(in srgb, #ff4500 90%, black);
+            }
+        }
+    }
 }
 
-.share-button:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--elevation-medium);
-}
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    .share-button {
+        transition: none !important;
+        transform: none !important;
+        will-change: auto !important;
 
-/* Platform brand colors (scoped vars for optional overrides) */
-.share-button.twitter {
-    background-color: var(--share-twitter, #1da1f2);
-}
-
-.share-button.facebook {
-    background-color: var(--share-facebook, #1877f2);
-}
-
-.share-button.linkedin {
-    background-color: var(--share-linkedin, #0077b5);
-}
-
-.share-button.reddit {
-    background-color: var(--share-reddit, #ff4500);
+        &::before {
+            display: none;
+        }
+    }
 }
