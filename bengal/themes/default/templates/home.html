@@ -6,7 +6,11 @@
     <header class="hero hero--large">
         <div class="hero__container">
             <div class="hero__content">
-                <h1 class="hero__title">{{ page.title | default(site.config.title) }}</h1>
+                <h1 class="hero__title">
+                    <span class="fluid-bg" style="display: inline-block; padding: 0.2em 0.6em; border-radius: 99px;">
+                        <span>{{ page.title | default(site.config.title) }}</span>
+                    </span>
+                </h1>
                 {% if page.metadata.get('description', '') %}
                 <p class="hero__subtitle">{{ page.metadata.get('description', '') }}</p>
                 {% endif %}
