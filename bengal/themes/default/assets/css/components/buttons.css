@@ -30,8 +30,27 @@
 }
 
 .button-primary {
-  background: var(--button-primary-gradient);
+  --button-primary-base: #3b82f6;
+  --button-primary-hover-fallback: #2563eb;
+
+  background: var(--button-primary-gradient, var(--button-primary-base));
   color: white;
+
+  /* Modern color mixing for hover state */
+  @supports (color-mix(in srgb, white, black)) {
+    &:hover {
+      background: color-mix(in srgb, var(--button-primary-base) 90%, black);
+      color: white;
+    }
+  }
+
+  /* Fallback for browsers without color-mix */
+  @supports not (color-mix(in srgb, white, black)) {
+    &:hover {
+      background-color: var(--button-primary-hover-fallback);
+      color: white;
+    }
+  }
 }
 
 .button-primary.gradient-border::before {
@@ -70,26 +89,6 @@
    ============================================ */
 
 /* Primary (CTA) */
-.button-primary {
-  background-color: #3b82f6;
-  color: white;
-
-  /* Modern color mixing for hover state */
-  @supports (color-mix(in srgb, white, black)) {
-    &:hover {
-      background-color: color-mix(in srgb, #3b82f6 90%, black);
-      color: white;
-    }
-  }
-
-  /* Fallback for browsers without color-mix */
-  @supports not (color-mix(in srgb, white, black)) {
-    &:hover {
-      background-color: #2563eb;
-      color: white;
-    }
-  }
-}
 
 /* Secondary */
 .button-secondary {
