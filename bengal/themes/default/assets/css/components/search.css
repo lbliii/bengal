@@ -153,10 +153,17 @@
   box-shadow: var(--elevation-popover);
   z-index: var(--z-dropdown);
   display: none;
+  opacity: 0;
+  transform: translate3d(0, -8px, 0);
+  transition: opacity var(--transition-smooth), transform var(--transition-smooth);
+  will-change: transform, opacity;
 }
 
 .search__results--visible {
   display: block;
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+  will-change: auto;
 }
 
 .search__results-list {

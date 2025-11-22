@@ -66,8 +66,9 @@
   width: 14px;
   height: 14px;
   color: var(--color-text-secondary);
-  transition: transform var(--transition-fast);
+  transition: transform var(--transition-smooth);
   flex-shrink: 0;
+  will-change: transform;
 }
 
 .docs-nav-group-toggle:hover svg {
@@ -111,11 +112,18 @@
   gap: 0.125rem;
   padding-left: 1.25rem;
   margin-top: 0.25rem;
+  opacity: 0;
+  transform: translate3d(0, -8px, 0);
+  transition: opacity var(--transition-smooth), transform var(--transition-smooth);
+  will-change: transform, opacity;
 }
 
 /* Show items when expanded (controlled by JavaScript) */
 .docs-nav-group-items.expanded {
   display: flex;
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+  will-change: auto;
 }
 
 /* Navigation Links */

@@ -111,13 +111,13 @@
 
 .tab-pane.active {
   display: block;
-  animation: fadeIn 0.2s var(--ease-out);
+  animation: fadeIn 0.3s var(--ease-smooth);
 }
 
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translate3d(0, 4px, 0);
+    transform: translate3d(0, 8px, 0);
   }
   to {
     opacity: 1;

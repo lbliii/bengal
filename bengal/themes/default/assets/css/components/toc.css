@@ -262,7 +262,7 @@
 }
 
 .toc-count-toggle:hover {
-    transform: scale(1.1);
+    transform: translate3d(0, 0, 0) scale(1.1);
 }
 
 .toc-count-toggle:hover .toc-count {
@@ -273,7 +273,7 @@
 }
 
 .toc-count-toggle:active {
-    transform: scale(0.95);
+    transform: translate3d(0, 0, 0) scale(0.95);
 }
 
 /* Visual feedback for expanded state */
@@ -322,13 +322,17 @@
     gap: 0.25rem;
     max-height: 500px;
     overflow: hidden;
-    transition: max-height 0.3s ease, padding 0.3s ease;
+    transition: max-height var(--transition-smooth), padding var(--transition-smooth), opacity var(--transition-smooth);
+    opacity: 1;
+    will-change: max-height, padding, opacity;
 }
 
 .toc-group[data-collapsed="true"] .toc-subitems {
     max-height: 0;
     padding-top: 0;
     padding-bottom: 0;
+    opacity: 0;
+    will-change: auto;
 }
 
 /* ============================================================================
