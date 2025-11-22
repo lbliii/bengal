@@ -194,20 +194,7 @@
    - **Status**: ✅ Intentional - Code blocks need directional margins for break-out effect
    - **Recommendation**: Keep as-is
 
-2. **`components/blog.css`** (lines 340, 349-350, 407):
-   - `border-top/bottom` for section dividers
-   - **Status**: ⚠️ Could use logical properties
-   - **Recommendation**: Low priority - consider updating to `border-block-start/end`
-
-3. **`layouts/changelog.css`** (lines 368, 374):
-   - `border-top` for release sections
-   - **Status**: ⚠️ Could use logical properties
-   - **Recommendation**: Low priority - consider updating to `border-block-start`
-
-4. **`layouts/page-header.css`** (lines 106, 124):
-   - `border-bottom/top` for variants
-   - **Status**: ⚠️ Could use logical properties
-   - **Recommendation**: Low priority - consider updating
+**Note**: All other legacy properties have been converted to logical properties ✅
 
 ### Comments
 
@@ -245,10 +232,10 @@
 - ✅ **None** - All critical modernizations complete
 
 ### Future Enhancements (Optional)
-1. **Update remaining border-top/bottom** to logical properties (low priority)
-2. **Remove "Changed from" comments** after a few releases
-3. **Consider OKLCH colors** for better color mixing (when browser support improves)
-4. **Add @scope** when widely supported (for better encapsulation)
+1. **Remove "Changed from" comments** after a few releases (for cleaner code)
+2. **Consider OKLCH colors** for better color mixing (when browser support improves)
+3. **Add @scope** when widely supported (for better encapsulation)
+4. **Consider @starting-style** for smoother initial animations (when supported)
 
 ### Deprecation Considerations
 - **`layouts/grid.css`**: Legacy utility system - consider deprecation in favor of component-specific grids
