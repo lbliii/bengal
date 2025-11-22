@@ -250,6 +250,25 @@
    RESPONSIVE
    ============================================ */
 
+/* Better touch interactions */
+button,
+.btn,
+a.button {
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Ensure minimum touch targets on mobile */
+@media (max-width: 768px) {
+  button,
+  .btn,
+  a.button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
 @media (max-width: 640px) {
   .button {
     width: 100%;

@@ -11,17 +11,32 @@ header[role="banner"] {
   position: sticky;
   top: 0;
   z-index: var(--z-sticky);
-  background-color: var(--color-bg-primary);
-  border-bottom: 1px solid var(--color-border);
-  /* Glass when enabled */
+  background-color: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  /* Glass effect */
   overflow: visible;
   /* allow dropdowns to overflow */
 }
 
-/* (removed glass overlay) */
+/* Fallback for browsers without backdrop-filter */
+@supports not (backdrop-filter: blur(12px)) {
+  header[role="banner"] {
+    background-color: var(--color-bg-primary);
+    border-bottom: 1px solid var(--color-border);
+  }
+}
 
 [data-theme="dark"] header[role="banner"] {
-  background-color: rgba(26, 26, 26, 0.95);
+  background-color: rgba(26, 26, 26, 0.85);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+@supports not (backdrop-filter: blur(12px)) {
+  [data-theme="dark"] header[role="banner"] {
+    background-color: rgba(26, 26, 26, 0.95);
+  }
 }
 
 header nav {
@@ -204,6 +219,9 @@ header .container {
   cursor: pointer;
   border-radius: var(--radius-md);
   transition: background-color var(--transition-fast) var(--ease-out);
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .mobile-nav-toggle:hover {

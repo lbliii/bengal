@@ -323,9 +323,22 @@ summary {
 
 :focus-visible {
   outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
+  outline-offset: 3px;
+  border-radius: var(--radius-sm);
+  box-shadow: 0 0 0 4px rgba(var(--color-primary-rgb, 33, 150, 243), 0.1);
 }
 
 :focus:not(:focus-visible) {
   outline: none;
+}
+
+/* Enhanced focus for interactive elements */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb, 33, 150, 243), 0.15);
 }

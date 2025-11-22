@@ -100,6 +100,32 @@
   color: var(--color-text-primary);
 }
 
+/* Refined mobile spacing */
+@media (max-width: 640px) {
+  .prose > * + * {
+    margin-top: var(--space-4);  /* Reduced from space-6 */
+  }
+  
+  .prose h1,
+  .prose h2,
+  .prose h3 {
+    margin-top: var(--space-6);  /* Keep headings spaced */
+  }
+  
+  /* Better list spacing */
+  .prose ul,
+  .prose ol {
+    margin: var(--space-4) 0;
+    padding-left: var(--space-6);
+  }
+  
+  /* Better blockquote spacing */
+  .prose blockquote {
+    margin: var(--space-4) 0;
+    padding: var(--space-3);
+  }
+}
+
 .prose p:last-child {
   margin-bottom: 0;
 }
@@ -294,15 +320,31 @@ header .lead {
 
 /* Images */
 .prose img {
+  max-width: 100%;
+  height: auto;
   margin: var(--space-6) auto;  /* Reduced from space-8 */
   border-radius: var(--radius-md);
   box-shadow: var(--elevation-medium);
+  display: block;
+}
+
+/* Better image loading state */
+.prose img[loading="lazy"] {
+  background: var(--color-bg-secondary);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.prose img[loading="lazy"].loaded,
+.prose img:not([loading="lazy"]) {
+  opacity: 1;
 }
 
 /* Further reduce margins on mobile */
 @media (max-width: 640px) {
   .prose img {
     margin: var(--space-4) auto;  /* 16px on mobile */
+    border-radius: var(--radius-sm);
   }
 }
 

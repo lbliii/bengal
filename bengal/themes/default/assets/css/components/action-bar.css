@@ -215,6 +215,9 @@
   cursor: pointer;
   transition: all 0.15s ease;
   white-space: nowrap;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .action-bar-share-trigger:hover {
