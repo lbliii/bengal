@@ -114,8 +114,8 @@
   background-position: 0% 100%;
   padding-bottom: 0.1em;
   transition: 
-    color var(--transition-base),
-    background-size var(--transition-base);
+    color var(--duration-200) var(--ease-out),
+    background-size var(--duration-200) var(--ease-out);
   font-weight: var(--font-medium);
   word-break: break-word;
   overflow-wrap: break-word;
@@ -133,17 +133,19 @@
 }
 
 /* External links in prose content */
-.has-prose-content a[href^="http"]:not([href*="{{ site.config.baseurl or '' }}"]),
+.has-prose-content a[href^="http"]:not([href^="/"]):not([href^="#"]),
 .has-prose-content a[target="_blank"],
 .has-prose-content a[rel*="external"],
-.has-prose-content a[rel*="noopener"] {
+.has-prose-content a[rel*="noopener"]:not([href^="/"]):not([href^="#"]),
+.has-prose-content a[data-external="true"] {
   padding-right: 1.2em;
 }
 
-.has-prose-content a[href^="http"]:not([href*="{{ site.config.baseurl or '' }}"])::after,
+.has-prose-content a[href^="http"]:not([href^="/"]):not([href^="#"])::after,
 .has-prose-content a[target="_blank"]::after,
 .has-prose-content a[rel*="external"]::after,
-.has-prose-content a[rel*="noopener"]::after {
+.has-prose-content a[rel*="noopener"]:not([href^="/"]):not([href^="#"])::after,
+.has-prose-content a[data-external="true"]::after {
   content: '';
   display: inline-block;
   width: 0.75em;
@@ -161,10 +163,11 @@
   transition: opacity var(--transition-fast), transform var(--transition-fast);
 }
 
-.has-prose-content a[href^="http"]:not([href*="{{ site.config.baseurl or '' }}"]):hover::after,
+.has-prose-content a[href^="http"]:not([href^="/"]):not([href^="#"]):hover::after,
 .has-prose-content a[target="_blank"]:hover::after,
 .has-prose-content a[rel*="external"]:hover::after,
-.has-prose-content a[rel*="noopener"]:hover::after {
+.has-prose-content a[rel*="noopener"]:not([href^="/"]):not([href^="#"]):hover::after,
+.has-prose-content a[data-external="true"]:hover::after {
   opacity: 1;
   transform: translate(1px, -1px);
 }

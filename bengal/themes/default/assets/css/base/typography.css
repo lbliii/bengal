@@ -185,9 +185,9 @@ header .lead {
   background-position: 0% 100%;
   padding-bottom: 0.1em;
   transition: 
-    color var(--transition-base),
-    background-size var(--transition-base),
-    background-position var(--transition-base);
+    color var(--duration-200) var(--ease-out),
+    background-size var(--duration-200) var(--ease-out),
+    background-position var(--duration-200) var(--ease-out);
   font-weight: var(--font-medium);
   word-break: break-word;
   overflow-wrap: break-word;

@@ -94,17 +94,19 @@ p {
   margin: 0;
 }
 
+/* Base link reset - minimal, let prose/content styles handle link appearance */
 a {
-  color: var(--color-primary);
+  color: inherit; /* Don't force color - let content styles handle it */
   text-decoration: none;
-  transition: color var(--transition-fast) var(--ease-out);
+  /* Transition removed - let content-specific styles handle transitions */
 }
 
+/* Base hover - minimal, content styles override */
 a:hover {
-  color: var(--color-primary-dark);
-  text-decoration: underline;
+  /* Let content styles handle hover */
 }
 
+/* Base focus - accessible outline */
 a:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
