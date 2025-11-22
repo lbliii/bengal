@@ -46,27 +46,45 @@
 
 .timeline-item {
     margin-bottom: var(--space-10);
-    padding-left: var(--space-6);
-    border-left: 2px solid var(--color-border-light);
+    padding-inline-start: var(--space-6); /* Changed from padding-left */
+    border-inline-start: 2px solid var(--color-border-light); /* Changed from border-left */
     position: relative;
-}
+    transition: transform var(--transition-fast) var(--ease-out),
+                border-color var(--transition-fast) var(--ease-out);
 
-.timeline-item:last-child {
-    margin-bottom: 0;
-}
+    &:last-child {
+        margin-bottom: 0;
+    }
 
-/* Timeline dot marker */
-.timeline-item::before {
-    content: '';
-    position: absolute;
-    left: -6px;
-    top: 4px;
-    width: 10px;
-    height: 10px;
-    border-radius: var(--radius-full);
-    background: var(--color-primary);
-    border: 2px solid var(--color-bg-primary);
-    box-shadow: 0 0 0 2px var(--color-primary);
+    &:hover {
+        border-inline-start-color: var(--color-primary); /* Changed from border-left-color */
+        transform: translate3d(4px, 0, 0);
+    }
+
+    /* Timeline dot marker */
+    &::before {
+        content: '';
+        position: absolute;
+        inset-inline-start: -6px; /* Changed from left */
+        inset-block-start: 4px; /* Changed from top */
+        width: 10px;
+        height: 10px;
+        border-radius: var(--radius-full);
+        background: var(--color-primary);
+        border: 2px solid var(--color-bg-primary);
+        box-shadow: 0 0 0 2px var(--color-primary);
+        transition: transform var(--transition-smooth) var(--ease-smooth),
+                    background var(--transition-fast) var(--ease-out);
+        will-change: transform;
+    }
+
+    &:hover::before {
+        transform: translate3d(0, 0, 0) scale(1.2);
+
+        @supports (color-mix(in srgb, white, black)) {
+            background: color-mix(in srgb, var(--color-primary) 90%, black);
+        }
+    }
 }
 
 /* ============================================
@@ -94,15 +112,23 @@
     color: var(--color-text-primary);
 }
 
-.timeline-title a {
-    color: var(--color-text-primary);
-    text-decoration: none;
-    transition: color var(--transition-fast) var(--ease-out);
-}
+.timeline-title {
+    & a {
+        color: var(--color-text-primary);
+        text-decoration: none;
+        transition: color var(--transition-smooth) var(--ease-smooth);
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
 
-.timeline-title a:hover {
-    color: var(--color-primary);
-    text-decoration: underline;
+        &:hover {
+            color: var(--color-primary);
+            text-decoration: underline;
+
+            @supports (color-mix(in srgb, white, black)) {
+                color: color-mix(in srgb, var(--color-primary) 90%, black);
+            }
+        }
+    }
 }
 
 .timeline-subtitle {
@@ -175,12 +201,28 @@
     padding: var(--space-4);
     background: var(--color-bg-secondary);
     border-radius: var(--radius-md);
-    border-left: 3px solid var(--color-border-light);
+    border-inline-start: 3px solid var(--color-border-light); /* Changed from border-left */
+    transition: transform var(--transition-smooth) var(--ease-smooth),
+                box-shadow var(--transition-smooth) var(--ease-smooth);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    will-change: transform, box-shadow;
+
+    &:hover {
+        transform: translate3d(0, -2px, 0);
+        box-shadow: var(--elevation-card-hover);
+    }
 }
 
 .changelog-category.changelog-breaking {
     background: var(--color-danger-bg);
-    border-left-color: var(--color-danger);
+    border-inline-start-color: var(--color-danger); /* Changed from border-left-color */
+
+    &:hover {
+        @supports (color-mix(in srgb, white, black)) {
+            border-inline-start-color: color-mix(in srgb, var(--color-danger) 90%, black);
+        }
+    }
 }
 
 .category-title {
@@ -236,13 +278,26 @@
     font-weight: var(--font-medium);
     border: 1px solid var(--color-primary);
     border-radius: var(--radius-md);
-    transition: all var(--transition-fast) var(--ease-out);
-}
+    transition: all var(--transition-smooth) var(--ease-smooth);
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    will-change: transform, background;
 
-.changelog-read-more:hover {
-    background: var(--color-primary);
-    color: var(--color-bg-primary);
-    transform: translateX(2px);
+    &:hover {
+        background: var(--color-primary);
+        color: var(--color-bg-primary);
+        transform: translate3d(2px, 0, 0);
+        box-shadow: var(--elevation-low);
+
+        @supports (color-mix(in srgb, white, black)) {
+            background: color-mix(in srgb, var(--color-primary) 90%, black);
+        }
+    }
+
+    &:active {
+        transform: translate3d(0, 0, 0);
+    }
 }
 
 /* ============================================
@@ -337,25 +392,42 @@
     font-weight: var(--font-medium);
     border: 1px solid var(--color-border-light);
     border-radius: var(--radius-md);
-    transition: all var(--transition-fast) var(--ease-out);
-}
+    transition: all var(--transition-smooth) var(--ease-smooth);
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    will-change: transform, background, box-shadow;
 
-.release-link:hover {
-    background: var(--color-primary);
-    color: var(--color-bg-primary);
-    border-color: var(--color-primary);
-    transform: translateY(-1px);
+    &:hover {
+        background: var(--color-primary);
+        color: var(--color-bg-primary);
+        border-color: var(--color-primary);
+        transform: translate3d(0, -1px, 0);
+        box-shadow: var(--elevation-low);
+
+        @supports (color-mix(in srgb, white, black)) {
+            background: color-mix(in srgb, var(--color-primary) 90%, black);
+        }
+    }
+
+    &:active {
+        transform: translate3d(0, 0, 0);
+    }
 }
 
 .release-download {
     background: var(--color-primary);
     color: var(--color-bg-primary);
     border-color: var(--color-primary);
-}
 
-.release-download:hover {
-    background: var(--color-primary-dark);
-    border-color: var(--color-primary-dark);
+    &:hover {
+        background: var(--color-primary-dark);
+        border-color: var(--color-primary-dark);
+
+        @supports (color-mix(in srgb, white, black)) {
+            background: color-mix(in srgb, var(--color-primary-dark) 90%, black);
+        }
+    }
 }
 
 /* ============================================
