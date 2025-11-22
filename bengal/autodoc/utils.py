@@ -12,6 +12,38 @@ from pathlib import Path
 from typing import Any
 
 
+def _convert_sphinx_role(
+    text: str, role: str, suffix: str = "", keep_full_path: bool = False
+) -> str:
+    """
+    Convert a single Sphinx-style role to inline code.
+
+    Args:
+        text: Text containing Sphinx roles
+        role: The role name (e.g., 'class', 'func', 'meth')
+        suffix: Optional suffix to add after the name (e.g., '()' for functions)
+        keep_full_path: If True, keep the full module path instead of just the last component
+
+    Returns:
+        Text with the specified role converted to inline code
+
+    Example:
+        >>> _convert_sphinx_role("Use :class:`Site`", "class")
+        'Use  `Site`'
+        >>> _convert_sphinx_role("Call :func:`build`", "func", suffix="()")
+        'Call  `build()`'
+    """
+    if keep_full_path:
+        # For :mod:, keep the full path
+        pattern = rf":{role}:`~?([a-zA-Z0-9_.]+)`"
+    else:
+        # For other roles, extract only the last component
+        pattern = rf":{role}:`~?(?:[a-zA-Z0-9_.]+\.)?([a-zA-Z0-9_]+)`"
+
+    replacement = rf" `\1{suffix}`"
+    return re.sub(pattern, replacement, text)
+
+
 def _convert_sphinx_roles(text: str) -> str:
     """
     Convert Sphinx-style cross-reference roles to inline code.
@@ -38,30 +70,15 @@ def _convert_sphinx_roles(text: str) -> str:
     # The ~ prefix means "show only the last component"
     # Add leading space to prevent running into previous word (markdown collapses multiple spaces)
 
-    # :class:`~module.ClassName` → `ClassName`
-    # :class:`ClassName` → `ClassName`
-    text = re.sub(r":class:`~?(?:[a-zA-Z0-9_.]+\.)?([a-zA-Z0-9_]+)`", r" `\1`", text)
-
-    # :func:`function_name` → `function_name()`
-    text = re.sub(r":func:`~?(?:[a-zA-Z0-9_.]+\.)?([a-zA-Z0-9_]+)`", r" `\1()`", text)
-
-    # :meth:`method_name` → `method_name()`
-    text = re.sub(r":meth:`~?(?:[a-zA-Z0-9_.]+\.)?([a-zA-Z0-9_]+)`", r" `\1()`", text)
-
-    # :mod:`module.name` → `module.name` (keep full module path)
-    text = re.sub(r":mod:`~?([a-zA-Z0-9_.]+)`", r" `\1`", text)
-
-    # :attr:`attribute_name` → `attribute_name`
-    text = re.sub(r":attr:`~?(?:[a-zA-Z0-9_.]+\.)?([a-zA-Z0-9_]+)`", r" `\1`", text)
-
-    # :exc:`ExceptionName` → `ExceptionName`
-    text = re.sub(r":exc:`~?(?:[a-zA-Z0-9_.]+\.)?([a-zA-Z0-9_]+)`", r" `\1`", text)
-
-    # :const:`CONSTANT_NAME` → `CONSTANT_NAME`
-    text = re.sub(r":const:`~?(?:[a-zA-Z0-9_.]+\.)?([a-zA-Z0-9_]+)`", r" `\1`", text)
-
-    # :data:`variable_name` → `variable_name`
-    text = re.sub(r":data:`~?(?:[a-zA-Z0-9_.]+\.)?([a-zA-Z0-9_]+)`", r" `\1`", text)
+    # Convert each role type
+    text = _convert_sphinx_role(text, "class")
+    text = _convert_sphinx_role(text, "func", suffix="()")
+    text = _convert_sphinx_role(text, "meth", suffix="()")
+    text = _convert_sphinx_role(text, "mod", keep_full_path=True)
+    text = _convert_sphinx_role(text, "attr")
+    text = _convert_sphinx_role(text, "exc")
+    text = _convert_sphinx_role(text, "const")
+    text = _convert_sphinx_role(text, "data")
 
     return text
 
