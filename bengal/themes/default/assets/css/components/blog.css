@@ -43,7 +43,7 @@
     color: var(--color-text-primary);
     margin-bottom: var(--space-6);
     padding-bottom: var(--space-3);
-    border-bottom: 2px solid var(--color-border);
+    border-block-end: 2px solid var(--color-border);
 }
 
 /* Featured Posts Section */
@@ -107,7 +107,7 @@
 .blog-post-card:hover,
 .blog-featured-card:hover {
     box-shadow: var(--elevation-high);
-    transform: translateY(-2px);
+    transform: translate3d(0, -2px, 0);
     transition: box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1),
                 transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }

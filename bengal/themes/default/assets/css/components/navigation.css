@@ -2,7 +2,7 @@
 .page-navigation {
   margin: 3rem 0;
   padding-top: 2rem;
-  border-top: 1px solid var(--color-border);
+  border-block-start: 1px solid var(--color-border);
 }
 
 .nav-links {
@@ -67,53 +67,7 @@
   color: var(--color-primary);
 }
 
-/* Breadcrumbs */
-.breadcrumbs {
-  margin: 1rem 0 2rem;
-  padding: 0.75rem 0;
-  font-size: 0.875rem;
-
-  & ol {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    flex-wrap: wrap;
-  }
-
-  & li {
-    display: flex;
-    align-items: center;
-
-    &:not(:last-child)::after {
-      content: '/';
-      margin-inline-start: 0.5rem; /* Changed from margin-left */
-      color: var(--color-text-secondary);
-    }
-
-    &[aria-current="page"] {
-      color: var(--color-text-secondary);
-      font-weight: 500;
-    }
-  }
-
-  & a {
-    color: var(--color-primary);
-    text-decoration: none;
-    touch-action: manipulation;
-    -webkit-tap-highlight-color: transparent;
-
-    &:hover {
-      text-decoration: underline;
-
-      @supports (color-mix(in srgb, white, black)) {
-        color: color-mix(in srgb, var(--color-primary) 90%, black);
-      }
-    }
-  }
-}
+/* Breadcrumbs - moved to style.css to avoid duplication */
 
 /* Mobile responsive */
 @media (max-width: 768px) {
@@ -129,9 +83,5 @@
   .nav-next {
     text-align: end; /* Changed from right */
     justify-self: end;
-  }
-
-  .breadcrumbs {
-    font-size: 0.8125rem;
   }
 }

@@ -27,8 +27,7 @@
     color: var(--color-text-secondary);
     margin: 0;
     max-width: 600px;
-    margin-left: auto;
-    margin-right: auto;
+    margin-inline: auto;
     line-height: var(--leading-relaxed);
 }
 
@@ -241,7 +240,7 @@
 
 .changelog-list {
     margin: 0;
-    padding-left: var(--space-6);
+    padding-inline-start: var(--space-6);
     list-style: disc;
 }
 
@@ -313,7 +312,7 @@
 .release-header {
     margin-bottom: var(--space-8);
     padding-bottom: var(--space-6);
-    border-bottom: 2px solid var(--color-border-light);
+    border-block-end: 2px solid var(--color-border-light);
 }
 
 .release-header h1 {
@@ -476,7 +475,7 @@
     }
 
     .timeline-item {
-        padding-left: var(--space-4);
+        padding-inline-start: var(--space-4);
     }
 
     .changelog-category {

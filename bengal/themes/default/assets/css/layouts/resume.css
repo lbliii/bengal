@@ -26,7 +26,7 @@
 .resume-header {
     text-align: center;
     padding-bottom: var(--space-8);
-    border-bottom: 2px solid var(--color-border-light);
+    border-block-end: 2px solid var(--color-border-light);
     margin-bottom: var(--space-8);
 }
 
@@ -253,7 +253,7 @@
 
 .timeline-highlights {
     margin: var(--space-3) 0;
-    padding-left: var(--space-5);
+    padding-inline-start: var(--space-5);
 }
 
 .timeline-highlights li {
@@ -269,7 +269,7 @@
 
 .timeline-technologies strong {
     color: var(--color-text-secondary);
-    margin-right: var(--space-2);
+    margin-inline-end: var(--space-2);
 }
 
 .tech-tag {

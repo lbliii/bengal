@@ -32,7 +32,7 @@
   transition: all var(--transition-base);
   opacity: 0;
   visibility: hidden;
-  transform: translateY(20px) scale(0.8);
+  transform: translate3d(0, 20px, 0) scale(0.8);
 }
 
 .back-to-top.visible {
@@ -44,11 +44,11 @@
 .back-to-top:hover {
   background-color: var(--color-primary-hover);
   box-shadow: var(--elevation-card-hover);
-  transform: translateY(-4px) scale(1.05);
+  transform: translate3d(0, -4px, 0) scale(1.05);
 }
 
 .back-to-top:active {
-  transform: translateY(-2px) scale(1);
+  transform: translate3d(0, -2px, 0) scale(1);
 }
 
 .back-to-top:focus-visible {
@@ -123,7 +123,7 @@
   justify-content: center;
   width: 1.5rem;
   height: 1.5rem;
-  margin-left: 0.5rem;
+  margin-inline-start: 0.5rem;
   padding: 0;
   background: transparent;
   border: none;
@@ -274,7 +274,7 @@
   position: absolute;
   bottom: 2rem;
   left: 50%;
-  transform: translateX(-50%);
+  transform: translate3d(-50%, 0, 0);
   max-width: 80%;
   padding: 0.75rem 1.5rem;
   background-color: rgba(0, 0, 0, 0.7);
@@ -367,7 +367,7 @@ img[data-lightbox]:hover {
   }
 
   .back-to-top.visible {
-    transform: translateY(0) scale(1);
+    transform: translate3d(0, 0, 0) scale(1);
   }
 }
 
