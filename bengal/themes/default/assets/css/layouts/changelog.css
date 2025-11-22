@@ -511,3 +511,17 @@
         background: rgba(220, 38, 38, 0.1);
     }
 }
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    .timeline-item,
+    .changelog-category,
+    .changelog-read-more,
+    .release-link,
+    .changelog-list li {
+        transition: none !important;
+        animation: none !important;
+        will-change: auto !important;
+        transform: none !important;
+    }
+}
