@@ -21,6 +21,9 @@ Supports two modes:
 {% from 'partials/navigation-components.html' import breadcrumbs %}
 
 {% block content %}
+{# Load changelog data from site.data (preferred) or use pages (fallback) #}
+{% set changelog_data = site.data.get('changelog') if site.data is defined and site.data else none %}
+
 <div class="changelog-container">
     {# Action Bar: Breadcrumbs + Share #}
     {% include 'partials/action-bar.html' %}
