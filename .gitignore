@@ -82,3 +82,8 @@ venv-*/
 # Benchmark output
 benchmarks/scenarios/*/output/
 .benchmarks/
+
+
+# other
+
+.competitor/
