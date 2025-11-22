@@ -250,6 +250,9 @@ header .container {
   display: none;
   background-color: var(--color-bg-primary);
   overflow-y: auto;
+  touch-action: pan-y;
+  overscroll-behavior: contain;
+  will-change: transform;
 }
 
 .mobile-nav.is-open {

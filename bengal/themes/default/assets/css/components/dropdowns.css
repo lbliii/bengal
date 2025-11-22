@@ -99,6 +99,7 @@ details.dropdown summary:focus:not(:focus-visible) {
   padding-top: var(--space-4);
   border-top: 1px solid var(--color-border);
   animation: slideDown 0.2s var(--ease-out);
+  will-change: transform, opacity;
 }
 
 @keyframes slideDown {
