@@ -369,6 +369,20 @@
   filter: drop-shadow(0 2px 4px rgba(0,0,0,0.15));
 }
 
+[data-theme="dark"] .fluid-text {
+  /* Brighter/lighter gradient for dark mode to ensure legibility */
+  background-image: radial-gradient(
+    circle at 50% 50%,
+    var(--color-accent) 0%,
+    #fff 25%,
+    var(--color-primary) 50%,
+    var(--color-accent) 75%
+  );
+  
+  /* Glow effect instead of dark shadow */
+  filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.3));
+}
+
 @keyframes fluid-text-flow {
   0% {
     background-position: 0% 50%;
