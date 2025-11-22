@@ -25,6 +25,7 @@
 pre {
   position: relative;
   margin: 0;
+  margin-block: 1.5rem;
   padding: var(--space-6);
   background-color: var(--color-bg-code);
   border: 1px solid rgba(0, 0, 0, 0.1);
@@ -33,6 +34,14 @@ pre {
   line-height: var(--line-height-relaxed);
   box-shadow: var(--elevation-card);
   transition: box-shadow var(--transition-base);
+
+  &:hover {
+    box-shadow: var(--elevation-card-hover);
+
+    .code-copy-button {
+      opacity: 1;
+    }
+  }
 }
 
 [data-theme="dark"] pre {
@@ -42,10 +51,8 @@ pre {
 /* Break out of container padding on mobile for better scrolling */
 @media (max-width: 639px) {
   pre {
-    margin-left: calc(-1 * var(--space-3));
-    margin-right: calc(-1 * var(--space-3));
-    padding-left: var(--space-4);
-    padding-right: var(--space-4);
+    margin-inline: calc(-1 * var(--space-3));
+    padding-inline: var(--space-4);
     border-radius: var(--radius-md);
     /* Smooth scrolling on iOS */
     -webkit-overflow-scrolling: touch;
@@ -61,8 +68,8 @@ pre {
   
   /* Better copy button positioning */
   .code-header-inline {
-    top: 0.375rem;
-    right: 0.375rem;
+    inset-block-start: 0.375rem;
+    inset-inline-end: 0.375rem;
   }
   
   .code-copy-button {
@@ -73,13 +80,8 @@ pre {
 
 @media (min-width: 400px) and (max-width: 639px) {
   pre {
-    margin-left: calc(-1 * var(--space-4));
-    margin-right: calc(-1 * var(--space-4));
+    margin-inline: calc(-1 * var(--space-4));
   }
-}
-
-pre:hover {
-  box-shadow: var(--elevation-card-hover);
 }
 
 pre code {
@@ -115,8 +117,8 @@ pre code {
 /* Inline code header (positioned absolutely relative to wrapper, not inside scrolling pre) */
 .code-header-inline {
   position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
+  inset-block-start: 0.5rem;
+  inset-inline-end: 0.5rem;
   z-index: 1;
   display: flex;
   gap: 0.75rem;
@@ -153,6 +155,29 @@ pre code {
   touch-action: manipulation;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
+
+  &:hover {
+    color: var(--color-primary);
+    border-color: var(--color-primary);
+    background-color: var(--color-bg-hover);
+    box-shadow: var(--elevation-low);
+    transform: translate3d(0, -1px, 0);
+  }
+
+  &:active {
+    transform: translate3d(0, 0, 0);
+  }
+
+  &.copied {
+    color: var(--color-success);
+    border-color: var(--color-success-border);
+    background-color: var(--color-success-bg);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-border-focus);
+    outline-offset: 2px;
+  }
 }
 
 /* Fallback for browsers without backdrop-filter */

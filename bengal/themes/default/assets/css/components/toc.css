@@ -63,9 +63,9 @@
     align-items: center;
     justify-content: space-between;
     gap: 0.75rem;
-    padding-bottom: 0.5rem;
-    margin-bottom: 0.75rem;
-    border-bottom: 1px solid var(--color-border-light);
+    padding-block-end: 0.5rem;
+    margin-block-end: 0.75rem;
+    border-block-end: 1px solid var(--color-border-light);
     position: relative;
 }
 
@@ -98,10 +98,7 @@
     -webkit-tap-highlight-color: transparent;
 }
 
-.toc-settings-btn:hover {
-    background: var(--color-bg-hover);
-    color: var(--color-text-primary);
-}
+/* Styles moved into .toc-settings-btn nesting above */
 
 .toc-settings-btn svg {
     flex-shrink: 0;
@@ -110,16 +107,16 @@
 /* Settings dropdown menu */
 .toc-settings-menu {
     position: absolute;
-    top: 100%;
-    right: 0;
-    margin-top: 0.25rem;
+    inset-block-start: 100%;
+    inset-inline-end: 0;
+    margin-block-start: 0.25rem;
     background: var(--color-bg-primary, white);
     border: 1px solid var(--color-border);
     border-radius: var(--border-radius);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     padding: 0.25rem;
     z-index: 100;
-    min-width: 140px;
+    min-inline-size: 140px;
 }
 
 .toc-settings-menu button {
@@ -139,10 +136,7 @@
     -webkit-tap-highlight-color: transparent;
 }
 
-.toc-settings-menu button:hover {
-    background: var(--color-bg-hover);
-    color: var(--color-text-primary);
-}
+/* Styles moved into .toc-settings-menu button nesting above */
 
 /* ============================================================================
    Scroll Progress Indicator - Subtle
@@ -289,7 +283,7 @@
     flex: 1;
     font-weight: var(--font-weight-medium);
     font-size: var(--text-sm);
-    min-width: 0;
+    min-inline-size: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -299,9 +293,9 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    min-width: 20px;
-    height: 20px;
-    padding: 0 0.375rem;
+    min-inline-size: 20px;
+    block-size: 20px;
+    padding-inline: 0.375rem;
     font-size: 11px;
     font-weight: var(--font-weight-medium);
     color: var(--color-text-tertiary);
@@ -315,8 +309,8 @@
 
 .toc-subitems {
     list-style: none;
-    padding: 0.25rem 0;
-    padding-left: 0;
+    padding-block: 0.25rem;
+    padding-inline-start: 0;
     margin: 0;
     display: flex;
     flex-direction: column;
@@ -412,8 +406,8 @@
 }
 
 [data-toc-mode="compact"] .toc-subitems {
-    padding: 0.25rem 0;
-    padding-left: 0;
+    padding-block: 0.25rem;
+    padding-inline-start: 0;
 }
 
 [data-toc-mode="compact"] .toc-link {

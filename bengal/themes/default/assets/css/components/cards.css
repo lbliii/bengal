@@ -390,38 +390,38 @@
 /* Callout Variants */
 .callout-card--info {
   background: var(--color-info-bg);
-  border-left-color: var(--color-info-border);
-}
+  border-inline-start-color: var(--color-info-border);
 
-.callout-card--info .callout-card__icon {
-  color: var(--color-info);
+  .callout-card__icon {
+    color: var(--color-info);
+  }
 }
 
 .callout-card--success {
   background: var(--color-success-bg);
-  border-left-color: var(--color-success-border);
-}
+  border-inline-start-color: var(--color-success-border);
 
-.callout-card--success .callout-card__icon {
-  color: var(--color-success);
+  .callout-card__icon {
+    color: var(--color-success);
+  }
 }
 
 .callout-card--warning {
   background: var(--color-warning-bg);
-  border-left-color: var(--color-warning-border);
-}
+  border-inline-start-color: var(--color-warning-border);
 
-.callout-card--warning .callout-card__icon {
-  color: var(--color-warning);
+  .callout-card__icon {
+    color: var(--color-warning);
+  }
 }
 
 .callout-card--error {
   background: var(--color-error-bg);
-  border-left-color: var(--color-error-border);
-}
+  border-inline-start-color: var(--color-error-border);
 
-.callout-card--error .callout-card__icon {
-  color: var(--color-error);
+  .callout-card__icon {
+    color: var(--color-error);
+  }
 }
 
 /* ============================================
