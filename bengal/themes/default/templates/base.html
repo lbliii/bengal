@@ -96,6 +96,11 @@
     <link rel="manifest" href="{{ asset_url('site.webmanifest') }}">
     {% endif %}
 
+    {# Fonts - Load before stylesheets for proper font rendering #}
+    {% if site.config.get('fonts') %}
+    <link rel="stylesheet" href="{{ asset_url('fonts.css') }}">
+    {% endif %}
+
     {# Stylesheets #}
     <link rel="stylesheet" href="{{ asset_url('css/style.css') }}">
 

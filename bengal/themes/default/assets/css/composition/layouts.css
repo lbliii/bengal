@@ -57,7 +57,7 @@
   max-height: calc(100vh - 100px);
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding-right: 1rem;
+  padding-inline-end: 1rem;
 }
 
 /* Main Content */
@@ -76,7 +76,7 @@
   max-height: calc(100vh - 100px);
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding-left: 1rem;
+  padding-inline-start: 1rem;
 }
 
 /* ============================================

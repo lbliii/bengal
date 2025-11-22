@@ -796,8 +796,7 @@
 /* Handle extremely small windows (desktop users who didn't maximize) */
 @media (max-width: 319px) {
   .container {
-    padding-left: var(--space-2);  /* 8px for tiny windows */
-    padding-right: var(--space-2);
+    padding-inline: var(--space-2);  /* 8px for tiny windows */
   }
   
   /* Ensure critical interactive elements remain usable */
