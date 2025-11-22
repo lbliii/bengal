@@ -37,7 +37,7 @@ class TestAutoDetectPrefixMap:
         assert "cli" in prefix_map
         assert "cli.templates" in prefix_map
         assert prefix_map["cli"] == "cli"
-        assert prefix_map["cli.templates"] == "templates"
+        assert prefix_map["cli.templates"] == "cli/templates"
 
     def test_with_strip_prefix(self, tmp_path):
         """Auto-detect strips configured prefix."""
@@ -135,14 +135,14 @@ class TestApplyGrouping:
             "mode": "auto",
             "prefix_map": {
                 "cli": "cli",
-                "cli.templates": "templates",
+                "cli.templates": "cli/templates",
             },
         }
 
         group, remaining = apply_grouping("cli.templates.blog", config)
 
         # Should match "cli.templates", not "cli"
-        assert group == "templates"
+        assert group == "cli/templates"
         assert remaining == "blog"
 
     def test_exact_match(self):
@@ -186,12 +186,12 @@ class TestApplyGrouping:
         """Nested modules under prefix get grouped correctly."""
         config = {
             "mode": "auto",
-            "prefix_map": {"cli.templates": "templates"},
+            "prefix_map": {"cli.templates": "cli/templates"},
         }
 
         group, remaining = apply_grouping("cli.templates.blog.template", config)
 
-        assert group == "templates"
+        assert group == "cli/templates"
         assert remaining == "blog.template"
 
     def test_empty_prefix_map_returns_ungrouped(self):
@@ -290,7 +290,7 @@ class TestGroupingIntegration:
         config = {"mode": "auto", "prefix_map": prefix_map}
         group, remaining = apply_grouping("cli.templates.blog.template", config)
 
-        assert group == "templates"
+        assert group == "cli/templates"
         assert remaining == "blog.template"
 
     def test_real_world_bengal_structure(self, tmp_path):
@@ -327,7 +327,7 @@ class TestGroupingIntegration:
         config = {"mode": "auto", "prefix_map": prefix_map}
 
         group1, remaining1 = apply_grouping("cli.templates.blog", config)
-        assert group1 == "templates"
+        assert group1 == "cli/templates"
         assert remaining1 == "blog"
 
         group2, remaining2 = apply_grouping("core.site", config)

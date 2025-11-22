@@ -567,8 +567,8 @@ def test_get_output_path_auto_mode(tmp_path):
     templates_module = elements[0]
     output_path = extractor.get_output_path(templates_module)
 
-    # With auto mode: templates/_index.md
-    assert output_path == Path("templates/_index.md")
+    # With auto mode: cli/templates/_index.md
+    assert output_path == Path("cli/templates/_index.md")
 
 
 def test_get_output_path_explicit_mode(tmp_path):
@@ -638,8 +638,8 @@ def test_get_output_path_nested_module_under_group(tmp_path):
     module = elements[0]
     output_path = extractor.get_output_path(module)
 
-    # Should be grouped under templates: templates/blog/template.md
-    assert output_path == Path("templates/blog/template.md")
+    # Should be grouped under cli/templates: cli/templates/blog/template.md
+    assert output_path == Path("cli/templates/blog/template.md")
 
 
 def test_get_output_path_package_vs_module(tmp_path):

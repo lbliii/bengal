@@ -17,6 +17,72 @@ logger = get_logger(__name__)
 _warned_no_bundling = False
 
 
+def _lossless_minify_css_string(css: str) -> str:
+    """
+    Remove comments and redundant whitespace without touching selectors/properties.
+
+    This intentionally avoids aggressive rewrites so modern CSS (nesting, @layer, etc.)
+    remains intact even when Lightning CSS is unavailable.
+    """
+    result: list[str] = []
+    length = len(css)
+    i = 0
+    in_string = False
+    string_char = ""
+    pending_whitespace = False
+
+    def needs_space(next_char: str) -> bool:
+        if not result:
+            return False
+        prev = result[-1]
+        separators = set(",:;>{}()[+-*/")
+        return prev not in separators and next_char not in separators
+
+    while i < length:
+        char = css[i]
+
+        if in_string:
+            result.append(char)
+            if char == "\\" and i + 1 < length:
+                i += 1
+                result.append(css[i])
+            elif char == string_char:
+                in_string = False
+                string_char = ""
+            i += 1
+            continue
+
+        if char in {"'", '"'}:
+            if pending_whitespace and needs_space(char):
+                result.append(" ")
+            pending_whitespace = False
+            in_string = True
+            string_char = char
+            result.append(char)
+            i += 1
+            continue
+
+        if char == "/" and i + 1 < length and css[i + 1] == "*":
+            i += 2
+            while i + 1 < length and not (css[i] == "*" and css[i + 1] == "/"):
+                i += 1
+            i += 2
+            continue
+
+        if char in {" ", "\t", "\n", "\r", "\f"}:
+            pending_whitespace = True
+            i += 1
+            continue
+
+        if pending_whitespace and needs_space(char):
+            result.append(" ")
+        pending_whitespace = False
+        result.append(char)
+        i += 1
+
+    return "".join(result)
+
+
 @dataclass
 class Asset:
     """
@@ -198,40 +264,26 @@ class Asset:
             self._minified_content = result
 
         except ImportError:
-            # Fallback: try csscompressor (basic minification only)
-            try:
-                import csscompressor
-
-                minified_content = csscompressor.compress(css_content)
-                self._minified_content = minified_content
-
-                # Warn about missing lightningcss (only once per build)
-                global _warned_no_bundling
-                if not _warned_no_bundling:
-                    logger.warning(
-                        "lightningcss_unavailable",
-                        info="CSS will be minified but not autoprefixed",
-                        install_command="pip install lightningcss",
-                    )
-                    _warned_no_bundling = True
-
-            except ImportError:
-                # No minification available - just use the content as-is
-                logger.warning("no_css_minifier_available")
-                self._minified_content = css_content
+            self._minified_content = _lossless_minify_css_string(css_content)
+            global _warned_no_bundling
+            if not _warned_no_bundling:
+                logger.warning(
+                    "lightningcss_unavailable",
+                    info="CSS will be minified without autoprefixing",
+                    install_command="pip install lightningcss",
+                )
+                _warned_no_bundling = True
 
         except Exception as e:
-            # If Lightning CSS fails, fall back to csscompressor
+            # If Lightning CSS fails unexpectedly, fall back to lossless minifier
             logger.warning(
                 "lightningcss_processing_failed",
                 error=str(e),
                 error_type=type(e).__name__,
-                fallback="csscompressor",
+                fallback="lossless_css_minifier",
             )
             try:
-                import csscompressor
-
-                self._minified_content = csscompressor.compress(css_content)
+                self._minified_content = _lossless_minify_css_string(css_content)
             except Exception as fallback_error:
                 logger.error(
                     "css_fallback_minification_failed",
