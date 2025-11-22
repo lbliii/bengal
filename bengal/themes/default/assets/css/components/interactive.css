@@ -38,7 +38,7 @@
 .back-to-top.visible {
   opacity: 1;
   visibility: visible;
-  transform: translateY(0) scale(1);
+    transform: translate3d(0, 0, 0) scale(1);
 }
 
 .back-to-top:hover {
