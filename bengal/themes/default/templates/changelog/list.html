@@ -21,7 +21,14 @@ Supports two modes:
 {% from 'partials/navigation-components.html' import breadcrumbs %}
 
 {% block content %}
-{{ breadcrumbs(page if page is defined else section) }}
+{# Action Bar: Breadcrumbs + Share #}
+{% include 'partials/action-bar.html' %}
+{# For section pages (like changelog list), we might need to ensure 'page' refers to the section #}
+{# The action-bar partial expects 'page' variable. In list templates, 'section' is the main object #}
+{# We'll let the partial handle it if page is defined, or we might need to alias section to page #}
+{% if not page is defined and section is defined %}
+  {% set page = section %}
+{% endif %}
 
 {# Load changelog data from site.data (preferred) or use pages (fallback) #}
 {% set changelog_data = site.data.get('changelog') if site.data is defined and site.data else none %}
