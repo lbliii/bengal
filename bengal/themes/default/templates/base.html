@@ -335,7 +335,8 @@
         </div>
     </footer>
 
-    {# JavaScript #}
+    {# JavaScript - Utils must load first #}
+    <script src="{{ asset_url('js/utils.js') }}"></script>
     <script src="{{ asset_url('js/theme-toggle.js') }}"></script>
     <script src="{{ asset_url('js/mobile-nav.js') }}"></script>
     <script src="{{ asset_url('js/tabs.js') }}"></script>

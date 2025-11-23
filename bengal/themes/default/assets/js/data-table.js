@@ -8,6 +8,14 @@
 (function() {
   'use strict';
 
+  // Ensure utils are available
+  if (!window.BengalUtils) {
+    console.error('BengalUtils not loaded - data-table.js requires utils.js');
+    return;
+  }
+
+  const { log, debounce, ready } = window.BengalUtils;
+
   /**
    * Initialize all data tables on the page
    */
@@ -25,7 +33,7 @@
       return; // No tables on this page
     }
 
-    console.log(`Initializing ${tableWrappers.length} data table(s)`);
+    log(`Initializing ${tableWrappers.length} data table(s)`);
 
     tableWrappers.forEach(wrapper => {
       initSingleTable(wrapper);
@@ -86,7 +94,7 @@
     // Store table instance on wrapper for external access
     wrapper._tabulatorInstance = table;
 
-    console.log(`Initialized table ${tableId}`);
+    log(`Initialized table ${tableId}`);
   }
 
   /**
@@ -155,23 +163,6 @@
     });
   }
 
-  /**
-   * Debounce helper for search input
-   * @param {Function} func - Function to debounce
-   * @param {number} wait - Wait time in ms
-   * @returns {Function} Debounced function
-   */
-  function debounce(func, wait) {
-    let timeout;
-    return function executedFunction(...args) {
-      const later = () => {
-        clearTimeout(timeout);
-        func(...args);
-      };
-      clearTimeout(timeout);
-      timeout = setTimeout(later, wait);
-    };
-  }
 
   /**
    * Export table data (future feature)
@@ -200,11 +191,7 @@
   }
 
   // Auto-initialize on DOM ready
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initDataTables);
-  } else {
-    initDataTables();
-  }
+  ready(initDataTables);
 
   // Expose API for programmatic access
   window.BengalDataTable = {

@@ -13,6 +13,14 @@
 (function () {
   'use strict';
 
+  // Ensure utils are available
+  if (!window.BengalUtils) {
+    console.error('BengalUtils not loaded - search.js requires utils.js');
+    return;
+  }
+
+  const { log, debounce, escapeRegex, ready } = window.BengalUtils;
+
   // ====================================
   // Configuration
   // ====================================
@@ -122,7 +130,7 @@
       isIndexLoaded = true;
       isIndexLoading = false;
 
-      console.log(`Search index loaded: ${data.pages.length} pages`);
+      log(`Search index loaded: ${data.pages.length} pages`);
 
       // Dispatch event for other components
       window.dispatchEvent(new CustomEvent('searchIndexLoaded', {
@@ -436,14 +444,6 @@
     }
   }
 
-  /**
-   * Escape regex special characters
-   * @param {string} str - String to escape
-   * @returns {string} Escaped string
-   */
-  function escapeRegex(str) {
-    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  }
 
   // ====================================
   // Filter Functions
@@ -544,15 +544,11 @@
   // ====================================
 
   // Pre-load index on page load (in background)
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-      // Delay loading to not block page rendering
-      setTimeout(loadSearchIndex, 500);
-    });
-  } else {
+  ready(() => {
+    // Delay loading to not block page rendering
     setTimeout(loadSearchIndex, 500);
-  }
+  });
 
-  console.log('Bengal Search initialized');
+  log('Bengal Search initialized');
 
 })();

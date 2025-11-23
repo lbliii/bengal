@@ -6,6 +6,14 @@
 (function () {
   'use strict';
 
+  // Ensure utils are available
+  if (!window.BengalUtils) {
+    console.error('BengalUtils not loaded - main.js requires utils.js');
+    return;
+  }
+
+  const { log, copyToClipboard, isExternalUrl, ready } = window.BengalUtils;
+
   /**
    * Smooth scroll for anchor links
    */
@@ -47,8 +55,8 @@
     links.forEach(function (link) {
       const href = link.getAttribute('href');
 
-      // Check if external (not same domain)
-      if (!href.includes(window.location.hostname)) {
+      // Check if external using URL parsing
+      if (isExternalUrl(href)) {
         // Add external attribute
         link.setAttribute('rel', 'noopener noreferrer');
         link.setAttribute('target', '_blank');
@@ -156,84 +164,45 @@
         e.preventDefault();
         const code = codeBlock.textContent;
 
-        // Use Clipboard API if available
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(code).then(function () {
-            // Show success - icon only
+        copyToClipboard(code).then(function () {
+          // Show success
+          button.innerHTML = `
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            <span>Copied!</span>
+          `;
+          button.classList.add('copied');
+          button.setAttribute('aria-label', 'Code copied!');
+
+          // Reset after 2 seconds
+          setTimeout(function () {
             button.innerHTML = `
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="20 6 9 17 4 12"></polyline>
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
               </svg>
-              <span>Copied!</span>
+              <span>Copy</span>
             `;
-            button.classList.add('copied');
-            button.setAttribute('aria-label', 'Code copied!');
-
-            // Reset after 2 seconds
-            setTimeout(function () {
-              button.innerHTML = `
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                </svg>
-                <span>Copy</span>
-              `;
-              button.classList.remove('copied');
-              button.setAttribute('aria-label', 'Copy code to clipboard');
-            }, 2000);
-          }).catch(function (err) {
-            console.error('Failed to copy code:', err);
-            button.setAttribute('aria-label', 'Failed to copy');
-            
-            // Show error state briefly
-            setTimeout(function () {
-              button.innerHTML = `
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                </svg>
-                <span>Copy</span>
-              `;
-              button.setAttribute('aria-label', 'Copy code to clipboard');
-            }, 2000);
-          });
-        } else {
-          // Fallback for older browsers
-          const textarea = document.createElement('textarea');
-          textarea.value = code;
-          textarea.style.position = 'fixed';
-          textarea.style.opacity = '0';
-          document.body.appendChild(textarea);
-          textarea.select();
-
-          try {
-            document.execCommand('copy');
+            button.classList.remove('copied');
+            button.setAttribute('aria-label', 'Copy code to clipboard');
+          }, 2000);
+        }).catch(function (err) {
+          log('Failed to copy code:', err);
+          button.setAttribute('aria-label', 'Failed to copy');
+          
+          // Show error state briefly
+          setTimeout(function () {
             button.innerHTML = `
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="20 6 9 17 4 12"></polyline>
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
               </svg>
-              <span>Copied!</span>
+              <span>Copy</span>
             `;
-            button.classList.add('copied');
-            button.setAttribute('aria-label', 'Code copied!');
-
-            setTimeout(function () {
-              button.innerHTML = `
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                </svg>
-                <span>Copy</span>
-              `;
-              button.classList.remove('copied');
-              button.setAttribute('aria-label', 'Copy code to clipboard');
-            }, 2000);
-          } catch (err) {
-            console.error('Failed to copy code:', err);
-          } finally {
-            document.body.removeChild(textarea);
-          }
-        }
+            button.setAttribute('aria-label', 'Copy code to clipboard');
+          }, 2000);
+        });
       });
     });
   }
@@ -336,14 +305,9 @@
     setupTOCHighlight();
     setupKeyboardDetection();
 
-    // Log initialization (optional, remove in production)
-    console.log('Bengal theme initialized');
+    log('Bengal theme initialized');
   }
 
   // Initialize after DOM is ready
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
-  }
+  ready(init);
 })();
