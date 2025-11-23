@@ -30,7 +30,7 @@
     button.setAttribute('aria-label', 'Scroll to top');
     button.setAttribute('title', 'Back to top');
     button.innerHTML = `
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
         <line x1="12" y1="19" x2="12" y2="5"></line>
         <polyline points="5 12 12 5 19 12"></polyline>
       </svg>
@@ -219,7 +219,7 @@
       '.docs-nav-link.active, .docs-nav-link[aria-current="page"], ' +
       '.docs-nav-group-link.active, .docs-nav-group-link[aria-current="page"]'
     );
-    
+
     if (activeLink) {
       // If the active link is a section group link (section index page), expand that section
       if (activeLink.classList.contains('docs-nav-group-link')) {

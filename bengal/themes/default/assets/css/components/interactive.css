@@ -38,7 +38,7 @@
 .back-to-top.visible {
   opacity: 1;
   visibility: visible;
-    transform: translate3d(0, 0, 0) scale(1);
+  transform: translate3d(0, 0, 0) scale(1);
 }
 
 .back-to-top:hover {
@@ -59,6 +59,19 @@
 .back-to-top svg {
   width: 20px;
   height: 20px;
+  stroke: currentColor;
+  stroke-width: 3;
+  fill: none;
+  display: block;
+  pointer-events: none;
+  color: inherit;
+}
+
+/* Ensure SVG is visible - override any potential color issues */
+.back-to-top svg line,
+.back-to-top svg polyline {
+  stroke: currentColor;
+  stroke-width: 3;
 }
 
 /* Mobile adjustments */
@@ -86,9 +99,30 @@
   left: 0;
   right: 0;
   height: 3px;
-  background-color: var(--color-bg-secondary);
+  /* Match header's frosty glass effect */
+  background-color: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
   z-index: var(--z-fixed);
   overflow: hidden;
+}
+
+/* Dark mode - match header's dark theme */
+[data-theme="dark"] .reading-progress {
+  background-color: rgba(26, 26, 26, 0.85);
+}
+
+/* Fallback for browsers without backdrop-filter */
+@supports not (backdrop-filter: blur(12px)) {
+  .reading-progress {
+    background-color: var(--color-bg-primary);
+  }
+}
+
+@supports not (backdrop-filter: blur(12px)) {
+  [data-theme="dark"] .reading-progress {
+    background-color: rgba(26, 26, 26, 0.95);
+  }
 }
 
 .reading-progress__fill {
@@ -138,7 +172,7 @@
   vertical-align: middle;
   text-decoration: none;
   /* Neumorphic shadow - refined depth */
-  box-shadow: 
+  box-shadow:
     inset 0.5px 0.5px 1px rgba(255, 255, 255, 0.4),
     inset -0.5px -0.5px 1px rgba(0, 0, 0, 0.15),
     1px 1px 2px rgba(0, 0, 0, 0.08),
@@ -155,7 +189,7 @@
   background: rgba(255, 255, 255, 0.2);
   border-color: rgba(255, 255, 255, 0.3);
   /* Neumorphic hover - refined raised effect */
-  box-shadow: 
+  box-shadow:
     inset 0.5px 0.5px 1.5px rgba(255, 255, 255, 0.5),
     inset -0.5px -0.5px 1.5px rgba(0, 0, 0, 0.12),
     2px 2px 6px rgba(0, 0, 0, 0.1),
@@ -165,7 +199,7 @@
 
 .copy-link:active {
   /* Neumorphic pressed state */
-  box-shadow: 
+  box-shadow:
     inset 1px 1px 2px rgba(0, 0, 0, 0.15),
     inset -0.5px -0.5px 1px rgba(255, 255, 255, 0.2),
     1px 1px 2px rgba(0, 0, 0, 0.05);
@@ -177,7 +211,8 @@
   outline: 2px solid var(--color-border-focus);
   outline-offset: 2px;
   border-radius: var(--radius-sm);
-  opacity: 1; /* Show on focus for accessibility */
+  opacity: 1;
+  /* Show on focus for accessibility */
 }
 
 /* Hide legacy pilcrow headerlinks if present (parser now outputs IDs only) */
@@ -196,7 +231,7 @@
   background: rgba(34, 197, 94, 0.15);
   border-color: rgba(34, 197, 94, 0.3);
   /* Neumorphic shadow with success tint */
-  box-shadow: 
+  box-shadow:
     inset 0.5px 0.5px 1px rgba(34, 197, 94, 0.3),
     inset -0.5px -0.5px 1px rgba(0, 0, 0, 0.1),
     1px 1px 3px rgba(34, 197, 94, 0.2),
@@ -208,7 +243,7 @@
   background: rgba(0, 0, 0, 0.2);
   border-color: rgba(255, 255, 255, 0.1);
   /* Neumorphic shadow for dark mode - refined */
-  box-shadow: 
+  box-shadow:
     inset 0.5px 0.5px 1px rgba(255, 255, 255, 0.08),
     inset -0.5px -0.5px 1px rgba(0, 0, 0, 0.4),
     1px 1px 3px rgba(0, 0, 0, 0.25),
@@ -219,7 +254,7 @@
   background: rgba(0, 0, 0, 0.3);
   border-color: rgba(255, 255, 255, 0.2);
   /* Neumorphic hover for dark mode - refined */
-  box-shadow: 
+  box-shadow:
     inset 0.5px 0.5px 1.5px rgba(255, 255, 255, 0.12),
     inset -0.5px -0.5px 1.5px rgba(0, 0, 0, 0.5),
     2px 2px 6px rgba(0, 0, 0, 0.35),
@@ -237,7 +272,7 @@
     background: rgba(255, 255, 255, 0.9);
     border: 1px solid var(--color-border);
   }
-  
+
   [data-theme="dark"] .copy-link {
     background: rgba(26, 26, 26, 0.9);
     border-color: var(--color-border);
@@ -265,8 +300,6 @@
   justify-content: center;
   padding: 2rem;
   cursor: zoom-out;
-  animation: fadeIn 200ms ease-out;
-  will-change: opacity, transform;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
 
@@ -281,6 +314,7 @@
     opacity: 0;
     transform: translate3d(0, 0, 0) scale(0.95);
   }
+
   to {
     opacity: 1;
     transform: translate3d(0, 0, 0) scale(1);
@@ -288,7 +322,14 @@
 }
 
 .lightbox.active {
-  will-change: auto;
+  display: flex;
+  animation: fadeIn 200ms ease-out;
+  will-change: opacity, transform;
+}
+
+/* Remove will-change after animation completes */
+.lightbox.active:not(:hover) {
+  animation-fill-mode: forwards;
 }
 
 .lightbox.active {
@@ -445,10 +486,15 @@ img[data-lightbox]:hover {
 }
 
 /* Reduce motion class (JS-applied) */
-.reduce-motion * {
-  animation-duration: 0.001ms !important;
+/* Target specific interactive elements instead of universal selector to avoid dev tools conflicts */
+.reduce-motion .back-to-top,
+.reduce-motion .reading-progress__fill,
+.reduce-motion .copy-link,
+.reduce-motion .lightbox,
+.reduce-motion .lightbox__image {
+  animation-duration: 0ms !important;
   animation-iteration-count: 1 !important;
-  transition-duration: 0.001ms !important;
+  transition-duration: 0ms !important;
 }
 
 /* ============================================
