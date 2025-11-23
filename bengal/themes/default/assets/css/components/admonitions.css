@@ -45,10 +45,8 @@
 /* Admonitions with icons */
 .admonition:has(.admonition-icon) {
   padding-inline-start: 3rem;
-}
-
-/* Admonition Title */
-.admonition-title {
+}/* Admonition Title */
+.admonition-title{
   margin: 0 0 0.75rem 0;
   font-size: var(--text-body);
   font-weight: var(--font-weight-semibold);
@@ -58,7 +56,9 @@
   gap: 0.5rem;
   letter-spacing: var(--letter-spacing-normal);
 
-  &::before {
+}
+/* Admonition Title */
+.admonition-title::before {
     content: '';
     display: inline-block;
     width: 20px;
@@ -68,7 +68,6 @@
     background-position: center;
     flex-shrink: 0;
   }
-}
 
 /* Admonition Content */
 .admonition > p {

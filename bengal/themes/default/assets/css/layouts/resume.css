@@ -62,14 +62,16 @@
                 transform var(--transition-fast) var(--ease-out);
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
+}
 
-    &:hover {
-        color: var(--color-primary);
-        transform: translate3d(0, -1px, 0);
+.contact-item:hover {
+    color: var(--color-primary);
+    transform: translate3d(0, -1px, 0);
+}
 
-        @supports (color-mix(in srgb, white, black)) {
-            color: color-mix(in srgb, var(--color-primary) 90%, black);
-        }
+@supports (color-mix(in srgb, white, black)) {
+    .contact-item:hover {
+        color: color-mix(in srgb, var(--color-primary) 90%, black);
     }
 }
 
@@ -91,14 +93,16 @@
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
     will-change: transform, box-shadow;
+}
 
-    &:hover {
-        transform: translate3d(0, -2px, 0);
-        box-shadow: var(--elevation-card-hover);
+.resume-summary:hover {
+    transform: translate3d(0, -2px, 0);
+    box-shadow: var(--elevation-card-hover);
+}
 
-        @supports (color-mix(in srgb, white, black)) {
-            border-inline-start-color: color-mix(in srgb, var(--color-primary) 90%, black);
-        }
+@supports (color-mix(in srgb, white, black)) {
+    .resume-summary:hover {
+        border-inline-start-color: color-mix(in srgb, var(--color-primary) 90%, black);
     }
 }
 
@@ -308,14 +312,16 @@
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
     will-change: transform, box-shadow;
+}
 
-    &:hover {
-        transform: translate3d(0, -2px, 0);
-        box-shadow: var(--elevation-card-hover);
+.skill-card:hover {
+    transform: translate3d(0, -2px, 0);
+    box-shadow: var(--elevation-card-hover);
+}
 
-        @supports (color-mix(in srgb, white, black)) {
-            background: color-mix(in srgb, var(--color-bg-secondary) 98%, var(--color-primary));
-        }
+@supports (color-mix(in srgb, white, black)) {
+    .skill-card:hover {
+        background: color-mix(in srgb, var(--color-bg-secondary) 98%, var(--color-primary));
     }
 }
 
@@ -346,15 +352,17 @@
                 border-color var(--transition-fast) var(--ease-out);
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
+}
 
-    &:hover {
-        transform: translate3d(0, -1px, 0);
-        background: var(--color-bg-secondary);
-        border-color: var(--color-primary);
+.skill-tag:hover {
+    transform: translate3d(0, -1px, 0);
+    background: var(--color-bg-secondary);
+    border-color: var(--color-primary);
+}
 
-        @supports (color-mix(in srgb, white, black)) {
-            border-color: color-mix(in srgb, var(--color-primary) 90%, black);
-        }
+@supports (color-mix(in srgb, white, black)) {
+    .skill-tag:hover {
+        border-color: color-mix(in srgb, var(--color-primary) 90%, black);
     }
 }
 
@@ -384,20 +392,22 @@
     user-select: none;
     -webkit-tap-highlight-color: transparent;
     will-change: transform, background;
+}
 
-    &:hover {
-        background: var(--color-primary-hover);
-        transform: translate3d(0, -1px, 0);
-        box-shadow: var(--elevation-low);
+.project-link:hover {
+    background: var(--color-primary-hover);
+    transform: translate3d(0, -1px, 0);
+    box-shadow: var(--elevation-low);
+}
 
-        @supports (color-mix(in srgb, white, black)) {
-            background: color-mix(in srgb, var(--color-primary) 90%, black);
-        }
+@supports (color-mix(in srgb, white, black)) {
+    .project-link:hover {
+        background: color-mix(in srgb, var(--color-primary) 90%, black);
     }
+}
 
-    &:active {
-        transform: translate3d(0, 0, 0);
-    }
+.project-link:active {
+    transform: translate3d(0, 0, 0);
 }
 
 /* ============================================
@@ -446,15 +456,17 @@
                 transform var(--transition-fast) var(--ease-out);
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
+}
 
-    &:hover {
-        color: var(--color-primary-hover);
-        text-decoration: underline;
-        transform: translate3d(2px, 0, 0);
+.certification-link:hover {
+    color: var(--color-primary-hover);
+    text-decoration: underline;
+    transform: translate3d(2px, 0, 0);
+}
 
-        @supports (color-mix(in srgb, white, black)) {
-            color: color-mix(in srgb, var(--color-primary) 90%, black);
-        }
+@supports (color-mix(in srgb, white, black)) {
+    .certification-link:hover {
+        color: color-mix(in srgb, var(--color-primary) 90%, black);
     }
 }
 
@@ -475,14 +487,16 @@
     transition: transform var(--transition-smooth) var(--ease-smooth),
                 box-shadow var(--transition-smooth) var(--ease-smooth);
     will-change: transform, box-shadow;
+}
 
-    &:hover {
-        transform: translate3d(0, -2px, 0);
-        box-shadow: var(--elevation-card-hover);
+.award-item:hover {
+    transform: translate3d(0, -2px, 0);
+    box-shadow: var(--elevation-card-hover);
+}
 
-        @supports (color-mix(in srgb, white, black)) {
-            border-inline-start-color: color-mix(in srgb, var(--color-warning) 90%, black);
-        }
+@supports (color-mix(in srgb, white, black)) {
+    .award-item:hover {
+        border-inline-start-color: color-mix(in srgb, var(--color-warning) 90%, black);
     }
 }
 

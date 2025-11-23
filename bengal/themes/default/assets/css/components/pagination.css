@@ -51,13 +51,11 @@
     font-weight: var(--font-weight-medium);
     transition: all var(--transition-fast);
   }
-}
-
-/* ============================================
+}/* ============================================
    PAGINATION LINKS
    ============================================ */
 
-.pagination a {
+.pagination a{
   color: var(--color-text-secondary);
   background-color: var(--color-bg-elevated);
   border: 1px solid var(--color-border);
@@ -66,23 +64,33 @@
   user-select: none;
   -webkit-tap-highlight-color: transparent;
 
-  &:hover {
+}
+/* ============================================
+   PAGINATION LINKS
+   ============================================ */
+
+.pagination a:hover {
     background-color: var(--color-primary);
     color: var(--color-text-inverse);
     border-color: var(--color-primary);
     box-shadow: var(--elevation-low);
     transform: translate3d(0, -1px, 0);
   }
+/* ============================================
+   PAGINATION LINKS
+   ============================================ */
 
-  &:active {
+.pagination a:active {
     transform: translate3d(0, 0, 0);
   }
+/* ============================================
+   PAGINATION LINKS
+   ============================================ */
 
-  &:focus-visible {
+.pagination a:focus-visible {
     outline: 2px solid var(--color-border-focus);
     outline-offset: 2px;
   }
-}
 
 /* ============================================
    PAGINATION STATES

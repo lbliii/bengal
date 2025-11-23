@@ -47,13 +47,11 @@ details.dropdown[open] {
     inset -0.5px -0.5px 1px rgba(0, 0, 0, 0.15),
     3px 3px 8px rgba(0, 0, 0, 0.12),
     -1px -1px 4px rgba(255, 255, 255, 0.25);
-}
-
-/* ============================================
+}/* ============================================
    DROPDOWN SUMMARY (Trigger)
    ============================================ */
 
-details.dropdown summary {
+details.dropdown summary{
   cursor: pointer;
   list-style: none;
   font-weight: var(--font-semibold);
@@ -68,16 +66,29 @@ details.dropdown summary {
   transition: color var(--transition-fast) var(--ease-out);
 
   /* Remove default marker */
-  &::-webkit-details-marker {
-    display: none;
-  }
-
-  &::marker {
-    display: none;
-  }
 
   /* Custom arrow */
-  &::after {
+
+}
+/* ============================================
+   DROPDOWN SUMMARY (Trigger)
+   ============================================ */
+
+details.dropdown summary::-webkit-details-marker {
+    display: none;
+  }
+/* ============================================
+   DROPDOWN SUMMARY (Trigger)
+   ============================================ */
+
+details.dropdown summary::marker {
+    display: none;
+  }
+/* ============================================
+   DROPDOWN SUMMARY (Trigger)
+   ============================================ */
+
+details.dropdown summary::after {
     content: '▶';
     position: absolute;
     right: 0;
@@ -87,15 +98,21 @@ details.dropdown summary {
     color: var(--color-text-secondary);
     transition: transform var(--transition-fast) var(--ease-out);
   }
+/* ============================================
+   DROPDOWN SUMMARY (Trigger)
+   ============================================ */
 
-  &:hover {
+details.dropdown summary:hover {
     color: var(--color-accent);
 
-    &::after {
+  }
+/* ============================================
+   DROPDOWN SUMMARY (Trigger)
+   ============================================ */
+
+details.dropdown summary:hover::after {
       color: var(--color-accent);
     }
-  }
-}
 
 details.dropdown[open] summary::after {
   transform: translateY(-50%) rotate(90deg);

@@ -22,9 +22,7 @@
     display: flex;
     align-items: center;
     gap: var(--space-2);
-}
-
-.author-avatar {
+}.author-avatar{
     width: 32px;
     height: 32px;
     aspect-ratio: 1 / 1; /* Added */
@@ -33,10 +31,10 @@
     transition: transform var(--transition-smooth) var(--ease-smooth);
     will-change: transform;
 
-    &:hover {
+}
+.author-avatar:hover {
         transform: translate3d(0, 0, 0) scale(1.1);
     }
-}
 
 /* Documentation metadata (date, reading time) */
 .docs-meta {

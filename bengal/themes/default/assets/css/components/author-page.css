@@ -110,21 +110,23 @@
     user-select: none;
     -webkit-tap-highlight-color: transparent;
     will-change: transform, background, box-shadow;
+}
 
-    &:hover {
-        background: var(--color-primary);
-        color: var(--color-text-inverse);
-        transform: translate3d(0, -2px, 0);
-        box-shadow: var(--elevation-low);
+.social-link:hover {
+    background: var(--color-primary);
+    color: var(--color-text-inverse);
+    transform: translate3d(0, -2px, 0);
+    box-shadow: var(--elevation-low);
+}
 
-        @supports (color-mix(in srgb, white, black)) {
-            background: color-mix(in srgb, var(--color-primary) 90%, black);
-        }
+@supports (color-mix(in srgb, white, black)) {
+    .social-link:hover {
+        background: color-mix(in srgb, var(--color-primary) 90%, black);
     }
+}
 
-    &:active {
-        transform: translate3d(0, 0, 0);
-    }
+.social-link:active {
+    transform: translate3d(0, 0, 0);
 }
 
 /* Author Statistics */

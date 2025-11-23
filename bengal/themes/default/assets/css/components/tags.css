@@ -14,9 +14,7 @@
   margin: 0;
   padding: 0;
   list-style: none;
-}
-
-.tag {
+}.tag{
   display: inline-flex;
   align-items: center;
   gap: var(--space-1);
@@ -33,19 +31,18 @@
   touch-action: manipulation;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
+}
 
-  &:hover {
+/* Tags with icons */
+.tag-link:has(.tag-icon) {
+  gap: var(--space-2);
+}
+.tag:hover {
     color: var(--color-text-inverse);
     background-color: var(--color-primary);
     border-color: var(--color-primary);
     text-decoration: none;
   }
-
-  /* Tags with icons */
-  &:has(.tag-icon) {
-    gap: var(--space-2);
-  }
-}
 
 /* XXS adjustments (<= --breakpoint-xxs): fit chip rows without wrapping */
 @media (max-width: 399px) {

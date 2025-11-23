@@ -31,56 +31,79 @@ def _transform_css_nesting(css: str) -> str:
         .parent:hover { color: blue; }
 
     This ensures compatibility when lightningcss is unavailable.
-    Uses a simple line-by-line parser that tracks parent selectors.
+    
+    NOTE: We should NOT write nested CSS in source files. Use traditional selectors instead.
+    This is a safety net for any nested CSS that slips through.
     """
     import re
 
-    lines = css.split("\n")
-    output_lines = []
-    parent_stack: list[str] = []  # Stack of parent selectors
-    i = 0
-
-    while i < len(lines):
-        line = lines[i]
-        stripped = line.strip()
-        indent = len(line) - len(line.lstrip())
-
-        # Detect rule start: line with selector ending with {
-        if "{" in stripped and not stripped.startswith("@"):
-            # Extract selector (everything before {)
-            parts = stripped.rsplit("{", 1)
-            if len(parts) == 2:
-                selector = parts[0].strip()
-                # Clean up @layer prefixes but keep the layer context
-                selector_clean = re.sub(r'^@layer\s+\w+\s*\{?\s*', '', selector)
-                if selector_clean and not selector_clean.startswith("@"):
-                    parent_stack.append(selector_clean)
-                output_lines.append(line)
-                i += 1
-                continue
-
-        # Detect rule end: closing brace
-        if stripped == "}" or (stripped.endswith("}") and not stripped.startswith("}")):
-            if parent_stack and stripped == "}":
-                parent_stack.pop()
-            output_lines.append(line)
-            i += 1
-            continue
-
-        # Detect nested selector starting with &
-        if "&" in line and parent_stack:
-            parent = parent_stack[-1]
-            # Replace & with parent selector
-            # Handle cases like: "  &:hover {" -> "  .parent:hover {"
-            transformed = re.sub(r'&\s*', f"{parent}", line, count=1)
-            output_lines.append(transformed)
-            i += 1
-            continue
-
-        output_lines.append(line)
-        i += 1
-
-    return "\n".join(output_lines)
+    result = css
+    
+    # Pattern to match CSS rule blocks
+    rule_pattern = r'([^{]+)\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}'
+    
+    def transform_rule(match):
+        selector = match.group(1).strip()
+        block_content = match.group(2)
+        
+        # Skip @rules
+        if selector.strip().startswith('@'):
+            return match.group(0)
+        
+        # Clean @layer prefixes
+        selector_clean = re.sub(r'^@layer\s+\w+\s*', '', selector).strip()
+        has_layer = selector.strip().startswith('@layer')
+        layer_decl = ''
+        if has_layer:
+            layer_match = re.match(r'(@layer\s+\w+)\s*', selector)
+            if layer_match:
+                layer_decl = layer_match.group(1) + ' '
+        
+        if not selector_clean or selector_clean.startswith('@'):
+            return match.group(0)
+        
+        # Find nested & selectors
+        nested_pattern = r'&\s*([:.#\[\w\s-]+)\s*\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}'
+        nested_rules = []
+        
+        def extract_nested(m):
+            nested_selector_part = m.group(1).strip()
+            nested_block = m.group(2)
+            
+            # Build full selector
+            if nested_selector_part.startswith(':'):
+                full_selector = selector_clean + nested_selector_part
+            elif nested_selector_part.startswith('.'):
+                full_selector = selector_clean + nested_selector_part
+            elif nested_selector_part.startswith('['):
+                full_selector = selector_clean + nested_selector_part
+            elif nested_selector_part.startswith(' '):
+                full_selector = selector_clean + nested_selector_part
+            else:
+                full_selector = selector_clean + nested_selector_part
+            
+            if has_layer:
+                nested_rules.append(f"{layer_decl}{full_selector} {{{nested_block}}}")
+            else:
+                nested_rules.append(f"{full_selector} {{{nested_block}}}")
+            return ""
+        
+        remaining_content = re.sub(nested_pattern, extract_nested, block_content, flags=re.MULTILINE)
+        remaining_content = re.sub(r'\n\s*\n\s*\n', '\n\n', remaining_content)
+        
+        if nested_rules:
+            return f"{selector}{{{remaining_content}}}\n" + "\n".join(nested_rules)
+        else:
+            return match.group(0)
+    
+    # Process iteratively to handle deeply nested cases
+    for _ in range(10):
+        new_result = re.sub(rule_pattern, transform_rule, result, flags=re.MULTILINE | re.DOTALL)
+        if new_result == result:
+            break
+        result = new_result
+    
+    return result
 
 
 def _lossless_minify_css_string(css: str) -> str:
