@@ -13,9 +13,6 @@ from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
-# Module-level flag to track if we've warned about missing lightningcss
-_warned_no_bundling = False
-
 
 def _transform_css_nesting(css: str) -> str:
     """
@@ -30,7 +27,7 @@ def _transform_css_nesting(css: str) -> str:
         .parent { color: red; }
         .parent:hover { color: blue; }
 
-    This ensures compatibility when lightningcss is unavailable.
+    This ensures browser compatibility for CSS nesting syntax.
     
     NOTE: We should NOT write nested CSS in source files. Use traditional selectors instead.
     This is a safety net for any nested CSS that slips through.
@@ -106,12 +103,59 @@ def _transform_css_nesting(css: str) -> str:
     return result
 
 
+def _remove_duplicate_bare_h1_rules(css: str) -> str:
+    """
+    Remove duplicate bare h1 rules that appear right after scoped h1 rules.
+    
+    CSS processing sometimes creates duplicate rules like:
+        .browser-header h1 { font-size: var(--text-5xl); }
+        h1 { font-size: var(--text-5xl); }  # Duplicate!
+    
+    The bare h1 rule overrides the base typography rule, breaking text sizing.
+    This function removes the duplicate bare h1 rules.
+    """
+    import re
+    
+    # Pattern to match: scoped selector h1 { ... } followed by bare h1 { ... }
+    # We need to match the scoped rule, then check if there's a duplicate bare h1
+    pattern = r'(\.[\w-]+\s+h1\s*\{[^}]+\})\s*(h1\s*\{[^}]+\})'
+    
+    def remove_duplicate(match):
+        scoped_rule = match.group(1)
+        bare_rule = match.group(2)
+        
+        # Extract content from both rules
+        scoped_content_match = re.search(r'\{([^}]+)\}', scoped_rule, re.DOTALL)
+        bare_content_match = re.search(r'\{([^}]+)\}', bare_rule, re.DOTALL)
+        
+        if scoped_content_match and bare_content_match:
+            scoped_content = scoped_content_match.group(1).strip().replace(" ", "").replace("\n", "")
+            bare_content = bare_content_match.group(1).strip().replace(" ", "").replace("\n", "")
+            
+            # If content is identical, remove the bare rule
+            if scoped_content == bare_content:
+                return scoped_rule  # Return only the scoped rule
+        
+        # Not a duplicate, keep both
+        return match.group(0)
+    
+    # Process iteratively to catch all duplicates
+    result = css
+    for _ in range(5):  # Max 5 iterations
+        new_result = re.sub(pattern, remove_duplicate, result, flags=re.DOTALL)
+        if new_result == result:
+            break
+        result = new_result
+    
+    return result
+
+
 def _lossless_minify_css_string(css: str) -> str:
     """
     Remove comments and redundant whitespace without touching selectors/properties.
 
     This intentionally avoids aggressive rewrites so modern CSS (nesting, @layer, etc.)
-    remains intact even when Lightning CSS is unavailable.
+    remains intact.
     """
     result: list[str] = []
     length = len(css)
@@ -360,8 +404,9 @@ class Asset:
 
     def _minify_css(self) -> None:
         """
-        Minify CSS content using lightningcss (preferred) or csscompressor (fallback).
+        Minify CSS content using lossless minifier.
 
+        Transforms CSS nesting syntax and removes duplicate bare h1 rules.
         For CSS entry points (style.css), this should be called AFTER bundling.
         """
         # Get the CSS content (bundled if this is an entry point)
@@ -371,57 +416,19 @@ class Asset:
             with open(self.source_path, encoding="utf-8") as f:
                 css_content = f.read()
 
-        # Try Lightning CSS for minification + autoprefixing
         try:
-            import lightningcss
-
-            result = lightningcss.process_stylesheet(
-                css_content,
-                filename=str(self.source_path),
-                minify=True,
-                # Autoprefix for modern browsers
-                browsers_list=[
-                    "last 2 Chrome versions",
-                    "last 2 Firefox versions",
-                    "last 2 Safari versions",
-                    "last 2 Edge versions",
-                ],
-            )
-
-            self._minified_content = result
-
-        except ImportError:
             # Transform CSS nesting before minifying (for browser compatibility)
             css_transformed = _transform_css_nesting(css_content)
-            self._minified_content = _lossless_minify_css_string(css_transformed)
-            global _warned_no_bundling
-            if not _warned_no_bundling:
-                logger.warning(
-                    "lightningcss_unavailable",
-                    info="CSS nesting will be transformed; minification without autoprefixing",
-                    install_command="pip install lightningcss",
-                )
-                _warned_no_bundling = True
-
+            minified = _lossless_minify_css_string(css_transformed)
+            # Remove duplicate bare h1 rules that can occur during CSS processing
+            self._minified_content = _remove_duplicate_bare_h1_rules(minified)
         except Exception as e:
-            # If Lightning CSS fails unexpectedly, fall back to lossless minifier
-            logger.warning(
-                "lightningcss_processing_failed",
+            logger.error(
+                "css_minification_failed",
                 error=str(e),
                 error_type=type(e).__name__,
-                fallback="lossless_css_minifier",
             )
-            try:
-                # Transform CSS nesting before minifying (for browser compatibility)
-                css_transformed = _transform_css_nesting(css_content)
-                self._minified_content = _lossless_minify_css_string(css_transformed)
-            except Exception as fallback_error:
-                logger.error(
-                    "css_fallback_minification_failed",
-                    error=str(fallback_error),
-                    error_type=type(fallback_error).__name__,
-                )
-                self._minified_content = css_content
+            self._minified_content = css_content
 
     def _minify_js(self) -> None:
         """Minify JavaScript content."""

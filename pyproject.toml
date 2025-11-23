@@ -45,9 +45,8 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-css = [
-    "lightningcss>=0.2.0", # CSS bundling and optimization (Rust-based, may not support all Python versions)
-]
+# CSS optimization removed - lightningcss not supported for Python 3.14 minimum version
+# CSS minification uses fallback lossless minifier
 dev = [
     "pytest>=8.0.0",
     "pytest-cov>=4.1.0",

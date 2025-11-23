@@ -92,6 +92,16 @@
       }
 
       const data = await response.json();
+      
+      // Validate data structure
+      if (!data || typeof data !== 'object') {
+        throw new Error('Invalid search index: expected object, got ' + typeof data);
+      }
+      
+      if (!Array.isArray(data.pages)) {
+        throw new Error('Invalid search index: missing or invalid "pages" array. Got: ' + typeof data.pages);
+      }
+      
       searchData = data;
 
       // Build Lunr index
@@ -159,7 +169,7 @@
    * @returns {Array} Search results
    */
   function search(query, filters = {}) {
-    if (!isIndexLoaded || !searchIndex || !searchData) {
+    if (!isIndexLoaded || !searchIndex || !searchData || !Array.isArray(searchData.pages)) {
       console.warn('Search index not loaded');
       return [];
     }
@@ -455,7 +465,7 @@
    * @returns {Array} Unique values
    */
   function getUniqueValues(field) {
-    if (!searchData) return [];
+    if (!searchData || !Array.isArray(searchData.pages)) return [];
 
     const values = new Set();
     searchData.pages.forEach(page => {
@@ -503,7 +513,7 @@
   function getAvailableAuthors() {
     const authors = new Set();
 
-    if (searchData) {
+    if (searchData && Array.isArray(searchData.pages)) {
       searchData.pages.forEach(page => {
         if (page.author) authors.add(page.author);
         if (page.authors) page.authors.forEach(a => authors.add(a));
