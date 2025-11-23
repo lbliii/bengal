@@ -116,7 +116,7 @@
 }
 
 /* Fallback for browsers without color-mix */
-@supports not (color-mix(in srgb, black, white)) {
+@supports not (color: color-mix(in srgb, black, white)) {
   .fluid-bg::before {
     background: radial-gradient(
       circle at 30% 30%,
@@ -254,7 +254,7 @@
 }
 
 /* Fallback for browsers without color-mix */
-@supports not (color-mix(in srgb, black, white)) {
+@supports not (color: color-mix(in srgb, black, white)) {
   .blob-spots::before {
     background: radial-gradient(
       circle,
@@ -329,7 +329,7 @@
 }
 
 /* Fallback for browsers without color-mix */
-@supports not (color-mix(in srgb, black, white)) {
+@supports not (color: color-mix(in srgb, black, white)) {
   .fluid-combined::before {
     background: radial-gradient(
       circle at 40% 40%,

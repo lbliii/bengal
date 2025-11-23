@@ -69,7 +69,7 @@
     transform: translate3d(0, -1px, 0);
 }
 
-@supports (color-mix(in srgb, white, black)) {
+@supports (color: color-mix(in srgb, white, black)) {
     .contact-item:hover {
         color: color-mix(in srgb, var(--color-primary) 90%, black);
     }
@@ -100,7 +100,7 @@
     box-shadow: var(--elevation-card-hover);
 }
 
-@supports (color-mix(in srgb, white, black)) {
+@supports (color: color-mix(in srgb, white, black)) {
     .resume-summary:hover {
         border-inline-start-color: color-mix(in srgb, var(--color-primary) 90%, black);
     }
@@ -183,7 +183,7 @@
     transform: translate3d(0, 0, 0) scale(1.2);
 }
 
-@supports (color-mix(in srgb, white, black)) {
+@supports (color: color-mix(in srgb, white, black)) {
     .timeline-item:hover::before {
         background: color-mix(in srgb, var(--color-primary) 90%, black);
     }
@@ -221,7 +221,7 @@
     text-decoration: underline;
 }
 
-@supports (color-mix(in srgb, white, black)) {
+@supports (color: color-mix(in srgb, white, black)) {
     .timeline-title a:hover {
         color: color-mix(in srgb, var(--color-primary) 90%, black);
     }
@@ -319,7 +319,7 @@
     box-shadow: var(--elevation-card-hover);
 }
 
-@supports (color-mix(in srgb, white, black)) {
+@supports (color: color-mix(in srgb, white, black)) {
     .skill-card:hover {
         background: color-mix(in srgb, var(--color-bg-secondary) 98%, var(--color-primary));
     }
@@ -360,7 +360,7 @@
     border-color: var(--color-primary);
 }
 
-@supports (color-mix(in srgb, white, black)) {
+@supports (color: color-mix(in srgb, white, black)) {
     .skill-tag:hover {
         border-color: color-mix(in srgb, var(--color-primary) 90%, black);
     }
@@ -400,7 +400,7 @@
     box-shadow: var(--elevation-low);
 }
 
-@supports (color-mix(in srgb, white, black)) {
+@supports (color: color-mix(in srgb, white, black)) {
     .project-link:hover {
         background: color-mix(in srgb, var(--color-primary) 90%, black);
     }
@@ -464,7 +464,7 @@
     transform: translate3d(2px, 0, 0);
 }
 
-@supports (color-mix(in srgb, white, black)) {
+@supports (color: color-mix(in srgb, white, black)) {
     .certification-link:hover {
         color: color-mix(in srgb, var(--color-primary) 90%, black);
     }
@@ -494,7 +494,7 @@
     box-shadow: var(--elevation-card-hover);
 }
 
-@supports (color-mix(in srgb, white, black)) {
+@supports (color: color-mix(in srgb, white, black)) {
     .award-item:hover {
         border-inline-start-color: color-mix(in srgb, var(--color-warning) 90%, black);
     }

@@ -26,7 +26,7 @@
   background-color: #2563eb;
 }
 
-@supports (color-mix(in srgb, white, black)) {
+@supports (color: color-mix(in srgb, white, black)) {
   .badge-primary:hover {
     background-color: color-mix(in srgb, #3b82f6 90%, black);
   }
@@ -41,7 +41,7 @@
   background-color: #4b5563;
 }
 
-@supports (color-mix(in srgb, white, black)) {
+@supports (color: color-mix(in srgb, white, black)) {
   .badge-secondary:hover {
     background-color: color-mix(in srgb, #6b7280 90%, black);
   }
@@ -56,7 +56,7 @@
   background-color: #059669;
 }
 
-@supports (color-mix(in srgb, white, black)) {
+@supports (color: color-mix(in srgb, white, black)) {
   .badge-success:hover {
     background-color: color-mix(in srgb, #10b981 90%, black);
   }
@@ -71,7 +71,7 @@
   background-color: #dc2626;
 }
 
-@supports (color-mix(in srgb, white, black)) {
+@supports (color: color-mix(in srgb, white, black)) {
   .badge-danger:hover {
     background-color: color-mix(in srgb, #ef4444 90%, black);
   }
@@ -86,7 +86,7 @@
   background-color: #d97706;
 }
 
-@supports (color-mix(in srgb, white, black)) {
+@supports (color: color-mix(in srgb, white, black)) {
   .badge-warning:hover {
     background-color: color-mix(in srgb, #f59e0b 90%, black);
   }
@@ -101,7 +101,7 @@
   background-color: #2563eb;
 }
 
-@supports (color-mix(in srgb, white, black)) {
+@supports (color: color-mix(in srgb, white, black)) {
   .badge-info:hover {
     background-color: color-mix(in srgb, #3b82f6 90%, black);
   }
@@ -117,7 +117,7 @@
   background-color: #e5e7eb;
 }
 
-@supports (color-mix(in srgb, white, black)) {
+@supports (color: color-mix(in srgb, white, black)) {
   .badge-light:hover {
     background-color: color-mix(in srgb, #f3f4f6 90%, black);
   }
@@ -132,7 +132,7 @@
   background-color: #111827;
 }
 
-@supports (color-mix(in srgb, white, black)) {
+@supports (color: color-mix(in srgb, white, black)) {
   .badge-dark:hover {
     background-color: color-mix(in srgb, #1f2937 90%, white);
   }
@@ -191,7 +191,7 @@
   box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
 }
 
-@supports (color-mix(in srgb, white, black)) {
+@supports (color: color-mix(in srgb, white, black)) {
   .featured-card:hover {
     border-color: color-mix(in srgb, var(--color-primary) 90%, black);
   }

@@ -117,7 +117,7 @@
     text-decoration: underline;
 }
 
-@supports (color-mix(in srgb, white, black)) {
+@supports (color: color-mix(in srgb, white, black)) {
     .empty-state__suggestions a:hover {
         color: color-mix(in srgb, var(--color-secondary) 90%, black);
     }

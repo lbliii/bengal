@@ -83,7 +83,7 @@
     transform: translate3d(0, 0, 0) scale(1.2);
 }
 
-@supports (color-mix(in srgb, white, black)) {
+@supports (color: color-mix(in srgb, white, black)) {
     .timeline-item:hover::before {
         background: color-mix(in srgb, var(--color-primary) 90%, black);
     }
@@ -127,7 +127,7 @@
     text-decoration: underline;
 }
 
-@supports (color-mix(in srgb, white, black)) {
+@supports (color: color-mix(in srgb, white, black)) {
     .timeline-title a:hover {
         color: color-mix(in srgb, var(--color-primary) 90%, black);
     }
@@ -224,7 +224,7 @@
 }
 
 .changelog-category.changelog-breaking:hover {
-    @supports (color-mix(in srgb, white, black)) {
+    @supports (color: color-mix(in srgb, white, black)) {
         border-inline-start-color: color-mix(in srgb, var(--color-danger) 90%, black);
     }
 }
@@ -297,7 +297,7 @@
     box-shadow: var(--elevation-low);
 }
 
-@supports (color-mix(in srgb, white, black)) {
+@supports (color: color-mix(in srgb, white, black)) {
     .changelog-read-more:hover {
         background: color-mix(in srgb, var(--color-primary) 90%, black);
     }
@@ -415,7 +415,7 @@
     box-shadow: var(--elevation-low);
 }
 
-@supports (color-mix(in srgb, white, black)) {
+@supports (color: color-mix(in srgb, white, black)) {
     .release-link:hover {
         background: color-mix(in srgb, var(--color-primary) 90%, black);
     }
@@ -437,7 +437,7 @@
     border-color: var(--color-primary-dark);
 }
 
-@supports (color-mix(in srgb, white, black)) {
+@supports (color: color-mix(in srgb, white, black)) {
     .release-download:hover {
         background: color-mix(in srgb, var(--color-primary-dark) 90%, black);
     }

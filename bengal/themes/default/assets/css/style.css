@@ -273,7 +273,7 @@ main {
   color: var(--color-primary);
 }
 
-@supports (color-mix(in srgb, white, black)) {
+@supports (color: color-mix(in srgb, white, black)) {
   .section-title:hover {
     color: color-mix(in srgb, var(--color-primary) 90%, black);
   }
@@ -326,7 +326,7 @@ main {
   color: var(--color-primary);
 }
 
-@supports (color-mix(in srgb, white, black)) {
+@supports (color: color-mix(in srgb, white, black)) {
   .breadcrumbs a:hover {
     color: color-mix(in srgb, var(--color-primary) 90%, black);
   }
@@ -373,7 +373,7 @@ main {
   box-shadow: var(--elevation-low);
 }
 
-@supports (color-mix(in srgb, white, black)) {
+@supports (color: color-mix(in srgb, white, black)) {
   .pagination a:hover {
     background-color: color-mix(in srgb, var(--color-bg-hover) 95%, var(--color-primary));
   }

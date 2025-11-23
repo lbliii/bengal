@@ -307,7 +307,7 @@ a.card {
 }
 
 /* Modern color mixing for hover background */
-@supports (color-mix(in srgb, white, black)) {
+@supports (color: color-mix(in srgb, white, black)) {
   .feature-card:hover {
     background: color-mix(in srgb, var(--color-bg-elevated) 95%, var(--color-primary));
   }

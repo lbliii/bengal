@@ -27,7 +27,7 @@
     box-shadow: var(--elevation-card-hover);
 }
 
-@supports (color-mix(in srgb, white, black)) {
+@supports (color: color-mix(in srgb, white, black)) {
     .author-header:hover {
         background: color-mix(in srgb, var(--color-bg-secondary) 98%, var(--color-primary));
     }
@@ -119,7 +119,7 @@
     box-shadow: var(--elevation-low);
 }
 
-@supports (color-mix(in srgb, white, black)) {
+@supports (color: color-mix(in srgb, white, black)) {
     .social-link:hover {
         background: color-mix(in srgb, var(--color-primary) 90%, black);
     }
@@ -221,7 +221,7 @@
     transform: translate3d(0, -1px, 0);
 }
 
-@supports (color-mix(in srgb, white, black)) {
+@supports (color: color-mix(in srgb, white, black)) {
     .filter-button:hover {
         background: color-mix(in srgb, var(--color-bg-hover) 95%, var(--color-primary));
     }
@@ -237,7 +237,7 @@
     border-color: var(--color-primary);
 }
 
-@supports (color-mix(in srgb, white, black)) {
+@supports (color: color-mix(in srgb, white, black)) {
     .filter-button.active {
         background: color-mix(in srgb, var(--color-primary) 90%, black);
     }
@@ -267,7 +267,7 @@
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-@supports (color-mix(in srgb, white, black)) {
+@supports (color: color-mix(in srgb, white, black)) {
     .author-post-card:hover {
         background: color-mix(in srgb, var(--color-bg-secondary) 95%, var(--color-primary));
     }
@@ -330,7 +330,7 @@
     transform: translate3d(4px, 0, 0);
 }
 
-@supports (color-mix(in srgb, white, black)) {
+@supports (color: color-mix(in srgb, white, black)) {
     .post-list-compact a:hover {
         color: color-mix(in srgb, var(--color-primary) 90%, black);
     }

@@ -98,7 +98,7 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-@supports (color-mix(in srgb, white, black)) {
+@supports (color: color-mix(in srgb, white, black)) {
   .archive-post-card:hover {
     background: color-mix(in srgb, var(--color-bg-secondary) 95%, var(--color-primary));
   }
@@ -145,7 +145,7 @@
   color: var(--color-primary);
 }
 
-@supports (color-mix(in srgb, white, black)) {
+@supports (color: color-mix(in srgb, white, black)) {
   .post-title a:hover {
     color: color-mix(in srgb, var(--color-primary) 90%, black);
   }
@@ -222,7 +222,7 @@
   color: var(--color-text-inverse);
 }
 
-@supports (color-mix(in srgb, white, black)) {
+@supports (color: color-mix(in srgb, white, black)) {
   .year-list li a:hover {
     background: color-mix(in srgb, var(--color-primary) 90%, black);
   }
@@ -291,7 +291,7 @@
   color: var(--color-text-inverse);
 }
 
-@supports (color-mix(in srgb, white, black)) {
+@supports (color: color-mix(in srgb, white, black)) {
   .year-link:hover {
     background: color-mix(in srgb, var(--color-primary) 90%, black);
   }
@@ -330,7 +330,7 @@
   background: var(--color-bg-hover);
 }
 
-@supports (color-mix(in srgb, white, black)) {
+@supports (color: color-mix(in srgb, white, black)) {
   .year-summary:hover {
     background: color-mix(in srgb, var(--color-bg-hover) 95%, var(--color-primary));
   }
@@ -370,7 +370,7 @@
   color: var(--color-text-primary);
 }
 
-@supports (color-mix(in srgb, white, black)) {
+@supports (color: color-mix(in srgb, white, black)) {
   .archive-month-item a:hover {
     background: color-mix(in srgb, var(--color-bg-hover) 95%, var(--color-primary));
   }
