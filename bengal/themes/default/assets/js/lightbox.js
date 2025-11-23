@@ -245,13 +245,67 @@
 
   // Re-run setup if images are dynamically added
   // (e.g., via AJAX or lazy loading)
+  // Use debounced observer to avoid conflicts with dev tools
+  let mutationObserver = null;
+  let updateTimeout = null;
   if (typeof MutationObserver !== 'undefined') {
-    const observer = new MutationObserver(function(mutations) {
+    let isUpdating = false;
+    const { debounce } = window.BengalUtils || {};
+
+    const debouncedSetup = debounce ? debounce(function() {
+      if (!isUpdating) {
+        isUpdating = true;
+        setupImageLightbox();
+        setTimeout(function() { isUpdating = false; }, 100);
+      }
+    }, 250) : function() {
+      if (isUpdating) return;
+      clearTimeout(updateTimeout);
+      updateTimeout = setTimeout(function() {
+        if (!isUpdating) {
+          isUpdating = true;
+          setupImageLightbox();
+          setTimeout(function() { isUpdating = false; }, 100);
+        }
+      }, 250);
+    };
+
+    mutationObserver = new MutationObserver(function(mutations) {
+      // Skip if already updating to prevent loops
+      if (isUpdating) return;
+
       let shouldUpdate = false;
       mutations.forEach(function(mutation) {
         if (mutation.addedNodes.length > 0) {
           mutation.addedNodes.forEach(function(node) {
-            if (node.nodeName === 'IMG' || (node.querySelector && node.querySelector('img'))) {
+            // Ignore text nodes, script tags, and dev tools elements
+            if (node.nodeType !== 1) return; // Only element nodes
+            if (node.tagName === 'SCRIPT' || node.tagName === 'STYLE') return;
+
+            // Ignore nodes that are likely dev tools (contain dev tools markers)
+            if (node.id && (
+              node.id.includes('devtools') ||
+              node.id.includes('chrome-devtools') ||
+              node.id.includes('firefox-devtools') ||
+              node.id.includes('__react') ||
+              node.id.includes('__vue')
+            )) return;
+
+            // Ignore nodes with dev tools classes
+            if (node.className && typeof node.className === 'string' && (
+              node.className.includes('devtools') ||
+              node.className.includes('chrome-devtools')
+            )) return;
+
+            // Only check content areas, not entire body
+            const isInContentArea = node.closest && (
+              node.closest('.prose') ||
+              node.closest('.docs-content') ||
+              node.closest('article') ||
+              node.closest('main')
+            );
+
+            if (isInContentArea && (node.nodeName === 'IMG' || (node.querySelector && node.querySelector('img')))) {
               shouldUpdate = true;
             }
           });
@@ -259,14 +313,52 @@
       });
 
       if (shouldUpdate) {
-        setupImageLightbox();
+        debouncedSetup();
       }
     });
 
-    observer.observe(document.body, {
-      childList: true,
-      subtree: true
-    });
+    // Only observe content areas, not entire body to avoid dev tools conflicts
+    const contentAreas = document.querySelectorAll('.prose, .docs-content, article, main');
+    if (contentAreas.length > 0) {
+      contentAreas.forEach(function(area) {
+        if (mutationObserver) {
+          mutationObserver.observe(area, {
+            childList: true,
+            subtree: true
+          });
+        }
+      });
+    } else {
+      // Fallback: observe body but with more defensive checks
+      if (mutationObserver) {
+        mutationObserver.observe(document.body, {
+          childList: true,
+          subtree: true
+        });
+      }
+    }
   }
+
+  /**
+   * Cleanup function to prevent memory leaks
+   */
+  function cleanup() {
+    if (mutationObserver) {
+      mutationObserver.disconnect();
+      mutationObserver = null;
+    }
+    if (updateTimeout) {
+      clearTimeout(updateTimeout);
+      updateTimeout = null;
+    }
+  }
+
+  // Cleanup on page unload to prevent memory leaks
+  window.addEventListener('beforeunload', cleanup);
+
+  // Export cleanup for manual cleanup if needed
+  window.BengalLightbox = {
+    cleanup: cleanup
+  };
 
 })();
