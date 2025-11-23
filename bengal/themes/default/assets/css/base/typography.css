@@ -16,7 +16,7 @@
   margin-top: var(--space-6);
 }
 
-/* Headings */
+/* Headings - All in @layer base to prevent override issues */
 @layer base {
   .prose h1,
   .prose h2,
@@ -42,55 +42,43 @@
     line-height: 1.2;
     letter-spacing: var(--letter-spacing-tighter);
   }
-}
 
-.prose h2 {
-  font-size: var(--type-h2);
-  font-weight: var(--font-bold);
-  margin-top: 1.75em;
-  margin-bottom: 0.5em;
-  padding-bottom: 0.375rem;
-  border-bottom: 1px solid var(--color-border-light);
-  letter-spacing: var(--letter-spacing-tight);
-}
+  .prose h2 {
+    font-size: var(--type-h2);
+    font-weight: var(--font-bold);
+    margin-top: 1.75em;
+    margin-bottom: 0.5em;
+    padding-bottom: 0.375rem;
+    border-bottom: 1px solid var(--color-border-light);
+    letter-spacing: var(--letter-spacing-tight);
+  }
 
-.prose h3 {
-  font-size: var(--type-h3);
-  font-weight: var(--font-semibold);
-  margin-top: 1.5em;
-}
+  .prose h3 {
+    font-size: var(--type-h3);
+    font-weight: var(--font-semibold);
+    margin-top: 1.5em;
+  }
 
-.prose h4 {
-  font-size: var(--type-h4);
-  font-weight: var(--font-semibold);
-  margin-top: 1.25em;
-}
+  .prose h4 {
+    font-size: var(--type-h4);
+    font-weight: var(--font-semibold);
+    margin-top: 1.25em;
+  }
 
-.prose h5 {
-  font-size: var(--type-h5);
-  font-weight: var(--font-medium);
-  margin-top: 1.25em;
-}
+  .prose h5 {
+    font-size: var(--type-h5);
+    font-weight: var(--font-medium);
+    margin-top: 1.25em;
+  }
 
-.prose h6 {
-  font-size: var(--type-h6);
-  font-weight: var(--font-medium);
-  margin-top: 1.25em;
-  text-transform: uppercase;
-  letter-spacing: var(--letter-spacing-wide);
-  color: var(--color-text-secondary);
-}
-
-/* Ensure embedded content blocks inside prose don't override heading scale */
-.prose .has-prose-content h1,
-.prose .has-prose-content h2,
-.prose .has-prose-content h3,
-.prose .has-prose-content h4,
-.prose .has-prose-content h5,
-.prose .has-prose-content h6 {
-  font-size: inherit;
-  line-height: inherit;
-  font-weight: inherit;
+  .prose h6 {
+    font-size: var(--type-h6);
+    font-weight: var(--font-medium);
+    margin-top: 1.25em;
+    text-transform: uppercase;
+    letter-spacing: var(--letter-spacing-wide);
+    color: var(--color-text-secondary);
+  }
 }
 
 /* Page header styles moved to layouts/page-header.css */
