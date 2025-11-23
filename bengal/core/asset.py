@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import hashlib
 import shutil
+from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -538,6 +539,25 @@ class Asset:
         except ImportError:
             logger.warning("jsmin_unavailable", source=str(self.source_path))
 
+    def _hash_source_chunks(self) -> Iterator[bytes]:
+        """
+        Yield byte chunks representing the content that should drive fingerprinting.
+
+        Prefers minified (or bundled) content so hashes match the bytes we actually emit.
+        Falls back to the original file contents when no in-memory transform exists.
+        """
+        if hasattr(self, "_minified_content") and isinstance(self._minified_content, str):
+            yield self._minified_content.encode("utf-8")
+            return
+
+        if hasattr(self, "_bundled_content") and isinstance(self._bundled_content, str):
+            yield self._bundled_content.encode("utf-8")
+            return
+
+        with open(self.source_path, "rb") as f:
+            while chunk := f.read(8192):
+                yield chunk
+
     def hash(self) -> str:
         """
         Generate a hash-based fingerprint for the asset.
@@ -547,9 +567,8 @@ class Asset:
         """
         hasher = hashlib.sha256()
 
-        with open(self.source_path, "rb") as f:
-            while chunk := f.read(8192):
-                hasher.update(chunk)
+        for chunk in self._hash_source_chunks():
+            hasher.update(chunk)
 
         self.fingerprint = hasher.hexdigest()[:8]
         return self.fingerprint
@@ -613,15 +632,7 @@ class Asset:
         """
         # Generate fingerprint if requested and not already done
         if use_fingerprint and not self.fingerprint:
-            # Prefer hashing minified content when available to keep URLs stable with output
-            if hasattr(self, "_minified_content") and isinstance(self._minified_content, str):
-                import hashlib as _hashlib
-
-                hasher = _hashlib.sha256()
-                hasher.update(self._minified_content.encode("utf-8"))
-                self.fingerprint = hasher.hexdigest()[:8]
-            else:
-                self.hash()
+            self.hash()
 
         # Determine output filename
         if use_fingerprint and self.fingerprint:
