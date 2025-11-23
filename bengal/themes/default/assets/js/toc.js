@@ -20,7 +20,7 @@
     return;
   }
 
-  const { log, throttleScroll, debounce, ready } = window.BengalUtils;
+  const { throttleScroll, debounce, ready } = window.BengalUtils;
 
   // ============================================================================
   // State Management

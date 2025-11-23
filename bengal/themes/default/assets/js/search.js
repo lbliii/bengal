@@ -19,7 +19,7 @@
     return;
   }
 
-  const { log, debounce, escapeRegex, ready } = window.BengalUtils;
+  const { log, escapeRegex, ready } = window.BengalUtils;
 
   // ====================================
   // Configuration

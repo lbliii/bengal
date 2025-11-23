@@ -340,10 +340,6 @@ class Asset:
 
         def bundle_imports(css_content: str, base_path: Path) -> str:
             """Recursively resolve @import statements, preserving @layer blocks."""
-            # Pattern to match @layer blocks: @layer name { ... }
-            # This matches the entire block including nested braces
-            layer_block_pattern = r'(@layer\s+\w+\s*\{)(.*?)(\})'
-            
             # Pattern for @import statements
             import_pattern = r'@import\s+(?:url\()?\s*[\'"]([^\'"]+)[\'"]\s*(?:\))?\s*;'
 
@@ -373,31 +369,109 @@ class Asset:
                     )
                     return import_match.group(0)
 
-            # First, process @layer blocks that contain @import
-            def process_layer_block(match):
-                layer_decl = match.group(1)  # "@layer name {"
-                layer_content = match.group(2)  # Content inside layer
-                layer_close = match.group(3)  # "}"
+            def find_layer_block_end(css: str, start_pos: int) -> int:
+                """
+                Find the end position of a @layer block using brace counting.
+                Handles nested braces correctly (e.g., media queries, nested rules).
                 
-                # Extract layer name
-                layer_name_match = re.match(r'@layer\s+(\w+)', layer_decl)
-                layer_name = layer_name_match.group(1) if layer_name_match else None
+                Args:
+                    css: CSS content string
+                    start_pos: Position after the opening brace of @layer block
                 
-                # Process @import statements inside this layer
-                processed_content = re.sub(
-                    import_pattern,
-                    lambda m: resolve_import_in_context(m, layer_name),
-                    layer_content
-                )
+                Returns:
+                    Position of the matching closing brace, or -1 if not found
+                """
+                brace_count = 1  # We start after the opening brace
+                i = start_pos
+                in_string = False
+                string_char = None
                 
-                # If we replaced any @imports, return the processed layer block
-                # Otherwise, return original (might have other content)
-                if processed_content != layer_content:
-                    return f"{layer_decl}{processed_content}{layer_close}"
-                return match.group(0)  # No changes
+                while i < len(css) and brace_count > 0:
+                    char = css[i]
+                    
+                    # Handle string literals (skip braces inside strings)
+                    if not in_string and char in ("'", '"'):
+                        in_string = True
+                        string_char = char
+                    elif in_string:
+                        if char == "\\" and i + 1 < len(css):
+                            i += 2  # Skip escaped character
+                            continue
+                        elif char == string_char:
+                            in_string = False
+                            string_char = None
+                    
+                    # Count braces (only when not in string)
+                    if not in_string:
+                        if char == "{":
+                            brace_count += 1
+                        elif char == "}":
+                            brace_count -= 1
+                    
+                    i += 1
+                
+                # Return position of closing brace (i-1 because we incremented after finding it)
+                return i - 1 if brace_count == 0 else -1
 
-            # Process @layer blocks first
-            result = re.sub(layer_block_pattern, process_layer_block, css_content, flags=re.DOTALL)
+            def process_layer_blocks(css: str) -> str:
+                """
+                Process @layer blocks, replacing @import statements inside them.
+                Uses brace counting to handle nested braces correctly.
+                """
+                result = []
+                i = 0
+                
+                while i < len(css):
+                    # Look for @layer declaration
+                    layer_match = re.search(r'@layer\s+\w+\s*\{', css[i:])
+                    if not layer_match:
+                        # No more @layer blocks, append rest of content
+                        result.append(css[i:])
+                        break
+                    
+                    # Append content before @layer block
+                    layer_start = i + layer_match.start()
+                    result.append(css[i:layer_start])
+                    
+                    # Find the opening brace position
+                    brace_pos = layer_start + layer_match.end() - 1  # Position of '{'
+                    layer_decl = css[layer_start:brace_pos + 1]  # "@layer name {"
+                    
+                    # Extract layer name
+                    layer_name_match = re.match(r'@layer\s+(\w+)', layer_decl)
+                    layer_name = layer_name_match.group(1) if layer_name_match else None
+                    
+                    # Find the matching closing brace using brace counting
+                    content_start = brace_pos + 1
+                    content_end = find_layer_block_end(css, content_start)
+                    
+                    if content_end == -1:
+                        # Malformed @layer block, keep as-is
+                        result.append(css[layer_start:])
+                        break
+                    
+                    # Extract content inside @layer block
+                    layer_content = css[content_start:content_end]
+                    
+                    # Process @import statements inside this layer
+                    processed_content = re.sub(
+                        import_pattern,
+                        lambda m: resolve_import_in_context(m, layer_name),
+                        layer_content
+                    )
+                    
+                    # Reconstruct @layer block
+                    result.append(layer_decl)
+                    result.append(processed_content)
+                    result.append("}")
+                    
+                    # Continue after this @layer block
+                    i = content_end + 1
+                
+                return "".join(result)
+
+            # Process @layer blocks first (using brace counting)
+            result = process_layer_blocks(css_content)
             
             # Then process standalone @import statements (not in @layer)
             result = re.sub(import_pattern, lambda m: resolve_import_in_context(m), result)

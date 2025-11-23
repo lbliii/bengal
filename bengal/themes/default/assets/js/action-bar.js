@@ -16,7 +16,7 @@
     return;
   }
 
-  const { log, copyToClipboard, ready, debounce } = window.BengalUtils;
+  const { log, copyToClipboard, ready } = window.BengalUtils;
 
   ready(init);
 
