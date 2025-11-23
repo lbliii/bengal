@@ -177,38 +177,25 @@
   background: var(--color-primary-light);
 }
 
-/* Active state on wrapper - when parent group contains an active child */
-.docs-nav-group:has(.docs-nav-link.active) .docs-nav-group-toggle-wrapper,
-.docs-nav-group:has(.docs-nav-link[aria-current="page"]) .docs-nav-group-toggle-wrapper {
-  /* Light mode: Neumorphic with primary tint */
-  box-shadow: 
-    inset 0.3px 0.3px 0.8px rgba(255, 255, 255, 0.5),
-    inset -0.3px -0.3px 0.8px rgba(0, 0, 0, 0.08),
-    1px 1px 3px color-mix(in srgb, var(--color-primary) 15%, transparent),
-    -0.3px -0.3px 1px rgba(255, 255, 255, 0.4);
-  background: var(--color-primary-light);
-}
-
+/* Subtle indicator for parent groups containing active child - accent bar only */
+/* Only show subtle accent bar, don't highlight the entire wrapper/link */
 .docs-nav-group:has(.docs-nav-link.active) .docs-nav-group-toggle-wrapper::after,
 .docs-nav-group:has(.docs-nav-link[aria-current="page"]) .docs-nav-group-toggle-wrapper::after {
-  opacity: 1; /* Show accent bar when parent contains active child */
+  opacity: 0.6; /* Subtle accent bar to indicate parent contains active child */
   background: var(--gradient-border);
 }
 
-.docs-nav-group:has(.docs-nav-link.active) .docs-nav-group-link,
-.docs-nav-group:has(.docs-nav-link[aria-current="page"]) .docs-nav-group-link {
-  color: var(--color-primary);
-  font-weight: var(--font-weight-semibold);
+/* Keep parent groups expanded when they contain active children */
+.docs-nav-group:has(.docs-nav-link.active) .docs-nav-group-items,
+.docs-nav-group:has(.docs-nav-link[aria-current="page"]) .docs-nav-group-items {
+  display: flex;
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
 }
 
-.docs-nav-group:has(.docs-nav-link.active) .docs-nav-group-toggle svg,
-.docs-nav-group:has(.docs-nav-link[aria-current="page"]) .docs-nav-group-toggle svg {
-  color: var(--color-primary);
-}
-
-.docs-nav-group:has(.docs-nav-link.active) .docs-nav-group-toggle-wrapper::before,
-.docs-nav-group:has(.docs-nav-link[aria-current="page"]) .docs-nav-group-toggle-wrapper::before {
-  opacity: 0; /* Hidden in light mode */
+.docs-nav-group:has(.docs-nav-link.active) .docs-nav-group-toggle[aria-expanded],
+.docs-nav-group:has(.docs-nav-link[aria-current="page"]) .docs-nav-group-toggle[aria-expanded] {
+  /* JavaScript will set aria-expanded="true" */
 }
 
 /* Also handle when the group link itself is active */
@@ -411,34 +398,19 @@
   opacity: 0; /* Start hidden */
 }
 
-/* Dark mode: Parent group with active child */
-[data-theme="dark"] .docs-nav-group:has(.docs-nav-link.active) .docs-nav-group-toggle-wrapper,
-[data-theme="dark"] .docs-nav-group:has(.docs-nav-link[aria-current="page"]) .docs-nav-group-toggle-wrapper {
-  /* Remove neumorphic shadow in dark mode */
-  box-shadow: none;
-  background: var(--color-primary-light); /* Palette-aware background in dark mode */
-}
-
+/* Dark mode: Subtle indicator for parent groups containing active child */
 [data-theme="dark"] .docs-nav-group:has(.docs-nav-link.active) .docs-nav-group-toggle-wrapper::after,
 [data-theme="dark"] .docs-nav-group:has(.docs-nav-link[aria-current="page"]) .docs-nav-group-toggle-wrapper::after {
-  opacity: 0.9; /* Show accent bar in dark mode */
+  opacity: 0.7; /* Subtle accent bar in dark mode */
   background: var(--gradient-border);
 }
 
-[data-theme="dark"] .docs-nav-group:has(.docs-nav-link.active) .docs-nav-group-toggle-wrapper::before,
-[data-theme="dark"] .docs-nav-group:has(.docs-nav-link[aria-current="page"]) .docs-nav-group-toggle-wrapper::before {
-  opacity: 0.5; /* Show gradient border for active in dark mode */
-  background: var(--gradient-border);
-}
-
-[data-theme="dark"] .docs-nav-group:has(.docs-nav-link.active) .docs-nav-group-link,
-[data-theme="dark"] .docs-nav-group:has(.docs-nav-link[aria-current="page"]) .docs-nav-group-link {
-  color: var(--color-primary);
-}
-
-[data-theme="dark"] .docs-nav-group:has(.docs-nav-link.active) .docs-nav-group-toggle svg,
-[data-theme="dark"] .docs-nav-group:has(.docs-nav-link[aria-current="page"]) .docs-nav-group-toggle svg {
-  color: var(--color-primary);
+/* Keep parent groups expanded when they contain active children (dark mode) */
+[data-theme="dark"] .docs-nav-group:has(.docs-nav-link.active) .docs-nav-group-items,
+[data-theme="dark"] .docs-nav-group:has(.docs-nav-link[aria-current="page"]) .docs-nav-group-items {
+  display: flex;
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
 }
 
 /* Also handle when the group link itself is active */
@@ -513,15 +485,12 @@
   background: var(--color-primary-light);
 }
 
-[data-palette="brown-bengal"] .docs-nav-group:has(.docs-nav-link.active) .docs-nav-group-toggle-wrapper,
-[data-palette="brown-bengal"] .docs-nav-group:has(.docs-nav-link[aria-current="page"]) .docs-nav-group-toggle-wrapper,
+/* Palette-specific: Only highlight when group link itself is active, not when it contains active child */
 [data-palette="brown-bengal"] .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link.active),
 [data-palette="brown-bengal"] .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link[aria-current="page"]) {
   background: var(--color-primary-light);
 }
 
-[data-theme="dark"][data-palette="brown-bengal"] .docs-nav-group:has(.docs-nav-link.active) .docs-nav-group-toggle-wrapper,
-[data-theme="dark"][data-palette="brown-bengal"] .docs-nav-group:has(.docs-nav-link[aria-current="page"]) .docs-nav-group-toggle-wrapper,
 [data-theme="dark"][data-palette="brown-bengal"] .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link.active),
 [data-theme="dark"][data-palette="brown-bengal"] .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link[aria-current="page"]) {
   background: var(--color-primary-light);
@@ -542,15 +511,12 @@
   background: var(--color-primary-light);
 }
 
-[data-palette="blue-bengal"] .docs-nav-group:has(.docs-nav-link.active) .docs-nav-group-toggle-wrapper,
-[data-palette="blue-bengal"] .docs-nav-group:has(.docs-nav-link[aria-current="page"]) .docs-nav-group-toggle-wrapper,
+/* Palette-specific: Only highlight when group link itself is active, not when it contains active child */
 [data-palette="blue-bengal"] .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link.active),
 [data-palette="blue-bengal"] .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link[aria-current="page"]) {
   background: var(--color-primary-light);
 }
 
-[data-theme="dark"][data-palette="blue-bengal"] .docs-nav-group:has(.docs-nav-link.active) .docs-nav-group-toggle-wrapper,
-[data-theme="dark"][data-palette="blue-bengal"] .docs-nav-group:has(.docs-nav-link[aria-current="page"]) .docs-nav-group-toggle-wrapper,
 [data-theme="dark"][data-palette="blue-bengal"] .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link.active),
 [data-theme="dark"][data-palette="blue-bengal"] .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link[aria-current="page"]) {
   background: var(--color-primary-light);
@@ -571,15 +537,12 @@
   background: var(--color-primary-light);
 }
 
-[data-palette="silver-bengal"] .docs-nav-group:has(.docs-nav-link.active) .docs-nav-group-toggle-wrapper,
-[data-palette="silver-bengal"] .docs-nav-group:has(.docs-nav-link[aria-current="page"]) .docs-nav-group-toggle-wrapper,
+/* Palette-specific: Only highlight when group link itself is active, not when it contains active child */
 [data-palette="silver-bengal"] .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link.active),
 [data-palette="silver-bengal"] .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link[aria-current="page"]) {
   background: var(--color-primary-light);
 }
 
-[data-theme="dark"][data-palette="silver-bengal"] .docs-nav-group:has(.docs-nav-link.active) .docs-nav-group-toggle-wrapper,
-[data-theme="dark"][data-palette="silver-bengal"] .docs-nav-group:has(.docs-nav-link[aria-current="page"]) .docs-nav-group-toggle-wrapper,
 [data-theme="dark"][data-palette="silver-bengal"] .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link.active),
 [data-theme="dark"][data-palette="silver-bengal"] .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link[aria-current="page"]) {
   background: var(--color-primary-light);
@@ -600,15 +563,12 @@
   background: var(--color-primary-light);
 }
 
-[data-palette="charcoal-bengal"] .docs-nav-group:has(.docs-nav-link.active) .docs-nav-group-toggle-wrapper,
-[data-palette="charcoal-bengal"] .docs-nav-group:has(.docs-nav-link[aria-current="page"]) .docs-nav-group-toggle-wrapper,
+/* Palette-specific: Only highlight when group link itself is active, not when it contains active child */
 [data-palette="charcoal-bengal"] .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link.active),
 [data-palette="charcoal-bengal"] .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link[aria-current="page"]) {
   background: var(--color-primary-light);
 }
 
-[data-theme="dark"][data-palette="charcoal-bengal"] .docs-nav-group:has(.docs-nav-link.active) .docs-nav-group-toggle-wrapper,
-[data-theme="dark"][data-palette="charcoal-bengal"] .docs-nav-group:has(.docs-nav-link[aria-current="page"]) .docs-nav-group-toggle-wrapper,
 [data-theme="dark"][data-palette="charcoal-bengal"] .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link.active),
 [data-theme="dark"][data-palette="charcoal-bengal"] .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link[aria-current="page"]) {
   background: var(--color-primary-light);

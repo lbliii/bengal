@@ -17,29 +17,31 @@
 }
 
 /* Headings */
-.prose h1,
-.prose h2,
-.prose h3,
-.prose h4,
-.prose h5,
-.prose h6 {
-  margin-top: 1.5em;
-  margin-bottom: 0.5em;
-  font-weight: var(--type-weight-strong);
-  line-height: var(--type-leading-heading);
-  color: var(--color-text-primary);
-  scroll-margin-top: var(--space-20);
-  /* For anchor links */
-  letter-spacing: var(--letter-spacing-tight);
-}
+@layer base {
+  .prose h1,
+  .prose h2,
+  .prose h3,
+  .prose h4,
+  .prose h5,
+  .prose h6 {
+    margin-top: 1.5em;
+    margin-bottom: 0.5em;
+    font-weight: var(--type-weight-strong);
+    line-height: var(--type-leading-heading);
+    color: var(--color-text-primary);
+    scroll-margin-top: var(--space-20);
+    /* For anchor links */
+    letter-spacing: var(--letter-spacing-tight);
+  }
 
-.prose h1 {
-  font-size: var(--type-h1);
-  font-weight: var(--font-extrabold);
-  margin-top: 0;
-  margin-bottom: 0.75rem;
-  line-height: 1.2;
-  letter-spacing: var(--letter-spacing-tighter);
+  .prose h1 {
+    font-size: var(--type-h1);
+    font-weight: var(--font-extrabold);
+    margin-top: 0;
+    margin-bottom: 0.75rem;
+    line-height: 1.2;
+    letter-spacing: var(--letter-spacing-tighter);
+  }
 }
 
 .prose h2 {
