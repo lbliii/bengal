@@ -59,18 +59,17 @@
 .back-to-top svg {
   width: 20px;
   height: 20px;
-  stroke: currentColor;
+  stroke: var(--color-text-inverse) !important;
   stroke-width: 3;
   fill: none;
   display: block;
   pointer-events: none;
-  color: inherit;
 }
 
-/* Ensure SVG is visible - override any potential color issues */
+/* Ensure SVG elements inherit the stroke color */
 .back-to-top svg line,
 .back-to-top svg polyline {
-  stroke: currentColor;
+  stroke: var(--color-text-inverse) !important;
   stroke-width: 3;
 }
 

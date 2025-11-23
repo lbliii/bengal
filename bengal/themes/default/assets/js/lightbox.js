@@ -246,8 +246,9 @@
   // Re-run setup if images are dynamically added
   // (e.g., via AJAX or lazy loading)
   // Use debounced observer to avoid conflicts with dev tools
+  let mutationObserver = null;
+  let updateTimeout = null;
   if (typeof MutationObserver !== 'undefined') {
-    let updateTimeout = null;
     let isUpdating = false;
     const { debounce } = window.BengalUtils || {};
 
@@ -269,7 +270,7 @@
       }, 250);
     };
 
-    const observer = new MutationObserver(function(mutations) {
+    mutationObserver = new MutationObserver(function(mutations) {
       // Skip if already updating to prevent loops
       if (isUpdating) return;
 
@@ -320,18 +321,44 @@
     const contentAreas = document.querySelectorAll('.prose, .docs-content, article, main');
     if (contentAreas.length > 0) {
       contentAreas.forEach(function(area) {
-        observer.observe(area, {
-          childList: true,
-          subtree: true
-        });
+        if (mutationObserver) {
+          mutationObserver.observe(area, {
+            childList: true,
+            subtree: true
+          });
+        }
       });
     } else {
       // Fallback: observe body but with more defensive checks
-      observer.observe(document.body, {
-        childList: true,
-        subtree: true
-      });
+      if (mutationObserver) {
+        mutationObserver.observe(document.body, {
+          childList: true,
+          subtree: true
+        });
+      }
     }
   }
+
+  /**
+   * Cleanup function to prevent memory leaks
+   */
+  function cleanup() {
+    if (mutationObserver) {
+      mutationObserver.disconnect();
+      mutationObserver = null;
+    }
+    if (updateTimeout) {
+      clearTimeout(updateTimeout);
+      updateTimeout = null;
+    }
+  }
+
+  // Cleanup on page unload to prevent memory leaks
+  window.addEventListener('beforeunload', cleanup);
+
+  // Export cleanup for manual cleanup if needed
+  window.BengalLightbox = {
+    cleanup: cleanup
+  };
 
 })();

@@ -54,7 +54,7 @@
     const links = document.querySelectorAll('a[href]');
     links.forEach(function (link) {
       const href = link.getAttribute('href');
-      
+
       // Skip anchor links and empty hrefs
       if (!href || href.startsWith('#') || href.startsWith('mailto:') || href.startsWith('tel:')) {
         return;
@@ -196,7 +196,7 @@
         }).catch(function (err) {
           log('Failed to copy code:', err);
           button.setAttribute('aria-label', 'Failed to copy');
-          
+
           // Show error state briefly
           setTimeout(function () {
             button.innerHTML = `
@@ -216,9 +216,10 @@
   /**
    * Lazy load images
    */
+  let imageObserver = null;
   function setupLazyLoading() {
     if ('IntersectionObserver' in window) {
-      const imageObserver = new IntersectionObserver(function (entries) {
+      imageObserver = new IntersectionObserver(function (entries) {
         entries.forEach(function (entry) {
           if (entry.isIntersecting) {
             const img = entry.target;
@@ -226,13 +227,17 @@
               img.src = img.dataset.src;
               img.removeAttribute('data-src');
             }
-            imageObserver.unobserve(img);
+            if (imageObserver) {
+              imageObserver.unobserve(img);
+            }
           }
         });
       });
 
       document.querySelectorAll('img[data-src]').forEach(function (img) {
-        imageObserver.observe(img);
+        if (imageObserver) {
+          imageObserver.observe(img);
+        }
       });
     } else {
       // Fallback for older browsers
@@ -245,6 +250,7 @@
   /**
    * Table of contents highlighting
    */
+  let tocObserver = null;
   function setupTOCHighlight() {
     const toc = document.querySelector('.toc');
     if (!toc) return;
@@ -254,7 +260,7 @@
 
     if (headings.length === 0 || tocLinks.length === 0) return;
 
-    const observer = new IntersectionObserver(function (entries) {
+    tocObserver = new IntersectionObserver(function (entries) {
       entries.forEach(function (entry) {
         if (entry.isIntersecting) {
           const id = entry.target.getAttribute('id');
@@ -279,7 +285,9 @@
     });
 
     headings.forEach(function (heading) {
-      observer.observe(heading);
+      if (tocObserver) {
+        tocObserver.observe(heading);
+      }
     });
   }
 
@@ -314,6 +322,28 @@
     log('Bengal theme initialized');
   }
 
+  /**
+   * Cleanup function to prevent memory leaks
+   */
+  function cleanup() {
+    if (imageObserver) {
+      imageObserver.disconnect();
+      imageObserver = null;
+    }
+    if (tocObserver) {
+      tocObserver.disconnect();
+      tocObserver = null;
+    }
+  }
+
   // Initialize after DOM is ready
   ready(init);
+
+  // Cleanup on page unload to prevent memory leaks
+  window.addEventListener('beforeunload', cleanup);
+
+  // Export cleanup for manual cleanup if needed
+  window.BengalMain = {
+    cleanup: cleanup
+  };
 })();

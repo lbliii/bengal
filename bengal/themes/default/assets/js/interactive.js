@@ -19,6 +19,14 @@
 
   const { log, throttleScroll, ready } = window.BengalUtils;
 
+  // Store references for cleanup to prevent memory leaks
+  const cleanupHandlers = {
+    scroll: [],
+    resize: [],
+    click: [],
+    keydown: []
+  };
+
   /**
    * Back to Top Button
    * Shows a floating button when user scrolls down
@@ -30,7 +38,7 @@
     button.setAttribute('aria-label', 'Scroll to top');
     button.setAttribute('title', 'Back to top');
     button.innerHTML = `
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
         <line x1="12" y1="19" x2="12" y2="5"></line>
         <polyline points="5 12 12 5 19 12"></polyline>
       </svg>
@@ -54,6 +62,9 @@
     // Throttle scroll events for performance
     const throttledToggle = throttleScroll(toggleVisibility);
     window.addEventListener('scroll', throttledToggle, { passive: true });
+    cleanupHandlers.scroll.push(() => {
+      window.removeEventListener('scroll', throttledToggle);
+    });
 
     // Scroll to top on click
     button.addEventListener('click', () => {
@@ -107,9 +118,15 @@
     // Throttle scroll events
     const throttledUpdate = throttleScroll(updateProgress);
     window.addEventListener('scroll', throttledUpdate, { passive: true });
+    cleanupHandlers.scroll.push(() => {
+      window.removeEventListener('scroll', throttledUpdate);
+    });
 
     // Update on resize
     window.addEventListener('resize', updateProgress, { passive: true });
+    cleanupHandlers.resize.push(() => {
+      window.removeEventListener('resize', updateProgress);
+    });
 
     // Initial update
     updateProgress();
@@ -178,6 +195,9 @@
     // Throttle scroll events
     const throttledHighlight = throttleScroll(highlightNavigation);
     window.addEventListener('scroll', throttledHighlight, { passive: true });
+    cleanupHandlers.scroll.push(() => {
+      window.removeEventListener('scroll', throttledHighlight);
+    });
 
     // Initial highlight
     highlightNavigation();
@@ -281,7 +301,7 @@
     });
 
     // Close sidebar when clicking outside on mobile
-    document.addEventListener('click', (e) => {
+    const outsideClickHandler = (e) => {
       if (sidebar.hasAttribute('data-open') &&
           !sidebar.contains(e.target) &&
           !toggleButton.contains(e.target)) {
@@ -289,6 +309,10 @@
         toggleButton.setAttribute('aria-expanded', 'false');
         document.body.style.overflow = '';
       }
+    };
+    document.addEventListener('click', outsideClickHandler);
+    cleanupHandlers.click.push(() => {
+      document.removeEventListener('click', outsideClickHandler);
     });
 
     // Close sidebar on navigation (mobile) - use event delegation for better performance
@@ -326,7 +350,29 @@
     log('Interactive elements initialized');
   }
 
+  /**
+   * Cleanup function to prevent memory leaks
+   */
+  function cleanup() {
+    cleanupHandlers.scroll.forEach(handler => handler());
+    cleanupHandlers.resize.forEach(handler => handler());
+    cleanupHandlers.click.forEach(handler => handler());
+    cleanupHandlers.keydown.forEach(handler => handler());
+    cleanupHandlers.scroll = [];
+    cleanupHandlers.resize = [];
+    cleanupHandlers.click = [];
+    cleanupHandlers.keydown = [];
+  }
+
   // Initialize when DOM is ready
   ready(init);
+
+  // Cleanup on page unload to prevent memory leaks
+  window.addEventListener('beforeunload', cleanup);
+
+  // Export cleanup for manual cleanup if needed
+  window.BengalInteractive = {
+    cleanup: cleanup
+  };
 
 })();
