@@ -6,11 +6,23 @@
 /* Container */
 .tabs {
   position: relative;
-  margin: 1.5rem 0;
+  margin: var(--space-6) 0;
   border: 1px solid var(--color-border-light);
-  border-radius: 8px; /* var(--radius-lg) fallback */
+  border-radius: var(--radius-lg);
   background-color: var(--color-bg-primary);
+  overflow: visible; /* Allow tooltips to overflow */
+}
+
+/* Clip navigation to border-radius while allowing tooltips to overflow */
+.tabs > .tab-nav {
   overflow: hidden;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+
+/* Allow tab-content to overflow for tooltips - individual elements handle their own clipping */
+.tabs > .tab-content {
+  overflow: visible;
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
 }
 
 .tabs.gradient-border {
@@ -26,7 +38,7 @@
   margin: 0 !important;
   padding: 0 !important;
   border-bottom: 1px solid var(--color-border-light);
-  background-color: rgba(0, 0, 0, 0.02); /* Slight bg for nav area */
+  background-color: var(--color-bg-secondary);
 }
 
 /* Ensure prose doesn't override */
@@ -45,19 +57,19 @@
 
 .tab-nav a {
   display: block;
-  padding: 0.75rem 1.25rem;
+  padding: var(--space-3) var(--space-5);
   color: var(--color-text-tertiary);
   text-decoration: none;
-  font-weight: 500; /* Medium */
-  font-size: 0.875rem; /* text-sm */
+  font-weight: var(--font-medium);
+  font-size: var(--text-sm);
   border-bottom: 2px solid transparent;
-  transition: all 0.2s ease;
+  transition: all var(--transition-fast) var(--ease-out);
   cursor: pointer;
 }
 
 .tab-nav a:hover {
   color: var(--color-text-primary);
-  background-color: rgba(0, 0, 0, 0.03);
+  background-color: var(--color-bg-hover);
 }
 
 .tab-nav li.active a {
@@ -65,12 +77,12 @@
   border-bottom-color: var(--color-primary);
   border-bottom-width: 3px;
   background-color: var(--color-primary-light);
-  font-weight: 600;
+  font-weight: var(--font-semibold);
 }
 
 /* Content */
 .tab-content {
-  padding: 1.25rem;
+  padding: var(--space-5);
 }
 
 .tab-pane {
@@ -79,29 +91,29 @@
 
 .tab-pane.active {
   display: block;
-  animation: tabFadeIn 0.2s ease-out;
+  animation: tabFadeIn var(--duration-200) var(--ease-out);
 }
 
 @keyframes tabFadeIn {
-  from { opacity: 0; transform: translateY(4px); }
+  from { opacity: 0; transform: translateY(var(--space-1)); }
   to { opacity: 1; transform: translateY(0); }
 }
 
 /* Code Tabs Variant */
 .code-tabs {
   border: 1px solid var(--color-border-light);
-  border-radius: 6px;
-  margin: 1.5rem 0;
+  border-radius: var(--radius-md);
+  margin: var(--space-6) 0;
 }
 
 .code-tabs .tab-nav {
   background-color: transparent;
-  padding: 0 0.5rem;
+  padding: 0 var(--space-2);
 }
 
 .code-tabs .tab-nav a {
-  padding: 0.5rem 1rem;
-  font-size: 0.8125rem; /* text-xs/sm */
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--text-xs);
 }
 
 .code-tabs .tab-content {
@@ -111,7 +123,7 @@
 .code-tabs .tab-pane pre {
   margin: 0;
   border: none;
-  border-radius: 0 0 6px 6px;
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
 }
 
 /* Dark Mode */
@@ -122,7 +134,7 @@
 
 [data-theme="dark"] .tab-nav {
   border-bottom-color: var(--color-border-dark);
-  background-color: rgba(255, 255, 255, 0.02);
+  background-color: var(--color-bg-secondary);
 }
 
 [data-theme="dark"] .tab-nav li.active a {
@@ -131,7 +143,7 @@
 }
 
 [data-theme="dark"] .tab-nav a:hover {
-  background-color: rgba(255, 255, 255, 0.05);
+  background-color: var(--color-bg-hover);
 }
 
 /* ============================================

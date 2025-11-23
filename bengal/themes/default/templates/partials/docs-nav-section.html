@@ -37,9 +37,14 @@ Usage:
         <polyline points="9 18 15 12 9 6"></polyline>
       </svg>
     </button>
+    {# Normalize current page URL for exact matching (remove trailing slash) #}
+    {% set current_url = page.url.rstrip('/') if (page is defined and page and page.url) else '' %}
+
     {% if section.index_page %}
+    {% set section_url_normalized = section.index_page.url.rstrip('/') if section.index_page.url else '' %}
     <a href="{{ section.index_page.permalink }}"
-      class="docs-nav-group-link {% if (page is defined and page and page.url == section.index_page.url) %}active{% endif %}">
+      class="docs-nav-group-link {% if (page is defined and page and current_url == section_url_normalized) %}active{% endif %}"
+      {% if (page is defined and page and current_url == section_url_normalized) %}aria-current="page"{% endif %}>
       {{ section.title }}
     </a>
     {% else %}
@@ -59,8 +64,10 @@ Usage:
     {% if p.url != section_index_url and p.title %}
     {# Extract short name for nested items (e.g., "admonitions" from "directives.admonitions") #}
     {% set display_title = p.title.split('.')[-1] if ('.' in p.title) else p.title %}
+    {% set p_url_normalized = p.url.rstrip('/') if p.url else '' %}
     <a href="{{ p.permalink }}"
-      class="docs-nav-link {% if (page is defined and page and page.url == p.url) %}active{% endif %}">
+      class="docs-nav-link {% if (page is defined and page and current_url == p_url_normalized) %}active{% endif %}"
+      {% if (page is defined and page and current_url == p_url_normalized) %}aria-current="page"{% endif %}>
       {{ display_title }}
     </a>
     {% endif %}

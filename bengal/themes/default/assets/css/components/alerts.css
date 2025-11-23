@@ -1,0 +1,85 @@
+/**
+ * Alert Component CSS
+ * Uses semantic tokens for consistent theming
+ */
+
+.alert {
+  padding: var(--space-4) var(--space-5);
+  margin: var(--space-6) 0;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  line-height: var(--leading-relaxed);
+  transition: transform var(--transition-smooth) var(--ease-smooth),
+              box-shadow var(--transition-smooth) var(--ease-smooth);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  will-change: transform, box-shadow;
+}
+
+.alert:hover {
+  transform: translate3d(0, -1px, 0);
+  box-shadow: var(--elevation-card-hover);
+}
+
+/* Alert Variants */
+.alert-info {
+  color: var(--color-alert-info);
+  background-color: var(--color-alert-info-bg);
+  border-color: var(--color-alert-info-border);
+}
+
+.alert-success {
+  color: var(--color-alert-success);
+  background-color: var(--color-alert-success-bg);
+  border-color: var(--color-alert-success-border);
+}
+
+.alert-warning {
+  color: var(--color-alert-warning);
+  background-color: var(--color-alert-warning-bg);
+  border-color: var(--color-alert-warning-border);
+}
+
+.alert-error {
+  color: var(--color-alert-error);
+  background-color: var(--color-alert-error-bg);
+  border-color: var(--color-alert-error-border);
+}
+
+/* Dark Mode Overrides */
+[data-theme="dark"] .alert-info {
+  color: var(--color-info-text);
+  background-color: var(--color-info-bg);
+  border-color: var(--color-info-border);
+}
+
+[data-theme="dark"] .alert-success {
+  color: var(--color-success-text);
+  background-color: var(--color-success-bg);
+  border-color: var(--color-success-border);
+}
+
+[data-theme="dark"] .alert-warning {
+  color: var(--color-warning-text);
+  background-color: var(--color-warning-bg);
+  border-color: var(--color-warning-border);
+}
+
+[data-theme="dark"] .alert-error {
+  color: var(--color-error-text);
+  background-color: var(--color-error-bg);
+  border-color: var(--color-error-border);
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .alert {
+    transition: none;
+    will-change: auto;
+  }
+
+  .alert:hover {
+    transform: none;
+  }
+}
+

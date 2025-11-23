@@ -81,6 +81,20 @@
    --color-info-border: var(--blue-300);
    --color-info-text: var(--blue-900);
 
+   /* Alert-specific semantic tokens (for alert component) */
+   --color-alert-info: var(--color-info-text);
+   --color-alert-info-bg: var(--color-info-bg);
+   --color-alert-info-border: var(--color-info-border);
+   --color-alert-success: var(--color-success-text);
+   --color-alert-success-bg: var(--color-success-bg);
+   --color-alert-success-border: var(--color-success-border);
+   --color-alert-warning: var(--color-warning-text);
+   --color-alert-warning-bg: var(--color-warning-bg);
+   --color-alert-warning-border: var(--color-warning-border);
+   --color-alert-error: var(--color-error-text);
+   --color-alert-error-bg: var(--color-error-bg);
+   --color-alert-error-border: var(--color-error-border);
+
    /* Danger/Error alias (for consistency) */
    --color-danger: var(--red-600);
    --color-danger-bg: var(--red-50);
@@ -159,16 +173,17 @@
    /* Font Sizes (Fluid Typography) */
    --text-xxs: 0.6875rem;
    /* 11px - for badges, captions, micro text */
-   --text-xs: clamp(var(--font-size-12), 0.7rem + 0.2vw, var(--font-size-12));
-   --text-sm: clamp(var(--font-size-14), 0.8rem + 0.3vw, var(--font-size-14));
+   /* Use direct rem values in clamp() for better browser compatibility */
+   --text-xs: clamp(0.75rem, 0.7rem + 0.2vw, 0.75rem);
+   --text-sm: clamp(0.875rem, 0.8rem + 0.3vw, 0.875rem);
    /* Downshift all larger scales by one step to reduce overall size */
-   --text-base: clamp(var(--font-size-14), 0.95rem + 0.3vw, var(--font-size-16));
-   --text-lg: clamp(var(--font-size-16), 1rem + 0.5vw, var(--font-size-18));
-   --text-xl: clamp(var(--font-size-18), 1.1rem + 0.7vw, var(--font-size-20));
-   --text-2xl: clamp(var(--font-size-20), 1.3rem + 1vw, var(--font-size-24));
-   --text-3xl: clamp(var(--font-size-24), 1.5rem + 1.5vw, var(--font-size-30));
-   --text-4xl: clamp(var(--font-size-30), 1.8rem + 2vw, var(--font-size-36));
-   --text-5xl: clamp(var(--font-size-36), 2.5rem + 2.5vw, var(--font-size-48));
+   --text-base: clamp(0.875rem, 0.95rem + 0.3vw, 1rem);
+   --text-lg: clamp(1rem, 1rem + 0.5vw, 1.125rem);
+   --text-xl: clamp(1.125rem, 1.1rem + 0.7vw, 1.25rem);
+   --text-2xl: clamp(1.25rem, 1.3rem + 1vw, 1.5rem);
+   --text-3xl: clamp(1.5rem, 1.5rem + 1.5vw, 1.875rem);
+   --text-4xl: clamp(1.875rem, 1.8rem + 2vw, 2.25rem);
+   --text-5xl: clamp(2.25rem, 2.5rem + 2.5vw, 3rem);
 
    /* Heading Sizes - Increase by one step for better readability */
    --text-heading-1: var(--text-5xl);

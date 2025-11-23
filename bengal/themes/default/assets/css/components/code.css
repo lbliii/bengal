@@ -124,7 +124,7 @@ pre code {
   border: 1px solid rgba(0, 0, 0, 0.1);
   background-color: var(--color-bg-code);
   box-shadow: var(--elevation-card);
-  overflow: hidden;
+  overflow: visible; /* Allow tooltips to overflow */
   transition: box-shadow var(--transition-base);
 }
 
@@ -151,6 +151,7 @@ pre code {
   border: none;
   border-radius: inherit;
   box-shadow: none;
+  overflow: hidden; /* Clip code content to border-radius */
 }
 
 /* Inline code header (positioned absolutely relative to wrapper, not inside scrolling pre) */
