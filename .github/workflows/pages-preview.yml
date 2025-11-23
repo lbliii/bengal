@@ -47,7 +47,7 @@ jobs:
 
       - name: Clean build artifacts and cache
         working-directory: site
-        run: python -m bengal.cli clean --cache --force
+        run: python -m bengal.cli site clean --cache --force
 
       - name: Build site
         working-directory: site
