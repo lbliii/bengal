@@ -14,7 +14,7 @@ assets:
   # Minification refactored: now uses simple, safe minifier that preserves
   # modern CSS features (@layer, nesting, etc.) without transformations
   minify: true
-  fingerprint: true
+  fingerprint: false
 
 features:
   # Enable analytics in production
