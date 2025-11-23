@@ -10,7 +10,7 @@
 .related-posts h2 {
     margin-bottom: var(--space-8);
     font-size: var(--type-h2);
-    font-weight: var(--font-bold);
+    font-weight: var(--weight-bold);
 }
 
 .related-posts-grid {
@@ -52,7 +52,7 @@
 .related-post-card h3 {
     margin: 0 0 var(--space-3) 0;
     font-size: var(--text-lg);
-    font-weight: var(--font-semibold);
+    font-weight: var(--weight-semibold);
 }
 
 .related-post-card h3 a {

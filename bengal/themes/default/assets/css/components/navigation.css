@@ -65,7 +65,7 @@
 }
 
 .nav-title {
-  font-weight: var(--font-semibold);
+  font-weight: var(--weight-semibold);
   color: var(--color-primary);
 }
 

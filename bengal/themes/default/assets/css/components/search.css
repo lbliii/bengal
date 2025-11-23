@@ -108,7 +108,7 @@
 .search__submit {
   padding: 0.875rem 1.5rem;
   font-size: var(--text-body-small);
-  font-weight: var(--font-weight-medium);
+  font-weight: var(--weight-medium);
   color: var(--color-text-inverse);
   background-color: var(--color-primary);
   border: none;
@@ -200,7 +200,7 @@
 
 .search__result-title {
   font-size: var(--text-body-small);
-  font-weight: var(--font-weight-medium);
+  font-weight: var(--weight-medium);
   color: var(--color-text-primary);
   margin: 0;
 }
@@ -217,7 +217,7 @@
 
 .search__result-highlight {
   background-color: rgba(255, 215, 0, 0.3);
-  font-weight: var(--font-weight-semibold);
+  font-weight: var(--weight-semibold);
   padding: 0 0.125rem;
   border-radius: 2px;
 }
@@ -439,7 +439,7 @@
 .tip-card h3 {
   margin: 0;
   font-size: var(--text-body-small);
-  font-weight: var(--font-weight-semibold);
+  font-weight: var(--weight-semibold);
   color: var(--color-text-primary);
 }
 
@@ -492,7 +492,7 @@
 .popular-searches h2 {
   margin: 0 0 1.5rem 0;
   font-size: var(--text-lg);
-  font-weight: var(--font-weight-semibold);
+  font-weight: var(--weight-semibold);
   color: var(--color-text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -512,7 +512,7 @@
   border: 1px solid var(--color-border);
   border-radius: var(--border-radius-full);
   font-size: var(--text-body-small);
-  font-weight: var(--font-weight-medium);
+  font-weight: var(--weight-medium);
   color: var(--color-text-primary);
   text-decoration: none;
   transition: all var(--transition-fast);

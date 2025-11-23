@@ -109,7 +109,7 @@
 
 .timeline-title {
     font-size: var(--text-2xl);
-    font-weight: var(--font-bold);
+    font-weight: var(--weight-bold);
     margin: 0 0 var(--space-1) 0;
     color: var(--color-text-primary);
 }
@@ -137,7 +137,7 @@
     font-size: var(--text-base);
     color: var(--color-text-tertiary);
     margin: 0;
-    font-weight: var(--font-medium);
+    font-weight: var(--weight-medium);
 }
 
 .timeline-meta {
@@ -150,7 +150,7 @@
 }
 
 .timeline-date {
-    font-weight: var(--font-medium);
+    font-weight: var(--weight-medium);
     color: var(--color-text-secondary);
 }
 
@@ -159,7 +159,7 @@
     padding: var(--space-1) var(--space-3);
     border-radius: var(--radius-full);
     font-size: var(--text-xs);
-    font-weight: var(--font-semibold);
+    font-weight: var(--weight-semibold);
     text-transform: uppercase;
     letter-spacing: 0.05em;
 }
@@ -231,7 +231,7 @@
 
 .category-title {
     font-size: var(--text-lg);
-    font-weight: var(--font-semibold);
+    font-weight: var(--weight-semibold);
     margin: 0 0 var(--space-3) 0;
     color: var(--color-text-primary);
     display: flex;
@@ -279,7 +279,7 @@
     padding: var(--space-2) var(--space-4);
     color: var(--color-primary);
     text-decoration: none;
-    font-weight: var(--font-medium);
+    font-weight: var(--weight-medium);
     border: 1px solid var(--color-primary);
     border-radius: var(--radius-md);
     transition: all var(--transition-smooth) var(--ease-smooth);
@@ -325,7 +325,7 @@
 
 .release-header h1 {
     font-size: var(--text-4xl);
-    font-weight: var(--font-bold);
+    font-weight: var(--weight-bold);
     margin: 0 0 var(--space-3) 0;
     color: var(--color-text-primary);
 }
@@ -334,7 +334,7 @@
     font-size: var(--text-xl);
     color: var(--color-text-secondary);
     margin: 0 0 var(--space-4) 0;
-    font-weight: var(--font-medium);
+    font-weight: var(--weight-medium);
 }
 
 .release-meta {
@@ -347,7 +347,7 @@
 .release-date {
     font-size: var(--text-base);
     color: var(--color-text-secondary);
-    font-weight: var(--font-medium);
+    font-weight: var(--weight-medium);
 }
 
 .release-summary {
@@ -396,7 +396,7 @@
     background: var(--color-bg-secondary);
     color: var(--color-text-primary);
     text-decoration: none;
-    font-weight: var(--font-medium);
+    font-weight: var(--weight-medium);
     border: 1px solid var(--color-border-light);
     border-radius: var(--radius-md);
     transition: all var(--transition-smooth) var(--ease-smooth);

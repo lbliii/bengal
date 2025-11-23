@@ -17,7 +17,7 @@
 
 .empty-state__code {
     font-size: 120px;
-    font-weight: var(--font-extrabold);
+    font-weight: var(--weight-extrabold);
     line-height: 1;
     color: var(--color-primary);
     opacity: 0.2;
@@ -28,7 +28,7 @@
 
 .empty-state__title {
     font-size: var(--text-4xl);
-    font-weight: var(--font-bold);
+    font-weight: var(--weight-bold);
     color: var(--color-text-primary);
     margin: 0 0 var(--space-4) 0;
     animation: slideUp 0.5s var(--ease-smooth) 0.2s both;
@@ -70,7 +70,7 @@
 
 .empty-state__suggestions h2 {
     font-size: var(--text-xl);
-    font-weight: var(--font-semibold);
+    font-weight: var(--weight-semibold);
     margin: 0 0 var(--space-4) 0;
     color: var(--color-text-primary);
 }
@@ -92,7 +92,7 @@
     content: '→';
     margin-inline-end: var(--space-2); /* Changed from margin-right */
     color: var(--color-primary);
-    font-weight: var(--font-bold);
+    font-weight: var(--weight-bold);
     transition: transform var(--transition-fast) var(--ease-out);
 }
 

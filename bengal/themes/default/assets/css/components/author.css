@@ -44,7 +44,7 @@
 .author-bio h3 {
     margin: 0 0 var(--space-2) 0;
     font-size: var(--text-xl);
-    font-weight: var(--font-bold);
+    font-weight: var(--weight-bold);
     color: var(--color-text-primary);
     transition: color var(--transition-fast) var(--ease-out);
 }

@@ -13,7 +13,7 @@
 
 .browser-header h1 {
   font-size: var(--text-5xl);
-  font-weight: var(--font-bold);
+  font-weight: var(--weight-bold);
   color: var(--color-text-primary);
   margin: 0 0 var(--space-2) 0;
 }
@@ -47,7 +47,7 @@
 
 .browser-stats strong {
   color: var(--color-primary);
-  font-weight: var(--font-bold);
+  font-weight: var(--weight-bold);
 }
 
 /* Layout Toggle */
@@ -65,7 +65,7 @@
   border-radius: var(--radius-sm);
   cursor: pointer;
   font-size: var(--text-sm);
-  font-weight: var(--font-medium);
+  font-weight: var(--weight-medium);
   color: var(--color-text-primary);
   transition: all var(--transition-fast) var(--ease-out);
 }
@@ -137,7 +137,7 @@
 .category-title {
   margin: 0;
   font-size: var(--text-2xl);
-  font-weight: var(--font-bold);
+  font-weight: var(--weight-bold);
 }
 
 .category-title a {
@@ -153,7 +153,7 @@
 .category-count {
   font-size: var(--text-sm);
   color: var(--color-text-tertiary);
-  font-weight: var(--font-normal);
+  font-weight: var(--weight-normal);
 }
 
 /* Category Meta */
@@ -180,7 +180,7 @@
 
 .recent-title {
   font-size: var(--text-sm);
-  font-weight: var(--font-semibold);
+  font-weight: var(--weight-semibold);
   color: var(--color-text-secondary);
   margin: 0 0 var(--space-2) 0;
   text-transform: uppercase;
@@ -223,7 +223,7 @@
   font-size: var(--text-xs);
   color: var(--color-primary);
   text-decoration: none;
-  font-weight: var(--font-medium);
+  font-weight: var(--weight-medium);
 }
 
 .view-all:hover {
@@ -239,7 +239,7 @@
 
 .category-index h3 {
   font-size: var(--text-2xl);
-  font-weight: var(--font-bold);
+  font-weight: var(--weight-bold);
   color: var(--color-text-primary);
   margin: 0 0 var(--space-6) 0;
   text-align: center;
@@ -260,7 +260,7 @@
 .letter {
   display: block;
   font-size: var(--text-xl);
-  font-weight: var(--font-bold);
+  font-weight: var(--weight-bold);
   color: var(--color-primary);
   margin-bottom: var(--space-2);
 }

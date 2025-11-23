@@ -124,11 +124,13 @@ class Renderer:
 
         # Add section context for reference documentation types, doc types, and index pages
         # This allows manual reference pages, doc pages, and section index pages to access section data
+        # NOTE: Exclude tag and tag-index pages - they get their context from _add_generated_page_context
         page_type = page.metadata.get("type")
         is_index_page = page.source_path.stem in ("_index", "index")
 
         if (
-            hasattr(page, "_section")
+            page_type not in ("tag", "tag-index")  # Exclude tag pages - they have their own context
+            and hasattr(page, "_section")
             and page._section
             and (
                 page_type

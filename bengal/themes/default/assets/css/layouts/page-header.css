@@ -28,7 +28,7 @@
 /* Reuse prose heading styles - inherit font properties, adjust margins for header context */
 .page-header h1 {
   font-size: var(--type-h1);
-  font-weight: var(--font-extrabold);
+  font-weight: var(--weight-extrabold);
   line-height: 1.2;
   letter-spacing: var(--letter-spacing-tighter);
   margin: 0 0 var(--space-3) 0; /* Tighter bottom margin for headers */
@@ -36,7 +36,7 @@
 
 .page-header h2 {
   font-size: var(--type-h2);
-  font-weight: var(--font-bold);
+  font-weight: var(--weight-bold);
   line-height: var(--type-leading-heading);
   letter-spacing: var(--letter-spacing-tight);
   margin: 0 0 var(--space-2) 0;
@@ -45,7 +45,7 @@
 
 .page-header h3 {
   font-size: var(--type-h3);
-  font-weight: var(--font-semibold);
+  font-weight: var(--weight-semibold);
   line-height: var(--type-leading-heading);
   margin: 0 0 var(--space-2) 0;
 }

@@ -78,7 +78,7 @@ select:focus-visible {
   padding: 0.75rem 1rem;
   background: var(--color-primary);
   color: var(--color-text-inverse);
-  font-weight: var(--font-weight-semibold);
+  font-weight: var(--weight-semibold);
   text-decoration: none;
   border-radius: 0 0 var(--border-radius-medium) 0;
   box-shadow: var(--elevation-high);

@@ -10,7 +10,7 @@
 .popular-tags-widget h3 {
   margin: 0 0 1rem 0;
   font-size: var(--text-lg);
-  font-weight: var(--font-semibold);
+  font-weight: var(--weight-semibold);
   color: var(--color-text-primary);
 }
 
@@ -52,7 +52,7 @@
   color: var(--color-text-inverse);
   border-radius: var(--radius-full);
   font-size: 0.75rem;
-  font-weight: var(--font-semibold);
+  font-weight: var(--weight-semibold);
 }
 
 .tag-bubble:hover .tag-count {
@@ -72,7 +72,7 @@
 .random-posts-widget h3 {
   margin: 0 0 1rem 0;
   font-size: var(--text-base);
-  font-weight: var(--font-semibold);
+  font-weight: var(--weight-semibold);
   color: var(--color-text-primary);
 }
 
@@ -95,7 +95,7 @@
 .random-post-item h4 {
   margin: 0 0 0.25rem 0;
   font-size: var(--text-sm);
-  font-weight: var(--font-medium);
+  font-weight: var(--weight-medium);
   line-height: 1.4;
 }
 
@@ -138,13 +138,13 @@
   display: block;
   font-size: var(--text-2xl);
   color: var(--color-primary);
-  font-weight: var(--font-bold);
+  font-weight: var(--weight-bold);
 }
 
 .subsections h2 {
   margin: 0 0 1rem 0;
   font-size: var(--type-h2);
-  font-weight: var(--font-semibold);
+  font-weight: var(--weight-semibold);
 }
 
 .subsection-grid {
@@ -184,7 +184,7 @@
 .subsection-card h3 {
   margin: 0 0 0.5rem 0;
   font-size: var(--text-lg);
-  font-weight: var(--font-semibold);
+  font-weight: var(--weight-semibold);
 }
 
 .subsection-card h3 a {
@@ -205,7 +205,7 @@
 .subsection-meta {
   font-size: var(--text-xs);
   color: var(--color-text-muted);
-  font-weight: var(--font-medium);
+  font-weight: var(--weight-medium);
 }
 
 /* Featured Posts Section */
@@ -216,7 +216,7 @@
 .section-subtitle {
   margin: 0 0 1.5rem 0;
   font-size: var(--text-xl);
-  font-weight: var(--font-semibold);
+  font-weight: var(--weight-semibold);
   color: var(--color-text-primary);
   padding-bottom: 0.5rem;
   border-bottom: 2px solid var(--color-primary);
@@ -283,7 +283,7 @@
 .child-item-title {
   margin: 0;
   font-size: var(--text-sm);
-  font-weight: var(--font-semibold);
+  font-weight: var(--weight-semibold);
   line-height: 1.2;
 }
 
@@ -316,7 +316,7 @@
   padding: 0.125rem 0.375rem;
   background: var(--color-bg-secondary);
   border-radius: var(--radius-sm);
-  font-weight: var(--font-medium);
+  font-weight: var(--weight-medium);
   font-size: 0.6875rem;
 }
 

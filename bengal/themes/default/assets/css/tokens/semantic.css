@@ -162,72 +162,79 @@
     SEMANTIC TYPOGRAPHY
     ============================================ */
 
-   /* Font Families */
-   --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Segoe UI Variable',
-      'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans',
-      'Droid Sans', 'Helvetica Neue', system-ui, sans-serif;
-   --font-serif: Georgia, Cambria, 'Times New Roman', Times, serif;
-   --font-mono: 'Consolas', 'Monaco', 'SF Mono', 'JetBrains Mono',
-      'Fira Code', 'Cascadia Code', 'Courier New', monospace;
+   /**
+    * Typography tokens now reference the new typography.css system.
+    * See tokens/typography.css for the source of truth.
+    */
 
-   /* Font Sizes (Fluid Typography) */
-   --text-xxs: 0.6875rem;
-   /* 11px - for badges, captions, micro text */
-   /* Use direct rem values in clamp() for better browser compatibility */
-   --text-xs: clamp(0.75rem, 0.7rem + 0.2vw, 0.75rem);
-   --text-sm: clamp(0.875rem, 0.8rem + 0.3vw, 0.875rem);
-   /* Downshift all larger scales by one step to reduce overall size */
-   --text-base: clamp(0.875rem, 0.95rem + 0.3vw, 1rem);
-   --text-lg: clamp(1rem, 1rem + 0.5vw, 1.125rem);
-   --text-xl: clamp(1.125rem, 1.1rem + 0.7vw, 1.25rem);
-   --text-2xl: clamp(1.25rem, 1.3rem + 1vw, 1.5rem);
-   --text-3xl: clamp(1.5rem, 1.5rem + 1.5vw, 1.875rem);
-   --text-4xl: clamp(1.875rem, 1.8rem + 2vw, 2.25rem);
-   --text-5xl: clamp(2.25rem, 2.5rem + 2.5vw, 3rem);
+   /* Font Families - Reference new typography tokens */
+   --font-sans: var(--font-family-sans);
+   --font-serif: var(--font-family-serif);
+   --font-mono: var(--font-family-mono);
 
-   /* Heading Sizes - Increase by one step for better readability */
-   --text-heading-1: var(--text-5xl);
-   /* 36-48px */
-   --text-heading-2: var(--text-4xl);
-   /* 36-48px */
-   --text-heading-3: var(--text-3xl);
-   /* 30-36px */
-   --text-heading-4: var(--text-2xl);
-   /* 24-30px */
-   --text-heading-5: var(--text-xl);
-   /* 20-24px */
-   --text-heading-6: var(--text-lg);
-   /* 18-20px */
+   /* Font Sizes - Reference new typography tokens */
+   --text-xs: var(--font-size-xs);
+   --text-sm: var(--font-size-sm);
+   --text-base: var(--font-size-base);
+   --text-lg: var(--font-size-lg);
+   --text-xl: var(--font-size-xl);
+   --text-2xl: var(--font-size-2xl);
+   --text-3xl: var(--font-size-3xl);
+   --text-4xl: var(--font-size-4xl);
+   --text-5xl: var(--font-size-5xl);
+   --text-6xl: var(--font-size-6xl);
+   --text-xxs: var(--font-size-xs); /* Legacy alias */
+
+   /* Semantic Text Sizes */
+   --text-body: var(--font-size-base);
+   --text-body-sm: var(--font-size-sm);
+   --text-body-lg: var(--font-size-lg);
+   --text-caption: var(--font-size-xs);
+   --text-code: var(--font-size-sm);
+   --text-display: var(--font-size-6xl);
+   --text-lead: var(--font-size-xl);
+   --text-label: var(--font-size-sm);
+   --text-button: var(--font-size-sm);
+   --text-link: var(--font-size-base);
+
+   /* Heading Sizes - Semantic mappings */
+   --text-h1: var(--font-size-5xl);
+   --text-h2: var(--font-size-4xl);
+   --text-h3: var(--font-size-3xl);
+   --text-h4: var(--font-size-2xl);
+   --text-h5: var(--font-size-xl);
+   --text-h6: var(--font-size-lg);
+
+   --text-heading-1: var(--text-h1);
+   --text-heading-2: var(--text-h2);
+   --text-heading-3: var(--text-h3);
+   --text-heading-4: var(--text-h4);
+   --text-heading-5: var(--text-h5);
+   --text-heading-6: var(--text-h6);
 
    /* Role-based Type Tokens (Content) */
-   --type-display: var(--text-5xl);
-   --type-h1: var(--text-heading-1);
-   --type-h2: var(--text-heading-2);
-   --type-h3: var(--text-heading-3);
-   --type-h4: var(--text-heading-4);
-   --type-h5: var(--text-heading-5);
-   --type-h6: var(--text-heading-6);
+   --type-display: var(--text-display);
+   --type-h1: var(--text-h1);
+   --type-h2: var(--text-h2);
+   --type-h3: var(--text-h3);
+   --type-h4: var(--text-h4);
+   --type-h5: var(--text-h5);
+   --type-h6: var(--text-h6);
 
-   --type-body: var(--text-base);
-   --type-body-small: var(--text-sm);
-   --type-caption: var(--text-xs);
-   --type-code: var(--text-sm);
+   --type-body: var(--text-body);
+   --type-body-small: var(--text-body-sm);
+   --type-caption: var(--text-caption);
+   --type-code: var(--text-code);
 
    /* Role-based Type Tokens (UI/Components) */
    --type-ui-title: var(--text-2xl);
    --type-ui-subtitle: var(--text-lg);
-   --type-ui-body: var(--text-base);
-   --type-ui-meta: var(--text-sm);
-   --type-ui-button: var(--text-sm);
-   --type-ui-link: var(--text-sm);
+   --type-ui-body: var(--text-body);
+   --type-ui-meta: var(--text-body-sm);
+   --type-ui-button: var(--text-button);
+   --type-ui-link: var(--text-link);
 
-   /* Body Text */
-   --text-body: var(--text-base);
-   --text-body-small: var(--text-sm);
-   --text-caption: var(--text-xs);
-   --text-code: var(--text-xs);
-
-   /* Line Heights (aliases for foundation tokens) */
+   /* Line Heights - Reference foundation tokens */
    --leading-none: var(--line-height-none);
    --leading-tight: var(--line-height-tight);
    --leading-snug: var(--line-height-snug);
@@ -235,14 +242,20 @@
    --leading-relaxed: var(--line-height-relaxed);
    --leading-loose: var(--line-height-loose);
 
+   /* Semantic line height aliases */
+   --leading-heading: var(--line-height-tight);
+   --leading-subheading: var(--line-height-snug);
+   --leading-body: var(--line-height-relaxed);
+
    /* Line height semantic alias */
-   --line-height-relaxed: var(--line-height-relaxed);
+   --line-height-relaxed: var(--leading-relaxed);
 
    /* Role-based leading */
-   --type-leading-heading: var(--leading-tight);
-   --type-leading-body: var(--leading-relaxed);
+   --type-leading-heading: var(--leading-heading);
+   --type-leading-body: var(--leading-body);
 
-   /* Letter Spacing (aliases for foundation tokens) */
+   /* Letter Spacing - Reference foundation tokens */
+   --tracking-tighter: var(--letter-spacing-tighter);
    --tracking-tight: var(--letter-spacing-tight);
    --tracking-normal: var(--letter-spacing-normal);
    --tracking-wide: var(--letter-spacing-wide);
@@ -250,21 +263,28 @@
    --tracking-widest: var(--letter-spacing-widest);
 
    /* Letter spacing semantic aliases */
-   --letter-spacing-tighter: var(--letter-spacing-tighter);
-   --letter-spacing-tight: var(--letter-spacing-tight);
-   --letter-spacing-wide: var(--letter-spacing-wide);
+   --letter-spacing-tighter: var(--tracking-tighter);
+   --letter-spacing-tight: var(--tracking-tight);
+   --letter-spacing-wide: var(--tracking-wide);
 
-   /* Font Weights (aliases for foundation tokens) */
-   --font-light: var(--font-weight-light);
-   --font-normal: var(--font-weight-normal);
-   --font-medium: var(--font-weight-medium);
-   --font-semibold: var(--font-weight-semibold);
-   --font-bold: var(--font-weight-bold);
-   --font-extrabold: var(--font-weight-extrabold);
+   /* Font Weights - Reference foundation tokens */
+   --weight-light: var(--font-weight-light);
+   --weight-normal: var(--font-weight-normal);
+   --weight-medium: var(--font-weight-medium);
+   --weight-semibold: var(--font-weight-semibold);
+   --weight-bold: var(--font-weight-bold);
+   --weight-extrabold: var(--font-weight-extrabold);
+   --weight-black: var(--font-weight-black);
+
+   /* Semantic weight aliases */
+   --weight-heading: var(--weight-bold);
+   --weight-body: var(--weight-normal);
+   --weight-strong: var(--weight-semibold);
+
 
    /* Role-based weights */
-   --type-weight-strong: var(--font-bold);
-   --type-weight-medium: var(--font-medium);
+   --type-weight-strong: var(--weight-strong);
+   --type-weight-medium: var(--weight-medium);
 
    /* ============================================
      SEMANTIC ELEVATION (Shadows)

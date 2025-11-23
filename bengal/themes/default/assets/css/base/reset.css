@@ -132,8 +132,7 @@ h4,
 h5,
 h6 {
   margin: 0;
-  font: inherit;
-  /* size/weight defined in typography (.prose) or component classes */
+  /* size/weight defined in typography.css */
   line-height: inherit;
   color: inherit;
 }
@@ -167,7 +166,7 @@ a:focus-visible {
 
 strong,
 b {
-  font-weight: var(--font-bold);
+  font-weight: var(--weight-bold);
 }
 
 em,

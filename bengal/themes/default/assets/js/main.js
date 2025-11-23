@@ -90,8 +90,10 @@
         const langLabel = document.createElement('span');
         langLabel.className = 'code-language';
         langLabel.textContent = language;
-        langLabel.style.fontSize = '0.75rem';
-        langLabel.style.fontWeight = '600';
+        // Use CSS custom properties via getComputedStyle
+        const root = getComputedStyle(document.documentElement);
+        langLabel.style.fontSize = root.getPropertyValue('--text-caption').trim() || '0.75rem';
+        langLabel.style.fontWeight = root.getPropertyValue('--weight-semibold').trim() || '600';
         langLabel.style.color = 'var(--color-text-muted)';
         langLabel.style.textTransform = 'uppercase';
         langLabel.style.letterSpacing = '0.05em';

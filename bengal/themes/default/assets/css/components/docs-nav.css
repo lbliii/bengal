@@ -12,7 +12,7 @@
 
 .docs-nav-title {
   font-size: var(--text-lg);
-  font-weight: var(--font-bold);
+  font-weight: var(--weight-bold);
   color: var(--color-text-primary);
   text-decoration: none;
   transition: color var(--transition-fast);
@@ -157,7 +157,7 @@
   flex: 1;
   padding: 0.5rem 0.75rem 0.5rem 0.25rem;
   font-size: var(--text-sm);
-  font-weight: var(--font-bold);
+  font-weight: var(--weight-bold);
   color: var(--color-text-primary);
   text-decoration: none;
   border-radius: var(--border-radius-small);
@@ -304,7 +304,7 @@
 .docs-nav-link.active,
 .docs-nav-link[aria-current="page"] {
   color: var(--color-primary);
-  font-weight: var(--font-weight-medium);
+  font-weight: var(--weight-medium);
   background: var(--color-primary-light);
   border-inline-start-color: var(--color-primary);
   /* Light mode: Neumorphic with primary tint */
@@ -330,7 +330,7 @@
 /* Active trail (parent of active page) */
 .docs-nav-link.active-trail {
   color: var(--color-text-primary);
-  font-weight: var(--font-weight-medium);
+  font-weight: var(--weight-medium);
 }
 
 /* Nested sections */

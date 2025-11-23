@@ -32,7 +32,7 @@
 
 .resume-name {
     font-size: var(--text-4xl);
-    font-weight: var(--font-bold);
+    font-weight: var(--weight-bold);
     margin: 0 0 var(--space-2) 0;
     color: var(--color-text-primary);
 }
@@ -128,7 +128,7 @@
 
 .resume-section .section-title {
     font-size: var(--text-2xl);
-    font-weight: var(--font-bold);
+    font-weight: var(--weight-bold);
     color: var(--color-text-primary);
     margin: 0 0 var(--space-6) 0;
     padding-bottom: var(--space-2);
@@ -203,7 +203,7 @@
 
 .timeline-title {
     font-size: var(--text-lg);
-    font-weight: var(--font-semibold);
+    font-weight: var(--weight-semibold);
     margin: 0 0 var(--space-1) 0;
     color: var(--color-text-primary);
 }
@@ -231,7 +231,7 @@
     font-size: var(--text-base);
     color: var(--color-text-tertiary);
     margin: 0;
-    font-weight: var(--font-medium);
+    font-weight: var(--weight-medium);
 }
 
 .timeline-meta {
@@ -245,7 +245,7 @@
 }
 
 .timeline-date {
-    font-weight: var(--font-medium);
+    font-weight: var(--weight-medium);
     color: var(--color-text-secondary);
 }
 
@@ -288,7 +288,7 @@
     color: var(--color-primary);
     border-radius: var(--radius-sm);
     font-size: var(--text-xs);
-    font-weight: var(--font-medium);
+    font-weight: var(--weight-medium);
     border: 1px solid var(--color-border-light);
 }
 
@@ -327,7 +327,7 @@
 
 .skill-category {
     font-size: var(--text-base);
-    font-weight: var(--font-semibold);
+    font-weight: var(--weight-semibold);
     color: var(--color-text-primary);
     margin: 0 0 var(--space-3) 0;
 }
@@ -346,7 +346,7 @@
     border: 1px solid var(--color-border);
     border-radius: var(--radius-md);
     font-size: var(--text-sm);
-    font-weight: var(--font-medium);
+    font-weight: var(--weight-medium);
     transition: transform var(--transition-fast) var(--ease-out),
                 background var(--transition-fast) var(--ease-out),
                 border-color var(--transition-fast) var(--ease-out);
@@ -384,7 +384,7 @@
     text-decoration: none;
     border-radius: var(--radius-md);
     font-size: var(--text-sm);
-    font-weight: var(--font-medium);
+    font-weight: var(--weight-medium);
     transition: background var(--transition-smooth) var(--ease-smooth),
                 transform var(--transition-smooth) var(--ease-smooth),
                 box-shadow var(--transition-smooth) var(--ease-smooth);
@@ -429,7 +429,7 @@
 
 .certification-name {
     font-size: var(--text-base);
-    font-weight: var(--font-semibold);
+    font-weight: var(--weight-semibold);
     margin: 0 0 var(--space-2) 0;
     color: var(--color-text-primary);
 }
@@ -451,7 +451,7 @@
     color: var(--color-primary);
     text-decoration: none;
     font-size: var(--text-sm);
-    font-weight: var(--font-medium);
+    font-weight: var(--weight-medium);
     transition: color var(--transition-smooth) var(--ease-smooth),
                 transform var(--transition-fast) var(--ease-out);
     touch-action: manipulation;
@@ -502,7 +502,7 @@
 
 .award-name {
     font-size: var(--text-base);
-    font-weight: var(--font-semibold);
+    font-weight: var(--weight-semibold);
     margin: 0 0 var(--space-2) 0;
     color: var(--color-text-primary);
 }
@@ -546,7 +546,7 @@
 }
 
 .language-name {
-    font-weight: var(--font-semibold);
+    font-weight: var(--weight-semibold);
     color: var(--color-text-primary);
 }
 
@@ -602,7 +602,7 @@
     .resume {
         max-width: 100%;
         padding: 0;
-        font-size: 11pt;
+        font-size: var(--text-body);
     }
 
     .resume-section {

@@ -3,8 +3,8 @@
 .badge {
   display: inline-block;
   padding: 0.25rem 0.75rem;
-  font-size: 0.75rem;
-  font-weight: var(--font-semibold);
+  font-size: var(--text-caption);
+  font-weight: var(--weight-semibold);
   line-height: 1;
   border-radius: var(--radius-full);
   text-transform: uppercase;
@@ -215,6 +215,6 @@ body.draft-page::before {
   color: white;
   padding: 0.5rem 1rem;
   border-radius: var(--radius-md);
-  font-weight: bold;
+  font-weight: var(--weight-bold);
   z-index: var(--z-dropdown);
 }

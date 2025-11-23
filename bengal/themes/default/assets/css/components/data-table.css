@@ -34,7 +34,7 @@
 .bengal-data-table-error strong {
   display: block;
   margin-bottom: var(--space-xs, 0.25rem);
-  font-weight: var(--font-semibold);
+  font-weight: var(--weight-semibold);
 }
 
 .bengal-data-table-error small {
@@ -84,7 +84,7 @@
 .bengal-data-table .tabulator-header {
   background: var(--color-bg-secondary);
   border-bottom: 2px solid var(--color-border);
-  font-weight: var(--font-semibold);
+  font-weight: var(--weight-semibold);
   color: var(--color-text-primary);
 }
 

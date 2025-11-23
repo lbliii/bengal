@@ -93,7 +93,7 @@ footer .container {
 .footer-section h3 {
   margin-bottom: var(--space-4);
   font-size: var(--text-base);
-  font-weight: var(--font-semibold);
+  font-weight: var(--weight-semibold);
   color: var(--color-text-primary);
 }
 
@@ -208,7 +208,7 @@ footer .container {
 .cat-body,
 .cat-head {
   display: inline-block;
-  font-weight: var(--font-light);
+  font-weight: var(--weight-light);
   /* Lighter weight prevents thickness at small sizes */
 }
 

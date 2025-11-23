@@ -50,7 +50,7 @@
   display: block;
   margin-bottom: var(--space-2);
   font-size: var(--text-sm);
-  font-weight: var(--font-weight-medium);
+  font-weight: var(--weight-medium);
   color: var(--color-text-primary);
 }
 
@@ -132,7 +132,7 @@
   margin-top: var(--space-1);
   font-size: var(--text-xs);
   color: var(--color-error);
-  font-weight: var(--font-weight-medium);
+  font-weight: var(--weight-medium);
 }
 
 .form-success {

@@ -56,7 +56,7 @@ header .container {
 
 .logo {
   font-size: var(--text-xl);
-  font-weight: var(--font-bold);
+  font-weight: var(--weight-bold);
   color: var(--color-text-primary);
   text-decoration: none;
   transition: color var(--transition-fast) var(--ease-out);
@@ -110,7 +110,7 @@ header .container {
   gap: var(--space-2);
   padding: var(--space-2) var(--space-4);
   font-size: var(--text-sm);
-  font-weight: var(--font-medium);
+  font-weight: var(--weight-medium);
   color: var(--color-text-secondary);
   text-decoration: none;
   border-radius: var(--radius-md);
@@ -132,7 +132,7 @@ header .container {
 .nav-main li.active>a {
   color: var(--color-primary);
   background-color: var(--color-primary-light);
-  font-weight: var(--font-semibold);
+  font-weight: var(--weight-semibold);
 }
 
 .nav-main li.active-trail>a {
@@ -202,7 +202,7 @@ header .container {
 .nav-main .submenu li.active>a {
   color: var(--color-primary);
   background-color: var(--color-primary-light);
-  font-weight: var(--font-semibold);
+  font-weight: var(--weight-semibold);
 }
 
 /* ============================================
@@ -317,7 +317,7 @@ header .container {
   display: block;
   padding: var(--space-3) var(--space-4);
   font-size: var(--text-lg);
-  font-weight: var(--font-medium);
+  font-weight: var(--weight-medium);
   color: var(--color-text-primary);
   text-decoration: none;
   border-radius: var(--radius-md);
@@ -584,7 +584,7 @@ header .container {
 .theme-dropdown__menu button.active {
   background: var(--color-primary-light);
   color: var(--color-primary);
-  font-weight: var(--font-medium);
+  font-weight: var(--weight-medium);
   position: relative;
 }
 

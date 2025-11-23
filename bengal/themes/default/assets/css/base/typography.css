@@ -1,170 +1,159 @@
 /**
- * Bengal SSG Default Theme
- * Typography Styles
+ * Bengal SSG - Typography Styles
+ * 
+ * Clean typography system using the new token system.
+ * Typography applies globally - no .prose dependency.
+ * .prose is only used for layout (max-width, spacing).
  */
 
 /* ============================================
-   PROSE / CONTENT TYPOGRAPHY
+   BASE TYPOGRAPHY
    ============================================ */
 
-.prose {
-  max-width: var(--prose-width);
+html {
+  font-family: var(--font-family-base);
+  font-size: 100%; /* 16px base */
+  line-height: var(--leading-body);
   color: var(--color-text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-.prose>*+* {
-  margin-top: var(--space-6);
-}
-
-/* Headings - All in @layer base to prevent override issues */
-@layer base {
-  .prose h1,
-  .prose h2,
-  .prose h3,
-  .prose h4,
-  .prose h5,
-  .prose h6 {
-    margin-top: 1.5em;
-    margin-bottom: 0.5em;
-    font-weight: var(--type-weight-strong);
-    line-height: var(--type-leading-heading);
-    color: var(--color-text-primary);
-    scroll-margin-top: var(--space-20);
-    /* For anchor links */
-    letter-spacing: var(--letter-spacing-tight);
-  }
-
-  .prose h1 {
-    font-size: var(--type-h1);
-    font-weight: var(--font-extrabold);
-    margin-top: 0;
-    margin-bottom: 0.75rem;
-    line-height: 1.2;
-    letter-spacing: var(--letter-spacing-tighter);
-  }
-
-  .prose h2 {
-    font-size: var(--type-h2);
-    font-weight: var(--font-bold);
-    margin-top: 1.75em;
-    margin-bottom: 0.5em;
-    padding-bottom: 0.375rem;
-    border-bottom: 1px solid var(--color-border-light);
-    letter-spacing: var(--letter-spacing-tight);
-  }
-
-  .prose h3 {
-    font-size: var(--type-h3);
-    font-weight: var(--font-semibold);
-    margin-top: 1.5em;
-  }
-
-  .prose h4 {
-    font-size: var(--type-h4);
-    font-weight: var(--font-semibold);
-    margin-top: 1.25em;
-  }
-
-  .prose h5 {
-    font-size: var(--type-h5);
-    font-weight: var(--font-medium);
-    margin-top: 1.25em;
-  }
-
-  .prose h6 {
-    font-size: var(--type-h6);
-    font-weight: var(--font-medium);
-    margin-top: 1.25em;
-    text-transform: uppercase;
-    letter-spacing: var(--letter-spacing-wide);
-    color: var(--color-text-secondary);
-  }
-}
-
-/* Page header styles moved to layouts/page-header.css */
-
-/* Paragraphs */
-.prose p {
-  margin-bottom: 1.25em;
-  line-height: var(--line-height-relaxed);
-  color: var(--color-text-primary);
-}
-
-/* Refined mobile spacing */
-@media (max-width: 640px) {
-  .prose > * + * {
-    margin-top: var(--space-4);  /* Reduced from space-6 */
-  }
-  
-  .prose h1,
-  .prose h2,
-  .prose h3 {
-    margin-top: var(--space-6);  /* Keep headings spaced */
-  }
-  
-  /* Better list spacing */
-  .prose ul,
-  .prose ol {
-    margin: var(--space-4) 0;
-    padding-inline-start: var(--space-6);
-  }
-  
-  /* Better blockquote spacing */
-  .prose blockquote {
-    margin: var(--space-4) 0;
-    padding: var(--space-3);
-  }
-}
-
-.prose p:last-child {
-  margin-bottom: 0;
-}
-
-/* Lead paragraph (first paragraph) */
-.prose>p:first-of-type {
-  font-size: var(--text-lg);
-  color: var(--color-text-secondary);
-  line-height: var(--line-height-relaxed);
-}
-
-/* Explicit lead class for introductory paragraphs */
-.lead,
-.prose .lead {
-  font-size: var(--text-lg);
-  color: var(--color-text-secondary);
-  font-weight: var(--font-normal);
-  line-height: 1.7;
-  letter-spacing: 0.01em;
-  margin-bottom: var(--space-6);
-}
-
-/* Lead in header contexts - add border for visual separation */
-/* .docs-header .lead,
-header .lead {
-  padding-bottom: var(--space-6);
-  border-bottom: 1px solid var(--color-border);
-} */
-
-/* Responsive lead styles */
-@media (max-width: 768px) {
-
-  .lead,
-  .prose .lead {
-    font-size: var(--text-base);
-    padding-bottom: var(--space-4);
-    margin-bottom: var(--space-4);
-  }
+body {
+  font-size: var(--text-body);
+  font-weight: var(--weight-body);
+  line-height: var(--leading-body);
 }
 
 /* ============================================
-   MODERN LINK STYLING
+   HEADINGS
    ============================================ */
 
-/* Base link styles - Modern animated underline */
-.prose a {
-  color: var(--color-text-link);
+h1, h2, h3, h4, h5, h6 {
+  font-weight: var(--weight-heading);
+  line-height: var(--leading-heading);
+  color: var(--color-text-primary);
+  letter-spacing: var(--tracking-tight);
+  scroll-margin-top: var(--space-20);
+}
+
+h1 {
+  font-size: var(--text-h1);
+  font-weight: var(--weight-extrabold);
+  line-height: var(--leading-heading);
+  letter-spacing: var(--tracking-tighter);
+  margin-top: 0;
+  margin-bottom: 0.75rem;
+}
+
+h2 {
+  font-size: var(--text-h2);
+  font-weight: var(--weight-bold);
+  letter-spacing: var(--tracking-tight);
+  margin-top: 1.75em;
+  margin-bottom: 0.5em;
+  padding-bottom: 0.375rem;
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+h3 {
+  font-size: var(--text-h3);
+  font-weight: var(--weight-semibold);
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+}
+
+h4 {
+  font-size: var(--text-h4);
+  font-weight: var(--weight-semibold);
+  margin-top: 1.25em;
+  margin-bottom: 0.5em;
+}
+
+h5 {
+  font-size: var(--text-h5);
+  font-weight: var(--weight-medium);
+  margin-top: 1.25em;
+  margin-bottom: 0.5em;
+}
+
+h6 {
+  font-size: var(--text-h6);
+  font-weight: var(--weight-medium);
+  margin-top: 1.25em;
+  margin-bottom: 0.5em;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+  color: var(--color-text-secondary);
+}
+
+/* ============================================
+   PARAGRAPHS
+   ============================================ */
+
+p {
+  margin-bottom: 1.25em;
+  line-height: var(--leading-body);
+  color: var(--color-text-primary);
+}
+
+p:last-child {
+  margin-bottom: 0;
+}
+
+/* Lead paragraph (first paragraph in article/content) */
+article > p:first-of-type,
+section > p:first-of-type,
+.prose > p:first-of-type {
+  font-size: var(--text-lead);
+  color: var(--color-text-secondary);
+  line-height: var(--leading-body);
+}
+
+/* Explicit lead class */
+.lead {
+  font-size: var(--text-lead);
+  color: var(--color-text-secondary);
+  font-weight: var(--weight-normal);
+  line-height: var(--leading-body);
+  margin-bottom: var(--space-6);
+}
+
+/* ============================================
+   LINKS (Content Only - Not UI Elements)
+   ============================================ */
+
+/* Base link reset - no underline by default */
+a {
   text-decoration: none;
-  /* Animated gradient underline */
+}
+
+/* Exclude UI elements from content link styles */
+nav a,
+header a,
+footer a,
+.button,
+a.button,
+button,
+.btn,
+a.btn,
+.action-bar a,
+.nav-main a,
+.mobile-nav a,
+.tab-nav a,
+.dropdown a,
+.breadcrumb a {
+  background-image: none !important;
+  /* Don't override padding-bottom - let component styles handle it */
+}
+
+/* Content link styles - only in content areas, exclude UI elements */
+article a:not(.button):not(button):not(.btn),
+main a:not(.button):not(button):not(.btn),
+section a:not(.button):not(button):not(.btn),
+.prose a:not(.button):not(button):not(.btn),
+.content a:not(.button):not(button):not(.btn) {
+  color: var(--color-text-link);
   background-image: linear-gradient(
     to right,
     var(--color-primary-light) 0%,
@@ -178,14 +167,17 @@ header .lead {
     color var(--duration-200) var(--ease-out),
     background-size var(--duration-200) var(--ease-out),
     background-position var(--duration-200) var(--ease-out);
-  font-weight: var(--font-medium);
+  font-weight: var(--weight-medium);
   word-break: break-word;
   overflow-wrap: break-word;
   position: relative;
 }
 
-/* Hover state - Animated underline expansion */
-.prose a:hover {
+article a:not(.button):not(button):not(.btn):hover,
+main a:not(.button):not(button):not(.btn):hover,
+section a:not(.button):not(button):not(.btn):hover,
+.prose a:not(.button):not(button):not(.btn):hover,
+.content a:not(.button):not(button):not(.btn):hover {
   color: var(--color-text-link-hover);
   background-size: 100% 2px;
   background-image: linear-gradient(
@@ -195,16 +187,22 @@ header .lead {
   );
 }
 
-/* Focus state - Accessible outline */
-.prose a:focus-visible {
+article a:not(.button):not(button):not(.btn):focus-visible,
+main a:not(.button):not(button):not(.btn):focus-visible,
+section a:not(.button):not(button):not(.btn):focus-visible,
+.prose a:not(.button):not(button):not(.btn):focus-visible,
+.content a:not(.button):not(button):not(.btn):focus-visible {
   outline: 2px solid var(--color-border-focus);
   outline-offset: 2px;
   border-radius: var(--border-radius-small);
-  background-size: 100% 2px; /* Show underline on focus */
+  background-size: 100% 2px;
 }
 
-/* Active state */
-.prose a:active {
+article a:not(.button):not(button):not(.btn):active,
+main a:not(.button):not(button):not(.btn):active,
+section a:not(.button):not(button):not(.btn):active,
+.prose a:not(.button):not(button):not(.btn):active,
+.content a:not(.button):not(button):not(.btn):active {
   color: var(--color-primary-active);
   background-image: linear-gradient(
     to right,
@@ -213,32 +211,65 @@ header .lead {
   );
 }
 
-/* ============================================
-   EXTERNAL LINKS
-   ============================================ */
-
+/* External links (content only) */
 :root {
   --external-link-icon-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none' stroke='%23000' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10 2h2v2M9 9L3 3M11 1H7M11 1v4M11 1L7 5'/%3E%3C/svg%3E");
 }
 
-/* Detect external links (http/https) or target="_blank" */
-/* Note: We detect http/https links. For same-domain detection, add data-external="true" attribute */
+article a[href^="http"]:not([href^="/"]):not([href^="#"]),
+main a[href^="http"]:not([href^="/"]):not([href^="#"]),
+section a[href^="http"]:not([href^="/"]):not([href^="#"]),
 .prose a[href^="http"]:not([href^="/"]):not([href^="#"]),
+.content a[href^="http"]:not([href^="/"]):not([href^="#"]),
+article a[target="_blank"],
+main a[target="_blank"],
+section a[target="_blank"],
 .prose a[target="_blank"],
+.content a[target="_blank"],
+article a[rel*="external"],
+main a[rel*="external"],
+section a[rel*="external"],
 .prose a[rel*="external"],
+.content a[rel*="external"],
+article a[rel*="noopener"]:not([href^="/"]):not([href^="#"]),
+main a[rel*="noopener"]:not([href^="/"]):not([href^="#"]),
+section a[rel*="noopener"]:not([href^="/"]):not([href^="#"]),
 .prose a[rel*="noopener"]:not([href^="/"]):not([href^="#"]),
-.prose a[data-external="true"] {
-  /* External link indicator */
+.content a[rel*="noopener"]:not([href^="/"]):not([href^="#"]),
+article a[data-external="true"],
+main a[data-external="true"],
+section a[data-external="true"],
+.prose a[data-external="true"],
+.content a[data-external="true"] {
   padding-right: 1.2em;
   position: relative;
 }
 
-/* External link icon (opens in new tab indicator) */
+article a[href^="http"]:not([href^="/"]):not([href^="#"])::after,
+main a[href^="http"]:not([href^="/"]):not([href^="#"])::after,
+section a[href^="http"]:not([href^="/"]):not([href^="#"])::after,
 .prose a[href^="http"]:not([href^="/"]):not([href^="#"])::after,
+.content a[href^="http"]:not([href^="/"]):not([href^="#"])::after,
+article a[target="_blank"]::after,
+main a[target="_blank"]::after,
+section a[target="_blank"]::after,
 .prose a[target="_blank"]::after,
+.content a[target="_blank"]::after,
+article a[rel*="external"]::after,
+main a[rel*="external"]::after,
+section a[rel*="external"]::after,
 .prose a[rel*="external"]::after,
+.content a[rel*="external"]::after,
+article a[rel*="noopener"]:not([href^="/"]):not([href^="#"])::after,
+main a[rel*="noopener"]:not([href^="/"]):not([href^="#"])::after,
+section a[rel*="noopener"]:not([href^="/"]):not([href^="#"])::after,
 .prose a[rel*="noopener"]:not([href^="/"]):not([href^="#"])::after,
-.prose a[data-external="true"]::after {
+.content a[rel*="noopener"]:not([href^="/"]):not([href^="#"])::after,
+article a[data-external="true"]::after,
+main a[data-external="true"]::after,
+section a[data-external="true"]::after,
+.prose a[data-external="true"]::after,
+.content a[data-external="true"]::after {
   content: '';
   display: inline-block;
   width: 0.75em;
@@ -254,6 +285,7 @@ header .lead {
   mask-position: center;
   -webkit-mask-size: contain;
   mask-size: contain;
+  mask: var(--external-link-icon-mask-image) no-repeat center / contain;
   opacity: 0.6;
   vertical-align: baseline;
   position: absolute;
@@ -262,22 +294,41 @@ header .lead {
   transition: opacity var(--transition-fast), transform var(--transition-fast);
 }
 
-/* External link icon hover */
+article a[href^="http"]:not([href^="/"]):not([href^="#"]):hover::after,
+main a[href^="http"]:not([href^="/"]):not([href^="#"]):hover::after,
+section a[href^="http"]:not([href^="/"]):not([href^="#"]):hover::after,
 .prose a[href^="http"]:not([href^="/"]):not([href^="#"]):hover::after,
+.content a[href^="http"]:not([href^="/"]):not([href^="#"]):hover::after,
+article a[target="_blank"]:hover::after,
+main a[target="_blank"]:hover::after,
+section a[target="_blank"]:hover::after,
 .prose a[target="_blank"]:hover::after,
+.content a[target="_blank"]:hover::after,
+article a[rel*="external"]:hover::after,
+main a[rel*="external"]:hover::after,
+section a[rel*="external"]:hover::after,
 .prose a[rel*="external"]:hover::after,
+.content a[rel*="external"]:hover::after,
+article a[rel*="noopener"]:not([href^="/"]):not([href^="#"]):hover::after,
+main a[rel*="noopener"]:not([href^="/"]):not([href^="#"]):hover::after,
+section a[rel*="noopener"]:not([href^="/"]):not([href^="#"]):hover::after,
 .prose a[rel*="noopener"]:not([href^="/"]):not([href^="#"]):hover::after,
-.prose a[data-external="true"]:hover::after {
+.content a[rel*="noopener"]:not([href^="/"]):not([href^="#"]):hover::after,
+article a[data-external="true"]:hover::after,
+main a[data-external="true"]:hover::after,
+section a[data-external="true"]:hover::after,
+.prose a[data-external="true"]:hover::after,
+.content a[data-external="true"]:hover::after {
   opacity: 1;
   transform: translate(1px, -1px);
 }
 
-/* ============================================
-   INTERNAL/ANCHOR LINKS
-   ============================================ */
-
-/* Anchor links (same page) - Subtle styling */
-.prose a[href^="#"] {
+/* Anchor links (content only) */
+article a[href^="#"]:not(.button):not(button):not(.btn),
+main a[href^="#"]:not(.button):not(button):not(.btn),
+section a[href^="#"]:not(.button):not(button):not(.btn),
+.prose a[href^="#"]:not(.button):not(button):not(.btn),
+.content a[href^="#"]:not(.button):not(button):not(.btn) {
   color: var(--color-text-secondary);
   background-image: linear-gradient(
     to right,
@@ -286,7 +337,11 @@ header .lead {
   );
 }
 
-.prose a[href^="#"]:hover {
+article a[href^="#"]:not(.button):not(button):not(.btn):hover,
+main a[href^="#"]:not(.button):not(button):not(.btn):hover,
+section a[href^="#"]:not(.button):not(button):not(.btn):hover,
+.prose a[href^="#"]:not(.button):not(button):not(.btn):hover,
+.content a[href^="#"]:not(.button):not(button):not(.btn):hover {
   color: var(--color-text-link);
   background-image: linear-gradient(
     to right,
@@ -295,88 +350,85 @@ header .lead {
   );
 }
 
-/* ============================================
-   SPECIAL LINK TYPES
-   ============================================ */
-
-/* Email links - Same styling as regular links */
-/* File download links - Same styling as regular links */
-/* (Can be extended with icons if needed) */
-
-/* Disabled/broken links (accessibility) */
-.prose a[aria-disabled="true"],
-.prose a[href=""] {
+/* Disabled links */
+a[aria-disabled="true"],
+a[href=""] {
   opacity: 0.5;
   cursor: not-allowed;
   pointer-events: none;
 }
 
-/* Strong & Emphasis */
-.prose strong {
-  font-weight: var(--font-bold);
+/* ============================================
+   TEXT EMPHASIS
+   ============================================ */
+
+strong {
+  font-weight: var(--weight-bold);
   color: var(--color-text-primary);
 }
 
-.prose em {
+em {
   font-style: italic;
 }
 
-/* Lists */
-.prose ul,
-.prose ol {
+/* ============================================
+   LISTS
+   ============================================ */
+
+ul,
+ol {
   margin: var(--space-6) 0;
   padding-inline-start: var(--space-8);
 }
 
-.prose ul {
+ul {
   list-style-type: disc;
 }
 
-.prose ol {
+ol {
   list-style-type: decimal;
 }
 
-.prose li {
+li {
   margin: var(--space-2) 0;
-  line-height: var(--leading-relaxed);
+  line-height: var(--leading-body);
 }
 
-.prose li>ul,
-.prose li>ol {
+li > ul,
+li > ol {
   margin: var(--space-2) 0;
 }
 
 /* Nested lists */
-.prose ul ul,
-.prose ol ul {
+ul ul,
+ol ul {
   list-style-type: circle;
 }
 
-.prose ul ul ul,
-.prose ol ul ul,
-.prose ul ol ul,
-.prose ol ol ul {
+ul ul ul,
+ol ul ul,
+ul ol ul,
+ol ol ul {
   list-style-type: square;
 }
 
-/* Blockquotes */
-.prose blockquote {
+/* ============================================
+   BLOCKQUOTES
+   ============================================ */
+
+blockquote {
   margin: var(--space-6) 0;
   padding: var(--space-3) var(--space-4);
   border-inline-start: 2px solid var(--color-border-light);
   background-color: transparent;
-  border-radius: var(--radius-lg); /* Added rounding! Changed from 0 → 8px */
+  border-radius: var(--radius-lg);
   font-style: italic;
   color: var(--color-text-secondary);
   opacity: 0.9;
-}
-
-/* Auto-apply gradient border to blockquotes */
-.prose blockquote {
   position: relative;
 }
 
-.prose blockquote::before {
+blockquote::before {
   content: '';
   position: absolute;
   inset: 0;
@@ -387,73 +439,76 @@ header .lead {
     linear-gradient(#fff 0 0) content-box, 
     linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
+  mask: 
+    linear-gradient(#fff 0 0) content-box, 
+    linear-gradient(#fff 0 0);
   mask-composite: exclude;
   pointer-events: none;
   opacity: 0.2;
   z-index: -1;
 }
 
-.prose blockquote.gradient-border {
+blockquote.gradient-border {
   border-inline-start: 2px solid var(--color-primary);
 }
 
-.prose blockquote p {
+blockquote p {
   margin: 0 0 var(--space-2) 0;
 }
 
-.prose blockquote p:last-child {
+blockquote p:last-child {
   margin-bottom: 0;
 }
 
-.prose blockquote cite {
+blockquote cite {
   display: block;
   margin-top: var(--space-3);
-  font-size: var(--text-xs);
+  font-size: var(--text-caption);
   font-style: normal;
   color: var(--color-text-tertiary);
   opacity: 0.8;
 }
 
-.prose blockquote cite::before {
+blockquote cite::before {
   content: "— ";
 }
 
-/* Blockquote headers should not have anchor links */
-.prose blockquote h1,
-.prose blockquote h2,
-.prose blockquote h3,
-.prose blockquote h4,
-.prose blockquote h5,
-.prose blockquote h6 {
+blockquote h1,
+blockquote h2,
+blockquote h3,
+blockquote h4,
+blockquote h5,
+blockquote h6 {
   font-style: normal;
   margin-top: var(--space-2);
   margin-bottom: var(--space-2);
 }
 
-/* Code */
-.prose code {
+/* ============================================
+   CODE
+   ============================================ */
+
+code {
   padding: 0.125em 0.375em;
   background-color: var(--color-bg-code);
   border-radius: var(--radius-sm);
-  font-size: 0.875em;
-  font-family: var(--font-mono);
+  font-size: var(--text-code);
+  font-family: var(--font-family-mono);
   color: var(--color-text-primary);
 }
 
-.prose pre {
+pre {
   margin: var(--space-6) 0;
   padding: var(--space-4);
   background-color: var(--color-bg-code);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-2xl); /* Increased from --radius-md (4px → 16px) */
+  border-radius: var(--radius-2xl);
   overflow-x: auto;
-  line-height: var(--leading-relaxed);
+  line-height: var(--leading-body);
   position: relative;
 }
 
-/* Auto-apply gradient border and fluid effect to code blocks */
-/* Apply to wrapper so border doesn't scroll with content */
-.prose .code-block-wrapper::before {
+.code-block-wrapper::before {
   content: '';
   position: absolute;
   inset: 0;
@@ -465,6 +520,9 @@ header .lead {
     linear-gradient(#fff 0 0) content-box, 
     linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
+  mask: 
+    linear-gradient(#fff 0 0) content-box, 
+    linear-gradient(#fff 0 0);
   mask-composite: exclude;
   pointer-events: none;
   opacity: 0.5;
@@ -472,110 +530,122 @@ header .lead {
   z-index: 0;
 }
 
-.prose pre code {
+pre code {
   position: relative;
   z-index: 1;
-}
-
-.prose pre code {
   padding: 0;
   background: none;
   border-radius: 0;
-  font-size: var(--text-sm);
+  font-size: var(--text-code);
 }
 
-/* Horizontal Rule */
-.prose hr {
+/* ============================================
+   HORIZONTAL RULES
+   ============================================ */
+
+hr {
   margin: var(--space-12) 0;
   border: none;
   border-top: 1px solid var(--color-border);
 }
 
-/* Images */
-.prose img {
+/* ============================================
+   IMAGES
+   ============================================ */
+
+img {
   max-width: 100%;
   height: auto;
-  margin: var(--space-6) auto;  /* Reduced from space-8 */
-  border-radius: var(--radius-lg); /* Increased from --radius-md (4px → 8px) */
+  margin: var(--space-6) auto;
+  border-radius: var(--radius-lg);
   box-shadow: var(--elevation-medium);
   display: block;
 }
 
-/* Better image loading state */
-.prose img[loading="lazy"] {
+img[loading="lazy"] {
   background: var(--color-bg-secondary);
   opacity: 0;
   transition: opacity 0.3s ease;
 }
 
-.prose img[loading="lazy"].loaded,
-.prose img:not([loading="lazy"]) {
+img[loading="lazy"].loaded,
+img:not([loading="lazy"]) {
   opacity: 1;
 }
 
-/* Further reduce margins on mobile */
-@media (max-width: 640px) {
-  .prose img {
-    margin: var(--space-4) auto;  /* 16px on mobile */
-    border-radius: var(--radius-sm);
-  }
-}
-
-.prose figure {
+figure {
   margin: var(--space-8) 0;
 }
 
-.prose figcaption {
+figcaption {
   margin-top: var(--space-2);
-  font-size: var(--text-sm);
+  font-size: var(--text-caption);
   text-align: center;
   color: var(--color-text-muted);
 }
 
-/* Tables */
-.prose table {
+/* ============================================
+   TABLES
+   ============================================ */
+
+table {
   margin: var(--space-8) 0;
   width: 100%;
   border-collapse: collapse;
-  font-size: var(--text-sm);
+  font-size: var(--text-body-sm);
 }
 
-.prose thead {
+thead {
   border-bottom: 2px solid var(--color-border);
 }
 
-.prose th {
+th {
   padding: var(--space-3) var(--space-4);
   text-align: left;
-  font-weight: var(--font-semibold);
+  font-weight: var(--weight-semibold);
   color: var(--color-text-primary);
   background-color: var(--color-bg-secondary);
 }
 
-.prose td {
+td {
   padding: var(--space-3) var(--space-4);
   border-bottom: 1px solid var(--color-border-light);
 }
 
-.prose tbody tr:hover {
+tbody tr:hover {
   background-color: var(--color-bg-hover);
 }
 
-/* Definition Lists */
-.prose dl {
+/* ============================================
+   DEFINITION LISTS
+   ============================================ */
+
+dl {
   margin: var(--space-6) 0;
 }
 
-.prose dt {
-  font-weight: var(--font-semibold);
+dt {
+  font-weight: var(--weight-semibold);
   color: var(--color-text-primary);
   margin-top: var(--space-4);
 }
 
-.prose dd {
+dd {
   margin-left: var(--space-6);
   margin-top: var(--space-2);
   color: var(--color-text-secondary);
+}
+
+/* ============================================
+   PROSE LAYOUT (Layout Only - Not Typography)
+   ============================================ */
+
+.prose {
+  max-width: var(--prose-width);
+}
+
+.prose > * + * {
+  margin-top: var(--space-6);
 }
 
 /* ============================================
@@ -583,187 +653,108 @@ header .lead {
    ============================================ */
 
 /* Text Sizes */
-.text-xs {
-  font-size: var(--text-xs);
-}
-
-.text-sm {
-  font-size: var(--text-sm);
-}
-
-.text-base {
-  font-size: var(--text-base);
-}
-
-.text-lg {
-  font-size: var(--text-lg);
-}
-
-.text-xl {
-  font-size: var(--text-xl);
-}
-
-.text-2xl {
-  font-size: var(--text-2xl);
-}
-
-.text-3xl {
-  font-size: var(--text-3xl);
-}
-
-.text-4xl {
-  font-size: var(--text-4xl);
-}
-
-.text-5xl {
-  font-size: var(--text-5xl);
-}
+.text-xs { font-size: var(--text-caption); }
+.text-sm { font-size: var(--text-body-sm); }
+.text-base { font-size: var(--text-body); }
+.text-lg { font-size: var(--text-body-lg); }
+.text-xl { font-size: var(--text-h5); }
+.text-2xl { font-size: var(--text-h4); }
+.text-3xl { font-size: var(--text-h3); }
+.text-4xl { font-size: var(--text-h2); }
+.text-5xl { font-size: var(--text-h1); }
+.text-6xl { font-size: var(--text-display); }
 
 /* Font Weights */
-.font-light {
-  font-weight: var(--font-light);
-}
-
-.font-normal {
-  font-weight: var(--font-normal);
-}
-
-.font-medium {
-  font-weight: var(--font-medium);
-}
-
-.font-semibold {
-  font-weight: var(--font-semibold);
-}
-
-.font-bold {
-  font-weight: var(--font-bold);
-}
-
-.font-extrabold {
-  font-weight: var(--font-extrabold);
-}
+.font-light { font-weight: var(--weight-light); }
+.font-normal { font-weight: var(--weight-normal); }
+.font-medium { font-weight: var(--weight-medium); }
+.font-semibold { font-weight: var(--weight-semibold); }
+.font-bold { font-weight: var(--weight-bold); }
+.font-extrabold { font-weight: var(--weight-extrabold); }
+.font-black { font-weight: var(--weight-black); }
 
 /* Text Colors */
-.text-primary {
-  color: var(--color-text-primary);
-}
-
-.text-secondary {
-  color: var(--color-text-secondary);
-}
-
-.text-muted {
-  color: var(--color-text-muted);
-}
+.text-primary { color: var(--color-text-primary); }
+.text-secondary { color: var(--color-text-secondary); }
+.text-muted { color: var(--color-text-muted); }
 
 /* Line Heights */
-.leading-none {
-  line-height: var(--leading-none);
-}
-
-.leading-tight {
-  line-height: var(--leading-tight);
-}
-
-.leading-snug {
-  line-height: var(--leading-snug);
-}
-
-.leading-normal {
-  line-height: var(--leading-normal);
-}
-
-.leading-relaxed {
-  line-height: var(--leading-relaxed);
-}
-
-.leading-loose {
-  line-height: var(--leading-loose);
-}
+.leading-none { line-height: var(--leading-none); }
+.leading-tight { line-height: var(--leading-tight); }
+.leading-snug { line-height: var(--leading-subheading); }
+.leading-normal { line-height: var(--leading-normal); }
+.leading-relaxed { line-height: var(--leading-relaxed); }
+.leading-loose { line-height: var(--leading-loose); }
 
 /* Text Alignment */
-.text-left {
-  text-align: left;
-}
-
-.text-center {
-  text-align: center;
-}
-
-.text-right {
-  text-align: right;
-}
-
-.text-justify {
-  text-align: justify;
-}
+.text-left { text-align: left; }
+.text-center { text-align: center; }
+.text-right { text-align: right; }
+.text-justify { text-align: justify; }
 
 /* Text Transform */
-.uppercase {
-  text-transform: uppercase;
-}
-
-.lowercase {
-  text-transform: lowercase;
-}
-
-.capitalize {
-  text-transform: capitalize;
-}
+.uppercase { text-transform: uppercase; }
+.lowercase { text-transform: lowercase; }
+.capitalize { text-transform: capitalize; }
 
 /* Text Decoration */
-.underline {
-  text-decoration: underline;
-}
-
-.line-through {
-  text-decoration: line-through;
-}
-
-.no-underline {
-  text-decoration: none;
-}
+.underline { text-decoration: underline; }
+.line-through { text-decoration: line-through; }
+.no-underline { text-decoration: none; }
 
 /* Letter Spacing */
-.tracking-tight {
-  letter-spacing: var(--tracking-tight);
-}
-
-.tracking-normal {
-  letter-spacing: var(--tracking-normal);
-}
-
-.tracking-wide {
-  letter-spacing: var(--tracking-wide);
-}
-
-.tracking-wider {
-  letter-spacing: var(--tracking-wider);
-}
-
-.tracking-widest {
-  letter-spacing: var(--tracking-widest);
-}
+.tracking-tighter { letter-spacing: var(--tracking-tighter); }
+.tracking-tight { letter-spacing: var(--tracking-tight); }
+.tracking-normal { letter-spacing: var(--tracking-normal); }
+.tracking-wide { letter-spacing: var(--tracking-wide); }
+.tracking-wider { letter-spacing: var(--tracking-wider); }
+.tracking-widest { letter-spacing: var(--tracking-widest); }
 
 /* Font Families */
-.font-sans {
-  font-family: var(--font-sans);
-}
+.font-sans { font-family: var(--font-family-sans); }
+.font-serif { font-family: var(--font-family-serif); }
+.font-mono { font-family: var(--font-family-mono); }
 
-.font-serif {
-  font-family: var(--font-serif);
-}
+/* ============================================
+   RESPONSIVE ADJUSTMENTS
+   ============================================ */
 
-.font-mono {
-  font-family: var(--font-mono);
+@media (max-width: 640px) {
+  h1, h2, h3 {
+    margin-top: var(--space-6);
+  }
+  
+  ul,
+  ol {
+    margin: var(--space-4) 0;
+    padding-inline-start: var(--space-6);
+  }
+  
+  blockquote {
+    margin: var(--space-4) 0;
+    padding: var(--space-3);
+  }
+
+  img {
+    margin: var(--space-4) auto;
+    border-radius: var(--radius-sm);
+  }
+
+  .lead {
+    font-size: var(--text-body);
+    padding-bottom: var(--space-4);
+    margin-bottom: var(--space-4);
+  }
+
+  .prose > * + * {
+    margin-top: var(--space-4);
+  }
 }
 
 /* ============================================
-   AUTO-APPLIED GRADIENT EFFECTS
+   ANIMATIONS
    ============================================ */
 
-/* Gradient flow animation for code blocks */
 @keyframes gradient-flow {
   0%, 100% {
     background-position: 0% 50%;

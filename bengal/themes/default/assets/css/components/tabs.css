@@ -60,7 +60,7 @@
   padding: var(--space-3) var(--space-5);
   color: var(--color-text-tertiary);
   text-decoration: none;
-  font-weight: var(--font-medium);
+  font-weight: var(--weight-medium);
   font-size: var(--text-sm);
   border-bottom: 2px solid transparent;
   transition: all var(--transition-fast) var(--ease-out);
@@ -77,7 +77,7 @@
   border-bottom-color: var(--color-primary);
   border-bottom-width: 3px;
   background-color: var(--color-primary-light);
-  font-weight: var(--font-semibold);
+  font-weight: var(--weight-semibold);
 }
 
 /* Content */

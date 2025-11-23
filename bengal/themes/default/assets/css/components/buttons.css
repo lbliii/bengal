@@ -7,13 +7,15 @@
    BASE BUTTON
    ============================================ */
 
-.button {
+.button,
+a.button,
+button {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
   padding: 0.625rem 1.5rem;
   font-size: var(--type-ui-button);
-  font-weight: var(--font-semibold);
+  font-weight: var(--weight-semibold);
   line-height: var(--type-leading-body);
   text-align: center;
   text-decoration: none;
@@ -22,6 +24,8 @@
   cursor: pointer;
   transition: color var(--motion-medium), background-color var(--motion-medium), border-color var(--motion-medium), box-shadow var(--motion-medium), transform var(--motion-medium);
   white-space: nowrap;
+  /* Override content link styles - remove underline and padding-bottom */
+  background-image: none !important;
 }
 
 .button.gradient-border {
