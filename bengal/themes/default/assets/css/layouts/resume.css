@@ -120,19 +120,20 @@
 .resume-section {
     margin: var(--space-10) 0;
 
-    & .section-title {
-        font-size: var(--text-2xl);
-        font-weight: var(--font-bold);
-        color: var(--color-text-primary);
-        margin: 0 0 var(--space-6) 0;
-        padding-bottom: var(--space-2);
-        border-block-end: 2px solid var(--color-border-light); /* Changed from border-bottom */
-        transition: border-color var(--transition-fast) var(--ease-out);
+}
 
-        &:hover {
-            border-block-end-color: var(--color-primary); /* Changed from border-bottom-color */
-        }
-    }
+.resume-section .section-title {
+    font-size: var(--text-2xl);
+    font-weight: var(--font-bold);
+    color: var(--color-text-primary);
+    margin: 0 0 var(--space-6) 0;
+    padding-bottom: var(--space-2);
+    border-block-end: 2px solid var(--color-border-light); /* Changed from border-bottom */
+    transition: border-color var(--transition-fast) var(--ease-out);
+}
+
+.resume-section .section-title:hover {
+    border-block-end-color: var(--color-primary); /* Changed from border-bottom-color */
 }
 
 /* ============================================
@@ -151,33 +152,36 @@
     transition: transform var(--transition-fast) var(--ease-out),
                 border-color var(--transition-fast) var(--ease-out);
 
-    &:hover {
-        border-inline-start-color: var(--color-primary); /* Changed from border-left-color */
-        transform: translate3d(4px, 0, 0);
-    }
+}
 
-    &::before {
-        content: '';
-        position: absolute;
-        inset-inline-start: -6px; /* Changed from left */
-        inset-block-start: 4px; /* Changed from top */
-        width: 10px;
-        height: 10px;
-        border-radius: var(--radius-full);
-        background: var(--color-primary);
-        border: 2px solid var(--color-bg-primary);
-        box-shadow: 0 0 0 2px var(--color-primary);
-        transition: transform var(--transition-smooth) var(--ease-smooth),
-                    background var(--transition-fast) var(--ease-out);
-        will-change: transform;
-    }
+.timeline-item:hover {
+    border-inline-start-color: var(--color-primary); /* Changed from border-left-color */
+    transform: translate3d(4px, 0, 0);
+}
 
-    &:hover::before {
-        transform: translate3d(0, 0, 0) scale(1.2);
+.timeline-item::before {
+    content: '';
+    position: absolute;
+    inset-inline-start: -6px; /* Changed from left */
+    inset-block-start: 4px; /* Changed from top */
+    width: 10px;
+    height: 10px;
+    border-radius: var(--radius-full);
+    background: var(--color-primary);
+    border: 2px solid var(--color-bg-primary);
+    box-shadow: 0 0 0 2px var(--color-primary);
+    transition: transform var(--transition-smooth) var(--ease-smooth),
+                background var(--transition-fast) var(--ease-out);
+    will-change: transform;
+}
 
-        @supports (color-mix(in srgb, white, black)) {
-            background: color-mix(in srgb, var(--color-primary) 90%, black);
-        }
+.timeline-item:hover::before {
+    transform: translate3d(0, 0, 0) scale(1.2);
+}
+
+@supports (color-mix(in srgb, white, black)) {
+    .timeline-item:hover::before {
+        background: color-mix(in srgb, var(--color-primary) 90%, black);
     }
 }
 
@@ -200,22 +204,22 @@
     color: var(--color-text-primary);
 }
 
-.timeline-title {
-    & a {
-        color: var(--color-text-primary);
-        text-decoration: none;
-        transition: color var(--transition-smooth) var(--ease-smooth);
-        touch-action: manipulation;
-        -webkit-tap-highlight-color: transparent;
+.timeline-title a {
+    color: var(--color-text-primary);
+    text-decoration: none;
+    transition: color var(--transition-smooth) var(--ease-smooth);
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
 
-        &:hover {
-            color: var(--color-primary);
-            text-decoration: underline;
+.timeline-title a:hover {
+    color: var(--color-primary);
+    text-decoration: underline;
+}
 
-            @supports (color-mix(in srgb, white, black)) {
-                color: color-mix(in srgb, var(--color-primary) 90%, black);
-            }
-        }
+@supports (color-mix(in srgb, white, black)) {
+    .timeline-title a:hover {
+        color: color-mix(in srgb, var(--color-primary) 90%, black);
     }
 }
 

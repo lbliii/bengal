@@ -120,6 +120,38 @@ pre code {
 .code-block-wrapper {
   position: relative;
   margin: var(--space-6) 0;
+  border-radius: var(--radius-2xl);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  background-color: var(--color-bg-code);
+  box-shadow: var(--elevation-card);
+  overflow: visible; /* Allow tooltips to overflow */
+  transition: box-shadow var(--transition-base);
+}
+
+.code-block-wrapper:hover {
+  box-shadow: var(--elevation-card-hover);
+}
+
+[data-theme="dark"] .code-block-wrapper {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Keep animated borders outside the scrolling <pre> */
+.code-block-wrapper.gradient-border,
+.code-block-wrapper.gradient-border-subtle,
+.code-block-wrapper.gradient-border-strong,
+.code-block-wrapper.fluid-border,
+.code-block-wrapper.fluid-combined {
+  border: none;
+  isolation: isolate;
+}
+
+.code-block-wrapper pre {
+  margin: 0;
+  border: none;
+  border-radius: inherit;
+  box-shadow: none;
+  overflow: hidden; /* Clip code content to border-radius */
 }
 
 /* Inline code header (positioned absolutely relative to wrapper, not inside scrolling pre) */

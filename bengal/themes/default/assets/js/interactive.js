@@ -230,7 +230,12 @@
     });
 
     // Auto-expand sections that contain the active page
-    const activeLink = document.querySelector('.docs-nav-link.active, .docs-nav-group-link.active');
+    // Check for both .active class and aria-current="page" attribute
+    const activeLink = document.querySelector(
+      '.docs-nav-link.active, .docs-nav-link[aria-current="page"], ' +
+      '.docs-nav-group-link.active, .docs-nav-group-link[aria-current="page"]'
+    );
+    
     if (activeLink) {
       // If the active link is a section group link (section index page), expand that section
       if (activeLink.classList.contains('docs-nav-group-link')) {
@@ -245,7 +250,7 @@
         }
       }
 
-      // Find all parent nav groups and expand them
+      // Find all parent nav groups and expand them (walk up the DOM tree)
       let parent = activeLink.parentElement;
       while (parent) {
         if (parent.classList.contains('docs-nav-group-items')) {

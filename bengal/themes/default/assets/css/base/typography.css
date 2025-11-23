@@ -17,29 +17,31 @@
 }
 
 /* Headings */
-.prose h1,
-.prose h2,
-.prose h3,
-.prose h4,
-.prose h5,
-.prose h6 {
-  margin-top: 1.5em;
-  margin-bottom: 0.5em;
-  font-weight: var(--type-weight-strong);
-  line-height: var(--type-leading-heading);
-  color: var(--color-text-primary);
-  scroll-margin-top: var(--space-20);
-  /* For anchor links */
-  letter-spacing: var(--letter-spacing-tight);
-}
+@layer base {
+  .prose h1,
+  .prose h2,
+  .prose h3,
+  .prose h4,
+  .prose h5,
+  .prose h6 {
+    margin-top: 1.5em;
+    margin-bottom: 0.5em;
+    font-weight: var(--type-weight-strong);
+    line-height: var(--type-leading-heading);
+    color: var(--color-text-primary);
+    scroll-margin-top: var(--space-20);
+    /* For anchor links */
+    letter-spacing: var(--letter-spacing-tight);
+  }
 
-.prose h1 {
-  font-size: var(--type-h1);
-  font-weight: var(--font-extrabold);
-  margin-top: 0;
-  margin-bottom: 0.75rem;
-  line-height: 1.2;
-  letter-spacing: var(--letter-spacing-tighter);
+  .prose h1 {
+    font-size: var(--type-h1);
+    font-weight: var(--font-extrabold);
+    margin-top: 0;
+    margin-bottom: 0.75rem;
+    line-height: 1.2;
+    letter-spacing: var(--letter-spacing-tighter);
+  }
 }
 
 .prose h2 {
@@ -227,6 +229,10 @@ header .lead {
    EXTERNAL LINKS
    ============================================ */
 
+:root {
+  --external-link-icon-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none' stroke='%23000' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10 2h2v2M9 9L3 3M11 1H7M11 1v4M11 1L7 5'/%3E%3C/svg%3E");
+}
+
 /* Detect external links (http/https) or target="_blank" */
 /* Note: We detect http/https links. For same-domain detection, add data-external="true" attribute */
 .prose a[href^="http"]:not([href^="/"]):not([href^="#"]),
@@ -251,10 +257,15 @@ header .lead {
   height: 0.75em;
   margin-left: 0.25em;
   margin-right: 0;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none' stroke='currentColor' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10 2h2v2M9 9L3 3M11 1H7M11 1v4M11 1L7 5'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: contain;
+  background-color: currentColor;
+  -webkit-mask-image: var(--external-link-icon-mask-image);
+  mask-image: var(--external-link-icon-mask-image);
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
   opacity: 0.6;
   vertical-align: baseline;
   position: absolute;
@@ -453,7 +464,8 @@ header .lead {
 }
 
 /* Auto-apply gradient border and fluid effect to code blocks */
-.prose pre::before {
+/* Apply to wrapper so border doesn't scroll with content */
+.prose .code-block-wrapper::before {
   content: '';
   position: absolute;
   inset: 0;

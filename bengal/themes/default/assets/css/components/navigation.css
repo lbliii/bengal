@@ -9,35 +9,37 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 2rem;
+}
 
-  & > .nav-next:only-child {
-    grid-column: 2;
-    justify-self: end;
-  }
+.nav-links > .nav-next:only-child {
+  grid-column: 2;
+  justify-self: end;
+}
 
-  & a {
-    display: flex;
-    flex-direction: column;
-    padding: 1rem;
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-lg); /* Increased from 8px to use token (8px) */
-    text-decoration: none;
-    color: var(--color-text-primary);
-    transition: color var(--motion-fast), background-color var(--motion-fast), border-color var(--motion-fast), box-shadow var(--motion-fast), transform var(--motion-fast);
-    touch-action: manipulation;
-    user-select: none;
-    -webkit-tap-highlight-color: transparent;
+.nav-links a {
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg); /* Increased from 8px to use token (8px) */
+  text-decoration: none;
+  color: var(--color-text-primary);
+  transition: color var(--motion-fast), background-color var(--motion-fast), border-color var(--motion-fast), box-shadow var(--motion-fast), transform var(--motion-fast);
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
 
-    &:hover {
-      border-color: var(--color-primary);
-      background: var(--color-bg-secondary);
-      transform: translate3d(0, calc(-1 * var(--motion-distance-2)), 0);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+.nav-links a:hover {
+  border-color: var(--color-primary);
+  background: var(--color-bg-secondary);
+  transform: translate3d(0, calc(-1 * var(--motion-distance-2)), 0);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
 
-      @supports (color-mix(in srgb, white, black)) {
-        background: color-mix(in srgb, var(--color-bg-secondary) 95%, var(--color-primary));
-      }
-    }
+@supports (color-mix(in srgb, white, black)) {
+  .nav-links a:hover {
+    background: color-mix(in srgb, var(--color-bg-secondary) 95%, var(--color-primary));
   }
 }
 
@@ -73,11 +75,11 @@
 @media (max-width: 768px) {
   .nav-links {
     grid-template-columns: 1fr;
+  }
 
-    & > .nav-next:only-child {
-      grid-column: auto;
-      justify-self: end;
-    }
+  .nav-links > .nav-next:only-child {
+    grid-column: auto;
+    justify-self: end;
   }
 
   .nav-next {

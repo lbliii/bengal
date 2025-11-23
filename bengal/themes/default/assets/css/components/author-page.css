@@ -20,19 +20,22 @@
     -webkit-backdrop-filter: blur(8px);
     will-change: transform, box-shadow;
 
-    &:hover {
-        transform: translate3d(0, -2px, 0);
-        box-shadow: var(--elevation-card-hover);
+}
 
-        @supports (color-mix(in srgb, white, black)) {
-            background: color-mix(in srgb, var(--color-bg-secondary) 98%, var(--color-primary));
-        }
+.author-header:hover {
+    transform: translate3d(0, -2px, 0);
+    box-shadow: var(--elevation-card-hover);
+}
 
-        & .author-avatar-large,
-        & .author-avatar-placeholder {
-            transform: translate3d(0, 0, 0) scale(1.05);
-        }
+@supports (color-mix(in srgb, white, black)) {
+    .author-header:hover {
+        background: color-mix(in srgb, var(--color-bg-secondary) 98%, var(--color-primary));
     }
+}
+
+.author-header:hover .author-avatar-large,
+.author-header:hover .author-avatar-placeholder {
+    transform: translate3d(0, 0, 0) scale(1.05);
 }
 
 .author-avatar-large {
@@ -209,27 +212,32 @@
     -webkit-tap-highlight-color: transparent;
     will-change: transform, background;
 
-    &:hover {
-        background: var(--color-bg-hover);
-        transform: translate3d(0, -1px, 0);
+}
 
-        @supports (color-mix(in srgb, white, black)) {
-            background: color-mix(in srgb, var(--color-bg-hover) 95%, var(--color-primary));
-        }
+.filter-button:hover {
+    background: var(--color-bg-hover);
+    transform: translate3d(0, -1px, 0);
+}
+
+@supports (color-mix(in srgb, white, black)) {
+    .filter-button:hover {
+        background: color-mix(in srgb, var(--color-bg-hover) 95%, var(--color-primary));
     }
+}
 
-    &:active {
-        transform: translate3d(0, 0, 0);
-    }
+.filter-button:active {
+    transform: translate3d(0, 0, 0);
+}
 
-    &.active {
-        background: var(--color-primary);
-        color: var(--color-text-inverse);
-        border-color: var(--color-primary);
+.filter-button.active {
+    background: var(--color-primary);
+    color: var(--color-text-inverse);
+    border-color: var(--color-primary);
+}
 
-        @supports (color-mix(in srgb, white, black)) {
-            background: color-mix(in srgb, var(--color-primary) 90%, black);
-        }
+@supports (color-mix(in srgb, white, black)) {
+    .filter-button.active {
+        background: color-mix(in srgb, var(--color-primary) 90%, black);
     }
 }
 
@@ -250,13 +258,16 @@
     touch-action: manipulation;
     will-change: transform, box-shadow;
 
-    &:hover {
-        transform: translate3d(0, -2px, 0);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
 
-        @supports (color-mix(in srgb, white, black)) {
-            background: color-mix(in srgb, var(--color-bg-secondary) 95%, var(--color-primary));
-        }
+.author-post-card:hover {
+    transform: translate3d(0, -2px, 0);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+@supports (color-mix(in srgb, white, black)) {
+    .author-post-card:hover {
+        background: color-mix(in srgb, var(--color-bg-secondary) 95%, var(--color-primary));
     }
 }
 
@@ -302,32 +313,32 @@
     border-block-end: none;
 }
 
-.post-list-compact {
-    & a {
-        color: var(--color-text-primary);
-        text-decoration: none;
-        flex: 1;
-        transition: color var(--transition-smooth) var(--ease-smooth),
-                    transform var(--transition-fast) var(--ease-out);
-        touch-action: manipulation;
-        -webkit-tap-highlight-color: transparent;
+.post-list-compact a {
+    color: var(--color-text-primary);
+    text-decoration: none;
+    flex: 1;
+    transition: color var(--transition-smooth) var(--ease-smooth),
+                transform var(--transition-fast) var(--ease-out);
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
 
-        &:hover {
-            color: var(--color-primary);
-            transform: translate3d(4px, 0, 0);
+.post-list-compact a:hover {
+    color: var(--color-primary);
+    transform: translate3d(4px, 0, 0);
+}
 
-            @supports (color-mix(in srgb, white, black)) {
-                color: color-mix(in srgb, var(--color-primary) 90%, black);
-            }
-        }
+@supports (color-mix(in srgb, white, black)) {
+    .post-list-compact a:hover {
+        color: color-mix(in srgb, var(--color-primary) 90%, black);
     }
+}
 
-    & time {
-        font-size: var(--text-sm);
-        color: var(--color-text-tertiary);
-        flex-shrink: 0;
-        margin-inline-start: var(--space-4); /* Changed from margin-left */
-    }
+.post-list-compact time {
+    font-size: var(--text-sm);
+    color: var(--color-text-tertiary);
+    flex-shrink: 0;
+    margin-inline-start: var(--space-4); /* Changed from margin-left */
 }
 
 /* Empty State */

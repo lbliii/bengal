@@ -8,10 +8,11 @@
     padding: var(--space-6); /* Reduced from --space-8 (32px) to --space-6 (24px) */
     animation: fadeIn 0.4s var(--ease-smooth);
 
-    /* Scroll-driven animation support */
-    &.fade-in-on-scroll {
-        /* Will be animated by scroll-animations.css */
-    }
+}
+
+/* Scroll-driven animation support */
+.empty-state.fade-in-on-scroll {
+    /* Will be animated by scroll-animations.css */
 }
 
 .empty-state__code {
@@ -65,57 +66,60 @@
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
 
-    & h2 {
-        font-size: var(--text-xl);
-        font-weight: var(--font-semibold);
-        margin: 0 0 var(--space-4) 0;
-        color: var(--color-text-primary);
-    }
+}
 
-    & ul {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-    }
+.empty-state__suggestions h2 {
+    font-size: var(--text-xl);
+    font-weight: var(--font-semibold);
+    margin: 0 0 var(--space-4) 0;
+    color: var(--color-text-primary);
+}
 
-    & li {
-        padding: var(--space-2) 0;
-        color: var(--color-text-secondary);
-        transition: transform var(--transition-fast) var(--ease-out),
-                    color var(--transition-fast) var(--ease-out);
+.empty-state__suggestions ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
 
-        &::before {
-            content: '→';
-            margin-inline-end: var(--space-2); /* Changed from margin-right */
-            color: var(--color-primary);
-            font-weight: var(--font-bold);
-            transition: transform var(--transition-fast) var(--ease-out);
-        }
+.empty-state__suggestions li {
+    padding: var(--space-2) 0;
+    color: var(--color-text-secondary);
+    transition: transform var(--transition-fast) var(--ease-out),
+                color var(--transition-fast) var(--ease-out);
+}
 
-        &:hover {
-            transform: translate3d(4px, 0, 0);
+.empty-state__suggestions li::before {
+    content: '→';
+    margin-inline-end: var(--space-2); /* Changed from margin-right */
+    color: var(--color-primary);
+    font-weight: var(--font-bold);
+    transition: transform var(--transition-fast) var(--ease-out);
+}
 
-            &::before {
-                transform: translate3d(2px, 0, 0);
-            }
-        }
-    }
+.empty-state__suggestions li:hover {
+    transform: translate3d(4px, 0, 0);
+}
 
-    & a {
-        color: var(--color-primary);
-        text-decoration: none;
-        transition: color var(--transition-fast) var(--ease-out);
-        touch-action: manipulation;
-        -webkit-tap-highlight-color: transparent;
+.empty-state__suggestions li:hover::before {
+    transform: translate3d(2px, 0, 0);
+}
 
-        &:hover {
-            color: var(--color-secondary);
-            text-decoration: underline;
+.empty-state__suggestions a {
+    color: var(--color-primary);
+    text-decoration: none;
+    transition: color var(--transition-fast) var(--ease-out);
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
 
-            @supports (color-mix(in srgb, white, black)) {
-                color: color-mix(in srgb, var(--color-secondary) 90%, black);
-            }
-        }
+.empty-state__suggestions a:hover {
+    color: var(--color-secondary);
+    text-decoration: underline;
+}
+
+@supports (color-mix(in srgb, white, black)) {
+    .empty-state__suggestions a:hover {
+        color: color-mix(in srgb, var(--color-secondary) 90%, black);
     }
 }
 
@@ -143,26 +147,24 @@
 }
 
 @media (max-width: 640px) {
-    .empty-state {
-        &__code {
-            font-size: 80px;
-        }
+    .empty-state__code {
+        font-size: 80px;
+    }
 
-        &__title {
-            font-size: var(--text-2xl);
-        }
+    .empty-state__title {
+        font-size: var(--text-2xl);
+    }
 
-        &__message {
-            font-size: var(--text-base);
-        }
+    .empty-state__message {
+        font-size: var(--text-base);
+    }
 
-        &__actions {
-            flex-direction: column;
+    .empty-state__actions {
+        flex-direction: column;
+    }
 
-            & .button {
-                width: 100%;
-            }
-        }
+    .empty-state__actions .button {
+        width: 100%;
     }
 }
 

@@ -792,7 +792,8 @@
   position: relative;
 }
 
-.prose.api-content p:has(> strong:contains("Examples")) ~ pre::before {
+/* Example label - apply to wrapper so it doesn't scroll with content */
+.prose.api-content p:has(> strong:contains("Examples")) ~ .code-block-wrapper::before {
   content: 'Example';
   position: absolute;
   top: var(--space-2);
@@ -803,6 +804,8 @@
   text-transform: uppercase;
   letter-spacing: 0.05em;
   opacity: 0.7;
+  z-index: 2; /* Above border but below header buttons */
+  pointer-events: none;
 }
 
 /* ============================================

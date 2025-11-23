@@ -51,38 +51,41 @@
     transition: transform var(--transition-fast) var(--ease-out),
                 border-color var(--transition-fast) var(--ease-out);
 
-    &:last-child {
-        margin-bottom: 0;
-    }
+}
 
-    &:hover {
-        border-inline-start-color: var(--color-primary); /* Changed from border-left-color */
-        transform: translate3d(4px, 0, 0);
-    }
+.timeline-item:last-child {
+    margin-bottom: 0;
+}
 
-    /* Timeline dot marker */
-    &::before {
-        content: '';
-        position: absolute;
-        inset-inline-start: -6px; /* Changed from left */
-        inset-block-start: 4px; /* Changed from top */
-        width: 10px;
-        height: 10px;
-        border-radius: var(--radius-full);
-        background: var(--color-primary);
-        border: 2px solid var(--color-bg-primary);
-        box-shadow: 0 0 0 2px var(--color-primary);
-        transition: transform var(--transition-smooth) var(--ease-smooth),
-                    background var(--transition-fast) var(--ease-out);
-        will-change: transform;
-    }
+.timeline-item:hover {
+    border-inline-start-color: var(--color-primary); /* Changed from border-left-color */
+    transform: translate3d(4px, 0, 0);
+}
 
-    &:hover::before {
-        transform: translate3d(0, 0, 0) scale(1.2);
+/* Timeline dot marker */
+.timeline-item::before {
+    content: '';
+    position: absolute;
+    inset-inline-start: -6px; /* Changed from left */
+    inset-block-start: 4px; /* Changed from top */
+    width: 10px;
+    height: 10px;
+    border-radius: var(--radius-full);
+    background: var(--color-primary);
+    border: 2px solid var(--color-bg-primary);
+    box-shadow: 0 0 0 2px var(--color-primary);
+    transition: transform var(--transition-smooth) var(--ease-smooth),
+                background var(--transition-fast) var(--ease-out);
+    will-change: transform;
+}
 
-        @supports (color-mix(in srgb, white, black)) {
-            background: color-mix(in srgb, var(--color-primary) 90%, black);
-        }
+.timeline-item:hover::before {
+    transform: translate3d(0, 0, 0) scale(1.2);
+}
+
+@supports (color-mix(in srgb, white, black)) {
+    .timeline-item:hover::before {
+        background: color-mix(in srgb, var(--color-primary) 90%, black);
     }
 }
 
@@ -111,22 +114,22 @@
     color: var(--color-text-primary);
 }
 
-.timeline-title {
-    & a {
-        color: var(--color-text-primary);
-        text-decoration: none;
-        transition: color var(--transition-smooth) var(--ease-smooth);
-        touch-action: manipulation;
-        -webkit-tap-highlight-color: transparent;
+.timeline-title a {
+    color: var(--color-text-primary);
+    text-decoration: none;
+    transition: color var(--transition-smooth) var(--ease-smooth);
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
 
-        &:hover {
-            color: var(--color-primary);
-            text-decoration: underline;
+.timeline-title a:hover {
+    color: var(--color-primary);
+    text-decoration: underline;
+}
 
-            @supports (color-mix(in srgb, white, black)) {
-                color: color-mix(in srgb, var(--color-primary) 90%, black);
-            }
-        }
+@supports (color-mix(in srgb, white, black)) {
+    .timeline-title a:hover {
+        color: color-mix(in srgb, var(--color-primary) 90%, black);
     }
 }
 
@@ -207,20 +210,22 @@
     -webkit-backdrop-filter: blur(8px);
     will-change: transform, box-shadow;
 
-    &:hover {
-        transform: translate3d(0, -2px, 0);
-        box-shadow: var(--elevation-card-hover);
-    }
+}
+
+.changelog-category:hover {
+    transform: translate3d(0, -2px, 0);
+    box-shadow: var(--elevation-card-hover);
 }
 
 .changelog-category.changelog-breaking {
     background: var(--color-danger-bg);
     border-inline-start-color: var(--color-danger); /* Changed from border-left-color */
 
-    &:hover {
-        @supports (color-mix(in srgb, white, black)) {
-            border-inline-start-color: color-mix(in srgb, var(--color-danger) 90%, black);
-        }
+}
+
+.changelog-category.changelog-breaking:hover {
+    @supports (color-mix(in srgb, white, black)) {
+        border-inline-start-color: color-mix(in srgb, var(--color-danger) 90%, black);
     }
 }
 
@@ -283,20 +288,23 @@
     -webkit-tap-highlight-color: transparent;
     will-change: transform, background;
 
-    &:hover {
-        background: var(--color-primary);
-        color: var(--color-bg-primary);
-        transform: translate3d(2px, 0, 0);
-        box-shadow: var(--elevation-low);
+}
 
-        @supports (color-mix(in srgb, white, black)) {
-            background: color-mix(in srgb, var(--color-primary) 90%, black);
-        }
-    }
+.changelog-read-more:hover {
+    background: var(--color-primary);
+    color: var(--color-bg-primary);
+    transform: translate3d(2px, 0, 0);
+    box-shadow: var(--elevation-low);
+}
 
-    &:active {
-        transform: translate3d(0, 0, 0);
+@supports (color-mix(in srgb, white, black)) {
+    .changelog-read-more:hover {
+        background: color-mix(in srgb, var(--color-primary) 90%, black);
     }
+}
+
+.changelog-read-more:active {
+    transform: translate3d(0, 0, 0);
 }
 
 /* ============================================
@@ -397,21 +405,24 @@
     -webkit-tap-highlight-color: transparent;
     will-change: transform, background, box-shadow;
 
-    &:hover {
-        background: var(--color-primary);
-        color: var(--color-bg-primary);
-        border-color: var(--color-primary);
-        transform: translate3d(0, -1px, 0);
-        box-shadow: var(--elevation-low);
+}
 
-        @supports (color-mix(in srgb, white, black)) {
-            background: color-mix(in srgb, var(--color-primary) 90%, black);
-        }
-    }
+.release-link:hover {
+    background: var(--color-primary);
+    color: var(--color-bg-primary);
+    border-color: var(--color-primary);
+    transform: translate3d(0, -1px, 0);
+    box-shadow: var(--elevation-low);
+}
 
-    &:active {
-        transform: translate3d(0, 0, 0);
+@supports (color-mix(in srgb, white, black)) {
+    .release-link:hover {
+        background: color-mix(in srgb, var(--color-primary) 90%, black);
     }
+}
+
+.release-link:active {
+    transform: translate3d(0, 0, 0);
 }
 
 .release-download {
@@ -419,13 +430,16 @@
     color: var(--color-bg-primary);
     border-color: var(--color-primary);
 
-    &:hover {
-        background: var(--color-primary-dark);
-        border-color: var(--color-primary-dark);
+}
 
-        @supports (color-mix(in srgb, white, black)) {
-            background: color-mix(in srgb, var(--color-primary-dark) 90%, black);
-        }
+.release-download:hover {
+    background: var(--color-primary-dark);
+    border-color: var(--color-primary-dark);
+}
+
+@supports (color-mix(in srgb, white, black)) {
+    .release-download:hover {
+        background: color-mix(in srgb, var(--color-primary-dark) 90%, black);
     }
 }
 

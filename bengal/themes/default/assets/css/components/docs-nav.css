@@ -171,58 +171,54 @@
   color: var(--color-primary);
 }
 
-.docs-nav-group-link.active {
+.docs-nav-group-link.active,
+.docs-nav-group-link[aria-current="page"] {
   color: var(--color-primary);
   background: var(--color-primary-light);
 }
 
-/* Active state on wrapper - when parent group contains an active child */
-.docs-nav-group:has(.docs-nav-link.active) .docs-nav-group-toggle-wrapper {
-  /* Light mode: Neumorphic with primary tint */
-  box-shadow: 
-    inset 0.3px 0.3px 0.8px rgba(255, 255, 255, 0.5),
-    inset -0.3px -0.3px 0.8px rgba(0, 0, 0, 0.08),
-    1px 1px 3px rgba(33, 150, 243, 0.15),
-    -0.3px -0.3px 1px rgba(255, 255, 255, 0.4);
-  background: var(--color-primary-light);
-}
-
-.docs-nav-group:has(.docs-nav-link.active) .docs-nav-group-toggle-wrapper::after {
-  opacity: 1; /* Show accent bar when parent contains active child */
+/* Subtle indicator for parent groups containing active child - accent bar only */
+/* Only show subtle accent bar, don't highlight the entire wrapper/link */
+.docs-nav-group:has(.docs-nav-link.active) .docs-nav-group-toggle-wrapper::after,
+.docs-nav-group:has(.docs-nav-link[aria-current="page"]) .docs-nav-group-toggle-wrapper::after {
+  opacity: 0.6; /* Subtle accent bar to indicate parent contains active child */
   background: var(--gradient-border);
 }
 
-.docs-nav-group:has(.docs-nav-link.active) .docs-nav-group-link {
-  color: var(--color-primary);
-  font-weight: var(--font-weight-semibold);
+/* Keep parent groups expanded when they contain active children */
+.docs-nav-group:has(.docs-nav-link.active) .docs-nav-group-items,
+.docs-nav-group:has(.docs-nav-link[aria-current="page"]) .docs-nav-group-items {
+  display: flex;
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
 }
 
-.docs-nav-group:has(.docs-nav-link.active) .docs-nav-group-toggle svg {
-  color: var(--color-primary);
-}
-
-.docs-nav-group:has(.docs-nav-link.active) .docs-nav-group-toggle-wrapper::before {
-  opacity: 0; /* Hidden in light mode */
+.docs-nav-group:has(.docs-nav-link.active) .docs-nav-group-toggle[aria-expanded],
+.docs-nav-group:has(.docs-nav-link[aria-current="page"]) .docs-nav-group-toggle[aria-expanded] {
+  /* JavaScript will set aria-expanded="true" */
 }
 
 /* Also handle when the group link itself is active */
-.docs-nav-group-toggle-wrapper:has(.docs-nav-group-link.active) {
+.docs-nav-group-toggle-wrapper:has(.docs-nav-group-link.active),
+.docs-nav-group-toggle-wrapper:has(.docs-nav-group-link[aria-current="page"]) {
   /* Light mode: Neumorphic with primary tint */
   box-shadow: 
     inset 0.3px 0.3px 0.8px rgba(255, 255, 255, 0.5),
     inset -0.3px -0.3px 0.8px rgba(0, 0, 0, 0.08),
-    1px 1px 3px rgba(33, 150, 243, 0.15),
+    1px 1px 3px color-mix(in srgb, var(--color-primary) 15%, transparent),
     -0.3px -0.3px 1px rgba(255, 255, 255, 0.4);
   background: var(--color-primary-light);
 }
 
-.docs-nav-group-toggle-wrapper:has(.docs-nav-group-link.active)::after {
+.docs-nav-group-toggle-wrapper:has(.docs-nav-group-link.active)::after,
+.docs-nav-group-toggle-wrapper:has(.docs-nav-group-link[aria-current="page"])::after {
   opacity: 1;
   background: var(--gradient-border);
 }
 
-[data-theme="dark"] .docs-nav-group-link.active {
-  background: rgba(33, 150, 243, 0.15);
+[data-theme="dark"] .docs-nav-group-link.active,
+[data-theme="dark"] .docs-nav-group-link[aria-current="page"] {
+  background: var(--color-primary-light);
 }
 
 .docs-nav-group-items {
@@ -304,7 +300,9 @@
   opacity: 0;
 }
 
-.docs-nav-link.active {
+/* Ensure only one active link at a time - use aria-current for semantic correctness */
+.docs-nav-link.active,
+.docs-nav-link[aria-current="page"] {
   color: var(--color-primary);
   font-weight: var(--font-weight-medium);
   background: var(--color-primary-light);
@@ -313,18 +311,20 @@
   box-shadow: 
     inset 0.3px 0.3px 0.8px rgba(255, 255, 255, 0.5),
     inset -0.3px -0.3px 0.8px rgba(0, 0, 0, 0.08),
-    1px 1px 3px rgba(33, 150, 243, 0.15),
+    1px 1px 3px color-mix(in srgb, var(--color-primary) 15%, transparent),
     -0.3px -0.3px 1px rgba(255, 255, 255, 0.4);
 }
 
-.docs-nav-link.active::before {
+.docs-nav-link.active::before,
+.docs-nav-link[aria-current="page"]::before {
   opacity: 0; /* Hidden in light mode, shown in dark mode */
   background: var(--gradient-border);
   width: 3px;
 }
 
-[data-theme="dark"] .docs-nav-link.active {
-  background: rgba(33, 150, 243, 0.15);
+[data-theme="dark"] .docs-nav-link.active,
+[data-theme="dark"] .docs-nav-link[aria-current="page"] {
+  background: var(--color-primary-light);
 }
 
 /* Active trail (parent of active page) */
@@ -398,38 +398,30 @@
   opacity: 0; /* Start hidden */
 }
 
-/* Dark mode: Parent group with active child */
-[data-theme="dark"] .docs-nav-group:has(.docs-nav-link.active) .docs-nav-group-toggle-wrapper {
-  /* Remove neumorphic shadow in dark mode */
-  box-shadow: none;
-  background: rgba(33, 150, 243, 0.1); /* Subtle background in dark mode */
-}
-
-[data-theme="dark"] .docs-nav-group:has(.docs-nav-link.active) .docs-nav-group-toggle-wrapper::after {
-  opacity: 0.9; /* Show accent bar in dark mode */
+/* Dark mode: Subtle indicator for parent groups containing active child */
+[data-theme="dark"] .docs-nav-group:has(.docs-nav-link.active) .docs-nav-group-toggle-wrapper::after,
+[data-theme="dark"] .docs-nav-group:has(.docs-nav-link[aria-current="page"]) .docs-nav-group-toggle-wrapper::after {
+  opacity: 0.7; /* Subtle accent bar in dark mode */
   background: var(--gradient-border);
 }
 
-[data-theme="dark"] .docs-nav-group:has(.docs-nav-link.active) .docs-nav-group-toggle-wrapper::before {
-  opacity: 0.5; /* Show gradient border for active in dark mode */
-  background: var(--gradient-border);
-}
-
-[data-theme="dark"] .docs-nav-group:has(.docs-nav-link.active) .docs-nav-group-link {
-  color: var(--color-primary);
-}
-
-[data-theme="dark"] .docs-nav-group:has(.docs-nav-link.active) .docs-nav-group-toggle svg {
-  color: var(--color-primary);
+/* Keep parent groups expanded when they contain active children (dark mode) */
+[data-theme="dark"] .docs-nav-group:has(.docs-nav-link.active) .docs-nav-group-items,
+[data-theme="dark"] .docs-nav-group:has(.docs-nav-link[aria-current="page"]) .docs-nav-group-items {
+  display: flex;
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
 }
 
 /* Also handle when the group link itself is active */
-[data-theme="dark"] .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link.active) {
+[data-theme="dark"] .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link.active),
+[data-theme="dark"] .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link[aria-current="page"]) {
   box-shadow: none;
-  background: rgba(33, 150, 243, 0.15);
+  background: var(--color-primary-light);
 }
 
-[data-theme="dark"] .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link.active)::after {
+[data-theme="dark"] .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link.active)::after,
+[data-theme="dark"] .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link[aria-current="page"])::after {
   opacity: 0.9;
   background: var(--gradient-border);
 }
@@ -462,12 +454,122 @@
   background: var(--gradient-border);
 }
 
-[data-theme="dark"] .docs-nav-link.active {
+[data-theme="dark"] .docs-nav-link.active,
+[data-theme="dark"] .docs-nav-link[aria-current="page"] {
   /* Remove neumorphic shadow in dark mode */
   box-shadow: none;
 }
 
-[data-theme="dark"] .docs-nav-link.active::before {
+[data-theme="dark"] .docs-nav-link.active::before,
+[data-theme="dark"] .docs-nav-link[aria-current="page"]::before {
   opacity: 0.9; /* Strong gradient border in dark mode for visibility */
   background: var(--gradient-border);
+}
+
+/* ============================================
+   PALETTE-SPECIFIC ACTIVE NAVIGATION STYLING
+   ============================================ */
+
+/* Brown Bengal - Warm amber active sidebar navigation */
+[data-palette="brown-bengal"] .docs-nav-link.active,
+[data-palette="brown-bengal"] .docs-nav-link[aria-current="page"],
+[data-palette="brown-bengal"] .docs-nav-group-link.active,
+[data-palette="brown-bengal"] .docs-nav-group-link[aria-current="page"] {
+  background: var(--color-primary-light);
+}
+
+[data-theme="dark"][data-palette="brown-bengal"] .docs-nav-link.active,
+[data-theme="dark"][data-palette="brown-bengal"] .docs-nav-link[aria-current="page"],
+[data-theme="dark"][data-palette="brown-bengal"] .docs-nav-group-link.active,
+[data-theme="dark"][data-palette="brown-bengal"] .docs-nav-group-link[aria-current="page"] {
+  background: var(--color-primary-light);
+}
+
+/* Palette-specific: Only highlight when group link itself is active, not when it contains active child */
+[data-palette="brown-bengal"] .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link.active),
+[data-palette="brown-bengal"] .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link[aria-current="page"]) {
+  background: var(--color-primary-light);
+}
+
+[data-theme="dark"][data-palette="brown-bengal"] .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link.active),
+[data-theme="dark"][data-palette="brown-bengal"] .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link[aria-current="page"]) {
+  background: var(--color-primary-light);
+}
+
+/* Blue Bengal - Soft powder blue active sidebar navigation */
+[data-palette="blue-bengal"] .docs-nav-link.active,
+[data-palette="blue-bengal"] .docs-nav-link[aria-current="page"],
+[data-palette="blue-bengal"] .docs-nav-group-link.active,
+[data-palette="blue-bengal"] .docs-nav-group-link[aria-current="page"] {
+  background: var(--color-primary-light);
+}
+
+[data-theme="dark"][data-palette="blue-bengal"] .docs-nav-link.active,
+[data-theme="dark"][data-palette="blue-bengal"] .docs-nav-link[aria-current="page"],
+[data-theme="dark"][data-palette="blue-bengal"] .docs-nav-group-link.active,
+[data-theme="dark"][data-palette="blue-bengal"] .docs-nav-group-link[aria-current="page"] {
+  background: var(--color-primary-light);
+}
+
+/* Palette-specific: Only highlight when group link itself is active, not when it contains active child */
+[data-palette="blue-bengal"] .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link.active),
+[data-palette="blue-bengal"] .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link[aria-current="page"]) {
+  background: var(--color-primary-light);
+}
+
+[data-theme="dark"][data-palette="blue-bengal"] .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link.active),
+[data-theme="dark"][data-palette="blue-bengal"] .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link[aria-current="page"]) {
+  background: var(--color-primary-light);
+}
+
+/* Silver Bengal - High contrast monochrome active sidebar navigation */
+[data-palette="silver-bengal"] .docs-nav-link.active,
+[data-palette="silver-bengal"] .docs-nav-link[aria-current="page"],
+[data-palette="silver-bengal"] .docs-nav-group-link.active,
+[data-palette="silver-bengal"] .docs-nav-group-link[aria-current="page"] {
+  background: var(--color-primary-light);
+}
+
+[data-theme="dark"][data-palette="silver-bengal"] .docs-nav-link.active,
+[data-theme="dark"][data-palette="silver-bengal"] .docs-nav-link[aria-current="page"],
+[data-theme="dark"][data-palette="silver-bengal"] .docs-nav-group-link.active,
+[data-theme="dark"][data-palette="silver-bengal"] .docs-nav-group-link[aria-current="page"] {
+  background: var(--color-primary-light);
+}
+
+/* Palette-specific: Only highlight when group link itself is active, not when it contains active child */
+[data-palette="silver-bengal"] .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link.active),
+[data-palette="silver-bengal"] .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link[aria-current="page"]) {
+  background: var(--color-primary-light);
+}
+
+[data-theme="dark"][data-palette="silver-bengal"] .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link.active),
+[data-theme="dark"][data-palette="silver-bengal"] .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link[aria-current="page"]) {
+  background: var(--color-primary-light);
+}
+
+/* Charcoal Bengal - Dramatic slate active sidebar navigation */
+[data-palette="charcoal-bengal"] .docs-nav-link.active,
+[data-palette="charcoal-bengal"] .docs-nav-link[aria-current="page"],
+[data-palette="charcoal-bengal"] .docs-nav-group-link.active,
+[data-palette="charcoal-bengal"] .docs-nav-group-link[aria-current="page"] {
+  background: var(--color-primary-light);
+}
+
+[data-theme="dark"][data-palette="charcoal-bengal"] .docs-nav-link.active,
+[data-theme="dark"][data-palette="charcoal-bengal"] .docs-nav-link[aria-current="page"],
+[data-theme="dark"][data-palette="charcoal-bengal"] .docs-nav-group-link.active,
+[data-theme="dark"][data-palette="charcoal-bengal"] .docs-nav-group-link[aria-current="page"] {
+  background: var(--color-primary-light);
+}
+
+/* Palette-specific: Only highlight when group link itself is active, not when it contains active child */
+[data-palette="charcoal-bengal"] .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link.active),
+[data-palette="charcoal-bengal"] .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link[aria-current="page"]) {
+  background: var(--color-primary-light);
+}
+
+[data-theme="dark"][data-palette="charcoal-bengal"] .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link.active),
+[data-theme="dark"][data-palette="charcoal-bengal"] .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link[aria-current="page"]) {
+  background: var(--color-primary-light);
 }

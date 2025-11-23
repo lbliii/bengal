@@ -30,8 +30,6 @@ details.dropdown.gradient-border {
   border-left: none;
 }
 
-}
-
 details.dropdown:hover {
   /* Neumorphic hover - refined raised effect */
   box-shadow: 
