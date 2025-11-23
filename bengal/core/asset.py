@@ -274,6 +274,8 @@ class Asset:
 
         This creates a single CSS file from an entry point that has @imports.
         Works without any external dependencies.
+        
+        Preserves @layer blocks when bundling @import statements.
 
         Returns:
             Bundled CSS content as a string
@@ -281,23 +283,31 @@ class Asset:
         import re
 
         def bundle_imports(css_content: str, base_path: Path) -> str:
-            """Recursively resolve @import statements."""
-            # Pattern: @import url('...') or @import '...'
+            """Recursively resolve @import statements, preserving @layer blocks."""
+            # Pattern to match @layer blocks: @layer name { ... }
+            # This matches the entire block including nested braces
+            layer_block_pattern = r'(@layer\s+\w+\s*\{)(.*?)(\})'
+            
+            # Pattern for @import statements
             import_pattern = r'@import\s+(?:url\()?\s*[\'"]([^\'"]+)[\'"]\s*(?:\))?\s*;'
 
-            def resolve_import(match):
-                import_path = match.group(1)
+            def resolve_import_in_context(import_match, layer_name=None):
+                """Resolve a single @import statement."""
+                import_path = import_match.group(1)
                 imported_file = base_path / import_path
 
                 if not imported_file.exists():
                     # Keep the @import (might be a URL or external)
-                    return match.group(0)
+                    return import_match.group(0)
 
                 try:
                     # Read and recursively process the imported file
                     imported_content = imported_file.read_text(encoding="utf-8")
                     # Recursively resolve nested imports
-                    return bundle_imports(imported_content, imported_file.parent)
+                    bundled_content = bundle_imports(imported_content, imported_file.parent)
+                    
+                    # Return the bundled content directly (it will be inserted into the @layer block)
+                    return bundled_content
                 except Exception as e:
                     logger.warning(
                         "css_import_read_failed",
@@ -305,10 +315,38 @@ class Asset:
                         error=str(e),
                         error_type=type(e).__name__,
                     )
-                    return match.group(0)
+                    return import_match.group(0)
 
-            # Replace all @import statements with their content
-            return re.sub(import_pattern, resolve_import, css_content)
+            # First, process @layer blocks that contain @import
+            def process_layer_block(match):
+                layer_decl = match.group(1)  # "@layer name {"
+                layer_content = match.group(2)  # Content inside layer
+                layer_close = match.group(3)  # "}"
+                
+                # Extract layer name
+                layer_name_match = re.match(r'@layer\s+(\w+)', layer_decl)
+                layer_name = layer_name_match.group(1) if layer_name_match else None
+                
+                # Process @import statements inside this layer
+                processed_content = re.sub(
+                    import_pattern,
+                    lambda m: resolve_import_in_context(m, layer_name),
+                    layer_content
+                )
+                
+                # If we replaced any @imports, return the processed layer block
+                # Otherwise, return original (might have other content)
+                if processed_content != layer_content:
+                    return f"{layer_decl}{processed_content}{layer_close}"
+                return match.group(0)  # No changes
+
+            # Process @layer blocks first
+            result = re.sub(layer_block_pattern, process_layer_block, css_content, flags=re.DOTALL)
+            
+            # Then process standalone @import statements (not in @layer)
+            result = re.sub(import_pattern, lambda m: resolve_import_in_context(m), result)
+
+            return result
 
         # Read the CSS file
         with open(self.source_path, encoding="utf-8") as f:
