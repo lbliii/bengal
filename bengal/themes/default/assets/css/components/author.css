@@ -20,7 +20,7 @@
     box-shadow: var(--elevation-card-hover);
 }
 
-@supports (color-mix(in srgb, white, black)) {
+@supports (color: color-mix(in srgb, white, black)) {
     .author-bio:hover {
         background: color-mix(in srgb, var(--color-bg-secondary) 98%, var(--color-primary));
     }
