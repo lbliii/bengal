@@ -282,3 +282,56 @@ class TestConfigDirectoryLoader:
         assert config["deep"]["level1"]["a"] == 1  # From default
         assert config["deep"]["level1"]["b"] == 3  # Overridden
         assert config["deep"]["level1"]["c"] == 4  # Added
+
+    def test_load_assets_config_flattened(self, config_dir):
+        """Test that assets config fields are flattened for backward compatibility."""
+        # Add assets config to production environment
+        (config_dir / "environments" / "production.yaml").write_text(
+            yaml.dump(
+                {
+                    "assets": {
+                        "minify": False,
+                        "fingerprint": False,
+                        "optimize": True,
+                    }
+                }
+            )
+        )
+
+        loader = ConfigDirectoryLoader()
+        config = loader.load(config_dir, environment="production")
+
+        # Check nested structure is preserved
+        assert config["assets"]["minify"] is False
+        assert config["assets"]["fingerprint"] is False
+        assert config["assets"]["optimize"] is True
+
+        # Check flattened keys exist (for backward compatibility)
+        assert config["minify_assets"] is False
+        assert config["fingerprint_assets"] is False
+        assert config["optimize_assets"] is True
+
+    def test_load_dev_config_flattened(self, config_dir):
+        """Test that dev config fields are flattened for backward compatibility."""
+        # Add dev config to production environment
+        (config_dir / "environments" / "production.yaml").write_text(
+            yaml.dump(
+                {
+                    "dev": {
+                        "cache_templates": False,
+                        "watch_backend": "auto",
+                    }
+                }
+            )
+        )
+
+        loader = ConfigDirectoryLoader()
+        config = loader.load(config_dir, environment="production")
+
+        # Check nested structure is preserved
+        assert config["dev"]["cache_templates"] is False
+        assert config["dev"]["watch_backend"] == "auto"
+
+        # Check flattened keys exist (for backward compatibility)
+        assert config["cache_templates"] is False
+        assert config["watch_backend"] == "auto"

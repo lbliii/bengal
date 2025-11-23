@@ -35,7 +35,7 @@ jobs:
 
       - name: Build site
         working-directory: site
-        run: bengal site serve
+        run: bengal site build
         env:
           PYTHON_GIL: 0
 

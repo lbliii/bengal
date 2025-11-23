@@ -309,4 +309,24 @@ class ConfigDirectoryLoader:
                 if key not in flat:
                     flat[key] = value
 
+        # Extract dev section to top level (for cache_templates, watch_backend, etc.)
+        if "dev" in config and isinstance(config["dev"], dict):
+            for key, value in config["dev"].items():
+                if key not in flat:
+                    flat[key] = value
+
+        # Extract features section to top level (for backward compatibility)
+        # Note: expand_features() runs before flattening, so this mainly handles
+        # any remaining feature keys that weren't expanded
+        if "features" in config and isinstance(config["features"], dict):
+            for key, value in config["features"].items():
+                if key not in flat:
+                    flat[key] = value
+
+        # Handle special asset fields (assets.minify -> minify_assets)
+        # This ensures backward compatibility with code that expects flattened keys
+        if "assets" in config and isinstance(config["assets"], dict):
+            for k, v in config["assets"].items():
+                flat[f"{k}_assets"] = v
+
         return flat
