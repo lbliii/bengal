@@ -14,5 +14,5 @@ build:
 
 assets:
   # Disable minification for easier debugging
-  minify: false
+  minify: true
   fingerprint: false
