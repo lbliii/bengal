@@ -26,8 +26,20 @@ jobs:
           python-version: '3.14t'
           allow-prereleases: true
 
-      - name: Install bengal with CSS extras
-        run: pip install -e '.[css]'
+      - name: Install bengal (skip unsupported CSS extras)
+        run: |
+          pip install -e .
+          python - <<'PY'
+          import subprocess
+          import sys
+
+          if sys.version_info >= (3, 14):
+              print("Skipping lightningcss install (unsupported on Python >= 3.14).")
+          else:
+              subprocess.check_call(
+                  ["pip", "install", "lightningcss>=0.2.0"]
+              )
+          PY
 
       - name: Build site
         working-directory: site
