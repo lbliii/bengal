@@ -25,28 +25,28 @@
   margin-bottom: var(--space-6); /* Reduced from --space-8 (32px) to --space-6 (24px) for tighter spacing */
 }
 
+/* Reuse prose heading styles - inherit font properties, adjust margins for header context */
 .page-header h1 {
   font-size: var(--type-h1);
-  line-height: var(--leading-tight);
   font-weight: var(--font-extrabold);
-  color: var(--color-text-primary);
-  margin: 0 0 var(--space-3) 0;
-  letter-spacing: var(--letter-spacing-tight);
+  line-height: 1.2;
+  letter-spacing: var(--letter-spacing-tighter);
+  margin: 0 0 var(--space-3) 0; /* Tighter bottom margin for headers */
 }
 
 .page-header h2 {
   font-size: var(--type-h2);
-  line-height: var(--leading-tight);
   font-weight: var(--font-bold);
-  color: var(--color-text-primary);
+  line-height: var(--type-leading-heading);
+  letter-spacing: var(--letter-spacing-tight);
   margin: 0 0 var(--space-2) 0;
+  border-bottom: none; /* No border in headers */
 }
 
 .page-header h3 {
   font-size: var(--type-h3);
-  line-height: var(--leading-tight);
   font-weight: var(--font-semibold);
-  color: var(--color-text-primary);
+  line-height: var(--type-leading-heading);
   margin: 0 0 var(--space-2) 0;
 }
 
@@ -142,17 +142,7 @@
    ============================================ */
 
 @media (max-width: 768px) {
-  .page-header h1 {
-    font-size: var(--text-3xl);
-  }
-
-  .page-header h2 {
-    font-size: var(--text-2xl);
-  }
-
-  .page-header h3 {
-    font-size: var(--text-xl);
-  }
+  /* Responsive sizes handled by prose styles - just adjust margins if needed */
 
   .page-header .lead {
     font-size: var(--text-base);
@@ -171,13 +161,7 @@
 }
 
 @media (max-width: 480px) {
-  .page-header h1 {
-    font-size: var(--text-2xl);
-  }
-
-  .page-header h2 {
-    font-size: var(--text-xl);
-  }
+  /* Responsive sizes handled by prose styles */
 
   .page-header--centered {
     padding: var(--space-4) 0;

@@ -45,10 +45,6 @@
 }
 
 @layer base {
-  @import url('base/prose-content.css');
-}
-
-@layer base {
   @import url('base/utilities.css');
 }
 
