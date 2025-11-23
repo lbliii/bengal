@@ -462,7 +462,8 @@ header .lead {
 }
 
 /* Auto-apply gradient border and fluid effect to code blocks */
-.prose pre::before {
+/* Apply to wrapper so border doesn't scroll with content */
+.prose .code-block-wrapper::before {
   content: '';
   position: absolute;
   inset: 0;

@@ -131,7 +131,8 @@ header .container {
 
 .nav-main li.active>a {
   color: var(--color-primary);
-  background-color: var(--color-bg-secondary);
+  background-color: var(--color-primary-light);
+  font-weight: var(--font-semibold);
 }
 
 .nav-main li.active-trail>a {
@@ -200,7 +201,8 @@ header .container {
 
 .nav-main .submenu li.active>a {
   color: var(--color-primary);
-  background-color: var(--color-bg-secondary);
+  background-color: var(--color-primary-light);
+  font-weight: var(--font-semibold);
 }
 
 /* ============================================
@@ -664,4 +666,56 @@ header .container {
     inset -0.5px -0.5px 1px rgba(255, 255, 255, 0.08),
     0.5px 0.5px 1px rgba(0, 0, 0, 0.15);
   background: var(--color-bg-tertiary);
+}
+
+/* ============================================
+   PALETTE-SPECIFIC ACTIVE NAVIGATION STYLING
+   ============================================ */
+
+/* Brown Bengal - Warm amber active navigation */
+[data-palette="brown-bengal"] .nav-main li.active>a,
+[data-palette="brown-bengal"] .nav-main .submenu li.active>a {
+  color: var(--color-primary);
+  background-color: var(--color-primary-light);
+}
+
+[data-theme="dark"][data-palette="brown-bengal"] .nav-main li.active>a,
+[data-theme="dark"][data-palette="brown-bengal"] .nav-main .submenu li.active>a {
+  background-color: var(--color-primary-light);
+}
+
+/* Blue Bengal - Soft powder blue active navigation */
+[data-palette="blue-bengal"] .nav-main li.active>a,
+[data-palette="blue-bengal"] .nav-main .submenu li.active>a {
+  color: var(--color-primary);
+  background-color: var(--color-primary-light);
+}
+
+[data-theme="dark"][data-palette="blue-bengal"] .nav-main li.active>a,
+[data-theme="dark"][data-palette="blue-bengal"] .nav-main .submenu li.active>a {
+  background-color: var(--color-primary-light);
+}
+
+/* Silver Bengal - High contrast monochrome active navigation */
+[data-palette="silver-bengal"] .nav-main li.active>a,
+[data-palette="silver-bengal"] .nav-main .submenu li.active>a {
+  color: var(--color-primary);
+  background-color: var(--color-primary-light);
+}
+
+[data-theme="dark"][data-palette="silver-bengal"] .nav-main li.active>a,
+[data-theme="dark"][data-palette="silver-bengal"] .nav-main .submenu li.active>a {
+  background-color: var(--color-primary-light);
+}
+
+/* Charcoal Bengal - Dramatic slate active navigation */
+[data-palette="charcoal-bengal"] .nav-main li.active>a,
+[data-palette="charcoal-bengal"] .nav-main .submenu li.active>a {
+  color: var(--color-primary);
+  background-color: var(--color-primary-light);
+}
+
+[data-theme="dark"][data-palette="charcoal-bengal"] .nav-main li.active>a,
+[data-theme="dark"][data-palette="charcoal-bengal"] .nav-main .submenu li.active>a {
+  background-color: var(--color-primary-light);
 }

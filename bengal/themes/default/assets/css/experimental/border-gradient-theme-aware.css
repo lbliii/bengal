@@ -125,7 +125,8 @@
 }
 
 /* Code blocks with gradient borders */
-pre.gradient-border {
+/* Note: gradient-border class is moved to wrapper by JavaScript */
+.code-block-wrapper.gradient-border {
   border-radius: var(--radius-2xl); /* 16px */
   border: none;
   box-shadow: 
@@ -133,11 +134,11 @@ pre.gradient-border {
     0 0 0 1px rgba(0, 0, 0, 0.1);
 }
 
-pre.gradient-border::before {
+.code-block-wrapper.gradient-border::before {
   opacity: 0.5; /* More subtle for code blocks */
 }
 
-pre.gradient-border:hover::before {
+.code-block-wrapper.gradient-border:hover::before {
   opacity: 0.7;
 }
 
