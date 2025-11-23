@@ -36,6 +36,12 @@
 - **Production**: Serves from `public/` directory
 - **Both**: Use bundled CSS files from the build output
 
+### 7. **Asset Manifest & Cleanup** ✅ Now Unified
+- **Dev**: Still serves unfingerprinted assets directly for instant reloads
+- **Production**: Uses `asset-manifest.json` (written during `bengal site build`) to map logical assets → fingerprinted outputs
+- **Impact**: Templates never guess hashes, and stale files such as `style.*.css` are deleted automatically during each build
+- **Tip**: Run `bengal assets status` or inspect `public/asset-manifest.json` to confirm what production will serve
+
 ## Most Likely Cause of Your Issue
 
 **Browser caching of old bundled CSS** in production.
@@ -54,6 +60,7 @@ Then production is likely serving **cached CSS** from before the fix.
 1. **Hard refresh** production site: `Cmd+Shift+R` (Mac) or `Ctrl+Shift+R` (Windows)
 2. **Clear browser cache** for the production domain
 3. **Check CDN cache** (if using GitHub Pages CDN, may need to wait for cache expiry)
+4. **Rebuild assets from a clean slate**: `bengal site build --clean-output`
 
 ### Verification
 1. **Check the bundled CSS** in production:
@@ -67,18 +74,25 @@ Then production is likely serving **cached CSS** from before the fix.
    ```bash
    # Dev (after rebuild)
    curl http://localhost:5173/assets/css/style.css > dev-style.css
-   
+
    # Production
    curl https://your-site.github.io/assets/css/style.css > prod-style.css
-   
+
    # Compare
    diff dev-style.css prod-style.css
    ```
 
+3. **Inspect the manifest and CLI status output**:
+   ```bash
+   bengal assets status                     # Human-friendly summary
+   cat public/asset-manifest.json | jq '.'  # Full JSON if you prefer
+   ```
+
 ### Long-term Fix
-1. **Rebuild and redeploy** production with the fixed code
-2. **Verify** the bundled CSS includes `@layer` blocks
-3. **Add cache headers** to force CSS refresh on new deployments
+1. **Run `bengal site build --clean-output` in CI** so stale fingerprinted bundles never ship
+2. **Verify** the bundled CSS includes `@layer` blocks *and* appears in `asset-manifest.json`
+3. **Use `bengal assets status`** (locally and/or in pipelines) to confirm logical paths resolve to the expected fingerprints
+4. **Add cache headers** to force CSS refresh on new deployments
 
 ## Why Dev Might Work But Production Doesn't
 
@@ -93,6 +107,6 @@ Then production is likely serving **cached CSS** from before the fix.
 - [ ] Verify typography variables are defined in production CSS
 - [ ] Hard refresh production site
 - [ ] Compare dev vs production bundled CSS
-- [ ] Rebuild production if needed
+- [ ] Rebuild production with `bengal site build --clean-output` if needed
 - [ ] Check CDN cache headers
-
+- [ ] Inspect `public/asset-manifest.json` (or `bengal assets status`) for correct mappings

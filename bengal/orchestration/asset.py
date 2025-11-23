@@ -4,7 +4,6 @@ Asset processing orchestration for Bengal SSG.
 Handles asset copying, minification, optimization, and fingerprinting.
 """
 
-
 from __future__ import annotations
 
 import concurrent.futures
@@ -13,6 +12,7 @@ from pathlib import Path
 from threading import Lock
 from typing import TYPE_CHECKING
 
+from bengal.assets.manifest import AssetManifest
 from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
@@ -225,6 +225,7 @@ class AssetOrchestrator:
             duration_ms=duration_ms,
             throughput=len(assets) / (duration_ms / 1000) if duration_ms > 0 else 0,
         )
+        self._write_asset_manifest(assets)
 
     def _process_css_entry(
         self, css_entry: Asset, minify: bool, optimize: bool, fingerprint: bool
@@ -419,3 +420,39 @@ class AssetOrchestrator:
         except Exception as e:
             # Re-raise with asset context for better error messages
             raise Exception(f"Failed to process {asset.source_path}: {e}") from e
+
+    def _write_asset_manifest(self, assets: list[Asset]) -> None:
+        """
+        Persist an asset-manifest.json file mapping logical assets to final outputs.
+        """
+        manifest = AssetManifest()
+        for asset in assets:
+            final_path = getattr(asset, "output_path", None)
+            if not isinstance(final_path, Path):
+                continue
+            if not final_path.is_absolute():
+                continue
+            if not final_path.exists():
+                continue
+            try:
+                relative_output = final_path.relative_to(self.site.output_dir)
+            except ValueError:
+                continue
+
+            logical = asset.logical_path or Path(asset.source_path.name)
+            logical_str = (
+                logical.as_posix() if isinstance(logical, Path) else Path(str(logical)).as_posix()
+            )
+
+            stat = final_path.stat()
+            manifest.set_entry(
+                logical_path=logical_str,
+                output_path=relative_output.as_posix(),
+                fingerprint=asset.fingerprint,
+                size_bytes=stat.st_size,
+                updated_at=stat.st_mtime,
+            )
+
+        manifest_path = self.site.output_dir / "asset-manifest.json"
+        manifest_path.parent.mkdir(parents=True, exist_ok=True)
+        manifest.write(manifest_path)

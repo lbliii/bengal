@@ -2,7 +2,6 @@
 Template engine using Jinja2.
 """
 
-
 from __future__ import annotations
 
 from collections.abc import Mapping
@@ -13,6 +12,7 @@ import toml
 from jinja2 import Environment, FileSystemLoader, StrictUndefined, select_autoescape
 from jinja2.bccache import FileSystemBytecodeCache
 
+from bengal.assets.manifest import AssetManifest, AssetManifestEntry
 from bengal.rendering.template_functions import register_all
 from bengal.utils.logger import get_logger, truncate_error
 from bengal.utils.metadata import build_template_metadata
@@ -52,6 +52,10 @@ class TemplateEngine:
         self._dependency_tracker = (
             None  # Set by RenderingPipeline for incremental builds (private attr)
         )
+        self._asset_manifest_path = self.site.output_dir / "asset-manifest.json"
+        self._asset_manifest_mtime: float | None = None
+        self._asset_manifest_cache: dict[str, AssetManifestEntry] = {}
+        self._asset_manifest_fallbacks: set[str] = set()
 
     def _create_environment(self) -> Environment:
         """
@@ -424,6 +428,12 @@ class TemplateEngine:
         except Exception:
             pass
 
+        manifest_entry = self._get_manifest_entry(safe_asset_path)
+        if manifest_entry:
+            return self._with_baseurl(f"/{manifest_entry.output_path}")
+
+        manifest_present = self._asset_manifest_path.exists()
+
         # Attempt to resolve a fingerprinted file in output_dir/assets
         try:
             base = self.site.output_dir / "assets"
@@ -439,9 +449,14 @@ class TemplateEngine:
                     parts = cand.name.split(".")
                     if len(parts) >= 3 and len(parts[-2]) >= 6:
                         rel = cand.relative_to(self.site.output_dir)
-                        return self._with_baseurl(f"/{rel.as_posix()}")
+                        url = self._with_baseurl(f"/{rel.as_posix()}")
+                        if manifest_present:
+                            self._warn_manifest_fallback(safe_asset_path)
+                        return url
         except Exception:
             pass
+        if manifest_present:
+            self._warn_manifest_fallback(safe_asset_path)
         return self._with_baseurl(f"/assets/{safe_asset_path}")
 
     def _get_menu(self, menu_name: str = "main") -> list:
@@ -497,9 +512,52 @@ class TemplateEngine:
                 )
                 return template_path
 
+    def _get_manifest_entry(self, logical_path: str) -> AssetManifestEntry | None:
+        """
+        Return manifest entry for logical path if the manifest is present.
+        """
+        cache = self._load_asset_manifest()
+        return cache.get(PurePosixPath(logical_path).as_posix())
+
+    def _load_asset_manifest(self) -> dict[str, AssetManifestEntry]:
+        """
+        Load and cache the asset manifest based on file mtime.
+        """
+        manifest_path = self._asset_manifest_path
+        try:
+            stat = manifest_path.stat()
+        except FileNotFoundError:
+            self._asset_manifest_mtime = None
+            self._asset_manifest_cache = {}
+            return self._asset_manifest_cache
+
+        if self._asset_manifest_mtime == stat.st_mtime:
+            return self._asset_manifest_cache
+
+        manifest = AssetManifest.load(manifest_path)
+        if manifest is None:
+            self._asset_manifest_cache = {}
+        else:
+            self._asset_manifest_cache = dict(manifest.entries)
+        self._asset_manifest_mtime = stat.st_mtime
+        return self._asset_manifest_cache
+
+    def _warn_manifest_fallback(self, logical_path: str) -> None:
+        """
+        Warn once per logical path when manifest lookup misses and fallback is used.
+        """
+        if logical_path in self._asset_manifest_fallbacks:
+            return
+        self._asset_manifest_fallbacks.add(logical_path)
+        logger.warning(
+            "asset_manifest_miss",
+            logical_path=logical_path,
+            manifest=str(self._asset_manifest_path),
+        )
+
         logger.debug(
-            "template_not_found",
-            template=template_name,
-            searched_dirs=[str(d) for d in self.template_dirs],
+            "asset_manifest_fallback",
+            logical_path=logical_path,
+            manifest=str(self._asset_manifest_path),
         )
         return None

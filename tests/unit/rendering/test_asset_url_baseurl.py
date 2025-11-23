@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from bengal.assets.manifest import AssetManifest
 from bengal.rendering.template_engine import TemplateEngine
 
 
@@ -44,3 +45,20 @@ def test_asset_url_prefers_fingerprinted_when_present_with_baseurl(tmp_path: Pat
     url = engine._asset_url("css/style.css")
     assert url.endswith("/assets/css/style.12345678.css")
     assert url.startswith("/bengal/")
+
+
+def test_asset_url_respects_manifest_mapping(tmp_path: Path):
+    site = DummySite(tmp_path, baseurl="/docs")
+    manifest = AssetManifest()
+    manifest.set_entry(
+        logical_path="css/style.css",
+        output_path="assets/css/style.deadbeef.css",
+        fingerprint="deadbeef",
+        size_bytes=512,
+        updated_at=1_700_000_000.0,
+    )
+    manifest.write(site.output_dir / "asset-manifest.json")
+
+    engine = TemplateEngine(site)
+    url = engine._asset_url("css/style.css")
+    assert url == "/docs/assets/css/style.deadbeef.css"
