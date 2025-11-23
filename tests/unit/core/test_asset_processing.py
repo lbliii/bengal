@@ -459,22 +459,23 @@ class TestCSSNestingTransformation:
         assert ".button:hover" in transformed
 
 
-class TestLosslessCSSMinification:
-    """Test lossless CSS minification (fallback minifier)."""
+class TestCSSMinifierUtility:
+    """Test CSS minifier utility function."""
 
     def test_removes_comments(self, temp_asset_dir):
         """Test that CSS comments are removed."""
-        from bengal.core.asset import _lossless_minify_css_string
+        from bengal.utils.css_minifier import minify_css
 
         css = "/* Comment */ body { color: blue; }"
-        minified = _lossless_minify_css_string(css)
+        minified = minify_css(css)
 
         assert "Comment" not in minified
         assert "body" in minified
+        assert "color:blue" in minified.replace(" ", "")
 
     def test_reduces_whitespace(self, temp_asset_dir):
         """Test that unnecessary whitespace is removed."""
-        from bengal.core.asset import _lossless_minify_css_string
+        from bengal.utils.css_minifier import minify_css
 
         css = """
 body {
@@ -482,17 +483,38 @@ body {
     margin: 0;
 }
 """
-        minified = _lossless_minify_css_string(css)
+        minified = minify_css(css)
 
-        # Should reduce whitespace but preserve essential spaces
-        assert "color:blue" in minified.replace(" ", "") or "color: blue" in minified
+        # Should reduce whitespace but preserve essential structure
+        assert "body{" in minified
+        assert "color:blue" in minified.replace(" ", "")
 
     def test_preserves_strings(self, temp_asset_dir):
         """Test that strings are preserved."""
-        from bengal.core.asset import _lossless_minify_css_string
+        from bengal.utils.css_minifier import minify_css
 
         css = 'body { font-family: "Helvetica Neue", sans-serif; }'
-        minified = _lossless_minify_css_string(css)
+        minified = minify_css(css)
 
         # Strings should be preserved
-        assert "Helvetica Neue" in minified or '"Helvetica Neue"' in minified
+        assert "Helvetica Neue" in minified
+
+    def test_preserves_layer_blocks(self, temp_asset_dir):
+        """Test that @layer blocks are preserved."""
+        from bengal.utils.css_minifier import minify_css
+
+        css = "@layer tokens { :root { --color: blue; } }"
+        minified = minify_css(css)
+
+        assert "@layer tokens" in minified
+        assert "--color:blue" in minified.replace(" ", "")
+
+    def test_preserves_nesting(self, temp_asset_dir):
+        """Test that CSS nesting syntax is preserved."""
+        from bengal.utils.css_minifier import minify_css
+
+        css = ".parent { color: red; &:hover { color: blue; } }"
+        minified = minify_css(css)
+
+        # Nesting should be preserved (not transformed)
+        assert "&:hover" in minified or ".parent:hover" in minified

@@ -11,9 +11,10 @@ build:
   strict_mode: true
 
 assets:
-  # Match dev behavior while CSS pipeline is being debugged
-  minify: false
-  fingerprint: false
+  # Minification refactored: now uses simple, safe minifier that preserves
+  # modern CSS features (@layer, nesting, etc.) without transformations
+  minify: true
+  fingerprint: true
 
 features:
   # Enable analytics in production

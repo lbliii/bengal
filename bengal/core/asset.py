@@ -500,10 +500,15 @@ class Asset:
 
     def _minify_css(self) -> None:
         """
-        Minify CSS content using lossless minifier.
+        Minify CSS content using simple, safe minifier.
 
-        Transforms CSS nesting syntax and removes duplicate bare h1 rules.
+        This minifier:
+        - Removes comments and unnecessary whitespace
+        - Preserves all CSS syntax (@layer, nesting, @import, etc.)
+        - Does NOT transform or rewrite CSS (no nesting flattening, no rule removal)
+
         For CSS entry points (style.css), this should be called AFTER bundling.
+        Modern browsers support CSS nesting natively, so we don't transform it.
         """
         # Get the CSS content (bundled if this is an entry point)
         if hasattr(self, "_bundled_content"):
@@ -513,17 +518,18 @@ class Asset:
                 css_content = f.read()
 
         try:
-            # Transform CSS nesting before minifying (for browser compatibility)
-            css_transformed = _transform_css_nesting(css_content)
-            minified = _lossless_minify_css_string(css_transformed)
-            # Remove duplicate bare h1 rules that can occur during CSS processing
-            self._minified_content = _remove_duplicate_bare_h1_rules(minified)
+            from bengal.utils.css_minifier import minify_css
+
+            # Simple minification: remove comments and whitespace only
+            # No transformations that could break CSS
+            self._minified_content = minify_css(css_content)
         except Exception as e:
             logger.error(
                 "css_minification_failed",
                 error=str(e),
                 error_type=type(e).__name__,
             )
+            # On error, use original content (fail-safe)
             self._minified_content = css_content
 
     def _minify_js(self) -> None:
