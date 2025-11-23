@@ -17,6 +17,72 @@ logger = get_logger(__name__)
 _warned_no_bundling = False
 
 
+def _transform_css_nesting(css: str) -> str:
+    """
+    Transform CSS nesting syntax (&:hover, &.class, etc.) to traditional selectors.
+
+    Transforms patterns like:
+        .parent {
+          color: red;
+          &:hover { color: blue; }
+        }
+    Into:
+        .parent { color: red; }
+        .parent:hover { color: blue; }
+
+    This ensures compatibility when lightningcss is unavailable.
+    Uses a simple line-by-line parser that tracks parent selectors.
+    """
+    import re
+
+    lines = css.split("\n")
+    output_lines = []
+    parent_stack: list[str] = []  # Stack of parent selectors
+    i = 0
+
+    while i < len(lines):
+        line = lines[i]
+        stripped = line.strip()
+        indent = len(line) - len(line.lstrip())
+
+        # Detect rule start: line with selector ending with {
+        if "{" in stripped and not stripped.startswith("@"):
+            # Extract selector (everything before {)
+            parts = stripped.rsplit("{", 1)
+            if len(parts) == 2:
+                selector = parts[0].strip()
+                # Clean up @layer prefixes but keep the layer context
+                selector_clean = re.sub(r'^@layer\s+\w+\s*\{?\s*', '', selector)
+                if selector_clean and not selector_clean.startswith("@"):
+                    parent_stack.append(selector_clean)
+                output_lines.append(line)
+                i += 1
+                continue
+
+        # Detect rule end: closing brace
+        if stripped == "}" or (stripped.endswith("}") and not stripped.startswith("}")):
+            if parent_stack and stripped == "}":
+                parent_stack.pop()
+            output_lines.append(line)
+            i += 1
+            continue
+
+        # Detect nested selector starting with &
+        if "&" in line and parent_stack:
+            parent = parent_stack[-1]
+            # Replace & with parent selector
+            # Handle cases like: "  &:hover {" -> "  .parent:hover {"
+            transformed = re.sub(r'&\s*', f"{parent}", line, count=1)
+            output_lines.append(transformed)
+            i += 1
+            continue
+
+        output_lines.append(line)
+        i += 1
+
+    return "\n".join(output_lines)
+
+
 def _lossless_minify_css_string(css: str) -> str:
     """
     Remove comments and redundant whitespace without touching selectors/properties.
@@ -264,12 +330,14 @@ class Asset:
             self._minified_content = result
 
         except ImportError:
-            self._minified_content = _lossless_minify_css_string(css_content)
+            # Transform CSS nesting before minifying (for browser compatibility)
+            css_transformed = _transform_css_nesting(css_content)
+            self._minified_content = _lossless_minify_css_string(css_transformed)
             global _warned_no_bundling
             if not _warned_no_bundling:
                 logger.warning(
                     "lightningcss_unavailable",
-                    info="CSS will be minified without autoprefixing",
+                    info="CSS nesting will be transformed; minification without autoprefixing",
                     install_command="pip install lightningcss",
                 )
                 _warned_no_bundling = True
@@ -283,7 +351,9 @@ class Asset:
                 fallback="lossless_css_minifier",
             )
             try:
-                self._minified_content = _lossless_minify_css_string(css_content)
+                # Transform CSS nesting before minifying (for browser compatibility)
+                css_transformed = _transform_css_nesting(css_content)
+                self._minified_content = _lossless_minify_css_string(css_transformed)
             except Exception as fallback_error:
                 logger.error(
                     "css_fallback_minification_failed",
