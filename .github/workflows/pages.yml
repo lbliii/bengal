@@ -26,20 +26,8 @@ jobs:
           python-version: '3.14t'
           allow-prereleases: true
 
-      - name: Install bengal (skip unsupported CSS extras)
-        run: |
-          pip install -e .
-          python - <<'PY'
-          import subprocess
-          import sys
-
-          if sys.version_info >= (3, 14):
-              print("Skipping lightningcss install (unsupported on Python >= 3.14).")
-          else:
-              subprocess.check_call(
-                  ["pip", "install", "lightningcss>=0.2.0"]
-              )
-          PY
+      - name: Install bengal
+        run: pip install -e .
 
       - name: Clean build artifacts and cache
         working-directory: site
@@ -47,7 +35,7 @@ jobs:
 
       - name: Build site
         working-directory: site
-        run: bengal site build --autodoc --no-incremental --clean-output
+        run: bengal site serve
         env:
           PYTHON_GIL: 0
 
