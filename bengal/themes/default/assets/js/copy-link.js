@@ -9,6 +9,14 @@
 (function() {
   'use strict';
 
+  // Ensure utils are available
+  if (!window.BengalUtils) {
+    console.error('BengalUtils not loaded - copy-link.js requires utils.js');
+    return;
+  }
+
+  const { log, copyToClipboard, ready } = window.BengalUtils;
+
   /**
    * Copy Link Anchors for Headings
    * Adds an anchor link that copies the heading's URL to clipboard on click
@@ -51,7 +59,12 @@
           const url = `${window.location.origin}${window.location.pathname}#${id}`;
 
           // Copy to clipboard
-          copyToClipboard(url, link);
+          copyToClipboard(url).then(() => {
+            showCopySuccess(link);
+          }).catch((err) => {
+            log('Failed to copy link:', err);
+            showCopyError(link);
+          });
         }
         // Otherwise let the browser handle it as a normal link
       });
@@ -61,45 +74,6 @@
     });
   }
 
-  /**
-   * Copy text to clipboard with fallback
-   *
-   * @param {string} text - Text to copy
-   * @param {HTMLElement} button - Button element to show feedback
-   */
-  function copyToClipboard(text, button) {
-    // Modern Clipboard API
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(text).then(() => {
-        showCopySuccess(button);
-      }).catch(err => {
-        console.error('Failed to copy:', err);
-        showCopyError(button);
-      });
-    } else {
-      // Fallback for older browsers
-      const textarea = document.createElement('textarea');
-      textarea.value = text;
-      textarea.style.position = 'fixed';
-      textarea.style.opacity = '0';
-      document.body.appendChild(textarea);
-      textarea.select();
-
-      try {
-        const successful = document.execCommand('copy');
-        if (successful) {
-          showCopySuccess(button);
-        } else {
-          showCopyError(button);
-        }
-      } catch (err) {
-        console.error('Failed to copy:', err);
-        showCopyError(button);
-      } finally {
-        document.body.removeChild(textarea);
-      }
-    }
-  }
 
   /**
    * Show success feedback
@@ -144,14 +118,10 @@
    */
   function init() {
     setupCopyLinkButtons();
-    console.log('Copy link anchors initialized');
+    log('Copy link anchors initialized');
   }
 
   // Initialize when DOM is ready
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
-  }
+  ready(init);
 
 })();

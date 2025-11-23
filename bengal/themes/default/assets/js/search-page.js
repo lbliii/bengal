@@ -1,6 +1,14 @@
 (function () {
     'use strict';
 
+    // Ensure utils are available
+    if (!window.BengalUtils) {
+        console.error('BengalUtils not loaded - search-page.js requires utils.js');
+        return;
+    }
+
+    const { ready } = window.BengalUtils;
+
     // Popular searches quick-fill
     function initPopularSearches() {
         document.querySelectorAll('.popular-search-link').forEach(link => {
@@ -38,9 +46,5 @@
         initHashQuery();
     }
 
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
-    } else {
-        init();
-    }
+    ready(init);
 })();

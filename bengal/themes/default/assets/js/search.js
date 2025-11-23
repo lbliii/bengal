@@ -13,6 +13,14 @@
 (function () {
   'use strict';
 
+  // Ensure utils are available
+  if (!window.BengalUtils) {
+    console.error('BengalUtils not loaded - search.js requires utils.js');
+    return;
+  }
+
+  const { log, escapeRegex, ready } = window.BengalUtils;
+
   // ====================================
   // Configuration
   // ====================================
@@ -84,6 +92,16 @@
       }
 
       const data = await response.json();
+      
+      // Validate data structure
+      if (!data || typeof data !== 'object') {
+        throw new Error('Invalid search index: expected object, got ' + typeof data);
+      }
+      
+      if (!Array.isArray(data.pages)) {
+        throw new Error('Invalid search index: missing or invalid "pages" array. Got: ' + typeof data.pages);
+      }
+      
       searchData = data;
 
       // Build Lunr index
@@ -122,7 +140,7 @@
       isIndexLoaded = true;
       isIndexLoading = false;
 
-      console.log(`Search index loaded: ${data.pages.length} pages`);
+      log(`Search index loaded: ${data.pages.length} pages`);
 
       // Dispatch event for other components
       window.dispatchEvent(new CustomEvent('searchIndexLoaded', {
@@ -151,7 +169,7 @@
    * @returns {Array} Search results
    */
   function search(query, filters = {}) {
-    if (!isIndexLoaded || !searchIndex || !searchData) {
+    if (!isIndexLoaded || !searchIndex || !searchData || !Array.isArray(searchData.pages)) {
       console.warn('Search index not loaded');
       return [];
     }
@@ -436,14 +454,6 @@
     }
   }
 
-  /**
-   * Escape regex special characters
-   * @param {string} str - String to escape
-   * @returns {string} Escaped string
-   */
-  function escapeRegex(str) {
-    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  }
 
   // ====================================
   // Filter Functions
@@ -455,7 +465,7 @@
    * @returns {Array} Unique values
    */
   function getUniqueValues(field) {
-    if (!searchData) return [];
+    if (!searchData || !Array.isArray(searchData.pages)) return [];
 
     const values = new Set();
     searchData.pages.forEach(page => {
@@ -503,7 +513,7 @@
   function getAvailableAuthors() {
     const authors = new Set();
 
-    if (searchData) {
+    if (searchData && Array.isArray(searchData.pages)) {
       searchData.pages.forEach(page => {
         if (page.author) authors.add(page.author);
         if (page.authors) page.authors.forEach(a => authors.add(a));
@@ -544,15 +554,11 @@
   // ====================================
 
   // Pre-load index on page load (in background)
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-      // Delay loading to not block page rendering
-      setTimeout(loadSearchIndex, 500);
-    });
-  } else {
+  ready(() => {
+    // Delay loading to not block page rendering
     setTimeout(loadSearchIndex, 500);
-  }
+  });
 
-  console.log('Bengal Search initialized');
+  log('Bengal Search initialized');
 
 })();

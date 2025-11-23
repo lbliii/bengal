@@ -9,6 +9,14 @@
 (function() {
   'use strict';
 
+  // Ensure utils are available
+  if (!window.BengalUtils) {
+    console.error('BengalUtils not loaded - lightbox.js requires utils.js');
+    return;
+  }
+
+  const { log, ready } = window.BengalUtils;
+
   let lightbox = null;
   let currentImage = null;
 
@@ -229,15 +237,11 @@
    */
   function init() {
     setupImageLightbox();
-    console.log('Image lightbox initialized');
+    log('Image lightbox initialized');
   }
 
   // Initialize when DOM is ready
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
-  }
+  ready(init);
 
   // Re-run setup if images are dynamically added
   // (e.g., via AJAX or lazy loading)

@@ -10,11 +10,15 @@
 (function() {
   'use strict';
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
+  // Ensure utils are available
+  if (!window.BengalUtils) {
+    console.error('BengalUtils not loaded - action-bar.js requires utils.js');
+    return;
   }
+
+  const { log, copyToClipboard, ready } = window.BengalUtils;
+
+  ready(init);
 
   function init() {
     initMetadataToggle();
@@ -135,38 +139,31 @@
           break;
 
         case 'copy-llm-txt':
-          const response = await fetch(url);
-          if (!response.ok) throw new Error('Failed to fetch LLM text');
-          textToCopy = await response.text();
-          await copyToClipboard(textToCopy);
-          showSuccess(button, 'LLM text copied!');
+          // Add timeout for fetch
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 5000);
+          try {
+            const response = await fetch(url, { signal: controller.signal });
+            clearTimeout(timeoutId);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            textToCopy = await response.text();
+            await copyToClipboard(textToCopy);
+            showSuccess(button, 'LLM text copied!');
+          } catch (fetchError) {
+            clearTimeout(timeoutId);
+            if (fetchError.name === 'AbortError') {
+              throw new Error('Request timed out');
+            }
+            throw fetchError;
+          }
           break;
 
         default:
-          console.warn('Unknown copy action:', action);
+          log('Unknown copy action:', action);
       }
     } catch (error) {
-      console.error('Copy failed:', error);
+      log('Copy failed:', error);
       showError(button, 'Copy failed');
-    }
-  }
-
-  /**
-   * Copy text to clipboard
-   */
-  async function copyToClipboard(text) {
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      await navigator.clipboard.writeText(text);
-    } else {
-      // Fallback for older browsers
-      const textarea = document.createElement('textarea');
-      textarea.value = text;
-      textarea.style.position = 'fixed';
-      textarea.style.opacity = '0';
-      document.body.appendChild(textarea);
-      textarea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textarea);
     }
   }
 

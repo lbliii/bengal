@@ -13,9 +13,6 @@ from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
-# Module-level flag to track if we've warned about missing lightningcss
-_warned_no_bundling = False
-
 
 def _transform_css_nesting(css: str) -> str:
     """
@@ -30,7 +27,7 @@ def _transform_css_nesting(css: str) -> str:
         .parent { color: red; }
         .parent:hover { color: blue; }
 
-    This ensures compatibility when lightningcss is unavailable.
+    This ensures browser compatibility for CSS nesting syntax.
     
     NOTE: We should NOT write nested CSS in source files. Use traditional selectors instead.
     This is a safety net for any nested CSS that slips through.
@@ -106,12 +103,59 @@ def _transform_css_nesting(css: str) -> str:
     return result
 
 
+def _remove_duplicate_bare_h1_rules(css: str) -> str:
+    """
+    Remove duplicate bare h1 rules that appear right after scoped h1 rules.
+    
+    CSS processing sometimes creates duplicate rules like:
+        .browser-header h1 { font-size: var(--text-5xl); }
+        h1 { font-size: var(--text-5xl); }  # Duplicate!
+    
+    The bare h1 rule overrides the base typography rule, breaking text sizing.
+    This function removes the duplicate bare h1 rules.
+    """
+    import re
+    
+    # Pattern to match: scoped selector h1 { ... } followed by bare h1 { ... }
+    # We need to match the scoped rule, then check if there's a duplicate bare h1
+    pattern = r'(\.[\w-]+\s+h1\s*\{[^}]+\})\s*(h1\s*\{[^}]+\})'
+    
+    def remove_duplicate(match):
+        scoped_rule = match.group(1)
+        bare_rule = match.group(2)
+        
+        # Extract content from both rules
+        scoped_content_match = re.search(r'\{([^}]+)\}', scoped_rule, re.DOTALL)
+        bare_content_match = re.search(r'\{([^}]+)\}', bare_rule, re.DOTALL)
+        
+        if scoped_content_match and bare_content_match:
+            scoped_content = scoped_content_match.group(1).strip().replace(" ", "").replace("\n", "")
+            bare_content = bare_content_match.group(1).strip().replace(" ", "").replace("\n", "")
+            
+            # If content is identical, remove the bare rule
+            if scoped_content == bare_content:
+                return scoped_rule  # Return only the scoped rule
+        
+        # Not a duplicate, keep both
+        return match.group(0)
+    
+    # Process iteratively to catch all duplicates
+    result = css
+    for _ in range(5):  # Max 5 iterations
+        new_result = re.sub(pattern, remove_duplicate, result, flags=re.DOTALL)
+        if new_result == result:
+            break
+        result = new_result
+    
+    return result
+
+
 def _lossless_minify_css_string(css: str) -> str:
     """
     Remove comments and redundant whitespace without touching selectors/properties.
 
     This intentionally avoids aggressive rewrites so modern CSS (nesting, @layer, etc.)
-    remains intact even when Lightning CSS is unavailable.
+    remains intact.
     """
     result: list[str] = []
     length = len(css)
@@ -163,6 +207,18 @@ def _lossless_minify_css_string(css: str) -> str:
             i += 1
             continue
 
+        # Preserve space before number sequences ending in % (for CSS functions like color-mix)
+        # Check if current char is digit and look ahead to see if % follows the number
+        if char.isdigit() and pending_whitespace:
+            # Look ahead to find where the number sequence ends
+            j = i
+            while j < length and (css[j].isdigit() or css[j] == "."):
+                j += 1
+            # If the sequence ends with %, preserve the space
+            if j < length and css[j] == "%":
+                result.append(" ")
+                pending_whitespace = False
+        
         if pending_whitespace and needs_space(char):
             result.append(" ")
         pending_whitespace = False
@@ -274,6 +330,8 @@ class Asset:
 
         This creates a single CSS file from an entry point that has @imports.
         Works without any external dependencies.
+        
+        Preserves @layer blocks when bundling @import statements.
 
         Returns:
             Bundled CSS content as a string
@@ -281,23 +339,27 @@ class Asset:
         import re
 
         def bundle_imports(css_content: str, base_path: Path) -> str:
-            """Recursively resolve @import statements."""
-            # Pattern: @import url('...') or @import '...'
+            """Recursively resolve @import statements, preserving @layer blocks."""
+            # Pattern for @import statements
             import_pattern = r'@import\s+(?:url\()?\s*[\'"]([^\'"]+)[\'"]\s*(?:\))?\s*;'
 
-            def resolve_import(match):
-                import_path = match.group(1)
+            def resolve_import_in_context(import_match, layer_name=None):
+                """Resolve a single @import statement."""
+                import_path = import_match.group(1)
                 imported_file = base_path / import_path
 
                 if not imported_file.exists():
                     # Keep the @import (might be a URL or external)
-                    return match.group(0)
+                    return import_match.group(0)
 
                 try:
                     # Read and recursively process the imported file
                     imported_content = imported_file.read_text(encoding="utf-8")
                     # Recursively resolve nested imports
-                    return bundle_imports(imported_content, imported_file.parent)
+                    bundled_content = bundle_imports(imported_content, imported_file.parent)
+                    
+                    # Return the bundled content directly (it will be inserted into the @layer block)
+                    return bundled_content
                 except Exception as e:
                     logger.warning(
                         "css_import_read_failed",
@@ -305,10 +367,116 @@ class Asset:
                         error=str(e),
                         error_type=type(e).__name__,
                     )
-                    return match.group(0)
+                    return import_match.group(0)
 
-            # Replace all @import statements with their content
-            return re.sub(import_pattern, resolve_import, css_content)
+            def find_layer_block_end(css: str, start_pos: int) -> int:
+                """
+                Find the end position of a @layer block using brace counting.
+                Handles nested braces correctly (e.g., media queries, nested rules).
+                
+                Args:
+                    css: CSS content string
+                    start_pos: Position after the opening brace of @layer block
+                
+                Returns:
+                    Position of the matching closing brace, or -1 if not found
+                """
+                brace_count = 1  # We start after the opening brace
+                i = start_pos
+                in_string = False
+                string_char = None
+                
+                while i < len(css) and brace_count > 0:
+                    char = css[i]
+                    
+                    # Handle string literals (skip braces inside strings)
+                    if not in_string and char in ("'", '"'):
+                        in_string = True
+                        string_char = char
+                    elif in_string:
+                        if char == "\\" and i + 1 < len(css):
+                            i += 2  # Skip escaped character
+                            continue
+                        elif char == string_char:
+                            in_string = False
+                            string_char = None
+                    
+                    # Count braces (only when not in string)
+                    if not in_string:
+                        if char == "{":
+                            brace_count += 1
+                        elif char == "}":
+                            brace_count -= 1
+                    
+                    i += 1
+                
+                # Return position of closing brace (i-1 because we incremented after finding it)
+                return i - 1 if brace_count == 0 else -1
+
+            def process_layer_blocks(css: str) -> str:
+                """
+                Process @layer blocks, replacing @import statements inside them.
+                Uses brace counting to handle nested braces correctly.
+                """
+                result = []
+                i = 0
+                
+                while i < len(css):
+                    # Look for @layer declaration
+                    layer_match = re.search(r'@layer\s+\w+\s*\{', css[i:])
+                    if not layer_match:
+                        # No more @layer blocks, append rest of content
+                        result.append(css[i:])
+                        break
+                    
+                    # Append content before @layer block
+                    layer_start = i + layer_match.start()
+                    result.append(css[i:layer_start])
+                    
+                    # Find the opening brace position
+                    brace_pos = layer_start + layer_match.end() - 1  # Position of '{'
+                    layer_decl = css[layer_start:brace_pos + 1]  # "@layer name {"
+                    
+                    # Extract layer name
+                    layer_name_match = re.match(r'@layer\s+(\w+)', layer_decl)
+                    layer_name = layer_name_match.group(1) if layer_name_match else None
+                    
+                    # Find the matching closing brace using brace counting
+                    content_start = brace_pos + 1
+                    content_end = find_layer_block_end(css, content_start)
+                    
+                    if content_end == -1:
+                        # Malformed @layer block, keep as-is
+                        result.append(css[layer_start:])
+                        break
+                    
+                    # Extract content inside @layer block
+                    layer_content = css[content_start:content_end]
+                    
+                    # Process @import statements inside this layer
+                    processed_content = re.sub(
+                        import_pattern,
+                        lambda m: resolve_import_in_context(m, layer_name),
+                        layer_content
+                    )
+                    
+                    # Reconstruct @layer block
+                    result.append(layer_decl)
+                    result.append(processed_content)
+                    result.append("}")
+                    
+                    # Continue after this @layer block
+                    i = content_end + 1
+                
+                return "".join(result)
+
+            # Process @layer blocks first (using brace counting)
+            result = process_layer_blocks(css_content)
+            
+            # Then process standalone @import statements (not in @layer)
+            result = re.sub(import_pattern, lambda m: resolve_import_in_context(m), result)
+
+            return result
 
         # Read the CSS file
         with open(self.source_path, encoding="utf-8") as f:
@@ -322,8 +490,9 @@ class Asset:
 
     def _minify_css(self) -> None:
         """
-        Minify CSS content using lightningcss (preferred) or csscompressor (fallback).
+        Minify CSS content using lossless minifier.
 
+        Transforms CSS nesting syntax and removes duplicate bare h1 rules.
         For CSS entry points (style.css), this should be called AFTER bundling.
         """
         # Get the CSS content (bundled if this is an entry point)
@@ -333,57 +502,19 @@ class Asset:
             with open(self.source_path, encoding="utf-8") as f:
                 css_content = f.read()
 
-        # Try Lightning CSS for minification + autoprefixing
         try:
-            import lightningcss
-
-            result = lightningcss.process_stylesheet(
-                css_content,
-                filename=str(self.source_path),
-                minify=True,
-                # Autoprefix for modern browsers
-                browsers_list=[
-                    "last 2 Chrome versions",
-                    "last 2 Firefox versions",
-                    "last 2 Safari versions",
-                    "last 2 Edge versions",
-                ],
-            )
-
-            self._minified_content = result
-
-        except ImportError:
             # Transform CSS nesting before minifying (for browser compatibility)
             css_transformed = _transform_css_nesting(css_content)
-            self._minified_content = _lossless_minify_css_string(css_transformed)
-            global _warned_no_bundling
-            if not _warned_no_bundling:
-                logger.warning(
-                    "lightningcss_unavailable",
-                    info="CSS nesting will be transformed; minification without autoprefixing",
-                    install_command="pip install lightningcss",
-                )
-                _warned_no_bundling = True
-
+            minified = _lossless_minify_css_string(css_transformed)
+            # Remove duplicate bare h1 rules that can occur during CSS processing
+            self._minified_content = _remove_duplicate_bare_h1_rules(minified)
         except Exception as e:
-            # If Lightning CSS fails unexpectedly, fall back to lossless minifier
-            logger.warning(
-                "lightningcss_processing_failed",
+            logger.error(
+                "css_minification_failed",
                 error=str(e),
                 error_type=type(e).__name__,
-                fallback="lossless_css_minifier",
             )
-            try:
-                # Transform CSS nesting before minifying (for browser compatibility)
-                css_transformed = _transform_css_nesting(css_content)
-                self._minified_content = _lossless_minify_css_string(css_transformed)
-            except Exception as fallback_error:
-                logger.error(
-                    "css_fallback_minification_failed",
-                    error=str(fallback_error),
-                    error_type=type(fallback_error).__name__,
-                )
-                self._minified_content = css_content
+            self._minified_content = css_content
 
     def _minify_js(self) -> None:
         """Minify JavaScript content."""

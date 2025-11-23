@@ -14,6 +14,14 @@
 (function() {
   'use strict';
 
+  // Ensure utils are available
+  if (!window.BengalUtils) {
+    console.error('BengalUtils not loaded - toc.js requires utils.js');
+    return;
+  }
+
+  const { throttleScroll, debounce, ready } = window.BengalUtils;
+
   // ============================================================================
   // State Management
   // ============================================================================
@@ -30,6 +38,12 @@
   let tocGroups = [];
   let tocScrollContainer = null;
   let headings = [];
+
+  // Store handlers for cleanup
+  let scrollHandler = null;
+  let hashChangeHandler = null;
+  let resizeHandler = null;
+  let keyboardHandler = null;
 
   /**
    * Load state from localStorage
@@ -382,27 +396,18 @@
       });
     });
 
-    document.addEventListener('keydown', handleKeydown);
+    keyboardHandler = handleKeydown;
+    document.addEventListener('keydown', keyboardHandler);
   }
 
   // ============================================================================
   // Scroll Event Listener (Throttled for Performance)
   // ============================================================================
 
-  let ticking = false;
-
   /**
    * Throttled scroll handler
    */
-  function onScroll() {
-    if (!ticking) {
-      window.requestAnimationFrame(() => {
-        updateOnScroll();
-        ticking = false;
-      });
-      ticking = true;
-    }
-  }
+  scrollHandler = throttleScroll(updateOnScroll);
 
   // ============================================================================
   // Initialization
@@ -441,40 +446,47 @@
     initKeyboardNavigation();
 
     // Set up scroll listener
-    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('scroll', scrollHandler, { passive: true });
 
     // Initial update
     updateOnScroll();
 
     // Update on hash change (e.g., clicking links elsewhere)
-    window.addEventListener('hashchange', updateActiveItem);
+    hashChangeHandler = updateActiveItem;
+    window.addEventListener('hashchange', hashChangeHandler);
 
     // Update on resize (debounced)
-    let resizeTimer;
-    window.addEventListener('resize', () => {
-      clearTimeout(resizeTimer);
-      resizeTimer = setTimeout(updateActiveItem, 250);
-    }, { passive: true });
+    resizeHandler = debounce(updateActiveItem, 250);
+    window.addEventListener('resize', resizeHandler, { passive: true });
   }
 
   /**
    * Cleanup function
    */
   function cleanup() {
-    window.removeEventListener('scroll', onScroll);
-    window.removeEventListener('hashchange', updateActiveItem);
-    document.removeEventListener('keydown', handleKeydown);
+    if (scrollHandler) {
+      window.removeEventListener('scroll', scrollHandler);
+      scrollHandler = null;
+    }
+    if (hashChangeHandler) {
+      window.removeEventListener('hashchange', hashChangeHandler);
+      hashChangeHandler = null;
+    }
+    if (resizeHandler) {
+      window.removeEventListener('resize', resizeHandler);
+      resizeHandler = null;
+    }
+    if (keyboardHandler) {
+      document.removeEventListener('keydown', keyboardHandler);
+      keyboardHandler = null;
+    }
   }
 
   // ============================================================================
   // Auto-initialize
   // ============================================================================
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initTOC);
-  } else {
-    initTOC();
-  }
+  ready(initTOC);
 
   // Re-initialize on dynamic content load
   window.addEventListener('contentLoaded', initTOC);

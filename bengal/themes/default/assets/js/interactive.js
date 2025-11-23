@@ -11,6 +11,14 @@
 (function() {
   'use strict';
 
+  // Ensure utils are available
+  if (!window.BengalUtils) {
+    console.error('BengalUtils not loaded - interactive.js requires utils.js');
+    return;
+  }
+
+  const { log, throttleScroll, ready } = window.BengalUtils;
+
   /**
    * Back to Top Button
    * Shows a floating button when user scrolls down
@@ -44,16 +52,8 @@
     };
 
     // Throttle scroll events for performance
-    let ticking = false;
-    window.addEventListener('scroll', () => {
-      if (!ticking) {
-        window.requestAnimationFrame(() => {
-          toggleVisibility();
-          ticking = false;
-        });
-        ticking = true;
-      }
-    }, { passive: true });
+    const throttledToggle = throttleScroll(toggleVisibility);
+    window.addEventListener('scroll', throttledToggle, { passive: true });
 
     // Scroll to top on click
     button.addEventListener('click', () => {
@@ -105,16 +105,8 @@
     };
 
     // Throttle scroll events
-    let ticking = false;
-    window.addEventListener('scroll', () => {
-      if (!ticking) {
-        window.requestAnimationFrame(() => {
-          updateProgress();
-          ticking = false;
-        });
-        ticking = true;
-      }
-    }, { passive: true });
+    const throttledUpdate = throttleScroll(updateProgress);
+    window.addEventListener('scroll', throttledUpdate, { passive: true });
 
     // Update on resize
     window.addEventListener('resize', updateProgress, { passive: true });
@@ -184,16 +176,8 @@
     };
 
     // Throttle scroll events
-    let ticking = false;
-    window.addEventListener('scroll', () => {
-      if (!ticking) {
-        window.requestAnimationFrame(() => {
-          highlightNavigation();
-          ticking = false;
-        });
-        ticking = true;
-      }
-    }, { passive: true });
+    const throttledHighlight = throttleScroll(highlightNavigation);
+    window.addEventListener('scroll', throttledHighlight, { passive: true });
 
     // Initial highlight
     highlightNavigation();
@@ -269,7 +253,7 @@
       }
     }
 
-    console.log('Documentation navigation initialized');
+    log('Documentation navigation initialized');
   }
 
   /**
@@ -339,14 +323,10 @@
     setupDocsNavigation();
     setupMobileSidebar();
 
-    console.log('Interactive elements initialized');
+    log('Interactive elements initialized');
   }
 
   // Initialize when DOM is ready
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init, { once: true });
-  } else {
-    init();
-  }
+  ready(init);
 
 })();
