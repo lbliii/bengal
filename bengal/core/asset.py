@@ -207,6 +207,18 @@ def _lossless_minify_css_string(css: str) -> str:
             i += 1
             continue
 
+        # Preserve space before number sequences ending in % (for CSS functions like color-mix)
+        # Check if current char is digit and look ahead to see if % follows the number
+        if char.isdigit() and pending_whitespace:
+            # Look ahead to find where the number sequence ends
+            j = i
+            while j < length and (css[j].isdigit() or css[j] == "."):
+                j += 1
+            # If the sequence ends with %, preserve the space
+            if j < length and css[j] == "%":
+                result.append(" ")
+                pending_whitespace = False
+        
         if pending_whitespace and needs_space(char):
             result.append(" ")
         pending_whitespace = False
