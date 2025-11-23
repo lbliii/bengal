@@ -29,26 +29,25 @@
   border: none;
 }
 
-  /* Cards with images get different layout structure */
-  &:has(.card-image) {
-    grid-template-rows: auto 1fr auto;
-  }
+/* Cards with images get different layout structure */
+.card:has(.card-image) {
+  grid-template-rows: auto 1fr auto;
+}
 
-  /* Cards without images get more padding */
-  &:not(:has(.card-image)) {
-    padding: 1.5rem;
-  }
+/* Cards without images get more padding */
+.card:not(:has(.card-image)) {
+  padding: 1.5rem;
+}
 
-  /* When card is a link, remove underlines */
-  a& {
-    text-decoration: none;
-    color: inherit;
-  }
+/* When card is a link, remove underlines */
+a.card {
+  text-decoration: none;
+  color: inherit;
+}
 
-  &:hover {
-    box-shadow: var(--elevation-high);
-    transform: translate3d(0, calc(-1 * var(--motion-distance-2)), 0);
-  }
+.card:hover {
+  box-shadow: var(--elevation-high);
+  transform: translate3d(0, calc(-1 * var(--motion-distance-2)), 0);
 }
 
 /* Disable transform animations on mobile for performance */
@@ -305,9 +304,11 @@
   transform: translate3d(0, calc(-1 * var(--motion-distance-2)), 0);
   transition: box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1),
               transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
 
-  /* Modern color mixing for hover background */
-  @supports (color-mix(in srgb, white, black)) {
+/* Modern color mixing for hover background */
+@supports (color-mix(in srgb, white, black)) {
+  .feature-card:hover {
     background: color-mix(in srgb, var(--color-bg-elevated) 95%, var(--color-primary));
   }
 }

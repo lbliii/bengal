@@ -1,17 +1,14 @@
 /**
- * Tabs Component
- * For tabbed content with multiple panes
+ * Tabs Component CSS
+ * Simplified and Robust
  */
 
-/* ============================================
-   TABS CONTAINER
-   ============================================ */
-
+/* Container */
 .tabs {
   position: relative;
-  margin: var(--space-6) 0;
+  margin: 1.5rem 0;
   border: 1px solid var(--color-border-light);
-  border-radius: var(--radius-lg); /* Increased from --radius-md (4px → 8px) */
+  border-radius: 8px; /* var(--radius-lg) fallback */
   background-color: var(--color-bg-primary);
   overflow: hidden;
 }
@@ -20,119 +17,59 @@
   border: none;
 }
 
-/* ============================================
-   TAB NAVIGATION
-   ============================================ */
-
-/* Tab navigation container for container queries */
-.tabs-container {
-  container-type: inline-size;
-  container-name: tabs;
-}
-
+/* Navigation (The part looking like a bulleted list) */
 .tab-nav {
-  display: flex;
+  display: flex !important;
+  flex-wrap: wrap;
   align-items: center;
-  list-style: none;
-  margin: 0;
-  padding: 0;
+  list-style: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
   border-bottom: 1px solid var(--color-border-light);
-  background-color: transparent;
-  overflow-x: auto;
-  overflow-y: hidden;
-  scrollbar-width: thin;
+  background-color: rgba(0, 0, 0, 0.02); /* Slight bg for nav area */
 }
 
-/* Container query: Stack tabs vertically on small containers */
-@container tabs (max-width: 400px) {
-  .tab-nav {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .tab-nav a {
-    border-bottom: none;
-    border-left: 2px solid transparent;
-    margin-bottom: 0;
-    margin-left: -2px;
-  }
-
-  .tab-nav li.active a {
-    border-left-color: var(--color-primary);
-    border-bottom-color: transparent;
-  }
-}
-
-/* Override prose list styles for tab navigation */
+/* Ensure prose doesn't override */
 .prose .tab-nav,
 .prose .tab-nav li {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.tab-nav::-webkit-scrollbar {
-  height: 4px;
-}
-
-.tab-nav::-webkit-scrollbar-track {
-  background: var(--color-bg-secondary);
-}
-
-.tab-nav::-webkit-scrollbar-thumb {
-  background: var(--color-border);
-  border-radius: 2px;
+  list-style: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
 }
 
 .tab-nav li {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  list-style: none;
-  margin: 0;
-  padding: 0;
+  margin: 0 !important;
+  padding: 0 !important;
+  list-style: none !important;
 }
 
 .tab-nav a {
-  display: flex;
-  align-items: center;
-  padding: 0.5rem 1rem;
+  display: block;
+  padding: 0.75rem 1.25rem;
   color: var(--color-text-tertiary);
   text-decoration: none;
-  font-weight: var(--font-medium);
-  font-size: var(--text-sm);
-  line-height: 1.2;
+  font-weight: 500; /* Medium */
+  font-size: 0.875rem; /* text-sm */
   border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
-  transition: all var(--transition-fast) var(--ease-out);
-  white-space: nowrap;
-  opacity: 0.7;
-  touch-action: manipulation;
-  user-select: none;
-  -webkit-tap-highlight-color: transparent;
+  transition: all 0.2s ease;
+  cursor: pointer;
 }
 
 .tab-nav a:hover {
   color: var(--color-text-primary);
-  background-color: transparent;
-  opacity: 1;
+  background-color: rgba(0, 0, 0, 0.03);
 }
 
 .tab-nav li.active a {
   color: var(--color-primary);
   border-bottom-color: var(--color-primary);
   background-color: transparent;
-  font-weight: var(--font-semibold);
-  opacity: 1;
+  font-weight: 600;
 }
 
-/* ============================================
-   TAB CONTENT
-   ============================================ */
-
+/* Content */
 .tab-content {
-  padding: var(--space-5);
-  background-color: var(--color-bg-primary);
+  padding: 1.25rem;
 }
 
 .tab-pane {
@@ -141,215 +78,56 @@
 
 .tab-pane.active {
   display: block;
-  animation: fadeIn 0.3s var(--ease-smooth);
-
-  /* View Transitions API for smooth tab switching */
-  @supports (view-transition-name: tab-pane) {
-    view-transition-name: tab-pane;
-  }
+  animation: tabFadeIn 0.2s ease-out;
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translate3d(0, 8px, 0);
-  }
-  to {
-    opacity: 1;
-    transform: translate3d(0, 0, 0);
-  }
+@keyframes tabFadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-/* ============================================
-   TAB CONTENT STYLING
-   ============================================ */
-
-.tab-pane > *:first-child {
-  margin-top: 0;
+/* Code Tabs Variant */
+.code-tabs {
+  border: 1px solid var(--color-border-light);
+  border-radius: 6px;
+  margin: 1.5rem 0;
 }
 
-.tab-pane > *:last-child {
-  margin-bottom: 0;
+.code-tabs .tab-nav {
+  background-color: transparent;
+  padding: 0 0.5rem;
 }
 
-/* List styling in tab content */
-.tab-pane ul,
-.tab-pane ol {
-  padding-left: var(--space-8);
-  margin: var(--space-4) 0;
+.code-tabs .tab-nav a {
+  padding: 0.5rem 1rem;
+  font-size: 0.8125rem; /* text-xs/sm */
 }
 
-.tab-pane ul {
-  list-style-type: disc;
+.code-tabs .tab-content {
+  padding: 0;
 }
 
-.tab-pane ol {
-  list-style-type: decimal;
+.code-tabs .tab-pane pre {
+  margin: 0;
+  border: none;
+  border-radius: 0 0 6px 6px;
 }
 
-.tab-pane li {
-  margin: var(--space-2) 0;
-}
-
-.tab-pane pre {
-  margin: var(--space-4) 0;
-}
-
-.tab-pane code {
-  font-size: var(--text-sm);
-}
-
-/* ============================================
-   NESTED TABS
-   ============================================ */
-
-.tab-pane .tabs {
-  margin-top: var(--space-4);
-  margin-bottom: var(--space-4);
-}
-
-/* ============================================
-   DARK MODE
-   ============================================ */
-
-[data-theme="dark"] .tabs {
+/* Dark Mode */
+[data-theme="dark"] .tabs,
+[data-theme="dark"] .code-tabs {
   border-color: var(--color-border-dark);
 }
 
 [data-theme="dark"] .tab-nav {
   border-bottom-color: var(--color-border-dark);
-}
-
-[data-theme="dark"] .tab-nav a:hover {
-  background-color: transparent;
+  background-color: rgba(255, 255, 255, 0.02);
 }
 
 [data-theme="dark"] .tab-nav li.active a {
   background-color: transparent;
 }
 
-[data-theme="dark"] .tab-content {
-  background-color: transparent;
-}
-
-/* ============================================
-   RESPONSIVE
-   ============================================ */
-
-@media (max-width: 640px) {
-  .tabs {
-    margin: var(--space-4) 0;
-  }
-
-  .tab-nav a {
-    padding: var(--space-2) var(--space-3);
-    font-size: var(--text-xs);
-  }
-
-  .tab-content {
-    padding: var(--space-4);
-  }
-}
-
-/* ============================================
-   CODE TABS (Minimal variant)
-   ============================================ */
-
-.code-tabs {
-  border: 1px solid var(--color-border-light);
-}
-
-.code-tabs .tab-nav {
-  background: transparent;
-  border-bottom: 1px solid var(--color-border-light);
-  padding: 0.25rem 0.5rem 0;
-}
-
-.code-tabs .tab-nav a {
-  color: var(--color-text-tertiary);
-  font-size: var(--text-xs);
-  padding: 0.375rem 0.75rem;
-  opacity: 0.7;
-  transition: all var(--transition-fast);
-}
-
-.code-tabs .tab-nav a:hover {
-  color: var(--color-text-primary);
-  background-color: transparent;
-  opacity: 1;
-}
-
-.code-tabs .tab-nav li.active a {
-  color: var(--color-primary);
-  background-color: transparent;
-  border-bottom-color: var(--color-primary);
-  opacity: 1;
-  font-weight: var(--font-semibold);
-}
-
-.code-tabs .tab-content {
-  padding: 0;
-  background: transparent;
-}
-
-.code-tabs .tab-pane {
-  position: relative;
-}
-
-.code-tabs .tab-pane pre {
-  margin: 0;
-  border-radius: 0;
-  border: none;
-  border-top: none;
-}
-
-[data-theme="dark"] .code-tabs {
-  border-color: var(--color-border-dark);
-}
-
-[data-theme="dark"] .code-tabs .tab-nav {
-  border-bottom-color: var(--color-border-dark);
-}
-
-[data-theme="dark"] .code-tabs .tab-nav li.active a {
-  background-color: transparent;
-}
-
-/* ============================================
-   ACCESSIBILITY
-   ============================================ */
-
-.tab-nav a:focus {
-  outline: 2px solid var(--color-accent);
-  outline-offset: -2px;
-  z-index: var(--z-10);
-}
-
-.tab-nav a:focus:not(:focus-visible) {
-  outline: none;
-}
-
-/* ============================================
-   PRINT
-   ============================================ */
-
-@media print {
-  .tabs {
-    border: none;
-  }
-
-  .tab-nav {
-    display: none;
-  }
-
-  .tab-pane {
-    display: block !important;
-    page-break-inside: avoid;
-  }
-
-  .tab-pane:not(:last-child) {
-    border-bottom: 1px solid #ccc;
-    padding-bottom: var(--space-4);
-    margin-bottom: var(--space-4);
-  }
+[data-theme="dark"] .tab-nav a:hover {
+  background-color: rgba(255, 255, 255, 0.05);
 }

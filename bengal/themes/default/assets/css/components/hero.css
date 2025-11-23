@@ -20,10 +20,11 @@
   border-block-end: 1px solid var(--color-border-light); /* Changed from border-bottom */
   overflow: hidden;
 
-  /* Scroll-driven fade-in for hero content */
-  &.fade-in-on-scroll {
-    /* Will be animated by scroll-animations.css */
-  }
+}
+
+/* Scroll-driven fade-in for hero content */
+.hero.fade-in-on-scroll {
+  /* Will be animated by scroll-animations.css */
 }
 
 [data-theme="dark"] .hero {
@@ -64,10 +65,11 @@
   letter-spacing: var(--letter-spacing-tighter);
   color: var(--color-text-primary);
 
-  /* Scroll-driven slide-up animation */
-  &.slide-up-on-scroll {
-    /* Will be animated by scroll-animations.css */
-  }
+}
+
+/* Scroll-driven slide-up animation */
+.hero__title.slide-up-on-scroll {
+  /* Will be animated by scroll-animations.css */
 }
 
 .hero__subtitle {

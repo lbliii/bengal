@@ -13,45 +13,48 @@
     -webkit-backdrop-filter: blur(8px);
     will-change: transform, box-shadow;
 
-    &:hover {
-        transform: translate3d(0, -2px, 0);
-        box-shadow: var(--elevation-card-hover);
+}
 
-        @supports (color-mix(in srgb, white, black)) {
-            background: color-mix(in srgb, var(--color-bg-secondary) 98%, var(--color-primary));
-        }
-    }
+.author-bio:hover {
+    transform: translate3d(0, -2px, 0);
+    box-shadow: var(--elevation-card-hover);
+}
 
-    &-avatar {
-        flex-shrink: 0;
-        width: 80px;
-        height: 80px;
-        aspect-ratio: 1 / 1; /* Added */
-        border-radius: var(--radius-full);
-        object-fit: cover;
-        transition: transform var(--transition-smooth) var(--ease-smooth);
-        will-change: transform;
+@supports (color-mix(in srgb, white, black)) {
+    .author-bio:hover {
+        background: color-mix(in srgb, var(--color-bg-secondary) 98%, var(--color-primary));
     }
+}
 
-    &:hover &-avatar {
-        transform: translate3d(0, 0, 0) scale(1.05);
-    }
+.author-bio-avatar {
+    flex-shrink: 0;
+    width: 80px;
+    height: 80px;
+    aspect-ratio: 1 / 1; /* Added */
+    border-radius: var(--radius-full);
+    object-fit: cover;
+    transition: transform var(--transition-smooth) var(--ease-smooth);
+    will-change: transform;
+}
 
-    & h3 {
-        margin: 0 0 var(--space-2) 0;
-        font-size: var(--text-xl);
-        font-weight: var(--font-bold);
-        color: var(--color-text-primary);
-        transition: color var(--transition-fast) var(--ease-out);
-    }
+.author-bio:hover .author-bio-avatar {
+    transform: translate3d(0, 0, 0) scale(1.05);
+}
 
-    &:hover & h3 {
-        color: var(--color-primary);
-    }
+.author-bio h3 {
+    margin: 0 0 var(--space-2) 0;
+    font-size: var(--text-xl);
+    font-weight: var(--font-bold);
+    color: var(--color-text-primary);
+    transition: color var(--transition-fast) var(--ease-out);
+}
 
-    & p {
-        margin: 0;
-        color: var(--color-text-secondary);
-        line-height: var(--leading-relaxed);
-    }
+.author-bio:hover h3 {
+    color: var(--color-primary);
+}
+
+.author-bio p {
+    margin: 0;
+    color: var(--color-text-secondary);
+    line-height: var(--leading-relaxed);
 }

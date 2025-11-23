@@ -1,0 +1,6 @@
+# Custom Parameters
+# =================
+
+params:
+  # Site-specific custom variables
+  project_status: "beta"

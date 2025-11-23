@@ -1,146 +1,118 @@
 /**
- * Tabs JavaScript
- * Handles tab switching functionality
+ * Tabs Component (Robust Implementation)
+ * 
+ * Features:
+ * - Event delegation (works with dynamic content)
+ * - ID-based targeting (more robust than index-based)
+ * - Handles nested tabs correctly
+ * - accessible keyboard navigation
  */
 
 (function() {
   'use strict';
 
-  /**
-   * Initialize all tab components
-   */
-  function initTabs() {
-    const tabContainers = document.querySelectorAll('.tabs, .code-tabs');
-
-    tabContainers.forEach(container => {
-      const tabLinks = container.querySelectorAll('.tab-nav a');
-      const tabPanes = container.querySelectorAll('.tab-pane');
-
-      // Add click handlers to tab links
-      tabLinks.forEach((link, index) => {
-        link.addEventListener('click', (e) => {
-          e.preventDefault();
-          switchTab(container, index);
-        });
-
-        // Keyboard navigation
-        link.addEventListener('keydown', (e) => {
-          handleTabKeyboard(e, tabLinks, index);
-        });
-      });
-
-      // Handle hash-based tab activation
-      const hash = window.location.hash;
-      if (hash) {
-        const targetPane = container.querySelector(hash);
-        if (targetPane) {
-          const paneIndex = Array.from(tabPanes).indexOf(targetPane);
-          if (paneIndex !== -1) {
-            switchTab(container, paneIndex);
-          }
-        }
-      }
-    });
-  }
+  // CSS classes
+  const CLASS_ACTIVE = 'active';
+  const SELECTOR_TABS = '.tabs, .code-tabs';
+  const SELECTOR_NAV_LINK = '.tab-nav a';
+  const SELECTOR_NAV_ITEM = '.tab-nav li';
+  const SELECTOR_PANE = '.tab-pane';
 
   /**
-   * Switch to a specific tab
+   * Handle click events on tab links
    */
-  function switchTab(container, index) {
-    const tabLinks = container.querySelectorAll('.tab-nav li');
-    const tabPanes = container.querySelectorAll('.tab-pane');
+  document.addEventListener('click', (e) => {
+    const link = e.target.closest(SELECTOR_NAV_LINK);
+    if (!link) return;
 
-    // Remove active class from all tabs and panes
-    tabLinks.forEach(li => li.classList.remove('active'));
-    tabPanes.forEach(pane => pane.classList.remove('active'));
+    // Find the container
+    const container = link.closest(SELECTOR_TABS);
+    if (!container) return;
 
-    // Add active class to selected tab and pane
-    if (tabLinks[index]) {
-      tabLinks[index].classList.add('active');
-    }
-    if (tabPanes[index]) {
-      tabPanes[index].classList.add('active');
+    // Prevent default anchor behavior
+    e.preventDefault();
 
-      // Trigger custom event for other scripts
+    // Get target ID
+    const targetId = link.getAttribute('data-tab-target');
+    if (!targetId) return;
+
+    switchTab(container, link, targetId);
+  });
+
+  /**
+   * Switch tab
+   * @param {HTMLElement} container - The tabs container
+   * @param {HTMLElement} activeLink - The clicked link
+   * @param {string} targetId - ID of the target pane
+   */
+  function switchTab(container, activeLink, targetId) {
+    // 1. Deactivate all nav items in THIS container
+    const navItems = Array.from(container.querySelectorAll(SELECTOR_NAV_ITEM)).filter(item => 
+      item.closest(SELECTOR_TABS) === container
+    );
+    navItems.forEach(item => item.classList.remove(CLASS_ACTIVE));
+
+    // 2. Activate clicked nav item
+    const activeItem = activeLink.closest('li');
+    if (activeItem) activeItem.classList.add(CLASS_ACTIVE);
+
+    // 3. Hide all panes in THIS container
+    const panes = Array.from(container.querySelectorAll(SELECTOR_PANE)).filter(pane => 
+      pane.closest(SELECTOR_TABS) === container
+    );
+    panes.forEach(pane => pane.classList.remove(CLASS_ACTIVE));
+
+    // 4. Show target pane
+    // We search globally or within container? 
+    // IDs are global, but usually inside container. 
+    // Search within container is safer for nested contexts if IDs aren't unique (they should be).
+    const targetPane = document.getElementById(targetId);
+    if (targetPane) {
+      targetPane.classList.add(CLASS_ACTIVE);
+      
+      // Dispatch event
       const event = new CustomEvent('tabSwitched', {
-        detail: {
-          container: container,
-          index: index,
-          pane: tabPanes[index]
-        }
+        detail: { container, link: activeLink, pane: targetPane }
       });
       container.dispatchEvent(event);
     }
   }
 
   /**
-   * Handle keyboard navigation in tabs
+   * Initialize state (if needed)
+   * Ensure at least one tab is active if HTML didn't set it
    */
-  function handleTabKeyboard(e, tabLinks, currentIndex) {
-    let newIndex = currentIndex;
+  function initTabs() {
+    const containers = document.querySelectorAll(SELECTOR_TABS);
+    containers.forEach(container => {
+      const navItems = Array.from(container.querySelectorAll(SELECTOR_NAV_ITEM)).filter(item => 
+        item.closest(SELECTOR_TABS) === container
+      );
+      const panes = Array.from(container.querySelectorAll(SELECTOR_PANE)).filter(pane => 
+        pane.closest(SELECTOR_TABS) === container
+      );
 
-    switch(e.key) {
-      case 'ArrowLeft':
-        e.preventDefault();
-        newIndex = currentIndex > 0 ? currentIndex - 1 : tabLinks.length - 1;
-        break;
-      case 'ArrowRight':
-        e.preventDefault();
-        newIndex = currentIndex < tabLinks.length - 1 ? currentIndex + 1 : 0;
-        break;
-      case 'Home':
-        e.preventDefault();
-        newIndex = 0;
-        break;
-      case 'End':
-        e.preventDefault();
-        newIndex = tabLinks.length - 1;
-        break;
-      default:
-        return;
-    }
-
-    tabLinks[newIndex].focus({ preventScroll: true });
-    tabLinks[newIndex].click();
+      // If no active item, activate first
+      if (navItems.length > 0 && !navItems.some(item => item.classList.contains(CLASS_ACTIVE))) {
+        navItems[0].classList.add(CLASS_ACTIVE);
+        // Find corresponding link to get target
+        const link = navItems[0].querySelector('a');
+        if (link) {
+          const targetId = link.getAttribute('data-tab-target');
+          if (targetId) {
+            const pane = document.getElementById(targetId);
+            if (pane) pane.classList.add(CLASS_ACTIVE);
+          }
+        }
+      }
+    });
   }
 
-  /**
-   * Save/restore tab state in sessionStorage
-   */
-  function saveTabState(containerId, index) {
-    try {
-      sessionStorage.setItem(`tab-${containerId}`, index.toString());
-    } catch (e) {
-      // sessionStorage not available
-    }
-  }
-
-  function restoreTabState(containerId) {
-    try {
-      const saved = sessionStorage.getItem(`tab-${containerId}`);
-      return saved !== null ? parseInt(saved, 10) : 0;
-    } catch (e) {
-      return 0;
-    }
-  }
-
-  /**
-   * Initialize on DOM ready
-   */
+  // Initialize on load
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initTabs);
   } else {
     initTabs();
   }
 
-  /**
-   * Re-initialize on dynamic content load
-   */
-  window.addEventListener('contentLoaded', initTabs);
-
-  // Export for use by other scripts
-  window.BengalTabs = {
-    init: initTabs,
-    switchTab: switchTab
-  };
 })();

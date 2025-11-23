@@ -120,6 +120,20 @@ pre code {
 .code-block-wrapper {
   position: relative;
   margin: var(--space-6) 0;
+  border-radius: var(--radius-2xl);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  background-color: var(--color-bg-code);
+  box-shadow: var(--elevation-card);
+  overflow: hidden;
+  transition: box-shadow var(--transition-base);
+}
+
+.code-block-wrapper:hover {
+  box-shadow: var(--elevation-card-hover);
+}
+
+[data-theme="dark"] .code-block-wrapper {
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 /* Keep animated borders outside the scrolling <pre> */
@@ -128,29 +142,14 @@ pre code {
 .code-block-wrapper.gradient-border-strong,
 .code-block-wrapper.fluid-border,
 .code-block-wrapper.fluid-combined {
-  border-radius: var(--radius-2xl);
-  overflow: hidden;
+  border: none;
   isolation: isolate;
-  box-shadow: var(--elevation-card);
-  transition: box-shadow var(--transition-base);
 }
 
-.code-block-wrapper.gradient-border:hover,
-.code-block-wrapper.gradient-border-subtle:hover,
-.code-block-wrapper.gradient-border-strong:hover,
-.code-block-wrapper.fluid-border:hover,
-.code-block-wrapper.fluid-combined:hover {
-  box-shadow: var(--elevation-card-hover);
-}
-
-.code-block-wrapper.gradient-border pre,
-.code-block-wrapper.gradient-border-subtle pre,
-.code-block-wrapper.gradient-border-strong pre,
-.code-block-wrapper.fluid-border pre,
-.code-block-wrapper.fluid-combined pre {
+.code-block-wrapper pre {
+  margin: 0;
   border: none;
   border-radius: inherit;
-  margin: 0;
   box-shadow: none;
 }
 
