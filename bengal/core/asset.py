@@ -636,9 +636,12 @@ class Asset:
         Returns:
             Path where the asset was copied
         """
-        # Generate fingerprint if requested and not already done
-        if use_fingerprint and not self.fingerprint:
-            self.hash()
+        # Only generate fingerprint if explicitly requested
+        if use_fingerprint:
+            if not self.fingerprint:
+                self.hash()
+            # Clean up old fingerprints after generating new one, before writing
+            self._cleanup_old_fingerprints_prepare(output_dir)
 
         # Determine output filename
         if use_fingerprint and self.fingerprint:
@@ -692,23 +695,34 @@ class Asset:
             shutil.copy2(self.source_path, output_path)
 
         self.output_path = output_path
-        if use_fingerprint and self.fingerprint:
-            self._cleanup_old_fingerprints(output_path)
         return output_path
 
-    def _cleanup_old_fingerprints(self, latest_path: Path) -> None:
+    def _cleanup_old_fingerprints_prepare(self, output_dir: Path) -> None:
         """
-        Remove outdated fingerprinted siblings once the newest file is in place.
+        Remove outdated fingerprinted siblings before writing the new file.
+
+        This ensures only one fingerprinted version exists at a time, preventing
+        stale files from being served.
 
         Args:
-            latest_path: Newly written asset path that should be preserved.
+            output_dir: Output directory where assets are written
         """
         try:
-            parent = latest_path.parent
+            # Determine where the file will be written
+            parent = (output_dir / self.output_path).parent if self.output_path else output_dir
+
+            if not parent.exists():
+                return  # Directory doesn't exist yet, nothing to clean
+
+            # Find all existing fingerprinted versions of this asset
             pattern = f"{self.source_path.stem}.*{self.source_path.suffix}"
             for candidate in parent.glob(pattern):
-                if candidate == latest_path:
+                # Skip if this is the file we're about to write (fingerprint already generated)
+                if self.fingerprint and candidate.name.endswith(
+                    f".{self.fingerprint}{self.source_path.suffix}"
+                ):
                     continue
+                # Remove stale fingerprint (any file matching the pattern that isn't the current one)
                 candidate.unlink(missing_ok=True)
         except Exception as exc:  # pragma: no cover - best-effort cleanup
             logger.debug(

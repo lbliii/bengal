@@ -428,35 +428,16 @@ class TemplateEngine:
         except Exception:
             pass
 
+        # Use manifest as single source of truth for asset resolution
         manifest_entry = self._get_manifest_entry(safe_asset_path)
         if manifest_entry:
             return self._with_baseurl(f"/{manifest_entry.output_path}")
 
-        manifest_present = self._asset_manifest_path.exists()
-
-        # Attempt to resolve a fingerprinted file in output_dir/assets
-        try:
-            base = self.site.output_dir / "assets"
-            # If input includes a directory (e.g., css/style.css), split it
-            p = Path(safe_asset_path)
-            subdir = base / p.parent
-            stem = p.stem
-            suffix = p.suffix
-            if subdir.exists():
-                # Find first matching file with stem.hash.suffix
-                for cand in subdir.glob(f"{stem}.*{suffix}"):
-                    # Ensure pattern looks like fingerprint (dot + 8 hex)
-                    parts = cand.name.split(".")
-                    if len(parts) >= 3 and len(parts[-2]) >= 6:
-                        rel = cand.relative_to(self.site.output_dir)
-                        url = self._with_baseurl(f"/{rel.as_posix()}")
-                        if manifest_present:
-                            self._warn_manifest_fallback(safe_asset_path)
-                        return url
-        except Exception:
-            pass
-        if manifest_present:
+        # If manifest exists but entry is missing, warn and fall back to direct path
+        if self._asset_manifest_path.exists():
             self._warn_manifest_fallback(safe_asset_path)
+
+        # Fallback: return direct asset path (for dev or when manifest unavailable)
         return self._with_baseurl(f"/assets/{safe_asset_path}")
 
     def _get_menu(self, menu_name: str = "main") -> list:
