@@ -54,6 +54,18 @@ class TestCLICommandOutput:
         # Should show version
         assert "Bengal" in result.stdout or "bengal" in result.stdout
 
+    @pytest.mark.bengal(testroot="test-assets")
+    def test_assets_status_shows_manifest_entries(self, site):
+        """`bengal assets status` should report logical-to-fingerprint mappings."""
+        # Ensure manifest exists
+        result = run_cli(["site", "build", "--clean-output"], cwd=str(site.root_path), timeout=40)
+        result.assert_ok()
+
+        status = run_cli(["assets", "status"], cwd=str(site.root_path))
+        status.assert_ok()
+        assert "css/style.css" in status.stdout
+        assert "fingerprint" in status.stdout.lower()
+
 
 class TestCLIOutputWithRealCommands:
     """Test CLI output system with real command scenarios."""

@@ -7,6 +7,7 @@ from pathlib import Path
 
 import click
 
+from bengal.assets.manifest import AssetManifest
 from bengal.cli.base import BengalGroup
 from bengal.core.site import Site
 from bengal.utils.cli_output import CLIOutput
@@ -57,6 +58,33 @@ def build(watch: bool, source: str) -> None:
     except KeyboardInterrupt:
         cli.blank()
         cli.warning("Stopped asset watcher.")
+
+
+@assets.command()
+@click.argument("source", type=click.Path(exists=True), default=".")
+def status(source: str) -> None:
+    """
+    Display the current asset manifest mapping logical assets to fingerprinted files.
+    """
+    cli = CLIOutput()
+    root = Path(source).resolve()
+    site = Site.from_config(root)
+    manifest_path = site.output_dir / "asset-manifest.json"
+    manifest = AssetManifest.load(manifest_path)
+
+    if manifest is None or not manifest.entries:
+        cli.warning("No asset manifest found.")
+        cli.info("Run 'bengal site build --clean-output' to regenerate all assets.")
+        return
+
+    cli.header("Asset Manifest")
+    for logical_path in sorted(manifest.entries.keys()):
+        entry = manifest.entries[logical_path]
+        destination = f"/{entry.output_path}"
+        if entry.fingerprint:
+            cli.info(f"{logical_path} → {destination} (fingerprint: {entry.fingerprint})")
+        else:
+            cli.info(f"{logical_path} → {destination}")
 
 
 # Compatibility export expected by tests

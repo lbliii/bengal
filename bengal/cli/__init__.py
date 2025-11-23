@@ -7,6 +7,7 @@ from __future__ import annotations
 import click
 
 from bengal import __version__
+from bengal.cli.commands.assets import assets as assets_cli
 from bengal.cli.commands.config import config_cli
 from bengal.cli.commands.health import health_cli
 from bengal.cli.commands.new import new
@@ -48,6 +49,7 @@ main.add_command(health_cli)
 main.add_command(utils_cli)
 main.add_command(new)
 main.add_command(project_cli)
+main.add_command(assets_cli)
 
 
 if __name__ == "__main__":

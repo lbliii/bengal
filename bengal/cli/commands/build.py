@@ -198,6 +198,11 @@ def _run_autodoc_before_build(config_path: Path, root_path: Path, quiet: bool) -
     help="Enable performance profiling and save to file (default: .bengal/profiles/profile.stats)",
 )
 @click.option(
+    "--clean-output/--no-clean-output",
+    default=False,
+    help="Delete the output directory before building (useful for CI cache-busting).",
+)
+@click.option(
     "--theme-dev",
     "use_theme_dev",
     is_flag=True,
@@ -262,6 +267,7 @@ def build(
     environment: str | None,
     profile: str,
     perf_profile: str,
+    clean_output: bool,
     use_theme_dev: bool,
     use_dev: bool,
     verbose: bool,
@@ -362,6 +368,11 @@ def build(
 
         # Create and build site
         site = Site.from_config(root_path, config_path, environment=environment, profile=profile)
+
+        if clean_output:
+            cli = CLIOutput()
+            cli.info("Cleaning output directory before build (--clean-output).")
+            site.clean()
 
         # Apply file-based traceback config ([dev.traceback]) with lowest precedence
         # after site config is available, then re-install in case values changed

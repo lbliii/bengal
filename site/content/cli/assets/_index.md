@@ -17,7 +17,7 @@ description: "Manage and build assets."
 
 
 
-**Command:** `bengal.utils.assets`
+**Command:** `bengal.assets`
 
 
 Manage and build assets.

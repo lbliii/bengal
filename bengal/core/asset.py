@@ -28,117 +28,120 @@ def _transform_css_nesting(css: str) -> str:
         .parent:hover { color: blue; }
 
     This ensures browser compatibility for CSS nesting syntax.
-    
+
     NOTE: We should NOT write nested CSS in source files. Use traditional selectors instead.
     This is a safety net for any nested CSS that slips through.
     """
     import re
 
     result = css
-    
+
     # Pattern to match CSS rule blocks
-    rule_pattern = r'([^{]+)\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}'
-    
+    rule_pattern = r"([^{]+)\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}"
+
     def transform_rule(match):
         selector = match.group(1).strip()
         block_content = match.group(2)
-        
+
         # Skip @rules
-        if selector.strip().startswith('@'):
+        if selector.strip().startswith("@"):
             return match.group(0)
-        
+
         # Clean @layer prefixes
-        selector_clean = re.sub(r'^@layer\s+\w+\s*', '', selector).strip()
-        has_layer = selector.strip().startswith('@layer')
-        layer_decl = ''
+        selector_clean = re.sub(r"^@layer\s+\w+\s*", "", selector).strip()
+        has_layer = selector.strip().startswith("@layer")
+        layer_decl = ""
         if has_layer:
-            layer_match = re.match(r'(@layer\s+\w+)\s*', selector)
+            layer_match = re.match(r"(@layer\s+\w+)\s*", selector)
             if layer_match:
-                layer_decl = layer_match.group(1) + ' '
-        
-        if not selector_clean or selector_clean.startswith('@'):
+                layer_decl = layer_match.group(1) + " "
+
+        if not selector_clean or selector_clean.startswith("@"):
             return match.group(0)
-        
+
         # Find nested & selectors
-        nested_pattern = r'&\s*([:.#\[\w\s-]+)\s*\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}'
+        nested_pattern = r"&\s*([:.#\[\w\s-]+)\s*\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}"
         nested_rules = []
-        
+
         def extract_nested(m):
             nested_selector_part = m.group(1).strip()
             nested_block = m.group(2)
-            
+
             # Build full selector
-            if nested_selector_part.startswith(':'):
-                full_selector = selector_clean + nested_selector_part
-            elif nested_selector_part.startswith('.'):
-                full_selector = selector_clean + nested_selector_part
-            elif nested_selector_part.startswith('['):
-                full_selector = selector_clean + nested_selector_part
-            elif nested_selector_part.startswith(' '):
+            if (
+                nested_selector_part.startswith(":")
+                or nested_selector_part.startswith(".")
+                or nested_selector_part.startswith("[")
+                or nested_selector_part.startswith(" ")
+            ):
                 full_selector = selector_clean + nested_selector_part
             else:
                 full_selector = selector_clean + nested_selector_part
-            
+
             if has_layer:
                 nested_rules.append(f"{layer_decl}{full_selector} {{{nested_block}}}")
             else:
                 nested_rules.append(f"{full_selector} {{{nested_block}}}")
             return ""
-        
-        remaining_content = re.sub(nested_pattern, extract_nested, block_content, flags=re.MULTILINE)
-        remaining_content = re.sub(r'\n\s*\n\s*\n', '\n\n', remaining_content)
-        
+
+        remaining_content = re.sub(
+            nested_pattern, extract_nested, block_content, flags=re.MULTILINE
+        )
+        remaining_content = re.sub(r"\n\s*\n\s*\n", "\n\n", remaining_content)
+
         if nested_rules:
             return f"{selector}{{{remaining_content}}}\n" + "\n".join(nested_rules)
         else:
             return match.group(0)
-    
+
     # Process iteratively to handle deeply nested cases
     for _ in range(10):
         new_result = re.sub(rule_pattern, transform_rule, result, flags=re.MULTILINE | re.DOTALL)
         if new_result == result:
             break
         result = new_result
-    
+
     return result
 
 
 def _remove_duplicate_bare_h1_rules(css: str) -> str:
     """
     Remove duplicate bare h1 rules that appear right after scoped h1 rules.
-    
+
     CSS processing sometimes creates duplicate rules like:
         .browser-header h1 { font-size: var(--text-5xl); }
         h1 { font-size: var(--text-5xl); }  # Duplicate!
-    
+
     The bare h1 rule overrides the base typography rule, breaking text sizing.
     This function removes the duplicate bare h1 rules.
     """
     import re
-    
+
     # Pattern to match: scoped selector h1 { ... } followed by bare h1 { ... }
     # We need to match the scoped rule, then check if there's a duplicate bare h1
-    pattern = r'(\.[\w-]+\s+h1\s*\{[^}]+\})\s*(h1\s*\{[^}]+\})'
-    
+    pattern = r"(\.[\w-]+\s+h1\s*\{[^}]+\})\s*(h1\s*\{[^}]+\})"
+
     def remove_duplicate(match):
         scoped_rule = match.group(1)
         bare_rule = match.group(2)
-        
+
         # Extract content from both rules
-        scoped_content_match = re.search(r'\{([^}]+)\}', scoped_rule, re.DOTALL)
-        bare_content_match = re.search(r'\{([^}]+)\}', bare_rule, re.DOTALL)
-        
+        scoped_content_match = re.search(r"\{([^}]+)\}", scoped_rule, re.DOTALL)
+        bare_content_match = re.search(r"\{([^}]+)\}", bare_rule, re.DOTALL)
+
         if scoped_content_match and bare_content_match:
-            scoped_content = scoped_content_match.group(1).strip().replace(" ", "").replace("\n", "")
+            scoped_content = (
+                scoped_content_match.group(1).strip().replace(" ", "").replace("\n", "")
+            )
             bare_content = bare_content_match.group(1).strip().replace(" ", "").replace("\n", "")
-            
+
             # If content is identical, remove the bare rule
             if scoped_content == bare_content:
                 return scoped_rule  # Return only the scoped rule
-        
+
         # Not a duplicate, keep both
         return match.group(0)
-    
+
     # Process iteratively to catch all duplicates
     result = css
     for _ in range(5):  # Max 5 iterations
@@ -146,7 +149,7 @@ def _remove_duplicate_bare_h1_rules(css: str) -> str:
         if new_result == result:
             break
         result = new_result
-    
+
     return result
 
 
@@ -218,7 +221,7 @@ def _lossless_minify_css_string(css: str) -> str:
             if j < length and css[j] == "%":
                 result.append(" ")
                 pending_whitespace = False
-        
+
         if pending_whitespace and needs_space(char):
             result.append(" ")
         pending_whitespace = False
@@ -250,11 +253,17 @@ class Asset:
     minified: bool = False
     optimized: bool = False
     bundled: bool = False
+    logical_path: Path | None = None
 
     def __post_init__(self) -> None:
         """Determine asset type from file extension."""
         if not self.asset_type:
             self.asset_type = self._determine_type()
+        if self.logical_path is None:
+            if self.output_path is not None:
+                self.logical_path = Path(self.output_path)
+            else:
+                self.logical_path = Path(self.source_path.name)
 
     def _determine_type(self) -> str:
         """
@@ -330,7 +339,7 @@ class Asset:
 
         This creates a single CSS file from an entry point that has @imports.
         Works without any external dependencies.
-        
+
         Preserves @layer blocks when bundling @import statements.
 
         Returns:
@@ -357,8 +366,8 @@ class Asset:
                     imported_content = imported_file.read_text(encoding="utf-8")
                     # Recursively resolve nested imports
                     bundled_content = bundle_imports(imported_content, imported_file.parent)
-                    
-                    # Return the bundled content directly (it will be inserted into the @layer block)
+
+                    # Return bundled content so it can replace the @layer block body
                     return bundled_content
                 except Exception as e:
                     logger.warning(
@@ -373,11 +382,11 @@ class Asset:
                 """
                 Find the end position of a @layer block using brace counting.
                 Handles nested braces correctly (e.g., media queries, nested rules).
-                
+
                 Args:
                     css: CSS content string
                     start_pos: Position after the opening brace of @layer block
-                
+
                 Returns:
                     Position of the matching closing brace, or -1 if not found
                 """
@@ -385,10 +394,10 @@ class Asset:
                 i = start_pos
                 in_string = False
                 string_char = None
-                
+
                 while i < len(css) and brace_count > 0:
                     char = css[i]
-                    
+
                     # Handle string literals (skip braces inside strings)
                     if not in_string and char in ("'", '"'):
                         in_string = True
@@ -400,16 +409,16 @@ class Asset:
                         elif char == string_char:
                             in_string = False
                             string_char = None
-                    
+
                     # Count braces (only when not in string)
                     if not in_string:
                         if char == "{":
                             brace_count += 1
                         elif char == "}":
                             brace_count -= 1
-                    
+
                     i += 1
-                
+
                 # Return position of closing brace (i-1 because we incremented after finding it)
                 return i - 1 if brace_count == 0 else -1
 
@@ -420,59 +429,59 @@ class Asset:
                 """
                 result = []
                 i = 0
-                
+
                 while i < len(css):
                     # Look for @layer declaration
-                    layer_match = re.search(r'@layer\s+\w+\s*\{', css[i:])
+                    layer_match = re.search(r"@layer\s+\w+\s*\{", css[i:])
                     if not layer_match:
                         # No more @layer blocks, append rest of content
                         result.append(css[i:])
                         break
-                    
+
                     # Append content before @layer block
                     layer_start = i + layer_match.start()
                     result.append(css[i:layer_start])
-                    
+
                     # Find the opening brace position
                     brace_pos = layer_start + layer_match.end() - 1  # Position of '{'
-                    layer_decl = css[layer_start:brace_pos + 1]  # "@layer name {"
-                    
+                    layer_decl = css[layer_start : brace_pos + 1]  # "@layer name {"
+
                     # Extract layer name
-                    layer_name_match = re.match(r'@layer\s+(\w+)', layer_decl)
+                    layer_name_match = re.match(r"@layer\s+(\w+)", layer_decl)
                     layer_name = layer_name_match.group(1) if layer_name_match else None
-                    
+
                     # Find the matching closing brace using brace counting
                     content_start = brace_pos + 1
                     content_end = find_layer_block_end(css, content_start)
-                    
+
                     if content_end == -1:
                         # Malformed @layer block, keep as-is
                         result.append(css[layer_start:])
                         break
-                    
+
                     # Extract content inside @layer block
                     layer_content = css[content_start:content_end]
-                    
+
                     # Process @import statements inside this layer
                     processed_content = re.sub(
                         import_pattern,
-                        lambda m: resolve_import_in_context(m, layer_name),
-                        layer_content
+                        lambda m, layer=layer_name: resolve_import_in_context(m, layer),
+                        layer_content,
                     )
-                    
+
                     # Reconstruct @layer block
                     result.append(layer_decl)
                     result.append(processed_content)
                     result.append("}")
-                    
+
                     # Continue after this @layer block
                     i = content_end + 1
-                
+
                 return "".join(result)
 
             # Process @layer blocks first (using brace counting)
             result = process_layer_blocks(css_content)
-            
+
             # Then process standalone @import statements (not in @layer)
             result = re.sub(import_pattern, lambda m: resolve_import_in_context(m), result)
 
@@ -666,7 +675,30 @@ class Asset:
             shutil.copy2(self.source_path, output_path)
 
         self.output_path = output_path
+        if use_fingerprint and self.fingerprint:
+            self._cleanup_old_fingerprints(output_path)
         return output_path
+
+    def _cleanup_old_fingerprints(self, latest_path: Path) -> None:
+        """
+        Remove outdated fingerprinted siblings once the newest file is in place.
+
+        Args:
+            latest_path: Newly written asset path that should be preserved.
+        """
+        try:
+            parent = latest_path.parent
+            pattern = f"{self.source_path.stem}.*{self.source_path.suffix}"
+            for candidate in parent.glob(pattern):
+                if candidate == latest_path:
+                    continue
+                candidate.unlink(missing_ok=True)
+        except Exception as exc:  # pragma: no cover - best-effort cleanup
+            logger.debug(
+                "asset_fingerprint_cleanup_failed",
+                asset=str(self.source_path),
+                error=str(exc),
+            )
 
     def __repr__(self) -> str:
         return f"Asset(type='{self.asset_type}', source='{self.source_path.name}')"

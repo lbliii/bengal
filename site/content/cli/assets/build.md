@@ -17,7 +17,7 @@ description: "Build assets using the configured pipeline (if enabled)."
 
 
 
-**Command:** `bengal.utils.assets.build`
+**Command:** `bengal.assets.build`
 
 
 Build assets using the configured pipeline (if enabled).
