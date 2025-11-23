@@ -808,7 +808,7 @@ Get section by path:
 <div class="box">{{ content }}</div>
 
 <!-- ✅ Good -->
-<div class="prose has-prose-content">{{ content }}</div>
+<div class="prose">{{ content }}</div>
 ```
 
 **2. Don't assume variables exist**
