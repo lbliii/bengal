@@ -51,13 +51,19 @@
    * Add external link indicators
    */
   function setupExternalLinks() {
-    const links = document.querySelectorAll('a[href^="http"]');
+    const links = document.querySelectorAll('a[href]');
     links.forEach(function (link) {
       const href = link.getAttribute('href');
+      
+      // Skip anchor links and empty hrefs
+      if (!href || href.startsWith('#') || href.startsWith('mailto:') || href.startsWith('tel:')) {
+        return;
+      }
 
       // Check if external using URL parsing
       if (isExternalUrl(href)) {
-        // Add external attribute
+        // Add external data attribute for CSS targeting
+        link.setAttribute('data-external', 'true');
         link.setAttribute('rel', 'noopener noreferrer');
         link.setAttribute('target', '_blank');
 

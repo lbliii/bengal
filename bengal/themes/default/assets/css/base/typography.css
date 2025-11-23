@@ -216,60 +216,46 @@ section a:not(.button):not(button):not(.btn):active,
   --external-link-icon-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none' stroke='%23000' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10 2h2v2M9 9L3 3M11 1H7M11 1v4M11 1L7 5'/%3E%3C/svg%3E");
 }
 
-article a[href^="http"]:not([href^="/"]):not([href^="#"]),
-main a[href^="http"]:not([href^="/"]):not([href^="#"]),
-section a[href^="http"]:not([href^="/"]):not([href^="#"]),
-.prose a[href^="http"]:not([href^="/"]):not([href^="#"]),
-.content a[href^="http"]:not([href^="/"]):not([href^="#"]),
-article a[target="_blank"],
-main a[target="_blank"],
-section a[target="_blank"],
-.prose a[target="_blank"],
-.content a[target="_blank"],
+/* Primary: data-external attribute set by JavaScript */
+article a[data-external="true"],
+main a[data-external="true"],
+section a[data-external="true"],
+.prose a[data-external="true"],
+.content a[data-external="true"],
+/* Fallback: explicit external rel attribute */
 article a[rel*="external"],
 main a[rel*="external"],
 section a[rel*="external"],
 .prose a[rel*="external"],
 .content a[rel*="external"],
-article a[rel*="noopener"]:not([href^="/"]):not([href^="#"]),
-main a[rel*="noopener"]:not([href^="/"]):not([href^="#"]),
-section a[rel*="noopener"]:not([href^="/"]):not([href^="#"]),
-.prose a[rel*="noopener"]:not([href^="/"]):not([href^="#"]),
-.content a[rel*="noopener"]:not([href^="/"]):not([href^="#"]),
-article a[data-external="true"],
-main a[data-external="true"],
-section a[data-external="true"],
-.prose a[data-external="true"],
-.content a[data-external="true"] {
+/* Fallback: target="_blank" on http/https links (JavaScript sets this for external links) */
+article a[target="_blank"][href^="http"],
+main a[target="_blank"][href^="http"],
+section a[target="_blank"][href^="http"],
+.prose a[target="_blank"][href^="http"],
+.content a[target="_blank"][href^="http"] {
   padding-right: 1.2em;
   position: relative;
 }
 
-article a[href^="http"]:not([href^="/"]):not([href^="#"])::after,
-main a[href^="http"]:not([href^="/"]):not([href^="#"])::after,
-section a[href^="http"]:not([href^="/"]):not([href^="#"])::after,
-.prose a[href^="http"]:not([href^="/"]):not([href^="#"])::after,
-.content a[href^="http"]:not([href^="/"]):not([href^="#"])::after,
-article a[target="_blank"]::after,
-main a[target="_blank"]::after,
-section a[target="_blank"]::after,
-.prose a[target="_blank"]::after,
-.content a[target="_blank"]::after,
+/* Primary: data-external attribute set by JavaScript */
+article a[data-external="true"]::after,
+main a[data-external="true"]::after,
+section a[data-external="true"]::after,
+.prose a[data-external="true"]::after,
+.content a[data-external="true"]::after,
+/* Fallback: explicit external rel attribute */
 article a[rel*="external"]::after,
 main a[rel*="external"]::after,
 section a[rel*="external"]::after,
 .prose a[rel*="external"]::after,
 .content a[rel*="external"]::after,
-article a[rel*="noopener"]:not([href^="/"]):not([href^="#"])::after,
-main a[rel*="noopener"]:not([href^="/"]):not([href^="#"])::after,
-section a[rel*="noopener"]:not([href^="/"]):not([href^="#"])::after,
-.prose a[rel*="noopener"]:not([href^="/"]):not([href^="#"])::after,
-.content a[rel*="noopener"]:not([href^="/"]):not([href^="#"])::after,
-article a[data-external="true"]::after,
-main a[data-external="true"]::after,
-section a[data-external="true"]::after,
-.prose a[data-external="true"]::after,
-.content a[data-external="true"]::after {
+/* Fallback: target="_blank" on http/https links (JavaScript sets this for external links) */
+article a[target="_blank"][href^="http"]::after,
+main a[target="_blank"][href^="http"]::after,
+section a[target="_blank"][href^="http"]::after,
+.prose a[target="_blank"][href^="http"]::after,
+.content a[target="_blank"][href^="http"]::after {
   content: '';
   display: inline-block;
   width: 0.75em;
@@ -294,31 +280,24 @@ section a[data-external="true"]::after,
   transition: opacity var(--transition-fast), transform var(--transition-fast);
 }
 
-article a[href^="http"]:not([href^="/"]):not([href^="#"]):hover::after,
-main a[href^="http"]:not([href^="/"]):not([href^="#"]):hover::after,
-section a[href^="http"]:not([href^="/"]):not([href^="#"]):hover::after,
-.prose a[href^="http"]:not([href^="/"]):not([href^="#"]):hover::after,
-.content a[href^="http"]:not([href^="/"]):not([href^="#"]):hover::after,
-article a[target="_blank"]:hover::after,
-main a[target="_blank"]:hover::after,
-section a[target="_blank"]:hover::after,
-.prose a[target="_blank"]:hover::after,
-.content a[target="_blank"]:hover::after,
+/* Primary: data-external attribute set by JavaScript */
+article a[data-external="true"]:hover::after,
+main a[data-external="true"]:hover::after,
+section a[data-external="true"]:hover::after,
+.prose a[data-external="true"]:hover::after,
+.content a[data-external="true"]:hover::after,
+/* Fallback: explicit external rel attribute */
 article a[rel*="external"]:hover::after,
 main a[rel*="external"]:hover::after,
 section a[rel*="external"]:hover::after,
 .prose a[rel*="external"]:hover::after,
 .content a[rel*="external"]:hover::after,
-article a[rel*="noopener"]:not([href^="/"]):not([href^="#"]):hover::after,
-main a[rel*="noopener"]:not([href^="/"]):not([href^="#"]):hover::after,
-section a[rel*="noopener"]:not([href^="/"]):not([href^="#"]):hover::after,
-.prose a[rel*="noopener"]:not([href^="/"]):not([href^="#"]):hover::after,
-.content a[rel*="noopener"]:not([href^="/"]):not([href^="#"]):hover::after,
-article a[data-external="true"]:hover::after,
-main a[data-external="true"]:hover::after,
-section a[data-external="true"]:hover::after,
-.prose a[data-external="true"]:hover::after,
-.content a[data-external="true"]:hover::after {
+/* Fallback: target="_blank" on http/https links (JavaScript sets this for external links) */
+article a[target="_blank"][href^="http"]:hover::after,
+main a[target="_blank"][href^="http"]:hover::after,
+section a[target="_blank"][href^="http"]:hover::after,
+.prose a[target="_blank"][href^="http"]:hover::after,
+.content a[target="_blank"][href^="http"]:hover::after {
   opacity: 1;
   transform: translate(1px, -1px);
 }
