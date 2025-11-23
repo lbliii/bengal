@@ -11,9 +11,9 @@ build:
   strict_mode: true
 
 assets:
-  # Full optimization for production
-  minify: true
-  fingerprint: true
+  # Match dev behavior while CSS pipeline is being debugged
+  minify: false
+  fingerprint: false
 
 features:
   # Enable analytics in production
