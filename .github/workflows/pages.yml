@@ -41,9 +41,13 @@ jobs:
               )
           PY
 
+      - name: Clean build artifacts and cache
+        working-directory: site
+        run: python -m bengal.cli clean --cache --force
+
       - name: Build site
         working-directory: site
-        run: python -m bengal.cli site build --autodoc
+        run: python -m bengal.cli site build --autodoc --no-incremental
         env:
           PYTHON_GIL: 0
 

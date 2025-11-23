@@ -674,28 +674,28 @@ class BuildOrchestrator:
 
         # Phase 6: Update filtered pages list (add generated pages)
         # Now that we've generated tag pages, update pages_to_build if needed
-        if affected_tags:
-            # Convert to set for O(1) membership and automatic deduplication
-            pages_to_build_set = set(pages_to_build) if pages_to_build else set()
+        # Always check for tag pages, even if affected_tags is empty (edge case protection)
+        # Convert to set for O(1) membership and automatic deduplication
+        pages_to_build_set = set(pages_to_build) if pages_to_build else set()
 
-            # Add newly generated tag pages to rebuild set
-            # OPTIMIZATION: Use site.generated_pages (cached) instead of filtering all pages
-            for page in self.site.generated_pages:
-                if page.metadata.get("type") in ("tag", "tag-index"):
-                    # For full builds, add all taxonomy pages
-                    # For incremental builds, add only affected tag pages + tag index
-                    tag_slug = page.metadata.get("_tag_slug")
-                    should_include = (
-                        not incremental  # Full build: include all
-                        or page.metadata.get("type") == "tag-index"  # Always include tag index
-                        or tag_slug in affected_tags  # Include affected tag pages
-                    )
+        # Add newly generated tag pages to rebuild set
+        # OPTIMIZATION: Use site.generated_pages (cached) instead of filtering all pages
+        for page in self.site.generated_pages:
+            if page.metadata.get("type") in ("tag", "tag-index"):
+                # For full builds, add all taxonomy pages
+                # For incremental builds, add only affected tag pages + tag index
+                tag_slug = page.metadata.get("_tag_slug")
+                should_include = (
+                    not incremental  # Full build: include all
+                    or page.metadata.get("type") == "tag-index"  # Always include tag index
+                    or (affected_tags and tag_slug in affected_tags)  # Include affected tag pages
+                )
 
-                    if should_include:
-                        pages_to_build_set.add(page)  # O(1) + automatic dedup
+                if should_include:
+                    pages_to_build_set.add(page)  # O(1) + automatic dedup
 
-            # Convert back to list for rendering (preserves compatibility)
-            pages_to_build = list(pages_to_build_set)
+        # Convert back to list for rendering (preserves compatibility)
+        pages_to_build = list(pages_to_build_set)
 
         # Phase 7: Process Assets (MOVED BEFORE RENDERING)
         # Assets must be processed first so asset_url() can find fingerprinted files
