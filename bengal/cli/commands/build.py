@@ -12,6 +12,8 @@ from bengal.cli.helpers import (
     get_cli_output,
     handle_cli_errors,
     load_site_from_cli,
+    validate_flag_conflicts,
+    validate_mutually_exclusive,
 )
 from bengal.utils.build_stats import (
     display_build_stats,
@@ -169,6 +171,10 @@ def _run_autodoc_before_build(config_path: Path, root_path: Path, quiet: bool) -
 
 @click.command(cls=BengalCommand)
 @handle_cli_errors(show_art=True)
+@validate_flag_conflicts(
+    {"fast": ["use_dev", "use_theme_dev"], "quiet": ["use_dev", "use_theme_dev"]}
+)
+@validate_mutually_exclusive(("quiet", "verbose"))
 @click.option(
     "--parallel/--no-parallel",
     default=True,
@@ -300,14 +306,6 @@ def build(
     # Handle fast mode (CLI flag takes precedence, then check config later)
     # For now, determine from CLI flag only - config will be checked after Site.from_config
     fast_mode_enabled = fast if fast is not None else False
-
-    # Validate conflicting flags (check before applying fast mode settings)
-    if fast and (use_dev or use_theme_dev):
-        raise click.UsageError("--fast cannot be used with --dev or --theme-dev profiles")
-    if quiet and verbose:
-        raise click.UsageError("--quiet and --verbose cannot be used together")
-    if quiet and (use_dev or use_theme_dev):
-        raise click.UsageError("--quiet cannot be used with --dev or --theme-dev")
 
     # Apply fast mode settings if enabled
     if fast_mode_enabled:

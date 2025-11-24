@@ -11,7 +11,7 @@ from bengal.autodoc.extractors.cli import CLIExtractor
 from bengal.autodoc.extractors.python import PythonExtractor
 from bengal.autodoc.generator import DocumentationGenerator
 from bengal.cli.base import BengalCommand
-from bengal.cli.helpers import get_cli_output
+from bengal.cli.helpers import get_cli_output, load_cli_app
 
 
 @click.command(cls=BengalCommand)
@@ -265,10 +265,9 @@ def _generate_cli_docs(
     autodoc_config: dict,
 ) -> None:
     """Generate CLI documentation."""
-    import importlib
     import time
 
-    from bengal.cli.helpers import get_cli_output
+    from bengal.cli.helpers import get_cli_output, load_cli_app
 
     cli = get_cli_output(verbose=verbose)
 
@@ -291,19 +290,7 @@ def _generate_cli_docs(
 
     # Import the CLI app
     cli.info(f"🔍 Loading CLI app from {app}...")
-
-    try:
-        module_path, attr_name = app.split(":")
-        module = importlib.import_module(module_path)
-        cli_app = getattr(module, attr_name)
-    except Exception as e:
-        cli.error(f"❌ Failed to load app: {e}")
-        cli.blank()
-        cli.info("Make sure the module path is correct:")
-        cli.info(f"  • Module: {app.split(':')[0]}")
-        cli.info(f"  • Attribute: {app.split(':')[1] if ':' in app else '(missing)'}")
-        cli.blank()
-        raise click.Abort() from e
+    cli_app = load_cli_app(app, cli=cli)
 
     # Extract documentation
     cli.info("📝 Extracting CLI documentation...")
@@ -404,7 +391,6 @@ def autodoc_cli(
     Example:
         bengal autodoc-cli --app bengal.cli:main --output content/cli
     """
-    import importlib
     import time
 
     cli = get_cli_output(verbose=verbose)
@@ -452,19 +438,7 @@ def autodoc_cli(
 
         # Import the CLI app
         cli.info(f"🔍 Loading CLI app from {app}...")
-
-        try:
-            module_path, attr_name = app.split(":")
-            module = importlib.import_module(module_path)
-            cli_app = getattr(module, attr_name)
-        except Exception as e:
-            cli.error(f"❌ Failed to load app: {e}")
-            cli.blank()
-            cli.info("Make sure the module path is correct:")
-            cli.info(f"  • Module: {app.split(':')[0]}")
-            cli.info(f"  • Attribute: {app.split(':')[1] if ':' in app else '(missing)'}")
-            cli.blank()
-            raise click.Abort() from e
+        cli_app = load_cli_app(app, cli=cli)
 
         # Extract documentation
         cli.info("📝 Extracting CLI documentation...")
