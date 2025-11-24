@@ -252,16 +252,8 @@ Usage:
 <div class="tags {% if small %}tags-small{% endif %}">
   {% for tag in display_tags %}
   {% if linkable %}
-  {# Locale-aware tag link: if prefix strategy and non-default or default_in_subdir, prefix with language #}
-  {% set _i18n = site.config.get('i18n', {}) %}
-  {% set _lang = current_lang() %}
-  {% set _default = _i18n.get('default_language', 'en') if _i18n else 'en' %}
-  {% set _in_subdir = _i18n.get('default_in_subdir', False) if _i18n else False %}
-  {% set _prefix = '' %}
-  {% if _i18n and _i18n.get('strategy') == 'prefix' and _lang and (_in_subdir or _lang != _default) %}
-  {% set _prefix = '/' ~ _lang %}
-  {% endif %}
-  <a href="{{ _prefix }}/tags/{{ tag | lower | replace(' ', '-') }}/" class="tag">
+  {# Use tag_url() function which handles baseurl and i18n prefixes correctly #}
+  <a href="{{ tag_url(tag) }}" class="tag">
     {{ tag }}
   </a>
   {% else %}

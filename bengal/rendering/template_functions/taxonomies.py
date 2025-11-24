@@ -6,7 +6,6 @@ Provides 4 functions for working with tags, categories, and related content.
 
 from __future__ import annotations
 
-import os
 from typing import TYPE_CHECKING, Any
 
 try:
@@ -57,24 +56,13 @@ def register(env: Environment, site: Site) -> None:
         relative_url = f"{prefix}{tag_url(tag)}"
 
         # Apply base URL prefix if configured
-        baseurl = site.config.get("baseurl", "") or ""
+        # Use site.baseurl property which handles config access correctly
+        baseurl = site.baseurl or ""
         if baseurl:
             baseurl = baseurl.rstrip("/")
             # Ensure relative_url starts with /
             if not relative_url.startswith("/"):
                 relative_url = "/" + relative_url
-
-            # Check if baseurl includes a GitHub Pages repo subdirectory that should be stripped
-            # This handles cases where baseurl is https://owner.github.io/repo but site is at root
-            if os.environ.get("GITHUB_ACTIONS") == "true":
-                repo = os.environ.get("GITHUB_REPOSITORY", "")
-                if repo and "/" in repo:
-                    owner, repo_name = repo.split("/", 1)
-                    # If baseurl ends with /{repo_name}, strip it for tag URLs
-                    # (tag URLs should be at root, not in repo subdirectory)
-                    if baseurl.endswith(f"/{repo_name}"):
-                        baseurl = baseurl[: -len(f"/{repo_name}")]
-
             # Handle absolute vs path-only base URLs
             if baseurl.startswith(("http://", "https://", "file://")):
                 return f"{baseurl}{relative_url}"
