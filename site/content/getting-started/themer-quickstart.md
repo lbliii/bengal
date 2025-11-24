@@ -437,6 +437,59 @@ pip install git+https://github.com/yourusername/bengal-theme-mybrand.git
 - `markdown` - Render markdown
 - `asset_url(path)` - Get asset URL with fingerprinting
 
+## Troubleshooting
+
+### Debug Theme Resolution
+
+If templates aren't loading or you're unsure where a template comes from, use the debug command:
+
+```bash
+bengal utils theme debug
+```
+
+This shows:
+- **Active theme chain** - Inheritance order (child → parent → default)
+- **Template resolution paths** - Priority order of template directories
+- **Template sources** - Where each template file comes from
+- **Theme validation** - Circular inheritance detection, missing themes
+
+**Debug a specific template:**
+
+```bash
+bengal utils theme debug --template page.html
+```
+
+This shows exactly where `page.html` is resolved from and all locations that were checked.
+
+### Common Issues
+
+**Template not found:**
+```bash
+# Check if template exists in theme chain
+bengal utils theme debug --template your-template.html
+
+# Verify theme is active
+bengal utils theme info your-theme
+```
+
+**Theme inheritance not working:**
+```bash
+# Check for circular inheritance
+bengal utils theme debug
+
+# Look for warnings about missing themes or circular dependencies
+```
+
+**Styles not applying:**
+- Verify asset paths in templates: `{{ asset_url('css/style.css') }}`
+- Check asset manifest: `bengal utils assets list`
+- Ensure CSS files are in `themes/your-theme/assets/css/`
+
+**Theme not discovered:**
+- Site themes: Must be in `themes/<slug>/templates/`
+- Installed themes: Must have entry point `bengal.themes` in `pyproject.toml`
+- Check: `bengal utils theme list` shows all available themes
+
 ## Next Steps
 
 **Learn More:**

@@ -19,8 +19,14 @@ def _read_theme_extends(site_root: Path, theme_name: str) -> str | None:
         try:
             data = toml.load(str(site_manifest))
             return data.get("extends")
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug(
+                "theme_manifest_read_failed",
+                theme=theme_name,
+                path=str(site_manifest),
+                error=str(e),
+                error_type=type(e).__name__,
+            )
 
     # Installed theme manifest
     try:
@@ -28,10 +34,24 @@ def _read_theme_extends(site_root: Path, theme_name: str) -> str | None:
         if pkg:
             manifest_path = pkg.resolve_resource_path("theme.toml")
             if manifest_path and manifest_path.exists():
-                data = toml.load(str(manifest_path))
-                return data.get("extends")
-    except Exception:
-        pass
+                try:
+                    data = toml.load(str(manifest_path))
+                    return data.get("extends")
+                except Exception as e:
+                    logger.debug(
+                        "theme_manifest_read_failed",
+                        theme=theme_name,
+                        path=str(manifest_path),
+                        error=str(e),
+                        error_type=type(e).__name__,
+                    )
+    except Exception as e:
+        logger.debug(
+            "theme_package_resolve_failed",
+            theme=theme_name,
+            error=str(e),
+            error_type=type(e).__name__,
+        )
 
     # Bundled theme manifest
     bundled_manifest = Path(__file__).parent.parent / "themes" / theme_name / "theme.toml"
@@ -39,8 +59,14 @@ def _read_theme_extends(site_root: Path, theme_name: str) -> str | None:
         try:
             data = toml.load(str(bundled_manifest))
             return data.get("extends")
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug(
+                "theme_manifest_read_failed",
+                theme=theme_name,
+                path=str(bundled_manifest),
+                error=str(e),
+                error_type=type(e).__name__,
+            )
 
     return None
 

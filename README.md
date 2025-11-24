@@ -419,6 +419,10 @@ bengal utils theme info <slug>
 # Discover swizzlable templates/partials in active theme chain
 bengal utils theme discover
 
+# Debug theme resolution (chain, paths, template sources)
+bengal utils theme debug
+bengal utils theme debug --template page.html  # Debug specific template
+
 # Install a theme via uv/pip (warns if name is non-canonical)
 bengal utils theme install bengal-theme-starter
 

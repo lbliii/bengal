@@ -74,10 +74,13 @@ class TemplateEngine:
 
         # Theme templates with inheritance (child first, then parents)
         for theme_name in self._resolve_theme_chain(self.site.theme):
+            theme_found = False
+
             # Site-level theme directory
             site_theme_templates = self.site.root_path / "themes" / theme_name / "templates"
             if site_theme_templates.exists():
                 template_dirs.append(str(site_theme_templates))
+                theme_found = True
                 continue
 
             # Installed theme directory (via entry point)
@@ -87,9 +90,15 @@ class TemplateEngine:
                     resolved = pkg.resolve_resource_path("templates")
                     if resolved and resolved.exists():
                         template_dirs.append(str(resolved))
+                        theme_found = True
                         continue
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug(
+                    "theme_resolution_installed_failed",
+                    theme=theme_name,
+                    error=str(e),
+                    error_type=type(e).__name__,
+                )
 
             # Bundled theme directory
             bundled_theme_templates = (
@@ -97,6 +106,17 @@ class TemplateEngine:
             )
             if bundled_theme_templates.exists():
                 template_dirs.append(str(bundled_theme_templates))
+                theme_found = True
+
+            # Warn if theme not found in any location
+            if not theme_found:
+                logger.warning(
+                    "theme_not_found",
+                    theme=theme_name,
+                    checked_site=str(site_theme_templates),
+                    checked_bundled=str(bundled_theme_templates),
+                    hint="Theme may be missing or incorrectly configured",
+                )
 
         # Ensure default exists as ultimate fallback
         default_templates = Path(__file__).parent.parent / "themes" / "default" / "templates"
@@ -164,7 +184,16 @@ class TemplateEngine:
 
         # Add global functions (core template helpers)
         env.globals["url_for"] = self._url_for
-        env.globals["asset_url"] = self._asset_url
+
+        # Make asset_url context-aware for file:// protocol support
+        from jinja2 import pass_context
+
+        @pass_context
+        def asset_url_with_context(ctx, asset_path: str) -> str:
+            page = ctx.get("page") if hasattr(ctx, "get") else None
+            return self._asset_url(asset_path, page_context=page)
+
+        env.globals["asset_url"] = asset_url_with_context
         env.globals["get_menu"] = self._get_menu
         env.globals["get_menu_lang"] = self._get_menu_lang
 
@@ -204,8 +233,14 @@ class TemplateEngine:
             try:
                 data = toml.load(str(site_manifest))
                 return data.get("extends")
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug(
+                    "theme_manifest_read_failed",
+                    theme=theme_name,
+                    path=str(site_manifest),
+                    error=str(e),
+                    error_type=type(e).__name__,
+                )
 
         # Installed theme manifest
         try:
@@ -213,10 +248,24 @@ class TemplateEngine:
             if pkg:
                 manifest_path = pkg.resolve_resource_path("theme.toml")
                 if manifest_path and manifest_path.exists():
-                    data = toml.load(str(manifest_path))
-                    return data.get("extends")
-        except Exception:
-            pass
+                    try:
+                        data = toml.load(str(manifest_path))
+                        return data.get("extends")
+                    except Exception as e:
+                        logger.debug(
+                            "theme_manifest_read_failed",
+                            theme=theme_name,
+                            path=str(manifest_path),
+                            error=str(e),
+                            error_type=type(e).__name__,
+                        )
+        except Exception as e:
+            logger.debug(
+                "theme_package_resolve_failed",
+                theme=theme_name,
+                error=str(e),
+                error_type=type(e).__name__,
+            )
 
         # Bundled theme manifest
         bundled_manifest = Path(__file__).parent.parent / "themes" / theme_name / "theme.toml"
@@ -224,8 +273,14 @@ class TemplateEngine:
             try:
                 data = toml.load(str(bundled_manifest))
                 return data.get("extends")
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug(
+                    "theme_manifest_read_failed",
+                    theme=theme_name,
+                    path=str(bundled_manifest),
+                    error=str(e),
+                    error_type=type(e).__name__,
+                )
 
         return None
 
@@ -384,12 +439,13 @@ class TemplateEngine:
         base_path = "/" + baseurl_value.lstrip("/")
         return f"{base_path}{path}"
 
-    def _asset_url(self, asset_path: str) -> str:
+    def _asset_url(self, asset_path: str, page_context: Any = None) -> str:
         """
         Generate URL for an asset.
 
         Args:
             asset_path: Path to asset file
+            page_context: Optional page context for computing relative paths (for file:// support)
 
         Returns:
             Asset URL
@@ -421,17 +477,71 @@ class TemplateEngine:
             logger.warning("asset_path_invalid", provided=str(asset_path))
             return "/assets/"
 
+        # Check if baseurl is file:// - if so, generate relative URLs for file:// protocol
+        baseurl_value = (self.site.config.get("baseurl", "") or "").rstrip("/")
+        if baseurl_value.startswith("file://"):
+            # Compute relative path from current page to assets directory
+            asset_url_path = f"assets/{safe_asset_path}"
+
+            # Try to compute relative path from page's output location
+            if page_context and hasattr(page_context, "output_path") and page_context.output_path:
+                try:
+                    # Compute relative path from page to site root
+                    page_rel_to_root = page_context.output_path.relative_to(self.site.output_dir)
+                    # Count depth (number of parent directories)
+                    depth = (
+                        len(page_rel_to_root.parent.parts)
+                        if page_rel_to_root.parent != Path(".")
+                        else 0
+                    )
+                    # Generate relative path: ../ repeated depth times, then assets/...
+                    if depth > 0:
+                        relative_prefix = "/".join([".."] * depth)
+                        return f"{relative_prefix}/{asset_url_path}"
+                    else:
+                        # Root level page
+                        return f"./{asset_url_path}"
+                except (ValueError, AttributeError):
+                    pass
+
+            # Fallback: assume root-level (works for index.html and most pages)
+            return f"./{asset_url_path}"
+
         # In dev server mode, prefer stable URLs without fingerprints for CSS/JS
-        try:
-            if self.site.config.get("dev_server", False):
-                return self._with_baseurl(f"/assets/{safe_asset_path}")
-        except Exception:
-            pass
+        # Skip this for file:// protocol (handled separately above)
+        if not baseurl_value.startswith("file://"):
+            try:
+                if self.site.config.get("dev_server", False):
+                    return self._with_baseurl(f"/assets/{safe_asset_path}")
+            except Exception:
+                pass
 
         # Use manifest as single source of truth for asset resolution
         manifest_entry = self._get_manifest_entry(safe_asset_path)
         if manifest_entry:
-            return self._with_baseurl(f"/{manifest_entry.output_path}")
+            manifest_path = f"/{manifest_entry.output_path}"
+            # For file:// protocol, convert manifest path to relative
+            if baseurl_value.startswith("file://") and page_context:
+                try:
+                    if hasattr(page_context, "output_path") and page_context.output_path:
+                        page_rel_to_root = page_context.output_path.relative_to(
+                            self.site.output_dir
+                        )
+                        depth = (
+                            len(page_rel_to_root.parent.parts)
+                            if page_rel_to_root.parent != Path(".")
+                            else 0
+                        )
+                        # Remove leading / from manifest path for relative URL
+                        rel_manifest_path = manifest_entry.output_path.lstrip("/")
+                        if depth > 0:
+                            relative_prefix = "/".join([".."] * depth)
+                            return f"{relative_prefix}/{rel_manifest_path}"
+                        else:
+                            return f"./{rel_manifest_path}"
+                except (ValueError, AttributeError):
+                    pass
+            return self._with_baseurl(manifest_path)
 
         # If manifest exists but entry is missing, warn and fall back to direct path
         if self._asset_manifest_path.exists():
@@ -442,6 +552,26 @@ class TemplateEngine:
         asset_path_obj = PurePosixPath(safe_asset_path)
         output_asset_dir = self.site.output_dir / "assets" / asset_path_obj.parent
         output_asset_name = asset_path_obj.name
+
+        # For file:// protocol fallback, use relative path
+        if baseurl_value.startswith("file://"):
+            fallback_path = f"assets/{safe_asset_path}"
+            if page_context and hasattr(page_context, "output_path") and page_context.output_path:
+                try:
+                    page_rel_to_root = page_context.output_path.relative_to(self.site.output_dir)
+                    depth = (
+                        len(page_rel_to_root.parent.parts)
+                        if page_rel_to_root.parent != Path(".")
+                        else 0
+                    )
+                    if depth > 0:
+                        relative_prefix = "/".join([".."] * depth)
+                        return f"{relative_prefix}/{fallback_path}"
+                    else:
+                        return f"./{fallback_path}"
+                except (ValueError, AttributeError):
+                    pass
+            return f"./{fallback_path}"
 
         if output_asset_dir.exists():
             # Look for fingerprinted version (e.g., style.12345678.css)
@@ -458,10 +588,55 @@ class TemplateEngine:
                 # Use the first fingerprinted file found
                 fingerprinted_name = fingerprinted_files[0].name
                 fingerprinted_path = asset_path_obj.parent / fingerprinted_name
-                return self._with_baseurl(f"/assets/{fingerprinted_path.as_posix()}")
+                fingerprinted_url = f"/assets/{fingerprinted_path.as_posix()}"
+
+                # Handle file:// protocol for fingerprinted files
+                if baseurl_value.startswith("file://") and page_context:
+                    try:
+                        if hasattr(page_context, "output_path") and page_context.output_path:
+                            page_rel_to_root = page_context.output_path.relative_to(
+                                self.site.output_dir
+                            )
+                            depth = (
+                                len(page_rel_to_root.parent.parts)
+                                if page_rel_to_root.parent != Path(".")
+                                else 0
+                            )
+                            rel_fingerprinted_path = fingerprinted_url.lstrip("/")
+                            if depth > 0:
+                                relative_prefix = "/".join([".."] * depth)
+                                return f"{relative_prefix}/{rel_fingerprinted_path}"
+                            else:
+                                return f"./{rel_fingerprinted_path}"
+                    except (ValueError, AttributeError):
+                        pass
+
+                return self._with_baseurl(fingerprinted_url)
 
         # Final fallback: return direct asset path (for dev or when manifest unavailable)
-        return self._with_baseurl(f"/assets/{safe_asset_path}")
+        fallback_url = f"/assets/{safe_asset_path}"
+
+        # Handle file:// protocol for final fallback
+        if baseurl_value.startswith("file://"):
+            fallback_path = f"assets/{safe_asset_path}"
+            if page_context and hasattr(page_context, "output_path") and page_context.output_path:
+                try:
+                    page_rel_to_root = page_context.output_path.relative_to(self.site.output_dir)
+                    depth = (
+                        len(page_rel_to_root.parent.parts)
+                        if page_rel_to_root.parent != Path(".")
+                        else 0
+                    )
+                    if depth > 0:
+                        relative_prefix = "/".join([".."] * depth)
+                        return f"{relative_prefix}/{fallback_path}"
+                    else:
+                        return f"./{fallback_path}"
+                except (ValueError, AttributeError):
+                    pass
+            return f"./{fallback_path}"
+
+        return self._with_baseurl(fallback_url)
 
     def _get_menu(self, menu_name: str = "main") -> list:
         """
