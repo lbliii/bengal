@@ -473,7 +473,6 @@ def autodoc_cli(
     cli_app = load_cli_app(app, cli=cli)
 
     # Extract documentation
-    cli.info("📝 Extracting CLI documentation...")
     start_time = time.time()
 
     extractor = CLIExtractor(framework=framework, include_hidden=include_hidden)
@@ -490,7 +489,12 @@ def autodoc_cli(
             for cmd in element.children:
                 option_count += cmd.metadata.get("option_count", 0)
 
-    cli.success(f"   ✓ Extracted {command_count} commands, {option_count} options")
+    # Show phase completion
+    cli.phase(
+        "Extraction",
+        duration_ms=extraction_time * 1000,
+        details=f"{command_count} commands, {option_count} options",
+    )
 
     if verbose:
         cli.blank()
@@ -508,6 +512,9 @@ def autodoc_cli(
 
     gen_time = time.time() - gen_start
     total_time = time.time() - start_time
+
+    # Show phase completion
+    cli.phase("Generation", duration_ms=gen_time * 1000, details=f"{len(generated_files)} pages")
 
     # Display results
     cli.blank()

@@ -3,13 +3,13 @@
 title: "assets"
 type: "cli-reference"
 source_file: "bengal/bengal/cli/commands/assets.py"
-line_number: 19
+line_number: 22
 description: "Manage and build assets."
 ---
 
 # assets
 **Type:** Command-Group
-**Source:** [View source](bengal/bengal/cli/commands/assets.py#L19)
+**Source:** [View source](bengal/bengal/cli/commands/assets.py#L22)
 
 ```{badge} Command Group
 :class: badge-secondary
@@ -32,7 +32,11 @@ assets [OPTIONS] [ARGUMENTS]
 
 ### `build`
 
-Build assets using the configured pipeline (if enabled).
+🔨 Build assets using the configured pipeline.
+
+Processes CSS, JavaScript, and other assets according to your
+asset pipeline configuration. Use --watch to automatically rebuild
+on file changes.
 
 **Usage:** `assets build [OPTIONS]`
 
@@ -41,7 +45,10 @@ Build assets using the configured pipeline (if enabled).
 
 ### `status`
 
-Display the current asset manifest mapping logical assets to fingerprinted files.
+📋 Display the current asset manifest.
+
+Shows the mapping of logical asset paths to fingerprinted output files.
+Useful for debugging asset references and cache-busting.
 
 **Usage:** `assets status [OPTIONS]`
 

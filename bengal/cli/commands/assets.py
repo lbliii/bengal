@@ -60,11 +60,17 @@ def build(watch: bool, source: str) -> None:
 
     def run_once() -> None:
         try:
+            import time
+
             from bengal.assets.pipeline import from_site as pipeline_from_site
 
+            start_time = time.time()
             pipeline = pipeline_from_site(site)
             outputs = pipeline.build()
-            cli.success(f"✓ Assets built ({len(outputs)} outputs)")
+            elapsed_ms = (time.time() - start_time) * 1000
+
+            # Show phase completion
+            cli.phase("Assets", duration_ms=elapsed_ms, details=f"{len(outputs)} outputs")
         except Exception as e:
             cli.error(f"✗ Asset pipeline failed: {e}")
 

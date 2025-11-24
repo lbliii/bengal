@@ -4,7 +4,7 @@ title: "bengal"
 type: "cli-reference"
 source_file: "lib/python3.12/site-packages/click/decorators.py"
 line_number: 24
-description: "Documentation"
+description: "Bengal Static Site Generator CLI. Build fast, modern static sites with Python. Quick Start: bengal new site my-site    Create a new site bengal site build          Build your site bengal site serve   ..."
 ---
 
 # bengal
@@ -20,7 +20,16 @@ description: "Documentation"
 **Command:** `bengal`
 
 
-*No command description provided.*
+Bengal Static Site Generator CLI.
+
+Build fast, modern static sites with Python.
+
+Quick Start:
+    bengal new site my-site    Create a new site
+    bengal site build          Build your site
+    bengal site serve          Start dev server with live reload
+
+For more information, see: https://bengal.dev/docs
 
 ## Usage
 

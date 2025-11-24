@@ -172,19 +172,23 @@ class PostprocessOrchestrator:
             futures = {executor.submit(task_fn): name for name, task_fn in tasks}
 
             for future in concurrent.futures.as_completed(futures):
+                # Get task name outside try block (dictionary lookup is fast)
                 task_name = futures[future]
                 try:
                     future.result()
                     if progress_manager:
+                        # Minimize lock hold time - only update counter and progress
                         with lock:
                             completed_count += 1
                             progress_manager.update_phase(
                                 "postprocess", current=completed_count, current_item=task_name
                             )
                 except Exception as e:
-                    errors.append((task_name, str(e)))
+                    # Error handling outside lock
+                    error_msg = str(e)
+                    errors.append((task_name, error_msg))
                     if progress_manager:
-                        logger.error("postprocess_task_failed", task=task_name, error=str(e))
+                        logger.error("postprocess_task_failed", task=task_name, error=error_msg)
 
         # Report errors
         if errors and not progress_manager:
