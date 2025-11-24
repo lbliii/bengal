@@ -466,10 +466,18 @@ class RenderingPipeline:
                     parent_dir.mkdir(parents=True, exist_ok=True)
                     _created_dirs.add(parent_dir)
 
-        # Write rendered HTML atomically (crash-safe)
-        from bengal.utils.atomic_write import atomic_write_text
+        # Write rendered HTML (atomic for safety, fast mode for performance)
+        # Fast mode skips atomic writes for dev server (PERFORMANCE OPTIMIZATION)
+        fast_writes = self.site.config.get("build", {}).get("fast_writes", False)
 
-        atomic_write_text(page.output_path, page.rendered_html, encoding="utf-8")
+        if fast_writes:
+            # Direct write (faster, but not crash-safe)
+            page.output_path.write_text(page.rendered_html, encoding="utf-8")
+        else:
+            # Atomic write (crash-safe, slightly slower)
+            from bengal.utils.atomic_write import atomic_write_text
+
+            atomic_write_text(page.output_path, page.rendered_html, encoding="utf-8")
 
         # Track source→output mapping for cleanup on deletion
         # (Skip generated pages - they have virtual paths)

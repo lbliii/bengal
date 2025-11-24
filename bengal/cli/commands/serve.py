@@ -7,19 +7,29 @@ from pathlib import Path
 import click
 
 from bengal.cli.base import BengalCommand
-from bengal.core.site import Site
-from bengal.server.constants import DEFAULT_DEV_HOST, DEFAULT_DEV_PORT
-from bengal.utils.build_stats import show_error
-from bengal.utils.logger import LogLevel, configure_logging, truncate_error
-from bengal.utils.traceback_config import (
-    TracebackConfig,
-    TracebackStyle,
-    map_debug_flag_to_traceback,
-    set_effective_style_from_cli,
+from bengal.cli.helpers import (
+    command_metadata,
+    configure_traceback,
+    handle_cli_errors,
+    load_site_from_cli,
 )
+from bengal.server.constants import DEFAULT_DEV_HOST, DEFAULT_DEV_PORT
+from bengal.utils.logger import LogLevel, configure_logging
+from bengal.utils.traceback_config import TracebackStyle
 
 
 @click.command(cls=BengalCommand)
+@command_metadata(
+    category="dev",
+    description="Start development server with live reload",
+    examples=[
+        "bengal serve",
+        "bengal serve --port 8080",
+        "bengal serve --watch",
+    ],
+    requires_site=True,
+    tags=["dev", "server", "quick"],
+)
 @click.option("--host", default=DEFAULT_DEV_HOST, help="Server host address")
 @click.option("--port", "-p", default=DEFAULT_DEV_PORT, type=int, help="Server port number")
 @click.option(
@@ -40,8 +50,8 @@ from bengal.utils.traceback_config import (
 @click.option(
     "--environment",
     "-e",
-    type=str,
-    help="Environment name (local, preview, production) - defaults to 'local' for dev server",
+    type=click.Choice(["local", "preview", "production"], case_sensitive=False),
+    help="Environment name (defaults to 'local' for dev server)",
 )
 @click.option(
     "--profile",
@@ -68,6 +78,7 @@ from bengal.utils.traceback_config import (
     "--config", type=click.Path(exists=True), help="Path to config file (default: bengal.toml)"
 )
 @click.argument("source", type=click.Path(exists=True), default=".")
+@handle_cli_errors(show_art=True)
 def serve(
     host: str,
     port: int,
@@ -113,48 +124,29 @@ def serve(
         track_memory=False,  # Memory tracking not needed for dev server
     )
 
-    try:
-        # Configure traceback behavior and install rich handler
-        map_debug_flag_to_traceback(debug, traceback)
-        set_effective_style_from_cli(traceback)
-        TracebackConfig.from_environment().install()
-        # Welcome banner removed for consistency with build command
-        # The "Building your site..." header is sufficient
+    # Configure traceback behavior BEFORE site loading so errors show properly
+    configure_traceback(debug=debug, traceback=traceback)
 
-        config_path = Path(config).resolve() if config else None
+    # Default to 'local' environment for dev server (unless explicitly specified)
+    dev_environment = environment or "local"
 
-        # Default to 'local' environment for dev server (unless explicitly specified)
-        dev_environment = environment or "local"
+    # Load site using helper
+    site = load_site_from_cli(
+        source=source,
+        config=config,
+        environment=dev_environment,
+        profile=profile,
+    )
 
-        # Create site
-        site = Site.from_config(root_path, config_path, environment=dev_environment, profile=profile)
+    # Apply file-based traceback config after site is loaded (lowest precedence)
+    configure_traceback(debug=debug, traceback=traceback, site=site)
 
-        # Apply file-based traceback config and re-install
-        try:
-            from bengal.utils.traceback_config import apply_file_traceback_to_env
+    # Enable strict mode in development (fail fast on errors)
+    site.config["strict_mode"] = True
 
-            apply_file_traceback_to_env(site.config)
-            TracebackConfig.from_environment().install()
-        except Exception:
-            pass
+    # Enable debug mode if requested
+    if debug:
+        site.config["debug"] = True
 
-        # Enable strict mode in development (fail fast on errors)
-        site.config["strict_mode"] = True
-
-        # Enable debug mode if requested
-        if debug:
-            site.config["debug"] = True
-
-        # Start server (this blocks)
-        site.serve(
-            host=host, port=port, watch=watch, auto_port=auto_port, open_browser=open_browser
-        )
-
-    except Exception as e:
-        show_error(f"Server failed: {truncate_error(e)}", show_art=True)
-        try:
-            renderer = TracebackConfig.from_environment().get_renderer()
-            renderer.display_exception(e)
-        except Exception:
-            pass
-        raise click.Abort() from e
+    # Start server (this blocks)
+    site.serve(host=host, port=port, watch=watch, auto_port=auto_port, open_browser=open_browser)

@@ -104,39 +104,17 @@ class BuildOrchestrator:
         # Initialize CLI output system with profile
         cli = init_cli_output(profile=profile, quiet=quiet, verbose=verbose)
 
-        # Determine if we should use live progress
-        # Disable if: quiet mode, verbose logging mode, full_output requested, or not a TTY
-        use_live_progress = (
-            not quiet
-            and not verbose
-            and not full_output
-            and profile_config.get("live_progress", {}).get("enabled", True)
-        )
+        # Simple phase completion messages (no live progress bar)
+        # Live progress bar was removed due to UX issues (felt stuck) and performance overhead
+        use_live_progress = False
+        progress_manager = None
+        reporter = None
 
-        # Suppress console log noise even when not using live progress
-        # (logs still go to file for debugging)
+        # Suppress console log noise (logs still go to file for debugging)
         from bengal.utils.logger import set_console_quiet
 
         if not verbose:  # Only suppress console logs if not in verbose logging mode
             set_console_quiet(True)
-
-        # Create live progress manager if enabled
-        progress_manager = None
-        reporter = None
-        if use_live_progress:
-            try:
-                from bengal.utils.live_progress import LiveProgressManager
-                from bengal.utils.progress import LiveProgressReporterAdapter
-                from bengal.utils.rich_console import should_use_rich
-
-                if should_use_rich():
-                    progress_manager = LiveProgressManager(profile)
-                    progress_manager.__enter__()
-                    reporter = LiveProgressReporterAdapter(progress_manager)
-            except Exception as e:
-                # Fallback to traditional output if live progress fails
-                self.logger.warning("live_progress_init_failed", error=str(e))
-                progress_manager = None
 
         # Start timing
         build_start = time.time()
@@ -160,17 +138,16 @@ class BuildOrchestrator:
             root_path=str(self.site.root_path),
         )
 
-        # Show build header (unless using live progress which handles its own display)
-        if not progress_manager:
-            cli.header("Building your site...")
-            cli.info(f"   ↪ {self.site.root_path}")
-            mode_label = "incremental" if incremental else "full"
-            _auto_reason = locals().get("auto_reason")
-            if _auto_reason:
-                cli.detail(f"Mode: {mode_label} ({_auto_reason})", indent=1)
-            else:
-                cli.detail(f"Mode: {mode_label} (flag)", indent=1)
-            cli.blank()
+        # Show build header
+        cli.header("Building your site...")
+        cli.info(f"   ↪ {self.site.root_path}")
+        mode_label = "incremental" if incremental else "full"
+        _auto_reason = locals().get("auto_reason")
+        if _auto_reason:
+            cli.detail(f"Mode: {mode_label} ({_auto_reason})", indent=1)
+        else:
+            cli.detail(f"Mode: {mode_label} (flag)", indent=1)
+        cli.blank()
 
         self.site.build_time = datetime.now()
 
@@ -228,10 +205,6 @@ class BuildOrchestrator:
         with self.logger.phase("discovery", content_dir=str(content_dir)):
             discovery_start = time.time()
 
-            if progress_manager:
-                progress_manager.add_phase("discovery", "Discovery")
-                progress_manager.start_phase("discovery")
-
             # Load cache for incremental builds (Phase 2c.1 lazy loading)
             page_discovery_cache = None
             if incremental:
@@ -253,13 +226,8 @@ class BuildOrchestrator:
 
             self.stats.discovery_time_ms = (time.time() - discovery_start) * 1000
 
-            if progress_manager:
-                progress_manager.complete_phase(
-                    "discovery", elapsed_ms=self.stats.discovery_time_ms
-                )
-                progress_manager.update_phase(
-                    "discovery", pages=len(self.site.pages), sections=len(self.site.sections)
-                )
+            # Show phase completion
+            cli.phase("Discovery", duration_ms=self.stats.discovery_time_ms)
 
             self.logger.info(
                 "discovery_complete", pages=len(self.site.pages), sections=len(self.site.sections)
@@ -702,11 +670,6 @@ class BuildOrchestrator:
         with self.logger.phase("assets", asset_count=len(assets_to_process), parallel=parallel):
             assets_start = time.time()
 
-            # Register assets phase
-            if progress_manager:
-                progress_manager.add_phase("assets", "Assets", total=len(assets_to_process))
-                progress_manager.start_phase("assets")
-
             # CRITICAL FIX: On incremental builds, if no assets changed, still need to ensure
             # theme assets are in output. This handles the case where assets directory doesn't
             # exist yet (e.g., first incremental build after initial setup)
@@ -723,13 +686,11 @@ class BuildOrchestrator:
                         # Theme assets not in output - re-process all assets
                         assets_to_process = self.site.assets
 
-            self.assets.process(
-                assets_to_process, parallel=parallel, progress_manager=progress_manager
-            )
+            self.assets.process(assets_to_process, parallel=parallel, progress_manager=None)
             self.stats.assets_time_ms = (time.time() - assets_start) * 1000
 
-            if progress_manager:
-                progress_manager.complete_phase("assets", elapsed_ms=self.stats.assets_time_ms)
+            # Show phase completion
+            cli.phase("Assets", duration_ms=self.stats.assets_time_ms)
 
             self.logger.info("assets_complete", assets_processed=len(assets_to_process))
 
@@ -745,11 +706,6 @@ class BuildOrchestrator:
             memory_optimized=memory_optimized,
         ):
             rendering_start = time.time()
-
-            # Register rendering phase
-            if progress_manager:
-                progress_manager.add_phase("rendering", "Rendering", total=len(pages_to_build))
-                progress_manager.start_phase("rendering")
 
             # Use memory-optimized streaming if requested
             if memory_optimized:
@@ -804,10 +760,11 @@ class BuildOrchestrator:
 
             self.stats.rendering_time_ms = (time.time() - rendering_start) * 1000
 
-            if progress_manager:
-                progress_manager.complete_phase(
-                    "rendering", elapsed_ms=self.stats.rendering_time_ms
-                )
+            # Show phase completion with page count
+            page_count = len(pages_to_build)
+            cli.phase(
+                "Rendering", duration_ms=self.stats.rendering_time_ms, details=f"{page_count} pages"
+            )
 
             self.logger.info(
                 "rendering_complete",
@@ -915,25 +872,17 @@ class BuildOrchestrator:
                 postprocess_task_count += 1
             postprocess_task_count += 1  # special pages always run
 
-            if progress_manager:
-                progress_manager.add_phase(
-                    "postprocess", "Post-process", total=postprocess_task_count
-                )
-                progress_manager.start_phase("postprocess")
-
             self.postprocess.run(
                 parallel=parallel,
-                progress_manager=progress_manager,
+                progress_manager=None,
                 build_context=ctx,
                 incremental=incremental,
             )
 
             self.stats.postprocess_time_ms = (time.time() - postprocess_start) * 1000
 
-            if progress_manager:
-                progress_manager.complete_phase(
-                    "postprocess", elapsed_ms=self.stats.postprocess_time_ms
-                )
+            # Show phase completion
+            cli.phase("Post-process", duration_ms=self.stats.postprocess_time_ms)
 
             self.logger.info("postprocessing_complete")
 
@@ -983,13 +932,6 @@ class BuildOrchestrator:
             log_data["memory_heap_mb"] = self.stats.memory_heap_mb
 
         self.logger.info("build_complete", **log_data)
-
-        # Close progress manager and restore logger output
-        if progress_manager:
-            try:
-                progress_manager.__exit__(None, None, None)
-            except Exception as e:
-                self.logger.warning("live_progress_close_failed", error=str(e))
 
         # Restore normal logger console output if we suppressed it
         if not verbose:

@@ -11,7 +11,6 @@ Features:
 - Staggered dates for blog posts
 """
 
-
 from __future__ import annotations
 
 from datetime import datetime, timedelta
@@ -218,7 +217,7 @@ def get_sample_page_names(section_name: str, count: int) -> list[str]:
         ]
     else:
         # Generic names
-        names = [f"{section_name}-page-{i+1}" for i in range(count)]
+        names = [f"{section_name}-page-{i + 1}" for i in range(count)]
 
     return names[:count]
 
@@ -494,25 +493,29 @@ def init(
         cli.header("🏗️  Initializing site structure...")
         cli.blank()
 
+        import time
+
+        start_time = time.time()
+
         sections_created = set()
         pages_created = 0
 
         for op in operations:
-            # Calculate relative path for display
-            try:
-                rel_path = op.path.relative_to(Path.cwd())
-            except ValueError:
-                # If path is not relative to cwd, just use the path itself
-                rel_path = op.path
-
             op.execute()
 
             if op.path.name == "_index.md":
                 sections_created.add(op.path.parent.name)
-                cli.success(f"Created {rel_path}", icon="✓")
             else:
                 pages_created += 1
-                cli.success(f"Created {rel_path}", icon="✓")
+
+        elapsed_ms = (time.time() - start_time) * 1000
+
+        # Show phase completion
+        cli.phase(
+            "Initialization",
+            duration_ms=elapsed_ms,
+            details=f"{len(sections_created)} sections, {pages_created} pages",
+        )
 
         # Summary
         cli.blank()

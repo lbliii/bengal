@@ -504,11 +504,10 @@ class Asset:
 
         This minifier:
         - Removes comments and unnecessary whitespace
-        - Preserves all CSS syntax (@layer, nesting, @import, etc.)
-        - Does NOT transform or rewrite CSS (no nesting flattening, no rule removal)
+        - Transforms CSS nesting syntax for browser compatibility
+        - Preserves all other CSS syntax (@layer, @import, etc.)
 
         For CSS entry points (style.css), this should be called AFTER bundling.
-        Modern browsers support CSS nesting natively, so we don't transform it.
         """
         # Get the CSS content (bundled if this is an entry point)
         if hasattr(self, "_bundled_content"):
@@ -518,6 +517,9 @@ class Asset:
                 css_content = f.read()
 
         try:
+            # Transform CSS nesting first (for browser compatibility)
+            css_content = _transform_css_nesting(css_content)
+
             from bengal.utils.css_minifier import minify_css
 
             # Simple minification: remove comments and whitespace only

@@ -1,8 +1,36 @@
 from __future__ import annotations
 
+import re
+
 import click
 
 from bengal.utils.cli_output import CLIOutput
+
+
+def _sanitize_help_text(text: str) -> str:
+    """
+    Remove Commands section from help text to avoid duplication.
+
+    Click automatically generates a Commands section, so we remove it
+    from the docstring to avoid showing it twice.
+    """
+    if not text:
+        return ""
+
+    lines = text.splitlines()
+    result: list[str] = []
+    in_commands = False
+    for line in lines:
+        if re.match(r"^\s*Commands:\s*$", line):
+            in_commands = True
+            continue
+        if in_commands:
+            if line.strip() == "":
+                in_commands = False
+            continue
+        result.append(line)
+    # Collapse leading/trailing blank lines
+    return "\n".join(result).strip()
 
 
 class BengalCommand(click.Command):
@@ -13,28 +41,6 @@ class BengalCommand(click.Command):
         cli = CLIOutput()
 
         if cli.use_rich:
-
-            def _sanitize_help_text(text: str) -> str:
-                if not text:
-                    return ""
-                import re
-
-                lines = text.splitlines()
-                result: list[str] = []
-                in_commands = False
-                for line in lines:
-                    if re.match(r"^\s*Commands:\s*$", line):
-                        in_commands = True
-                        continue
-                    if in_commands:
-                        if line.strip() == "":
-                            in_commands = False
-                        continue
-                    result.append(line)
-                # collapse leading/trailing blank lines
-                sanitized = "\n".join(result).strip()
-                return sanitized
-
             cli.blank()
             cli.header(f"ᓚᘏᗢ  {ctx.command_path}")
             cli.blank()
@@ -114,26 +120,6 @@ class BengalGroup(click.Group):
 
         # Help text (sanitized to avoid duplicating Commands section from docstring)
         if self.help:
-
-            def _sanitize_help_text(text: str) -> str:
-                if not text:
-                    return ""
-                import re
-
-                lines = text.splitlines()
-                result: list[str] = []
-                in_commands = False
-                for line in lines:
-                    if re.match(r"^\s*Commands:\s*$", line):
-                        in_commands = True
-                        continue
-                    if in_commands:
-                        if line.strip() == "":
-                            in_commands = False
-                        continue
-                    result.append(line)
-                return "\n".join(result).strip()
-
             sanitized = _sanitize_help_text(self.help)
             if sanitized:
                 if cli.use_rich:

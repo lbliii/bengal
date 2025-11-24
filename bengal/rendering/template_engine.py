@@ -437,7 +437,30 @@ class TemplateEngine:
         if self._asset_manifest_path.exists():
             self._warn_manifest_fallback(safe_asset_path)
 
-        # Fallback: return direct asset path (for dev or when manifest unavailable)
+        # Fallback: check output directory for fingerprinted files
+        # This handles cases where fingerprinted files exist but manifest is missing
+        asset_path_obj = PurePosixPath(safe_asset_path)
+        output_asset_dir = self.site.output_dir / "assets" / asset_path_obj.parent
+        output_asset_name = asset_path_obj.name
+
+        if output_asset_dir.exists():
+            # Look for fingerprinted version (e.g., style.12345678.css)
+            if "." in output_asset_name:
+                base_name, ext = output_asset_name.rsplit(".", 1)
+                # Pattern: base.fingerprint.ext (e.g., style.12345678.css)
+                pattern = f"{base_name}.*.{ext}"
+            else:
+                # No extension, just look for base.*
+                pattern = f"{output_asset_name}.*"
+
+            fingerprinted_files = list(output_asset_dir.glob(pattern))
+            if fingerprinted_files:
+                # Use the first fingerprinted file found
+                fingerprinted_name = fingerprinted_files[0].name
+                fingerprinted_path = asset_path_obj.parent / fingerprinted_name
+                return self._with_baseurl(f"/assets/{fingerprinted_path.as_posix()}")
+
+        # Final fallback: return direct asset path (for dev or when manifest unavailable)
         return self._with_baseurl(f"/assets/{safe_asset_path}")
 
     def _get_menu(self, menu_name: str = "main") -> list:

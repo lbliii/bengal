@@ -203,5 +203,5 @@ def apply_file_traceback_to_env(site_config: dict | None) -> None:
     # suppress (comma-separated)
     if os.getenv("BENGAL_TRACEBACK_SUPPRESS") is None and "suppress" in tb_cfg:
         suppress = tb_cfg.get("suppress")
-        if isinstance(suppress, (list, tuple)):
+        if isinstance(suppress, list | tuple):
             os.environ["BENGAL_TRACEBACK_SUPPRESS"] = ",".join(str(x) for x in suppress)

@@ -7,21 +7,23 @@ Commands:
 
 from __future__ import annotations
 
-import contextlib
 import json
 from pathlib import Path
 
 import click
 
 from bengal.cli.base import BengalGroup
+from bengal.cli.helpers import (
+    cli_progress,
+    configure_traceback,
+    get_cli_output,
+    handle_cli_errors,
+    load_site_from_cli,
+)
 from bengal.core.site import Site
 from bengal.health.linkcheck.orchestrator import LinkCheckOrchestrator
 from bengal.utils.cli_output import CLIOutput
-from bengal.utils.traceback_config import (
-    TracebackConfig,
-    TracebackStyle,
-    set_effective_style_from_cli,
-)
+from bengal.utils.traceback_config import TracebackStyle
 
 
 @click.group("health", cls=BengalGroup)
@@ -31,6 +33,7 @@ def health_cli():
 
 
 @health_cli.command("linkcheck")
+@handle_cli_errors(show_art=False)
 @click.option(
     "--external-only",
     is_flag=True,
@@ -121,44 +124,36 @@ def linkcheck(
     - Internal links point to existing pages and anchors
     - External links return successful HTTP status codes
 
+    The site must be built before checking internal links. Use --format json
+    with --output to generate a report file for CI/CD integration.
+
     Examples:
         bengal health linkcheck
         bengal health linkcheck --external-only
         bengal health linkcheck --format json --output report.json
         bengal health linkcheck --exclude "^/api/preview/" --ignore-status "500-599"
+
+    See also:
+        bengal site build - Build the site before checking internal links
     """
-    cli = CLIOutput()
+    cli = get_cli_output()
 
     # Configure traceback behavior
-    set_effective_style_from_cli(traceback)
-    TracebackConfig.from_environment().install()
+    configure_traceback(debug=False, traceback=traceback)
 
     # Load site
-    try:
-        cli.header("🔗 Link Checker")
-        cli.info("Loading site...")
+    cli.header("🔗 Link Checker")
+    cli.info("Loading site...")
 
-        root_path = Path.cwd()
-        site = Site.from_config(root_path)
+    site = load_site_from_cli(source=".", config=None, environment=None, profile=None, cli=cli)
 
-        # Apply file-based traceback config and re-install
-        try:
-            from bengal.utils.traceback_config import apply_file_traceback_to_env
+    # Apply file-based traceback config after site is loaded
+    configure_traceback(debug=False, traceback=traceback, site=site)
 
-            apply_file_traceback_to_env(site.config)
-            TracebackConfig.from_environment().install()
-        except Exception:
-            pass
-        site.discover_content()
-        site.discover_assets()
+    site.discover_content()
+    site.discover_assets()
 
-        cli.success(f"Loaded {len(site.pages)} pages")
-
-    except Exception as e:
-        cli.error(f"Failed to load site: {e}")
-        with contextlib.suppress(Exception):
-            TracebackConfig.from_environment().get_renderer().display_exception(e)
-        raise click.Abort() from e
+    cli.success(f"Loaded {len(site.pages)} pages")
 
     # Determine what to check
     check_internal = not external_only
@@ -170,8 +165,7 @@ def linkcheck(
             _ensure_site_built(site, cli)
         except Exception as e:
             cli.error(f"Failed to build site: {e}")
-            with contextlib.suppress(Exception):
-                TracebackConfig.from_environment().get_renderer().display_exception(e)
+            # Traceback already configured, will be shown by error handler if needed
             raise click.Abort() from e
 
     # Build config from CLI flags and site config
@@ -189,8 +183,6 @@ def linkcheck(
 
     # Run link checker
     try:
-        cli.info(f"Checking links (internal: {check_internal}, external: {check_external})...")
-
         orchestrator = LinkCheckOrchestrator(
             site,
             check_internal=check_internal,
@@ -198,7 +190,12 @@ def linkcheck(
             config=linkcheck_config,
         )
 
-        results, summary = orchestrator.check_all_links()
+        with cli_progress(
+            f"Checking links (internal: {check_internal}, external: {check_external})...",
+            total=None,  # Indeterminate - we don't know link count until extraction
+            cli=cli,
+        ):
+            results, summary = orchestrator.check_all_links()
 
         # Output results
         if output_format == "json":
@@ -209,22 +206,17 @@ def linkcheck(
                 output_path.write_text(json.dumps(report, indent=2))
                 cli.success(f"JSON report saved to {output_path}")
             else:
-                print(json.dumps(report, indent=2))
+                cli.console.print(json.dumps(report, indent=2))
 
         else:  # console format
             report = orchestrator.format_console_report(results, summary)
-            print(report)
+            cli.console.print(report)
 
         # Exit with appropriate code
         if not summary.passed:
             raise click.Abort()
-
-    except click.Abort:
-        raise
     except Exception as e:
         cli.error(f"Link check failed: {e}")
-        with contextlib.suppress(Exception):
-            TracebackConfig.from_environment().get_renderer().display_exception(e)
         raise click.Abort() from e
 
 

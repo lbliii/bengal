@@ -51,7 +51,9 @@ class TestIncrementalSequence:
         ],
     )
     @pytest.mark.skip(
-        reason="Flaky: discovers 0 pages on second Site object creation - needs investigation"
+        reason="Flaky: File hash comparison in incremental builds not detecting changes reliably. "
+        "Issue: After modifying files and creating new Site object, incremental build "
+        "still reports 'No changes detected'. Needs investigation of hash computation timing."
     )
     def test_change_detection(self, tmp_site, change_type):
         """
@@ -115,14 +117,12 @@ Original content.""")
 
         # Make change based on type
         if change_type == "content":
-            with open(page1, "w") as f:
-                f.write("""---
+            page1.write_text("""---
 title: "Page 1"
 ---
 Modified content.""")
         elif change_type == "template":
-            with open(base_html, "w") as f:
-                f.write("""
+            base_html.write_text("""
 <!DOCTYPE html>
 <html>
 <head><title>{{ page.title }} - Updated</title></head>
@@ -134,19 +134,31 @@ Modified content.""")
 </html>
 """)
         elif change_type == "config":
-            with open(config_path, "w") as f:
-                f.write(
-                    config_content.replace('title = "Test Incremental"', 'title = "Updated Title"')
-                )
+            config_path.write_text(
+                config_content.replace('title = "Test Incremental"', 'title = "Updated Title"')
+            )
 
-        time.sleep(0.05)  # Reduced
+        # Wait for file system to update and ensure file handles are closed
+        import os
 
-        # Incremental build
-        incremental_stats = site.build(incremental=True)
+        time.sleep(0.2)  # Increased wait time for file system to ensure mtime updates
+        os.sync()  # Force file system sync on Unix systems
+
+        # Create a new Site object to ensure fresh state after file changes
+        # This prevents flakiness where the site object might have stale page references
+        # or cached file hashes that don't reflect the modifications
+        site2 = Site.from_config(site_dir, config_path=config_path)
+        site2.discover_content()
+        site2.discover_assets()
+
+        # Incremental build with fresh site object
+        incremental_stats = site2.build(incremental=True)
         assert incremental_stats.total_pages > 0
 
         # Verify change applied
-        output_html = site_dir / "public" / "page1.html"
+        # Note: Pages are output as directories with index.html (e.g., page1/index.html)
+        output_html = site_dir / "public" / "page1" / "index.html"
+        assert output_html.exists(), f"Expected output file not found: {output_html}"
         with open(output_html) as f:
             content = f.read()
             if change_type == "content":
@@ -157,15 +169,15 @@ Modified content.""")
                 assert "Updated Title" in content  # Via page title update
 
         # Additional incremental (no change) should be very fast
-        time.sleep(0.05)
-        no_change_stats = site.build(incremental=True)
+        time.sleep(0.1)
+        no_change_stats = site2.build(incremental=True)
         assert no_change_stats.total_pages > 0
 
 
 @pytest.mark.slow
 class TestIncrementalBuildRegression:
     """Regression tests for specific incremental build bugs.
-    
+
     Marked slow due to multiple full + incremental build sequences.
     """
 
@@ -202,9 +214,9 @@ class TestIncrementalBuildRegression:
 
         # Should use cache (1 page, 1 cache hit, 0 misses)
         assert stats2.cache_hits == 1, f"BUG: Should have 1 cache hit, got {stats2.cache_hits}"
-        assert (
-            stats2.cache_misses == 0
-        ), f"BUG: Should have 0 cache misses, got {stats2.cache_misses}"
+        assert stats2.cache_misses == 0, (
+            f"BUG: Should have 0 cache misses, got {stats2.cache_misses}"
+        )
 
     def test_bug_config_hash_not_populated(self, tmp_path):
         """
@@ -235,21 +247,21 @@ class TestIncrementalBuildRegression:
             cache_data = json.load(f)
 
         config_path = str(config_file)
-        assert any(
-            config_path in key for key in cache_data["file_hashes"]
-        ), "BUG: Config file hash not in cache after full build"
+        assert any(config_path in key for key in cache_data["file_hashes"]), (
+            "BUG: Config file hash not in cache after full build"
+        )
 
         # Incremental build should not think config changed
         time.sleep(0.15)
         stats = site.build(parallel=False, incremental=True)
 
         # Should use cache (indicating config was NOT detected as changed)
-        assert (
-            stats.cache_hits == 1
-        ), f"BUG: Should use cache (config unchanged), got {stats.cache_hits} hits"
-        assert (
-            stats.cache_misses == 0
-        ), f"BUG: Incremental build thought config changed when it didn't (got {stats.cache_misses} misses)"
+        assert stats.cache_hits == 1, (
+            f"BUG: Should use cache (config unchanged), got {stats.cache_hits} hits"
+        )
+        assert stats.cache_misses == 0, (
+            f"BUG: Incremental build thought config changed when it didn't (got {stats.cache_misses} misses)"
+        )
 
 
 # TODO: Add property-based tests for incremental builds

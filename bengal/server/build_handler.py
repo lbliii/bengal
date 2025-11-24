@@ -297,7 +297,7 @@ class BuildHandler(FileSystemEventHandler):
                     # 2) Prefer builder-provided changed outputs if available
                     if decision is None:
                         changed_outputs = getattr(stats, "changed_outputs", None)
-                        if isinstance(changed_outputs, (list, tuple)) and changed_outputs:
+                        if isinstance(changed_outputs, list | tuple) and changed_outputs:
                             decision = controller.decide_from_changed_paths(list(changed_outputs))
 
                     # 3) No source change, no builder hints → suppress reload (dev: source-gated only)

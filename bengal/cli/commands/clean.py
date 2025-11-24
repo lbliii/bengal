@@ -1,6 +1,5 @@
 """Clean commands for removing generated files."""
 
-
 from __future__ import annotations
 
 from pathlib import Path
@@ -8,12 +7,28 @@ from pathlib import Path
 import click
 
 from bengal.cli.base import BengalCommand
-from bengal.core.site import Site
-from bengal.utils.build_stats import show_error
-from bengal.utils.cli_output import CLIOutput
+from bengal.cli.helpers import (
+    command_metadata,
+    get_cli_output,
+    handle_cli_errors,
+    load_site_from_cli,
+)
 
 
 @click.command(cls=BengalCommand)
+@command_metadata(
+    category="build",
+    description="Clean generated files and stale processes",
+    examples=[
+        "bengal clean",
+        "bengal clean --cache",
+        "bengal clean --all",
+        "bengal clean --stale-server",
+    ],
+    requires_site=True,
+    tags=["build", "maintenance", "quick"],
+)
+@handle_cli_errors(show_art=False)
 @click.option("--force", "-f", is_flag=True, help="Skip confirmation prompt")
 @click.option("--cache", is_flag=True, help="Also remove build cache (.bengal/ directory)")
 @click.option("--all", "clean_all", is_flag=True, help="Remove everything (output + cache)")
@@ -40,75 +55,68 @@ def clean(
       bengal clean --cache          # Clean output and cache
       bengal clean --stale-server   # Clean up stale server processes
     """
-    try:
-        root_path = Path(source).resolve()
-        config_path = Path(config).resolve() if config else None
+    cli = get_cli_output()
 
-        # Create site
-        site = Site.from_config(root_path, config_path)
+    # Load site using helper
+    site = load_site_from_cli(source=source, config=config, environment=None, profile=None, cli=cli)
 
-        # Determine what to clean
-        clean_cache = cache or clean_all
+    # Determine what to clean
+    clean_cache = cache or clean_all
 
-        # Show header (consistent with all other commands)
-        cli = CLIOutput()
-        cli.blank()
+    # Show header (consistent with all other commands)
+    cli.blank()
 
+    if clean_cache:
+        cli.header("Cleaning output directory and cache...")
+        cli.info(f"   Output: {site.output_dir}")
+        cli.info(f"   Cache:  {site.root_path / '.bengal'}")
+    else:
+        cli.header("Cleaning output directory...")
+        cli.info(f"   ↪ {site.output_dir}")
+        cli.info(f"   ℹ Cache preserved at {site.root_path / '.bengal'}")
+    cli.blank()
+
+    if stale_server:
+        cleanup(force, None, source)
+        return
+
+    # Confirm before cleaning unless --force
+    if not force:
+        # Interactive mode: ask for confirmation (with warning icon for destructive operation)
         if clean_cache:
-            cli.header("Cleaning output directory and cache...")
-            cli.info(f"   Output: {site.output_dir}")
-            cli.info(f"   Cache:  {site.root_path / '.bengal'}")
+            cli.warning("Delete output AND cache?")
+            if cli.use_rich:
+                cli.detail("This will force a complete rebuild on next build", indent=1)
         else:
-            cli.header("Cleaning output directory...")
-            cli.info(f"   ↪ {site.output_dir}")
-            cli.info(f"   ℹ Cache preserved at {site.root_path / '.bengal'}")
-        cli.blank()
+            cli.warning("Delete output files?")
+            if cli.use_rich:
+                cli.detail("Cache will be preserved for incremental builds", indent=1)
 
-        if stale_server:
-            cleanup(force, None, source)
+        if not cli.confirm("Proceed", default=False):
+            cli.warning("Cancelled")
             return
 
-        # Confirm before cleaning unless --force
-        if not force:
-            # Interactive mode: ask for confirmation (with warning icon for destructive operation)
-            if clean_cache:
-                cli.warning("Delete output AND cache?")
-                if cli.use_rich:
-                    cli.detail("This will force a complete rebuild on next build", indent=1)
-            else:
-                cli.warning("Delete output files?")
-                if cli.use_rich:
-                    cli.detail("Cache will be preserved for incremental builds", indent=1)
+    # Clean output directory
+    site.clean()
 
-            if not cli.confirm("Proceed", default=False):
-                cli.warning("Cancelled")
-                return
+    # Clean cache if requested
+    if clean_cache:
+        cache_dir = site.root_path / ".bengal"
+        if cache_dir.exists():
+            import shutil
 
-        # Clean output directory
-        site.clean()
+            shutil.rmtree(cache_dir)
+            cli.info("   ✓ Removed cache directory")
 
-        # Clean cache if requested
-        if clean_cache:
-            cache_dir = site.root_path / ".bengal"
-            if cache_dir.exists():
-                import shutil
-
-                shutil.rmtree(cache_dir)
-                cli.info("   ✓ Removed cache directory")
-
-        # Show success
-        cli.blank()
-        if clean_cache:
-            cli.success("Clean complete! (output + cache)", icon="✓")
-            cli.info("   Next build will be a cold build (no cache)")
-        else:
-            cli.success("Clean complete! (cache preserved)", icon="✓")
-            cli.tip("Run 'bengal clean --cache' for cold build testing")
-        cli.blank()
-
-    except Exception as e:
-        show_error(f"Clean failed: {e}", show_art=False)
-        raise click.Abort() from e
+    # Show success
+    cli.blank()
+    if clean_cache:
+        cli.success("Clean complete! (output + cache)", icon="✓")
+        cli.info("   Next build will be a cold build (no cache)")
+    else:
+        cli.success("Clean complete! (cache preserved)", icon="✓")
+        cli.tip("Run 'bengal clean --cache' for cold build testing")
+    cli.blank()
 
 
 def cleanup(force: bool, port: int, source: str) -> None:
@@ -187,8 +195,8 @@ def cleanup(force: bool, port: int, source: str) -> None:
             raise click.Abort()
 
     except ImportError:
-        show_error("Cleanup command requires server dependencies", show_art=False)
+        click.echo("Error: Cleanup command requires server dependencies", err=True)
         raise click.Abort() from None
     except Exception as e:
-        show_error(f"Cleanup failed: {e}", show_art=False)
+        click.echo(f"Error: Cleanup failed: {e}", err=True)
         raise click.Abort() from e

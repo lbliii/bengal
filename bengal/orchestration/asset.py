@@ -190,16 +190,45 @@ class AssetOrchestrator:
         )
 
         # Process CSS entry points first (bundle + minify)
-        for i, css_entry in enumerate(css_entries):
-            self._process_css_entry(css_entry, minify, optimize, fingerprint)
-            if progress_manager:
-                progress_manager.update_phase(
-                    "assets",
-                    current=i + 1,
-                    current_item=f"{css_entry.source_path.name} (bundled {len(css_modules)} modules)",
-                    minified=minify,
-                    bundled_modules=len(css_modules),
-                )
+        # Parallelize if multiple entries and parallel mode enabled
+        if parallel and len(css_entries) > 1:
+            max_workers = self.site.config.get("max_workers", min(8, len(css_entries)))
+            with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+                futures = [
+                    executor.submit(self._process_css_entry, entry, minify, optimize, fingerprint)
+                    for entry in css_entries
+                ]
+                for i, future in enumerate(futures):
+                    try:
+                        future.result()
+                        if progress_manager:
+                            progress_manager.update_phase(
+                                "assets",
+                                current=i + 1,
+                                current_item=f"{css_entries[i].source_path.name} (bundled {len(css_modules)} modules)",
+                                minified=minify,
+                                bundled_modules=len(css_modules),
+                            )
+                    except Exception as e:
+                        self.logger.error(
+                            "css_entry_processing_failed",
+                            asset_path=str(css_entries[i].source_path),
+                            error=str(e),
+                            error_type=type(e).__name__,
+                            stage="bundle_or_minify",
+                        )
+        else:
+            # Sequential fallback for single entry or non-parallel mode
+            for i, css_entry in enumerate(css_entries):
+                self._process_css_entry(css_entry, minify, optimize, fingerprint)
+                if progress_manager:
+                    progress_manager.update_phase(
+                        "assets",
+                        current=i + 1,
+                        current_item=f"{css_entry.source_path.name} (bundled {len(css_modules)} modules)",
+                        minified=minify,
+                        bundled_modules=len(css_modules),
+                    )
 
         # Process other assets (skip CSS modules)
         assets_to_process = other_assets
@@ -359,6 +388,11 @@ class AssetOrchestrator:
         completed_count = css_entries_processed
         lock = Lock()
 
+        # Batch progress updates to reduce overhead
+        last_update_time = time.time()
+        update_interval = 0.1  # 100ms
+        pending_updates = 0
+
         with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
             futures = []
             for asset in assets:
@@ -371,16 +405,34 @@ class AssetOrchestrator:
             for future, asset in futures:
                 try:
                     future.result()
-                    if progress_manager:
+                    # Pre-compute string operations outside lock
+                    item_name = asset.source_path.name
+                    pending_updates += 1
+
+                    # Batch progress updates (every 10 assets or 100ms)
+                    now = time.time()
+                    should_update = progress_manager and (
+                        pending_updates >= 10 or (now - last_update_time) >= update_interval
+                    )
+
+                    if should_update:
                         with lock:
-                            completed_count += 1
+                            completed_count += pending_updates
                             progress_manager.update_phase(
                                 "assets",
                                 current=completed_count,
-                                current_item=asset.source_path.name,
+                                current_item=item_name,
                             )
+                            pending_updates = 0
+                            last_update_time = now
                 except Exception as e:
                     errors.append(str(e))
+
+        # Final progress update for any remaining pending updates
+        if progress_manager and pending_updates > 0:
+            with lock:
+                completed_count += pending_updates
+                progress_manager.update_phase("assets", current=completed_count)
 
         # Report errors after all processing is complete
         if errors:
