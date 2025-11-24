@@ -2,7 +2,12 @@
 title: Themer Quickstart
 description: Create and customize themes
 weight: 50
-categories: ["onboarding"]
+type: doc
+draft: false
+lang: en
+tags: [onboarding, theming, quickstart]
+keywords: [themes, templates, customization, design]
+category: onboarding
 ---
 
 # Themer Quickstart

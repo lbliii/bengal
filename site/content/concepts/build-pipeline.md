@@ -2,6 +2,12 @@
 title: The Build Pipeline
 description: A deep dive into Bengal's build orchestration, phases, and incremental build system.
 weight: 30
+type: doc
+draft: false
+lang: en
+tags: [build, pipeline, orchestration, incremental]
+keywords: [build pipeline, orchestration, incremental builds, performance]
+category: documentation
 ---
 
 For those who need to understand exactly what happens when they run `bengal build`, this guide breaks down the **Build Pipeline**.
@@ -69,4 +75,3 @@ Bengal's incremental build system relies on **Change Detection** and **Dependenc
 ## Memory Optimization
 
 For massive sites (>10,000 pages), Bengal offers a `--memory-optimized` flag. This uses a **Streaming Orchestrator** to process pages in batches, keeping memory usage constant rather than linear to site size.
-

@@ -2,7 +2,12 @@
 title: Writer Quickstart
 description: Create your first site and start writing
 weight: 40
-categories: ["onboarding"]
+type: doc
+draft: false
+lang: en
+tags: [onboarding, writing, quickstart]
+keywords: [writing, content, markdown, frontmatter]
+category: onboarding
 ---
 
 # Writer Quickstart
@@ -129,17 +134,59 @@ bengal new page advanced-tips --section tutorials
 
 ### Use Frontmatter
 
-Control how pages appear:
+Control how pages appear with frontmatter metadata:
 
 ```yaml
 ---
 title: Advanced Python Tips
 date: 2025-10-26
 tags: [python, advanced]
-categories: [tutorial]
 description: Take your Python skills to the next level
 weight: 10               # Lower numbers appear first
-template: post.html      # Use specific template
+draft: false             # Set to true to hide during builds
+keywords: [python, advanced, tutorial]
+---
+```
+
+#### Supported Frontmatter Keys
+
+| Key | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `title` | `string` | filename-derived | Page title (required for proper display) |
+| `date` | `datetime` | `None` | Publication date for sorting and archives |
+| `tags` | `list[string]` | `[]` | Tags for taxonomy pages (e.g., `[python, web]`) |
+| `slug` | `string` | filename-derived | Custom URL path override |
+| `weight` | `integer` | `None` | Sort order (lower numbers appear first) |
+| `lang` | `string` | site default | Language code (e.g., `"en"`, `"es"`) |
+| `type` | `string` | `None` | Page type for template selection (`"doc"`, `"post"`, `"page"`) |
+| `description` | `string` | `""` | SEO description (auto-generated if omitted) |
+| `draft` | `boolean` | `false` | Skip page unless `--build-drafts` is used |
+| `keywords` | `list[string]` | `[]` | SEO keywords (list or comma-separated string) |
+| `category` | `string` | `None` | Single category for taxonomy (use `category`, not `categories`) |
+
+**Quick Examples:**
+
+```yaml
+# Minimal frontmatter (title only)
+---
+title: My Post
+---
+
+# Blog post with full metadata
+---
+title: My First Blog Post
+date: 2025-10-26
+tags: [welcome, tutorial]
+description: Getting started with Bengal
+draft: false
+---
+
+# Documentation page with ordering
+---
+title: Installation Guide
+weight: 1
+type: doc
+description: Step-by-step installation instructions
 ---
 ```
 
@@ -226,7 +273,7 @@ Read my [first post](../blog/my-first-post/)
 ---
 title: My Post
 tags: [python, tutorial, beginner]
-categories: [programming, web-dev]
+category: programming
 ---
 ```
 

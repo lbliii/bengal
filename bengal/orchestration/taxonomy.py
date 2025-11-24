@@ -5,7 +5,6 @@ Handles taxonomy collection (tags, categories) and dynamic page generation
 (tag pages, archive pages, etc.).
 """
 
-
 from __future__ import annotations
 
 import concurrent.futures
@@ -53,6 +52,32 @@ class TaxonomyOrchestrator:
         self.threshold = threshold
         self.parallel = parallel
         self.url_strategy = URLStrategy()
+
+    def _is_eligible_for_taxonomy(self, page: Page) -> bool:
+        """
+        Check if a page is eligible for taxonomy collection.
+
+        Excludes:
+        - Generated pages (tag pages, archive pages, etc.)
+        - Pages from autodoc output directories (content/api, content/cli)
+          Note: Autodoc pages typically don't have tags, but this prevents
+          them from being included if someone manually adds tags.
+
+        Args:
+            page: Page to check
+
+        Returns:
+            True if page should be included in taxonomies
+        """
+        # Skip generated pages (tag pages, archive pages, etc.)
+        if page.metadata.get("_generated"):
+            return False
+
+        # Skip pages from autodoc output directories as defensive measure
+        # (Autodoc pages typically don't have tags, but this prevents
+        #  them from being included if someone manually adds tags)
+        source_str = str(page.source_path)
+        return "content/api" not in source_str and "content/cli" not in source_str
 
     def collect_and_generate(self, parallel: bool = True) -> None:
         """
@@ -221,6 +246,10 @@ class TaxonomyOrchestrator:
 
         pages_with_tags = 0
         for page in self.site.pages:
+            # Skip pages that shouldn't be in taxonomies
+            if not self._is_eligible_for_taxonomy(page):
+                continue
+
             # Only filter by language if i18n is actually enabled
             if (
                 strategy != "none"
@@ -289,7 +318,9 @@ class TaxonomyOrchestrator:
         self.site.taxonomies = {"tags": {}, "categories": {}}
 
         # Build lookup map: path → current Page object
-        current_page_map = {p.source_path: p for p in self.site.regular_pages}
+        # Filter out generated pages and autodoc pages
+        eligible_pages = [p for p in self.site.regular_pages if self._is_eligible_for_taxonomy(p)]
+        current_page_map = {p.source_path: p for p in eligible_pages}
 
         # For each tag in cache, map paths to current Page objects
         for tag_slug in cache.get_all_tags():
@@ -696,8 +727,11 @@ class TaxonomyOrchestrator:
         pages_to_create = []
         per_page = self.site.config.get("pagination", {}).get("per_page", 10)
 
+        # Filter out any ineligible pages (defensive check)
+        eligible_pages = [p for p in tag_data["pages"] if self._is_eligible_for_taxonomy(p)]
+
         # Create paginator
-        paginator = Paginator(tag_data["pages"], per_page=per_page)
+        paginator = Paginator(eligible_pages, per_page=per_page)
 
         # Create a page for each pagination page
         for page_num in range(1, paginator.num_pages + 1):
@@ -717,7 +751,7 @@ class TaxonomyOrchestrator:
                     "_virtual": True,
                     "_tag": tag_data["name"],
                     "_tag_slug": tag_slug,
-                    "_posts": tag_data["pages"],
+                    "_posts": eligible_pages,  # Use filtered pages
                     "_paginator": paginator,
                     "_page_num": page_num,
                 },
@@ -740,7 +774,10 @@ class TaxonomyOrchestrator:
 
         pages_to_create = []
         per_page = self.site.config.get("pagination", {}).get("per_page", 10)
-        paginator = Paginator(tag_data["pages"], per_page=per_page)
+
+        # Filter out any ineligible pages (defensive check)
+        eligible_pages = [p for p in tag_data["pages"] if self._is_eligible_for_taxonomy(p)]
+        paginator = Paginator(eligible_pages, per_page=per_page)
         for page_num in range(1, paginator.num_pages + 1):
             virtual_path = self.url_strategy.make_virtual_path(
                 self.site, "tags", tag_slug, f"page_{page_num}"
@@ -756,8 +793,8 @@ class TaxonomyOrchestrator:
                     "_virtual": True,
                     "_tag": tag_data["name"],
                     "_tag_slug": tag_slug,
-                    "_posts": tag_data["pages"],
-                    "_paginator": Paginator(tag_data["pages"], per_page=per_page),
+                    "_posts": eligible_pages,  # Use filtered pages
+                    "_paginator": Paginator(eligible_pages, per_page=per_page),
                     "_page_num": page_num,
                 },
             )
@@ -767,9 +804,7 @@ class TaxonomyOrchestrator:
             pages_to_create.append(tag_page)
         return pages_to_create
 
-    def generate_tag_pages(
-        self, tags: list, selective: bool = False, context: BuildContext = None
-    ):
+    def generate_tag_pages(self, tags: list, selective: bool = False, context: BuildContext = None):
         if context:
             self.threshold = context.get("threshold", 20)  # DI from context
         if selective and len(tags) < self.threshold:

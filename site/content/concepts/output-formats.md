@@ -2,6 +2,12 @@
 title: Output Formats
 description: Generate JSON, LLM-ready text, and custom output formats
 weight: 30
+type: doc
+draft: false
+lang: en
+tags: [output formats, json, llm, api]
+keywords: [output formats, json, llm, api, search, rag]
+category: documentation
 ---
 
 Bengal can generate multiple output formats for your content, enabling search functionality, AI discovery, and programmatic access.
@@ -75,8 +81,8 @@ Fetch the site index to implement fast, client-side search without a backend.
       return;
     }
 
-    const results = searchIndex.filter(page => 
-      (page.title && page.title.toLowerCase().includes(query)) || 
+    const results = searchIndex.filter(page =>
+      (page.title && page.title.toLowerCase().includes(query)) ||
       (page.excerpt && page.excerpt.toLowerCase().includes(query))
     ).slice(0, 10); // Limit to 10 results
 
@@ -112,4 +118,3 @@ data = requests.get('https://mysite.com/docs/intro/index.json').json()
 print(data['title'])
 print(data['word_count'])
 ```
-

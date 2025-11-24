@@ -3,9 +3,13 @@ title: Guides
 description: Step-by-step tutorials
 type: doc
 weight: 20
+draft: false
+lang: en
+tags: [guides, tutorials, how-to]
+keywords: [guides, tutorials, how-to, step-by-step]
+category: guide
 cascade:
   type: doc
-tags: ["hi","bye"]
 ---
 
 # Guides

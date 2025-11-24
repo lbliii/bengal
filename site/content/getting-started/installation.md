@@ -2,7 +2,12 @@
 title: Installation
 description: How to install bengal
 weight: 20
-categories: ["onboarding"]
+type: doc
+draft: false
+lang: en
+tags: [onboarding, installation]
+keywords: [installation, setup, python, pyenv, uv]
+category: onboarding
 ---
 
 ## Before You Start

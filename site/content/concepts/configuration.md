@@ -2,6 +2,12 @@
 title: Configuration
 description: Complete configuration reference for Bengal
 weight: 10
+type: doc
+draft: false
+lang: en
+tags: [configuration, config, reference]
+keywords: [configuration, config, toml, yaml, settings]
+category: documentation
 ---
 
 Bengal provides a flexible configuration system that supports TOML, YAML, and directory-based organization.
@@ -148,4 +154,3 @@ product_name = "Bengal"
 analytics_id = "UA-12345-6"
 social_twitter = "@bengal_ssg"
 ```
-

@@ -2,6 +2,12 @@
 title: Deployment Guide
 description: How to build and deploy your Bengal site to production.
 weight: 40
+type: doc
+draft: false
+lang: en
+tags: [deployment, production, hosting]
+keywords: [deployment, production, hosting, netlify, vercel, github pages]
+category: guide
 ---
 
 Bengal generates static HTML, CSS, and JavaScript files. This means you can host your site anywhere that serves static files (e.g., GitHub Pages, Netlify, Vercel, AWS S3, Nginx).
@@ -56,18 +62,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.14'
-          
+
       - name: Install Bengal
         run: pip install bengal
-        
+
       - name: Build Site
         run: bengal build --environment production --strict
-        
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
@@ -130,4 +136,3 @@ Before you merge to main or deploy:
 site:
   baseurl: "https://example.com"
 ```
-

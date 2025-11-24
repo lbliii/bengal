@@ -2,6 +2,12 @@
 title: Content Organization
 description: Understand how Bengal maps files to URLs and organizes content into sections.
 weight: 20
+type: doc
+draft: false
+lang: en
+tags: [content, organization, structure, frontmatter]
+keywords: [content organization, frontmatter, sections, pages, structure]
+category: documentation
 ---
 
 Bengal uses **file-system routing**. This means the structure of your `content/` directory directly determines the structure and URLs of your generated site.
@@ -71,16 +77,68 @@ weight: 10
 ---
 ```
 
-### Common Variables
+### Supported Frontmatter Keys
 
-| Variable | Description |
-| :--- | :--- |
-| `title` | The title of the page (required). |
-| `date` | Publication date (used for sorting). |
-| `draft` | If `true`, the page is skipped unless `--build-drafts` is used. |
-| `weight` | Number for sorting order (lower numbers come first). |
-| `slug` | Override the URL path (e.g., `my-custom-url`). |
-| `tags` | List of tags for taxonomy pages. |
+Bengal supports the following frontmatter keys with their types and default values:
+
+| Key | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `title` | `string` | `"Untitled"` or filename-derived | Page title. Required for proper display. If omitted, Bengal generates a title from the filename. |
+| `date` | `datetime` or `string` | `None` | Publication date. Used for sorting, archives, and RSS feeds. Accepts ISO format (`2023-10-25`) or full datetime (`2023-10-25T14:30:00`). |
+| `tags` | `list[string]` | `[]` | List of tag strings for taxonomy pages and filtering. Example: `tags: [python, web, tutorial]` |
+| `slug` | `string` | filename-derived | Override the URL path. If not specified, Bengal generates a slug from the filename. Example: `slug: my-custom-url` |
+| `weight` | `integer` | `None` | Sort weight within section. Lower numbers appear first. Used for manual ordering in sidebars and listings. |
+| `lang` | `string` | site default | Language code for i18n (e.g., `"en"`, `"es"`, `"fr"`). If not specified, uses the site's default language. |
+| `type` | `string` | `None` | Page type that determines which layout/template to use (e.g., `"doc"`, `"post"`, `"page"`). Can be cascaded from section `_index.md`. |
+| `description` | `string` | `""` | Page description used for SEO meta tags and excerpts. If omitted, Bengal generates one from content. |
+| `draft` | `boolean` | `false` | If `true`, the page is skipped during builds unless `--build-drafts` is used. Useful for work-in-progress content. |
+| `keywords` | `list[string]` or `string` | `[]` | SEO keywords. Can be a list (`keywords: [python, web]`) or comma-separated string (`keywords: "python, web"`). |
+| `category` | `string` | `None` | Single category for taxonomy pages. Unlike tags, categories are single-valued (e.g., `category: tutorial`). **Note:** Use `category` (singular), not `categories` (plural). Only `category` is processed into the taxonomy system. |
+
+### Example Frontmatter
+
+Here's a complete example using all common fields:
+
+```yaml
+---
+title: Getting Started with Bengal
+date: 2025-10-26
+tags: [tutorial, beginner, static-sites]
+slug: getting-started
+weight: 1
+lang: en
+type: doc
+description: Learn how to build your first site with Bengal SSG
+draft: false
+keywords: [bengal, static site generator, tutorial]
+---
+```
+
+### Field Details
+
+**Title**: If you omit `title`, Bengal automatically generates one from the filename:
+- `my-first-post.md` → `"My First Post"`
+- `api-reference.md` → `"Api Reference"`
+- For `_index.md` files, uses the parent directory name instead of "Index"
+
+**Date**: Flexible date parsing supports multiple formats:
+- `date: 2023-10-25` (ISO date)
+- `date: 2023-10-25T14:30:00` (ISO datetime)
+- `date: "October 25, 2023"` (natural language)
+
+**Tags**: Used for taxonomy pages and filtering. Tags are case-sensitive and should be consistent across pages.
+
+**Weight**: Lower numbers appear first. Useful for documentation ordering:
+- `weight: 1` appears before `weight: 10`
+- Pages without weight are sorted by date (newest first) or title (alphabetical)
+
+**Type**: Determines which template/layout to use. Common types:
+- `doc` - Documentation pages
+- `post` - Blog posts
+- `page` - Regular pages
+- `changelog` - Release notes
+
+**Draft**: Draft pages are excluded from builds by default. Use `bengal site build --build-drafts` to include them.
 
 ## Sorting & Ordering
 
@@ -116,4 +174,3 @@ cascade:
 ```
 
 Any page inside `content/blog/` will now automatically have `type: blog-post` unless it specifically overrides it.
-

@@ -121,7 +121,7 @@
       // Create copy button
       const button = document.createElement('button');
       button.className = 'code-copy-button';
-      button.setAttribute('aria-label', 'Copy code to clipboard');
+      button.setAttribute('aria-label', 'Copy');
       button.style.pointerEvents = 'auto';
 
       // Add copy icon (SVG) - icon only, no text
@@ -191,7 +191,7 @@
               <span>Copy</span>
             `;
             button.classList.remove('copied');
-            button.setAttribute('aria-label', 'Copy code to clipboard');
+            button.setAttribute('aria-label', 'Copy');
           }, 2000);
         }).catch(function (err) {
           log('Failed to copy code:', err);
@@ -206,7 +206,7 @@
               </svg>
               <span>Copy</span>
             `;
-            button.setAttribute('aria-label', 'Copy code to clipboard');
+            button.setAttribute('aria-label', 'Copy');
           }, 2000);
         });
       });

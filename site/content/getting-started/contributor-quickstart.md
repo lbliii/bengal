@@ -2,7 +2,12 @@
 title: Contributor Quickstart
 description: Set up your dev environment and make your first contribution
 weight: 60
-categories: ["onboarding"]
+type: doc
+draft: false
+lang: en
+tags: [onboarding, contribution, development]
+keywords: [contributing, development, pull requests, git]
+category: onboarding
 ---
 
 # Contributor Quickstart

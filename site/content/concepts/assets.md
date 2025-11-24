@@ -2,6 +2,12 @@
 title: Assets
 description: Asset pipeline, optimization, and Node.js integration
 weight: 20
+type: doc
+draft: false
+lang: en
+tags: [assets, pipeline, optimization]
+keywords: [assets, css, javascript, images, optimization, minification]
+category: documentation
 ---
 
 Bengal includes a powerful asset pipeline that handles discovery, optimization, and delivery of static assets like CSS, JavaScript, images, and fonts.
@@ -100,4 +106,3 @@ quality = 85
 strip_metadata = true
 formats = ["webp"]
 ```
-

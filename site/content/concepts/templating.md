@@ -2,6 +2,12 @@
 title: Templating & Data Context
 description: Understand the variables and objects available in your Jinja2 templates.
 weight: 25
+type: doc
+draft: false
+lang: en
+tags: [templating, jinja2, templates, variables]
+keywords: [templating, jinja2, templates, variables, context]
+category: documentation
 ---
 
 Bengal uses **Jinja2** as its template engine. This guide explains the data context available to your templates and how to access site and page data.
@@ -110,7 +116,7 @@ Defines the common structure (HTML head, nav, footer).
 </head>
 <body>
     <nav>...</nav>
-    
+
     <main>
         {% block content %}{% endblock %}
     </main>
@@ -156,4 +162,3 @@ A common trick is to dump data:
 <!-- Dump variables to HTML comments for inspection -->
 <!-- {{ page.metadata }} -->
 ```
-

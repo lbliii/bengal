@@ -24,9 +24,18 @@
     </header>
 
     {% if posts %}
+    {# Debug: Show what we're actually iterating over #}
+    <!-- DEBUG: posts count: {{ posts | length }}, total_posts: {{ total_posts }} -->
     <div class="archive-list">
         {% for post in posts %}
+        {# Defensive: Skip autodoc pages (they shouldn't have tags, but just in case) #}
+        {% set source_str = post.source_path | string %}
+        <!-- DEBUG post {{ loop.index }}: {{ post.title }} ({{ post.source_path }}) -->
+        {% if 'content/api' not in source_str and 'content/cli' not in source_str %}
         {{ article_card(post, show_excerpt=True) }}
+        {% else %}
+        <!-- DEBUG: Skipped post {{ loop.index }}: {{ post.source_path }} -->
+        {% endif %}
         {% endfor %}
     </div>
 
