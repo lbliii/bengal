@@ -518,7 +518,6 @@ class TemplateEngine:
             except Exception:
                 # If config access fails or URL generation fails, continue to manifest lookup
                 logger.debug("Error generating dev server asset URL for %r", safe_asset_path)
-                pass
 
         # Use manifest as single source of truth for asset resolution
         manifest_entry = self._get_manifest_entry(safe_asset_path)
@@ -581,7 +580,6 @@ class TemplateEngine:
                         "Failed to compute relative path for file:// fallback asset: %s",
                         safe_asset_path,
                     )
-                    pass
             return f"./{fallback_path}"
 
         if output_asset_dir.exists():
@@ -625,7 +623,6 @@ class TemplateEngine:
                             "Failed to compute relative path for fingerprinted asset: %s",
                             safe_asset_path,
                         )
-                        pass
 
                 return self._with_baseurl(fingerprinted_url)
 
@@ -654,7 +651,6 @@ class TemplateEngine:
                         "Failed to compute relative path for final fallback asset: %s",
                         safe_asset_path,
                     )
-                    pass
             return f"./{fallback_path}"
 
         return self._with_baseurl(fallback_url)
