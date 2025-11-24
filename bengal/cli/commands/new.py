@@ -8,7 +8,7 @@ from pathlib import Path
 import click
 
 from bengal.cli.base import BengalGroup
-from bengal.cli.helpers import get_cli_output
+from bengal.cli.helpers import command_metadata, get_cli_output
 from bengal.cli.site_templates import get_template
 
 # Add these imports
@@ -369,6 +369,17 @@ def new() -> None:
 
 
 @new.command()
+@command_metadata(
+    category="content",
+    description="Create a new Bengal site with optional structure initialization",
+    examples=[
+        "bengal new site my-blog",
+        "bengal new site --template blog",
+        "bengal new site --init-preset docs",
+    ],
+    requires_site=False,
+    tags=["setup", "quick", "content"],
+)
 @click.argument("name", required=False)
 @click.option("--theme", default="default", help="Theme to use")
 @click.option(
@@ -388,6 +399,18 @@ def new() -> None:
 def site(name: str, theme: str, template: str, no_init: bool, init_preset: str) -> None:
     """
     🏗️  Create a new Bengal site with optional structure initialization.
+
+    Creates a new site directory with configuration, content structure, and
+    optional sample content. Use --template to choose a preset layout.
+
+    Examples:
+        bengal new site my-blog
+        bengal new site --template blog
+        bengal new site --init-preset docs
+
+    See also:
+        bengal new page - Create a new page
+        bengal site build - Build the site
     """
     cli = get_cli_output()
 
@@ -665,6 +688,16 @@ Your content goes here.
 
 
 @new.command()
+@command_metadata(
+    category="templates",
+    description="Create a new layout template",
+    examples=[
+        "bengal new layout article",
+        "bengal new layout post",
+    ],
+    requires_site=True,
+    tags=["templates", "theming"],
+)
 @click.argument("name", required=False)
 def layout(name: str) -> None:
     """
@@ -672,6 +705,10 @@ def layout(name: str) -> None:
 
     Layouts are reusable HTML templates used by pages.
     Example: "article" → templates/layouts/article.html
+
+    See also:
+        bengal new partial - Create a partial template
+        bengal new theme - Create a theme scaffold
     """
     cli = get_cli_output()
 
