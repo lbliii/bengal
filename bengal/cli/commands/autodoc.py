@@ -11,7 +11,7 @@ from bengal.autodoc.extractors.cli import CLIExtractor
 from bengal.autodoc.extractors.python import PythonExtractor
 from bengal.autodoc.generator import DocumentationGenerator
 from bengal.cli.base import BengalCommand
-from bengal.cli.helpers import get_cli_output, load_cli_app
+from bengal.cli.helpers import cli_progress, get_cli_output, load_cli_app
 
 
 @click.command(cls=BengalCommand)
@@ -194,25 +194,28 @@ def _generate_python_docs(
     extractor = PythonExtractor(exclude_patterns=exclude_patterns, config=python_config)
     all_elements = []
 
-    for source_path in sources:
-        source_path = Path(source_path)
-        if verbose:
-            cli.info(f"   📂 Scanning {source_path}")
+    with cli_progress("Scanning source directories...", total=len(sources), cli=cli) as update:
+        for source_path in sources:
+            source_path = Path(source_path)
+            if verbose:
+                cli.info(f"   📂 Scanning {source_path}")
 
-        elements = extractor.extract(source_path)
-        all_elements.extend(elements)
+            elements = extractor.extract(source_path)
+            all_elements.extend(elements)
 
-        if verbose:
-            module_count = len(elements)
-            class_count = sum(
-                len([c for c in e.children if c.element_type == "class"]) for e in elements
-            )
-            func_count = sum(
-                len([c for c in e.children if c.element_type == "function"]) for e in elements
-            )
-            cli.info(
-                f"   ✓ Found {module_count} modules, {class_count} classes, {func_count} functions"
-            )
+            if verbose:
+                module_count = len(elements)
+                class_count = sum(
+                    len([c for c in e.children if c.element_type == "class"]) for e in elements
+                )
+                func_count = sum(
+                    len([c for c in e.children if c.element_type == "function"]) for e in elements
+                )
+                cli.info(
+                    f"   ✓ Found {module_count} modules, {class_count} classes, {func_count} functions"
+                )
+
+            update(item=str(source_path))
 
     extraction_time = time.time() - start_time
 
@@ -230,8 +233,13 @@ def _generate_python_docs(
 
     # Use traditional markdown generation
     cli.info("📝 Generating markdown files...")
-    generated = generator.generate_all(all_elements, output_dir, parallel=parallel)
-    generated_count = len(generated)
+    with cli_progress(
+        "Generating documentation pages...", total=len(all_elements), cli=cli
+    ) as update:
+        generated = generator.generate_all(all_elements, output_dir, parallel=parallel)
+        generated_count = len(generated)
+        # Update progress to completion
+        update(current=len(all_elements))
 
     generation_time = time.time() - gen_start
     total_time = time.time() - start_time

@@ -10,6 +10,7 @@ from bengal.cli.helpers.metadata import (
     get_command_metadata,
     list_commands_by_category,
 )
+from bengal.cli.helpers.progress import cli_progress, simple_progress
 from bengal.cli.helpers.site_loader import load_site_from_cli
 from bengal.cli.helpers.traceback import configure_traceback
 from bengal.cli.helpers.validation import validate_flag_conflicts, validate_mutually_exclusive
@@ -28,4 +29,6 @@ __all__ = [
     "get_command_metadata",
     "list_commands_by_category",
     "find_commands_by_tag",
+    "cli_progress",
+    "simple_progress",
 ]

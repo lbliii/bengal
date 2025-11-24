@@ -16,7 +16,7 @@ from typing import Any
 import click
 
 from bengal.cli.base import BengalGroup
-from bengal.cli.helpers import get_cli_output
+from bengal.cli.helpers import cli_progress, get_cli_output
 from bengal.config.directory_loader import ConfigDirectoryLoader, ConfigLoadError
 from bengal.config.environment import detect_environment
 from bengal.utils.build_stats import show_error
@@ -202,20 +202,21 @@ def doctor(
         # Load and validate config
         environments = [environment] if environment else ["local", "production"]
 
-        for env in environments:
-            cli.info(f"Checking environment: {env}")
+        with cli_progress("Checking environments...", total=len(environments), cli=cli) as update:
+            for env in environments:
+                try:
+                    loader = ConfigDirectoryLoader()
+                    config = loader.load(config_dir, environment=env)
 
-            try:
-                loader = ConfigDirectoryLoader()
-                config = loader.load(config_dir, environment=env)
+                    # Run validation checks
+                    _validate_config_types(config, errors, warnings)
+                    _validate_config_values(config, env, errors, warnings)
+                    _check_unknown_keys(config, warnings)
 
-                # Run validation checks
-                _validate_config_types(config, errors, warnings)
-                _validate_config_values(config, env, errors, warnings)
-                _check_unknown_keys(config, warnings)
+                except ConfigLoadError as e:
+                    errors.append(f"Failed to load {env} config: {e}")
 
-            except ConfigLoadError as e:
-                errors.append(f"Failed to load {env} config: {e}")
+                update(item=env)
 
         # Display results
         cli.blank()

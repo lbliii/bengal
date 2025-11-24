@@ -13,7 +13,7 @@ from pathlib import Path
 import click
 
 from bengal.cli.base import BengalGroup
-from bengal.cli.helpers import configure_traceback, get_cli_output, load_site_from_cli
+from bengal.cli.helpers import cli_progress, configure_traceback, get_cli_output, load_site_from_cli
 from bengal.core.site import Site
 from bengal.health.linkcheck.orchestrator import LinkCheckOrchestrator
 from bengal.utils.cli_output import CLIOutput
@@ -170,8 +170,6 @@ def linkcheck(
 
     # Run link checker
     try:
-        cli.info(f"Checking links (internal: {check_internal}, external: {check_external})...")
-
         orchestrator = LinkCheckOrchestrator(
             site,
             check_internal=check_internal,
@@ -179,7 +177,12 @@ def linkcheck(
             config=linkcheck_config,
         )
 
-        results, summary = orchestrator.check_all_links()
+        with cli_progress(
+            f"Checking links (internal: {check_internal}, external: {check_external})...",
+            total=None,  # Indeterminate - we don't know link count until extraction
+            cli=cli,
+        ):
+            results, summary = orchestrator.check_all_links()
 
         # Output results
         if output_format == "json":
