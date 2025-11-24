@@ -29,8 +29,8 @@ def theme() -> None:
     category="theming",
     description="Copy a theme template/partial to project templates",
     examples=[
-        "bengal theme swizzle layouts/article.html",
-        "bengal theme swizzle partials/header.html",
+        "bengal utils theme swizzle layouts/article.html",
+        "bengal utils theme swizzle partials/header.html",
     ],
     requires_site=True,
     tags=["theming", "templates", "quick"],
@@ -65,7 +65,7 @@ def swizzle(template_path: str, source: str) -> None:
 @command_metadata(
     category="theming",
     description="List swizzled templates",
-    examples=["bengal theme swizzle-list"],
+    examples=["bengal utils theme swizzle-list"],
     requires_site=True,
     tags=["theming", "info", "quick"],
 )
@@ -100,7 +100,7 @@ def swizzle_list(source: str) -> None:
 @command_metadata(
     category="theming",
     description="Update swizzled templates if unchanged locally",
-    examples=["bengal theme swizzle-update"],
+    examples=["bengal utils theme swizzle-update"],
     requires_site=True,
     tags=["theming", "maintenance"],
 )
@@ -133,7 +133,7 @@ def swizzle_update(source: str) -> None:
 @command_metadata(
     category="theming",
     description="List available themes (project, installed, bundled)",
-    examples=["bengal theme list"],
+    examples=["bengal utils theme list"],
     requires_site=True,
     tags=["theming", "info", "quick"],
 )
@@ -176,6 +176,8 @@ def list_themes(source: str) -> None:
         if pkg_dir.exists():
             bundled = [p.name for p in pkg_dir.iterdir() if (p / "templates").exists()]
     except Exception:
+        # Ignore all exceptions: if any error occurs (e.g., import failure, missing files),
+        # treat as "no bundled themes available"
         pass
 
     cli.header("Project themes:")
@@ -206,7 +208,7 @@ def list_themes(source: str) -> None:
 @command_metadata(
     category="theming",
     description="Show theme info for a slug (source, version, paths)",
-    examples=["bengal theme info default"],
+    examples=["bengal utils theme info default"],
     requires_site=True,
     tags=["theming", "info", "quick"],
 )
@@ -257,6 +259,8 @@ def info(slug: str, source: str) -> None:
         if bundled.exists():
             cli.info(f"  Bundled path: {bundled}")
     except Exception:
+        # Ignore all exceptions: if any error occurs (e.g., import failure, missing files),
+        # treat as "bundled theme not found"
         pass
 
 
@@ -264,7 +268,7 @@ def info(slug: str, source: str) -> None:
 @command_metadata(
     category="theming",
     description="List swizzlable templates from the active theme chain",
-    examples=["bengal theme discover"],
+    examples=["bengal utils theme discover"],
     requires_site=True,
     tags=["theming", "info"],
 )
@@ -302,7 +306,7 @@ def discover(source: str) -> None:
 @command_metadata(
     category="theming",
     description="Debug theme resolution: show chain, paths, and template sources",
-    examples=["bengal theme debug"],
+    examples=["bengal utils theme debug"],
     requires_site=True,
     tags=["theming", "debug", "diagnostics"],
 )
@@ -466,6 +470,8 @@ def _theme_exists(site_root: Path, theme_name: str) -> bool:
         if pkg:
             return True
     except Exception:
+        # Ignore all exceptions: if any error occurs (e.g., import failure, missing package),
+        # treat as "theme not found"
         pass
 
     # Bundled theme
@@ -476,6 +482,8 @@ def _theme_exists(site_root: Path, theme_name: str) -> bool:
         if bundled.exists():
             return True
     except Exception:
+        # Ignore all exceptions: if any error occurs (e.g., import failure, missing files),
+        # treat as "theme not found"
         pass
 
     return False
@@ -501,6 +509,8 @@ def _get_template_dir_source_type(site_root: Path, template_dir: Path) -> str:
             theme_name = template_dir.relative_to(bengal_themes).parts[0]
             return f"bundled theme: {theme_name}"
     except Exception:
+        # Ignore all exceptions: if any error occurs (e.g., import failure, path resolution),
+        # continue to next check
         pass
 
     # Installed theme (check if it's in a package)
@@ -513,6 +523,8 @@ def _get_template_dir_source_type(site_root: Path, template_dir: Path) -> str:
             if resolved and template_dir == resolved:
                 return f"installed theme: {theme_slug}"
     except Exception:
+        # Ignore all exceptions: if any error occurs (e.g., import failure, package resolution),
+        # continue to fallback "unknown" return
         pass
 
     return "unknown"
@@ -523,8 +535,8 @@ def _get_template_dir_source_type(site_root: Path, template_dir: Path) -> str:
     category="theming",
     description="Install a theme via uv pip",
     examples=[
-        "bengal theme install bengal-theme-minimal",
-        "bengal theme install minimal --force",
+        "bengal utils theme install bengal-theme-minimal",
+        "bengal utils theme install minimal --force",
     ],
     requires_site=False,
     tags=["theming", "setup"],
@@ -600,8 +612,8 @@ def _sanitize_slug(slug: str) -> str:
     category="theming",
     description="Create a new theme scaffold",
     examples=[
-        "bengal theme new my-theme",
-        "bengal theme new my-theme --mode package",
+        "bengal utils theme new my-theme",
+        "bengal utils theme new my-theme --mode package",
     ],
     requires_site=False,
     tags=["theming", "setup"],

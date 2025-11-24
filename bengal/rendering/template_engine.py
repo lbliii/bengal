@@ -502,6 +502,8 @@ class TemplateEngine:
                         # Root level page
                         return f"./{asset_url_path}"
                 except (ValueError, AttributeError):
+                    # If page_context.output_path is not set or not relative to output_dir,
+                    # fall back to using root-relative path
                     pass
 
             # Fallback: assume root-level (works for index.html and most pages)
@@ -514,6 +516,8 @@ class TemplateEngine:
                 if self.site.config.get("dev_server", False):
                     return self._with_baseurl(f"/assets/{safe_asset_path}")
             except Exception:
+                # If config access fails or URL generation fails, continue to manifest lookup
+                logger.debug("Error generating dev server asset URL for %r", safe_asset_path)
                 pass
 
         # Use manifest as single source of truth for asset resolution
@@ -540,6 +544,8 @@ class TemplateEngine:
                         else:
                             return f"./{rel_manifest_path}"
                 except (ValueError, AttributeError):
+                    # If page_context.output_path is not set or not relative to output_dir,
+                    # fall back to using baseurl with manifest path
                     pass
             return self._with_baseurl(manifest_path)
 
@@ -570,6 +576,11 @@ class TemplateEngine:
                     else:
                         return f"./{fallback_path}"
                 except (ValueError, AttributeError):
+                    # Could not compute relative path for file:// fallback asset; fall back to root-relative
+                    logger.debug(
+                        "Failed to compute relative path for file:// fallback asset: %s",
+                        safe_asset_path,
+                    )
                     pass
             return f"./{fallback_path}"
 
@@ -609,6 +620,11 @@ class TemplateEngine:
                             else:
                                 return f"./{rel_fingerprinted_path}"
                     except (ValueError, AttributeError):
+                        # Could not compute relative path for fingerprinted asset; fall back to default URL
+                        logger.debug(
+                            "Failed to compute relative path for fingerprinted asset: %s",
+                            safe_asset_path,
+                        )
                         pass
 
                 return self._with_baseurl(fingerprinted_url)
@@ -633,6 +649,11 @@ class TemplateEngine:
                     else:
                         return f"./{fallback_path}"
                 except (ValueError, AttributeError):
+                    # Could not compute relative path for final fallback asset; fall back to root-relative
+                    logger.debug(
+                        "Failed to compute relative path for final fallback asset: %s",
+                        safe_asset_path,
+                    )
                     pass
             return f"./{fallback_path}"
 
