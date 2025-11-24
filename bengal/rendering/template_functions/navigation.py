@@ -93,17 +93,16 @@ def get_breadcrumbs(page: Page) -> list[dict[str, Any]]:
     """
     items = []
 
-    # Add Home as the first breadcrumb
-    items.append({"title": "Home", "url": "/", "is_current": False})
-
     # Handle tag index page (dynamically generated, no ancestors)
-    if page.metadata.get("type") == "tag-index":
+    if hasattr(page, "metadata") and page.metadata.get("type") == "tag-index":
+        items.append({"title": "Home", "url": "/", "is_current": False})
         items.append({"title": "Tags", "url": "/tags/", "is_current": True})
         return items
 
     # Handle tag pages (dynamically generated, no ancestors)
-    if page.metadata.get("type") == "tag":
+    if hasattr(page, "metadata") and page.metadata.get("type") == "tag":
         tag_name = page.metadata.get("_tag", "Tag")
+        items.append({"title": "Home", "url": "/", "is_current": False})
         items.append({"title": "Tags", "url": "/tags/", "is_current": False})
         page_url = (
             page.url if hasattr(page, "url") else f"/tags/{page.metadata.get('_tag_slug', '')}/"
@@ -113,13 +112,26 @@ def get_breadcrumbs(page: Page) -> list[dict[str, Any]]:
 
     # Handle pages without ancestors (fallback)
     if not hasattr(page, "ancestors") or not page.ancestors:
-        # If page has a title and URL, add it as the only breadcrumb after Home
-        if hasattr(page, "title") and hasattr(page, "url") and page.url:
-            page_url = page.url if hasattr(page, "url") else f"/{getattr(page, 'slug', '')}/"
-            items.append(
-                {"title": getattr(page, "title", "Untitled"), "url": page_url, "is_current": True}
-            )
+        # If page doesn't have enough info to generate breadcrumbs, return empty
+        # Check for actual string values, not just attribute existence
+        has_title = hasattr(page, "title") and isinstance(getattr(page, "title", None), str)
+        has_url = (
+            hasattr(page, "url")
+            and isinstance(getattr(page, "url", None), str)
+            and getattr(page, "url", "")
+        )
+        if not (has_title and has_url):
+            return []
+        # If page has a title and URL, add Home and the page
+        items.append({"title": "Home", "url": "/", "is_current": False})
+        page_url = page.url if hasattr(page, "url") else f"/{getattr(page, 'slug', '')}/"
+        items.append(
+            {"title": getattr(page, "title", "Untitled"), "url": page_url, "is_current": True}
+        )
         return items
+
+    # Add Home as the first breadcrumb for pages with ancestors
+    items.append({"title": "Home", "url": "/", "is_current": False})
 
     # Get ancestors in reverse order (root to current)
     reversed_ancestors = list(reversed(page.ancestors))
