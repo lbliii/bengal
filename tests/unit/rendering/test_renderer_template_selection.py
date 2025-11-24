@@ -231,23 +231,41 @@ class TestTemplateSelection:
         # Assert
         assert template_name == "page.html"
 
-    def test_type_metadata_not_used_for_template_selection(self):
-        """Test that 'type' metadata is NOT used for template selection."""
+    def test_type_metadata_used_for_template_selection(self):
+        """Test that recognized 'type' metadata IS used for template selection."""
         # Setup
-        engine = MockTemplateEngine(available_templates=["page.html"])
+        engine = MockTemplateEngine(available_templates=["blog/single.html", "page.html"])
         renderer = Renderer(engine)
 
         page = self._setup_page_with_section(
-            Path("/content/docs/guide.md"),
-            {"type": "guide"},  # Semantic metadata, not for template selection
+            Path("/content/docs/post.md"),
+            {"type": "blog"},  # Recognized content type
             "docs",
         )
 
         # Test
         template_name = renderer._get_template_name(page)
 
-        # Assert - should fallback to page.html, not look for guide.html
-        assert template_name == "page.html"
+        # Assert - should use blog/single.html via strategy
+        assert template_name == "blog/single.html"
+
+    def test_unrecognized_type_falls_back_to_section(self):
+        """Test that unrecognized 'type' metadata falls back to section-based selection."""
+        # Setup
+        engine = MockTemplateEngine(available_templates=["docs.html", "page.html"])
+        renderer = Renderer(engine)
+
+        page = self._setup_page_with_section(
+            Path("/content/docs/guide.md"),
+            {"type": "guide"},  # Unrecognized type - not in mappings
+            "docs",
+        )
+
+        # Test
+        template_name = renderer._get_template_name(page)
+
+        # Assert - should fallback to section-based docs.html
+        assert template_name == "docs.html"
 
     def test_multiple_sections_different_templates(self):
         """Test that different sections can have different templates."""
@@ -270,6 +288,34 @@ class TestTemplateSelection:
             Path("/content/tutorials/intro.md"), {}, "tutorials"
         )
         assert renderer._get_template_name(tutorial_page) == "tutorials.html"
+
+    def test_type_based_template_selection_via_strategy(self):
+        """Test that type metadata uses strategy-based template selection."""
+        # Setup
+        engine = MockTemplateEngine(
+            available_templates=["blog/single.html", "blog/list.html", "blog/home.html"]
+        )
+        renderer = Renderer(engine)
+
+        # Test blog single page
+        blog_post = self._setup_page_with_section(
+            Path("/content/posts/my-post.md"), {"type": "blog"}, "posts"
+        )
+        assert renderer._get_template_name(blog_post) == "blog/single.html"
+
+        # Test blog section index
+        blog_index = self._setup_page_with_section(
+            Path("/content/posts/_index.md"), {"type": "blog"}, "posts"
+        )
+        assert renderer._get_template_name(blog_index) == "blog/list.html"
+
+        # Test blog home page
+        blog_home = self._setup_page_with_section(
+            Path("/content/_index.md"), {"type": "blog"}, "root"
+        )
+        # Set url to "/" to make it a home page (is_home checks url == "/")
+        blog_home.url = "/"
+        assert renderer._get_template_name(blog_home) == "blog/home.html"
 
 
 class TestTemplateExists:

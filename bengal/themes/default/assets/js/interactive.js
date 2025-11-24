@@ -328,6 +328,48 @@
   }
 
   /**
+   * Changelog Filter
+   * Handles filtering of changelog timeline items by change type
+   */
+  function setupChangelogFilter() {
+    const filterButtons = document.querySelectorAll('.changelog-filter-btn');
+    const timelineItems = document.querySelectorAll('.timeline-item');
+
+    if (filterButtons.length === 0 || timelineItems.length === 0) return;
+
+    filterButtons.forEach(function(button) {
+      button.addEventListener('click', function() {
+        const filter = this.getAttribute('data-filter');
+
+        // Update button states
+        filterButtons.forEach(function(btn) {
+          btn.classList.remove('active');
+          btn.setAttribute('aria-pressed', 'false');
+        });
+        this.classList.add('active');
+        this.setAttribute('aria-pressed', 'true');
+
+        // Filter timeline items
+        timelineItems.forEach(function(item) {
+          const changeTypes = item.getAttribute('data-change-types') || '';
+
+          if (filter === 'all' || changeTypes.includes(filter)) {
+            item.style.display = '';
+            // Smooth fade-in animation
+            item.style.opacity = '0';
+            setTimeout(function() {
+              item.style.transition = 'opacity 0.3s ease';
+              item.style.opacity = '1';
+            }, 10);
+          } else {
+            item.style.display = 'none';
+          }
+        });
+      });
+    });
+  }
+
+  /**
    * Initialize all interactive features
    */
   function init() {
@@ -346,6 +388,7 @@
     setupScrollSpy();
     setupDocsNavigation();
     setupMobileSidebar();
+    setupChangelogFilter();
 
     log('Interactive elements initialized');
   }

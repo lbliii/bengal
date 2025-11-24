@@ -27,6 +27,8 @@ class TestTypeMappings:
         page.metadata = {"type": "python-module"}
         page.source_path = Path("content/api/module.md")
         page._section = None
+        page.is_home = False
+        page.url = "/api/module/"
 
         # Mock template_exists to return True for api-reference
         def template_exists(name):
@@ -49,6 +51,8 @@ class TestTypeMappings:
         page.metadata = {"type": "cli-command"}
         page.source_path = Path("content/cli/build.md")
         page._section = None
+        page.is_home = False
+        page.url = "/cli/build/"
 
         def template_exists(name):
             return name == "cli-reference/single.html"
@@ -68,6 +72,8 @@ class TestTypeMappings:
         page.metadata = {"type": "doc"}
         page.source_path = Path("content/docs/guide.md")
         page._section = None
+        page.is_home = False
+        page.url = "/docs/guide/"
 
         def template_exists(name):
             return name == "doc/single.html"
@@ -87,6 +93,8 @@ class TestTypeMappings:
         page.metadata = {"type": "tutorial"}
         page.source_path = Path("content/tutorials/intro.md")
         page._section = None
+        page.is_home = False
+        page.url = "/tutorials/intro/"
 
         def template_exists(name):
             return name == "tutorial/single.html"
@@ -106,6 +114,8 @@ class TestTypeMappings:
         page.metadata = {"type": "blog"}
         page.source_path = Path("content/blog/post.md")
         page._section = None
+        page.is_home = False
+        page.url = "/blog/post/"
 
         def template_exists(name):
             return name == "blog/single.html"
@@ -129,6 +139,8 @@ class TestTypeForIndexPages:
         page.metadata = {"type": "doc"}
         page.source_path = Path("content/docs/_index.md")
         page._section = None
+        page.is_home = False
+        page.url = "/docs/"
 
         def template_exists(name):
             return name == "doc/list.html"
@@ -148,6 +160,8 @@ class TestTypeForIndexPages:
         page.metadata = {"type": "tutorial"}
         page.source_path = Path("content/tutorials/_index.md")
         page._section = None
+        page.is_home = False
+        page.url = "/tutorials/"
 
         def template_exists(name):
             return name == "tutorial/list.html"
@@ -190,6 +204,8 @@ class TestTemplatePriority:
         page.metadata = {"type": "tutorial"}  # Different type
         page.source_path = Path("content/guides/intro.md")
         page._section = section
+        page.is_home = False
+        page.url = "/guides/intro/"
 
         def template_exists(name):
             # tutorial template exists, guides template doesn't
@@ -266,6 +282,8 @@ class TestContentTypeCascade:
         page.metadata = {}  # No type set on page
         page.source_path = Path("content/api/module.md")
         page._section = section
+        page.is_home = False
+        page.url = "/api/module/"
 
         def template_exists(name):
             return name == "api-reference/single.html"
@@ -290,6 +308,8 @@ class TestContentTypeCascade:
         page.metadata = {"type": "tutorial"}  # Override
         page.source_path = Path("content/docs/tutorial-page.md")
         page._section = section
+        page.is_home = False
+        page.url = "/docs/tutorial-page/"
 
         def template_exists(name):
             return name in ["tutorial/single.html", "doc/single.html"]

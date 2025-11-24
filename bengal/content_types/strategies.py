@@ -4,11 +4,10 @@ Concrete content type strategies.
 Implements specific strategies for different content types like blog, docs, etc.
 """
 
-
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from .base import ContentTypeStrategy
 
@@ -42,6 +41,36 @@ class BlogStrategy(ContentTypeStrategy):
 
         return False
 
+    def get_template(self, page: Page | None = None, template_engine: Any | None = None) -> str:
+        """Blog-specific template selection."""
+        # Backward compatibility
+        if page is None:
+            return self.default_template
+
+        is_home = page.is_home or page.url == "/"
+        is_section_index = page.source_path.stem == "_index"
+
+        # Helper to check template existence
+        def template_exists(name: str) -> bool:
+            if template_engine is None:
+                return False
+            try:
+                template_engine.env.get_template(name)
+                return True
+            except Exception:
+                return False
+
+        if is_home:
+            # Try blog/home.html first
+            if template_exists("blog/home.html"):
+                return "blog/home.html"
+            # Fallback to generic home
+            return super().get_template(page, template_engine)
+        elif is_section_index:
+            return "blog/list.html"
+        else:
+            return "blog/single.html"
+
 
 class ArchiveStrategy(BlogStrategy):
     """
@@ -67,6 +96,36 @@ class DocsStrategy(ContentTypeStrategy):
         """Detect docs sections by name."""
         name = section.name.lower()
         return name in ("docs", "documentation", "guides", "reference")
+
+    def get_template(self, page: Page | None = None, template_engine: Any | None = None) -> str:
+        """Docs-specific template selection."""
+        # Backward compatibility
+        if page is None:
+            return self.default_template
+
+        is_home = page.is_home or page.url == "/"
+        is_section_index = page.source_path.stem == "_index"
+
+        # Helper to check template existence
+        def template_exists(name: str) -> bool:
+            if template_engine is None:
+                return False
+            try:
+                template_engine.env.get_template(name)
+                return True
+            except Exception:
+                return False
+
+        if is_home:
+            # Try doc/home.html first
+            if template_exists("doc/home.html"):
+                return "doc/home.html"
+            # Fallback to generic home
+            return super().get_template(page, template_engine)
+        elif is_section_index:
+            return "doc/list.html"
+        else:
+            return "doc/single.html"
 
 
 class ApiReferenceStrategy(ContentTypeStrategy):

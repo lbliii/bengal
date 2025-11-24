@@ -141,18 +141,18 @@
 /* Custom Badge Styles (Bengal-specific) */
 
 .badge-featured {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-accent) 100%);
+  color: var(--color-text-inverse);
 }
 
 .badge-tutorial {
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-  color: white;
+  background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-primary) 100%);
+  color: var(--color-text-inverse);
 }
 
 .badge-new {
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-  color: white;
+  background: linear-gradient(135deg, var(--color-info) 0%, var(--color-primary) 100%);
+  color: var(--color-text-inverse);
 }
 
 /* Dark Mode */

@@ -75,7 +75,25 @@ Context variables:
                 <h4>Prerequisites</h4>
                 <ul>
                     {% for prereq in page.metadata.get('prerequisites') %}
-                    <li>{{ prereq }}</li>
+                    <li>
+                        {# Try to resolve as page reference (supports path, slug, or id:xxx) #}
+                        {% if prereq is string %}
+                            {% set prereq_page = doc(prereq, site.indexes.crossref) if site.indexes.crossref else none %}
+                            {% if prereq_page %}
+                                <a href="{{ prereq_page.permalink }}" class="tutorial-prereq-link">{{ prereq_page.title }}</a>
+                            {% else %}
+                                {# Fallback: if it looks like a path/slug, try ref() for link generation #}
+                                {% set prereq_ref = ref(prereq, site.indexes.crossref) if site.indexes.crossref else none %}
+                                {% if prereq_ref and '<a' in prereq_ref %}
+                                    {{ prereq_ref | safe }}
+                                {% else %}
+                                    {{ prereq }}
+                                {% endif %}
+                            {% endif %}
+                        {% else %}
+                            {{ prereq }}
+                        {% endif %}
+                    </li>
                     {% endfor %}
                 </ul>
             </div>

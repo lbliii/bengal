@@ -64,10 +64,53 @@ class TestBlogStrategy:
         strategy = BlogStrategy()
         assert strategy.allows_pagination is True
 
-    def test_get_template(self):
-        """Blog should use blog/list.html template."""
+    def test_get_template_backward_compat(self):
+        """Blog should use blog/list.html template when called without params."""
         strategy = BlogStrategy()
-        assert strategy.default_template == "blog/list.html"
+        assert strategy.get_template() == "blog/list.html"
+
+    def test_get_template_for_section_index(self):
+        """Blog section index should use blog/list.html template."""
+        from pathlib import Path
+        from unittest.mock import Mock
+
+        strategy = BlogStrategy()
+        page = Mock()
+        page.is_home = False
+        page.url = "/blog/"
+        page.source_path = Path("/content/blog/_index.md")
+
+        template_engine = Mock()
+        template_engine.env = Mock()
+        template_engine.env.get_template = Mock(return_value=Mock())
+
+        result = strategy.get_template(page, template_engine)
+        assert result == "blog/list.html"
+
+    def test_get_template_for_home_page(self):
+        """Blog home page should try blog/home.html first."""
+        from pathlib import Path
+        from unittest.mock import Mock
+
+        strategy = BlogStrategy()
+        page = Mock()
+        page.is_home = True
+        page.url = "/"
+        page.source_path = Path("/content/_index.md")
+
+        template_engine = Mock()
+        template_engine.env = Mock()
+
+        # Mock template_exists to return True for blog/home.html
+        def mock_get_template(name):
+            if name == "blog/home.html":
+                return Mock()
+            raise Exception("Not found")
+
+        template_engine.env.get_template = mock_get_template
+
+        result = strategy.get_template(page, template_engine)
+        assert result == "blog/home.html"
 
 
 class TestDocsStrategy:
@@ -97,10 +140,28 @@ class TestDocsStrategy:
         strategy = DocsStrategy()
         assert strategy.allows_pagination is False
 
-    def test_get_template(self):
-        """Docs should use doc/list.html template."""
+    def test_get_template_backward_compat(self):
+        """Docs should use doc/list.html template when called without params."""
         strategy = DocsStrategy()
-        assert strategy.default_template == "doc/list.html"
+        assert strategy.get_template() == "doc/list.html"
+
+    def test_get_template_for_section_index(self):
+        """Docs section index should use doc/list.html template."""
+        from pathlib import Path
+        from unittest.mock import Mock
+
+        strategy = DocsStrategy()
+        page = Mock()
+        page.is_home = False
+        page.url = "/docs/"
+        page.source_path = Path("/content/docs/_index.md")
+
+        template_engine = Mock()
+        template_engine.env = Mock()
+        template_engine.env.get_template = Mock(return_value=Mock())
+
+        result = strategy.get_template(page, template_engine)
+        assert result == "doc/list.html"
 
 
 class TestApiReferenceStrategy:
@@ -127,19 +188,19 @@ class TestApiReferenceStrategy:
         strategy = ApiReferenceStrategy()
         assert strategy.allows_pagination is False
 
-    def test_get_template(self):
-        """API reference should use api-reference/list.html template."""
+    def test_get_template_backward_compat(self):
+        """API reference should use api-reference/list.html template when called without params."""
         strategy = ApiReferenceStrategy()
-        assert strategy.default_template == "api-reference/list.html"
+        assert strategy.get_template() == "api-reference/list.html"
 
 
 class TestCliReferenceStrategy:
     """Test CLI reference content type strategy."""
 
-    def test_get_template(self):
-        """CLI reference should use cli-reference/list.html template."""
+    def test_get_template_backward_compat(self):
+        """CLI reference should use cli-reference/list.html template when called without params."""
         strategy = CliReferenceStrategy()
-        assert strategy.default_template == "cli-reference/list.html"
+        assert strategy.get_template() == "cli-reference/list.html"
 
 
 class TestTutorialStrategy:
@@ -175,10 +236,10 @@ class TestPageStrategy:
         assert sorted_pages[0].title == "Page A"
         assert sorted_pages[1].title == "Page Z"
 
-    def test_get_template(self):
-        """Generic page should use index.html template."""
+    def test_get_template_backward_compat(self):
+        """Generic page should use index.html template when called without params."""
         strategy = PageStrategy()
-        assert strategy.default_template == "index.html"
+        assert strategy.get_template() == "index.html"
 
 
 class TestContentTypeRegistry:

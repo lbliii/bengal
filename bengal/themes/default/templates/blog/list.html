@@ -35,7 +35,7 @@ Context variables:
 
         {% if section and section.metadata.get('description', '') %}
         <p class="blog-description">{{ section.metadata.get('description', '') }}</p>
-        {% elif description %}
+        {% elif description is defined and description %}
         <p class="blog-description">{{ description }}</p>
         {% endif %}
 
@@ -53,7 +53,7 @@ Context variables:
     {% if featured_posts and current_page == 1 %}
     <section class="blog-featured">
         <h2 class="blog-section-title">Featured Posts</h2>
-        <div class="blog-featured-grid">
+        <div class="blog-featured-grid stagger-fade-in">
             {% for post in featured_posts %}
             <article class="blog-featured-card gradient-border-strong fluid-bg">
                 {% if post.metadata.get('image') or post.metadata.get('cover') %}

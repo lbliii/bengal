@@ -309,6 +309,42 @@
   }
 
   /**
+   * Setup scroll animations fallback (for browsers without scroll-driven animations)
+   */
+  function setupScrollAnimations() {
+    // Only setup fallback if browser doesn't support scroll-driven animations
+    if (!CSS.supports('animation-timeline', 'scroll()')) {
+      const animatedElements = document.querySelectorAll('.stagger-fade-in > *');
+
+      if (animatedElements.length === 0) return;
+
+      if ('IntersectionObserver' in window) {
+        const observer = new IntersectionObserver(function(entries) {
+          entries.forEach(function(entry) {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('is-visible');
+              // Unobserve after animation to improve performance
+              observer.unobserve(entry.target);
+            }
+          });
+        }, {
+          rootMargin: '0px 0px -50px 0px', // Trigger slightly before element enters viewport
+          threshold: 0.1
+        });
+
+        animatedElements.forEach(function(element) {
+          observer.observe(element);
+        });
+      } else {
+        // Fallback: show all elements immediately
+        animatedElements.forEach(function(element) {
+          element.classList.add('is-visible');
+        });
+      }
+    }
+  }
+
+  /**
    * Initialize all features
    */
   function init() {
@@ -318,6 +354,7 @@
     setupLazyLoading();
     setupTOCHighlight();
     setupKeyboardDetection();
+    setupScrollAnimations();
 
     log('Bengal theme initialized');
   }

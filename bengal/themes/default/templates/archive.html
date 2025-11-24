@@ -33,7 +33,7 @@ Context variables:
     <header class="page-header page-header--centered">
         <h1>{{ title | default(section.title if section else 'Archive') }}</h1>
 
-        {% if description %}
+        {% if description is defined and description %}
         <p class="archive-description">{{ description }}</p>
         {% elif section and section.metadata.get('description') %}
         <p class="archive-description">{{ section.metadata.get('description') }}</p>

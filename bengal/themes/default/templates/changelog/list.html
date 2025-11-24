@@ -31,7 +31,7 @@ Supports two modes:
     {# The action-bar partial expects 'page' variable. In list templates, 'section' is the main object #}
     {# We'll let the partial handle it if page is defined, or we might need to alias section to page #}
     {% if not page is defined and section is defined %}
-      {% set page = section %}
+    {% set page = section %}
     {% endif %}
 
     <header class="page-header page-header--centered">
@@ -50,12 +50,41 @@ Supports two modes:
     </section>
     {% endif %}
 
+    {# Filter UI #}
+    <div class="changelog-filters">
+        <button class="changelog-filter-btn active" data-filter="all" aria-pressed="true">
+            All Changes
+        </button>
+        <button class="changelog-filter-btn" data-filter="added" aria-pressed="false">
+            ✨ Added
+        </button>
+        <button class="changelog-filter-btn" data-filter="changed" aria-pressed="false">
+            🔄 Changed
+        </button>
+        <button class="changelog-filter-btn" data-filter="fixed" aria-pressed="false">
+            🐛 Fixed
+        </button>
+        <button class="changelog-filter-btn" data-filter="breaking" aria-pressed="false">
+            ⚡ Breaking
+        </button>
+        <button class="changelog-filter-btn" data-filter="security" aria-pressed="false">
+            🔒 Security
+        </button>
+    </div>
+
     {# Data-driven mode: Use changelog.yaml #}
     {% if changelog_data and changelog_data.get('releases') %}
     <section class="changelog-timeline">
         <div class="timeline">
             {% for release in changelog_data.get('releases') %}
-            <div class="timeline-item">
+            {# Build list of change types for filtering #}
+            {% set change_types = [] %}
+            {% if release.get('added') %} {% set _ = change_types.append('added') %} {% endif %}
+            {% if release.get('changed') %} {% set _ = change_types.append('changed') %} {% endif %}
+            {% if release.get('fixed') %} {% set _ = change_types.append('fixed') %} {% endif %}
+            {% if release.get('breaking') %} {% set _ = change_types.append('breaking') %} {% endif %}
+            {% if release.get('security') %} {% set _ = change_types.append('security') %} {% endif %}
+            <div class="timeline-item" data-change-types="{{ change_types | join(' ') }}">
                 <div class="timeline-header">
                     <div class="timeline-title-group">
                         <h2 class="timeline-title">
@@ -166,11 +195,11 @@ Supports two modes:
                 {# Breaking Changes #}
                 {% if release.get('breaking') and release.get('breaking') is iterable and release.get('breaking') is not
                 string %}
-                <div class="changelog-category changelog-breaking">
-                    <h3 class="category-title">⚡ Breaking Changes</h3>
-                    <ul class="changelog-list">
+                <div class="changelog-category changelog-category--breaking">
+                    <h3 class="category-title category-title--breaking">⚡ Breaking Changes</h3>
+                    <ul class="changelog-list changelog-list--breaking">
                         {% for item in release.get('breaking') %}
-                        <li>{{ item }}</li>
+                        <li class="changelog-item--breaking">{{ item }}</li>
                         {% endfor %}
                     </ul>
                 </div>
@@ -185,7 +214,14 @@ Supports two modes:
     <section class="changelog-timeline">
         <div class="timeline">
             {% for release in pages %}
-            <div class="timeline-item">
+            {# Build list of change types for filtering #}
+            {% set change_types = [] %}
+            {% if release.metadata.get('added') %} {% set _ = change_types.append('added') %} {% endif %}
+            {% if release.metadata.get('changed') %} {% set _ = change_types.append('changed') %} {% endif %}
+            {% if release.metadata.get('fixed') %} {% set _ = change_types.append('fixed') %} {% endif %}
+            {% if release.metadata.get('breaking') %} {% set _ = change_types.append('breaking') %} {% endif %}
+            {% if release.metadata.get('security') %} {% set _ = change_types.append('security') %} {% endif %}
+            <div class="timeline-item" data-change-types="{{ change_types | join(' ') }}">
                 <div class="timeline-header">
                     <div class="timeline-title-group">
                         <h2 class="timeline-title">

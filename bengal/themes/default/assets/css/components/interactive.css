@@ -301,9 +301,11 @@
   cursor: zoom-out;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
+}
 
-  /* View Transitions API for smooth open/close */
-  @supports (view-transition-name: lightbox) {
+/* View Transitions API for smooth open/close */
+@supports (view-transition-name: lightbox) {
+  .lightbox {
     view-transition-name: lightbox;
   }
 }

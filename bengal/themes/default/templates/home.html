@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 
 {% block content %}
+{# Home page - no action bar needed #}
 <div class="home">
     {# Hero Section #}
     <header class="hero hero--large">
@@ -89,25 +90,57 @@
     {% endif %}
 
     {# Recent Posts/Updates (if this is a blog-style home) #}
-    {% if page.metadata.get('show_recent_posts') %}
-    {# Use query index for O(1) lookup instead of O(n) filtering #}
-    {% set blog_section = page.metadata.get('blog_section', 'blog') %}
-    {% set blog_posts = site.indexes.section.get(blog_section) | resolve_pages %}
-    {% set recent = blog_posts | sort_by('date', reverse=true) | limit(3) %}
+    {# Show recent posts by default for blog sites, or if explicitly enabled #}
+    {% set show_recent = page.metadata.get('show_recent_posts', true) %}
+    {% if show_recent %}
+    {# Find blog section and get recent posts #}
+    {% set blog_section_name = page.metadata.get('blog_section', 'blog') %}
+    {% set blog_section_candidates = site.sections | selectattr('name', 'equalto', blog_section_name) | list if
+    site.sections else [] %}
+    {% set blog_section = blog_section_candidates[0] if blog_section_candidates else None %}
+    {% if blog_section and blog_section.pages %}
+    {% set recent = blog_section.pages | selectattr('date') | sort_by('date', reverse=true) | limit(3) %}
+    {% elif site.pages %}
+    {# Fallback: find blog posts by URL path or metadata type #}
+    {% set blog_posts = [] %}
+    {% for p in site.pages %}
+    {% if p.metadata.get('type') == 'blog' or '/blog/' in p.url %}
+    {% set _ = blog_posts.append(p) %}
+    {% endif %}
+    {% endfor %}
+    {% set recent = blog_posts | selectattr('date') | sort_by('date', reverse=true) | limit(3) %}
+    {% else %}
+    {% set recent = [] %}
+    {% endif %}
+
     {% if recent %}
     <section class="recent-posts">
-        <h2>Recent Updates</h2>
+        <h2 class="recent-posts-title">Recent Posts</h2>
         <div class="posts-grid">
             {% for post in recent %}
-            <article class="post-card">
-                <h3><a href="{{ post.permalink }}">{{ post.title }}</a></h3>
-                {% if post.date %}
-                <time datetime="{{ post.date | date_iso }}">{{ post.date | dateformat('%B %d, %Y') }}</time>
+            <article class="post-card gradient-border fluid-combined">
+                {% if post.metadata.get('image') or post.metadata.get('cover') %}
+                <div class="post-card-image">
+                    <a href="{{ post.permalink }}">
+                        <img src="{{ post.metadata.get('image') | default(post.metadata.get('cover')) }}"
+                            alt="{{ post.title }}">
+                    </a>
+                </div>
                 {% endif %}
-                {% if post.metadata.get('description') %}
-                <p>{{ post.metadata.get('description') }}</p>
-                {% endif %}
-                <a href="{{ post.permalink }}" class="read-more">Read more →</a>
+                <div class="post-card-content">
+                    <h3 class="post-card-title"><a href="{{ post.permalink }}">{{ post.title }}</a></h3>
+                    {% if post.date %}
+                    <time datetime="{{ post.date | date_iso }}" class="post-card-date">
+                        {{ post.date | dateformat('%B %d, %Y') }}
+                    </time>
+                    {% endif %}
+                    {% if post.metadata.get('description') or post.excerpt %}
+                    <p class="post-card-excerpt">
+                        {{ post.metadata.get('description') | default(post.excerpt) | truncate(150) }}
+                    </p>
+                    {% endif %}
+                    <a href="{{ post.permalink }}" class="read-more">Read more →</a>
+                </div>
             </article>
             {% endfor %}
         </div>

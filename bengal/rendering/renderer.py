@@ -528,7 +528,7 @@ class Renderer:
 
         Priority order:
         1. Explicit template in frontmatter (`template: doc.html`)
-        2. Type-based template selection (e.g., `type: api-reference`)
+        2. Content type strategy (delegates to strategy.get_template())
         3. Section-based auto-detection (e.g., `docs.html`, `docs/single.html`)
         4. Default fallback (`page.html` or `index.html`)
 
@@ -544,63 +544,36 @@ class Renderer:
         if "template" in page.metadata:
             return page.metadata["template"]
 
-        # 2. Type-based or content_type-based template selection
-        # Page's explicit type has priority over section's content_type
+        # 2. Get content type strategy and delegate
         page_type = page.metadata.get("type")
         content_type = None
 
         if hasattr(page, "_section") and page._section and hasattr(page._section, "metadata"):
             content_type = page._section.metadata.get("content_type")
 
-        is_section_index = page.source_path.stem == "_index"
+        # Determine which strategy to use
+        from bengal.content_types.registry import (
+            CONTENT_TYPE_REGISTRY,
+            get_strategy,
+            normalize_page_type_to_content_type,
+        )
 
-        # Try type-based templates (for pages with explicit type) - HIGHER PRIORITY
+        # Normalize page type to content type (handles special cases like python-module)
+        strategy_type = None
         if page_type:
-            # Map common types to content types
-            type_mappings = {
-                "python-module": "api-reference",
-                "cli-command": "cli-reference",
-                "api-reference": "api-reference",
-                "cli-reference": "cli-reference",
-                "doc": "doc",
-                "tutorial": "tutorial",
-                "blog": "blog",
-                "changelog": "changelog",
-            }
+            strategy_type = normalize_page_type_to_content_type(page_type)
+        elif content_type and content_type in CONTENT_TYPE_REGISTRY:
+            strategy_type = content_type
 
-            if page_type in type_mappings:
-                mapped_type = type_mappings[page_type]
+        if strategy_type:
+            strategy = get_strategy(strategy_type)
+            # Delegate to strategy
+            template_name = strategy.get_template(page, self.template_engine)
+            if template_name:
+                return template_name
 
-                if is_section_index:
-                    # Index pages: try list-style templates
-                    templates_to_try = [
-                        f"{mapped_type}/list.html",
-                        f"{mapped_type}/index.html",
-                    ]
-                else:
-                    # Regular pages: try single-style templates
-                    templates_to_try = [
-                        f"{mapped_type}/single.html",
-                        f"{mapped_type}/page.html",
-                    ]
-
-                for template_name in templates_to_try:
-                    if self._template_exists(template_name):
-                        return template_name
-
-        # Try content_type-based templates (for autodoc pages) - LOWER PRIORITY
-        # Only used if page doesn't have explicit type
-        if content_type and not is_section_index and not page_type:
-            # For pages in api-reference or cli-reference sections
-            templates_to_try = [
-                f"{content_type}/single.html",
-                f"{content_type}/page.html",
-            ]
-            for template_name in templates_to_try:
-                if self._template_exists(template_name):
-                    return template_name
-
-        # 3. Section-based auto-detection
+        # 3. Section-based auto-detection (fallback)
+        is_section_index = page.source_path.stem == "_index"
         if hasattr(page, "_section") and page._section:
             section_name = page._section.name
 
