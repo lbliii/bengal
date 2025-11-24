@@ -11,10 +11,21 @@ from bengal.autodoc.extractors.cli import CLIExtractor
 from bengal.autodoc.extractors.python import PythonExtractor
 from bengal.autodoc.generator import DocumentationGenerator
 from bengal.cli.base import BengalCommand
-from bengal.cli.helpers import cli_progress, get_cli_output, load_cli_app
+from bengal.cli.helpers import cli_progress, command_metadata, get_cli_output, load_cli_app
 
 
 @click.command(cls=BengalCommand)
+@command_metadata(
+    category="docs",
+    description="Generate comprehensive API documentation (Python + CLI)",
+    examples=[
+        "bengal autodoc",
+        "bengal autodoc --python-only",
+        "bengal autodoc --cli-only",
+    ],
+    requires_site=False,
+    tags=["docs", "api", "autodoc"],
+)
 @click.option(
     "--source",
     "-s",
@@ -57,11 +68,18 @@ def autodoc(
     your bengal.toml configuration. Use --python-only or --cli-only to
     generate specific types.
 
+    Documentation is generated as Markdown files in the configured output
+    directory (default: content/api for Python, content/cli for CLI).
+
     Examples:
         bengal autodoc                    # Generate all configured docs
         bengal autodoc --python-only      # Python API docs only
         bengal autodoc --cli-only         # CLI docs only
         bengal autodoc --source src       # Override Python source
+
+    See also:
+        bengal autodoc-cli - Generate CLI docs from a specific app
+        bengal site build - Build site with generated docs
     """
     import time
 
@@ -361,6 +379,15 @@ def _generate_cli_docs(
 
 
 @click.command(name="autodoc-cli", cls=BengalCommand)
+@command_metadata(
+    category="docs",
+    description="Generate CLI documentation from Click/argparse/typer apps",
+    examples=[
+        "bengal autodoc-cli --app bengal.cli:main --output content/cli",
+    ],
+    requires_site=False,
+    tags=["docs", "cli", "autodoc"],
+)
 @click.option("--app", "-a", help="CLI app module (e.g., bengal.cli:main)")
 @click.option(
     "--framework",
@@ -394,10 +421,14 @@ def autodoc_cli(
     ⌨️  Generate CLI documentation from Click/argparse/typer apps.
 
     Extracts documentation from command-line interfaces to create
-    comprehensive command reference documentation.
+    comprehensive command reference documentation. Useful for documenting
+    custom CLI tools or generating standalone CLI docs.
 
     Example:
         bengal autodoc-cli --app bengal.cli:main --output content/cli
+
+    See also:
+        bengal autodoc - Generate all API docs (Python + CLI)
     """
     import time
 

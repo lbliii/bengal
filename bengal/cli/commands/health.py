@@ -13,7 +13,12 @@ from pathlib import Path
 import click
 
 from bengal.cli.base import BengalGroup
-from bengal.cli.helpers import cli_progress, configure_traceback, get_cli_output, load_site_from_cli
+from bengal.cli.helpers import (
+    cli_progress,
+    configure_traceback,
+    get_cli_output,
+    load_site_from_cli,
+)
 from bengal.core.site import Site
 from bengal.health.linkcheck.orchestrator import LinkCheckOrchestrator
 from bengal.utils.cli_output import CLIOutput
@@ -117,11 +122,17 @@ def linkcheck(
     - Internal links point to existing pages and anchors
     - External links return successful HTTP status codes
 
+    The site must be built before checking internal links. Use --format json
+    with --output to generate a report file for CI/CD integration.
+
     Examples:
         bengal health linkcheck
         bengal health linkcheck --external-only
         bengal health linkcheck --format json --output report.json
         bengal health linkcheck --exclude "^/api/preview/" --ignore-status "500-599"
+
+    See also:
+        bengal site build - Build the site before checking internal links
     """
     cli = get_cli_output()
 

@@ -16,7 +16,7 @@ from typing import Any
 import click
 
 from bengal.cli.base import BengalGroup
-from bengal.cli.helpers import cli_progress, get_cli_output
+from bengal.cli.helpers import cli_progress, command_metadata, get_cli_output
 from bengal.config.directory_loader import ConfigDirectoryLoader, ConfigLoadError
 from bengal.config.environment import detect_environment
 from bengal.utils.build_stats import show_error
@@ -38,6 +38,18 @@ def config_cli():
 
 
 @config_cli.command()
+@command_metadata(
+    category="config",
+    description="Display merged configuration with environment and profile resolution",
+    examples=[
+        "bengal config show",
+        "bengal config show --environment production",
+        "bengal config show --section build",
+        "bengal config show --origin",
+    ],
+    requires_site=False,
+    tags=["config", "debug", "quick"],
+)
 @click.option(
     "--environment",
     "-e",
@@ -79,11 +91,18 @@ def show(
     Shows the effective configuration after merging defaults, environment,
     and profile settings.
 
+    Use --origin to see which file contributed each config key, useful
+    for debugging configuration issues.
+
     Examples:
         bengal config show
         bengal config show --environment production
         bengal config show --profile dev --origin
         bengal config show --section site
+
+    See also:
+        bengal config doctor - Validate configuration
+        bengal config diff - Compare configurations
     """
     cli = get_cli_output()
 
@@ -153,6 +172,16 @@ def show(
 
 
 @config_cli.command()
+@command_metadata(
+    category="config",
+    description="Validate and lint configuration files",
+    examples=[
+        "bengal config doctor",
+        "bengal config doctor --environment production",
+    ],
+    requires_site=False,
+    tags=["config", "validation", "ci"],
+)
 @click.option(
     "--environment",
     "-e",
@@ -174,9 +203,16 @@ def doctor(
     - Value ranges
     - Deprecated keys
 
+    Run this before deploying to catch configuration errors early.
+    Exits with non-zero code if errors are found (useful for CI/CD).
+
     Examples:
         bengal config doctor
         bengal config doctor --environment production
+
+    See also:
+        bengal config show - View merged configuration
+        bengal config diff - Compare configurations
     """
     cli = get_cli_output()
 
@@ -352,10 +388,15 @@ def diff(
     🔍 Compare configurations.
 
     Shows differences between two configurations (environments, profiles, or files).
+    Useful for verifying that production settings differ correctly from local/preview.
 
     Examples:
         bengal config diff --against production
         bengal config diff --environment local --against production
+
+    See also:
+        bengal config show - View merged configuration
+        bengal config doctor - Validate configuration
     """
     cli = get_cli_output()
 
@@ -443,6 +484,17 @@ def _compute_diff(config1: dict, config2: dict, path: list[str]) -> list[dict[st
 
 
 @config_cli.command()
+@command_metadata(
+    category="config",
+    description="Initialize configuration structure with templates",
+    examples=[
+        "bengal config init",
+        "bengal config init --type file",
+        "bengal config init --template blog",
+    ],
+    requires_site=False,
+    tags=["config", "setup", "quick"],
+)
 @click.option(
     "--type",
     "init_type",
@@ -472,11 +524,16 @@ def init(
     ✨ Initialize configuration structure.
 
     Creates config directory with examples, or a single config file.
+    Use --template to choose a preset (docs, blog, minimal).
 
     Examples:
         bengal config init
         bengal config init --type file
         bengal config init --template blog
+
+    See also:
+        bengal config show - View configuration
+        bengal config doctor - Validate configuration
     """
     cli = get_cli_output()
 
