@@ -758,6 +758,16 @@ def layout(name: str) -> None:
 
 
 @new.command()
+@command_metadata(
+    category="templates",
+    description="Create a new partial template",
+    examples=[
+        "bengal new partial header",
+        "bengal new partial footer",
+    ],
+    requires_site=True,
+    tags=["templates", "theming"],
+)
 @click.argument("name", required=False)
 def partial(name: str) -> None:
     """
@@ -765,6 +775,10 @@ def partial(name: str) -> None:
 
     Partials are reusable template fragments included in other templates.
     Example: "sidebar" → templates/partials/sidebar.html
+
+    See also:
+        bengal new layout - Create a layout template
+        bengal new theme - Create a theme scaffold
     """
     cli = get_cli_output()
 
@@ -822,6 +836,15 @@ def partial(name: str) -> None:
 
 
 @new.command()
+@command_metadata(
+    category="templates",
+    description="Create a new theme scaffold with templates and assets",
+    examples=[
+        "bengal new theme my-theme",
+    ],
+    requires_site=False,
+    tags=["templates", "theming", "setup"],
+)
 @click.argument("name", required=False)
 def theme(name: str) -> None:
     """
@@ -829,6 +852,10 @@ def theme(name: str) -> None:
 
     Themes are self-contained template and asset packages.
     Example: "my-theme" → themes/my-theme/ with templates, partials, and assets
+
+    See also:
+        bengal new layout - Create a layout template
+        bengal new partial - Create a partial template
     """
     cli = get_cli_output()
 
