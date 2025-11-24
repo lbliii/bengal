@@ -19,7 +19,6 @@ Example:
     site.indexes.status.get('published')    # O(1) - published posts
 """
 
-
 from __future__ import annotations
 
 import hashlib
@@ -28,8 +27,9 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Generic, TypeVar
+from typing import TYPE_CHECKING, Any
 
+from bengal.cache.cacheable import Cacheable
 from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
@@ -38,16 +38,16 @@ if TYPE_CHECKING:
 
 logger = get_logger(__name__)
 
-T = TypeVar("T")
-
 
 @dataclass
-class IndexEntry(Generic[T]):
+class IndexEntry(Cacheable):
     """
     A single entry in a query index.
 
     Represents one index key (e.g., 'blog' section, 'Jane Smith' author)
     and all pages that match that key.
+
+    Implements the Cacheable protocol for type-safe serialization.
 
     Attributes:
         key: Index key (e.g., 'blog', 'Jane Smith', '2024')
@@ -74,8 +74,8 @@ class IndexEntry(Generic[T]):
         paths_str = json.dumps(sorted(self.page_paths), sort_keys=True)
         return hashlib.sha256(paths_str.encode()).hexdigest()[:16]
 
-    def to_dict(self) -> dict[str, Any]:
-        """Serialize to JSON-compatible dict."""
+    def to_cache_dict(self) -> dict[str, Any]:
+        """Serialize to cache-friendly dictionary (Cacheable protocol)."""
         return {
             "key": self.key,
             "page_paths": self.page_paths,
@@ -84,16 +84,26 @@ class IndexEntry(Generic[T]):
             "content_hash": self.content_hash,
         }
 
-    @staticmethod
-    def from_dict(data: dict[str, Any]) -> IndexEntry:
-        """Deserialize from dict."""
-        return IndexEntry(
+    @classmethod
+    def from_cache_dict(cls, data: dict[str, Any]) -> IndexEntry:
+        """Deserialize from cache dictionary (Cacheable protocol)."""
+        return cls(
             key=data["key"],
             page_paths=data.get("page_paths", []),
             metadata=data.get("metadata", {}),
             updated_at=data.get("updated_at", datetime.now().isoformat()),
             content_hash=data.get("content_hash", ""),
         )
+
+    # Aliases for backward compatibility
+    def to_dict(self) -> dict[str, Any]:
+        """Alias for to_cache_dict (backward compatibility)."""
+        return self.to_cache_dict()
+
+    @staticmethod
+    def from_dict(data: dict[str, Any]) -> IndexEntry:
+        """Alias for from_cache_dict (backward compatibility)."""
+        return IndexEntry.from_cache_dict(data)
 
 
 class QueryIndex(ABC):
@@ -293,7 +303,7 @@ class QueryIndex(ABC):
         data = {
             "version": self.VERSION,
             "name": self.name,
-            "entries": {key: entry.to_dict() for key, entry in self.entries.items()},
+            "entries": {key: entry.to_cache_dict() for key, entry in self.entries.items()},
             "updated_at": datetime.now().isoformat(),
         }
 
@@ -343,7 +353,7 @@ class QueryIndex(ABC):
 
             # Load entries
             for key, entry_data in data.get("entries", {}).items():
-                entry = IndexEntry.from_dict(entry_data)
+                entry = IndexEntry.from_cache_dict(entry_data)
                 self.entries[key] = entry
 
                 # Build reverse index
