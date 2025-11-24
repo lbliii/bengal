@@ -7,11 +7,10 @@ from pathlib import Path
 import click
 
 from bengal.cli.base import BengalCommand
-from bengal.core.site import Site
+from bengal.cli.helpers import configure_traceback, handle_cli_errors, load_site_from_cli
 from bengal.utils.build_stats import (
     display_build_stats,
     show_building_indicator,
-    show_error,
 )
 from bengal.utils.cli_output import CLIOutput
 from bengal.utils.logger import (
@@ -19,14 +18,8 @@ from bengal.utils.logger import (
     close_all_loggers,
     configure_logging,
     print_all_summaries,
-    truncate_error,
 )
-from bengal.utils.traceback_config import (
-    TracebackConfig,
-    TracebackStyle,
-    map_debug_flag_to_traceback,
-    set_effective_style_from_cli,
-)
+from bengal.utils.traceback_config import TracebackStyle
 
 
 def _should_regenerate_autodoc(
@@ -166,6 +159,7 @@ def _run_autodoc_before_build(config_path: Path, root_path: Path, quiet: bool) -
 
 
 @click.command(cls=BengalCommand)
+@handle_cli_errors(show_art=True)
 @click.option(
     "--parallel/--no-parallel",
     default=True,
@@ -356,33 +350,25 @@ def build(
         track_memory=profile_config["track_memory"],
     )
 
+    # Configure traceback behavior BEFORE site loading so errors show properly
+    configure_traceback(debug=debug, traceback=traceback)
+
     try:
-        # Configure traceback behavior from CLI flags and install rich handler
-        # Map legacy --debug to full unless user explicitly set --traceback
-        map_debug_flag_to_traceback(debug, traceback)
-        set_effective_style_from_cli(traceback)
-        TracebackConfig.from_environment().install()
-
-        root_path = Path(source).resolve()
-        config_path = Path(config).resolve() if config else None
-
-        # Create and build site
-        site = Site.from_config(root_path, config_path, environment=environment, profile=profile)
+        # Load site using helper
+        site = load_site_from_cli(
+            source=source,
+            config=config,
+            environment=environment,
+            profile=profile,
+        )
 
         if clean_output:
             cli = CLIOutput()
             cli.info("Cleaning output directory before build (--clean-output).")
             site.clean()
 
-        # Apply file-based traceback config ([dev.traceback]) with lowest precedence
-        # after site config is available, then re-install in case values changed
-        try:
-            from bengal.utils.traceback_config import apply_file_traceback_to_env
-
-            apply_file_traceback_to_env(site.config)
-            TracebackConfig.from_environment().install()
-        except Exception:
-            pass
+        # Apply file-based traceback config after site is loaded (lowest precedence)
+        configure_traceback(debug=debug, traceback=traceback, site=site)
 
         # Check if fast_mode is enabled in config (CLI flag takes precedence)
         if fast is None:
@@ -412,6 +398,8 @@ def build(
             site.config["assets"] = assets_cfg
 
         # Handle autodoc regeneration
+        root_path = Path(source).resolve()
+        config_path = Path(config).resolve() if config else None
         should_regenerate_autodoc = _should_regenerate_autodoc(
             autodoc_flag=autodoc, config_path=config_path, root_path=root_path, quiet=quiet
         )
@@ -549,18 +537,6 @@ def build(
         # Print phase timing summary in dev mode only
         if build_profile == BuildProfile.DEVELOPER and not quiet:
             print_all_summaries()
-
-    except Exception as e:
-        show_error(f"Build failed: {truncate_error(e)}", show_art=True)
-        if debug:
-            raise
-        # Show configured traceback renderer for better diagnostics
-        try:
-            renderer = TracebackConfig.from_environment().get_renderer()
-            renderer.display_exception(e)
-        except Exception:
-            pass
-        raise click.Abort() from e
     finally:
         # Always close log file handles
         close_all_loggers()

@@ -108,6 +108,9 @@ def serve(
         track_memory=False,  # Memory tracking not needed for dev server
     )
 
+    # Configure traceback behavior BEFORE site loading so errors show properly
+    configure_traceback(debug=debug, traceback=traceback)
+
     # Default to 'local' environment for dev server (unless explicitly specified)
     dev_environment = environment or "local"
 
@@ -119,7 +122,7 @@ def serve(
         profile=profile,
     )
 
-    # Configure traceback behavior (after site is loaded so file config can be applied)
+    # Apply file-based traceback config after site is loaded (lowest precedence)
     configure_traceback(debug=debug, traceback=traceback, site=site)
 
     # Enable strict mode in development (fail fast on errors)
