@@ -3,6 +3,13 @@
 from bengal.cli.helpers.cli_app_loader import load_cli_app
 from bengal.cli.helpers.cli_output import get_cli_output
 from bengal.cli.helpers.error_handling import cli_error_context, handle_cli_errors
+from bengal.cli.helpers.metadata import (
+    CommandMetadata,
+    command_metadata,
+    find_commands_by_tag,
+    get_command_metadata,
+    list_commands_by_category,
+)
 from bengal.cli.helpers.site_loader import load_site_from_cli
 from bengal.cli.helpers.traceback import configure_traceback
 from bengal.cli.helpers.validation import validate_flag_conflicts, validate_mutually_exclusive
@@ -16,4 +23,9 @@ __all__ = [
     "load_cli_app",
     "validate_mutually_exclusive",
     "validate_flag_conflicts",
+    "CommandMetadata",
+    "command_metadata",
+    "get_command_metadata",
+    "list_commands_by_category",
+    "find_commands_by_tag",
 ]

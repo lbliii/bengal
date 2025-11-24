@@ -8,6 +8,7 @@ import click
 
 from bengal.cli.base import BengalCommand
 from bengal.cli.helpers import (
+    command_metadata,
     configure_traceback,
     get_cli_output,
     handle_cli_errors,
@@ -170,6 +171,17 @@ def _run_autodoc_before_build(config_path: Path, root_path: Path, quiet: bool) -
 
 
 @click.command(cls=BengalCommand)
+@command_metadata(
+    category="build",
+    description="Build the static site from content and templates",
+    examples=[
+        "bengal build",
+        "bengal build --incremental",
+        "bengal build --profile dev",
+    ],
+    requires_site=True,
+    tags=["build", "production", "core"],
+)
 @handle_cli_errors(show_art=True)
 @validate_flag_conflicts(
     {"fast": ["use_dev", "use_theme_dev"], "quiet": ["use_dev", "use_theme_dev"]}

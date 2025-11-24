@@ -7,13 +7,29 @@ from pathlib import Path
 import click
 
 from bengal.cli.base import BengalCommand
-from bengal.cli.helpers import configure_traceback, handle_cli_errors, load_site_from_cli
+from bengal.cli.helpers import (
+    command_metadata,
+    configure_traceback,
+    handle_cli_errors,
+    load_site_from_cli,
+)
 from bengal.server.constants import DEFAULT_DEV_HOST, DEFAULT_DEV_PORT
 from bengal.utils.logger import LogLevel, configure_logging
 from bengal.utils.traceback_config import TracebackStyle
 
 
 @click.command(cls=BengalCommand)
+@command_metadata(
+    category="dev",
+    description="Start development server with live reload",
+    examples=[
+        "bengal serve",
+        "bengal serve --port 8080",
+        "bengal serve --watch",
+    ],
+    requires_site=True,
+    tags=["dev", "server", "quick"],
+)
 @click.option("--host", default=DEFAULT_DEV_HOST, help="Server host address")
 @click.option("--port", "-p", default=DEFAULT_DEV_PORT, type=int, help="Server port number")
 @click.option(
