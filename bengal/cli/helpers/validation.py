@@ -74,17 +74,53 @@ def validate_flag_conflicts(
     def decorator(func: F) -> F:
         @wraps(func)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
+            # Map internal flag names to user-facing flag names
+            flag_name_map = {
+                "use_dev": "dev",
+                "use_theme_dev": "theme-dev",
+            }
+
             for flag, conflicting_flags in conflicts.items():
                 if kwargs.get(flag):
-                    active_conflicts = [f"--{cf}" for cf in conflicting_flags if kwargs.get(cf)]
+                    # Get user-facing flag name
+                    user_flag = flag_name_map.get(flag, flag)
+
+                    # Check which conflicting flags are actually active
+                    active_conflicts = []
+                    for cf in conflicting_flags:
+                        if kwargs.get(cf):
+                            active_conflicts.append(cf)
+
                     if active_conflicts:
+                        # Map all conflicting flags to user-facing names (list all possible conflicts)
+                        user_conflicting_flags = [
+                            flag_name_map.get(cf, cf) for cf in conflicting_flags
+                        ]
+
                         if error_message:
-                            msg = error_message.format(
-                                flag=flag, others=", ".join(active_conflicts)
-                            )
+                            # Format with all possible conflicts
+                            if len(user_conflicting_flags) == 1:
+                                all_conflicts_str = f"--{user_conflicting_flags[0]}"
+                            elif len(user_conflicting_flags) == 2:
+                                all_conflicts_str = f"--{user_conflicting_flags[0]} or --{user_conflicting_flags[1]}"
+                            else:
+                                all_conflicts_str = (
+                                    ", ".join(f"--{cf}" for cf in user_conflicting_flags[:-1])
+                                    + f", or --{user_conflicting_flags[-1]}"
+                                )
+                            msg = error_message.format(flag=user_flag, others=all_conflicts_str)
                         else:
-                            others_str = " or ".join(active_conflicts)
-                            msg = f"--{flag} cannot be used with {others_str}"
+                            # Build error message listing all possible conflicts
+                            if len(user_conflicting_flags) == 1:
+                                others_str = f"--{user_conflicting_flags[0]}"
+                            elif len(user_conflicting_flags) == 2:
+                                others_str = f"--{user_conflicting_flags[0]} or --{user_conflicting_flags[1]}"
+                            else:
+                                others_str = (
+                                    ", ".join(f"--{cf}" for cf in user_conflicting_flags[:-1])
+                                    + f", or --{user_conflicting_flags[-1]}"
+                                )
+                            msg = f"--{user_flag} cannot be used with {others_str}"
                         raise click.UsageError(msg)
             return func(*args, **kwargs)
 

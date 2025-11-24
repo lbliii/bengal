@@ -10,7 +10,7 @@ from unittest.mock import patch
 import pytest
 from click.testing import CliRunner
 
-from bengal.cli.commands.build import _check_autodoc_needs_regeneration, _should_regenerate_autodoc
+from bengal.cli.helpers import check_autodoc_needs_regeneration, should_regenerate_autodoc
 from bengal.utils.file_io import write_text_file
 
 
@@ -22,7 +22,7 @@ class TestBuildCommandHelpers:
         config_path = tmp_path / "bengal.toml"
         write_text_file(str(config_path), "[build]\n")
 
-        result = _should_regenerate_autodoc(
+        result = should_regenerate_autodoc(
             autodoc_flag=True, config_path=config_path, root_path=tmp_path, quiet=True
         )
 
@@ -33,7 +33,7 @@ class TestBuildCommandHelpers:
         config_path = tmp_path / "bengal.toml"
         write_text_file(str(config_path), "[build]\n")
 
-        result = _should_regenerate_autodoc(
+        result = should_regenerate_autodoc(
             autodoc_flag=False, config_path=config_path, root_path=tmp_path, quiet=True
         )
 
@@ -49,9 +49,9 @@ class TestBuildCommandHelpers:
         (tmp_path / "content" / "api").mkdir(parents=True)
 
         with patch(
-            "bengal.cli.commands.build._check_autodoc_needs_regeneration", return_value=True
+            "bengal.cli.helpers.autodoc_build.check_autodoc_needs_regeneration", return_value=True
         ):
-            result = _should_regenerate_autodoc(
+            result = should_regenerate_autodoc(
                 autodoc_flag=None, config_path=config_path, root_path=tmp_path, quiet=True
             )
 
@@ -62,7 +62,7 @@ class TestBuildCommandHelpers:
         config_path = tmp_path / "bengal.toml"
         write_text_file(str(config_path), "[build]\nauto_regenerate_autodoc = false\n")
 
-        result = _should_regenerate_autodoc(
+        result = should_regenerate_autodoc(
             autodoc_flag=None, config_path=config_path, root_path=tmp_path, quiet=True
         )
 
@@ -72,7 +72,7 @@ class TestBuildCommandHelpers:
         """Test checking regeneration when output dir doesn't exist."""
         config = {"python": {"enabled": True, "source_dirs": ["src"], "output_dir": "content/api"}}
 
-        result = _check_autodoc_needs_regeneration(config, tmp_path, quiet=True)
+        result = check_autodoc_needs_regeneration(config, tmp_path, quiet=True)
 
         # No output dir means no need to regenerate
         assert result is False
@@ -99,7 +99,7 @@ class TestBuildCommandHelpers:
 
         config = {"python": {"enabled": True, "source_dirs": ["src"], "output_dir": "content/api"}}
 
-        result = _check_autodoc_needs_regeneration(config, tmp_path, quiet=True)
+        result = check_autodoc_needs_regeneration(config, tmp_path, quiet=True)
 
         # Source is newer, should regenerate
         assert result is True
@@ -112,7 +112,7 @@ class TestBuildCommandHelpers:
 
         config = {"cli": {"enabled": True, "output_dir": "content/cli"}}
 
-        result = _check_autodoc_needs_regeneration(config, tmp_path, quiet=True)
+        result = check_autodoc_needs_regeneration(config, tmp_path, quiet=True)
 
         # Should check CLI docs
         assert result in [True, False]  # Either is valid
