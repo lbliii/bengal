@@ -346,6 +346,25 @@
     margin-bottom: var(--space-2);
 }
 
+/* Prerequisite Links */
+.tutorial-prereq-link {
+    color: var(--color-primary);
+    text-decoration: none;
+    font-weight: var(--weight-medium);
+    transition: color var(--transition-fast);
+}
+
+.tutorial-prereq-link:hover {
+    color: var(--color-primary-hover);
+    text-decoration: underline;
+}
+
+.tutorial-prereq-link:focus-visible {
+    outline: 2px solid var(--color-border-focus);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+}
+
 /* Tutorial Content */
 .tutorial-content {
     margin: var(--space-6) 0;

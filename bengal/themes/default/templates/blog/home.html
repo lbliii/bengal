@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{#
+Blog Home Template
+
+Optimized home page template for blog sites. Features:
+- No action bar (cleaner for home page)
+- Prominent recent posts section
+- Simplified hero section
+- Blog-optimized layout
+
+Usage: Set `template: blog/home.html` in home page frontmatter
+Or set `type: blog` on home page to auto-select
+#}
+
+{% from 'partials/content-components.html' import tag_list %}
+
+{% block content %}
+<div class="blog-home">
+    {# Simplified Hero Section #}
+    <header class="blog-home-hero">
+        <div class="blog-home-hero-content">
+            <h1 class="blog-home-title">{{ page.title | default(site.config.title) }}</h1>
+            {% if page.metadata.get('description', '') %}
+            <p class="blog-home-subtitle">{{ page.metadata.get('description', '') }}</p>
+            {% endif %}
+        </div>
+    </header>
+
+    {# Main Content #}
+    {% if content and content.strip() %}
+    <div class="blog-home-content prose">
+        {{ content | safe }}
+    </div>
+    {% endif %}
+
+    {# Recent Posts - Prominent Section #}
+    {# Show recent posts by default for blog sites #}
+    {% set show_recent = page.metadata.get('show_recent_posts', true) %}
+    {% if show_recent %}
+    {# Find blog section and get recent posts #}
+    {# Default to "posts" since blog template creates posts/ section #}
+    {% set blog_section_name = page.metadata.get('blog_section', 'posts') %}
+    {% set blog_section_candidates = site.sections | selectattr('name', 'equalto', blog_section_name) | list if
+    site.sections else [] %}
+    {% set blog_section = blog_section_candidates[0] if blog_section_candidates else None %}
+    {% if blog_section and blog_section.pages %}
+    {% set recent = blog_section.pages | selectattr('date') | sort_by('date', reverse=true) | limit(6) %}
+    {% elif site.pages %}
+    {# Fallback: find blog posts by URL path or metadata type #}
+    {% set blog_posts = [] %}
+    {% for p in site.pages %}
+    {% if p.metadata.get('type') == 'blog' or '/blog/' in p.url or '/posts/' in p.url %}
+    {% set _ = blog_posts.append(p) %}
+    {% endif %}
+    {% endfor %}
+    {% set recent = blog_posts | selectattr('date') | sort_by('date', reverse=true) | limit(6) %}
+    {% else %}
+    {% set recent = [] %}
+    {% endif %}
+
+    {% if recent %}
+    <section class="blog-home-recent">
+        <div class="blog-home-recent-header">
+            <h2 class="blog-home-recent-title">Recent Posts</h2>
+            {% if blog_section %}
+            <a href="{{ blog_section.url }}" class="blog-home-view-all">View all posts →</a>
+            {% endif %}
+        </div>
+        <div class="blog-home-posts-grid">
+            {% for post in recent %}
+            <article class="blog-home-post-card gradient-border fluid-combined">
+                {% if post.metadata.get('image') or post.metadata.get('cover') %}
+                <div class="blog-home-post-image">
+                    <a href="{{ post.permalink }}">
+                        <img src="{{ post.metadata.get('image') | default(post.metadata.get('cover')) }}"
+                            alt="{{ post.title }}">
+                    </a>
+                </div>
+                {% endif %}
+                <div class="blog-home-post-content">
+                    <h3 class="blog-home-post-title">
+                        <a href="{{ post.permalink }}">{{ post.title }}</a>
+                    </h3>
+                    {% if post.date %}
+                    <time datetime="{{ post.date | date_iso }}" class="blog-home-post-date">
+                        {{ post.date | dateformat('%B %d, %Y') }}
+                    </time>
+                    {% endif %}
+                    {% if post.metadata.get('description') or post.excerpt %}
+                    <p class="blog-home-post-excerpt">
+                        {{ post.metadata.get('description') | default(post.excerpt) | truncate(150) }}
+                    </p>
+                    {% endif %}
+                    {% if post.tags %}
+                    <div class="blog-home-post-tags">
+                        {{ tag_list(post.tags | limit(3)) }}
+                    </div>
+                    {% endif %}
+                    <a href="{{ post.permalink }}" class="blog-home-post-link">Read more →</a>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+    {% endif %}
+</div>
+{% endblock %}

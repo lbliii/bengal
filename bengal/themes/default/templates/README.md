@@ -716,7 +716,7 @@ Get section by path:
 {% endfor %}
 
 {% for tag in page.tags %}
-  <a href="/tags/{{ tag|slugify }}/">{{ tag }}</a>
+  <a href="{{ tag_url(tag) }}">{{ tag }}</a>
   {% if not loop.last %}, {% endif %}
 {% endfor %}
 ```

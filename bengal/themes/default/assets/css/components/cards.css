@@ -15,9 +15,9 @@
   border-radius: var(--radius-xl); /* Increased from --radius-lg (8px → 12px) */
   box-shadow: var(--elevation-low);
   overflow: hidden;
+  position: relative;
   transition: box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1),
-              transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
-              border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+              transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Cards with gradient borders and fluid effects */
@@ -43,6 +43,56 @@
 a.card {
   text-decoration: none;
   color: inherit;
+}
+
+/* Motion gradient background on hover */
+.card::before {
+  content: '';
+  position: absolute;
+  top: -30%;
+  right: -10%;
+  width: 150%;
+  height: 150%;
+  background: radial-gradient(
+    circle at 40% 40%,
+    color-mix(in srgb, var(--blob-color-1) 6%, transparent) 0%,
+    color-mix(in srgb, var(--blob-color-2) 4%, transparent) 25%,
+    transparent 50%
+  );
+  border-radius: 50%;
+  animation: blob-morph var(--blob-duration-slow) ease-in-out infinite;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.card:hover::before {
+  opacity: 1;
+}
+
+.card > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Fallback for browsers without color-mix */
+@supports not (color: color-mix(in srgb, black, white)) {
+  .card::before {
+    background: radial-gradient(
+      circle at 40% 40%,
+      rgba(59, 130, 246, 0.06) 0%,
+      rgba(139, 92, 246, 0.04) 25%,
+      transparent 50%
+    );
+  }
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .card::before {
+    animation: none !important;
+  }
 }
 
 .card:hover {
@@ -182,7 +232,8 @@ a.card {
   border-radius: var(--radius-xl); /* Increased from --radius-lg (8px → 12px) */
   overflow: hidden;
   text-decoration: none;
-  transition: box-shadow var(--motion-medium), transform var(--motion-medium), border-color var(--motion-medium);
+  position: relative;
+  transition: box-shadow var(--motion-medium), transform var(--motion-medium);
 }
 
 .article-card.gradient-border {
@@ -193,10 +244,59 @@ a.card {
   border: none;
 }
 
+/* Motion gradient background on hover */
+.article-card::before {
+  content: '';
+  position: absolute;
+  top: -30%;
+  right: -10%;
+  width: 150%;
+  height: 150%;
+  background: radial-gradient(
+    circle at 40% 40%,
+    color-mix(in srgb, var(--blob-color-1) 6%, transparent) 0%,
+    color-mix(in srgb, var(--blob-color-2) 4%, transparent) 25%,
+    transparent 50%
+  );
+  border-radius: 50%;
+  animation: blob-morph var(--blob-duration-slow) ease-in-out infinite;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.article-card:hover::before {
+  opacity: 1;
+}
+
+.article-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Fallback for browsers without color-mix */
+@supports not (color: color-mix(in srgb, black, white)) {
+  .article-card::before {
+    background: radial-gradient(
+      circle at 40% 40%,
+      rgba(59, 130, 246, 0.06) 0%,
+      rgba(139, 92, 246, 0.04) 25%,
+      transparent 50%
+    );
+  }
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .article-card::before {
+    animation: none !important;
+  }
+}
+
 .article-card:hover {
   box-shadow: var(--elevation-high);
   transform: translate3d(0, calc(-1 * var(--motion-distance-2)), 0);
-  border-color: var(--color-primary);
 }
 
 .article-card-image {
@@ -473,7 +573,6 @@ a.card {
 
 .link-card:hover .card {
   transform: translate3d(0, -4px, 0);
-  border-color: var(--color-primary);
   box-shadow: var(--elevation-high);
 }
 

@@ -1,7 +1,7 @@
 /**
  * Bengal SSG - Fluid Blob Effects
  * Subtle fluid/blob-like animations inspired by Bengal cat rosettes and spots
- * 
+ *
  * Usage: Add .fluid-bg, .fluid-border, .blob-spots, or .fluid-combined classes
  */
 
@@ -14,12 +14,12 @@
   --blob-duration-slow: 20s;
   --blob-duration-medium: 12s;
   --blob-duration-fast: 8s;
-  
+
   /* Blob opacity levels */
   --blob-opacity-subtle: 0.04;
   --blob-opacity-normal: 0.06;
   --blob-opacity-strong: 0.08;
-  
+
   /* Blob colors (using theme colors) */
   --blob-color-1: var(--color-primary);
   --blob-color-2: var(--color-accent);
@@ -43,8 +43,8 @@
   height: 200%;
   background: radial-gradient(
     circle at 30% 30%,
-    color-mix(in srgb, var(--blob-color-1) var(--blob-opacity-normal), transparent) 0%,
-    color-mix(in srgb, var(--blob-color-2) var(--blob-opacity-subtle), transparent) 30%,
+    color-mix(in srgb, var(--blob-color-1) 6%, transparent) 0%,
+    color-mix(in srgb, var(--blob-color-2) 4%, transparent) 30%,
     transparent 60%
   );
   border-radius: 50%;
@@ -62,8 +62,8 @@
   height: 180%;
   background: radial-gradient(
     circle at 70% 70%,
-    color-mix(in srgb, var(--blob-color-2) var(--blob-opacity-normal), transparent) 0%,
-    color-mix(in srgb, var(--blob-color-1) var(--blob-opacity-subtle), transparent) 25%,
+    color-mix(in srgb, var(--blob-color-2) 6%, transparent) 0%,
+    color-mix(in srgb, var(--blob-color-1) 4%, transparent) 25%,
     transparent 55%
   );
   border-radius: 50%;
@@ -125,7 +125,7 @@
       transparent 60%
     );
   }
-  
+
   .fluid-bg::after {
     background: radial-gradient(
       circle at 70% 70%,
@@ -152,8 +152,8 @@
   padding: 1px;
   background: var(--gradient-border);
   background-size: 200% 200%;
-  -webkit-mask: 
-    linear-gradient(#fff 0 0) content-box, 
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
     linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
@@ -263,7 +263,7 @@
       transparent 70%
     );
   }
-  
+
   .blob-spots::after {
     background: radial-gradient(
       circle,
@@ -293,8 +293,8 @@
   height: 150%;
   background: radial-gradient(
     circle at 40% 40%,
-    color-mix(in srgb, var(--blob-color-1) var(--blob-opacity-normal), transparent) 0%,
-    color-mix(in srgb, var(--blob-color-2) var(--blob-opacity-subtle), transparent) 25%,
+    color-mix(in srgb, var(--blob-color-1) 6%, transparent) 0%,
+    color-mix(in srgb, var(--blob-color-2) 4%, transparent) 25%,
     transparent 50%
   );
   border-radius: 50%;
@@ -312,8 +312,8 @@
   padding: 1px;
   background: var(--gradient-border);
   background-size: 200% 200%;
-  -webkit-mask: 
-    linear-gradient(#fff 0 0) content-box, 
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
     linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
@@ -354,17 +354,17 @@
     var(--color-primary) 75%
   );
   background-size: 300% 300%;
-  
+
   /* Clip background to text */
   -webkit-background-clip: text;
   background-clip: text;
-  
+
   /* Hide original text color */
   color: transparent;
-  
+
   /* Animate background to simulate fluid movement */
   animation: fluid-text-flow 6s ease infinite;
-  
+
   /* Ensure readability with a subtle shadow (outside the clip) */
   filter: drop-shadow(0 2px 4px rgba(0,0,0,0.15));
 }
@@ -378,7 +378,7 @@
     var(--color-primary) 50%,
     var(--color-accent) 75%
   );
-  
+
   /* Glow effect instead of dark shadow */
   filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.3));
 }

@@ -29,8 +29,8 @@ def theme() -> None:
     category="theming",
     description="Copy a theme template/partial to project templates",
     examples=[
-        "bengal theme swizzle layouts/article.html",
-        "bengal theme swizzle partials/header.html",
+        "bengal utils theme swizzle layouts/article.html",
+        "bengal utils theme swizzle partials/header.html",
     ],
     requires_site=True,
     tags=["theming", "templates", "quick"],
@@ -65,7 +65,7 @@ def swizzle(template_path: str, source: str) -> None:
 @command_metadata(
     category="theming",
     description="List swizzled templates",
-    examples=["bengal theme swizzle-list"],
+    examples=["bengal utils theme swizzle-list"],
     requires_site=True,
     tags=["theming", "info", "quick"],
 )
@@ -100,7 +100,7 @@ def swizzle_list(source: str) -> None:
 @command_metadata(
     category="theming",
     description="Update swizzled templates if unchanged locally",
-    examples=["bengal theme swizzle-update"],
+    examples=["bengal utils theme swizzle-update"],
     requires_site=True,
     tags=["theming", "maintenance"],
 )
@@ -133,7 +133,7 @@ def swizzle_update(source: str) -> None:
 @command_metadata(
     category="theming",
     description="List available themes (project, installed, bundled)",
-    examples=["bengal theme list"],
+    examples=["bengal utils theme list"],
     requires_site=True,
     tags=["theming", "info", "quick"],
 )
@@ -176,6 +176,8 @@ def list_themes(source: str) -> None:
         if pkg_dir.exists():
             bundled = [p.name for p in pkg_dir.iterdir() if (p / "templates").exists()]
     except Exception:
+        # Ignore all exceptions: if any error occurs (e.g., import failure, missing files),
+        # treat as "no bundled themes available"
         pass
 
     cli.header("Project themes:")
@@ -206,7 +208,7 @@ def list_themes(source: str) -> None:
 @command_metadata(
     category="theming",
     description="Show theme info for a slug (source, version, paths)",
-    examples=["bengal theme info default"],
+    examples=["bengal utils theme info default"],
     requires_site=True,
     tags=["theming", "info", "quick"],
 )
@@ -257,6 +259,8 @@ def info(slug: str, source: str) -> None:
         if bundled.exists():
             cli.info(f"  Bundled path: {bundled}")
     except Exception:
+        # Ignore all exceptions: if any error occurs (e.g., import failure, missing files),
+        # treat as "bundled theme not found"
         pass
 
 
@@ -264,7 +268,7 @@ def info(slug: str, source: str) -> None:
 @command_metadata(
     category="theming",
     description="List swizzlable templates from the active theme chain",
-    examples=["bengal theme discover"],
+    examples=["bengal utils theme discover"],
     requires_site=True,
     tags=["theming", "info"],
 )
@@ -298,13 +302,241 @@ def discover(source: str) -> None:
                 cli.info(rel)
 
 
+@theme.command("debug")
+@command_metadata(
+    category="theming",
+    description="Debug theme resolution: show chain, paths, and template sources",
+    examples=["bengal utils theme debug"],
+    requires_site=True,
+    tags=["theming", "debug", "diagnostics"],
+)
+@handle_cli_errors(show_art=False)
+@click.argument("source", type=click.Path(exists=True), default=".")
+@click.option("--template", help="Show resolution path for a specific template")
+def debug(source: str, template: str | None) -> None:
+    """
+    🐛 Debug theme resolution and template paths.
+
+    Shows comprehensive information about:
+    - Active theme chain (inheritance order)
+    - Template resolution paths (priority order)
+    - Template source locations
+    - Theme validation (circular inheritance, missing themes)
+    - Specific template resolution (if --template provided)
+
+    Examples:
+        bengal theme debug
+        bengal theme debug --template page.html
+
+    See also:
+        bengal theme info - Show details about a specific theme
+        bengal theme list - List available themes
+    """
+    cli = get_cli_output()
+    site = load_site_from_cli(source=source, config=None, environment=None, profile=None, cli=cli)
+    from bengal.rendering.template_engine import TemplateEngine
+    from bengal.utils.theme_resolution import resolve_theme_chain
+
+    engine = TemplateEngine(site)
+
+    # Show active theme
+    cli.header("Active Theme")
+    cli.info(f"  Theme: {site.theme or 'default'}")
+
+    # Show theme chain
+    cli.header("Theme Inheritance Chain")
+    chain = resolve_theme_chain(site.root_path, site.theme)
+    if not chain:
+        cli.info("  (no inheritance, using default)")
+    else:
+        for i, theme_name in enumerate(chain):
+            prefix = "  → " if i > 0 else "  "
+            extends = _get_theme_extends(site.root_path, theme_name)
+            if extends:
+                cli.info(f"{prefix}{theme_name} (extends {extends})")
+            else:
+                cli.info(f"{prefix}{theme_name} (base theme)")
+        if "default" not in chain:
+            cli.info("  → default (fallback)")
+
+    # Validate theme chain
+    cli.header("Theme Validation")
+    issues = _validate_theme_chain(site.root_path, site.theme)
+    if issues:
+        for issue in issues:
+            cli.warning(f"  ⚠ {issue}")
+    else:
+        cli.info("  ✓ No issues detected")
+
+    # Show template resolution paths
+    cli.header("Template Resolution Paths (priority order)")
+    for i, template_dir in enumerate(engine.template_dirs):
+        source_type = _get_template_dir_source_type(site.root_path, template_dir)
+        cli.info(f"  {i + 1}. {template_dir} ({source_type})")
+
+    # Show template sources for common templates
+    if not template:
+        cli.header("Common Template Sources")
+        common_templates = ["base.html", "page.html", "home.html", "404.html"]
+        for tpl_name in common_templates:
+            tpl_path = engine._find_template_path(tpl_name)
+            if tpl_path:
+                source_type = _get_template_dir_source_type(site.root_path, tpl_path.parent)
+                cli.info(f"  {tpl_name}: {tpl_path} ({source_type})")
+            else:
+                cli.info(f"  {tpl_name}: (not found)")
+
+    # Show specific template resolution if requested
+    if template:
+        cli.header(f"Template Resolution: {template}")
+        tpl_path = engine._find_template_path(template)
+        if tpl_path:
+            source_type = _get_template_dir_source_type(site.root_path, tpl_path.parent)
+            cli.info(f"  Found: {tpl_path}")
+            cli.info(f"  Source: {source_type}")
+            # Show all possible locations
+            cli.info("  Searched in:")
+            for i, template_dir in enumerate(engine.template_dirs):
+                candidate = template_dir / template
+                marker = "✓" if candidate.exists() else " "
+                cli.info(f"    {marker} {i + 1}. {candidate}")
+        else:
+            cli.warning(f"  Template '{template}' not found")
+            cli.info("  Searched in:")
+            for i, template_dir in enumerate(engine.template_dirs):
+                cli.info(f"    {i + 1}. {template_dir / template}")
+
+
+def _get_theme_extends(site_root: Path, theme_name: str) -> str | None:
+    """Get the theme that a theme extends."""
+    from bengal.utils.theme_resolution import _read_theme_extends
+
+    return _read_theme_extends(site_root, theme_name)
+
+
+def _validate_theme_chain(site_root: Path, active_theme: str | None) -> list[str]:
+    """Validate theme chain and return list of issues."""
+    issues: list[str] = []
+    from bengal.utils.theme_resolution import _read_theme_extends
+
+    # Check for circular inheritance by walking the chain manually
+    visited: set[str] = set()
+    current = active_theme or "default"
+    depth = 0
+    MAX_DEPTH = 5
+    chain_path: list[str] = []
+
+    while current and depth < MAX_DEPTH:
+        if current in visited:
+            # Found a cycle - show the cycle path
+            cycle_start = chain_path.index(current)
+            cycle = " → ".join(chain_path[cycle_start:] + [current])
+            issues.append(f"Circular inheritance detected: {cycle}")
+            break
+        visited.add(current)
+        chain_path.append(current)
+        extends = _read_theme_extends(site_root, current)
+        if not extends or extends == current:
+            break
+        current = extends
+        depth += 1
+
+    if depth >= MAX_DEPTH:
+        issues.append(f"Theme inheritance depth exceeds maximum ({MAX_DEPTH})")
+
+    # Check for missing themes in the resolved chain
+    from bengal.utils.theme_resolution import resolve_theme_chain
+
+    chain = resolve_theme_chain(site_root, active_theme)
+    for theme_name in chain:
+        if not _theme_exists(site_root, theme_name):
+            issues.append(
+                f"Theme '{theme_name}' not found in any location (site, installed, or bundled)"
+            )
+
+    return issues
+
+
+def _theme_exists(site_root: Path, theme_name: str) -> bool:
+    """Check if a theme exists in any location."""
+    # Site theme
+    site_theme = site_root / "themes" / theme_name
+    if site_theme.exists():
+        return True
+
+    # Installed theme
+    try:
+        pkg = get_theme_package(theme_name)
+        if pkg:
+            return True
+    except Exception:
+        # Ignore all exceptions: if any error occurs (e.g., import failure, missing package),
+        # treat as "theme not found"
+        pass
+
+    # Bundled theme
+    try:
+        import bengal
+
+        bundled = Path(bengal.__file__).parent / "themes" / theme_name
+        if bundled.exists():
+            return True
+    except Exception:
+        # Ignore all exceptions: if any error occurs (e.g., import failure, missing files),
+        # treat as "theme not found"
+        pass
+
+    return False
+
+
+def _get_template_dir_source_type(site_root: Path, template_dir: Path) -> str:
+    """Determine the source type of a template directory."""
+    # Project templates
+    if template_dir == site_root / "templates":
+        return "project templates"
+
+    # Site theme
+    if template_dir.is_relative_to(site_root / "themes"):
+        theme_name = template_dir.relative_to(site_root / "themes").parts[0]
+        return f"site theme: {theme_name}"
+
+    # Bundled theme
+    try:
+        import bengal
+
+        bengal_themes = Path(bengal.__file__).parent / "themes"
+        if template_dir.is_relative_to(bengal_themes):
+            theme_name = template_dir.relative_to(bengal_themes).parts[0]
+            return f"bundled theme: {theme_name}"
+    except Exception:
+        # Ignore all exceptions: if any error occurs (e.g., import failure, path resolution),
+        # continue to next check
+        pass
+
+    # Installed theme (check if it's in a package)
+    try:
+        from bengal.utils.theme_registry import get_installed_themes
+
+        installed = get_installed_themes()
+        for theme_slug, pkg in installed.items():
+            resolved = pkg.resolve_resource_path("templates")
+            if resolved and template_dir == resolved:
+                return f"installed theme: {theme_slug}"
+    except Exception:
+        # Ignore all exceptions: if any error occurs (e.g., import failure, package resolution),
+        # continue to fallback "unknown" return
+        pass
+
+    return "unknown"
+
+
 @theme.command("install")
 @command_metadata(
     category="theming",
     description="Install a theme via uv pip",
     examples=[
-        "bengal theme install bengal-theme-minimal",
-        "bengal theme install minimal --force",
+        "bengal utils theme install bengal-theme-minimal",
+        "bengal utils theme install minimal --force",
     ],
     requires_site=False,
     tags=["theming", "setup"],
@@ -380,8 +612,8 @@ def _sanitize_slug(slug: str) -> str:
     category="theming",
     description="Create a new theme scaffold",
     examples=[
-        "bengal theme new my-theme",
-        "bengal theme new my-theme --mode package",
+        "bengal utils theme new my-theme",
+        "bengal utils theme new my-theme --mode package",
     ],
     requires_site=False,
     tags=["theming", "setup"],

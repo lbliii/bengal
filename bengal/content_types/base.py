@@ -4,10 +4,9 @@ Base strategy class for content types.
 Defines the interface that all content type strategies must implement.
 """
 
-
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from bengal.core.page import Page
@@ -44,9 +43,7 @@ class ContentTypeStrategy:
         """
         return sorted(pages, key=lambda p: (p.metadata.get("weight", 999999), p.title.lower()))
 
-    def filter_display_pages(
-        self, pages: list[Page], index_page: Page | None = None
-    ) -> list[Page]:
+    def filter_display_pages(self, pages: list[Page], index_page: Page | None = None) -> list[Page]:
         """
         Filter which pages to show in list views.
 
@@ -82,14 +79,82 @@ class ContentTypeStrategy:
         threshold = config.get("pagination", {}).get("threshold", 20)
         return page_count > threshold
 
-    def get_template(self) -> str:
+    def get_template(self, page: Page | None = None, template_engine: Any | None = None) -> str:
         """
-        Get the template name for this content type.
+        Determine which template to use for a page.
+
+        Args:
+            page: Page to get template for (optional for backward compatibility)
+            template_engine: Template engine for checking template existence (optional)
 
         Returns:
-            Template path (e.g., "blog/list.html")
+            Template name (e.g., "blog/home.html", "doc/single.html")
+
+        Default implementation provides sensible fallbacks:
+        - Home pages: try {type}/home.html, then home.html, then index.html
+        - Section indexes: try {type}/list.html, then list.html
+        - Regular pages: try {type}/single.html, then single.html
+
+        Note: For backward compatibility, if page is None, returns default_template.
         """
+        # Backward compatibility: if no page provided, return default template
+        if page is None:
+            return self.default_template
+
+        is_home = page.is_home or page.url == "/"
+        is_section_index = page.source_path.stem == "_index"
+
+        # Get type name (e.g., "blog", "doc")
+        type_name = self._get_type_name()
+
+        # Helper to check template existence
+        def template_exists(name: str) -> bool:
+            if template_engine is None:
+                return False
+            try:
+                template_engine.env.get_template(name)
+                return True
+            except Exception:
+                return False
+
+        if is_home:
+            templates_to_try = [
+                f"{type_name}/home.html",
+                f"{type_name}/index.html",
+                "home.html",
+                "index.html",
+            ]
+        elif is_section_index:
+            templates_to_try = [
+                f"{type_name}/list.html",
+                f"{type_name}/index.html",
+                "list.html",
+                "index.html",
+            ]
+        else:
+            templates_to_try = [
+                f"{type_name}/single.html",
+                f"{type_name}/page.html",
+                "single.html",
+                "page.html",
+            ]
+
+        # Try each template in order
+        for template_name in templates_to_try:
+            if template_exists(template_name):
+                return template_name
+
+        # Final fallback
         return self.default_template
+
+    def _get_type_name(self) -> str:
+        """Get the type name for this strategy (e.g., "blog", "doc")."""
+        # Extract type name from default_template path (e.g., "blog/list.html" -> "blog")
+        if "/" in self.default_template:
+            return self.default_template.split("/")[0]
+        # Fallback: use class name minus "Strategy"
+        class_name = self.__class__.__name__
+        return class_name.replace("Strategy", "").lower()
 
     def detect_from_section(self, section: Section) -> bool:
         """

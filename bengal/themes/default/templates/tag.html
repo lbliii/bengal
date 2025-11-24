@@ -3,16 +3,11 @@
 {% from 'partials/navigation-components.html' import pagination %}
 
 {% block content %}
+{# Action Bar: Breadcrumbs + Share #}
+{% include 'partials/action-bar.html' %}
+
 <div class="tag-page">
     <header class="page-header">
-        <nav class="breadcrumbs">
-            <ol>
-                <li><a href="{{ '/' | absolute_url }}">Home</a></li>
-                <li><a href="{{ '/tags/' | absolute_url }}">Tags</a></li>
-                <li>{{ tag }}</li>
-            </ol>
-        </nav>
-
         <h1>
             <span class="tag-icon">#</span>
             {{ tag }}
