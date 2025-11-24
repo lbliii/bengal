@@ -7,16 +7,10 @@ from pathlib import Path
 import click
 
 from bengal.cli.base import BengalCommand
-from bengal.core.site import Site
+from bengal.cli.helpers import configure_traceback, handle_cli_errors, load_site_from_cli
 from bengal.server.constants import DEFAULT_DEV_HOST, DEFAULT_DEV_PORT
-from bengal.utils.build_stats import show_error
-from bengal.utils.logger import LogLevel, configure_logging, truncate_error
-from bengal.utils.traceback_config import (
-    TracebackConfig,
-    TracebackStyle,
-    map_debug_flag_to_traceback,
-    set_effective_style_from_cli,
-)
+from bengal.utils.logger import LogLevel, configure_logging
+from bengal.utils.traceback_config import TracebackStyle
 
 
 @click.command(cls=BengalCommand)
@@ -68,6 +62,7 @@ from bengal.utils.traceback_config import (
     "--config", type=click.Path(exists=True), help="Path to config file (default: bengal.toml)"
 )
 @click.argument("source", type=click.Path(exists=True), default=".")
+@handle_cli_errors(show_art=True)
 def serve(
     host: str,
     port: int,
@@ -113,48 +108,26 @@ def serve(
         track_memory=False,  # Memory tracking not needed for dev server
     )
 
-    try:
-        # Configure traceback behavior and install rich handler
-        map_debug_flag_to_traceback(debug, traceback)
-        set_effective_style_from_cli(traceback)
-        TracebackConfig.from_environment().install()
-        # Welcome banner removed for consistency with build command
-        # The "Building your site..." header is sufficient
+    # Default to 'local' environment for dev server (unless explicitly specified)
+    dev_environment = environment or "local"
 
-        config_path = Path(config).resolve() if config else None
+    # Load site using helper
+    site = load_site_from_cli(
+        source=source,
+        config=config,
+        environment=dev_environment,
+        profile=profile,
+    )
 
-        # Default to 'local' environment for dev server (unless explicitly specified)
-        dev_environment = environment or "local"
+    # Configure traceback behavior (after site is loaded so file config can be applied)
+    configure_traceback(debug=debug, traceback=traceback, site=site)
 
-        # Create site
-        site = Site.from_config(root_path, config_path, environment=dev_environment, profile=profile)
+    # Enable strict mode in development (fail fast on errors)
+    site.config["strict_mode"] = True
 
-        # Apply file-based traceback config and re-install
-        try:
-            from bengal.utils.traceback_config import apply_file_traceback_to_env
+    # Enable debug mode if requested
+    if debug:
+        site.config["debug"] = True
 
-            apply_file_traceback_to_env(site.config)
-            TracebackConfig.from_environment().install()
-        except Exception:
-            pass
-
-        # Enable strict mode in development (fail fast on errors)
-        site.config["strict_mode"] = True
-
-        # Enable debug mode if requested
-        if debug:
-            site.config["debug"] = True
-
-        # Start server (this blocks)
-        site.serve(
-            host=host, port=port, watch=watch, auto_port=auto_port, open_browser=open_browser
-        )
-
-    except Exception as e:
-        show_error(f"Server failed: {truncate_error(e)}", show_art=True)
-        try:
-            renderer = TracebackConfig.from_environment().get_renderer()
-            renderer.display_exception(e)
-        except Exception:
-            pass
-        raise click.Abort() from e
+    # Start server (this blocks)
+    site.serve(host=host, port=port, watch=watch, auto_port=auto_port, open_browser=open_browser)
