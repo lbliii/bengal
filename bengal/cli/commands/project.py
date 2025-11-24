@@ -6,8 +6,7 @@ import click
 
 from bengal.cli.base import BengalGroup
 from bengal.cli.commands.init import init
-from bengal.utils.build_stats import show_error
-from bengal.utils.cli_output import CLIOutput
+from bengal.cli.helpers import command_metadata, get_cli_output, handle_cli_errors
 
 # User profiles with customization
 PROFILES = {
@@ -66,6 +65,17 @@ def project_cli():
 
 
 @project_cli.command()
+@command_metadata(
+    category="project",
+    description="Set your Bengal working profile / persona",
+    examples=[
+        "bengal project profile dev",
+        "bengal project profile writer",
+    ],
+    requires_site=False,
+    tags=["project", "config", "quick"],
+)
+@handle_cli_errors(show_art=False)
 @click.argument("profile_name", required=False)
 def profile(profile_name: str) -> None:
     """
@@ -82,72 +92,75 @@ def profile(profile_name: str) -> None:
         bengal project profile dev       # Switch to developer profile
         bengal project profile writer    # Switch to content writer profile
     """
-    cli = CLIOutput()
+    cli = get_cli_output()
 
-    try:
-        profile_path = Path(".bengal-profile")
+    profile_path = Path(".bengal-profile")
 
-        # List available profiles
-        if profile_name is None:
-            current_profile = None
-            if profile_path.exists():
-                current_profile = profile_path.read_text().strip()
+    # List available profiles
+    if profile_name is None:
+        current_profile = None
+        if profile_path.exists():
+            current_profile = profile_path.read_text().strip()
 
-            cli.blank()
-            cli.header("👤 Available Profiles")
-            cli.blank()
-
-            for profile_key, profile_info in PROFILES.items():
-                marker = "✓ " if profile_key == current_profile else "  "
-                profile_line = f"{marker}{profile_info['emoji']} {profile_info['name']} - {profile_info['description']}"
-                cli.detail(profile_line, indent=1)
-
-            if current_profile:
-                cli.blank()
-                cli.success(f"📍 Current: {PROFILES[current_profile]['name']}")
-            else:
-                cli.blank()
-                cli.warning("📍 Current: (not set)")
-
-            cli.blank()
-            cli.info("Usage: bengal project profile <dev|themer|writer|ai>")
-            cli.blank()
-            return
-
-        # Validate profile
-        if profile_name not in PROFILES:
-            cli.error(f"✗ Unknown profile: {profile_name}")
-            cli.warning(f"Available: {', '.join(PROFILES.keys())}")
-            raise click.Abort()
-
-        # Save profile
-        from bengal.utils.atomic_write import atomic_write_text
-
-        atomic_write_text(profile_path, profile_name)
-
-        profile_info = PROFILES[profile_name]
         cli.blank()
-        cli.success(f"✓ Profile set to: {profile_info['emoji']} {profile_info['name']}")
-        cli.detail(profile_info["description"], indent=1)
+        cli.header("👤 Available Profiles")
         cli.blank()
 
-        # Show what changed
-        cli.header("💡 This affects:")
-        cli.tip(f"Output format:    {profile_info['output_format'].upper()}")
-        cli.tip(f"Verbosity level:  {profile_info['verbosity'].upper()}")
-        cli.tip(f"Build profile:    {profile_info['default_build_profile']}")
-        if not profile_info["show_all_commands"]:
-            cli.tip("Commands shown:   Simplified (use --all for full)")
-        cli.blank()
+        for profile_key, profile_info in PROFILES.items():
+            marker = "✓ " if profile_key == current_profile else "  "
+            profile_line = f"{marker}{profile_info['emoji']} {profile_info['name']} - {profile_info['description']}"
+            cli.detail(profile_line, indent=1)
 
-    except click.Abort:
-        raise
-    except Exception as e:
-        show_error(f"Profile error: {e}", show_art=False)
-        raise click.Abort() from e
+        if current_profile:
+            cli.blank()
+            cli.success(f"📍 Current: {PROFILES[current_profile]['name']}")
+        else:
+            cli.blank()
+            cli.warning("📍 Current: (not set)")
+
+        cli.blank()
+        cli.info("Usage: bengal project profile <dev|themer|writer|ai>")
+        cli.blank()
+        return
+
+    # Validate profile
+    if profile_name not in PROFILES:
+        cli.error(f"✗ Unknown profile: {profile_name}")
+        cli.warning(f"Available: {', '.join(PROFILES.keys())}")
+        raise click.Abort()
+
+    # Save profile
+    from bengal.utils.atomic_write import atomic_write_text
+
+    atomic_write_text(profile_path, profile_name)
+
+    profile_info = PROFILES[profile_name]
+    cli.blank()
+    cli.success(f"✓ Profile set to: {profile_info['emoji']} {profile_info['name']}")
+    cli.detail(profile_info["description"], indent=1)
+    cli.blank()
+
+    # Show what changed
+    cli.header("💡 This affects:")
+    cli.tip(f"Output format:    {profile_info['output_format'].upper()}")
+    cli.tip(f"Verbosity level:  {profile_info['verbosity'].upper()}")
+    cli.tip(f"Build profile:    {profile_info['default_build_profile']}")
+    if not profile_info["show_all_commands"]:
+        cli.tip("Commands shown:   Simplified (use --all for full)")
+    cli.blank()
 
 
 @project_cli.command()
+@command_metadata(
+    category="project",
+    description="Validate Bengal project configuration and structure",
+    examples=[
+        "bengal project validate",
+    ],
+    requires_site=False,
+    tags=["project", "validation", "ci"],
+)
+@handle_cli_errors(show_art=False)
 def validate() -> None:
     """
     ✓ Validate Bengal project configuration and structure.
@@ -159,92 +172,95 @@ def validate() -> None:
         ✓ Theme configuration
         ✓ Content files parseable
     """
-    cli = CLIOutput()
+    cli = get_cli_output()
 
-    try:
-        import tomllib
-        from pathlib import Path
+    import tomllib
+    from pathlib import Path
 
-        config_path = Path("bengal.toml")
+    config_path = Path("bengal.toml")
 
-        cli.blank()
-        cli.header("🔍 Validating Bengal project...")
-        cli.blank()
+    cli.blank()
+    cli.header("🔍 Validating Bengal project...")
+    cli.blank()
 
-        errors = []
-        warnings = []
-        checks_passed = 0
+    errors = []
+    warnings = []
+    checks_passed = 0
 
-        # Check 1: Config file exists
-        if not config_path.exists():
-            errors.append("bengal.toml not found in current directory")
+    # Check 1: Config file exists
+    if not config_path.exists():
+        errors.append("bengal.toml not found in current directory")
+    else:
+        checks_passed += 1
+        cli.success("   ✓ bengal.toml found")
+
+        # Check 2: Config is valid TOML
+        try:
+            with open(config_path, "rb") as f:
+                config = tomllib.load(f)
+            checks_passed += 1
+            cli.success("   ✓ bengal.toml is valid")
+        except Exception as e:
+            errors.append(f"bengal.toml parse error: {e}")
+            config = {}
+
+        # Check 3: Required fields
+        site_config = config.get("site", {})
+        required_fields = ["title", "baseurl"]
+        missing = [f for f in required_fields if f not in site_config]
+
+        if missing:
+            warnings.append(f"Missing recommended fields: {', '.join(missing)}")
         else:
             checks_passed += 1
-            cli.success("   ✓ bengal.toml found")
+            cli.success("   ✓ Required fields present")
 
-            # Check 2: Config is valid TOML
-            try:
-                with open(config_path, "rb") as f:
-                    config = tomllib.load(f)
-                checks_passed += 1
-                cli.success("   ✓ bengal.toml is valid")
-            except Exception as e:
-                errors.append(f"bengal.toml parse error: {e}")
-                config = {}
+        # Check 4: Theme configured
+        theme = site_config.get("theme", "default")
+        checks_passed += 1
+        cli.success(f"   ✓ Theme configured: {theme}")
 
-            # Check 3: Required fields
-            site_config = config.get("site", {})
-            required_fields = ["title", "baseurl"]
-            missing = [f for f in required_fields if f not in site_config]
+    # Check 5: Directory structure
+    required_dirs = ["content", "templates", "assets"]
+    missing_dirs = [d for d in required_dirs if not Path(d).exists()]
 
-            if missing:
-                warnings.append(f"Missing recommended fields: {', '.join(missing)}")
-            else:
-                checks_passed += 1
-                cli.success("   ✓ Required fields present")
+    if missing_dirs:
+        warnings.append(f"Missing directories: {', '.join(missing_dirs)}")
+    else:
+        checks_passed += 1
+        cli.success("   ✓ Directory structure valid")
 
-            # Check 4: Theme configured
-            theme = site_config.get("theme", "default")
-            checks_passed += 1
-            cli.success(f"   ✓ Theme configured: {theme}")
-
-        # Check 5: Directory structure
-        required_dirs = ["content", "templates", "assets"]
-        missing_dirs = [d for d in required_dirs if not Path(d).exists()]
-
-        if missing_dirs:
-            warnings.append(f"Missing directories: {', '.join(missing_dirs)}")
-        else:
-            checks_passed += 1
-            cli.success("   ✓ Directory structure valid")
-
-        # Summary
+    # Summary
+    cli.blank()
+    if errors:
+        cli.error("❌ Validation FAILED")
+        for error in errors:
+            cli.error(f"   ✗ {error}")
         cli.blank()
-        if errors:
-            cli.error("❌ Validation FAILED")
-            for error in errors:
-                cli.error(f"   ✗ {error}")
-            cli.blank()
-            raise click.Abort()
+        raise click.Abort()
 
-        if warnings:
-            cli.warning("⚠️  Validation passed with warnings")
-            for warning in warnings:
-                cli.warning(f"   ⚠️  {warning}")
-        else:
-            cli.success("✅ Validation passed!")
+    if warnings:
+        cli.warning("⚠️  Validation passed with warnings")
+        for warning in warnings:
+            cli.warning(f"   ⚠️  {warning}")
+    else:
+        cli.success("✅ Validation passed!")
 
-        cli.success(f"\n   {checks_passed} checks passed")
-        cli.blank()
-
-    except Exception as e:
-        if isinstance(e, click.Abort):
-            raise
-        show_error(f"Validation error: {e}", show_art=False)
-        raise click.Abort() from e
+    cli.success(f"\n   {checks_passed} checks passed")
+    cli.blank()
 
 
 @project_cli.command()
+@command_metadata(
+    category="project",
+    description="Display project information and statistics",
+    examples=[
+        "bengal project info",
+    ],
+    requires_site=False,
+    tags=["project", "info", "quick"],
+)
+@handle_cli_errors(show_art=False)
 def info() -> None:
     """
     ℹ️  Display project information and statistics.
@@ -255,24 +271,23 @@ def info() -> None:
         - Asset counts
         - Configuration paths
     """
-    cli = CLIOutput()
+    cli = get_cli_output()
 
-    try:
-        import tomllib
-        from pathlib import Path
+    import tomllib
+    from pathlib import Path
 
-        config_path = Path("bengal.toml")
+    config_path = Path("bengal.toml")
 
-        cli.blank()
-        cli.header("📊 Project Information", trailing_blank=False)
+    cli.blank()
+    cli.header("📊 Project Information", trailing_blank=False)
 
-        # Load config
-        if not config_path.exists():
-            show_error("bengal.toml not found. Run 'bengal project init' first.", show_art=True)
-            raise click.Abort()
+    # Load config
+    if not config_path.exists():
+        cli.error("bengal.toml not found. Run 'bengal project init' first.")
+        raise click.Abort()
 
-        with open(config_path, "rb") as f:
-            config = tomllib.load(f)
+    with open(config_path, "rb") as f:
+        config = tomllib.load(f)
 
         site_config = config.get("site", {})
         build_config = config.get("build", {})
@@ -331,16 +346,22 @@ def info() -> None:
             cli.info(f"  Templates: {len(templates)}")
             cli.info(f"  Partials:  {len(partials)}")
 
-        cli.blank()
-
-    except click.Abort:
-        raise
-    except Exception as e:
-        show_error(f"Error reading project info: {e}", show_art=False)
-        raise click.Abort() from e
+    cli.blank()
 
 
 @project_cli.command()
+@command_metadata(
+    category="project",
+    description="Manage Bengal configuration",
+    examples=[
+        "bengal project config",
+        "bengal project config site.title",
+        "bengal project config site.title 'My Blog' --set",
+    ],
+    requires_site=False,
+    tags=["project", "config", "quick"],
+)
+@handle_cli_errors(show_art=False)
 @click.argument("key", required=False)
 @click.argument("value", required=False)
 @click.option("--set", "set_value", flag_value=True, help="Set a configuration value")
@@ -355,20 +376,19 @@ def config(key: str, value: str, set_value: bool, list_all: bool) -> None:
         bengal project config site.title "My Blog" --set  # Set value
         bengal project config --list             # List all options
     """
-    cli = CLIOutput()
+    cli = get_cli_output()
 
-    try:
-        import tomllib
-        from pathlib import Path
+    import tomllib
+    from pathlib import Path
 
-        config_path = Path("bengal.toml")
+    config_path = Path("bengal.toml")
 
-        if not config_path.exists():
-            show_error("bengal.toml not found. Run 'bengal project init' first.", show_art=True)
-            raise click.Abort()
+    if not config_path.exists():
+        cli.error("bengal.toml not found. Run 'bengal project init' first.")
+        raise click.Abort()
 
-        with open(config_path, "rb") as f:
-            config = tomllib.load(f)
+    with open(config_path, "rb") as f:
+        config = tomllib.load(f)
 
         # Show all options
         if list_all:
@@ -422,7 +442,7 @@ def config(key: str, value: str, set_value: bool, list_all: bool) -> None:
 
         # Set value
         if not value:
-            show_error("Value required for --set flag", show_art=False)
+            cli.error("Value required for --set flag")
             raise click.Abort()
 
         # Navigate to parent and set
@@ -460,12 +480,6 @@ def config(key: str, value: str, set_value: bool, list_all: bool) -> None:
 
         cli.success(f"✓ Set {key} = {value}")
         cli.blank()
-
-    except click.Abort:
-        raise
-    except Exception as e:
-        show_error(f"Config error: {e}", show_art=False)
-        raise click.Abort() from e
 
 
 project_cli.add_command(init)

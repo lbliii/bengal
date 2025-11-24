@@ -143,7 +143,7 @@ def _safe_list_module_exports(module_path: str) -> list[str]:
     exports: list[str] = []
     try:
         mod = __import__(module_path, fromlist=["*"])
-        if hasattr(mod, "__all__") and isinstance(mod.__all__, (list, tuple)):
+        if hasattr(mod, "__all__") and isinstance(mod.__all__, list | tuple):
             exports = [str(x) for x in mod.__all__]
         else:
             exports = [n for n in dir(mod) if not n.startswith("_")]

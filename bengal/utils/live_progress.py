@@ -5,7 +5,6 @@ Provides in-place progress updates that minimize terminal scrolling
 while showing appropriate detail for each user profile.
 """
 
-
 from __future__ import annotations
 
 import time
@@ -123,12 +122,13 @@ class LiveProgressManager:
             self.use_live = False
 
         # Throttle rendering to reduce overhead during very frequent updates.
-        # Default to ~5 Hz if not configured via profile live_progress.min_interval_ms
-        min_interval_ms = self.live_config.get("min_interval_ms", 200)
+        # Default to ~2 Hz (500ms) for better performance (was 200ms/5Hz)
+        # This reduces Rich rendering overhead while still providing smooth progress feedback
+        min_interval_ms = self.live_config.get("min_interval_ms", 500)
         try:
             self._min_render_interval_sec = max(0.0, float(min_interval_ms) / 1000.0)
         except Exception:
-            self._min_render_interval_sec = 0.2
+            self._min_render_interval_sec = 0.5
         self._last_render_ts: float = 0.0
 
         # Track last printed state for fallback

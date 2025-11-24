@@ -151,9 +151,6 @@ Details.
             assert "Section 1" in toc or "Section 2" in toc
 
 
-@pytest.mark.skip(
-    reason="Admonitions work in production builds but need pattern adjustment for tests"
-)
 class TestAdmonitions:
     """Test custom admonition plugin."""
 
@@ -163,10 +160,10 @@ class TestAdmonitions:
         return MistuneParser()
 
     def test_note_admonition(self, parser):
-        """Test note admonition."""
-        # Must have proper indentation (4 spaces)
-        content = """!!! note "Important Note"
-    This is a note with **markdown** support.
+        """Test note admonition using fenced code block syntax."""
+        content = """```{note} Important Note
+This is a note with **markdown** support.
+```
 """
         result = parser.parse(content, {})
 
@@ -177,8 +174,9 @@ class TestAdmonitions:
 
     def test_warning_admonition(self, parser):
         """Test warning admonition."""
-        content = """!!! warning "Be Careful"
-    This is a warning.
+        content = """```{warning} Be Careful
+This is a warning.
+```
 """
         result = parser.parse(content, {})
 
@@ -188,8 +186,9 @@ class TestAdmonitions:
 
     def test_admonition_without_title(self, parser):
         """Test admonition without explicit title."""
-        content = """!!! tip
-    Here's a tip!
+        content = """```{tip}
+Here's a tip!
+```
 """
         result = parser.parse(content, {})
 
@@ -201,8 +200,9 @@ class TestAdmonitions:
         types = ["note", "warning", "danger", "tip", "info", "example", "success"]
 
         for admon_type in types:
-            content = f"""!!! {admon_type} "Title"
-    Content here.
+            content = f"""```{{{admon_type}}} Title
+Content here.
+```
 """
             result = parser.parse(content, {})
             assert "admonition" in result

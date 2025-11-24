@@ -50,8 +50,8 @@ from bengal.utils.traceback_config import TracebackStyle
 @click.option(
     "--environment",
     "-e",
-    type=str,
-    help="Environment name (local, preview, production) - defaults to 'local' for dev server",
+    type=click.Choice(["local", "preview", "production"], case_sensitive=False),
+    help="Environment name (defaults to 'local' for dev server)",
 )
 @click.option(
     "--profile",

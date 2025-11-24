@@ -8,12 +8,11 @@ from pathlib import Path
 import click
 
 from bengal.cli.base import BengalGroup
-from bengal.cli.helpers import command_metadata, get_cli_output
+from bengal.cli.helpers import command_metadata, get_cli_output, handle_cli_errors
 from bengal.cli.site_templates import get_template
 
 # Add these imports
 from bengal.utils.atomic_write import atomic_write_text
-from bengal.utils.build_stats import show_error
 from bengal.utils.cli_output import CLIOutput
 
 # Preset definitions for wizard
@@ -380,6 +379,7 @@ def new() -> None:
     requires_site=False,
     tags=["setup", "quick", "content"],
 )
+@handle_cli_errors(show_art=False)
 @click.argument("name", required=False)
 @click.option("--theme", default="default", help="Theme to use")
 @click.option(
@@ -414,32 +414,29 @@ def site(name: str, theme: str, template: str, no_init: bool, init_preset: str) 
     """
     cli = get_cli_output()
 
-    try:
-        # Prompt for site name if not provided
+    # Prompt for site name if not provided
+    if not name:
+        cli.blank()
+        cli.header("🏗️  Create a new Bengal site")
+        name = cli.prompt("Enter site name")
         if not name:
-            cli.blank()
-            cli.header("🏗️  Create a new Bengal site")
-            name = cli.prompt("Enter site name")
-            if not name:
-                cli.warning("✨ Cancelled.")
-                raise click.Abort()
-
-        # Store the original name for site title and slugify for directory
-        site_title = name.strip()
-        site_dir_name = _slugify(site_title)
-
-        # Validate that slugified name is not empty
-        if not site_dir_name:
-            show_error(
-                "Site name must contain at least one alphanumeric character!", show_art=False
-            )
+            cli.warning("✨ Cancelled.")
             raise click.Abort()
 
-        site_path = Path(site_dir_name)
+    # Store the original name for site title and slugify for directory
+    site_title = name.strip()
+    site_dir_name = _slugify(site_title)
 
-        if site_path.exists():
-            show_error(f"Directory {site_dir_name} already exists!", show_art=False)
-            raise click.Abort()
+    # Validate that slugified name is not empty
+    if not site_dir_name:
+        cli.error("Site name must contain at least one alphanumeric character!")
+        raise click.Abort()
+
+    site_path = Path(site_dir_name)
+
+    if site_path.exists():
+        cli.error(f"Directory {site_dir_name} already exists!")
+        raise click.Abort()
 
         # Determine effective template
         effective_template = template
@@ -584,10 +581,6 @@ Thumbs.db
         cli.tip("   • Run 'bengal config show' to see merged config")
         cli.blank()
 
-    except Exception as e:
-        show_error(f"Failed to create site: {e}", show_art=False)
-        raise click.Abort() from e
-
 
 def _slugify(text: str) -> str:
     """
@@ -625,6 +618,17 @@ def _slugify(text: str) -> str:
 
 
 @new.command()
+@command_metadata(
+    category="content",
+    description="Create a new page",
+    examples=[
+        "bengal new page my-page",
+        "bengal new page 'My Page' --section blog",
+    ],
+    requires_site=True,
+    tags=["content", "quick"],
+)
+@handle_cli_errors(show_art=False)
 @click.argument("name")
 @click.option("--section", default="", help="Section to create page in")
 def page(name: str, section: str) -> None:
@@ -636,32 +640,31 @@ def page(name: str, section: str) -> None:
     """
     cli = get_cli_output()
 
-    try:
-        # Ensure we're in a Bengal site
-        content_dir = Path("content")
-        if not content_dir.exists():
-            show_error("Not in a Bengal site directory!", show_art=False)
-            raise click.Abort()
+    # Ensure we're in a Bengal site
+    content_dir = Path("content")
+    if not content_dir.exists():
+        cli.error("Not in a Bengal site directory!")
+        raise click.Abort()
 
-        # Slugify the name for filename
-        slug = _slugify(name)
+    # Slugify the name for filename
+    slug = _slugify(name)
 
-        # Use original name for title (capitalize properly)
-        title = name.replace("-", " ").title()
+    # Use original name for title (capitalize properly)
+    title = name.replace("-", " ").title()
 
-        # Determine page path
-        if section:
-            page_dir = content_dir / section
-            page_dir.mkdir(parents=True, exist_ok=True)
-        else:
-            page_dir = content_dir
+    # Determine page path
+    if section:
+        page_dir = content_dir / section
+        page_dir.mkdir(parents=True, exist_ok=True)
+    else:
+        page_dir = content_dir
 
-        # Create page file with slugified name
-        page_path = page_dir / f"{slug}.md"
+    # Create page file with slugified name
+    page_path = page_dir / f"{slug}.md"
 
-        if page_path.exists():
-            show_error(f"Page {page_path} already exists!", show_art=False)
-            raise click.Abort()
+    if page_path.exists():
+        cli.error(f"Page {page_path} already exists!")
+        raise click.Abort()
 
         # Create page content with current timestamp
         page_content = f"""---
@@ -682,10 +685,6 @@ Your content goes here.
         cli.success(f"✨ Created new page: {page_path}")
         cli.blank()
 
-    except Exception as e:
-        show_error(f"Failed to create page: {e}", show_art=False)
-        raise click.Abort() from e
-
 
 @new.command()
 @command_metadata(
@@ -698,6 +697,7 @@ Your content goes here.
     requires_site=True,
     tags=["templates", "theming"],
 )
+@handle_cli_errors(show_art=False)
 @click.argument("name", required=False)
 def layout(name: str) -> None:
     """
@@ -712,28 +712,27 @@ def layout(name: str) -> None:
     """
     cli = get_cli_output()
 
-    try:
-        # Ensure we're in a Bengal site
-        templates_dir = Path("templates")
-        if not templates_dir.exists():
-            show_error("Not in a Bengal site directory!", show_art=False)
-            raise click.Abort()
+    # Ensure we're in a Bengal site
+    templates_dir = Path("templates")
+    if not templates_dir.exists():
+        cli.error("Not in a Bengal site directory!")
+        raise click.Abort()
 
+    if not name:
+        name = cli.prompt("Enter layout name")
         if not name:
-            name = cli.prompt("Enter layout name")
-            if not name:
-                cli.warning("✨ Cancelled.")
-                raise click.Abort()
-
-        # Slugify the name for filename
-        slug = _slugify(name)
-        layout_dir = templates_dir / "layouts"
-        layout_dir.mkdir(parents=True, exist_ok=True)
-        layout_path = layout_dir / f"{slug}.html"
-
-        if layout_path.exists():
-            show_error(f"Layout {layout_path} already exists!", show_art=False)
+            cli.warning("✨ Cancelled.")
             raise click.Abort()
+
+    # Slugify the name for filename
+    slug = _slugify(name)
+    layout_dir = templates_dir / "layouts"
+    layout_dir.mkdir(parents=True, exist_ok=True)
+    layout_path = layout_dir / f"{slug}.html"
+
+    if layout_path.exists():
+        cli.error(f"Layout {layout_path} already exists!")
+        raise click.Abort()
 
         # Create layout template
         layout_content = """{% extends "base.html" %}
@@ -752,10 +751,6 @@ def layout(name: str) -> None:
         cli.info(f"   └─ Extend this in pages with: layout: {slug}")
         cli.blank()
 
-    except Exception as e:
-        show_error(f"Failed to create layout: {e}", show_art=False)
-        raise click.Abort() from e
-
 
 @new.command()
 @command_metadata(
@@ -768,6 +763,7 @@ def layout(name: str) -> None:
     requires_site=True,
     tags=["templates", "theming"],
 )
+@handle_cli_errors(show_art=False)
 @click.argument("name", required=False)
 def partial(name: str) -> None:
     """
@@ -782,28 +778,27 @@ def partial(name: str) -> None:
     """
     cli = get_cli_output()
 
-    try:
-        # Ensure we're in a Bengal site
-        templates_dir = Path("templates")
-        if not templates_dir.exists():
-            show_error("Not in a Bengal site directory!", show_art=False)
-            raise click.Abort()
+    # Ensure we're in a Bengal site
+    templates_dir = Path("templates")
+    if not templates_dir.exists():
+        cli.error("Not in a Bengal site directory!")
+        raise click.Abort()
 
+    if not name:
+        name = cli.prompt("Enter partial name")
         if not name:
-            name = cli.prompt("Enter partial name")
-            if not name:
-                cli.warning("✨ Cancelled.")
-                raise click.Abort()
-
-        # Slugify the name for filename
-        slug = _slugify(name)
-        partial_dir = templates_dir / "partials"
-        partial_dir.mkdir(parents=True, exist_ok=True)
-        partial_path = partial_dir / f"{slug}.html"
-
-        if partial_path.exists():
-            show_error(f"Partial {partial_path} already exists!", show_art=False)
+            cli.warning("✨ Cancelled.")
             raise click.Abort()
+
+    # Slugify the name for filename
+    slug = _slugify(name)
+    partial_dir = templates_dir / "partials"
+    partial_dir.mkdir(parents=True, exist_ok=True)
+    partial_path = partial_dir / f"{slug}.html"
+
+    if partial_path.exists():
+        cli.error(f"Partial {partial_path} already exists!")
+        raise click.Abort()
 
         # Create partial template
         partial_content = (
@@ -830,10 +825,6 @@ def partial(name: str) -> None:
         cli.info(f'   └─ Include in templates with: {{% include "partials/{slug}.html" %}}')
         cli.blank()
 
-    except Exception as e:
-        show_error(f"Failed to create partial: {e}", show_art=False)
-        raise click.Abort() from e
-
 
 @new.command()
 @command_metadata(
@@ -845,6 +836,7 @@ def partial(name: str) -> None:
     requires_site=False,
     tags=["templates", "theming", "setup"],
 )
+@handle_cli_errors(show_art=False)
 @click.argument("name", required=False)
 def theme(name: str) -> None:
     """
@@ -859,24 +851,23 @@ def theme(name: str) -> None:
     """
     cli = get_cli_output()
 
-    try:
+    if not name:
+        name = cli.prompt("Enter theme name")
         if not name:
-            name = cli.prompt("Enter theme name")
-            if not name:
-                cli.warning("✨ Cancelled.")
-                raise click.Abort()
-
-        # Slugify the name for directory
-        slug = _slugify(name)
-
-        # Determine if we're in a site or creating standalone
-        in_site = Path("content").exists() and Path("bengal.toml").exists()
-
-        theme_path = (Path("themes") / slug) if in_site else Path(slug)
-
-        if theme_path.exists():
-            show_error(f"Theme directory {theme_path} already exists!", show_art=False)
+            cli.warning("✨ Cancelled.")
             raise click.Abort()
+
+    # Slugify the name for directory
+    slug = _slugify(name)
+
+    # Determine if we're in a site or creating standalone
+    in_site = Path("content").exists() and Path("bengal.toml").exists()
+
+    theme_path = (Path("themes") / slug) if in_site else Path(slug)
+
+    if theme_path.exists():
+        cli.error(f"Theme directory {theme_path} already exists!")
+        raise click.Abort()
 
         # Create theme directory structure
         theme_path.mkdir(parents=True)
@@ -1070,7 +1061,3 @@ document.addEventListener('DOMContentLoaded', function() {
             cli.tip("Add to pyproject.toml for distribution")
             cli.tip("pip install -e .")
         cli.blank()
-
-    except Exception as e:
-        show_error(f"Failed to create theme: {e}", show_art=False)
-        raise click.Abort() from e

@@ -379,45 +379,6 @@ class TestDoGetIntegrationMinimal:
             )
         return handler
 
-    @pytest.mark.skip(
-        reason="Phase 3: live reload now handled via template includes, not runtime injection"
-    )
-    def test_do_get_injects_for_html(self, tmp_path, monkeypatch):
-        """HTML responses should be injected with live reload script."""
-        # Create test file
-        (tmp_path / "index.html").write_text("<html><body>Test</body></html>")
-
-        # Create mock server with directory
-        mock_server = Mock()
-        mock_server.directory = str(tmp_path)
-
-        # Create handler
-        request = Mock()
-        request.makefile = Mock(side_effect=lambda *args, **kwargs: BytesIO(b""))
-        handler = BengalRequestHandler(
-            request=request, client_address=("127.0.0.1", 12345), server=mock_server
-        )
-        handler.requestline = "GET /index.html HTTP/1.1"
-        handler.path = "/index.html"
-        output = BytesIO()
-        handler.wfile = output
-
-        # Monkeypatch to avoid actual handle, but since we set directory, it should work
-        # But to control, mock translate_path to return the file
-        def fake_translate_path(self, path):
-            return str(tmp_path / path.lstrip("/"))
-
-        monkeypatch.setattr(BengalRequestHandler, "translate_path", fake_translate_path)
-
-        # Execute
-        handler.do_GET()
-        result = output.getvalue().decode("utf-8", errors="replace")
-
-        # Verify server-injected live reload script is present
-        assert "__bengal_reload__" in result
-        assert "Bengal Live Reload" in result  # Comment from injected script
-        assert "Test" in result  # Original content preserved
-
     def test_do_get_bypasses_non_html(self, monkeypatch):
         """Non-HTML responses should not be modified or injected."""
         handler = self._make_handler()

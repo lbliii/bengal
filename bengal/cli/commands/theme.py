@@ -8,8 +8,12 @@ from pathlib import Path
 import click
 
 from bengal.cli.base import BengalGroup
-from bengal.core.site import Site
-from bengal.utils.cli_output import CLIOutput
+from bengal.cli.helpers import (
+    command_metadata,
+    get_cli_output,
+    handle_cli_errors,
+    load_site_from_cli,
+)
 from bengal.utils.swizzle import SwizzleManager
 from bengal.utils.theme_registry import get_installed_themes, get_theme_package
 
@@ -21,23 +25,68 @@ def theme() -> None:
 
 
 @theme.command()
+@command_metadata(
+    category="theming",
+    description="Copy a theme template/partial to project templates",
+    examples=[
+        "bengal theme swizzle layouts/article.html",
+        "bengal theme swizzle partials/header.html",
+    ],
+    requires_site=True,
+    tags=["theming", "templates", "quick"],
+)
+@handle_cli_errors(show_art=False)
 @click.argument("template_path")
 @click.argument("source", type=click.Path(exists=True), default=".")
 def swizzle(template_path: str, source: str) -> None:
-    """Copy a theme template/partial to project templates/ and track provenance."""
-    cli = CLIOutput()
-    site = Site.from_config(Path(source).resolve())
+    """
+    🎨 Copy a theme template/partial to project templates.
+
+    Swizzling copies a template from the active theme to your project's
+    templates/ directory, allowing you to customize it while tracking
+    provenance for future updates.
+
+    Examples:
+        bengal theme swizzle layouts/article.html
+        bengal theme swizzle partials/header.html
+
+    See also:
+        bengal theme swizzle-list - List swizzled templates
+        bengal theme swizzle-update - Update swizzled templates
+    """
+    cli = get_cli_output()
+    site = load_site_from_cli(source=source, config=None, environment=None, profile=None, cli=cli)
     mgr = SwizzleManager(site)
     dest = mgr.swizzle(template_path)
     cli.success(f"✓ Swizzled to {dest}")
 
 
 @theme.command("swizzle-list")
+@command_metadata(
+    category="theming",
+    description="List swizzled templates",
+    examples=["bengal theme swizzle-list"],
+    requires_site=True,
+    tags=["theming", "info", "quick"],
+)
+@handle_cli_errors(show_art=False)
 @click.argument("source", type=click.Path(exists=True), default=".")
 def swizzle_list(source: str) -> None:
-    """List swizzled templates."""
-    cli = CLIOutput()
-    site = Site.from_config(Path(source).resolve())
+    """
+    📋 List swizzled templates.
+
+    Shows all templates that have been copied from themes to your project,
+    along with their source theme for tracking.
+
+    Examples:
+        bengal theme swizzle-list
+
+    See also:
+        bengal theme swizzle - Copy a template from theme
+        bengal theme swizzle-update - Update swizzled templates
+    """
+    cli = get_cli_output()
+    site = load_site_from_cli(source=source, config=None, environment=None, profile=None, cli=cli)
     mgr = SwizzleManager(site)
     records = mgr.list()
     if not records:
@@ -48,11 +97,31 @@ def swizzle_list(source: str) -> None:
 
 
 @theme.command("swizzle-update")
+@command_metadata(
+    category="theming",
+    description="Update swizzled templates if unchanged locally",
+    examples=["bengal theme swizzle-update"],
+    requires_site=True,
+    tags=["theming", "maintenance"],
+)
+@handle_cli_errors(show_art=False)
 @click.argument("source", type=click.Path(exists=True), default=".")
 def swizzle_update(source: str) -> None:
-    """Update swizzled templates if unchanged locally."""
-    cli = CLIOutput()
-    site = Site.from_config(Path(source).resolve())
+    """
+    🔄 Update swizzled templates if unchanged locally.
+
+    Checks swizzled templates and updates them from the theme if you haven't
+    modified them locally. Templates you've customized are skipped.
+
+    Examples:
+        bengal theme swizzle-update
+
+    See also:
+        bengal theme swizzle - Copy a template from theme
+        bengal theme swizzle-list - List swizzled templates
+    """
+    cli = get_cli_output()
+    site = load_site_from_cli(source=source, config=None, environment=None, profile=None, cli=cli)
     mgr = SwizzleManager(site)
     summary = mgr.update()
     cli.info(
@@ -61,11 +130,33 @@ def swizzle_update(source: str) -> None:
 
 
 @theme.command("list")
+@command_metadata(
+    category="theming",
+    description="List available themes (project, installed, bundled)",
+    examples=["bengal theme list"],
+    requires_site=True,
+    tags=["theming", "info", "quick"],
+)
+@handle_cli_errors(show_art=False)
 @click.argument("source", type=click.Path(exists=True), default=".")
 def list_themes(source: str) -> None:
-    """List available themes (project, installed, bundled)."""
-    cli = CLIOutput()
-    site = Site.from_config(Path(source).resolve())
+    """
+    📋 List available themes.
+
+    Shows themes from three sources:
+    - Project themes: themes/ directory in your site
+    - Installed themes: Themes installed via pip/uv
+    - Bundled themes: Themes included with Bengal
+
+    Examples:
+        bengal theme list
+
+    See also:
+        bengal theme info - Show details about a specific theme
+        bengal theme install - Install a theme package
+    """
+    cli = get_cli_output()
+    site = load_site_from_cli(source=source, config=None, environment=None, profile=None, cli=cli)
 
     # Project themes
     themes_dir = site.root_path / "themes"
@@ -112,12 +203,34 @@ def list_themes(source: str) -> None:
 
 
 @theme.command("info")
+@command_metadata(
+    category="theming",
+    description="Show theme info for a slug (source, version, paths)",
+    examples=["bengal theme info default"],
+    requires_site=True,
+    tags=["theming", "info", "quick"],
+)
+@handle_cli_errors(show_art=False)
 @click.argument("slug")
 @click.argument("source", type=click.Path(exists=True), default=".")
 def info(slug: str, source: str) -> None:
-    """Show theme info for a slug (source, version, paths)."""
-    cli = CLIOutput()
-    site = Site.from_config(Path(source).resolve())
+    """
+    ℹ️  Show theme info for a slug.
+
+    Displays information about a theme including:
+    - Source location (project, installed, or bundled)
+    - Version (if installed)
+    - Template and asset paths
+
+    Examples:
+        bengal theme info default
+        bengal theme info my-theme
+
+    See also:
+        bengal theme list - List all available themes
+    """
+    cli = get_cli_output()
+    site = load_site_from_cli(source=source, config=None, environment=None, profile=None, cli=cli)
     cli.header(f"Theme: {slug}")
 
     # Project theme
@@ -148,11 +261,30 @@ def info(slug: str, source: str) -> None:
 
 
 @theme.command("discover")
+@command_metadata(
+    category="theming",
+    description="List swizzlable templates from the active theme chain",
+    examples=["bengal theme discover"],
+    requires_site=True,
+    tags=["theming", "info"],
+)
+@handle_cli_errors(show_art=False)
 @click.argument("source", type=click.Path(exists=True), default=".")
 def discover(source: str) -> None:
-    """List swizzlable templates from the active theme chain."""
-    cli = CLIOutput()
-    site = Site.from_config(Path(source).resolve())
+    """
+    🔍 List swizzlable templates from the active theme chain.
+
+    Shows all templates available in your active theme(s) that can be
+    swizzled (copied) to your project for customization.
+
+    Examples:
+        bengal theme discover
+
+    See also:
+        bengal theme swizzle - Copy a template from theme
+    """
+    cli = get_cli_output()
+    site = load_site_from_cli(source=source, config=None, environment=None, profile=None, cli=cli)
     from bengal.rendering.template_engine import TemplateEngine
 
     engine = TemplateEngine(site)
@@ -167,15 +299,34 @@ def discover(source: str) -> None:
 
 
 @theme.command("install")
+@command_metadata(
+    category="theming",
+    description="Install a theme via uv pip",
+    examples=[
+        "bengal theme install bengal-theme-minimal",
+        "bengal theme install minimal --force",
+    ],
+    requires_site=False,
+    tags=["theming", "setup"],
+)
+@handle_cli_errors(show_art=False)
 @click.argument("name")
 @click.option("--force", is_flag=True, help="Install even if name is non-canonical")
 def install(name: str, force: bool) -> None:
-    """Install a theme via uv pip.
-
-    NAME may be a package or a slug. If a slug without prefix is provided,
-    suggest canonical 'bengal-theme-<slug>'.
     """
-    cli = CLIOutput()
+    📦 Install a theme via uv pip.
+
+    Installs a theme package from PyPI. NAME may be a package name or a slug.
+    If a slug without prefix is provided, suggests canonical 'bengal-theme-<slug>'.
+
+    Examples:
+        bengal theme install bengal-theme-minimal
+        bengal theme install minimal --force
+
+    See also:
+        bengal theme list - List available themes
+    """
+    cli = get_cli_output()
     pkg = name
     is_slug = (
         "." not in name
@@ -225,6 +376,17 @@ def _sanitize_slug(slug: str) -> str:
 
 
 @theme.command("new")
+@command_metadata(
+    category="theming",
+    description="Create a new theme scaffold",
+    examples=[
+        "bengal theme new my-theme",
+        "bengal theme new my-theme --mode package",
+    ],
+    requires_site=False,
+    tags=["theming", "setup"],
+)
+@handle_cli_errors(show_art=False)
 @click.argument("slug")
 @click.option(
     "--mode",
@@ -241,10 +403,20 @@ def _sanitize_slug(slug: str) -> str:
 @click.option("--extends", default="default", help="Parent theme to extend")
 @click.option("--force", is_flag=True, help="Overwrite existing directory if present")
 def new(slug: str, mode: str, output: str, extends: str, force: bool) -> None:
-    """Create a new theme scaffold.
-
-    SLUG is the theme identifier used in config (e.g., [site].theme = SLUG).
     """
+    🎨 Create a new theme scaffold.
+
+    Creates a new theme with templates, partials, and assets. SLUG is the
+    theme identifier used in config (e.g., [site].theme = SLUG).
+
+    Examples:
+        bengal theme new my-theme
+        bengal theme new my-theme --mode package
+
+    See also:
+        bengal theme list - List available themes
+    """
+    cli = get_cli_output()
     slug = _sanitize_slug(slug)
     output_path = Path(output).resolve()
 
@@ -253,7 +425,8 @@ def new(slug: str, mode: str, output: str, extends: str, force: bool) -> None:
         site_root = output_path
         theme_dir = site_root / "themes" / slug
         if theme_dir.exists() and not force:
-            raise click.ClickException(f"{theme_dir} already exists; use --force to overwrite")
+            cli.error(f"{theme_dir} already exists; use --force to overwrite")
+            raise click.Abort()
         (theme_dir / "templates" / "partials").mkdir(parents=True, exist_ok=True)
         (theme_dir / "assets" / "css").mkdir(parents=True, exist_ok=True)
         (theme_dir / "dev" / "components").mkdir(parents=True, exist_ok=True)
@@ -279,7 +452,6 @@ def new(slug: str, mode: str, output: str, extends: str, force: bool) -> None:
             encoding="utf-8",
         )
 
-        cli = CLIOutput()
         cli.success(f"✓ Created site theme at {theme_dir}")
         return
 
@@ -288,7 +460,8 @@ def new(slug: str, mode: str, output: str, extends: str, force: bool) -> None:
     pkg_root = output_path / package_name
     theme_pkg_dir = pkg_root / "bengal_themes" / slug
     if pkg_root.exists() and not force:
-        raise click.ClickException(f"{pkg_root} already exists; use --force to overwrite")
+        cli.error(f"{pkg_root} already exists; use --force to overwrite")
+        raise click.Abort()
 
     (theme_pkg_dir / "templates" / "partials").mkdir(parents=True, exist_ok=True)
     (theme_pkg_dir / "assets" / "css").mkdir(parents=True, exist_ok=True)
@@ -336,5 +509,4 @@ def new(slug: str, mode: str, output: str, extends: str, force: bool) -> None:
         encoding="utf-8",
     )
 
-    cli = CLIOutput()
     cli.success(f"✓ Created package theme at {pkg_root}")

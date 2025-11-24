@@ -17,6 +17,7 @@ from bengal.cli.helpers import (
     cli_progress,
     configure_traceback,
     get_cli_output,
+    handle_cli_errors,
     load_site_from_cli,
 )
 from bengal.core.site import Site
@@ -32,6 +33,7 @@ def health_cli():
 
 
 @health_cli.command("linkcheck")
+@handle_cli_errors(show_art=False)
 @click.option(
     "--external-only",
     is_flag=True,
@@ -204,21 +206,17 @@ def linkcheck(
                 output_path.write_text(json.dumps(report, indent=2))
                 cli.success(f"JSON report saved to {output_path}")
             else:
-                print(json.dumps(report, indent=2))
+                cli.console.print(json.dumps(report, indent=2))
 
         else:  # console format
             report = orchestrator.format_console_report(results, summary)
-            print(report)
+            cli.console.print(report)
 
         # Exit with appropriate code
         if not summary.passed:
             raise click.Abort()
-
-    except click.Abort:
-        raise
     except Exception as e:
         cli.error(f"Link check failed: {e}")
-        # Traceback already configured, will be shown if needed
         raise click.Abort() from e
 
 

@@ -3,17 +3,32 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 
 import click
 
 from bengal.cli.base import BengalCommand
-from bengal.core.site import Site
-from bengal.utils.cli_output import CLIOutput
+from bengal.cli.helpers import (
+    command_metadata,
+    get_cli_output,
+    handle_cli_errors,
+    load_site_from_cli,
+)
 from bengal.utils.logger import LogLevel, close_all_loggers, configure_logging
 
 
 @click.command(cls=BengalCommand)
+@command_metadata(
+    category="analysis",
+    description="Analyze page importance using PageRank algorithm",
+    examples=[
+        "bengal graph pagerank",
+        "bengal graph pagerank --top-n 50",
+        "bengal graph pagerank --format json",
+    ],
+    requires_site=True,
+    tags=["analysis", "graph", "ranking"],
+)
+@handle_cli_errors(show_art=False)
 @click.option(
     "--top-n", "-n", default=20, type=int, help="Number of top pages to show (default: 20)"
 )
@@ -56,155 +71,140 @@ def pagerank(top_n: int, damping: float, format: str, config: str, source: str) 
     """
     from bengal.analysis.knowledge_graph import KnowledgeGraph
 
-    cli = CLIOutput()
+    cli = get_cli_output()
+    configure_logging(level=LogLevel.WARNING)
 
-    try:
-        # Configure minimal logging
-        configure_logging(level=LogLevel.WARNING)
+    # Validate damping factor
+    if not 0 < damping < 1:
+        cli.error(f"Damping factor must be between 0 and 1, got {damping}")
+        raise click.Abort()
 
-        # Validate damping factor
-        if not 0 < damping < 1:
-            cli.error(f"❌ Error: Damping factor must be between 0 and 1, got {damping}")
-            raise click.Abort()
+    # Load site using helper
+    site = load_site_from_cli(source=source, config=config, environment=None, profile=None, cli=cli)
 
-        # Load site
-        source_path = Path(source).resolve()
-
-        if config:
-            config_path = Path(config).resolve()
-            site = Site.from_config(source_path, config_file=config_path)
-        else:
-            site = Site.from_config(source_path)
-
-        # Discover content and compute PageRank with status indicator
-        if cli.use_rich:
-            with cli.console.status("[info]Discovering site content...", spinner="dots") as status:
-                from bengal.orchestration.content import ContentOrchestrator
-
-                content_orch = ContentOrchestrator(site)
-                content_orch.discover()
-
-                status.update(f"[info]Building knowledge graph from {len(site.pages)} pages...")
-                graph_obj = KnowledgeGraph(site)
-                graph_obj.build()
-
-                status.update(f"[info]Computing PageRank (damping={damping})...")
-                results = graph_obj.compute_pagerank(damping=damping)
-        else:
-            cli.info("🔍 Discovering site content...")
+    # Discover content and compute PageRank with status indicator
+    if cli.use_rich:
+        with cli.console.status("[info]Discovering site content...", spinner="dots") as status:
             from bengal.orchestration.content import ContentOrchestrator
 
             content_orch = ContentOrchestrator(site)
             content_orch.discover()
 
-            cli.info(f"📊 Building knowledge graph from {len(site.pages)} pages...")
+            status.update(f"[info]Building knowledge graph from {len(site.pages)} pages...")
             graph_obj = KnowledgeGraph(site)
             graph_obj.build()
 
-            cli.info(f"🏆 Computing PageRank (damping={damping})...")
+            status.update(f"[info]Computing PageRank (damping={damping})...")
             results = graph_obj.compute_pagerank(damping=damping)
+    else:
+        cli.info("🔍 Discovering site content...")
+        from bengal.orchestration.content import ContentOrchestrator
 
-        # Get top pages
-        top_pages = results.get_top_pages(top_n)
+        content_orch = ContentOrchestrator(site)
+        content_orch.discover()
 
-        # Output based on format
-        if format == "json":
-            # Export as JSON
-            data = {
-                "total_pages": len(results.scores),
-                "iterations": results.iterations,
-                "converged": results.converged,
-                "damping_factor": results.damping_factor,
-                "top_pages": [
-                    {
-                        "rank": i + 1,
-                        "title": page.title,
-                        "url": getattr(page, "url_path", page.source_path),
-                        "score": score,
-                        "incoming_refs": graph_obj.incoming_refs.get(page, 0),
-                        "outgoing_refs": len(graph_obj.outgoing_refs.get(page, set())),
-                    }
-                    for i, (page, score) in enumerate(top_pages)
-                ],
-            }
-            cli.info(json.dumps(data, indent=2))
+        cli.info(f"📊 Building knowledge graph from {len(site.pages)} pages...")
+        graph_obj = KnowledgeGraph(site)
+        graph_obj.build()
 
-        elif format == "summary":
-            # Show summary stats
-            cli.blank()
-            cli.info("=" * 60)
-            cli.header("📈 PageRank Summary")
-            cli.info("=" * 60)
-            cli.info(f"Total pages analyzed:    {len(results.scores)}")
-            cli.info(f"Iterations to converge:  {results.iterations}")
-            cli.info(f"Converged:               {'✅ Yes' if results.converged else '⚠️  No'}")
-            cli.info(f"Damping factor:          {results.damping_factor}")
-            cli.blank()
-            cli.info(f"Top {min(top_n, len(top_pages))} pages by importance:")
-            cli.info("-" * 60)
+        cli.info(f"🏆 Computing PageRank (damping={damping})...")
+        results = graph_obj.compute_pagerank(damping=damping)
 
-            for i, (page, score) in enumerate(top_pages, 1):
-                incoming = graph_obj.incoming_refs.get(page, 0)
-                outgoing = len(graph_obj.outgoing_refs.get(page, set()))
-                cli.info(f"{i:3d}. {page.title:<40} Score: {score:.6f}")
-                cli.info(f"     {incoming} incoming, {outgoing} outgoing links")
+    # Get top pages
+    top_pages = results.get_top_pages(top_n)
 
-        else:  # table format
-            cli.blank()
-            cli.info("=" * 100)
-            cli.header(f"🏆 Top {min(top_n, len(top_pages))} Pages by PageRank")
-            cli.info("=" * 100)
-            cli.info(
-                f"Analyzed {len(results.scores)} pages • Converged in {results.iterations} iterations • Damping: {damping}"
-            )
-            cli.info("=" * 100)
-            cli.info(f"{'Rank':<6} {'Title':<45} {'Score':<12} {'In':<5} {'Out':<5}")
-            cli.info("-" * 100)
+    # Output based on format
+    if format == "json":
+        # Export as JSON
+        data = {
+            "total_pages": len(results.scores),
+            "iterations": results.iterations,
+            "converged": results.converged,
+            "damping_factor": results.damping_factor,
+            "top_pages": [
+                {
+                    "rank": i + 1,
+                    "title": page.title,
+                    "url": getattr(page, "url_path", page.source_path),
+                    "score": score,
+                    "incoming_refs": graph_obj.incoming_refs.get(page, 0),
+                    "outgoing_refs": len(graph_obj.outgoing_refs.get(page, set())),
+                }
+                for i, (page, score) in enumerate(top_pages)
+            ],
+        }
+        cli.info(json.dumps(data, indent=2))
 
-            for i, (page, score) in enumerate(top_pages, 1):
-                incoming = graph_obj.incoming_refs.get(page, 0)
-                outgoing = len(graph_obj.outgoing_refs.get(page, set()))
+    elif format == "summary":
+        # Show summary stats
+        cli.blank()
+        cli.info("=" * 60)
+        cli.header("📈 PageRank Summary")
+        cli.info("=" * 60)
+        cli.info(f"Total pages analyzed:    {len(results.scores)}")
+        cli.info(f"Iterations to converge:  {results.iterations}")
+        cli.info(f"Converged:               {'✅ Yes' if results.converged else '⚠️  No'}")
+        cli.info(f"Damping factor:          {results.damping_factor}")
+        cli.blank()
+        cli.info(f"Top {min(top_n, len(top_pages))} pages by importance:")
+        cli.info("-" * 60)
 
-                # Truncate title if too long
-                title = page.title
-                if len(title) > 43:
-                    title = title[:40] + "..."
+        for i, (page, score) in enumerate(top_pages, 1):
+            incoming = graph_obj.incoming_refs.get(page, 0)
+            outgoing = len(graph_obj.outgoing_refs.get(page, set()))
+            cli.info(f"{i:3d}. {page.title:<40} Score: {score:.6f}")
+            cli.info(f"     {incoming} incoming, {outgoing} outgoing links")
 
-                cli.info(f"{i:<6} {title:<45} {score:.8f}  {incoming:<5} {outgoing:<5}")
+    else:  # table format
+        cli.blank()
+        cli.info("=" * 100)
+        cli.header(f"🏆 Top {min(top_n, len(top_pages))} Pages by PageRank")
+        cli.info("=" * 100)
+        cli.info(
+            f"Analyzed {len(results.scores)} pages • Converged in {results.iterations} iterations • Damping: {damping}"
+        )
+        cli.info("=" * 100)
+        cli.info(f"{'Rank':<6} {'Title':<45} {'Score':<12} {'In':<5} {'Out':<5}")
+        cli.info("-" * 100)
 
-            cli.info("=" * 100)
-            cli.blank()
-            cli.tip("Use --format json to export scores for further analysis")
-            cli.tip("Use --top-n to show more/fewer pages")
-            cli.blank()
+        for i, (page, score) in enumerate(top_pages, 1):
+            incoming = graph_obj.incoming_refs.get(page, 0)
+            outgoing = len(graph_obj.outgoing_refs.get(page, set()))
 
-        # Show insights
-        if format != "json" and results.converged:
-            cli.subheader("Insights", icon="📊")
+            # Truncate title if too long
+            title = page.title
+            if len(title) > 43:
+                title = title[:40] + "..."
 
-            # Calculate some basic stats
-            scores_list = sorted(results.scores.values(), reverse=True)
-            top_10_pct = results.get_pages_above_percentile(90)
-            avg_score = sum(scores_list) / len(scores_list) if scores_list else 0
-            max_score = max(scores_list) if scores_list else 0
+            cli.info(f"{i:<6} {title:<45} {score:.8f}  {incoming:<5} {outgoing:<5}")
 
-            cli.info(f"• Average PageRank score:     {avg_score:.6f}")
-            cli.info(f"• Maximum PageRank score:     {max_score:.6f}")
-            cli.info(
-                f"• Top 10% threshold:          {len(top_10_pct)} pages (score ≥ {scores_list[int(len(scores_list) * 0.1)]:.6f})"
-            )
-            cli.info(
-                f"• Score concentration:        {'High' if max_score > avg_score * 10 else 'Moderate' if max_score > avg_score * 5 else 'Low'}"
-            )
-            cli.blank()
+        cli.info("=" * 100)
+        cli.blank()
+        cli.tip("Use --format json to export scores for further analysis")
+        cli.tip("Use --top-n to show more/fewer pages")
+        cli.blank()
 
-    except Exception as e:
-        cli.error(f"❌ Error: {e}")
-        if "--debug" in click.get_current_context().args:
-            raise
-        raise click.Abort() from e
-    finally:
-        close_all_loggers()
+    # Show insights
+    if format != "json" and results.converged:
+        cli.subheader("Insights", icon="📊")
+
+        # Calculate some basic stats
+        scores_list = sorted(results.scores.values(), reverse=True)
+        top_10_pct = results.get_pages_above_percentile(90)
+        avg_score = sum(scores_list) / len(scores_list) if scores_list else 0
+        max_score = max(scores_list) if scores_list else 0
+
+        cli.info(f"• Average PageRank score:     {avg_score:.6f}")
+        cli.info(f"• Maximum PageRank score:     {max_score:.6f}")
+        cli.info(
+            f"• Top 10% threshold:          {len(top_10_pct)} pages (score ≥ {scores_list[int(len(scores_list) * 0.1)]:.6f})"
+        )
+        cli.info(
+            f"• Score concentration:        {'High' if max_score > avg_score * 10 else 'Moderate' if max_score > avg_score * 5 else 'Low'}"
+        )
+        cli.blank()
+
+    close_all_loggers()
 
 
 # Compatibility export expected by tests

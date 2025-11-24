@@ -435,7 +435,7 @@ def _get_safe_filters() -> dict[str, Any]:
             if default_value == "":
                 return '`""`'
             return f'`"{default_value}"`'
-        elif isinstance(default_value, (bool, int, float)):
+        elif isinstance(default_value, bool | int | float):
             return f"`{default_value}`"
         else:
             return f"`{str(default_value)}`"

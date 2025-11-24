@@ -148,17 +148,31 @@ class RenderOrchestrator:
 
         # If we have a progress manager, use it (and suppress individual page output)
         if progress_manager:
+            import time
+
             pipeline = RenderingPipeline(
                 self.site, tracker, quiet=True, build_stats=stats, build_context=build_context
             )
+            last_update_time = time.time()
+            update_interval = 0.1  # Update every 100ms (throttled for performance)
+
             for i, page in enumerate(pages):
                 pipeline.process_page(page)
-                # Update progress with current page
-                if page.output_path:
-                    current_item = str(page.output_path.relative_to(self.site.output_dir))
-                else:
-                    current_item = page.source_path.name
-                progress_manager.update_phase("rendering", current=i + 1, current_item=current_item)
+                # Throttle progress updates to reduce Rich rendering overhead
+                now = time.time()
+                if (i + 1) % 10 == 0 or (now - last_update_time) >= update_interval:
+                    # Pre-compute current_item once
+                    if page.output_path:
+                        current_item = str(page.output_path.relative_to(self.site.output_dir))
+                    else:
+                        current_item = page.source_path.name
+                    progress_manager.update_phase(
+                        "rendering", current=i + 1, current_item=current_item
+                    )
+                    last_update_time = now
+
+            # Final update to ensure progress shows 100%
+            progress_manager.update_phase("rendering", current=len(pages), current_item="")
             return
 
         # Try to use rich progress if available (but not if Live display already active)
@@ -166,7 +180,9 @@ class RenderOrchestrator:
             from bengal.utils.rich_console import is_live_display_active, should_use_rich
 
             # Don't create Progress if there's already a Live display (e.g., LiveProgressManager)
-            use_rich = should_use_rich() and not quiet and len(pages) > 5 and not is_live_display_active()
+            use_rich = (
+                should_use_rich() and not quiet and len(pages) > 5 and not is_live_display_active()
+            )
         except ImportError:
             use_rich = False
 
@@ -253,7 +269,9 @@ class RenderOrchestrator:
             from bengal.utils.rich_console import is_live_display_active, should_use_rich
 
             # Don't create Progress if there's already a Live display (e.g., LiveProgressManager)
-            use_rich = should_use_rich() and not quiet and len(pages) > 5 and not is_live_display_active()
+            use_rich = (
+                should_use_rich() and not quiet and len(pages) > 5 and not is_live_display_active()
+            )
         except ImportError:
             use_rich = False
 
@@ -350,15 +368,20 @@ class RenderOrchestrator:
         build_context: Any | None = None,
     ) -> None:
         """Render pages in parallel with live progress manager."""
+        import time
+
         from bengal.rendering.pipeline import RenderingPipeline
 
         max_workers = self.site.config.get("max_workers", 4)
         completed_count = 0
         lock = threading.Lock()
+        last_update_time = time.time()
+        update_interval = 0.1  # Update every 100ms (10 Hz max)
+        batch_size = 10  # Or every 10 pages, whichever comes first
 
         def process_page_with_pipeline(page):
             """Process a page with a thread-local pipeline instance (thread-safe)."""
-            nonlocal completed_count
+            nonlocal completed_count, last_update_time
 
             if not hasattr(_thread_local, "pipeline"):
                 # When using progress manager, suppress individual page output
@@ -367,18 +390,30 @@ class RenderOrchestrator:
                 )
             _thread_local.pipeline.process_page(page)
 
-            # Update progress (thread-safe)
+            # Pre-compute current_item outside lock (PERFORMANCE OPTIMIZATION)
+            if page.output_path:
+                current_item = str(page.output_path.relative_to(self.site.output_dir))
+            else:
+                current_item = page.source_path.name
+
+            # Update progress with batched/throttled updates (PERFORMANCE OPTIMIZATION)
+            now = time.time()
+            should_update = False
+            current_count = 0
+
             with lock:
                 completed_count += 1
-                if page.output_path:
-                    current_item = str(page.output_path.relative_to(self.site.output_dir))
-                else:
-                    current_item = page.source_path.name
+                current_count = completed_count
+                # Update if: batch size reached OR time interval exceeded
+                if current_count % batch_size == 0 or (now - last_update_time) >= update_interval:
+                    should_update = True
+                    last_update_time = now
 
-                # Add thread count to metadata for dev profile
+            # Update progress outside lock to minimize lock hold time
+            if should_update:
                 progress_manager.update_phase(
                     "rendering",
-                    current=completed_count,
+                    current=current_count,
                     current_item=current_item,
                     threads=max_workers,
                 )
@@ -392,6 +427,15 @@ class RenderOrchestrator:
                     future.result()
                 except Exception as e:
                     logger.error("page_rendering_error", error=str(e), error_type=type(e).__name__)
+
+            # Final update to ensure progress shows 100%
+            if progress_manager:
+                progress_manager.update_phase(
+                    "rendering",
+                    current=len(pages),
+                    current_item="",
+                    threads=max_workers,
+                )
 
     def _render_parallel_with_progress(
         self,

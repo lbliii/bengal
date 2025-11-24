@@ -25,7 +25,18 @@ from .base import BengalCommand, BengalGroup
 @click.pass_context
 @click.version_option(version=__version__, prog_name="Bengal SSG")
 def main(ctx) -> None:
-    """ """
+    """
+    Bengal Static Site Generator CLI.
+
+    Build fast, modern static sites with Python.
+
+    Quick Start:
+        bengal new site my-site    Create a new site
+        bengal site build          Build your site
+        bengal site serve          Start dev server with live reload
+
+    For more information, see: https://bengal.dev/docs
+    """
     # Install rich traceback handler using centralized configuration
     # Style is determined by env (BENGAL_TRACEBACK) → defaults
     TracebackConfig.from_environment().install()

@@ -66,7 +66,7 @@ def safe_get(obj: Any, attr: str, default: Any = None) -> Any:
     """
     try:
         # Check if accessing attribute on primitive types - return default instead
-        if isinstance(obj, (str, int, float, bool, bytes)):
+        if isinstance(obj, str | int | float | bool | bytes):
             # Primitives shouldn't have custom attributes accessed in templates
             return default
 

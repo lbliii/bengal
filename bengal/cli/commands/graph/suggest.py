@@ -3,17 +3,32 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 
 import click
 
 from bengal.cli.base import BengalCommand
-from bengal.core.site import Site
-from bengal.utils.cli_output import CLIOutput
+from bengal.cli.helpers import (
+    command_metadata,
+    get_cli_output,
+    handle_cli_errors,
+    load_site_from_cli,
+)
 from bengal.utils.logger import LogLevel, close_all_loggers, configure_logging
 
 
 @click.command(cls=BengalCommand)
+@command_metadata(
+    category="analysis",
+    description="Generate smart link suggestions to improve internal linking",
+    examples=[
+        "bengal graph suggest",
+        "bengal graph suggest --min-score 0.5",
+        "bengal graph suggest --format json",
+    ],
+    requires_site=True,
+    tags=["analysis", "graph", "seo"],
+)
+@handle_cli_errors(show_art=False)
 @click.option(
     "--top-n", "-n", default=50, type=int, help="Number of suggestions to show (default: 50)"
 )
@@ -62,19 +77,13 @@ def suggest(top_n: int, min_score: float, format: str, config: str, source: str)
     """
     from bengal.analysis.knowledge_graph import KnowledgeGraph
 
-    cli = CLIOutput()
+    cli = get_cli_output()
+    configure_logging(level=LogLevel.WARNING)
+
+    # Load site using helper
+    site = load_site_from_cli(source=source, config=config, environment=None, profile=None, cli=cli)
 
     try:
-        configure_logging(level=LogLevel.WARNING)
-
-        source_path = Path(source).resolve()
-
-        if config:
-            config_path = Path(config).resolve()
-            site = Site.from_config(source_path, config_file=config_path)
-        else:
-            site = Site.from_config(source_path)
-
         cli.info("🔍 Discovering site content...")
         from bengal.orchestration.content import ContentOrchestrator
 
@@ -173,10 +182,6 @@ def suggest(top_n: int, min_score: float, format: str, config: str, source: str)
                 f"• Avg suggestions per page:   {results.total_suggestions / results.pages_analyzed:.1f}"
             )
             cli.blank()
-
-    except Exception as e:
-        cli.error(f"❌ Error: {e}")
-        raise click.Abort() from e
     finally:
         close_all_loggers()
 

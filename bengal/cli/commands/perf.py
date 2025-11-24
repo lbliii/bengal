@@ -1,14 +1,26 @@
 """Performance metrics and analysis commands."""
 
-
 from __future__ import annotations
 
 import click
 
 from bengal.cli.base import BengalCommand
+from bengal.cli.helpers import command_metadata, handle_cli_errors
 
 
 @click.command(cls=BengalCommand)
+@command_metadata(
+    category="performance",
+    description="Show performance metrics and trends",
+    examples=[
+        "bengal perf",
+        "bengal perf --last 20",
+        "bengal perf --compare",
+    ],
+    requires_site=False,
+    tags=["performance", "metrics", "analysis"],
+)
+@handle_cli_errors(show_art=False)
 @click.option("--last", "-n", default=10, help="Show last N builds (default: 10)")
 @click.option(
     "--format",

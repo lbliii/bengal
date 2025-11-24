@@ -16,10 +16,18 @@ from typing import Any
 import click
 
 from bengal.cli.base import BengalGroup
-from bengal.cli.helpers import cli_progress, command_metadata, get_cli_output
+from bengal.cli.helpers import (
+    check_unknown_keys,
+    check_yaml_syntax,
+    cli_progress,
+    command_metadata,
+    get_cli_output,
+    handle_cli_errors,
+    validate_config_types,
+    validate_config_values,
+)
 from bengal.config.directory_loader import ConfigDirectoryLoader, ConfigLoadError
 from bengal.config.environment import detect_environment
-from bengal.utils.build_stats import show_error
 from bengal.utils.cli_output import CLIOutput
 
 
@@ -50,9 +58,11 @@ def config_cli():
     requires_site=False,
     tags=["config", "debug", "quick"],
 )
+@handle_cli_errors(show_art=False)
 @click.option(
     "--environment",
     "-e",
+    type=click.Choice(["local", "preview", "production"], case_sensitive=False),
     help="Environment to load (auto-detected if not specified)",
 )
 @click.option(
@@ -106,69 +116,61 @@ def show(
     """
     cli = get_cli_output()
 
-    try:
-        root_path = Path(source).resolve()
-        config_dir = root_path / "config"
+    root_path = Path(source).resolve()
+    config_dir = root_path / "config"
 
-        # Check if config directory exists
-        if not config_dir.exists():
-            cli.warning(f"Config directory not found: {config_dir}")
-            cli.info("Run 'bengal config init' to create config structure")
+    # Check if config directory exists
+    if not config_dir.exists():
+        cli.warning(f"Config directory not found: {config_dir}")
+        cli.info("Run 'bengal config init' to create config structure")
+        raise click.Abort()
+
+    # Load config with origin tracking if requested
+    loader = ConfigDirectoryLoader(track_origins=origin)
+
+    # Auto-detect environment if not specified
+    if environment is None:
+        environment = detect_environment()
+        cli.info(f"Environment: {environment} (auto-detected)")
+    else:
+        cli.info(f"Environment: {environment}")
+
+    if profile:
+        cli.info(f"Profile: {profile}")
+
+    cli.blank()
+
+    # Load config
+    config = loader.load(config_dir, environment=environment, profile=profile)
+
+    # Filter to section if requested
+    if section:
+        if section in config:
+            config = {section: config[section]}
+        else:
+            cli.error(f"Section '{section}' not found in config")
+            cli.info(f"Available sections: {', '.join(sorted(config.keys()))}")
             raise click.Abort()
 
-        # Load config with origin tracking if requested
-        loader = ConfigDirectoryLoader(track_origins=origin)
+    # Display config
+    if origin and loader.get_origin_tracker():
+        # Show with origin annotations
+        tracker = loader.get_origin_tracker()
+        if tracker:
+            output = tracker.show_with_origin()
+            cli.info(output)
+    elif format == "json":
+        # JSON output
+        import json
 
-        # Auto-detect environment if not specified
-        if environment is None:
-            environment = detect_environment()
-            cli.info(f"Environment: {environment} (auto-detected)")
-        else:
-            cli.info(f"Environment: {environment}")
+        output = json.dumps(config, indent=2)
+        cli.console.print(output)
+    else:
+        # YAML output (default)
+        import yaml
 
-        if profile:
-            cli.info(f"Profile: {profile}")
-
-        cli.blank()
-
-        # Load config
-        config = loader.load(config_dir, environment=environment, profile=profile)
-
-        # Filter to section if requested
-        if section:
-            if section in config:
-                config = {section: config[section]}
-            else:
-                cli.error(f"Section '{section}' not found in config")
-                cli.info(f"Available sections: {', '.join(sorted(config.keys()))}")
-                raise click.Abort()
-
-        # Display config
-        if origin and loader.get_origin_tracker():
-            # Show with origin annotations
-            tracker = loader.get_origin_tracker()
-            if tracker:
-                output = tracker.show_with_origin()
-                cli.info(output)
-        elif format == "json":
-            # JSON output
-            import json
-
-            output = json.dumps(config, indent=2)
-            print(output)
-        else:
-            # YAML output (default)
-            import yaml
-
-            output = yaml.dump(config, default_flow_style=False, sort_keys=False)
-            print(output)
-
-    except ConfigLoadError as e:
-        show_error(f"Config load failed: {e}", show_art=False)
-        raise click.Abort() from e
-    except Exception as e:
-        show_error(f"Error: {e}", show_art=False)
-        raise click.Abort() from e
+        output = yaml.dump(config, default_flow_style=False, sort_keys=False)
+        cli.console.print(output)
 
 
 @config_cli.command()
@@ -182,9 +184,11 @@ def show(
     requires_site=False,
     tags=["config", "validation", "ci"],
 )
+@handle_cli_errors(show_art=False)
 @click.option(
     "--environment",
     "-e",
+    type=click.Choice(["local", "preview", "production"], case_sensitive=False),
     help="Environment to validate (default: all)",
 )
 @click.argument("source", type=click.Path(exists=True), default=".")
@@ -216,166 +220,80 @@ def doctor(
     """
     cli = get_cli_output()
 
-    try:
-        root_path = Path(source).resolve()
-        config_dir = root_path / "config"
+    root_path = Path(source).resolve()
+    config_dir = root_path / "config"
 
-        # Check if config directory exists
-        if not config_dir.exists():
-            cli.warning(f"Config directory not found: {config_dir}")
-            cli.info("Run 'bengal config init' to create config structure")
-            raise click.Abort()
+    # Check if config directory exists
+    if not config_dir.exists():
+        cli.warning(f"Config directory not found: {config_dir}")
+        cli.info("Run 'bengal config init' to create config structure")
+        raise click.Abort()
 
-        cli.header("🩺 Config Health Check")
+    cli.header("🩺 Config Health Check")
+    cli.blank()
+
+    errors: list[str] = []
+    warnings: list[str] = []
+
+    # Check YAML syntax for all files
+    check_yaml_syntax(config_dir, errors, warnings)
+
+    # Load and validate config
+    environments = [environment] if environment else ["local", "production"]
+
+    with cli_progress("Checking environments...", total=len(environments), cli=cli) as update:
+        for env in environments:
+            try:
+                loader = ConfigDirectoryLoader()
+                config = loader.load(config_dir, environment=env)
+
+                # Run validation checks
+                validate_config_types(config, errors, warnings)
+                validate_config_values(config, env, errors, warnings)
+                check_unknown_keys(config, warnings)
+
+            except ConfigLoadError as e:
+                errors.append(f"Failed to load {env} config: {e}")
+
+            update(item=env)
+
+    # Display results
+    cli.blank()
+
+    if errors:
+        cli.info("❌ Errors:")
+        for i, error in enumerate(errors, 1):
+            cli.error(f"  {i}. {error}")
         cli.blank()
 
-        errors = []
-        warnings = []
-
-        # Check YAML syntax for all files
-        _check_yaml_syntax(config_dir, errors, warnings)
-
-        # Load and validate config
-        environments = [environment] if environment else ["local", "production"]
-
-        with cli_progress("Checking environments...", total=len(environments), cli=cli) as update:
-            for env in environments:
-                try:
-                    loader = ConfigDirectoryLoader()
-                    config = loader.load(config_dir, environment=env)
-
-                    # Run validation checks
-                    _validate_config_types(config, errors, warnings)
-                    _validate_config_values(config, env, errors, warnings)
-                    _check_unknown_keys(config, warnings)
-
-                except ConfigLoadError as e:
-                    errors.append(f"Failed to load {env} config: {e}")
-
-                update(item=env)
-
-        # Display results
+    if warnings:
+        cli.info("⚠️  Warnings:")
+        for i, warning in enumerate(warnings, 1):
+            cli.warning(f"  {i}. {warning}")
         cli.blank()
+
+    # Summary
+    if not errors and not warnings:
+        cli.success("✅ Config is valid!")
+    else:
+        cli.info(f"📊 Summary: {len(errors)} errors, {len(warnings)} warnings")
 
         if errors:
-            cli.info("❌ Errors:")
-            for i, error in enumerate(errors, 1):
-                cli.error(f"  {i}. {error}")
-            cli.blank()
-
-        if warnings:
-            cli.info("⚠️  Warnings:")
-            for i, warning in enumerate(warnings, 1):
-                cli.warning(f"  {i}. {warning}")
-            cli.blank()
-
-        # Summary
-        if not errors and not warnings:
-            cli.success("✅ Config is valid!")
-        else:
-            cli.info(f"📊 Summary: {len(errors)} errors, {len(warnings)} warnings")
-
-            if errors:
-                raise click.Abort()
-
-    except ConfigLoadError as e:
-        show_error(f"Config load failed: {e}", show_art=False)
-        raise click.Abort() from e
-    except click.Abort:
-        raise
-    except Exception as e:
-        show_error(f"Error: {e}", show_art=False)
-        raise click.Abort() from e
-
-
-def _check_yaml_syntax(config_dir: Path, errors: list, warnings: list) -> None:
-    """Check YAML syntax for all config files."""
-    import yaml
-
-    yaml_files = list(config_dir.glob("**/*.yaml")) + list(config_dir.glob("**/*.yml"))
-
-    for yaml_file in yaml_files:
-        try:
-            with yaml_file.open("r", encoding="utf-8") as f:
-                yaml.safe_load(f)
-        except yaml.YAMLError as e:
-            errors.append(f"Invalid YAML in {yaml_file.relative_to(config_dir)}: {e}")
-
-
-def _validate_config_types(config: dict, errors: list, warnings: list) -> None:
-    """Validate config value types."""
-    # Known boolean fields
-    boolean_fields = [
-        "parallel",
-        "incremental",
-        "minify_html",
-        "generate_rss",
-        "generate_sitemap",
-        "validate_links",
-    ]
-
-    for field in boolean_fields:
-        if field in config and not isinstance(config[field], bool):
-            errors.append(f"'{field}' must be boolean, got {type(config[field]).__name__}")
-
-
-def _validate_config_values(config: dict, environment: str, errors: list, warnings: list) -> None:
-    """Validate config values and ranges."""
-    # Check required fields for production
-    if environment == "production" and "site" in config:
-        if not config["site"].get("title"):
-            warnings.append("'site.title' is recommended for production")
-        if not config["site"].get("baseurl"):
-            warnings.append("'site.baseurl' is recommended for production")
-
-    # Check value ranges
-    if "build" in config:
-        max_workers = config["build"].get("max_workers")
-        if max_workers is not None:
-            if not isinstance(max_workers, int):
-                errors.append(
-                    f"'build.max_workers' must be integer, got {type(max_workers).__name__}"
-                )
-            elif max_workers < 0:
-                errors.append("'build.max_workers' must be >= 0")
-            elif max_workers > 100:
-                warnings.append("'build.max_workers' > 100 seems excessive")
-
-
-def _check_unknown_keys(config: dict, warnings: list) -> None:
-    """Check for unknown/typo keys."""
-    import difflib
-
-    known_sections = {
-        "site",
-        "build",
-        "features",
-        "theme",
-        "markdown",
-        "assets",
-        "pagination",
-        "health",
-        "dev",
-        "output_formats",
-    }
-
-    for key in config:
-        if key not in known_sections:
-            # Check for typos
-            suggestions = difflib.get_close_matches(key, known_sections, n=1, cutoff=0.6)
-            if suggestions:
-                warnings.append(f"Unknown section '{key}'. Did you mean '{suggestions[0]}'?")
+            raise click.Abort()
 
 
 @config_cli.command()
+@handle_cli_errors(show_art=False)
 @click.option(
     "--against",
     required=True,
-    help="Environment or file to compare against",
+    type=click.Choice(["local", "preview", "production"], case_sensitive=False),
+    help="Environment to compare against",
 )
 @click.option(
     "--environment",
     "-e",
+    type=click.Choice(["local", "preview", "production"], case_sensitive=False),
     help="Environment to compare (default: local)",
 )
 @click.argument("source", type=click.Path(exists=True), default=".")
@@ -400,54 +318,46 @@ def diff(
     """
     cli = get_cli_output()
 
-    try:
-        root_path = Path(source).resolve()
-        config_dir = root_path / "config"
+    root_path = Path(source).resolve()
+    config_dir = root_path / "config"
 
-        if not config_dir.exists():
-            cli.warning(f"Config directory not found: {config_dir}")
-            raise click.Abort()
+    if not config_dir.exists():
+        cli.warning(f"Config directory not found: {config_dir}")
+        raise click.Abort()
 
-        # Load first config
-        env1 = environment or "local"
-        loader = ConfigDirectoryLoader()
-        config1 = loader.load(config_dir, environment=env1)
+    # Load first config
+    env1 = environment or "local"
+    loader = ConfigDirectoryLoader()
+    config1 = loader.load(config_dir, environment=env1)
 
-        # Load second config
-        config2 = loader.load(config_dir, environment=against)
+    # Load second config
+    config2 = loader.load(config_dir, environment=against)
 
-        cli.header(f"🔍 Comparing: {env1} → {against}")
-        cli.blank()
+    cli.header(f"🔍 Comparing: {env1} → {against}")
+    cli.blank()
 
-        # Compute diff
-        diffs = _compute_diff(config1, config2, path=[])
+    # Compute diff
+    diffs = _compute_diff(config1, config2, path=[])
 
-        if not diffs:
-            cli.success("✅ Configurations are identical")
-            return
+    if not diffs:
+        cli.success("✅ Configurations are identical")
+        return
 
-        # Display diffs
-        for diff in diffs:
-            if diff["type"] == "changed":
-                cli.info(f"{diff['path']}:")
-                cli.error(f"  - {diff['old']}  [{env1}]")
-                cli.success(f"  + {diff['new']}  [{against}]")
-            elif diff["type"] == "added":
-                cli.info(f"{diff['path']}:")
-                cli.success(f"  + {diff['value']}  [{against}]")
-            elif diff["type"] == "removed":
-                cli.info(f"{diff['path']}:")
-                cli.error(f"  - {diff['value']}  [{env1}]")
+    # Display diffs
+    for diff in diffs:
+        if diff["type"] == "changed":
+            cli.info(f"{diff['path']}:")
+            cli.error(f"  - {diff['old']}  [{env1}]")
+            cli.success(f"  + {diff['new']}  [{against}]")
+        elif diff["type"] == "added":
+            cli.info(f"{diff['path']}:")
+            cli.success(f"  + {diff['value']}  [{against}]")
+        elif diff["type"] == "removed":
+            cli.info(f"{diff['path']}:")
+            cli.error(f"  - {diff['value']}  [{env1}]")
 
-        cli.blank()
-        cli.info(f"Found {len(diffs)} differences")
-
-    except ConfigLoadError as e:
-        show_error(f"Config load failed: {e}", show_art=False)
-        raise click.Abort() from e
-    except Exception as e:
-        show_error(f"Error: {e}", show_art=False)
-        raise click.Abort() from e
+    cli.blank()
+    cli.info(f"Found {len(diffs)} differences")
 
 
 def _compute_diff(config1: dict, config2: dict, path: list[str]) -> list[dict[str, Any]]:
@@ -495,6 +405,7 @@ def _compute_diff(config1: dict, config2: dict, path: list[str]) -> list[dict[st
     requires_site=False,
     tags=["config", "setup", "quick"],
 )
+@handle_cli_errors(show_art=False)
 @click.option(
     "--type",
     "init_type",
@@ -537,32 +448,27 @@ def init(
     """
     cli = get_cli_output()
 
-    try:
-        root_path = Path(source).resolve()
-        config_dir = root_path / "config"
+    root_path = Path(source).resolve()
+    config_dir = root_path / "config"
 
-        if config_dir.exists() and not force:
-            cli.warning(f"Config directory already exists: {config_dir}")
-            cli.info("Use --force to overwrite")
-            raise click.Abort()
+    if config_dir.exists() and not force:
+        cli.warning(f"Config directory already exists: {config_dir}")
+        cli.info("Use --force to overwrite")
+        raise click.Abort()
 
-        if init_type == "directory":
-            _create_directory_structure(config_dir, template, cli)
-        else:
-            _create_single_file(root_path, template, cli)
+    if init_type == "directory":
+        _create_directory_structure(config_dir, template, cli)
+    else:
+        _create_single_file(root_path, template, cli)
 
-        cli.blank()
-        cli.success("✨ Config structure created!")
-        cli.blank()
+    cli.blank()
+    cli.success("✨ Config structure created!")
+    cli.blank()
 
-        cli.info("💡 Next steps:")
-        cli.info("  1. Edit config files to match your site")
-        cli.info("  2. Run: bengal config doctor")
-        cli.info("  3. Build: bengal build")
-
-    except Exception as e:
-        show_error(f"Error: {e}", show_art=False)
-        raise click.Abort() from e
+    cli.info("💡 Next steps:")
+    cli.info("  1. Edit config files to match your site")
+    cli.info("  2. Run: bengal config doctor")
+    cli.info("  3. Build: bengal build")
 
 
 def _create_directory_structure(config_dir: Path, template: str, cli: CLIOutput) -> None:
