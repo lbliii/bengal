@@ -1,6 +1,9 @@
 {% extends "base.html" %}
 
 {% block content %}
+{# Action Bar: Breadcrumbs + Share #}
+{% include 'partials/action-bar.html' %}
+
 <div class="tags-page">
     <header class="page-header">
         <h1>{{ page.title | default('All Tags') }}</h1>
