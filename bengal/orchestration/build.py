@@ -646,6 +646,10 @@ class BuildOrchestrator:
         # Convert to set for O(1) membership and automatic deduplication
         pages_to_build_set = set(pages_to_build) if pages_to_build else set()
 
+        # Ensure cache is fresh before accessing generated_pages
+        # (Tag pages were just added in Phase 4, so cache might be stale)
+        self.site.invalidate_page_caches()
+
         # Add newly generated tag pages to rebuild set
         # OPTIMIZATION: Use site.generated_pages (cached) instead of filtering all pages
         for page in self.site.generated_pages:
