@@ -16,6 +16,7 @@ from typing import Any
 import click
 
 from bengal.cli.base import BengalGroup
+from bengal.cli.helpers import get_cli_output
 from bengal.config.directory_loader import ConfigDirectoryLoader, ConfigLoadError
 from bengal.config.environment import detect_environment
 from bengal.utils.build_stats import show_error
@@ -84,7 +85,7 @@ def show(
         bengal config show --profile dev --origin
         bengal config show --section site
     """
-    cli = CLIOutput()
+    cli = get_cli_output()
 
     try:
         root_path = Path(source).resolve()
@@ -145,10 +146,10 @@ def show(
 
     except ConfigLoadError as e:
         show_error(f"Config load failed: {e}", show_art=False)
-        raise click.Abort()
+        raise click.Abort() from e
     except Exception as e:
         show_error(f"Error: {e}", show_art=False)
-        raise click.Abort()
+        raise click.Abort() from e
 
 
 @config_cli.command()
@@ -177,7 +178,7 @@ def doctor(
         bengal config doctor
         bengal config doctor --environment production
     """
-    cli = CLIOutput()
+    cli = get_cli_output()
 
     try:
         root_path = Path(source).resolve()
@@ -242,12 +243,12 @@ def doctor(
 
     except ConfigLoadError as e:
         show_error(f"Config load failed: {e}", show_art=False)
-        raise click.Abort()
+        raise click.Abort() from e
     except click.Abort:
         raise
     except Exception as e:
         show_error(f"Error: {e}", show_art=False)
-        raise click.Abort()
+        raise click.Abort() from e
 
 
 def _check_yaml_syntax(config_dir: Path, errors: list, warnings: list) -> None:
@@ -284,12 +285,11 @@ def _validate_config_types(config: dict, errors: list, warnings: list) -> None:
 def _validate_config_values(config: dict, environment: str, errors: list, warnings: list) -> None:
     """Validate config values and ranges."""
     # Check required fields for production
-    if environment == "production":
-        if "site" in config:
-            if not config["site"].get("title"):
-                warnings.append("'site.title' is recommended for production")
-            if not config["site"].get("baseurl"):
-                warnings.append("'site.baseurl' is recommended for production")
+    if environment == "production" and "site" in config:
+        if not config["site"].get("title"):
+            warnings.append("'site.title' is recommended for production")
+        if not config["site"].get("baseurl"):
+            warnings.append("'site.baseurl' is recommended for production")
 
     # Check value ranges
     if "build" in config:
@@ -356,7 +356,7 @@ def diff(
         bengal config diff --against production
         bengal config diff --environment local --against production
     """
-    cli = CLIOutput()
+    cli = get_cli_output()
 
     try:
         root_path = Path(source).resolve()
@@ -402,10 +402,10 @@ def diff(
 
     except ConfigLoadError as e:
         show_error(f"Config load failed: {e}", show_art=False)
-        raise click.Abort()
+        raise click.Abort() from e
     except Exception as e:
         show_error(f"Error: {e}", show_art=False)
-        raise click.Abort()
+        raise click.Abort() from e
 
 
 def _compute_diff(config1: dict, config2: dict, path: list[str]) -> list[dict[str, Any]]:
@@ -477,7 +477,7 @@ def init(
         bengal config init --type file
         bengal config init --template blog
     """
-    cli = CLIOutput()
+    cli = get_cli_output()
 
     try:
         root_path = Path(source).resolve()
@@ -504,7 +504,7 @@ def init(
 
     except Exception as e:
         show_error(f"Error: {e}", show_art=False)
-        raise click.Abort()
+        raise click.Abort() from e
 
 
 def _create_directory_structure(config_dir: Path, template: str, cli: CLIOutput) -> None:

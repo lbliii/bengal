@@ -11,7 +11,7 @@ from bengal.autodoc.extractors.cli import CLIExtractor
 from bengal.autodoc.extractors.python import PythonExtractor
 from bengal.autodoc.generator import DocumentationGenerator
 from bengal.cli.base import BengalCommand
-from bengal.utils.cli_output import CLIOutput
+from bengal.cli.helpers import get_cli_output
 
 
 @click.command(cls=BengalCommand)
@@ -65,7 +65,7 @@ def autodoc(
     """
     import time
 
-    cli = CLIOutput()
+    cli = get_cli_output(verbose=verbose)
 
     try:
         # Load configuration
@@ -164,7 +164,7 @@ def _generate_python_docs(
     """Generate Python API documentation."""
     import time
 
-    cli = CLIOutput()
+    cli = get_cli_output(verbose=verbose)
 
     cli.header("🐍 Python API Documentation")
     cli.blank()
@@ -268,7 +268,9 @@ def _generate_cli_docs(
     import importlib
     import time
 
-    cli = CLIOutput()
+    from bengal.cli.helpers import get_cli_output
+
+    cli = get_cli_output(verbose=verbose)
 
     cli.header("⌨️  CLI Documentation")
     cli.blank()
@@ -405,7 +407,7 @@ def autodoc_cli(
     import importlib
     import time
 
-    cli = CLIOutput()
+    cli = get_cli_output(verbose=verbose)
 
     try:
         cli.blank()

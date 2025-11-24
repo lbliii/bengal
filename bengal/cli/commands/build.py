@@ -7,12 +7,16 @@ from pathlib import Path
 import click
 
 from bengal.cli.base import BengalCommand
-from bengal.cli.helpers import configure_traceback, handle_cli_errors, load_site_from_cli
+from bengal.cli.helpers import (
+    configure_traceback,
+    get_cli_output,
+    handle_cli_errors,
+    load_site_from_cli,
+)
 from bengal.utils.build_stats import (
     display_build_stats,
     show_building_indicator,
 )
-from bengal.utils.cli_output import CLIOutput
 from bengal.utils.logger import (
     LogLevel,
     close_all_loggers,
@@ -78,7 +82,9 @@ def _check_autodoc_needs_regeneration(autodoc_config: dict, root_path: Path, qui
 
             if newest_source > oldest_output:
                 if not quiet:
-                    cli = CLIOutput()
+                    from bengal.cli.helpers import get_cli_output
+
+                    cli = get_cli_output(quiet=quiet)
                     cli.warning("📝 Python source files changed, regenerating API docs...")
                 needs_regen = True
         else:
@@ -92,7 +98,9 @@ def _check_autodoc_needs_regeneration(autodoc_config: dict, root_path: Path, qui
 
         if not output_dir.exists() or not list(output_dir.rglob("*.md")):
             if not quiet:
-                cli = CLIOutput()
+                from bengal.cli.helpers import get_cli_output
+
+                cli = get_cli_output(quiet=quiet)
                 cli.warning("📝 CLI docs not found, generating...")
             needs_regen = True
 
@@ -103,8 +111,9 @@ def _run_autodoc_before_build(config_path: Path, root_path: Path, quiet: bool) -
     """Run autodoc generation before build."""
     from bengal.autodoc.config import load_autodoc_config
     from bengal.cli.commands.autodoc import _generate_cli_docs, _generate_python_docs
+    from bengal.cli.helpers import get_cli_output
 
-    cli = CLIOutput(quiet=quiet)
+    cli = get_cli_output(quiet=quiet)
 
     if not quiet:
         cli.blank()
@@ -316,7 +325,7 @@ def build(
         )
 
     if memory_optimized and incremental is True:
-        cli = CLIOutput()
+        cli = get_cli_output(quiet=quiet, verbose=verbose)
         cli.warning("⚠️  Warning: --memory-optimized with --incremental may not fully utilize cache")
         cli.warning("   Streaming build processes pages in batches, limiting incremental benefits.")
         cli.blank()
@@ -353,6 +362,9 @@ def build(
     # Configure traceback behavior BEFORE site loading so errors show properly
     configure_traceback(debug=debug, traceback=traceback)
 
+    # Create CLIOutput once at the start with quiet/verbose flags
+    cli = get_cli_output(quiet=quiet, verbose=verbose)
+
     try:
         # Load site using helper
         site = load_site_from_cli(
@@ -363,7 +375,6 @@ def build(
         )
 
         if clean_output:
-            cli = CLIOutput()
             cli.info("Cleaning output directory before build (--clean-output).")
             site.clean()
 
@@ -411,7 +422,6 @@ def build(
         if validate:
             from bengal.services.validation import DefaultTemplateValidationService
 
-            cli = CLIOutput()
             error_count = DefaultTemplateValidationService().validate(site)
 
             if error_count > 0:
@@ -478,7 +488,6 @@ def build(
 
             # Display summary
             if not quiet:
-                cli = CLIOutput()
                 s = StringIO()
                 ps = pstats.Stats(profiler, stream=s).sort_stats("cumulative")
                 ps.print_stats(20)  # Top 20 functions
@@ -530,7 +539,6 @@ def build(
                 # Theme-dev: Use existing detailed display
                 display_build_stats(stats, show_art=True, output_dir=str(site.output_dir))
         else:
-            cli = CLIOutput()
             cli.success("✅ Build complete!")
             cli.path(str(site.output_dir), label="", icon="↪")
 

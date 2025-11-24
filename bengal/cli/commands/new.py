@@ -8,6 +8,7 @@ from pathlib import Path
 import click
 
 from bengal.cli.base import BengalGroup
+from bengal.cli.helpers import get_cli_output
 from bengal.cli.site_templates import get_template
 
 # Add these imports
@@ -257,7 +258,7 @@ def _should_run_init_wizard(template: str, no_init: bool, init_preset: str) -> b
 def _run_init_wizard(preset: str = None) -> str | None:
     """Run the site initialization wizard and return the selected template ID or None."""
 
-    cli = CLIOutput()
+    cli = get_cli_output()
 
     # If preset was provided via flag, use it directly
     if preset:
@@ -388,7 +389,7 @@ def site(name: str, theme: str, template: str, no_init: bool, init_preset: str) 
     """
     🏗️  Create a new Bengal site with optional structure initialization.
     """
-    cli = CLIOutput()
+    cli = get_cli_output()
 
     try:
         # Prompt for site name if not provided
@@ -610,7 +611,7 @@ def page(name: str, section: str) -> None:
     The page name will be automatically slugified for the filename.
     Example: "My Awesome Page" → my-awesome-page.md
     """
-    cli = CLIOutput()
+    cli = get_cli_output()
 
     try:
         # Ensure we're in a Bengal site
@@ -672,7 +673,7 @@ def layout(name: str) -> None:
     Layouts are reusable HTML templates used by pages.
     Example: "article" → templates/layouts/article.html
     """
-    cli = CLIOutput()
+    cli = get_cli_output()
 
     try:
         # Ensure we're in a Bengal site
@@ -728,7 +729,7 @@ def partial(name: str) -> None:
     Partials are reusable template fragments included in other templates.
     Example: "sidebar" → templates/partials/sidebar.html
     """
-    cli = CLIOutput()
+    cli = get_cli_output()
 
     try:
         # Ensure we're in a Bengal site
@@ -792,7 +793,7 @@ def theme(name: str) -> None:
     Themes are self-contained template and asset packages.
     Example: "my-theme" → themes/my-theme/ with templates, partials, and assets
     """
-    cli = CLIOutput()
+    cli = get_cli_output()
 
     try:
         if not name:

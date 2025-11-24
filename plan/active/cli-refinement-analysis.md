@@ -16,9 +16,9 @@
 - ✅ Refactored `health.py` to use new helpers
 - ✅ Created CLI testing utilities (`tests/_testing/cli_helpers.py`)
 
-### 🔄 Phase 2: Consistency (Pending)
-- ⏳ Refactor `build.py` to use new helpers
-- ⏳ Standardize CLIOutput usage across all commands
+### 🔄 Phase 2: Consistency (In Progress)
+- ✅ Refactor `build.py` to use new helpers
+- ✅ Standardize CLIOutput usage across all commands
 - ⏳ Add progress feedback to long-running operations
 - ⏳ Improve help text across all commands
 
