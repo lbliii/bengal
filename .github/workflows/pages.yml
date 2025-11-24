@@ -38,6 +38,7 @@ jobs:
         run: bengal site build
         env:
           PYTHON_GIL: 0
+          BENGAL_BASEURL: "https://lbliii.github.io"
 
       - name: Add .nojekyll
         run: touch site/public/.nojekyll

@@ -86,6 +86,40 @@ def test_github_pages_owner_repo_fallback(tmp_path: Path, monkeypatch: pytest.Mo
     assert config.get("baseurl") == "https://owner123.github.io/repo456"
 
 
+def test_github_pages_root_deployment_via_env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    """Test that GITHUB_PAGES_ROOT=true sets baseurl to root (no repo subdirectory)."""
+    write_min_config(tmp_path, baseurl="")
+    # Ensure BENGAL_BASEURL isn't set from test matrix
+    monkeypatch.delenv("BENGAL_BASEURL", raising=False)
+    monkeypatch.delenv("BENGAL_BASE_URL", raising=False)
+    monkeypatch.setenv("GITHUB_ACTIONS", "true")
+    monkeypatch.setenv("GITHUB_REPOSITORY", "lbliii/bengal")
+    monkeypatch.setenv("GITHUB_PAGES_ROOT", "true")
+
+    loader = ConfigLoader(tmp_path)
+    config = loader.load()
+
+    # Should be root deployment, not /bengal subdirectory
+    assert config.get("baseurl") == "https://lbliii.github.io"
+
+
+def test_github_pages_user_org_site_auto_detection(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    """Test that user/org sites (repo name matches {owner}.github.io) auto-detect root deployment."""
+    write_min_config(tmp_path, baseurl="")
+    # Ensure BENGAL_BASEURL isn't set from test matrix
+    monkeypatch.delenv("BENGAL_BASEURL", raising=False)
+    monkeypatch.delenv("BENGAL_BASE_URL", raising=False)
+    monkeypatch.setenv("GITHUB_ACTIONS", "true")
+    monkeypatch.setenv("GITHUB_REPOSITORY", "lbliii/lbliii.github.io")
+    monkeypatch.delenv("GITHUB_PAGES_ROOT", raising=False)  # Not set, should auto-detect
+
+    loader = ConfigLoader(tmp_path)
+    config = loader.load()
+
+    # User/org site should be at root, not /lbliii.github.io
+    assert config.get("baseurl") == "https://lbliii.github.io"
+
+
 def test_explicit_config_baseurl_not_overridden_by_env(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):

@@ -24,6 +24,8 @@ def apply_env_overrides(config: dict[str, Any]) -> dict[str, Any]:
         2) Netlify (URL/DEPLOY_PRIME_URL)
         3) Vercel (VERCEL_URL)
         4) GitHub Pages (owner.github.io/repo) when running in Actions
+           - Set GITHUB_PAGES_ROOT=true for root deployments (user/org sites)
+           - Auto-detects user/org sites when repo name is {owner}.github.io
 
     Only applies when config baseurl is empty or missing.
     Explicit baseurl in config is never overridden.
@@ -84,7 +86,14 @@ def apply_env_overrides(config: dict[str, Any]) -> dict[str, Any]:
             repo = os.environ.get("GITHUB_REPOSITORY", "")  # owner/repo format
             if repo and "/" in repo:
                 owner, name = repo.split("/", 1)
-                config["baseurl"] = f"https://{owner}.github.io/{name}".rstrip("/")
+                # Check if GITHUB_PAGES_ROOT is set (indicates root deployment)
+                # or if repo name matches {owner}.github.io (user/org site)
+                if os.environ.get("GITHUB_PAGES_ROOT") == "true" or name == f"{owner}.github.io":
+                    # Root deployment: https://owner.github.io
+                    config["baseurl"] = f"https://{owner}.github.io".rstrip("/")
+                else:
+                    # Project site: deployed at /{repo-name}
+                    config["baseurl"] = f"https://{owner}.github.io/{name}".rstrip("/")
                 return config
 
     except Exception:
