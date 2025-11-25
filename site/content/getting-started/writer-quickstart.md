@@ -127,9 +127,9 @@ bengal new page contact
 ### Organize with Sections
 
 ```bash
-# Create a tutorials section
-bengal new page getting-started --section tutorials
-bengal new page advanced-tips --section tutorials
+# Create a guides section
+bengal new page getting-started --section guides
+bengal new page advanced-tips --section guides
 ```
 
 ### Use Frontmatter

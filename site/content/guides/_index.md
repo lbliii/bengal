@@ -20,6 +20,7 @@ Practical guides to help you accomplish specific tasks with Bengal.
 
 ### Getting Started
 
+- **[Build a Blog in 15 Minutes](/guides/blog-from-scratch/)** - The perfect starting point. Go from zero to a deployed personal blog.
 - **[Migrating Content](/guides/migrating-content/)** - Migrate your site from Hugo, Jekyll, Gatsby, or other SSGs
 - **[Content Workflow](/guides/content-workflow/)** - Set up an efficient content creation and publishing workflow
 - **[Customizing Themes](/guides/customizing-themes/)** - Customize existing themes without breaking updates
