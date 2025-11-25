@@ -21,42 +21,42 @@
   let currentImage = null;
 
   /**
-   * Create lightbox element
+   * Find or create lightbox element (prefer static HTML from template)
    */
   function createLightbox() {
-    lightbox = document.createElement('div');
-    lightbox.className = 'lightbox';
-    lightbox.setAttribute('role', 'dialog');
-    lightbox.setAttribute('aria-label', 'Image lightbox');
-    lightbox.setAttribute('aria-hidden', 'true');
+    // Try to find existing lightbox from template first
+    lightbox = document.querySelector('.lightbox');
 
-    // Create image element
-    const img = document.createElement('img');
-    img.className = 'lightbox__image';
-    img.alt = '';
+    if (!lightbox) {
+      // Fallback: create dynamically if not in template
+      lightbox = document.createElement('div');
+      lightbox.className = 'lightbox';
+      lightbox.setAttribute('role', 'dialog');
+      lightbox.setAttribute('aria-label', 'Image lightbox');
+      lightbox.setAttribute('aria-hidden', 'true');
 
-    // Create close button
-    const closeButton = document.createElement('button');
-    closeButton.className = 'lightbox__close';
-    closeButton.setAttribute('aria-label', 'Close lightbox');
-    closeButton.innerHTML = `
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <line x1="18" y1="6" x2="6" y2="18"></line>
-        <line x1="6" y1="6" x2="18" y2="18"></line>
-      </svg>
-    `;
+      const img = document.createElement('img');
+      img.className = 'lightbox__image';
+      img.alt = '';
 
-    // Create caption (optional)
-    const caption = document.createElement('div');
-    caption.className = 'lightbox__caption';
+      const closeButton = document.createElement('button');
+      closeButton.className = 'lightbox__close';
+      closeButton.setAttribute('aria-label', 'Close lightbox');
+      closeButton.innerHTML = `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      `;
 
-    // Assemble lightbox
-    lightbox.appendChild(img);
-    lightbox.appendChild(closeButton);
-    lightbox.appendChild(caption);
+      const caption = document.createElement('div');
+      caption.className = 'lightbox__caption';
 
-    // Add to document
-    document.body.appendChild(lightbox);
+      lightbox.appendChild(img);
+      lightbox.appendChild(closeButton);
+      lightbox.appendChild(caption);
+      document.body.appendChild(lightbox);
+    }
 
     // Event listeners
     closeButton.addEventListener('click', closeLightbox);

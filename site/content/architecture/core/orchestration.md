@@ -36,19 +36,19 @@ sequenceDiagram
     CLI->>Site: build()
     Site->>BuildOrch: BuildOrchestrator.build()
 
-    rect rgb(240, 248, 255)
+    rect
     Note over BuildOrch: Phase 1-4: Discovery & Structure
     BuildOrch->>ContentOrch: discover()
     ContentOrch-->>BuildOrch: pages, sections
     end
 
-    rect rgb(255, 248, 240)
+    rect
     Note over BuildOrch: Phase 5: Incremental Filter
     BuildOrch->>Cache: check changes
     Cache-->>BuildOrch: affected pages
     end
 
-    rect rgb(240, 255, 240)
+    rect
     Note over BuildOrch: Phase 6-8: Processing
     BuildOrch->>RenderOrch: process(affected_pages)
     end

@@ -109,14 +109,6 @@ graph TB
     Config -.->|"configuration"| Site
     Analysis -.->|"analyzes"| Site
     Fonts -.->|"downloads/generates"| Assets
-
-    style Site fill:#ff9999
-    style CLI fill:#9999ff
-    style Server fill:#9999ff
-    style Discovery fill:#99ff99
-    style Orchestration fill:#99ff99
-    style Rendering fill:#99ff99
-    style PostProcess fill:#99ff99
 ```
 
 **Key Flows:**

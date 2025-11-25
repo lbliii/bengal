@@ -32,20 +32,12 @@
    * Shows a floating button when user scrolls down
    */
   function setupBackToTop() {
-    // Create button element
-    const button = document.createElement('button');
-    button.className = 'back-to-top';
-    button.setAttribute('aria-label', 'Scroll to top');
-    button.setAttribute('title', 'Back to top');
-    button.innerHTML = `
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-        <line x1="12" y1="19" x2="12" y2="5"></line>
-        <polyline points="5 12 12 5 19 12"></polyline>
-      </svg>
-    `;
-
-    // Add to document
-    document.body.appendChild(button);
+    // Find existing button from template (static HTML is more reliable)
+    const button = document.querySelector('.back-to-top');
+    if (!button) {
+      log('Back-to-top button not found in template');
+      return;
+    }
 
     // Show/hide based on scroll position
     let isVisible = false;

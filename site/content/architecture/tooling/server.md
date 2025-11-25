@@ -45,10 +45,6 @@ flowchart TD
 
     Static --> Watch
     Events --> Watch
-
-    style Rebuild fill:#ffebee
-    style Notify fill:#e8f5e9
-    style Events fill:#e3f2fd
 ```
 
 ### Usage

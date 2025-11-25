@@ -360,85 +360,8 @@
     <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
     {# Mermaid toolbar for interactive diagram controls #}
     <script src="{{ asset_url('js/mermaid-toolbar.js') }}"></script>
-    <script>
-        (function () {
-            // Initialize Mermaid after DOM is ready
-            document.addEventListener('DOMContentLoaded', function () {
-                // Only initialize if Mermaid diagrams are present on the page
-                const mermaidElements = document.querySelectorAll('.mermaid');
-                if (mermaidElements.length === 0 || typeof mermaid === 'undefined') {
-                    return;
-                }
-
-                // Preserve syntax BEFORE Mermaid renders
-                if (window.BengalMermaidToolbar && window.BengalMermaidToolbar.preserveSyntax) {
-                    window.BengalMermaidToolbar.preserveSyntax();
-                }
-
-                // Detect current theme (check data-theme attribute or class)
-                function getCurrentTheme() {
-                    const htmlEl = document.documentElement;
-                    const themeAttr = htmlEl.getAttribute('data-theme');
-                    if (themeAttr === 'dark') return 'dark';
-                    // Fallback: check for dark class or prefers-color-scheme
-                    if (htmlEl.classList.contains('dark') || 
-                        (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-                        return 'dark';
-                    }
-                    return 'default';
-                }
-
-                // Initialize Mermaid with theme matching
-                mermaid.initialize({
-                    startOnLoad: false,
-                    theme: getCurrentTheme(),
-                    securityLevel: 'loose',
-                    flowchart: {
-                        useMaxWidth: true,
-                        htmlLabels: true
-                    }
-                });
-
-                // Initial render
-                mermaid.run().then(() => {
-                    if (window.BengalMermaidToolbar) {
-                        window.BengalMermaidToolbar.setupToolbars();
-                    }
-                });
-
-                // Re-render diagrams if theme changes
-                const observer = new MutationObserver(function(mutations) {
-                    mutations.forEach(function(mutation) {
-                        if (mutation.type === 'attributes' && 
-                            (mutation.attributeName === 'data-theme' || mutation.attributeName === 'class')) {
-                            // Re-initialize with new theme
-                            mermaid.initialize({
-                                startOnLoad: false,
-                                theme: getCurrentTheme(),
-                                securityLevel: 'loose',
-                                flowchart: {
-                                    useMaxWidth: true,
-                                    htmlLabels: true
-                                }
-                            });
-                            // Re-render all Mermaid diagrams
-                            mermaid.run().then(() => {
-                                if (window.BengalMermaidToolbar) {
-                                    window.BengalMermaidToolbar.setupToolbars();
-                                }
-                            });
-                        }
-                    });
-                });
-
-                // Observe theme changes on html element
-                observer.observe(document.documentElement, {
-                    attributes: true,
-                    attributeFilter: ['data-theme', 'class']
-                });
-            });
-        })();
-    </script>
+    {# Mermaid theme configuration - maps Bengal CSS variables to Mermaid themeVariables #}
+    <script src="{{ asset_url('js/mermaid-theme.js') }}"></script>
 
     {# Smart search index preloading #}
     <script>
@@ -482,6 +405,28 @@
     </script>
 
     {% block extra_js %}{% endblock %}
+
+    {# Back to Top Button - Static HTML for reliable SVG rendering #}
+    <button class="back-to-top" aria-label="Scroll to top" title="Back to top">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+            stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="19" x2="12" y2="5"></line>
+            <polyline points="5 12 12 5 19 12"></polyline>
+        </svg>
+    </button>
+
+    {# Image Lightbox - Static HTML for reliable SVG rendering #}
+    <div class="lightbox" role="dialog" aria-label="Image lightbox" aria-hidden="true">
+        <img class="lightbox__image" alt="">
+        <button class="lightbox__close" aria-label="Close lightbox">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+        </button>
+        <div class="lightbox__caption"></div>
+    </div>
 
     {# Dev-only live reload is now injected by the server automatically via LiveReloadMixin #}
 </body>

@@ -25,7 +25,7 @@
   background: linear-gradient(180deg,
       color-mix(in srgb, var(--color-primary) 95%, white),
       var(--color-primary));
-  color: var(--color-text-inverse);
+  color: var(--color-icon-on-accent);
   border: none;
   border-radius: var(--radius-full);
   cursor: pointer;
@@ -92,18 +92,17 @@
 .back-to-top svg {
   width: 20px;
   height: 20px;
-  stroke: var(--color-text-inverse);
-  stroke-width: 3;
+  stroke: currentColor;
+  stroke-width: 2.5;
   fill: none;
   display: block;
   pointer-events: none;
 }
 
-/* Ensure SVG elements inherit the stroke color */
+/* Ensure child elements inherit stroke */
 .back-to-top svg line,
 .back-to-top svg polyline {
-  stroke: var(--color-text-inverse);
-  stroke-width: 3;
+  stroke: inherit;
 }
 
 /* Mobile adjustments */
@@ -369,7 +368,7 @@
   background: linear-gradient(180deg,
       rgba(255, 255, 255, 0.15),
       rgba(255, 255, 255, 0.1));
-  color: white;
+  color: var(--color-icon-on-accent);
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: var(--radius-full);
   cursor: pointer;
@@ -398,6 +397,48 @@
   transform: scale(0.95);
 }
 
+/* Dark theme overrides keep icon visible on overlays */
+:root[data-theme="dark"] .lightbox__close {
+  background: linear-gradient(180deg,
+      rgba(0, 0, 0, 0.45),
+      rgba(0, 0, 0, 0.7));
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+:root[data-theme="dark"] .lightbox__close:hover {
+  background: linear-gradient(180deg,
+      rgba(0, 0, 0, 0.35),
+      rgba(0, 0, 0, 0.6));
+}
+
+:root[data-theme="dark"] .lightbox__close:active {
+  background: linear-gradient(180deg,
+      rgba(0, 0, 0, 0.6),
+      rgba(0, 0, 0, 0.78));
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .lightbox__close {
+    background: linear-gradient(180deg,
+        rgba(0, 0, 0, 0.45),
+        rgba(0, 0, 0, 0.7));
+    border-color: rgba(255, 255, 255, 0.25);
+  }
+
+  :root:not([data-theme="light"]) .lightbox__close:hover {
+    background: linear-gradient(180deg,
+        rgba(0, 0, 0, 0.35),
+        rgba(0, 0, 0, 0.6));
+  }
+
+  :root:not([data-theme="light"]) .lightbox__close:active {
+    background: linear-gradient(180deg,
+        rgba(0, 0, 0, 0.6),
+        rgba(0, 0, 0, 0.78));
+  }
+}
+
+
 .lightbox__close:focus-visible {
   outline: 2px solid white;
   outline-offset: 2px;
@@ -406,6 +447,13 @@
 .lightbox__close svg {
   width: 24px;
   height: 24px;
+  stroke: currentColor;
+  stroke-width: 2.5;
+}
+
+/* Ensure child elements inherit stroke */
+.lightbox__close svg line {
+  stroke: inherit;
 }
 
 /* Lightbox caption */

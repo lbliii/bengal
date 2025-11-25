@@ -156,12 +156,6 @@ flowchart TD
 
     Hash --> Output[Copy to Output]
     Output --> Done[Complete]
-
-    style Filter fill:#fff3e0
-    style Check fill:#fff3e0
-    style Minify fill:#e1f5ff
-    style Optimize fill:#e1f5ff
-    style Hash fill:#e8f5e9
 ```
 
 ### Implementation

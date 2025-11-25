@@ -27,11 +27,6 @@ graph LR
         Params -->|"site.config.params.*"| Templates
         CoreModel -->|"computed properties"| Templates
     end
-
-    style Site fill:#ff9999
-    style Content fill:#99ff99
-    style Params fill:#9999ff
-    style CoreModel fill:#ffff99
 ```
 
 ### Three-Layer Architecture

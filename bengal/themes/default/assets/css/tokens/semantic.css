@@ -40,6 +40,7 @@
    --color-text-inverse: var(--white);
    --color-text-link: var(--blue-600);
    --color-text-link-hover: var(--blue-700);
+   --color-icon-on-accent: #ffffff;
 
    /* Background Colors */
    --color-bg-primary: var(--white);
@@ -471,6 +472,7 @@
    --color-text-inverse: var(--gray-900);
    --color-text-link: var(--blue-400);
    --color-text-link-hover: var(--blue-300);
+   --color-icon-on-accent: #ffffff;
 
    /* Background Colors */
    --color-bg-primary: #1a1a1a;
@@ -607,6 +609,7 @@
       --color-text-inverse: var(--gray-900);
       --color-text-link: var(--blue-400);
       --color-text-link-hover: var(--blue-300);
+      --color-icon-on-accent: #ffffff;
 
       --color-bg-primary: #1a1a1a;
       --color-bg-secondary: #2d2d2d;
