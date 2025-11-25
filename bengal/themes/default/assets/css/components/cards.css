@@ -12,12 +12,14 @@
   flex-direction: column;
   background-color: var(--color-bg-primary);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-xl); /* Increased from --radius-lg (8px → 12px) */
+  border-radius: var(--radius-xl);
   box-shadow: var(--elevation-low);
   overflow: hidden;
   position: relative;
-  transition: box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1),
-              transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: box-shadow var(--transition-base),
+    transform var(--transition-base),
+    border-color var(--transition-base);
+  height: 100%;
 }
 
 /* Cards with gradient borders and fluid effects */
@@ -29,19 +31,15 @@
   border: none;
 }
 
-/* Cards with images get different layout structure */
-.card:has(.card-image) {
-  grid-template-rows: auto 1fr auto;
-}
-
-/* Cards without images get more padding */
-.card:not(:has(.card-image)) {
-  padding: 1.5rem;
-}
-
-/* When card is a link, remove underlines */
+/* When card is a link, remove underlines and inherit color */
 a.card {
   text-decoration: none;
+  color: inherit;
+  display: flex;
+  flex-direction: column;
+}
+
+a.card:hover {
   color: inherit;
 }
 
@@ -53,12 +51,10 @@ a.card {
   right: -10%;
   width: 150%;
   height: 150%;
-  background: radial-gradient(
-    circle at 40% 40%,
-    color-mix(in srgb, var(--blob-color-1) 6%, transparent) 0%,
-    color-mix(in srgb, var(--blob-color-2) 4%, transparent) 25%,
-    transparent 50%
-  );
+  background: radial-gradient(circle at 40% 40%,
+      color-mix(in srgb, var(--blob-color-1) 6%, transparent) 0%,
+      color-mix(in srgb, var(--blob-color-2) 4%, transparent) 25%,
+      transparent 50%);
   border-radius: 50%;
   animation: blob-morph var(--blob-duration-slow) ease-in-out infinite;
   pointer-events: none;
@@ -71,7 +67,7 @@ a.card {
   opacity: 1;
 }
 
-.card > * {
+.card>* {
   position: relative;
   z-index: 1;
 }
@@ -79,12 +75,10 @@ a.card {
 /* Fallback for browsers without color-mix */
 @supports not (color: color-mix(in srgb, black, white)) {
   .card::before {
-    background: radial-gradient(
-      circle at 40% 40%,
-      rgba(59, 130, 246, 0.06) 0%,
-      rgba(139, 92, 246, 0.04) 25%,
-      transparent 50%
-    );
+    background: radial-gradient(circle at 40% 40%,
+        rgba(59, 130, 246, 0.06) 0%,
+        rgba(139, 92, 246, 0.04) 25%,
+        transparent 50%);
   }
 }
 
@@ -115,63 +109,73 @@ a.card {
   width: 100%;
   aspect-ratio: 16 / 9;
   object-fit: cover;
+  display: block;
 }
 
+/* Card Header - Contains icon and title */
 .card-header {
   display: flex;
   align-items: flex-start;
   gap: var(--space-3);
-  padding: var(--space-5) var(--space-6);
+  padding: var(--space-6);
   border-bottom: 1px solid var(--color-border-light);
+  flex-shrink: 0;
 }
 
-.card-body {
+/* Card Content - Main content area */
+.card-content {
   flex: 1;
   padding: var(--space-6);
+  display: flex;
+  flex-direction: column;
 }
 
-/* Card body text styling (description content) */
-.card-body p,
-.card-content p {
-  font-size: var(--text-base);
-  line-height: var(--leading-relaxed);
-  color: var(--color-text-secondary);
-  margin: 0.5rem 0;
-}
-
-.card-body p:first-child,
-.card-content p:first-child {
-  margin-top: 0;
-}
-
-.card-body p:last-child,
-.card-content p:last-child {
-  margin-bottom: 0;
-}
-
-/* List styling in card bodies */
-.card-body ul,
-.card-body ol {
-  padding-left: var(--space-8);
-  margin: var(--space-3) 0;
-}
-
-.card-body ul {
-  list-style-type: disc;
-}
-
-.card-body ol {
-  list-style-type: decimal;
-}
-
-.card-body li {
-  margin: var(--space-1) 0;
-}
-
+/* Card Footer - Optional footer section */
 .card-footer {
   padding: var(--space-5) var(--space-6);
   border-top: 1px solid var(--color-border-light);
   background-color: var(--color-bg-secondary);
+  flex-shrink: 0;
+  margin-top: auto;
+}
+
+/* Text styling in card content */
+.card-content p {
+  font-size: var(--text-base);
+  line-height: var(--leading-relaxed);
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.card-content p+p {
+  margin-top: var(--space-3);
+}
+
+/* List styling in card content */
+.card-content ul,
+.card-content ol {
+  padding-left: var(--space-8);
+  margin: var(--space-3) 0;
+}
+
+.card-content ul {
+  list-style-type: disc;
+}
+
+.card-content ol {
+  list-style-type: decimal;
+}
+
+.card-content li {
+  margin: var(--space-1) 0;
+}
+
+.card-content>*:first-child {
+  margin-top: 0;
+}
+
+.card-content>*:last-child {
+  margin-bottom: 0;
 }
 
 /* ============================================
@@ -229,7 +233,8 @@ a.card {
   display: block;
   background-color: var(--color-bg-primary);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-xl); /* Increased from --radius-lg (8px → 12px) */
+  border-radius: var(--radius-xl);
+  /* Increased from --radius-lg (8px → 12px) */
   overflow: hidden;
   text-decoration: none;
   position: relative;
@@ -252,12 +257,10 @@ a.card {
   right: -10%;
   width: 150%;
   height: 150%;
-  background: radial-gradient(
-    circle at 40% 40%,
-    color-mix(in srgb, var(--blob-color-1) 6%, transparent) 0%,
-    color-mix(in srgb, var(--blob-color-2) 4%, transparent) 25%,
-    transparent 50%
-  );
+  background: radial-gradient(circle at 40% 40%,
+      color-mix(in srgb, var(--blob-color-1) 6%, transparent) 0%,
+      color-mix(in srgb, var(--blob-color-2) 4%, transparent) 25%,
+      transparent 50%);
   border-radius: 50%;
   animation: blob-morph var(--blob-duration-slow) ease-in-out infinite;
   pointer-events: none;
@@ -270,7 +273,7 @@ a.card {
   opacity: 1;
 }
 
-.article-card > * {
+.article-card>* {
   position: relative;
   z-index: 1;
 }
@@ -278,12 +281,10 @@ a.card {
 /* Fallback for browsers without color-mix */
 @supports not (color: color-mix(in srgb, black, white)) {
   .article-card::before {
-    background: radial-gradient(
-      circle at 40% 40%,
-      rgba(59, 130, 246, 0.06) 0%,
-      rgba(139, 92, 246, 0.04) 25%,
-      transparent 50%
-    );
+    background: radial-gradient(circle at 40% 40%,
+        rgba(59, 130, 246, 0.06) 0%,
+        rgba(139, 92, 246, 0.04) 25%,
+        transparent 50%);
   }
 }
 
@@ -385,7 +386,8 @@ a.card {
   padding: 1.5rem;
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border-light);
-  border-radius: var(--radius-xl); /* Increased from --border-radius-large (8px → 12px) */
+  border-radius: var(--radius-xl);
+  /* Increased from --border-radius-large (8px → 12px) */
   box-shadow: var(--elevation-card);
   transition: box-shadow var(--motion-medium), transform var(--motion-medium);
   height: 100%;
@@ -403,7 +405,7 @@ a.card {
   box-shadow: var(--elevation-card-hover);
   transform: translate3d(0, calc(-1 * var(--motion-distance-2)), 0);
   transition: box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1),
-              transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Modern color mixing for hover background */
@@ -425,9 +427,7 @@ a.card {
   flex-shrink: 0;
 }
 
-[data-theme="dark"] .feature-card__icon {
-  background: rgba(33, 150, 243, 0.15);
-}
+/* Dark mode handled by semantic tokens for bg/color */
 
 .feature-card__icon svg {
   width: 32px;
@@ -588,7 +588,8 @@ a.card {
   padding: 2rem 1.5rem;
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border-light);
-  border-radius: var(--radius-xl); /* Increased from --border-radius-large (8px → 12px) */
+  border-radius: var(--radius-xl);
+  /* Increased from --border-radius-large (8px → 12px) */
   box-shadow: var(--elevation-card);
 }
 
@@ -625,181 +626,303 @@ a.card {
   container-name: card-grid;
 }
 
+/* ============================================
+   CARD GRID LAYOUTS
+   ============================================ */
+
+/* Container for card grid - enables container queries */
+.card-grid-container {
+  container-type: inline-size;
+  container-name: card-grid;
+}
+
 .card-grid {
   display: grid;
-  gap: var(--card-gap, 1.5rem);
-  margin: 2rem 0;
+  gap: var(--card-gap, var(--space-6));
+  margin: var(--space-8) 0;
 
   /* Mobile-first: Single column */
   grid-template-columns: 1fr;
 }
 
-/* Subgrid support: Cards align to parent grid when supported */
-@supports (grid-template-columns: subgrid) {
-  .card-grid {
-    grid-template-rows: subgrid;
-  }
-
-  .card {
-    display: grid;
-    grid-template-rows: subgrid;
-    grid-row: span 3; /* Image, content, footer */
-    align-content: start;
-  }
-}
-
-/* Container query: 2 columns at 400px container width */
-@container card-grid (min-width: 400px) {
-  .card-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-/* Container query: 3 columns at 600px container width */
-@container card-grid (min-width: 600px) {
-  .card-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
-
-/* Container query: 4 columns at 800px container width */
-@container card-grid (min-width: 800px) {
-  .card-grid {
-    grid-template-columns: repeat(4, 1fr);
-  }
-}
-
-/* Fallback for browsers without container query support */
-@supports not (container-type: inline-size) {
-  .card-grid {
-    grid-template-columns: repeat(var(--card-columns, auto-fit),
-        minmax(min(100%, 280px), 1fr));
-  }
-}
-
 /* Gap Sizes */
 .card-grid[data-gap="small"] {
-  --card-gap: 1rem;
+  --card-gap: var(--space-4);
 }
 
 .card-grid[data-gap="medium"] {
-  --card-gap: 1.5rem;
+  --card-gap: var(--space-6);
 }
 
 .card-grid[data-gap="large"] {
-  --card-gap: 2.5rem;
+  --card-gap: var(--space-8);
 }
 
-/* Fixed Columns */
+/* Fixed Columns - Use CSS Grid with explicit column count */
 .card-grid[data-columns="1"] {
-  --card-columns: 1;
+  grid-template-columns: 1fr;
 }
 
 .card-grid[data-columns="2"] {
-  --card-columns: 2;
+  grid-template-columns: repeat(2, 1fr);
 }
 
 .card-grid[data-columns="3"] {
-  --card-columns: 3;
+  grid-template-columns: repeat(3, 1fr);
 }
 
 .card-grid[data-columns="4"] {
-  --card-columns: 4;
+  grid-template-columns: repeat(4, 1fr);
 }
 
 .card-grid[data-columns="5"] {
-  --card-columns: 5;
+  grid-template-columns: repeat(5, 1fr);
 }
 
 .card-grid[data-columns="6"] {
-  --card-columns: 6;
+  grid-template-columns: repeat(6, 1fr);
 }
 
-/* Responsive Columns */
+/* Responsive Columns - Mobile-first breakpoints */
 .card-grid[data-columns~="1-2"],
 .card-grid[data-columns~="1-2-3"],
 .card-grid[data-columns~="1-2-3-4"] {
-  --card-columns: 1;
+  grid-template-columns: 1fr;
 }
 
+/* Tablet: 2 columns */
 @media (min-width: 640px) {
 
   .card-grid[data-columns~="1-2"],
   .card-grid[data-columns~="1-2-3"],
   .card-grid[data-columns~="1-2-3-4"] {
-    --card-columns: 2;
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 
+/* Desktop: 3 columns */
 @media (min-width: 1024px) {
 
   .card-grid[data-columns~="1-2-3"],
   .card-grid[data-columns~="1-2-3-4"] {
-    --card-columns: 3;
+    grid-template-columns: repeat(3, 1fr);
   }
 }
 
+/* Large Desktop: 4 columns */
 @media (min-width: 1280px) {
   .card-grid[data-columns~="1-2-3-4"] {
-    --card-columns: 4;
+    grid-template-columns: repeat(4, 1fr);
   }
 }
 
-/* Card Colors (for accent borders) */
+/* Container query support (preferred when available) */
+@supports (container-type: inline-size) {
+  @container card-grid (min-width: 400px) {
+    .card-grid[data-columns="auto"] {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @container card-grid (min-width: 600px) {
+    .card-grid[data-columns="auto"] {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+
+  @container card-grid (min-width: 800px) {
+    .card-grid[data-columns="auto"] {
+      grid-template-columns: repeat(4, 1fr);
+    }
+  }
+}
+
+/* Fallback for browsers without container query support */
+@supports not (container-type: inline-size) {
+  .card-grid[data-columns="auto"] {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  }
+}
+
+
+/* ============================================
+   CARD COLOR VARIANTS (Theme-Aware Semantic Tokens)
+   ============================================ */
+
+/**
+ * Card color accents use semantic tokens that automatically adapt to:
+ * - Light/dark mode
+ * - Theme palette variants (blue-bengal, brown-bengal, etc.)
+ * 
+ * Mapping:
+ * - blue → info/primary (semantic: informational/primary brand)
+ * - green → success/secondary (semantic: success/secondary brand)
+ * - red → error (semantic: error/danger)
+ * - yellow/orange → warning/accent (semantic: warning/accent color)
+ * - purple → custom (kept as foundation token for flexibility)
+ * - pink → custom variant of purple
+ * - indigo → primary-dark variant
+ * - gray → neutral border
+ */
+
+/* Blue - Maps to info/primary (informational, primary brand color) */
 .card-color-blue {
-  border-left: 4px solid #3b82f6;
+  border-left-width: 4px;
+  border-left-color: var(--color-info-border);
+  background: linear-gradient(to right,
+      color-mix(in srgb, var(--color-info-border) 3%, transparent) 0%,
+      transparent 4px);
 }
 
+.card-color-blue:hover {
+  border-left-color: var(--color-info);
+}
+
+/* Green - Maps to success/secondary (success state, secondary brand) */
 .card-color-green {
-  border-left: 4px solid #10b981;
+  border-left-width: 4px;
+  border-left-color: var(--color-success-border);
+  background: linear-gradient(to right,
+      color-mix(in srgb, var(--color-success-border) 3%, transparent) 0%,
+      transparent 4px);
 }
 
+.card-color-green:hover {
+  border-left-color: var(--color-success);
+}
+
+/* Red - Maps to error (error/danger state) */
 .card-color-red {
-  border-left: 4px solid #ef4444;
+  border-left-width: 4px;
+  border-left-color: var(--color-error-border);
+  background: linear-gradient(to right,
+      color-mix(in srgb, var(--color-error-border) 3%, transparent) 0%,
+      transparent 4px);
 }
 
-.card-color-yellow {
-  border-left: 4px solid #f59e0b;
+.card-color-red:hover {
+  border-left-color: var(--color-error);
 }
 
+/* Yellow/Orange - Maps to warning/accent (warning state, accent color) */
+.card-color-yellow,
+.card-color-orange {
+  border-left-width: 4px;
+  border-left-color: var(--color-warning-border);
+  background: linear-gradient(to right,
+      color-mix(in srgb, var(--color-warning-border) 3%, transparent) 0%,
+      transparent 4px);
+}
+
+.card-color-yellow:hover,
+.card-color-orange:hover {
+  border-left-color: var(--color-warning);
+}
+
+/* Purple - Custom color (kept as foundation token for design flexibility) */
 .card-color-purple {
-  border-left: 4px solid #8b5cf6;
+  border-left-width: 4px;
+  border-left-color: var(--purple-500);
+  background: linear-gradient(to right,
+      color-mix(in srgb, var(--purple-500) 3%, transparent) 0%,
+      transparent 4px);
 }
 
+.card-color-purple:hover {
+  border-left-color: var(--purple-600);
+}
+
+/* Pink - Custom variant of purple */
 .card-color-pink {
-  border-left: 4px solid #ec4899;
+  border-left-width: 4px;
+  border-left-color: var(--purple-400);
+  background: linear-gradient(to right,
+      color-mix(in srgb, var(--purple-400) 3%, transparent) 0%,
+      transparent 4px);
 }
 
+.card-color-pink:hover {
+  border-left-color: var(--purple-500);
+}
+
+/* Indigo - Maps to primary-dark (darker variant of primary) */
 .card-color-indigo {
-  border-left: 4px solid #6366f1;
+  border-left-width: 4px;
+  border-left-color: var(--color-primary-dark);
+  background: linear-gradient(to right,
+      color-mix(in srgb, var(--color-primary-dark) 3%, transparent) 0%,
+      transparent 4px);
 }
 
-.card-color-gray {
-  border-left: 4px solid #6b7280;
+.card-color-indigo:hover {
+  border-left-color: var(--color-primary-active);
 }
+
+/* Gray - Maps to neutral border (neutral, no semantic meaning) */
+.card-color-gray {
+  border-left-width: 4px;
+  border-left-color: var(--color-border-strong);
+  background: linear-gradient(to right,
+      color-mix(in srgb, var(--color-border-strong) 3%, transparent) 0%,
+      transparent 4px);
+}
+
+.card-color-gray:hover {
+  border-left-color: var(--color-border);
+}
+
+/* Fallback for browsers without color-mix support */
+/* Note: Border colors still use semantic tokens and adapt to theme variants */
+/* Background gradient is a subtle enhancement - gracefully degrade without it */
+@supports not (color: color-mix(in srgb, black, white)) {
+
+  .card-color-blue,
+  .card-color-green,
+  .card-color-red,
+  .card-color-yellow,
+  .card-color-orange,
+  .card-color-purple,
+  .card-color-pink,
+  .card-color-indigo,
+  .card-color-gray {
+    /* Remove background gradient - border color still adapts via semantic tokens */
+    background: none;
+  }
+}
+
 
 /* Card Icon Styling */
 .card-icon {
   font-size: 1.5rem;
   line-height: 1;
   flex-shrink: 0;
-  /* Icon sits side-by-side with title, aligned to top */
-  /* Gap is handled by .card-header flex gap */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  color: var(--color-text-secondary);
 }
 
-/* Card Content Styling */
-.card-content {
+/* Card Title Styling */
+.card-title {
+  margin: 0;
+  font-size: var(--type-ui-title);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-tight);
+  color: var(--color-text-primary);
   flex: 1;
-  margin-top: var(--space-5);
-  /* Space after header/divider */
+  min-width: 0;
 }
 
-.card-content>*:first-child {
-  margin-top: 0;
+.card-title a {
+  color: inherit;
+  text-decoration: none;
+  transition: color var(--transition-fast);
 }
 
-.card-content>*:last-child {
-  margin-bottom: 0;
+.card-title a:hover {
+  color: var(--color-primary);
 }
 
 /* Legacy class names (keep for backward compat) */
@@ -810,12 +933,13 @@ a.card {
   margin: 2rem 0;
 }
 
-/* Performance optimization: Content visibility for card grids */
+/* Performance optimization: Content visibility removed due to DevTools crash
 .cards-grid > *,
 .feature-cards > * {
   content-visibility: auto;
   contain-intrinsic-size: 300px;
 }
+*/
 
 .cards-grid--2 {
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
@@ -837,25 +961,37 @@ a.card {
   margin: 2rem 0;
 }
 
-/* Mobile: Single column card grids */
+/* Mobile: Responsive adjustments */
 @media (max-width: 639px) {
 
-  .cards-grid,
-  .feature-cards {
+  /* Force single column on small screens for fixed column counts */
+  .card-grid[data-columns="2"],
+  .card-grid[data-columns="3"],
+  .card-grid[data-columns="4"],
+  .card-grid[data-columns="5"],
+  .card-grid[data-columns="6"] {
     grid-template-columns: 1fr;
   }
 
+  /* Reduce gap on mobile */
   .card-grid {
-    gap: 1rem;
+    gap: var(--space-4);
   }
 
-  .card-icon {
-    font-size: 1.5rem;
+  /* Compact padding on mobile */
+  .card-header,
+  .card-content {
+    padding: var(--space-4);
+  }
+
+  .card-footer {
+    padding: var(--space-3) var(--space-4);
   }
 }
 
 /* Force single column on very small screens (redundant but explicit) */
 @media (max-width: 399px) {
+
   .cards-grid,
   .cards-grid--2,
   .cards-grid--3,
@@ -870,11 +1006,7 @@ a.card {
    ============================================ */
 
 /* Automatically apply gradient borders and fluid effects to common card patterns */
-.article-card:not(.no-gradient),
-.feature-card:not(.no-gradient),
-.stat-card:not(.no-gradient) {
-  /* Classes are added via templates, but this ensures they work */
-}
+/* Classes are added via templates, but this ensures they work */
 
 /* Support for gradient borders on cards */
 .article-card.gradient-border,
@@ -898,13 +1030,113 @@ a.card {
 
 /* Mobile: Compact card padding */
 @media (max-width: 639px) {
-
-  .card-body,
   .feature-card {
-    padding: 1rem;
+    padding: var(--space-4);
   }
 
   .callout-card {
-    padding: 1rem;
+    padding: var(--space-4);
   }
+}
+
+/* ============================================
+   EXPLANATION / INFO / CONCEPT VARIANT
+   ============================================ */
+
+/* Less interactive feel for explanation cards */
+.card-grid[data-variant="explanation"] .card,
+.card-grid[data-variant="info"] .card,
+.card-grid[data-variant="concept"] .card {
+  transition: border-color var(--transition-base);
+}
+
+.card-grid[data-variant="explanation"] .card:hover,
+.card-grid[data-variant="info"] .card:hover,
+.card-grid[data-variant="concept"] .card:hover {
+  /* Disable lift effect */
+  transform: none;
+  /* Subtle shadow enhancement only */
+  box-shadow: var(--elevation-medium);
+}
+
+/* Hide the morphing blob effect for non-interactive cards */
+.card-grid[data-variant="explanation"] .card::before,
+.card-grid[data-variant="info"] .card::before,
+.card-grid[data-variant="concept"] .card::before {
+  display: none;
+}
+
+/* Content styling for Explanation Variant */
+.card-grid[data-variant="explanation"] .card-content,
+.card-grid[data-variant="info"] .card-content,
+.card-grid[data-variant="concept"] .card-content {
+  /* Allow for denser information */
+}
+
+/* Lists in Explanation Cards - Tighter, more compact */
+.card-grid[data-variant="explanation"] .card-content ul,
+.card-grid[data-variant="info"] .card-content ul,
+.card-grid[data-variant="concept"] .card-content ul {
+  padding-left: var(--space-5);
+  margin: var(--space-2) 0;
+}
+
+.card-grid[data-variant="explanation"] .card-content li,
+.card-grid[data-variant="info"] .card-content li,
+.card-grid[data-variant="concept"] .card-content li {
+  margin: var(--space-1) 0;
+  font-size: var(--text-sm);
+}
+
+/* Tables in Explanation Cards - Enhanced styling for comparison */
+.card-grid[data-variant="explanation"] .card-content table,
+.card-grid[data-variant="info"] .card-content table,
+.card-grid[data-variant="concept"] .card-content table {
+  width: 100%;
+  font-size: var(--text-sm);
+  border-collapse: collapse;
+  margin: var(--space-3) 0;
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+  overflow: hidden; /* Ensures corners are rounded */
+}
+
+.card-grid[data-variant="explanation"] .card-content th,
+.card-grid[data-variant="info"] .card-content th,
+.card-grid[data-variant="concept"] .card-content th {
+  text-align: left;
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+  background-color: var(--color-bg-secondary);
+  color: var(--color-text-muted);
+  font-weight: var(--weight-medium);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.card-grid[data-variant="explanation"] .card-content td,
+.card-grid[data-variant="info"] .card-content td,
+.card-grid[data-variant="concept"] .card-content td {
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--color-border-light);
+  color: var(--color-text-secondary);
+}
+
+.card-grid[data-variant="explanation"] .card-content tr:last-child td,
+.card-grid[data-variant="info"] .card-content tr:last-child td,
+.card-grid[data-variant="concept"] .card-content tr:last-child td {
+  border-bottom: none;
+}
+
+/* Make headers smaller in explanation cards */
+.card-grid[data-variant="explanation"] .card-content h3,
+.card-grid[data-variant="explanation"] .card-content h4,
+.card-grid[data-variant="info"] .card-content h3,
+.card-grid[data-variant="info"] .card-content h4,
+.card-grid[data-variant="concept"] .card-content h3,
+.card-grid[data-variant="concept"] .card-content h4 {
+  margin-top: var(--space-3);
+  margin-bottom: var(--space-2);
+  font-size: var(--text-base);
 }

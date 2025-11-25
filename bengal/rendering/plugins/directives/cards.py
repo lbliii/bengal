@@ -8,6 +8,7 @@ Syntax:
     :columns: 3  # or "auto" or "1-2-3-4" for responsive
     :gap: medium
     :style: default
+    :variant: navigation  # or "info", "concept" for non-interactive use
 
     :::{card} Card Title
     :icon: book
@@ -99,12 +100,16 @@ class CardsDirective(DirectivePlugin):
         if style not in ("default", "minimal", "bordered"):
             style = "default"
 
+        # Get variant option (e.g. "info", "concept" vs default "navigation")
+        variant = options.get("variant", "navigation")
+
         return {
             "type": "cards_grid",
             "attrs": {
                 "columns": self._normalize_columns(columns),
                 "gap": gap,
                 "style": style,
+                "variant": variant,
             },
             "children": children,
         }
@@ -499,13 +504,15 @@ def render_cards_grid(renderer, text: str, **attrs) -> str:
     columns = attrs.get("columns", "auto")
     gap = attrs.get("gap", "medium")
     style = attrs.get("style", "default")
+    variant = attrs.get("variant", "navigation")
 
     # Build data attributes for CSS
     html = (
         f'<div class="card-grid" '
         f'data-columns="{columns}" '
         f'data-gap="{gap}" '
-        f'data-style="{style}">\n'
+        f'data-style="{style}" '
+        f'data-variant="{variant}">\n'
         f"{text}"
         f"</div>\n"
     )
@@ -549,42 +556,35 @@ def render_card(renderer, text: str, **attrs) -> str:
     # Build card HTML
     parts = [f'<{card_tag} class="{class_str}"{card_attrs_str}>']
 
-    # Optional header image
+    # Optional header image (direct child of card)
     if image:
-        parts.append('  <div class="card-image">')
         parts.append(
-            f'    <img src="{_escape_html(image)}" alt="{_escape_html(title)}" loading="lazy">'
+            f'  <img class="card-image" src="{_escape_html(image)}" alt="{_escape_html(title)}" loading="lazy">'
         )
-        parts.append("  </div>")
 
-    # Card body
-    parts.append('  <div class="card-body">')
-
-    # Icon and title
+    # Card header (icon and title) - direct child of card
     if icon or title:
-        parts.append('    <div class="card-header">')
+        parts.append('  <div class="card-header">')
         if icon:
             # Only render icon if it actually produces output
             rendered_icon = _render_icon(icon)
             if rendered_icon:
-                parts.append(f'      <span class="card-icon" data-icon="{_escape_html(icon)}">')
+                parts.append(f'    <span class="card-icon" data-icon="{_escape_html(icon)}">')
                 parts.append(rendered_icon)
-                parts.append("      </span>")
+                parts.append("    </span>")
         if title:
             # Use div, not h3, so it doesn't appear in TOC
             # Styled to look like a heading but not a semantic heading
-            parts.append(f'      <div class="card-title">{_escape_html(title)}</div>')
-        parts.append("    </div>")
+            parts.append(f'    <div class="card-title">{_escape_html(title)}</div>')
+        parts.append("  </div>")
 
-    # Card content
+    # Card content - direct child of card
     if text:
-        parts.append('    <div class="card-content">')
-        parts.append(f"{text}")  # Already rendered markdown
-        parts.append("    </div>")
+        parts.append('  <div class="card-content">')
+        parts.append(f"    {text}")  # Already rendered markdown
+        parts.append("  </div>")
 
-    parts.append("  </div>")
-
-    # Optional footer (may contain markdown like badges)
+    # Optional footer (may contain markdown like badges) - direct child of card
     if footer:
         parts.append('  <div class="card-footer">')
         # Footer might have markdown (badges, links, etc), don't escape
