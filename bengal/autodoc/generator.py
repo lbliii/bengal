@@ -327,6 +327,13 @@ class DocumentationGenerator:
         """
         Convert absolute or relative path to project-relative format.
 
+        Strategy:
+        1. Resolve to absolute path
+        2. Walk up parents to find project root (.git, pyproject.toml, bengal.toml)
+        3. Return path relative to that root
+        4. Fallback: Try relative to CWD
+        5. Fallback: Use heuristic markers (src, lib, etc.)
+
         Args:
             path: Path object or string
 
@@ -338,45 +345,54 @@ class DocumentationGenerator:
 
         from pathlib import Path as PathLib
 
-        path_obj = PathLib(path) if not isinstance(path, PathLib) else path
-
-        # Try to make it relative to current working directory (project root)
+        # Ensure we have an absolute path object
         try:
-            cwd = PathLib.cwd()
-            relative = path_obj.relative_to(cwd)
-            return str(relative)
-        except ValueError:
-            # Path is not relative to cwd, try parent directories
-            pass
+            path_obj = PathLib(path).resolve()
+        except OSError:
+            # File might not exist or be accessible, fallback to basic path
+            path_obj = PathLib(path)
 
-        # Try to find project root via markers
+        # 1. Search for project root markers starting from the file's directory
+        # This is the most robust method as it doesn't depend on CWD
         try:
-            cwd = PathLib.cwd()
-            # Search up to 3 levels up
-            for parent in [cwd] + list(cwd.parents)[:3]:
-                if (parent / "pyproject.toml").exists() or (parent / "bengal.toml").exists() or (parent / ".git").exists():
+            current = path_obj.parent
+            # Go up to root, but stop reasonable limit to avoid FS scan
+            for _ in range(20):  
+                if (current / ".git").exists() or \
+                   (current / "pyproject.toml").exists() or \
+                   (current / "bengal.toml").exists():
                     try:
-                        relative = path_obj.relative_to(parent)
-                        return str(relative)
+                        return str(path_obj.relative_to(current))
                     except ValueError:
-                        continue
+                        pass
+                
+                if current.parent == current:  # Root reached
+                    break
+                current = current.parent
         except Exception:
             pass
 
-        # Fallback: return just the filename or the path as-is
-        # Look for common project root indicators
+        # 2. Fallback: Try relative to current working directory
+        try:
+            cwd = PathLib.cwd()
+            return str(path_obj.relative_to(cwd))
+        except ValueError:
+            pass
+
+        # 3. Fallback: Heuristic for common folder structures
+        # This is a last resort for when files are outside the project or markers are missing
         parts = path_obj.parts
         for i, part in enumerate(parts):
-            # If we find a project root indicator, return from there
+            # If we find a common source root indicator
             if part in ("bengal", "src", "lib", "app", "backend", "frontend"):
-                # Check if next part is also the same (e.g. bengal/bengal)
-                # This handles cases where repo name == package name
+                # Handle repo/package name collision (e.g. bengal/bengal)
+                # If the next part is identical, skip the first one (repo dir)
                 if i + 1 < len(parts) and parts[i+1] == part:
                     return str(PathLib(*parts[i+1:]))
                 return str(PathLib(*parts[i:]))
 
-        # Last resort: return the path as a string
-        return str(path_obj)
+        # Last resort: return as-is
+        return str(path)
 
     def generate_all(
         self, elements: list[DocElement], output_dir: Path, parallel: bool = True
