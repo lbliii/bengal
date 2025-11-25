@@ -18,6 +18,12 @@ Practical guides to help you accomplish specific tasks with Bengal.
 
 ## Available Guides
 
+### Content Strategy (Advanced)
+
+- **[Curated Tracks](/guides/curated-tracks/)** - Build linear "courses" or learning paths from existing articles
+- **[Content Reuse](/guides/content-reuse/)** - "Write Once, Publish Everywhere" strategies using data files and shortcodes
+- **[Advanced Filtering](/guides/advanced-filtering/)** - Build dynamic pages that filter by multiple tags (intersections)
+
 ### Getting Started
 
 - **[Build a Blog in 15 Minutes](/guides/blog-from-scratch/)** - The perfect starting point. Go from zero to a deployed personal blog.
