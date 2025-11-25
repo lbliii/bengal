@@ -356,6 +356,85 @@
     <script src="{{ asset_url('js/search.js') }}"></script>
     <script src="{{ asset_url('js/search-page.js') }}"></script>
 
+    {# Mermaid.js for diagram rendering #}
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    {# Mermaid toolbar for interactive diagram controls #}
+    <script src="{{ asset_url('js/mermaid-toolbar.js') }}"></script>
+    <script>
+        (function () {
+            // Initialize Mermaid after DOM is ready
+            document.addEventListener('DOMContentLoaded', function () {
+                // Only initialize if Mermaid diagrams are present on the page
+                const mermaidElements = document.querySelectorAll('.mermaid');
+                if (mermaidElements.length === 0 || typeof mermaid === 'undefined') {
+                    return;
+                }
+
+                // Detect current theme (check data-theme attribute or class)
+                function getCurrentTheme() {
+                    const htmlEl = document.documentElement;
+                    const themeAttr = htmlEl.getAttribute('data-theme');
+                    if (themeAttr === 'dark') return 'dark';
+                    // Fallback: check for dark class or prefers-color-scheme
+                    if (htmlEl.classList.contains('dark') || 
+                        (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                        return 'dark';
+                    }
+                    return 'default';
+                }
+
+                // Initialize Mermaid with theme matching
+                mermaid.initialize({
+                    startOnLoad: false,
+                    theme: getCurrentTheme(),
+                    securityLevel: 'loose',
+                    flowchart: {
+                        useMaxWidth: true,
+                        htmlLabels: true
+                    }
+                });
+
+                // Initial render
+                mermaid.run().then(() => {
+                    if (window.BengalMermaidToolbar) {
+                        window.BengalMermaidToolbar.setupToolbars();
+                    }
+                });
+
+                // Re-render diagrams if theme changes
+                const observer = new MutationObserver(function(mutations) {
+                    mutations.forEach(function(mutation) {
+                        if (mutation.type === 'attributes' && 
+                            (mutation.attributeName === 'data-theme' || mutation.attributeName === 'class')) {
+                            // Re-initialize with new theme
+                            mermaid.initialize({
+                                startOnLoad: false,
+                                theme: getCurrentTheme(),
+                                securityLevel: 'loose',
+                                flowchart: {
+                                    useMaxWidth: true,
+                                    htmlLabels: true
+                                }
+                            });
+                            // Re-render all Mermaid diagrams
+                            mermaid.run().then(() => {
+                                if (window.BengalMermaidToolbar) {
+                                    window.BengalMermaidToolbar.setupToolbars();
+                                }
+                            });
+                        }
+                    });
+                });
+
+                // Observe theme changes on html element
+                observer.observe(document.documentElement, {
+                    attributes: true,
+                    attributeFilter: ['data-theme', 'class']
+                });
+            });
+        })();
+    </script>
+
     {# Smart search index preloading #}
     <script>
         (function () {

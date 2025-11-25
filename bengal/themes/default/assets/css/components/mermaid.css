@@ -1,0 +1,245 @@
+/**
+ * Mermaid Diagram Component Styles
+ * 
+ * Styles for Mermaid.js diagram rendering within content areas.
+ * Mermaid diagrams are rendered client-side and need proper spacing
+ * and responsive behavior.
+ */
+
+/* Mermaid wrapper - container for diagram and toolbar */
+.mermaid-wrapper {
+  position: relative;
+  margin: var(--space-6) 0;
+}
+
+/* Mermaid container - scoped to prose/content areas */
+.prose .mermaid,
+.has-prose-content .mermaid,
+.mermaid {
+  display: flex;
+  justify-content: center;
+  margin: 0;
+  padding: var(--space-4);
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-md);
+  overflow-x: auto;
+  overflow-y: hidden;
+  position: relative;
+}
+
+/* Ensure Mermaid SVGs are responsive */
+.prose .mermaid svg,
+.has-prose-content .mermaid svg,
+.mermaid svg {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Toolbar - appears on hover */
+.mermaid-toolbar {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+  display: flex;
+  gap: var(--space-1);
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-1);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--transition-fast), visibility var(--transition-fast);
+  z-index: 10;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.mermaid-wrapper:hover .mermaid-toolbar,
+.mermaid-wrapper:focus-within .mermaid-toolbar {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Mobile: Always show toolbar on touch devices or small screens if needed */
+@media (hover: none) {
+  .mermaid-toolbar {
+    opacity: 1;
+    visibility: visible;
+  }
+}
+
+/* Toolbar buttons */
+.mermaid-toolbar__button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.mermaid-toolbar__button:hover {
+  background: var(--color-bg-secondary);
+  color: var(--color-text-primary);
+}
+
+.mermaid-toolbar__button:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+}
+
+.mermaid-toolbar__button svg {
+  width: 1rem;
+  height: 1rem;
+  stroke: currentColor;
+}
+
+.mermaid-toolbar__button.success {
+  color: var(--color-success, #10b981);
+}
+
+.mermaid-toolbar__button.error {
+  color: var(--color-error, #ef4444);
+}
+
+/* Dark theme adjustments */
+[data-theme="dark"] .prose .mermaid,
+[data-theme="dark"] .has-prose-content .mermaid,
+[data-theme="dark"] .mermaid {
+  background: var(--color-bg-tertiary);
+}
+
+[data-theme="dark"] .mermaid-toolbar {
+  background: var(--color-bg-secondary);
+  border-color: var(--color-border);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Lightbox for enlarged diagrams */
+.mermaid-lightbox {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: var(--z-modal, 9999);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--transition-base), visibility var(--transition-base);
+  backdrop-filter: blur(4px);
+}
+
+.mermaid-lightbox.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.mermaid-lightbox__container {
+  position: relative;
+  width: 90vw;
+  height: 85vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg-primary);
+  border-radius: var(--radius-lg);
+  overflow: hidden; /* Hide overflow for panning */
+  cursor: grab;
+}
+
+.mermaid-lightbox__container:active {
+  cursor: grabbing;
+}
+
+.mermaid-lightbox__container svg {
+  display: block;
+  /* Remove max-width constraints to allow zooming */
+  max-width: none;
+  max-height: none;
+  width: auto;
+  height: auto;
+  transform-origin: 0 0; /* Transform from top-left */
+  transition: transform 0.1s ease-out; /* Smooth zoom/pan */
+}
+
+.mermaid-lightbox__close {
+  position: absolute;
+  top: var(--space-4);
+  right: var(--space-4);
+  width: 2.5rem;
+  height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  z-index: 20;
+}
+
+.mermaid-lightbox__close:hover {
+  background: var(--color-bg-tertiary);
+  transform: scale(1.1);
+}
+
+.mermaid-lightbox__close svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  stroke: currentColor;
+}
+
+.mermaid-lightbox__toolbar {
+  position: absolute;
+  top: var(--space-4);
+  left: var(--space-4);
+  display: flex;
+  gap: var(--space-1);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-1);
+  z-index: 20;
+}
+
+.mermaid-lightbox__controls {
+  position: absolute;
+  bottom: var(--space-8);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: var(--space-2);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  padding: var(--space-2);
+  z-index: 20;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Print styles - ensure diagrams are visible */
+@media print {
+  .prose .mermaid,
+  .has-prose-content .mermaid,
+  .mermaid {
+    page-break-inside: avoid;
+    background: transparent;
+    border: 1px solid var(--color-border);
+  }
+
+  .mermaid-toolbar,
+  .mermaid-lightbox {
+    display: none;
+  }
+}
