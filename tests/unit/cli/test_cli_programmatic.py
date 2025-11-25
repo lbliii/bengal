@@ -8,6 +8,7 @@ from 9-13% to ~40-50% where programmatically testable.
 from unittest.mock import patch
 
 import pytest
+import yaml
 from click.testing import CliRunner
 
 from bengal.cli.helpers import check_autodoc_needs_regeneration, should_regenerate_autodoc
@@ -67,6 +68,66 @@ class TestBuildCommandHelpers:
         )
 
         assert result is False
+
+    def test_should_regenerate_autodoc_config_path_none_with_toml(self, tmp_path):
+        """Test autodoc regeneration when config_path is None but bengal.toml exists."""
+        # Create bengal.toml in tmp_path
+        config_file = tmp_path / "bengal.toml"
+        write_text_file(
+            str(config_file),
+            """
+[autodoc.python]
+enabled = true
+source_dirs = ["src"]
+output_dir = "content/api"
+""",
+        )
+
+        # Create source and output dirs
+        (tmp_path / "src").mkdir()
+        (tmp_path / "content" / "api").mkdir(parents=True)
+
+        # should_regenerate_autodoc will change to root_path internally to find config
+        with patch(
+            "bengal.cli.helpers.autodoc_build.check_autodoc_needs_regeneration", return_value=True
+        ):
+            result = should_regenerate_autodoc(
+                autodoc_flag=None, config_path=None, root_path=tmp_path, quiet=True
+            )
+
+        assert result is True
+
+    def test_should_regenerate_autodoc_config_path_none_with_config_dir(self, tmp_path):
+        """Test autodoc regeneration when config_path is None but config/ directory exists."""
+        # Create config directory structure
+        config_dir = tmp_path / "config" / "_default"
+        config_dir.mkdir(parents=True)
+
+        # Create autodoc.yaml in config directory
+        autodoc_config = {
+            "autodoc": {
+                "python": {
+                    "enabled": True,
+                    "source_dirs": ["src"],
+                    "output_dir": "content/api",
+                }
+            }
+        }
+        (config_dir / "autodoc.yaml").write_text(yaml.dump(autodoc_config))
+
+        # Create source and output dirs
+        (tmp_path / "src").mkdir()
+        (tmp_path / "content" / "api").mkdir(parents=True)
+
+        # should_regenerate_autodoc will change to root_path internally to find config
+        with patch(
+            "bengal.cli.helpers.autodoc_build.check_autodoc_needs_regeneration", return_value=True
+        ):
+            result = should_regenerate_autodoc(
+                autodoc_flag=None, config_path=None, root_path=tmp_path, quiet=True
+            )
+
+        assert result is True
 
     def test_check_autodoc_needs_regeneration_no_output(self, tmp_path):
         """Test checking regeneration when output dir doesn't exist."""

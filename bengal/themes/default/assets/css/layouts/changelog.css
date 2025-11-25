@@ -384,6 +384,14 @@
     margin-top: var(--space-6);
 }
 
+/* Hide or reduce spacing for first hr in release content to avoid double line with header border */
+.release-details.prose>hr:first-child {
+    margin-top: 0;
+    border-top: none;
+    display: none;
+    /* Hide first hr since header already has border */
+}
+
 .release-content .changelog-category {
     margin-bottom: var(--space-6);
 }
@@ -396,8 +404,14 @@
 .release-details {
     margin-top: var(--space-8);
     padding-top: var(--space-8);
-    border-block-start: 1px solid var(--color-border-light);
-    /* Changed from border-top */
+    /* Removed border-block-start - header already has border-block-end for separation */
+}
+
+/* Headings in release content inherit standard typography styles from base/typography.css */
+/* Only override first heading top margin since container already provides spacing */
+.release-details.prose>h1:first-child,
+.release-details.prose>h2:first-child {
+    margin-top: 0;
 }
 
 .release-footer {

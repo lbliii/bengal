@@ -353,7 +353,14 @@
         timelineItems.forEach(function(item) {
           const changeTypes = item.getAttribute('data-change-types') || '';
 
-          if (filter === 'all' || changeTypes.includes(filter)) {
+          // Items without structured data (empty or 'all') show for all filters
+          // Items with structured data only show if they match the filter
+          const hasStructuredData = changeTypes && changeTypes !== 'all';
+          const shouldShow = filter === 'all' ||
+                            !hasStructuredData ||
+                            changeTypes.includes(filter);
+
+          if (shouldShow) {
             item.style.display = '';
             // Smooth fade-in animation
             item.style.opacity = '0';

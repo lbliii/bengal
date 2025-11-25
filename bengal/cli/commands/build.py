@@ -281,7 +281,17 @@ def build(
 
         # Handle autodoc regeneration
         root_path = Path(source).resolve()
-        config_path = Path(config).resolve() if config else None
+        # Find config file if not explicitly provided (same logic as ConfigLoader)
+        if config:
+            config_path = Path(config).resolve()
+        else:
+            # Try to find config file automatically (same as ConfigLoader.load())
+            config_path = None
+            for filename in ["bengal.toml", "bengal.yaml", "bengal.yml"]:
+                candidate = root_path / filename
+                if candidate.exists():
+                    config_path = candidate
+                    break
         if should_regenerate_autodoc(
             autodoc_flag=autodoc, config_path=config_path, root_path=root_path, quiet=quiet
         ):

@@ -200,6 +200,133 @@ params:
   # {{ site.config.params.api_url }}
 ```
 
+### Environment-Aware Configuration
+
+Bengal automatically detects deployment environments and applies environment-specific overrides.
+
+**Environment Detection Order:**
+1. `BENGAL_ENV` (explicit override, highest priority)
+2. Netlify: Detects `NETLIFY=true` + `CONTEXT` (production/preview)
+3. Vercel: Detects `VERCEL=1` + `VERCEL_ENV` (production/preview/development)
+4. GitHub Actions: Detects `GITHUB_ACTIONS=true` (assumes production)
+5. Default: Falls back to `local`
+
+**Example: environments/production.yaml**
+```yaml
+site:
+  baseurl: "https://example.com"  # Production URL
+
+build:
+  minify_html: true
+  fingerprint_assets: true
+```
+
+**Example: environments/local.yaml**
+```yaml
+site:
+  baseurl: "http://localhost:8000"  # Local dev URL
+
+build:
+  minify_html: false  # Faster builds during development
+  fingerprint_assets: false
+```
+
+**Usage:**
+```bash
+# Use environment-specific config
+bengal build --environment production
+bengal serve --environment local  # Default for serve
+```
+
+### Build Profiles
+
+Profiles provide persona-based configuration for optimized workflows.
+
+**Available Profiles:**
+- `writer`: Fast builds, quiet output (minimal logging)
+- `theme-dev`: Template debugging (verbose template errors)
+- `dev`: Full observability (all logging, validation enabled)
+
+**Example: profiles/writer.yaml**
+```yaml
+build:
+  parallel: true
+  quiet: true  # Minimal output
+
+features:
+  validation: false  # Skip validation for speed
+```
+
+**Example: profiles/dev.yaml**
+```yaml
+build:
+  parallel: true
+  verbose: true  # Full output
+
+features:
+  validation: true
+  health_checks: true
+```
+
+**Usage:**
+```bash
+# Use build profiles
+bengal build --profile writer     # Fast builds, quiet output
+bengal build --profile dev        # Full observability
+```
+
+### Configuration Precedence
+
+Configuration is merged in this order (lowest to highest priority):
+
+1. **`config/_default/*.yaml`** (base configuration)
+2. **`config/environments/<env>.yaml`** (environment overrides)
+3. **`config/profiles/<profile>.yaml`** (profile settings)
+4. **Environment variable overrides** (GitHub Actions, Netlify, Vercel)
+
+Later layers override earlier ones. Feature toggles are expanded after all merges.
+
+### Smart Feature Toggles
+
+Feature toggles provide simple flags that expand into detailed configuration.
+
+**Example: features.yaml**
+```yaml
+features:
+  rss: true      # Expands to full RSS feed configuration
+  search: true   # Expands to search index configuration
+  json: true     # Expands to JSON API configuration
+```
+
+These simple flags are automatically expanded into full configuration via `bengal/config/feature_mappings.py`, reducing boilerplate while maintaining flexibility.
+
+### CLI Introspection
+
+Bengal provides CLI commands for configuration introspection and management:
+
+```bash
+# Show merged configuration
+bengal config show
+
+# Show with environment/profile
+bengal config show --environment production --profile writer
+
+# Show config origin (which file contributed each key)
+bengal config show --origin
+
+# Show specific section
+bengal config show --section build
+
+# Diagnose config issues
+bengal config doctor
+
+# Compare configurations
+bengal config diff --environment local production
+
+# Initialize config directory structure
+bengal config init
+```
+
 ### Default Configuration
 
 If no config file found, Bengal provides sensible defaults:

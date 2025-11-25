@@ -50,7 +50,24 @@ Supports two modes:
     </section>
     {% endif %}
 
-    {# Filter UI #}
+    {# Check if any releases have structured metadata for filtering #}
+    {% set has_structured_data = false %}
+    {% if changelog_data and changelog_data.get('releases') %}
+        {% for release in changelog_data.get('releases') %}
+            {% if release.get('added') or release.get('changed') or release.get('fixed') or release.get('breaking') or release.get('security') %}
+                {% set has_structured_data = true %}
+            {% endif %}
+        {% endfor %}
+    {% elif pages %}
+        {% for release in pages %}
+            {% if release.metadata.get('added') or release.metadata.get('changed') or release.metadata.get('fixed') or release.metadata.get('breaking') or release.metadata.get('security') %}
+                {% set has_structured_data = true %}
+            {% endif %}
+        {% endfor %}
+    {% endif %}
+
+    {# Filter UI - Only show if structured data exists #}
+    {% if has_structured_data %}
     <div class="changelog-filters">
         <button class="changelog-filter-btn active" data-filter="all" aria-pressed="true">
             All Changes
@@ -71,6 +88,7 @@ Supports two modes:
             🔒 Security
         </button>
     </div>
+    {% endif %}
 
     {# Data-driven mode: Use changelog.yaml #}
     {% if changelog_data and changelog_data.get('releases') %}
@@ -215,6 +233,7 @@ Supports two modes:
         <div class="timeline">
             {% for release in pages %}
             {# Build list of change types for filtering #}
+            {# If no structured metadata, leave empty - JavaScript will show for all filters #}
             {% set change_types = [] %}
             {% if release.metadata.get('added') %} {% set _ = change_types.append('added') %} {% endif %}
             {% if release.metadata.get('changed') %} {% set _ = change_types.append('changed') %} {% endif %}
@@ -245,9 +264,10 @@ Supports two modes:
                     </div>
                 </div>
 
-                {% if release.metadata.get('summary') or release.excerpt %}
+                {% set release_description = release.metadata.get('description') or release.metadata.get('summary') or release.excerpt %}
+                {% if release_description %}
                 <p class="timeline-description">
-                    {{ release.metadata.get('summary') | default(release.excerpt) }}
+                    {{ release_description }}
                 </p>
                 {% endif %}
 
