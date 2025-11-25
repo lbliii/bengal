@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+from contextlib import chdir
 from pathlib import Path
 
 
@@ -25,13 +26,9 @@ def should_regenerate_autodoc(
     # load_autodoc_config can find config automatically if config_path is None
     # It will look for config/ directory or bengal.toml relative to current working directory
     # Since build command runs from site root, this should work
-    original_cwd = os.getcwd()
-    try:
-        # Change to root_path so load_autodoc_config can find config relative to site root
-        os.chdir(root_path)
+    # Change to root_path so load_autodoc_config can find config relative to site root
+    with chdir(root_path):
         config = load_autodoc_config(config_path)
-    finally:
-        os.chdir(original_cwd)
 
     return check_autodoc_needs_regeneration(config, root_path, quiet)
 
@@ -111,13 +108,9 @@ def run_autodoc_before_build(config_path: Path | None, root_path: Path, quiet: b
     # load_autodoc_config can find config automatically if config_path is None
     # It will look for config/ directory or bengal.toml relative to current working directory
     # Since build command runs from site root, this should work
-    original_cwd = os.getcwd()
-    try:
-        # Change to root_path so load_autodoc_config can find config relative to site root
-        os.chdir(root_path)
+    # Change to root_path so load_autodoc_config can find config relative to site root
+    with chdir(root_path):
         autodoc_config = load_autodoc_config(config_path)
-    finally:
-        os.chdir(original_cwd)
     python_config = autodoc_config.get("python", {})
     cli_config = autodoc_config.get("cli", {})
 
