@@ -3,13 +3,13 @@
 title: "info"
 type: "cli-reference"
 source_file: "bengal/bengal/cli/helpers/error_handling.py"
-line_number: 205
+line_number: 207
 description: "ℹ️  Show theme info for a slug. Displays information about a theme including: - Source location (project, installed, or bundled) - Version (if installed) - Template and asset paths"
 ---
 
 # info
 **Type:** Command
-**Source:** [View source](bengal/bengal/cli/helpers/error_handling.py#L205)
+**Source:** [View source](bengal/bengal/cli/helpers/error_handling.py#L207)
 
 ```{badge} Command
 :class: badge-secondary

@@ -3,13 +3,13 @@
 title: "install"
 type: "cli-reference"
 source_file: "bengal/bengal/cli/helpers/error_handling.py"
-line_number: 301
+line_number: 533
 description: "📦 Install a theme via uv pip. Installs a theme package from PyPI. NAME may be a package name or a slug. If a slug without prefix is provided, suggests canonical \'bengal-theme-<slug>\'."
 ---
 
 # install
 **Type:** Command
-**Source:** [View source](bengal/bengal/cli/helpers/error_handling.py#L301)
+**Source:** [View source](bengal/bengal/cli/helpers/error_handling.py#L533)
 
 ```{badge} Command
 :class: badge-secondary

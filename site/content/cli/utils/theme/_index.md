@@ -30,6 +30,22 @@ theme [OPTIONS] [ARGUMENTS]
 
 ## Subcommands
 
+### `debug`
+
+🐛 Debug theme resolution and template paths.
+
+Shows comprehensive information about:
+- Active theme chain (inheritance order)
+- Template resolution paths (priority order)
+- Template source locations
+- Theme validation (circular inheritance, missing themes)
+- Specific template resolution (if --template provided)
+
+**Usage:** `theme debug [OPTIONS]`
+
+
+
+
 ### `discover`
 
 🔍 List swizzlable templates from the active theme chain.

@@ -1,15 +1,15 @@
 
 ---
-title: "site"
+title: "new"
 type: "cli-reference"
 source_file: "bengal/bengal/cli/helpers/error_handling.py"
-line_number: 553
-description: "Create a new Bengal site (bengal new site)."
+line_number: 23
+description: "🏗️  Create a new Bengal site with optional structure initialization. Creates a new site directory with configuration, content structure, and optional sample content. Use --template to choose a preset ..."
 ---
 
-# site
+# new
 **Type:** Command
-**Source:** [View source](bengal/bengal/cli/helpers/error_handling.py#L553)
+**Source:** [View source](bengal/bengal/cli/helpers/error_handling.py#L23)
 
 ```{badge} Command
 :class: badge-secondary
@@ -17,15 +17,18 @@ description: "Create a new Bengal site (bengal new site)."
 
 
 
-**Command:** `bengal.new.site`
+**Command:** `bengal.site.new`
 
 
-Create a new Bengal site (bengal new site).
+🏗️  Create a new Bengal site with optional structure initialization.
+
+Creates a new site directory with configuration, content structure, and
+optional sample content. Use --template to choose a preset layout.
 
 ## Usage
 
 ```bash
-site [OPTIONS] [ARGUMENTS]
+new [OPTIONS] [ARGUMENTS]
 ```
 
 ## Arguments

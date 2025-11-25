@@ -3,13 +3,13 @@
 title: "discover"
 type: "cli-reference"
 source_file: "bengal/bengal/cli/helpers/error_handling.py"
-line_number: 263
+line_number: 267
 description: "🔍 List swizzlable templates from the active theme chain. Shows all templates available in your active theme(s) that can be swizzled (copied) to your project for customization."
 ---
 
 # discover
 **Type:** Command
-**Source:** [View source](bengal/bengal/cli/helpers/error_handling.py#L263)
+**Source:** [View source](bengal/bengal/cli/helpers/error_handling.py#L267)
 
 ```{badge} Command
 :class: badge-secondary

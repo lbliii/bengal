@@ -83,10 +83,7 @@ See also:
 
 ### `site`
 
-🏗️  Create a new Bengal site with optional structure initialization.
-
-Creates a new site directory with configuration, content structure, and
-optional sample content. Use --template to choose a preset layout.
+Create a new Bengal site (bengal new site).
 
 **Usage:** `new site [OPTIONS]`
 

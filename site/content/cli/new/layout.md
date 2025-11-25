@@ -3,13 +3,13 @@
 title: "layout"
 type: "cli-reference"
 source_file: "bengal/bengal/cli/helpers/error_handling.py"
-line_number: 689
+line_number: 691
 description: "📋 Create a new layout template. Layouts are reusable HTML templates used by pages. Example: \"article\" → templates/layouts/article.html See also: bengal new partial - Create a partial template bengal n..."
 ---
 
 # layout
 **Type:** Command
-**Source:** [View source](bengal/bengal/cli/helpers/error_handling.py#L689)
+**Source:** [View source](bengal/bengal/cli/helpers/error_handling.py#L691)
 
 ```{badge} Command
 :class: badge-secondary
