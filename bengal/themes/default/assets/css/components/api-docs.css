@@ -503,6 +503,7 @@
   box-shadow: var(--elevation-subtle);
   margin: var(--space-4) 0 var(--space-6) 0;
   font-size: var(--text-sm);
+  table-layout: auto;
 }
 
 .prose.api-content table thead {

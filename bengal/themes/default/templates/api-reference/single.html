@@ -1,58 +1,45 @@
 {% extends "base.html" %}
-{% from 'partials/reference-components.html' import reference_header, reference_metadata %}
-{% from 'partials/navigation-components.html' import page_navigation, toc with context %}
-{% from 'partials/content-components.html' import tag_list %}
 
 {#
-API Reference Single Page Template
+API Reference Template
 
-Three-column layout for individual API documentation pages:
-- Left sidebar: API navigation tree
-- Center: Content with class/function details
-- Right sidebar: TOC for quick navigation
+Three-column layout optimized for API documentation sites:
+- Left sidebar: Navigation tree
+- Center: Content
+- Right sidebar: TOC + metadata
 
-Usage: Automatically applied to pages in api-reference sections
-Or set `template: api-reference/single.html` in frontmatter
+Usage: Set `template: api-reference/single.html` in frontmatter
+Or set `type: api-reference` to auto-select this template
 #}
+
+{% from 'partials/navigation-components.html' import breadcrumbs, page_navigation, toc with context %}
+{% from 'partials/content-components.html' import tag_list with context %}
 
 {% block content %}
 {# Three-column documentation layout #}
 <div class="docs-layout">
-  {# Left Sidebar: API Navigation #}
+  {# Left Sidebar: Navigation #}
   <aside class="docs-sidebar" id="docs-sidebar" role="navigation" aria-label="API navigation">
     {% include 'partials/docs-nav.html' %}
   </aside>
 
   {# Main Content #}
   <div class="docs-main">
-    {# Breadcrumbs #}
     {# Action Bar: Breadcrumbs + Share #}
     {% include 'partials/action-bar.html' %}
 
     {# Article Content #}
-    <article
-      class="prose api-content api-reference-page reference-page--api {% if page.metadata.get('css_class') %}{{ page.metadata.get('css_class') }}{% endif %}">
+    <article class="prose {% if page.metadata.get('css_class') %}{{ page.metadata.get('css_class') }}{% endif %}">
       <header class="page-header">
-        {# Reference header with icon and title #}
-        {{ reference_header(
-        icon='📦',
-        title=page.title,
-        description=page.metadata.get('description', ''),
-        type='api'
-        ) }}
+        <h1>{{ page.title }}</h1>
 
-        {# Reference metadata box (module, source, etc.) #}
-        {{ reference_metadata({
-        'Module': page.metadata.get('module_path', ''),
-        'Source': page.metadata.get('source_file', '')
-        }) }}
-
-        {# Document metadata (last updated, etc) #}
-        {% include 'partials/docs-meta.html' %}
+        {% if page.metadata.get('description', '') %}
+        <p class="lead">{{ page.metadata.get('description', '') }}</p>
+        {% endif %}
       </header>
 
       {# Main content #}
-      <div class="docs-content reference-content api-content">
+      <div class="docs-content">
         {{ content | safe }}
       </div>
 
@@ -64,11 +51,11 @@ Or set `template: api-reference/single.html` in frontmatter
       {% endif %}
     </article>
 
-    {# Page navigation (prev/next module) at bottom #}
+    {# Page navigation (prev/next) at bottom #}
     {{ page_navigation(page) }}
   </div>
 
-  {# Right Sidebar: TOC #}
+  {# Right Sidebar: TOC + Metadata #}
   {% if toc_items %}
   <aside class="docs-toc" role="complementary" aria-label="Table of contents">
     {{ toc(toc_items=toc_items, toc=toc, page=page) }}

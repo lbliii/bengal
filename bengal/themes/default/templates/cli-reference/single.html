@@ -1,68 +1,45 @@
 {% extends "base.html" %}
-{% from 'partials/reference-components.html' import reference_header, reference_metadata %}
-{% from 'partials/navigation-components.html' import page_navigation, toc with context %}
-{% from 'partials/content-components.html' import tag_list %}
 
 {#
-  CLI Reference Single Page Template
+CLI Reference Template
 
-  Three-column layout for individual CLI command documentation:
-  - Left sidebar: Command navigation tree
-  - Center: Content with command details, usage, options
-  - Right sidebar: TOC for quick navigation
+Three-column layout optimized for CLI documentation sites:
+- Left sidebar: Navigation tree
+- Center: Content
+- Right sidebar: TOC + metadata
 
-  Usage: Automatically applied to pages in cli-reference sections
-  Or set `template: cli-reference/single.html` in frontmatter
+Usage: Set `template: cli-reference/single.html` in frontmatter
+Or set `type: cli-reference` to auto-select this template
 #}
+
+{% from 'partials/navigation-components.html' import breadcrumbs, page_navigation, toc with context %}
+{% from 'partials/content-components.html' import tag_list with context %}
 
 {% block content %}
 {# Three-column documentation layout #}
 <div class="docs-layout">
-  {# Left Sidebar: CLI Navigation #}
+  {# Left Sidebar: Navigation #}
   <aside class="docs-sidebar" id="docs-sidebar" role="navigation" aria-label="CLI navigation">
     {% include 'partials/docs-nav.html' %}
   </aside>
 
   {# Main Content #}
   <div class="docs-main">
-    {# Breadcrumbs #}
     {# Action Bar: Breadcrumbs + Share #}
     {% include 'partials/action-bar.html' %}
 
     {# Article Content #}
-    <article class="prose api-content cli-reference-page reference-page--cli {% if page.metadata.get('css_class') %}{{ page.metadata.get('css_class') }}{% endif %}">
+    <article class="prose {% if page.metadata.get('css_class') %}{{ page.metadata.get('css_class') }}{% endif %}">
       <header class="page-header">
-        {# Reference header with icon and title #}
-        {{ reference_header(
-          icon=page.metadata.get('emoji', '⌨️'),
-          title=page.title,
-          description=page.metadata.get('description', ''),
-          type='cli'
-        ) }}
+        <h1>{{ page.title }}</h1>
 
-        {# Reference metadata box (source) #}
-        {% set source_with_line = page.metadata.get('source_file', '') %}
-        {% if page.metadata.get('source_line') %}
-          {% set source_with_line = page.metadata.get('source_file', '') ~ ':' ~ page.metadata.get('source_line') %}
+        {% if page.metadata.get('description', '') %}
+        <p class="lead">{{ page.metadata.get('description', '') }}</p>
         {% endif %}
-        {{ reference_metadata({
-          'Source': source_with_line
-        }) }}
-
-        {# Command usage #}
-        {% if page.metadata.get('usage') %}
-        <div class="cli-usage-header">
-          <strong>Usage:</strong>
-          <pre><code>{{ page.metadata.get('usage') }}</code></pre>
-        </div>
-        {% endif %}
-
-        {# Document metadata (last updated, etc) #}
-        {% include 'partials/docs-meta.html' %}
       </header>
 
       {# Main content #}
-      <div class="docs-content reference-content cli-content">
+      <div class="docs-content">
         {{ content | safe }}
       </div>
 
@@ -74,11 +51,11 @@
       {% endif %}
     </article>
 
-    {# Page navigation (prev/next command) at bottom #}
+    {# Page navigation (prev/next) at bottom #}
     {{ page_navigation(page) }}
   </div>
 
-  {# Right Sidebar: TOC #}
+  {# Right Sidebar: TOC + Metadata #}
   {% if toc_items %}
   <aside class="docs-toc" role="complementary" aria-label="Table of contents">
     {{ toc(toc_items=toc_items, toc=toc, page=page) }}
@@ -87,10 +64,7 @@
 </div>
 
 {# Mobile sidebar toggle button #}
-<button
-  class="docs-sidebar-toggle"
-  aria-label="Toggle navigation sidebar"
-  aria-expanded="false"
+<button class="docs-sidebar-toggle" aria-label="Toggle navigation sidebar" aria-expanded="false"
   aria-controls="docs-sidebar">
   <svg viewBox="0 0 24 24">
     <line x1="3" y1="12" x2="21" y2="12"></line>

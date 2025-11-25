@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{#
+API Reference Home Template
+
+Optimized home page template for API reference sites. Features:
+- No action bar (cleaner for home page)
+- Hero section with title and description
+- Main content area
+- Quick links to key API reference sections
+- No blog posts (API reference sites don't need recent posts)
+
+Usage: Set `type: api-reference` on home page to auto-select
+Or set `template: api-reference/home.html` in frontmatter
+#}
+
+{% block content %}
+<div class="docs-home">
+    {# Hero Section #}
+    <header class="docs-home-hero">
+        <div class="docs-home-hero-content">
+            <h1 class="docs-home-title">{{ page.title | default(site.config.title) }}</h1>
+            {% if page.metadata.get('description', '') %}
+            <p class="docs-home-subtitle">{{ page.metadata.get('description', '') }}</p>
+            {% endif %}
+        </div>
+    </header>
+
+    {# Main Content #}
+    {% if content and content.strip() %}
+    <div class="docs-home-content prose">
+        {{ content | safe }}
+    </div>
+    {% endif %}
+
+    {# Quick Links to Key Sections #}
+    {% set show_quick_links = page.metadata.get('show_quick_links', true) %}
+    {% if show_quick_links %}
+    {# Find API reference sections #}
+    {% set api_sections = [] %}
+    {% for section in site.sections %}
+    {% if section.metadata.get('type') == 'api-reference' or section.metadata.get('content_type') == 'api-reference' %}
+    {% set _ = api_sections.append(section) %}
+    {% endif %}
+    {% endfor %}
+
+    {# If no api-reference sections found, try common section names #}
+    {% if not api_sections %}
+    {% set common_names = ['api', 'api-reference', 'api-docs', 'reference'] %}
+    {% for name in common_names %}
+    {% set candidates = site.sections | selectattr('name', 'equalto', name) | list %}
+    {% if candidates %}
+    {% set _ = api_sections.append(candidates[0]) %}
+    {% endif %}
+    {% endfor %}
+    {% endif %}
+
+    {% if api_sections %}
+    <section class="docs-home-sections">
+        <h2 class="docs-home-sections-title">API Reference Sections</h2>
+        <div class="docs-home-sections-grid">
+            {% for section in api_sections | sort(attribute='metadata.weight', reverse=false) | limit(6) %}
+            <a href="{{ section.url }}" class="docs-home-section-card gradient-border fluid-combined">
+                <h3 class="docs-home-section-title">{{ section.title }}</h3>
+                {% if section.metadata.get('description') %}
+                <p class="docs-home-section-description">{{ section.metadata.get('description') }}</p>
+                {% endif %}
+                {% if section.pages %}
+                <span class="docs-home-section-count">{{ section.pages | length }} module{{ 's' if section.pages | length
+                    != 1 else '' }}</span>
+                {% endif %}
+            </a>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+    {% endif %}
+
+    {# Custom Quick Links from metadata #}
+    {% if page.metadata.get('quick_links') %}
+    <section class="docs-home-quick-links">
+        <h2 class="docs-home-quick-links-title">Quick Links</h2>
+        <div class="docs-home-quick-links-grid">
+            {% for link in page.metadata.get('quick_links') %}
+            <a href="{{ link.url }}" class="docs-home-quick-link-card gradient-border">
+                {% if link.icon %}
+                <div class="docs-home-quick-link-icon">{{ link.icon }}</div>
+                {% endif %}
+                <h3>{{ link.title }}</h3>
+                {% if link.description %}
+                <p>{{ link.description }}</p>
+                {% endif %}
+            </a>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+</div>
+{% endblock %}
