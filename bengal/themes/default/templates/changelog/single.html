@@ -53,7 +53,9 @@ fixed:
             {% endif %}
         </div>
 
-        {% if page.metadata.get('summary') %}
+        {% if page.metadata.get('description') %}
+        <p class="release-summary">{{ page.metadata.get('description') }}</p>
+        {% elif page.metadata.get('summary') %}
         <p class="release-summary">{{ page.metadata.get('summary') }}</p>
         {% endif %}
     </header>

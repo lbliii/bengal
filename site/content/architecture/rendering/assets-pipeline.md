@@ -325,6 +325,126 @@ Fingerprinted paths available in templates:
 - No stale cache issues
 - Automatic invalidation on changes
 
+## Asset Manifest System (0.1.4+)
+
+Bengal generates a deterministic `asset-manifest.json` file that maps logical asset names to their fingerprinted output files. This ensures reliable asset resolution and eliminates stale fingerprinted assets.
+
+### Purpose
+
+The asset manifest solves several problems:
+- **Stale Assets**: Prevents old fingerprinted files (e.g., `style.95230091.css`) from persisting after updates
+- **Dev/Prod Sync**: Ensures development and production CSS stay in sync
+- **Reliable Resolution**: Provides deterministic asset resolution without glob matching
+- **Cache Busting**: Enables long cache TTLs with automatic invalidation
+
+### Manifest Format
+
+The manifest is written to `public/asset-manifest.json`:
+
+```json
+{
+  "version": 1,
+  "generated_at": "2025-11-25T12:00:00Z",
+  "assets": {
+    "css/style.css": {
+      "output_path": "assets/css/style.a1b2c3.css",
+      "fingerprint": "a1b2c3",
+      "size_bytes": 12345,
+      "updated_at": "2025-11-25T12:00:00Z"
+    },
+    "js/app.js": {
+      "output_path": "assets/js/app.d4e5f6.js",
+      "fingerprint": "d4e5f6",
+      "size_bytes": 67890
+    }
+  }
+}
+```
+
+### Manifest-Driven Resolution
+
+The `asset_url()` template helper consults the manifest first:
+
+```python
+def asset_url(logical_path: str) -> str:
+    """Resolve logical asset path to fingerprinted output."""
+    # 1. Check manifest first (deterministic)
+    manifest = AssetManifest.load(site.output_dir / "asset-manifest.json")
+    if manifest:
+        entry = manifest.get(logical_path)
+        if entry:
+            return f"/{entry.output_path}"
+
+    # 2. Fallback to glob matching (backward compatibility)
+    return glob_find_asset(logical_path)
+```
+
+### Stale Fingerprint Cleanup
+
+Before writing new fingerprinted files, Bengal:
+1. Loads existing manifest (if present)
+2. Identifies stale fingerprinted files (not in new manifest)
+3. Removes stale files from output directory
+4. Writes new manifest with updated mappings
+
+This ensures only current assets exist in the output directory.
+
+### CLI Inspection
+
+Use `bengal assets status` to inspect asset mappings:
+
+```bash
+$ bengal assets status
+Asset Manifest
+css/style.css → /assets/css/style.a1b2c3.css (fingerprint: a1b2c3)
+js/app.js → /assets/js/app.d4e5f6.js (fingerprint: d4e5f6)
+```
+
+This helps debug asset issues and verify manifest correctness.
+
+### Integration with Build Process
+
+The manifest is generated during asset processing:
+
+```python
+class AssetOrchestrator:
+    def process(self):
+        # ... process assets ...
+
+        # Generate manifest
+        manifest = AssetManifest()
+        for asset in processed_assets:
+            manifest.set_entry(
+                logical_path=asset.logical_path,
+                output_path=asset.output_path,
+                fingerprint=asset.fingerprint,
+                size_bytes=asset.size_bytes,
+            )
+
+        # Write manifest
+        manifest.write(site.output_dir / "asset-manifest.json")
+```
+
+### Clean Output Builds
+
+Use `--clean-output` flag to ensure clean builds:
+
+```bash
+bengal site build --clean-output
+```
+
+This removes all output files (including stale fingerprinted assets) before building, ensuring deterministic builds. Perfect for CI/CD pipelines.
+
+### Benefits
+
+- **Deterministic**: Same logical path always resolves to same fingerprinted file
+- **Reliable**: No glob matching fallback needed (though still supported for backward compatibility)
+- **Debuggable**: Manifest provides visibility into asset mappings
+- **Clean**: Stale assets automatically removed
+- **Fast**: O(1) lookup via dictionary
+
+See: `bengal/assets/manifest.py` for implementation details.
+
 ## Performance
 
 ### Parallel Processing

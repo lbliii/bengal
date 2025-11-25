@@ -1,6 +1,6 @@
 ---
 title: Releases
-description: Release notes and version history for Bengal SSG
+description: Stay up to date with Bengal's latest features, improvements, and fixes. Each release includes detailed notes about what's new, what changed, and how to upgrade.
 type: changelog
 weight: 90
 draft: false
@@ -12,49 +12,29 @@ cascade:
   type: changelog
 ---
 
-# Release Notes
-
-Welcome to Bengal's release notes! Here you'll find what's new, what's improved, and what's been fixed in each version.
-
-## Installation
+## Quick Upgrade
 
 To upgrade to the latest version:
+
+::::{tab-set}
+:::{tab-item} UV
+
+```bash
+uv pip install --upgrade bengal
+```
+
+:::
+
+:::{tab-item} pip
 
 ```bash
 pip install --upgrade bengal
 ```
 
-## Frontmatter for Release Notes
+:::
 
-Release notes use standard Bengal frontmatter. Here's the recommended frontmatter for release pages:
+::::
 
-```yaml
----
-title: Bengal 0.1.3
-description: Performance, stability, theme enhancements, and critical bug fixes
-type: changelog
-date: 2025-10-20
-weight: 10
-draft: false
----
-```
+## Browse Releases
 
-### Supported Frontmatter Keys
-
-| Key | Type | Default | Description |
-| :--- | :--- | :--- | :--- |
-| `title` | `string` | filename-derived | Release title (e.g., `"Bengal 0.1.3"`) |
-| `description` | `string` | `""` | Short description for SEO and listings |
-| `type` | `string` | `None` | Set to `"changelog"` for release notes |
-| `date` | `datetime` | `None` | Release date (used for sorting) |
-| `weight` | `integer` | `None` | Sort order (lower = newer releases first) |
-| `draft` | `boolean` | `false` | Set to `true` to hide unreleased versions |
-| `tags` | `list[string]` | `[]` | Tags for categorization (e.g., `[breaking, performance]`) |
-| `category` | `string` | `None` | Single category for taxonomy (e.g., `category: release`) |
-| `slug` | `string` | filename-derived | Custom URL override (e.g., `slug: v0.1.3`) |
-
-**Recommended Values:**
-- `type: changelog` - Ensures proper template rendering
-- `weight: 10` (or lower) - Newer releases appear first
-- `draft: false` - Only set to `true` for unreleased versions
-- `date` - Use ISO format: `2025-10-20` or `2025-10-20T00:00:00`
+Releases appear below in reverse chronological order (newest first). Click any release to read the full details.

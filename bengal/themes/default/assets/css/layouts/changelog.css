@@ -384,6 +384,13 @@
     margin-top: var(--space-6);
 }
 
+/* Hide or reduce spacing for first hr in release content to avoid double line with header border */
+.release-details.prose > hr:first-child {
+    margin-top: 0;
+    border-top: none;
+    display: none; /* Hide first hr since header already has border */
+}
+
 .release-content .changelog-category {
     margin-bottom: var(--space-6);
 }
@@ -396,8 +403,46 @@
 .release-details {
     margin-top: var(--space-8);
     padding-top: var(--space-8);
-    border-block-start: 1px solid var(--color-border-light);
-    /* Changed from border-top */
+    /* Removed border-block-start - header already has border-block-end for separation */
+}
+
+/* Ensure headings in release content have proper vertical spacing like regular docs */
+.release-details.prose h1 {
+    margin-top: 0;
+    margin-bottom: 0.75rem;
+}
+
+.release-details.prose h2 {
+    margin-top: 1.75em;
+    margin-bottom: 0.5em;
+    padding-bottom: 0.375rem;
+    border-bottom: 1px solid var(--color-border-light);
+}
+
+/* First heading in release-details should have less top margin since container has padding-top */
+.release-details.prose > h2:first-child,
+.release-details.prose > h1:first-child {
+    margin-top: 0;
+}
+
+.release-details.prose h3 {
+    margin-top: 1.5em;
+    margin-bottom: 0.5em;
+}
+
+.release-details.prose h4 {
+    margin-top: 1.25em;
+    margin-bottom: 0.5em;
+}
+
+.release-details.prose h5 {
+    margin-top: 1.25em;
+    margin-bottom: 0.5em;
+}
+
+.release-details.prose h6 {
+    margin-top: 1.25em;
+    margin-bottom: 0.5em;
 }
 
 .release-footer {
