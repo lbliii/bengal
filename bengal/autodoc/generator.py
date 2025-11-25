@@ -349,12 +349,30 @@ class DocumentationGenerator:
             # Path is not relative to cwd, try parent directories
             pass
 
+        # Try to find project root via markers
+        try:
+            cwd = PathLib.cwd()
+            # Search up to 3 levels up
+            for parent in [cwd] + list(cwd.parents)[:3]:
+                if (parent / "pyproject.toml").exists() or (parent / "bengal.toml").exists() or (parent / ".git").exists():
+                    try:
+                        relative = path_obj.relative_to(parent)
+                        return str(relative)
+                    except ValueError:
+                        continue
+        except Exception:
+            pass
+
         # Fallback: return just the filename or the path as-is
         # Look for common project root indicators
         parts = path_obj.parts
         for i, part in enumerate(parts):
             # If we find a project root indicator, return from there
             if part in ("bengal", "src", "lib", "app", "backend", "frontend"):
+                # Check if next part is also the same (e.g. bengal/bengal)
+                # This handles cases where repo name == package name
+                if i + 1 < len(parts) and parts[i+1] == part:
+                    return str(PathLib(*parts[i+1:]))
                 return str(PathLib(*parts[i:]))
 
         # Last resort: return the path as a string
@@ -577,10 +595,12 @@ class DocumentationGenerator:
     def _render_template(self, template_name: str, element: DocElement) -> str:
         """Render template with element data using safe rendering."""
         # Build template context
+        # Note: self.config is already the autodoc config dict (from load_autodoc_config)
+        # It contains github_repo, github_branch, python, cli, etc. at the top level
         context = {
             "element": element,
             "config": self.config,
-            "autodoc_config": self.config.get("autodoc", {}),
+            "autodoc_config": self.config,  # Same as config - autodoc config is already loaded
         }
 
         # Use safe renderer with error boundaries
