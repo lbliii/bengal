@@ -157,7 +157,7 @@
 .prose.api-content h4 + ul,
 .prose.api-content h5 + ul {
   background: var(--color-bg-elevated);
-  padding: var(--space-6) var(--space-6) var(--space-6) var(--space-12);
+  padding: var(--space-6) var(--space-6) var(--space-6) var(--space-8);
   border-radius: var(--radius-lg);
   border: none;
   box-shadow: var(--elevation-subtle);

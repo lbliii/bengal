@@ -4,15 +4,15 @@
 {% from 'partials/content-components.html' import tag_list %}
 
 {#
-  API Reference Single Page Template
+API Reference Single Page Template
 
-  Three-column layout for individual API documentation pages:
-  - Left sidebar: API navigation tree
-  - Center: Content with class/function details
-  - Right sidebar: TOC for quick navigation
+Three-column layout for individual API documentation pages:
+- Left sidebar: API navigation tree
+- Center: Content with class/function details
+- Right sidebar: TOC for quick navigation
 
-  Usage: Automatically applied to pages in api-reference sections
-  Or set `template: api-reference/single.html` in frontmatter
+Usage: Automatically applied to pages in api-reference sections
+Or set `template: api-reference/single.html` in frontmatter
 #}
 
 {% block content %}
@@ -30,20 +30,21 @@
     {% include 'partials/action-bar.html' %}
 
     {# Article Content #}
-    <article class="prose api-reference-page reference-page--api {% if page.metadata.get('css_class') %}{{ page.metadata.get('css_class') }}{% endif %}">
+    <article
+      class="prose api-content api-reference-page reference-page--api {% if page.metadata.get('css_class') %}{{ page.metadata.get('css_class') }}{% endif %}">
       <header class="page-header">
         {# Reference header with icon and title #}
         {{ reference_header(
-          icon='📦',
-          title=page.title,
-          description=page.metadata.get('description', ''),
-          type='api'
+        icon='📦',
+        title=page.title,
+        description=page.metadata.get('description', ''),
+        type='api'
         ) }}
 
         {# Reference metadata box (module, source, etc.) #}
         {{ reference_metadata({
-          'Module': page.metadata.get('module_path', ''),
-          'Source': page.metadata.get('source_file', '')
+        'Module': page.metadata.get('module_path', ''),
+        'Source': page.metadata.get('source_file', '')
         }) }}
 
         {# Document metadata (last updated, etc) #}
@@ -76,10 +77,7 @@
 </div>
 
 {# Mobile sidebar toggle button #}
-<button
-  class="docs-sidebar-toggle"
-  aria-label="Toggle navigation sidebar"
-  aria-expanded="false"
+<button class="docs-sidebar-toggle" aria-label="Toggle navigation sidebar" aria-expanded="false"
   aria-controls="docs-sidebar">
   <svg viewBox="0 0 24 24">
     <line x1="3" y1="12" x2="21" y2="12"></line>

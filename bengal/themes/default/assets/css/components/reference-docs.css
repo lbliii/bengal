@@ -92,9 +92,9 @@
    ============================================ */
 
 .api-reference-container {
-    max-width: var(--content-max-width, 1200px);
-    margin: 0 auto;
-    padding: var(--space-6) var(--space-4);
+    max-width: var(--prose-width);
+    margin: 0;
+    padding: 0;
 }
 
 .api-reference-header {
@@ -446,9 +446,9 @@
    ============================================ */
 
 .cli-reference-container {
-    max-width: var(--content-max-width, 1200px);
-    margin: 0 auto;
-    padding: var(--space-6) var(--space-4);
+    max-width: var(--prose-width);
+    margin: 0;
+    padding: 0;
 }
 
 .cli-reference-header {

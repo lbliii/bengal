@@ -30,7 +30,7 @@
     {% include 'partials/action-bar.html' %}
 
     {# Article Content #}
-    <article class="prose cli-reference-page reference-page--cli {% if page.metadata.get('css_class') %}{{ page.metadata.get('css_class') }}{% endif %}">
+    <article class="prose api-content cli-reference-page reference-page--cli {% if page.metadata.get('css_class') %}{{ page.metadata.get('css_class') }}{% endif %}">
       <header class="page-header">
         {# Reference header with icon and title #}
         {{ reference_header(
