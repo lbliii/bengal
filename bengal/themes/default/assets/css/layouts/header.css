@@ -446,7 +446,7 @@ header .container {
   cursor: pointer;
   transition: all var(--transition-fast) var(--ease-out), box-shadow 0.2s ease;
   /* Neumorphic shadow - refined depth */
-  box-shadow: 
+  box-shadow:
     inset 0 0 0 1px rgba(255, 255, 255, 0.32),
     inset 0.5px 0.5px 1px rgba(255, 255, 255, 0.4),
     inset -0.5px -0.5px 1px rgba(0, 0, 0, 0.15),
@@ -462,8 +462,17 @@ header .container {
 }
 
 .theme-dropdown__icon svg {
-  width: 0.95rem;
-  height: 0.95rem;
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+  display: block;
+  flex-shrink: 0;
+}
+
+/* Theme dropdown chevron icon (direct child SVG, not inside icon span) */
+.theme-dropdown__button > svg {
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+  flex-shrink: 0;
   display: block;
 }
 
@@ -478,7 +487,7 @@ header .container {
       rgba(245, 245, 245, 0.92));
   border-color: var(--color-primary);
   /* Neumorphic hover - refined raised effect */
-  box-shadow: 
+  box-shadow:
     inset 0 0 0 1px rgba(255, 255, 255, 0.35),
     inset 0.5px 0.5px 1.5px rgba(255, 255, 255, 0.5),
     inset -0.5px -0.5px 1.5px rgba(0, 0, 0, 0.12),
@@ -489,7 +498,7 @@ header .container {
 .theme-dropdown__button:active {
   /* Neumorphic pressed state */
   transform: translateY(1px);
-  box-shadow: 
+  box-shadow:
     inset 2px 2px 3px rgba(0, 0, 0, 0.18),
     inset -1px -1px 2px rgba(255, 255, 255, 0.25);
   background: linear-gradient(180deg,
@@ -504,7 +513,7 @@ header .container {
       rgba(238, 238, 238, 0.94));
   border-color: var(--color-primary);
   /* Neumorphic shadow when expanded */
-  box-shadow: 
+  box-shadow:
     inset 0 0 0 1px rgba(255, 255, 255, 0.35),
     inset 0.5px 0.5px 1px rgba(255, 255, 255, 0.4),
     inset -0.5px -0.5px 1px rgba(0, 0, 0, 0.12),
@@ -522,7 +531,7 @@ header .container {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   /* Neumorphic shadow for dropdown */
-  box-shadow: 
+  box-shadow:
     inset 0.5px 0.5px 1px rgba(255, 255, 255, 0.3),
     inset -0.5px -0.5px 1px rgba(0, 0, 0, 0.1),
     4px 4px 12px rgba(0, 0, 0, 0.12),
@@ -574,7 +583,7 @@ header .container {
 
 .theme-dropdown__menu button:active {
   /* Neumorphic pressed state for menu items */
-  box-shadow: 
+  box-shadow:
     inset 1px 1px 2px rgba(0, 0, 0, 0.1),
     inset -0.5px -0.5px 1px rgba(255, 255, 255, 0.15),
     0.5px 0.5px 1px rgba(0, 0, 0, 0.05);
@@ -602,7 +611,7 @@ header .container {
 
 [data-theme="dark"] .theme-dropdown__button {
   /* Neumorphic shadow for dark mode */
-  box-shadow: 
+  box-shadow:
     inset 0 0 0 1px rgba(255, 255, 255, 0.05),
     inset 0.5px 0.5px 1px rgba(255, 255, 255, 0.08),
     inset -0.5px -0.5px 1px rgba(0, 0, 0, 0.4),
@@ -615,7 +624,7 @@ header .container {
 
 [data-theme="dark"] .theme-dropdown__button:hover {
   /* Neumorphic hover for dark mode */
-  box-shadow: 
+  box-shadow:
     inset 0 0 0 1px rgba(255, 255, 255, 0.08),
     inset 0.5px 0.5px 1.5px rgba(255, 255, 255, 0.12),
     inset -0.5px -0.5px 1.5px rgba(0, 0, 0, 0.5),
@@ -629,7 +638,7 @@ header .container {
 [data-theme="dark"] .theme-dropdown__button:active {
   /* Neumorphic pressed state for dark mode */
   transform: translateY(1px);
-  box-shadow: 
+  box-shadow:
     inset 2px 2px 3px rgba(0, 0, 0, 0.45),
     inset -1px -1px 2px rgba(255, 255, 255, 0.12);
   background: linear-gradient(180deg,
@@ -639,7 +648,7 @@ header .container {
 
 [data-theme="dark"] .theme-dropdown__button[aria-expanded="true"] {
   /* Neumorphic shadow when expanded - dark mode */
-  box-shadow: 
+  box-shadow:
     inset 0 0 0 1px rgba(255, 255, 255, 0.08),
     inset 0.5px 0.5px 1px rgba(255, 255, 255, 0.12),
     inset -0.5px -0.5px 1px rgba(0, 0, 0, 0.4),
@@ -652,7 +661,7 @@ header .container {
 
 [data-theme="dark"] .theme-dropdown__menu {
   /* Neumorphic shadow for dark mode dropdown */
-  box-shadow: 
+  box-shadow:
     inset 0.5px 0.5px 1px rgba(255, 255, 255, 0.08),
     inset -0.5px -0.5px 1px rgba(0, 0, 0, 0.4),
     4px 4px 12px rgba(0, 0, 0, 0.3),
@@ -661,7 +670,7 @@ header .container {
 
 [data-theme="dark"] .theme-dropdown__menu button:active {
   /* Neumorphic pressed state for menu items - dark mode */
-  box-shadow: 
+  box-shadow:
     inset 1px 1px 2px rgba(0, 0, 0, 0.3),
     inset -0.5px -0.5px 1px rgba(255, 255, 255, 0.08),
     0.5px 0.5px 1px rgba(0, 0, 0, 0.15);

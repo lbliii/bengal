@@ -289,6 +289,39 @@
    --type-weight-medium: var(--weight-medium);
 
    /* ============================================
+     SEMANTIC ICON SIZES (Responsive)
+     ============================================ */
+
+   /**
+    * Icon size tokens that scale responsively.
+    * Base sizes for desktop, automatically adjusted for smaller screens.
+    * Use these for all SVG icons in buttons and UI components.
+    */
+
+   /* Small icons (buttons, inline) - Responsive: 14px → 13px → 12px */
+   --icon-size-sm: 0.875rem;  /* 14px base */
+
+   /* Medium icons (standard buttons) - Responsive: 12px → 11px → 10px */
+   --icon-size-md: 0.75rem;   /* 12px base */
+
+   /* Extra small icons (compact buttons) - Responsive: 10px → 9px → 8px */
+   --icon-size-xs: 0.625rem;  /* 10px base */
+
+   /* Tablet breakpoint (max-width: 768px) - Slightly smaller */
+   @media (max-width: 768px) {
+     --icon-size-sm: 0.8125rem;  /* 13px */
+     --icon-size-md: 0.6875rem;   /* 11px */
+     --icon-size-xs: 0.5625rem;   /* 9px */
+   }
+
+   /* Mobile breakpoint (max-width: 639px) - Smallest */
+   @media (max-width: 639px) {
+     --icon-size-sm: 0.75rem;     /* 12px */
+     --icon-size-md: 0.625rem;    /* 10px */
+     --icon-size-xs: 0.5rem;      /* 8px */
+   }
+
+   /* ============================================
      SEMANTIC ELEVATION (Shadows)
      ============================================ */
 
