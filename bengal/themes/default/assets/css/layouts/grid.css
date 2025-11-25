@@ -141,21 +141,4 @@
   }
 }
 
-/* Card Grid */
-.card-grid {
-  display: grid;
-  gap: var(--space-6);
-  grid-template-columns: 1fr;
-}
-
-@media (min-width: 640px) {
-  .card-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (min-width: 1024px) {
-  .card-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
+/* Card Grid - Moved to components/cards.css for proper data-attribute support */

@@ -369,7 +369,7 @@ def truncate_words(text, count=50):
         return text
     return ' '.join(words[:count]) + '...'
 
-# Bengal auto-discovers this
+# Bengal auto-discovers filters from FILTERS dict
 FILTERS = {
     'truncate_words': truncate_words,
 }
@@ -380,6 +380,8 @@ Use in templates:
 ```html
 <p>{{ page.content | striptags | truncate_words(30) }}</p>
 ```
+
+Bengal automatically discovers filters from the `FILTERS` dictionary.
 
 ## 11. Package and Distribute
 
@@ -484,23 +486,35 @@ bengal utils theme debug
 - Verify asset paths in templates: `{{ asset_url('css/style.css') }}`
 - Check asset manifest: `bengal utils assets list`
 - Ensure CSS files are in `themes/your-theme/assets/css/`
+- Check browser console for 404 errors on asset files
 
 **Theme not discovered:**
 - Site themes: Must be in `themes/<slug>/templates/`
 - Installed themes: Must have entry point `bengal.themes` in `pyproject.toml`
 - Check: `bengal utils theme list` shows all available themes
 
+**Template syntax errors:**
+- Check Jinja2 syntax: `{% block %}` not `{%block%}`
+- Verify template inheritance: `{% extends "base.html" %}`
+- Check for missing closing tags: `{% endblock %}`, `{% endfor %}`
+- Run dev server with `--verbose` to see template errors
+
+**CSS not updating:**
+- Hard refresh browser: `Cmd+Shift+R` (Mac) or `Ctrl+Shift+R` (Windows)
+- Check if CSS file is being watched: `bengal site serve --verbose`
+- Verify CSS file is in correct location: `themes/your-theme/static/css/`
+
 ## Next Steps
 
 **Learn More:**
-- **[Theme Commands](/docs/cli/theme/)** - Full CLI reference
-- **[Template Guide](/docs/templates/)** - Advanced templating
-- **[Asset Pipeline](/docs/assets/)** - CSS/JS optimization
+- **[Theme Commands](/api/cli/utils/)** - Full CLI reference
+- **[Rendering System](/architecture/rendering/)** - Advanced templating and rendering
+- **[Asset Pipeline](/api/assets/)** - CSS/JS optimization and asset management
 
 **Get Inspired:**
 - Browse bundled themes: `bengal utils theme list`
-- Check example themes on GitHub
-- Join theme discussions
+- Check example themes on [GitHub](https://github.com/lbliii/bengal)
+- Explore the default theme structure: `bengal/themes/default/`
 
 **Distribute:**
 - Publish to PyPI

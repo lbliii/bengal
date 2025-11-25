@@ -1,3 +1,11 @@
+---
+title: Data Flow
+description: How data moves through the build pipeline.
+weight: 40
+category: core
+tags: [core, data-flow, build-pipeline, phases, process-flow]
+keywords: [data flow, build pipeline, phases, process flow, content discovery, rendering]
+---
 
 ## Complete Build Pipeline (from build.py)
 
@@ -43,19 +51,19 @@ flowchart TD
     subgraph P6 [Phase 6: RENDERING]
         direction TB
         P6_In[Page Object] --> P6_Pipe[RenderingPipeline.process_page]
-        
+
         subgraph P6_S1 [1. Markdown Parsing]
             P6_S1_Proc["parse_with_toc_and_context<br/>Variable substitution<br/>Output: HTML + TOC"]
         end
-        
+
         subgraph P6_S2 [2. Post-processing]
             P6_S2_Proc["API doc enhancement<br/>Link extraction"]
         end
-        
+
         subgraph P6_S3 [3. Template Application]
             P6_S3_Proc["Jinja2 TemplateEngine<br/>Inject content into layout<br/>Output: Complete HTML"]
         end
-        
+
         P6_Pipe --> P6_S1
         P6_S1 --> P6_S2
         P6_S2 --> P6_S3

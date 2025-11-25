@@ -135,6 +135,12 @@
 }
 
 /* Tag page layouts */
+.tag-page {
+  max-width: var(--container-lg);
+  margin: 0 auto;
+  padding-inline: var(--space-4);
+}
+
 .tag-page .tag-icon {
   color: var(--color-primary);
   font-weight: var(--weight-bold);
@@ -149,6 +155,7 @@
 .tags-page {
   max-width: var(--container-lg);
   margin: 0 auto;
+  padding-inline: var(--space-4);
 }
 
 .tag-cloud {
@@ -206,4 +213,28 @@
 .tag-link:hover .tag-count {
   background-color: rgba(255, 255, 255, 0.2);
   color: var(--color-text-inverse);
+}
+
+/* ============================================
+   TAG NAVIGATION SIDEBAR
+   ============================================ */
+
+.tag-nav-name {
+  display: inline-block;
+}
+
+.tag-nav-count {
+  display: inline-block;
+  margin-left: var(--space-1);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  font-weight: var(--weight-normal);
+}
+
+.docs-nav-link.active .tag-nav-count {
+  color: var(--color-text-secondary);
+}
+
+.docs-nav-link:hover .tag-nav-count {
+  color: var(--color-text-secondary);
 }

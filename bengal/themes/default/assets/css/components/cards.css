@@ -753,7 +753,7 @@ a.card:hover {
  * Card color accents use semantic tokens that automatically adapt to:
  * - Light/dark mode
  * - Theme palette variants (blue-bengal, brown-bengal, etc.)
- * 
+ *
  * Mapping:
  * - blue → info/primary (semantic: informational/primary brand)
  * - green → success/secondary (semantic: success/secondary brand)
@@ -1098,7 +1098,8 @@ a.card:hover {
   margin: var(--space-3) 0;
   border: 1px solid var(--color-border-light);
   border-radius: var(--radius-md);
-  overflow: hidden; /* Ensures corners are rounded */
+  overflow: hidden;
+  /* Ensures corners are rounded */
 }
 
 .card-grid[data-variant="explanation"] .card-content th,

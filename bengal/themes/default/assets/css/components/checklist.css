@@ -1,0 +1,177 @@
+/**
+ * Checklist Directive
+ * Styled checklist containers for bullet lists and task lists
+ */
+
+/* Base Checklist Styles */
+.checklist {
+  position: relative;
+  margin-block: 1.5rem;
+  padding: 1.25rem 1.5rem;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(135deg, var(--color-bg-secondary) 0%, var(--color-bg-tertiary) 100%);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--elevation-card);
+  transition: all var(--transition-base);
+}
+
+.checklist:hover {
+  box-shadow: var(--elevation-card-hover);
+  transform: translate3d(0, -1px, 0);
+}
+
+/* Checklist Title */
+.checklist-title {
+  margin: 0 0 1rem 0;
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-primary);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.checklist-title::before {
+  content: '✓';
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: var(--radius-sm);
+  background: var(--color-primary);
+  color: var(--color-bg);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+  flex-shrink: 0;
+}
+
+/* Checklist Content */
+.checklist-content {
+  position: relative;
+}
+
+/* List styling in checklists */
+.checklist-content ul,
+.checklist-content ol {
+  margin: 0;
+  padding-inline-start: 0;
+  list-style: none;
+}
+
+.checklist-content li {
+  position: relative;
+  padding-inline-start: 1.75rem;
+  margin: 0.5rem 0;
+  line-height: 1.6;
+  color: var(--color-text-primary);
+}
+
+/* Bullet styling for regular lists */
+.checklist-content ul > li::before {
+  content: '▸';
+  position: absolute;
+  left: 0;
+  color: var(--color-primary);
+  font-weight: var(--weight-bold);
+  font-size: 1.1em;
+}
+
+/* Task list styling (checkboxes) */
+.checklist-content input[type="checkbox"] {
+  position: absolute;
+  left: 0;
+  margin: 0;
+  width: 1.25rem;
+  height: 1.25rem;
+  cursor: pointer;
+  accent-color: var(--color-primary);
+}
+
+/* Styled checkbox appearance */
+.checklist-content input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-bg);
+  transition: all var(--transition-base);
+}
+
+.checklist-content input[type="checkbox"]:checked {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' d='M2 6l3 3 5-5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 0.75rem;
+}
+
+.checklist-content input[type="checkbox"]:hover {
+  border-color: var(--color-primary);
+  transform: scale(1.05);
+}
+
+.checklist-content input[type="checkbox"]:focus {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Completed task styling */
+.checklist-content li:has(input[type="checkbox"]:checked) {
+  color: var(--color-text-secondary);
+  text-decoration: line-through;
+  opacity: 0.7;
+}
+
+/* Nested lists */
+.checklist-content ul ul,
+.checklist-content ol ol {
+  margin-top: 0.5rem;
+  padding-inline-start: 1.5rem;
+}
+
+.checklist-content ul ul > li::before {
+  content: '◦';
+  color: var(--color-text-secondary);
+}
+
+/* Dark theme adjustments */
+[data-theme="dark"] .checklist {
+  background: linear-gradient(135deg, var(--color-bg-secondary) 0%, rgba(var(--color-primary-rgb), 0.05) 100%);
+  border-color: var(--color-border);
+}
+
+[data-theme="dark"] .checklist-content input[type="checkbox"] {
+  background-color: var(--color-bg-tertiary);
+  border-color: var(--color-border);
+}
+
+[data-theme="dark"] .checklist-content input[type="checkbox"]:checked {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+/* Spacing adjustments */
+.checklist-content > *:first-child {
+  margin-top: 0;
+}
+
+.checklist-content > *:last-child {
+  margin-bottom: 0;
+}
+
+/* Code blocks in checklists */
+.checklist-content pre {
+  margin: 0.75rem 0;
+}
+
+.checklist-content code {
+  background-color: rgba(0, 0, 0, 0.05);
+  padding: 0.125rem 0.25rem;
+  border-radius: var(--radius-sm);
+}
+
+[data-theme="dark"] .checklist-content code {
+  background-color: rgba(255, 255, 255, 0.1);
+}

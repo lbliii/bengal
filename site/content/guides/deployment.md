@@ -21,9 +21,12 @@ bengal build --environment production
 ```
 
 This command:
-1.  Loads configuration from `config/environments/production.yaml` (if it exists).
-2.  Minifies assets (if enabled).
-3.  Generates the `public/` directory with your complete site.
+
+```{checklist}
+- Loads configuration from `config/environments/production.yaml` (if it exists)
+- Minifies assets (if enabled)
+- Generates the `public/` directory with your complete site
+```
 
 ### Common Build Flags
 

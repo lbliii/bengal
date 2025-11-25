@@ -144,8 +144,8 @@ bengal/
 
 ### Read the Docs
 
-- **[Architecture Overview](../../../architecture/overview.md)** - System design
-- **[Design Principles](../../../architecture/design-principles.md)** - Development philosophy
+- **[Architecture Overview](/architecture/)** - System design
+- **[Design Principles](/architecture/core/design-principles/)** - Development philosophy
 - **[Testing Strategy](../../../TESTING_STRATEGY.md)** - Testing approach
 
 ## 6. Build the Example Site
@@ -432,15 +432,40 @@ Before submitting your PR, verify:
 - [ ] Atomic commits with descriptive messages
 - [ ] No merge conflicts with main
 
+## Troubleshooting
+
+### Common Development Issues
+
+**Tests failing:**
+- Ensure you're using the correct Python version (3.14+)
+- Activate your virtual environment: `source .venv/bin/activate`
+- Run tests via helper script: `./scripts/run-tests.sh`
+- Check for import errors or missing dependencies
+
+**Import errors:**
+- Verify editable install: `pip install -e ".[dev]"`
+- Check Python path: `python -c "import bengal; print(bengal.__file__)"`
+- Ensure you're in the project root directory
+
+**Build issues:**
+- Clear cache: `rm -rf .bengal-cache/`
+- Clean output: `bengal site clean`
+- Check config: `bengal config show`
+
+**Git issues:**
+- Verify upstream remote: `git remote -v`
+- Sync with upstream: `git fetch upstream && git merge upstream/main`
+- Check branch status: `git status`
+
 ## Next Steps
 
 **Learn More:**
 - **[CONTRIBUTING.md](../../../CONTRIBUTING.md)** - Full contribution guidelines
-- **[Architecture Docs](../../../architecture/)** - Deep dive into Bengal's design
+- **[Architecture Overview](/architecture/)** - Deep dive into Bengal's design
 - **[Testing Strategy](../../../TESTING_STRATEGY.md)** - Testing philosophy
 
 **Get Involved:**
-- Join discussions on GitHub
+- Join discussions on [GitHub](https://github.com/lbliii/bengal)
 - Review other PRs
 - Help triage issues
 - Improve documentation

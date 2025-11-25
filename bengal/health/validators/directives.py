@@ -9,7 +9,6 @@ Validates:
 - Performance warnings for directive-heavy pages
 """
 
-
 from __future__ import annotations
 
 import re
@@ -20,6 +19,7 @@ from typing import TYPE_CHECKING, Any, override
 from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult
 from bengal.rendering.parsers.factory import ParserFactory
+from bengal.rendering.plugins.directives.validator import DirectiveSyntaxValidator
 
 if TYPE_CHECKING:
     from bengal.core.site import Site
@@ -114,6 +114,25 @@ class DirectiveValidator(BaseValidator):
 
             try:
                 content = page.source_path.read_text(encoding="utf-8")
+
+                # Check for fence nesting structure using the shared validator
+                fence_errors = DirectiveSyntaxValidator.validate_nested_fences(
+                    content, page.source_path
+                )
+                for error in fence_errors:
+                    # Extract line number if present
+                    line_match = re.match(r"Line (\d+):", error)
+                    line_num = int(line_match.group(1)) if line_match else 0
+
+                    data["fence_nesting_warnings"].append(
+                        {
+                            "page": page.source_path,
+                            "line": line_num,
+                            "type": "structure",
+                            "warning": error,
+                        }
+                    )
+
                 page_directives = self._extract_directives(content, page.source_path)
 
                 for directive in page_directives:

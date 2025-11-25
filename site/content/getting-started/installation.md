@@ -12,7 +12,7 @@ category: onboarding
 
 ## Before You Start
 
-Bengal is built with Python 3.14t free-threaded features in mind. We recommend creating an environment that is 3.14t+.
+Bengal is built with Python 3.14+ free-threaded features in mind. We recommend Python 3.14+ (3.14t free-threaded build recommended for best performance).
 
 ::::{tab-set}
 :::{tab-item} pyenv
@@ -71,10 +71,48 @@ pip install bengal
 :::{tab-item} Development Version
 
 ```bash
-git clone https://github.com/llane/bengal.git
+git clone https://github.com/lbliii/bengal.git
 cd bengal
 ```
 
 :::
 
 ::::
+
+## Verify Installation
+
+After installing, verify Bengal is working:
+
+```bash
+bengal --version
+```
+
+You should see output like: `Bengal SSG, version X.X.X`
+
+If you see an error, check:
+- Python version: `python --version` (should be 3.14+)
+- Virtual environment is activated (if using one)
+- Installation completed without errors
+
+## Troubleshooting
+
+### Installation Issues
+
+**"Command not found" after installation:**
+- Ensure Python's bin directory is in your PATH
+- If using a virtual environment, activate it: `source .venv/bin/activate`
+- Try reinstalling: `pip uninstall bengal && pip install bengal`
+
+**Python version errors:**
+- Verify Python version: `python --version` or `python3 --version`
+- Install Python 3.14+ using pyenv or official installer
+- Ensure you're using the correct Python executable
+
+**Permission errors:**
+- Use `--user` flag: `pip install --user bengal`
+- Or use a virtual environment: `python -m venv venv && source venv/bin/activate`
+
+**UV installation issues:**
+- Install UV: `curl -LsSf https://astral.sh/uv/install.sh | sh`
+- Verify UV: `uv --version`
+- Try with explicit Python: `uv pip install --python 3.14 bengal`

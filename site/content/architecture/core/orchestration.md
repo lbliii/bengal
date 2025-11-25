@@ -2,9 +2,9 @@
 title: Orchestration
 description: Build coordination and phase management.
 weight: 20
-type: doc
-cascade:
-  type: doc
+category: core
+tags: [core, orchestration, build-pipeline, phases, coordination, orchestrators]
+keywords: [orchestration, build pipeline, phases, orchestrators, build coordination, BuildContext]
 ---
 
 # Orchestration System
@@ -35,7 +35,7 @@ sequenceDiagram
 
     CLI->>Site: build()
     Site->>BuildOrch: BuildOrchestrator.build()
-    
+
     rect rgb(240, 248, 255)
     Note over BuildOrch: Phase 1-4: Discovery & Structure
     BuildOrch->>ContentOrch: discover()
@@ -170,5 +170,3 @@ The `IncrementalOrchestrator` acts as a filter before heavy lifting begins.
 1. **Detect**: Find changed files
 2. **Trace**: Find dependents (pages using changed templates)
 3. **Filter**: Pass ONLY affected items to Render/Asset orchestrators
-
-

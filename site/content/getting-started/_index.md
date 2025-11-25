@@ -58,7 +58,9 @@ No matter which path you choose, you'll need to install Bengal first:
 
 ## What Makes Bengal Different?
 
-- **Fast** - Parallel and incremental builds with optional free-threaded Python support (1.8x faster)
+- **Fast** - Parallel and incremental builds with optional free-threaded Python support
 - **Pythonic** - Native Python tooling, no Node.js required (unless you want it)
 - **Developer-Friendly** - Hot reload, CLI wizards, and auto-generated API docs
 - **Flexible** - Blog, docs, portfolio, resume, or custom setups via interactive wizard
+
+Learn more about Bengal's architecture and design in the [Architecture Overview](/architecture/).

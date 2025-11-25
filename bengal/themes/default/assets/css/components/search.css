@@ -172,11 +172,12 @@
   margin: 0;
 }
 
-/* Performance optimization: Content visibility for search results */
+/* Performance optimization: Content visibility removed due to DevTools crash
 .search__results-list > * {
   content-visibility: auto;
   contain-intrinsic-size: 60px;
 }
+*/
 
 .search__result-item {
   margin: 0;

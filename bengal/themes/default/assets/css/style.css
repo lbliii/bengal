@@ -125,6 +125,10 @@
 }
 
 @layer components {
+  @import url('components/checklist.css');
+}
+
+@layer components {
   @import url('components/buttons.css');
   @import url('components/forms.css');
 }
@@ -139,6 +143,10 @@
 
 @layer components {
   @import url('components/code.css');
+}
+
+@layer components {
+  @import url('components/mermaid.css');
 }
 
 @layer components {

@@ -15,6 +15,7 @@ from bengal.rendering.plugins.directives import (
     ButtonDirective,
     CardDirective,
     CardsDirective,
+    ChecklistDirective,
     CodeTabsDirective,
     DataTableDirective,
     DropdownDirective,
@@ -38,6 +39,7 @@ class TestDirectiveRegistration:
         assert ButtonDirective is not None
         assert CardDirective is not None
         assert CardsDirective is not None
+        assert ChecklistDirective is not None
         assert CodeTabsDirective is not None
         assert DataTableDirective is not None
         assert DropdownDirective is not None
@@ -81,6 +83,7 @@ class TestDirectiveRegistration:
             ("rubric", "```{rubric} Heading\n```", "rubric"),
             ("button", "```{button} https://example.com\nClick me\n```", "button button-primary"),
             ("card", "```{card} Title\nContent\n```", "card-title"),
+            ("checklist", "```{checklist}\n- Item one\n- Item two\n```", "checklist"),
             ("list-table", "```{list-table}\n* - Row 1\n  - Col 1\n```", "list-table"),
         ]
 
@@ -89,8 +92,7 @@ class TestDirectiveRegistration:
 
             # Should NOT contain raw directive syntax
             assert f"```{{{directive_name}" not in result, (
-                f"Directive '{directive_name}' not properly registered - "
-                f"raw syntax found in output"
+                f"Directive '{directive_name}' not properly registered - raw syntax found in output"
             )
 
             # Should contain expected output marker
@@ -154,6 +156,7 @@ class TestDirectiveModuleConsistency:
             ButtonDirective,
             CardDirective,
             CardsDirective,
+            ChecklistDirective,
             CodeTabsDirective,
             DataTableDirective,
             DropdownDirective,

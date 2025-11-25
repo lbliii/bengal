@@ -5,7 +5,6 @@ Validates directive syntax before parsing to catch errors early with
 helpful messages.
 """
 
-
 from __future__ import annotations
 
 import re
@@ -186,6 +185,122 @@ class DirectiveSyntaxValidator:
 
         return errors
 
+    @staticmethod
+    def validate_nested_fences(content: str, file_path: Path | None = None) -> list[str]:
+        """
+        Validate nested fence usage (colon fences).
+
+        Checks for:
+        1. Unclosed fences
+        2. Mismatched closing fence lengths
+        3. Nested directives using same fence length as parent (ambiguous)
+
+        Args:
+            content: Markdown content
+            file_path: Optional file path
+
+        Returns:
+            List of error/warning messages
+        """
+        errors = []
+        lines = content.split("\n")
+
+        # Stack of (line_number, colon_count, directive_type, is_indented)
+        stack: list[tuple[int, int, str, bool]] = []
+
+        # Regex for fence start: ^(\s*)(:{3,})\{([^}]+)\}
+        # Regex for fence end: ^(\s*)(:{3,})\s*$
+        start_pattern = re.compile(r"^(\s*)(:{3,})\{([^}]+)\}")
+        end_pattern = re.compile(r"^(\s*)(:{3,})\s*$")
+
+        for i, line in enumerate(lines):
+            line_num = i + 1
+
+            # Check for start block
+            start_match = start_pattern.match(line)
+            if start_match:
+                indent = start_match.group(1)
+                colons = start_match.group(2)
+                dtype = start_match.group(3).strip()
+                count = len(colons)
+                is_indented = len(indent) >= 4
+
+                # Check nesting against parent
+                if stack:
+                    parent_line, parent_count, parent_type, parent_indented = stack[-1]
+
+                    # Warning: Nested with same length and no indentation
+                    if count == parent_count and not is_indented:
+                        errors.append(
+                            f"Line {line_num}: Nested directive '{dtype}' uses same fence length ({count}) "
+                            f"as parent '{parent_type}' (line {parent_line}). "
+                            "This causes parsing ambiguity. Use variable fence lengths (e.g. ::::) "
+                            "for the parent or indent the child."
+                        )
+
+                stack.append((line_num, count, dtype, is_indented))
+                continue
+
+            # Check for end block
+            end_match = end_pattern.match(line)
+            if end_match:
+                colons = end_match.group(2)
+                count = len(colons)
+
+                if not stack:
+                    errors.append(
+                        f"Line {line_num}: Orphaned closing fence (length {count}) found without matching opening fence."
+                    )
+                    continue
+
+                # Check against top of stack
+                top_line, top_count, top_type, _ = stack[-1]
+
+                if count == top_count:
+                    # Perfect match
+                    stack.pop()
+                elif count > top_count:
+                    # Closing fence is LONGER than opening - strictly usually treated as content
+                    # but in this context likely a mistake by user trying to close a parent?
+                    # Actually, standard says end fence must be >= start fence.
+                    # So :::: can close :::. But usually you match exact.
+                    # Let's warn if they differ significantly or if multiple items on stack
+
+                    # Check if it matches any parent
+                    found = False
+                    for idx in range(len(stack) - 1, -1, -1):
+                        if stack[idx][1] == count:
+                            # It closes a parent, leaving children unclosed
+                            unclosed = stack[idx + 1 :]
+                            unclosed_desc = ", ".join(f"'{x[2]}'" for x in unclosed)
+                            errors.append(
+                                f"Line {line_num}: Closing fence (length {count}) matches parent '{stack[idx][2]}' "
+                                f"but leaves inner directives unclosed: {unclosed_desc}."
+                            )
+                            # Pop everything down to that parent
+                            del stack[idx:]
+                            found = True
+                            break
+
+                    if not found:
+                        # It's just longer than the current top.
+                        # Technically valid in CommonMark (closes the block), but bad style.
+                        pass  # Warning? Nah, maybe explicit match is better.
+
+                else:  # count < top_count
+                    # Closing fence is SHORTER. Cannot close the block.
+                    errors.append(
+                        f"Line {line_num}: Closing fence (length {count}) is too short to close "
+                        f"directive '{top_type}' (requires {top_count} colons)."
+                    )
+
+        # End of file: check for unclosed blocks
+        if stack:
+            for line, count, dtype, _ in stack:
+                errors.append(f"Line {line}: Directive '{dtype}' (length {count}) is never closed.")
+
+        return errors
+
     @classmethod
     def validate_directive(
         cls,
@@ -336,7 +451,21 @@ def validate_markdown_directives(
     results = []
     validator = DirectiveSyntaxValidator()
 
-    # Find all directive blocks
+    # 1. Check nesting structure (Global check)
+    fence_errors = validator.validate_nested_fences(markdown_content, file_path)
+    for error in fence_errors:
+        results.append(
+            {
+                "valid": False,
+                "errors": [error],
+                "directive_type": "structure",
+                "content": "",
+                "title": "Nesting Structure",
+                "options": {},
+            }
+        )
+
+    # 2. Find and validate individual directive blocks
     pattern = r"```\{(\w+(?:-\w+)?)\}[^\n]*\n.*?```"
 
     for match in re.finditer(pattern, markdown_content, re.DOTALL):

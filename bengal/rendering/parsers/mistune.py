@@ -1,6 +1,5 @@
 """Mistune parser implementation - fast with full documentation features."""
 
-
 from __future__ import annotations
 
 import re
@@ -81,6 +80,9 @@ class MistuneParser(BaseMarkdownParser):
 
         # Import our custom plugins
         from bengal.rendering.plugins import BadgePlugin, create_documentation_directives
+        from bengal.rendering.plugins.directives.validator import DirectiveSyntaxValidator
+
+        self._validator = DirectiveSyntaxValidator()
 
         # Build plugins list
         plugins = [
@@ -247,6 +249,10 @@ class MistuneParser(BaseMarkdownParser):
         # Stage 1.5: Post-process badges
         html = self._badge_plugin._substitute_badges(html)
 
+        # Stage 1.6: Post-process cross-references if enabled
+        if self._xref_enabled and self._xref_plugin:
+            html = self._xref_plugin._substitute_xrefs(html)
+
         # Stage 2: Inject heading anchors (IDs only; theme adds copy-link anchors)
         html = self._inject_heading_anchors(html)
 
@@ -320,6 +326,7 @@ class MistuneParser(BaseMarkdownParser):
                 "url",
                 "footnotes",
                 "def_list",
+                self._var_plugin,  # Register variable substitution plugin
                 create_documentation_directives(),
             ]
 
@@ -329,8 +336,6 @@ class MistuneParser(BaseMarkdownParser):
 
             self._md_with_vars = self._mistune.create_markdown(
                 plugins=var_plugins,
-                # NOTE: Don't register _var_plugin here - we do preprocessing before Mistune
-                # Registering it would cause double-processing and create placeholders that never get restored
                 renderer="html",
             )
         else:
@@ -338,9 +343,8 @@ class MistuneParser(BaseMarkdownParser):
             self._var_plugin.update_context(context)
 
         try:
-            # IMPORTANT: Process escape syntax BEFORE Mistune parses markdown
-            # because {{/* */}} contains * which Mistune treats as emphasis
-            content = self._var_plugin._substitute_variables(content)
+            # IMPORTANT: Only process escape syntax BEFORE Mistune parses markdown
+            content = self._var_plugin.preprocess(content)
 
             html = self._md_with_vars(content)
 

@@ -5,7 +5,6 @@ Provides safe {{ variable }} replacement in markdown content while keeping
 code blocks literal and maintaining clear separation from template logic.
 """
 
-
 from __future__ import annotations
 
 import re
@@ -112,27 +111,16 @@ class VariableSubstitutionPlugin:
             # Create wrapped renderer that substitutes variables
             def text_with_substitution(text: str) -> str:
                 """Render text with variable substitution."""
-                substituted = self._substitute_variables(text)
+                substituted = self.substitute_variables(text)
                 return original_text(substituted)
 
             # Replace text renderer
             md.renderer.text = text_with_substitution
 
-    def _substitute_variables(self, text: str) -> str:
+    def preprocess(self, text: str) -> str:
         """
-        Substitute {{ variable }} expressions in text.
-
-        Supports Hugo-style inline escaping: {{/* expr */}} becomes literal {{ expr }}
-
-        Args:
-            text: Raw text content
-
-        Returns:
-            Text with variables substituted and escapes processed
+        Handle escaped syntax {{/* ... */}} before parsing.
         """
-        # DON'T reset placeholders - accumulate them across multiple calls
-        # (preprocessing + text renderer calls from Mistune)
-        # Only reset when update_context() is called for a new page
 
         # Step 1: Handle escaped syntax {{/* ... */}} → {{ ... }}
         def save_escaped(match: Match) -> str:
@@ -143,7 +131,12 @@ class VariableSubstitutionPlugin:
             self.escaped_placeholders[placeholder] = f"{{{{{expr}}}}}"
             return placeholder
 
-        text = self.ESCAPE_PATTERN.sub(save_escaped, text)
+        return self.ESCAPE_PATTERN.sub(save_escaped, text)
+
+    def substitute_variables(self, text: str) -> str:
+        """
+        Substitute {{ variable }} expressions in text nodes.
+        """
 
         # Step 2: Normal variable substitution
         def replace_var(match: Match) -> str:
@@ -179,11 +172,15 @@ class VariableSubstitutionPlugin:
                 self.escaped_placeholders[placeholder] = f"{{{{ {expr} }}}}"
                 return placeholder
 
-        text = self.VARIABLE_PATTERN.sub(replace_var, text)
+        return self.VARIABLE_PATTERN.sub(replace_var, text)
 
-        # Step 3: Don't restore placeholders yet - they'll be restored after Mistune
-        # This prevents Mistune from escaping the {{ }} characters
-        return text
+    def _substitute_variables(self, text: str) -> str:
+        """
+        Legacy method combining preprocess and substitution.
+        Kept for backward compatibility if needed, but splitting usage is preferred.
+        """
+        text = self.preprocess(text)
+        return self.substitute_variables(text)
 
     def restore_placeholders(self, html: str) -> str:
         """

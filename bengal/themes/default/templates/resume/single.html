@@ -58,7 +58,7 @@
         <p class="summary-text">{{ resume.get('summary') }}</p>
         {% endif %}
         {% if content %}
-        <div class="summary-content">
+        <div class="summary-content prose">
             {{ content | safe }}
         </div>
         {% endif %}
@@ -315,7 +315,7 @@
 
     {# Page Content (bio, personal statement, etc.) #}
     {% if content and content.strip() %}
-    <section class="resume-section resume-custom-content">
+    <section class="resume-section resume-custom-content prose">
         {{ content | safe }}
     </section>
     {% endif %}

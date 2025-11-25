@@ -49,6 +49,7 @@
    --color-bg-overlay: rgba(0, 0, 0, 0.5);
    --color-bg-hover: var(--gray-100);
    --color-bg-active: var(--gray-200);
+   --color-bg-pressed: linear-gradient(180deg, rgba(238, 238, 238, 0.96), rgba(226, 226, 226, 0.93));
    --color-bg-code: var(--gray-50);
 
    /* Surface Colors */
@@ -303,11 +304,51 @@
    --elevation-card: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
    --elevation-card-hover: 0 8px 16px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.08);
    --elevation-subtle: 0 1px 2px rgba(0, 0, 0, 0.05);
+   --elevation-pressed: inset 2px 2px 3px rgba(0, 0, 0, 0.18), inset -1px -1px 2px rgba(255, 255, 255, 0.24);
    --elevation-dropdown: var(--elevation-high);
    --elevation-modal: var(--elevation-highest);
    --elevation-tooltip: var(--elevation-medium);
    /* Common flyout/popover elevation */
    --elevation-popover: var(--elevation-high);
+
+   /* ============================================
+     NEUMORPHIC SHADOWS (Skeuomorphic Key-like Effects)
+     ============================================ */
+
+   /* Base neumorphic shadow - default state */
+   --neumorphic-base:
+     inset 0 0 0 1px rgba(255, 255, 255, 0.35),
+     inset 0.5px 0.5px 1px rgba(255, 255, 255, 0.4),
+     inset -0.5px -0.5px 1px rgba(0, 0, 0, 0.1),
+     1px 1px 2px rgba(0, 0, 0, 0.08),
+     -0.5px -0.5px 1px rgba(255, 255, 255, 0.3);
+
+   /* Neumorphic hover - raised key effect */
+   --neumorphic-hover:
+     inset 0 0 0 1px rgba(255, 255, 255, 0.4),
+     inset 0.5px 0.5px 1.5px rgba(255, 255, 255, 0.5),
+     inset -0.5px -0.5px 1.5px rgba(0, 0, 0, 0.12),
+     2px 2px 6px rgba(0, 0, 0, 0.1),
+     -1px -1px 3px rgba(255, 255, 255, 0.4);
+
+   /* Neumorphic pressed - key fully depressed */
+   --neumorphic-pressed:
+     inset 2px 2px 3px rgba(0, 0, 0, 0.18),
+     inset -1px -1px 2px rgba(255, 255, 255, 0.25),
+     0 1px 1px rgba(0, 0, 0, 0.05);
+
+   /* Neumorphic subtle - for smaller elements (badges, icons) */
+   --neumorphic-subtle:
+     inset 0.3px 0.3px 0.8px rgba(255, 255, 255, 0.6),
+     inset -0.3px -0.3px 0.8px rgba(0, 0, 0, 0.1),
+     1px 1px 2px rgba(0, 0, 0, 0.06),
+     -0.3px -0.3px 1px rgba(255, 255, 255, 0.4);
+
+   /* Neumorphic subtle pressed */
+   --neumorphic-subtle-pressed:
+     inset 0.5px 0.5px 1px rgba(0, 0, 0, 0.12),
+     inset -0.3px -0.3px 0.5px rgba(255, 255, 255, 0.3),
+     0.3px 0.3px 0.5px rgba(0, 0, 0, 0.03);
 
    /* ============================================
      SEMANTIC BORDERS
@@ -345,7 +386,7 @@
    --transition-base: var(--duration-200) var(--ease-out);
    --transition-slow: var(--duration-300) var(--ease-in-out);
    --transition-slower: var(--duration-500) var(--ease-in-out);
-   
+
    /* Smooth drawer/panel transitions */
    --transition-smooth: var(--duration-500) var(--ease-smooth);
 
@@ -439,6 +480,7 @@
    --color-bg-overlay: rgba(0, 0, 0, 0.7);
    --color-bg-hover: #404040;
    --color-bg-active: #4a4a4a;
+   --color-bg-pressed: linear-gradient(180deg, rgba(30, 30, 30, 0.98), rgba(18, 18, 18, 0.96));
    --color-bg-code: #2d2d2d;
 
    /* Border Colors */
@@ -503,6 +545,38 @@
    --elevation-card: 0 2px 4px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
    --elevation-card-hover: 0 12px 24px rgba(0, 0, 0, 0.4), 0 4px 8px rgba(0, 0, 0, 0.3);
    --elevation-subtle: 0 1px 2px rgba(0, 0, 0, 0.25);
+   --elevation-pressed: inset 2px 2px 3px rgba(0, 0, 0, 0.45), inset -1px -1px 2px rgba(255, 255, 255, 0.12);
+
+   /* Neumorphic Shadows (Dark mode) */
+   --neumorphic-base:
+     inset 0 0 0 1px rgba(255, 255, 255, 0.05),
+     inset 0.5px 0.5px 1px rgba(255, 255, 255, 0.08),
+     inset -0.5px -0.5px 1px rgba(0, 0, 0, 0.4),
+     1px 1px 3px rgba(0, 0, 0, 0.25),
+     -0.5px -0.5px 1px rgba(255, 255, 255, 0.05);
+
+   --neumorphic-hover:
+     inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+     inset 0.5px 0.5px 1.5px rgba(255, 255, 255, 0.12),
+     inset -0.5px -0.5px 1.5px rgba(0, 0, 0, 0.5),
+     2px 2px 6px rgba(0, 0, 0, 0.35),
+     -1px -1px 3px rgba(255, 255, 255, 0.08);
+
+   --neumorphic-pressed:
+     inset 2px 2px 4px rgba(0, 0, 0, 0.5),
+     inset -1px -1px 2px rgba(255, 255, 255, 0.08),
+     0 1px 1px rgba(0, 0, 0, 0.2);
+
+   --neumorphic-subtle:
+     inset 0.3px 0.3px 0.8px rgba(255, 255, 255, 0.12),
+     inset -0.3px -0.3px 0.8px rgba(0, 0, 0, 0.4),
+     1px 1px 3px rgba(0, 0, 0, 0.25),
+     -0.3px -0.3px 1px rgba(255, 255, 255, 0.05);
+
+   --neumorphic-subtle-pressed:
+     inset 0.5px 0.5px 1px rgba(0, 0, 0, 0.4),
+     inset -0.3px -0.3px 0.5px rgba(255, 255, 255, 0.08),
+     0.3px 0.3px 0.5px rgba(0, 0, 0, 0.15);
 
    /* Surface Colors (Dark mode) */
    --color-surface: #252525;
