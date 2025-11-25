@@ -492,4 +492,4 @@ Include your custom theme in git:
 
 - **[Themer Quickstart](/getting-started/themer-quickstart/)** - Learn theme basics
 - **[Rendering System](/architecture/rendering/)** - Understand template rendering
-- **[Asset Pipeline](/concepts/assets/)** - Optimize CSS and JavaScript
+- **[Asset Pipeline](/about/concepts/assets/)** - Optimize CSS and JavaScript

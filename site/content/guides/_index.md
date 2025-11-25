@@ -38,5 +38,5 @@ Each guide provides detailed, step-by-step instructions to help you accomplish s
 ## Need Help?
 
 - Check the [Getting Started](/getting-started/) section for basics
-- Review [Concepts](/concepts/) for understanding Bengal's architecture
+- Review [Concepts](/about/concepts/) for understanding Bengal's architecture
 - See [API Reference](/api/) for technical details

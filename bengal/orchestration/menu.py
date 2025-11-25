@@ -119,6 +119,7 @@ class MenuOrchestrator:
         Key includes:
         - Menu config from bengal.toml
         - List of pages with menu frontmatter and their menu data
+        - Dev link params (repo_url, api_url, cli_url)
 
         Returns:
             SHA256 hash of menu-related data
@@ -138,13 +139,91 @@ class MenuOrchestrator:
                         "url": page.url,
                     }
                 )
+        
+        # Include dev params in cache key
+        params = self.site.config.get("params", {})
+        dev_params = {
+            "repo_url": params.get("repo_url"),
+            "api_url": params.get("api_url"),
+            "cli_url": params.get("cli_url"),
+        }
 
         # Create cache key data
-        cache_data = {"config": menu_config, "pages": menu_pages}
+        cache_data = {"config": menu_config, "pages": menu_pages, "dev_params": dev_params}
 
         # Hash to create cache key
         data_str = json.dumps(cache_data, sort_keys=True)
         return hashlib.sha256(data_str.encode()).hexdigest()
+
+    def _inject_auto_dev_menu(self, menu_config: dict[str, list[dict]]) -> None:
+        """
+        Inject 'Dev' menu item if dev links exist in params.
+        
+        If main menu is empty (auto mode), we first populate it with auto-nav
+        items so we don't break existing auto-navigation.
+        
+        Args:
+            menu_config: Menu configuration dictionary (modified in-place)
+        """
+        params = self.site.config.get("params", {})
+        dev_links = []
+        
+        if repo_url := params.get("repo_url"):
+            dev_links.append({"name": "GitHub", "url": repo_url})
+        if api_url := params.get("api_url"):
+            dev_links.append({"name": "API", "url": api_url})
+        if cli_url := params.get("cli_url"):
+            dev_links.append({"name": "CLI", "url": cli_url})
+            
+        if not dev_links:
+            return
+            
+        # Check if main menu exists or is empty
+        # If it's missing or empty, we are in auto mode
+        # We must preserve auto items by fetching them and adding to main menu
+        if "main" not in menu_config or not menu_config["main"]:
+            from bengal.rendering.template_functions.navigation import get_auto_nav
+            
+            # Fetch auto-discovered items
+            # Note: get_auto_nav checks site.config['menu']['main'], which is empty in auto mode
+            # So it will return the correct auto items
+            auto_items = get_auto_nav(self.site)
+            
+            if "main" not in menu_config:
+                menu_config["main"] = []
+                
+            # Add auto items to main menu config
+            if auto_items:
+                # Convert from dict to list of dicts compatible with menu config
+                menu_config["main"].extend(auto_items)
+            
+        main_menu = menu_config["main"]
+        
+        # Check if "Dev" already exists
+        if isinstance(main_menu, list):
+            for item in main_menu:
+                if isinstance(item, dict) and item.get("name") == "Dev":
+                    return
+        
+        # Create Dev item identifier
+        parent_id = "dev-auto"
+        
+        # Add parent
+        main_menu.append({
+            "name": "Dev",
+            "url": "#",
+            "identifier": parent_id,
+            "weight": 90, # High weight to be at end
+        })
+        
+        # Add children
+        for i, link in enumerate(dev_links):
+            main_menu.append({
+                "name": link["name"],
+                "url": link["url"],
+                "parent": parent_id,
+                "weight": i + 1,
+            })
 
     def _build_full(self) -> bool:
         """
@@ -154,9 +233,15 @@ class MenuOrchestrator:
             True (menus were rebuilt)
         """
         from bengal.core.menu import MenuBuilder
+        import copy
 
-        # Get menu definitions from config
-        menu_config = self.site.config.get("menu", {})
+        # Get menu definitions from config (make deep copy to avoid mutating site config)
+        raw_menu_config = self.site.config.get("menu", {})
+        menu_config = copy.deepcopy(raw_menu_config)
+        
+        # Inject auto dev menu
+        self._inject_auto_dev_menu(menu_config)
+        
         i18n = self.site.config.get("i18n", {}) or {}
         strategy = i18n.get("strategy", "none")
         # When i18n enabled, build per-locale menus keyed by site.menu_localized[lang]

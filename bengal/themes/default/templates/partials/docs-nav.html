@@ -50,10 +50,11 @@ Usage:
     {# Show the section's index page if it exists #}
     {% if root_section.index_page %}
     {% set root_url_normalized = root_index_url.rstrip('/') if root_index_url else '' %}
+    {% set root_title = root_section.index_page.title if root_section.index_page.title and root_section.index_page.title.strip() else (root_section.slug.replace('-', ' ').replace('_', ' ').title() if root_section.slug else 'API Reference') %}
     <a href="{{ root_section.index_page.permalink }}"
       class="docs-nav-link {% if (page is defined and page and current_url == root_url_normalized) %}active{% endif %}"
       {% if (page is defined and page and current_url == root_url_normalized) %}aria-current="page"{% endif %}>
-      {{ root_section.index_page.title }}
+      {{ root_title }}
     </a>
     {% endif %}
 

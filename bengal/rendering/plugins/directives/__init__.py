@@ -35,6 +35,7 @@ from bengal.rendering.plugins.directives.errors import DirectiveError, format_di
 from bengal.rendering.plugins.directives.list_table import ListTableDirective
 from bengal.rendering.plugins.directives.marimo import MarimoCellDirective
 from bengal.rendering.plugins.directives.rubric import RubricDirective
+from bengal.rendering.plugins.directives.steps import StepsDirective
 from bengal.rendering.plugins.directives.tabs import (
     TabItemDirective,
     TabsDirective,
@@ -114,6 +115,7 @@ def create_documentation_directives():
                 GridItemCardDirective(),  # Sphinx-Design compatibility
                 ButtonDirective(),  # Simple button links
                 ChecklistDirective(),  # Styled checklist containers
+                StepsDirective(),  # Visual step-by-step guides
             ]
 
             # Conditionally add Marimo support (only if marimo is installed)

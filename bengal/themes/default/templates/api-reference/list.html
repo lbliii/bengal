@@ -20,6 +20,12 @@ Features:
 {% from 'partials/content-components.html' import tag_list, child_page_tiles with context %}
 
 {% block content %}
+{# Ensure page is set - use section.index_page if page not defined #}
+{# This is needed for breadcrumbs, sidebar navigation, and content rendering #}
+{% if not page is defined and section is defined %}
+{% set page = section.index_page %}
+{% endif %}
+
 {# Three-column documentation layout #}
 <div class="docs-layout">
     {# Left Sidebar: Navigation #}
@@ -30,13 +36,13 @@ Features:
     {# Main Content #}
     <div class="docs-main">
         {# Action Bar: Breadcrumbs + Share #}
-        {% if not page is defined and section is defined %}
-        {% set page = section %}
-        {% endif %}
+        {% if page %}
         {% include 'partials/action-bar.html' %}
+        {% endif %}
 
         {# Article Content #}
-        <article class="prose {% if page.metadata.get('css_class') %}{{ page.metadata.get('css_class') }}{% endif %}">
+        <article
+            class="prose {% if page and page.metadata.get('css_class') %}{{ page.metadata.get('css_class') }}{% endif %}">
             <header class="page-header">
                 <h1>{{ page.title if page else (section.title if section else 'API Reference') }}</h1>
 

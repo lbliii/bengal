@@ -420,8 +420,8 @@ Bengal doesn't have Jekyll-style `_data/` files. Options:
 
 ### Getting Help
 
-- Check [Content Organization](/concepts/content-organization/) for structure details
-- Review [Configuration](/concepts/configuration/) for config options
+- Check [Content Organization](/about/concepts/content-organization/) for structure details
+- Review [Configuration](/about/concepts/configuration/) for config options
 - See [Getting Started](/getting-started/) for basics
 
 ## Next Steps

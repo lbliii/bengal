@@ -79,7 +79,11 @@ class MistuneParser(BaseMarkdownParser):
         self.enable_highlighting = enable_highlighting
 
         # Import our custom plugins
-        from bengal.rendering.plugins import BadgePlugin, create_documentation_directives
+        from bengal.rendering.plugins import (
+            BadgePlugin,
+            TermPlugin,
+            create_documentation_directives,
+        )
         from bengal.rendering.plugins.directives.validator import DirectiveSyntaxValidator
 
         self._validator = DirectiveSyntaxValidator()
@@ -92,7 +96,9 @@ class MistuneParser(BaseMarkdownParser):
             "url",  # Built-in: autolinks
             "footnotes",  # Built-in: [^1]
             "def_list",  # Built-in: Term\n:   Def
+            "math",  # Built-in: $math$
             create_documentation_directives(),  # Custom: admonitions, tabs, dropdowns, cards
+            TermPlugin(),  # Custom: {term}`Word`
         ]
 
         # Add syntax highlighting plugin if enabled
@@ -310,6 +316,7 @@ class MistuneParser(BaseMarkdownParser):
             self._mistune = mistune
 
         from bengal.rendering.plugins import (
+            TermPlugin,
             VariableSubstitutionPlugin,
             create_documentation_directives,
         )
@@ -326,8 +333,10 @@ class MistuneParser(BaseMarkdownParser):
                 "url",
                 "footnotes",
                 "def_list",
+                "math",
                 self._var_plugin,  # Register variable substitution plugin
                 create_documentation_directives(),
+                TermPlugin(),
             ]
 
             # Add syntax highlighting if enabled

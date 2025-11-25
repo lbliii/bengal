@@ -170,14 +170,26 @@ class AssetPipeline:
         self.fingerprint = config.get('fingerprint_assets', False)
 
     def process(self, assets: List[Asset], parallel: bool = True) -> None:
-        if parallel and len(assets) > 5:
+        # Separate CSS entries (require bundling) from other assets
+        css_entries = [a for a in assets if a.is_css_entry_point()]
+        other = [a for a in assets if not a.is_css_entry_point()]
+        
+        should_run_parallel = parallel and (
+            len(assets) > 5 or (css_entries and other)
+        )
+
+        if should_run_parallel:
+            # Unified thread pool for both CSS bundling and asset processing
             with ThreadPoolExecutor() as executor:
-                futures = [
+                # Submit CSS bundling tasks
+                for entry in css_entries:
+                    executor.submit(self.process_css, entry)
+                
+                # Submit other asset tasks
+                for asset in other:
                     executor.submit(self.process_asset, asset)
-                    for asset in assets
-                ]
-                wait(futures)
         else:
+            # Sequential fallback
             for asset in assets:
                 self.process_asset(asset)
 
@@ -442,10 +454,12 @@ See: `bengal/assets/manifest.py` for implementation details.
 ## Performance
 
 ### Parallel Processing
-Assets are processed in parallel when:
-- 5+ assets to process
+Assets are processed in parallel using a **unified worker pool** when:
+- 5+ assets to process OR mixed workload (CSS + other assets)
 - Parallel mode enabled (default)
 - Worker pool available
+
+**Optimization (2025-11)**: CSS bundling and static asset processing (images, JS) now run concurrently in the same thread pool. This eliminates the "hang" where the build would wait for CSS to finish before starting image optimization.
 
 **Measured speedup**: 2-3x for 10+ assets
 

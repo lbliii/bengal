@@ -6,12 +6,12 @@ It provides a minimal but functional documentation page.
 -#}
 
 ---
-title: "{{ element.name | default('Documentation Error') }}"
+title: "{{ element.name if element and element.name else 'Documentation Error' }}"
 type: "error-fallback"
 description: "Template rendering failed - showing fallback content"
 ---
 
-# {{ element.name | default('Documentation Error') }}
+# {{ element.name if element and element.name else 'Documentation Error' }}
 
 ```{error}
 Template Rendering Failed
@@ -24,7 +24,7 @@ Template: {{ error_info.template_name }}
 ## Basic Information
 
 {% if element %}
-**Name:** {{ element.name | default('Unknown') }}
+**Name:** {{ element.name if element.name else 'Unknown' }}
 **Type:** {{ element.element_type | default('Unknown') }}
 {% if element.source_file %}
 **Source:** {{ element.source_file | project_relative }}

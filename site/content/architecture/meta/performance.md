@@ -119,7 +119,7 @@ When free-threading becomes the default Python build, Bengal will automatically 
 1. ~~**Content Caching**~~: ✅ Already implemented (parsed AST cached)
 2. ~~**Batch File I/O**~~: ✅ Already implemented
    - Page rendering: Parallel (`ThreadPoolExecutor`)
-   - Asset processing: Parallel (`ThreadPoolExecutor`)
+   - Asset processing: Unified Parallel (`ThreadPoolExecutor`) for CSS & static assets
    - Content discovery: Parallel (`ThreadPoolExecutor`, 8 workers)
    - Post-processing: Parallel (`ThreadPoolExecutor`)
 3. **Memory-Mapped Reads**: For large files (>100KB) - Low priority, marginal gains

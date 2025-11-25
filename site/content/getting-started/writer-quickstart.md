@@ -222,7 +222,7 @@ def hello():
 ```
 ```
 
-For advanced Markdown features, see the [Markdown Guide](/concepts/templating/).
+For advanced Markdown features, see the [Markdown Guide](/about/concepts/templating/).
 
 ### Add Images
 
@@ -277,9 +277,9 @@ Tags and categories automatically create archive pages!
 ## Next Steps
 
 **Learn More:**
-- **[Configuration Guide](/concepts/configuration/)** - Explore all config options
+- **[Configuration Guide](/about/concepts/configuration/)** - Explore all config options
 - **[Theming Guide](/getting-started/themer-quickstart/)** - Change your site's appearance
-- **[Content Organization](/concepts/content-organization/)** - Advanced content features
+- **[Content Organization](/about/concepts/content-organization/)** - Advanced content features
 
 **Get Inspired:**
 - Check `site/content/` for example posts

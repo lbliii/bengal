@@ -35,7 +35,6 @@ For detailed documentation on each plugin, see:
     - directives/ package
 """
 
-
 from __future__ import annotations
 
 import warnings
@@ -43,6 +42,7 @@ import warnings
 from bengal.rendering.plugins.badges import BadgePlugin
 from bengal.rendering.plugins.cross_references import CrossReferencePlugin
 from bengal.rendering.plugins.directives import create_documentation_directives
+from bengal.rendering.plugins.term import TermPlugin
 from bengal.rendering.plugins.variable_substitution import VariableSubstitutionPlugin
 
 
@@ -75,6 +75,7 @@ def plugin_documentation_directives(md):
 __all__ = [
     "BadgePlugin",
     "CrossReferencePlugin",
+    "TermPlugin",
     # Core plugins
     "VariableSubstitutionPlugin",
     # Directive factory
