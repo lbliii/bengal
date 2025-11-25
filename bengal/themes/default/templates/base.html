@@ -370,6 +370,11 @@
                     return;
                 }
 
+                // Preserve syntax BEFORE Mermaid renders
+                if (window.BengalMermaidToolbar && window.BengalMermaidToolbar.preserveSyntax) {
+                    window.BengalMermaidToolbar.preserveSyntax();
+                }
+
                 // Detect current theme (check data-theme attribute or class)
                 function getCurrentTheme() {
                     const htmlEl = document.documentElement;

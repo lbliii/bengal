@@ -560,10 +560,22 @@
         });
     }
 
+    /**
+     * Preserve original syntax for all diagrams
+     * Must be called BEFORE Mermaid renders
+     */
+    function preserveSyntax() {
+        const diagrams = document.querySelectorAll('.mermaid');
+        diagrams.forEach(diagram => {
+            storeOriginalSyntax(diagram);
+        });
+    }
+
     // Export API
     window.BengalMermaidToolbar = {
         setupToolbars: setupMermaidToolbars,
-        openLightbox: openLightbox
+        openLightbox: openLightbox,
+        preserveSyntax: preserveSyntax
     };
 
 })();
