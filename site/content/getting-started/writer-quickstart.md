@@ -83,7 +83,7 @@ Welcome to my new blog! This is my first post using Bengal.
 
 - Fast builds with parallel processing
 - Simple Markdown-based workflow
-- Beautiful default themes
+- Customizable themes and templates
 - No complicated build tooling
 
 ## What's Next?
@@ -148,47 +148,15 @@ keywords: [python, advanced, tutorial]
 ---
 ```
 
-#### Supported Frontmatter Keys
+**Common frontmatter keys:**
+- `title` - Page title (required)
+- `date` - Publication date for sorting
+- `tags` - Tags for taxonomy pages (e.g., `[python, web]`)
+- `weight` - Sort order (lower numbers appear first)
+- `draft` - Set to `true` to hide during builds
+- `description` - SEO description
 
-| Key | Type | Default | Description |
-| :--- | :--- | :--- | :--- |
-| `title` | `string` | filename-derived | Page title (required for proper display) |
-| `date` | `datetime` | `None` | Publication date for sorting and archives |
-| `tags` | `list[string]` | `[]` | Tags for taxonomy pages (e.g., `[python, web]`) |
-| `slug` | `string` | filename-derived | Custom URL path override |
-| `weight` | `integer` | `None` | Sort order (lower numbers appear first) |
-| `lang` | `string` | site default | Language code (e.g., `"en"`, `"es"`) |
-| `type` | `string` | `None` | Page type for template selection (`"doc"`, `"post"`, `"page"`) |
-| `description` | `string` | `""` | SEO description (auto-generated if omitted) |
-| `draft` | `boolean` | `false` | Skip page unless `--build-drafts` is used |
-| `keywords` | `list[string]` | `[]` | SEO keywords (list or comma-separated string) |
-| `category` | `string` | `None` | Single category for taxonomy (use `category`, not `categories`) |
-
-**Quick Examples:**
-
-```yaml
-# Minimal frontmatter (title only)
----
-title: My Post
----
-
-# Blog post with full metadata
----
-title: My First Blog Post
-date: 2025-10-26
-tags: [welcome, tutorial]
-description: Getting started with Bengal
-draft: false
----
-
-# Documentation page with ordering
----
-title: Installation Guide
-weight: 1
-type: doc
-description: Step-by-step installation instructions
----
-```
+For a complete reference of all supported frontmatter keys, see the [Frontmatter Reference](/api/core/page/) documentation.
 
 ## 6. Build for Production
 
@@ -225,6 +193,8 @@ git subtree push --prefix public origin gh-pages
 
 ### Markdown Basics
 
+Bengal supports standard Markdown syntax:
+
 ```markdown
 # Heading 1
 ## Heading 2
@@ -251,6 +221,8 @@ def hello():
     print("Hello, World!")
 ```
 ```
+
+For advanced Markdown features, see the [Markdown Guide](/concepts/templating/).
 
 ### Add Images
 
@@ -279,12 +251,35 @@ category: programming
 
 Tags and categories automatically create archive pages!
 
+## Troubleshooting
+
+### Common Issues
+
+**Dev server won't start:**
+- Check if port 5173 is already in use: `lsof -i :5173`
+- Try a different port: `bengal site serve --port 8080`
+
+**Pages not appearing:**
+- Verify frontmatter has a `title` field
+- Check if `draft: true` is set (remove or set to `false`)
+- Ensure file is in `content/` directory or a subdirectory
+
+**Markdown not rendering correctly:**
+- Check for proper frontmatter delimiters (`---` at start and end)
+- Verify YAML syntax (no tabs, proper indentation)
+- Check for special characters that need escaping
+
+**Build errors:**
+- Run `bengal site build --verbose` for detailed error messages
+- Check `bengal.toml` for syntax errors
+- Verify all required fields in frontmatter
+
 ## Next Steps
 
 **Learn More:**
-- **Configuration** - Explore all config options
-- **Themes** - Change your site's appearance
-- **Content Management** - Advanced content features
+- **[Configuration Guide](/concepts/configuration/)** - Explore all config options
+- **[Theming Guide](/getting-started/themer-quickstart/)** - Change your site's appearance
+- **[Content Organization](/concepts/content-organization/)** - Advanced content features
 
 **Get Inspired:**
 - Check `site/content/` for example posts
@@ -292,8 +287,7 @@ Tags and categories automatically create archive pages!
 - Read the [full documentation](/docs/)
 
 **Need Help?**
-- Join discussions on GitHub
-- Read the [troubleshooting guide](/docs/troubleshooting/)
+- Join discussions on [GitHub](https://github.com/lbliii/bengal)
 - Check out example sites in the repo
 
 Happy writing! 🎉

@@ -1,0 +1,48 @@
+{#
+Tag Navigation Sidebar Component
+
+Displays a list of all tags in the sidebar, similar to docs navigation.
+Highlights the current tag if viewing a tag page.
+
+Variables:
+- tags: List of tag objects with .name and .count (optional, will use popular_tags if not provided)
+- current_tag: Current tag name if viewing a tag page (optional)
+#}
+
+{% set all_tags = tags if tags is defined else popular_tags(limit=50) %}
+{% set current_tag_normalized = (current_tag | lower) if current_tag else '' %}
+
+<nav class="docs-nav" aria-label="Tags">
+  <div class="docs-nav-tree">
+    {# Link to all tags page #}
+    <a href="{{ '/tags/' | absolute_url }}"
+       class="docs-nav-link {% if not current_tag %}active{% endif %}"
+       {% if not current_tag %}aria-current="page"{% endif %}>
+      All Tags
+    </a>
+
+    {# List of tags #}
+    {% if all_tags %}
+    {% for tag_item in all_tags %}
+      {# Handle both formats: objects with .name/.count OR tuples (name, count) #}
+      {% if tag_item.name is defined %}
+        {# Tag object from tags page #}
+        {% set tag_name = tag_item.name %}
+        {% set tag_count = tag_item.count %}
+      {% else %}
+        {# Tuple from popular_tags() #}
+        {% set tag_name = tag_item[0] %}
+        {% set tag_count = tag_item[1] %}
+      {% endif %}
+      {% set tag_name_normalized = tag_name | lower %}
+
+      <a href="{{ tag_url(tag_name) }}"
+         class="docs-nav-link {% if current_tag_normalized == tag_name_normalized %}active{% endif %}"
+         {% if current_tag_normalized == tag_name_normalized %}aria-current="page"{% endif %}>
+        <span class="tag-nav-name">{{ tag_name }}</span>
+        <span class="tag-nav-count">({{ tag_count }})</span>
+      </a>
+    {% endfor %}
+    {% endif %}
+  </div>
+</nav>

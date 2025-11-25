@@ -5,7 +5,6 @@ Provides [[link]] syntax for internal page references with O(1) lookup
 performance using pre-built xref_index.
 """
 
-
 from __future__ import annotations
 
 import re
@@ -73,7 +72,7 @@ class CrossReferencePlugin:
                 # First apply original text rendering
                 rendered = original_text(text)
                 # Then replace [[link]] patterns
-                rendered = self._substitute_xrefs(rendered)
+                rendered = self._replace_xrefs_in_text(rendered)
                 return rendered
 
             # Replace text renderer
@@ -81,18 +80,37 @@ class CrossReferencePlugin:
 
         return md
 
-    def _substitute_xrefs(self, text: str) -> str:
+    def _substitute_xrefs(self, html: str) -> str:
         """
-        Substitute [[link]] patterns in text with resolved links.
+        Substitute [[link]] patterns in HTML, avoiding code blocks.
 
         Args:
-            text: Text content that may contain [[link]] patterns
+            html: HTML content that may contain [[link]] patterns
 
         Returns:
-            Text with [[link]] patterns replaced by HTML links
+            HTML with [[link]] patterns replaced by links, respecting code blocks
         """
         # Quick rejection: most text doesn't have [[link]] patterns
-        # This saves expensive regex matching on 90%+ of text nodes
+        if "[[" not in html:
+            return html
+
+        # Split by code blocks (both pre/code blocks and inline code)
+        # Use non-greedy matching for content
+        # Pattern captures delimiters so they are included in parts
+        parts = re.split(
+            r"(<pre.*?</pre>|<code[^>]*>.*?</code>)", html, flags=re.DOTALL | re.IGNORECASE
+        )
+
+        for i in range(0, len(parts), 2):
+            # Even indices are text outside code blocks
+            parts[i] = self._replace_xrefs_in_text(parts[i])
+
+        return "".join(parts)
+
+    def _replace_xrefs_in_text(self, text: str) -> str:
+        """
+        Substitute [[link]] patterns in text node.
+        """
         if "[[" not in text:
             return text
 

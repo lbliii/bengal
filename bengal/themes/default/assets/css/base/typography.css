@@ -1,6 +1,6 @@
 /**
  * Bengal SSG - Typography Styles
- * 
+ *
  * Clean typography system using the new token system.
  * Typography applies globally - no .prose dependency.
  * .prose is only used for layout (max-width, spacing).
@@ -128,31 +128,8 @@ a {
   text-decoration: none;
 }
 
-/* Exclude UI elements from content link styles */
-nav a,
-header a,
-footer a,
-.button,
-a.button,
-button,
-.btn,
-a.btn,
-.action-bar a,
-.nav-main a,
-.mobile-nav a,
-.tab-nav a,
-.dropdown a,
-.breadcrumb a {
-  background-image: none !important;
-  /* Don't override padding-bottom - let component styles handle it */
-}
-
-/* Content link styles - only in content areas, exclude UI elements */
-article a:not(.button):not(button):not(.btn),
-main a:not(.button):not(button):not(.btn),
-section a:not(.button):not(button):not(.btn),
-.prose a:not(.button):not(button):not(.btn),
-.content a:not(.button):not(button):not(.btn) {
+/* Content link styles - scoped to prose */
+.prose a:not(.button):not(.btn) {
   color: var(--color-text-link);
   background-image: linear-gradient(
     to right,
@@ -163,7 +140,7 @@ section a:not(.button):not(button):not(.btn),
   background-size: 0% 2px;
   background-position: 0% 100%;
   padding-bottom: 0.1em;
-  transition: 
+  transition:
     color var(--duration-200) var(--ease-out),
     background-size var(--duration-200) var(--ease-out),
     background-position var(--duration-200) var(--ease-out);
@@ -173,11 +150,7 @@ section a:not(.button):not(button):not(.btn),
   position: relative;
 }
 
-article a:not(.button):not(button):not(.btn):hover,
-main a:not(.button):not(button):not(.btn):hover,
-section a:not(.button):not(button):not(.btn):hover,
-.prose a:not(.button):not(button):not(.btn):hover,
-.content a:not(.button):not(button):not(.btn):hover {
+.prose a:not(.button):not(.btn):hover {
   color: var(--color-text-link-hover);
   background-size: 100% 2px;
   background-image: linear-gradient(
@@ -185,30 +158,43 @@ section a:not(.button):not(button):not(.btn):hover,
     var(--color-text-link-hover) 0%,
     var(--color-text-link-hover) 100%
   );
+  /* Subtle neumorphic raised effect - like a key being highlighted */
+  text-shadow:
+    0.3px 0.3px 0.5px rgba(255, 255, 255, 0.8),
+    -0.2px -0.2px 0.3px rgba(0, 0, 0, 0.1);
+  transform: translate3d(0, -0.5px, 0);
+  transition:
+    color var(--duration-200) var(--ease-out),
+    background-size var(--duration-200) var(--ease-out),
+    background-position var(--duration-200) var(--ease-out),
+    text-shadow var(--duration-200) var(--ease-out),
+    transform var(--duration-200) var(--ease-out);
 }
 
-article a:not(.button):not(button):not(.btn):focus-visible,
-main a:not(.button):not(button):not(.btn):focus-visible,
-section a:not(.button):not(button):not(.btn):focus-visible,
-.prose a:not(.button):not(button):not(.btn):focus-visible,
-.content a:not(.button):not(button):not(.btn):focus-visible {
+.prose a:not(.button):not(.btn):focus-visible {
   outline: 2px solid var(--color-border-focus);
   outline-offset: 2px;
   border-radius: var(--border-radius-small);
   background-size: 100% 2px;
 }
 
-article a:not(.button):not(button):not(.btn):active,
-main a:not(.button):not(button):not(.btn):active,
-section a:not(.button):not(button):not(.btn):active,
-.prose a:not(.button):not(button):not(.btn):active,
-.content a:not(.button):not(button):not(.btn):active {
+.prose a:not(.button):not(.btn):active {
   color: var(--color-primary-active);
   background-image: linear-gradient(
     to right,
     var(--color-primary-active) 0%,
     var(--color-primary-active) 100%
   );
+  /* Neumorphic pressed state - key being pressed */
+  text-shadow:
+    inset 0.5px 0.5px 0.5px rgba(0, 0, 0, 0.15),
+    -0.2px -0.2px 0.2px rgba(255, 255, 255, 0.3);
+  transform: translate3d(0, 0.5px, 0);
+  transition:
+    color 0.05s ease-out,
+    background-size 0.05s ease-out,
+    text-shadow 0.05s ease-out,
+    transform 0.05s ease-out;
 }
 
 /* External links (content only) */
@@ -217,45 +203,21 @@ section a:not(.button):not(button):not(.btn):active,
 }
 
 /* Primary: data-external attribute set by JavaScript */
-article a[data-external="true"],
-main a[data-external="true"],
-section a[data-external="true"],
 .prose a[data-external="true"],
-.content a[data-external="true"],
 /* Fallback: explicit external rel attribute */
-article a[rel*="external"],
-main a[rel*="external"],
-section a[rel*="external"],
 .prose a[rel*="external"],
-.content a[rel*="external"],
 /* Fallback: target="_blank" on http/https links (JavaScript sets this for external links) */
-article a[target="_blank"][href^="http"],
-main a[target="_blank"][href^="http"],
-section a[target="_blank"][href^="http"],
-.prose a[target="_blank"][href^="http"],
-.content a[target="_blank"][href^="http"] {
+.prose a[target="_blank"][href^="http"] {
   padding-right: 1.2em;
   position: relative;
 }
 
 /* Primary: data-external attribute set by JavaScript */
-article a[data-external="true"]::after,
-main a[data-external="true"]::after,
-section a[data-external="true"]::after,
 .prose a[data-external="true"]::after,
-.content a[data-external="true"]::after,
 /* Fallback: explicit external rel attribute */
-article a[rel*="external"]::after,
-main a[rel*="external"]::after,
-section a[rel*="external"]::after,
 .prose a[rel*="external"]::after,
-.content a[rel*="external"]::after,
 /* Fallback: target="_blank" on http/https links (JavaScript sets this for external links) */
-article a[target="_blank"][href^="http"]::after,
-main a[target="_blank"][href^="http"]::after,
-section a[target="_blank"][href^="http"]::after,
-.prose a[target="_blank"][href^="http"]::after,
-.content a[target="_blank"][href^="http"]::after {
+.prose a[target="_blank"][href^="http"]::after {
   content: '';
   display: inline-block;
   width: 0.75em;
@@ -281,33 +243,17 @@ section a[target="_blank"][href^="http"]::after,
 }
 
 /* Primary: data-external attribute set by JavaScript */
-article a[data-external="true"]:hover::after,
-main a[data-external="true"]:hover::after,
-section a[data-external="true"]:hover::after,
 .prose a[data-external="true"]:hover::after,
-.content a[data-external="true"]:hover::after,
 /* Fallback: explicit external rel attribute */
-article a[rel*="external"]:hover::after,
-main a[rel*="external"]:hover::after,
-section a[rel*="external"]:hover::after,
 .prose a[rel*="external"]:hover::after,
-.content a[rel*="external"]:hover::after,
 /* Fallback: target="_blank" on http/https links (JavaScript sets this for external links) */
-article a[target="_blank"][href^="http"]:hover::after,
-main a[target="_blank"][href^="http"]:hover::after,
-section a[target="_blank"][href^="http"]:hover::after,
-.prose a[target="_blank"][href^="http"]:hover::after,
-.content a[target="_blank"][href^="http"]:hover::after {
+.prose a[target="_blank"][href^="http"]:hover::after {
   opacity: 1;
   transform: translate(1px, -1px);
 }
 
 /* Anchor links (content only) */
-article a[href^="#"]:not(.button):not(button):not(.btn),
-main a[href^="#"]:not(.button):not(button):not(.btn),
-section a[href^="#"]:not(.button):not(button):not(.btn),
-.prose a[href^="#"]:not(.button):not(button):not(.btn),
-.content a[href^="#"]:not(.button):not(button):not(.btn) {
+.prose a[href^="#"]:not(.button):not(.btn) {
   color: var(--color-text-secondary);
   background-image: linear-gradient(
     to right,
@@ -316,11 +262,7 @@ section a[href^="#"]:not(.button):not(button):not(.btn),
   );
 }
 
-article a[href^="#"]:not(.button):not(button):not(.btn):hover,
-main a[href^="#"]:not(.button):not(button):not(.btn):hover,
-section a[href^="#"]:not(.button):not(button):not(.btn):hover,
-.prose a[href^="#"]:not(.button):not(button):not(.btn):hover,
-.content a[href^="#"]:not(.button):not(button):not(.btn):hover {
+.prose a[href^="#"]:not(.button):not(.btn):hover {
   color: var(--color-text-link);
   background-image: linear-gradient(
     to right,
@@ -414,12 +356,12 @@ blockquote::before {
   border-radius: var(--radius-lg);
   padding: 1px;
   background: var(--gradient-border);
-  -webkit-mask: 
-    linear-gradient(#fff 0 0) content-box, 
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
     linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
-  mask: 
-    linear-gradient(#fff 0 0) content-box, 
+  mask:
+    linear-gradient(#fff 0 0) content-box,
     linear-gradient(#fff 0 0);
   mask-composite: exclude;
   pointer-events: none;
@@ -476,6 +418,16 @@ code {
   color: var(--color-text-primary);
 }
 
+/* Code in headers should match header size */
+h1 code,
+h2 code,
+h3 code,
+h4 code,
+h5 code,
+h6 code {
+  font-size: inherit;
+}
+
 pre {
   margin: var(--space-6) 0;
   padding: var(--space-4);
@@ -495,12 +447,12 @@ pre {
   padding: 1px;
   background: var(--gradient-border);
   background-size: 200% 200%;
-  -webkit-mask: 
-    linear-gradient(#fff 0 0) content-box, 
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
     linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
-  mask: 
-    linear-gradient(#fff 0 0) content-box, 
+  mask:
+    linear-gradient(#fff 0 0) content-box,
     linear-gradient(#fff 0 0);
   mask-composite: exclude;
   pointer-events: none;
@@ -515,7 +467,7 @@ pre code {
   padding: 0;
   background: none;
   border-radius: 0;
-  font-size: var(--text-code);
+  font-size: var(--text-xs);
 }
 
 /* ============================================
@@ -572,6 +524,68 @@ table {
   width: 100%;
   border-collapse: collapse;
   font-size: var(--text-body-sm);
+  display: table;
+}
+
+/* Make tables scrollable when they exceed container width */
+.prose table,
+article table,
+main table,
+section table,
+.content table {
+  display: block;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  width: 100%;
+  margin: var(--space-8) 0;
+}
+
+/* Restore table display for table children */
+/* Note: tr, th, td are handled separately below */
+
+.prose table thead,
+article table thead,
+main table thead,
+section table thead,
+.content table thead {
+  display: table-header-group;
+}
+
+.prose table tbody,
+article table tbody,
+main table tbody,
+section table tbody,
+.content table tbody {
+  display: table-row-group;
+}
+
+.prose table tfoot,
+article table tfoot,
+main table tfoot,
+section table tfoot,
+.content table tfoot {
+  display: table-footer-group;
+}
+
+.prose table tr,
+article table tr,
+main table tr,
+section table tr,
+.content table tr {
+  display: table-row;
+}
+
+.prose table th,
+.prose table td,
+article table th,
+article table td,
+main table th,
+main table td,
+section table th,
+section table td,
+.content table th,
+.content table td {
+  display: table-cell;
 }
 
 thead {
@@ -702,13 +716,13 @@ dd {
   h1, h2, h3 {
     margin-top: var(--space-6);
   }
-  
+
   ul,
   ol {
     margin: var(--space-4) 0;
     padding-inline-start: var(--space-6);
   }
-  
+
   blockquote {
     margin: var(--space-4) 0;
     padding: var(--space-3);

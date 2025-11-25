@@ -40,12 +40,10 @@ img[loading="lazy"].loaded {
 /* Placeholder for lazy images */
 .img-placeholder {
   background-color: var(--color-bg-tertiary);
-  background-image: linear-gradient(
-    90deg,
-    var(--color-bg-tertiary) 0%,
-    var(--color-bg-secondary) 50%,
-    var(--color-bg-tertiary) 100%
-  );
+  background-image: linear-gradient(90deg,
+      var(--color-bg-tertiary) 0%,
+      var(--color-bg-secondary) 50%,
+      var(--color-bg-tertiary) 100%);
   background-size: 200% 100%;
   animation: shimmer 1.5s ease-in-out infinite;
 }
@@ -54,6 +52,7 @@ img[loading="lazy"].loaded {
   0% {
     background-position: -200% 0;
   }
+
   100% {
     background-position: 200% 0;
   }
@@ -93,12 +92,10 @@ img[loading="lazy"].loaded {
 
 /* Skeleton loading for text content */
 .skeleton {
-  background: linear-gradient(
-    90deg,
-    var(--color-bg-tertiary) 0%,
-    var(--color-bg-secondary) 50%,
-    var(--color-bg-tertiary) 100%
-  );
+  background: linear-gradient(90deg,
+      var(--color-bg-tertiary) 0%,
+      var(--color-bg-secondary) 50%,
+      var(--color-bg-tertiary) 100%);
   background-size: 200% 100%;
   animation: shimmer 1.5s ease-in-out infinite;
   border-radius: var(--border-radius-small);
@@ -136,11 +133,12 @@ img[loading="lazy"] {
   /* But we can hint about it */
 }
 
-/* Content-visibility for off-screen content */
+/* Content-visibility for off-screen content - REMOVED due to DevTools crash
 .offscreen-content {
   content-visibility: auto;
   contain-intrinsic-size: auto 500px;
 }
+*/
 
 /* ============================================
    FADE IN ANIMATIONS
@@ -151,6 +149,7 @@ img[loading="lazy"] {
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
@@ -161,21 +160,36 @@ img[loading="lazy"] {
 }
 
 /* Staggered animations */
-.fade-in-stagger > * {
+.fade-in-stagger>* {
   opacity: 0;
   animation: fadeIn var(--transition-base) ease-in forwards;
 }
 
-.fade-in-stagger > *:nth-child(1) { animation-delay: 0ms; }
-.fade-in-stagger > *:nth-child(2) { animation-delay: 50ms; }
-.fade-in-stagger > *:nth-child(3) { animation-delay: 100ms; }
-.fade-in-stagger > *:nth-child(4) { animation-delay: 150ms; }
-.fade-in-stagger > *:nth-child(5) { animation-delay: 200ms; }
+.fade-in-stagger>*:nth-child(1) {
+  animation-delay: 0ms;
+}
+
+.fade-in-stagger>*:nth-child(2) {
+  animation-delay: 50ms;
+}
+
+.fade-in-stagger>*:nth-child(3) {
+  animation-delay: 100ms;
+}
+
+.fade-in-stagger>*:nth-child(4) {
+  animation-delay: 150ms;
+}
+
+.fade-in-stagger>*:nth-child(5) {
+  animation-delay: 200ms;
+}
 
 /* Disable animations if reduced motion preferred */
 @media (prefers-reduced-motion: reduce) {
+
   .fade-in,
-  .fade-in-stagger > * {
+  .fade-in-stagger>* {
     animation: none;
     opacity: 1;
   }

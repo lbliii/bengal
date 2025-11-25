@@ -18,123 +18,123 @@
 /* Standard Badge Colors (Sphinx-Design compatible) */
 
 .badge-primary {
-  background-color: #3b82f6;
-  color: white;
+  background-color: var(--color-primary);
+  color: var(--color-text-inverse);
 }
 
 .badge-primary:hover {
-  background-color: #2563eb;
+  background-color: var(--color-primary-hover);
 }
 
 @supports (color: color-mix(in srgb, white, black)) {
   .badge-primary:hover {
-    background-color: color-mix(in srgb, #3b82f6 90%, black);
+    background-color: color-mix(in srgb, var(--color-primary) 90%, black);
   }
 }
 
 .badge-secondary {
-  background-color: #6b7280;
-  color: white;
+  background-color: var(--gray-500);
+  color: var(--color-text-inverse);
 }
 
 .badge-secondary:hover {
-  background-color: #4b5563;
+  background-color: var(--gray-600);
 }
 
 @supports (color: color-mix(in srgb, white, black)) {
   .badge-secondary:hover {
-    background-color: color-mix(in srgb, #6b7280 90%, black);
+    background-color: color-mix(in srgb, var(--gray-500) 90%, black);
   }
 }
 
 .badge-success {
-  background-color: #10b981;
-  color: white;
+  background-color: var(--color-success);
+  color: var(--color-text-inverse);
 }
 
 .badge-success:hover {
-  background-color: #059669;
+  background-color: var(--green-700);
 }
 
 @supports (color: color-mix(in srgb, white, black)) {
   .badge-success:hover {
-    background-color: color-mix(in srgb, #10b981 90%, black);
+    background-color: color-mix(in srgb, var(--color-success) 90%, black);
   }
 }
 
 .badge-danger {
-  background-color: #ef4444;
-  color: white;
+  background-color: var(--color-danger);
+  color: var(--color-text-inverse);
 }
 
 .badge-danger:hover {
-  background-color: #dc2626;
+  background-color: var(--red-700);
 }
 
 @supports (color: color-mix(in srgb, white, black)) {
   .badge-danger:hover {
-    background-color: color-mix(in srgb, #ef4444 90%, black);
+    background-color: color-mix(in srgb, var(--color-danger) 90%, black);
   }
 }
 
 .badge-warning {
-  background-color: #f59e0b;
-  color: #1f2937;
+  background-color: var(--color-warning);
+  color: var(--color-text-inverse);
 }
 
 .badge-warning:hover {
-  background-color: #d97706;
+  background-color: var(--orange-700);
 }
 
 @supports (color: color-mix(in srgb, white, black)) {
   .badge-warning:hover {
-    background-color: color-mix(in srgb, #f59e0b 90%, black);
+    background-color: color-mix(in srgb, var(--color-warning) 90%, black);
   }
 }
 
 .badge-info {
-  background-color: #3b82f6;
-  color: white;
+  background-color: var(--color-info);
+  color: var(--color-text-inverse);
 }
 
 .badge-info:hover {
-  background-color: #2563eb;
+  background-color: var(--blue-700);
 }
 
 @supports (color: color-mix(in srgb, white, black)) {
   .badge-info:hover {
-    background-color: color-mix(in srgb, #3b82f6 90%, black);
+    background-color: color-mix(in srgb, var(--color-info) 90%, black);
   }
 }
 
 .badge-light {
-  background-color: #f3f4f6;
-  color: #1f2937;
-  border: 1px solid #d1d5db;
+  background-color: var(--color-bg-tertiary);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
 }
 
 .badge-light:hover {
-  background-color: #e5e7eb;
+  background-color: var(--color-bg-active);
 }
 
 @supports (color: color-mix(in srgb, white, black)) {
   .badge-light:hover {
-    background-color: color-mix(in srgb, #f3f4f6 90%, black);
+    background-color: color-mix(in srgb, var(--color-bg-tertiary) 90%, black);
   }
 }
 
 .badge-dark {
-  background-color: #1f2937;
-  color: white;
+  background-color: var(--gray-800);
+  color: var(--color-text-inverse);
 }
 
 .badge-dark:hover {
-  background-color: #111827;
+  background-color: var(--gray-900);
 }
 
 @supports (color: color-mix(in srgb, white, black)) {
   .badge-dark:hover {
-    background-color: color-mix(in srgb, #1f2937 90%, white);
+    background-color: color-mix(in srgb, var(--gray-800) 90%, white);
   }
 }
 
@@ -156,17 +156,7 @@
 }
 
 /* Dark Mode */
-@media (prefers-color-scheme: dark) {
-  .badge-light {
-    background-color: #374151;
-    color: #f3f4f6;
-    border-color: #4b5563;
-  }
-
-  .badge-warning {
-    color: #1f2937;
-  }
-}
+/* Removed redundant overrides - handled by semantic tokens */
 
 /* Article Card Badges */
 .article-card-badges {
@@ -211,7 +201,7 @@ body.draft-page::before {
   position: fixed;
   top: 1rem;
   right: 1rem;
-  background: #ff6b6b;
+  background: var(--color-danger);
   color: white;
   padding: 0.5rem 1rem;
   border-radius: var(--radius-md);

@@ -14,10 +14,29 @@ cascade:
 
 # Guides
 
-Practical guides to help you accomplish specific tasks.
+Practical guides to help you accomplish specific tasks with Bengal.
 
 ## Available Guides
 
-This section will contain practical guides to help you get the most out of the system.
+### Getting Started
 
-Each guide provides detailed, step-by-step instructions to help you accomplish specific goals.
+- **[Migrating Content](/guides/migrating-content/)** - Migrate your site from Hugo, Jekyll, Gatsby, or other SSGs
+- **[Content Workflow](/guides/content-workflow/)** - Set up an efficient content creation and publishing workflow
+- **[Customizing Themes](/guides/customizing-themes/)** - Customize existing themes without breaking updates
+- **[CI/CD Setup](/guides/ci-cd-setup/)** - Automate builds, testing, and deployments
+- **[Deployment](/guides/deployment/)** - Deploy your site to production
+
+## Guide Types
+
+Each guide provides detailed, step-by-step instructions to help you accomplish specific goals:
+
+- **Step-by-step instructions** - Clear, actionable steps
+- **Code examples** - Copy-paste ready code snippets
+- **Troubleshooting** - Common issues and solutions
+- **Best practices** - Recommended approaches and patterns
+
+## Need Help?
+
+- Check the [Getting Started](/getting-started/) section for basics
+- Review [Concepts](/concepts/) for understanding Bengal's architecture
+- See [API Reference](/api/) for technical details

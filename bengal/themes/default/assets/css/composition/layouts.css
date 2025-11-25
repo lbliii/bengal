@@ -58,6 +58,34 @@
   overflow-y: auto;
   overscroll-behavior: contain;
   padding-inline-end: 1rem;
+  /* Ensure shadows/transforms aren't clipped */
+  padding-inline-start: 0.5rem;
+  margin-inline-start: -0.5rem;
+}
+
+/* Hide empty sidebars */
+.docs-sidebar:empty,
+.docs-toc:empty {
+  display: none;
+}
+
+/* Adjust grid when sidebars are empty - center content */
+.docs-layout:has(.docs-sidebar:empty):has(.docs-toc:empty) {
+  grid-template-areas: "content";
+  grid-template-columns: minmax(0, 1fr);
+  max-width: var(--container-lg);
+}
+
+/* When only left sidebar is empty */
+.docs-layout:has(.docs-sidebar:empty):not(:has(.docs-toc:empty)) {
+  grid-template-areas: "content toc";
+  grid-template-columns: minmax(0, 1fr) minmax(200px, 260px);
+}
+
+/* When only right sidebar is empty */
+.docs-layout:has(.docs-toc:empty):not(:has(.docs-sidebar:empty)) {
+  grid-template-areas: "sidebar content";
+  grid-template-columns: minmax(240px, 280px) minmax(0, 1fr);
 }
 
 /* Main Content */

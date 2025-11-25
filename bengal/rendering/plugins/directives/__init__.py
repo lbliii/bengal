@@ -9,7 +9,6 @@ Also provides:
 - Error handling and validation
 """
 
-
 from __future__ import annotations
 
 from bengal.rendering.plugins.directives.admonitions import AdmonitionDirective
@@ -28,6 +27,7 @@ from bengal.rendering.plugins.directives.cards import (
     GridDirective,
     GridItemCardDirective,
 )
+from bengal.rendering.plugins.directives.checklist import ChecklistDirective
 from bengal.rendering.plugins.directives.code_tabs import CodeTabsDirective
 from bengal.rendering.plugins.directives.data_table import DataTableDirective
 from bengal.rendering.plugins.directives.dropdown import DropdownDirective
@@ -70,6 +70,7 @@ def create_documentation_directives():
     - code-tabs: Code examples in multiple languages
     - rubric: Pseudo-headings for API documentation (not in TOC)
     - list-table: MyST-style tables using nested lists (avoids pipe character issues)
+    - checklist: Styled checklist containers for bullet lists and task lists
 
     Usage:
         from bengal.rendering.plugins.directives import create_documentation_directives
@@ -112,6 +113,7 @@ def create_documentation_directives():
                 GridDirective(),  # Sphinx-Design compatibility
                 GridItemCardDirective(),  # Sphinx-Design compatibility
                 ButtonDirective(),  # Simple button links
+                ChecklistDirective(),  # Styled checklist containers
             ]
 
             # Conditionally add Marimo support (only if marimo is installed)

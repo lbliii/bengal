@@ -22,17 +22,20 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: var(--color-primary);
+  background: linear-gradient(180deg,
+      color-mix(in srgb, var(--color-primary) 95%, white),
+      var(--color-primary));
   color: var(--color-text-inverse);
   border: none;
   border-radius: var(--radius-full);
-  box-shadow: var(--elevation-card);
   cursor: pointer;
   z-index: var(--z-fixed);
   transition: all var(--transition-base);
   opacity: 0;
   visibility: hidden;
   transform: translate3d(0, 20px, 0) scale(0.8);
+  /* Neumorphic shadow - standardized */
+  box-shadow: var(--neumorphic-base);
 }
 
 .back-to-top.visible {
@@ -42,13 +45,43 @@
 }
 
 .back-to-top:hover {
-  background-color: var(--color-primary-hover);
-  box-shadow: var(--elevation-card-hover);
+  background: linear-gradient(180deg,
+      color-mix(in srgb, var(--color-primary-hover) 95%, white),
+      var(--color-primary-hover));
+  /* Neumorphic hover - standardized */
+  box-shadow: var(--neumorphic-hover);
   transform: translate3d(0, -4px, 0) scale(1.05);
 }
 
 .back-to-top:active {
-  transform: translate3d(0, -2px, 0) scale(1);
+  /* Neumorphic pressed - standardized */
+  background: linear-gradient(180deg,
+      color-mix(in srgb, var(--color-primary-active) 95%, black),
+      var(--color-primary-active));
+  box-shadow: var(--neumorphic-pressed);
+  transform: translate3d(0, -1px, 0) scale(1.02);
+}
+
+/* Dark mode adjustments for back-to-top */
+[data-theme="dark"] .back-to-top {
+  background: linear-gradient(180deg,
+      color-mix(in srgb, var(--color-primary) 90%, rgba(0, 0, 0, 0.3)),
+      var(--color-primary));
+  box-shadow: var(--neumorphic-base);
+}
+
+[data-theme="dark"] .back-to-top:hover {
+  background: linear-gradient(180deg,
+      color-mix(in srgb, var(--color-primary-hover) 90%, rgba(0, 0, 0, 0.2)),
+      var(--color-primary-hover));
+  box-shadow: var(--neumorphic-hover);
+}
+
+[data-theme="dark"] .back-to-top:active {
+  background: linear-gradient(180deg,
+      color-mix(in srgb, var(--color-primary-active) 90%, rgba(0, 0, 0, 0.4)),
+      var(--color-primary-active));
+  box-shadow: var(--neumorphic-pressed);
 }
 
 .back-to-top:focus-visible {
@@ -59,7 +92,7 @@
 .back-to-top svg {
   width: 20px;
   height: 20px;
-  stroke: var(--color-text-inverse) !important;
+  stroke: var(--color-text-inverse);
   stroke-width: 3;
   fill: none;
   display: block;
@@ -69,7 +102,7 @@
 /* Ensure SVG elements inherit the stroke color */
 .back-to-top svg line,
 .back-to-top svg polyline {
-  stroke: var(--color-text-inverse) !important;
+  stroke: var(--color-text-inverse);
   stroke-width: 3;
 }
 
@@ -170,12 +203,8 @@
   transition: all var(--transition-fast);
   vertical-align: middle;
   text-decoration: none;
-  /* Neumorphic shadow - refined depth */
-  box-shadow:
-    inset 0.5px 0.5px 1px rgba(255, 255, 255, 0.4),
-    inset -0.5px -0.5px 1px rgba(0, 0, 0, 0.15),
-    1px 1px 2px rgba(0, 0, 0, 0.08),
-    -0.5px -0.5px 1px rgba(255, 255, 255, 0.3);
+  /* Neumorphic shadow - standardized */
+  box-shadow: var(--neumorphic-subtle);
 }
 
 .heading-anchor:hover .copy-link,
@@ -187,21 +216,14 @@
   color: var(--color-text-primary);
   background: rgba(255, 255, 255, 0.2);
   border-color: rgba(255, 255, 255, 0.3);
-  /* Neumorphic hover - refined raised effect */
-  box-shadow:
-    inset 0.5px 0.5px 1.5px rgba(255, 255, 255, 0.5),
-    inset -0.5px -0.5px 1.5px rgba(0, 0, 0, 0.12),
-    2px 2px 6px rgba(0, 0, 0, 0.1),
-    -1px -1px 3px rgba(255, 255, 255, 0.4);
+  /* Neumorphic hover - standardized */
+  box-shadow: var(--neumorphic-hover);
   transform: scale(1.08);
 }
 
 .copy-link:active {
-  /* Neumorphic pressed state */
-  box-shadow:
-    inset 1px 1px 2px rgba(0, 0, 0, 0.15),
-    inset -0.5px -0.5px 1px rgba(255, 255, 255, 0.2),
-    1px 1px 2px rgba(0, 0, 0, 0.05);
+  /* Neumorphic pressed state - standardized */
+  box-shadow: var(--neumorphic-subtle-pressed);
   transform: scale(0.98);
   background: rgba(255, 255, 255, 0.15);
 }
@@ -229,35 +251,23 @@
   color: var(--color-success);
   background: rgba(34, 197, 94, 0.15);
   border-color: rgba(34, 197, 94, 0.3);
-  /* Neumorphic shadow with success tint */
-  box-shadow:
-    inset 0.5px 0.5px 1px rgba(34, 197, 94, 0.3),
-    inset -0.5px -0.5px 1px rgba(0, 0, 0, 0.1),
-    1px 1px 3px rgba(34, 197, 94, 0.2),
-    -0.5px -0.5px 1px rgba(34, 197, 94, 0.15);
+  /* Neumorphic shadow with success tint - using base pattern */
+  box-shadow: var(--neumorphic-subtle);
 }
 
 /* Dark mode adjustments for ghost effect */
 [data-theme="dark"] .copy-link {
   background: rgba(0, 0, 0, 0.2);
   border-color: rgba(255, 255, 255, 0.1);
-  /* Neumorphic shadow for dark mode - refined */
-  box-shadow:
-    inset 0.5px 0.5px 1px rgba(255, 255, 255, 0.08),
-    inset -0.5px -0.5px 1px rgba(0, 0, 0, 0.4),
-    1px 1px 3px rgba(0, 0, 0, 0.25),
-    -0.5px -0.5px 1px rgba(255, 255, 255, 0.05);
+  /* Neumorphic shadow for dark mode - standardized */
+  box-shadow: var(--neumorphic-subtle);
 }
 
 [data-theme="dark"] .copy-link:hover {
   background: rgba(0, 0, 0, 0.3);
   border-color: rgba(255, 255, 255, 0.2);
-  /* Neumorphic hover for dark mode - refined */
-  box-shadow:
-    inset 0.5px 0.5px 1.5px rgba(255, 255, 255, 0.12),
-    inset -0.5px -0.5px 1.5px rgba(0, 0, 0, 0.5),
-    2px 2px 6px rgba(0, 0, 0, 0.35),
-    -1px -1px 3px rgba(255, 255, 255, 0.08);
+  /* Neumorphic hover for dark mode - standardized */
+  box-shadow: var(--neumorphic-hover);
 }
 
 [data-theme="dark"] .copy-link.copied {
@@ -356,21 +366,35 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: rgba(255, 255, 255, 0.1);
+  background: linear-gradient(180deg,
+      rgba(255, 255, 255, 0.15),
+      rgba(255, 255, 255, 0.1));
   color: white;
-  border: none;
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: var(--radius-full);
   cursor: pointer;
   transition: all var(--transition-fast);
   backdrop-filter: blur(10px);
+  /* Neumorphic shadow for dark overlay - standardized */
+  box-shadow: var(--neumorphic-base);
 }
 
 .lightbox__close:hover {
-  background-color: rgba(255, 255, 255, 0.2);
+  background: linear-gradient(180deg,
+      rgba(255, 255, 255, 0.25),
+      rgba(255, 255, 255, 0.2));
+  border-color: rgba(255, 255, 255, 0.3);
+  /* Neumorphic hover - standardized */
+  box-shadow: var(--neumorphic-hover);
   transform: scale(1.1);
 }
 
 .lightbox__close:active {
+  background: linear-gradient(180deg,
+      rgba(255, 255, 255, 0.1),
+      rgba(255, 255, 255, 0.05));
+  /* Neumorphic pressed - standardized */
+  box-shadow: var(--neumorphic-pressed);
   transform: scale(0.95);
 }
 

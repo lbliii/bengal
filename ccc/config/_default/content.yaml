@@ -1,7 +1,0 @@
-content:
-  default_type: blog
-  excerpt_length: 200
-  reading_speed: 200
-  related_count: 5
-  sort_pages_by: date
-  sort_order: desc

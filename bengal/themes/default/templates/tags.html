@@ -1,31 +1,46 @@
 {% extends "base.html" %}
 
 {% block content %}
-{# Action Bar: Breadcrumbs + Share #}
-{% include 'partials/action-bar.html' %}
+{# Two-column layout similar to docs - tag navigation in sidebar #}
+<div class="docs-layout">
+  {# Left Sidebar: Tag Navigation #}
+  <aside class="docs-sidebar" id="tag-sidebar" role="navigation" aria-label="Tag navigation">
+    {% set current_tag = none %}
+    {% include 'partials/tag-nav.html' %}
+  </aside>
 
-<div class="tags-page">
-    <header class="page-header">
+  {# Main Content #}
+  <div class="docs-main">
+    {# Action Bar: Breadcrumbs + Share #}
+    {% include 'partials/action-bar.html' %}
+
+    <article class="prose">
+      <header class="page-header">
         <h1>{{ page.title | default('All Tags') }}</h1>
         <p class="page-description">
-            Browse all {{ total_tags }} tags
+          Browse all {{ total_tags }} tags
         </p>
-    </header>
+      </header>
 
-    {% if tags %}
-    <div class="tag-cloud">
+      {% if tags %}
+      <div class="tag-cloud">
         {% for tag in tags %}
         <div class="tag-item">
-            <a href="{{ tag_url(tag.name) }}" class="tag-link">
-                <span class="tag-name">{{ tag.name }}</span>
-                <span class="tag-count">{{ tag.count }} post{% if tag.count != 1 %}s{% endif %}</span>
-            </a>
+          <a href="{{ tag_url(tag.name) }}" class="tag-link">
+            <span class="tag-name">{{ tag.name }}</span>
+            <span class="tag-count">{{ tag.count }} post{% if tag.count != 1 %}s{% endif %}</span>
+          </a>
         </div>
         {% endfor %}
-    </div>
-    {% else %}
-    <p>No tags found.</p>
-    {% endif %}
+      </div>
+      {% else %}
+      <p>No tags found.</p>
+      {% endif %}
+    </article>
+  </div>
+
+  {# Right Sidebar: Empty for now (will be hidden by CSS, can add tag stats later) #}
+  <aside class="docs-toc"></aside>
 </div>
 
 {# styles moved to components/tags.css #}

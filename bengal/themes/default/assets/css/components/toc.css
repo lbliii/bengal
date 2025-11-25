@@ -270,20 +270,13 @@
     background: var(--color-primary-light);
     color: var(--color-primary);
     border-color: var(--color-primary);
-    /* Subtle neumorphic hover - slightly more pronounced */
-    box-shadow: 
-        inset 0.3px 0.3px 0.8px rgba(255, 255, 255, 0.6),
-        inset -0.3px -0.3px 0.8px rgba(0, 0, 0, 0.1),
-        1px 1px 2px rgba(0, 0, 0, 0.06),
-        -0.3px -0.3px 1px rgba(255, 255, 255, 0.4);
+    /* Subtle neumorphic hover - standardized */
+    box-shadow: var(--neumorphic-subtle);
 }
 
 .toc-count-toggle:active .toc-count {
-    /* Subtle neumorphic pressed state */
-    box-shadow: 
-        inset 0.5px 0.5px 1px rgba(0, 0, 0, 0.12),
-        inset -0.3px -0.3px 0.5px rgba(255, 255, 255, 0.3),
-        0.3px 0.3px 0.5px rgba(0, 0, 0, 0.03);
+    /* Subtle neumorphic pressed state - standardized */
+    box-shadow: var(--neumorphic-subtle-pressed);
     transform: translate3d(0, 0, 0) scale(0.95);
 }
 
@@ -293,12 +286,8 @@
     background: var(--color-primary-light);
     color: var(--color-primary);
     font-weight: var(--weight-semibold);
-    /* Subtle neumorphic shadow when expanded */
-    box-shadow: 
-        inset 0.3px 0.3px 0.8px rgba(255, 255, 255, 0.6),
-        inset -0.3px -0.3px 0.8px rgba(0, 0, 0, 0.1),
-        1px 1px 2px rgba(0, 0, 0, 0.06),
-        -0.3px -0.3px 1px rgba(255, 255, 255, 0.4);
+    /* Subtle neumorphic shadow when expanded - standardized */
+    box-shadow: var(--neumorphic-subtle);
 }
 
 .toc-link-h2 {
@@ -328,7 +317,7 @@
     opacity: 0.7;
     transition: all var(--transition-fast), box-shadow 0.2s ease;
     /* Subtle neumorphic shadow - very light for small badge */
-    box-shadow: 
+    box-shadow:
         inset 0.3px 0.3px 0.5px rgba(255, 255, 255, 0.5),
         inset -0.3px -0.3px 0.5px rgba(0, 0, 0, 0.08),
         0.5px 0.5px 1px rgba(0, 0, 0, 0.04);
@@ -636,7 +625,7 @@
 
 [data-theme="dark"] .toc-count {
     /* Subtle neumorphic shadow for dark mode */
-    box-shadow: 
+    box-shadow:
         inset 0.3px 0.3px 0.5px rgba(255, 255, 255, 0.1),
         inset -0.3px -0.3px 0.5px rgba(0, 0, 0, 0.3),
         0.5px 0.5px 1px rgba(0, 0, 0, 0.2);
@@ -644,7 +633,7 @@
 
 [data-theme="dark"] .toc-count-toggle:hover .toc-count {
     /* Subtle neumorphic hover for dark mode */
-    box-shadow: 
+    box-shadow:
         inset 0.3px 0.3px 0.8px rgba(255, 255, 255, 0.15),
         inset -0.3px -0.3px 0.8px rgba(0, 0, 0, 0.4),
         1px 1px 2px rgba(0, 0, 0, 0.25),
@@ -653,7 +642,7 @@
 
 [data-theme="dark"] .toc-count-toggle:active .toc-count {
     /* Subtle neumorphic pressed state for dark mode */
-    box-shadow: 
+    box-shadow:
         inset 0.5px 0.5px 1px rgba(0, 0, 0, 0.4),
         inset -0.3px -0.3px 0.5px rgba(255, 255, 255, 0.1),
         0.3px 0.3px 0.5px rgba(0, 0, 0, 0.15);
@@ -661,7 +650,7 @@
 
 [data-theme="dark"] .toc-count-toggle[aria-expanded="true"] .toc-count {
     /* Subtle neumorphic shadow when expanded - dark mode */
-    box-shadow: 
+    box-shadow:
         inset 0.3px 0.3px 0.8px rgba(255, 255, 255, 0.15),
         inset -0.3px -0.3px 0.8px rgba(0, 0, 0, 0.4),
         1px 1px 2px rgba(0, 0, 0, 0.25),
