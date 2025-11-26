@@ -17,6 +17,8 @@ Paths are resolved relative to the site root or the current page's directory.
 Robustness:
     - Maximum include depth of 10 to prevent stack overflow
     - Cycle detection to prevent infinite loops (a.md → b.md → a.md)
+    - File size limits to prevent memory exhaustion (10MB default)
+    - Symlink rejection to prevent path traversal attacks
 """
 
 from __future__ import annotations
@@ -40,6 +42,7 @@ logger = get_logger(__name__)
 
 # Robustness limits
 MAX_INCLUDE_DEPTH = 10  # Prevent stack overflow from deeply nested includes
+MAX_INCLUDE_SIZE = 10 * 1024 * 1024  # 10 MB - prevent memory exhaustion
 
 
 class IncludeDirective(DirectivePlugin):
@@ -177,6 +180,11 @@ class IncludeDirective(DirectivePlugin):
         """
         Resolve file path relative to current page or site root.
 
+        Security:
+            - Rejects absolute paths
+            - Rejects paths outside site root
+            - Rejects symlinks (could escape containment)
+
         Args:
             path: Relative or absolute path to file
             state: Parser state (may contain root_path, source_path)
@@ -230,6 +238,15 @@ class IncludeDirective(DirectivePlugin):
             else:
                 return None
 
+        # Security: Reject symlinks (could escape containment via symlink target)
+        if file_path.is_symlink():
+            logger.warning(
+                "include_symlink_rejected",
+                path=str(file_path),
+                reason="symlinks_not_allowed_for_security",
+            )
+            return None
+
         # Ensure file is within site root (security check)
         try:
             file_path.resolve().relative_to(root_path.resolve())
@@ -245,6 +262,8 @@ class IncludeDirective(DirectivePlugin):
         """
         Load file content, optionally with line range.
 
+        Security: Enforces file size limit to prevent memory exhaustion.
+
         Args:
             file_path: Path to file
             start_line: Optional start line (1-indexed)
@@ -254,6 +273,19 @@ class IncludeDirective(DirectivePlugin):
             File content as string, or None on error
         """
         try:
+            # Check file size before reading (security)
+            file_size = file_path.stat().st_size
+            if file_size > MAX_INCLUDE_SIZE:
+                logger.warning(
+                    "include_file_too_large",
+                    path=str(file_path),
+                    size_bytes=file_size,
+                    limit_bytes=MAX_INCLUDE_SIZE,
+                    size_mb=f"{file_size / (1024 * 1024):.2f}",
+                    limit_mb=f"{MAX_INCLUDE_SIZE / (1024 * 1024):.0f}",
+                )
+                return None
+
             with open(file_path, encoding="utf-8") as f:
                 lines = f.readlines()
 

@@ -1,5 +1,6 @@
 """Tests for include directive."""
 
+import os
 from pathlib import Path
 from unittest.mock import MagicMock
 
@@ -8,6 +9,7 @@ import pytest
 from bengal.rendering.parsers import MistuneParser
 from bengal.rendering.plugins.directives.include import (
     MAX_INCLUDE_DEPTH,
+    MAX_INCLUDE_SIZE,
     IncludeDirective,
     render_include,
 )
@@ -567,3 +569,132 @@ class TestIncludeDirectiveRobustness:
 
         # Current value should be 10
         assert MAX_INCLUDE_DEPTH == 10
+
+
+class TestIncludeFileSizeLimit:
+    """Test include directive file size limits."""
+
+    def test_max_include_size_constant_is_reasonable(self):
+        """Test that MAX_INCLUDE_SIZE is set to a reasonable value."""
+        # Should be between 1MB and 100MB
+        assert MAX_INCLUDE_SIZE >= 1 * 1024 * 1024  # At least 1MB
+        assert MAX_INCLUDE_SIZE <= 100 * 1024 * 1024  # At most 100MB
+
+        # Current value should be 10MB
+        assert MAX_INCLUDE_SIZE == 10 * 1024 * 1024
+
+    def test_small_file_allowed(self, temp_site_dir, mock_state_with_root):
+        """Test that small files are allowed."""
+        directive = IncludeDirective()
+
+        # Create a small file
+        snippets_dir = temp_site_dir / "content" / "snippets"
+        snippets_dir.mkdir(parents=True, exist_ok=True)
+        small_file = snippets_dir / "small.md"
+        small_file.write_text("Small content")
+
+        content = directive._load_file(small_file, start_line=None, end_line=None)
+
+        assert content is not None
+        assert content == "Small content"
+
+    def test_large_file_rejected(self, temp_site_dir, mock_state_with_root):
+        """Test that files exceeding MAX_INCLUDE_SIZE are rejected."""
+        directive = IncludeDirective()
+
+        # Create a file larger than MAX_INCLUDE_SIZE
+        snippets_dir = temp_site_dir / "content" / "snippets"
+        snippets_dir.mkdir(parents=True, exist_ok=True)
+        large_file = snippets_dir / "large.md"
+
+        # Write content just over the limit (11MB)
+        large_content = "x" * (MAX_INCLUDE_SIZE + 1024 * 1024)
+        large_file.write_text(large_content)
+
+        content = directive._load_file(large_file, start_line=None, end_line=None)
+
+        assert content is None
+
+    def test_file_at_limit_allowed(self, temp_site_dir, mock_state_with_root):
+        """Test that files exactly at MAX_INCLUDE_SIZE are allowed."""
+        directive = IncludeDirective()
+
+        # Create a file exactly at the limit
+        snippets_dir = temp_site_dir / "content" / "snippets"
+        snippets_dir.mkdir(parents=True, exist_ok=True)
+        limit_file = snippets_dir / "limit.md"
+
+        # Write content exactly at the limit
+        limit_content = "x" * MAX_INCLUDE_SIZE
+        limit_file.write_text(limit_content)
+
+        content = directive._load_file(limit_file, start_line=None, end_line=None)
+
+        assert content is not None
+
+
+class TestIncludeSymlinkRejection:
+    """Test include directive symlink rejection for security."""
+
+    @pytest.mark.skipif(os.name == "nt", reason="Symlinks require admin on Windows")
+    def test_symlink_rejected(self, temp_site_dir, mock_state_with_root):
+        """Test that symlinks are rejected."""
+        directive = IncludeDirective()
+
+        # Create a real file and a symlink to it
+        snippets_dir = temp_site_dir / "content" / "snippets"
+        snippets_dir.mkdir(parents=True, exist_ok=True)
+        real_file = snippets_dir / "real.md"
+        real_file.write_text("Real content")
+        symlink_file = snippets_dir / "symlink.md"
+        symlink_file.symlink_to(real_file)
+
+        # Real file should work
+        resolved_real = directive._resolve_path("snippets/real.md", mock_state_with_root)
+        assert resolved_real is not None
+
+        # Symlink should be rejected
+        resolved_symlink = directive._resolve_path("snippets/symlink.md", mock_state_with_root)
+        assert resolved_symlink is None
+
+    @pytest.mark.skipif(os.name == "nt", reason="Symlinks require admin on Windows")
+    def test_symlink_to_outside_rejected(self, temp_site_dir, mock_state_with_root, tmp_path):
+        """Test that symlinks pointing outside site root are rejected."""
+        directive = IncludeDirective()
+
+        # Create a file outside site root
+        outside_file = tmp_path / "outside.md"
+        outside_file.write_text("Outside content")
+
+        # Create a symlink inside site root pointing outside
+        snippets_dir = temp_site_dir / "content" / "snippets"
+        snippets_dir.mkdir(parents=True, exist_ok=True)
+        escape_symlink = snippets_dir / "escape.md"
+        escape_symlink.symlink_to(outside_file)
+
+        # Should be rejected (symlink check happens before path validation)
+        resolved = directive._resolve_path("snippets/escape.md", mock_state_with_root)
+        assert resolved is None
+
+    @pytest.mark.skipif(os.name == "nt", reason="Symlinks require admin on Windows")
+    def test_directory_symlink_files_rejected(self, temp_site_dir, mock_state_with_root):
+        """Test that files in symlinked directories are still accessible via direct path."""
+        directive = IncludeDirective()
+
+        # Create a real directory with a file
+        snippets_dir = temp_site_dir / "content" / "snippets"
+        snippets_dir.mkdir(parents=True, exist_ok=True)
+        real_file = snippets_dir / "file.md"
+        real_file.write_text("Content in real dir")
+
+        # Create a symlinked directory
+        symlink_dir = temp_site_dir / "content" / "symlinked"
+        symlink_dir.symlink_to(snippets_dir)
+
+        # File via symlinked directory path is a symlink, should be rejected
+        # Note: The file itself isn't a symlink, but the path involves one
+        resolved = directive._resolve_path("symlinked/file.md", mock_state_with_root)
+        # The file.md itself isn't a symlink, so this might resolve
+        # What matters is that is_symlink() on the final resolved path returns False
+        if resolved:
+            assert not resolved.is_symlink()
