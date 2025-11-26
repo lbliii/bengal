@@ -191,14 +191,16 @@ class MenuOrchestrator:
         # Check for API section
         api_section = self._find_section_by_name("api")
         if api_section:
-            api_url = getattr(api_section, "url", "/api/")
+            # Use relative_url (templates apply baseurl via | absolute_url filter)
+            api_url = getattr(api_section, "relative_url", "/api/")
             dev_assets.append({"name": "API Reference", "url": api_url, "type": "api"})
             dev_sections_to_remove.add("api")
 
         # Check for CLI section
         cli_section = self._find_section_by_name("cli")
         if cli_section:
-            cli_url = getattr(cli_section, "url", "/cli/")
+            # Use relative_url (templates apply baseurl via | absolute_url filter)
+            cli_url = getattr(cli_section, "relative_url", "/cli/")
             dev_assets.append({"name": "bengal CLI", "url": cli_url, "type": "cli"})
             dev_sections_to_remove.add("cli")
 
