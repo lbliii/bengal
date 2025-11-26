@@ -1,162 +1,149 @@
 ---
-title: Build Curated Learning Tracks
-description: Assemble multiple articles into linear learning paths or courses
+title: Building Curated Learning Tracks
+description: How to assemble multiple articles into linear learning paths or courses.
 weight: 50
 tags: [content-strategy, navigation, layout]
 ---
 
 # Building Curated Learning Tracks
 
-A common documentation requirement is to guide users through a specific sequence of articles—like an "Onboarding Course" or "Advanced Python Track"—without duplicating the content or forcing a strict hierarchy.
+A common need is to guide users through a specific sequence of articles—like a "Getting Started Course" or "Advanced Python Track"—without duplicating the content or forcing a strict hierarchy.
 
-This guide shows you how to build **Curated Tracks** using Data Files and Layouts.
+Bengal provides built-in support for **Curated Tracks** with automatic navigation, progress tracking, and beautiful layouts. You just need to define your tracks in a data file.
 
 ## The Concept
 
-Instead of hard-coding "Next" links in every article, we define the *sequence* centrally in a data file. This allows a single article (e.g., "Installation") to belong to multiple tracks (e.g., "Beginner Track" and "Server Admin Track").
+Instead of hard-coding "Next" links in every article, you define the *sequence* centrally in a data file. This allows a single article (e.g., "Installation") to belong to several tracks (e.g., "Beginner Track" and "Server Admin Track").
 
-## Step 1: Define the Track
+Bengal automatically:
+- Adds navigation between track pages
+- Shows progress indicators
+- Creates track listing pages
+- Handles track overview pages
 
-Create a data file `site/data/tracks.yaml` to define your sequences.
+## Step 1: Define Your Tracks
+
+Create a data file `site/data/tracks.yaml` to define your sequences:
 
 ```yaml:site/data/tracks.yaml
-onboarding:
-  title: "New User Onboarding"
-  description: "Go from zero to hero in 4 steps."
+getting-started:
+  title: "Bengal Essentials"
+  description: "Master the basics of Bengal, from installation to creating your first theme."
   items:
-    - getting-started/installation
-    - getting-started/configuration
-    - tutorials/first-post
-    - deployment/production
+    - docs/getting-started/installation.md
+    - docs/getting-started/writer-quickstart.md
+    - docs/getting-started/themer-quickstart.md
+    - docs/getting-started/contributor-quickstart.md
 
-advanced:
-  title: "Advanced Architecture"
+content-mastery:
+  title: "Content Mastery"
+  description: "Advanced techniques for organizing and managing documentation at scale."
   items:
-    - reference/architecture/core-concepts
-    - reference/architecture/caching-strategies
-    - reference/architecture/plugin-development
+    - docs/guides/content-workflow.md
+    - docs/guides/content-reuse.md
+    - docs/guides/curated-tracks.md
+    - docs/guides/advanced-filtering.md
 ```
 
-## Step 2: Create the Track Logic
+**Track Structure**:
+- `title`: Display name for the track
+- `description`: Brief description shown on track cards
+- `items`: List of page paths (relative to `site/content/`) in order
 
-We need a way to find where the current page sits within a track. We can do this with a Jinja macro or partial.
+**Page Paths**: Use paths relative to `site/content/`, including the `.md` extension. For example, `docs/getting-started/installation.md` refers to `site/content/docs/getting-started/installation.md`.
 
-Create `bengal/themes/default/templates/partials/track_nav.html`:
+## Step 2: Add Track Navigation to Pages
+
+Track navigation automatically appears on any page that's listed in a track. The navigation component shows:
+- Current track name and position
+- Previous/Next buttons
+- Progress bar
+
+If you want to customize where the navigation appears, include the built-in partial in your template:
 
 ```jinja2
-{% set current_slug = page.relative_path | replace('.md', '') %}
-
-{# Check if page is in any track #}
-{% for track_id, track in site.data.tracks.items() %}
-  {% if current_slug in track.items %}
-
-    {% set current_index = track.items.index(current_slug) %}
-    {% set prev_slug = track.items[current_index - 1] if current_index > 0 else None %}
-    {% set next_slug = track.items[current_index + 1] if current_index < (track.items|length - 1) else None %}
-
-    <div class="track-navigation card mb-4">
-      <div class="card-header">
-        <strong>Track: {{ track.title }}</strong>
-        <span class="float-end">{{ current_index + 1 }} of {{ track.items|length }}</span>
-      </div>
-      <div class="card-body d-flex justify-content-between">
-
-        {% if prev_slug %}
-          {% set prev_page = site.pages | selectattr("relative_path", "contains", prev_slug) | first %}
-          <a href="{{ prev_page.url }}" class="btn btn-outline-primary">
-            &larr; {{ prev_page.title }}
-          </a>
-        {% else %}
-          <span></span> {# Spacer #}
-        {% endif %}
-
-        {% if next_slug %}
-          {% set next_page = site.pages | selectattr("relative_path", "contains", next_slug) | first %}
-          <a href="{{ next_page.url }}" class="btn btn-primary">
-            {{ next_page.title }} &rarr;
-          </a>
-        {% else %}
-          <a href="/tracks/" class="btn btn-success">Finish Track &check;</a>
-        {% endif %}
-
-      </div>
-      <div class="progress" style="height: 4px;">
-        <div class="progress-bar" role="progressbar"
-             style="width: {{ ((current_index + 1) / track.items|length) * 100 }}%"></div>
-      </div>
-    </div>
-
-  {% endif %}
-{% endfor %}
+{% include "partials/track_nav.html" %}
 ```
 
-## Step 3: Add to Layout
+The default theme already includes this automatically, so you typically don't need to do anything.
 
-Include this partial in your `base.html` or `single.html` template, typically above or below the main content.
+## Step 3: Create a Track Listing Page
 
-```html
-<!-- In templates/single.html -->
-{% block content %}
+Create a page that lists all available tracks:
 
-  <h1>{{ page.title }}</h1>
-
-  {% include "partials/track_nav.html" %}
-
-  <div class="content">
-    {{ page.content }}
-  </div>
-
-  {% include "partials/track_nav.html" %}
-
-{% endblock %}
-```
-
-## Step 4: Create a Track Overview Page
-
-You probably want a landing page that lists all available tracks.
-
-Create `site/content/tracks/_index.md`:
-
-```markdown
+```markdown:site/content/tracks/_index.md
 ---
 title: Learning Tracks
-layout: tracks_index
+description: Structured learning paths to help you master Bengal.
+layout: tracks/list
 ---
-# Learning Tracks
 
-Choose a path to master Bengal.
+Choose a track to start learning.
 ```
 
-And the corresponding layout `templates/tracks_index.html`:
+The `tracks/list` layout automatically:
+- Displays all tracks in a beautiful grid
+- Shows track descriptions and lesson counts
+- Provides "Start Learning" buttons
+- Links to the first lesson in each track
 
-```jinja2
-{% extends "base.html" %}
+## Step 4: Create Individual Track Pages (Optional)
 
-{% block content %}
-<h1>{{ page.title }}</h1>
+If you want a dedicated overview page for a specific track, create a page with the track template:
 
-<div class="row">
-{% for id, track in site.data.tracks.items() %}
-  <div class="col-md-6 mb-4">
-    <div class="card h-100">
-      <div class="card-body">
-        <h2 class="card-title">{{ track.title }}</h2>
-        <p>{{ track.description }}</p>
-        <p>{{ track.items|length }} Lessons</p>
-        <a href="{{ site.pages | selectattr('relative_path', 'contains', track.items[0]) | first | attr('url') }}" class="btn btn-primary">
-          Start Track
-        </a>
-      </div>
-    </div>
-  </div>
-{% endfor %}
-</div>
-{% endblock %}
+```markdown:site/content/tracks/getting-started.md
+---
+title: Bengal Essentials
+description: Master the basics of Bengal
+layout: tracks/single
+track_id: getting-started
+---
+
+Welcome to the Bengal Essentials track! This track will guide you through...
+
+[Your track introduction content here]
 ```
+
+The `tracks/single` layout provides:
+- A pillar-page style layout with all track lessons in one page
+- Left sidebar with track navigation and progress
+- Right sidebar with table of contents from all lessons
+- Section-by-section navigation within the page
+
+**Note**: The `track_id` in frontmatter should match the key in `tracks.yaml`. If omitted, Bengal uses the page slug.
+
+## How It Works
+
+When a page is listed in `tracks.yaml`:
+1. **Automatic Detection**: Bengal detects which track(s) the page belongs to
+2. **Navigation**: The `track_nav.html` partial automatically shows Previous/Next buttons
+3. **Progress**: Progress bars show position within the track
+4. **Links**: All navigation links are automatically generated
+
+## Track Item Paths
+
+Track items can reference pages in two ways:
+
+**Full path** (recommended):
+```yaml
+items:
+  - docs/getting-started/installation.md
+```
+
+**Relative path** (without `.md` extension):
+```yaml
+items:
+  - getting-started/installation
+```
+
+Bengal's `get_page()` helper function resolves both formats automatically.
 
 ## Summary
 
-By decoupling the **structure** (the track list) from the **content** (the articles), you can:
-1.  Reuse the same article in multiple contexts.
-2.  Update the order of a course without editing every single file.
-3.  Provide users with a clear sense of progress.
+By using Bengal's built-in track system, you can:
+1. **Reuse content**: The same article can belong to several tracks
+2. **Update easily**: Change track order by editing `tracks.yaml`
+3. **Provide guidance**: Users get clear navigation and progress indicators
+4. **No custom code**: Everything works out of the box with built-in templates
+
+The track system decouples the **structure** (the track list) from the **content** (the articles), making it easy to create flexible learning paths without duplicating content or maintaining manual navigation links.
