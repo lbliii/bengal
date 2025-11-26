@@ -1,10 +1,12 @@
 # RFC: Release Polish 0.1.5 - Evidence-Based Verification & Hardening
 
-**Status**: Draft  
+**Status**: Implementation Complete (80%)  
 **Author**: AI Assistant  
 **Date**: 2025-11-26  
 **Supersedes**: `plan/active/plan-release-polish.md`  
 **Related**: `plan/active/rfc-edge-case-hardening.md` (Phase 1-3 COMPLETE)
+
+> **Progress**: Phases 1-4 complete. Only Phase 5 (Documentation Updates) remaining.
 
 ---
 
@@ -410,13 +412,19 @@ def install(name: str, force: bool) -> None:
 
 | Phase | Priority | Effort | Owner | Status |
 |-------|----------|--------|-------|--------|
-| 1. Template Function Tests | P0 | 3h | - | Pending |
-| 2.1 Variable Substitution Sandboxing | P0 | 2h | - | Pending |
-| 2.2 Theme Install Validation | P0 | 1h | - | Pending |
-| 3. Template Formatting Fix | P1 | 15m | - | Pending |
-| 4. Track Styles | P2 | 2h | - | Pending |
+| 1. Template Function Tests | P0 | 3h | AI | ✅ Complete |
+| 2.1 Variable Substitution Sandboxing | P0 | 2h | AI | ✅ Complete |
+| 2.2 Theme Install Validation | P0 | 1h | AI | ✅ Complete |
+| 3. Template Formatting Fix | P1 | 15m | AI | ✅ Complete |
+| 4. Track Styles | P2 | 2h | - | ✅ Already exists |
 | 5. Documentation Updates | P2 | 2h | - | Pending |
-| **Total** | | **~10h** | | |
+| **Total** | | **~10h** | | **80% Complete** |
+
+### Commits
+
+1. `e763b6b` - tests(collections): add comprehensive coverage for Hugo-like template functions
+2. `1f5f0c3` - core(security): add sandbox hardening for variable substitution and theme install
+3. `0e51cef` - fix(theme): repair formatting bug in track_nav.html
 
 ---
 

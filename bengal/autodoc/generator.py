@@ -31,6 +31,7 @@ TEMPLATE_TYPE_MAP: Final[dict[str, str]] = {
     "method": "python/function.md.jinja2",  # Methods use function template
     "endpoint": "openapi/endpoint.md.jinja2",
     "schema": "openapi/schema.md.jinja2",
+    "api_overview": "openapi/api_overview.md.jinja2",
     "command": "cli/command.md.jinja2",
     "command-group": "cli/command_group.md.jinja2",
 }
