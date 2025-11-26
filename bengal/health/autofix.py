@@ -95,11 +95,12 @@ class AutoFixer:
         return fixes
 
     def _suggest_directive_fixes(self, validator_report: Any) -> list[FixAction]:
-        """Suggest fixes for directive validation errors."""
+        """Suggest fixes for directive validation errors and warnings."""
         fixes = []
 
         for result in validator_report.results:
-            if result.status.value != "error":
+            # Handle both errors and warnings (fence nesting is a warning)
+            if result.status.value not in ("error", "warning"):
                 continue
 
             # Check for fence nesting issues
@@ -109,29 +110,41 @@ class AutoFixer:
             ) and result.details:
                 # Extract file and line from details
                 for detail in result.details:
-                    # Parse "cards.md:24 - structure: Line 24: Directive 'cards'..."
+                    # Parse formats like:
+                    # - "cards.md:24,43,51 - 3 issue(s)" (multiple lines)
+                    # - "cards.md:24 - structure: Line 24: Directive 'cards'..." (single line)
                     if ":" in detail and ".md" in detail:
-                        parts = detail.split(":")
+                        parts = detail.split(":", 1)
                         if len(parts) >= 2:
                             file_name = parts[0]
-                            try:
-                                line_num = int(parts[1].split()[0])
-                                file_path = Path(file_name)
+                            line_part = parts[1].split()[
+                                0
+                            ]  # Get first part (may be "24" or "24,43,51")
 
-                                # Create fix action
-                                fixes.append(
-                                    FixAction(
-                                        description=f"Fix fence nesting in {file_name}:{line_num}",
-                                        file_path=file_path,
-                                        line_number=line_num,
-                                        fix_type="directive_fence",
-                                        safety=FixSafety.SAFE,
-                                        apply=self._create_fence_fix(file_path, line_num),
-                                        check_result=result,
+                            # Handle multiple line numbers separated by commas
+                            line_numbers = []
+                            for line_str in line_part.split(","):
+                                try:
+                                    line_num = int(line_str.strip())
+                                    line_numbers.append(line_num)
+                                except ValueError:
+                                    continue
+
+                            if line_numbers:
+                                file_path = Path(file_name)
+                                # Create a fix action for each line number
+                                for line_num in line_numbers:
+                                    fixes.append(
+                                        FixAction(
+                                            description=f"Fix fence nesting in {file_name}:{line_num}",
+                                            file_path=file_path,
+                                            line_number=line_num,
+                                            fix_type="directive_fence",
+                                            safety=FixSafety.SAFE,
+                                            apply=self._create_fence_fix(file_path, line_num),
+                                            check_result=result,
+                                        )
                                     )
-                                )
-                            except (ValueError, IndexError):
-                                pass
 
         return fixes
 

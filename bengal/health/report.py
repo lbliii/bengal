@@ -334,9 +334,12 @@ class HealthReport:
         else:  # normal
             return self._format_normal(show_suggestions=show_suggestions)
 
-    def _format_quiet(self) -> str:
+    def _format_quiet(self, show_suggestions: bool = False) -> str:
         """
         Minimal output - perfect builds get one line, problems shown clearly.
+
+        Args:
+            show_suggestions: Whether to show suggestions (ignored in quiet mode)
         """
         lines = []
 

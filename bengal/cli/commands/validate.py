@@ -15,7 +15,6 @@ from typing import TYPE_CHECKING
 
 import click
 
-from bengal.cli.base import BengalGroup
 from bengal.cli.helpers import (
     configure_traceback,
     get_cli_output,
@@ -31,13 +30,7 @@ if TYPE_CHECKING:
     from bengal.utils.cli_output import CLIOutput
 
 
-@click.group("validate", cls=BengalGroup)
-def validate_cli():
-    """Validation and health check commands."""
-    pass
-
-
-@validate_cli.command()
+@click.command("validate")
 @handle_cli_errors(show_art=False)
 @click.option(
     "--file",
@@ -196,9 +189,9 @@ def validate(
     else:
         # Normal mode - exit with error code if there are errors
         if report.has_errors():
-            raise click.ClickException(f"Validation failed: {report.error_count} error(s) found")
+            raise click.ClickException(f"Validation failed: {report.total_errors} error(s) found")
         elif report.has_warnings():
-            cli.warning(f"Validation completed with {report.warning_count} warning(s)")
+            cli.warning(f"Validation completed with {report.total_warnings} warning(s)")
         else:
             cli.success("Validation passed - no issues found")
 
@@ -285,9 +278,9 @@ def _run_watch_mode(
 
         # Show summary
         if report.has_errors():
-            cli.error(f"❌ {report.error_count} error(s) found")
+            cli.error(f"❌ {report.total_errors} error(s) found")
         elif report.has_warnings():
-            cli.warning(f"⚠️  {report.warning_count} warning(s)")
+            cli.warning(f"⚠️  {report.total_warnings} warning(s)")
         else:
             cli.success("✅ Validation passed - no issues found")
 

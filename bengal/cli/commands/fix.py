@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import click
 
-from bengal.cli.base import BengalGroup
 from bengal.cli.helpers import (
     configure_traceback,
     get_cli_output,
@@ -22,13 +21,7 @@ from bengal.utils.profile import BuildProfile
 from bengal.utils.traceback_config import TracebackStyle
 
 
-@click.group("fix", cls=BengalGroup)
-def fix_cli():
-    """Auto-fix common health check issues."""
-    pass
-
-
-@fix_cli.command()
+@click.command("fix")
 @handle_cli_errors(show_art=False)
 @click.option(
     "--validator",
