@@ -30,7 +30,7 @@
     {% if toc %}
     <aside class="page-sidebar">
         {# Contextual Graph Minimap - shows connections to current page #}
-        <div class="graph-contextual" data-page-url="{{ page.relative_url }}">
+        <div class="graph-contextual" data-page-url="{{ page.url }}">
           {# Placeholder - will be replaced by JavaScript #}
           <div class="graph-contextual-container graph-loading" style="min-height: 200px; display: flex; align-items: center; justify-content: center; color: var(--color-text-secondary); font-size: 12px; opacity: 1 !important; visibility: visible !important;">
             Loading connections...
