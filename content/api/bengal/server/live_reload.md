@@ -1,0 +1,255 @@
+
+---
+title: "live_reload"
+type: "python-module"
+source_file: "../bengal/bengal/server/live_reload.py"
+line_number: 1
+description: "Live reload functionality for the dev server. Provides Server-Sent Events (SSE) endpoint and HTML injection for hot reload. Architecture: - SSE Endpoint (/__bengal_reload__): Maintains persistent conn..."
+---
+
+# live_reload
+**Type:** Module
+**Source:** [View source](../bengal/bengal/server/live_reload.py#L1)
+
+
+
+**Navigation:**
+[bengal](/api/bengal/) ›[server](/api/bengal/server/) ›live_reload
+
+Live reload functionality for the dev server.
+
+Provides Server-Sent Events (SSE) endpoint and HTML injection for hot reload.
+
+Architecture:
+- SSE Endpoint (/__bengal_reload__): Maintains persistent connections to clients
+- Live Reload Script: Injected into HTML pages to connect to SSE endpoint
+- Reload Notifications: Broadcast to all clients when build completes using a
+  global generation counter and condition variable (no per-client queues)
+
+SSE Protocol:
+    Client: EventSource('/__bengal_reload__')
+    Server (init): retry: 2000
+
+  (client waits 2s before reconnect after disconnect)
+    Server (events): data: {json payload}|reload
+
+  (triggers reload/css update)
+    Server (idle): : keepalive
+
+  (sent on interval; ignored by client)
+
+Dev behavior:
+- Keepalive interval is configurable via env BENGAL_SSE_KEEPALIVE_SECS (default 15s).
+- On new connections/reconnects, last_seen_generation is initialized to the current
+  generation so we do not replay the last reload event to the client.
+
+## Classes
+
+
+
+
+### `LiveReloadMixin`
+
+
+Mixin class providing live reload functionality via SSE.
+
+This class is designed to be mixed into an HTTP request handler.
+It provides two key methods:
+- handle_sse(): Handles the SSE endpoint (/__bengal_reload__)
+- serve_html_with_live_reload(): Injects the live reload script into HTML
+
+The SSE connection remains open, sending keepalive comments roughly every
+9 seconds and "reload" messages (or JSON payloads) when the site is rebuilt.
+
+
+
+
+
+
+
+
+
+## Methods
+
+
+
+#### `handle_sse`
+```python
+def handle_sse(self) -> None
+```
+
+
+Handle Server-Sent Events endpoint for live reload.
+
+Maintains a persistent HTTP connection and sends SSE messages:
+- Keepalive comments (: keepalive) every 30 seconds
+- Reload events (data: reload) when site is rebuilt
+
+The connection remains open until the client disconnects or an error occurs.
+
+
+
+**Returns**
+
+
+`None`
+```{note}This method blocks until the client disconnects```
+
+
+
+
+#### `serve_html_with_live_reload`
+```python
+def serve_html_with_live_reload(self) -> bool
+```
+
+
+Serve HTML file with live reload script injected (with caching).
+
+Uses file modification time caching to avoid re-reading/re-injecting
+unchanged files during rapid navigation.
+
+
+
+**Returns**
+
+
+`bool` - True if HTML was served (with or without injection), False if not HTML
+```{note}Returns False for non-HTML files so the caller can handle them```
+
+## Functions
+
+
+
+### `notify_clients_reload`
+
+
+```python
+def notify_clients_reload() -> None
+```
+
+
+
+Notify all connected SSE clients to reload.
+
+Sends a "reload" message to all connected clients via their queues.
+Clients with full queues are skipped to avoid blocking.
+
+This is called after a successful build to trigger browser refresh.
+
+
+
+**Returns**
+
+
+`None`
+```{note}This is thread-safe and can be called from the build handler thread```
+
+
+
+
+
+### `send_reload_payload`
+
+
+```python
+def send_reload_payload(action: str, reason: str, changed_paths: list[str]) -> None
+```
+
+
+
+Send a structured JSON payload to connected SSE clients.
+
+
+**Parameters:**
+
+| Name | Type | Default | Description |
+|:-----|:-----|:--------|:------------|
+| `action` | `str` | - | 'reload' \| 'reload-css' \| 'reload-page' |
+| `reason` | `str` | - | short machine-readable reason string |
+| `changed_paths` | `list[str]` | - | list of changed output paths (relative to output dir) |
+
+
+
+
+
+
+
+**Returns**
+
+
+`None`
+
+
+
+
+### `set_reload_action`
+
+
+```python
+def set_reload_action(action: str) -> None
+```
+
+
+
+Set the next reload action for SSE clients.
+
+Actions:
+    - 'reload'      : full page reload
+    - 'reload-css'  : CSS hot-reload (no page refresh)
+    - 'reload-page' : explicit page reload (alias of 'reload')
+
+
+**Parameters:**
+
+| Name | Type | Default | Description |
+|:-----|:-----|:--------|:------------|
+| `action` | `str` | - | *No description provided.* |
+
+
+
+
+
+
+
+**Returns**
+
+
+`None`
+
+
+
+
+### `inject_live_reload_into_response`
+
+
+```python
+def inject_live_reload_into_response(response: bytes) -> bytes
+```
+
+
+
+Inject live reload script into an HTTP response.
+
+
+**Parameters:**
+
+| Name | Type | Default | Description |
+|:-----|:-----|:--------|:------------|
+| `response` | `bytes` | - | Complete HTTP response (headers + body) |
+
+
+
+
+
+
+
+**Returns**
+
+
+`bytes` - Modified response with live reload script injected
+
+
+
+---
+*Generated by Bengal autodoc from `../bengal/bengal/server/live_reload.py`*
