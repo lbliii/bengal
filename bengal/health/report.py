@@ -13,10 +13,19 @@ from typing import Any
 
 
 class CheckStatus(Enum):
-    """Status of a health check."""
+    """Status of a health check.
+
+    Severity levels (from most to least critical):
+    - ERROR: Blocks builds, must fix
+    - WARNING: Don't block, but should fix
+    - SUGGESTION: Quality improvements (collapsed by default)
+    - INFO: Contextual information (hidden unless verbose)
+    - SUCCESS: Check passed
+    """
 
     SUCCESS = "success"
     INFO = "info"
+    SUGGESTION = "suggestion"  # Quality improvements, not problems
     WARNING = "warning"
     ERROR = "error"
 
@@ -57,6 +66,17 @@ class CheckResult:
         return cls(CheckStatus.INFO, message, recommendation, details, validator=validator)
 
     @classmethod
+    def suggestion(
+        cls,
+        message: str,
+        recommendation: str | None = None,
+        details: list[str] | None = None,
+        validator: str = "",
+    ) -> CheckResult:
+        """Create a suggestion result (quality improvement, not a problem)."""
+        return cls(CheckStatus.SUGGESTION, message, recommendation, details, validator=validator)
+
+    @classmethod
     def warning(
         cls,
         message: str,
@@ -79,8 +99,12 @@ class CheckResult:
         return cls(CheckStatus.ERROR, message, recommendation, details, validator=validator)
 
     def is_problem(self) -> bool:
-        """Check if this is a warning or error (vs success/info)."""
+        """Check if this is a warning or error (vs success/info/suggestion)."""
         return self.status in (CheckStatus.WARNING, CheckStatus.ERROR)
+
+    def is_actionable(self) -> bool:
+        """Check if this requires action (error, warning, or suggestion)."""
+        return self.status in (CheckStatus.ERROR, CheckStatus.WARNING, CheckStatus.SUGGESTION)
 
     def to_cache_dict(self) -> dict[str, Any]:
         """
@@ -148,6 +172,11 @@ class ValidatorReport:
         return sum(1 for r in self.results if r.status == CheckStatus.WARNING)
 
     @property
+    def suggestion_count(self) -> int:
+        """Count of suggestions (quality improvements)."""
+        return sum(1 for r in self.results if r.status == CheckStatus.SUGGESTION)
+
+    @property
     def error_count(self) -> int:
         """Count of errors."""
         return sum(1 for r in self.results if r.status == CheckStatus.ERROR)
@@ -164,6 +193,8 @@ class ValidatorReport:
             return "❌"
         elif self.warning_count > 0:
             return "⚠️"
+        elif self.suggestion_count > 0:
+            return "💡"
         elif self.info_count > 0:
             return "ℹ️"
         else:
@@ -201,6 +232,11 @@ class HealthReport:
         return sum(r.warning_count for r in self.validator_reports)
 
     @property
+    def total_suggestions(self) -> int:
+        """Total suggestions (quality improvements) across all validators."""
+        return sum(r.suggestion_count for r in self.validator_reports)
+
+    @property
     def total_errors(self) -> int:
         """Total errors across all validators."""
         return sum(r.error_count for r in self.validator_reports)
@@ -208,7 +244,13 @@ class HealthReport:
     @property
     def total_checks(self) -> int:
         """Total number of checks run."""
-        return self.total_passed + self.total_info + self.total_warnings + self.total_errors
+        return (
+            self.total_passed
+            + self.total_info
+            + self.total_suggestions
+            + self.total_warnings
+            + self.total_errors
+        )
 
     def has_errors(self) -> bool:
         """Check if any errors were found."""
@@ -229,6 +271,7 @@ class HealthReport:
         Formula:
         - Each passed check: +1 point
         - Each info: +0.8 points
+        - Each suggestion: +0.9 points (quality improvement, not a problem)
         - Each warning: +0.5 points
         - Each error: +0 points
 
@@ -241,6 +284,7 @@ class HealthReport:
         points = (
             self.total_passed * 1.0
             + self.total_info * 0.8
+            + self.total_suggestions * 0.9  # Suggestions are quality improvements
             + self.total_warnings * 0.5
             + self.total_errors * 0.0
         )
@@ -260,7 +304,9 @@ class HealthReport:
         else:
             return "Needs Improvement"
 
-    def format_console(self, mode: str = "auto", verbose: bool = False) -> str:
+    def format_console(
+        self, mode: str = "auto", verbose: bool = False, show_suggestions: bool = False
+    ) -> str:
         """
         Format report for console output.
 
@@ -268,6 +314,7 @@ class HealthReport:
             mode: Display mode - "auto", "quiet", "normal", "verbose"
                   auto = quiet if no problems, normal if warnings/errors
             verbose: Legacy parameter, sets mode to "verbose"
+            show_suggestions: Whether to show suggestions (quality improvements)
 
         Returns:
             Formatted string ready to print
@@ -281,11 +328,11 @@ class HealthReport:
             mode = "quiet" if not self.has_problems() else "normal"
 
         if mode == "quiet":
-            return self._format_quiet()
+            return self._format_quiet(show_suggestions=show_suggestions)
         elif mode == "verbose":
-            return self._format_verbose()
+            return self._format_verbose(show_suggestions=show_suggestions)
         else:  # normal
-            return self._format_normal()
+            return self._format_normal(show_suggestions=show_suggestions)
 
     def _format_quiet(self) -> str:
         """
@@ -345,10 +392,13 @@ class HealthReport:
 
         return "\n".join(lines)
 
-    def _format_normal(self) -> str:
+    def _format_normal(self, show_suggestions: bool = False) -> str:
         """
         Balanced output with progressive disclosure - problems first, then successes.
         Reduces cognitive load by prioritizing actionable information.
+
+        Args:
+            show_suggestions: Whether to show suggestions (collapsed by default)
         """
         lines = []
 
@@ -356,18 +406,26 @@ class HealthReport:
         lines.append("━" * 60)
         lines.append("")
 
-        # Separate validators by priority: problems first, then passed
+        # Separate validators by priority: problems first, then suggestions, then passed
         # Skip validators that only have INFO messages (writers don't need that noise)
         validators_with_problems = []
+        validators_with_suggestions = []
         validators_passed = []
 
         for vr in self.validator_reports:
             # Skip INFO-only validators
-            if vr.info_count > 0 and vr.error_count == 0 and vr.warning_count == 0:
+            if (
+                vr.info_count > 0
+                and vr.error_count == 0
+                and vr.warning_count == 0
+                and vr.suggestion_count == 0
+            ):
                 continue
 
             if vr.has_problems:
                 validators_with_problems.append(vr)
+            elif vr.suggestion_count > 0:
+                validators_with_suggestions.append(vr)
             else:
                 validators_passed.append(vr)
 
@@ -412,10 +470,43 @@ class HealthReport:
                 if not is_last_problem:
                     lines.append("")  # Blank line between validators (not after last)
 
+        # Show suggestions (collapsed by default, only if show_suggestions=True)
+        if validators_with_suggestions and show_suggestions:
+            if validators_with_problems:
+                lines.append("")
+            lines.append("[bold]💡 Quality Suggestions:[/bold]")
+            lines.append("")
+
+            for i, vr in enumerate(validators_with_suggestions):
+                is_last_suggestion = i == len(validators_with_suggestions) - 1
+                is_last_overall = is_last_suggestion and not validators_passed
+                tree_symbol = "└─" if is_last_overall else "├─"
+
+                status_parts = [f"   {tree_symbol} 💡"]
+                status_parts.append(f"[bold]{vr.validator_name}[/bold]")
+                status_parts.append(f"[info]{vr.suggestion_count} suggestion(s)[/info]")
+                lines.append(" ".join(status_parts))
+
+                for result in vr.results:
+                    if result.status == CheckStatus.SUGGESTION:
+                        lines.append(f"      • {result.message}")
+                        if result.recommendation:
+                            lines.append(f"        💡 {result.recommendation}")
+
+                if not is_last_suggestion:
+                    lines.append("")
+        elif validators_with_suggestions:
+            # Collapsed: just show count
+            if validators_with_problems:
+                lines.append("")
+            lines.append(
+                f"[info]💡 {self.total_suggestions} quality suggestion(s) available (use --suggestions to view)[/info]"
+            )
+
         # Show passed checks in a collapsed summary (reduce noise)
         if validators_passed:
-            if validators_with_problems:
-                lines.append("")  # Separator between problems and passed
+            if validators_with_problems or (validators_with_suggestions and show_suggestions):
+                lines.append("")
             lines.append(f"[success]✓ {len(validators_passed)} check(s) passed[/success]")
             # List them in a compact format if few, otherwise just count
             if len(validators_passed) <= 5:
@@ -436,9 +527,12 @@ class HealthReport:
 
         return "\n".join(lines)
 
-    def _format_verbose(self) -> str:
+    def _format_verbose(self, show_suggestions: bool = True) -> str:
         """
         Full audit trail with progressive disclosure - problems first, then all details.
+
+        Args:
+            show_suggestions: Whether to show suggestions (default True in verbose mode)
         """
         lines = []
 
@@ -447,13 +541,16 @@ class HealthReport:
         lines.append("━" * 60)
         lines.append("")
 
-        # Separate validators by priority: problems first, then passed
+        # Separate validators by priority: problems first, then suggestions, then passed
         validators_with_problems = []
+        validators_with_suggestions = []
         validators_passed = []
 
         for vr in self.validator_reports:
             if vr.has_problems:
                 validators_with_problems.append(vr)
+            elif vr.suggestion_count > 0:
+                validators_with_suggestions.append(vr)
             else:
                 validators_passed.append(vr)
 

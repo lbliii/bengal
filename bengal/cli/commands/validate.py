@@ -59,6 +59,11 @@ def validate_cli():
     help="Show verbose output (all checks, not just problems)",
 )
 @click.option(
+    "--suggestions",
+    is_flag=True,
+    help="Show quality suggestions (collapsed by default)",
+)
+@click.option(
     "--incremental",
     is_flag=True,
     help="Use incremental validation (only check changed files)",
@@ -75,6 +80,7 @@ def validate(
     watch: bool,
     profile: str | None,
     verbose: bool,
+    suggestions: bool,
     incremental: bool,
     traceback: str | None,
     source: str,
@@ -166,7 +172,7 @@ def validate(
 
     # Print report
     cli.blank()
-    cli.info(report.format_console(verbose=verbose))
+    cli.info(report.format_console(verbose=verbose, show_suggestions=suggestions))
 
     # Exit with error code if there are errors
     if report.has_errors():
