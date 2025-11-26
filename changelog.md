@@ -1,5 +1,12 @@
 ## Unreleased
 
+### Security & Robustness Hardening (Phase 1)
+- **rendering(link_validator)**: implement actual internal link validation with URL resolution and page URL index lookup
+- **rendering(include)**: add `MAX_INCLUDE_SIZE` (10MB) file size limit to prevent memory exhaustion from large includes
+- **rendering(include/literalinclude)**: reject symlinks to prevent path traversal attacks
+- **discovery**: add inode-based symlink loop detection to prevent infinite recursion
+- **discovery**: handle permission errors gracefully when walking directories
+
 ### Health Check System Enhancements (Phase 1 & 2)
 - **health**: add incremental validation with result caching (Phase 1)
 - **health**: extend BuildCache with validation_results field for caching CheckResult objects
