@@ -21,11 +21,23 @@
                 return;
             }
 
+            // Get baseurl from meta tag if present
+            let baseurl = '';
+            try {
+                const m = document.querySelector('meta[name="bengal:baseurl"]');
+                baseurl = (m && m.getAttribute('content')) || '';
+                if (baseurl) {
+                    baseurl = baseurl.replace(/\/$/, '');
+                }
+            } catch (e) {
+                // Ignore errors
+            }
+
             this.options = {
                 width: options.width || 242,
                 height: options.height || 250,
-                dataUrl: options.dataUrl || '/graph/graph.json',
-                expandUrl: options.expandUrl || '/graph/',
+                dataUrl: options.dataUrl || (baseurl + '/graph/graph.json'),
+                expandUrl: options.expandUrl || (baseurl + '/graph/'),
                 ...options
             };
 

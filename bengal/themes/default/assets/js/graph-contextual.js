@@ -104,7 +104,18 @@
 
                 // Fallback to global graph.json if page JSON didn't work
                 if (!loadedFromPageJson) {
-                    const fallbackUrl = '/graph/graph.json';
+                    // Get baseurl from meta tag if present
+                    let baseurl = '';
+                    try {
+                        const m = document.querySelector('meta[name="bengal:baseurl"]');
+                        baseurl = (m && m.getAttribute('content')) || '';
+                        if (baseurl) {
+                            baseurl = baseurl.replace(/\/$/, '');
+                        }
+                    } catch (e) {
+                        // Ignore errors
+                    }
+                    const fallbackUrl = baseurl + '/graph/graph.json';
                     const response = await fetch(fallbackUrl);
                     if (!response.ok) {
                         throw new Error(`Failed to load graph data: ${response.status}`);
@@ -210,18 +221,48 @@
             // Mark current page - clear any existing isCurrent flags first
             // IMPORTANT: Only mark the exact current page, not parent/child pages
             limitedNodes.forEach(node => {
-                // Clear existing flag (in case it was set in page JSON)
+                // Clear existing flags (in case they were set in page JSON)
                 delete node.isCurrent;
+                delete node.isPreviousPage;
                 // Set only for the actual current node (exact URL match)
                 if (node.id === currentNode.id) {
                     node.isCurrent = true;
                 }
             });
 
+            // Mark previous page node (if visible)
+            this.markPreviousPageNode(limitedNodes);
+
             this.filteredData = {
                 nodes: limitedNodes,
                 edges: filteredEdges
             };
+        }
+
+        /**
+         * Mark the previous page node (if visible in graph)
+         * @param {Array} nodes - Array of node objects
+         */
+        markPreviousPageNode(nodes) {
+            // Check if session path tracker is available
+            if (typeof window === 'undefined' || !window.bengalSessionPath) {
+                return;
+            }
+
+            const pathTracker = window.bengalSessionPath;
+            const previousPageUrl = pathTracker.getPreviousPage();
+
+            if (!previousPageUrl) {
+                return; // No previous page tracked
+            }
+
+            // Mark the node that matches the previous page
+            nodes.forEach(node => {
+                const nodeUrl = this.normalizeUrl(node.url);
+                if (pathTracker.isPreviousPage(nodeUrl)) {
+                    node.isPreviousPage = true;
+                }
+            });
         }
 
         normalizeUrl(url) {
@@ -375,8 +416,18 @@
                 .data(this.filteredData.nodes)
                 .enter()
                 .append('circle')
-                .attr('class', d => `graph-node ${d.isCurrent ? 'graph-node-current' : ''}`)
-                .attr('r', d => d.isCurrent ? 3 : 2) // Smaller, fixed sizes for contextual view
+                .attr('class', d => {
+                    let classes = 'graph-node';
+                    if (d.isCurrent) classes += ' graph-node-current';
+                    if (d.isPreviousPage) classes += ' graph-node-previous';
+                    return classes;
+                })
+                .attr('r', d => {
+                    // Current page: largest, previous page: medium, others: smallest
+                    if (d.isCurrent) return 3;
+                    if (d.isPreviousPage) return 2.5;
+                    return 2;
+                })
                 .attr('fill', d => d.color || '#9e9e9e')
                 .style('cursor', 'pointer')
                 .style('pointer-events', 'all') // Ensure clicks are captured
@@ -506,7 +557,19 @@
                 </svg>
             `;
             expandBtn.addEventListener('click', () => {
-                window.location.href = '/graph/';
+                // Get baseurl from meta tag if present
+                let baseurl = '';
+                try {
+                    const m = document.querySelector('meta[name="bengal:baseurl"]');
+                    baseurl = (m && m.getAttribute('content')) || '';
+                    if (baseurl) {
+                        baseurl = baseurl.replace(/\/$/, '');
+                    }
+                } catch (e) {
+                    // Ignore errors
+                }
+                const graphUrl = baseurl + '/graph/';
+                window.location.href = graphUrl;
             });
             wrapper.appendChild(expandBtn);
         }

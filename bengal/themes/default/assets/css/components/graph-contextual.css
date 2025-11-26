@@ -128,6 +128,19 @@
     stroke-width: 2px !important;
 }
 
+/* Previous page node (last page visited before current) */
+.graph-contextual-container .graph-node-previous {
+    stroke: var(--color-primary-active, #1976d2) !important;
+    stroke-width: 1px !important;
+    opacity: 0.9 !important;
+    filter: drop-shadow(0 0 2px var(--color-primary-active, #1976d2));
+}
+
+.graph-contextual-container .graph-node-previous:hover {
+    stroke-width: 1.5px !important;
+    opacity: 1 !important;
+}
+
 /* Tooltip */
 .graph-contextual-tooltip {
     position: absolute;

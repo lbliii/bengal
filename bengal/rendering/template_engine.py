@@ -381,15 +381,28 @@ class TemplateEngine:
         Returns:
             URL path (clean, without index.html) with base URL prefix if configured
         """
-        # Get the relative URL first
+        # Get the relative URL first (page.url already includes baseurl, so use relative_url)
         url = None
 
-        # Use the page's url property if available (clean URLs)
+        # Use the page's relative_url property (doesn't include baseurl)
         try:
-            if hasattr(page, "url"):
-                url = page.url
+            if hasattr(page, "relative_url"):
+                url = page.relative_url
         except Exception:
             pass
+
+        # Fallback to page.url if relative_url not available (for dict-like contexts)
+        if url is None:
+            try:
+                if hasattr(page, "url"):
+                    url = page.url
+                    # If url already includes baseurl, extract relative part
+                    # This handles cases where page.url is used but we need relative
+                    baseurl = (self.site.config.get("baseurl", "") or "").rstrip("/")
+                    if baseurl and url.startswith(baseurl):
+                        url = url[len(baseurl) :] or "/"
+            except Exception:
+                pass
 
         # Support dict-like contexts (component preview/demo data)
         if url is None:
@@ -397,6 +410,8 @@ class TemplateEngine:
                 if isinstance(page, Mapping):
                     if "url" in page:
                         url = str(page["url"])
+                    elif "relative_url" in page:
+                        url = str(page["relative_url"])
                     elif "slug" in page:
                         url = f"/{page['slug']}/"
             except Exception:
