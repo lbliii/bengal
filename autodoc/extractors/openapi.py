@@ -75,10 +75,10 @@ class OpenAPIExtractor(Extractor):
         - Endpoints: endpoints/{tag}/{operation_id}.md
         - Schemas: schemas/{name}.md
         """
-        if element.element_type == "openapi_overview":
+        if element.element_type == "api_overview":
             return Path("index.md")
         
-        elif element.element_type == "openapi_endpoint":
+        elif element.element_type == "endpoint":
             # Group by first tag if available, else 'default'
             tag = "default"
             if element.metadata.get("tags"):
@@ -96,7 +96,7 @@ class OpenAPIExtractor(Extractor):
             
             return Path(f"endpoints/{tag}/{name}.md")
             
-        elif element.element_type == "openapi_schema":
+        elif element.element_type == "schema":
             return Path(f"schemas/{element.name}.md")
             
         return None
@@ -109,7 +109,7 @@ class OpenAPIExtractor(Extractor):
             name=info.get("title", "API Documentation"),
             qualified_name="openapi.overview",
             description=info.get("description", ""),
-            element_type="openapi_overview",
+            element_type="api_overview",
             source_file=source,
             metadata={
                 "version": info.get("version"),
@@ -145,7 +145,7 @@ class OpenAPIExtractor(Extractor):
                     name=name,
                     qualified_name=f"openapi.paths.{path}.{method}",
                     description=operation.get("description") or operation.get("summary", ""),
-                    element_type="openapi_endpoint",
+                    element_type="endpoint",
                     metadata={
                         "method": method,
                         "path": path,

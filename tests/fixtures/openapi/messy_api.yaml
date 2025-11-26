@@ -163,6 +163,14 @@ components:
         additionalProperties:
           type: string
 
+  responses:
+    BadRequest:
+      description: Bad Request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
 security:
   - ApiKeyAuth: []
 
@@ -320,13 +328,4 @@ paths:
               responses:
                 '200':
                   description: Acknowledged
-
-components:
-  responses:
-    BadRequest:
-      description: Bad Request
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
 
