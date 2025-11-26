@@ -411,58 +411,12 @@
     {# Session path tracker - tracks user's navigation path for graph visualization #}
     <script src="{{ asset_url('js/session-path-tracker.js') }}"></script>
 
-    {# Graph visualizations - conditional loading (only when containers exist) #}
-    <script>
-        (function () {
-            'use strict';
-            // Wait for DOM to be ready before checking for containers
-            function checkAndLoadGraphScripts() {
-                const graphContainers = document.querySelector('.graph-minimap, .graph-contextual');
-                if (!graphContainers) return;
+    {# D3.js for graph visualizations #}
+    <script src="https://d3js.org/d3.v7.min.js"></script>
 
-                // Check if D3.js is already loaded
-                if (typeof d3 !== 'undefined') {
-                    // D3 already loaded, just load components
-                    loadGraphComponents();
-                    return;
-                }
-
-                // Load D3.js first
-                const d3Script = document.createElement('script');
-                d3Script.src = 'https://d3js.org/d3.v7.min.js';
-                d3Script.async = true;
-                d3Script.onload = function () {
-                    // Load graph components after D3 is ready
-                    loadGraphComponents();
-                };
-                document.head.appendChild(d3Script);
-            }
-
-            function loadGraphComponents() {
-                const components = [
-                    '{{ asset_url("js/graph-minimap.js") }}',
-                    '{{ asset_url("js/graph-contextual.js") }}'
-                ];
-                components.forEach(function (src) {
-                    // Check if script already loaded
-                    if (document.querySelector('script[src="' + src + '"]')) return;
-
-                    const script = document.createElement('script');
-                    script.src = src;
-                    script.async = true;
-                    document.head.appendChild(script);
-                });
-            }
-
-            // Check when DOM is ready
-            if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', checkAndLoadGraphScripts);
-            } else {
-                // DOM already ready
-                checkAndLoadGraphScripts();
-            }
-        })();
-    </script>
+    {# Graph visualizations - auto-initialize when containers exist #}
+    <script src="{{ asset_url('js/graph-minimap.js') }}"></script>
+    <script src="{{ asset_url('js/graph-contextual.js') }}"></script>
 
     {# Smart search index preloading #}
     <script>
