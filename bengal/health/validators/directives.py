@@ -597,7 +597,8 @@ class DirectiveValidator(BaseValidator):
                 found_closing = False
                 while j < len(lines):
                     # Check if this line is the closing fence (same colon count)
-                    closing_pattern = rf"^\s*:{fence_depth}\s*$"
+                    # Use triple braces in f-string to create regex repetition: :{{{n}}} becomes :{n}
+                    closing_pattern = rf"^\s*:{{{fence_depth}}}\s*$"
                     if re.match(closing_pattern, lines[j]):
                         found_closing = True
                         break
@@ -1066,6 +1067,7 @@ class DirectiveValidator(BaseValidator):
             parser = ParserFactory.get_html_parser("native")
             soup = parser(html_content)
             remaining_text = soup.get_text()
-            return bool(re.search(r"```\{(\w+)", remaining_text))
+            # Check for colon fence syntax (:::) - the only supported format
+            return bool(re.search(r":{3,}\{(\w+)", remaining_text))
         except Exception:
-            return re.search(r"```\{(\w+)", html_content) is not None
+            return re.search(r":{3,}\{(\w+)", html_content) is not None

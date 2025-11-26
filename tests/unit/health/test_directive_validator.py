@@ -32,15 +32,16 @@ class TestDirectiveExtraction:
 
     def test_extract_simple_directive(self, tmp_path):
         """Test extracting a simple directive."""
+        # Use colon fences (:::) - backtick fences are no longer supported for directives
         content = """---
 title: Test
 ---
 
 # Test Page
 
-```{note} Important
+:::{note} Important
 This is a note.
-```
+:::
 
 Regular content.
 """
@@ -57,18 +58,19 @@ Regular content.
 
     def test_extract_multiple_directives(self, tmp_path):
         """Test extracting multiple directives."""
+        # Use colon fences (:::) - backtick fences are no longer supported for directives
         content = """
-```{note} Note 1
+:::{note} Note 1
 Content 1
-```
+:::
 
-```{tip} Tip 1
+:::{tip} Tip 1
 Content 2
-```
+:::
 
-```{warning} Warning 1
+:::{warning} Warning 1
 Content 3
-```
+:::
 """
         file_path = tmp_path / "test.md"
 
@@ -82,8 +84,9 @@ Content 3
 
     def test_extract_tabs_directive(self, tmp_path):
         """Test extracting tabs directive with tab markers."""
+        # Use colon fences (:::) - backtick fences are no longer supported for directives
         content = """
-```{tabs}
+:::{tabs}
 :id: my-tabs
 
 ### Tab: Python
@@ -94,7 +97,7 @@ JavaScript code here
 
 ### Tab: Ruby
 Ruby code here
-```
+:::
 """
         file_path = tmp_path / "test.md"
 
@@ -107,10 +110,11 @@ Ruby code here
 
     def test_detect_unknown_directive(self, tmp_path):
         """Test detection of unknown directive types."""
+        # Use colon fences (:::) - backtick fences are no longer supported for directives
         content = """
-```{unknown_directive} Title
+:::{unknown_directive} Title
 Content
-```
+:::
 """
         file_path = tmp_path / "test.md"
 
@@ -124,11 +128,12 @@ Content
 
     def test_extract_with_hyphenated_name(self, tmp_path):
         """Test extracting directive with hyphenated name."""
+        # Use colon fences (:::) - backtick fences are no longer supported for directives
         content = """
-```{code-tabs}
+:::{code-tabs}
 ### Tab: Python
 code
-```
+:::
 """
         file_path = tmp_path / "test.md"
 
@@ -140,12 +145,13 @@ code
 
     def test_line_number_tracking(self, tmp_path):
         """Test that line numbers are tracked correctly."""
+        # Use colon fences (:::) - backtick fences are no longer supported for directives
         content = """Line 1
 Line 2
 Line 3
-```{note} Test
+:::{note} Test
 Content
-```
+:::
 Line 7
 """
         file_path = tmp_path / "test.md"
@@ -311,21 +317,22 @@ Just regular markdown content here.
 
     def test_validate_with_valid_directives(self, tmp_path):
         """Test validation with valid directives."""
+        # Use colon fences (:::) - backtick fences are no longer supported for directives
         content = """---
 title: Page with Directives
 ---
 
-```{note} Important Note
+:::{note} Important Note
 This is important information.
-```
+:::
 
-```{tabs}
+:::{tabs}
 ### Tab: Option 1
 First option content.
 
 ### Tab: Option 2
 Second option content.
-```
+:::
 """
         source_file = tmp_path / "with_directives.md"
         source_file.write_text(content)
@@ -361,14 +368,15 @@ Second option content.
 
     def test_validate_with_syntax_errors(self, tmp_path):
         """Test validation catches syntax errors."""
+        # Use colon fences (:::) - backtick fences are no longer supported for directives
         content = """
-```{unknown_type} Test
+:::{unknown_type} Test
 Content
-```
+:::
 
-```{note} Valid Note
+:::{note} Valid Note
 This one is valid.
-```
+:::
 """
         source_file = tmp_path / "with_errors.md"
         source_file.write_text(content)
@@ -391,7 +399,8 @@ This one is valid.
     def test_validate_with_performance_warnings(self, tmp_path):
         """Test validation warns about performance issues."""
         # Create content with many directives (>10)
-        directives = [f"```{{note}} Note {i}\nContent {i}\n```\n" for i in range(15)]
+        # Use colon fences (:::) - backtick fences are no longer supported for directives
+        directives = [f":::{{note}} Note {i}\nContent {i}\n:::\n" for i in range(15)]
         content = "---\ntitle: Heavy Page\n---\n\n" + "\n".join(directives)
 
         source_file = tmp_path / "heavy.md"
@@ -414,10 +423,11 @@ This one is valid.
 
     def test_validate_unrendered_directive(self, tmp_path):
         """Test validation catches unrendered directives in output."""
+        # Use colon fences (:::) - backtick fences are no longer supported for directives
         content = """
-```{note} Test
+:::{note} Test
 Content
-```
+:::
 """
         source_file = tmp_path / "unrendered.md"
         source_file.write_text(content)
@@ -428,9 +438,9 @@ Content
         output_file.write_text("""
         <html>
         <body>
-            ```{note} Test
+            :::{note} Test
             Content
-            ```
+            :::
         </body>
         </html>
         """)
@@ -449,7 +459,8 @@ Content
     def test_validate_skips_generated_pages(self, tmp_path):
         """Test that generated pages are skipped in validation."""
         source_file = tmp_path / "generated.md"
-        source_file.write_text("```{note} Test\nContent\n```")
+        # Use colon fences (:::) - backtick fences are no longer supported for directives
+        source_file.write_text(":::{note} Test\nContent\n:::")
 
         output_file = tmp_path / "output" / "generated.html"
         output_file.parent.mkdir(parents=True, exist_ok=True)
@@ -472,8 +483,9 @@ class TestPerformanceChecks:
     def test_warn_on_too_many_tabs(self, tmp_path):
         """Test warning when tabs block has too many tabs."""
         # Create tabs with >10 tabs
+        # Use colon fences (:::) - backtick fences are no longer supported for directives
         tabs = [f"### Tab: Tab {i}\nContent {i}\n" for i in range(15)]
-        content = f"```{{tabs}}\n{''.join(tabs)}\n```"
+        content = f":::{{tabs}}\n{''.join(tabs)}\n:::"
 
         source_file = tmp_path / "many_tabs.md"
         source_file.write_text(content)
@@ -501,30 +513,31 @@ class TestStatistics:
 
     def test_statistics_with_mixed_directives(self, tmp_path):
         """Test statistics reporting with various directive types."""
+        # Use colon fences (:::) - backtick fences are no longer supported for directives
         content = """
-```{note} Note 1
+:::{note} Note 1
 Content
-```
+:::
 
-```{note} Note 2
+:::{note} Note 2
 Content
-```
+:::
 
-```{tip} Tip 1
+:::{tip} Tip 1
 Content
-```
+:::
 
-```{tabs}
+:::{tabs}
 ### Tab: A
 Content A
 
 ### Tab: B
 Content B
-```
+:::
 
-```{dropdown} Dropdown 1
+:::{dropdown} Dropdown 1
 Content
-```
+:::
 """
         source_file = tmp_path / "mixed.md"
         source_file.write_text(content)
