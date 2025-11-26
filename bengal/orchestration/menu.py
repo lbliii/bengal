@@ -9,7 +9,7 @@ from __future__ import annotations
 import hashlib
 import json
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from bengal.utils.logger import get_logger
 
@@ -568,6 +568,7 @@ class MenuOrchestrator:
         Args:
             current_page: Page currently being rendered
         """
-        current_url = current_page.url
+        # Use relative_url for comparison (menu items store relative URLs)
+        current_url = current_page.relative_url
         for menu_name, builder in self.site.menu_builders.items():
             builder.mark_active_items(current_url, self.site.menu[menu_name])

@@ -42,16 +42,23 @@ class OutputFormatsGenerator:
         site_wide = ["index_json", "llm_full"]
     """
 
-    def __init__(self, site: Any, config: dict[str, Any] | None = None) -> None:
+    def __init__(
+        self,
+        site: Any,
+        config: dict[str, Any] | None = None,
+        graph_data: dict[str, Any] | None = None,
+    ) -> None:
         """
         Initialize output formats generator.
 
         Args:
             site: Site instance
             config: Configuration dict from bengal.toml
+            graph_data: Optional pre-computed graph data for including in page JSON
         """
         self.site = site
         self.config = self._normalize_config(config or {})
+        self.graph_data = graph_data  # Graph data for contextual minimap
 
     def _normalize_config(self, config: dict[str, Any]) -> dict[str, Any]:
         """
@@ -620,7 +627,113 @@ class OutputFormatsGenerator:
         data["word_count"] = word_count
         data["reading_time"] = max(1, round(word_count / 200))  # 200 wpm
 
+        # Graph connections (for contextual minimap)
+        if self.graph_data:
+            connections = self._get_page_connections(page, self.graph_data)
+            if connections:
+                data["graph"] = connections
+
         return data
+
+    def _get_page_connections(
+        self, page: Any, graph_data: dict[str, Any], max_connections: int = 15
+    ) -> dict[str, Any] | None:
+        """
+        Get filtered graph data showing only connections to the current page.
+
+        Args:
+            page: Page object to get connections for
+            graph_data: Full graph data from GraphVisualizer.generate_graph_data()
+            max_connections: Maximum number of connected nodes to include
+
+        Returns:
+            Filtered graph data with only current page and its connections, or None if page not in graph
+        """
+        if not graph_data or not graph_data.get("nodes") or not graph_data.get("edges"):
+            return None
+
+        # Get page URL for matching
+        page_url = self._get_page_url(page)
+
+        # Normalize URLs for comparison (remove trailing slashes, handle baseurl)
+        def normalize_url(url: str) -> str:
+            if not url:
+                return ""
+            # Remove trailing slashes
+            normalized = url.rstrip("/") or "/"
+            return normalized
+
+        page_url_normalized = normalize_url(page_url)
+
+        # Find current page node
+        currentNode = None
+        for node in graph_data["nodes"]:
+            if normalize_url(node.get("url", "")) == page_url_normalized:
+                currentNode = node
+                break
+
+        if not currentNode:
+            # Page not in graph (might be excluded from analysis)
+            return None
+
+        # Collect connected node IDs
+        connectedNodeIds = {currentNode["id"]}
+
+        # Find all edges connected to current page
+        connectedEdges = []
+        for edge in graph_data["edges"]:
+            sourceId = (
+                edge.get("source", {}).get("id")
+                if isinstance(edge.get("source"), dict)
+                else edge.get("source")
+            )
+            targetId = (
+                edge.get("target", {}).get("id")
+                if isinstance(edge.get("target"), dict)
+                else edge.get("target")
+            )
+
+            if sourceId == currentNode["id"] or targetId == currentNode["id"]:
+                connectedEdges.append(edge)
+                if sourceId == currentNode["id"]:
+                    connectedNodeIds.add(targetId)
+                else:
+                    connectedNodeIds.add(sourceId)
+
+        # Get connected nodes
+        connectedNodes = [node for node in graph_data["nodes"] if node["id"] in connectedNodeIds]
+
+        # Sort by connectivity and limit
+        connectedNodes.sort(
+            key=lambda n: (n.get("incoming_refs", 0) + n.get("outgoing_refs", 0)), reverse=True
+        )
+        limitedNodes = connectedNodes[:max_connections]
+        limitedNodeIds = {n["id"] for n in limitedNodes}
+
+        # Filter edges to only include connections between limited nodes
+        filteredEdges = [
+            edge
+            for edge in connectedEdges
+            if (
+                edge.get("source", {}).get("id")
+                if isinstance(edge.get("source"), dict)
+                else edge.get("source")
+            )
+            in limitedNodeIds
+            and (
+                edge.get("target", {}).get("id")
+                if isinstance(edge.get("target"), dict)
+                else edge.get("target")
+            )
+            in limitedNodeIds
+        ]
+
+        # Mark current page
+        for node in limitedNodes:
+            if node["id"] == currentNode["id"]:
+                node["isCurrent"] = True
+
+        return {"nodes": limitedNodes, "edges": filteredEdges}
 
     def _page_to_summary(self, page: Any, excerpt_length: int = 200) -> dict[str, Any]:
         """
@@ -758,9 +871,11 @@ class OutputFormatsGenerator:
             summary["source_file"] = metadata["source_file"]
 
         # Add directory/path structure for hierarchical navigation
-        if page.url:
+        # Use relative_url for path extraction (without baseurl)
+        page_rel_url = getattr(page, "relative_url", None) or getattr(page, "url", None)
+        if page_rel_url:
             # Extract directory path (everything except filename)
-            path_parts = page.url.strip("/").split("/")
+            path_parts = page_rel_url.strip("/").split("/")
             if len(path_parts) > 1:
                 summary["dir"] = "/" + "/".join(path_parts[:-1]) + "/"
             else:
@@ -827,15 +942,24 @@ class OutputFormatsGenerator:
 
     def _get_page_url(self, page: Any) -> str:
         """
-        Get clean URL for page.
+        Get clean relative URL for page (without baseurl).
 
         Args:
             page: Page object
 
         Returns:
-            URL string (relative to baseurl)
+            URL string (relative, without baseurl)
         """
-        # Check if page has a direct URL property
+        # Prefer relative_url for postprocessing (we add baseurl manually where needed)
+        if hasattr(page, "relative_url") and callable(getattr(page, "relative_url", None)):
+            try:
+                return page.relative_url
+            except Exception:
+                pass  # Fall back to output_path computation
+        elif hasattr(page, "relative_url") and isinstance(page.relative_url, str):
+            return page.relative_url
+
+        # Fallback: try url property (but it now includes baseurl, so prefer relative_url)
         if hasattr(page, "url") and callable(getattr(page, "url", None)):
             try:
                 return page.url

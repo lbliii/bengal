@@ -218,12 +218,14 @@ class Section:
             Set of URL strings for subsection index pages
 
         Example:
-            {% if page.url not in section.subsection_index_urls %}
+            {% if page.relative_url not in section.subsection_index_urls %}
               <a href="{{ url_for(page) }}">{{ page.title }}</a>
             {% endif %}
         """
         return {
-            subsection.index_page.url for subsection in self.subsections if subsection.index_page
+            subsection.index_page.relative_url
+            for subsection in self.subsections
+            if subsection.index_page
         }
 
     @property
@@ -243,31 +245,29 @@ class Section:
         return result
 
     @cached_property
-    def url(self) -> str:
+    def relative_url(self) -> str:
         """
-        Get the URL for this section (cached after first access).
+        Get relative URL without baseurl (for comparisons).
 
-        Section URLs are stable after index pages have output_path set.
-        Caching eliminates redundant recalculation - previously this was
-        computed ~5× per page during health checks.
-
-        Returns:
-            URL path for the section
+        This is the identity URL - use for comparisons, menu activation, etc.
+        Always returns a relative path without baseurl.
         """
-        # If we have an index page with a proper output_path, use its URL
+        # If we have an index page with a proper output_path, use its relative_url
         if (
             self.index_page
             and hasattr(self.index_page, "output_path")
             and self.index_page.output_path
         ):
-            url = self.index_page.url
+            url = self.index_page.relative_url
             logger.debug("section_url_from_index", section=self.name, url=url)
             return url
 
         # Otherwise, construct from section hierarchy
         # This handles the case before pages have output_paths set
         # Nested section includes parent URL, top-level section starts with /
-        url = f"{self.parent.url}{self.name}/" if self.parent else f"/{self.name}/"
+        # Use relative_url to avoid baseurl in parent
+        parent_rel = self.parent.relative_url if self.parent else "/"
+        url = f"{parent_rel}{self.name}/" if parent_rel != "/" else f"/{self.name}/"
 
         logger.debug(
             "section_url_constructed", section=self.name, url=url, has_parent=bool(self.parent)
@@ -276,13 +276,18 @@ class Section:
         return url
 
     @cached_property
-    def permalink(self) -> str:
+    def url(self) -> str:
         """
-        Get section URL with baseurl applied (cached after first access).
+        Get URL with baseurl applied (cached after first access).
 
-        Mirrors Page.permalink semantics for template ergonomics.
+        This is the primary URL property for templates - automatically includes
+        baseurl when available. Use .relative_url for comparisons.
+
+        Returns:
+            URL path with baseurl prepended (if configured)
         """
-        rel = self.url or "/"
+        # Get relative URL first
+        rel = self.relative_url or "/"
 
         baseurl = ""
         try:
@@ -296,6 +301,16 @@ class Section:
         baseurl = baseurl.rstrip("/")
         rel = "/" + rel.lstrip("/")
         return f"{baseurl}{rel}"
+
+    @cached_property
+    def permalink(self) -> str:
+        """
+        Alias for url (for backward compatibility).
+
+        Both url and permalink now return the same value (with baseurl).
+        Use .relative_url for comparisons.
+        """
+        return self.url
 
     def add_page(self, page: Page) -> None:
         """

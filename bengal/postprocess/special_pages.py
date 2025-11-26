@@ -69,9 +69,18 @@ class SpecialPagesGenerator:
         if self._generate_graph():
             pages_generated.append("graph")
 
-        # Detailed output removed - postprocess phase summary is sufficient
-        # Individual task output clutters the build log
-        pass
+        # Log what was generated for debugging (especially important in CI)
+        if pages_generated:
+            logger.info(
+                "special_pages_generated",
+                pages=pages_generated,
+                count=len(pages_generated),
+            )
+        else:
+            logger.warning(
+                "no_special_pages_generated",
+                reason="all_pages_disabled_or_failed",
+            )
 
     def _generate_404(self) -> bool:
         """
@@ -327,6 +336,13 @@ class SpecialPagesGenerator:
             output_path = self.site.output_dir / raw_path.strip("/") / "index.html"
             output_path.parent.mkdir(parents=True, exist_ok=True)
             output_path.write_text(html, encoding="utf-8")
+
+            # Also generate JSON data file for minimap/embedding in other pages
+            import json
+
+            graph_data = visualizer.generate_graph_data()
+            json_path = self.site.output_dir / raw_path.strip("/") / "graph.json"
+            json_path.write_text(json.dumps(graph_data, indent=2), encoding="utf-8")
 
             return True
         except Exception as e:

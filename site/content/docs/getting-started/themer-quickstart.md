@@ -425,7 +425,8 @@ pip install git+https://github.com/yourusername/bengal-theme-mybrand.git
 - `page.date` - Publication date
 - `page.tags` - List of tags
 - `page.categories` - List of categories
-- `page.url` - Page URL
+- `page.url` - Page URL (with baseurl for display)
+- `page.relative_url` - Relative URL (without baseurl, for comparisons)
 - `page.section` - Parent section
 
 **Navigation:**

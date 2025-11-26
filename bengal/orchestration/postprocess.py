@@ -9,7 +9,7 @@ from __future__ import annotations
 import concurrent.futures
 from collections.abc import Callable
 from threading import Lock
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from bengal.postprocess.output_formats import OutputFormatsGenerator
 from bengal.postprocess.rss import RSSGenerator
@@ -88,7 +88,11 @@ class PostprocessOrchestrator:
         # These are essential for search functionality and must reflect current site state
         output_formats_config = self.site.config.get("output_formats", {})
         if output_formats_config.get("enabled", True):
-            tasks.append(("output formats", self._generate_output_formats))
+            # Build graph first if we want to include graph data in page JSON
+            graph_data = None
+            if output_formats_config.get("options", {}).get("include_graph_connections", True):
+                graph_data = self._build_graph_data()
+            tasks.append(("output formats", lambda: self._generate_output_formats(graph_data)))
 
         # OPTIMIZATION: For incremental builds with small changes, skip some postprocessing
         # This is safe because:
@@ -238,15 +242,52 @@ class PostprocessOrchestrator:
         generator = RSSGenerator(self.site)
         generator.generate()
 
-    def _generate_output_formats(self) -> None:
+    def _build_graph_data(self) -> dict[str, Any] | None:
+        """
+        Build knowledge graph and return graph data for inclusion in page JSON.
+
+        Returns:
+            Graph data dictionary or None if graph building fails or is disabled
+        """
+        try:
+            from bengal.analysis.graph_visualizer import GraphVisualizer
+            from bengal.analysis.knowledge_graph import KnowledgeGraph
+
+            # Check if graph is enabled
+            graph_config = self.site.config.get("graph", True)
+            if isinstance(graph_config, dict) and not graph_config.get("enabled", True):
+                return None
+            if graph_config is False:
+                return None
+
+            # Build knowledge graph
+            logger.debug("building_knowledge_graph_for_output_formats")
+            graph = KnowledgeGraph(self.site)
+            graph.build()
+
+            # Generate graph data
+            visualizer = GraphVisualizer(self.site, graph)
+            return visualizer.generate_graph_data()
+        except Exception as e:
+            logger.warning(
+                "graph_build_failed_for_output_formats",
+                error=str(e),
+                error_type=type(e).__name__,
+            )
+            return None
+
+    def _generate_output_formats(self, graph_data: dict[str, Any] | None = None) -> None:
         """
         Generate custom output formats like JSON, plain text (extracted for parallel execution).
+
+        Args:
+            graph_data: Optional pre-computed graph data to include in page JSON
 
         Raises:
             Exception: If output format generation fails
         """
         config = self.site.config.get("output_formats", {})
-        generator = OutputFormatsGenerator(self.site, config)
+        generator = OutputFormatsGenerator(self.site, config, graph_data=graph_data)
         generator.generate()
 
     def _validate_links(self) -> None:

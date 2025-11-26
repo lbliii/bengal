@@ -58,7 +58,7 @@ Context variables:
             <article class="blog-featured-card gradient-border-strong fluid-bg">
                 {% if post.metadata.get('image') or post.metadata.get('cover') %}
                 <div class="blog-card-image">
-                    <a href="{{ post.permalink }}">
+                    <a href="{{ post.url }}">
                         <img src="{{ post.metadata.get('image') | default(post.metadata.get('cover')) }}"
                             alt="{{ post.title }}">
                     </a>
@@ -67,7 +67,7 @@ Context variables:
 
                 <div class="blog-card-content">
                     <h3 class="blog-card-title">
-                    <a href="{{ post.permalink }}">{{ post.title }}</a>
+                    <a href="{{ post.url }}">{{ post.title }}</a>
                     </h3>
 
                     {% if post.metadata.get('description') or post.excerpt %}
@@ -125,7 +125,7 @@ Context variables:
             <article class="blog-post-card gradient-border fluid-combined">
                 {% if post.metadata.get('image') or post.metadata.get('cover') %}
                 <div class="blog-card-image">
-                <a href="{{ post.permalink }}">
+                <a href="{{ post.url }}">
                         <img src="{{ post.metadata.get('image') | default(post.metadata.get('cover')) }}"
                             alt="{{ post.title }}">
                     </a>
@@ -134,7 +134,7 @@ Context variables:
 
                 <div class="blog-card-content">
                     <h3 class="blog-card-title">
-                    <a href="{{ post.permalink }}">{{ post.title }}</a>
+                    <a href="{{ post.url }}">{{ post.title }}</a>
                     </h3>
 
                     {% if post.metadata.get('description') or post.excerpt %}
@@ -173,7 +173,7 @@ Context variables:
                     </div>
                     {% endif %}
 
-                    <a href="{{ post.permalink }}" class="blog-read-more">
+                    <a href="{{ post.url }}" class="blog-read-more">
                         Read more →
                     </a>
                 </div>
@@ -197,15 +197,16 @@ Context variables:
             <article class="blog-post-card">
                 <div class="blog-card-content">
                     <h3 class="blog-card-title">
-                    <a href="{{ subsection.permalink }}">{{ subsection.title }}</a>
+                    <a href="{{ subsection.url }}">{{ subsection.title }}</a>
                     </h3>
                     {% if subsection.metadata.get('description', '') %}
                     <p class="blog-card-excerpt">{{ subsection.metadata.get('description', '') }}</p>
                     {% endif %}
                     {% if subsection.regular_pages %}
                     {# Count only non-index pages #}
-                    {% set index_url = subsection.index_page.url if subsection.index_page else '' %}
-                    {% set content_pages = subsection.regular_pages | rejectattr('url', 'equalto', index_url) | list %}
+                    {# Use relative_url for comparisons (without baseurl) #}
+                    {% set index_url = subsection.index_page.relative_url if subsection.index_page else '' %}
+                    {% set content_pages = subsection.regular_pages | rejectattr('relative_url', 'equalto', index_url) | list %}
                     {% if content_pages %}
                     <p class="blog-card-meta">{{ content_pages | length }} post{{ 's' if content_pages | length != 1 }}
                     </p>

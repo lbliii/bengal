@@ -32,8 +32,9 @@ The `page` object represents the current markdown file being rendered. It gives 
 | `page.rendered_html` | The compiled HTML of the content. | `{{ page.rendered_html }}` |
 | `page.toc` | Auto-generated Table of Contents (HTML). | `{{ page.toc }}` |
 | `page.date` | Python `datetime` object. | `{{ page.date.strftime('%Y-%m-%d') }}` |
-| `page.permalink` | The full absolute URL. | `{{ page.permalink }}` |
-| `page.rel_permalink`| The relative URL path. | `{{ page.rel_permalink }}` |
+| `page.url` | URL with baseurl applied (for display). | `{{ page.url }}` |
+| `page.relative_url` | Relative URL without baseurl (for comparisons). | `{{ page.relative_url }}` |
+| `page.permalink` | Alias for `url` (backward compatibility). | `{{ page.permalink }}` |
 
 #### Accessing Custom Frontmatter
 
@@ -73,11 +74,52 @@ To list all blog posts:
 <ul>
 {% for p in site.regular_pages %}
     {% if p.metadata.type == "post" %}
-        <li><a href="{{ p.rel_permalink }}">{{ p.title }}</a></li>
+        <li><a href="{{ p.url }}">{{ p.title }}</a></li>
     {% endif %}
 {% endfor %}
 </ul>
 ```
+
+#### URL Pattern Best Practices
+
+Bengal provides three URL properties with clear purposes:
+
+**`page.url`** - **Primary property for display**
+- Automatically includes baseurl (e.g., `/bengal/docs/page/`)
+- Use in `<a href>`, `<link>`, `<img src>` attributes
+- Works correctly for all deployment scenarios (GitHub Pages, Netlify, S3, file://, etc.)
+
+**`page.relative_url`** - **For comparisons and logic**
+- Relative URL without baseurl (e.g., `/docs/page/`)
+- Use for comparisons: `{% if page.relative_url == '/docs/' %}`
+- Use for menu activation, filtering, and conditional logic
+
+**`page.permalink`** - **Backward compatibility**
+- Alias for `url` (same value)
+- Maintained for compatibility with existing themes
+
+**Example Usage:**
+
+```html
+{# Display URL (includes baseurl) #}
+<a href="{{ page.url }}">{{ page.title }}</a>
+
+{# Comparison (without baseurl) #}
+{% if page.relative_url == '/docs/' %}
+  <span class="active">Current Section</span>
+{% endif %}
+
+{# Both work the same #}
+<a href="{{ page.url }}">Link 1</a>
+<a href="{{ page.permalink }}">Link 2</a>  {# Same as page.url #}
+```
+
+**Why This Pattern?**
+
+- **Ergonomic**: Templates use `{{ page.url }}` for display - it "just works"
+- **Clear**: `relative_url` makes comparisons explicit
+- **No wrappers**: Page objects handle baseurl via their `_site` reference
+- **Works everywhere**: Supports file://, S3, GitHub Pages, Netlify, Vercel, etc.
 
 #### Accessing Data Files
 

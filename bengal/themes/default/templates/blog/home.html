@@ -50,7 +50,7 @@ Or set `type: blog` on home page to auto-select
     {# Fallback: find blog posts by URL path or metadata type #}
     {% set blog_posts = [] %}
     {% for p in site.pages %}
-    {% if p.metadata.get('type') == 'blog' or '/blog/' in p.url or '/posts/' in p.url %}
+    {% if p.metadata.get('type') == 'blog' or '/blog/' in p.relative_url or '/posts/' in p.relative_url %}
     {% set _ = blog_posts.append(p) %}
     {% endif %}
     {% endfor %}
@@ -72,7 +72,7 @@ Or set `type: blog` on home page to auto-select
             <article class="blog-home-post-card gradient-border fluid-combined">
                 {% if post.metadata.get('image') or post.metadata.get('cover') %}
                 <div class="blog-home-post-image">
-                    <a href="{{ post.permalink }}">
+                    <a href="{{ post.url }}">
                         <img src="{{ post.metadata.get('image') | default(post.metadata.get('cover')) }}"
                             alt="{{ post.title }}">
                     </a>
@@ -80,7 +80,7 @@ Or set `type: blog` on home page to auto-select
                 {% endif %}
                 <div class="blog-home-post-content">
                     <h3 class="blog-home-post-title">
-                        <a href="{{ post.permalink }}">{{ post.title }}</a>
+                        <a href="{{ post.url }}">{{ post.title }}</a>
                     </h3>
                     {% if post.date %}
                     <time datetime="{{ post.date | date_iso }}" class="blog-home-post-date">
@@ -97,7 +97,7 @@ Or set `type: blog` on home page to auto-select
                         {{ tag_list(post.tags | limit(3)) }}
                     </div>
                     {% endif %}
-                    <a href="{{ post.permalink }}" class="blog-home-post-link">Read more →</a>
+                    <a href="{{ post.url }}" class="blog-home-post-link">Read more →</a>
                 </div>
             </article>
             {% endfor %}

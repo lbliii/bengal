@@ -38,12 +38,13 @@ Usage:
       </svg>
     </button>
     {# Normalize current page URL for exact matching (remove trailing slash) #}
-    {% set current_url = page.url.rstrip('/') if (page is defined and page and page.url) else '' %}
+    {# Use relative_url for comparisons (without baseurl) #}
+    {% set current_url = page.relative_url.rstrip('/') if (page is defined and page and page.relative_url) else '' %}
 
     {% if section.index_page %}
-    {% set section_url_normalized = section.index_page.url.rstrip('/') if section.index_page.url else '' %}
+    {% set section_url_normalized = section.index_page.relative_url.rstrip('/') if section.index_page.relative_url else '' %}
     {% set section_title = section.title if section.title and section.title.strip() else (section.slug.replace('-', ' ').replace('_', ' ').title() if section.slug else 'Section') %}
-    <a href="{{ section.index_page.permalink }}"
+    <a href="{{ section.index_page.url }}"
       class="docs-nav-group-link {% if (page is defined and page and current_url == section_url_normalized) %}active{% endif %}"
       {% if (page is defined and page and current_url == section_url_normalized) %}aria-current="page"{% endif %}>
       {{ section_title }}
@@ -59,15 +60,17 @@ Usage:
     {# Cache sorted lists for O(1) access - computed once per section #}
     {% set section_sorted_pages = section.sorted_pages %}
     {% set section_sorted_subsections = section.sorted_subsections %}
-    {% set section_index_url = section.index_page.url if section.index_page else none %}
+    {# Use relative_url for comparisons (without baseurl) #}
+    {% set section_index_url = section.index_page.relative_url if section.index_page else none %}
 
     {# Regular pages in this section (excluding index page) - sorted by weight #}
     {% for p in section_sorted_pages %}
-    {% if p.url != section_index_url and p.title %}
+    {# Use relative_url for comparisons (without baseurl) #}
+    {% if p.relative_url != section_index_url and p.title %}
     {# Extract short name for nested items (e.g., "admonitions" from "directives.admonitions") #}
     {% set display_title = p.title.split('.')[-1] if ('.' in p.title) else p.title %}
-    {% set p_url_normalized = p.url.rstrip('/') if p.url else '' %}
-    <a href="{{ p.permalink }}"
+    {% set p_url_normalized = p.relative_url.rstrip('/') if p.relative_url else '' %}
+    <a href="{{ p.url }}"
       class="docs-nav-link {% if (page is defined and page and current_url == p_url_normalized) %}active{% endif %}"
       {% if (page is defined and page and current_url == p_url_normalized) %}aria-current="page"{% endif %}>
       {{ display_title }}

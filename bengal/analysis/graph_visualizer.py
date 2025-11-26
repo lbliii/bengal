@@ -194,6 +194,20 @@ class GraphVisualizer:
                         # Final fallback: use slug-based URL
                         page_url = f"/{getattr(page, 'slug', page.source_path.stem)}/"
 
+            # Apply baseurl to URL (like templates do with permalink)
+            baseurl = self.site.config.get("baseurl", "").rstrip("/")
+            if baseurl:
+                # Ensure page_url starts with /
+                if not page_url.startswith("/"):
+                    page_url = "/" + page_url
+                # Handle absolute vs path-only base URLs
+                if baseurl.startswith(("http://", "https://", "file://")):
+                    page_url = f"{baseurl}{page_url}"
+                else:
+                    # Path-only baseurl (e.g., /bengal)
+                    base_path = "/" + baseurl.lstrip("/")
+                    page_url = f"{base_path}{page_url}"
+
             # Determine node type for filtering
             node_type = "regular"
             if connectivity.is_orphan:
@@ -388,23 +402,29 @@ class GraphVisualizer:
             }})
         );
 
-        // Create force simulation
+        // Create force simulation with link force
+        // D3's forceLink will convert edge source/target IDs to node references
+        const linkForce = d3.forceLink(graphData.edges)
+            .id(d => d.id)
+            .distance(50);
+
         const simulation = d3.forceSimulation(graphData.nodes)
-            .force("link", d3.forceLink(graphData.edges)
-                .id(d => d.id)
-                .distance(50))
+            .force("link", linkForce)
             .force("charge", d3.forceManyBody()
                 .strength(-200))
             .force("center", d3.forceCenter(width / 2, height / 2))
             .force("collision", d3.forceCollide()
                 .radius(d => d.size + 5));
 
-        // Render links
+        // Render links - use the same edges array, D3 will convert IDs to node refs
         const link = g.append("g")
+            .attr("class", "graph-links")
             .selectAll("line")
             .data(graphData.edges)
             .enter().append("line")
-            .attr("class", "link");
+            .attr("class", "graph-link")
+            .attr("stroke", "var(--color-border-light, rgba(0, 0, 0, 0.1))")
+            .attr("stroke-width", 1);
 
         // Helper function to resolve CSS variables to actual colors
         function resolveCSSVariable(varName) {{
@@ -452,6 +472,7 @@ class GraphVisualizer:
 
         // Render nodes
         const node = g.append("g")
+            .attr("class", "graph-nodes")
             .selectAll("circle")
             .data(graphData.nodes)
             .enter().append("circle")

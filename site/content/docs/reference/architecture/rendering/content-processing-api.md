@@ -34,9 +34,18 @@ The `content` config section controls **what Bengal computes** during build time
 | `page.toc` | `toc_depth` (3), `toc_min_headings` (2), `toc_style` ("nested") | `{{ page.toc \| safe }}` | Generated table of contents HTML |
 | `page.toc_items` | (derived from `toc`) | `{% for item in page.toc_items %}` | Structured TOC data for custom rendering |
 | `page.related_posts` | `related_count` (3), `related_threshold` (0.3) | `{% for post in page.related_posts %}` | Related pages based on tag similarity |
-| `page.url` | (automatic) | `{{ page.url }}` | Relative URL path |
-| `page.permalink` | (automatic) | `{{ page.permalink }}` | Absolute URL with baseurl |
+| `page.url` | (automatic) | `{{ page.url }}` | URL with baseurl applied (for display in templates) |
+| `page.relative_url` | (automatic) | `{{ page.relative_url }}` | Relative URL without baseurl (for comparisons and logic) |
+| `page.permalink` | (automatic) | `{{ page.permalink }}` | Alias for `url` (backward compatibility) |
 | `page.title` | (from metadata or generated) | `{{ page.title }}` | Page title (humanized from filename if missing) |
+
+**URL Pattern Strategy:**
+
+- **`page.url`**: Primary property for display - automatically includes baseurl from site config
+- **`page.relative_url`**: Use for comparisons, menu activation, filtering (without baseurl)
+- **`page.permalink`**: Alias for `url` (maintained for backward compatibility)
+
+This pattern is ergonomic: templates use `{{ page.url }}` for display and it "just works" for all deployment scenarios (GitHub Pages, Netlify, S3, file://, etc.). Use `{{ page.relative_url }}` when you need to compare URLs without baseurl.
 | `page.date` | `date_format` ("long") | `{{ page.date }}` | Parsed date object |
 | `page.slug` | (from metadata or generated) | `{{ page.slug }}` | URL-safe slug |
 | `page.keywords` | (from metadata) | `{{ page.keywords }}` | SEO keywords list |
@@ -58,11 +67,12 @@ The `content` config section controls **what Bengal computes** during build time
 |----------|---------------|-----------------|---------|
 | `section.sorted_pages` | `sort_pages_by` ("weight"), `sort_order` ("asc") | `{% for page in section.sorted_pages %}` | Pages sorted by weight/date/title |
 | `section.sorted_subsections` | (respects `weight` in index metadata) | `{% for sub in section.sorted_subsections %}` | Sorted child sections |
-| `section.subsection_index_urls` | (automatic) | `{% if page.url not in section.subsection_index_urls %}` | Set of subsection index URLs (for nav de-duplication) |
+| `section.subsection_index_urls` | (automatic) | `{% if page.relative_url not in section.subsection_index_urls %}` | Set of subsection index URLs (for nav de-duplication) |
 | `section.regular_pages` | (automatic) | `{% for page in section.regular_pages %}` | Non-index pages in this section |
 | `section.regular_pages_recursive` | (automatic) | `{% for page in section.regular_pages_recursive %}` | All descendant pages |
-| `section.url` | (automatic) | `{{ section.url }}` | Section URL |
-| `section.permalink` | (automatic) | `{{ section.permalink }}` | Section URL with baseurl |
+| `section.url` | (automatic) | `{{ section.url }}` | Section URL with baseurl applied (for display) |
+| `section.relative_url` | (automatic) | `{{ section.relative_url }}` | Relative URL without baseurl (for comparisons) |
+| `section.permalink` | (automatic) | `{{ section.permalink }}` | Alias for `url` (backward compatibility) |
 | `section.hierarchy` | (automatic) | `{{ section.hierarchy }}` | List of section names from root |
 | `section.depth` | (automatic) | `{{ section.depth }}` | Nesting depth |
 | `section.root` | (automatic) | `{{ section.root.title }}` | Top-most ancestor section |

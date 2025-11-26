@@ -80,22 +80,12 @@ class PageMetadataMixin:
         return self.source_path.stem
 
     @cached_property
-    def url(self) -> str:
+    def relative_url(self) -> str:
         """
-        Get the URL path for the page (cached after first access).
+        Get relative URL without baseurl (for comparisons).
 
-        Generates clean URLs from output paths, handling:
-        - Pretty URLs (about/index.html -> /about/)
-        - Index pages (docs/index.html -> /docs/)
-        - Root index (index.html -> /)
-        - Edge cases (missing site reference, invalid paths)
-
-        URLs are stable after output_path is set (during rendering phase),
-        so caching eliminates redundant recalculation during health checks
-        and template rendering.
-
-        Returns:
-            URL path with leading and trailing slashes
+        This is the identity URL - use for comparisons, menu activation, etc.
+        Always returns a relative path without baseurl.
         """
         # Fallback if no output path set
         if not self.output_path:
@@ -148,15 +138,18 @@ class PageMetadataMixin:
         return url
 
     @cached_property
-    def permalink(self) -> str:
+    def url(self) -> str:
         """
         Get URL with baseurl applied (cached after first access).
 
-        This is a convenience for templates. It follows the identity vs display
-        pattern: use .url for comparisons, and .permalink for href/src output.
+        This is the primary URL property for templates - automatically includes
+        baseurl when available. Use .relative_url for comparisons.
+
+        Returns:
+            URL path with baseurl prepended (if configured)
         """
-        # Relative URL (identity)
-        rel = self.url or "/"
+        # Get relative URL first
+        rel = self.relative_url or "/"
 
         # Best-effort baseurl lookup; remain robust if site/config is missing
         baseurl = ""
@@ -171,6 +164,16 @@ class PageMetadataMixin:
         baseurl = baseurl.rstrip("/")
         rel = "/" + rel.lstrip("/")
         return f"{baseurl}{rel}"
+
+    @cached_property
+    def permalink(self) -> str:
+        """
+        Alias for url (for backward compatibility).
+
+        Both url and permalink now return the same value (with baseurl).
+        Use .relative_url for comparisons.
+        """
+        return self.url
 
     def _fallback_url(self) -> str:
         """

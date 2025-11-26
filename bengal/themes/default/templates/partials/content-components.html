@@ -54,7 +54,7 @@ Example:
     </div>
 
     <h2 class="article-card-title">
-      <a href="{{ article.permalink }}">{{ article.title }}</a>
+      <a href="{{ article.url }}">{{ article.title }}</a>
     </h2>
 
     <div class="article-card-meta">
@@ -118,7 +118,7 @@ Example:
 'type': 'section',
 'obj': subsection,
 'title': subsection.title,
-'url': subsection.permalink,
+'url': subsection.url,
 'description': subsection.metadata.get('description', '') if subsection.metadata and
 subsection.metadata.get('description', '') else '',
 'weight': subsection.metadata.get('weight', 999999) if subsection.metadata else 999999,
@@ -131,12 +131,12 @@ subsection.metadata.get('description', '') else '',
 {% if posts %}
 {% for post in posts %}
 {# Skip the current section index page if it appears in child posts #}
-{% if not ((page is defined and page) and (post.permalink == page.permalink)) %}
+{% if not ((page is defined and page) and (post.relative_url == page.relative_url)) %}
 {% set _ = all_items.append({
 'type': 'page',
 'obj': post,
 'title': post.title,
-'url': post.permalink,
+'url': post.url,
 'description': post.metadata.get('description', '') if post.metadata and post.metadata.get('description', '') else
 (post.content | strip_html | excerpt(120) if post.content else ''),
 'weight': post.metadata.get('weight', 999999) if post.metadata else 999999,
@@ -215,7 +215,7 @@ Usage:
 #}
 {% macro for_each_item_excluding_current(items) %}
 {%- for item in items -%}
-{%- if not (page and item.permalink == page.permalink) -%}
+{%- if not (page and item.relative_url == page.relative_url) -%}
 {{ caller(item) }}
 {%- endif -%}
 {%- endfor -%}
@@ -316,7 +316,7 @@ Example:
     {% for post in random_posts %}
     <article class="random-post-item">
       <h4>
-        <a href="{{ post.permalink }}">{{ post.title }}</a>
+        <a href="{{ post.url }}">{{ post.title }}</a>
       </h4>
       {% if post.date %}
       <time datetime="{{ post.date | date_iso }}">

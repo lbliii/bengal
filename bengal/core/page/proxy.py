@@ -377,6 +377,12 @@ class PageProxy:
         return self._full_page.url if self._full_page else "/"
 
     @property
+    def relative_url(self) -> str:
+        """Get the relative URL (without baseurl) for the page (lazy-loaded, cached after first access)."""
+        self._ensure_loaded()
+        return self._full_page.relative_url if self._full_page else "/"
+
+    @property
     def permalink(self) -> str:
         """Get the permalink (URL with baseurl) for the page (lazy-loaded, cached after first access)."""
         self._ensure_loaded()

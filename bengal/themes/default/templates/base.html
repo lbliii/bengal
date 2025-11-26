@@ -32,8 +32,9 @@
     <meta property="og:description" content="{{ meta_desc }}">
     {% endif %}
     {% if site.config.baseurl %}
+    {# Use relative_url for canonical URLs (canonical_url adds baseurl) #}
     <meta property="og:url"
-        content="{{ canonical_url((page.url if page is defined and page and page.url is defined else '/')) }}">
+        content="{{ canonical_url((page.relative_url if page is defined and page and page.relative_url is defined else '/')) }}">
     {% endif %}
     {# Open Graph Image #}
     {% if page is defined and page and page.metadata is defined and page.metadata.get('image') %}
@@ -62,8 +63,9 @@
 
     {# Canonical URL #}
     {% if site.config.baseurl %}
+    {# Use relative_url for canonical URLs (canonical_url adds baseurl) #}
     <link rel="canonical"
-        href="{{ canonical_url((page.url if page is defined and page and page.url is defined else '/')) }}">
+        href="{{ canonical_url((page.relative_url if page is defined and page and page.relative_url is defined else '/')) }}">
     {% endif %}
 
     {# RSS Feed (locale-aware when i18n prefix strategy is enabled) #}
@@ -188,12 +190,12 @@
                         {# Auto-discovered nav items (if no manual config) #}
                         {% if auto_nav %}
                         {# Always show Home first in auto mode #}
-                        <li class="{{ 'active' if (page is defined and page and page.url == '/') else '' }}">
+                        <li class="{{ 'active' if (page is defined and page and page.relative_url == '/') else '' }}">
                             <a href="{{ '/' | absolute_url }}">Home</a>
                         </li>
                         {% for item in auto_nav %}
                         <li
-                            class="{{ 'active' if (page is defined and page and page.url and page.url.startswith(item.url) and item.url != '/') else '' }}">
+                            class="{{ 'active' if (page is defined and page and page.relative_url and page.relative_url.startswith(item.relative_url) and item.relative_url != '/') else '' }}">
                             <a href="{{ item.url | absolute_url }}">{{ item.name }}</a>
                         </li>
                         {% endfor %}
@@ -288,7 +290,7 @@
                 <ul class="submenu">
                     {% for child in item.children %}
                     <li class="{{ 'active' if child.active else '' }}">
-                        <a href="{{ child.url | url }}">{{ child.name }}</a>
+                        <a href="{{ child.url | absolute_url }}">{{ child.name }}</a>
                     </li>
                     {% endfor %}
                 </ul>
@@ -300,12 +302,12 @@
             {# Auto-discovered nav items (if no manual config) #}
             {% if auto_nav %}
             {# Always show Home first in auto mode #}
-            <li class="{{ 'active' if (page is defined and page and page.url == '/') else '' }}">
+            <li class="{{ 'active' if (page is defined and page and page.relative_url == '/') else '' }}">
                 <a href="{{ '/' | absolute_url }}">Home</a>
             </li>
             {% for item in auto_nav %}
             <li
-                class="{{ 'active' if (page is defined and page and page.url and page.url.startswith(item.url) and item.url != '/') else '' }}">
+                class="{{ 'active' if (page is defined and page and page.relative_url and page.relative_url.startswith(item.relative_url) and item.relative_url != '/') else '' }}">
                 <a href="{{ item.url | absolute_url }}">{{ item.name }}</a>
             </li>
             {% endfor %}
@@ -405,6 +407,59 @@
     <script src="{{ asset_url('js/mermaid-toolbar.js') }}"></script>
     {# Mermaid theme configuration - maps Bengal CSS variables to Mermaid themeVariables #}
     <script src="{{ asset_url('js/mermaid-theme.js') }}"></script>
+
+    {# Graph visualizations - conditional loading (only when containers exist) #}
+    <script>
+        (function () {
+            'use strict';
+            // Wait for DOM to be ready before checking for containers
+            function checkAndLoadGraphScripts() {
+                const graphContainers = document.querySelector('.graph-minimap, .graph-contextual');
+                if (!graphContainers) return;
+
+                // Check if D3.js is already loaded
+                if (typeof d3 !== 'undefined') {
+                    // D3 already loaded, just load components
+                    loadGraphComponents();
+                    return;
+                }
+
+                // Load D3.js first
+                const d3Script = document.createElement('script');
+                d3Script.src = 'https://d3js.org/d3.v7.min.js';
+                d3Script.async = true;
+                d3Script.onload = function () {
+                    // Load graph components after D3 is ready
+                    loadGraphComponents();
+                };
+                document.head.appendChild(d3Script);
+            }
+
+            function loadGraphComponents() {
+                const components = [
+                    '{{ asset_url("js/graph-minimap.js") }}',
+                    '{{ asset_url("js/graph-contextual.js") }}'
+                ];
+                components.forEach(function (src) {
+                    // Check if script already loaded
+                    if (document.querySelector('script[src="' + src + '"]')) return;
+
+                    const script = document.createElement('script');
+                    script.src = src;
+                    script.async = true;
+                    document.head.appendChild(script);
+                });
+            }
+
+            // Check when DOM is ready
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', checkAndLoadGraphScripts);
+            } else {
+                // DOM already ready
+                checkAndLoadGraphScripts();
+            }
+        })();
+    </script>
 
     {# Smart search index preloading #}
     <script>

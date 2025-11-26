@@ -1,6 +1,9 @@
 # Production Environment
 # =======================
-# Note: baseurl is set via BENGAL_BASEURL environment variable in CI/CD
+
+site:
+  # GitHub Pages project site: deployed at /bengal
+  baseurl: "/bengal"
 
 build:
   # Enable parallelization for fast production builds

@@ -174,6 +174,7 @@ class TemplateEngine:
         env.filters["dateformat"] = self._filter_dateformat
 
         # Add global variables (available in all templates and macros)
+        # Pages and sections already have _site reference, no wrapping needed
         env.globals["site"] = self.site
         env.globals["config"] = self.site.config
         # Curated build/runtime metadata for templates/JS (privacy-aware)
@@ -311,6 +312,9 @@ class TemplateEngine:
         # Add site to context
         context.setdefault("site", self.site)
         context.setdefault("config", self.site.config)
+
+        # Pages and sections already have _site reference and can access baseurl
+        # via permalink property. No wrapping needed.
 
         try:
             template = self.env.get_template(template_name)

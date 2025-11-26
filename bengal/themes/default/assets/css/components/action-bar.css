@@ -37,29 +37,54 @@
   overflow: hidden;
 }
 
-/* Blob background animation for action bar - using small variant for compact component */
+/* Blob background animation for action bar - optimized for horizontal bar layout */
+/* Left blob */
 .action-bar::before {
   content: '';
   position: absolute;
-  top: -15%;
-  left: -5%;
-  width: 80%;
-  height: 80%;
-  background: radial-gradient(circle at 30% 30%,
-      color-mix(in srgb, var(--blob-color-1) 8%, transparent) 0%,
-      color-mix(in srgb, var(--blob-color-2) 5%, transparent) 30%,
-      color-mix(in srgb, var(--blob-color-3) 4%, transparent) 60%,
-      transparent 80%);
+  top: 50%;
+  left: 10%;
+  transform: translateY(-50%);
+  width: 120px;
+  height: 120px;
+  background: radial-gradient(circle,
+      color-mix(in srgb, var(--blob-color-1) 10%, transparent) 0%,
+      color-mix(in srgb, var(--blob-color-2) 6%, transparent) 40%,
+      transparent 70%);
   border-radius: 50%;
-  animation: blob-morph-small 6s ease-in-out infinite;
+  filter: blur(20px);
+  animation: actionBarBlobLeft 8s ease-in-out infinite;
   pointer-events: none;
   z-index: 0;
-  opacity: 0.6;
+  opacity: 0.5;
   transition: opacity 0.3s ease;
 }
 
-.action-bar:hover::before {
-  opacity: 1;
+/* Right blob */
+.action-bar::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: 15%;
+  transform: translateY(-50%);
+  width: 100px;
+  height: 100px;
+  background: radial-gradient(circle,
+      color-mix(in srgb, var(--blob-color-2) 9%, transparent) 0%,
+      color-mix(in srgb, var(--blob-color-3) 5%, transparent) 35%,
+      transparent 65%);
+  border-radius: 50%;
+  filter: blur(18px);
+  animation: actionBarBlobRight 7s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.5;
+  transition: opacity 0.3s ease;
+}
+
+.action-bar:hover::before,
+.action-bar:hover::after {
+  opacity: 0.8;
 }
 
 .action-bar>* {
@@ -67,20 +92,54 @@
   z-index: 1;
 }
 
+/* Horizontal bar blob animations - subtle horizontal movement */
+@keyframes actionBarBlobLeft {
+  0%,
+  100% {
+    transform: translateY(-50%) translateX(0) scale(1);
+  }
+  33% {
+    transform: translateY(-50%) translateX(15px) scale(1.1);
+  }
+  66% {
+    transform: translateY(-50%) translateX(-10px) scale(0.9);
+  }
+}
+
+@keyframes actionBarBlobRight {
+  0%,
+  100% {
+    transform: translateY(-50%) translateX(0) scale(1);
+  }
+  33% {
+    transform: translateY(-50%) translateX(-12px) scale(1.08);
+  }
+  66% {
+    transform: translateY(-50%) translateX(8px) scale(0.92);
+  }
+}
+
 /* Fallback for browsers without color-mix */
 @supports not (color: color-mix(in srgb, black, white)) {
   .action-bar::before {
-    background: radial-gradient(circle at 30% 30%,
-        rgba(59, 130, 246, 0.08) 0%,
-        rgba(76, 175, 80, 0.05) 30%,
-        rgba(255, 152, 0, 0.04) 60%,
-        transparent 80%);
+    background: radial-gradient(circle,
+        rgba(59, 130, 246, 0.1) 0%,
+        rgba(76, 175, 80, 0.06) 40%,
+        transparent 70%);
+  }
+
+  .action-bar::after {
+    background: radial-gradient(circle,
+        rgba(76, 175, 80, 0.09) 0%,
+        rgba(255, 152, 0, 0.05) 35%,
+        transparent 65%);
   }
 }
 
 /* Respect reduced motion */
 @media (prefers-reduced-motion: reduce) {
-  .action-bar::before {
+  .action-bar::before,
+  .action-bar::after {
     animation: none !important;
   }
 }

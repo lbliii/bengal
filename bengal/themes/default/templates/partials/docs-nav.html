@@ -42,16 +42,17 @@ Usage:
     {% set sorted_subsections = root_section.sorted_subsections %}
     {# subsection_index_urls is a set from Python for O(1) membership checks #}
     {% set subsection_index_urls = root_section.subsection_index_urls %}
-    {% set root_index_url = root_section.index_page.url if root_section.index_page else none %}
+    {% set root_index_url = root_section.index_page.relative_url if root_section.index_page else none %}
 
     {# Normalize current page URL for exact matching (remove trailing slash) #}
-    {% set current_url = page.url.rstrip('/') if (page is defined and page and page.url) else '' %}
+    {# Use relative_url for comparisons (without baseurl) #}
+    {% set current_url = page.relative_url.rstrip('/') if (page is defined and page and page.relative_url) else '' %}
 
     {# Show the section's index page if it exists #}
     {% if root_section.index_page %}
     {% set root_url_normalized = root_index_url.rstrip('/') if root_index_url else '' %}
     {% set root_title = root_section.index_page.title if root_section.index_page.title and root_section.index_page.title.strip() else (root_section.slug.replace('-', ' ').replace('_', ' ').title() if root_section.slug else 'API Reference') %}
-    <a href="{{ root_section.index_page.permalink }}"
+    <a href="{{ root_section.index_page.url }}"
       class="docs-nav-link {% if (page is defined and page and current_url == root_url_normalized) %}active{% endif %}"
       {% if (page is defined and page and current_url == root_url_normalized) %}aria-current="page"{% endif %}>
       {{ root_title }}
@@ -61,9 +62,10 @@ Usage:
     {# Show regular pages (O(n) with O(1) lookups) - sorted by weight #}
     {% for p in sorted_pages %}
     {# Skip root index and subsection index pages - now O(1) set lookup! #}
-    {% if p.url != root_index_url and p.url not in subsection_index_urls %}
-    {% set p_url_normalized = p.url.rstrip('/') if p.url else '' %}
-    <a href="{{ p.permalink }}"
+    {# Use relative_url for comparisons (without baseurl) #}
+    {% if p.relative_url != root_index_url and p.relative_url not in subsection_index_urls %}
+    {% set p_url_normalized = p.relative_url.rstrip('/') if p.relative_url else '' %}
+    <a href="{{ p.url }}"
       class="docs-nav-link {% if (page is defined and page and current_url == p_url_normalized) %}active{% endif %}"
       {% if (page is defined and page and current_url == p_url_normalized) %}aria-current="page"{% endif %}>
       {{ p.title }}
@@ -81,14 +83,16 @@ Usage:
     {% set top_sections = site.sections | selectattr('parent', 'none') | list %}
 
     {# Normalize current page URL for exact matching (remove trailing slash) #}
-    {% set current_url = page.url.rstrip('/') if (page is defined and page and page.url) else '' %}
+    {# Use relative_url for comparisons (without baseurl) #}
+    {% set current_url = page.relative_url.rstrip('/') if (page is defined and page and page.relative_url) else '' %}
 
     {# Show any top-level pages first (regular pages without a section) #}
     {% set top_pages = site.pages | selectattr('_section', 'none') | rejectattr('metadata._generated', 'defined') | list
     %}
     {% for p in top_pages %}
-    {% set p_url_normalized = p.url.rstrip('/') if p.url else '' %}
-    <a href="{{ p.permalink }}"
+    {# Use relative_url for comparisons (without baseurl) #}
+    {% set p_url_normalized = p.relative_url.rstrip('/') if p.relative_url else '' %}
+    <a href="{{ p.url }}"
       class="docs-nav-link {% if (page is defined and page and current_url == p_url_normalized) %}active{% endif %}"
       {% if (page is defined and page and current_url == p_url_normalized) %}aria-current="page"{% endif %}>
       {{ p.title }}

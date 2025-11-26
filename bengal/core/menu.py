@@ -129,9 +129,7 @@ class MenuBuilder:
             return True
         if item_url and item_url in self._seen_urls:
             return True
-        if item_name and item_name in self._seen_names:
-            return True
-        return False
+        return bool(item_name and item_name in self._seen_names)
 
     def _track_item(self, item: MenuItem) -> None:
         """Track an item to prevent future duplicates."""
@@ -187,7 +185,9 @@ class MenuBuilder:
             menu_config: Menu configuration from page frontmatter
         """
         item_id = menu_config.get("identifier")
-        item_url = page.url.rstrip("/")
+        # Use relative_url for menu items (for comparison/activation)
+        # Templates apply baseurl via | absolute_url filter
+        item_url = page.relative_url.rstrip("/")
         item_name = menu_config.get("name", page.title).lower()
 
         # Skip if duplicate
@@ -197,7 +197,7 @@ class MenuBuilder:
 
         item = MenuItem(
             name=menu_config.get("name", page.title),
-            url=page.url,
+            url=page.relative_url,  # Store relative URL for comparison
             weight=menu_config.get("weight", 0),
             parent=menu_config.get("parent"),
             identifier=menu_config.get("identifier"),
@@ -259,8 +259,8 @@ class MenuBuilder:
             if section_hidden:
                 return
 
-            # Build section URL
-            section_url = getattr(section, "url", f"/{section.name}/")
+            # Build section relative URL (for menu items - templates apply baseurl via filter)
+            section_url = getattr(section, "relative_url", f"/{section.name}/")
             section_id = section.name
 
             # Determine parent identifier from section.parent if not provided

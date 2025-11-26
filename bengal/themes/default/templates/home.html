@@ -117,7 +117,8 @@
     {# Fallback: find blog posts by URL path or metadata type #}
     {% set blog_posts = [] %}
     {% for p in site.pages %}
-    {% if p.metadata.get('type') == 'blog' or '/blog/' in p.url %}
+    {# Use relative_url for comparisons (without baseurl) #}
+    {% if p.metadata.get('type') == 'blog' or '/blog/' in p.relative_url %}
     {% set _ = blog_posts.append(p) %}
     {% endif %}
     {% endfor %}
@@ -134,14 +135,14 @@
             <article class="post-card gradient-border fluid-combined">
                 {% if post.metadata.get('image') or post.metadata.get('cover') %}
                 <div class="post-card-image">
-                    <a href="{{ post.permalink }}">
+                    <a href="{{ post.url }}">
                         <img src="{{ post.metadata.get('image') | default(post.metadata.get('cover')) }}"
                             alt="{{ post.title }}">
                     </a>
                 </div>
                 {% endif %}
                 <div class="post-card-content">
-                    <h3 class="post-card-title"><a href="{{ post.permalink }}">{{ post.title }}</a></h3>
+                    <h3 class="post-card-title"><a href="{{ post.url }}">{{ post.title }}</a></h3>
                     {% if post.date %}
                     <time datetime="{{ post.date | date_iso }}" class="post-card-date">
                         {{ post.date | dateformat('%B %d, %Y') }}
@@ -152,7 +153,7 @@
                         {{ post.metadata.get('description') | default(post.excerpt) | truncate(150) }}
                     </p>
                     {% endif %}
-                    <a href="{{ post.permalink }}" class="read-more">Read more →</a>
+                    <a href="{{ post.url }}" class="read-more">Read more →</a>
                 </div>
             </article>
             {% endfor %}

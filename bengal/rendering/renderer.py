@@ -117,6 +117,7 @@ class Renderer:
         # Build base context
         # Note: Content and TOC are marked as safe HTML to prevent auto-escaping
         # (they're already sanitized during markdown parsing)
+        # Page objects already have _site reference and can access baseurl via permalink
         context = {
             "page": page,
             "content": Markup(content),  # Mark as safe HTML
@@ -171,11 +172,12 @@ class Renderer:
             posts = page.metadata.get("_posts", section.pages)
             subsections = page.metadata.get("_subsections", section.subsections)
 
+            # Pages and sections already have _site reference, no wrapping needed
             context.update(
                 {
                     "section": section,
                     "posts": posts,
-                    "pages": posts,  # Alias for templates expecting 'pages'
+                    "pages": posts,  # Alias
                     "subsections": subsections,
                 }
             )
@@ -197,6 +199,7 @@ class Renderer:
                 if not any(s in parent.subsections for parent in self.site.sections)
             ]
 
+            # Pages and sections already have _site reference, no wrapping needed
             context.update(
                 {
                     "section": None,  # Root has no section
@@ -298,11 +301,12 @@ class Renderer:
                     "base_url": f"/{section.name}/" if section else "/",
                 }
 
+            # Pages and sections already have _site reference, no wrapping needed
             context.update(
                 {
-                    "section": section,
+                    "section": section if section else None,
                     "posts": posts,
-                    "pages": posts,  # Alias for templates expecting 'pages'
+                    "pages": posts,  # Alias
                     "subsections": subsections,
                     "total_posts": len(all_posts),
                     **pagination,
@@ -488,6 +492,7 @@ class Renderer:
                 page_num=page_num,
             )
 
+            # Pages already have _site reference, no wrapping needed
             context.update(
                 {
                     "tag": tag_name,

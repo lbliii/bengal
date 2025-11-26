@@ -253,6 +253,14 @@
   @import url('components/graph.css');
 }
 
+@layer components {
+  @import url('components/graph-minimap.css');
+}
+
+@layer components {
+  @import url('components/graph-contextual.css');
+}
+
 /* Third-party libraries */
 @layer components {
   @import url('tabulator.min.css');

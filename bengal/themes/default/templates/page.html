@@ -29,6 +29,14 @@
 
     {% if toc %}
     <aside class="page-sidebar">
+        {# Contextual Graph Minimap - shows connections to current page #}
+        <div class="graph-contextual" data-page-url="{{ page.relative_url }}">
+          {# Placeholder - will be replaced by JavaScript #}
+          <div class="graph-contextual-container" style="min-height: 200px; display: flex; align-items: center; justify-content: center; color: var(--color-text-secondary); font-size: 12px;">
+            Loading connections...
+          </div>
+        </div>
+
         <nav class="toc" aria-label="Table of contents">
             <h2 class="toc-title">On This Page</h2>
             <div class="toc-content">
@@ -54,7 +62,7 @@
         <div class="related-posts-grid">
             {% for post in related %}
             <article class="related-post-card gradient-border fluid-combined">
-                <h3><a href="{{ post.permalink }}">{{ post.title }}</a></h3>
+                <h3><a href="{{ post.url }}">{{ post.title }}</a></h3>
                 {% if post.date %}
                 <time datetime="{{ post.date | date_iso }}">{{ post.date | time_ago }}</time>
                 {% endif %}
@@ -67,4 +75,5 @@
     </div>
 </aside>
 {% endif %}
+{# Graph scripts loaded in base.html #}
 {% endblock %}

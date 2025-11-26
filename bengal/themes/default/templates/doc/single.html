@@ -61,9 +61,19 @@ Or set `type: doc` to auto-select this template
     {{ page_navigation(page) }}
   </div>
 
-  {# Right Sidebar: TOC + Metadata #}
+  {# Right Sidebar: Contextual Graph + TOC + Metadata #}
   {% if toc_items %}
   <aside class="docs-toc" role="complementary" aria-label="Table of contents">
+    {# Contextual Graph Minimap - shows connections to current page #}
+    <div class="graph-contextual" data-page-url="{{ page.relative_url }}">
+      {# Placeholder - will be replaced by JavaScript #}
+      <div class="graph-contextual-container"
+        style="min-height: 200px; display: flex; align-items: center; justify-content: center; color: var(--color-text-secondary); font-size: 12px;">
+        Loading connections...
+      </div>
+    </div>
+
+    {# Table of Contents #}
     {{ toc(toc_items=toc_items, toc=toc, page=page) }}
   </aside>
   {% endif %}
@@ -84,3 +94,4 @@ Or set `type: doc` to auto-select this template
 {% endblock %}
 
 {# Sidebar toggle functionality is handled by interactive.js #}
+{# Graph scripts loaded in base.html #}

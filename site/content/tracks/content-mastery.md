@@ -13,4 +13,3 @@ Documentation is more than just writing text files. In this track, we'll explore
 *   **Reuse**: Write once, publish everywhere.
 *   **Tracks**: Creating guided learning paths (like this one!).
 *   **Filtering**: Helping users find what they need.
-

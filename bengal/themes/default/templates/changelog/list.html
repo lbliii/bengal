@@ -244,7 +244,7 @@ Supports two modes:
                 <div class="timeline-header">
                     <div class="timeline-title-group">
                         <h2 class="timeline-title">
-                            <a href="{{ release.permalink }}">{{ release.title }}</a>
+                            <a href="{{ release.url }}">{{ release.title }}</a>
                         </h2>
                         {% if release.metadata.get('name') %}
                         <p class="timeline-subtitle">{{ release.metadata.get('name') }}</p>
@@ -305,7 +305,7 @@ Supports two modes:
                 </div>
                 {% endif %}
 
-                <a href="{{ release.permalink }}" class="changelog-read-more">
+                <a href="{{ release.url }}" class="changelog-read-more">
                     View full release notes →
                 </a>
             </div>
