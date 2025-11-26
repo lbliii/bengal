@@ -85,5 +85,7 @@ benchmarks/scenarios/*/output/
 
 
 # other
-
 .competitor/
+
+# Test artifacts (leaked mocks)
+MagicMock/
