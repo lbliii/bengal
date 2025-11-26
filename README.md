@@ -7,19 +7,35 @@
 
 A pythonic static site generator.
 
+## What's New in 0.1.4
+
+**Configuration System Overhaul** - Directory-based configuration with environment-aware settings (Netlify, Vercel, GitHub Actions), build profiles (`writer`, `theme-dev`, `dev`), and smart feature toggles. Maintains 100% backward compatibility with single-file configs.
+
+**HTML Output Formatting** - New safe HTML formatter with three modes (`raw`, `pretty`, `minify`) and per-page formatting control.
+
+**Enhanced Health & Validation** - Async link checker, incremental validation with caching, and improved build quality scoring.
+
+**Improved Assets Pipeline** - Deterministic asset manifests, manifest-driven URL resolution, and better fingerprint handling.
+
+**Core Architecture** - Refactored PageProxy/PageCore for better cache-proxy contract enforcement, path-based section registry with O(1) lookup, and simplified cache operations.
+
 ## Features
 
 - Markdown-based content with front matter
-- Incremental builds with dependency tracking
+- Incremental builds with dependency tracking (18-42x faster!)
 - Parallel processing with ThreadPoolExecutor
 - Template engine with Jinja2
 - Automatic navigation and breadcrumbs
 - Taxonomy system (tags, categories)
 - Menu system with hierarchical navigation
-- Development server with file watching
-- API documentation generation from Python source
+- Development server with file watching and live reload
+- API documentation generation from Python source (AST-based, no imports required)
 - SEO features (sitemap, RSS feeds)
-- Health validation system
+- Health validation system with incremental checks
+- Environment-aware configuration (auto-detects Netlify, Vercel, GitHub Actions)
+- Build profiles for optimized workflows (`writer`, `theme-dev`, `dev`)
+- HTML output formatting (minify/pretty/raw modes)
+- Asset optimization and fingerprinting
 
 ## Installing Python 3.14
 
@@ -153,7 +169,11 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for details.
 
 ## Configuration
 
-Create a `bengal.toml` or `bengal.yaml` in your project root. Bengal uses sensible defaults for most settings, so you only need to configure what you want to change:
+Bengal supports both single-file and directory-based configuration. Create a `bengal.toml` or `bengal.yaml` in your project root, or use the new directory-based system for environment-aware settings. Bengal uses sensible defaults for most settings, so you only need to configure what you want to change.
+
+### Single-File Configuration (Simple)
+
+Create `bengal.toml` or `bengal.yaml` in your project root:
 
 ```toml
 [site]
@@ -273,6 +293,39 @@ collapse_blank_lines = true
 
 Per-page escape hatch: add `no_format: true` in a page's front matter to skip formatting for that page.
 
+### Directory-Based Configuration (Advanced)
+
+For environment-aware settings and build profiles, use the directory-based system:
+
+```
+config/
+├── _default/
+│   └── bengal.toml          # Base configuration
+├── environments/
+│   ├── local.yaml           # Local development overrides
+│   ├── production.yaml      # Production overrides
+│   └── netlify.yaml         # Netlify-specific (auto-detected)
+└── profiles/
+    ├── writer.toml          # Writer profile optimizations
+    ├── theme-dev.toml       # Theme developer profile
+    └── dev.toml             # Developer profile (debug output)
+```
+
+Bengal automatically detects your environment (Netlify, Vercel, GitHub Actions) and applies the appropriate configuration. Use `--environment/-e` and `--profile` flags to override:
+
+```bash
+bengal site build --environment production --profile writer
+bengal site serve --environment local --profile dev
+```
+
+**Configuration Introspection:**
+```bash
+bengal config show              # Show effective configuration
+bengal config doctor            # Diagnose configuration issues
+bengal config diff              # Compare environments/profiles
+bengal config init              # Initialize directory-based config
+```
+
 **Default Features** (enabled automatically, no config needed):
 
 - ✅ Parallel builds
@@ -377,10 +430,13 @@ bengal utils theme info <slug>
 bengal utils theme discover
 bengal utils theme install bengal-theme-starter
 bengal utils theme new mybrand --mode site --output .
+bengal utils theme debug                    # Debug theme resolution
+bengal utils theme debug --template page.html  # Debug specific template
 
 # Asset management
 bengal utils assets minify
 bengal utils assets optimize
+bengal utils assets status                 # Show asset manifest status
 
 # Performance analysis
 bengal utils perf analyze
@@ -403,6 +459,21 @@ bengal template-dev watch --command "bengal site build"
 python debug_template_rendering.py [source_file]  # Comprehensive template debugging
 python debug_macro_error.py                       # Focused macro testing
 python test_macro_step_by_step.py [source_file]   # Step-by-step macro validation
+```
+
+### Health & Validation (`bengal health`)
+
+```bash
+# Link checking (auto-builds site first to eliminate false positives)
+bengal health linkcheck
+
+# Validation with incremental checks and caching
+bengal validate                    # Full validation
+bengal validate --file path.md     # Validate specific file
+bengal validate --changed          # Only changed files
+bengal validate --incremental      # Use cached results
+bengal validate --watch            # Watch mode for continuous validation
+bengal validate --suggestions      # Include suggestions in output
 ```
 
 ## Themes
@@ -510,9 +581,9 @@ include_hidden = false         # Include hidden commands
 
 ## Development Status
 
-Bengal is functional and under active development.
+Bengal is functional and under active development. Version 0.1.4 introduces major configuration system improvements, enhanced validation, and better developer experience.
 
-See [ARCHITECTURE.md](ARCHITECTURE.md) for technical details.
+See [ARCHITECTURE.md](ARCHITECTURE.md) for technical details and [changelog.md](changelog.md) for release history.
 
 ## License
 
