@@ -739,7 +739,8 @@ def _build_section_menu_item(
             return None
 
     # Build nav item
-    section_url = getattr(section, "url", f"/{section.name}/")
+    # Use relative_url for menu items (templates apply baseurl via | absolute_url filter)
+    section_url = getattr(section, "relative_url", f"/{section.name}/")
     section_identifier = section.name
 
     # Determine parent identifier from section.parent if not provided
