@@ -38,6 +38,9 @@ Or set `type: doc` to auto-select this template
         {% endif %}
       </header>
 
+      {# Track Navigation (Top) #}
+      {% include 'partials/track_nav.html' %}
+
       {# Main content #}
       <div class="docs-content">
         {{ content | safe }}
@@ -50,6 +53,9 @@ Or set `type: doc` to auto-select this template
       </footer>
       {% endif %}
     </article>
+
+    {# Track Navigation (Bottom) #}
+    {% include 'partials/track_nav.html' %}
 
     {# Page navigation (prev/next) at bottom #}
     {{ page_navigation(page) }}

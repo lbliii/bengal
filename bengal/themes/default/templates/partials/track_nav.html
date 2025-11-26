@@ -1,0 +1,64 @@
+{% set current_slug = page.relative_path | replace('.md', '') %}
+
+{# Check if page is in any track defined in site.data.tracks #}
+{% if site.data.tracks %}
+  {% for track_id, track in site.data.tracks.items() %}
+    {% if current_slug in track.items %}
+      
+      {% set current_index = track.items.index(current_slug) %}
+      {% set prev_slug = track.items[current_index - 1] if current_index > 0 else None %}
+      {% set next_slug = track.items[current_index + 1] if current_index < (track.items|length - 1) else None %}
+      
+      {# Track Navigation Component #}
+      <div class="track-navigation card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <div>
+            <span class="badge bg-primary me-2">Track</span>
+            <strong>{{ track.title }}</strong>
+          </div>
+          <span class="text-muted small">{{ current_index + 1 }} of {{ track.items|length }}</span>
+        </div>
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            
+            {% if prev_slug %}
+              {% set prev_page = site.pages | selectattr("relative_path", "contains", prev_slug) | first %}
+              {% if prev_page %}
+                <a href="{{ prev_page.url }}" class="btn btn-outline-primary btn-sm">
+                  &larr; {{ prev_page.title }}
+                </a>
+              {% else %}
+                <span class="text-muted small">&larr; Previous (Missing)</span>
+              {% endif %}
+            {% else %}
+              <span class="text-muted small">Start of Track</span>
+            {% endif %}
+    
+            {% if next_slug %}
+              {% set next_page = site.pages | selectattr("relative_path", "contains", next_slug) | first %}
+              {% if next_page %}
+                <a href="{{ next_page.url }}" class="btn btn-primary btn-sm">
+                  {{ next_page.title }} &rarr;
+                </a>
+              {% else %}
+                <span class="text-muted small">Next (Missing) &rarr;</span>
+              {% endif %}
+            {% else %}
+              <a href="/tracks/" class="btn btn-success btn-sm">Finish Track &check;</a>
+            {% endif %}
+            
+          </div>
+          
+          <div class="progress" style="height: 4px;">
+            <div class="progress-bar" role="progressbar" 
+                 style="width: {{ ((current_index + 1) / track.items|length) * 100 }}%"
+                 aria-valuenow="{{ ((current_index + 1) / track.items|length) * 100 }}" 
+                 aria-valuemin="0" aria-valuemax="100"></div>
+          </div>
+        </div>
+      </div>
+  
+    {% endif %}
+  {% endfor %}
+{% endif %}
+

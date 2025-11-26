@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-5">
+  <header class="mb-5 text-center">
+    <h1>{{ page.title }}</h1>
+    {% if page.description %}
+    <p class="lead text-muted">{{ page.description }}</p>
+    {% endif %}
+    {{ content | safe }}
+  </header>
+
+  {% if site.data.tracks %}
+  <div class="row g-4">
+    {% for id, track in site.data.tracks.items() %}
+      <div class="col-md-6 col-lg-4">
+        <div class="card h-100 shadow-sm transition-hover">
+          <div class="card-body d-flex flex-column">
+            <h2 class="card-title h4 mb-3">{{ track.title }}</h2>
+            {% if track.description %}
+            <p class="card-text text-muted mb-4 flex-grow-1">{{ track.description }}</p>
+            {% else %}
+            <p class="card-text text-muted mb-4 flex-grow-1">Start your learning journey.</p>
+            {% endif %}
+            
+            <div class="d-flex justify-content-between align-items-center mt-auto">
+              <span class="badge bg-light text-dark border">{{ track.items|length }} Lessons</span>
+              
+              {% if track.items %}
+                {% set first_slug = track.items[0] %}
+                {% set first_page = site.pages | selectattr("relative_path", "contains", first_slug) | first %}
+                {% if first_page %}
+                <a href="{{ first_page.url }}" class="btn btn-primary stretched-link">
+                  Start Track &rarr;
+                </a>
+                {% else %}
+                <span class="btn btn-secondary disabled" title="First page not found">Unavailable</span>
+                {% endif %}
+              {% endif %}
+            </div>
+          </div>
+          
+          {% if track.items %}
+          <div class="card-footer bg-transparent border-top-0 pb-3">
+            <small class="text-muted">
+              Includes: 
+              {% set preview_limit = 3 %}
+              {% for item_slug in track.items[:preview_limit] %}
+                {% set item_page = site.pages | selectattr("relative_path", "contains", item_slug) | first %}
+                {{ item_page.title if item_page else item_slug }}{% if not loop.last %}, {% endif %}
+              {% endfor %}
+              {% if track.items|length > preview_limit %}
+              and {{ track.items|length - preview_limit }} more...
+              {% endif %}
+            </small>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="alert alert-info">
+    <h4 class="alert-heading">No tracks defined!</h4>
+    <p>Please define your learning tracks in <code>site/data/tracks.yaml</code>.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+

@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block content %}
+{% set track_id = page.metadata.get('track_id') or page.slug %}
+{% set track = site.data.tracks.get(track_id) %}
+
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      
+      {# Track Header #}
+      <header class="mb-5 text-center">
+        <span class="badge bg-primary mb-2">Learning Track</span>
+        <h1>{{ page.title or track.title }}</h1>
+        
+        {% if page.description or track.description %}
+        <p class="lead text-muted mt-3">
+          {{ page.description or track.description }}
+        </p>
+        {% endif %}
+        
+        {# Start Button #}
+        {% if track and track.items %}
+          {% set first_slug = track.items[0] %}
+          {% set first_page = site.pages | selectattr("relative_path", "contains", first_slug) | first %}
+          {% if first_page %}
+          <div class="mt-4">
+            <a href="{{ first_page.url }}" class="btn btn-lg btn-primary px-5">
+              Start Learning &rarr;
+            </a>
+          </div>
+          {% endif %}
+        {% endif %}
+      </header>
+
+      {# Main Page Content (if any) #}
+      {% if content %}
+      <div class="prose mb-5">
+        {{ content | safe }}
+      </div>
+      {% endif %}
+
+      {# Syllabus / Lesson List #}
+      {% if track and track.items %}
+      <div class="card">
+        <div class="card-header">
+          <h2 class="h5 mb-0">Syllabus</h2>
+        </div>
+        <div class="list-group list-group-flush">
+          {% for item_slug in track.items %}
+            {% set item_page = site.pages | selectattr("relative_path", "contains", item_slug) | first %}
+            
+            <a href="{{ item_page.url if item_page else '#' }}" 
+               class="list-group-item list-group-item-action d-flex align-items-center p-3 {{ 'disabled' if not item_page else '' }}">
+              
+              <div class="me-3">
+                <span class="badge bg-light text-dark border rounded-pill" style="width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;">
+                  {{ loop.index }}
+                </span>
+              </div>
+              
+              <div class="flex-grow-1">
+                <h3 class="h6 mb-1">
+                  {% if item_page %}
+                    {{ item_page.title }}
+                  {% else %}
+                    <span class="text-danger">Page not found: {{ item_slug }}</span>
+                  {% endif %}
+                </h3>
+                {% if item_page and item_page.description %}
+                <p class="mb-0 small text-muted">{{ item_page.description }}</p>
+                {% endif %}
+              </div>
+              
+              <div>
+                <svg class="text-muted" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M9 18l6-6-6-6"/>
+                </svg>
+              </div>
+            </a>
+          {% endfor %}
+        </div>
+      </div>
+      {% elif not track %}
+      <div class="alert alert-warning">
+        <h4 class="alert-heading">Track Not Found</h4>
+        <p>Could not find a track definition with ID <code>{{ track_id }}</code> in <code>site/data/tracks.yaml</code>.</p>
+        <hr>
+        <p class="mb-0">Please ensure the page slug matches the track key, or set <code>track_id</code> in frontmatter.</p>
+      </div>
+      {% endif %}
+
+    </div>
+  </div>
+</div>
+{% endblock %}
+
