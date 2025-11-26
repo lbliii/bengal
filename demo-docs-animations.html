@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Documentation Site Animations</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --color-primary: #3b82f6;
+            --color-text-primary: #1f2937;
+            --color-text-secondary: #6b7280;
+            --color-bg-primary: #ffffff;
+            --color-bg-secondary: #f9fafb;
+            --color-border: #e5e7eb;
+            --color-success: #10b981;
+            --color-warning: #f59e0b;
+            --color-error: #ef4444;
+            --color-info: #3b82f6;
+            --space-2: 0.5rem;
+            --space-4: 1rem;
+            --space-6: 1.5rem;
+            --space-8: 2rem;
+            --radius: 0.5rem;
+            --radius-lg: 0.75rem;
+        }
+
+        [data-theme="dark"] {
+            --color-text-primary: #f3f4f6;
+            --color-text-secondary: #9ca3af;
+            --color-bg-primary: #1a1a1a;
+            --color-bg-secondary: #111827;
+            --color-border: #374151;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: var(--color-bg-primary);
+            color: var(--color-text-primary);
+            line-height: 1.6;
+            padding: var(--space-8);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: var(--space-8);
+            color: var(--color-text-primary);
+        }
+
+        h2 {
+            font-size: 1.75rem;
+            margin-top: var(--space-8);
+            margin-bottom: var(--space-4);
+            color: var(--color-text-primary);
+        }
+
+        .demo-section {
+            margin-bottom: var(--space-8);
+            padding: var(--space-6);
+            background: var(--color-bg-secondary);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--color-border);
+        }
+
+        .demo-title {
+            font-size: 1.25rem;
+            margin-bottom: var(--space-4);
+            color: var(--color-text-primary);
+        }
+
+        .description {
+            color: var(--color-text-secondary);
+            margin-bottom: var(--space-4);
+            font-size: 0.9rem;
+        }
+
+        /* 1. Code Block with Copy Button Animation */
+        .code-block-wrapper {
+            position: relative;
+            margin: var(--space-4) 0;
+        }
+
+        .code-block {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: var(--space-6);
+            border-radius: var(--radius);
+            overflow-x: auto;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.875rem;
+            line-height: 1.6;
+            position: relative;
+        }
+
+        .code-block-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--space-2);
+            padding-bottom: var(--space-2);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .code-block-title {
+            color: #94a3b8;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .copy-button {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #e2e8f0;
+            padding: var(--space-2) var(--space-4);
+            border-radius: var(--radius);
+            cursor: pointer;
+            font-size: 0.75rem;
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .copy-button:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(-1px);
+        }
+
+        .copy-button:active {
+            transform: translateY(0);
+        }
+
+        .copy-button.copied {
+            background: var(--color-success);
+            border-color: var(--color-success);
+        }
+
+        .copy-button.copied::after {
+            content: '✓ Copied!';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            animation: copySuccess 0.3s ease;
+        }
+
+        @keyframes copySuccess {
+            0% {
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(0.8);
+            }
+
+            100% {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1);
+            }
+        }
+
+        /* 2. Smooth Scroll Reveal */
+        .reveal-section {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s ease, transform 0.6s ease;
+        }
+
+        .reveal-section.revealed {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* 3. Loading Skeleton */
+        .skeleton {
+            background: linear-gradient(90deg,
+                    var(--color-bg-secondary) 0%,
+                    rgba(255, 255, 255, 0.1) 50%,
+                    var(--color-bg-secondary) 100%);
+            background-size: 200% 100%;
+            animation: skeletonLoading 1.5s ease-in-out infinite;
+            border-radius: var(--radius);
+        }
+
+        @keyframes skeletonLoading {
+            0% {
+                background-position: 200% 0;
+            }
+
+            100% {
+                background-position: -200% 0;
+            }
+        }
+
+        .skeleton-text {
+            height: 1rem;
+            margin-bottom: var(--space-2);
+        }
+
+        .skeleton-text.short {
+            width: 60%;
+        }
+
+        .skeleton-code {
+            height: 200px;
+        }
+
+        /* 4. Admonition Animations */
+        .admonition {
+            padding: var(--space-4);
+            border-radius: var(--radius);
+            margin: var(--space-4) 0;
+            border-left: 4px solid;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .admonition::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: currentColor;
+            animation: admonitionPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes admonitionPulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.6;
+            }
+        }
+
+        .admonition.info {
+            background: rgba(59, 130, 246, 0.1);
+            border-color: var(--color-info);
+            color: var(--color-info);
+        }
+
+        .admonition.warning {
+            background: rgba(245, 158, 11, 0.1);
+            border-color: var(--color-warning);
+            color: var(--color-warning);
+        }
+
+        .admonition.success {
+            background: rgba(16, 185, 129, 0.1);
+            border-color: var(--color-success);
+            color: var(--color-success);
+        }
+
+        .admonition-title {
+            font-weight: 600;
+            margin-bottom: var(--space-2);
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+        }
+
+        /* 5. Tab Transitions */
+        .tabs {
+            border-bottom: 2px solid var(--color-border);
+            margin-bottom: var(--space-4);
+        }
+
+        .tab-list {
+            display: flex;
+            gap: var(--space-4);
+            list-style: none;
+        }
+
+        .tab-button {
+            padding: var(--space-2) var(--space-4);
+            background: none;
+            border: none;
+            color: var(--color-text-secondary);
+            cursor: pointer;
+            position: relative;
+            transition: color 0.2s ease;
+            font-size: 0.875rem;
+        }
+
+        .tab-button:hover {
+            color: var(--color-text-primary);
+        }
+
+        .tab-button.active {
+            color: var(--color-primary);
+        }
+
+        .tab-button.active::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--color-primary);
+            animation: tabSlideIn 0.3s ease;
+        }
+
+        @keyframes tabSlideIn {
+            0% {
+                transform: scaleX(0);
+            }
+
+            100% {
+                transform: scaleX(1);
+            }
+        }
+
+        .tab-content {
+            display: none;
+            padding: var(--space-4);
+            animation: tabFadeIn 0.3s ease;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes tabFadeIn {
+            0% {
+                opacity: 0;
+                transform: translateY(5px);
+            }
+
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* 6. Progress Indicator */
+        .progress-container {
+            background: var(--color-bg-secondary);
+            border-radius: var(--radius-lg);
+            padding: var(--space-6);
+            margin: var(--space-4) 0;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: var(--color-border);
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--color-primary), #60a5fa);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg,
+                    transparent,
+                    rgba(255, 255, 255, 0.3),
+                    transparent);
+            animation: progressShimmer 1.5s ease-in-out infinite;
+        }
+
+        @keyframes progressShimmer {
+            0% {
+                transform: translateX(-100%);
+            }
+
+            100% {
+                transform: translateX(100%);
+            }
+        }
+
+        /* 7. Interactive Code Playground */
+        .playground {
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            margin: var(--space-4) 0;
+        }
+
+        .playground-header {
+            background: var(--color-bg-secondary);
+            padding: var(--space-4);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .run-button {
+            background: var(--color-primary);
+            color: white;
+            border: none;
+            padding: var(--space-2) var(--space-6);
+            border-radius: var(--radius);
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .run-button:hover {
+            background: #2563eb;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+
+        .run-button:active {
+            transform: translateY(0);
+        }
+
+        .run-button.running {
+            background: var(--color-text-secondary);
+            cursor: wait;
+        }
+
+        .run-button.running::after {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            top: 50%;
+            left: 50%;
+            margin-left: -8px;
+            margin-top: -8px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .playground-output {
+            padding: var(--space-4);
+            background: var(--color-bg-primary);
+            min-height: 100px;
+            font-family: monospace;
+            font-size: 0.875rem;
+        }
+
+        .playground-output.success {
+            color: var(--color-success);
+        }
+
+        .playground-output.error {
+            color: var(--color-error);
+        }
+
+        /* 8. Search Result Highlight */
+        .search-result {
+            padding: var(--space-4);
+            border-radius: var(--radius);
+            margin: var(--space-2) 0;
+            background: var(--color-bg-secondary);
+            border: 1px solid var(--color-border);
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .search-result:hover {
+            background: var(--color-bg-primary);
+            border-color: var(--color-primary);
+            transform: translateX(4px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .search-result-title {
+            font-weight: 600;
+            margin-bottom: var(--space-2);
+            color: var(--color-text-primary);
+        }
+
+        .search-result-snippet {
+            color: var(--color-text-secondary);
+            font-size: 0.875rem;
+        }
+
+        .highlight {
+            background: rgba(251, 191, 36, 0.3);
+            padding: 2px 4px;
+            border-radius: 2px;
+            animation: highlightPulse 0.5s ease;
+        }
+
+        @keyframes highlightPulse {
+            0% {
+                background: rgba(251, 191, 36, 0.6);
+            }
+
+            100% {
+                background: rgba(251, 191, 36, 0.3);
+            }
+        }
+
+        /* 9. TOC Scroll Indicator */
+        .toc-container {
+            position: sticky;
+            top: var(--space-8);
+            max-height: calc(100vh - var(--space-16));
+            overflow-y: auto;
+        }
+
+        .toc-item {
+            padding: var(--space-2) var(--space-4);
+            border-left: 2px solid transparent;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            color: var(--color-text-secondary);
+        }
+
+        .toc-item:hover {
+            color: var(--color-text-primary);
+            background: var(--color-bg-secondary);
+        }
+
+        .toc-item.active {
+            color: var(--color-primary);
+            border-left-color: var(--color-primary);
+            background: rgba(59, 130, 246, 0.05);
+            animation: tocHighlight 0.3s ease;
+        }
+
+        @keyframes tocHighlight {
+            0% {
+                background: rgba(59, 130, 246, 0.15);
+            }
+
+            100% {
+                background: rgba(59, 130, 246, 0.05);
+            }
+        }
+
+        /* 10. Smooth Page Transition */
+        .page-transition {
+            opacity: 0;
+            transform: translateY(10px);
+            animation: pageFadeIn 0.4s ease forwards;
+        }
+
+        @keyframes pageFadeIn {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* 11. Interactive Demo with Blob Background */
+        .interactive-demo {
+            position: relative;
+            padding: var(--space-8);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .demo-blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(60px);
+            opacity: 0.3;
+            pointer-events: none;
+        }
+
+        .demo-blob-1 {
+            width: 300px;
+            height: 300px;
+            background: #ff6b6b;
+            top: -100px;
+            left: -100px;
+            animation: blobFloat1 8s ease-in-out infinite;
+        }
+
+        .demo-blob-2 {
+            width: 250px;
+            height: 250px;
+            background: #4ecdc4;
+            bottom: -50px;
+            right: -50px;
+            animation: blobFloat2 10s ease-in-out infinite;
+        }
+
+        @keyframes blobFloat1 {
+
+            0%,
+            100% {
+                transform: translate(0, 0) scale(1);
+            }
+
+            50% {
+                transform: translate(50px, 50px) scale(1.2);
+            }
+        }
+
+        @keyframes blobFloat2 {
+
+            0%,
+            100% {
+                transform: translate(0, 0) scale(1);
+            }
+
+            50% {
+                transform: translate(-50px, -50px) scale(1.1);
+            }
+        }
+
+        .demo-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Utility Classes */
+        .grid {
+            display: grid;
+            gap: var(--space-4);
+        }
+
+        .grid-2 {
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        }
+
+        code {
+            background: var(--color-bg-secondary);
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+            font-size: 0.875em;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container page-transition">
+        <h1>📚 Documentation Site Animations</h1>
+        <p class="description">Practical animation examples for enhancing documentation UX</p>
+
+        <!-- 1. Code Block with Copy Button -->
+        <div class="demo-section reveal-section">
+            <h2 class="demo-title">1. Code Block with Copy Animation</h2>
+            <p class="description">Smooth copy button feedback with success animation</p>
+            <div class="code-block-wrapper">
+                <div class="code-block-header">
+                    <span class="code-block-title">Python</span>
+                    <button class="copy-button" onclick="copyCode(this, 'code1')">Copy</button>
+                </div>
+                <div class="code-block" id="code1">
+                    <pre>def greet(name: str) -> str:
+    """Greet someone by name."""
+    return f"Hello, {name}!"
+
+print(greet("World"))</pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. Smooth Scroll Reveal -->
+        <div class="demo-section reveal-section">
+            <h2 class="demo-title">2. Scroll Reveal Animation</h2>
+            <p class="description">Content fades in as you scroll down the page</p>
+            <div class="grid grid-2">
+                <div>
+                    <h3>Feature A</h3>
+                    <p>This section reveals smoothly as you scroll.</p>
+                </div>
+                <div>
+                    <h3>Feature B</h3>
+                    <p>Each section animates independently.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. Loading Skeleton -->
+        <div class="demo-section">
+            <h2 class="demo-title">3. Loading Skeleton</h2>
+            <p class="description">Shimmer effect for loading states</p>
+            <div>
+                <div class="skeleton skeleton-text"></div>
+                <div class="skeleton skeleton-text short"></div>
+                <div class="skeleton skeleton-code" style="margin-top: var(--space-4);"></div>
+            </div>
+        </div>
+
+        <!-- 4. Admonitions -->
+        <div class="demo-section reveal-section">
+            <h2 class="demo-title">4. Animated Admonitions</h2>
+            <p class="description">Subtle pulse animation on callout borders</p>
+            <div class="admonition info">
+                <div class="admonition-title">ℹ️ Info</div>
+                <p>This is an informational callout with a subtle pulsing border animation.</p>
+            </div>
+            <div class="admonition warning">
+                <div class="admonition-title">⚠️ Warning</div>
+                <p>Important information that needs attention.</p>
+            </div>
+            <div class="admonition success">
+                <div class="admonition-title">✅ Success</div>
+                <p>Operation completed successfully!</p>
+            </div>
+        </div>
+
+        <!-- 5. Tabs -->
+        <div class="demo-section reveal-section">
+            <h2 class="demo-title">5. Tab Transitions</h2>
+            <p class="description">Smooth fade and slide animations for tab switching</p>
+            <div class="tabs">
+                <ul class="tab-list">
+                    <li><button class="tab-button active" onclick="switchTab(this, 'tab1')">Python</button></li>
+                    <li><button class="tab-button" onclick="switchTab(this, 'tab2')">JavaScript</button></li>
+                    <li><button class="tab-button" onclick="switchTab(this, 'tab3')">Rust</button></li>
+                </ul>
+            </div>
+            <div id="tab1" class="tab-content active">
+                <pre><code>def hello():
+    print("Hello from Python!")</code></pre>
+            </div>
+            <div id="tab2" class="tab-content">
+                <pre><code>function hello() {
+    console.log("Hello from JavaScript!");
+}</code></pre>
+            </div>
+            <div id="tab3" class="tab-content">
+                <pre><code>fn hello() {
+    println!("Hello from Rust!");
+}</code></pre>
+            </div>
+        </div>
+
+        <!-- 6. Progress Indicator -->
+        <div class="demo-section reveal-section">
+            <h2 class="demo-title">6. Progress Indicator</h2>
+            <p class="description">Animated progress bar with shimmer effect</p>
+            <div class="progress-container">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+                </div>
+                <p style="margin-top: var(--space-2); font-size: 0.875rem; color: var(--color-text-secondary);">
+                    <span id="progressText">0%</span> Complete
+                </p>
+            </div>
+            <button onclick="animateProgress()"
+                style="margin-top: var(--space-4); padding: var(--space-2) var(--space-4); background: var(--color-primary); color: white; border: none; border-radius: var(--radius); cursor: pointer;">Animate
+                Progress</button>
+        </div>
+
+        <!-- 7. Interactive Playground -->
+        <div class="demo-section reveal-section">
+            <h2 class="demo-title">7. Interactive Code Playground</h2>
+            <p class="description">Run button with loading state and output animation</p>
+            <div class="playground">
+                <div class="playground-header">
+                    <span>Interactive Demo</span>
+                    <button class="run-button" onclick="runCode(this)">▶ Run</button>
+                </div>
+                <div class="code-block" style="margin: 0; border-radius: 0;">
+                    <pre>console.log("Hello, World!");
+console.log("This is an interactive demo.");</pre>
+                </div>
+                <div class="playground-output" id="playgroundOutput"></div>
+            </div>
+        </div>
+
+        <!-- 8. Search Results -->
+        <div class="demo-section reveal-section">
+            <h2 class="demo-title">8. Search Result Animations</h2>
+            <p class="description">Hover effects and highlight animations</p>
+            <div class="search-result">
+                <div class="search-result-title">Getting Started Guide</div>
+                <div class="search-result-snippet">
+                    Learn how to <span class="highlight">install</span> and configure Bengal for your first project...
+                </div>
+            </div>
+            <div class="search-result">
+                <div class="search-result-title">API Reference</div>
+                <div class="search-result-snippet">
+                    Complete <span class="highlight">API</span> documentation with examples and usage patterns...
+                </div>
+            </div>
+        </div>
+
+        <!-- 9. TOC Scroll Indicator -->
+        <div class="demo-section reveal-section">
+            <h2 class="demo-title">9. Table of Contents Scroll Indicator</h2>
+            <p class="description">Active section highlighting with smooth transitions</p>
+            <div class="toc-container" style="max-width: 300px;">
+                <div class="toc-item" onclick="setActiveToc(this)">Introduction</div>
+                <div class="toc-item active" onclick="setActiveToc(this)">Getting Started</div>
+                <div class="toc-item" onclick="setActiveToc(this)">Configuration</div>
+                <div class="toc-item" onclick="setActiveToc(this)">Advanced Topics</div>
+            </div>
+        </div>
+
+        <!-- 10. Interactive Demo with Blob Background -->
+        <div class="demo-section reveal-section">
+            <h2 class="demo-title">10. Interactive Demo with Organic Background</h2>
+            <p class="description">Peaceful blob animations for hero sections or interactive demos</p>
+            <div class="interactive-demo">
+                <div class="demo-blob demo-blob-1"></div>
+                <div class="demo-blob demo-blob-2"></div>
+                <div class="demo-content">
+                    <h3 style="margin-bottom: var(--space-4);">Try It Live</h3>
+                    <p style="margin-bottom: var(--space-4); opacity: 0.9;">
+                        This demo section uses organic blob animations to create a peaceful,
+                        engaging background that doesn't distract from the content.
+                    </p>
+                    <button
+                        style="background: white; color: #667eea; border: none; padding: var(--space-2) var(--space-6); border-radius: var(--radius); cursor: pointer; font-weight: 600;">
+                        Launch Demo
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Copy button functionality
+        function copyCode(button, codeId) {
+            const codeBlock = document.getElementById(codeId);
+            const text = codeBlock.textContent || codeBlock.innerText;
+
+            navigator.clipboard.writeText(text).then(() => {
+                button.classList.add('copied');
+                button.textContent = '';
+                setTimeout(() => {
+                    button.classList.remove('copied');
+                    button.textContent = 'Copy';
+                }, 2000);
+            });
+        }
+
+        // Scroll reveal
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('revealed');
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.reveal-section').forEach(section => {
+            observer.observe(section);
+        });
+
+        // Tab switching
+        function switchTab(button, tabId) {
+            // Remove active from all tabs and buttons
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+            // Add active to clicked tab
+            button.classList.add('active');
+            document.getElementById(tabId).classList.add('active');
+        }
+
+        // Progress animation
+        function animateProgress() {
+            const fill = document.getElementById('progressFill');
+            const text = document.getElementById('progressText');
+            let progress = 0;
+
+            const interval = setInterval(() => {
+                progress += 2;
+                fill.style.width = progress + '%';
+                text.textContent = progress + '%';
+
+                if (progress >= 100) {
+                    clearInterval(interval);
+                }
+            }, 30);
+        }
+
+        // Run code simulation
+        function runCode(button) {
+            button.classList.add('running');
+            button.disabled = true;
+            const output = document.getElementById('playgroundOutput');
+            output.textContent = '';
+            output.className = 'playground-output';
+
+            setTimeout(() => {
+                button.classList.remove('running');
+                button.disabled = false;
+                output.className = 'playground-output success';
+                output.textContent = 'Hello, World!\nThis is an interactive demo.';
+            }, 1500);
+        }
+
+        // TOC active state
+        function setActiveToc(item) {
+            document.querySelectorAll('.toc-item').forEach(i => i.classList.remove('active'));
+            item.classList.add('active');
+        }
+
+        // Simulate TOC scroll spy (for demo)
+        let tocIndex = 1;
+        setInterval(() => {
+            const items = document.querySelectorAll('.toc-item');
+            items.forEach(i => i.classList.remove('active'));
+            items[tocIndex].classList.add('active');
+            tocIndex = (tocIndex + 1) % items.length;
+        }, 3000);
+    </script>
+</body>
+
+</html>

@@ -33,7 +33,7 @@
 
     // Icons
     const ICONS = {
-        close: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`,
+        close: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18" stroke="currentColor"></line><line x1="6" y1="6" x2="18" y2="18" stroke="currentColor"></line></svg>`,
         enlarge: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"></path></svg>`,
         copy: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`,
         downloadSvg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>`,
@@ -59,11 +59,16 @@
         const container = document.createElement('div');
         container.className = 'mermaid-lightbox__container';
 
-        // Create close button
+        // Create close button with SVG (using innerHTML like working examples)
         const closeButton = document.createElement('button');
         closeButton.className = 'mermaid-lightbox__close';
         closeButton.setAttribute('aria-label', 'Close lightbox');
-        closeButton.innerHTML = ICONS.close;
+        closeButton.innerHTML = `
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+        `;
 
         // Create toolbar for lightbox
         const toolbar = document.createElement('div');
@@ -72,7 +77,7 @@
         // Create controls for pan/zoom
         const controls = document.createElement('div');
         controls.className = 'mermaid-lightbox__controls';
-        
+
         const zoomInBtn = createButton('zoom-in', 'Zoom In', ICONS.zoomIn);
         const zoomOutBtn = createButton('zoom-out', 'Zoom Out', ICONS.zoomOut);
         const resetBtn = createButton('reset', 'Reset View', ICONS.reset);
@@ -105,14 +110,14 @@
 
         // Keyboard controls
         document.addEventListener('keydown', handleKeyboard);
-        
+
         // Pan/Zoom Events
         container.addEventListener('mousedown', startPan);
         container.addEventListener('mousemove', pan);
         container.addEventListener('mouseup', endPan);
         container.addEventListener('mouseleave', endPan);
         container.addEventListener('wheel', handleWheel, { passive: false });
-        
+
         // Touch support
         container.addEventListener('touchstart', handleTouchStart, { passive: false });
         container.addEventListener('touchmove', handleTouchMove, { passive: false });
@@ -179,7 +184,7 @@
     }
 
     let lastTouchDist = 0;
-    
+
     function handleTouchStart(e) {
         if (e.touches.length === 1) {
             const touch = e.touches[0];
@@ -245,7 +250,7 @@
         clonedSvg.style.height = '100%';
         clonedSvg.style.maxWidth = 'none';
         clonedSvg.style.maxHeight = 'none';
-        
+
         // Ensure viewbox exists
         if (!clonedSvg.hasAttribute('viewBox')) {
              const w = parseInt(svg.getAttribute('width')) || 800;
@@ -270,13 +275,13 @@
         lightbox.classList.add('active');
         lightbox.setAttribute('aria-hidden', 'false');
         document.body.style.overflow = 'hidden';
-        
+
         // Reset pan/zoom state
         resetPanZoom();
-        
+
         // Set initial cursor
         container.style.cursor = 'grab';
-        
+
         lightbox.focus();
     }
 
@@ -366,7 +371,7 @@
         const clonedSvg = svg.cloneNode(true);
         const width = clonedSvg.viewBox?.baseVal?.width || clonedSvg.getAttribute('width') || 800;
         const height = clonedSvg.viewBox?.baseVal?.height || clonedSvg.getAttribute('height') || 600;
-        
+
         clonedSvg.setAttribute('width', width);
         clonedSvg.setAttribute('height', height);
         clonedSvg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
@@ -399,7 +404,7 @@
 
         const clonedSvg = svg.cloneNode(true);
         let width, height;
-        
+
         if (clonedSvg.viewBox && clonedSvg.viewBox.baseVal) {
             width = clonedSvg.viewBox.baseVal.width;
             height = clonedSvg.viewBox.baseVal.height;
@@ -409,7 +414,7 @@
         }
 
         // Scale up for better quality
-        const scale = 2; 
+        const scale = 2;
         const scaledWidth = width * scale;
         const scaledHeight = height * scale;
 

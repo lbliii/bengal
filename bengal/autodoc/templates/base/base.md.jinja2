@@ -7,11 +7,11 @@ all generated documentation.
 -#}
 
 {#- Import shared macros -#}
-{% from 'macros/safe_macros.md.jinja2' import safe_section, debug_info %}
-{% from 'macros/navigation.md.jinja2' import breadcrumbs, source_link %}
+{% from 'macros/safe_macros.md.jinja2' import safe_section, debug_info, autodoc_title, autodoc_description %}
+{% from 'macros/navigation.md.jinja2' import breadcrumbs, source_link with context %}
 
 ---
-title: "{% block title %}{{ element.name | default('Documentation') }}{% endblock %}"
+title: "{% block title %}{{ autodoc_title(element) }}{% endblock %}"
 type: "{% block doc_type %}doc{% endblock %}"
 {% block source_metadata %}
 {% if element and element.source_file %}
@@ -21,12 +21,12 @@ source_file: "{{ element.source_file | project_relative }}"
 line_number: {{ element.line_number }}
 {% endif %}
 {% endblock %}
-description: "{% block description %}{{ element.description | safe_description | default('Documentation') }}{% endblock %}"
+description: "{% block description %}{{ autodoc_description(element) }}{% endblock %}"
 {% block extra_frontmatter %}{% endblock %}
 ---
 
 {% block header %}
-# {% block page_title %}{{ element.name | default('Documentation') }}{% endblock %}
+# {% block page_title %}{% if element and element.name %}{{ element.name }}{% elif element and element.element_type == 'module' and element.qualified_name and '.' not in element.qualified_name %}API{% else %}Documentation{% endif %}{% endblock %}
 
 {% block element_info %}
 {% if element %}

@@ -41,18 +41,61 @@ across all documentation types.
 {#- Source code link -#}
 {% macro source_link(source_file, line_number=None, text="View source") %}
 {% if source_file %}
-{%- set clean_path = source_file | project_relative -%}
-{%- if line_number -%}
-[{{ text }}]({{ clean_path }}#L{{ line_number }})
+{%- set github_repo = none -%}
+{%- set branch = 'main' -%}
+
+{#- 1. Check autodoc_config first (available during markdown generation) -#}
+{%- if autodoc_config is defined -%}
+  {%- if 'github_repo' in autodoc_config -%}
+    {%- set github_repo = autodoc_config['github_repo'] -%}
+  {%- endif -%}
+  {%- if 'github_branch' in autodoc_config -%}
+    {%- set branch = autodoc_config['github_branch'] -%}
+  {%- endif -%}
+{%- endif -%}
+
+{#- 2. Check config.autodoc (site build time) -#}
+{%- if not github_repo and config is defined -%}
+  {%- if 'autodoc' in config -%}
+    {%- set autodoc_section = config['autodoc'] -%}
+    {%- if 'github_repo' in autodoc_section -%}
+      {%- set github_repo = autodoc_section['github_repo'] -%}
+    {%- endif -%}
+    {%- if 'github_branch' in autodoc_section -%}
+      {%- set branch = autodoc_section['github_branch'] -%}
+    {%- endif -%}
+  {%- endif -%}
+  
+  {#- 3. Fallback: check top-level config for backward compatibility -#}
+  {%- if not github_repo and 'github_repo' in config -%}
+    {%- set github_repo = config['github_repo'] -%}
+  {%- endif -%}
+  {%- if (not branch or branch == 'main') and 'github_branch' in config -%}
+    {%- set branch = config['github_branch'] -%}
+  {%- endif -%}
+{%- endif -%}
+
+{%- if github_repo -%}
+  {%- set clean_path = source_file | project_relative -%}
+  {%- set source_url = 'https://github.com/' + github_repo + '/blob/' + branch + '/' + clean_path -%}
+  {%- if line_number -%}
+    {%- set source_url = source_url + '#L' + line_number|string -%}
+  {%- endif -%}
+  [{{ text }}]({{ source_url }})
 {%- else -%}
-[{{ text }}]({{ clean_path }})
+  {%- set clean_path = source_file | project_relative -%}
+  {%- if line_number -%}
+    [{{ text }}]({{ clean_path }}#L{{ line_number }})
+  {%- else -%}
+    [{{ text }}]({{ clean_path }})
+  {%- endif -%}
 {%- endif -%}
 {% endif %}
 {% endmacro %}
 
 {#- Breadcrumb navigation -#}
 {% macro breadcrumbs(element) %}
-{% if element and safe_attr(element, 'qualified_name', '') %}
+{% if element and element.qualified_name %}
 {%- set parts = element.qualified_name.split('.') -%}
 {% if parts|length > 1 %}
 **Navigation:**
@@ -95,7 +138,11 @@ across all documentation types.
 {% if link is string %}
 - {{ link }}
 {% else %}
-- {{ doc_link(safe_attr(link, 'url', ''), safe_attr(link, 'title', 'Related')) }}{% if safe_attr(link, 'description', '') %} - {{ link.description }}{% endif %}
+{%- if link.description -%}
+- {{ doc_link(safe_attr(link, 'url', ''), safe_attr(link, 'title', 'Related')) }} - {{ link.description }}
+{%- else -%}
+- {{ doc_link(safe_attr(link, 'url', ''), safe_attr(link, 'title', 'Related')) }}
+{%- endif -%}
 {% endif %}
 {% endfor %}
 
@@ -108,7 +155,11 @@ across all documentation types.
 
 **{{ title }}:**
 {% for base in bases %}
-{{ xref(base, "class") }}{% if not loop.last %} → {% endif %}
+{%- if not loop.last -%}
+{{ xref(base, "class") }} →
+{%- else -%}
+{{ xref(base, "class") }}
+{%- endif -%}
 {% endfor %}
 
 {% endif %}
@@ -120,9 +171,9 @@ across all documentation types.
 ```python
 {{ signature }}
 ```
-{% if element and safe_attr(element, 'source_file', '') %}
+{% if element and element.source_file %}
 
-{{ source_link(element.source_file, safe_attr(element, 'line_number', None)) }}
+{{ source_link(element.source_file, element.line_number if element.line_number else None) }}
 {% endif %}
 {% endif %}
 {% endmacro %}
@@ -154,14 +205,9 @@ across all documentation types.
 
 {#- External link with icon -#}
 {% macro external_link(url, text, description=None) %}
-[{{ text }} ↗]({{ url }}){% if description %} - {{ description }}{% endif %}
-{% endmacro %}
-
-{#- GitHub link helper -#}
-{% macro github_link(repo, path=None, text="GitHub") %}
-{%- set full_url = "https://github.com/" + repo -%}
-{%- if path -%}
-{%- set full_url = full_url + "/blob/main/" + path -%}
+{%- if description -%}
+[{{ text }} ↗]({{ url }}) - {{ description }}
+{%- else -%}
+[{{ text }} ↗]({{ url }})
 {%- endif -%}
-{{ external_link(full_url, text) }}
 {% endmacro %}

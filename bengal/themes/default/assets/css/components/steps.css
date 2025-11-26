@@ -1,0 +1,129 @@
+/**
+ * Steps Component Styles
+ *
+ * Styles for the {steps} directive.
+ * Creates a visual step-by-step guide with connected numbers.
+ */
+
+.steps {
+  counter-reset: step;
+  margin-block: var(--space-8);
+  --step-marker-size: 2rem;
+  --step-line-width: 2px;
+  --step-spacing: var(--space-10);
+}
+
+/* Only remove list style from direct child ol (the steps container) */
+.steps > ol {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+/* Restore list styling for nested ordered lists inside steps */
+.steps ol ol {
+  list-style: decimal;
+  padding-left: 1.5rem;
+  margin-top: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+/* Restore list styling for nested unordered lists inside steps */
+.steps ol ul {
+  list-style: disc;
+  padding-left: 1.5rem;
+  margin-top: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+/* Remove bottom margin from lists that are the last element in a step */
+.steps > ol > li > ol:last-child,
+.steps > ol > li > ul:last-child {
+  margin-bottom: 0;
+}
+
+.steps > ol > li {
+  position: relative;
+  padding-left: calc(var(--step-marker-size) + var(--space-4));
+  margin-bottom: var(--step-spacing);
+}
+
+/* Step Marker (Number) */
+.steps > ol > li::before {
+  content: counter(step);
+  counter-increment: step;
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: var(--step-marker-size);
+  height: var(--step-marker-size);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  border: 2px solid var(--color-primary);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: var(--weight-bold);
+  font-size: var(--text-sm);
+  z-index: 1;
+  transition: all var(--transition-fast);
+}
+
+/* Connecting Line */
+.steps > ol > li::after {
+  content: "";
+  position: absolute;
+  left: calc(var(--step-marker-size) / 2);
+  top: var(--step-marker-size);
+  bottom: calc(var(--step-spacing) * -1); /* Extend to next item */
+  width: var(--step-line-width);
+  background: var(--color-border);
+  transform: translateX(-50%);
+  z-index: 0;
+}
+
+/* Hide line for last item */
+.steps > ol > li:last-child::after {
+  display: none;
+}
+
+/* Highlight current step on hover (optional) */
+.steps > ol > li:hover::before {
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+  box-shadow: 0 0 0 4px var(--color-primary-muted);
+}
+
+/* Headings inside steps */
+.steps > ol > li > strong:first-child,
+.steps > ol > li > h3:first-child,
+.steps > ol > li > h4:first-child {
+  display: block;
+  font-size: var(--text-lg);
+  font-weight: var(--weight-bold);
+  margin-bottom: var(--space-2);
+  margin-top: calc((var(--step-marker-size) - var(--text-lg) * 1.5) / 2); /* Align with marker center */
+  color: var(--color-text-primary);
+}
+
+/* Content spacing - remove bottom margin from last element */
+.steps > ol > li > :last-child {
+  margin-bottom: 0;
+}
+
+/* Ensure proper spacing between content elements inside steps */
+.steps > ol > li > p + ol,
+.steps > ol > li > p + ul,
+.steps > ol > li > strong + ol,
+.steps > ol > li > strong + ul {
+  margin-top: var(--space-3);
+}
+
+/* Ensure proper spacing after lists */
+.steps > ol > li > ol + p,
+.steps > ol > li > ul + p,
+.steps > ol > li > ol + strong,
+.steps > ol > li > ul + strong {
+  margin-top: var(--space-3);
+}

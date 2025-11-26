@@ -42,13 +42,15 @@ Usage:
 
     {% if section.index_page %}
     {% set section_url_normalized = section.index_page.url.rstrip('/') if section.index_page.url else '' %}
+    {% set section_title = section.title if section.title and section.title.strip() else (section.slug.replace('-', ' ').replace('_', ' ').title() if section.slug else 'Section') %}
     <a href="{{ section.index_page.permalink }}"
       class="docs-nav-group-link {% if (page is defined and page and current_url == section_url_normalized) %}active{% endif %}"
       {% if (page is defined and page and current_url == section_url_normalized) %}aria-current="page"{% endif %}>
-      {{ section.title }}
+      {{ section_title }}
     </a>
     {% else %}
-    <span class="docs-nav-group-link">{{ section.title }}</span>
+    {% set section_title = section.title if section.title and section.title.strip() else (section.slug.replace('-', ' ').replace('_', ' ').title() if section.slug else 'Section') %}
+    <span class="docs-nav-group-link">{{ section_title }}</span>
     {% endif %}
   </div>
 

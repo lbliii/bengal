@@ -1,0 +1,17 @@
+getting-started:
+  title: "Bengal Essentials"
+  description: "Master the basics of Bengal, from installation to creating your first theme."
+  items:
+    - docs/getting-started/installation.md
+    - docs/getting-started/writer-quickstart.md
+    - docs/getting-started/themer-quickstart.md
+    - docs/getting-started/contributor-quickstart.md
+
+content-mastery:
+  title: "Content Mastery"
+  description: "Advanced techniques for organizing and managing documentation at scale."
+  items:
+    - docs/guides/content-workflow.md
+    - docs/guides/content-reuse.md
+    - docs/guides/curated-tracks.md
+    - docs/guides/advanced-filtering.md

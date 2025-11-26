@@ -298,6 +298,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    max-width: 100%;
 }
 
 .toc-count {
@@ -366,6 +367,11 @@
     hyphens: auto;
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
+    /* Truncate long titles (especially those with code) */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
 }
 
 .toc-link:hover {

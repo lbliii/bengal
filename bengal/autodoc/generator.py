@@ -327,6 +327,13 @@ class DocumentationGenerator:
         """
         Convert absolute or relative path to project-relative format.
 
+        Strategy:
+        1. Resolve to absolute path
+        2. Walk up parents to find project root (.git, pyproject.toml, bengal.toml)
+        3. Return path relative to that root
+        4. Fallback: Try relative to CWD
+        5. Fallback: Use heuristic markers (src, lib, etc.)
+
         Args:
             path: Path object or string
 
@@ -338,27 +345,58 @@ class DocumentationGenerator:
 
         from pathlib import Path as PathLib
 
-        path_obj = PathLib(path) if not isinstance(path, PathLib) else path
-
-        # Try to make it relative to current working directory (project root)
+        # Ensure we have an absolute path object
         try:
-            cwd = PathLib.cwd()
-            relative = path_obj.relative_to(cwd)
-            return str(relative)
-        except ValueError:
-            # Path is not relative to cwd, try parent directories
+            path_obj = PathLib(path).resolve()
+        except OSError:
+            # File might not exist or be accessible, fallback to basic path
+            path_obj = PathLib(path)
+
+        # 1. Search for project root markers starting from the file's directory
+        # This is the most robust method as it doesn't depend on CWD
+        try:
+            current = path_obj.parent
+            # Go up to root, but stop reasonable limit to avoid FS scan
+            for _ in range(20):
+                if (
+                    (current / ".git").exists()
+                    or (current / "pyproject.toml").exists()
+                    or (current / "bengal.toml").exists()
+                ):
+                    try:
+                        return str(path_obj.relative_to(current))
+                    except ValueError:
+                        pass
+
+                if current.parent == current:  # Root reached
+                    break
+                current = current.parent
+        except Exception:
+            # Intentionally ignore all exceptions here to allow fallback strategies below.
+            # Log the exception for debugging purposes.
             pass
 
-        # Fallback: return just the filename or the path as-is
-        # Look for common project root indicators
+        # 2. Fallback: Try relative to current working directory
+        try:
+            cwd = PathLib.cwd()
+            return str(path_obj.relative_to(cwd))
+        except ValueError:
+            pass
+
+        # 3. Fallback: Heuristic for common folder structures
+        # This is a last resort for when files are outside the project or markers are missing
         parts = path_obj.parts
         for i, part in enumerate(parts):
-            # If we find a project root indicator, return from there
+            # If we find a common source root indicator
             if part in ("bengal", "src", "lib", "app", "backend", "frontend"):
+                # Handle repo/package name collision (e.g. bengal/bengal)
+                # If the next part is identical, skip the first one (repo dir)
+                if i + 1 < len(parts) and parts[i + 1] == part:
+                    return str(PathLib(*parts[i + 1 :]))
                 return str(PathLib(*parts[i:]))
 
-        # Last resort: return the path as a string
-        return str(path_obj)
+        # Last resort: return as-is
+        return str(path)
 
     def generate_all(
         self, elements: list[DocElement], output_dir: Path, parallel: bool = True
@@ -577,10 +615,12 @@ class DocumentationGenerator:
     def _render_template(self, template_name: str, element: DocElement) -> str:
         """Render template with element data using safe rendering."""
         # Build template context
+        # Note: self.config is already the autodoc config dict (from load_autodoc_config)
+        # It contains github_repo, github_branch, python, cli, etc. at the top level
         context = {
             "element": element,
             "config": self.config,
-            "autodoc_config": self.config.get("autodoc", {}),
+            "autodoc_config": self.config,  # Same as config - autodoc config is already loaded
         }
 
         # Use safe renderer with error boundaries

@@ -1,0 +1,88 @@
+{#
+Track Sidebar Component
+
+Left sidebar for track pages showing:
+- Other available tracks
+- Track progress (if applicable)
+
+Usage:
+{% include 'partials/track-sidebar.html' %}
+#}
+
+{% set track_id = page.metadata.get('track_id') or page.slug %}
+{% set current_track = site.data.tracks[track_id] if (track_id and site.data.tracks and track_id in site.data.tracks) else none %}
+
+<nav class="track-sidebar" aria-label="Track navigation">
+  <div class="track-sidebar-content">
+
+    {# Other Tracks Section #}
+    {% if site.data.tracks and site.data.tracks|length > 1 %}
+    <div class="track-sidebar-section">
+      <h3 class="track-sidebar-title">Learning Tracks</h3>
+      <ul class="track-sidebar-list">
+        {% for id, track in site.data.tracks | items %}
+          {% set track_pages = site.pages | where('metadata.track_id', id) %}
+          {% set track_page = track_pages[0] if track_pages else None %}
+
+          {% if track_page %}
+            <li class="track-sidebar-item">
+              <a href="{{ track_page.url }}"
+                 class="track-sidebar-link {% if id == track_id %}active{% endif %}"
+                 {% if id == track_id %}aria-current="page"{% endif %}>
+                <span class="track-sidebar-link-title">{{ track.title }}</span>
+                {% if track.description %}
+                <span class="track-sidebar-link-desc">{{ track.description }}</span>
+                {% endif %}
+                <span class="track-sidebar-link-meta">{{ track.items|length }} lessons</span>
+              </a>
+            </li>
+          {% endif %}
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+
+    {# Track Progress Section #}
+    {% if current_track and current_track.items %}
+    <div class="track-sidebar-section">
+      <h3 class="track-sidebar-title">Track Progress</h3>
+      <div class="track-progress-sidebar">
+        <div class="track-progress-stats">
+          <span class="track-progress-label">Lessons</span>
+          <span class="track-progress-value">{{ current_track.items|length }} total</span>
+        </div>
+
+        {# Progress bar #}
+        <div class="track-progress-bar-container">
+          <div class="track-progress-bar"
+               id="track-progress-bar"
+               style="width: 0%;"
+               aria-label="Track progress"
+               role="progressbar"
+               aria-valuenow="0"
+               aria-valuemin="0"
+               aria-valuemax="100">
+            {# Progress calculated client-side based on scroll position #}
+          </div>
+        </div>
+
+        {# Quick navigation to track sections #}
+        <ul class="track-progress-nav">
+          {% for item_slug in current_track.items %}
+            {% set item_page = get_page(item_slug) %}
+            {% if item_page %}
+            <li class="track-progress-nav-item">
+              <a href="#track-section-{{ loop.index }}" class="track-progress-nav-link">
+                <span class="track-progress-nav-number">{{ loop.index }}</span>
+                <span class="track-progress-nav-title">{{ item_page.title }}</span>
+              </a>
+            </li>
+            {% endif %}
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+</nav>

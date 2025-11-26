@@ -43,7 +43,7 @@ a.card:hover {
   color: inherit;
 }
 
-/* Motion gradient background on hover */
+/* Motion gradient background on hover - Palette-aware blob colors */
 .card::before {
   content: '';
   position: absolute;
@@ -52,14 +52,15 @@ a.card:hover {
   width: 150%;
   height: 150%;
   background: radial-gradient(circle at 40% 40%,
-      color-mix(in srgb, var(--blob-color-1) 6%, transparent) 0%,
-      color-mix(in srgb, var(--blob-color-2) 4%, transparent) 25%,
-      transparent 50%);
+      color-mix(in srgb, var(--blob-color-1) 8%, transparent) 0%,
+      color-mix(in srgb, var(--blob-color-2) 6%, transparent) 25%,
+      color-mix(in srgb, var(--blob-color-3) 4%, transparent) 45%,
+      transparent 60%);
   border-radius: 50%;
   animation: blob-morph var(--blob-duration-slow) ease-in-out infinite;
   pointer-events: none;
   z-index: 0;
-  opacity: 0;
+  opacity: 0.5;
   transition: opacity 0.3s ease;
 }
 
@@ -72,13 +73,14 @@ a.card:hover {
   z-index: 1;
 }
 
-/* Fallback for browsers without color-mix */
+/* Fallback for browsers without color-mix - uses palette colors via CSS variables */
 @supports not (color: color-mix(in srgb, black, white)) {
   .card::before {
     background: radial-gradient(circle at 40% 40%,
-        rgba(59, 130, 246, 0.06) 0%,
-        rgba(139, 92, 246, 0.04) 25%,
-        transparent 50%);
+        rgba(59, 130, 246, 0.08) 0%,
+        rgba(76, 175, 80, 0.06) 25%,
+        rgba(255, 152, 0, 0.04) 45%,
+        transparent 60%);
   }
 }
 

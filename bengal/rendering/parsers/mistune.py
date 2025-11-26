@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import html as html_module
 import re
 from typing import Any, override
 
@@ -79,7 +80,11 @@ class MistuneParser(BaseMarkdownParser):
         self.enable_highlighting = enable_highlighting
 
         # Import our custom plugins
-        from bengal.rendering.plugins import BadgePlugin, create_documentation_directives
+        from bengal.rendering.plugins import (
+            BadgePlugin,
+            TermPlugin,
+            create_documentation_directives,
+        )
         from bengal.rendering.plugins.directives.validator import DirectiveSyntaxValidator
 
         self._validator = DirectiveSyntaxValidator()
@@ -92,7 +97,9 @@ class MistuneParser(BaseMarkdownParser):
             "url",  # Built-in: autolinks
             "footnotes",  # Built-in: [^1]
             "def_list",  # Built-in: Term\n:   Def
+            "math",  # Built-in: $math$
             create_documentation_directives(),  # Custom: admonitions, tabs, dropdowns, cards
+            TermPlugin(),  # Custom: {term}`Word`
         ]
 
         # Add syntax highlighting plugin if enabled
@@ -310,6 +317,7 @@ class MistuneParser(BaseMarkdownParser):
             self._mistune = mistune
 
         from bengal.rendering.plugins import (
+            TermPlugin,
             VariableSubstitutionPlugin,
             create_documentation_directives,
         )
@@ -326,8 +334,10 @@ class MistuneParser(BaseMarkdownParser):
                 "url",
                 "footnotes",
                 "def_list",
+                "math",
                 self._var_plugin,  # Register variable substitution plugin
                 create_documentation_directives(),
+                TermPlugin(),
             ]
 
             # Add syntax highlighting if enabled
@@ -642,10 +652,18 @@ class MistuneParser(BaseMarkdownParser):
 
                 # Strip HTML tags to get clean title text
                 title = self._HTML_TAG_PATTERN.sub("", title_html).strip()
+                # Decode HTML entities (e.g., &quot; -> ", &amp; -> &)
+                title = html_module.unescape(title)
                 # Remove pilcrow (¶) character that remains after stripping headerlink
                 title = title.replace("¶", "").strip()
                 if not title:
                     continue
+
+                # Truncate long titles (especially those with code) for TOC display
+                # 50 chars is reasonable for 280px sidebar TOC to prevent overflow
+                # This ensures titles fit even with code snippets and file paths
+                if len(title) > 50:
+                    title = title[:47] + "..."
 
                 # Build indented list item
                 indent = "  " * (level - 2)
@@ -667,13 +685,16 @@ class MistuneParser(BaseMarkdownParser):
         Matches python-markdown's default slugify behavior.
 
         Uses bengal.utils.text.slugify with HTML unescaping enabled.
+        Limits slug length to prevent overly long IDs from headers with code.
 
         Args:
             text: Text to slugify
 
         Returns:
-            Slugified text
+            Slugified text (max 100 characters)
         """
         from bengal.utils.text import slugify
 
-        return slugify(text, unescape_html=True)
+        # Limit slug length to prevent overly long IDs from headers with long code snippets
+        # 100 chars is reasonable for HTML IDs while still being descriptive
+        return slugify(text, unescape_html=True, max_length=100)

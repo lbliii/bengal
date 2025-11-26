@@ -164,10 +164,8 @@ a {
     var(--color-text-link-hover) 0%,
     var(--color-text-link-hover) 100%
   );
-  /* Subtle neumorphic raised effect - like a key being highlighted */
-  text-shadow:
-    0.3px 0.3px 0.5px rgba(255, 255, 255, 0.8),
-    -0.2px -0.2px 0.3px rgba(0, 0, 0, 0.1);
+  /* Subtle raised effect like kbd - single crisp shadow for dimension */
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.1);
   transform: translate3d(0, -0.5px, 0);
   transition:
     color var(--duration-200) var(--ease-out),
@@ -175,6 +173,19 @@ a {
     background-position var(--duration-200) var(--ease-out),
     text-shadow var(--duration-200) var(--ease-out),
     transform var(--duration-200) var(--ease-out);
+}
+
+/* Dark mode: Subtle shadow for visibility without blur */
+[data-theme="dark"] .prose a:not(.button):not(.btn):hover {
+  /* Single crisp shadow - visible in dark mode without making text fuzzy */
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .prose a:not(.button):not(.btn):hover {
+    /* Single crisp shadow - visible in dark mode without making text fuzzy */
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.15);
+  }
 }
 
 .prose a:not(.button):not(.btn):focus-visible {

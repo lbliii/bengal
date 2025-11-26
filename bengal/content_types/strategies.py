@@ -154,6 +154,36 @@ class ApiReferenceStrategy(ContentTypeStrategy):
 
         return False
 
+    def get_template(self, page: Page | None = None, template_engine: Any | None = None) -> str:
+        """API reference-specific template selection."""
+        # Backward compatibility
+        if page is None:
+            return self.default_template
+
+        is_home = page.is_home or page.url == "/"
+        is_section_index = page.source_path.stem == "_index"
+
+        # Helper to check template existence
+        def template_exists(name: str) -> bool:
+            if template_engine is None:
+                return False
+            try:
+                template_engine.env.get_template(name)
+                return True
+            except Exception:
+                return False
+
+        if is_home:
+            # Try api-reference/home.html first
+            if template_exists("api-reference/home.html"):
+                return "api-reference/home.html"
+            # Fallback to generic home
+            return super().get_template(page, template_engine)
+        elif is_section_index:
+            return "api-reference/list.html"
+        else:
+            return "api-reference/single.html"
+
 
 class CliReferenceStrategy(ContentTypeStrategy):
     """Strategy for CLI reference documentation."""
@@ -180,6 +210,36 @@ class CliReferenceStrategy(ContentTypeStrategy):
                     return True
 
         return False
+
+    def get_template(self, page: Page | None = None, template_engine: Any | None = None) -> str:
+        """CLI reference-specific template selection."""
+        # Backward compatibility
+        if page is None:
+            return self.default_template
+
+        is_home = page.is_home or page.url == "/"
+        is_section_index = page.source_path.stem == "_index"
+
+        # Helper to check template existence
+        def template_exists(name: str) -> bool:
+            if template_engine is None:
+                return False
+            try:
+                template_engine.env.get_template(name)
+                return True
+            except Exception:
+                return False
+
+        if is_home:
+            # Try cli-reference/home.html first
+            if template_exists("cli-reference/home.html"):
+                return "cli-reference/home.html"
+            # Fallback to generic home
+            return super().get_template(page, template_engine)
+        elif is_section_index:
+            return "cli-reference/list.html"
+        else:
+            return "cli-reference/single.html"
 
 
 class TutorialStrategy(ContentTypeStrategy):

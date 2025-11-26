@@ -40,7 +40,6 @@ Examples:
     ::::
 """
 
-
 from __future__ import annotations
 
 from re import Match
@@ -215,7 +214,17 @@ class CardDirective(DirectivePlugin):
         image = options.get("image", "").strip()
 
         # Validate color (optional)
-        valid_colors = ("blue", "green", "red", "yellow", "purple", "gray", "pink", "indigo")
+        valid_colors = (
+            "blue",
+            "green",
+            "red",
+            "yellow",
+            "orange",
+            "purple",
+            "gray",
+            "pink",
+            "indigo",
+        )
         if color and color not in valid_colors:
             color = ""
 

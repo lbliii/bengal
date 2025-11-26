@@ -4,6 +4,7 @@ Rendering Pipeline - Orchestrates the parsing, AST building, templating, and out
 
 from __future__ import annotations
 
+import html as html_module
 import re
 import threading
 from pathlib import Path
@@ -686,6 +687,8 @@ def extract_toc_structure(toc_html: str) -> list:
             match = re.match(pattern, line)
             if match:
                 indent_str, anchor_id, title = match.groups()
+                # Decode HTML entities (e.g., &quot; -> ", &amp; -> &)
+                title = html_module.unescape(title)
                 # Count spaces to determine level (mistune uses 2 spaces per level)
                 indent_level = len(indent_str)
                 level = (
@@ -720,7 +723,9 @@ def extract_toc_structure(toc_html: str) -> list:
 
             def handle_data(self, data):
                 if self.current_item is not None:
-                    self.current_item["title"] += data.strip()
+                    # Decode HTML entities (e.g., &quot; -> ", &amp; -> &)
+                    decoded_data = html_module.unescape(data.strip())
+                    self.current_item["title"] += decoded_data
 
             def handle_endtag(self, tag):
                 if tag == "ul":

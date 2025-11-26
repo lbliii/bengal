@@ -109,6 +109,25 @@ class TestTOCExtractionMistune:
         assert items[1]["title"] == "2. Output & Results"
         assert items[2]["title"] == "API: Functions & Classes"
 
+    def test_html_entities_in_titles(self):
+        """Test that HTML entities in titles are properly decoded."""
+        toc_html = """<div class="toc">
+<ul>
+<li><a href="#include">Strategy 3: The &quot;Include&quot; Directive (Advanced)</a></li>
+<li><a href="#ampersand">Test &amp; Code</a></li>
+<li><a href="#less-than">x &lt; y</a></li>
+<li><a href="#greater-than">y &gt; x</a></li>
+</ul>
+</div>"""
+
+        items = extract_toc_structure(toc_html)
+
+        assert len(items) == 4
+        assert items[0]["title"] == 'Strategy 3: The "Include" Directive (Advanced)'
+        assert items[1]["title"] == "Test & Code"
+        assert items[2]["title"] == "x < y"
+        assert items[3]["title"] == "y > x"
+
     def test_empty_toc(self):
         """Test with empty TOC."""
         items = extract_toc_structure("")

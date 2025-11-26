@@ -1,6 +1,6 @@
 /**
  * Mermaid Diagram Component Styles
- * 
+ *
  * Styles for Mermaid.js diagram rendering within content areas.
  * Mermaid diagrams are rendered client-side and need proper spacing
  * and responsive behavior.
@@ -197,7 +197,13 @@
 .mermaid-lightbox__close svg {
   width: 1.25rem;
   height: 1.25rem;
-  stroke: currentColor;
+  stroke: var(--color-text-primary);
+  stroke-width: 2.5;
+}
+
+/* Ensure child elements inherit stroke */
+.mermaid-lightbox__close svg line {
+  stroke: inherit;
 }
 
 .mermaid-lightbox__toolbar {

@@ -177,6 +177,16 @@ class Page(
             except (ValueError, AttributeError):
                 pass  # Keep absolute if not under root
 
+    @property
+    def relative_path(self) -> str:
+        """
+        Get relative path string (alias for source_path as string).
+
+        Used by templates and filtering where a string path is expected.
+        This provides backward compatibility and convenience.
+        """
+        return str(self.source_path)
+
     def __hash__(self) -> int:
         """
         Hash based on source_path for stable identity.

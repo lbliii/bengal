@@ -1,0 +1,71 @@
+{#
+Track Helper Macros
+
+Reusable macros for track-related template logic.
+
+Usage:
+{% from 'partials/track-helpers.html' import get_track_id, get_track, validate_track_id with context %}
+#}
+
+{% macro get_track_id(page) %}
+  {#
+    Get track_id for a page, with fallback to slug.
+
+    Returns the track_id if valid, or None if track doesn't exist.
+
+    Usage:
+      {% set track_id = get_track_id(page) %}
+      {% if track_id %}
+        {% set track = site.data.tracks[track_id] %}
+      {% endif %}
+  #}
+  {% set track_id = page.metadata.get('track_id') or page.slug %}
+  {% if site.data.tracks and track_id in site.data.tracks %}
+    {{ track_id }}
+  {% else %}
+    {{ none }}
+  {% endif %}
+{% endmacro %}
+
+{% macro get_track(page) %}
+  {#
+    Get track object for a page.
+
+    Returns the track dict if found, or None.
+
+    Usage:
+      {% set track = get_track(page) %}
+      {% if track %}
+        <h1>{{ track.title }}</h1>
+      {% endif %}
+  #}
+  {% set track_id = get_track_id(page) %}
+  {% if track_id and site.data.tracks %}
+    {% set track = site.data.tracks[track_id] %}
+    {% if track %}
+      {{ track }}
+    {% else %}
+      {{ none }}
+    {% endif %}
+  {% else %}
+    {{ none }}
+  {% endif %}
+{% endmacro %}
+
+{% macro validate_track_id(track_id) %}
+  {#
+    Validate that a track_id exists in tracks data.
+
+    Returns True if valid, False otherwise.
+
+    Usage:
+      {% if validate_track_id('getting-started') %}
+        Track exists!
+      {% endif %}
+  #}
+  {% if site.data.tracks and track_id in site.data.tracks %}
+    {{ true }}
+  {% else %}
+    {{ false }}
+  {% endif %}
+{% endmacro %}

@@ -9,7 +9,7 @@ description: "Commands for analyzing the site\'s knowledge graph."
 
 # graph
 **Type:** Command-Group
-**Source:** [View source](bengal/bengal/cli/commands/graph/__main__.py#L24)
+**Source:** [View source](https://github.com/lbliii/bengal/blob/main/bengal/bengal/cli/commands/graph/__main__.py#L24)
 
 ```{badge} Command Group
 :class: badge-secondary
@@ -98,6 +98,31 @@ Use PageRank to:
 ### `suggest`
 
 💡 Generate smart link suggestions to improve internal linking.
+
+Analyzes your content to recommend links based on:
+- Topic similarity (shared tags/categories)
+- Page importance (PageRank scores)
+- Navigation value (bridge pages)
+- Link gaps (underlinked content)
+
+**Usage:** `graph suggest [OPTIONS]`
+
+**Options:**
+- `--top-n, -n`: Number of suggestions to show (default: 50)
+- `--min-score, -s`: Minimum score threshold (default: 0.3)
+- `--format, -f`: Output format - `table`, `json`, or `markdown` (default: table)
+
+**Examples:**
+```bash
+# Show top 50 link suggestions
+bengal utils graph suggest site/
+
+# Show only high-confidence suggestions
+bengal utils graph suggest site/ --min-score 0.5
+
+# Generate markdown checklist
+bengal utils graph suggest site/ --format markdown > suggestions.md
+```
 
 Analyzes your content to recommend links based on:
 - Topic similarity (shared tags/categories)

@@ -14,7 +14,6 @@ References:
       web search engine. Computer networks and ISDN systems.
 """
 
-
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -149,7 +148,10 @@ class PageRankCalculator:
         Returns:
             PageRankResults with scores and metadata
         """
-        pages = [p for p in self.graph.site.pages if not p.metadata.get("_generated")]
+        # Use analysis pages from graph (excludes autodoc if configured)
+        pages = self.graph.get_analysis_pages()
+        # Also exclude generated pages
+        pages = [p for p in pages if not p.metadata.get("_generated")]
         N = len(pages)
 
         if N == 0:

@@ -8,7 +8,6 @@ Each module self-registers its functions to avoid god objects and maintain
 clean separation of concerns.
 """
 
-
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -30,6 +29,7 @@ from . import (
     dates,
     debug,
     files,
+    get_page,
     i18n,
     images,
     math_functions,
@@ -63,6 +63,7 @@ def register_all(env: Environment, site: Site) -> None:
     math_functions.register(env, site)
     dates.register(env, site)
     urls.register(env, site)
+    get_page.register(env, site)
 
     # Phase 2: Advanced functions (25 functions)
     content.register(env, site)
@@ -98,6 +99,7 @@ __all__ = [
     "dates",
     "debug",
     "files",
+    "get_page",
     "images",
     "math_functions",
     "navigation",

@@ -29,7 +29,6 @@ Phase 5 (Knowledge Graph):
 - ConnectivityValidator: Page connectivity and orphan detection
 """
 
-
 from __future__ import annotations
 
 from bengal.health.validators.assets import AssetValidator
@@ -47,6 +46,7 @@ from bengal.health.validators.rendering import RenderingValidator
 from bengal.health.validators.rss import RSSValidator
 from bengal.health.validators.sitemap import SitemapValidator
 from bengal.health.validators.taxonomy import TaxonomyValidator
+from bengal.health.validators.tracks import TrackValidator
 
 __all__ = [
     "AssetValidator",
@@ -69,4 +69,5 @@ __all__ = [
     "RenderingValidator",
     "SitemapValidator",
     "TaxonomyValidator",
+    "TrackValidator",
 ]

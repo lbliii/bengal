@@ -411,6 +411,41 @@ def _get_safe_filters() -> dict[str, Any]:
 
         return path_str
 
+    def github_source_url(path: Path | str | None, github_repo: str | None = None, branch: str = "main", line_number: int | None = None) -> str:
+        """
+        Convert project-relative path to GitHub blob URL.
+        
+        Args:
+            path: Project-relative path (e.g., 'bengal/core/site.py')
+            github_repo: GitHub repository in 'owner/repo' format (from config)
+            branch: Git branch name (default: 'main')
+            line_number: Optional line number for anchor
+        
+        Returns:
+            GitHub blob URL or fallback to relative path if no repo configured
+        """
+        if not path:
+            return "Unknown"
+        
+        # Get project-relative path using the project_relative function
+        rel_path = project_relative(path)
+        if rel_path == "Unknown":
+            return rel_path
+        
+        # If no GitHub repo configured, return relative path (backward compatible)
+        if not github_repo:
+            if line_number:
+                return f"{rel_path}#L{line_number}"
+            return rel_path
+        
+        # Build GitHub blob URL
+        # Format: https://github.com/owner/repo/blob/branch/path#Lline
+        url = f"https://github.com/{github_repo}/blob/{branch}/{rel_path}"
+        if line_number:
+            url += f"#L{line_number}"
+        
+        return url
+
     def safe_type(type_annotation: Any) -> str:
         """Safely format type annotations."""
         if not type_annotation:
@@ -478,6 +513,7 @@ def _get_safe_filters() -> dict[str, Any]:
         "code_or_dash": code_or_dash,
         "safe_anchor": safe_anchor,
         "project_relative": project_relative,
+        "github_source_url": github_source_url,
         "safe_type": safe_type,
         "safe_default": safe_default,
         "safe_text": safe_text,

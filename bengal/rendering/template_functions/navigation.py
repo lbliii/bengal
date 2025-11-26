@@ -17,6 +17,16 @@ if TYPE_CHECKING:
 
 def register(env: Environment, site: Site) -> None:
     """Register navigation functions with Jinja2 environment."""
+
+    # Create a closure that has access to get_page function from template context
+    def combine_track_toc_with_get_page(track_items: list[str]) -> list[dict[str, Any]]:
+        """Combine track TOC items using get_page from template context."""
+        # Get get_page function from environment (registered by get_page.py)
+        get_page_func = env.globals.get("get_page")
+        if not get_page_func:
+            return []
+        return combine_track_toc_items(track_items, get_page_func)
+
     env.globals.update(
         {
             "get_breadcrumbs": get_breadcrumbs,
@@ -24,6 +34,7 @@ def register(env: Environment, site: Site) -> None:
             "get_pagination_items": get_pagination_items,
             "get_nav_tree": get_nav_tree,
             "get_auto_nav": lambda: get_auto_nav(site),
+            "combine_track_toc": combine_track_toc_with_get_page,
         }
     )
 
@@ -125,9 +136,19 @@ def get_breadcrumbs(page: Page) -> list[dict[str, Any]]:
         # If page has a title and URL, add Home and the page
         items.append({"title": "Home", "url": "/", "is_current": False})
         page_url = page.url if hasattr(page, "url") else f"/{getattr(page, 'slug', '')}/"
-        items.append(
-            {"title": getattr(page, "title", "Untitled"), "url": page_url, "is_current": True}
-        )
+        page_title = getattr(page, "title", None)
+        if not page_title or not page_title.strip():
+            # Derive title from slug or URL if title is empty
+            page_slug = getattr(page, "slug", None)
+            if page_slug:
+                page_title = page_slug.replace("-", " ").replace("_", " ").title()
+            else:
+                url_parts = [p for p in page_url.strip("/").split("/") if p]
+                if url_parts:
+                    page_title = url_parts[-1].replace("-", " ").replace("_", " ").title()
+                else:
+                    page_title = "Untitled"
+        items.append({"title": page_title, "url": page_url, "is_current": True})
         return items
 
     # Add Home as the first breadcrumb for pages with ancestors
@@ -159,9 +180,25 @@ def get_breadcrumbs(page: Page) -> list[dict[str, Any]]:
         # Get ancestor URL
         url = ancestor.url if hasattr(ancestor, "url") else f"/{getattr(ancestor, 'slug', '')}/"
 
+        # Get title, handling empty strings
+        ancestor_title = getattr(ancestor, "title", None)
+        if not ancestor_title or not ancestor_title.strip():
+            # Try to derive title from slug or URL if title is empty
+            ancestor_slug = getattr(ancestor, "slug", None)
+            if ancestor_slug:
+                # Capitalize slug as fallback (e.g., "api" -> "API")
+                ancestor_title = ancestor_slug.replace("-", " ").replace("_", " ").title()
+            else:
+                # Extract from URL path as last resort
+                url_parts = [p for p in url.strip("/").split("/") if p]
+                if url_parts:
+                    ancestor_title = url_parts[-1].replace("-", " ").replace("_", " ").title()
+                else:
+                    ancestor_title = "Untitled"
+
         items.append(
             {
-                "title": getattr(ancestor, "title", "Untitled"),
+                "title": ancestor_title,
                 "url": url,
                 "is_current": is_current_item,
             }
@@ -170,11 +207,60 @@ def get_breadcrumbs(page: Page) -> list[dict[str, Any]]:
     # Only add the current page if it's not a section index
     if not is_section_index:
         page_url = page.url if hasattr(page, "url") else f"/{page.slug}/"
-        items.append(
-            {"title": getattr(page, "title", "Untitled"), "url": page_url, "is_current": True}
-        )
+        page_title = getattr(page, "title", None)
+        if not page_title or not page_title.strip():
+            # Derive title from slug or URL if title is empty
+            page_slug = getattr(page, "slug", None)
+            if page_slug:
+                page_title = page_slug.replace("-", " ").replace("_", " ").title()
+            else:
+                url_parts = [p for p in page_url.strip("/").split("/") if p]
+                if url_parts:
+                    page_title = url_parts[-1].replace("-", " ").replace("_", " ").title()
+                else:
+                    page_title = "Untitled"
+        items.append({"title": page_title, "url": page_url, "is_current": True})
 
     return items
+
+
+def combine_track_toc_items(track_items: list[str], get_page_func: Any) -> list[dict[str, Any]]:
+    """
+    Combine TOC items from all track section pages into a single TOC.
+
+    Each track section becomes a level-1 TOC item, and its headings become
+    nested items with incremented levels.
+
+    Args:
+        track_items: List of page paths/slugs for track items
+        get_page_func: Function to get page by path (from template context)
+
+    Returns:
+        Combined list of TOC items with section headers and nested headings
+    """
+    combined = []
+
+    for index, item_slug in enumerate(track_items, start=1):
+        page = get_page_func(item_slug)
+        if not page:
+            continue
+
+        # Add section header as level 1 item
+        section_id = f"track-section-{index}"
+        combined.append({"id": section_id, "title": page.title, "level": 1})
+
+        # Add all TOC items from this section, incrementing level by 1
+        if hasattr(page, "toc_items") and page.toc_items:
+            for toc_item in page.toc_items:
+                combined.append(
+                    {
+                        "id": toc_item.get("id", ""),
+                        "title": toc_item.get("title", ""),
+                        "level": toc_item.get("level", 2) + 1,  # Increment level
+                    }
+                )
+
+    return combined
 
 
 def get_toc_grouped(
@@ -599,22 +685,93 @@ def get_nav_tree(
     return build_tree_recursive(root_section)
 
 
+def _build_section_menu_item(
+    section: Any, site: Site, parent_identifier: str | None = None
+) -> dict[str, Any] | None:
+    """
+    Build a menu item from a section, recursively including subsections.
+
+    Args:
+        section: Section to build menu item for
+        site: Site instance
+        parent_identifier: Identifier of parent menu item (if nested)
+
+    Returns:
+        Menu item dict or None if section should be hidden
+    """
+    # Skip sections without paths
+    if not hasattr(section, "path") or not section.path:
+        return None
+
+    # Get section metadata from index page
+    section_hidden = False
+    section_title = getattr(section, "title", None) or section.name.replace("-", " ").title()
+    section_weight = getattr(section, "weight", 999)
+
+    # Check if section has index page with metadata
+    if hasattr(section, "index_page") and section.index_page:
+        index_page = section.index_page
+        metadata = getattr(index_page, "metadata", {})
+
+        # Check if explicitly hidden from menu
+        menu_setting = metadata.get("menu", True)
+        if menu_setting is False or (
+            isinstance(menu_setting, dict) and menu_setting.get("main") is False
+        ):
+            section_hidden = True
+
+        # Get title from frontmatter if available
+        if hasattr(index_page, "title") and index_page.title:
+            section_title = index_page.title
+
+        # Get weight from frontmatter if available
+        if "weight" in metadata:
+            section_weight = metadata["weight"]
+
+    # Skip hidden sections
+    if section_hidden:
+        return None
+
+    # Skip dev sections if they're being bundled into Dev dropdown
+    if hasattr(site, "_dev_menu_metadata") and site._dev_menu_metadata.get("exclude_sections"):
+        excluded_sections = site._dev_menu_metadata["exclude_sections"]
+        if section.name in excluded_sections:
+            return None
+
+    # Build nav item
+    section_url = getattr(section, "url", f"/{section.name}/")
+    section_identifier = section.name
+
+    # Determine parent identifier from section.parent if not provided
+    if parent_identifier is None and hasattr(section, "parent") and section.parent:
+        parent_identifier = section.parent.name
+
+    return {
+        "name": section_title,
+        "url": section_url,
+        "weight": section_weight,
+        "identifier": section_identifier,
+        "parent": parent_identifier,
+    }
+
+
 def get_auto_nav(site: Site) -> list[dict[str, Any]]:
     """
-    Auto-discover top-level navigation from site sections.
+    Auto-discover hierarchical navigation from site sections.
 
     This function provides automatic navigation discovery similar to how
-    sidebars and TOC work. It discovers top-level sections and creates
-    nav items automatically.
+    sidebars and TOC work. It discovers sections and creates nav items
+    automatically, respecting the section hierarchy.
 
     Features:
-    - Auto-discovers all top-level sections in content/
+    - Auto-discovers all sections in content/ (not just top-level)
+    - Builds hierarchical menu based on section.parent relationships
     - Respects section weight for ordering
     - Respects 'menu: false' in section _index.md to hide from nav
     - Returns empty list if manual [[menu.main]] config exists (hybrid mode)
 
     Returns:
-        List of navigation items with name, url, weight
+        List of navigation items with name, url, weight, parent (for hierarchy)
 
     Example:
         {# In nav template #}
@@ -635,70 +792,45 @@ def get_auto_nav(site: Site) -> list[dict[str, Any]]:
     # Check if manual menu config exists - if so, don't auto-discover
     # This allows manual config to take precedence
     menu_config = site.config.get("menu", {})
-    if menu_config and "main" in menu_config:
-        # Manual config exists, return empty (let manual config handle it)
+    if menu_config and "main" in menu_config and menu_config["main"]:
+        # Manual config exists and is non-empty, return empty (let manual config handle it)
+        return []
+
+    # Check if menu was already built (site.menu["main"] exists)
+    # MenuOrchestrator builds auto menu directly, so if menu exists, don't return auto-nav
+    if site.menu.get("main"):
         return []
 
     nav_items = []
 
-    # Get all top-level sections (depth 1 from content root)
+    # Find all top-level sections (those with no parent)
+    top_level_sections = []
     for section in site.sections:
-        # Only include top-level sections (direct children of content/)
         if not hasattr(section, "path") or not section.path:
             continue
 
-        # Check section depth (count path components from content root)
-        try:
-            content_dir = site.root_path / "content"
-            relative = section.path.relative_to(content_dir)
-            depth = len(relative.parts)
+        # Check if section has a parent - if not, it's top-level
+        if not hasattr(section, "parent") or section.parent is None:
+            top_level_sections.append(section)
 
-            # Only include depth 1 (direct children of content/)
-            if depth != 1:
-                continue
-        except (ValueError, AttributeError):
-            continue
+    # Recursively build menu items from top-level sections
+    def _add_section_recursive(section: Any, parent_id: str | None = None) -> None:
+        """Recursively add section and its subsections to nav_items."""
+        item = _build_section_menu_item(section, site, parent_id)
+        if item is None:
+            return
 
-        # Get section metadata from index page
-        section_hidden = False
-        section_title = getattr(section, "title", None) or section.name.replace("-", " ").title()
-        section_weight = getattr(section, "weight", 999)
+        section_identifier = item["identifier"]
+        nav_items.append(item)
 
-        # Check if section has index page with metadata
-        if hasattr(section, "index_page") and section.index_page:
-            index_page = section.index_page
-            metadata = getattr(index_page, "metadata", {})
+        # Recursively add subsections
+        if hasattr(section, "subsections"):
+            for subsection in section.subsections:
+                _add_section_recursive(subsection, section_identifier)
 
-            # Check if explicitly hidden from menu
-            menu_setting = metadata.get("menu", True)
-            if menu_setting is False or (
-                isinstance(menu_setting, dict) and menu_setting.get("main") is False
-            ):
-                section_hidden = True
-
-            # Get title from frontmatter if available
-            if hasattr(index_page, "title") and index_page.title:
-                section_title = index_page.title
-
-            # Get weight from frontmatter if available
-            if "weight" in metadata:
-                section_weight = metadata["weight"]
-
-        # Skip hidden sections
-        if section_hidden:
-            continue
-
-        # Build nav item
-        section_url = getattr(section, "url", f"/{section.name}/")
-
-        nav_items.append(
-            {
-                "name": section_title,
-                "url": section_url,
-                "weight": section_weight,
-                "identifier": section.name,
-            }
-        )
+    # Build menu from all top-level sections
+    for section in top_level_sections:
+        _add_section_recursive(section, None)
 
     # Sort by weight (lower weights first)
     nav_items.sort(key=lambda x: (x["weight"], x["name"]))

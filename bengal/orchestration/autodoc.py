@@ -185,21 +185,38 @@ class AutodocOrchestrator:
         """
         from bengal.core.page import Page
 
-        # Map section keys to human-readable titles
-        title_map = {
-            "api": "API Reference",
-            "cli": "CLI Reference",
-        }
+        # Get display name from config if available, otherwise use defaults
+        autodoc_config = self.site.config.get("autodoc", {})
+        if section_key == "api" and "python" in autodoc_config:
+            display_name = autodoc_config["python"].get("display_name", "API Reference")
+        elif section_key == "cli" and "cli" in autodoc_config:
+            display_name = autodoc_config["cli"].get("display_name", "CLI Reference")
+        else:
+            # Fallback to default titles
+            title_map = {
+                "api": "API Reference",
+                "cli": "CLI Reference",
+            }
+            display_name = title_map.get(section_key, section_key.upper())
 
         # Create virtual index page
         virtual_path = section.path / "_index.md"
+        
+        # Use appropriate type and template based on section
+        if section_key == "cli":
+            page_type = "cli-reference"
+            template = "cli-reference/list.html"
+        else:
+            page_type = "api-reference"
+            template = "api-reference/list.html"
+        
         index_page = Page(
             source_path=virtual_path,
             content="",  # No content needed - template will render page list
             metadata={
-                "title": title_map.get(section_key, section_key.upper()),
-                "type": "api-reference",
-                "template": "api-reference/list.html",  # Use existing list template
+                "title": display_name,
+                "type": page_type,
+                "template": template,
                 "_virtual": True,
                 "_section_index": True,  # Mark as section index
                 "section_key": section_key,
@@ -252,11 +269,21 @@ class AutodocOrchestrator:
                 if section_key not in sections_dict:
                     # Create virtual section
                     dummy_section_path = self.site.root_path / "content" / Path(*section_path_parts)
+                    
+                    # Get display name from config for top-level sections
+                    section_title = section_path_parts[-1].upper()  # Default: "api" -> "API"
+                    if "/" not in section_key:  # Top-level section (api, cli)
+                        autodoc_config = self.site.config.get("autodoc", {})
+                        if section_key == "api" and "python" in autodoc_config:
+                            section_title = autodoc_config["python"].get("display_name", "API Reference")
+                        elif section_key == "cli" and "cli" in autodoc_config:
+                            section_title = autodoc_config["cli"].get("display_name", "CLI Reference")
+                    
                     section = Section(
                         name=section_path_parts[-1],
                         path=dummy_section_path,
                         metadata={
-                            "title": section_path_parts[-1].upper(),  # "api" -> "API"
+                            "title": section_title,
                             "_virtual": True,
                             "_generated": True,
                         },

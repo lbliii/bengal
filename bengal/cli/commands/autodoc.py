@@ -133,6 +133,7 @@ def autodoc(
             verbose=verbose,
             stats=stats,
             python_config=python_config,
+            autodoc_config=autodoc_config,  # Pass full config for template access
         )
 
     # ========== CLI DOCUMENTATION ==========
@@ -171,6 +172,7 @@ def _generate_python_docs(
     verbose: bool,
     stats: bool,
     python_config: dict,
+    autodoc_config: dict | None = None,
 ) -> None:
     """Generate Python API documentation."""
     import time
@@ -239,7 +241,8 @@ def _generate_python_docs(
     # Generate documentation
     gen_start = time.time()
 
-    config = {"autodoc": python_config}
+    # Pass full autodoc_config so templates can access all sections (python, cli, etc.)
+    config = autodoc_config if autodoc_config else {"python": python_config}
     generator = DocumentationGenerator(extractor, config)
 
     # Use traditional markdown generation
@@ -342,7 +345,9 @@ def _generate_cli_docs(
     # Generate documentation
     gen_start = time.time()
 
-    generator = DocumentationGenerator(extractor, {"autodoc": {"cli": cli_config}})
+    # Pass full autodoc_config so templates can access all sections (python, cli, etc.)
+    config = autodoc_config if autodoc_config else {"cli": cli_config}
+    generator = DocumentationGenerator(extractor, config)
     generated_files = generator.generate_all(elements, output_dir)
 
     gen_time = time.time() - gen_start
@@ -507,7 +512,9 @@ def autodoc_cli(
     # Generate documentation
     gen_start = time.time()
 
-    generator = DocumentationGenerator(extractor, {"autodoc": {"cli": cli_config}})
+    # Pass full autodoc_config so templates can access all sections (python, cli, etc.)
+    config = autodoc_config if autodoc_config else {"cli": cli_config}
+    generator = DocumentationGenerator(extractor, config)
     generated_files = generator.generate_all(elements, output_dir)
 
     gen_time = time.time() - gen_start

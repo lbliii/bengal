@@ -69,6 +69,7 @@ class HealthCheck:
             RSSValidator,
             SitemapValidator,
             TaxonomyValidator,
+            TrackValidator,
         )
 
         # Register in logical order (fast validators first)
@@ -82,6 +83,7 @@ class HealthCheck:
         self.register(NavigationValidator())
         self.register(MenuValidator())
         self.register(TaxonomyValidator())
+        self.register(TrackValidator())
         self.register(LinkValidatorWrapper())
 
         # Phase 3: Advanced validation

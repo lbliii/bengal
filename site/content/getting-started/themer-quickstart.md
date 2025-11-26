@@ -508,7 +508,7 @@ bengal utils theme debug
 
 **Learn More:**
 - **[Theme Commands](/api/cli/utils/)** - Full CLI reference
-- **[Rendering System](/architecture/rendering/)** - Advanced templating and rendering
+- **[Rendering System](/reference/architecture/rendering/)** - Advanced templating and rendering
 - **[Asset Pipeline](/api/assets/)** - CSS/JS optimization and asset management
 
 **Get Inspired:**

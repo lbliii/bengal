@@ -1,0 +1,82 @@
+/**
+ * Tooltip Component Styles
+ *
+ * Styles for the {term} directive and general tooltips.
+ * Uses data-tooltip attribute to show content on hover.
+ */
+
+.term {
+  border-bottom: 1px dotted var(--color-text-muted);
+  cursor: help;
+  position: relative;
+  transition: color var(--transition-fast);
+}
+
+.term:hover {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+}
+
+/* Tooltip Bubble */
+.term::before {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(10px); /* Start slightly down */
+
+  padding: var(--space-2) var(--space-3);
+  min-width: 120px;
+  max-width: 250px;
+  width: max-content;
+
+  background: var(--color-surface-tooltip, #333);
+  color: var(--color-text-inverse, #fff);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-normal);
+  line-height: 1.4;
+  text-align: center;
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  z-index: 100;
+
+  transition:
+    opacity var(--transition-fast),
+    transform var(--transition-fast),
+    visibility var(--transition-fast);
+}
+
+/* Tooltip Arrow */
+.term::after {
+  content: "";
+  position: absolute;
+  bottom: 100%; /* Position at top edge */
+  left: 50%;
+  transform: translateX(-50%) translateY(10px);
+
+  border: 6px solid transparent;
+  border-top-color: var(--color-surface-tooltip, #333);
+  margin-bottom: -12px; /* Adjust based on border size */
+
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  z-index: 100;
+
+  transition:
+    opacity var(--transition-fast),
+    transform var(--transition-fast),
+    visibility var(--transition-fast);
+}
+
+/* Hover State */
+.term:hover::before,
+.term:hover::after {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(-8px); /* Move up */
+}

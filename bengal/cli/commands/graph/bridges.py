@@ -40,7 +40,7 @@ from bengal.utils.logger import LogLevel, close_all_loggers, configure_logging
 @click.option(
     "--format",
     "-f",
-    type=click.Choice(["table", "json", "summary"]),
+    type=click.Choice(["table", "json", "csv", "summary"]),
     default="table",
     help="Output format (default: table)",
 )
@@ -101,7 +101,32 @@ def bridges(top_n: int, metric: str, format: str, config: str, source: str) -> N
     results = graph_obj.analyze_paths()
 
     # Output based on format
-    if format == "json":
+    if format == "csv":
+        # Export as CSV
+        import csv
+        import sys
+
+        writer = csv.writer(sys.stdout)
+        if metric in ["betweenness", "both"]:
+            writer.writerow(["Rank", "Title", "URL", "Betweenness", "Incoming", "Outgoing"])
+            bridges_list = results.get_top_bridges(top_n)
+            for i, (page, score) in enumerate(bridges_list, 1):
+                incoming = graph_obj.incoming_refs.get(page, 0)
+                outgoing = len(graph_obj.outgoing_refs.get(page, set()))
+                url = getattr(page, "url_path", str(page.source_path))
+                writer.writerow([i, page.title, url, f"{score:.10f}", incoming, outgoing])
+
+        if metric in ["closeness", "both"]:
+            if metric == "both":
+                writer.writerow([])  # Empty row separator
+            writer.writerow(["Rank", "Title", "URL", "Closeness", "Outgoing"])
+            accessible = results.get_most_accessible(top_n)
+            for i, (page, score) in enumerate(accessible, 1):
+                outgoing = len(graph_obj.outgoing_refs.get(page, set()))
+                url = getattr(page, "url_path", str(page.source_path))
+                writer.writerow([i, page.title, url, f"{score:.10f}", outgoing])
+
+    elif format == "json":
         # Export as JSON
         data = {
             "avg_path_length": results.avg_path_length,
