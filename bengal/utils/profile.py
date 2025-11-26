@@ -17,7 +17,6 @@ Example:
         pass
 """
 
-
 from __future__ import annotations
 
 from enum import Enum
@@ -156,12 +155,11 @@ class BuildProfile(Enum):
                 "enable_debug_output": False,
                 "collect_metrics": False,
                 "health_checks": {
-                    # Only run critical checks
-                    "enabled": ["config", "output", "links"],
+                    # Writers care about markdown/content errors
+                    "enabled": ["config", "output", "links", "directives"],
                     "disabled": [
                         "performance",
                         "cache",
-                        "directives",
                         "rendering",
                         "navigation",
                         "menu",

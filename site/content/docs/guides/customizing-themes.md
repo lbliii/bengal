@@ -15,13 +15,13 @@ Customize Bengal themes without breaking theme updates. Use theme inheritance, t
 
 ## When to Use This Guide
 
-```{checklist}
+:::{checklist}
 - You want to modify an existing theme's appearance
 - You need to override specific templates
 - You want to add custom CSS without editing theme files
 - You're creating a child theme based on an existing theme
 - You need to customize theme behavior
-```
+:::
 
 ## Prerequisites
 
@@ -34,10 +34,11 @@ Customize Bengal themes without breaking theme updates. Use theme inheritance, t
 
 Bengal resolves themes in this order:
 
-```{checklist} Theme Resolution Priority
+:::{checklist} Theme Resolution Priority
 - **Project themes** - `themes/your-theme/` (highest priority)
 - **Installed themes** - Installed via pip/uv
 - **Bundled themes** - Built into Bengal (e.g., `default`)
+:::
 ```
 
 ### Check Active Theme

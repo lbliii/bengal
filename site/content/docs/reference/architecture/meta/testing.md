@@ -13,7 +13,7 @@ Bengal maintains high code quality through a multi-layered testing strategy.
 
 ## Test Layers
 
-:::{cards}
+::::{cards}
 :columns: 3
 :gap: medium
 :variant: concept

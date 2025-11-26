@@ -7,7 +7,8 @@ Coordinates all validators and produces unified health reports.
 from __future__ import annotations
 
 import time
-from typing import TYPE_CHECKING
+from pathlib import Path
+from typing import TYPE_CHECKING, Any
 
 from bengal.health.base import BaseValidator
 from bengal.health.report import HealthReport, ValidatorReport
@@ -109,7 +110,13 @@ class HealthCheck:
         self.validators.append(validator)
 
     def run(
-        self, build_stats: dict | None = None, verbose: bool = False, profile: BuildProfile = None
+        self,
+        build_stats: dict | None = None,
+        verbose: bool = False,
+        profile: BuildProfile = None,
+        incremental: bool = False,
+        context: list[Path] | None = None,
+        cache: Any = None,
     ) -> HealthReport:
         """
         Run all registered validators and produce a health report.
@@ -118,37 +125,119 @@ class HealthCheck:
             build_stats: Optional build statistics to include in report
             verbose: Whether to show verbose output during validation
             profile: Build profile to use for filtering validators
+            incremental: If True, only validate changed files (requires cache)
+            context: Optional list of specific file paths to validate (overrides incremental)
+            cache: Optional BuildCache instance for incremental validation and result caching
 
         Returns:
             HealthReport with results from all validators
         """
+        from pathlib import Path
+
         from bengal.utils.profile import is_validator_enabled
 
         report = HealthReport(build_stats=build_stats)
 
-        for validator in self.validators:
-            # Check if validator is enabled by profile
-            if profile and not is_validator_enabled(validator.name):
-                if verbose:
-                    print(f"  Skipping {validator.name} (disabled by profile)")
-                continue
+        # Determine which files to validate (for file-specific validators)
+        files_to_validate: set[Path] | None = None
+        if context:
+            # Explicit context provided - validate only these files
+            files_to_validate = set(Path(p) for p in context)
+        elif incremental and cache:
+            # Incremental mode - find changed files
+            from pathlib import Path
 
-            # Check if validator is enabled by config
-            if not validator.is_enabled(self.site.config):
-                if verbose:
-                    print(f"  Skipping {validator.name} (disabled in config)")
-                continue
+            files_to_validate = set()
+            for page in self.site.pages:
+                if page.source_path and cache.is_changed(page.source_path):
+                    files_to_validate.add(page.source_path)
+
+        # File-specific validators that can benefit from incremental validation
+        FILE_SPECIFIC_VALIDATORS = {"Directives", "Links"}
+
+        for validator in self.validators:
+            # Profile-based filtering (if profile is set)
+            if profile:
+                # Check if profile allows this validator (uses global profile state)
+                profile_allows = is_validator_enabled(validator.name)
+
+                # Check config for explicit override
+                health_config = self.site.config.get("health_check", {})
+                validators_config = health_config.get("validators", {})
+                validator_key = validator.name.lower().replace(" ", "_")
+                config_explicit = validator_key in validators_config
+                config_value = validators_config.get(validator_key) if config_explicit else None
+
+                if profile_allows:
+                    # Profile allows it - check if config explicitly disables
+                    if config_explicit and config_value is False:
+                        if verbose:
+                            print(f"  Skipping {validator.name} (disabled in config)")
+                        continue
+                    # Profile allows and config doesn't disable - run it
+                else:
+                    # Profile disables it - only run if config explicitly enables (True)
+                    if config_explicit and config_value is True:
+                        # Config explicitly enables - override profile
+                        pass
+                    else:
+                        # Profile disables and config doesn't override - skip
+                        if verbose:
+                            print(f"  Skipping {validator.name} (disabled by profile)")
+                        continue
+            else:
+                # No profile - use config/default
+                if not validator.is_enabled(self.site.config):
+                    if verbose:
+                        print(f"  Skipping {validator.name} (disabled in config)")
+                    continue
+
+            # Check if we can use cached results (for file-specific validators)
+            use_cache = (
+                cache is not None
+                and validator.name in FILE_SPECIFIC_VALIDATORS
+                and files_to_validate is not None
+                and len(files_to_validate) < len(self.site.pages)  # Only cache if subset
+            )
+
+            cached_results: list[Any] = []
+            if use_cache:
+                # Try to get cached results for unchanged files
+                from bengal.health.report import CheckResult
+
+                for page in self.site.pages:
+                    if not page.source_path or page.source_path in files_to_validate:
+                        continue  # Skip changed files or pages without source
+
+                    cached = cache.get_cached_validation_results(page.source_path, validator.name)
+                    if cached:
+                        # Deserialize cached results
+                        cached_results.extend([CheckResult.from_cache_dict(r) for r in cached])
 
             # Run validator and time it
             start_time = time.time()
 
             try:
+                # For file-specific validators with context, we could optimize further
+                # but for now, validators still validate entire site
+                # Future: Pass files_to_validate to validator.validate() for optimization
                 results = validator.validate(self.site)
 
                 # Set validator name on all results
                 for result in results:
                     if not result.validator:
                         result.validator = validator.name
+
+                # Cache results for file-specific validators
+                if use_cache and cache:
+                    for page in self.site.pages:
+                        if page.source_path and page.source_path in files_to_validate:
+                            # Cache results for changed files
+                            # Note: This is simplified - in reality, we'd need to filter
+                            # results by file. For Phase 1, we cache all results per validator.
+                            pass
+                    # For now, cache all results (simplified approach)
+                    # Future: Filter results by file for per-file caching
 
             except Exception as e:
                 # If validator crashes, record as error

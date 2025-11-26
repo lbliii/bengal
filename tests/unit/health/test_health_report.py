@@ -38,12 +38,55 @@ class TestCheckResult:
         assert result.status == CheckStatus.ERROR
         assert result.message == "Critical issue"
 
+    def test_create_suggestion(self):
+        """Test creating suggestion result."""
+        result = CheckResult.suggestion("Quality improvement", recommendation="Consider this")
+        assert result.status == CheckStatus.SUGGESTION
+        assert result.message == "Quality improvement"
+        assert result.recommendation == "Consider this"
+
     def test_is_problem(self):
         """Test is_problem method."""
         assert not CheckResult.success("OK").is_problem()
         assert not CheckResult.info("Info").is_problem()
+        assert not CheckResult.suggestion("Suggestion").is_problem()  # Suggestions are not problems
         assert CheckResult.warning("Warning").is_problem()
         assert CheckResult.error("Error").is_problem()
+
+    def test_is_actionable(self):
+        """Test is_actionable method."""
+        assert not CheckResult.success("OK").is_actionable()
+        assert not CheckResult.info("Info").is_actionable()
+        assert CheckResult.suggestion("Suggestion").is_actionable()
+        assert CheckResult.warning("Warning").is_actionable()
+        assert CheckResult.error("Error").is_actionable()
+
+    def test_to_cache_dict(self):
+        """Test serialization to cache dict."""
+        result = CheckResult.warning("Test", recommendation="Fix it", details=["detail1"])
+        data = result.to_cache_dict()
+
+        assert data["status"] == "warning"
+        assert data["message"] == "Test"
+        assert data["recommendation"] == "Fix it"
+        assert data["details"] == ["detail1"]
+        assert data["validator"] == ""
+
+    def test_from_cache_dict(self):
+        """Test deserialization from cache dict."""
+        data = {
+            "status": "suggestion",
+            "message": "Test suggestion",
+            "recommendation": "Consider this",
+            "details": None,
+            "validator": "TestValidator",
+        }
+        result = CheckResult.from_cache_dict(data)
+
+        assert result.status == CheckStatus.SUGGESTION
+        assert result.message == "Test suggestion"
+        assert result.recommendation == "Consider this"
+        assert result.validator == "TestValidator"
 
 
 class TestValidatorReport:
@@ -79,6 +122,16 @@ class TestValidatorReport:
         ]
         assert report.warning_count == 2
 
+    def test_suggestion_count(self):
+        """Test counting suggestions."""
+        report = ValidatorReport("Test")
+        report.results = [
+            CheckResult.suggestion("Suggestion 1"),
+            CheckResult.suggestion("Suggestion 2"),
+            CheckResult.success("OK"),
+        ]
+        assert report.suggestion_count == 2
+
     def test_error_count(self):
         """Test counting errors."""
         report = ValidatorReport("Test")
@@ -96,6 +149,10 @@ class TestValidatorReport:
 
         report.results.append(CheckResult.warning("Warning"))
         assert report.has_problems
+
+        # Suggestions are not problems
+        report.results.append(CheckResult.suggestion("Suggestion"))
+        assert report.has_problems  # Still has problems due to warning
 
     def test_status_emoji(self):
         """Test status emoji selection."""
@@ -202,12 +259,13 @@ class TestHealthReport:
         vr.results = [
             CheckResult.success("OK"),  # 1.0 point
             CheckResult.info("Info"),  # 0.8 points
+            CheckResult.suggestion("Suggestion"),  # 0.9 points
             CheckResult.warning("Warning"),  # 0.5 points
             CheckResult.error("Error"),  # 0.0 points
         ]
-        # Total: 2.3 / 4 = 57.5% = 57
+        # Total: 3.2 / 5 = 64% = 64
         score = report.build_quality_score()
-        assert 55 <= score <= 60  # Allow some rounding variance
+        assert 60 <= score <= 65  # Allow some rounding variance
 
     def test_quality_rating(self):
         """Test quality rating labels."""
@@ -325,15 +383,16 @@ class TestHealthReportFormatting:
         assert "Warning message" in output
 
     def test_format_info_messages_shown(self):
-        """Test that INFO messages are visible (regression test for bug)."""
+        """Test that INFO-only validators are filtered out (by design)."""
         report = HealthReport()
         vr = ValidatorReport("Validator")
         vr.results = [CheckResult.info("Important info")]
         report.validator_reports = [vr]
 
-        # In normal mode, should show INFO count
+        # In normal mode, INFO-only validators are filtered out (writers don't need that noise)
         output = report.format_console(mode="normal")
-        assert "1 info" in output or "info" in output.lower()
+        # Should not show the validator since it only has INFO
+        assert "Validator" not in output
 
     def test_format_legacy_verbose_parameter(self):
         """Test that legacy verbose=True parameter works."""

@@ -21,14 +21,14 @@ Create a reusable snippet file:
 
 ```markdown
 <!-- content/snippets/warning.md -->
-```{warning}
+:::{warning}
 This feature is in beta. Please report any issues.
-```
+:::
 ```
 
 Include it in any page:
 
-```markdown
+````markdown
 # My Article
 
 Here is some content.
@@ -37,18 +37,18 @@ Here is some content.
 ```
 
 More content.
-```
+````
 
 ### Include Specific Lines
 
 Include only a portion of a file:
 
-```markdown
+````markdown
 ```{include} snippets/api-example.md
 :start-line: 5
 :end-line: 20
 ```
-```
+````
 
 This includes lines 5-20 from the file.
 
@@ -69,10 +69,10 @@ Use the `{literalinclude}` directive to include code files as syntax-highlighted
 
 ### Basic Usage
 
-```markdown
+````markdown
 ```{literalinclude} examples/api.py
 ```
-```
+````
 
 This automatically:
 - Detects the language from the file extension (`.py` → Python)
@@ -83,54 +83,54 @@ This automatically:
 
 Include only a portion of a code file:
 
-```markdown
+````markdown
 ```{literalinclude} examples/api.py
 :start-line: 10
 :end-line: 25
 ```
-```
+````
 
 ### Emphasize Lines
 
 Highlight specific lines:
 
-```markdown
+````markdown
 ```{literalinclude} examples/api.py
 :emphasize-lines: 7,8,9
 ```
-```
+````
 
 Or a range:
 
-```markdown
+````markdown
 ```{literalinclude} examples/api.py
 :emphasize-lines: 7-9
 ```
-```
+````
 
 ### Specify Language
 
 Override auto-detection:
 
-```markdown
+````markdown
 ```{literalinclude} examples/config.txt
 :language: yaml
 ```
-```
+````
 
 ### Line Numbers
 
 Show line numbers:
 
-```markdown
+````markdown
 ```{literalinclude} examples/api.py
 :linenos: true
 ```
-```
+````
 
 ### Complete Example
 
-```markdown
+````markdown
 ```{literalinclude} examples/api.py
 :language: python
 :start-line: 10
@@ -138,7 +138,7 @@ Show line numbers:
 :emphasize-lines: 15,16,17
 :linenos: true
 ```
-```
+````
 
 ## Supported Languages
 
@@ -192,32 +192,32 @@ Prefer relative paths for portability:
 
 Add comments in snippet files explaining their purpose:
 
-```markdown
+````markdown
 <!--
 Purpose: Beta feature warning
 Used in: Installation guides, API docs
 Last updated: 2025-01-15
 -->
 
-```{warning}
+:::{warning}
 This feature is in beta.
-```
-```
+:::
+````
 
 ## Common Patterns
 
 ### Reusable Warnings
 
 **Create the snippet:**
-```markdown
+````markdown
 <!-- content/snippets/warnings/beta.md -->
-```{warning}
+:::{warning}
 This feature is in beta. Please report issues.
-```
-```
+:::
+````
 
 **Use in multiple pages:**
-```markdown
+````markdown
 # My Guide
 
 Here's how to use the new feature.
@@ -226,7 +226,7 @@ Here's how to use the new feature.
 ```
 
 Continue with instructions...
-```
+````
 
 ### Code Examples
 
@@ -239,7 +239,7 @@ def get_user(user_id: int) -> User:
 ```
 
 **Include with emphasis:**
-```markdown
+````markdown
 Here's the API function:
 
 ```{literalinclude} snippets/code/api-example.py
@@ -248,7 +248,7 @@ Here's the API function:
 ```
 
 The docstring explains the function's purpose.
-```
+````
 
 ### Step-by-Step Instructions
 
@@ -261,7 +261,7 @@ The docstring explains the function's purpose.
 ```
 
 **Include in guides:**
-```markdown
+````markdown
 ## Installation
 
 Follow these steps to install Bengal:
@@ -270,7 +270,7 @@ Follow these steps to install Bengal:
 ```
 
 After installation, continue to the next section.
-```
+````
 
 ## Complete Working Example
 
@@ -290,12 +290,12 @@ content/
 ```
 
 **1. Create the warning snippet:**
-```markdown
+````markdown
 <!-- content/snippets/warnings/beta-notice.md -->
-```{warning}
+:::{warning}
 This API is currently in beta. Breaking changes may occur in future versions.
-```
-```
+:::
+````
 
 **2. Create the code example:**
 ```python
@@ -314,7 +314,7 @@ if __name__ == "__main__":
 ```
 
 **3. Create the tutorial page:**
-```markdown
+````markdown
 ---
 title: API Tutorial
 description: Learn how to use Bengal's API
@@ -343,7 +343,7 @@ Let's create a simple site using the API:
 ## Next Steps
 
 Continue to the [advanced guide](/docs/guides/advanced/).
-```
+````
 
 **Result:** The tutorial page includes the warning and code example, and both can be reused across multiple pages. Update once, use everywhere!
 
@@ -369,22 +369,22 @@ Bengal includes built-in security protections to prevent path traversal attacks 
 3. **Security check** - Final validation ensures path is within site root
 
 **Example of Blocked Paths:**
-```markdown
+````markdown
 # These will be rejected:
 ```{include} ../../../etc/passwd
 ```{include} /absolute/path/to/file.md
 ```{include} ../../../../outside/site.md
 ```
-```
+````
 
 **Example of Allowed Paths:**
-```markdown
+````markdown
 # These are allowed:
 ```{include} snippets/warning.md          # Relative to current page
 ```{include} ../shared/common.md          # Relative, but within site root
 ```{include} content/snippets/warning.md  # From site root
 ```
-```
+````
 
 ### Security Best Practices
 
@@ -393,9 +393,9 @@ Bengal includes built-in security protections to prevent path traversal attacks 
 3. **Validate included files** - Test snippets independently before including
 4. **Review included content** - Be aware of what content is being included, especially from external sources
 
-```{warning}
+:::{warning}
 **Security Note:** While Bengal prevents path traversal, always review content from external sources before including it. Included markdown is processed and can execute directives, so ensure you trust the source.
-```
+:::
 
 ## Troubleshooting
 
@@ -434,14 +434,14 @@ bengal site build --verbose  # Shows resolved paths
 - Check that your site root is correctly configured in `bengal.toml`
 
 **Example Fix:**
-```markdown
+````markdown
 # Before (blocked):
 ```{include} ../../outside/snippet.md
 
 # After (allowed):
 ```{include} snippets/snippet.md  # File moved to content/snippets/
 ```
-```
+````
 
 ### Syntax Errors in Included Content
 
@@ -472,7 +472,7 @@ bengal site build --verbose  # Shows parsing errors
 - Restructure your content organization
 
 **Example:**
-```markdown
+````markdown
 # Bad: circular dependency
 # file-a.md includes file-b.md
 # file-b.md includes file-a.md
@@ -480,7 +480,7 @@ bengal site build --verbose  # Shows parsing errors
 # Good: shared content
 # file-a.md includes shared.md
 # file-b.md includes shared.md
-```
+````
 
 ### Include Depth Limits
 

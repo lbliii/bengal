@@ -81,6 +81,12 @@
             // Create wrapper
             const wrapper = document.createElement('div');
             wrapper.className = 'graph-minimap-container';
+
+            // Ensure wrapper is visible (fix for production fade-out issue)
+            wrapper.style.display = 'block';
+            wrapper.style.opacity = '1';
+            wrapper.style.visibility = 'visible';
+
             this.container.appendChild(wrapper);
 
             // Create SVG
@@ -88,7 +94,9 @@
                 .append('svg')
                 .attr('width', this.options.width)
                 .attr('height', this.options.height)
-                .style('display', 'block');
+                .style('display', 'block')
+                .style('opacity', '1')
+                .style('visibility', 'visible');
 
             // Create group for zoom/pan
             this.g = this.svg.append('g');
@@ -204,6 +212,13 @@
                     this.simulation.stop();
                 }
                 this._simulationTimeout = null;
+
+                // Ensure visibility is maintained after simulation ends
+                const wrapper = this.container.querySelector('.graph-minimap-container');
+                if (wrapper) {
+                    wrapper.style.opacity = '1';
+                    wrapper.style.visibility = 'visible';
+                }
             }, 2000);
         }
 

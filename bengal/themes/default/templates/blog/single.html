@@ -117,7 +117,8 @@ Context variables:
             {% endif %}
 
             {# Author Bio #}
-            {% if page.metadata.get('author') and page.metadata.get('author_bio') and site.theme_config.config.get('show_author', true) %}
+            {% if page.metadata.get('author') and page.metadata.get('author_bio') and
+            site.theme_config.config.get('show_author', true) %}
             <div class="author-bio">
                 <div class="author-bio-header">
                     {% if page.metadata.get('author_avatar') %}

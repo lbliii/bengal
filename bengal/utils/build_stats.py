@@ -498,13 +498,9 @@ def display_build_stats(
 
 
 def show_building_indicator(text: str = "Building") -> None:
-    """Show a building indicator with Bengal cat mascot."""
-    from bengal.utils.rich_console import get_console
-
-    console = get_console()
-    console.print()
-    console.print("    [bengal]ᓚᘏᗢ[/bengal]  [header]Building your site...[/header]")
-    console.print()
+    """Show a building indicator (minimal - header is shown by build orchestrator)."""
+    # Note: The build orchestrator shows the full header with border, so we don't duplicate it here
+    pass
 
 
 def show_error(message: str, show_art: bool = True) -> None:

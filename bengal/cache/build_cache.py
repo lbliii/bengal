@@ -51,7 +51,7 @@ class BuildCache:
     """
 
     # Serialized schema version (persisted in cache JSON). Tolerant loader accepts missing/older.
-    VERSION: int = 1  # Class-level constant for current schema
+    VERSION: int = 2  # Bumped for validation_results field
 
     # Instance persisted version; defaults to current VERSION
     version: int = VERSION
@@ -70,6 +70,10 @@ class BuildCache:
 
     # Synthetic page cache (for autodoc, etc.)
     synthetic_pages: dict[str, dict[str, Any]] = field(default_factory=dict)
+
+    # Validation result cache: file_path → validator_name → [CheckResult dicts]
+    # Structure: {file_path: {validator_name: [CheckResult.to_cache_dict(), ...]}}
+    validation_results: dict[str, dict[str, list[dict[str, Any]]]] = field(default_factory=dict)
 
     last_build: str | None = None
 
@@ -96,6 +100,7 @@ class BuildCache:
             self.known_tags = set(self.known_tags)
         # Parsed content is already in dict format (no conversion needed)
         # Synthetic pages is already in dict format (no conversion needed)
+        # Validation results are already in dict format (no conversion needed)
 
     @classmethod
     def load(cls, cache_path: Path) -> BuildCache:
@@ -149,6 +154,10 @@ class BuildCache:
             if "page_tags" in data:
                 data["page_tags"] = {k: set(v) for k, v in data["page_tags"].items()}
 
+            # Validation results (new in VERSION 2, tolerate missing)
+            if "validation_results" not in data:
+                data["validation_results"] = {}
+
             # Inject default version if missing
             if "version" not in data:
                 data["version"] = cls.VERSION
@@ -194,7 +203,8 @@ class BuildCache:
             "page_tags": {k: list(v) for k, v in self.page_tags.items()},
             "tag_to_pages": {k: list(v) for k, v in self.tag_to_pages.items()},  # Save tag index
             "known_tags": list(self.known_tags),  # Save known tags
-            "parsed_content": self.parsed_content,  # NEW: Already in dict format
+            "parsed_content": self.parsed_content,  # Already in dict format
+            "validation_results": self.validation_results,  # Already in dict format
             "last_build": datetime.now().isoformat(),
         }
 
@@ -281,6 +291,83 @@ class BuildCache:
         """
         file_key = str(file_path)
         self.file_hashes[file_key] = self.hash_file(file_path)
+
+    def get_cached_validation_results(
+        self, file_path: Path, validator_name: str
+    ) -> list[dict[str, Any]] | None:
+        """
+        Get cached validation results for a file and validator.
+
+        Args:
+            file_path: Path to file
+            validator_name: Name of validator
+
+        Returns:
+            List of CheckResult dicts if cached and file unchanged, None otherwise
+        """
+        file_key = str(file_path)
+
+        # Check if file has changed
+        if self.is_changed(file_path):
+            # File changed - invalidate cached results
+            if file_key in self.validation_results:
+                del self.validation_results[file_key]
+            return None
+
+        # File unchanged - return cached results if available
+        file_results = self.validation_results.get(file_key, {})
+        return file_results.get(validator_name)
+
+    def cache_validation_results(
+        self, file_path: Path, validator_name: str, results: list[Any]
+    ) -> None:
+        """
+        Cache validation results for a file and validator.
+
+        Args:
+            file_path: Path to file
+            validator_name: Name of validator
+            results: List of CheckResult objects to cache
+        """
+        file_key = str(file_path)
+
+        # Ensure file entry exists
+        if file_key not in self.validation_results:
+            self.validation_results[file_key] = {}
+
+        # Serialize CheckResult objects to dicts
+        from bengal.health.report import CheckResult
+
+        serialized_results = []
+        for result in results:
+            if isinstance(result, CheckResult):
+                serialized_results.append(result.to_cache_dict())
+            elif isinstance(result, dict):
+                # Already serialized
+                serialized_results.append(result)
+            else:
+                # Fallback: try to serialize
+                serialized_results.append(
+                    result.to_cache_dict() if hasattr(result, "to_cache_dict") else {}
+                )
+
+        self.validation_results[file_key][validator_name] = serialized_results
+
+    def invalidate_validation_results(self, file_path: Path | None = None) -> None:
+        """
+        Invalidate validation results for a file or all files.
+
+        Args:
+            file_path: Path to file (if None, invalidate all)
+        """
+        if file_path is None:
+            # Invalidate all
+            self.validation_results.clear()
+        else:
+            # Invalidate specific file
+            file_key = str(file_path)
+            if file_key in self.validation_results:
+                del self.validation_results[file_key]
 
     def track_output(self, source_path: Path, output_path: Path, output_dir: Path) -> None:
         """

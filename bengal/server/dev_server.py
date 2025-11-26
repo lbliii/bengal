@@ -131,6 +131,8 @@ class DevServer:
             baseurl_was_cleared = self._prepare_dev_config()
 
             # 3. Initial build
+            # Use WRITER profile for fast builds (can enable specific validators via config)
+            # Config can override profile to enable directives validator without full THEME_DEV overhead
             show_building_indicator("Initial build")
             stats = self.site.build(
                 profile=BuildProfile.WRITER, incremental=not baseurl_was_cleared

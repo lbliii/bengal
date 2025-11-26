@@ -36,17 +36,17 @@ Include markdown files directly in your content.
 **Syntax**:
 
 ````markdown
-```{include} path/to/file.md
-```
+:::{include} path/to/file.md
+:::
 ````
 
 **With Options**:
 
 ````markdown
-```{include} path/to/file.md
+:::{include} path/to/file.md
 :start-line: 5
 :end-line: 20
-```
+:::
 ````
 
 **Options**:
@@ -71,26 +71,26 @@ Paths are resolved relative to:
 **Include Entire File**:
 
 ````markdown
-```{include} snippets/warning.md
-```
+:::{include} snippets/warning.md
+:::
 ````
 
 **Include Specific Lines**:
 
 ````markdown
-```{include} snippets/api-example.md
+:::{include} snippets/api-example.md
 :start-line: 5
 :end-line: 20
-```
+:::
 ````
 
 **Nested Directives**: Included content can use other directives:
 
 ````markdown
 <!-- snippets/warning.md -->
-```{warning}
+:::{warning}
 This feature is in beta.
-```
+:::
 ````
 
 ## Literal Include
@@ -100,20 +100,20 @@ Include code files as syntax-highlighted code blocks.
 **Syntax**:
 
 ````markdown
-```{literalinclude} path/to/file.py
-```
+:::{literalinclude} path/to/file.py
+:::
 ````
 
 **With Options**:
 
 ````markdown
-```{literalinclude} path/to/file.py
+:::{literalinclude} path/to/file.py
 :language: python
 :start-line: 10
 :end-line: 25
 :emphasize-lines: 15,16,17
 :linenos: true
-```
+:::
 ````
 
 **Options**:
@@ -140,45 +140,45 @@ Include code files as syntax-highlighted code blocks.
 **Basic Include**:
 
 ````markdown
-```{literalinclude} examples/api.py
-```
+:::{literalinclude} examples/api.py
+:::
 ````
 
 **With Line Range**:
 
 ````markdown
-```{literalinclude} examples/api.py
+:::{literalinclude} examples/api.py
 :start-line: 10
 :end-line: 25
-```
+:::
 ````
 
 **With Emphasized Lines**:
 
 ````markdown
-```{literalinclude} examples/api.py
+:::{literalinclude} examples/api.py
 :emphasize-lines: 7,8,9
-```
+:::
 ````
 
 **With Line Numbers**:
 
 ````markdown
-```{literalinclude} examples/api.py
+:::{literalinclude} examples/api.py
 :linenos: true
-```
+:::
 ````
 
 **Complete Example**:
 
 ````markdown
-```{literalinclude} examples/api.py
+:::{literalinclude} examples/api.py
 :language: python
 :start-line: 10
 :end-line: 30
 :emphasize-lines: 15,16,17
 :linenos: true
-```
+:::
 ````
 
 ### Path Resolution
@@ -241,9 +241,9 @@ Used in: Installation guides, API docs
 Last updated: 2025-01-15
 -->
 
-```{warning}
+:::{warning}
 This feature is in beta.
-```
+:::
 ````
 
 ## Common Patterns
@@ -252,16 +252,16 @@ This feature is in beta.
 
 ````markdown
 <!-- snippets/warnings/beta.md -->
-```{warning}
+:::{warning}
 This feature is in beta. Please report issues.
-```
+:::
 ````
 
 Use in multiple pages:
 
 ````markdown
-```{include} snippets/warnings/beta.md
-```
+:::{include} snippets/warnings/beta.md
+:::
 ````
 
 ### Code Examples
@@ -276,9 +276,9 @@ def get_user(user_id: int) -> User:
 Include with emphasis:
 
 ````markdown
-```{literalinclude} snippets/code/api-example.py
+:::{literalinclude} snippets/code/api-example.py
 :emphasize-lines: 2
-```
+:::
 ````
 
 ## Troubleshooting

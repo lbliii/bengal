@@ -1,5 +1,23 @@
 ## Unreleased
 
+### Health Check System Enhancements (Phase 1 & 2)
+- **health**: add incremental validation with result caching (Phase 1)
+- **health**: extend BuildCache with validation_results field for caching CheckResult objects
+- **health**: add CheckResult serialization (to_cache_dict/from_cache_dict) for caching
+- **health**: add incremental and context-aware validation to HealthCheck.run()
+- **health**: create standalone `bengal validate` CLI command with --file, --changed, --incremental, --watch options
+- **health**: integrate incremental validation into build orchestrator (automatic in dev server)
+- **health**: add progressive severity system with SUGGESTION level (Phase 2.1)
+- **health**: update CheckResult with suggestion() method and is_actionable() helper
+- **health**: update report formatting to handle suggestions (collapsed unless --suggestions)
+- **health**: add --suggestions flag to bengal validate command
+- **health**: create AutoFixer framework with FixAction and FixSafety levels (Phase 2.2)
+- **health**: add `bengal fix` command for auto-fixing common issues
+- **health**: implement directive fence nesting auto-fix (SAFE level)
+- **health**: add watch mode for continuous validation (`bengal validate --watch`) (Phase 2.3)
+- **health**: update build_quality_score to include suggestions (0.9 points)
+- **cache**: bump BuildCache.VERSION to 2 for validation_results field
+
 ## 0.1.4 - 2025-11-25
 
 ### Configuration System Overhaul (MAJOR)

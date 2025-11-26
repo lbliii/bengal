@@ -74,9 +74,9 @@ Download Python 3.14 from [python.org/downloads](https://www.python.org/download
 - Verify: `python3 --version` (should show 3.14.0)
 - Use `python3` command instead of `python` if your system has multiple versions
 
-```{note}
+:::{note}
 **macOS users:** The official installer may conflict with system Python. Consider using pyenv instead for easier version management.
-```
+:::
 
 ::::
 

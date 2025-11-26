@@ -40,9 +40,9 @@ Create styled badges for labels, tags, or status indicators.
 **Syntax**:
 
 ````markdown
-```{badge} Text
+:::{badge} Text
 :class: badge-class
-```
+:::
 ````
 
 **Options**:
@@ -56,24 +56,24 @@ Create styled badges for labels, tags, or status indicators.
 **Basic Badge**:
 
 ````markdown
-```{badge} New
-```
+:::{badge} New
+:::
 ````
 
 **Custom Class**:
 
 ````markdown
-```{badge} Deprecated
+:::{badge} Deprecated
 :class: badge-danger
-```
+:::
 ````
 
 **CLI Command Badge**:
 
 ````markdown
-```{badge} bengal build
+:::{badge} bengal build
 :class: badge-cli-command
-```
+:::
 ````
 
 ## Button
@@ -220,9 +220,9 @@ For nested directives like admonitions within steps, use 5 fences for the contai
 :::::{steps}
 
 ::::{step} First Step
-```{tip}
+:::{tip}
 Remember to check the logs!
-```
+:::
 ::::
 
 ::::{step} Second Step
@@ -231,7 +231,7 @@ More content
 :::::
 ````
 
-**Note**: The container uses 5 fences (`:::::`), steps use 4 fences (`::::`), and the nested admonition uses 3 backticks. Each nesting level requires incrementing the fence count.
+**Note**: The container uses 5 fences (`:::::`), steps use 4 fences (`::::`), and the nested admonition uses 3 colons (`:::`). Each nesting level requires incrementing the fence count.
 
 ## Checklist
 
@@ -240,12 +240,12 @@ Create styled checklist containers for bullet lists and task lists.
 **Syntax**:
 
 ````markdown
-```{checklist} Optional Title
+:::{checklist} Optional Title
 - Item one
 - Item two
 - [x] Completed item
 - [ ] Unchecked item
-```
+:::
 ````
 
 **Options**:
@@ -257,21 +257,21 @@ Create styled checklist containers for bullet lists and task lists.
 **Basic Checklist**:
 
 ````markdown
-```{checklist} Prerequisites
+:::{checklist} Prerequisites
 - Python 3.10+
 - Git installed
 - Text editor
-```
+:::
 ````
 
 **Task List**:
 
 ````markdown
-```{checklist} Setup Tasks
+:::{checklist} Setup Tasks
 - [x] Install dependencies
 - [x] Configure site
 - [ ] Deploy to production
-```
+:::
 ````
 
 ## Rubric
@@ -281,9 +281,9 @@ Create pseudo-headings that look like headings but don't appear in the table of 
 **Syntax**:
 
 ````markdown
-```{rubric} Label Text
+:::{rubric} Label Text
 :class: custom-class
-```
+:::
 ````
 
 **Options**:
@@ -297,16 +297,16 @@ Create pseudo-headings that look like headings but don't appear in the table of 
 **API Documentation**:
 
 ````markdown
-```{rubric} Parameters
+:::{rubric} Parameters
 :class: rubric-parameters
-```
+:::
 
 - `param1` (str): First parameter
 - `param2` (int): Second parameter
 
-```{rubric} Returns
+:::{rubric} Returns
 :class: rubric-returns
-```
+:::
 
 Returns a dictionary with results.
 ````

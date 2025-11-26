@@ -231,7 +231,8 @@ class BuildHandler(FileSystemEventHandler):
             try:
                 # Use incremental + parallel for fast dev server rebuilds (5-10x faster)
                 # Cache invalidation auto-detects config/template changes and falls back to full rebuild
-                # Use WRITER profile for clean, minimal output during file watching
+                # Use WRITER profile for fast builds (can enable specific validators via config)
+                # Config can override profile to enable directives validator without full THEME_DEV overhead
                 from bengal.utils.profile import BuildProfile
 
                 # Ensure dev flags remain active on rebuilds

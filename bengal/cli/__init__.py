@@ -9,11 +9,13 @@ import click
 from bengal import __version__
 from bengal.cli.commands.assets import assets as assets_cli
 from bengal.cli.commands.config import config_cli
+from bengal.cli.commands.fix import fix as fix_cli
 from bengal.cli.commands.health import health_cli
 from bengal.cli.commands.new import new
 from bengal.cli.commands.project import project_cli
 from bengal.cli.commands.site import site_cli
 from bengal.cli.commands.utils import utils_cli
+from bengal.cli.commands.validate import validate as validate_cli
 from bengal.utils.cli_output import CLIOutput
 from bengal.utils.traceback_config import TracebackConfig
 
@@ -57,6 +59,8 @@ def main(ctx) -> None:
 main.add_command(site_cli)
 main.add_command(config_cli)
 main.add_command(health_cli)
+main.add_command(validate_cli)
+main.add_command(fix_cli)
 main.add_command(utils_cli)
 main.add_command(new)
 main.add_command(project_cli)

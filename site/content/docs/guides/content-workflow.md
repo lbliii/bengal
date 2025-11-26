@@ -15,13 +15,13 @@ Establish an efficient workflow for creating, reviewing, and publishing content.
 
 ## When to Use This Guide
 
-```{checklist}
+:::{checklist}
 - You're creating content regularly (blog, documentation, etc.)
 - You need to manage drafts and work-in-progress content
 - You want to set up a content review process
 - You're working with a team on content
 - You need scheduled or automated publishing
-```
+:::
 
 ## Prerequisites
 

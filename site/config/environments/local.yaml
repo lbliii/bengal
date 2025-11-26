@@ -16,3 +16,10 @@ assets:
   # Disable minification for easier debugging
   minify: true
   fingerprint: false
+
+# Health check configuration
+health_check:
+  # Enable verbose output to see INFO-level warnings (admonitions, links, etc.)
+  verbose: true
+  # Note: WRITER profile now includes directives validator by default (writers care about markdown errors)
+  # Theme devs get additional validators: rendering, navigation, menu (for template/theme debugging)
