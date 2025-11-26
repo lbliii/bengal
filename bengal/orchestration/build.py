@@ -98,6 +98,11 @@ class BuildOrchestrator:
         if profile is None:
             profile = BuildProfile.WRITER
 
+        # Set global profile for helper functions (used by is_validator_enabled)
+        from bengal.utils.profile import set_current_profile
+
+        set_current_profile(profile)
+
         # Get profile configuration
         profile_config = profile.get_config()
 
@@ -147,6 +152,9 @@ class BuildOrchestrator:
             cli.detail(f"Mode: {mode_label} ({_auto_reason})", indent=1)
         else:
             cli.detail(f"Mode: {mode_label} (flag)", indent=1)
+        # Show active profile
+        profile_label = profile.value if profile else "writer"
+        cli.detail(f"Profile: {profile_label}", indent=1)
         cli.blank()
 
         self.site.build_time = datetime.now()
@@ -984,7 +992,7 @@ class BuildOrchestrator:
             cli.detail(f"Pagination:       {pagination_pages}", indent=1, icon="├─")
         cli.detail(f"Total:            {len(self.site.pages)} ✓", indent=1, icon="└─")
 
-    def _run_health_check(self, profile: BuildProfile = None) -> None:
+    def _run_health_check(self, profile: BuildProfile = None, incremental: bool = False) -> None:
         """
         Run health check system with profile-based filtering.
 
@@ -995,6 +1003,7 @@ class BuildOrchestrator:
 
         Args:
             profile: Build profile to use for filtering validators
+            incremental: Whether this is an incremental build (enables incremental validation)
 
         Raises:
             Exception: If strict_mode is enabled and health checks fail
@@ -1014,7 +1023,17 @@ class BuildOrchestrator:
 
         # Run health checks with profile filtering
         health_check = HealthCheck(self.site)
-        report = health_check.run(profile=profile)
+
+        # Pass cache for incremental validation if available
+        cache = None
+        if incremental and self.incremental.cache:
+            cache = self.incremental.cache
+
+        report = health_check.run(
+            profile=profile,
+            incremental=incremental,
+            cache=cache,
+        )
 
         # Print report using CLI output
         from bengal.utils.cli_output import get_cli_output

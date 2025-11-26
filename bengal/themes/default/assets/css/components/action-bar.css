@@ -34,7 +34,11 @@
   width: 100%;
   box-sizing: border-box;
   position: relative;
-  overflow: hidden;
+  /* Use visible overflow to allow dropdown to extend beyond container */
+  /* Blobs are clipped via border-radius on the container itself */
+  overflow: visible;
+  /* Ensure proper stacking context for dropdown */
+  isolation: isolate;
 }
 
 /* Blob background animation for action bar - optimized for horizontal bar layout */
@@ -58,6 +62,8 @@
   z-index: 0;
   opacity: 0.5;
   transition: opacity 0.3s ease;
+  /* Clip blob to action bar border-radius while allowing dropdown overflow */
+  clip-path: inset(0 round var(--radius-lg));
 }
 
 /* Right blob */
@@ -80,6 +86,8 @@
   z-index: 0;
   opacity: 0.5;
   transition: opacity 0.3s ease;
+  /* Clip blob to action bar border-radius while allowing dropdown overflow */
+  clip-path: inset(0 round var(--radius-lg));
 }
 
 .action-bar:hover::before,
@@ -514,9 +522,15 @@
     -2px -2px 6px rgba(255, 255, 255, 0.2);
   opacity: 0;
   visibility: hidden;
-  transform: translateY(-10px);
+  /* Use translate3d to enable hardware acceleration and reduce flickering in Safari */
+  transform: translate3d(0, -10px, 0);
+  /* Optimize transitions for Safari - combine all transitions */
   transition: opacity 0.15s ease, transform 0.15s ease, visibility 0.15s, box-shadow 0.2s ease;
   z-index: 1000;
+  /* Ensure dropdown creates its own stacking context above action bar */
+  isolation: isolate;
+  /* Force hardware acceleration in Safari - reset after animation */
+  will-change: transform, opacity;
 }
 
 /* (removed glass material) */
@@ -524,7 +538,10 @@
 .action-bar-share-dropdown[aria-hidden="false"] {
   opacity: 1;
   visibility: visible;
-  transform: translateY(0);
+  /* Use translate3d for hardware acceleration in Safari */
+  transform: translate3d(0, 0, 0);
+  /* Reset will-change after animation completes */
+  will-change: auto;
 }
 
 .action-bar-share-content {
@@ -940,13 +957,14 @@
   .action-bar-share-dropdown {
     right: auto;
     left: 50%;
-    transform: translateX(-50%) translateY(-10px);
+    /* Use translate3d for hardware acceleration in Safari */
+    transform: translate3d(-50%, -10px, 0);
     min-width: 280px;
     max-width: 90vw;
   }
 
   .action-bar-share-dropdown[aria-hidden="false"] {
-    transform: translateX(-50%) translateY(0);
+    transform: translate3d(-50%, 0, 0);
   }
 }
 

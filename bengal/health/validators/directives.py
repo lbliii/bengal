@@ -211,7 +211,7 @@ class DirectiveValidator(BaseValidator):
 
     def _extract_directives(self, content: str, file_path: Path) -> list[dict[str, Any]]:
         """
-        Extract all directive blocks from markdown content.
+        Extract all directive blocks from markdown content (both backtick and colon fences).
 
         Args:
             content: Markdown content
@@ -222,17 +222,14 @@ class DirectiveValidator(BaseValidator):
         """
         directives = []
 
-        # Pattern: `{3,}\{directive_type} optional_title
+        # Pattern 1: Backtick fences: `{3,}\{directive_type} optional_title
         #          :option: value
         #
         #          content
         #          `{3,}
-        # Capture fence markers to detect nesting issues
-        pattern = r"(`{3,})\{(\w+(?:-\w+)?)\}([^\n]*)\n(.*?)\1"
+        backtick_pattern = r"(`{3,})\{(\w+(?:-\w+)?)\}([^\n]*)\n(.*?)\1"
 
-        content.split("\n")
-
-        for match in re.finditer(pattern, content, re.DOTALL):
+        for match in re.finditer(backtick_pattern, content, re.DOTALL):
             fence_marker = match.group(1)  # e.g., ``` or ````
             directive_type = match.group(2)
             title = match.group(3).strip()
@@ -249,6 +246,7 @@ class DirectiveValidator(BaseValidator):
                 "line_number": line_number,
                 "file_path": file_path,
                 "fence_depth": len(fence_marker),  # Track fence depth
+                "fence_type": "backtick",
             }
 
             # Check for fence nesting issues
@@ -267,6 +265,75 @@ class DirectiveValidator(BaseValidator):
                 self._validate_dropdown_directive(directive_info)
 
             directives.append(directive_info)
+
+        # Pattern 2: Colon fences: :{3,}\{directive_type} optional_title
+        #          :option: value
+        #
+        #          content
+        #          :{3,}
+        # Note: Colon fences can be indented, but closing fence colon count must match
+        # We match the opening fence, then find the matching closing fence by colon count
+        colon_start_pattern = r"^(\s*)(:{3,})\{(\w+(?:-\w+)?)\}([^\n]*)"
+        lines = content.split("\n")
+        i = 0
+        while i < len(lines):
+            match = re.match(colon_start_pattern, lines[i])
+            if match:
+                fence_marker = match.group(2)  # e.g., ::: or ::::
+                directive_type = match.group(3)
+                title = match.group(4).strip()
+                fence_depth = len(fence_marker)
+
+                # Find the matching closing fence (same colon count, optional indent)
+                directive_content_lines = []
+                j = i + 1
+                found_closing = False
+                while j < len(lines):
+                    # Check if this line is the closing fence (same colon count)
+                    closing_pattern = rf"^\s*:{fence_depth}\s*$"
+                    if re.match(closing_pattern, lines[j]):
+                        found_closing = True
+                        break
+                    directive_content_lines.append(lines[j])
+                    j += 1
+
+                if not found_closing:
+                    # Unclosed fence - will be caught by validate_nested_fences
+                    i += 1
+                    continue
+
+                directive_content = "\n".join(directive_content_lines)
+                line_number = i + 1
+
+                directive_info = {
+                    "type": directive_type,
+                    "title": title,
+                    "content": directive_content,
+                    "line_number": line_number,
+                    "file_path": file_path,
+                    "fence_depth": fence_depth,
+                    "fence_type": "colon",
+                }
+
+                # Check for fence nesting issues
+                self._check_fence_nesting(directive_info)
+
+                # Check if directive type is known
+                if directive_type not in self.KNOWN_DIRECTIVES:
+                    directive_info["syntax_error"] = f"Unknown directive type: {directive_type}"
+
+                # Validate specific directive types
+                if directive_type == "tabs":
+                    self._validate_tabs_directive(directive_info)
+                elif directive_type in ("code-tabs", "code_tabs"):
+                    self._validate_code_tabs_directive(directive_info)
+                elif directive_type in ("dropdown", "details"):
+                    self._validate_dropdown_directive(directive_info)
+
+                directives.append(directive_info)
+                i = j + 1  # Skip past closing fence
+            else:
+                i += 1
 
         return directives
 
@@ -415,14 +482,35 @@ class DirectiveValidator(BaseValidator):
 
         # Check for fence nesting warnings
         if fence_warnings:
+            # Group by file for better organization
+            file_groups = {}
+            for w in fence_warnings:
+                file_key = w["page"].name
+                if file_key not in file_groups:
+                    file_groups[file_key] = []
+                file_groups[file_key].append(w)
+
+            # Build details with file grouping
+            details = []
+            for file_name, warnings in list(file_groups.items())[:3]:
+                line_nums = sorted(set(w["line"] for w in warnings))
+                details.append(
+                    f"{file_name}:{','.join(map(str, line_nums))} - {len(warnings)} issue(s)"
+                )
+
+            if len(fence_warnings) > 3:
+                details.append(
+                    f"... and {len(fence_warnings) - sum(len(w) for w in list(file_groups.values())[:3])} more"
+                )
+
             results.append(
                 CheckResult.warning(
-                    f"{len(fence_warnings)} directive(s) may have fence nesting issues",
-                    recommendation="Use 4+ backticks (````) for directive fences when content contains 3-backtick code blocks.",
-                    details=[
-                        f"{w['page'].name}:{w['line']} - {w['type']}: {w['warning']}"
-                        for w in fence_warnings[:5]
-                    ],
+                    f"{len(fence_warnings)} directive(s) have fence nesting issues",
+                    recommendation=(
+                        "These directives use 3 backticks (```) but contain code blocks with 3 backticks. "
+                        "Fix: Change directive opening from ```{name} to ````{name} (use 4+ backticks)."
+                    ),
+                    details=details,
                 )
             )
 
@@ -540,7 +628,9 @@ class DirectiveValidator(BaseValidator):
 
                 # Check for unrendered directive markers (outside code blocks)
                 if self._has_unrendered_directives(content):
-                    issues.append(f"{page.output_path.name}: Unrendered directive block found")
+                    issues.append(
+                        f"{page.output_path.name}: Directive syntax error - directive not rendered"
+                    )
 
                 # Check for directive parsing error markers
                 if 'class="markdown-error"' in content:
@@ -550,11 +640,28 @@ class DirectiveValidator(BaseValidator):
                 pass
 
         if issues:
+            # Group by file for cleaner output
+            file_counts = {}
+            for issue in issues:
+                file_name = issue.split(":")[0]
+                file_counts[file_name] = file_counts.get(file_name, 0) + 1
+
+            details = []
+            for file_name, count in list(file_counts.items())[:3]:
+                details.append(f"{file_name}: {count} issue(s)")
+            remaining = len(issues) - sum(list(file_counts.values())[:3])
+            if remaining > 0:
+                details.append(f"... and {remaining} more")
+
             results.append(
                 CheckResult.error(
-                    f"{len(issues)} page(s) have directive rendering issues",
-                    recommendation="Check for directive syntax errors or missing directive plugins.",
-                    details=issues[:5],
+                    f"{len(issues)} page(s) have directive rendering errors",
+                    recommendation=(
+                        "Directives failed to render. Common causes: "
+                        "missing closing fence, invalid syntax, or unknown directive type. "
+                        "Check the directive syntax in the source markdown files."
+                    ),
+                    details=details,
                 )
             )
         elif data["total_directives"] > 0:

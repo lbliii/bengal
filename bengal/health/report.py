@@ -4,7 +4,6 @@ Health check report formatting and data structures.
 Provides structured reporting of health check results with multiple output formats.
 """
 
-
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -82,6 +81,40 @@ class CheckResult:
     def is_problem(self) -> bool:
         """Check if this is a warning or error (vs success/info)."""
         return self.status in (CheckStatus.WARNING, CheckStatus.ERROR)
+
+    def to_cache_dict(self) -> dict[str, Any]:
+        """
+        Serialize CheckResult to JSON-serializable dict for caching.
+
+        Returns:
+            Dictionary with all fields as JSON-serializable types
+        """
+        return {
+            "status": self.status.value,  # Enum to string
+            "message": self.message,
+            "recommendation": self.recommendation,
+            "details": self.details,
+            "validator": self.validator,
+        }
+
+    @classmethod
+    def from_cache_dict(cls, data: dict[str, Any]) -> CheckResult:
+        """
+        Deserialize CheckResult from cached dict.
+
+        Args:
+            data: Dictionary from cache
+
+        Returns:
+            CheckResult instance
+        """
+        return cls(
+            status=CheckStatus(data["status"]),  # String to enum
+            message=data["message"],
+            recommendation=data.get("recommendation"),
+            details=data.get("details"),
+            validator=data.get("validator", ""),
+        )
 
 
 @dataclass
@@ -314,7 +347,8 @@ class HealthReport:
 
     def _format_normal(self) -> str:
         """
-        Balanced output - show all validators but only problem details.
+        Balanced output with progressive disclosure - problems first, then successes.
+        Reduces cognitive load by prioritizing actionable information.
         """
         lines = []
 
@@ -322,32 +356,71 @@ class HealthReport:
         lines.append("━" * 60)
         lines.append("")
 
-        # Show all validators with status
+        # Separate validators by priority: problems first, then passed
+        # Skip validators that only have INFO messages (writers don't need that noise)
+        validators_with_problems = []
+        validators_passed = []
+
         for vr in self.validator_reports:
-            status_line = f"{vr.status_emoji} {vr.validator_name:<20}"
+            # Skip INFO-only validators
+            if vr.info_count > 0 and vr.error_count == 0 and vr.warning_count == 0:
+                continue
 
-            if vr.error_count > 0:
-                status_line += f" {vr.error_count} error(s)"
-            elif vr.warning_count > 0:
-                status_line += f" {vr.warning_count} warning(s)"
-            elif vr.info_count > 0:
-                status_line += f" {vr.info_count} info"
+            if vr.has_problems:
+                validators_with_problems.append(vr)
             else:
-                status_line += " passed"
+                validators_passed.append(vr)
 
-            lines.append(status_line)
+        # Sort problems by severity: errors first, then warnings
+        validators_with_problems.sort(key=lambda v: (v.error_count == 0, v.warning_count == 0))
 
-            # Show problems only (not success messages)
-            for result in vr.results:
-                if result.is_problem():
-                    lines.append(f"   • {result.message}")
-                    if result.recommendation:
-                        lines.append(f"     💡 {result.recommendation}")
-                    if result.details:
-                        for detail in result.details[:3]:
-                            lines.append(f"        - {detail}")
-                        if len(result.details) > 3:
-                            lines.append(f"        ... and {len(result.details) - 3} more")
+        # Show problems first (most important - what needs attention)
+        if validators_with_problems:
+            lines.append("[bold]Issues Found:[/bold]")
+            lines.append("")
+
+            for i, vr in enumerate(validators_with_problems):
+                is_last_problem = i == len(validators_with_problems) - 1
+                is_last_overall = is_last_problem and not validators_passed
+                tree_symbol = "└─" if is_last_overall else "├─"
+
+                # Build status line with emoji, tree symbol, and validator name
+                status_parts = [f"   {tree_symbol} {vr.status_emoji}"]
+                status_parts.append(f"[bold]{vr.validator_name}[/bold]")
+
+                if vr.error_count > 0:
+                    status_parts.append(f"[error]{vr.error_count} error(s)[/error]")
+                elif vr.warning_count > 0:
+                    status_parts.append(f"[warning]{vr.warning_count} warning(s)[/warning]")
+                elif vr.info_count > 0:
+                    status_parts.append(f"[info]{vr.info_count} info[/info]")
+
+                lines.append(" ".join(status_parts))
+
+                # Show problem details
+                for result in vr.results:
+                    if result.is_problem():
+                        lines.append(f"      • {result.message}")
+                        if result.recommendation:
+                            lines.append(f"        💡 {result.recommendation}")
+                        if result.details:
+                            for detail in result.details[:3]:
+                                lines.append(f"           - {detail}")
+                            if len(result.details) > 3:
+                                lines.append(f"           ... and {len(result.details) - 3} more")
+
+                if not is_last_problem:
+                    lines.append("")  # Blank line between validators (not after last)
+
+        # Show passed checks in a collapsed summary (reduce noise)
+        if validators_passed:
+            if validators_with_problems:
+                lines.append("")  # Separator between problems and passed
+            lines.append(f"[success]✓ {len(validators_passed)} check(s) passed[/success]")
+            # List them in a compact format if few, otherwise just count
+            if len(validators_passed) <= 5:
+                passed_names = ", ".join([vr.validator_name for vr in validators_passed])
+                lines.append(f"   {passed_names}")
 
         # Summary
         lines.append("")
@@ -365,7 +438,7 @@ class HealthReport:
 
     def _format_verbose(self) -> str:
         """
-        Full audit trail - show everything including successes.
+        Full audit trail with progressive disclosure - problems first, then all details.
         """
         lines = []
 
@@ -374,37 +447,84 @@ class HealthReport:
         lines.append("━" * 60)
         lines.append("")
 
-        # Validator results
+        # Separate validators by priority: problems first, then passed
+        validators_with_problems = []
+        validators_passed = []
+
         for vr in self.validator_reports:
-            # Status line
-            status_line = f"{vr.status_emoji} {vr.validator_name:<20}"
+            if vr.has_problems:
+                validators_with_problems.append(vr)
+            else:
+                validators_passed.append(vr)
 
-            if vr.error_count > 0:
-                status_line += f" {vr.error_count} error(s)"
-            elif vr.warning_count > 0:
-                status_line += f" {vr.warning_count} warning(s)"
-            elif vr.info_count > 0:
-                status_line += f" {vr.info_count} info"
-            elif vr.passed_count > 0:
-                status_line += f" {vr.passed_count} check(s) passed"
+        # Sort problems by severity: errors first, then warnings
+        validators_with_problems.sort(key=lambda v: (v.error_count == 0, v.warning_count == 0))
 
-            lines.append(status_line)
+        # Show problems first (most important - what needs attention)
+        if validators_with_problems:
+            lines.append("[bold]Issues Found:[/bold]")
+            lines.append("")
 
-            # Show all results in verbose mode
-            for result in vr.results:
-                # Indent the message
-                lines.append(f"   • {result.message}")
+            for i, vr in enumerate(validators_with_problems):
+                is_last_problem = i == len(validators_with_problems) - 1
+                is_last_overall = is_last_problem and not validators_passed
+                tree_symbol = "└─" if is_last_overall else "├─"
 
-                # Show recommendation if present
-                if result.recommendation:
-                    lines.append(f"     💡 {result.recommendation}")
+                # Build status line
+                status_parts = [f"   {tree_symbol} {vr.status_emoji}"]
+                status_parts.append(f"[bold]{vr.validator_name}[/bold]")
 
-                # Show details if present (limit to first 3)
-                if result.details:
-                    for detail in result.details[:3]:
-                        lines.append(f"        - {detail}")
-                    if len(result.details) > 3:
-                        lines.append(f"        ... and {len(result.details) - 3} more")
+                if vr.error_count > 0:
+                    status_parts.append(f"[error]{vr.error_count} error(s)[/error]")
+                elif vr.warning_count > 0:
+                    status_parts.append(f"[warning]{vr.warning_count} warning(s)[/warning]")
+                elif vr.info_count > 0:
+                    status_parts.append(f"[info]{vr.info_count} info[/info]")
+
+                lines.append(" ".join(status_parts))
+
+                # Show ALL results in verbose mode (including successes for context)
+                for result in vr.results:
+                    if result.is_problem():
+                        # Problems get full detail
+                        lines.append(f"      • {result.message}")
+                        if result.recommendation:
+                            lines.append(f"        💡 {result.recommendation}")
+                        if result.details:
+                            for detail in result.details[:3]:
+                                lines.append(f"           - {detail}")
+                            if len(result.details) > 3:
+                                lines.append(f"           ... and {len(result.details) - 3} more")
+                    else:
+                        # Successes shown briefly
+                        lines.append(f"      ✓ {result.message}")
+
+                if not is_last_problem:
+                    lines.append("")
+
+        # Show passed checks (collapsed in verbose too, but expandable)
+        if validators_passed:
+            if validators_with_problems:
+                lines.append("")
+            lines.append(f"[success]✓ {len(validators_passed)} check(s) passed[/success]")
+
+            # In verbose mode, show brief summary of passed checks
+            for vr in validators_passed:
+                lines.append(f"   ✓ {vr.validator_name}: {vr.passed_count} check(s) passed")
+
+        # Summary
+        lines.append("")
+        lines.append("━" * 60)
+        lines.append(
+            f"Summary: {self.total_passed} passed, {self.total_warnings} warnings, {self.total_errors} errors"
+        )
+
+        score = self.build_quality_score()
+        rating = self.quality_rating()
+        lines.append(f"Build Quality: {score}% ({rating})")
+        lines.append("")
+
+        return "\n".join(lines)
 
         # Summary
         lines.append("")
