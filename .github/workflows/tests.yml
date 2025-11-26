@@ -1,6 +1,8 @@
 name: Tests
 
 on:
+  push:
+    branches: [ main ]
   pull_request:
     branches: [ main ]
   schedule:
@@ -15,7 +17,7 @@ concurrency:
 jobs:
   # Fast check: quick signal (unit + most integration)
   fast-check:
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
@@ -41,7 +43,7 @@ jobs:
 
   # Baseurl spot-checks + Coverage (single-process)
   full-suite:
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
     runs-on: ubuntu-latest
     needs: fast-check  # Only run if fast-check passes
     strategy:
