@@ -51,64 +51,32 @@ result = subprocess.run(shlex.split(command), capture_output=True, text=True)
 
 ---
 
-### 2. Recursive Include Directive Stack Overflow
+### 2. ~~Recursive Include Directive Stack Overflow~~ ✅ FIXED
 
 **Location**: `bengal/rendering/plugins/directives/include.py`
 
-**Severity**: 🔴 **CRITICAL**
+**Severity**: ~~🔴 CRITICAL~~ → ✅ **RESOLVED**
 
-**Description**: The include directive recursively parses included content as markdown, which can contain more include directives. No depth limit or cycle detection exists.
+**Description**: The include directive recursively parses included content as markdown, which can contain more include directives.
 
-**Attack Vector**: Create two files that include each other:
+**Status**: **FIXED** on 2025-11-26
 
-```markdown
-<!-- a.md -->
-```{include} b.md
-```
+**Solution Implemented**:
+- Added `MAX_INCLUDE_DEPTH = 10` constant
+- Track include depth in parser state (`state._include_depth`)
+- Track included file paths (`state._included_files`) for cycle detection
+- Return clear error messages for both depth exceeded and cycle detected
+- Depth is restored after each include to allow sibling includes at same level
+- Added 7 unit tests covering all edge cases
 
-<!-- b.md -->
-```{include} a.md
-```
-```
-
-**Impact**: Stack overflow, process crash, denial of service during site build.
-
-**Fix**:
-```python
-class IncludeDirective(DirectivePlugin):
-    MAX_INCLUDE_DEPTH = 10
-    
-    def parse(self, block: BlockParser, m: Match, state: BlockState) -> dict[str, Any]:
-        # Track include depth
-        current_depth = getattr(state, '_include_depth', 0)
-        if current_depth >= self.MAX_INCLUDE_DEPTH:
-            logger.warning("include_max_depth_exceeded", depth=current_depth)
-            return {
-                "type": "include",
-                "attrs": {"error": f"Maximum include depth ({self.MAX_INCLUDE_DEPTH}) exceeded"},
-                "children": [],
-            }
-        
-        # Track included files to detect cycles
-        included_files = getattr(state, '_included_files', set())
-        resolved_path = self._resolve_path(path, state)
-        if resolved_path:
-            canonical = str(resolved_path.resolve())
-            if canonical in included_files:
-                logger.warning("include_cycle_detected", path=path)
-                return {
-                    "type": "include",
-                    "attrs": {"error": f"Include cycle detected: {path}"},
-                    "children": [],
-                }
-            included_files.add(canonical)
-            state._included_files = included_files
-        
-        state._include_depth = current_depth + 1
-        # ... rest of parse
-```
-
-**Priority**: P0 - Fix before any public release
+**Test Coverage**:
+- `test_max_depth_limit_exceeded`
+- `test_depth_increments_for_nested_includes`
+- `test_cycle_detection_same_file`
+- `test_cycle_detection_indirect_cycle`
+- `test_sibling_includes_allowed`
+- `test_included_files_accumulate`
+- `test_max_depth_constant_is_reasonable`
 
 ---
 
@@ -367,8 +335,8 @@ def _run(self, cmd: list[str], cwd: Path) -> None:
 ## Action Items by Priority
 
 ### P0 - Must Fix Before Release
-- [ ] Fix command injection in `cli_dev_tools.py:385`
-- [ ] Add recursion guard to include directive
+- [ ] ~~Fix command injection in `cli_dev_tools.py:385`~~ (Not a real issue - developer runs their own commands)
+- [x] Add recursion guard to include directive ✅ **FIXED** - `MAX_INCLUDE_DEPTH=10` + cycle detection
 
 ### P1 - Should Fix Before Release
 - [ ] Implement actual link validation
@@ -422,7 +390,13 @@ Create test cases for:
 
 ## Conclusion
 
-Bengal has a solid security foundation with safe YAML parsing, proper template escaping, and mostly safe subprocess usage. However, the **command injection vulnerability** and **recursive include issue** are critical and must be fixed before public release.
+Bengal has a solid security foundation with safe YAML parsing, proper template escaping, and mostly safe subprocess usage.
 
-The codebase shows good security awareness in most areas, but the issues found are the kind that slip through without adversarial testing. After fixing these issues, Bengal will be much more robust for general use.
+**Update (2025-11-26)**: After SSG threat model re-evaluation:
+- The "command injection" in `cli_dev_tools.py` is **not a real vulnerability** - developers run their own commands
+- The **recursive include issue** has been **FIXED** with depth limiting and cycle detection
+
+The codebase shows good security awareness in most areas. The remaining items are quality-of-life improvements (link validator, file size limits) rather than security issues.
+
+**Status**: ✅ Ready for public release from a robustness perspective.
 
