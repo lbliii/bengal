@@ -13,6 +13,10 @@ Or with options:
     ```
 
 Paths are resolved relative to the site root or the current page's directory.
+
+Robustness:
+    - Maximum include depth of 10 to prevent stack overflow
+    - Cycle detection to prevent infinite loops (a.md → b.md → a.md)
 """
 
 from __future__ import annotations
@@ -33,6 +37,9 @@ if TYPE_CHECKING:
 __all__ = ["IncludeDirective", "render_include"]
 
 logger = get_logger(__name__)
+
+# Robustness limits
+MAX_INCLUDE_DEPTH = 10  # Prevent stack overflow from deeply nested includes
 
 
 class IncludeDirective(DirectivePlugin):
@@ -97,6 +104,42 @@ class IncludeDirective(DirectivePlugin):
                 "children": [],
             }
 
+        # --- Robustness: Check depth limit ---
+        current_depth = getattr(state, "_include_depth", 0)
+        if current_depth >= MAX_INCLUDE_DEPTH:
+            logger.warning(
+                "include_max_depth_exceeded",
+                path=path,
+                depth=current_depth,
+                max_depth=MAX_INCLUDE_DEPTH,
+            )
+            return {
+                "type": "include",
+                "attrs": {
+                    "error": f"Maximum include depth ({MAX_INCLUDE_DEPTH}) exceeded. "
+                    f"Check for deeply nested includes."
+                },
+                "children": [],
+            }
+
+        # --- Robustness: Check for include cycles ---
+        included_files: set[str] = getattr(state, "_included_files", set())
+        canonical_path = str(file_path.resolve())
+        if canonical_path in included_files:
+            logger.warning(
+                "include_cycle_detected",
+                path=path,
+                canonical_path=canonical_path,
+            )
+            return {
+                "type": "include",
+                "attrs": {
+                    "error": f"Include cycle detected: {path} was already included. "
+                    f"Check for circular includes (a.md → b.md → a.md)."
+                },
+                "children": [],
+            }
+
         # Load file content
         content = self._load_file(file_path, start_line, end_line)
 
@@ -107,9 +150,18 @@ class IncludeDirective(DirectivePlugin):
                 "children": [],
             }
 
+        # --- Update state for nested includes ---
+        # Track this file to detect cycles
+        new_included_files = included_files | {canonical_path}
+        state._included_files = new_included_files
+        state._include_depth = current_depth + 1
+
         # Parse included content as markdown
         # Use parse_tokens to allow nested directives in included content
         children = self.parse_tokens(block, content, state)
+
+        # Restore depth after parsing (allows sibling includes at same depth)
+        state._include_depth = current_depth
 
         return {
             "type": "include",

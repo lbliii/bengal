@@ -6,7 +6,11 @@ from unittest.mock import MagicMock
 import pytest
 
 from bengal.rendering.parsers import MistuneParser
-from bengal.rendering.plugins.directives.include import IncludeDirective, render_include
+from bengal.rendering.plugins.directives.include import (
+    MAX_INCLUDE_DEPTH,
+    IncludeDirective,
+    render_include,
+)
 
 
 @pytest.fixture
@@ -378,3 +382,188 @@ This is a tip inside included content.
 
         # Should not crash
         assert isinstance(result, str)
+
+
+class TestIncludeDirectiveRobustness:
+    """Test include directive robustness features (depth limit, cycle detection)."""
+
+    def test_max_depth_limit_exceeded(self, temp_site_dir, mock_state_with_root):
+        """Test that exceeding max include depth returns an error."""
+        directive = IncludeDirective()
+
+        # Create a file to include - use path relative to content dir
+        snippets_dir = temp_site_dir / "content" / "snippets"
+        snippets_dir.mkdir(parents=True, exist_ok=True)
+        test_file = snippets_dir / "depth-test.md"
+        test_file.write_text("Test content")
+
+        # Simulate being at max depth already
+        mock_state_with_root._include_depth = MAX_INCLUDE_DEPTH
+
+        match = MagicMock()
+        # Path is relative to content dir, so use "snippets/depth-test.md"
+        directive.parse_title = lambda m: "snippets/depth-test.md"
+        directive.parse_options = lambda m: []
+
+        block = MagicMock()
+
+        result = directive.parse(block, match, mock_state_with_root)
+
+        assert result["type"] == "include"
+        assert "error" in result["attrs"]
+        assert "maximum include depth" in result["attrs"]["error"].lower()
+        assert str(MAX_INCLUDE_DEPTH) in result["attrs"]["error"]
+
+    def test_depth_increments_for_nested_includes(self, temp_site_dir, mock_state_with_root):
+        """Test that include depth is tracked and incremented."""
+        directive = IncludeDirective()
+
+        # Create a file to include
+        snippets_dir = temp_site_dir / "content" / "snippets"
+        snippets_dir.mkdir(parents=True, exist_ok=True)
+        test_file = snippets_dir / "nested-test.md"
+        test_file.write_text("Test content")
+
+        match = MagicMock()
+        directive.parse_title = lambda m: "snippets/nested-test.md"
+        directive.parse_options = lambda m: []
+
+        block = MagicMock()
+        directive.parse_tokens = MagicMock(return_value=[])
+
+        # Initially no depth set
+        assert getattr(mock_state_with_root, "_include_depth", 0) == 0
+
+        result = directive.parse(block, match, mock_state_with_root)
+
+        # Should succeed
+        assert "error" not in result["attrs"]
+
+        # After parsing, depth should be restored to original (0)
+        assert getattr(mock_state_with_root, "_include_depth", 0) == 0
+
+    def test_cycle_detection_same_file(self, temp_site_dir, mock_state_with_root):
+        """Test that including the same file twice is detected as a cycle."""
+        directive = IncludeDirective()
+
+        # Create a file to include
+        snippets_dir = temp_site_dir / "content" / "snippets"
+        snippets_dir.mkdir(parents=True, exist_ok=True)
+        test_file = snippets_dir / "cycle-test.md"
+        test_file.write_text("Test content")
+
+        # Simulate that this file was already included
+        canonical_path = str(test_file.resolve())
+        mock_state_with_root._included_files = {canonical_path}
+
+        match = MagicMock()
+        directive.parse_title = lambda m: "snippets/cycle-test.md"
+        directive.parse_options = lambda m: []
+
+        block = MagicMock()
+
+        result = directive.parse(block, match, mock_state_with_root)
+
+        assert result["type"] == "include"
+        assert "error" in result["attrs"]
+        assert "cycle detected" in result["attrs"]["error"].lower()
+
+    def test_cycle_detection_indirect_cycle(self, temp_site_dir, mock_state_with_root):
+        """Test that indirect cycles (a→b→a) are detected."""
+        directive = IncludeDirective()
+
+        # Create two files
+        snippets_dir = temp_site_dir / "content" / "snippets"
+        snippets_dir.mkdir(parents=True, exist_ok=True)
+        file_a = snippets_dir / "indirect-a.md"
+        file_b = snippets_dir / "indirect-b.md"
+        file_a.write_text("Content A")
+        file_b.write_text("Content B")
+
+        # Simulate that file_a was already included (we're in a→b and trying to include a)
+        canonical_a = str(file_a.resolve())
+        mock_state_with_root._included_files = {canonical_a}
+
+        match = MagicMock()
+        directive.parse_title = lambda m: "snippets/indirect-a.md"
+        directive.parse_options = lambda m: []
+
+        block = MagicMock()
+
+        result = directive.parse(block, match, mock_state_with_root)
+
+        assert result["type"] == "include"
+        assert "error" in result["attrs"]
+        assert "cycle detected" in result["attrs"]["error"].lower()
+
+    def test_sibling_includes_allowed(self, temp_site_dir, mock_state_with_root):
+        """Test that sibling includes (same level, different files) are allowed."""
+        directive = IncludeDirective()
+
+        # Create two files
+        snippets_dir = temp_site_dir / "content" / "snippets"
+        snippets_dir.mkdir(parents=True, exist_ok=True)
+        file_a = snippets_dir / "sibling-a.md"
+        file_b = snippets_dir / "sibling-b.md"
+        file_a.write_text("Content A")
+        file_b.write_text("Content B")
+
+        match = MagicMock()
+        block = MagicMock()
+        directive.parse_tokens = MagicMock(return_value=[])
+
+        # Include file A
+        directive.parse_title = lambda m: "snippets/sibling-a.md"
+        directive.parse_options = lambda m: []
+        result_a = directive.parse(block, match, mock_state_with_root)
+
+        # Include file B (should succeed since B wasn't included yet)
+        directive.parse_title = lambda m: "snippets/sibling-b.md"
+        result_b = directive.parse(block, match, mock_state_with_root)
+
+        # Both should succeed
+        assert "error" not in result_a["attrs"]
+        assert "error" not in result_b["attrs"]
+
+    def test_included_files_accumulate(self, temp_site_dir, mock_state_with_root):
+        """Test that included files are tracked across sibling includes."""
+        directive = IncludeDirective()
+
+        # Create two files
+        snippets_dir = temp_site_dir / "content" / "snippets"
+        snippets_dir.mkdir(parents=True, exist_ok=True)
+        file_a = snippets_dir / "accum-a.md"
+        file_b = snippets_dir / "accum-b.md"
+        file_a.write_text("Content A")
+        file_b.write_text("Content B")
+
+        match = MagicMock()
+        block = MagicMock()
+        directive.parse_tokens = MagicMock(return_value=[])
+
+        # Include file A
+        directive.parse_title = lambda m: "snippets/accum-a.md"
+        directive.parse_options = lambda m: []
+        directive.parse(block, match, mock_state_with_root)
+
+        # Verify file A is now in the included files set
+        included_files = getattr(mock_state_with_root, "_included_files", set())
+        assert str(file_a.resolve()) in included_files
+
+        # Include file B
+        directive.parse_title = lambda m: "snippets/accum-b.md"
+        directive.parse(block, match, mock_state_with_root)
+
+        # Verify both files are now tracked
+        included_files = mock_state_with_root._included_files
+        assert str(file_a.resolve()) in included_files
+        assert str(file_b.resolve()) in included_files
+
+    def test_max_depth_constant_is_reasonable(self):
+        """Test that MAX_INCLUDE_DEPTH is set to a reasonable value."""
+        # Should allow reasonable nesting (5-20)
+        assert MAX_INCLUDE_DEPTH >= 5
+        assert MAX_INCLUDE_DEPTH <= 20
+
+        # Current value should be 10
+        assert MAX_INCLUDE_DEPTH == 10
