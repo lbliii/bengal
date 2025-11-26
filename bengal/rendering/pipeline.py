@@ -205,6 +205,9 @@ class RenderingPipeline:
                     # Note: We don't return early - we need to apply the template
                     parsed_content = cached["html"]
 
+                    # Transform internal links to include baseurl (for GitHub Pages, etc.)
+                    parsed_content = self._transform_internal_links(parsed_content)
+
                     # Skip to stage 3 (template rendering)
                     page.extract_links()
                     html_content = self.renderer.render_content(parsed_content)
@@ -315,6 +318,10 @@ class RenderingPipeline:
         # Additional hardening: ensure no Jinja2 block syntax leaks in HTML content
         # even when pages use variable substitution path (handled in MistuneParser as well).
         parsed_content = self._escape_jinja_blocks(parsed_content)
+
+        # Transform internal links to include baseurl (for GitHub Pages, etc.)
+        # This handles standard markdown links like [text](/path/) by prepending baseurl
+        parsed_content = self._transform_internal_links(parsed_content)
 
         page.parsed_ast = parsed_content
 
@@ -447,6 +454,37 @@ class RenderingPipeline:
         try:
             return html.replace("{%", "&#123;%").replace("%}", "%&#125;")
         except Exception:
+            return html
+
+    def _transform_internal_links(self, html: str) -> str:
+        """
+        Transform internal links to include baseurl prefix.
+
+        This handles standard markdown links like [text](/path/) by prepending
+        the configured baseurl. Essential for GitHub Pages project sites and
+        similar deployments where the site is not at the domain root.
+
+        Args:
+            html: Rendered HTML content
+
+        Returns:
+            HTML with transformed internal links
+        """
+        try:
+            from bengal.rendering.link_transformer import (
+                get_baseurl,
+                should_transform_links,
+                transform_internal_links,
+            )
+
+            if not should_transform_links(self.site.config):
+                return html
+
+            baseurl = get_baseurl(self.site.config)
+            return transform_internal_links(html, baseurl)
+        except Exception as e:
+            # Never fail the build on link transformation errors
+            logger.debug("link_transformation_error", error=str(e))
             return html
 
     def _write_output(self, page: Page) -> None:
