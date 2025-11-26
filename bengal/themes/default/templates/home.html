@@ -6,7 +6,7 @@
     {# Hero Section #}
     {% set hero_classes = ['hero', 'hero--large'] %}
     {% if page.metadata.get('blob_background', false) %}
-        {% set _ = hero_classes.append('hero--blob-background') %}
+    {% set _ = hero_classes.append('hero--blob-background') %}
     {% endif %}
     <header class="{{ hero_classes | join(' ') }}">
         {% if page.metadata.get('blob_background', false) %}

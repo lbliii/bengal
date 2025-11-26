@@ -100,6 +100,7 @@ class TestLouvainCommunityDetector:
         graph = Mock()
         graph.site = site
         graph.outgoing_refs = defaultdict(set)
+        graph.get_analysis_pages.return_value = []
 
         detector = LouvainCommunityDetector(graph)
         results = detector.detect()
@@ -120,6 +121,7 @@ class TestLouvainCommunityDetector:
         graph = Mock()
         graph.site = site
         graph.outgoing_refs = defaultdict(set)
+        graph.get_analysis_pages.return_value = [page]
 
         detector = LouvainCommunityDetector(graph, random_seed=42)
         results = detector.detect()
@@ -139,6 +141,7 @@ class TestLouvainCommunityDetector:
         graph = Mock()
         graph.site = site
         graph.outgoing_refs = defaultdict(set)
+        graph.get_analysis_pages.return_value = pages
 
         detector = LouvainCommunityDetector(graph, random_seed=42)
         results = detector.detect()
@@ -159,6 +162,7 @@ class TestLouvainCommunityDetector:
         graph = Mock()
         graph.site = site
         graph.outgoing_refs = defaultdict(set)
+        graph.get_analysis_pages.return_value = pages
 
         for page in pages:
             for other_page in pages:
@@ -189,6 +193,7 @@ class TestLouvainCommunityDetector:
         graph = Mock()
         graph.site = site
         graph.outgoing_refs = defaultdict(set)
+        graph.get_analysis_pages.return_value = all_pages
 
         # Cluster 1 connections
         for page in cluster1_pages:
@@ -226,6 +231,7 @@ class TestLouvainCommunityDetector:
         graph = Mock()
         graph.site = site
         graph.outgoing_refs = defaultdict(set)
+        graph.get_analysis_pages.return_value = pages
 
         for i in range(len(pages) - 1):
             graph.outgoing_refs[pages[i]].add(pages[i + 1])
@@ -255,6 +261,7 @@ class TestLouvainCommunityDetector:
         graph = Mock()
         graph.site = site
         graph.outgoing_refs = defaultdict(set)
+        graph.get_analysis_pages.return_value = all_pages
 
         for spoke in spokes:
             graph.outgoing_refs[spoke].add(center)
@@ -284,6 +291,7 @@ class TestLouvainCommunityDetector:
         graph = Mock()
         graph.site = site
         graph.outgoing_refs = defaultdict(set)
+        graph.get_analysis_pages.return_value = all_pages
 
         # Strong connections within clusters
         for page in cluster1:
@@ -321,6 +329,7 @@ class TestLouvainCommunityDetector:
         graph = Mock()
         graph.site = site
         graph.outgoing_refs = defaultdict(set)
+        graph.get_analysis_pages.return_value = pages
 
         for i in range(len(pages) - 1):
             graph.outgoing_refs[pages[i]].add(pages[i + 1])
@@ -347,6 +356,7 @@ class TestLouvainCommunityDetector:
         graph = Mock()
         graph.site = site
         graph.outgoing_refs = defaultdict(set)
+        graph.get_analysis_pages.return_value = [real_page, generated_page]
 
         detector = LouvainCommunityDetector(graph, random_seed=42)
         results = detector.detect()
@@ -370,6 +380,7 @@ class TestDetectCommunitiesFunction:
         graph = Mock()
         graph.site = site
         graph.outgoing_refs = defaultdict(set)
+        graph.get_analysis_pages.return_value = pages
 
         # Create some connections
         for i in range(len(pages) - 1):
