@@ -48,6 +48,7 @@ class CheckResult:
     recommendation: str | None = None
     details: list[str] | None = None
     validator: str = ""
+    metadata: dict[str, Any] | None = None
 
     @classmethod
     def success(cls, message: str, validator: str = "") -> CheckResult:
@@ -61,9 +62,17 @@ class CheckResult:
         recommendation: str | None = None,
         details: list[str] | None = None,
         validator: str = "",
+        metadata: dict[str, Any] | None = None,
     ) -> CheckResult:
         """Create an info result."""
-        return cls(CheckStatus.INFO, message, recommendation, details, validator=validator)
+        return cls(
+            CheckStatus.INFO,
+            message,
+            recommendation,
+            details,
+            validator=validator,
+            metadata=metadata,
+        )
 
     @classmethod
     def suggestion(
@@ -72,9 +81,17 @@ class CheckResult:
         recommendation: str | None = None,
         details: list[str] | None = None,
         validator: str = "",
+        metadata: dict[str, Any] | None = None,
     ) -> CheckResult:
         """Create a suggestion result (quality improvement, not a problem)."""
-        return cls(CheckStatus.SUGGESTION, message, recommendation, details, validator=validator)
+        return cls(
+            CheckStatus.SUGGESTION,
+            message,
+            recommendation,
+            details,
+            validator=validator,
+            metadata=metadata,
+        )
 
     @classmethod
     def warning(
@@ -83,9 +100,17 @@ class CheckResult:
         recommendation: str | None = None,
         details: list[str] | None = None,
         validator: str = "",
+        metadata: dict[str, Any] | None = None,
     ) -> CheckResult:
         """Create a warning result."""
-        return cls(CheckStatus.WARNING, message, recommendation, details, validator=validator)
+        return cls(
+            CheckStatus.WARNING,
+            message,
+            recommendation,
+            details,
+            validator=validator,
+            metadata=metadata,
+        )
 
     @classmethod
     def error(
@@ -94,9 +119,17 @@ class CheckResult:
         recommendation: str | None = None,
         details: list[str] | None = None,
         validator: str = "",
+        metadata: dict[str, Any] | None = None,
     ) -> CheckResult:
         """Create an error result."""
-        return cls(CheckStatus.ERROR, message, recommendation, details, validator=validator)
+        return cls(
+            CheckStatus.ERROR,
+            message,
+            recommendation,
+            details,
+            validator=validator,
+            metadata=metadata,
+        )
 
     def is_problem(self) -> bool:
         """Check if this is a warning or error (vs success/info/suggestion)."""
@@ -119,6 +152,7 @@ class CheckResult:
             "recommendation": self.recommendation,
             "details": self.details,
             "validator": self.validator,
+            "metadata": self.metadata,
         }
 
     @classmethod
@@ -138,6 +172,7 @@ class CheckResult:
             recommendation=data.get("recommendation"),
             details=data.get("details"),
             validator=data.get("validator", ""),
+            metadata=data.get("metadata"),
         )
 
 
@@ -680,6 +715,7 @@ class HealthReport:
                             "message": r.message,
                             "recommendation": r.recommendation,
                             "details": r.details,
+                            "metadata": r.metadata,
                         }
                         for r in vr.results
                     ],
