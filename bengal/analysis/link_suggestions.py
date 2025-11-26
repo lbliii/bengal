@@ -14,7 +14,6 @@ Helps improve:
 - User navigation
 """
 
-
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -132,7 +131,10 @@ class LinkSuggestionEngine:
         Returns:
             LinkSuggestionResults with all suggestions
         """
-        pages = [p for p in self.graph.site.pages if not p.metadata.get("_generated")]
+        # Use analysis pages from graph (excludes autodoc if configured)
+        pages = self.graph.get_analysis_pages()
+        # Also exclude generated pages
+        pages = [p for p in pages if not p.metadata.get("_generated")]
 
         if len(pages) == 0:
             logger.warning("link_suggestions_no_pages")

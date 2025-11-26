@@ -96,7 +96,6 @@
         const textOnSuccess = successTextColor || textColor;
         const textOnWarning = warningTextColor || textColor;
         const textOnError = errorTextColor || textColor;
-        const textOnInfo = infoTextColor || textColor;
 
         // Map to Mermaid themeVariables
         // Using 'base' theme as foundation, then customizing with Bengal colors

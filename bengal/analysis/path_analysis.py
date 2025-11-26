@@ -13,7 +13,6 @@ References:
       Journal of Mathematical Sociology.
 """
 
-
 from __future__ import annotations
 
 from collections import deque
@@ -171,7 +170,10 @@ class PathAnalyzer:
         Returns:
             PathAnalysisResults with all metrics
         """
-        pages = [p for p in self.graph.site.pages if not p.metadata.get("_generated")]
+        # Use analysis pages from graph (excludes autodoc if configured)
+        pages = self.graph.get_analysis_pages()
+        # Also exclude generated pages
+        pages = [p for p in pages if not p.metadata.get("_generated")]
 
         if len(pages) == 0:
             logger.warning("path_analysis_no_pages")
@@ -312,9 +314,7 @@ class PathAnalyzer:
 
         return distances
 
-    def find_all_paths(
-        self, source: Page, target: Page, max_length: int = 10
-    ) -> list[list[Page]]:
+    def find_all_paths(self, source: Page, target: Page, max_length: int = 10) -> list[list[Page]]:
         """
         Find all simple paths between two pages (up to max_length).
 

@@ -357,19 +357,23 @@ class DocumentationGenerator:
         try:
             current = path_obj.parent
             # Go up to root, but stop reasonable limit to avoid FS scan
-            for _ in range(20):  
-                if (current / ".git").exists() or \
-                   (current / "pyproject.toml").exists() or \
-                   (current / "bengal.toml").exists():
+            for _ in range(20):
+                if (
+                    (current / ".git").exists()
+                    or (current / "pyproject.toml").exists()
+                    or (current / "bengal.toml").exists()
+                ):
                     try:
                         return str(path_obj.relative_to(current))
                     except ValueError:
                         pass
-                
+
                 if current.parent == current:  # Root reached
                     break
                 current = current.parent
         except Exception:
+            # Intentionally ignore all exceptions here to allow fallback strategies below.
+            # Log the exception for debugging purposes.
             pass
 
         # 2. Fallback: Try relative to current working directory
@@ -387,8 +391,8 @@ class DocumentationGenerator:
             if part in ("bengal", "src", "lib", "app", "backend", "frontend"):
                 # Handle repo/package name collision (e.g. bengal/bengal)
                 # If the next part is identical, skip the first one (repo dir)
-                if i + 1 < len(parts) and parts[i+1] == part:
-                    return str(PathLib(*parts[i+1:]))
+                if i + 1 < len(parts) and parts[i + 1] == part:
+                    return str(PathLib(*parts[i + 1 :]))
                 return str(PathLib(*parts[i:]))
 
         # Last resort: return as-is

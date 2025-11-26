@@ -48,7 +48,6 @@ class TrackValidator(BaseValidator):
                     CheckResult.error(
                         f"Invalid track structure: {track_id}",
                         f"Track '{track_id}' is not a dictionary. Expected dict with 'title' and 'items' fields.",
-                        context={"track_id": track_id},
                     )
                 )
                 continue
@@ -59,7 +58,6 @@ class TrackValidator(BaseValidator):
                     CheckResult.error(
                         f"Track missing 'items' field: {track_id}",
                         f"Track '{track_id}' is missing required 'items' field. Add an 'items' list with page paths.",
-                        context={"track_id": track_id},
                     )
                 )
                 continue
@@ -69,7 +67,6 @@ class TrackValidator(BaseValidator):
                     CheckResult.error(
                         f"Track 'items' must be a list: {track_id}",
                         f"Track '{track_id}' has 'items' field that is not a list. Expected list of page paths.",
-                        context={"track_id": track_id},
                     )
                 )
                 continue
@@ -82,7 +79,6 @@ class TrackValidator(BaseValidator):
                         CheckResult.warning(
                             f"Invalid track item type in {track_id}",
                             f"Track item must be a string (page path), got {type(item_path).__name__}.",
-                            context={"track_id": track_id, "item": str(item_path)},
                         )
                     )
                     continue
@@ -103,7 +99,6 @@ class TrackValidator(BaseValidator):
                             else ""
                         ),
                         recommendation="Check that page paths in tracks.yaml match actual content files.",
-                        context={"track_id": track_id, "missing_items": missing_items},
                     )
                 )
             else:
@@ -111,7 +106,6 @@ class TrackValidator(BaseValidator):
                     CheckResult.success(
                         f"Track '{track_id}' is valid",
                         f"All {len(track['items'])} track items reference existing pages.",
-                        context={"track_id": track_id, "item_count": len(track["items"])},
                     )
                 )
 
@@ -119,16 +113,14 @@ class TrackValidator(BaseValidator):
         track_ids = set(tracks.keys())
         for page in site.pages:
             track_id = page.metadata.get("track_id")
-            if track_id:
-                if track_id not in track_ids:
-                    results.append(
-                        CheckResult.warning(
-                            f"Page '{page.relative_path}' has invalid track_id",
-                            f"Page references track_id '{track_id}' which doesn't exist in tracks.yaml.",
-                            recommendation=f"Either add '{track_id}' to tracks.yaml or remove track_id from page metadata.",
-                            context={"page": str(page.relative_path), "track_id": track_id},
-                        )
+            if track_id and track_id not in track_ids:
+                results.append(
+                    CheckResult.warning(
+                        f"Page '{page.relative_path}' has invalid track_id",
+                        f"Page references track_id '{track_id}' which doesn't exist in tracks.yaml.",
+                        recommendation=f"Either add '{track_id}' to tracks.yaml or remove track_id from page metadata.",
                     )
+                )
 
         return results
 
@@ -157,6 +149,7 @@ class TrackValidator(BaseValidator):
                     rel_str = str(rel).replace("\\", "/")
                     by_content_relative[rel_str] = p
                 except ValueError:
+                    # Page is not under content root; skip adding to relative map.
                     pass
 
             site._page_lookup_maps = {"full": by_full_path, "relative": by_content_relative}

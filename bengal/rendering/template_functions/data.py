@@ -214,6 +214,7 @@ def keys_filter(data: dict[str, Any]) -> list[str]:
         if isinstance(data, DotDict):
             return list(data.keys())
     except (ImportError, TypeError):
+        # DotDict not available or data type incompatible; fall through to regular dict handling.
         pass
 
     # Handle regular dicts
@@ -252,6 +253,7 @@ def values_filter(data: dict[str, Any]) -> list[Any]:
         if isinstance(data, DotDict):
             return list(data.values())
     except (ImportError, TypeError):
+        # DotDict not available or data type incompatible; fall through to regular dict handling.
         pass
 
     # Handle regular dicts
@@ -291,6 +293,7 @@ def items_filter(data: dict[str, Any]) -> list[tuple]:
         if isinstance(data, DotDict):
             return list(data.items())
     except (ImportError, TypeError):
+        # DotDict not available or data type incompatible; fall through to regular dict handling.
         pass
 
     # Handle regular dicts

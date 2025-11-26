@@ -5,7 +5,6 @@ Analyzes page connectivity, identifies hubs and leaves, finds orphaned pages,
 and provides insights for optimization and content strategy.
 """
 
-
 from __future__ import annotations
 
 from collections import defaultdict
@@ -95,7 +94,13 @@ class KnowledgeGraph:
         >>> print(f"Found {len(orphans)} orphaned pages")
     """
 
-    def __init__(self, site: Site, hub_threshold: int = 10, leaf_threshold: int = 2):
+    def __init__(
+        self,
+        site: Site,
+        hub_threshold: int = 10,
+        leaf_threshold: int = 2,
+        exclude_autodoc: bool = True,
+    ):
         """
         Initialize knowledge graph analyzer.
 
@@ -103,10 +108,12 @@ class KnowledgeGraph:
             site: Site instance to analyze
             hub_threshold: Minimum incoming refs to be considered a hub
             leaf_threshold: Maximum connectivity to be considered a leaf
+            exclude_autodoc: If True, exclude autodoc/API reference pages from analysis (default: True)
         """
         self.site = site
         self.hub_threshold = hub_threshold
         self.leaf_threshold = leaf_threshold
+        self.exclude_autodoc = exclude_autodoc
 
         # Graph data structures - now using pages directly as keys (hashable!)
         self.incoming_refs: dict[Page, int] = defaultdict(int)  # page -> count
@@ -139,11 +146,25 @@ class KnowledgeGraph:
             logger.debug("knowledge_graph_already_built", action="skipping")
             return
 
-        logger.info("knowledge_graph_build_start", total_pages=len(self.site.pages))
+        # Get pages to analyze (excluding autodoc if configured)
+        analysis_pages = self.get_analysis_pages()
+        total_analysis_pages = len(analysis_pages)
+        excluded_count = len(self.site.pages) - total_analysis_pages
+
+        logger.info(
+            "knowledge_graph_build_start",
+            total_pages=len(self.site.pages),
+            analysis_pages=total_analysis_pages,
+            excluded_autodoc=excluded_count if self.exclude_autodoc else 0,
+        )
 
         # No need to build page ID mapping - pages are directly hashable!
 
-        # Count references from different sources
+        # Ensure links are extracted from pages we'll analyze
+        # (links are normally extracted during rendering, but we need them for graph analysis)
+        self._ensure_links_extracted()
+
+        # Count references from different sources (only from analysis pages)
         self._analyze_cross_references()
         self._analyze_taxonomies()
         self._analyze_related_posts()
@@ -163,24 +184,90 @@ class KnowledgeGraph:
             orphans=self.metrics.orphan_count,
         )
 
+    def _is_autodoc_page(self, page: Page) -> bool:
+        """
+        Check if a page is an autodoc/API reference page that should be excluded.
+
+        Args:
+            page: Page to check
+
+        Returns:
+            True if page should be excluded from analysis
+        """
+        if not self.exclude_autodoc:
+            return False
+
+        # Check metadata types
+        page_type = page.metadata.get("type", "")
+        if page_type in ("api-reference", "python-module", "cli-reference"):
+            return True
+
+        # Check for autodoc markers
+        if page.metadata.get("_api_doc") is not None:
+            return True
+
+        # Check if path is under /api/ directory
+        path_str = str(page.source_path)
+        return "/api/" in path_str or path_str.endswith("/api")
+
+    def get_analysis_pages(self) -> list[Page]:
+        """
+        Get list of pages to analyze, excluding autodoc pages if configured.
+
+        Returns:
+            List of pages to include in graph analysis
+        """
+        if not self.exclude_autodoc:
+            return list(self.site.pages)
+
+        return [p for p in self.site.pages if not self._is_autodoc_page(p)]
+
+    def _ensure_links_extracted(self) -> None:
+        """
+        Extract links from all pages if not already extracted.
+
+        Links are normally extracted during rendering, but graph analysis
+        needs them before rendering happens. This ensures links are available.
+        """
+        # Only extract links from pages we'll analyze
+        analysis_pages = self.get_analysis_pages()
+        for page in analysis_pages:
+            # Extract links if not already extracted
+            if not hasattr(page, "links") or not page.links:
+                try:
+                    page.extract_links()
+                except Exception as e:
+                    # Log but don't fail - some pages might not have extractable links
+                    logger.debug(
+                        "knowledge_graph_link_extraction_failed",
+                        page=str(page.source_path),
+                        error=str(e),
+                    )
+
     def _analyze_cross_references(self) -> None:
         """
         Analyze cross-references (internal links between pages).
 
         Uses the site's xref_index to find all internal links.
+        Only analyzes links from/to pages included in analysis (excludes autodoc).
         """
         if not hasattr(self.site, "xref_index") or not self.site.xref_index:
             logger.debug("knowledge_graph_no_xref_index", action="skipping cross-ref analysis")
             return
 
+        # Get pages to analyze (excluding autodoc)
+        analysis_pages = self.get_analysis_pages()
+        analysis_pages_set = set(analysis_pages)
+
         # The xref_index maps paths/slugs/IDs to pages
         # We need to analyze which pages link to which
-        for page in self.site.pages:
+        for page in analysis_pages:
             # Analyze outgoing links from this page
             for link in getattr(page, "links", []):
                 # Try to resolve the link to a target page
                 target = self._resolve_link(link)
-                if target and target != page:
+                # Only count links to pages we're analyzing (exclude autodoc targets)
+                if target and target != page and target in analysis_pages_set:
                     self.incoming_refs[target] += 1  # Direct page reference
                     self.outgoing_refs[page].add(target)  # Direct page reference
 
@@ -218,10 +305,14 @@ class KnowledgeGraph:
         Analyze taxonomy references (pages grouped by tags/categories).
 
         Pages in the same taxonomy group reference each other implicitly.
+        Only includes pages in analysis (excludes autodoc).
         """
         if not hasattr(self.site, "taxonomies") or not self.site.taxonomies:
             logger.debug("knowledge_graph_no_taxonomies", action="skipping taxonomy analysis")
             return
+
+        # Get pages to analyze (excluding autodoc)
+        analysis_pages_set = set(self.get_analysis_pages())
 
         # For each taxonomy (tags, categories, etc.)
         for _taxonomy_name, taxonomy_dict in self.site.taxonomies.items():
@@ -231,24 +322,32 @@ class KnowledgeGraph:
                 pages = term_data.get("pages", [])
 
                 # Each page in the group has incoming refs from the taxonomy
+                # Only count pages we're analyzing
                 for page in pages:
-                    # Each page in a taxonomy gets a small boost
-                    # (exists in this conceptual grouping)
-                    self.incoming_refs[page] += 1  # Direct page reference
+                    if page in analysis_pages_set:
+                        # Each page in a taxonomy gets a small boost
+                        # (exists in this conceptual grouping)
+                        self.incoming_refs[page] += 1  # Direct page reference
 
     def _analyze_related_posts(self) -> None:
         """
         Analyze related posts (pre-computed relationships).
 
         Related posts are pages that share tags or other criteria.
+        Only includes pages in analysis (excludes autodoc).
         """
-        for page in self.site.pages:
+        # Get pages to analyze (excluding autodoc)
+        analysis_pages = self.get_analysis_pages()
+        analysis_pages_set = set(analysis_pages)
+
+        for page in analysis_pages:
             if not hasattr(page, "related_posts") or not page.related_posts:
                 continue
 
             # Each related post is an outgoing reference
+            # Only count links to pages we're analyzing
             for related in page.related_posts:
-                if related != page:
+                if related != page and related in analysis_pages_set:
                     self.incoming_refs[related] += 1  # Direct page reference
                     self.outgoing_refs[page].add(related)  # Direct page reference
 
@@ -257,16 +356,20 @@ class KnowledgeGraph:
         Analyze menu items (navigation references).
 
         Pages in menus get a significant boost in importance.
+        Only includes pages in analysis (excludes autodoc).
         """
         if not hasattr(self.site, "menu") or not self.site.menu:
             logger.debug("knowledge_graph_no_menus", action="skipping menu analysis")
             return
 
+        # Get pages to analyze (excluding autodoc)
+        analysis_pages_set = set(self.get_analysis_pages())
+
         # For each menu (main, footer, etc.)
         for _menu_name, menu_items in self.site.menu.items():
             for item in menu_items:
                 # Check if menu item has a page reference
-                if hasattr(item, "page") and item.page:
+                if hasattr(item, "page") and item.page and item.page in analysis_pages_set:
                     # Menu items get a significant boost (10 points)
                     self.incoming_refs[item.page] += 10  # Direct page reference
 
@@ -277,7 +380,9 @@ class KnowledgeGraph:
         Returns:
             GraphMetrics with summary statistics
         """
-        total_pages = len(self.site.pages)
+        # Use analysis pages, not all pages
+        analysis_pages = self.get_analysis_pages()
+        total_pages = len(analysis_pages)
         total_links = sum(len(targets) for targets in self.outgoing_refs.values())
 
         # Count hubs, leaves, orphans
@@ -286,7 +391,7 @@ class KnowledgeGraph:
         orphan_count = 0
         total_connectivity = 0
 
-        for page in self.site.pages:
+        for page in analysis_pages:
             incoming = self.incoming_refs[page]  # Direct page lookup
             outgoing = len(self.outgoing_refs[page])  # Direct page lookup
             connectivity = incoming + outgoing
@@ -423,9 +528,11 @@ class KnowledgeGraph:
         if not self._built:
             raise ValueError("Must call build() before getting orphans")
 
+        # Get analysis pages (already excludes autodoc)
+        analysis_pages = self.get_analysis_pages()
         orphans = [
             page
-            for page in self.site.pages
+            for page in analysis_pages
             if self.incoming_refs[page] == 0
             and len(self.outgoing_refs[page]) == 0
             and not page.metadata.get("_generated")  # Exclude generated pages
@@ -546,7 +653,7 @@ class KnowledgeGraph:
         # Show top hubs
         output.append("Top Hubs:")
         for i, page in enumerate(hubs[:5], 1):
-            refs = self.incoming_refs[id(page)]
+            refs = self.incoming_refs[page]
             output.append(f"  {i}. {page.title:<40} {refs} refs")
 
         if len(hubs) > 5:

@@ -13,7 +13,6 @@ References:
       Journal of Statistical Mechanics: Theory and Experiment.
 """
 
-
 from __future__ import annotations
 
 import random
@@ -143,7 +142,10 @@ class LouvainCommunityDetector:
         Returns:
             CommunityDetectionResults with discovered communities
         """
-        pages = [p for p in self.graph.site.pages if not p.metadata.get("_generated")]
+        # Use analysis pages from graph (excludes autodoc if configured)
+        pages = self.graph.get_analysis_pages()
+        # Also exclude generated pages
+        pages = [p for p in pages if not p.metadata.get("_generated")]
 
         if len(pages) == 0:
             logger.warning("community_detection_no_pages")

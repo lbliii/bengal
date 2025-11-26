@@ -5,7 +5,6 @@ Generates interactive D3.js visualizations of the site's knowledge graph.
 Inspired by Obsidian's graph view.
 """
 
-
 from __future__ import annotations
 
 import json
@@ -98,6 +97,19 @@ class GraphVisualizer:
         if not graph._built:
             raise ValueError("KnowledgeGraph must be built before visualization")
 
+    def _get_page_id(self, page: Any) -> str:
+        """
+        Get a stable ID for a page (using source_path hash).
+
+        Args:
+            page: Page object
+
+        Returns:
+            String ID for the page
+        """
+        # Use hash of source_path for stable IDs (pages are hashable by source_path)
+        return str(hash(page.source_path))
+
     def generate_graph_data(self) -> dict[str, Any]:
         """
         Generate D3.js-compatible graph data.
@@ -105,14 +117,18 @@ class GraphVisualizer:
         Returns:
             Dictionary with 'nodes' and 'edges' arrays
         """
-        logger.info("graph_viz_generate_start", total_pages=len(self.site.pages))
+        # Use analysis pages (excludes autodoc if configured)
+        analysis_pages = self.graph.get_analysis_pages()
+        logger.info("graph_viz_generate_start", total_pages=len(analysis_pages))
 
         nodes = []
         edges = []
+        page_id_map = {}  # Map pages to their IDs
 
         # Generate nodes
-        for page in self.site.pages:
-            page_id = str(id(page))
+        for page in analysis_pages:
+            page_id = self._get_page_id(page)
+            page_id_map[page] = page_id
             connectivity = self.graph.get_connectivity(page)
 
             # Determine node color based on type or connectivity
@@ -124,7 +140,7 @@ class GraphVisualizer:
             node = GraphNode(
                 id=page_id,
                 label=page.title or "Untitled",
-                url=page.url if hasattr(page, "url") else "#",
+                url=getattr(page, "url_path", str(page.source_path)),
                 type=page.metadata.get("type", "page"),
                 tags=list(page.tags) if hasattr(page, "tags") else [],
                 incoming_refs=connectivity.incoming_refs,
@@ -136,14 +152,17 @@ class GraphVisualizer:
 
             nodes.append(asdict(node))
 
-        # Generate edges
-        for page in self.site.pages:
-            source_id = str(id(page))
+        # Generate edges (using pages directly as keys, matching graph structure)
+        for page in analysis_pages:
+            source_id = page_id_map[page]
 
-            # Get outgoing references
-            target_ids = self.graph.outgoing_refs.get(id(page), set())
-            for target_id in target_ids:
-                edges.append(asdict(GraphEdge(source=source_id, target=str(target_id), weight=1)))
+            # Get outgoing references (graph uses pages directly as keys)
+            targets = self.graph.outgoing_refs.get(page, set())
+            for target in targets:
+                # Only include edges to pages we're visualizing
+                if target in page_id_map:
+                    target_id = page_id_map[target]
+                    edges.append(asdict(GraphEdge(source=source_id, target=target_id, weight=1)))
 
         logger.info("graph_viz_generate_complete", nodes=len(nodes), edges=len(edges))
 
