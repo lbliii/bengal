@@ -6,6 +6,7 @@ Used by tracks feature to resolve track item pages.
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -18,6 +19,128 @@ if TYPE_CHECKING:
     from bengal.core.site import Site
 
 logger = get_logger(__name__)
+
+
+def _ensure_page_parsed(page: Page, site: Site) -> None:
+    """
+    Ensure a page is parsed if it hasn't been parsed yet.
+
+    This is used when pages are accessed via get_page() from templates
+    (e.g., track item pages) and need to be parsed on-demand.
+
+    Args:
+        page: Page to parse if needed
+        site: Site instance for parser access
+    """
+    # Skip if already parsed
+    if hasattr(page, "parsed_ast") and page.parsed_ast is not None:
+        return
+
+    # Skip if no content
+    if not hasattr(page, "content") or not page.content:
+        return
+
+    # Lazy-create parser on site object for reuse
+    if not hasattr(site, "_template_parser"):
+        from bengal.rendering.parsers import create_markdown_parser
+
+        # Get parser engine from config (same logic as RenderingPipeline)
+        markdown_engine = site.config.get("markdown_engine")
+        if not markdown_engine:
+            markdown_config = site.config.get("markdown", {})
+            markdown_engine = markdown_config.get("parser", "mistune")
+
+        site._template_parser = create_markdown_parser(markdown_engine)
+
+        # Enable cross-references if available
+        if hasattr(site, "xref_index") and hasattr(
+            site._template_parser, "enable_cross_references"
+        ):
+            site._template_parser.enable_cross_references(site.xref_index)
+
+    parser = site._template_parser
+
+    # Determine if TOC is needed
+    need_toc = True
+    if page.metadata.get("toc") is False:
+        need_toc = False
+    else:
+        # Quick heuristic: only generate TOC if markdown likely contains headings
+        content_text = page.content or ""
+        likely_has_atx = re.search(r"^(?:\s{0,3})(?:##|###|####)\s+.+", content_text, re.MULTILINE)
+        if not likely_has_atx:
+            likely_has_setext = re.search(
+                r"^.+\n\s{0,3}(?:===+|---+)\s*$", content_text, re.MULTILINE
+            )
+            need_toc = bool(likely_has_setext)
+        else:
+            need_toc = True
+
+    # Parse content
+    try:
+        context = {"page": page, "site": site, "config": site.config}
+
+        if hasattr(parser, "parse_with_toc_and_context"):
+            # Mistune with variable substitution (preferred)
+            if page.metadata.get("preprocess") is False:
+                # Parse without variable substitution
+                if need_toc:
+                    parsed_content, toc = parser.parse_with_toc(page.content, page.metadata)
+                else:
+                    parsed_content = parser.parse(page.content, page.metadata)
+                    toc = ""
+                # Escape template syntax
+                parsed_content = parser._escape_template_syntax_in_html(parsed_content)
+            else:
+                # Parse with variable substitution
+                if need_toc:
+                    parsed_content, toc = parser.parse_with_toc_and_context(
+                        page.content, page.metadata, context
+                    )
+                else:
+                    parsed_content = parser.parse_with_context(page.content, page.metadata, context)
+                    toc = ""
+        elif hasattr(parser, "parse_with_toc"):
+            # Fallback parser
+            if need_toc:
+                parsed_content, toc = parser.parse_with_toc(page.content, page.metadata)
+            else:
+                parsed_content = parser.parse(page.content, page.metadata)
+                toc = ""
+        else:
+            # Basic parser
+            parsed_content = parser.parse(page.content, page.metadata)
+            toc = ""
+
+        # Escape Jinja blocks
+        if hasattr(parser, "_escape_jinja_blocks"):
+            parsed_content = parser._escape_jinja_blocks(parsed_content)
+
+        # Store parsed content
+        page.parsed_ast = parsed_content
+        if need_toc:
+            page.toc = toc
+
+        # Post-process: API doc enhancement (if applicable)
+        try:
+            from bengal.rendering.api_doc_enhancer import get_enhancer
+
+            enhancer = get_enhancer()
+            page_type = page.metadata.get("type")
+            if enhancer and enhancer.should_enhance(page_type):
+                page.parsed_ast = enhancer.enhance(page.parsed_ast, page_type)
+        except Exception:
+            pass  # Enhancement is optional, don't fail if it errors
+
+    except Exception as e:
+        logger.warning(
+            "get_page_parse_failed",
+            path=str(page.source_path),
+            error=str(e),
+            error_type=type(e).__name__,
+            action="using_raw_content",
+        )
+        # On parse failure, leave parsed_ast as None so template can fall back to content
 
 
 def register(env: Environment, site: Site) -> None:
@@ -38,6 +161,7 @@ def register(env: Environment, site: Site) -> None:
         - Validates paths (rejects absolute paths, path traversal)
         - Handles paths with/without .md extension
         - Caches lookup maps for performance
+        - Parses pages on-demand if accessed before rendering pipeline
         """
         if not path:
             return None
@@ -86,32 +210,41 @@ def register(env: Environment, site: Site) -> None:
         maps = site._page_lookup_maps
 
         # Strategy 1: Direct lookup in relative map (exact match)
+        page = None
         if normalized_path in maps["relative"]:
-            return maps["relative"][normalized_path]
+            page = maps["relative"][normalized_path]
 
         # Strategy 2: Try adding .md extension
-        path_with_ext = (
-            f"{normalized_path}.md" if not normalized_path.endswith(".md") else normalized_path
-        )
-        if path_with_ext in maps["relative"]:
-            return maps["relative"][path_with_ext]
+        if not page:
+            path_with_ext = (
+                f"{normalized_path}.md" if not normalized_path.endswith(".md") else normalized_path
+            )
+            if path_with_ext in maps["relative"]:
+                page = maps["relative"][path_with_ext]
 
         # Strategy 3: Try full path (rarely used in templates but possible)
-        if path in maps["full"]:
-            return maps["full"][path]
+        if not page and path in maps["full"]:
+            page = maps["full"][path]
 
         # Strategy 4: Try stripping leading "content/" prefix if present
-        if normalized_path.startswith("content/"):
+        if not page and normalized_path.startswith("content/"):
             stripped = normalized_path[8:]  # len("content/") = 8
             if stripped in maps["relative"]:
-                return maps["relative"][stripped]
-            # Also try with .md extension
-            stripped_with_ext = f"{stripped}.md" if not stripped.endswith(".md") else stripped
-            if stripped_with_ext in maps["relative"]:
-                return maps["relative"][stripped_with_ext]
+                page = maps["relative"][stripped]
+            else:
+                # Also try with .md extension
+                stripped_with_ext = f"{stripped}.md" if not stripped.endswith(".md") else stripped
+                if stripped_with_ext in maps["relative"]:
+                    page = maps["relative"][stripped_with_ext]
 
-        # Page not found
-        logger.debug("get_page_not_found", path=path, caller="template")
-        return None
+        if not page:
+            # Page not found
+            logger.debug("get_page_not_found", path=path, caller="template")
+            return None
+
+        # Ensure page is parsed if needed (for track rendering)
+        _ensure_page_parsed(page, site)
+
+        return page
 
     env.globals["get_page"] = get_page

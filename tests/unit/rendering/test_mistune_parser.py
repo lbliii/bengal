@@ -444,6 +444,82 @@ Final content.
         assert 'Strategy 3: The "Include" Directive (Advanced)' in toc
         assert "&quot;" not in toc or '"' in toc  # Either decoded or both present
 
+    def test_long_header_with_code_truncated(self, parser):
+        """Test that headers with long code snippets are truncated in slugs and TOC."""
+        # Create a header with a very long code snippet
+        long_code = "a" * 200  # 200 characters
+        content = f"## Using `{long_code}` in Your Code\n\nContent here."
+        html, toc = parser.parse_with_toc(content, {})
+
+        # Slug should be truncated to max 100 characters
+        # Find the heading ID
+        import re
+
+        id_match = re.search(r'id="([^"]+)"', html)
+        assert id_match, "Should have a heading ID"
+        heading_id = id_match.group(1)
+        assert len(heading_id) <= 100, f"Slug should be <= 100 chars, got {len(heading_id)}"
+
+        # TOC title should be truncated to 80 characters with ellipsis
+        toc_title_match = re.search(r'<a href="#[^"]+">([^<]+)</a>', toc)
+        assert toc_title_match, "Should have TOC title"
+        toc_title = toc_title_match.group(1)
+        assert len(toc_title) <= 50, f"TOC title should be <= 50 chars, got {len(toc_title)}"
+        if len(toc_title) == 50:
+            assert toc_title.endswith("..."), "Long titles should end with ellipsis"
+
+    def test_header_with_long_inline_code(self, parser):
+        """Test that headers with long inline code are handled properly."""
+        # Header with inline code that's very long
+        long_function = "very_long_function_name_that_goes_on_and_on_and_on_and_on_and_on"
+        content = f"## Calling `{long_function}` and `another_very_long_function_name`\n\nContent."
+        html, toc = parser.parse_with_toc(content, {})
+
+        # Should still generate valid slug (truncated if needed)
+        import re
+
+        id_match = re.search(r'id="([^"]+)"', html)
+        assert id_match, "Should have a heading ID"
+        heading_id = id_match.group(1)
+        assert len(heading_id) <= 100, f"Slug should be <= 100 chars, got {len(heading_id)}"
+
+        # TOC should have truncated title
+        toc_title_match = re.search(r'<a href="#[^"]+">([^<]+)</a>', toc)
+        assert toc_title_match, "Should have TOC title"
+        toc_title = toc_title_match.group(1)
+        assert len(toc_title) <= 50, f"TOC title should be <= 50 chars, got {len(toc_title)}"
+
+    def test_multiple_long_headers(self, parser):
+        """Test that multiple headers with long code are all handled correctly."""
+        content = """
+## Using `very_long_function_name_that_exceeds_normal_length_limits` in Production
+
+Content here.
+
+### Another `extremely_long_class_name_that_should_be_truncated_properly` Example
+
+More content.
+
+## Final `short_code` Header
+
+Final content.
+        """
+        html, toc = parser.parse_with_toc(content, {})
+
+        # All slugs should be <= 100 chars
+        import re
+
+        ids = re.findall(r'id="([^"]+)"', html)
+        for heading_id in ids:
+            assert len(heading_id) <= 100, (
+                f"Slug '{heading_id}' should be <= 100 chars, got {len(heading_id)}"
+            )
+
+        # All TOC titles should be <= 50 chars (for 280px sidebar)
+        titles = re.findall(r'<a href="#[^"]+">([^<]+)</a>', toc)
+        for title in titles:
+            assert len(title) <= 50, f"TOC title '{title}' should be <= 50 chars, got {len(title)}"
+
     def test_multiple_heading_levels(self, parser):
         """Test h2, h3, h4 all get anchors."""
         content = """

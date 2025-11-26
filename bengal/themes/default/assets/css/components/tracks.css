@@ -912,7 +912,7 @@
 
 .track-section-header {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: var(--space-4);
     margin-bottom: var(--space-6);
 }
@@ -934,12 +934,14 @@
 .track-section-title-group {
     flex: 1;
     min-width: 0;
+    padding-top: 12px; /* Align h2 text with number center (48px / 2 - h2 line-height adjustment) */
 }
 
 .track-section-title {
     font-size: var(--text-2xl);
     font-weight: var(--weight-bold);
     margin-bottom: var(--space-2);
+    margin-top: 0;
     line-height: 1.2;
     color: var(--color-text-primary);
 }

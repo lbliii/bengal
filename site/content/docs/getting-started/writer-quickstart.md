@@ -22,175 +22,184 @@ Get from zero to published content in 5 minutes. This guide is for content creat
 ## Start
 
 ::::{steps}
-1. **Create Your Site**
+:::{step} **Create Your Site**
 
-   Use the interactive wizard to create a site:
+Use the interactive wizard to create a site:
 
-   ```bash
-   bengal new site myblog
-   ```
+```bash
+bengal new site myblog
+```
 
-   Choose a preset that matches your goal:
+Choose a preset that matches your goal:
 
-   ```bash
-   » 📝 Blog          - Personal or professional blog
-     📚 Documentation - Technical docs or guides
-     💼 Portfolio     - Showcase your work
-     🏢 Business      - Company or product site
-     📄 Resume        - Professional resume/CV site
-   ```
+```bash
+» 📝 Blog          - Personal or professional blog
+  📚 Documentation - Technical docs or guides
+  💼 Portfolio     - Showcase your work
+  🏢 Business      - Company or product site
+  📄 Resume        - Professional resume/CV site
+```
 
-   ```{tip}
-   Choose **Blog** if you're unsure. It's a great starting point.
-   ```
+```{tip}
+Choose **Blog** if you're unsure. It's a great starting point.
+```
 
-   ```bash
-   cd myblog
-   ```
+```bash
+cd myblog
+```
+:::
 
-2. **Start the Dev Server**
+:::{step} **Start the Dev Server**
 
-   Launch the development server with hot reload:
+Launch the development server with hot reload:
 
-   ```bash
-   bengal site serve
-   ```
+```bash
+bengal site serve
+```
 
-   Open **http://localhost:5173/** in your browser. You'll see your new site!
+Open **http://localhost:5173/** in your browser. You'll see your new site!
 
-   :::{note}
-   The dev server automatically rebuilds when you save changes. Keep it running while you work.
-   :::
+:::{note}
+The dev server automatically rebuilds when you save changes. Keep it running while you work.
+:::
 
-3. **Create Your First Post**
+:::{step} **Create Your First Post**
 
-   ```bash
-   bengal new page my-first-post --section blog
-   ```
+```bash
+bengal new page my-first-post --section blog
+```
 
-   This creates `content/blog/my-first-post.md`. Open it and edit:
+This creates `content/blog/my-first-post.md`. Open it and edit:
 
-   ```markdown
-   ---
-   title: My First Post
-   date: 2025-10-26
-   tags: [welcome, tutorial]
-   description: Getting started with Bengal
-   ---
+```markdown
+---
+title: My First Post
+date: 2025-10-26
+tags: [welcome, tutorial]
+description: Getting started with Bengal
+---
 
-   # My First Post
+# My First Post
 
-   Welcome to my new blog! This is my first post using Bengal.
+Welcome to my new blog! This is my first post using Bengal.
 
-   ## Why I Chose Bengal
+## Why I Chose Bengal
 
-   - Fast builds with parallel processing
-   - Simple Markdown-based workflow
-   - Customizable themes and templates
-   - No complicated build tooling
+- Fast builds with parallel processing
+- Simple Markdown-based workflow
+- Customizable themes and templates
+- No complicated build tooling
 
-   ## What's Next?
+## What's Next?
 
-   I'm excited to share more content about:
+I'm excited to share more content about:
 
-   1. Python development
-   2. Web performance
-   3. Static site generators
+1. Python development
+2. Web performance
+3. Static site generators
 
-   Stay tuned!
-   ```
+Stay tuned!
+```
 
-   **Save the file.** The dev server automatically rebuilds and your new post appears!
+**Save the file.** The dev server automatically rebuilds and your new post appears!
+:::
 
-4. **Customize Your Site**
+:::{step} **Customize Your Site**
 
-   Edit `bengal.toml` to personalize your site:
+Edit `bengal.toml` to personalize your site:
 
-   ```toml
-   [site]
-   title = "My Awesome Blog"
-   description = "Thoughts on code, design, and life"
-   baseurl = "https://myblog.com"  # Your future domain
-   author = "Your Name"
-   language = "en"
-   ```
+```toml
+[site]
+title = "My Awesome Blog"
+description = "Thoughts on code, design, and life"
+baseurl = "https://myblog.com"  # Your future domain
+author = "Your Name"
+language = "en"
+```
+:::
 
-5. **Add More Content**
+:::{step} **Add More Content**
 
-   ### Create Regular Pages
+**Create Regular Pages**
 
-   ```bash
-   # About page
-   bengal new page about
+```bash
+# About page
+bengal new page about
 
-   # Contact page
-   bengal new page contact
-   ```
+# Contact page
+bengal new page contact
+```
 
-   ### Organize with Sections
+**Organize with Sections**
 
-   ```bash
-   # Create a guides section
-   bengal new page getting-started --section guides
-   bengal new page advanced-tips --section guides
-   ```
+```bash
+# Create a guides section
+bengal new page getting-started --section guides
+bengal new page advanced-tips --section guides
+```
 
-   ### Use Frontmatter
+**Use Frontmatter**
 
-   Control how pages appear with frontmatter metadata:
+Control how pages appear with frontmatter metadata:
 
-   ```yaml
-   ---
-   title: Advanced Python Tips
-   date: 2025-10-26
-   tags: [python, advanced]
-   description: Take your Python skills to the next level
-   weight: 10               # Lower numbers appear first
-   draft: false             # Set to true to hide during builds
-   keywords: [python, advanced, tutorial]
-   ---
-   ```
+```yaml
+---
+title: Advanced Python Tips
+date: 2025-10-26
+tags: [python, advanced]
+description: Take your Python skills to the next level
+weight: 10               # Lower numbers appear first
+draft: false             # Set to true to hide during builds
+keywords: [python, advanced, tutorial]
+---
+```
 
-   **Common frontmatter keys:**
-   - `title` - Page title (required)
-   - `date` - Publication date for sorting
-   - `tags` - Tags for taxonomy pages (e.g., `[python, web]`)
-   - `weight` - Sort order (lower numbers appear first)
-   - `draft` - Set to `true` to hide during builds
-   - `description` - SEO description
+**Common frontmatter keys:**
+- `title` - Page title (required)
+- `date` - Publication date for sorting
+- `tags` - Tags for taxonomy pages (e.g., `[python, web]`)
+- `weight` - Sort order (lower numbers appear first)
+- `draft` - Set to `true` to hide during builds
+- `description` - SEO description
 
-   For a complete reference of all supported frontmatter keys, see the [Frontmatter Reference](/api/core/page/) documentation.
+For a complete reference of all supported frontmatter keys, see the [Frontmatter Reference](/api/core/page/) documentation.
+:::
 
-6. **Build for Production**
+:::{step} **Build for Production**
 
-   When you're ready to publish:
+When you're ready to publish:
 
-   ```bash
-   # Clean previous builds
-   bengal site clean
+```bash
+# Clean previous builds
+bengal site clean
 
-   # Build the site
-   bengal site build
-   ```
+# Build the site
+bengal site build
+```
 
-   Your complete site is in the `public/` directory, ready to deploy!
+Your complete site is in the `public/` directory, ready to deploy!
+:::
 
-7. **Deploy Your Site**
+:::{step} **Deploy Your Site**
 
-   Deploy the `public/` directory to any static hosting:
+Deploy the `public/` directory to any static hosting:
 
-   **Netlify:**
-   1. Push your code to GitHub
-   2. Connect to Netlify
-   3. Build command: `bengal site build`
-   4. Publish directory: `public`
+**Netlify:**
 
-   **GitHub Pages:**
-   ```bash
-   git subtree push --prefix public origin gh-pages
-   ```
+1. Push your code to GitHub
+2. Connect to Netlify
+3. Build command: `bengal site build`
+4. Publish directory: `public`
 
-   **Vercel, Cloudflare Pages:** Similar to Netlify - point to `public/`
+**GitHub Pages:**
+
+```bash
+git subtree push --prefix public origin gh-pages
+```
+
+**Vercel, Cloudflare Pages:** Similar to Netlify - point to `public/`
+
+:::
 ::::
 
 ## Writing Tips

@@ -108,12 +108,17 @@
    */
   function updateActiveItem() {
     const scrollTop = window.scrollY;
+    const viewportOffset = 120; // Offset from top of viewport
 
     // Find active heading (closest one above viewport)
+    // Use getBoundingClientRect() for more reliable detection with nested elements
     let activeIndex = 0;
     for (let i = headings.length - 1; i >= 0; i--) {
       const heading = headings[i];
-      if (heading.element.offsetTop <= scrollTop + 120) {
+      const rect = heading.element.getBoundingClientRect();
+      // Check if heading is at or above the viewport offset point
+      // This works better for headings nested inside list items or other containers
+      if (rect.top <= viewportOffset) {
         activeIndex = i;
         break;
       }

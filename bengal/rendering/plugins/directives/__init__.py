@@ -36,7 +36,7 @@ from bengal.rendering.plugins.directives.fenced import FencedDirective
 from bengal.rendering.plugins.directives.list_table import ListTableDirective
 from bengal.rendering.plugins.directives.marimo import MarimoCellDirective
 from bengal.rendering.plugins.directives.rubric import RubricDirective
-from bengal.rendering.plugins.directives.steps import StepsDirective
+from bengal.rendering.plugins.directives.steps import StepDirective, StepsDirective
 from bengal.rendering.plugins.directives.tabs import (
     TabItemDirective,
     TabsDirective,
@@ -113,6 +113,7 @@ def create_documentation_directives():
                 ButtonDirective(),  # Simple button links
                 ChecklistDirective(),  # Styled checklist containers
                 StepsDirective(),  # Visual step-by-step guides
+                StepDirective(),  # Individual step (nested in steps)
             ]
 
             # Conditionally add Marimo support (only if marimo is installed)

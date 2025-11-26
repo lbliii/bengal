@@ -659,6 +659,12 @@ class MistuneParser(BaseMarkdownParser):
                 if not title:
                     continue
 
+                # Truncate long titles (especially those with code) for TOC display
+                # 50 chars is reasonable for 280px sidebar TOC to prevent overflow
+                # This ensures titles fit even with code snippets and file paths
+                if len(title) > 50:
+                    title = title[:47] + "..."
+
                 # Build indented list item
                 indent = "  " * (level - 2)
                 toc_items.append(f'{indent}<li><a href="#{heading_id}">{title}</a></li>')
@@ -679,13 +685,16 @@ class MistuneParser(BaseMarkdownParser):
         Matches python-markdown's default slugify behavior.
 
         Uses bengal.utils.text.slugify with HTML unescaping enabled.
+        Limits slug length to prevent overly long IDs from headers with code.
 
         Args:
             text: Text to slugify
 
         Returns:
-            Slugified text
+            Slugified text (max 100 characters)
         """
         from bengal.utils.text import slugify
 
-        return slugify(text, unescape_html=True)
+        # Limit slug length to prevent overly long IDs from headers with long code snippets
+        # 100 chars is reasonable for HTML IDs while still being descriptive
+        return slugify(text, unescape_html=True, max_length=100)

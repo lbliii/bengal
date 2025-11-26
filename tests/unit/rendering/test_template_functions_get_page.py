@@ -180,7 +180,7 @@ class TestGetPageFunction:
         get_page = env.globals["get_page"]
 
         # Should still work (though not ideal)
-        page = get_page("docs/getting-started/installation.md/")
+        get_page("docs/getting-started/installation.md/")
         # May or may not work, but shouldn't crash
         # Current implementation may return None, which is acceptable
 
@@ -200,3 +200,43 @@ class TestGetPageFunction:
         # On case-insensitive filesystems (macOS/Windows), this might work
         # On case-sensitive filesystems (Linux), this should fail
         # Current implementation is case-sensitive, which is correct
+
+    def test_get_page_parses_on_demand(self, site_with_content: Site):
+        """Test that get_page parses pages on-demand when accessed from templates."""
+        from jinja2 import Environment
+
+        env = Environment()
+        register(env, site_with_content)
+        get_page = env.globals["get_page"]
+
+        # Get a page that hasn't been parsed yet
+        page = get_page("docs/getting-started/writer-quickstart.md")
+        assert page is not None
+
+        # Verify page is parsed after get_page call
+        assert hasattr(page, "parsed_ast")
+        assert page.parsed_ast is not None
+        assert len(page.parsed_ast) > 0
+        # Should be HTML, not markdown
+        assert "<h1>" in page.parsed_ast or "<h2>" in page.parsed_ast
+
+    def test_get_page_does_not_reparse_already_parsed_pages(self, site_with_content: Site):
+        """Test that get_page doesn't reparse pages that are already parsed."""
+        from jinja2 import Environment
+
+        env = Environment()
+        register(env, site_with_content)
+        get_page = env.globals["get_page"]
+
+        # Get a page and parse it manually first
+        page = get_page("docs/getting-started/installation.md")
+        assert page is not None
+
+        # Manually set parsed_ast to a known value
+        original_parsed = "<h1>Test</h1><p>Original content</p>"
+        page.parsed_ast = original_parsed
+
+        # Get the page again - should not reparse
+        page2 = get_page("docs/getting-started/installation.md")
+        assert page2 is not None
+        assert page2.parsed_ast == original_parsed

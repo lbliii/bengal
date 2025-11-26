@@ -13,10 +13,33 @@
   --step-spacing: var(--space-10);
 }
 
-.steps ol {
+/* Only remove list style from direct child ol (the steps container) */
+.steps > ol {
   list-style: none;
   padding: 0;
   margin: 0;
+}
+
+/* Restore list styling for nested ordered lists inside steps */
+.steps ol ol {
+  list-style: decimal;
+  padding-left: 1.5rem;
+  margin-top: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+/* Restore list styling for nested unordered lists inside steps */
+.steps ol ul {
+  list-style: disc;
+  padding-left: 1.5rem;
+  margin-top: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+/* Remove bottom margin from lists that are the last element in a step */
+.steps > ol > li > ol:last-child,
+.steps > ol > li > ul:last-child {
+  margin-bottom: 0;
 }
 
 .steps > ol > li {
@@ -84,7 +107,23 @@
   color: var(--color-text-primary);
 }
 
-/* Content spacing */
+/* Content spacing - remove bottom margin from last element */
 .steps > ol > li > :last-child {
   margin-bottom: 0;
+}
+
+/* Ensure proper spacing between content elements inside steps */
+.steps > ol > li > p + ol,
+.steps > ol > li > p + ul,
+.steps > ol > li > strong + ol,
+.steps > ol > li > strong + ul {
+  margin-top: var(--space-3);
+}
+
+/* Ensure proper spacing after lists */
+.steps > ol > li > ol + p,
+.steps > ol > li > ul + p,
+.steps > ol > li > ol + strong,
+.steps > ol > li > ul + strong {
+  margin-top: var(--space-3);
 }
