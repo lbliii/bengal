@@ -175,8 +175,10 @@ class GraphVisualizer:
                 page_url = "/categories/"
 
             # Try page.url property if we don't have a taxonomy URL
+            # NOTE: page.url already includes baseurl, so we DON'T add it again
             if not page_url:
                 try:
+                    # page.url returns URL with baseurl already applied
                     page_url = page.url
                 except (AttributeError, Exception):
                     # Fallback: try to compute from output_path if available
@@ -187,26 +189,23 @@ class GraphVisualizer:
                             page_url = f"/{rel_path}".replace("\\", "/").replace("/index.html", "/")
                             if not page_url.endswith("/"):
                                 page_url += "/"
+                            # Apply baseurl for fallback path (since we computed it manually)
+                            baseurl = self.site.config.get("baseurl", "").rstrip("/")
+                            if baseurl:
+                                page_url = f"{baseurl}{page_url}"
                         except (ValueError, AttributeError):
-                            # Final fallback: use slug-based URL
-                            page_url = f"/{getattr(page, 'slug', page.source_path.stem)}/"
+                            # Final fallback: use slug-based URL with baseurl
+                            baseurl = self.site.config.get("baseurl", "").rstrip("/")
+                            page_url = f"{baseurl}/{getattr(page, 'slug', page.source_path.stem)}/"
                     else:
-                        # Final fallback: use slug-based URL
-                        page_url = f"/{getattr(page, 'slug', page.source_path.stem)}/"
-
-            # Apply baseurl to URL (like templates do with permalink)
-            baseurl = self.site.config.get("baseurl", "").rstrip("/")
-            if baseurl:
-                # Ensure page_url starts with /
-                if not page_url.startswith("/"):
-                    page_url = "/" + page_url
-                # Handle absolute vs path-only base URLs
-                if baseurl.startswith(("http://", "https://", "file://")):
+                        # Final fallback: use slug-based URL with baseurl
+                        baseurl = self.site.config.get("baseurl", "").rstrip("/")
+                        page_url = f"{baseurl}/{getattr(page, 'slug', page.source_path.stem)}/"
+            else:
+                # Taxonomy URLs need baseurl applied (they're constructed without it)
+                baseurl = self.site.config.get("baseurl", "").rstrip("/")
+                if baseurl:
                     page_url = f"{baseurl}{page_url}"
-                else:
-                    # Path-only baseurl (e.g., /bengal)
-                    base_path = "/" + baseurl.lstrip("/")
-                    page_url = f"{base_path}{page_url}"
 
             # Determine node type for filtering
             node_type = "regular"
