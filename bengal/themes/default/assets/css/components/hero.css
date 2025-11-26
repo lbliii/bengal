@@ -361,6 +361,76 @@
   animation: heroBlobFloat4 5.5s ease-in-out infinite;
 }
 
+/* ============================================
+   BLOB SIZE VARIANTS
+   ============================================ */
+
+/* Compact blob background - for smaller sections, cards, etc. */
+.hero--blob-background--compact .hero__blob--1 {
+  width: 120px;
+  height: 120px;
+  top: -40px;
+  left: -40px;
+  animation: heroBlobFloat1Compact 5s ease-in-out infinite;
+}
+
+.hero--blob-background--compact .hero__blob--2 {
+  width: 100px;
+  height: 100px;
+  top: -20px;
+  right: -20px;
+  animation: heroBlobFloat2Compact 6s ease-in-out infinite;
+}
+
+.hero--blob-background--compact .hero__blob--3 {
+  width: 110px;
+  height: 110px;
+  bottom: -30px;
+  left: 20%;
+  animation: heroBlobFloat3Compact 7s ease-in-out infinite;
+}
+
+.hero--blob-background--compact .hero__blob--4 {
+  width: 90px;
+  height: 90px;
+  bottom: -25px;
+  right: 15%;
+  animation: heroBlobFloat4Compact 5.5s ease-in-out infinite;
+}
+
+/* Small blob background - for very small elements */
+.hero--blob-background--small .hero__blob--1 {
+  width: 60px;
+  height: 60px;
+  top: -20px;
+  left: -20px;
+  animation: heroBlobFloat1Small 5s ease-in-out infinite;
+}
+
+.hero--blob-background--small .hero__blob--2 {
+  width: 50px;
+  height: 50px;
+  top: -10px;
+  right: -10px;
+  animation: heroBlobFloat2Small 6s ease-in-out infinite;
+}
+
+.hero--blob-background--small .hero__blob--3 {
+  width: 55px;
+  height: 55px;
+  bottom: -15px;
+  left: 20%;
+  animation: heroBlobFloat3Small 7s ease-in-out infinite;
+}
+
+.hero--blob-background--small .hero__blob--4 {
+  width: 45px;
+  height: 45px;
+  bottom: -12px;
+  right: 15%;
+  animation: heroBlobFloat4Small 5.5s ease-in-out infinite;
+}
+
 /* Blob animations - peaceful floating movements (faster and more noticeable) */
 @keyframes heroBlobFloat1 {
 
@@ -435,6 +505,160 @@
 
   60% {
     transform: translate(80px, -50px) scale(0.85);
+  }
+}
+
+/* Compact blob animations - smaller movements */
+@keyframes heroBlobFloat1Compact {
+
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  25% {
+    transform: translate(30px, -20px) scale(1.15);
+  }
+
+  50% {
+    transform: translate(-20px, 30px) scale(0.85);
+  }
+
+  75% {
+    transform: translate(25px, 20px) scale(1.1);
+  }
+}
+
+@keyframes heroBlobFloat2Compact {
+
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  33% {
+    transform: translate(-35px, -25px) scale(1.2);
+  }
+
+  66% {
+    transform: translate(30px, -35px) scale(0.8);
+  }
+}
+
+@keyframes heroBlobFloat3Compact {
+
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  20% {
+    transform: translate(25px, -30px) scale(1.25);
+  }
+
+  40% {
+    transform: translate(-30px, 15px) scale(0.75);
+  }
+
+  60% {
+    transform: translate(35px, 25px) scale(1.15);
+  }
+
+  80% {
+    transform: translate(-15px, -20px) scale(0.9);
+  }
+}
+
+@keyframes heroBlobFloat4Compact {
+
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  30% {
+    transform: translate(-30px, 35px) scale(1.15);
+  }
+
+  60% {
+    transform: translate(35px, -20px) scale(0.85);
+  }
+}
+
+/* Small blob animations - very small movements */
+@keyframes heroBlobFloat1Small {
+
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  25% {
+    transform: translate(15px, -10px) scale(1.15);
+  }
+
+  50% {
+    transform: translate(-10px, 15px) scale(0.85);
+  }
+
+  75% {
+    transform: translate(12px, 10px) scale(1.1);
+  }
+}
+
+@keyframes heroBlobFloat2Small {
+
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  33% {
+    transform: translate(-18px, -12px) scale(1.2);
+  }
+
+  66% {
+    transform: translate(15px, -18px) scale(0.8);
+  }
+}
+
+@keyframes heroBlobFloat3Small {
+
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  20% {
+    transform: translate(12px, -15px) scale(1.25);
+  }
+
+  40% {
+    transform: translate(-15px, 8px) scale(0.75);
+  }
+
+  60% {
+    transform: translate(18px, 12px) scale(1.15);
+  }
+
+  80% {
+    transform: translate(-8px, -10px) scale(0.9);
+  }
+}
+
+@keyframes heroBlobFloat4Small {
+
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  30% {
+    transform: translate(-15px, 18px) scale(1.15);
+  }
+
+  60% {
+    transform: translate(18px, -10px) scale(0.85);
   }
 }
 

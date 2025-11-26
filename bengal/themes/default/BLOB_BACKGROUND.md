@@ -25,10 +25,31 @@ description: A modern static site generator
 Or add the modifier class directly in templates:
 
 ```html
+<!-- Large hero section (default) -->
 <header class="hero hero--large hero--blob-background">
   <!-- Hero content -->
 </header>
+
+<!-- Compact section (medium-sized elements) -->
+<section class="hero hero--blob-background hero--blob-background--compact">
+  <!-- Section content -->
+</section>
+
+<!-- Small element (cards, small sections) -->
+<div class="hero hero--blob-background hero--blob-background--small">
+  <!-- Small content -->
+</div>
 ```
+
+### Size Variants
+
+The blob backgrounds come in three sizes to match different element sizes:
+
+- **Default** (`.hero--blob-background`): For large hero sections (220-300px blobs)
+- **Compact** (`.hero--blob-background--compact`): For medium-sized sections (90-120px blobs)
+- **Small** (`.hero--blob-background--small`): For small elements like cards (45-60px blobs)
+
+Choose the size variant that matches your element's dimensions for the best visual effect.
 
 ## Customization
 

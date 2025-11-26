@@ -139,6 +139,160 @@
 }
 
 /* ============================================
+   FLUID BLOB SIZE VARIANTS
+   ============================================ */
+
+/* Compact fluid background - for medium-sized elements */
+.fluid-bg--compact::before {
+  top: -30%;
+  right: -15%;
+  width: 120%;
+  height: 120%;
+  animation: blob-morph-compact var(--blob-duration-slow) ease-in-out infinite;
+}
+
+.fluid-bg--compact::after {
+  bottom: -25%;
+  left: -10%;
+  width: 110%;
+  height: 110%;
+  animation: blob-morph-reverse-compact calc(var(--blob-duration-slow) * 1.25) ease-in-out infinite;
+}
+
+@keyframes blob-morph-compact {
+
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+    border-radius: 50% 40% 60% 30%;
+  }
+
+  25% {
+    transform: translate(5%, -6%) scale(1.1);
+    border-radius: 60% 30% 50% 40%;
+  }
+
+  50% {
+    transform: translate(-5%, 5%) scale(0.95);
+    border-radius: 40% 60% 30% 50%;
+  }
+
+  75% {
+    transform: translate(6%, 3%) scale(1.05);
+    border-radius: 50% 30% 60% 40%;
+  }
+}
+
+@keyframes blob-morph-reverse-compact {
+
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+    border-radius: 40% 50% 30% 60%;
+  }
+
+  25% {
+    transform: translate(-3%, 4%) scale(0.95);
+    border-radius: 30% 60% 40% 50%;
+  }
+
+  50% {
+    transform: translate(3%, -3%) scale(1.05);
+    border-radius: 60% 30% 50% 40%;
+  }
+
+  75% {
+    transform: translate(-4%, -2%) scale(0.98);
+    border-radius: 50% 40% 60% 30%;
+  }
+}
+
+/* Small fluid background - for small elements */
+.fluid-bg--small::before {
+  top: -20%;
+  right: -10%;
+  width: 80%;
+  height: 80%;
+  animation: blob-morph-small var(--blob-duration-slow) ease-in-out infinite;
+}
+
+.fluid-bg--small::after {
+  bottom: -15%;
+  left: -8%;
+  width: 75%;
+  height: 75%;
+  animation: blob-morph-reverse-small calc(var(--blob-duration-slow) * 1.25) ease-in-out infinite;
+}
+
+@keyframes blob-morph-small {
+
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+    border-radius: 50% 40% 60% 30%;
+  }
+
+  25% {
+    transform: translate(3%, -3%) scale(1.08);
+    border-radius: 60% 30% 50% 40%;
+  }
+
+  50% {
+    transform: translate(-3%, 3%) scale(0.97);
+    border-radius: 40% 60% 30% 50%;
+  }
+
+  75% {
+    transform: translate(3%, 2%) scale(1.03);
+    border-radius: 50% 30% 60% 40%;
+  }
+}
+
+@keyframes blob-morph-reverse-small {
+
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+    border-radius: 40% 50% 30% 60%;
+  }
+
+  25% {
+    transform: translate(-2%, 2%) scale(0.97);
+    border-radius: 30% 60% 40% 50%;
+  }
+
+  50% {
+    transform: translate(2%, -2%) scale(1.03);
+    border-radius: 60% 30% 50% 40%;
+  }
+
+  75% {
+    transform: translate(-2%, -1%) scale(0.99);
+    border-radius: 50% 40% 60% 30%;
+  }
+}
+
+/* Fallback for compact and small variants */
+@supports not (color: color-mix(in srgb, black, white)) {
+
+  .fluid-bg--compact::before,
+  .fluid-bg--small::before {
+    background: radial-gradient(circle at 30% 30%,
+        rgba(59, 130, 246, 0.06) 0%,
+        rgba(139, 92, 246, 0.04) 30%,
+        transparent 60%);
+  }
+
+  .fluid-bg--compact::after,
+  .fluid-bg--small::after {
+    background: radial-gradient(circle at 70% 70%,
+        rgba(139, 92, 246, 0.06) 0%,
+        rgba(59, 130, 246, 0.04) 25%,
+        transparent 55%);
+  }
+}
+
+/* ============================================
    FLOWING GRADIENT BORDER
    ============================================ */
 
@@ -306,6 +460,24 @@
   z-index: 0;
 }
 
+/* Compact combined fluid effect */
+.fluid-combined--compact::before {
+  top: -20%;
+  right: -8%;
+  width: 100%;
+  height: 100%;
+  animation: blob-morph-compact var(--blob-duration-slow) ease-in-out infinite;
+}
+
+/* Small combined fluid effect */
+.fluid-combined--small::before {
+  top: -15%;
+  right: -5%;
+  width: 70%;
+  height: 70%;
+  animation: blob-morph-small var(--blob-duration-slow) ease-in-out infinite;
+}
+
 /* Flowing border */
 .fluid-combined::after {
   content: '';
@@ -333,7 +505,10 @@
 
 /* Fallback for browsers without color-mix */
 @supports not (color: color-mix(in srgb, black, white)) {
-  .fluid-combined::before {
+
+  .fluid-combined::before,
+  .fluid-combined--compact::before,
+  .fluid-combined--small::before {
     background: radial-gradient(circle at 40% 40%,
         rgba(59, 130, 246, 0.06) 0%,
         rgba(139, 92, 246, 0.04) 25%,
@@ -406,11 +581,17 @@
 
   .fluid-bg::before,
   .fluid-bg::after,
+  .fluid-bg--compact::before,
+  .fluid-bg--compact::after,
+  .fluid-bg--small::before,
+  .fluid-bg--small::after,
   .fluid-border::before,
   .blob-spots::before,
   .blob-spots::after,
   .fluid-combined::before,
   .fluid-combined::after,
+  .fluid-combined--compact::before,
+  .fluid-combined--small::before,
   .fluid-text {
     animation: none !important;
     background-position: 0% 50% !important;

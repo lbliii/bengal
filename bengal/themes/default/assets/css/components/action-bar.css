@@ -37,21 +37,21 @@
   overflow: hidden;
 }
 
-/* Blob background animation for action bar */
+/* Blob background animation for action bar - using small variant for compact component */
 .action-bar::before {
   content: '';
   position: absolute;
-  top: -50%;
-  left: -20%;
-  width: 200%;
-  height: 200%;
+  top: -15%;
+  left: -5%;
+  width: 80%;
+  height: 80%;
   background: radial-gradient(circle at 30% 30%,
       color-mix(in srgb, var(--blob-color-1) 8%, transparent) 0%,
       color-mix(in srgb, var(--blob-color-2) 5%, transparent) 30%,
       color-mix(in srgb, var(--blob-color-3) 4%, transparent) 60%,
       transparent 80%);
   border-radius: 50%;
-  animation: blob-morph 6s ease-in-out infinite;
+  animation: blob-morph-small 6s ease-in-out infinite;
   pointer-events: none;
   z-index: 0;
   opacity: 0.6;
