@@ -157,60 +157,60 @@ class AutoFixer:
                 if result.details:
                     # Extract file and line from details
                     for detail in result.details:
-                    # Parse formats like:
-                    # - "cards.md:24,43,51 - 3 issue(s)" (multiple lines)
-                    # - "cards.md:24 - structure: Line 24: Directive 'cards'..." (single line)
-                    if ":" in detail and ".md" in detail:
-                        parts = detail.split(":", 1)
-                        if len(parts) >= 2:
-                            file_name = parts[0]
-                            line_part = parts[1].split()[
-                                0
-                            ]  # Get first part (may be "24" or "24,43,51")
+                        # Parse formats like:
+                        # - "cards.md:24,43,51 - 3 issue(s)" (multiple lines)
+                        # - "cards.md:24 - structure: Line 24: Directive 'cards'..." (single line)
+                        if ":" in detail and ".md" in detail:
+                            parts = detail.split(":", 1)
+                            if len(parts) >= 2:
+                                file_name = parts[0]
+                                line_part = parts[1].split()[
+                                    0
+                                ]  # Get first part (may be "24" or "24,43,51")
 
-                            # Handle multiple line numbers separated by commas
-                            line_numbers = []
-                            for line_str in line_part.split(","):
-                                try:
-                                    line_num = int(line_str.strip())
-                                    line_numbers.append(line_num)
-                                except ValueError:
-                                    continue
+                                # Handle multiple line numbers separated by commas
+                                line_numbers = []
+                                for line_str in line_part.split(","):
+                                    try:
+                                        line_num = int(line_str.strip())
+                                        line_numbers.append(line_num)
+                                    except ValueError:
+                                        continue
 
-                            if line_numbers:
-                                # Find the actual file path (file_name might be just the basename)
-                                # Search in site root and common content directories
-                                possible_paths = [
-                                    self.site_root / file_name,
-                                    self.site_root / "content" / file_name,
-                                ]
-                                # Also search recursively for the file
-                                found_files = list(self.site_root.rglob(file_name))
+                                if line_numbers:
+                                    # Find the actual file path (file_name might be just the basename)
+                                    # Search in site root and common content directories
+                                    possible_paths = [
+                                        self.site_root / file_name,
+                                        self.site_root / "content" / file_name,
+                                    ]
+                                    # Also search recursively for the file
+                                    found_files = list(self.site_root.rglob(file_name))
                                 
-                                # Use first found file, or first possible path if exists
-                                file_path = None
-                                for path in found_files[:1] if found_files else possible_paths:
-                                    if path.exists():
-                                        file_path = path.resolve()
-                                        break
+                                    # Use first found file, or first possible path if exists
+                                    file_path = None
+                                    for path in found_files[:1] if found_files else possible_paths:
+                                        if path.exists():
+                                            file_path = path.resolve()
+                                            break
                                 
-                                if file_path and file_path.exists():
-                                    # Group fixes by file - create one fix action per file that fixes all directives
-                                    # This ensures we fix the entire hierarchy in one pass
-                                    file_key = str(file_path)
-                                    if not any(f.file_path == file_path and f.fix_type == "directive_fence" for f in fixes):
-                                        # Create a single fix action for this file that handles all directives
-                                        fixes.append(
-                                            FixAction(
-                                                description=f"Fix fence nesting in {file_path.relative_to(self.site_root)} ({len(line_numbers)} directive(s))",
-                                                file_path=file_path,
-                                                line_number=min(line_numbers) if line_numbers else None,  # Use first line for reference
-                                                fix_type="directive_fence",
-                                                safety=FixSafety.SAFE,
-                                                apply=self._create_file_fix(file_path, line_numbers),
-                                                check_result=result,
+                                    if file_path and file_path.exists():
+                                        # Group fixes by file - create one fix action per file that fixes all directives
+                                        # This ensures we fix the entire hierarchy in one pass
+                                        file_key = str(file_path)
+                                        if not any(f.file_path == file_path and f.fix_type == "directive_fence" for f in fixes):
+                                            # Create a single fix action for this file that handles all directives
+                                            fixes.append(
+                                                FixAction(
+                                                    description=f"Fix fence nesting in {file_path.relative_to(self.site_root)} ({len(line_numbers)} directive(s))",
+                                                    file_path=file_path,
+                                                    line_number=min(line_numbers) if line_numbers else None,  # Use first line for reference
+                                                    fix_type="directive_fence",
+                                                    safety=FixSafety.SAFE,
+                                                    apply=self._create_file_fix(file_path, line_numbers),
+                                                    check_result=result,
+                                                )
                                             )
-                                        )
 
         return fixes
     
