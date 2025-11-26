@@ -92,7 +92,8 @@ class TestIncludeDirective:
 
         # Mock the match object
         match = MagicMock()
-        directive.parse_title = lambda m: "content/snippets/warning.md"
+        # Path is relative to content dir (since no source_path in state)
+        directive.parse_title = lambda m: "snippets/warning.md"
         directive.parse_options = lambda m: []
 
         # Mock the block parser and parse_tokens
@@ -110,7 +111,8 @@ class TestIncludeDirective:
         directive = IncludeDirective()
 
         match = MagicMock()
-        directive.parse_title = lambda m: "content/snippets/steps.md"
+        # Path is relative to content dir (since no source_path in state)
+        directive.parse_title = lambda m: "snippets/steps.md"
         directive.parse_options = lambda m: [("start-line", "3"), ("end-line", "7")]
 
         block = MagicMock()

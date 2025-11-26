@@ -234,9 +234,25 @@ class IncludeDirective(DirectivePlugin):
             if not path.endswith(".md"):
                 file_path = base_dir / f"{path}.md"
                 if not file_path.exists():
-                    return None
+                    file_path = None
             else:
-                return None
+                file_path = None
+
+        # Fallback: try content directory if file not found relative to page
+        # This allows global snippets to be used from any page location
+        if file_path is None and source_path:
+            content_dir = root_path / "content"
+            if content_dir.exists():
+                fallback_path = content_dir / path
+                if fallback_path.exists():
+                    file_path = fallback_path
+                elif not path.endswith(".md"):
+                    fallback_path = content_dir / f"{path}.md"
+                    if fallback_path.exists():
+                        file_path = fallback_path
+
+        if file_path is None:
+            return None
 
         # Security: Reject symlinks (could escape containment via symlink target)
         if file_path.is_symlink():
@@ -298,7 +314,9 @@ class IncludeDirective(DirectivePlugin):
                 end = max(start, min(end, len(lines)))
                 lines = lines[start:end]
 
-            return "".join(lines)
+            # Join lines and strip trailing whitespace (including trailing newline)
+            # This prevents extra blank lines when embedding content
+            return "".join(lines).rstrip()
 
         except Exception as e:
             logger.warning("include_load_error", path=str(file_path), error=str(e))
