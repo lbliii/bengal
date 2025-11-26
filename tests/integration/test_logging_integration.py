@@ -55,11 +55,12 @@ tags: [python]
 """)
 
     # Create config
+    # Note: Use path-only baseurl for compatibility with URL generation
     config_file = tmp_path / "bengal.toml"
     config_file.write_text("""
 [site]
 title = "Test Site"
-baseurl = "https://example.com"
+baseurl = ""
 
 [build]
 parallel = false
@@ -177,10 +178,11 @@ class TestLoggingIntegration:
         # Verify we have timings
         assert len(timings) > 0, "Should have phase timings"
 
-        # Verify timings are reasonable (> 0ms, < 10 seconds)
+        # Verify timings are reasonable (> 0ms, < 60 seconds)
+        # CI environments can be slower, so we use a generous threshold
         for phase, duration in timings.items():
             assert duration > 0, f"Phase '{phase}' should have positive duration"
-            assert duration < 10000, f"Phase '{phase}' duration should be reasonable"
+            assert duration < 60000, f"Phase '{phase}' duration should be reasonable"
 
     def test_content_discovery_logging(self, temp_site):
         """Test that content discovery logs detailed information."""

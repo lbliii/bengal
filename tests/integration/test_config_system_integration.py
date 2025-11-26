@@ -376,7 +376,8 @@ class TestGitHubPagesDeployment:
         # (we can't directly access this, but we can see effects)
 
         # Verify baseurl auto-computed from GITHUB_REPOSITORY
-        assert site.config["baseurl"] == "https://lbliii.github.io/bengal"
+        # Note: GitHub Pages project sites use path-only baseurl for relative links
+        assert site.config["baseurl"] == "/bengal"
 
         # Verify production settings applied
         assert site.config["strict_mode"] is True
