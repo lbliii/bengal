@@ -99,6 +99,22 @@
     width: 100%;
     height: 100%;
     display: block;
+    opacity: 1 !important; /* Ensure SVG is always visible (fix for production fade-out) */
+    visibility: visible !important;
+}
+
+/* Ensure container is visible when graph is loaded (override any lazy-loading CSS) */
+.graph-contextual-container.graph-loaded {
+    opacity: 1 !important;
+    visibility: visible !important;
+    display: block !important;
+}
+
+/* Fallback: ensure visibility when SVG exists (for browsers that support :has) */
+.graph-contextual-container:has(svg) {
+    opacity: 1 !important;
+    visibility: visible !important;
+    display: block !important;
 }
 
 /* Reuse graph.css styles - contextual graph uses same classes */

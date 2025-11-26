@@ -317,12 +317,21 @@
             // Ensure proper spacing in viewBox string - explicitly format with spaces
             const viewBoxValue = '0 0 ' + width + ' ' + height;
 
+            // Ensure wrapper is visible (override any CSS that might hide it)
+            wrapper.style.display = 'block';
+            wrapper.style.opacity = '1';
+            wrapper.style.visibility = 'visible';
+            // Add class to mark graph as loaded (for CSS targeting)
+            wrapper.classList.add('graph-loaded');
+
             this.svg = d3.select(wrapper)
                 .append('svg')
                 .attr('width', width)
                 .attr('height', height)
                 .attr('viewBox', viewBoxValue)
-                .style('display', 'block');
+                .style('display', 'block')
+                .style('opacity', '1')
+                .style('visibility', 'visible');
 
             // Create group for panning
             this.g = this.svg.append('g');
@@ -500,12 +509,28 @@
             // Add expand button
             this.addExpandButton();
 
+            // Ensure graph remains visible after rendering (fix for production fade-out issue)
+            const wrapper = this.container.querySelector('.graph-contextual-container');
+            if (wrapper) {
+                wrapper.style.display = 'block';
+                wrapper.style.opacity = '1';
+                wrapper.style.visibility = 'visible';
+            }
+            if (this.svg) {
+                this.svg.style('opacity', '1').style('visibility', 'visible');
+            }
+
             // Stop simulation after initial layout (shorter timeout to prevent jitter)
             // Also stop when simulation naturally cools down
             this.simulation.on('end', () => {
                 if (this._simulationTimeout) {
                     clearTimeout(this._simulationTimeout);
                     this._simulationTimeout = null;
+                }
+                // Ensure visibility is maintained after simulation ends
+                if (wrapper) {
+                    wrapper.style.opacity = '1';
+                    wrapper.style.visibility = 'visible';
                 }
             });
 
@@ -514,6 +539,11 @@
                     this.simulation.stop();
                 }
                 this._simulationTimeout = null;
+                // Ensure visibility is maintained after timeout
+                if (wrapper) {
+                    wrapper.style.opacity = '1';
+                    wrapper.style.visibility = 'visible';
+                }
             }, 1000); // Reduced from 1500ms to stop sooner
         }
 
