@@ -738,6 +738,10 @@ class Site:
 
                 current[parts[-1]] = content
 
+                # Validate tracks.yaml structure if this is tracks data
+                if parts[-1] == "tracks" and isinstance(content, dict):
+                    self._validate_tracks_structure(content)
+
                 logger.debug(
                     "data_file_loaded",
                     file=str(relative),
@@ -763,6 +767,57 @@ class Site:
             )
 
         return wrapped_data
+
+    def _validate_tracks_structure(self, tracks_data: dict) -> None:
+        """
+        Validate tracks.yaml structure during data loading.
+
+        Logs warnings for invalid tracks but doesn't fail the build.
+        This provides early feedback during development.
+
+        Args:
+            tracks_data: Dictionary loaded from tracks.yaml
+        """
+        if not isinstance(tracks_data, dict):
+            logger.warning(
+                "tracks_invalid_structure",
+                message="tracks.yaml root must be a dictionary",
+            )
+            return
+
+        for track_id, track in tracks_data.items():
+            if not isinstance(track, dict):
+                logger.warning(
+                    "track_invalid_structure",
+                    track_id=track_id,
+                    message=f"Track '{track_id}' must be a dictionary",
+                )
+                continue
+
+            # Check required fields
+            if "items" not in track:
+                logger.warning(
+                    "track_missing_items",
+                    track_id=track_id,
+                    message=f"Track '{track_id}' is missing required 'items' field",
+                )
+                continue
+
+            if not isinstance(track["items"], list):
+                logger.warning(
+                    "track_items_not_list",
+                    track_id=track_id,
+                    message=f"Track '{track_id}' has 'items' field that is not a list",
+                )
+                continue
+
+            # Warn about empty tracks (may be intentional, but worth noting)
+            if len(track["items"]) == 0:
+                logger.debug(
+                    "track_empty_items",
+                    track_id=track_id,
+                    message=f"Track '{track_id}' has no items",
+                )
 
     def __repr__(self) -> str:
         return f"Site(pages={len(self.pages)}, sections={len(self.sections)}, assets={len(self.assets)})"

@@ -144,8 +144,8 @@ bengal/
 
 ### Read the Docs
 
-- **[Architecture Overview](/architecture/)** - System design
-- **[Design Principles](/architecture/core/design-principles/)** - Development philosophy
+- **[Architecture Overview](/reference/architecture/)** - System design
+- **[Design Principles](/reference/architecture/core/design-principles/)** - Development philosophy
 - **[Testing Strategy](../../../TESTING_STRATEGY.md)** - Testing approach
 
 ## 6. Build the Example Site
@@ -461,7 +461,7 @@ Before submitting your PR, verify:
 
 **Learn More:**
 - **[CONTRIBUTING.md](../../../CONTRIBUTING.md)** - Full contribution guidelines
-- **[Architecture Overview](/architecture/)** - Deep dive into Bengal's design
+- **[Architecture Overview](/reference/architecture/)** - Deep dive into Bengal's design
 - **[Testing Strategy](../../../TESTING_STRATEGY.md)** - Testing philosophy
 
 **Get Involved:**

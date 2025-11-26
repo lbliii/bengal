@@ -26,6 +26,22 @@
     will-change: transform, opacity;
 }
 
+.empty-state__icon {
+    margin: 0 auto var(--space-6) auto;
+    width: 120px;
+    height: 120px;
+    color: var(--color-primary);
+    opacity: 0.15;
+    animation: fadeIn 0.6s var(--ease-smooth) 0.15s both;
+    will-change: transform, opacity;
+}
+
+.empty-state__icon svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
 .empty-state__title {
     font-size: var(--text-4xl);
     font-weight: var(--weight-bold);
@@ -52,6 +68,18 @@
     margin-bottom: var(--space-12);
     animation: slideUp 0.5s var(--ease-smooth) 0.4s both;
     will-change: transform, opacity;
+}
+
+.empty-state__actions .button {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.empty-state__actions .button svg {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
 }
 
 .empty-state__suggestions {
@@ -124,6 +152,15 @@
 }
 
 /* Smooth animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
 @keyframes scaleIn {
     from {
         opacity: 0;
@@ -151,6 +188,11 @@
         font-size: 80px;
     }
 
+    .empty-state__icon {
+        width: 80px;
+        height: 80px;
+    }
+
     .empty-state__title {
         font-size: var(--text-2xl);
     }
@@ -172,6 +214,7 @@
 @media (prefers-reduced-motion: reduce) {
     .empty-state,
     .empty-state__code,
+    .empty-state__icon,
     .empty-state__title,
     .empty-state__message,
     .empty-state__actions,

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import html as html_module
 import re
 from typing import Any, override
 
@@ -651,6 +652,8 @@ class MistuneParser(BaseMarkdownParser):
 
                 # Strip HTML tags to get clean title text
                 title = self._HTML_TAG_PATTERN.sub("", title_html).strip()
+                # Decode HTML entities (e.g., &quot; -> ", &amp; -> &)
+                title = html_module.unescape(title)
                 # Remove pilcrow (¶) character that remains after stripping headerlink
                 title = title.replace("¶", "").strip()
                 if not title:

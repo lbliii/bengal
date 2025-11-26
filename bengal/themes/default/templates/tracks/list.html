@@ -1,70 +1,150 @@
+{#
+Track List Page Template
+
+Beautiful grid layout for displaying all available learning tracks.
+
+Usage: Set `template: tracks/list.html` in frontmatter
+#}
+
 {% extends "base.html" %}
 
 {% block content %}
 <div class="container py-5">
-  <header class="mb-5 text-center">
-    <h1>{{ page.title }}</h1>
+  {# Hero Header #}
+  <header class="tracks-header text-center mb-6">
+    <span class="badge bg-primary mb-3">Learning Tracks</span>
+    <h1 class="tracks-title">{{ page.title or 'Learning Tracks' }}</h1>
     {% if page.description %}
-    <p class="lead text-muted">{{ page.description }}</p>
+    <p class="tracks-lead lead text-muted mt-3">
+      {{ page.description }}
+    </p>
     {% endif %}
-    {{ content | safe }}
+    {% if content %}
+    <div class="tracks-intro mt-4">
+      {{ content | safe }}
+    </div>
+    {% endif %}
   </header>
 
+  {# Tracks Grid #}
   {% if site.data.tracks %}
-  <div class="row g-4">
-    {% for id, track in site.data.tracks.items() %}
-      <div class="col-md-6 col-lg-4">
-        <div class="card h-100 shadow-sm transition-hover">
-          <div class="card-body d-flex flex-column">
-            <h2 class="card-title h4 mb-3">{{ track.title }}</h2>
-            {% if track.description %}
-            <p class="card-text text-muted mb-4 flex-grow-1">{{ track.description }}</p>
+  <div class="tracks-grid">
+    {% for id, track in site.data.tracks | items %}
+      {% set track_pages = site.pages | where('metadata.track_id', id) %}
+      {% set track_page = track_pages[0] if track_pages else None %}
+
+      <article class="track-card gradient-border fluid-combined">
+        {# Card Header #}
+        <div class="track-card-header">
+          <div class="track-card-icon">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+              <path d="M2 17l10 5 10-5"></path>
+              <path d="M2 12l10 5 10-5"></path>
+            </svg>
+          </div>
+          <h2 class="track-card-title">
+            {% if track_page %}
+            <a href="{{ track_page.url }}">{{ track.title }}</a>
             {% else %}
-            <p class="card-text text-muted mb-4 flex-grow-1">Start your learning journey.</p>
+            {{ track.title }}
             {% endif %}
-            
-            <div class="d-flex justify-content-between align-items-center mt-auto">
-              <span class="badge bg-light text-dark border">{{ track.items|length }} Lessons</span>
-              
-              {% if track.items %}
-                {% set first_slug = track.items[0] %}
-                {% set first_page = site.pages | selectattr("relative_path", "contains", first_slug) | first %}
-                {% if first_page %}
-                <a href="{{ first_page.url }}" class="btn btn-primary stretched-link">
-                  Start Track &rarr;
-                </a>
-                {% else %}
-                <span class="btn btn-secondary disabled" title="First page not found">Unavailable</span>
-                {% endif %}
-              {% endif %}
+          </h2>
+        </div>
+
+        {# Card Content #}
+        <div class="track-card-content">
+          {% if track.description %}
+          <p class="track-card-description">{{ track.description }}</p>
+          {% else %}
+          <p class="track-card-description">Start your learning journey with this comprehensive track.</p>
+          {% endif %}
+
+          {# Track Meta #}
+          <div class="track-card-meta">
+            <div class="track-meta-item">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+                <polyline points="10 9 9 9 8 9"></polyline>
+              </svg>
+              <span>{{ track.items|length }} lesson{{ 's' if track.items|length != 1 else '' }}</span>
             </div>
           </div>
-          
+
+          {# Track Preview Items #}
           {% if track.items %}
-          <div class="card-footer bg-transparent border-top-0 pb-3">
-            <small class="text-muted">
-              Includes: 
-              {% set preview_limit = 3 %}
+          <div class="track-card-preview">
+            <div class="track-preview-label">Includes:</div>
+            <ul class="track-preview-list">
+              {% set preview_limit = 4 %}
               {% for item_slug in track.items[:preview_limit] %}
-                {% set item_page = site.pages | selectattr("relative_path", "contains", item_slug) | first %}
-                {{ item_page.title if item_page else item_slug }}{% if not loop.last %}, {% endif %}
+                {% set item_page = get_page(item_slug) %}
+                <li class="track-preview-item">
+                  <span class="track-preview-number">{{ loop.index }}</span>
+                  <span class="track-preview-title">{{ item_page.title if item_page else item_slug }}</span>
+                </li>
               {% endfor %}
               {% if track.items|length > preview_limit %}
-              and {{ track.items|length - preview_limit }} more...
+              <li class="track-preview-item track-preview-more">
+                <span class="track-preview-more-text">+{{ track.items|length - preview_limit }} more</span>
+              </li>
               {% endif %}
-            </small>
+            </ul>
           </div>
           {% endif %}
         </div>
-      </div>
+
+        {# Card Footer #}
+        <div class="track-card-footer">
+          {% if track_page %}
+          <a href="{{ track_page.url }}" class="track-card-button">
+            Start Learning
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M5 12h14M12 5l7 7-7 7"></path>
+            </svg>
+          </a>
+          {% elif track.items %}
+            {% set first_slug = track.items[0] %}
+            {% set first_page = get_page(first_slug) %}
+            {% if first_page %}
+            <a href="{{ first_page.url }}" class="track-card-button">
+              Start Learning
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M5 12h14M12 5l7 7-7 7"></path>
+              </svg>
+            </a>
+            {% else %}
+            <span class="track-card-button track-card-button-disabled" title="Track page not found">
+              Unavailable
+            </span>
+            {% endif %}
+          {% else %}
+          <span class="track-card-button track-card-button-disabled" title="No track items">
+            Unavailable
+          </span>
+          {% endif %}
+        </div>
+      </article>
     {% endfor %}
   </div>
   {% else %}
-  <div class="alert alert-info">
-    <h4 class="alert-heading">No tracks defined!</h4>
-    <p>Please define your learning tracks in <code>site/data/tracks.yaml</code>.</p>
+  {# Empty State #}
+  <div class="tracks-empty">
+    <div class="tracks-empty-icon">
+      <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+        <path d="M2 17l10 5 10-5"></path>
+        <path d="M2 12l10 5 10-5"></path>
+      </svg>
+    </div>
+    <h3 class="tracks-empty-title">No tracks defined</h3>
+    <p class="tracks-empty-text">
+      Please define your learning tracks in <code>site/data/tracks.yaml</code>.
+    </p>
   </div>
   {% endif %}
 </div>
 {% endblock %}
-

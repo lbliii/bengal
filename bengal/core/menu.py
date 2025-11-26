@@ -103,10 +103,44 @@ class MenuBuilder:
     - Cycle detection: `build_hierarchy()` detects circular references in the built tree
       and raises `ValueError` when a cycle is found. Consumers should surface this early
       as a configuration error.
+    - Deduplication: Automatically prevents duplicate items by identifier, URL, and name
     """
 
     def __init__(self):
         self.items: list[MenuItem] = []
+        # Track items to prevent duplicates across all add methods
+        self._seen_identifiers: set[str] = set()
+        self._seen_urls: set[str] = set()
+        self._seen_names: set[str] = set()
+
+    def _is_duplicate(self, item_id: str | None, item_url: str, item_name: str) -> bool:
+        """
+        Check if an item is a duplicate based on identifier, URL, or name.
+
+        Args:
+            item_id: Item identifier (if any)
+            item_url: Item URL (normalized)
+            item_name: Item name (lowercased)
+
+        Returns:
+            True if duplicate found
+        """
+        if item_id and item_id in self._seen_identifiers:
+            return True
+        if item_url and item_url in self._seen_urls:
+            return True
+        if item_name and item_name in self._seen_names:
+            return True
+        return False
+
+    def _track_item(self, item: MenuItem) -> None:
+        """Track an item to prevent future duplicates."""
+        if item.identifier:
+            self._seen_identifiers.add(item.identifier)
+        if item.url:
+            self._seen_urls.add(item.url.rstrip("/"))
+        if item.name:
+            self._seen_names.add(item.name.lower())
 
     def add_from_config(self, menu_config: list[dict]) -> None:
         """
@@ -116,6 +150,23 @@ class MenuBuilder:
             menu_config: List of menu item dicts from config file
         """
         for item_config in menu_config:
+            item_id = item_config.get("identifier")
+            item_url = item_config.get("url", "").rstrip("/")
+            item_name = item_config.get("name", "").lower()
+
+            # Skip if duplicate
+            if self._is_duplicate(item_id, item_url, item_name):
+                logger.debug(
+                    "menu_duplicate_skipped",
+                    item=item_config.get("name"),
+                    reason="identifier"
+                    if item_id and item_id in self._seen_identifiers
+                    else "url"
+                    if item_url and item_url in self._seen_urls
+                    else "name",
+                )
+                continue
+
             item = MenuItem(
                 name=item_config["name"],
                 url=item_config["url"],
@@ -124,6 +175,7 @@ class MenuBuilder:
                 identifier=item_config.get("identifier"),
             )
             self.items.append(item)
+            self._track_item(item)
 
     def add_from_page(self, page: Any, menu_name: str, menu_config: dict) -> None:
         """
@@ -134,6 +186,15 @@ class MenuBuilder:
             menu_name: Name of the menu (e.g., 'main', 'footer')
             menu_config: Menu configuration from page frontmatter
         """
+        item_id = menu_config.get("identifier")
+        item_url = page.url.rstrip("/")
+        item_name = menu_config.get("name", page.title).lower()
+
+        # Skip if duplicate
+        if self._is_duplicate(item_id, item_url, item_name):
+            logger.debug("menu_duplicate_skipped", item=page.title, reason="page_frontmatter")
+            return
+
         item = MenuItem(
             name=menu_config.get("name", page.title),
             url=page.url,
@@ -142,6 +203,104 @@ class MenuBuilder:
             identifier=menu_config.get("identifier"),
         )
         self.items.append(item)
+        self._track_item(item)
+
+    def add_from_auto_nav(self, site: Any, exclude_sections: set[str] | None = None) -> None:
+        """
+        Add auto-discovered sections to menu, including nested sections.
+
+        This integrates auto-nav discovery directly into MenuBuilder,
+        ensuring deduplication happens at the builder level. Recursively
+        includes all sections in the hierarchy, not just top-level ones.
+
+        Args:
+            site: Site instance with sections
+            exclude_sections: Set of section names to exclude (e.g., {'api', 'cli'})
+        """
+        if exclude_sections is None:
+            exclude_sections = set()
+
+        def _add_section_recursive(section: Any, parent_id: str | None = None) -> None:
+            """Recursively add section and its subsections to menu."""
+            # Skip sections without paths
+            if not hasattr(section, "path") or not section.path:
+                return
+
+            # Skip excluded sections (e.g., dev sections being bundled)
+            if hasattr(section, "name") and section.name in exclude_sections:
+                return
+
+            # Get section metadata
+            section_hidden = False
+            section_title = (
+                getattr(section, "title", None) or section.name.replace("-", " ").title()
+            )
+            section_weight = getattr(section, "weight", 999)
+
+            # Check index page metadata
+            if hasattr(section, "index_page") and section.index_page:
+                index_page = section.index_page
+                metadata = getattr(index_page, "metadata", {})
+
+                # Check if hidden from menu
+                menu_setting = metadata.get("menu", True)
+                if menu_setting is False or (
+                    isinstance(menu_setting, dict) and menu_setting.get("main") is False
+                ):
+                    section_hidden = True
+
+                # Get title and weight from frontmatter
+                if hasattr(index_page, "title") and index_page.title:
+                    section_title = index_page.title
+                if "weight" in metadata:
+                    section_weight = metadata["weight"]
+
+            # Skip hidden sections
+            if section_hidden:
+                return
+
+            # Build section URL
+            section_url = getattr(section, "url", f"/{section.name}/")
+            section_id = section.name
+
+            # Determine parent identifier from section.parent if not provided
+            if parent_id is None and hasattr(section, "parent") and section.parent:
+                parent_id = section.parent.name
+
+            # Check for duplicates before adding
+            if self._is_duplicate(section_id, section_url.rstrip("/"), section_title.lower()):
+                logger.debug("menu_duplicate_skipped", item=section_title, reason="auto_nav")
+                return
+
+            # Create and add menu item
+            item = MenuItem(
+                name=section_title,
+                url=section_url,
+                weight=section_weight,
+                identifier=section_id,
+                parent=parent_id,
+            )
+            self.items.append(item)
+            self._track_item(item)
+
+            # Recursively add subsections
+            if hasattr(section, "subsections"):
+                for subsection in section.subsections:
+                    _add_section_recursive(subsection, section_id)
+
+        # Find all top-level sections (those with no parent)
+        top_level_sections = []
+        for section in site.sections:
+            if not hasattr(section, "path") or not section.path:
+                continue
+
+            # Check if section has a parent - if not, it's top-level
+            if not hasattr(section, "parent") or section.parent is None:
+                top_level_sections.append(section)
+
+        # Recursively build menu from all top-level sections
+        for section in top_level_sections:
+            _add_section_recursive(section, None)
 
     def build_hierarchy(self) -> list[MenuItem]:
         """

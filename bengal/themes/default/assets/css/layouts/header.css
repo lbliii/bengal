@@ -152,8 +152,9 @@ header .container {
   top: 100%;
   left: 0;
   min-width: 200px;
-  margin-top: var(--space-1);
-  padding: var(--space-2) 0;
+  padding-top: calc(var(--space-1) + var(--space-2));
+  padding-bottom: var(--space-2);
+  margin-top: calc(-1 * var(--space-1));
   background-color: var(--color-bg-primary);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
@@ -168,15 +169,15 @@ header .container {
   display: block;
 }
 
-[data-theme="dark"] .nav-main .submenu {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-}
-
 .nav-main li:hover>.submenu,
 .nav-main li:focus-within>.submenu {
   opacity: 1;
   visibility: visible;
   transform: translateY(0);
+}
+
+[data-theme="dark"] .nav-main .submenu {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
 .nav-main .submenu li {

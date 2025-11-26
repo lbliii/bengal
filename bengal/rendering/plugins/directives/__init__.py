@@ -32,6 +32,7 @@ from bengal.rendering.plugins.directives.code_tabs import CodeTabsDirective
 from bengal.rendering.plugins.directives.data_table import DataTableDirective
 from bengal.rendering.plugins.directives.dropdown import DropdownDirective
 from bengal.rendering.plugins.directives.errors import DirectiveError, format_directive_error
+from bengal.rendering.plugins.directives.fenced import FencedDirective
 from bengal.rendering.plugins.directives.list_table import ListTableDirective
 from bengal.rendering.plugins.directives.marimo import MarimoCellDirective
 from bengal.rendering.plugins.directives.rubric import RubricDirective
@@ -88,13 +89,9 @@ def create_documentation_directives():
     def plugin_documentation_directives(md):
         """Register all documentation directives with Mistune."""
         logger = get_logger(__name__)
-        try:
-            from mistune.directives import FencedDirective
-        except ImportError as e:
-            logger.error("fenced_directive_unavailable", error=str(e), error_type=type(e).__name__)
-            raise ImportError(
-                "FencedDirective not found. Ensure mistune>=3.0.0 is installed."
-            ) from e
+
+        # Use our patched FencedDirective that supports indentation
+        # from mistune.directives import FencedDirective <-- REPLACED
 
         try:
             # Build directive list

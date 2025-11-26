@@ -4,7 +4,6 @@ Menu orchestration for Bengal SSG.
 Handles navigation menu building from config and page frontmatter.
 """
 
-
 from __future__ import annotations
 
 import hashlib
@@ -119,7 +118,8 @@ class MenuOrchestrator:
         Key includes:
         - Menu config from bengal.toml
         - List of pages with menu frontmatter and their menu data
-        - Dev link params (repo_url, api_url, cli_url)
+        - Dev params (repo_url)
+        - Dev section names (api, cli) that affect dev menu bundling
 
         Returns:
             SHA256 hash of menu-related data
@@ -139,91 +139,337 @@ class MenuOrchestrator:
                         "url": page.url,
                     }
                 )
-        
-        # Include dev params in cache key
+
+        # Include dev params and section names in cache key
+        # (sections affect dev menu bundling)
         params = self.site.config.get("params", {})
         dev_params = {
             "repo_url": params.get("repo_url"),
-            "api_url": params.get("api_url"),
-            "cli_url": params.get("cli_url"),
         }
 
+        # Include section names that affect dev menu (api, cli)
+        dev_section_names = []
+        for section in self.site.sections:
+            if hasattr(section, "name") and section.name in ("api", "cli"):
+                dev_section_names.append(section.name)
+        dev_section_names.sort()
+
         # Create cache key data
-        cache_data = {"config": menu_config, "pages": menu_pages, "dev_params": dev_params}
+        cache_data = {
+            "config": menu_config,
+            "pages": menu_pages,
+            "dev_params": dev_params,
+            "dev_sections": dev_section_names,
+        }
 
         # Hash to create cache key
         data_str = json.dumps(cache_data, sort_keys=True)
         return hashlib.sha256(data_str.encode()).hexdigest()
 
+    def _build_auto_menu_with_dev_bundling(self) -> list[dict]:
+        """
+        Build auto-discovered menu with dev assets bundled into dropdown.
+
+        This is the single source of truth for auto menu generation.
+        Integrates section discovery, dev bundling, and menu structure in one place.
+
+        Returns:
+            List of menu item dicts ready for MenuBuilder (with deduplication)
+        """
+        from bengal.rendering.template_functions.navigation import get_auto_nav
+
+        # Detect dev assets first
+        dev_assets = []
+        dev_sections_to_remove = set()
+
+        params = self.site.config.get("params", {})
+
+        # Check for GitHub repo URL
+        if repo_url := params.get("repo_url"):
+            dev_assets.append({"name": "GitHub", "url": repo_url, "type": "github"})
+
+        # Check for API section
+        api_section = self._find_section_by_name("api")
+        if api_section:
+            api_url = getattr(api_section, "url", "/api/")
+            dev_assets.append({"name": "API Reference", "url": api_url, "type": "api"})
+            dev_sections_to_remove.add("api")
+
+        # Check for CLI section
+        cli_section = self._find_section_by_name("cli")
+        if cli_section:
+            cli_url = getattr(cli_section, "url", "/cli/")
+            dev_assets.append({"name": "bengal CLI", "url": cli_url, "type": "cli"})
+            dev_sections_to_remove.add("cli")
+
+        # Mark dev sections to exclude from auto-nav
+        if dev_sections_to_remove:
+            if not hasattr(self.site, "_dev_menu_metadata"):
+                self.site._dev_menu_metadata = {}
+            self.site._dev_menu_metadata["exclude_sections"] = list(dev_sections_to_remove)
+
+        # Get auto-discovered sections (will exclude dev sections)
+        auto_items = get_auto_nav(self.site)
+
+        # Clear the exclude flag after use
+        if (
+            hasattr(self.site, "_dev_menu_metadata")
+            and "exclude_sections" in self.site._dev_menu_metadata
+        ):
+            del self.site._dev_menu_metadata["exclude_sections"]
+
+        # Build menu items list with deduplication
+        menu_items = []
+        seen_identifiers = set()
+        seen_urls = set()
+        seen_names = set()
+
+        # Add auto items with deduplication
+        for item in auto_items:
+            item_id = item.get("identifier")
+            item_url = item.get("url", "").rstrip("/")
+            item_name = item.get("name", "").lower()
+
+            # Skip duplicates
+            if item_id and item_id in seen_identifiers:
+                continue
+            if item_url and item_url in seen_urls:
+                continue
+            if item_name and item_name in seen_names:
+                continue
+
+            menu_items.append(item)
+            if item_id:
+                seen_identifiers.add(item_id)
+            if item_url:
+                seen_urls.add(item_url)
+            if item_name:
+                seen_names.add(item_name)
+
+        # Bundle dev assets if 2+ exist
+        if len(dev_assets) >= 2:
+            parent_id = "dev-auto"
+
+            # Check if Dev already exists
+            if parent_id not in seen_identifiers:
+                # Add Dev parent item
+                menu_items.append(
+                    {
+                        "name": "Dev",
+                        "url": "#",
+                        "identifier": parent_id,
+                        "weight": 90,
+                    }
+                )
+                seen_identifiers.add(parent_id)
+
+            # Add dev asset children in order
+            order_map = {"github": 1, "api": 2, "cli": 3}
+            dev_assets.sort(key=lambda x: order_map.get(x["type"], 99))
+
+            for i, asset in enumerate(dev_assets):
+                asset_url = asset["url"].rstrip("/")
+                asset_name = asset["name"].lower()
+
+                # Skip if duplicate
+                if asset_url in seen_urls or asset_name in seen_names:
+                    continue
+
+                menu_items.append(
+                    {
+                        "name": asset["name"],
+                        "url": asset["url"],
+                        "parent": parent_id,
+                        "weight": i + 1,
+                    }
+                )
+                seen_urls.add(asset_url)
+                seen_names.add(asset_name)
+
+            # Store metadata for template
+            if not hasattr(self.site, "_dev_menu_metadata"):
+                self.site._dev_menu_metadata = {}
+            self.site._dev_menu_metadata["github_bundled"] = any(
+                a["type"] == "github" for a in dev_assets
+            )
+
+        return menu_items
+
     def _inject_auto_dev_menu(self, menu_config: dict[str, list[dict]]) -> None:
         """
-        Inject 'Dev' menu item if dev links exist in params.
-        
-        If main menu is empty (auto mode), we first populate it with auto-nav
-        items so we don't break existing auto-navigation.
-        
+        DEPRECATED: Use _build_auto_menu_with_dev_bundling() instead.
+
+        Kept for backward compatibility but should not be used.
+        """
+        """
+        Bundle dev-related assets (API, CLI, GitHub) into a 'Dev' dropdown if 2+ exist.
+
+        Only creates dropdown if:
+        - User hasn't manually defined a menu (auto mode)
+        - At least 2 dev assets exist (API section, CLI section, or GitHub repo_url)
+
+        When bundling:
+        - Removes dev sections (api, cli) from auto-nav to avoid duplicates
+        - Adds them to Dev dropdown instead
+        - Stores metadata so template can avoid showing GitHub separately
+
         Args:
             menu_config: Menu configuration dictionary (modified in-place)
         """
-        params = self.site.config.get("params", {})
-        dev_links = []
-        
-        if repo_url := params.get("repo_url"):
-            dev_links.append({"name": "GitHub", "url": repo_url})
-        if api_url := params.get("api_url"):
-            dev_links.append({"name": "API", "url": api_url})
-        if cli_url := params.get("cli_url"):
-            dev_links.append({"name": "CLI", "url": cli_url})
-            
-        if not dev_links:
+        # Only auto-inject if no manual menu config exists
+        # If user manually defined menu, respect their choices
+        if "main" in menu_config and menu_config["main"]:
+            # Manual menu exists - don't auto-inject
             return
-            
-        # Check if main menu exists or is empty
-        # If it's missing or empty, we are in auto mode
-        # We must preserve auto items by fetching them and adding to main menu
-        if "main" not in menu_config or not menu_config["main"]:
-            from bengal.rendering.template_functions.navigation import get_auto_nav
-            
-            # Fetch auto-discovered items
-            # Note: get_auto_nav checks site.config['menu']['main'], which is empty in auto mode
-            # So it will return the correct auto items
-            auto_items = get_auto_nav(self.site)
-            
-            if "main" not in menu_config:
-                menu_config["main"] = []
-                
-            # Add auto items to main menu config
-            if auto_items:
-                # Convert from dict to list of dicts compatible with menu config
-                menu_config["main"].extend(auto_items)
-            
+
+        # Detect dev assets
+        dev_assets = []
+        dev_sections_to_remove = []  # Track sections to remove from auto-nav
+
+        params = self.site.config.get("params", {})
+
+        # Check for GitHub repo URL
+        if repo_url := params.get("repo_url"):
+            dev_assets.append({"name": "GitHub", "url": repo_url, "type": "github"})
+
+        # Check for API section (Python autodoc)
+        api_section = self._find_section_by_name("api")
+        if api_section:
+            api_url = getattr(api_section, "url", "/api/")
+            dev_assets.append({"name": "API Reference", "url": api_url, "type": "api"})
+            dev_sections_to_remove.append("api")
+
+        # Check for CLI section (CLI autodoc)
+        cli_section = self._find_section_by_name("cli")
+        if cli_section:
+            cli_url = getattr(cli_section, "url", "/cli/")
+            dev_assets.append({"name": "bengal CLI", "url": cli_url, "type": "cli"})
+            dev_sections_to_remove.append("cli")
+
+        # Only create dropdown if 2+ dev assets exist
+        if len(dev_assets) < 2:
+            return
+
+        # Mark dev sections to exclude from auto-nav
+        if not hasattr(self.site, "_dev_menu_metadata"):
+            self.site._dev_menu_metadata = {}
+        self.site._dev_menu_metadata["exclude_sections"] = dev_sections_to_remove
+
+        # Get auto-nav items (will automatically exclude dev sections)
+        from bengal.rendering.template_functions.navigation import get_auto_nav
+
+        auto_items = get_auto_nav(self.site)
+
+        # Clear the metadata after use
+        del self.site._dev_menu_metadata["exclude_sections"]
+
+        # Initialize main menu if needed
+        if "main" not in menu_config:
+            menu_config["main"] = []
+
         main_menu = menu_config["main"]
-        
-        # Check if "Dev" already exists
+
+        # Check if "Dev" already exists (shouldn't happen in auto mode, but be safe)
         if isinstance(main_menu, list):
             for item in main_menu:
                 if isinstance(item, dict) and item.get("name") == "Dev":
                     return
-        
-        # Create Dev item identifier
+
+        # Add auto items (dev sections already excluded by get_auto_nav)
+        # Only add if not already present (avoid duplicates)
+        # Check both by identifier and URL to catch all duplicates
+        existing_identifiers = {
+            item.get("identifier")
+            for item in main_menu
+            if isinstance(item, dict) and item.get("identifier")
+        }
+        existing_urls = {
+            item.get("url", "").rstrip("/")
+            for item in main_menu
+            if isinstance(item, dict) and item.get("url")
+        }
+        existing_names = {
+            item.get("name", "").lower()
+            for item in main_menu
+            if isinstance(item, dict) and item.get("name")
+        }
+
+        for item in auto_items:
+            item_id = item.get("identifier")
+            item_url = item.get("url", "").rstrip("/")
+            item_name = item.get("name", "").lower()
+
+            # Skip if already exists (by identifier, URL, or name)
+            if item_id and item_id in existing_identifiers:
+                logger.debug("menu_duplicate_skipped", item=item.get("name"), reason="identifier")
+                continue
+            if item_url and item_url in existing_urls:
+                logger.debug("menu_duplicate_skipped", item=item.get("name"), reason="url")
+                continue
+            if item_name and item_name in existing_names:
+                logger.debug("menu_duplicate_skipped", item=item.get("name"), reason="name")
+                continue
+
+            # Add the item
+            main_menu.append(item)
+            if item_id:
+                existing_identifiers.add(item_id)
+            if item_url:
+                existing_urls.add(item_url)
+            if item_name:
+                existing_names.add(item_name)
+
+        # Create Dev dropdown
         parent_id = "dev-auto"
-        
-        # Add parent
-        main_menu.append({
-            "name": "Dev",
-            "url": "#",
-            "identifier": parent_id,
-            "weight": 90, # High weight to be at end
-        })
-        
-        # Add children
-        for i, link in enumerate(dev_links):
-            main_menu.append({
-                "name": link["name"],
-                "url": link["url"],
-                "parent": parent_id,
-                "weight": i + 1,
-            })
+
+        # Add parent item
+        main_menu.append(
+            {
+                "name": "Dev",
+                "url": "#",
+                "identifier": parent_id,
+                "weight": 90,  # High weight to be at end
+            }
+        )
+
+        # Add children in order: GitHub, API, CLI
+        order_map = {"github": 1, "api": 2, "cli": 3}
+        dev_assets.sort(key=lambda x: order_map.get(x["type"], 99))
+
+        for i, asset in enumerate(dev_assets):
+            main_menu.append(
+                {
+                    "name": asset["name"],
+                    "url": asset["url"],
+                    "parent": parent_id,
+                    "weight": i + 1,
+                }
+            )
+
+        # Store metadata for template to check if GitHub is bundled
+        # We'll check this in the template to avoid showing GitHub separately
+        if not hasattr(self.site, "_dev_menu_metadata"):
+            self.site._dev_menu_metadata = {}
+        self.site._dev_menu_metadata["github_bundled"] = any(
+            a["type"] == "github" for a in dev_assets
+        )
+
+    def _find_section_by_name(self, section_name: str) -> Any | None:
+        """
+        Find a section by its name/slug.
+
+        Args:
+            section_name: Section name to find (e.g., 'api', 'cli')
+
+        Returns:
+            Section object if found, None otherwise
+        """
+        for section in self.site.sections:
+            if not hasattr(section, "name"):
+                continue
+            if section.name == section_name:
+                return section
+        return None
 
     def _build_full(self) -> bool:
         """
@@ -232,16 +478,20 @@ class MenuOrchestrator:
         Returns:
             True (menus were rebuilt)
         """
-        from bengal.core.menu import MenuBuilder
         import copy
+
+        from bengal.core.menu import MenuBuilder
 
         # Get menu definitions from config (make deep copy to avoid mutating site config)
         raw_menu_config = self.site.config.get("menu", {})
         menu_config = copy.deepcopy(raw_menu_config)
-        
-        # Inject auto dev menu
-        self._inject_auto_dev_menu(menu_config)
-        
+
+        # For "main" menu, integrate auto-nav and dev bundling directly
+        # This ensures single source of truth - no separate injection step
+        if "main" not in menu_config or not menu_config["main"]:
+            # Auto mode: build menu from sections with dev bundling
+            menu_config["main"] = self._build_auto_menu_with_dev_bundling()
+
         i18n = self.site.config.get("i18n", {}) or {}
         strategy = i18n.get("strategy", "none")
         # When i18n enabled, build per-locale menus keyed by site.menu_localized[lang]

@@ -1,7 +1,6 @@
 ---
 title: Building Curated Learning Tracks
 description: How to assemble multiple articles into linear learning paths or courses.
-type: guide
 weight: 50
 tags: [content-strategy, navigation, layout]
 ---
@@ -33,9 +32,9 @@ onboarding:
 advanced:
   title: "Advanced Architecture"
   items:
-    - architecture/core-concepts
-    - architecture/caching-strategies
-    - architecture/plugin-development
+    - reference/architecture/core-concepts
+    - reference/architecture/caching-strategies
+    - reference/architecture/plugin-development
 ```
 
 ## Step 2: Create the Track Logic
@@ -44,13 +43,13 @@ We need a way to find where the current page sits within a track. We can do this
 
 Create `bengal/themes/default/templates/partials/track_nav.html`:
 
-```jinja2:bengal/themes/default/templates/partials/track_nav.html
+```jinja2
 {% set current_slug = page.relative_path | replace('.md', '') %}
 
 {# Check if page is in any track #}
 {% for track_id, track in site.data.tracks.items() %}
   {% if current_slug in track.items %}
-    
+
     {% set current_index = track.items.index(current_slug) %}
     {% set prev_slug = track.items[current_index - 1] if current_index > 0 else None %}
     {% set next_slug = track.items[current_index + 1] if current_index < (track.items|length - 1) else None %}
@@ -61,7 +60,7 @@ Create `bengal/themes/default/templates/partials/track_nav.html`:
         <span class="float-end">{{ current_index + 1 }} of {{ track.items|length }}</span>
       </div>
       <div class="card-body d-flex justify-content-between">
-        
+
         {% if prev_slug %}
           {% set prev_page = site.pages | selectattr("relative_path", "contains", prev_slug) | first %}
           <a href="{{ prev_page.url }}" class="btn btn-outline-primary">
@@ -79,10 +78,10 @@ Create `bengal/themes/default/templates/partials/track_nav.html`:
         {% else %}
           <a href="/tracks/" class="btn btn-success">Finish Track &check;</a>
         {% endif %}
-        
+
       </div>
       <div class="progress" style="height: 4px;">
-        <div class="progress-bar" role="progressbar" 
+        <div class="progress-bar" role="progressbar"
              style="width: {{ ((current_index + 1) / track.items|length) * 100 }}%"></div>
       </div>
     </div>
@@ -98,11 +97,11 @@ Include this partial in your `base.html` or `single.html` template, typically ab
 ```html
 <!-- In templates/single.html -->
 {% block content %}
-  
+
   <h1>{{ page.title }}</h1>
-  
+
   {% include "partials/track_nav.html" %}
-  
+
   <div class="content">
     {{ page.content }}
   </div>
@@ -161,4 +160,3 @@ By decoupling the **structure** (the track list) from the **content** (the artic
 1.  Reuse the same article in multiple contexts.
 2.  Update the order of a course without editing every single file.
 3.  Provide users with a clear sense of progress.
-

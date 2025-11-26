@@ -10,22 +10,45 @@
 <div class="container">
   <div class="empty-state">
     <div class="empty-state__code">404</div>
+
+    {# Decorative icon #}
+    <div class="empty-state__icon" aria-hidden="true">
+      <svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="60" cy="60" r="50" stroke="currentColor" stroke-width="2" stroke-opacity="0.1" fill="none"/>
+        <path d="M40 40L80 80M80 40L40 80" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-opacity="0.2"/>
+        <circle cx="60" cy="60" r="8" fill="currentColor" fill-opacity="0.1"/>
+      </svg>
+    </div>
+
     <h1 class="empty-state__title">Page Not Found</h1>
     <p class="empty-state__message">
-      Sorry, the page you're looking for doesn't exist or has been moved.
+      The page you're looking for doesn't exist or may have been moved. Let's get you back on track.
     </p>
 
     <div class="empty-state__actions">
-      <a href="{{ '/' | absolute_url }}" class="button button-primary">Go Home</a>
-      <a href="{{ '/blog/' | absolute_url }}" class="button button-secondary">View Posts</a>
+      <a href="{{ '/' | absolute_url }}" class="button button-primary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+          <polyline points="9 22 9 12 15 12 15 22"></polyline>
+        </svg>
+        <span>Go Home</span>
+      </a>
+      <a href="{{ '/search/' | absolute_url }}" class="button button-secondary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="11" cy="11" r="8"></circle>
+          <path d="m21 21-4.35-4.35"></path>
+        </svg>
+        <span>Search</span>
+      </a>
     </div>
 
     <div class="empty-state__suggestions">
-      <h2>You might want to:</h2>
+      <h2>What would you like to do?</h2>
       <ul>
         <li><a href="{{ '/' | absolute_url }}">Visit the homepage</a></li>
         <li><a href="{{ '/blog/' | absolute_url }}">Browse all posts</a></li>
         <li><a href="{{ '/tags/' | absolute_url }}">Explore by tags</a></li>
+        <li><a href="{{ '/search/' | absolute_url }}">Search the site</a></li>
         <li>Use the navigation menu above</li>
       </ul>
     </div>

@@ -432,6 +432,18 @@ Final content.
         # TOC should link to it
         assert 'href="#' in toc
 
+    def test_html_entities_in_headings(self, parser):
+        """Test that HTML entities in headings are properly decoded in TOC."""
+        content = '## Strategy 3: The "Include" Directive (Advanced)\n\nContent.'
+        html, toc = parser.parse_with_toc(content, {})
+
+        # Should have a slug
+        assert 'id="strategy-3-the-include-directive-advanced"' in html
+
+        # TOC should contain decoded entities (not &quot;)
+        assert 'Strategy 3: The "Include" Directive (Advanced)' in toc
+        assert "&quot;" not in toc or '"' in toc  # Either decoded or both present
+
     def test_multiple_heading_levels(self, parser):
         """Test h2, h3, h4 all get anchors."""
         content = """

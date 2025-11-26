@@ -4,7 +4,6 @@ Data manipulation functions for templates.
 Provides 8 functions for working with JSON, YAML, and nested data structures.
 """
 
-
 from __future__ import annotations
 
 import json
@@ -198,7 +197,7 @@ def keys_filter(data: dict[str, Any]) -> list[str]:
     Get dictionary keys as list.
 
     Args:
-        data: Dictionary
+        data: Dictionary or DotDict
 
     Returns:
         List of keys
@@ -208,10 +207,27 @@ def keys_filter(data: dict[str, Any]) -> list[str]:
             {{ key }}
         {% endfor %}
     """
-    if not isinstance(data, dict):
-        return []
+    # Handle DotDict objects
+    try:
+        from bengal.utils.dotdict import DotDict
 
-    return list(data.keys())
+        if isinstance(data, DotDict):
+            return list(data.keys())
+    except (ImportError, TypeError):
+        pass
+
+    # Handle regular dicts
+    if isinstance(data, dict):
+        return list(data.keys())
+
+    # Fallback: try calling keys() if it exists
+    if hasattr(data, "keys"):
+        try:
+            return list(data.keys())
+        except (AttributeError, TypeError):
+            pass
+
+    return []
 
 
 def values_filter(data: dict[str, Any]) -> list[Any]:
@@ -219,7 +235,7 @@ def values_filter(data: dict[str, Any]) -> list[Any]:
     Get dictionary values as list.
 
     Args:
-        data: Dictionary
+        data: Dictionary or DotDict
 
     Returns:
         List of values
@@ -229,10 +245,27 @@ def values_filter(data: dict[str, Any]) -> list[Any]:
             {{ value }}
         {% endfor %}
     """
-    if not isinstance(data, dict):
-        return []
+    # Handle DotDict objects
+    try:
+        from bengal.utils.dotdict import DotDict
 
-    return list(data.values())
+        if isinstance(data, DotDict):
+            return list(data.values())
+    except (ImportError, TypeError):
+        pass
+
+    # Handle regular dicts
+    if isinstance(data, dict):
+        return list(data.values())
+
+    # Fallback: try calling values() if it exists
+    if hasattr(data, "values"):
+        try:
+            return list(data.values())
+        except (AttributeError, TypeError):
+            pass
+
+    return []
 
 
 def items_filter(data: dict[str, Any]) -> list[tuple]:
@@ -240,7 +273,7 @@ def items_filter(data: dict[str, Any]) -> list[tuple]:
     Get dictionary items as list of (key, value) tuples.
 
     Args:
-        data: Dictionary
+        data: Dictionary or DotDict
 
     Returns:
         List of (key, value) tuples
@@ -250,7 +283,25 @@ def items_filter(data: dict[str, Any]) -> list[tuple]:
             {{ key }}: {{ value }}
         {% endfor %}
     """
-    if not isinstance(data, dict):
-        return []
+    # Handle DotDict objects (from bengal.utils.dotdict)
+    # DotDict doesn't inherit from dict but has an items() method
+    try:
+        from bengal.utils.dotdict import DotDict
 
-    return list(data.items())
+        if isinstance(data, DotDict):
+            return list(data.items())
+    except (ImportError, TypeError):
+        pass
+
+    # Handle regular dicts
+    if isinstance(data, dict):
+        return list(data.items())
+
+    # Fallback: try calling items() if it exists
+    if hasattr(data, "items"):
+        try:
+            return list(data.items())
+        except (AttributeError, TypeError):
+            pass
+
+    return []

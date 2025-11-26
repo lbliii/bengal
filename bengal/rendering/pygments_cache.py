@@ -65,8 +65,11 @@ def _normalize_language(language: str) -> str:
     """Normalize a requested language to a Pygments-friendly name.
 
     Applies alias mapping and lowercases the language name.
+    Strips file paths if language identifier includes colon (e.g., 'jinja2:path/to/file.html' -> 'jinja2').
     """
-    lang_lower = language.lower()
+    # Extract just the language name if colon is present (handles 'language:filepath' pattern)
+    lang_part = language.split(":", 1)[0].strip()
+    lang_lower = lang_part.lower()
     return _LANGUAGE_ALIASES.get(lang_lower, lang_lower)
 
 

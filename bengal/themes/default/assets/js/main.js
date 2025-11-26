@@ -347,6 +347,83 @@
   /**
    * Initialize all features
    */
+  /**
+   * Track progress bar - updates based on scroll position through track sections
+   */
+  function setupTrackProgress() {
+    const progressBar = document.getElementById('track-progress-bar');
+    if (!progressBar) {
+      return; // Not on a track page
+    }
+
+    const trackSections = document.querySelectorAll('.track-section');
+    if (trackSections.length === 0) {
+      return; // No track sections found
+    }
+
+    function updateProgress() {
+      const windowHeight = window.innerHeight;
+      const documentHeight = document.documentElement.scrollHeight;
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+
+      // Calculate progress based on scroll position
+      // Progress = (scroll position + viewport height) / total document height
+      const scrollableHeight = documentHeight - windowHeight;
+      const progress = scrollableHeight > 0
+        ? Math.min(100, Math.max(0, (scrollTop / scrollableHeight) * 100))
+        : 0;
+
+      // Update progress bar
+      progressBar.style.width = progress + '%';
+      progressBar.setAttribute('aria-valuenow', Math.round(progress));
+
+      // Update active section in sidebar navigation
+      updateActiveSection();
+    }
+
+    function updateActiveSection() {
+      // Find which section is currently in view
+      const scrollPosition = window.pageYOffset + window.innerHeight / 3; // Trigger at 1/3 down viewport
+
+      let activeSection = null;
+      trackSections.forEach(function(section) {
+        const sectionTop = section.offsetTop;
+        const sectionBottom = sectionTop + section.offsetHeight;
+
+        if (scrollPosition >= sectionTop && scrollPosition < sectionBottom) {
+          activeSection = section.id;
+        }
+      });
+
+      // Update sidebar navigation active state
+      if (activeSection) {
+        document.querySelectorAll('.track-progress-nav-link').forEach(function(link) {
+          link.classList.remove('active');
+          if (link.getAttribute('href') === '#' + activeSection) {
+            link.classList.add('active');
+          }
+        });
+      }
+    }
+
+    // Update on scroll (throttled)
+    let ticking = false;
+    function onScroll() {
+      if (!ticking) {
+        window.requestAnimationFrame(function() {
+          updateProgress();
+          ticking = false;
+        });
+        ticking = true;
+      }
+    }
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+
+    // Initial update
+    updateProgress();
+  }
+
   function init() {
     setupSmoothScroll();
     setupExternalLinks();
@@ -355,6 +432,7 @@
     setupTOCHighlight();
     setupKeyboardDetection();
     setupScrollAnimations();
+    setupTrackProgress();
 
     log('Bengal theme initialized');
   }

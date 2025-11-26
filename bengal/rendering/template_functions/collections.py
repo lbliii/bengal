@@ -1,7 +1,8 @@
 """
 Collection manipulation functions for templates.
 
-Provides 8 functions for filtering, sorting, and transforming lists and dicts.
+Provides 15+ functions for filtering, sorting, and transforming lists and dicts.
+Includes Hugo-like functions for advanced page querying and manipulation.
 """
 
 from __future__ import annotations
@@ -32,38 +33,115 @@ def register(env: Environment, site: Site) -> None:
             "offset": offset,
             "uniq": uniq,
             "flatten": flatten,
+            "first": first,
+            "last": last,
+            "reverse": reverse,
+            "union": union,
+            "intersect": intersect,
+            "complement": complement,
             "resolve_pages": resolve_pages_with_site,
         }
     )
 
 
-def where(items: list[dict[str, Any]], key: str, value: Any) -> list[dict[str, Any]]:
+def _get_nested_value(obj: Any, path: str) -> Any:
+    """Get nested value using dot notation (e.g., 'metadata.track_id')."""
+    parts = path.split(".")
+    current = obj
+
+    for part in parts:
+        if isinstance(current, dict):
+            current = current.get(part)
+        elif hasattr(current, part):
+            current = getattr(current, part, None)
+        else:
+            return None
+        if current is None:
+            return None
+    return current
+
+
+def where(
+    items: list[dict[str, Any]], key: str, value: Any = None, operator: str = "eq"
+) -> list[dict[str, Any]]:
     """
-    Filter items where key equals value.
+    Filter items where key matches value using specified operator.
+
+    Supports nested attribute access (e.g., 'metadata.track_id') and comparison operators
+    for Hugo-like behavior.
 
     Args:
-        items: List of dictionaries to filter
-        key: Dictionary key to check
-        value: Value to match
+        items: List of dictionaries or objects to filter
+        key: Dictionary key or attribute path to check (supports dot notation like 'metadata.track_id')
+        value: Value to compare against (required for all operators)
+        operator: Comparison operator: 'eq' (default), 'ne', 'gt', 'gte', 'lt', 'lte', 'in', 'not in'
 
     Returns:
         Filtered list
 
     Example:
+        {# Basic equality (backward compatible) #}
         {% set tutorials = site.pages | where('category', 'tutorial') %}
-        {% set published = posts | where('status', 'published') %}
+        {% set track_pages = site.pages | where('metadata.track_id', 'getting-started') %}
+
+        {# With operators #}
+        {% set recent = site.pages | where('date', one_year_ago, 'gt') %}
+        {% set python = site.pages | where('tags', ['python', 'web'], 'in') %}
+        {% set published = site.pages | where('status', 'draft', 'ne') %}
     """
     if not items:
         return []
 
+    # Operator functions
+    operators = {
+        "eq": lambda a, b: a == b,
+        "ne": lambda a, b: a != b,
+        "gt": lambda a, b: a > b,
+        "gte": lambda a, b: a >= b,
+        "lt": lambda a, b: a < b,
+        "lte": lambda a, b: a <= b,
+        "in": lambda a, b: a in b if isinstance(b, (list, tuple, set)) else False,
+        "not_in": lambda a, b: a not in b if isinstance(b, (list, tuple, set)) else True,
+    }
+
+    # Normalize operator name (handle spaces and variations)
+    operator_normalized = str(operator).lower().replace(" ", "_")
+    if operator_normalized not in operators:
+        # Fallback to 'eq' for unknown operators
+        operator_normalized = "eq"
+
+    compare = operators[operator_normalized]
+
     result = []
     for item in items:
-        # Handle both dict access and object attribute access
-        if isinstance(item, dict):
-            if item.get(key) == value:
+        item_value = _get_nested_value(item, key)
+
+        # Handle 'in' / 'not_in' operator - supports both directions
+        if operator_normalized in ("in", "not_in"):
+            # Case 1: item_value is a list (e.g., tags), check if value is in it
+            if isinstance(item_value, (list, tuple)):
+                matches = value in item_value
+            # Case 2: value is a list, check if item_value is in it
+            elif isinstance(value, (list, tuple)):
+                matches = item_value in value
+            # Case 3: Neither is a list - use compare function (will return False)
+            else:
+                matches = compare(item_value, value)
+
+            # Apply 'not_in' negation
+            if operator_normalized == "not_in":
+                matches = not matches
+
+            if matches:
                 result.append(item)
-        elif getattr(item, key, None) == value:
-            result.append(item)
+        else:
+            # Standard comparison (works for all other operators)
+            try:
+                if compare(item_value, value):
+                    result.append(item)
+            except (TypeError, ValueError):
+                # Skip items where comparison fails (e.g., comparing incompatible types)
+                continue
 
     return result
 
@@ -72,9 +150,11 @@ def where_not(items: list[dict[str, Any]], key: str, value: Any) -> list[dict[st
     """
     Filter items where key does not equal value.
 
+    Supports nested attribute access (e.g., 'metadata.track_id') for Hugo-like behavior.
+
     Args:
-        items: List of dictionaries to filter
-        key: Dictionary key to check
+        items: List of dictionaries or objects to filter
+        key: Dictionary key or attribute path to check (supports dot notation like 'metadata.track_id')
         value: Value to exclude
 
     Returns:
@@ -82,17 +162,15 @@ def where_not(items: list[dict[str, Any]], key: str, value: Any) -> list[dict[st
 
     Example:
         {% set active = users | where_not('status', 'archived') %}
+        {% set non_tracks = site.pages | where_not('metadata.track_id', 'getting-started') %}
     """
     if not items:
         return []
 
     result = []
     for item in items:
-        # Handle both dict access and object attribute access
-        if isinstance(item, dict):
-            if item.get(key) != value:
-                result.append(item)
-        elif getattr(item, key, None) != value:
+        item_value = _get_nested_value(item, key)
+        if item_value != value:
             result.append(item)
 
     return result
@@ -268,21 +346,206 @@ def flatten(items: list[list[Any]]) -> list[Any]:
     return result
 
 
+def first(items: list[Any]) -> Any:
+    """
+    Get first item from list.
+
+    Args:
+        items: List to get first item from
+
+    Returns:
+        First item or None if list is empty
+
+    Example:
+        {% set featured = site.pages | where('metadata.featured', true) | first %}
+        {% if featured %}
+            <h2>{{ featured.title }}</h2>
+        {% endif %}
+    """
+    if not items:
+        return None
+    return items[0]
+
+
+def last(items: list[Any]) -> Any:
+    """
+    Get last item from list.
+
+    Args:
+        items: List to get last item from
+
+    Returns:
+        Last item or None if list is empty
+
+    Example:
+        {% set latest = posts | sort_by('date', reverse=true) | first %}
+        {% set oldest = posts | sort_by('date') | last %}
+    """
+    if not items:
+        return None
+    return items[-1]
+
+
+def reverse(items: list[Any]) -> list[Any]:
+    """
+    Reverse a list.
+
+    Args:
+        items: List to reverse
+
+    Returns:
+        Reversed copy of list
+
+    Example:
+        {% set reversed = posts | reverse %}
+        {% set chronological = posts | sort_by('date') | reverse %}
+    """
+    if not items:
+        return []
+    return list(reversed(items))
+
+
+def _get_item_key(item: Any) -> Any:
+    """Get unique key for an item (for set operations)."""
+    # For Page objects, use source_path as key
+    if hasattr(item, "source_path"):
+        return str(item.source_path)
+    # For hashable types, use the item itself
+    try:
+        hash(item)
+        return item
+    except TypeError:
+        # For unhashable types, use string representation (less ideal but works)
+        return str(item)
+
+
+def union(items1: list[Any], items2: list[Any]) -> list[Any]:
+    """
+    Combine two lists, removing duplicates (set union).
+
+    Preserves order from first list, then adds items from second list that aren't already present.
+
+    Args:
+        items1: First list
+        items2: Second list
+
+    Returns:
+        Combined list with duplicates removed
+
+    Example:
+        {% set all = posts | union(pages) %}
+        {% set combined = site.pages | where('type', 'post') | union(site.pages | where('type', 'page')) %}
+    """
+    if not items1:
+        return list(items2) if items2 else []
+    if not items2:
+        return list(items1)
+
+    seen = set()
+    result = []
+
+    # Add items from first list
+    for item in items1:
+        key = _get_item_key(item)
+        if key not in seen:
+            seen.add(key)
+            result.append(item)
+
+    # Add items from second list that aren't already present
+    for item in items2:
+        key = _get_item_key(item)
+        if key not in seen:
+            seen.add(key)
+            result.append(item)
+
+    return result
+
+
+def intersect(items1: list[Any], items2: list[Any]) -> list[Any]:
+    """
+    Get items that appear in both lists (set intersection).
+
+    Args:
+        items1: First list
+        items2: Second list
+
+    Returns:
+        List of items present in both lists
+
+    Example:
+        {% set common = posts | intersect(featured_pages) %}
+        {% set python_and_web = site.pages | where('tags', 'python', 'in') | intersect(site.pages | where('tags', 'web', 'in')) %}
+    """
+    if not items1 or not items2:
+        return []
+
+    # Build set of keys from second list for O(1) lookup
+    keys2 = {_get_item_key(item) for item in items2}
+
+    result = []
+    seen = set()
+
+    # Find items in first list that are also in second list
+    for item in items1:
+        key = _get_item_key(item)
+        if key in keys2 and key not in seen:
+            seen.add(key)
+            result.append(item)
+
+    return result
+
+
+def complement(items1: list[Any], items2: list[Any]) -> list[Any]:
+    """
+    Get items in first list that are not in second list (set difference).
+
+    Args:
+        items1: First list (items to keep)
+        items2: Second list (items to exclude)
+
+    Returns:
+        List of items in first list but not in second list
+
+    Example:
+        {% set only_posts = posts | complement(pages) %}
+        {% set non_featured = site.pages | complement(site.pages | where('metadata.featured', true)) %}
+    """
+    if not items1:
+        return []
+    if not items2:
+        return list(items1)
+
+    # Build set of keys from second list for O(1) lookup
+    keys2 = {_get_item_key(item) for item in items2}
+
+    result = []
+    seen = set()
+
+    # Keep items from first list that aren't in second list
+    for item in items1:
+        key = _get_item_key(item)
+        if key not in keys2 and key not in seen:
+            seen.add(key)
+            result.append(item)
+
+    return result
+
+
 def resolve_pages(page_paths: list[str], site: Site) -> list:
     """
     Resolve page paths to Page objects.
-    
+
     Used with query indexes to convert O(1) path lookups into Page objects:
         {% set blog_paths = site.indexes.section.get('blog') %}
         {% set blog_pages = blog_paths | resolve_pages %}
-    
+
     Args:
         page_paths: List of page source paths (strings)
         site: Site instance with pages
-    
+
     Returns:
         List of Page objects
-    
+
     Example:
         {% set author_paths = site.indexes.author.get('Jane Smith') %}
         {% set author_posts = author_paths | resolve_pages %}

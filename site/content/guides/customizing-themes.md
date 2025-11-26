@@ -2,7 +2,6 @@
 title: Customizing Themes
 description: Learn how to customize existing themes without breaking updates, override templates, and extend theme functionality
 weight: 30
-type: doc
 draft: false
 lang: en
 tags: [themes, customization, templates, css, design]
@@ -491,5 +490,5 @@ Include your custom theme in git:
 ## Next Steps
 
 - **[Themer Quickstart](/getting-started/themer-quickstart/)** - Learn theme basics
-- **[Rendering System](/architecture/rendering/)** - Understand template rendering
+- **[Rendering System](/reference/architecture/rendering/)** - Understand template rendering
 - **[Asset Pipeline](/about/concepts/assets/)** - Optimize CSS and JavaScript
