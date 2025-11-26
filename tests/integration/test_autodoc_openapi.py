@@ -24,6 +24,11 @@ class TestOpenAPIAutodocIntegration:
         assert fixture_path.exists(), f"Fixture not found at {fixture_path}"
 
         # Configure extractor
+        import importlib
+        import bengal.autodoc.extractors.openapi
+        importlib.reload(bengal.autodoc.extractors.openapi)
+        from bengal.autodoc.extractors.openapi import OpenAPIExtractor
+        
         extractor = OpenAPIExtractor()
         print(f"DEBUG: Extractor module: {extractor.__module__}")
         import inspect

@@ -213,6 +213,11 @@ class VariableSubstitutionPlugin:
 
         Supports dot notation for accessing nested attributes/dict keys.
 
+        SECURITY: Blocks access to private/dunder attributes to prevent:
+        - {{ page.__class__.__bases__ }}
+        - {{ config.__init__.__globals__ }}
+        - {{ page._private_field }}
+
         Args:
             expr: Expression to evaluate (e.g., 'page.metadata.title')
 
@@ -220,13 +225,28 @@ class VariableSubstitutionPlugin:
             Evaluated result
 
         Raises:
-            Exception: If evaluation fails
+            ValueError: If expression tries to access private/dunder attributes
+            ValueError: If key not found or cannot access attribute
         """
         # Support simple dot notation: page.metadata.title
         parts = expr.split(".")
+
+        # SECURITY: Block access to private/dunder attributes
+        for part in parts:
+            if part.startswith("_"):
+                raise ValueError(
+                    f"Access to private/protected attributes denied: '{part}' in '{expr}'"
+                )
+
         result = self.context
 
         for part in parts:
+            # SECURITY: Double-check dunder blocking on actual attribute access
+            if part.startswith("_"):
+                raise ValueError(
+                    f"Access to private/protected attributes denied: '{part}'"
+                )
+
             if hasattr(result, part):
                 result = getattr(result, part)
             elif isinstance(result, dict):

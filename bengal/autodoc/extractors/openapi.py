@@ -167,9 +167,14 @@ class OpenAPIExtractor(Extractor):
 
     def _extract_schemas(self, spec: dict[str, Any]) -> list[DocElement]:
         """Extract component schemas."""
+        print("DEBUG: _extract_schemas called")
         elements = []
         components = spec.get("components", {})
+        print(f"DEBUG: Components type: {type(components)}")
+        print(f"DEBUG: Components keys: {components.keys() if isinstance(components, dict) else 'Not a dict'}")
         schemas = components.get("schemas", {})
+        print(f"DEBUG: Schemas type: {type(schemas)}")
+        print(f"DEBUG: Schemas keys: {schemas.keys() if isinstance(schemas, dict) else 'Not a dict'}")
         
         for name, schema in schemas.items():
             element = DocElement(
@@ -189,4 +194,3 @@ class OpenAPIExtractor(Extractor):
             elements.append(element)
             
         return elements
-
