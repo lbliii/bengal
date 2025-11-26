@@ -58,6 +58,8 @@ def load_autodoc_config(config_path: Path | None = None) -> dict[str, Any]:
         },
         "openapi": {
             "enabled": False,
+            "spec_file": "api/openapi.yaml",  # Default spec file location
+            "output_dir": "content/api",
         },
         "cli": {
             "enabled": False,  # Disabled by default - enable in config

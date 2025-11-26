@@ -8,6 +8,7 @@ import click
 
 from bengal.autodoc.config import load_autodoc_config
 from bengal.autodoc.extractors.cli import CLIExtractor
+from bengal.autodoc.extractors.openapi import OpenAPIExtractor
 from bengal.autodoc.extractors.python import PythonExtractor
 from bengal.autodoc.generator import DocumentationGenerator
 from bengal.cli.base import BengalCommand
@@ -23,11 +24,12 @@ from bengal.cli.helpers import (
 @click.command(cls=BengalCommand)
 @command_metadata(
     category="docs",
-    description="Generate comprehensive API documentation (Python + CLI)",
+    description="Generate comprehensive API documentation (Python + CLI + OpenAPI)",
     examples=[
         "bengal autodoc",
         "bengal autodoc --python-only",
         "bengal autodoc --cli-only",
+        "bengal autodoc --openapi-only",
     ],
     requires_site=False,
     tags=["docs", "api", "autodoc"],
@@ -55,8 +57,9 @@ from bengal.cli.helpers import (
 @click.option(
     "--config", type=click.Path(exists=True), help="Path to config file (default: bengal.toml)"
 )
-@click.option("--python-only", is_flag=True, help="Only generate Python API docs (skip CLI docs)")
-@click.option("--cli-only", is_flag=True, help="Only generate CLI docs (skip Python API docs)")
+@click.option("--python-only", is_flag=True, help="Only generate Python API docs (skip others)")
+@click.option("--cli-only", is_flag=True, help="Only generate CLI docs (skip others)")
+@click.option("--openapi-only", is_flag=True, help="Only generate OpenAPI docs (skip others)")
 def autodoc(
     source: tuple,
     output: str,
@@ -67,21 +70,23 @@ def autodoc(
     config: str,
     python_only: bool,
     cli_only: bool,
+    openapi_only: bool,
 ) -> None:
     """
-    📚 Generate comprehensive API documentation (Python + CLI).
+    📚 Generate comprehensive API documentation (Python + CLI + OpenAPI).
 
-    Automatically generates both Python API docs and CLI docs based on
-    your bengal.toml configuration. Use --python-only or --cli-only to
-    generate specific types.
+    Automatically generates Python API, CLI, and OpenAPI docs based on
+    your bengal.toml configuration. Use --python-only, --cli-only, or
+    --openapi-only to generate specific types.
 
     Documentation is generated as Markdown files in the configured output
-    directory (default: content/api for Python, content/cli for CLI).
+    directories.
 
     Examples:
         bengal autodoc                    # Generate all configured docs
         bengal autodoc --python-only      # Python API docs only
         bengal autodoc --cli-only         # CLI docs only
+        bengal autodoc --openapi-only     # OpenAPI docs only
         bengal autodoc --source src       # Override Python source
 
     See also:
@@ -97,16 +102,20 @@ def autodoc(
     autodoc_config = load_autodoc_config(config_path)
     python_config = autodoc_config.get("python", {})
     cli_config = autodoc_config.get("cli", {})
+    openapi_config = autodoc_config.get("openapi", {})
 
     # HTML renderer removed - using traditional Markdown generation
 
     # Determine what to generate
-    generate_python = not cli_only and (python_only or python_config.get("enabled", True))
-    generate_cli = not python_only and (
+    generate_python = not cli_only and not openapi_only and (python_only or python_config.get("enabled", True))
+    generate_cli = not python_only and not openapi_only and (
         cli_only or (cli_config.get("enabled", False) and cli_config.get("app_module"))
     )
+    generate_openapi = not python_only and not cli_only and (
+        openapi_only or (openapi_config.get("enabled", False) and openapi_config.get("spec_file"))
+    )
 
-    if not generate_python and not generate_cli:
+    if not generate_python and not generate_cli and not generate_openapi:
         cli.warning("⚠️  Nothing to generate")
         cli.blank()
         cli.info("Either:")
@@ -114,7 +123,10 @@ def autodoc(
         cli.info(
             "  • Enable CLI docs in bengal.toml: [autodoc.cli] enabled = true, app_module = '...'"
         )
-        cli.info("  • Use --python-only or --cli-only flags")
+        cli.info(
+            "  • Enable OpenAPI docs in bengal.toml: [autodoc.openapi] enabled = true, spec_file = '...'"
+        )
+        cli.info("  • Use --python-only, --cli-only, or --openapi-only flags")
         return
 
     cli.blank()
@@ -154,8 +166,26 @@ def autodoc(
             autodoc_config=autodoc_config,
         )
 
+    # ========== OPENAPI DOCUMENTATION ==========
+    if generate_openapi:
+        if generate_python or generate_cli:
+            cli.blank()
+            cli.info("─" * 60)
+            cli.blank()
+
+        _generate_openapi_docs(
+            spec_file=openapi_config.get("spec_file"),
+            output=openapi_config.get("output_dir", "content/api"),
+            clean=clean,
+            parallel=parallel,
+            verbose=verbose,
+            stats=stats,
+            openapi_config=openapi_config,
+            autodoc_config=autodoc_config,
+        )
+
     # Summary
-    if generate_python and generate_cli:
+    if sum([generate_python, generate_cli, generate_openapi]) > 1:
         total_time = time.time() - total_start
         cli.blank()
         cli.info("─" * 60)
@@ -478,6 +508,7 @@ def autodoc_cli(
     cli_app = load_cli_app(app, cli=cli)
 
     # Extract documentation
+    cli.info("📝 Extracting CLI documentation...")
     start_time = time.time()
 
     extractor = CLIExtractor(framework=framework, include_hidden=include_hidden)
@@ -547,6 +578,98 @@ def autodoc_cli(
         cli.blank()
 
     cli.warning("💡 Next steps:")
+    cli.tip(f"View docs: ls {output_dir}")
+    cli.tip("Build site: bengal build")
+    cli.blank()
+
+
+def _generate_openapi_docs(
+    spec_file: str,
+    output: str,
+    clean: bool,
+    parallel: bool,
+    verbose: bool,
+    stats: bool,
+    openapi_config: dict,
+    autodoc_config: dict | None = None,
+) -> None:
+    """Generate OpenAPI documentation."""
+    import time
+
+    cli = get_cli_output(verbose=verbose)
+
+    cli.header("🌐 OpenAPI Documentation")
+    cli.blank()
+
+    spec_path = Path(spec_file)
+    if not spec_path.exists():
+        cli.error(f"❌ OpenAPI spec not found: {spec_path}")
+        return
+
+    output_dir = Path(output)
+
+    # Clean output directory if requested
+    if clean and output_dir.exists():
+        import shutil
+
+        shutil.rmtree(output_dir)
+        cli.warning(f"🧹 Cleaned {output_dir}")
+
+    # Create output directory
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    # Extract documentation
+    cli.info(f"🔍 Extracting OpenAPI docs from {spec_path}...")
+    start_time = time.time()
+
+    extractor = OpenAPIExtractor()
+    elements = extractor.extract(spec_path)
+
+    extraction_time = time.time() - start_time
+
+    if not elements:
+        cli.warning("⚠️  No documentation elements found in OpenAPI spec")
+        return
+
+    # Count elements
+    endpoint_count = len([e for e in elements if e.element_type == "openapi_endpoint"])
+    schema_count = len([e for e in elements if e.element_type == "openapi_schema"])
+    
+    cli.success(f"   ✓ Extracted {endpoint_count} endpoints, {schema_count} schemas in {extraction_time:.2f}s")
+
+    if verbose:
+        cli.blank()
+        cli.info("Endpoints found:")
+        for element in elements:
+            if element.element_type == "openapi_endpoint":
+                cli.info(f"  • {element.name}")
+
+    # Generate documentation
+    gen_start = time.time()
+
+    # Pass full autodoc_config so templates can access all sections
+    config = autodoc_config if autodoc_config else {"openapi": openapi_config}
+    generator = DocumentationGenerator(extractor, config)
+    
+    cli.info("📝 Generating markdown files...")
+    generated_files = generator.generate_all(elements, output_dir, parallel=parallel)
+    
+    generation_time = time.time() - gen_start
+    total_time = time.time() - start_time
+
+    # Display results
+    cli.blank()
+    cli.success(f"✅ Generated {len(generated_files)} OpenAPI documentation pages")
+    cli.info(f"   📁 Output: {output_dir}")
+
+    if stats:
+        cli.subheader("Performance Statistics:", icon="📊")
+        cli.info(f"   Extraction time:  {extraction_time:.2f}s")
+        cli.info(f"   Generation time:  {generation_time:.2f}s")
+        cli.info(f"   Total time:       {total_time:.2f}s")
+        cli.info(f"   Throughput:       {len(generated_files) / total_time:.1f} pages/sec")
+
+    cli.subheader("Next steps:", icon="💡")
     cli.tip(f"View docs: ls {output_dir}")
     cli.tip("Build site: bengal build")
     cli.blank()

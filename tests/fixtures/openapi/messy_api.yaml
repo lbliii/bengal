@@ -1,0 +1,332 @@
+openapi: 3.1.0
+info:
+  title: Legacy Enterprise Sprawl API
+  version: 4.2.0-beta
+  description: |
+    A representative "messy" API that has evolved over 5 years.
+    Includes inconsistent naming, deprecated endpoints, and complex schemas.
+    
+    # Authentication
+    Supports multiple schemes because we migrated from Basic to OAuth2 but never turned off Basic.
+
+servers:
+  - url: https://api.legacy-enterprise.com/v4
+    description: Production
+  - url: https://staging.legacy-enterprise.com/v4
+    description: Staging
+
+tags:
+  - name: Users
+    description: User management (Legacy)
+  - name: IAM
+    description: Identity Access Management (New System)
+  - name: Reports
+    description: Heavy data reporting endpoints
+
+components:
+  securitySchemes:
+    BasicAuth:
+      type: http
+      scheme: basic
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-KEY
+    OAuth2:
+      type: oauth2
+      flows:
+        clientCredentials:
+          tokenUrl: https://auth.legacy.enterprise.com/token
+          scopes:
+            read:users: Read user data
+            write:users: Modify user data
+
+  schemas:
+    # A simple schema
+    Error:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: integer
+          format: int32
+        message:
+          type: string
+        trace_id:
+          type: string
+          description: Internal tracing ID
+
+    # A complex schema using polymorphism
+    PaymentMethod:
+      type: object
+      discriminator:
+        propertyName: type
+        mapping:
+          credit_card: '#/components/schemas/CreditCard'
+          bank_account: '#/components/schemas/BankAccount'
+          paypal: '#/components/schemas/PayPal'
+      oneOf:
+        - $ref: '#/components/schemas/CreditCard'
+        - $ref: '#/components/schemas/BankAccount'
+        - $ref: '#/components/schemas/PayPal'
+
+    CreditCard:
+      type: object
+      required: [type, number]
+      properties:
+        type:
+          type: string
+          enum: [credit_card]
+        number:
+          type: string
+          pattern: '^\d{16}$'
+        cvv: 
+          type: string
+          writeOnly: true # sensitive
+    
+    BankAccount:
+      type: object
+      required: [type, routing]
+      properties:
+        type:
+          type: string
+          enum: [bank_account]
+        routing:
+          type: string
+        account_number:
+          type: string
+
+    PayPal:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [paypal]
+        email:
+          type: string
+          format: email
+
+    # Recursion and complexity
+    OrgChartNode:
+      type: object
+      properties:
+        employee_id:
+          type: string
+          format: uuid
+        reports:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrgChartNode'
+    
+    # Messy schema with inline definitions and no type enforcement
+    LegacyConfigBlob:
+      type: object
+      additionalProperties: true # Map<String, Any>
+      description: "Dump of the legacy configuration table. Structure is dynamic."
+      properties:
+        metadata:
+          type: object
+          properties:
+            created_at:
+              type: string
+              format: date-time
+            # x- extensions
+            x-deprecated-by: "NewConfigSystem"
+
+  parameters:
+    PageParam:
+      name: page
+      in: query
+      description: Page number (1-indexed)
+      schema:
+        type: integer
+        default: 1
+        minimum: 1
+    
+    LimitParam:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        default: 20
+        maximum: 100
+    
+    FilterParam:
+      name: filter
+      in: query
+      style: deepObject
+      explode: true
+      schema:
+        type: object
+        additionalProperties:
+          type: string
+
+security:
+  - ApiKeyAuth: []
+
+paths:
+  # 1. Standard CRUD (User)
+  /users:
+    get:
+      tags: [Users]
+      summary: List Users
+      description: Retrieve a paginated list of users.
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - $ref: '#/components/parameters/FilterParam'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id: {type: string, format: uuid}
+                    username: {type: string}
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+    post:
+      tags: [Users]
+      summary: Create User
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, email]
+              properties:
+                username: {type: string}
+                email: {type: string, format: email}
+                profile:
+                  type: object
+                  properties:
+                    bio: {type: string}
+                    avatar_url: {type: string, format: uri}
+      responses:
+        '201':
+          description: Created
+    
+  # 2. Deprecated Endpoint (inconsistent naming convention)
+  /user/getDetails:
+    get:
+      tags: [Users]
+      deprecated: true
+      summary: Get User Details (Legacy RPC-style)
+      description: Use `GET /users/{id}` instead.
+      parameters:
+        - name: uID
+          in: query
+          required: true
+          schema:
+            type: string
+          description: The user ID (legacy string format)
+      responses:
+        '200':
+          description: Returns the raw user blob
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LegacyConfigBlob'
+
+  # 3. Complex Request Body (Multipart/Form-Data)
+  /reports/upload:
+    post:
+      tags: [Reports]
+      summary: Upload Annual Report
+      operationId: uploadReport
+      security:
+        - OAuth2: [write:users]
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                report_id:
+                  type: string
+                  format: uuid
+                file:
+                  type: string
+                  format: binary
+                metadata:
+                  $ref: '#/components/schemas/LegacyConfigBlob'
+      responses:
+        '202':
+          description: Processing started
+
+  # 4. New IAM System (Path Params + Header Params)
+  /iam/policies/{policyId}/versions/{versionId}:
+    parameters:
+      - name: policyId
+        in: path
+        required: true
+        schema: {type: string}
+      - name: versionId
+        in: path
+        required: true
+        schema: {type: integer}
+      - name: X-Audit-Reason
+        in: header
+        schema: {type: string}
+        description: Required for compliance tracking
+    get:
+      tags: [IAM]
+      summary: Get specific policy version
+      responses:
+        '200':
+          description: Policy document
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  rules:
+                    type: array
+                    items: {type: string}
+
+  # 5. Callback Example (Webhooks)
+  /webhooks/subscribe:
+    post:
+      tags: [Webhooks]
+      summary: Subscribe to events
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                callbackUrl: {type: string, format: uri}
+      callbacks:
+        onEvent:
+          '{$request.body#/callbackUrl}':
+            post:
+              requestBody:
+                required: true
+                content:
+                  application/json:
+                    schema:
+                      type: object
+                      properties:
+                        event_type: {type: string}
+                        timestamp: {type: string, format: date-time}
+              responses:
+                '200':
+                  description: Acknowledged
+
+components:
+  responses:
+    BadRequest:
+      description: Bad Request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
