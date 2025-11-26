@@ -523,16 +523,21 @@ def generate_sitemap(self) -> str | None:
 - 2.3: Jinja2 natively handles template cycles; rich error formatting already exists
 - 2.4: Inode-based loop detection added in Phase 1
 
-### Phase 3: Developer Experience (Week 4)
+### Phase 3: Developer Experience (Week 4) ✅ COMPLETE
 
 | Task | Effort | Owner | Status |
 |------|--------|-------|--------|
-| 3.1 i18n warnings | 2h | TBD | ⬜ |
-| 3.2 Theme warnings | 1h | TBD | ⬜ |
-| 3.3 Empty feed handling | 1h | TBD | ⬜ |
-| **Phase 3 Total** | **4h** | | |
+| 3.1 i18n warnings | 2h | AI | ✅ |
+| 3.2 Theme warnings | 1h | AI | ✅ |
+| 3.3 Empty feed handling | 1h | AI | ✅ |
+| **Phase 3 Total** | **4h** | | **DONE** |
 
-**Grand Total**: ~29 hours of development
+**Notes**:
+- 3.1: Added `_warn_missing_translation()` with once-per-key-per-build tracking
+- 3.2: Added visible stderr warning when theme not found (in addition to log)
+- 3.3: Sitemap and RSS generators now skip gracefully when no content to include
+
+**Grand Total**: ~29 hours of development — **ALL PHASES COMPLETE** ✅
 
 ---
 

@@ -14,6 +14,13 @@
 - **analysis(knowledge_graph)**: graph analysis commands now correctly extract links via `_ensure_links_extracted()`
 - **rendering(template_engine)**: template cycles already handled by Jinja2 native detection + rich error formatting
 
+### Developer Experience Hardening (Phase 3)
+- **rendering(i18n)**: add debug warning for missing translation keys with once-per-key deduplication
+- **rendering(i18n)**: add `reset_translation_warnings()` for build isolation
+- **rendering(template_engine)**: add visible stderr warning when theme not found (in addition to log)
+- **postprocess(sitemap)**: skip sitemap generation gracefully when site has no pages
+- **postprocess(rss)**: skip RSS generation gracefully when no pages have dates
+
 ### Health Check System Enhancements (Phase 1 & 2)
 - **health**: add incremental validation with result caching (Phase 1)
 - **health**: extend BuildCache with validation_results field for caching CheckResult objects
