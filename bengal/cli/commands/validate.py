@@ -7,7 +7,11 @@ Commands:
 
 from __future__ import annotations
 
+import signal
+import threading
+import time
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import click
 
@@ -21,6 +25,10 @@ from bengal.cli.helpers import (
 from bengal.health import HealthCheck
 from bengal.utils.profile import BuildProfile
 from bengal.utils.traceback_config import TracebackStyle
+
+if TYPE_CHECKING:
+    from bengal.core.site import Site
+    from bengal.utils.cli_output import CLIOutput
 
 
 @click.group("validate", cls=BengalGroup)
@@ -174,10 +182,195 @@ def validate(
     cli.blank()
     cli.info(report.format_console(verbose=verbose, show_suggestions=suggestions))
 
-    # Exit with error code if there are errors
-    if report.has_errors():
-        raise click.ClickException(f"Validation failed: {report.error_count} error(s) found")
-    elif report.has_warnings():
-        cli.warning(f"Validation completed with {report.warning_count} warning(s)")
+    # Exit with error code if there are errors (unless in watch mode)
+    if watch:
+        # Watch mode - don't exit, start watching
+        _run_watch_mode(
+            site=site,
+            build_profile=build_profile,
+            verbose=verbose,
+            suggestions=suggestions,
+            incremental=incremental or changed,
+            cli=cli,
+        )
     else:
-        cli.success("Validation passed - no issues found")
+        # Normal mode - exit with error code if there are errors
+        if report.has_errors():
+            raise click.ClickException(f"Validation failed: {report.error_count} error(s) found")
+        elif report.has_warnings():
+            cli.warning(f"Validation completed with {report.warning_count} warning(s)")
+        else:
+            cli.success("Validation passed - no issues found")
+
+
+def _run_watch_mode(
+    site: Site,
+    build_profile: BuildProfile,
+    verbose: bool,
+    suggestions: bool,
+    incremental: bool,
+    cli: CLIOutput,
+) -> None:
+    """
+    Run validation in watch mode - continuously validate on file changes.
+
+    Args:
+        site: Site instance
+        build_profile: Build profile to use
+        verbose: Whether to show verbose output
+        suggestions: Whether to show suggestions
+        incremental: Whether to use incremental validation
+        cli: CLI output instance
+    """
+    from watchdog.events import FileSystemEvent, FileSystemEventHandler
+    from watchdog.observers import Observer
+
+    cli.blank()
+    cli.info("👀 Watch mode: Validating on file changes...")
+    cli.info("   Press Ctrl+C to stop")
+    cli.blank()
+
+    # Track changed files for incremental validation
+    changed_files: set[Path] = set()
+    changed_files_lock = threading.Lock()
+    debounce_timer: threading.Timer | None = None
+    timer_lock = threading.Lock()
+    DEBOUNCE_DELAY = 0.5  # 500ms debounce
+
+    def _trigger_validation() -> None:
+        """Trigger validation with current changed files."""
+        nonlocal changed_files
+
+        with changed_files_lock:
+            files_to_validate = list(changed_files)
+            changed_files.clear()
+
+        if not files_to_validate:
+            return
+
+        # Show what changed
+        cli.blank()
+        cli.info(f"📝 Files changed: {len(files_to_validate)}")
+        for file_path in files_to_validate[:5]:  # Show first 5
+            cli.info(f"   • {file_path}")
+        if len(files_to_validate) > 5:
+            cli.info(f"   ... and {len(files_to_validate) - 5} more")
+
+        # Reload site content
+        site.discover_content()
+        site.discover_assets()
+
+        # Load cache for incremental validation
+        cache = None
+        if incremental:
+            from bengal.cache import BuildCache
+
+            cache_dir = site.root_path / ".bengal"
+            cache_path = cache_dir / "cache.json"
+            cache = BuildCache.load(cache_path)
+
+        # Run validation
+        health_check = HealthCheck(site)
+        report = health_check.run(
+            profile=build_profile,
+            verbose=verbose,
+            incremental=incremental,
+            context=files_to_validate,
+            cache=cache,
+        )
+
+        # Print report
+        cli.blank()
+        cli.info(report.format_console(verbose=verbose, show_suggestions=suggestions))
+
+        # Show summary
+        if report.has_errors():
+            cli.error(f"❌ {report.error_count} error(s) found")
+        elif report.has_warnings():
+            cli.warning(f"⚠️  {report.warning_count} warning(s)")
+        else:
+            cli.success("✅ Validation passed - no issues found")
+
+        cli.blank()
+        cli.info("👀 Watching for changes...")
+
+    class ValidationHandler(FileSystemEventHandler):
+        """File system event handler for validation watch mode."""
+
+        def _should_validate(self, file_path: Path) -> bool:
+            """Check if file should trigger validation."""
+            # Only validate markdown/content files, config, templates
+            valid_extensions = {".md", ".toml", ".yaml", ".yml", ".html", ".jinja2", ".jinja"}
+            if file_path.suffix.lower() not in valid_extensions:
+                return False
+
+            # Ignore output directory
+            if "public" in str(file_path) or ".bengal" in str(file_path):
+                return False
+
+            # Ignore temp files
+            return not (file_path.name.startswith(".") or file_path.name.endswith("~"))
+
+        def on_modified(self, event: FileSystemEvent) -> None:
+            """Handle file modification."""
+            if event.is_directory:
+                return
+
+            file_path = Path(event.src_path)
+            if not self._should_validate(file_path):
+                return
+
+            with changed_files_lock:
+                changed_files.add(file_path)
+
+            # Debounce validation
+            with timer_lock:
+                nonlocal debounce_timer
+                if debounce_timer:
+                    debounce_timer.cancel()
+
+                debounce_timer = threading.Timer(DEBOUNCE_DELAY, _trigger_validation)
+                debounce_timer.daemon = True
+                debounce_timer.start()
+
+        def on_created(self, event: FileSystemEvent) -> None:
+            """Handle file creation."""
+            self.on_modified(event)
+
+        def on_deleted(self, event: FileSystemEvent) -> None:
+            """Handle file deletion."""
+            self.on_modified(event)
+
+    # Create observer and start watching
+    observer = Observer()
+    handler = ValidationHandler()
+
+    # Watch content, config, templates directories
+    watch_dirs = [
+        site.root_path / "content",
+        site.root_path / "templates",
+        site.root_path,
+    ]
+
+    for watch_dir in watch_dirs:
+        if watch_dir.exists():
+            observer.schedule(handler, str(watch_dir), recursive=True)
+
+    observer.start()
+
+    # Handle Ctrl+C gracefully
+    def signal_handler(sig, frame):
+        cli.blank()
+        cli.info("Stopping watch mode...")
+        observer.stop()
+        observer.join()
+        cli.success("Watch mode stopped")
+
+    signal.signal(signal.SIGINT, signal_handler)
+
+    try:
+        # Keep running until interrupted
+        while observer.is_alive():
+            time.sleep(0.1)
+    except KeyboardInterrupt:
+        signal_handler(None, None)
