@@ -12,12 +12,14 @@
 
 .hero {
   position: relative;
-  padding-block: 3rem 4rem; /* Reduced top from 4rem to 3rem for tighter spacing beneath navbar */
+  padding-block: 3rem 4rem;
+  /* Reduced top from 4rem to 3rem for tighter spacing beneath navbar */
   text-align: center;
   background: linear-gradient(135deg,
       var(--color-bg-elevated) 0%,
       var(--color-bg-secondary) 100%);
-  border-block-end: 1px solid var(--color-border-light); /* Changed from border-bottom */
+  border-block-end: 1px solid var(--color-border-light);
+  /* Changed from border-bottom */
   overflow: hidden;
 
 }
@@ -36,7 +38,8 @@
 .hero__container {
   max-width: var(--container-lg);
   margin: 0 auto;
-  padding-inline: var(--space-4); /* Changed from 1.5rem (24px) to --space-4 (16px) for tighter horizontal spacing */
+  padding-inline: var(--space-4);
+  /* Changed from 1.5rem (24px) to --space-4 (16px) for tighter horizontal spacing */
 }
 
 .hero__content {
@@ -281,6 +284,165 @@
 
 [data-theme="dark"] .hero__background {
   opacity: 0.03;
+}
+
+/* ============================================
+   ORGANIC BLOB BACKGROUND ANIMATION
+   ============================================ */
+
+/* Blob background variant - peaceful organic shapes */
+.hero--blob-background {
+  position: relative;
+  overflow: hidden;
+}
+
+.hero--blob-background .hero__blobs {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.hero--blob-background .hero__blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(var(--color-blob-blur));
+  opacity: var(--color-blob-opacity);
+  mix-blend-mode: screen;
+  will-change: transform;
+}
+
+/* Ensure content stays above blobs */
+.hero--blob-background .hero__container {
+  position: relative;
+  z-index: 1;
+}
+
+/* Blob 1 - Top left */
+.hero--blob-background .hero__blob--1 {
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, var(--color-blob-1) 0%, transparent 70%);
+  top: -100px;
+  left: -100px;
+  animation: heroBlobFloat1 5s ease-in-out infinite;
+}
+
+/* Blob 2 - Top right */
+.hero--blob-background .hero__blob--2 {
+  width: 250px;
+  height: 250px;
+  background: radial-gradient(circle, var(--color-blob-2) 0%, transparent 70%);
+  top: -50px;
+  right: -50px;
+  animation: heroBlobFloat2 6s ease-in-out infinite;
+}
+
+/* Blob 3 - Bottom left */
+.hero--blob-background .hero__blob--3 {
+  width: 280px;
+  height: 280px;
+  background: radial-gradient(circle, var(--color-blob-3) 0%, transparent 70%);
+  bottom: -80px;
+  left: 20%;
+  animation: heroBlobFloat3 7s ease-in-out infinite;
+}
+
+/* Blob 4 - Bottom right */
+.hero--blob-background .hero__blob--4 {
+  width: 220px;
+  height: 220px;
+  background: radial-gradient(circle, var(--color-blob-4) 0%, transparent 70%);
+  bottom: -60px;
+  right: 15%;
+  animation: heroBlobFloat4 5.5s ease-in-out infinite;
+}
+
+/* Blob animations - peaceful floating movements (faster and more noticeable) */
+@keyframes heroBlobFloat1 {
+
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  25% {
+    transform: translate(80px, -50px) scale(1.15);
+  }
+
+  50% {
+    transform: translate(-50px, 80px) scale(0.85);
+  }
+
+  75% {
+    transform: translate(60px, 50px) scale(1.1);
+  }
+}
+
+@keyframes heroBlobFloat2 {
+
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  33% {
+    transform: translate(-90px, -60px) scale(1.2);
+  }
+
+  66% {
+    transform: translate(70px, -80px) scale(0.8);
+  }
+}
+
+@keyframes heroBlobFloat3 {
+
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  20% {
+    transform: translate(60px, -80px) scale(1.25);
+  }
+
+  40% {
+    transform: translate(-80px, 40px) scale(0.75);
+  }
+
+  60% {
+    transform: translate(90px, 60px) scale(1.15);
+  }
+
+  80% {
+    transform: translate(-40px, -50px) scale(0.9);
+  }
+}
+
+@keyframes heroBlobFloat4 {
+
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  30% {
+    transform: translate(-70px, 80px) scale(1.15);
+  }
+
+  60% {
+    transform: translate(80px, -50px) scale(0.85);
+  }
+}
+
+/* Respect reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .hero--blob-background .hero__blob {
+    animation: none;
+  }
 }
 
 /* ============================================

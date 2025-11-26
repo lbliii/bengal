@@ -4,7 +4,20 @@
 {# Home page - no action bar needed #}
 <div class="home">
     {# Hero Section #}
-    <header class="hero hero--large">
+    {% set hero_classes = ['hero', 'hero--large'] %}
+    {% if page.metadata.get('blob_background', false) %}
+        {% set _ = hero_classes.append('hero--blob-background') %}
+    {% endif %}
+    <header class="{{ hero_classes | join(' ') }}">
+        {% if page.metadata.get('blob_background', false) %}
+        {# Organic blob background animation #}
+        <div class="hero__blobs" aria-hidden="true">
+            <div class="hero__blob hero__blob--1"></div>
+            <div class="hero__blob hero__blob--2"></div>
+            <div class="hero__blob hero__blob--3"></div>
+            <div class="hero__blob hero__blob--4"></div>
+        </div>
+        {% endif %}
         <div class="hero__container">
             <div class="hero__content">
                 <h1 class="hero__title">

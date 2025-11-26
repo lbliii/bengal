@@ -7,488 +7,510 @@
  */
 
 :root {
-   /* ============================================
+  /* ============================================
      SEMANTIC COLORS
      ============================================ */
 
-   /* Primary Brand Color */
-   --color-primary: var(--blue-500);
-   --color-primary-hover: var(--blue-600);
-   --color-primary-active: var(--blue-700);
-   --color-primary-light: var(--blue-100);
-   --color-primary-dark: var(--blue-800);
+  /* Primary Brand Color */
+  --color-primary: var(--blue-500);
+  --color-primary-hover: var(--blue-600);
+  --color-primary-active: var(--blue-700);
+  --color-primary-light: var(--blue-100);
+  --color-primary-dark: var(--blue-800);
 
-   /* Secondary Brand Color */
-   --color-secondary: var(--green-500);
-   --color-secondary-hover: var(--green-600);
-   --color-secondary-active: var(--green-700);
-   --color-secondary-light: var(--green-300);
-   --color-secondary-dark: var(--green-700);
+  /* Secondary Brand Color */
+  --color-secondary: var(--green-500);
+  --color-secondary-hover: var(--green-600);
+  --color-secondary-active: var(--green-700);
+  --color-secondary-light: var(--green-300);
+  --color-secondary-dark: var(--green-700);
 
-   /* Accent Color */
-   --color-accent: var(--orange-500);
-   --color-accent-hover: var(--orange-600);
-   --color-accent-active: var(--orange-700);
-   --color-accent-light: var(--orange-300);
-   --color-accent-dark: var(--orange-700);
+  /* Accent Color */
+  --color-accent: var(--orange-500);
+  --color-accent-hover: var(--orange-600);
+  --color-accent-active: var(--orange-700);
+  --color-accent-light: var(--orange-300);
+  --color-accent-dark: var(--orange-700);
 
-   /* Text Colors */
-   --color-text-primary: var(--gray-900);
-   --color-text-secondary: var(--gray-600);
-   --color-text-tertiary: var(--gray-500);
-   --color-text-muted: var(--gray-400);
-   --color-text-inverse: var(--white);
-   --color-text-link: var(--blue-600);
-   --color-text-link-hover: var(--blue-700);
-   --color-icon-on-accent: #ffffff;
+  /* Text Colors */
+  --color-text-primary: var(--gray-900);
+  --color-text-secondary: var(--gray-600);
+  --color-text-tertiary: var(--gray-500);
+  --color-text-muted: var(--gray-400);
+  --color-text-inverse: var(--white);
+  --color-text-link: var(--blue-600);
+  --color-text-link-hover: var(--blue-700);
+  --color-icon-on-accent: #ffffff;
 
-   /* Background Colors */
-   --color-bg-primary: var(--white);
-   --color-bg-secondary: var(--gray-50);
-   --color-bg-tertiary: var(--gray-100);
-   --color-bg-elevated: var(--gray-50);
-   --color-bg-overlay: rgba(0, 0, 0, 0.5);
-   --color-bg-hover: var(--gray-100);
-   --color-bg-active: var(--gray-200);
-   --color-bg-pressed: linear-gradient(180deg, rgba(238, 238, 238, 0.96), rgba(226, 226, 226, 0.93));
-   --color-bg-code: var(--gray-50);
+  /* Background Colors */
+  --color-bg-primary: var(--white);
+  --color-bg-secondary: var(--gray-50);
+  --color-bg-tertiary: var(--gray-100);
+  --color-bg-elevated: var(--gray-50);
+  --color-bg-overlay: rgba(0, 0, 0, 0.5);
+  --color-bg-hover: var(--gray-100);
+  --color-bg-active: var(--gray-200);
+  --color-bg-pressed: linear-gradient(180deg, rgba(238, 238, 238, 0.96), rgba(226, 226, 226, 0.93));
+  --color-bg-code: var(--gray-50);
 
-   /* Surface Colors */
-   --color-surface: var(--white);
+  /* Surface Colors */
+  --color-surface: var(--white);
 
-   /* Border Colors */
-   --color-border: var(--gray-300);
-   --color-border-light: var(--gray-200);
-   --color-border-strong: var(--gray-400);
-   --color-border-focus: var(--blue-500);
+  /* Border Colors */
+  --color-border: var(--gray-300);
+  --color-border-light: var(--gray-200);
+  --color-border-strong: var(--gray-400);
+  --color-border-focus: var(--blue-500);
 
-   /* Semantic State Colors */
-   --color-success: var(--green-600);
-   --color-success-bg: var(--green-50);
-   --color-success-border: var(--green-300);
-   --color-success-text: var(--green-900);
+  /* Semantic State Colors */
+  --color-success: var(--green-600);
+  --color-success-bg: var(--green-50);
+  --color-success-border: var(--green-300);
+  --color-success-text: var(--green-900);
 
-   --color-warning: var(--orange-600);
-   --color-warning-bg: var(--orange-50);
-   --color-warning-border: var(--orange-300);
-   --color-warning-text: var(--orange-900);
+  --color-warning: var(--orange-600);
+  --color-warning-bg: var(--orange-50);
+  --color-warning-border: var(--orange-300);
+  --color-warning-text: var(--orange-900);
 
-   --color-error: var(--red-600);
-   --color-error-bg: var(--red-50);
-   --color-error-border: var(--red-300);
-   --color-error-text: var(--red-900);
+  --color-error: var(--red-600);
+  --color-error-bg: var(--red-50);
+  --color-error-border: var(--red-300);
+  --color-error-text: var(--red-900);
 
-   --color-info: var(--blue-600);
-   --color-info-bg: var(--blue-50);
-   --color-info-border: var(--blue-300);
-   --color-info-text: var(--blue-900);
+  --color-info: var(--blue-600);
+  --color-info-bg: var(--blue-50);
+  --color-info-border: var(--blue-300);
+  --color-info-text: var(--blue-900);
 
-   /* Alert-specific semantic tokens (for alert component) */
-   --color-alert-info: var(--color-info-text);
-   --color-alert-info-bg: var(--color-info-bg);
-   --color-alert-info-border: var(--color-info-border);
-   --color-alert-success: var(--color-success-text);
-   --color-alert-success-bg: var(--color-success-bg);
-   --color-alert-success-border: var(--color-success-border);
-   --color-alert-warning: var(--color-warning-text);
-   --color-alert-warning-bg: var(--color-warning-bg);
-   --color-alert-warning-border: var(--color-warning-border);
-   --color-alert-error: var(--color-error-text);
-   --color-alert-error-bg: var(--color-error-bg);
-   --color-alert-error-border: var(--color-error-border);
+  /* Alert-specific semantic tokens (for alert component) */
+  --color-alert-info: var(--color-info-text);
+  --color-alert-info-bg: var(--color-info-bg);
+  --color-alert-info-border: var(--color-info-border);
+  --color-alert-success: var(--color-success-text);
+  --color-alert-success-bg: var(--color-success-bg);
+  --color-alert-success-border: var(--color-success-border);
+  --color-alert-warning: var(--color-warning-text);
+  --color-alert-warning-bg: var(--color-warning-bg);
+  --color-alert-warning-border: var(--color-warning-border);
+  --color-alert-error: var(--color-error-text);
+  --color-alert-error-bg: var(--color-error-bg);
+  --color-alert-error-border: var(--color-error-border);
 
-   /* Danger/Error alias (for consistency) */
-   --color-danger: var(--red-600);
-   --color-danger-bg: var(--red-50);
-   --color-danger-border: var(--red-300);
-   --color-danger-light: var(--red-300);
+  /* Danger/Error alias (for consistency) */
+  --color-danger: var(--red-600);
+  --color-danger-bg: var(--red-50);
+  --color-danger-border: var(--red-300);
+  --color-danger-light: var(--red-300);
 
-   /* Success alias (for badge consistency) */
-   --color-success-light: var(--green-300);
+  /* Success alias (for badge consistency) */
+  --color-success-light: var(--green-300);
 
-   /* Info alias (for badge consistency) */
-   --color-info-light: var(--blue-300);
+  /* Info alias (for badge consistency) */
+  --color-info-light: var(--blue-300);
 
-   /* Warning alias (for badge consistency) */
-   --color-warning-light: var(--orange-300);
+  /* Warning alias (for badge consistency) */
+  --color-warning-light: var(--orange-300);
 
-   /* API Documentation Colors */
-   --color-code-type: var(--blue-700);
-   --color-code-type-bg: var(--blue-50);
-   --color-code-keyword: var(--purple-600);
-   --color-code-string: var(--green-700);
-   --color-code-number: var(--orange-600);
-   --color-code-text: var(--gray-700);
+  /* API Documentation Colors */
+  --color-code-type: var(--blue-700);
+  --color-code-type-bg: var(--blue-50);
+  --color-code-keyword: var(--purple-600);
+  --color-code-string: var(--green-700);
+  --color-code-number: var(--orange-600);
+  --color-code-text: var(--gray-700);
 
-   /* ============================================
+  /* Blob Background Colors (for organic animations) - Palette-aware */
+  /* Use primary, secondary, accent colors from current palette */
+  --color-blob-1: var(--color-primary);
+  --color-blob-2: var(--color-secondary);
+  --color-blob-3: var(--color-accent);
+  --color-blob-4: var(--color-primary-light);
+  --color-blob-opacity: 0.2;
+  --color-blob-blur: 60px;
+
+  /* Blob colors for cards and components (lighter variants) */
+  --blob-color-1: var(--color-primary);
+  --blob-color-2: var(--color-secondary);
+  --blob-color-3: var(--color-accent);
+
+  /* ============================================
      SEMANTIC SPACING
      ============================================ */
 
-   /* Spacing scale - aliases for foundation size tokens */
-   --space-0: var(--size-0);
-   --space-px: var(--size-px);
-   --space-0-5: var(--size-0-5);
-   --space-1: var(--size-1);
-   --space-1-5: var(--size-1-5);
-   --space-2: var(--size-2);
-   --space-2-5: var(--size-2-5);
-   --space-3: var(--size-3);
-   --space-3-5: var(--size-3-5);
-   --space-4: var(--size-4);
-   --space-5: var(--size-5);
-   --space-6: var(--size-6);
-   --space-7: var(--size-7);
-   --space-8: var(--size-8);
-   --space-9: var(--size-9);
-   --space-10: var(--size-10);
-   --space-11: var(--size-11);
-   --space-12: var(--size-12);
-   --space-14: var(--size-14);
-   --space-16: var(--size-16);
-   --space-20: var(--size-20);
-   --space-24: var(--size-24);
-   --space-28: var(--size-28);
-   --space-32: var(--size-32);
+  /* Spacing scale - aliases for foundation size tokens */
+  --space-0: var(--size-0);
+  --space-px: var(--size-px);
+  --space-0-5: var(--size-0-5);
+  --space-1: var(--size-1);
+  --space-1-5: var(--size-1-5);
+  --space-2: var(--size-2);
+  --space-2-5: var(--size-2-5);
+  --space-3: var(--size-3);
+  --space-3-5: var(--size-3-5);
+  --space-4: var(--size-4);
+  --space-5: var(--size-5);
+  --space-6: var(--size-6);
+  --space-7: var(--size-7);
+  --space-8: var(--size-8);
+  --space-9: var(--size-9);
+  --space-10: var(--size-10);
+  --space-11: var(--size-11);
+  --space-12: var(--size-12);
+  --space-14: var(--size-14);
+  --space-16: var(--size-16);
+  --space-20: var(--size-20);
+  --space-24: var(--size-24);
+  --space-28: var(--size-28);
+  --space-32: var(--size-32);
 
-   /* Semantic spacing purposes */
-   --space-component-gap: var(--size-4);
-   /* Gap within components */
-   --space-section-gap: var(--size-12);
-   /* Gap between sections */
-   --space-content-padding: var(--size-6);
-   /* Content padding */
-   --space-container-padding: var(--size-6);
-   /* Container padding */
+  /* Semantic spacing purposes */
+  --space-component-gap: var(--size-4);
+  /* Gap within components */
+  --space-section-gap: var(--size-12);
+  /* Gap between sections */
+  --space-content-padding: var(--size-6);
+  /* Content padding */
+  --space-container-padding: var(--size-6);
+  /* Container padding */
 
-   /* ============================================
+  /* ============================================
     SEMANTIC TYPOGRAPHY
     ============================================ */
 
-   /**
+  /**
     * Typography tokens now reference the new typography.css system.
     * See tokens/typography.css for the source of truth.
     */
 
-   /* Font Families - Reference new typography tokens */
-   --font-sans: var(--font-family-sans);
-   --font-serif: var(--font-family-serif);
-   --font-mono: var(--font-family-mono);
+  /* Font Families - Reference new typography tokens */
+  --font-sans: var(--font-family-sans);
+  --font-serif: var(--font-family-serif);
+  --font-mono: var(--font-family-mono);
 
-   /* Font Sizes - Reference new typography tokens */
-   --text-xs: var(--font-size-xs);
-   --text-sm: var(--font-size-sm);
-   --text-base: var(--font-size-base);
-   --text-lg: var(--font-size-lg);
-   --text-xl: var(--font-size-xl);
-   --text-2xl: var(--font-size-2xl);
-   --text-3xl: var(--font-size-3xl);
-   --text-4xl: var(--font-size-4xl);
-   --text-5xl: var(--font-size-5xl);
-   --text-6xl: var(--font-size-6xl);
-   --text-xxs: var(--font-size-xs); /* Legacy alias */
+  /* Font Sizes - Reference new typography tokens */
+  --text-xs: var(--font-size-xs);
+  --text-sm: var(--font-size-sm);
+  --text-base: var(--font-size-base);
+  --text-lg: var(--font-size-lg);
+  --text-xl: var(--font-size-xl);
+  --text-2xl: var(--font-size-2xl);
+  --text-3xl: var(--font-size-3xl);
+  --text-4xl: var(--font-size-4xl);
+  --text-5xl: var(--font-size-5xl);
+  --text-6xl: var(--font-size-6xl);
+  --text-xxs: var(--font-size-xs);
+  /* Legacy alias */
 
-   /* Semantic Text Sizes */
-   --text-body: var(--font-size-base);
-   --text-body-sm: var(--font-size-sm);
-   --text-body-lg: var(--font-size-lg);
-   --text-caption: var(--font-size-xs);
-   --text-code: var(--font-size-sm);
-   --text-display: var(--font-size-6xl);
-   --text-lead: var(--font-size-xl);
-   --text-label: var(--font-size-sm);
-   --text-button: var(--font-size-sm);
-   --text-link: var(--font-size-base);
+  /* Semantic Text Sizes */
+  --text-body: var(--font-size-base);
+  --text-body-sm: var(--font-size-sm);
+  --text-body-lg: var(--font-size-lg);
+  --text-caption: var(--font-size-xs);
+  --text-code: var(--font-size-sm);
+  --text-display: var(--font-size-6xl);
+  --text-lead: var(--font-size-xl);
+  --text-label: var(--font-size-sm);
+  --text-button: var(--font-size-sm);
+  --text-link: var(--font-size-base);
 
-   /* Heading Sizes - Semantic mappings */
-   --text-h1: var(--font-size-5xl);
-   --text-h2: var(--font-size-4xl);
-   --text-h3: var(--font-size-3xl);
-   --text-h4: var(--font-size-2xl);
-   --text-h5: var(--font-size-xl);
-   --text-h6: var(--font-size-lg);
+  /* Heading Sizes - Semantic mappings */
+  --text-h1: var(--font-size-5xl);
+  --text-h2: var(--font-size-4xl);
+  --text-h3: var(--font-size-3xl);
+  --text-h4: var(--font-size-2xl);
+  --text-h5: var(--font-size-xl);
+  --text-h6: var(--font-size-lg);
 
-   --text-heading-1: var(--text-h1);
-   --text-heading-2: var(--text-h2);
-   --text-heading-3: var(--text-h3);
-   --text-heading-4: var(--text-h4);
-   --text-heading-5: var(--text-h5);
-   --text-heading-6: var(--text-h6);
+  --text-heading-1: var(--text-h1);
+  --text-heading-2: var(--text-h2);
+  --text-heading-3: var(--text-h3);
+  --text-heading-4: var(--text-h4);
+  --text-heading-5: var(--text-h5);
+  --text-heading-6: var(--text-h6);
 
-   /* Role-based Type Tokens (Content) */
-   --type-display: var(--text-display);
-   --type-h1: var(--text-h1);
-   --type-h2: var(--text-h2);
-   --type-h3: var(--text-h3);
-   --type-h4: var(--text-h4);
-   --type-h5: var(--text-h5);
-   --type-h6: var(--text-h6);
+  /* Role-based Type Tokens (Content) */
+  --type-display: var(--text-display);
+  --type-h1: var(--text-h1);
+  --type-h2: var(--text-h2);
+  --type-h3: var(--text-h3);
+  --type-h4: var(--text-h4);
+  --type-h5: var(--text-h5);
+  --type-h6: var(--text-h6);
 
-   --type-body: var(--text-body);
-   --type-body-small: var(--text-body-sm);
-   --type-caption: var(--text-caption);
-   --type-code: var(--text-code);
+  --type-body: var(--text-body);
+  --type-body-small: var(--text-body-sm);
+  --type-caption: var(--text-caption);
+  --type-code: var(--text-code);
 
-   /* Role-based Type Tokens (UI/Components) */
-   --type-ui-title: var(--text-2xl);
-   --type-ui-subtitle: var(--text-lg);
-   --type-ui-body: var(--text-body);
-   --type-ui-meta: var(--text-body-sm);
-   --type-ui-button: var(--text-button);
-   --type-ui-link: var(--text-link);
+  /* Role-based Type Tokens (UI/Components) */
+  --type-ui-title: var(--text-2xl);
+  --type-ui-subtitle: var(--text-lg);
+  --type-ui-body: var(--text-body);
+  --type-ui-meta: var(--text-body-sm);
+  --type-ui-button: var(--text-button);
+  --type-ui-link: var(--text-link);
 
-   /* Line Heights - Reference foundation tokens */
-   --leading-none: var(--line-height-none);
-   --leading-tight: var(--line-height-tight);
-   --leading-snug: var(--line-height-snug);
-   --leading-normal: var(--line-height-normal);
-   --leading-relaxed: var(--line-height-relaxed);
-   --leading-loose: var(--line-height-loose);
+  /* Line Heights - Reference foundation tokens */
+  --leading-none: var(--line-height-none);
+  --leading-tight: var(--line-height-tight);
+  --leading-snug: var(--line-height-snug);
+  --leading-normal: var(--line-height-normal);
+  --leading-relaxed: var(--line-height-relaxed);
+  --leading-loose: var(--line-height-loose);
 
-   /* Semantic line height aliases */
-   --leading-heading: var(--line-height-tight);
-   --leading-subheading: var(--line-height-snug);
-   --leading-body: var(--line-height-relaxed);
+  /* Semantic line height aliases */
+  --leading-heading: var(--line-height-tight);
+  --leading-subheading: var(--line-height-snug);
+  --leading-body: var(--line-height-relaxed);
 
-   /* Line height semantic alias */
-   --line-height-relaxed: var(--leading-relaxed);
+  /* Line height semantic alias */
+  --line-height-relaxed: var(--leading-relaxed);
 
-   /* Role-based leading */
-   --type-leading-heading: var(--leading-heading);
-   --type-leading-body: var(--leading-body);
+  /* Role-based leading */
+  --type-leading-heading: var(--leading-heading);
+  --type-leading-body: var(--leading-body);
 
-   /* Letter Spacing - Reference foundation tokens */
-   --tracking-tighter: var(--letter-spacing-tighter);
-   --tracking-tight: var(--letter-spacing-tight);
-   --tracking-normal: var(--letter-spacing-normal);
-   --tracking-wide: var(--letter-spacing-wide);
-   --tracking-wider: var(--letter-spacing-wider);
-   --tracking-widest: var(--letter-spacing-widest);
+  /* Letter Spacing - Reference foundation tokens */
+  --tracking-tighter: var(--letter-spacing-tighter);
+  --tracking-tight: var(--letter-spacing-tight);
+  --tracking-normal: var(--letter-spacing-normal);
+  --tracking-wide: var(--letter-spacing-wide);
+  --tracking-wider: var(--letter-spacing-wider);
+  --tracking-widest: var(--letter-spacing-widest);
 
-   /* Letter spacing semantic aliases */
-   --letter-spacing-tighter: var(--tracking-tighter);
-   --letter-spacing-tight: var(--tracking-tight);
-   --letter-spacing-wide: var(--tracking-wide);
+  /* Letter spacing semantic aliases */
+  --letter-spacing-tighter: var(--tracking-tighter);
+  --letter-spacing-tight: var(--tracking-tight);
+  --letter-spacing-wide: var(--tracking-wide);
 
-   /* Font Weights - Reference foundation tokens */
-   --weight-light: var(--font-weight-light);
-   --weight-normal: var(--font-weight-normal);
-   --weight-medium: var(--font-weight-medium);
-   --weight-semibold: var(--font-weight-semibold);
-   --weight-bold: var(--font-weight-bold);
-   --weight-extrabold: var(--font-weight-extrabold);
-   --weight-black: var(--font-weight-black);
+  /* Font Weights - Reference foundation tokens */
+  --weight-light: var(--font-weight-light);
+  --weight-normal: var(--font-weight-normal);
+  --weight-medium: var(--font-weight-medium);
+  --weight-semibold: var(--font-weight-semibold);
+  --weight-bold: var(--font-weight-bold);
+  --weight-extrabold: var(--font-weight-extrabold);
+  --weight-black: var(--font-weight-black);
 
-   /* Semantic weight aliases */
-   --weight-heading: var(--weight-bold);
-   --weight-body: var(--weight-normal);
-   --weight-strong: var(--weight-semibold);
+  /* Semantic weight aliases */
+  --weight-heading: var(--weight-bold);
+  --weight-body: var(--weight-normal);
+  --weight-strong: var(--weight-semibold);
 
 
-   /* Role-based weights */
-   --type-weight-strong: var(--weight-strong);
-   --type-weight-medium: var(--weight-medium);
+  /* Role-based weights */
+  --type-weight-strong: var(--weight-strong);
+  --type-weight-medium: var(--weight-medium);
 
-   /* ============================================
+  /* ============================================
      SEMANTIC ICON SIZES (Responsive)
      ============================================ */
 
-   /**
+  /**
     * Icon size tokens that scale responsively.
     * Base sizes for desktop, automatically adjusted for smaller screens.
     * Use these for all SVG icons in buttons and UI components.
     */
 
-   /* Small icons (buttons, inline) - Responsive: 14px → 13px → 12px */
-   --icon-size-sm: 0.875rem;  /* 14px base */
+  /* Small icons (buttons, inline) - Responsive: 14px → 13px → 12px */
+  --icon-size-sm: 0.875rem;
+  /* 14px base */
 
-   /* Medium icons (standard buttons) - Responsive: 12px → 11px → 10px */
-   --icon-size-md: 0.75rem;   /* 12px base */
+  /* Medium icons (standard buttons) - Responsive: 12px → 11px → 10px */
+  --icon-size-md: 0.75rem;
+  /* 12px base */
 
-   /* Extra small icons (compact buttons) - Responsive: 10px → 9px → 8px */
-   --icon-size-xs: 0.625rem;  /* 10px base */
+  /* Extra small icons (compact buttons) - Responsive: 10px → 9px → 8px */
+  --icon-size-xs: 0.625rem;
+  /* 10px base */
 
-   /* Tablet breakpoint (max-width: 768px) - Slightly smaller */
-   @media (max-width: 768px) {
-     --icon-size-sm: 0.8125rem;  /* 13px */
-     --icon-size-md: 0.6875rem;   /* 11px */
-     --icon-size-xs: 0.5625rem;   /* 9px */
-   }
+  /* Tablet breakpoint (max-width: 768px) - Slightly smaller */
+  @media (max-width: 768px) {
+    --icon-size-sm: 0.8125rem;
+    /* 13px */
+    --icon-size-md: 0.6875rem;
+    /* 11px */
+    --icon-size-xs: 0.5625rem;
+    /* 9px */
+  }
 
-   /* Mobile breakpoint (max-width: 639px) - Smallest */
-   @media (max-width: 639px) {
-     --icon-size-sm: 0.75rem;     /* 12px */
-     --icon-size-md: 0.625rem;    /* 10px */
-     --icon-size-xs: 0.5rem;      /* 8px */
-   }
+  /* Mobile breakpoint (max-width: 639px) - Smallest */
+  @media (max-width: 639px) {
+    --icon-size-sm: 0.75rem;
+    /* 12px */
+    --icon-size-md: 0.625rem;
+    /* 10px */
+    --icon-size-xs: 0.5rem;
+    /* 8px */
+  }
 
-   /* ============================================
+  /* ============================================
      SEMANTIC ELEVATION (Shadows)
      ============================================ */
 
-   /* Shadow aliases removed as they were redundant; elevation tokens provide the same values */
+  /* Shadow aliases removed as they were redundant; elevation tokens provide the same values */
 
-   --elevation-none: var(--shadow-none);
-   --elevation-subtle: var(--shadow-xs);
-   --elevation-low: var(--shadow-sm);
-   --elevation-medium: var(--shadow-md);
-   --elevation-high: var(--shadow-lg);
-   --elevation-highest: var(--shadow-xl);
+  --elevation-none: var(--shadow-none);
+  --elevation-subtle: var(--shadow-xs);
+  --elevation-low: var(--shadow-sm);
+  --elevation-medium: var(--shadow-md);
+  --elevation-high: var(--shadow-lg);
+  --elevation-highest: var(--shadow-xl);
 
-   /* Component-Specific Elevations */
-   --elevation-card: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
-   --elevation-card-hover: 0 8px 16px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.08);
-   --elevation-subtle: 0 1px 2px rgba(0, 0, 0, 0.05);
-   --elevation-pressed: inset 2px 2px 3px rgba(0, 0, 0, 0.18), inset -1px -1px 2px rgba(255, 255, 255, 0.24);
-   --elevation-dropdown: var(--elevation-high);
-   --elevation-modal: var(--elevation-highest);
-   --elevation-tooltip: var(--elevation-medium);
-   /* Common flyout/popover elevation */
-   --elevation-popover: var(--elevation-high);
+  /* Component-Specific Elevations */
+  --elevation-card: 0 1px 3px rgba(0, 0, 0, 0.08),
+  0 1px 2px rgba(0, 0, 0, 0.04);
+  --elevation-card-hover: 0 8px 16px rgba(0, 0, 0, 0.12),
+  0 2px 6px rgba(0, 0, 0, 0.08);
+  --elevation-subtle: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --elevation-pressed: inset 2px 2px 3px rgba(0, 0, 0, 0.18),
+  inset -1px -1px 2px rgba(255, 255, 255, 0.24);
+  --elevation-dropdown: var(--elevation-high);
+  --elevation-modal: var(--elevation-highest);
+  --elevation-tooltip: var(--elevation-medium);
+  /* Common flyout/popover elevation */
+  --elevation-popover: var(--elevation-high);
 
-   /* ============================================
+  /* ============================================
      NEUMORPHIC SHADOWS (Skeuomorphic Key-like Effects)
      ============================================ */
 
-   /* Base neumorphic shadow - default state */
-   --neumorphic-base:
-     inset 0 0 0 1px rgba(255, 255, 255, 0.35),
-     inset 0.5px 0.5px 1px rgba(255, 255, 255, 0.4),
-     inset -0.5px -0.5px 1px rgba(0, 0, 0, 0.1),
-     1px 1px 2px rgba(0, 0, 0, 0.08),
-     -0.5px -0.5px 1px rgba(255, 255, 255, 0.3);
+  /* Base neumorphic shadow - default state */
+  --neumorphic-base: inset 0 0 0 1px rgba(255, 255, 255, 0.35),
+  inset 0.5px 0.5px 1px rgba(255, 255, 255, 0.4),
+  inset -0.5px -0.5px 1px rgba(0, 0, 0, 0.1),
+  1px 1px 2px rgba(0, 0, 0, 0.08),
+  -0.5px -0.5px 1px rgba(255, 255, 255, 0.3);
 
-   /* Neumorphic hover - raised key effect */
-   --neumorphic-hover:
-     inset 0 0 0 1px rgba(255, 255, 255, 0.4),
-     inset 0.5px 0.5px 1.5px rgba(255, 255, 255, 0.5),
-     inset -0.5px -0.5px 1.5px rgba(0, 0, 0, 0.12),
-     2px 2px 6px rgba(0, 0, 0, 0.1),
-     -1px -1px 3px rgba(255, 255, 255, 0.4);
+  /* Neumorphic hover - raised key effect */
+  --neumorphic-hover: inset 0 0 0 1px rgba(255, 255, 255, 0.4),
+  inset 0.5px 0.5px 1.5px rgba(255, 255, 255, 0.5),
+  inset -0.5px -0.5px 1.5px rgba(0, 0, 0, 0.12),
+  2px 2px 6px rgba(0, 0, 0, 0.1),
+  -1px -1px 3px rgba(255, 255, 255, 0.4);
 
-   /* Neumorphic pressed - key fully depressed */
-   --neumorphic-pressed:
-     inset 2px 2px 3px rgba(0, 0, 0, 0.18),
-     inset -1px -1px 2px rgba(255, 255, 255, 0.25),
-     0 1px 1px rgba(0, 0, 0, 0.05);
+  /* Neumorphic pressed - key fully depressed */
+  --neumorphic-pressed: inset 2px 2px 3px rgba(0, 0, 0, 0.18),
+  inset -1px -1px 2px rgba(255, 255, 255, 0.25),
+  0 1px 1px rgba(0, 0, 0, 0.05);
 
-   /* Neumorphic subtle - for smaller elements (badges, icons) */
-   --neumorphic-subtle:
-     inset 0.3px 0.3px 0.8px rgba(255, 255, 255, 0.6),
-     inset -0.3px -0.3px 0.8px rgba(0, 0, 0, 0.1),
-     1px 1px 2px rgba(0, 0, 0, 0.06),
-     -0.3px -0.3px 1px rgba(255, 255, 255, 0.4);
+  /* Neumorphic subtle - for smaller elements (badges, icons) */
+  --neumorphic-subtle: inset 0.3px 0.3px 0.8px rgba(255, 255, 255, 0.6),
+  inset -0.3px -0.3px 0.8px rgba(0, 0, 0, 0.1),
+  1px 1px 2px rgba(0, 0, 0, 0.06),
+  -0.3px -0.3px 1px rgba(255, 255, 255, 0.4);
 
-   /* Neumorphic subtle pressed */
-   --neumorphic-subtle-pressed:
-     inset 0.5px 0.5px 1px rgba(0, 0, 0, 0.12),
-     inset -0.3px -0.3px 0.5px rgba(255, 255, 255, 0.3),
-     0.3px 0.3px 0.5px rgba(0, 0, 0, 0.03);
+  /* Neumorphic subtle pressed */
+  --neumorphic-subtle-pressed: inset 0.5px 0.5px 1px rgba(0, 0, 0, 0.12),
+  inset -0.3px -0.3px 0.5px rgba(255, 255, 255, 0.3),
+  0.3px 0.3px 0.5px rgba(0, 0, 0, 0.03);
 
-   /* ============================================
+  /* ============================================
      SEMANTIC BORDERS
      ============================================ */
 
-   --border-width-thin: 1px;
-   --border-width-medium: 2px;
-   --border-width-thick: 4px;
+  --border-width-thin: 1px;
+  --border-width-medium: 2px;
+  --border-width-thick: 4px;
 
-   /* Border radius aliases - reference foundation tokens */
-   /* Note: These are aliases for convenience, foundation tokens are the source of truth */
-   /* Foundation: --radius-sm: 2px, --radius-md: 4px, --radius-lg: 8px, --radius-xl: 12px, --radius-2xl: 16px */
-   /* These semantic aliases allow components to use semantic names while foundation defines values */
+  /* Border radius aliases - reference foundation tokens */
+  /* Note: These are aliases for convenience, foundation tokens are the source of truth */
+  /* Foundation: --radius-sm: 2px, --radius-md: 4px, --radius-lg: 8px, --radius-xl: 12px, --radius-2xl: 16px */
+  /* These semantic aliases allow components to use semantic names while foundation defines values */
 
-   --border-radius-small: var(--radius-sm);
-   --border-radius-medium: var(--radius-md);
-   --border-radius-large: var(--radius-lg);
-   --border-radius-xlarge: var(--radius-xl);
-   --border-radius-round: var(--radius-full);
+  --border-radius-small: var(--radius-sm);
+  --border-radius-medium: var(--radius-md);
+  --border-radius-large: var(--radius-lg);
+  --border-radius-xlarge: var(--radius-xl);
+  --border-radius-round: var(--radius-full);
 
-   /* Additional border colors */
-   --color-border-dark: var(--color-border-strong);
+  /* Additional border colors */
+  --color-border-dark: var(--color-border-strong);
 
-   /* ============================================
+  /* ============================================
      SEMANTIC TRANSITIONS
      ============================================ */
 
-   /* Easing function aliases */
-   --ease-in: var(--ease-in);
-   --ease-out: var(--ease-out);
-   --ease-in-out: var(--ease-in-out);
-   --ease-smooth: var(--ease-smooth);
+  /* Easing function aliases */
+  --ease-in: var(--ease-in);
+  --ease-out: var(--ease-out);
+  --ease-in-out: var(--ease-in-out);
+  --ease-smooth: var(--ease-smooth);
 
-   --transition-fast: var(--duration-150) var(--ease-out);
-   --transition-base: var(--duration-200) var(--ease-out);
-   --transition-slow: var(--duration-300) var(--ease-in-out);
-   --transition-slower: var(--duration-500) var(--ease-in-out);
+  --transition-fast: var(--duration-150) var(--ease-out);
+  --transition-base: var(--duration-200) var(--ease-out);
+  --transition-slow: var(--duration-300) var(--ease-in-out);
+  --transition-slower: var(--duration-500) var(--ease-in-out);
 
-   /* Smooth drawer/panel transitions */
-   --transition-smooth: var(--duration-500) var(--ease-smooth);
+  /* Smooth drawer/panel transitions */
+  --transition-smooth: var(--duration-500) var(--ease-smooth);
 
-   /* Semantic Motion Aliases (composed from durations/easing) */
-   --motion-fast: var(--duration-150) var(--ease-out);
-   --motion-medium: var(--duration-200) var(--ease-out);
-   --motion-slow: var(--duration-300) var(--ease-in-out);
+  /* Semantic Motion Aliases (composed from durations/easing) */
+  --motion-fast: var(--duration-150) var(--ease-out);
+  --motion-medium: var(--duration-200) var(--ease-out);
+  --motion-slow: var(--duration-300) var(--ease-in-out);
 
-   /* Motion Distances and Scales */
-   --motion-distance-1: 2px;
-   /* micro nudge */
-   --motion-distance-2: 4px;
-   /* small raise/slide */
-   --motion-distance-3: 8px;
-   /* content reveal */
-   --motion-scale-up: 1.02;
-   /* subtle hover scale */
-   --motion-scale-down: 0.98;
-   /* press feedback */
+  /* Motion Distances and Scales */
+  --motion-distance-1: 2px;
+  /* micro nudge */
+  --motion-distance-2: 4px;
+  /* small raise/slide */
+  --motion-distance-3: 8px;
+  /* content reveal */
+  --motion-scale-up: 1.02;
+  /* subtle hover scale */
+  --motion-scale-down: 0.98;
+  /* press feedback */
 
-   /* ============================================
+  /* ============================================
      SEMANTIC Z-INDEX
      ============================================ */
 
-   /* Z-index aliases */
-   --z-0: var(--z-0);
-   --z-10: var(--z-10);
-   --z-20: var(--z-20);
-   --z-30: var(--z-30);
-   --z-40: var(--z-40);
-   --z-50: var(--z-50);
+  /* Z-index aliases */
+  --z-0: var(--z-0);
+  --z-10: var(--z-10);
+  --z-20: var(--z-20);
+  --z-30: var(--z-30);
+  --z-40: var(--z-40);
+  --z-50: var(--z-50);
 
-   --z-base: var(--z-0);
-   --z-dropdown: 1000;
-   --z-sticky: 1020;
-   --z-fixed: 1030;
-   --z-modal-backdrop: 1040;
-   --z-modal: 1050;
-   --z-popover: 1060;
-   --z-tooltip: 1070;
+  --z-base: var(--z-0);
+  --z-dropdown: 1000;
+  --z-sticky: 1020;
+  --z-fixed: 1030;
+  --z-modal-backdrop: 1040;
+  --z-modal: 1050;
+  --z-popover: 1060;
+  --z-tooltip: 1070;
 
-   /* ============================================
+  /* ============================================
      LAYOUT CONSTRAINTS
      ============================================ */
 
-   --content-max-width: 70ch;
-   /* Optimal reading width */
-   --prose-max-width: 75ch;
-   /* Prose content width */
+  --content-max-width: 70ch;
+  /* Optimal reading width */
+  --prose-max-width: 75ch;
+  /* Prose content width */
 
-   /* Legacy aliases for compatibility */
-   --content-width: 65ch;
-   --prose-width: 75ch;
+  /* Legacy aliases for compatibility */
+  --content-width: 65ch;
+  --prose-width: 75ch;
 
-   --container-sm: 640px;
-   --container-md: 768px;
-   --container-lg: 1024px;
-   --container-xl: 1280px;
-   --container-2xl: 1536px;
+  --container-sm: 640px;
+  --container-md: 768px;
+  --container-lg: 1024px;
+  --container-xl: 1280px;
+  --container-2xl: 1536px;
 
-   /* Breakpoints (for reference in JS) */
-   --breakpoint-xxs: 400px;
-   /* Very small phones; use 399px in CSS media to avoid overlap */
-   --breakpoint-sm: 640px;
-   --breakpoint-md: 768px;
-   --breakpoint-lg: 1024px;
-   --breakpoint-xl: 1280px;
-   --breakpoint-2xl: 1536px;
+  /* Breakpoints (for reference in JS) */
+  --breakpoint-xxs: 400px;
+  /* Very small phones; use 399px in CSS media to avoid overlap */
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
+  --breakpoint-2xl: 1536px;
 
 }
 
@@ -497,135 +519,149 @@
    ============================================ */
 
 [data-theme="dark"] {
-   /* Text Colors */
-   --color-text-primary: var(--gray-50);
-   --color-text-secondary: var(--gray-400);
-   --color-text-tertiary: var(--gray-500);
-   --color-text-muted: var(--gray-600);
-   --color-text-inverse: var(--gray-900);
-   --color-text-link: var(--blue-400);
-   --color-text-link-hover: var(--blue-300);
-   --color-icon-on-accent: #ffffff;
+  /* Text Colors */
+  --color-text-primary: var(--gray-50);
+  --color-text-secondary: var(--gray-400);
+  --color-text-tertiary: var(--gray-500);
+  --color-text-muted: var(--gray-600);
+  --color-text-inverse: var(--gray-900);
+  --color-text-link: var(--blue-400);
+  --color-text-link-hover: var(--blue-300);
+  --color-icon-on-accent: #ffffff;
 
-   /* Background Colors */
-   --color-bg-primary: #1a1a1a;
-   --color-bg-secondary: #2d2d2d;
-   --color-bg-tertiary: #3a3a3a;
-   --color-bg-elevated: #252525;
-   --color-bg-overlay: rgba(0, 0, 0, 0.7);
-   --color-bg-hover: #404040;
-   --color-bg-active: #4a4a4a;
-   --color-bg-pressed: linear-gradient(180deg, rgba(30, 30, 30, 0.98), rgba(18, 18, 18, 0.96));
-   --color-bg-code: #2d2d2d;
+  /* Background Colors */
+  --color-bg-primary: #1a1a1a;
+  --color-bg-secondary: #2d2d2d;
+  --color-bg-tertiary: #3a3a3a;
+  --color-bg-elevated: #252525;
+  --color-bg-overlay: rgba(0, 0, 0, 0.7);
+  --color-bg-hover: #404040;
+  --color-bg-active: #4a4a4a;
+  --color-bg-pressed: linear-gradient(180deg, rgba(30, 30, 30, 0.98), rgba(18, 18, 18, 0.96));
+  --color-bg-code: #2d2d2d;
 
-   /* Border Colors */
-   --color-border: #404040;
-   --color-border-light: #3a3a3a;
-   --color-border-strong: #6c757d;
-   --color-border-focus: var(--blue-400);
+  /* Border Colors */
+  --color-border: #404040;
+  --color-border-light: #3a3a3a;
+  --color-border-strong: #6c757d;
+  --color-border-focus: var(--blue-400);
 
-   /* Semantic State Colors (Adjusted for dark mode) */
-   --color-success: var(--green-400);
-   --color-success-bg: rgba(76, 175, 80, 0.1);
-   --color-success-border: var(--green-700);
-   --color-success-text: var(--green-300);
+  /* Semantic State Colors (Adjusted for dark mode) */
+  --color-success: var(--green-400);
+  --color-success-bg: rgba(76, 175, 80, 0.1);
+  --color-success-border: var(--green-700);
+  --color-success-text: var(--green-300);
 
-   --color-warning: var(--orange-400);
-   --color-warning-bg: rgba(255, 152, 0, 0.1);
-   --color-warning-border: var(--orange-700);
-   --color-warning-text: var(--orange-200);
+  --color-warning: var(--orange-400);
+  --color-warning-bg: rgba(255, 152, 0, 0.1);
+  --color-warning-border: var(--orange-700);
+  --color-warning-text: var(--orange-200);
 
-   --color-error: var(--red-400);
-   --color-error-bg: rgba(244, 67, 54, 0.1);
-   --color-error-border: var(--red-700);
-   --color-error-text: var(--red-200);
+  --color-error: var(--red-400);
+  --color-error-bg: rgba(244, 67, 54, 0.1);
+  --color-error-border: var(--red-700);
+  --color-error-text: var(--red-200);
 
-   --color-info: var(--blue-400);
-   --color-info-bg: rgba(33, 150, 243, 0.1);
-   --color-info-border: var(--blue-700);
-   --color-info-text: var(--blue-200);
+  --color-info: var(--blue-400);
+  --color-info-bg: rgba(33, 150, 243, 0.1);
+  --color-info-border: var(--blue-700);
+  --color-info-text: var(--blue-200);
 
-   /* Danger/Error alias (for consistency) */
-   --color-danger: var(--red-400);
-   --color-danger-bg: rgba(239, 68, 68, 0.1);
-   --color-danger-border: var(--red-700);
-   --color-danger-light: var(--red-700);
+  /* Danger/Error alias (for consistency) */
+  --color-danger: var(--red-400);
+  --color-danger-bg: rgba(239, 68, 68, 0.1);
+  --color-danger-border: var(--red-700);
+  --color-danger-light: var(--red-700);
 
-   /* Success alias (for badge consistency) */
-   --color-success-light: var(--green-700);
+  /* Success alias (for badge consistency) */
+  --color-success-light: var(--green-700);
 
-   /* Info alias (for badge consistency) */
-   --color-info-light: var(--blue-700);
+  /* Info alias (for badge consistency) */
+  --color-info-light: var(--blue-700);
 
-   /* Warning alias (for badge consistency) */
-   --color-warning-light: var(--orange-700);
+  /* Warning alias (for badge consistency) */
+  --color-warning-light: var(--orange-700);
 
-   /* API Documentation Colors (dark mode) */
-   --color-code-type: var(--blue-400);
-   --color-code-type-bg: rgba(59, 130, 246, 0.15);
-   --color-code-keyword: var(--purple-400);
-   --color-code-string: var(--green-400);
-   --color-code-number: var(--orange-400);
-   --color-code-text: var(--gray-300);
+  /* API Documentation Colors (dark mode) */
+  --color-code-type: var(--blue-400);
+  --color-code-type-bg: rgba(59, 130, 246, 0.15);
+  --color-code-keyword: var(--purple-400);
+  --color-code-string: var(--green-400);
+  --color-code-number: var(--orange-400);
+  --color-code-text: var(--gray-300);
 
-   /* Shadows (Deeper for dark mode) */
-   --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
-   --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.4), 0 1px 2px 0 rgba(0, 0, 0, 0.2);
-   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
-   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.6), 0 4px 6px -2px rgba(0, 0, 0, 0.4);
-   --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.7), 0 10px 10px -5px rgba(0, 0, 0, 0.5);
-   --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
+  /* Shadows (Deeper for dark mode) */
+  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.4), 0 1px 2px 0 rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.6), 0 4px 6px -2px rgba(0, 0, 0, 0.4);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.7), 0 10px 10px -5px rgba(0, 0, 0, 0.5);
+  --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
 
-   /* Component-Specific Elevations (Dark mode) */
-   --elevation-card: 0 2px 4px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
-   --elevation-card-hover: 0 12px 24px rgba(0, 0, 0, 0.4), 0 4px 8px rgba(0, 0, 0, 0.3);
-   --elevation-subtle: 0 1px 2px rgba(0, 0, 0, 0.25);
-   --elevation-pressed: inset 2px 2px 3px rgba(0, 0, 0, 0.45), inset -1px -1px 2px rgba(255, 255, 255, 0.12);
+  /* Component-Specific Elevations (Dark mode) */
+  --elevation-card: 0 2px 4px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
+  --elevation-card-hover: 0 12px 24px rgba(0, 0, 0, 0.4), 0 4px 8px rgba(0, 0, 0, 0.3);
+  --elevation-subtle: 0 1px 2px rgba(0, 0, 0, 0.25);
+  --elevation-pressed: inset 2px 2px 3px rgba(0, 0, 0, 0.45), inset -1px -1px 2px rgba(255, 255, 255, 0.12);
 
-   /* Neumorphic Shadows (Dark mode) */
-   --neumorphic-base:
-     inset 0 0 0 1px rgba(255, 255, 255, 0.05),
-     inset 0.5px 0.5px 1px rgba(255, 255, 255, 0.08),
-     inset -0.5px -0.5px 1px rgba(0, 0, 0, 0.4),
-     1px 1px 3px rgba(0, 0, 0, 0.25),
-     -0.5px -0.5px 1px rgba(255, 255, 255, 0.05);
+  /* Neumorphic Shadows (Dark mode) */
+  --neumorphic-base:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.05),
+    inset 0.5px 0.5px 1px rgba(255, 255, 255, 0.08),
+    inset -0.5px -0.5px 1px rgba(0, 0, 0, 0.4),
+    1px 1px 3px rgba(0, 0, 0, 0.25),
+    -0.5px -0.5px 1px rgba(255, 255, 255, 0.05);
 
-   --neumorphic-hover:
-     inset 0 0 0 1px rgba(255, 255, 255, 0.08),
-     inset 0.5px 0.5px 1.5px rgba(255, 255, 255, 0.12),
-     inset -0.5px -0.5px 1.5px rgba(0, 0, 0, 0.5),
-     2px 2px 6px rgba(0, 0, 0, 0.35),
-     -1px -1px 3px rgba(255, 255, 255, 0.08);
+  --neumorphic-hover:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+    inset 0.5px 0.5px 1.5px rgba(255, 255, 255, 0.12),
+    inset -0.5px -0.5px 1.5px rgba(0, 0, 0, 0.5),
+    2px 2px 6px rgba(0, 0, 0, 0.35),
+    -1px -1px 3px rgba(255, 255, 255, 0.08);
 
-   --neumorphic-pressed:
-     inset 2px 2px 4px rgba(0, 0, 0, 0.5),
-     inset -1px -1px 2px rgba(255, 255, 255, 0.08),
-     0 1px 1px rgba(0, 0, 0, 0.2);
+  --neumorphic-pressed:
+    inset 2px 2px 4px rgba(0, 0, 0, 0.5),
+    inset -1px -1px 2px rgba(255, 255, 255, 0.08),
+    0 1px 1px rgba(0, 0, 0, 0.2);
 
-   --neumorphic-subtle:
-     inset 0.3px 0.3px 0.8px rgba(255, 255, 255, 0.12),
-     inset -0.3px -0.3px 0.8px rgba(0, 0, 0, 0.4),
-     1px 1px 3px rgba(0, 0, 0, 0.25),
-     -0.3px -0.3px 1px rgba(255, 255, 255, 0.05);
+  --neumorphic-subtle:
+    inset 0.3px 0.3px 0.8px rgba(255, 255, 255, 0.12),
+    inset -0.3px -0.3px 0.8px rgba(0, 0, 0, 0.4),
+    1px 1px 3px rgba(0, 0, 0, 0.25),
+    -0.3px -0.3px 1px rgba(255, 255, 255, 0.05);
 
-   --neumorphic-subtle-pressed:
-     inset 0.5px 0.5px 1px rgba(0, 0, 0, 0.4),
-     inset -0.3px -0.3px 0.5px rgba(255, 255, 255, 0.08),
-     0.3px 0.3px 0.5px rgba(0, 0, 0, 0.15);
+  --neumorphic-subtle-pressed:
+    inset 0.5px 0.5px 1px rgba(0, 0, 0, 0.4),
+    inset -0.3px -0.3px 0.5px rgba(255, 255, 255, 0.08),
+    0.3px 0.3px 0.5px rgba(0, 0, 0, 0.15);
 
-   /* Surface Colors (Dark mode) */
-   --color-surface: #252525;
+  /* Surface Colors (Dark mode) */
+  --color-surface: #252525;
 
-   /* Slightly adjust primary colors for better contrast in dark mode */
-   --color-primary: var(--blue-400);
-   --color-primary-hover: var(--blue-300);
-   --color-primary-active: var(--blue-200);
-   --color-primary-light: rgba(59, 130, 246, 0.15);
-   --color-primary-dark: var(--blue-200);
-   --color-secondary: var(--green-400);
-   --color-secondary-light: rgba(76, 175, 80, 0.15);
-   --color-accent: var(--orange-400);
-   --color-accent-light: rgba(251, 146, 60, 0.15);
+  /* Slightly adjust primary colors for better contrast in dark mode */
+  --color-primary: var(--blue-400);
+  --color-primary-hover: var(--blue-300);
+  --color-primary-active: var(--blue-200);
+  --color-primary-light: rgba(59, 130, 246, 0.15);
+  --color-primary-dark: var(--blue-200);
+  --color-secondary: var(--green-400);
+  --color-secondary-light: rgba(76, 175, 80, 0.15);
+  --color-accent: var(--orange-400);
+  --color-accent-light: rgba(251, 146, 60, 0.15);
+
+  /* Blob Background Colors (Dark Mode) - More vibrant, lower opacity */
+  /* Use palette colors - they're already adjusted for dark mode */
+  --color-blob-1: var(--color-primary);
+  --color-blob-2: var(--color-secondary);
+  --color-blob-3: var(--color-accent);
+  --color-blob-4: var(--color-primary-light);
+  --color-blob-opacity: 0.12;
+  --color-blob-blur: 80px;
+
+  /* Blob colors for cards and components (dark mode) */
+  --blob-color-1: var(--color-primary);
+  --blob-color-2: var(--color-secondary);
+  --blob-color-3: var(--color-accent);
 }
 
 /* ============================================
@@ -633,39 +669,52 @@
    ============================================ */
 
 @media (prefers-color-scheme: dark) {
-   :root:not([data-theme="light"]) {
-      /* Apply same dark mode overrides */
-      --color-text-primary: var(--gray-50);
-      --color-text-secondary: var(--gray-400);
-      --color-text-tertiary: var(--gray-500);
-      --color-text-muted: var(--gray-600);
-      --color-text-inverse: var(--gray-900);
-      --color-text-link: var(--blue-400);
-      --color-text-link-hover: var(--blue-300);
-      --color-icon-on-accent: #ffffff;
+  :root:not([data-theme="light"]) {
+    /* Apply same dark mode overrides */
+    --color-text-primary: var(--gray-50);
+    --color-text-secondary: var(--gray-400);
+    --color-text-tertiary: var(--gray-500);
+    --color-text-muted: var(--gray-600);
+    --color-text-inverse: var(--gray-900);
+    --color-text-link: var(--blue-400);
+    --color-text-link-hover: var(--blue-300);
+    --color-icon-on-accent: #ffffff;
 
-      --color-bg-primary: #1a1a1a;
-      --color-bg-secondary: #2d2d2d;
-      --color-bg-tertiary: #3a3a3a;
-      --color-bg-elevated: #252525;
-      --color-bg-overlay: rgba(0, 0, 0, 0.7);
-      --color-bg-hover: #404040;
-      --color-bg-active: #4a4a4a;
-      --color-bg-code: #2d2d2d;
+    --color-bg-primary: #1a1a1a;
+    --color-bg-secondary: #2d2d2d;
+    --color-bg-tertiary: #3a3a3a;
+    --color-bg-elevated: #252525;
+    --color-bg-overlay: rgba(0, 0, 0, 0.7);
+    --color-bg-hover: #404040;
+    --color-bg-active: #4a4a4a;
+    --color-bg-code: #2d2d2d;
 
-      --color-border: #404040;
-      --color-border-light: #3a3a3a;
-      --color-border-strong: #6c757d;
+    --color-border: #404040;
+    --color-border-light: #3a3a3a;
+    --color-border-strong: #6c757d;
 
-      --color-primary: var(--blue-400);
-      --color-primary-hover: var(--blue-300);
-      --color-primary-light: rgba(59, 130, 246, 0.15);
-      --color-primary-dark: var(--blue-200);
-      --color-secondary: var(--green-400);
-      --color-secondary-light: rgba(76, 175, 80, 0.15);
-      --color-accent: var(--orange-400);
-      --color-accent-light: rgba(251, 146, 60, 0.15);
-   }
+    --color-primary: var(--blue-400);
+    --color-primary-hover: var(--blue-300);
+    --color-primary-light: rgba(59, 130, 246, 0.15);
+    --color-primary-dark: var(--blue-200);
+    --color-secondary: var(--green-400);
+    --color-secondary-light: rgba(76, 175, 80, 0.15);
+    --color-accent: var(--orange-400);
+    --color-accent-light: rgba(251, 146, 60, 0.15);
+
+    /* Blob Background Colors (System Dark Mode) */
+    --color-blob-1: var(--color-primary);
+    --color-blob-2: var(--color-secondary);
+    --color-blob-3: var(--color-accent);
+    --color-blob-4: var(--color-primary-light);
+    --color-blob-opacity: 0.12;
+    --color-blob-blur: 80px;
+
+    /* Blob colors for cards and components (system dark mode) */
+    --blob-color-1: var(--color-primary);
+    --blob-color-2: var(--color-secondary);
+    --blob-color-3: var(--color-accent);
+  }
 }
 
 /* ============================================
@@ -673,19 +722,19 @@
    ============================================ */
 
 @media (prefers-reduced-motion: reduce) {
-   :root {
-      --duration-75: 0ms;
-      --duration-100: 0ms;
-      --duration-150: 0ms;
-      --duration-200: 0ms;
-      --duration-300: 0ms;
-      --duration-500: 0ms;
-      --duration-700: 0ms;
-      --duration-1000: 0ms;
+  :root {
+    --duration-75: 0ms;
+    --duration-100: 0ms;
+    --duration-150: 0ms;
+    --duration-200: 0ms;
+    --duration-300: 0ms;
+    --duration-500: 0ms;
+    --duration-700: 0ms;
+    --duration-1000: 0ms;
 
-      --transition-fast: 0ms;
-      --transition-base: 0ms;
-      --transition-slow: 0ms;
-      --transition-slower: 0ms;
-   }
+    --transition-fast: 0ms;
+    --transition-base: 0ms;
+    --transition-slow: 0ms;
+    --transition-slower: 0ms;
+  }
 }

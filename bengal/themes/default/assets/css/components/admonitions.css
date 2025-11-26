@@ -9,10 +9,60 @@
   margin-block: 1.5rem;
   padding: 1rem 1.25rem;
   border-inline-start: 4px solid var(--color-border);
-  border-radius: 0 var(--radius-xl) var(--radius-xl) 0; /* Increased from --border-radius-large (8px → 12px) */
+  border-radius: 0 var(--radius-xl) var(--radius-xl) 0;
+  /* Increased from --border-radius-large (8px → 12px) */
   background-color: var(--color-bg-secondary);
   box-shadow: var(--elevation-card);
   transition: all var(--transition-base);
+  overflow: hidden;
+}
+
+/* Blob background animation for admonitions - Palette-aware */
+.admonition::before {
+  content: '';
+  position: absolute;
+  top: -40%;
+  right: -15%;
+  width: 180%;
+  height: 180%;
+  background: radial-gradient(circle at 35% 35%,
+      color-mix(in srgb, var(--blob-color-1) 7%, transparent) 0%,
+      color-mix(in srgb, var(--blob-color-2) 5%, transparent) 30%,
+      color-mix(in srgb, var(--blob-color-3) 3%, transparent) 55%,
+      transparent 70%);
+  border-radius: 50%;
+  animation: blob-morph var(--blob-duration-medium) ease-in-out infinite;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.4;
+  transition: opacity 0.3s ease;
+}
+
+.admonition:hover::before {
+  opacity: 0.8;
+}
+
+.admonition>* {
+  position: relative;
+  z-index: 1;
+}
+
+/* Fallback for browsers without color-mix */
+@supports not (color: color-mix(in srgb, black, white)) {
+  .admonition::before {
+    background: radial-gradient(circle at 35% 35%,
+        rgba(59, 130, 246, 0.07) 0%,
+        rgba(76, 175, 80, 0.05) 30%,
+        rgba(255, 152, 0, 0.03) 55%,
+        transparent 70%);
+  }
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .admonition::before {
+    animation: none !important;
+  }
 }
 
 /* Auto-apply gradient border to admonitions */
@@ -23,8 +73,8 @@
   border-radius: 0 var(--radius-xl) var(--radius-xl) 0;
   padding: 1px;
   background: var(--gradient-border);
-  -webkit-mask: 
-    linear-gradient(#fff 0 0) content-box, 
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
     linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
@@ -45,8 +95,10 @@
 /* Admonitions with icons */
 .admonition:has(.admonition-icon) {
   padding-inline-start: 3rem;
-}/* Admonition Title */
-.admonition-title{
+}
+
+/* Admonition Title */
+.admonition-title {
   margin: 0 0 0.75rem 0;
   font-size: var(--text-body);
   font-weight: var(--weight-semibold);
@@ -57,47 +109,48 @@
   letter-spacing: var(--letter-spacing-normal);
 
 }
+
 /* Admonition Title */
 .admonition-title::before {
-    content: '';
-    display: inline-block;
-    width: 20px;
-    height: 20px;
-    background-size: contain;
-    background-repeat: no-repeat;
-    background-position: center;
-    flex-shrink: 0;
-  }
+  content: '';
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  flex-shrink: 0;
+}
 
 /* Admonition Content */
-.admonition > p {
+.admonition>p {
   margin: 0.75rem 0;
 }
 
-.admonition > p:first-of-type {
+.admonition>p:first-of-type {
   margin-top: 0;
 }
 
-.admonition > p:last-child {
+.admonition>p:last-child {
   margin-bottom: 0;
 }
 
 /* Remove top margin from first element after title */
-.admonition-title + * {
+.admonition-title+* {
   margin-top: 0;
 }
 
 /* Spacing for other direct children */
-.admonition > *:not(.admonition-title):not(p) {
+.admonition>*:not(.admonition-title):not(p) {
   margin-top: 0.75rem;
   margin-bottom: 0.75rem;
 }
 
-.admonition > *:not(.admonition-title):first-of-type {
+.admonition>*:not(.admonition-title):first-of-type {
   margin-top: 0;
 }
 
-.admonition > *:last-child {
+.admonition>*:last-child {
   margin-bottom: 0;
 }
 
@@ -272,12 +325,15 @@
 
 /* Example */
 .admonition.example {
-  border-inline-start-color: #8b5cf6; /* violet-500 */
-  background-color: #f5f3ff; /* violet-50 */
+  border-inline-start-color: #8b5cf6;
+  /* violet-500 */
+  background-color: #f5f3ff;
+  /* violet-50 */
 }
 
 .admonition.example .admonition-title {
-  color: #7c3aed; /* violet-600 */
+  color: #7c3aed;
+  /* violet-600 */
 }
 
 .admonition.example .admonition-title::before {
@@ -286,12 +342,14 @@
 }
 
 [data-theme="dark"] .admonition.example {
-  border-inline-start-color: #a78bfa; /* violet-400 */
+  border-inline-start-color: #a78bfa;
+  /* violet-400 */
   background-color: rgba(139, 92, 246, 0.1);
 }
 
 [data-theme="dark"] .admonition.example .admonition-title {
-  color: #c4b5fd; /* violet-300 */
+  color: #c4b5fd;
+  /* violet-300 */
 }
 
 /* ============================================
@@ -313,7 +371,7 @@
   transform: rotate(-90deg);
 }
 
-.admonition.collapsible.collapsed > *:not(.admonition-title) {
+.admonition.collapsible.collapsed>*:not(.admonition-title) {
   display: none;
 }
 
