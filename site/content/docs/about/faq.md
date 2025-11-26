@@ -14,8 +14,15 @@ tags: [faq, help, support]
 **Yes!** Bengal is open-source software released under the MIT License. You can use it for personal and commercial projects for free.
 :::
 
-:::{dropdown} Does it support Python 2?
-**No.** Bengal requires Python 3.10 or higher to leverage modern type hinting and performance improvements.
+:::{dropdown} What Python version does Bengal require?
+**Python 3.14 or later.** Bengal is built with Python 3.14+ free-threaded features in mind. We recommend Python 3.14+ (3.14t free-threaded build recommended for best performance).
+
+**Why Python 3.14?** Bengal leverages modern Python features including:
+- Free-threaded execution for parallel processing
+- Enhanced type hinting capabilities
+- Performance improvements in the standard library
+
+See the [Installation Guide](/docs/getting-started/installation/) for setup instructions.
 :::
 
 ## Technical

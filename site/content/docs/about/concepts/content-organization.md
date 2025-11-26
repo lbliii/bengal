@@ -16,8 +16,11 @@ Bengal uses **file-system routing**. This means the structure of your `content/`
 
 At its core, Bengal organizes content into two types of objects: **Pages** and **Sections**.
 
-*   **Page**: A single content file (e.g., `about.md`).
-*   **Section**: A folder containing pages (e.g., `blog/`).
+Page
+:   A single content file (e.g., `about.md`) that becomes a URL on your site. Each markdown file in your `content/` directory becomes a page.
+
+Section
+:   A folder containing pages (e.g., `blog/`). Sections organize related pages together and can have their own listing pages.
 
 ### Mapping Files to URLs
 
@@ -65,6 +68,9 @@ Use `index.md` to create a **Page** that lives in its own folder.
 :::
 
 ## Frontmatter
+
+Frontmatter
+:   Metadata at the top of your markdown file (between `---` delimiters) that controls how Bengal processes and displays your page. Written in YAML format.
 
 Every content file begins with **Frontmatter**, a YAML block surrounded by `---`. This defines metadata for the page.
 

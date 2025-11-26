@@ -12,3 +12,9 @@ menu:
 # Reference
 
 Detailed technical documentation for Bengal's APIs, configuration, and variables.
+
+## Documentation Sections
+
+- **[Directives](/docs/reference/directives/)** - Complete reference for all markdown directives
+- **[Architecture](/docs/reference/architecture/)** - Technical architecture documentation
+- **[Theme Variables](/docs/reference/theme-variables/)** - Available theme variables

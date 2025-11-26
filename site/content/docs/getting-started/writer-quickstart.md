@@ -162,6 +162,82 @@ keywords: [python, advanced, tutorial]
 - `draft` - Set to `true` to hide during builds
 - `description` - SEO description
 
+**Complete Example: Blog Post with All Features**
+
+Here's a complete, copy-paste ready example of a blog post using all common features:
+
+```markdown
+---
+title: Getting Started with Python Web Development
+date: 2025-10-26
+tags: [python, web, tutorial, beginner]
+description: Learn how to build web applications with Python, Flask, and modern best practices
+weight: 10
+draft: false
+keywords: [python, flask, web development, tutorial]
+---
+
+# Getting Started with Python Web Development
+
+Welcome to this comprehensive guide on building web applications with Python!
+
+## Introduction
+
+Python is an excellent choice for web development. In this tutorial, we'll cover:
+
+1. Setting up your development environment
+2. Creating your first Flask application
+3. Deploying to production
+
+## Prerequisites
+
+Before you begin, make sure you have:
+
+- Python 3.14+ installed
+- A code editor (VS Code recommended)
+- Basic command-line knowledge
+
+## Step 1: Install Flask
+
+```bash
+pip install flask
+```
+
+## Step 2: Create Your First App
+
+```python
+from flask import Flask
+
+app = Flask(__name__)
+
+@app.route('/')
+def hello():
+    return '<h1>Hello, World!</h1>'
+
+if __name__ == '__main__':
+    app.run(debug=True)
+```
+
+Save this as `app.py` and run:
+
+```bash
+python app.py
+```
+
+Visit `http://localhost:5000` to see your app!
+
+## Next Steps
+
+- Read the [Flask documentation](https://flask.palletsprojects.com/)
+- Check out [deployment guides](/docs/guides/deployment/)
+- Join our [community discussions](https://github.com/lbliii/bengal)
+
+---
+
+**Tags**: This post is tagged with `python`, `web`, `tutorial`, and `beginner`.  
+**Published**: October 26, 2025
+```
+
 For a complete reference of all supported frontmatter keys, see the [Frontmatter Reference](/api/core/page/) documentation.
 :::
 
@@ -202,6 +278,25 @@ git subtree push --prefix public origin gh-pages
 :::
 ::::
 
+## Key Terms
+
+When reading Bengal documentation, you'll encounter these terms:
+
+Frontmatter
+:   Metadata at the top of markdown files (between `---` delimiters) that controls how Bengal processes and displays your page. Written in YAML format.
+
+Section
+:   A folder containing pages (e.g., `blog/` folder creates a blog section). Sections organize related pages together and can have their own listing pages.
+
+Page
+:   A single content file (e.g., `about.md` creates an about page). Each markdown file in your `content/` directory becomes a page.
+
+Directives
+:   Extended markdown syntax using `:::{name}` or ` ```{name} ` for rich components like callouts, tabs, cards, and more. Bengal supports many directives for documentation features.
+
+Taxonomy
+:   Automatic organization system for tags and categories. Bengal automatically creates archive pages for tags and categories you use in frontmatter.
+
 ## Writing Tips
 
 ### Markdown Basics
@@ -235,7 +330,7 @@ def hello():
 ```
 ```
 
-For advanced Markdown features, see the [Markdown Guide](/docs/about/concepts/templating/).
+For advanced Markdown features, see the [Templating Guide](/docs/about/concepts/templating/).
 
 ### Add Images
 

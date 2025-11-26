@@ -20,7 +20,7 @@ Bengal is a Python-based static site generator with parallel processing, increme
 
 Bengal serves different roles in your workflow. Pick the path that matches your goal:
 
-:::{list-table}
+::::{list-table}
 :header-rows: 1
 :widths: 33 33 34
 
@@ -48,7 +48,7 @@ Bengal serves different roles in your workflow. Pick the path that matches your 
 * - **[→ Writer Quickstart](./writer-quickstart/)**
   - **[→ Themer Quickstart](./themer-quickstart/)**
   - **[→ Contributor Quickstart](./contributor-quickstart/)**
-:::
+::::
 
 ## All Paths Start Here
 

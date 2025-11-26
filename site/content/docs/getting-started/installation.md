@@ -12,41 +12,75 @@ category: onboarding
 
 ## Before You Start
 
-Bengal is built with Python 3.14+ free-threaded features in mind. We recommend Python 3.14+ (3.14t free-threaded build recommended for best performance).
+Bengal requires **Python 3.14 or later**. We recommend Python 3.14+ (3.14t free-threaded build recommended for best performance).
 
-::::{tab-set}
-:::{tab-item} pyenv
+**Why Python 3.14?** Bengal leverages modern Python features including:
+- **Free-threaded execution** - Enables true parallel processing for faster builds
+- **Enhanced type hinting** - Better code quality and IDE support
+- **Performance improvements** - Faster standard library operations
 
-```bash
-# Install pyenv (see https://github.com/pyenv/pyenv for full instructions)
-brew install pyenv  # On macOS with Homebrew
-# or: curl https://pyenv.run | bash
+:::::{tab-set}
+::::{tab-item} pyenv (Recommended)
 
-pyenv install 3.14.0
-pyenv global 3.14.0
+pyenv is a Python version manager that lets you install and switch between multiple Python versions. It's the easiest way to manage Python 3.14 alongside other versions.
 
-# Initialize pyenv in your shell profile (add these lines to ~/.zshrc or ~/.bash_profile):
-# export PYENV_ROOT="$HOME/.pyenv"
-# export PATH="$PYENV_ROOT/bin:$PATH"
-# eval "$(pyenv init --path)"
-# eval "$(pyenv init -)"
-# eval "$(pyenv virtualenv-init -)"
-#
-# Then reload your shell:
-# source ~/.zshrc  # or source ~/.bash_profile
-#
-# Verify with: python --version (should show 3.14.0)
-```
+**Installation Steps:**
 
-:::
+1. **Install pyenv:**
+   ```bash
+   # macOS (with Homebrew)
+   brew install pyenv
 
-:::{tab-item} Official Installer
+   # Linux/Unix (or macOS without Homebrew)
+   curl https://pyenv.run | bash
+   ```
 
-Download from [python.org/downloads](python.org/downloads).
+2. **Configure your shell** (add to `~/.zshrc` or `~/.bash_profile`):
+   ```bash
+   export PYENV_ROOT="$HOME/.pyenv"
+   export PATH="$PYENV_ROOT/bin:$PATH"
+   eval "$(pyenv init --path)"
+   eval "$(pyenv init -)"
+   eval "$(pyenv virtualenv-init -)"
+   ```
 
+3. **Reload your shell:**
+   ```bash
+   source ~/.zshrc  # or source ~/.bash_profile
+   ```
+
+4. **Install Python 3.14:**
+   ```bash
+   pyenv install 3.14.0
+   pyenv global 3.14.0
+   ```
+
+5. **Verify installation:**
+   ```bash
+   python --version  # Should show Python 3.14.0
+   ```
+
+:::{tip}
+**Troubleshooting pyenv:** If `pyenv install` fails, you may need to install build dependencies. See [pyenv's installation guide](https://github.com/pyenv/pyenv#installation) for your platform.
 :::
 
 ::::
+
+::::{tab-item} Official Installer
+
+Download Python 3.14 from [python.org/downloads](https://www.python.org/downloads/release/python-3140/).
+
+**After installation:**
+- Verify: `python3 --version` (should show 3.14.0)
+- Use `python3` command instead of `python` if your system has multiple versions
+
+```{note}
+**macOS users:** The official installer may conflict with system Python. Consider using pyenv instead for easier version management.
+```
+
+::::
+
+:::::
 
 ## Install
 

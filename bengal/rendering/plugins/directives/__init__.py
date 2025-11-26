@@ -33,7 +33,9 @@ from bengal.rendering.plugins.directives.data_table import DataTableDirective
 from bengal.rendering.plugins.directives.dropdown import DropdownDirective
 from bengal.rendering.plugins.directives.errors import DirectiveError, format_directive_error
 from bengal.rendering.plugins.directives.fenced import FencedDirective
+from bengal.rendering.plugins.directives.include import IncludeDirective
 from bengal.rendering.plugins.directives.list_table import ListTableDirective
+from bengal.rendering.plugins.directives.literalinclude import LiteralIncludeDirective
 from bengal.rendering.plugins.directives.marimo import MarimoCellDirective
 from bengal.rendering.plugins.directives.rubric import RubricDirective
 from bengal.rendering.plugins.directives.steps import StepDirective, StepsDirective
@@ -73,6 +75,8 @@ def create_documentation_directives():
     - rubric: Pseudo-headings for API documentation (not in TOC)
     - list-table: MyST-style tables using nested lists (avoids pipe character issues)
     - checklist: Styled checklist containers for bullet lists and task lists
+    - include: Include markdown files directly in content
+    - literalinclude: Include code files as syntax-highlighted code blocks
 
     Usage:
         from bengal.rendering.plugins.directives import create_documentation_directives
@@ -114,6 +118,8 @@ def create_documentation_directives():
                 ChecklistDirective(),  # Styled checklist containers
                 StepsDirective(),  # Visual step-by-step guides
                 StepDirective(),  # Individual step (nested in steps)
+                IncludeDirective(),  # Include markdown files
+                LiteralIncludeDirective(),  # Include code files as code blocks
             ]
 
             # Conditionally add Marimo support (only if marimo is installed)
