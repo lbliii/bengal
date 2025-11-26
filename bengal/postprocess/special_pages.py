@@ -29,9 +29,10 @@ class SpecialPagesGenerator:
 
     Currently generates:
     - 404.html: Custom 404 error page with site styling
+    - search.html: Client-side search page
+    - graph.html: Interactive knowledge graph visualization
 
     Future:
-    - search.html: Client-side search page
     - sitemap.html: Human-readable sitemap
     """
 
@@ -51,6 +52,7 @@ class SpecialPagesGenerator:
         Currently generates:
         - 404 page if 404.html template exists in theme
         - search page if enabled and template exists (and no user content overrides)
+        - graph visualization if enabled (and no user content overrides)
         Failures are logged but don't stop the build process.
         """
         pages_generated = []
@@ -62,6 +64,10 @@ class SpecialPagesGenerator:
         # Generate search page when enabled
         if self._generate_search():
             pages_generated.append("search")
+
+        # Generate graph visualization when enabled
+        if self._generate_graph():
+            pages_generated.append("graph")
 
         # Detailed output removed - postprocess phase summary is sufficient
         # Individual task output clutters the build log
@@ -254,6 +260,78 @@ class SpecialPagesGenerator:
         except Exception as e:
             logger.error(
                 "search_page_generation_failed",
+                error=str(e),
+                error_type=type(e).__name__,
+            )
+            return False
+
+    def _generate_graph(self) -> bool:
+        """
+        Generate interactive knowledge graph visualization.
+
+        Behavior:
+        - Respects [graph] config: enabled, path
+        - Skips if a user-authored content page exists that would handle /graph/
+        - Builds knowledge graph and generates standalone HTML visualization
+        - Writes to /graph/index.html by default
+
+        Returns:
+            True if generated successfully, False if disabled or error occurred
+        """
+        try:
+            # Read config with sensible defaults
+            raw_cfg = self.site.config.get("graph", True)
+            # Support both boolean (graph = true/false) and table ([graph]) forms
+            if isinstance(raw_cfg, bool):
+                enabled = raw_cfg
+                path_cfg = "/graph/"
+            elif isinstance(raw_cfg, dict):
+                enabled = raw_cfg.get("enabled", True)
+                path_cfg = raw_cfg.get("path", "/graph/") or "/graph/"
+            else:
+                # Unknown type → fall back to defaults and enable
+                enabled = True
+                path_cfg = "/graph/"
+            if not enabled:
+                return False
+
+            # Path normalization: default '/graph/'
+            raw_path = path_cfg
+            if not raw_path.startswith("/"):
+                raw_path = "/" + raw_path
+            if not raw_path.endswith("/"):
+                raw_path = raw_path + "/"
+
+            # If a user-authored page exists (content/graph.md or matching slug), skip generation
+            content_dir = getattr(self.site, "content_dir", None)
+            if content_dir:
+                user_graph_md = content_dir / "graph.md"
+                if user_graph_md.exists():
+                    return False
+
+            # Build knowledge graph
+            from bengal.analysis.graph_visualizer import GraphVisualizer
+            from bengal.analysis.knowledge_graph import KnowledgeGraph
+
+            logger.debug("building_knowledge_graph_for_visualization")
+            graph = KnowledgeGraph(self.site)
+            graph.build()
+
+            # Generate visualization HTML
+            visualizer = GraphVisualizer(self.site, graph)
+            title = f"Knowledge Graph - {self.site.config.get('title', 'Site')}"
+            html = visualizer.generate_html(title=title)
+
+            # Determine output path: /graph/index.html by default
+            # raw_path always ends with '/'
+            output_path = self.site.output_dir / raw_path.strip("/") / "index.html"
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            output_path.write_text(html, encoding="utf-8")
+
+            return True
+        except Exception as e:
+            logger.error(
+                "graph_generation_failed",
                 error=str(e),
                 error_type=type(e).__name__,
             )

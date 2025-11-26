@@ -44,7 +44,7 @@ The analysis module provides tools for:
 ```python
 from bengal.analysis import KnowledgeGraph
 
-graph = KnowledgeGraph(site)
+graph = KnowledgeGraph(site, exclude_autodoc=True)  # Exclude API docs by default
 graph.build()
 
 # Find orphaned pages
@@ -58,7 +58,17 @@ print(f"Found {len(hubs)} hub pages")
 # Get metrics
 metrics = graph.metrics
 print(f"Average connectivity: {metrics.avg_connectivity:.2f}")
+
+# Get actionable recommendations
+recommendations = graph.get_actionable_recommendations()
+for rec in recommendations:
+    print(rec)
 ```
+
+**Key Features**:
+- **Autodoc Filtering**: Excludes API reference pages from analysis by default (`exclude_autodoc=True`)
+- **Actionable Recommendations**: Provides specific, actionable suggestions for improvement
+- **Link Extraction**: Automatically extracts links from pages before analysis
 
 **Provides insights for**:
 - Content strategy (find orphaned pages)
@@ -273,26 +283,46 @@ for rec in recommendations:
 The analysis system is integrated into the CLI with dedicated commands:
 
 ```bash
-# Analyze site structure
-bengal graph
+# Analyze site structure (with actionable recommendations)
+bengal utils graph analyze site/
 
 # Show site structure as tree
-bengal graph --tree
+bengal utils graph analyze site/ --tree
 
 # Generate interactive visualization
-bengal graph --output public/graph.html
+bengal utils graph analyze site/ --output public/graph.html
 
 # Compute PageRank scores
-bengal pagerank --top 20
+bengal utils graph pagerank site/ --top-n 20
+
+# Export as CSV
+bengal utils graph pagerank site/ --format csv > pagerank.csv
 
 # Detect communities
-bengal communities --min-size 3
+bengal utils graph communities site/ --min-size 3
 
 # Find bridge pages
-bengal bridges --top 10
+bengal utils graph bridges site/ --top-n 10
 
 # Get link suggestions
-bengal suggest --min-score 0.5
+bengal utils graph suggest site/ --min-score 0.5
+
+# Export suggestions as markdown checklist
+bengal utils graph suggest site/ --format markdown > suggestions.md
 ```
 
-See "CLI Commands" section for detailed command documentation.
+**Export Formats**:
+All commands support multiple output formats:
+- `table` (default) - Human-readable table format
+- `json` - JSON for programmatic processing
+- `csv` - CSV for spreadsheet analysis
+- `summary` - Summary statistics (pagerank, communities, bridges)
+- `markdown` - Markdown checklist (suggest command)
+
+**Key Features**:
+- **Actionable Recommendations**: The `analyze` command provides specific recommendations
+- **Autodoc Filtering**: API reference pages are excluded by default for cleaner analysis
+- **Multiple Export Formats**: Export results for further analysis or reporting
+
+See [Graph Analysis Guide](/docs/guides/graph-analysis/) for detailed usage examples and workflows.
+See [CLI Commands](/docs/reference/cli/utils/graph/) section for complete command reference.

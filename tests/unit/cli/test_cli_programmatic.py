@@ -324,6 +324,62 @@ class TestGraphCommands:
 
             assert result.exit_code == 0
 
+    def test_pagerank_csv_format(self, tmp_path):
+        """Test pagerank command with CSV format."""
+        runner = CliRunner()
+        with runner.isolated_filesystem(temp_dir=tmp_path):
+            from bengal.cli.commands.graph.pagerank import pagerank_command
+
+            # Create minimal site with content
+            (tmp_path / "content").mkdir()
+            (tmp_path / "content" / "page1.md").write_text("# Page 1\n")
+            (tmp_path / "bengal.toml").write_text("[site]\ntitle = 'Test'\n")
+
+            result = runner.invoke(pagerank_command, ["--format", "csv", str(tmp_path)])
+
+            # Should succeed
+            assert result.exit_code == 0
+            # CSV should have header or data
+            assert "Rank" in result.output or "Title" in result.output or "Page" in result.output
+
+    def test_communities_csv_format(self, tmp_path):
+        """Test communities command with CSV format."""
+        runner = CliRunner()
+        with runner.isolated_filesystem(temp_dir=tmp_path):
+            from bengal.cli.commands.graph.communities import communities_command
+
+            # Create minimal site with content
+            (tmp_path / "content").mkdir()
+            (tmp_path / "content" / "page1.md").write_text("# Page 1\n")
+            (tmp_path / "bengal.toml").write_text("[site]\ntitle = 'Test'\n")
+
+            result = runner.invoke(communities_command, ["--format", "csv", str(tmp_path)])
+
+            # Should succeed
+            assert result.exit_code == 0
+            # CSV should have header or data
+            assert (
+                "Community" in result.output or "Size" in result.output or "Page" in result.output
+            )
+
+    def test_bridges_csv_format(self, tmp_path):
+        """Test bridges command with CSV format."""
+        runner = CliRunner()
+        with runner.isolated_filesystem(temp_dir=tmp_path):
+            from bengal.cli.commands.graph.bridges import bridges
+
+            # Create minimal site with content
+            (tmp_path / "content").mkdir()
+            (tmp_path / "content" / "page1.md").write_text("# Page 1\n")
+            (tmp_path / "bengal.toml").write_text("[site]\ntitle = 'Test'\n")
+
+            result = runner.invoke(bridges, ["--format", "csv", str(tmp_path)])
+
+            # Should succeed
+            assert result.exit_code == 0
+            # CSV should have header or data
+            assert "Rank" in result.output or "Title" in result.output or "Page" in result.output
+
 
 class TestUtilsCommands:
     """Tests for utils commands."""

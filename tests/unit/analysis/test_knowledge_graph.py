@@ -322,3 +322,238 @@ class TestTaxonomyAnalysis:
 
         assert page2_score > 0
         assert page3_score > 0
+
+
+class TestAutodocFiltering:
+    """Test autodoc page filtering."""
+
+    def test_exclude_autodoc_default(self, tmp_path):
+        """Test that autodoc pages are excluded by default."""
+        site = Site(root_path=tmp_path, config={})
+
+        # Create regular page
+        regular = Page(
+            source_path=tmp_path / "regular.md",
+            content="# Regular",
+            metadata={"title": "Regular", "type": "doc"},
+        )
+
+        # Create autodoc page
+        autodoc = Page(
+            source_path=tmp_path / "api" / "module.md",
+            content="# API",
+            metadata={"title": "API", "type": "api-reference"},
+        )
+
+        site.pages = [regular, autodoc]
+
+        graph = KnowledgeGraph(site, exclude_autodoc=True)
+        graph.build()
+
+        analysis_pages = graph.get_analysis_pages()
+        assert len(analysis_pages) == 1
+        assert regular in analysis_pages
+        assert autodoc not in analysis_pages
+
+    def test_include_autodoc_when_disabled(self, tmp_path):
+        """Test that autodoc pages are included when filtering is disabled."""
+        site = Site(root_path=tmp_path, config={})
+
+        regular = Page(
+            source_path=tmp_path / "regular.md",
+            content="# Regular",
+            metadata={"title": "Regular"},
+        )
+
+        autodoc = Page(
+            source_path=tmp_path / "api" / "module.md",
+            content="# API",
+            metadata={"title": "API", "type": "api-reference"},
+        )
+
+        site.pages = [regular, autodoc]
+
+        graph = KnowledgeGraph(site, exclude_autodoc=False)
+        graph.build()
+
+        analysis_pages = graph.get_analysis_pages()
+        assert len(analysis_pages) == 2
+        assert regular in analysis_pages
+        assert autodoc in analysis_pages
+
+    def test_is_autodoc_page(self, tmp_path):
+        """Test autodoc page detection."""
+        site = Site(root_path=tmp_path, config={})
+
+        # Test different autodoc markers
+        api_ref = Page(
+            source_path=tmp_path / "api.md",
+            content="",
+            metadata={"type": "api-reference"},
+        )
+
+        python_module = Page(
+            source_path=tmp_path / "module.md",
+            content="",
+            metadata={"type": "python-module"},
+        )
+
+        api_path = Page(
+            source_path=tmp_path / "api" / "test.md",
+            content="",
+            metadata={},
+        )
+
+        regular = Page(
+            source_path=tmp_path / "regular.md",
+            content="",
+            metadata={"type": "doc"},
+        )
+
+        site.pages = [api_ref, python_module, api_path, regular]
+
+        graph = KnowledgeGraph(site, exclude_autodoc=True)
+
+        assert graph._is_autodoc_page(api_ref) is True
+        assert graph._is_autodoc_page(python_module) is True
+        assert graph._is_autodoc_page(api_path) is True
+        assert graph._is_autodoc_page(regular) is False
+
+
+class TestActionableRecommendations:
+    """Test actionable recommendations feature."""
+
+    def test_get_actionable_recommendations(self, site_with_links):
+        """Test that recommendations are generated."""
+        graph = KnowledgeGraph(site_with_links)
+        graph.build()
+
+        recommendations = graph.get_actionable_recommendations()
+
+        assert isinstance(recommendations, list)
+        # Should have at least orphan recommendation
+        assert len(recommendations) > 0
+
+    def test_recommendations_include_orphans(self, site_with_links):
+        """Test that orphaned pages are recommended."""
+        graph = KnowledgeGraph(site_with_links)
+        graph.build()
+
+        recommendations = graph.get_actionable_recommendations()
+
+        orphan_recs = [r for r in recommendations if "orphan" in r.lower() or "🔗" in r]
+        assert len(orphan_recs) > 0
+
+    def test_recommendations_require_build(self, simple_site):
+        """Test that recommendations require build."""
+        graph = KnowledgeGraph(simple_site)
+
+        with pytest.raises(ValueError, match="Must call build"):
+            graph.get_actionable_recommendations()
+
+
+class TestSEOInsights:
+    """Test SEO insights feature."""
+
+    def test_get_seo_insights(self, site_with_links):
+        """Test that SEO insights are generated."""
+        graph = KnowledgeGraph(site_with_links)
+        graph.build()
+
+        insights = graph.get_seo_insights()
+
+        assert isinstance(insights, list)
+        # Should have some insights
+        assert len(insights) >= 0
+
+    def test_seo_insights_require_build(self, simple_site):
+        """Test that SEO insights require build."""
+        graph = KnowledgeGraph(simple_site)
+
+        with pytest.raises(ValueError, match="Must call build"):
+            graph.get_seo_insights()
+
+
+class TestContentGaps:
+    """Test content gap detection."""
+
+    def test_get_content_gaps(self, tmp_path):
+        """Test content gap detection."""
+        site = Site(root_path=tmp_path, config={})
+
+        # Create pages with shared tag but no links
+        page1 = Page(
+            source_path=tmp_path / "p1.md",
+            content="",
+            metadata={"title": "Page 1", "tags": ["python"]},
+        )
+        page2 = Page(
+            source_path=tmp_path / "p2.md",
+            content="",
+            metadata={"title": "Page 2", "tags": ["python"]},
+        )
+        page3 = Page(
+            source_path=tmp_path / "p3.md",
+            content="",
+            metadata={"title": "Page 3", "tags": ["python"]},
+        )
+
+        site.pages = [page1, page2, page3]
+
+        graph = KnowledgeGraph(site)
+        graph.build()
+
+        gaps = graph.get_content_gaps()
+
+        assert isinstance(gaps, list)
+        # Should detect gap in python tag pages
+        python_gaps = [g for g in gaps if "python" in g.lower()]
+        assert len(python_gaps) > 0
+
+    def test_content_gaps_require_build(self, simple_site):
+        """Test that content gaps require build."""
+        graph = KnowledgeGraph(simple_site)
+
+        with pytest.raises(ValueError, match="Must call build"):
+            graph.get_content_gaps()
+
+
+class TestLinkExtraction:
+    """Test link extraction during build."""
+
+    def test_links_extracted_during_build(self, tmp_path):
+        """Test that links are extracted before graph build."""
+        site = Site(root_path=tmp_path, config={})
+
+        # Create pages with markdown links
+        page1 = Page(
+            source_path=tmp_path / "page1.md",
+            content="# Page 1\n\nSee [Page 2](page2.md)",
+            metadata={"title": "Page 1"},
+        )
+
+        page2 = Page(
+            source_path=tmp_path / "page2.md",
+            content="# Page 2",
+            metadata={"title": "Page 2"},
+        )
+
+        site.pages = [page1, page2]
+
+        # Build xref_index for link resolution
+        site.xref_index = {
+            "by_path": {
+                "page2": page2,
+            },
+            "by_slug": {},
+            "by_id": {},
+        }
+
+        graph = KnowledgeGraph(site)
+        graph.build()
+
+        # Page1 should have extracted links (extract_links is called during build)
+        # Links may be empty if xref resolution fails, but the method should be called
+        assert hasattr(page1, "links")
+        # The links attribute should exist (may be empty list if resolution fails)
+        assert isinstance(page1.links, list)

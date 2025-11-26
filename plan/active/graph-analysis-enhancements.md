@@ -204,9 +204,9 @@ bengal utils graph suggest --apply
 5. ✅ Add CSV export format
 
 ### Phase 3: Feature Enhancements (Next Sprint)
-6. ✅ SEO-focused analysis command
-7. ✅ Content gap detection
-8. ✅ Enhanced visualization (filtering, search)
+6. ✅ SEO-focused analysis (link depth, link equity flow, orphan risk)
+7. ✅ Content gap detection (missing cross-links, section index pages)
+8. ✅ Enhanced visualization (filtering by type, improved search)
 
 ### Phase 4: Integration & Polish (Future)
 9. ✅ Health check integration

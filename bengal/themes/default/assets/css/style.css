@@ -249,6 +249,10 @@
   @import url('components/category-browser.css');
 }
 
+@layer components {
+  @import url('components/graph.css');
+}
+
 /* Third-party libraries */
 @layer components {
   @import url('tabulator.min.css');

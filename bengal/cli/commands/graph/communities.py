@@ -45,7 +45,7 @@ from bengal.utils.logger import LogLevel, close_all_loggers, configure_logging
 @click.option(
     "--format",
     "-f",
-    type=click.Choice(["table", "json", "summary"]),
+    type=click.Choice(["table", "json", "csv", "summary"]),
     default="table",
     help="Output format (default: table)",
 )
@@ -116,7 +116,23 @@ def communities(
     communities_to_show = communities_to_show[:top_n]
 
     # Output based on format
-    if format == "json":
+    if format == "csv":
+        # Export as CSV
+        import csv
+        import sys
+
+        writer = csv.writer(sys.stdout)
+        writer.writerow(["Community ID", "Size", "Top Pages", "Incoming Refs"])
+
+        for community in communities_to_show:
+            pages_with_refs = [
+                (page, graph_obj.incoming_refs.get(page, 0)) for page in community.pages
+            ]
+            pages_with_refs.sort(key=lambda x: x[1], reverse=True)
+            top_pages = ", ".join(p.title for p, _ in pages_with_refs[:5])
+            writer.writerow([community.id, community.size, top_pages, ""])
+
+    elif format == "json":
         # Export as JSON
         data = {
             "total_communities": len(results.communities),

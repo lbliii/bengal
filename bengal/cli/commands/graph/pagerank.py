@@ -38,7 +38,7 @@ from bengal.utils.logger import LogLevel, close_all_loggers, configure_logging
 @click.option(
     "--format",
     "-f",
-    type=click.Choice(["table", "json", "summary"]),
+    type=click.Choice(["table", "json", "csv", "summary"]),
     default="table",
     help="Output format (default: table)",
 )
@@ -114,7 +114,23 @@ def pagerank(top_n: int, damping: float, format: str, config: str, source: str) 
     top_pages = results.get_top_pages(top_n)
 
     # Output based on format
-    if format == "json":
+    if format == "csv":
+        # Export as CSV
+        import csv
+        import sys
+
+        writer = csv.writer(sys.stdout)
+        writer.writerow(
+            ["Rank", "Title", "URL", "PageRank Score", "Incoming Links", "Outgoing Links"]
+        )
+
+        for i, (page, score) in enumerate(top_pages, 1):
+            incoming = graph_obj.incoming_refs.get(page, 0)
+            outgoing = len(graph_obj.outgoing_refs.get(page, set()))
+            url = getattr(page, "url_path", str(page.source_path))
+            writer.writerow([i, page.title, url, f"{score:.8f}", incoming, outgoing])
+
+    elif format == "json":
         # Export as JSON
         data = {
             "total_pages": len(results.scores),

@@ -1,0 +1,239 @@
+/**
+ * Bengal SSG - Graph Visualization Component
+ *
+ * Styles for the interactive knowledge graph visualization.
+ * Uses theme CSS variables for full theme compliance.
+ */
+
+/* Base Layout */
+.graph-container {
+    width: 100vw;
+    height: 100vh;
+    position: relative;
+}
+
+.graph-svg {
+    width: 100%;
+    height: 100%;
+}
+
+.graph-body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    overflow: hidden;
+    background: var(--color-bg-primary, #ffffff);
+    color: var(--color-text-primary, #212121);
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* Controls Panel */
+.graph-controls {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    background: var(--color-bg-elevated, var(--color-bg-secondary, #f5f5f5));
+    border: 1px solid var(--color-border, #e0e0e0);
+    border-radius: 8px;
+    padding: 16px;
+    max-width: 300px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(10px);
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.graph-controls h2 {
+    font-size: 18px;
+    margin-bottom: 12px;
+    color: var(--color-text-primary, #212121);
+}
+
+.graph-controls input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--color-border, #e0e0e0);
+    border-radius: 4px;
+    background: var(--color-bg-primary, #ffffff);
+    color: var(--color-text-primary, #212121);
+    font-size: 14px;
+    margin-bottom: 12px;
+    transition: border-color 0.2s ease, background-color 0.2s ease, color 0.2s ease;
+}
+
+.graph-controls input:focus {
+    outline: none;
+    border-color: var(--color-border-focus, var(--color-primary, #2196f3));
+}
+
+.graph-stats {
+    font-size: 13px;
+    color: var(--color-text-secondary, #757575);
+    line-height: 1.6;
+}
+
+.graph-stats strong {
+    color: var(--color-text-primary, #212121);
+}
+
+/* Filter Group */
+.graph-filter-group {
+    margin-top: 12px;
+}
+
+.graph-filter-group label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 12px;
+    color: var(--color-text-secondary, #757575);
+}
+
+.graph-filter-group select {
+    width: 100%;
+    padding: 6px;
+    border: 1px solid var(--color-border, #e0e0e0);
+    border-radius: 4px;
+    background: var(--color-bg-primary, #ffffff);
+    color: var(--color-text-primary, #212121);
+    font-size: 13px;
+    transition: border-color 0.2s ease, background-color 0.2s ease, color 0.2s ease;
+}
+
+.graph-filter-group select:focus {
+    outline: none;
+    border-color: var(--color-border-focus, var(--color-primary, #2196f3));
+}
+
+/* Legend */
+.graph-legend {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    background: var(--color-bg-elevated, var(--color-bg-secondary, #f5f5f5));
+    border: 1px solid var(--color-border, #e0e0e0);
+    border-radius: 8px;
+    padding: 16px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(10px);
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.graph-legend h3 {
+    font-size: 14px;
+    margin-bottom: 8px;
+    color: var(--color-text-primary, #212121);
+}
+
+.graph-legend-item {
+    display: flex;
+    align-items: center;
+    margin: 6px 0;
+    font-size: 12px;
+    color: var(--color-text-secondary, #757575);
+}
+
+.graph-legend-color {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    margin-right: 8px;
+}
+
+/* Graph Nodes and Links */
+.graph-node {
+    cursor: pointer;
+    stroke: var(--color-border, rgba(0, 0, 0, 0.2));
+    stroke-width: 1.5px;
+    transition: stroke 0.2s ease;
+}
+
+.graph-node:hover {
+    stroke: var(--color-primary, #2196f3);
+    stroke-width: 3px;
+}
+
+.graph-node.highlighted {
+    stroke: var(--color-accent, #ff9800);
+    stroke-width: 3px;
+}
+
+.graph-link {
+    stroke: var(--color-border-light, rgba(0, 0, 0, 0.1));
+    stroke-width: 1px;
+    transition: stroke 0.2s ease;
+}
+
+.graph-link.highlighted {
+    stroke: var(--color-accent, #ff9800);
+    stroke-width: 2px;
+    opacity: 0.8;
+}
+
+.graph-label {
+    font-size: 11px;
+    fill: var(--color-text-secondary, #757575);
+    pointer-events: none;
+    text-anchor: middle;
+}
+
+/* Tooltip */
+.graph-tooltip {
+    position: absolute;
+    background: var(--color-bg-elevated, var(--color-bg-secondary, #f5f5f5));
+    border: 1px solid var(--color-border, #e0e0e0);
+    border-radius: 6px;
+    padding: 12px;
+    pointer-events: none;
+    font-size: 13px;
+    max-width: 250px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    display: none;
+    z-index: 1000;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.graph-tooltip h4 {
+    margin-bottom: 6px;
+    color: var(--color-text-primary, #212121);
+    font-size: 14px;
+}
+
+.graph-tooltip p {
+    margin: 4px 0;
+    color: var(--color-text-secondary, #757575);
+    line-height: 1.4;
+}
+
+.graph-tooltip .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 6px;
+}
+
+.graph-tooltip .tag {
+    background: var(--color-bg-tertiary, #eeeeee);
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 11px;
+    color: var(--color-text-secondary, #757575);
+}
+
+/* Node Type Colors - Theme-Aware
+ *
+ * These are component-specific convenience tokens that map to semantic tokens.
+ * They allow the graph visualization to use meaningful names while respecting
+ * the theme's semantic color system.
+ */
+:root {
+    --graph-node-hub: var(--color-primary);
+    --graph-node-regular: var(--color-text-tertiary);
+    --graph-node-orphan: var(--color-error);
+    /* Generated pages use secondary color (system-generated content) */
+    --graph-node-generated: var(--color-secondary);
+}
+
+[data-theme="dark"] {
+    /* Dark mode uses same semantic tokens - they're already theme-aware */
+    --graph-node-hub: var(--color-primary);
+    --graph-node-regular: var(--color-text-tertiary);
+    --graph-node-orphan: var(--color-error);
+    --graph-node-generated: var(--color-secondary);
+}
