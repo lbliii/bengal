@@ -21,8 +21,8 @@ Get from zero to published content in 5 minutes. This guide is for content creat
 
 ## Start
 
-::::{steps}
-:::{step} **Create Your Site**
+:::::{steps}
+::::{step} **Create Your Site**
 
 Use the interactive wizard to create a site:
 
@@ -40,16 +40,17 @@ Choose a preset that matches your goal:
   📄 Resume        - Professional resume/CV site
 ```
 
-```{tip}
+:::{tip}
 Choose **Blog** if you're unsure. It's a great starting point.
-```
+:::
 
 ```bash
 cd myblog
 ```
-:::
 
-:::{step} **Start the Dev Server**
+::::
+
+::::{step} **Start the Dev Server**
 
 Launch the development server with hot reload:
 
@@ -63,7 +64,9 @@ Open **http://localhost:5173/** in your browser. You'll see your new site!
 The dev server automatically rebuilds when you save changes. Keep it running while you work.
 :::
 
-:::{step} **Create Your First Post**
+::::
+
+::::{step} **Create Your First Post**
 
 ```bash
 bengal new page my-first-post --section blog
@@ -102,9 +105,9 @@ Stay tuned!
 ```
 
 **Save the file.** The dev server automatically rebuilds and your new post appears!
-:::
+::::
 
-:::{step} **Customize Your Site**
+::::{step} **Customize Your Site**
 
 Edit `bengal.toml` to personalize your site:
 
@@ -116,9 +119,9 @@ baseurl = "https://myblog.com"  # Your future domain
 author = "Your Name"
 language = "en"
 ```
-:::
+::::
 
-:::{step} **Add More Content**
+::::{step} **Add More Content**
 
 **Create Regular Pages**
 
@@ -239,9 +242,9 @@ Visit `http://localhost:5000` to see your app!
 ```
 
 For a complete reference of all supported frontmatter keys, see the [Frontmatter Reference](/api/core/page/) documentation.
-:::
+::::
 
-:::{step} **Build for Production**
+::::{step} **Build for Production**
 
 When you're ready to publish:
 
@@ -254,9 +257,9 @@ bengal site build
 ```
 
 Your complete site is in the `public/` directory, ready to deploy!
-:::
+::::
 
-:::{step} **Deploy Your Site**
+::::{step} **Deploy Your Site**
 
 Deploy the `public/` directory to any static hosting:
 
@@ -275,8 +278,8 @@ git subtree push --prefix public origin gh-pages
 
 **Vercel, Cloudflare Pages:** Similar to Netlify - point to `public/`
 
-:::
 ::::
+:::::
 
 ## Key Terms
 
@@ -303,7 +306,7 @@ Taxonomy
 
 Bengal supports standard Markdown syntax:
 
-```markdown
+````markdown
 # Heading 1
 ## Heading 2
 ### Heading 3
@@ -328,7 +331,7 @@ Bengal supports standard Markdown syntax:
 def hello():
     print("Hello, World!")
 ```
-```
+````
 
 For advanced Markdown features, see the [Templating Guide](/docs/about/concepts/templating/).
 

@@ -59,11 +59,11 @@ Bengal supports two directive syntax styles:
 ### Fenced Syntax (3 backticks)
 
 ```markdown
-```{directive-name} Optional Title
+:::{directive-name} Optional Title
 :option: value
 
 Content here
-```
+:::
 ```
 
 **Used for**: Admonitions, dropdowns, badges, checklists, code-tabs, include, literalinclude, rubric
@@ -102,9 +102,9 @@ Card content here
 :::::{steps}
 
 ::::{step} First Step
-```{tip}
+:::{tip}
 Remember to check the logs!
-```
+:::
 ::::
 
 ::::{step} Second Step
@@ -117,7 +117,7 @@ More content
 - Container directives: **4 fences minimum** (`::::`)
 - Nested items: 3 fences (`:::`)
 - Each additional nesting level: increment fence count by 1
-- Example: Container (4) → Step (4) → Admonition (3 backticks) = Container needs 5 fences
+- Example: Container (4) → Step (4) → Admonition (3 colons) = Container needs 5 fences
 
 ## Categories
 
@@ -184,9 +184,9 @@ Many directives support these common options:
 ### Basic Admonition
 
 ```markdown
-```{note}
+:::{note}
 This is a note with **markdown** support.
-```
+:::
 ```
 
 ### Card Grid

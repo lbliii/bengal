@@ -186,41 +186,52 @@ class AutoFixer:
                                     ]
                                     # Also search recursively for the file
                                     found_files = list(self.site_root.rglob(file_name))
-                                
+
                                     # Use first found file, or first possible path if exists
                                     file_path = None
                                     for path in found_files[:1] if found_files else possible_paths:
                                         if path.exists():
                                             file_path = path.resolve()
                                             break
-                                
-                                    if file_path and file_path.exists():
+
+                                    if (
+                                        file_path
+                                        and file_path.exists()
+                                        and not any(
+                                            f.file_path == file_path
+                                            and f.fix_type == "directive_fence"
+                                            for f in fixes
+                                        )
+                                    ):
                                         # Group fixes by file - create one fix action per file that fixes all directives
                                         # This ensures we fix the entire hierarchy in one pass
-                                        file_key = str(file_path)
-                                        if not any(f.file_path == file_path and f.fix_type == "directive_fence" for f in fixes):
-                                            # Create a single fix action for this file that handles all directives
-                                            fixes.append(
-                                                FixAction(
-                                                    description=f"Fix fence nesting in {file_path.relative_to(self.site_root)} ({len(line_numbers)} directive(s))",
-                                                    file_path=file_path,
-                                                    line_number=min(line_numbers) if line_numbers else None,  # Use first line for reference
-                                                    fix_type="directive_fence",
-                                                    safety=FixSafety.SAFE,
-                                                    apply=self._create_file_fix(file_path, line_numbers),
-                                                    check_result=result,
-                                                )
+                                        # Create a single fix action for this file that handles all directives
+                                        fixes.append(
+                                            FixAction(
+                                                description=f"Fix fence nesting in {file_path.relative_to(self.site_root)} ({len(line_numbers)} directive(s))",
+                                                file_path=file_path,
+                                                line_number=min(line_numbers)
+                                                if line_numbers
+                                                else None,  # Use first line for reference
+                                                fix_type="directive_fence",
+                                                safety=FixSafety.SAFE,
+                                                apply=self._create_file_fix(
+                                                    file_path, line_numbers
+                                                ),
+                                                check_result=result,
                                             )
+                                        )
 
         return fixes
-    
+
     def _create_file_fix(self, file_path: Path, line_numbers: list[int]) -> Any:
         """
         Create a fix function that fixes all directives in a file.
-        
+
         This ensures we fix the entire hierarchy in one pass, including
         all nested children and grandchildren.
         """
+
         def apply_fix() -> bool:
             """Apply fixes to all directives in the file."""
             try:
@@ -232,11 +243,11 @@ class AutoFixer:
 
                 # Parse directive hierarchy
                 directives = self._parse_directive_hierarchy(lines)
-                
+
                 # Find all directives that need fixing (those at reported line numbers or their parents/children)
                 directives_to_fix = set()
                 baseline_depth = 3
-                
+
                 # For each reported line number, find the directive and mark it + all its hierarchy for fixing
                 for line_num in line_numbers:
                     # Find directive at this line (or corresponding opening fence)
@@ -245,30 +256,36 @@ class AutoFixer:
                         if directive["line"] == line_num:
                             target_directive = directive
                             break
-                    
+
                     # If not found, might be a closing fence - find corresponding opening
                     if not target_directive and line_num <= len(lines):
                         line = lines[line_num - 1]
                         closing_colon = re.match(r"^(\s*)(:{3,})\s*$", line)
                         closing_backtick = re.match(r"^(\s*)(`{3,})\s*$", line)
-                        
+
                         if closing_colon or closing_backtick:
-                            closing_depth = len(closing_colon.group(2)) if closing_colon else len(closing_backtick.group(2))
+                            closing_depth = (
+                                len(closing_colon.group(2))
+                                if closing_colon
+                                else len(closing_backtick.group(2))
+                            )
                             fence_type = "colon" if closing_colon else "backtick"
-                            
+
                             for directive in reversed(directives):
-                                if (directive["fence_type"] == fence_type and 
-                                    directive["current_depth"] == closing_depth and
-                                    directive["line"] < line_num):
+                                if (
+                                    directive["fence_type"] == fence_type
+                                    and directive["current_depth"] == closing_depth
+                                    and directive["line"] < line_num
+                                ):
                                     target_directive = directive
                                     break
-                    
+
                     if not target_directive:
                         continue
-                    
+
                     # Mark this directive and all its ancestors and descendants for fixing
                     directives_to_fix.add(target_directive["line"])
-                    
+
                     # Add ancestors
                     current = target_directive
                     while current.get("parent"):
@@ -279,13 +296,16 @@ class AutoFixer:
                             current = parent
                         else:
                             break
-                    
+
                     # Add descendants (children, grandchildren, etc.)
                     for directive in directives:
                         current = directive
                         while current.get("parent"):
                             parent_line = current["parent"]
-                            if parent_line == target_directive["line"] or parent_line in directives_to_fix:
+                            if (
+                                parent_line == target_directive["line"]
+                                or parent_line in directives_to_fix
+                            ):
                                 directives_to_fix.add(directive["line"])
                                 break
                             parent = next((d for d in directives if d["line"] == parent_line), None)
@@ -293,10 +313,10 @@ class AutoFixer:
                                 current = parent
                             else:
                                 break
-                
+
                 # Calculate required depths for all directives to fix
                 directives_list = [d for d in directives if d["line"] in directives_to_fix]
-                
+
                 # Build hierarchy and calculate depths
                 for directive in directives_list:
                     # Find ancestors
@@ -310,35 +330,45 @@ class AutoFixer:
                             current = parent
                         else:
                             break
-                    
+
                     # Find deepest nested descendant
-                    descendants = [d for d in directives if self._is_descendant(d, directive, directives)]
+                    descendants = [
+                        d for d in directives if self._is_descendant(d, directive, directives)
+                    ]
                     if descendants:
                         deepest = max(descendants, key=lambda d: self._get_depth(d, directives))
-                        depth_from_deepest = self._get_depth(directive, directives) - self._get_depth(deepest, directives)
+                        depth_from_deepest = self._get_depth(
+                            directive, directives
+                        ) - self._get_depth(deepest, directives)
                         directive["required_depth"] = baseline_depth + abs(depth_from_deepest)
                     else:
                         # No descendants, use ancestor count
                         directive["required_depth"] = baseline_depth + len(ancestors)
-                
+
                 # Apply fixes (deepest first, then parents)
                 directives_list.sort(key=lambda d: d["required_depth"], reverse=True)
                 for directive in directives_list:
                     if directive["current_depth"] < directive["required_depth"]:
                         self._apply_single_fix(lines, directive)
-                
+
                 # Write file
                 file_path.write_text("\n".join(lines), encoding="utf-8")
                 return True
-                
-            except Exception as e:
+
+            except Exception:
                 import traceback
+
                 traceback.print_exc()
                 return False
 
         return apply_fix
-    
-    def _is_descendant(self, directive: dict[str, Any], ancestor: dict[str, Any], all_directives: list[dict[str, Any]]) -> bool:
+
+    def _is_descendant(
+        self,
+        directive: dict[str, Any],
+        ancestor: dict[str, Any],
+        all_directives: list[dict[str, Any]],
+    ) -> bool:
         """Check if directive is a descendant of ancestor."""
         current = directive
         while current.get("parent"):
@@ -348,7 +378,7 @@ class AutoFixer:
             if not current:
                 break
         return False
-    
+
     def _get_depth(self, directive: dict[str, Any], all_directives: list[dict[str, Any]]) -> int:
         """Get nesting depth of directive (0 = root, 1 = child, etc.)."""
         depth = 0
@@ -363,11 +393,11 @@ class AutoFixer:
     def _create_fence_fix(self, file_path: Path, line_number: int) -> Any:
         """
         Create a fix function for fence nesting issues.
-        
+
         Implements hierarchical fix: increments all parents +1 based on deepest nested directive.
         Example: tab-set (grandparent) > tab-item (parent) > note (child, baseline 3)
         Result: grandparent=5, parent=4, child=3
-        
+
         The fix analyzes the entire file to understand directive hierarchy and fixes
         from bottom-up (deepest first, then parents).
         """
@@ -375,7 +405,7 @@ class AutoFixer:
         def apply_fix() -> bool:
             """
             Apply hierarchical fix: increment all parents +1 based on deepest nested directive.
-            
+
             Strategy:
             1. Parse entire file to build directive hierarchy tree
             2. Find deepest nested directive (baseline depth, usually 3)
@@ -394,7 +424,7 @@ class AutoFixer:
 
                 # Step 1: Build directive hierarchy
                 directives = self._parse_directive_hierarchy(lines)
-                
+
                 # Step 2: Find the directive at line_number and its ancestors
                 # Handle case where line_number might be a closing fence instead of opening fence
                 target_directive = None
@@ -402,29 +432,35 @@ class AutoFixer:
                     if directive["line"] == line_number:
                         target_directive = directive
                         break
-                
+
                 # If no directive found, check if this line is a closing fence
                 # and find the corresponding opening fence
                 if not target_directive and line_number <= len(lines):
                     line = lines[line_number - 1]
                     closing_colon = re.match(r"^(\s*)(:{3,})\s*$", line)
                     closing_backtick = re.match(r"^(\s*)(`{3,})\s*$", line)
-                    
+
                     if closing_colon or closing_backtick:
-                        closing_depth = len(closing_colon.group(2)) if closing_colon else len(closing_backtick.group(2))
+                        closing_depth = (
+                            len(closing_colon.group(2))
+                            if closing_colon
+                            else len(closing_backtick.group(2))
+                        )
                         fence_type = "colon" if closing_colon else "backtick"
-                        
+
                         # Find most recent opening fence before this line with matching type and depth
                         for directive in reversed(directives):
-                            if (directive["fence_type"] == fence_type and 
-                                directive["current_depth"] == closing_depth and
-                                directive["line"] < line_number):
+                            if (
+                                directive["fence_type"] == fence_type
+                                and directive["current_depth"] == closing_depth
+                                and directive["line"] < line_number
+                            ):
                                 target_directive = directive
                                 break
-                
+
                 if not target_directive:
                     return False
-                
+
                 # Step 3: Build ancestor chain (parent -> grandparent -> ...)
                 # Build from child to root (deepest first)
                 ancestors = []
@@ -437,18 +473,20 @@ class AutoFixer:
                         current = parent
                     else:
                         break
-                
+
                 # ancestors is now [parent, grandparent, ...] (child to root order)
                 # Step 4: Determine required depths (deepest = baseline 3, each parent +1)
                 baseline_depth = 3
                 target_directive["required_depth"] = baseline_depth
                 # Reverse ancestors so we process from root to child (top to bottom)
                 # Root needs baseline + len(ancestors), each child needs baseline + distance_from_deepest
-                ancestors_reversed = list(reversed(ancestors))  # [grandparent, parent] (root to child)
+                ancestors_reversed = list(
+                    reversed(ancestors)
+                )  # [grandparent, parent] (root to child)
                 for i, ancestor in enumerate(ancestors_reversed):
                     # Root (i=0) needs baseline + len(ancestors), next needs baseline + len(ancestors) - 1, etc.
                     ancestor["required_depth"] = baseline_depth + len(ancestors) - i
-                
+
                 # Step 5: Find all descendants that need fixing
                 # When we fix a directive, we also need to fix all its nested children
                 descendants = []
@@ -457,7 +495,7 @@ class AutoFixer:
                     current = directive
                     depth_from_target = 0
                     found_target = False
-                    
+
                     # Walk up the parent chain to see if target_directive is an ancestor
                     while current.get("parent"):
                         parent_line = current["parent"]
@@ -471,48 +509,51 @@ class AutoFixer:
                             current = parent
                         else:
                             break
-                    
+
                     if found_target:
                         # Calculate required depth: baseline + distance from target + ancestors
-                        directive["required_depth"] = baseline_depth + depth_from_target + len(ancestors)
+                        directive["required_depth"] = (
+                            baseline_depth + depth_from_target + len(ancestors)
+                        )
                         descendants.append(directive)
-                
+
                 # Step 6: Apply fixes from bottom-up (deepest first, then parents)
                 # Fix target directive first (deepest nested)
                 if target_directive["current_depth"] < target_directive["required_depth"]:
                     self._apply_single_fix(lines, target_directive)
-                
+
                 # Fix descendants (children, grandchildren, etc.) - deepest first
                 descendants.sort(key=lambda d: d["required_depth"], reverse=True)
                 for descendant in descendants:
                     if descendant["current_depth"] < descendant["required_depth"]:
                         self._apply_single_fix(lines, descendant)
-                
+
                 # Fix ancestors from root to child (top to bottom) so we don't break parent references
                 for ancestor in ancestors_reversed:
                     if ancestor["current_depth"] < ancestor["required_depth"]:
                         self._apply_single_fix(lines, ancestor)
-                
+
                 # Write file
                 file_path.write_text("\n".join(lines), encoding="utf-8")
                 return True
-                
-            except Exception as e:
+
+            except Exception:
                 import traceback
+
                 traceback.print_exc()
                 return False
 
         return apply_fix
-    
+
     def _parse_directive_hierarchy(self, lines: list[str]) -> list[dict[str, Any]]:
         """
         Parse directive hierarchy from file lines.
-        
+
         Returns list of directives with parent relationships.
         """
         directives = []
         stack: list[dict[str, Any]] = []  # Stack of open directives
-        
+
         for line_num, line in enumerate(lines, 1):
             # Check for backtick fences
             backtick_match = re.match(r"^(\s*)(`{3,})\{(\w+(?:-\w+)?)\}", line)
@@ -521,11 +562,11 @@ class AutoFixer:
                 fence_marker = backtick_match.group(2)
                 directive_type = backtick_match.group(3)
                 depth = len(fence_marker)
-                
+
                 # Find parent: most recent directive on stack that's still open
                 # (backtick fences can nest, parent is whatever is currently open)
                 parent = stack[-1] if stack else None
-                
+
                 directive = {
                     "line": line_num,
                     "type": directive_type,
@@ -539,7 +580,7 @@ class AutoFixer:
                 directives.append(directive)
                 stack.append(directive)
                 continue
-            
+
             # Check for colon fences
             colon_match = re.match(r"^(\s*)(:{3,})\{(\w+(?:-\w+)?)\}", line)
             if colon_match:
@@ -547,11 +588,11 @@ class AutoFixer:
                 fence_marker = colon_match.group(2)
                 directive_type = colon_match.group(3)
                 depth = len(fence_marker)
-                
+
                 # Find parent: most recent directive on stack that's still open
                 # (not just by indentation - colon fences can nest without indentation)
                 parent = stack[-1] if stack else None
-                
+
                 directive = {
                     "line": line_num,
                     "type": directive_type,
@@ -565,57 +606,63 @@ class AutoFixer:
                 directives.append(directive)
                 stack.append(directive)
                 continue
-            
+
             # Check for closing fences (remove from stack)
             closing_backtick = re.match(r"^(\s*)(`{3,})\s*$", line)
             closing_colon = re.match(r"^(\s*)(:{3,})\s*$", line)
-            
-            if closing_backtick or closing_colon:
+
+            if (closing_backtick or closing_colon) and stack:
                 # Pop matching directive from stack
-                if stack:
-                    # Match by fence type and depth
-                    fence_type = "backtick" if closing_backtick else "colon"
-                    closing_depth = len(closing_backtick.group(2)) if closing_backtick else len(closing_colon.group(2))
-                    
-                    # Find matching directive on stack (most recent with same type and depth)
-                    for i in range(len(stack) - 1, -1, -1):
-                        if stack[i]["fence_type"] == fence_type and stack[i]["current_depth"] == closing_depth:
-                            stack.pop(i)
-                            break
-        
+                # Match by fence type and depth
+                fence_type = "backtick" if closing_backtick else "colon"
+                closing_depth = (
+                    len(closing_backtick.group(2))
+                    if closing_backtick
+                    else len(closing_colon.group(2))
+                )
+
+                # Find matching directive on stack (most recent with same type and depth)
+                for i in range(len(stack) - 1, -1, -1):
+                    if (
+                        stack[i]["fence_type"] == fence_type
+                        and stack[i]["current_depth"] == closing_depth
+                    ):
+                        stack.pop(i)
+                        break
+
         return directives
-    
+
     def _apply_single_fix(self, lines: list[str], directive: dict[str, Any]) -> None:
         """Apply fix to a single directive (increase fence depth)."""
         line_idx = directive["line"] - 1
         if line_idx < 0 or line_idx >= len(lines):
             return
-        
+
         line = lines[line_idx]
         current_depth = directive["current_depth"]
         required_depth = directive["required_depth"]
-        
+
         if current_depth >= required_depth:
             return  # Already correct
-        
+
         if directive["fence_type"] == "backtick":
             # Replace opening fence
             old_fence = "`" * current_depth
             new_fence = "`" * required_depth
             lines[line_idx] = line.replace(f"{old_fence}{{", f"{new_fence}{{", 1)
-            
+
             # Find and replace closing fence
             for i in range(line_idx + 1, min(line_idx + 200, len(lines))):
                 if lines[i].strip() == old_fence:
                     lines[i] = lines[i].replace(old_fence, new_fence, 1)
                     break
-        
+
         elif directive["fence_type"] == "colon":
             # Replace opening fence
             old_fence = ":" * current_depth
             new_fence = ":" * required_depth
             lines[line_idx] = line.replace(f"{old_fence}{{", f"{new_fence}{{", 1)
-            
+
             # Find matching closing fence (accounting for nesting)
             nesting_depth = 0
             for i in range(line_idx + 1, min(line_idx + 200, len(lines))):
@@ -624,7 +671,7 @@ class AutoFixer:
                 if opening_match:
                     nesting_depth += 1
                     continue
-                
+
                 # Check for closing fences
                 closing_match = re.match(r"^(\s*)(:{3,})\s*$", lines[i])
                 if closing_match:

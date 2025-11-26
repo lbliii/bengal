@@ -15,19 +15,20 @@ Migrate your existing static site to Bengal. Whether you're coming from Hugo, Je
 
 ## When to Use This Guide
 
-```{checklist}
+:::{checklist}
 - You have an existing site built with another static site generator
 - You want to preserve your content structure and URLs
 - You need to convert frontmatter formats
 - You want to maintain your site's SEO and link structure
-```
+:::
 
 ## Prerequisites
 
-```{checklist} Before You Begin
+:::{checklist} Before You Begin
 - [Bengal installed](/docs/getting-started/installation/)
 - Access to your existing site's source files
 - Basic knowledge of Markdown and YAML/TOML
+:::
 ```
 
 ## Step 1: Create Your Bengal Site
@@ -333,12 +334,12 @@ weight = 2
 
 ## Step 8: Test Your Migration
 
-```{checklist} Verification Steps
+:::{checklist} Verification Steps
 - [ ] Build the site: `bengal site build`
 - [ ] Check for errors: `bengal site build --verbose`
 - [ ] Validate links: `bengal health check`
 - [ ] Preview locally: `bengal site serve` (visit http://localhost:5173)
-```
+:::
 
 ## Step 9: Handle Special Cases
 
@@ -387,35 +388,35 @@ Bengal doesn't have Jekyll-style `_data/` files. Options:
 
 **Frontmatter parsing errors:**
 
-```{checklist}
+:::{checklist}
 - Check YAML syntax (proper indentation, no tabs)
 - Verify date formats (use ISO format: `2023-10-25`)
 - Remove unsupported fields
-```
+:::
 
 **Missing pages:**
 
-```{checklist}
+:::{checklist}
 - Check if files are in `content/` directory
 - Verify `_index.md` vs `index.md` usage
 - Check for `draft: true` (excluded from builds)
-```
+:::
 
 **Broken links:**
 
-```{checklist}
+:::{checklist}
 - Run `bengal health check` to find broken links
 - Update internal links to use relative paths
 - Check URL generation matches expectations
-```
+:::
 
 **Assets not loading:**
 
-```{checklist}
+:::{checklist}
 - Verify assets are in `assets/` directory
 - Check image paths in content (use relative paths)
 - Ensure asset references match Bengal's structure
-```
+:::
 
 ### Getting Help
 

@@ -97,7 +97,7 @@ def fix(
     report = health_check.run(profile=BuildProfile.WRITER)
 
     # Analyze report and suggest fixes
-    fixer = AutoFixer(report)
+    fixer = AutoFixer(report, site_root=site.root_path)
     fixes = fixer.suggest_fixes()
 
     # Filter by validator if specified

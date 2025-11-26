@@ -111,7 +111,7 @@ This ensures the correct venv is activated and all tests pass.
 ./scripts/run-tests.sh --cov=bengal --cov-report=html
 ```
 
-:::warning
+:::{warning}
 **Never run `pytest` directly** from your system Python or conda. Always use `./scripts/run-tests.sh` to avoid version mismatches.
 :::
 

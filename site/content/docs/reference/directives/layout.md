@@ -168,9 +168,9 @@ For nested directives like admonitions within cards, use 5 fences for the contai
 :columns: 2
 
 ::::{card} Important Card
-```{warning}
+:::{warning}
 This feature requires special setup.
-```
+:::
 ::::
 
 ::::{card} Regular Card
@@ -180,7 +180,7 @@ Standard content here.
 ````
 
 :::{tip} Count the Fences
-The container uses 5 fences (`:::::`), cards use 4 fences (`::::`), and the nested admonition uses 3 backticks. Each nesting level requires incrementing the fence count.
+The container uses 5 fences (`:::::`), cards use 4 fences (`::::`), and the nested admonition uses 3 colons (`:::`). Each nesting level requires incrementing the fence count.
 :::
 
 ## Tabs
@@ -241,7 +241,7 @@ Backward-compatible tabs syntax.
 **Syntax**:
 
 ````markdown
-```{tabs}
+:::{tabs}
 :id: my-tabs
 
 ### Tab: First Tab
@@ -251,7 +251,7 @@ Content in first tab.
 ### Tab: Second Tab
 
 Content in second tab.
-```
+:::
 ````
 
 **Note**: Prefer `{tab-set}` / `{tab-item}` for new content.
@@ -305,9 +305,9 @@ For nested directives like admonitions within tabs, use 5 fences for the contain
 :::::{tab-set}
 
 ::::{tab-item} Setup
-```{warning}
+:::{warning}
 Make sure to backup your data first!
-```
+:::
 
 Setup instructions here.
 ::::
@@ -319,7 +319,7 @@ Regular usage content.
 ````
 
 :::{tip} Count the Fences!!!
-The container uses 5 fences (`:::::`), tab items use 4 fences (`::::`), and the nested admonition uses 3 backticks. Each nesting level requires incrementing the fence count.
+The container uses 5 fences (`:::::`), tab items use 4 fences (`::::`), and the nested admonition uses 3 colons (`:::`). Each nesting level requires incrementing the fence count.
 :::
 
 ## Dropdown
@@ -329,15 +329,15 @@ Collapsible sections for optional or advanced content.
 **Syntax**:
 
 `````markdown
-````{dropdown} Title
+::::{dropdown} Title
 :open: true
 
 Content with **markdown** support.
 
-```{note}
+:::{note}
 Nested directives work!
-```
-````
+:::
+::::
 `````
 
 **Options**:
@@ -351,19 +351,19 @@ Nested directives work!
 **Collapsed by Default**:
 
 ````markdown
-```{dropdown} Advanced Options
+:::{dropdown} Advanced Options
 Click to expand advanced configuration options.
-```
+:::
 ````
 
 **Open by Default**:
 
 ````markdown
-```{dropdown} Quick Reference
+:::{dropdown} Quick Reference
 :open: true
 
 Common commands and shortcuts.
-```
+:::
 ````
 
 ## Grid (Sphinx-Design Compatibility)

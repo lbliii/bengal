@@ -85,41 +85,41 @@ Nested admonitions work!
 ### All Types
 
 ````markdown
-```{note} Note
+:::{note} Note
 General information
-```
+:::
 
-```{tip} Tip
+:::{tip} Tip
 Helpful suggestion
-```
+:::
 
-```{warning} Warning
+:::{warning} Warning
 Something to be careful about
-```
+:::
 
-```{danger} Danger
+:::{danger} Danger
 Critical warning
-```
+:::
 
-```{error} Error
+:::{error} Error
 Error message
-```
+:::
 
-```{info} Info
+:::{info} Info
 Informational content
-```
+:::
 
-```{example} Example
+:::{example} Example
 Example usage
-```
+:::
 
-```{success} Success
+:::{success} Success
 Success message
-```
+:::
 
-```{caution} Caution
+:::{caution} Caution
 Cautionary note
-```
+:::
 ````
 
 ## Options
@@ -130,12 +130,12 @@ Admonitions support standard directive options:
 - `:id:` - Element ID
 
 ````markdown
-```{note} Custom Note
+:::{note} Custom Note
 :class: custom-class
 :id: my-note
 
 Content here
-```
+:::
 ````
 
 ## Rendering

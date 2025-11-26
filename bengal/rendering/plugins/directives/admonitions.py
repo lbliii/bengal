@@ -5,7 +5,6 @@ Provides note, warning, tip, danger, and other callout boxes with
 full markdown support.
 """
 
-
 from __future__ import annotations
 
 from mistune.directives import DirectivePlugin
@@ -22,9 +21,9 @@ class AdmonitionDirective(DirectivePlugin):
     Admonition directive using Mistune's fenced syntax.
 
     Syntax:
-        ```{note} Optional Title
+        :::{note} Optional Title
         Content with **markdown** support.
-        ```
+        :::
 
     Supported types: note, tip, warning, danger, error, info, example, success, caution
     """

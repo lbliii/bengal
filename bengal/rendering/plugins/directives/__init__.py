@@ -135,10 +135,11 @@ def create_documentation_directives():
                 )
 
             # Create fenced directive with all our custom directives
-            # Support both backtick (`) and colon (:) fences for MyST Markdown compatibility
+            # STRICT: Only colon (:) fences allowed - backticks reserved for code blocks
+            # This avoids conflicts when directives appear in code examples
             directive = FencedDirective(
                 directives_list,
-                markers="`:",
+                markers=":",
             )
 
             # Apply to markdown instance

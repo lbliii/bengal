@@ -29,7 +29,7 @@ class FencedDirective(BaseFencedDirective):
     within other content blocks.
     """
 
-    def __init__(self, plugins, markers="`~"):
+    def __init__(self, plugins, markers=":"):
         super().__init__(plugins, markers)
 
         # Rebuild pattern to allow indentation for nested directives
