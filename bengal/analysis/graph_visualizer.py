@@ -312,10 +312,16 @@ class GraphVisualizer:
         js_path = "/assets/js/theme-init.js"
 
         # Check if manifest exists and resolve fingerprinted paths
+        # Manifest is written to output_dir/asset-manifest.json during asset processing
         try:
             from bengal.assets.manifest import AssetManifest
 
-            manifest_path = self.site.root_path / ".bengal" / "asset-manifest.json"
+            # Try output_dir first (where manifest is written during build)
+            manifest_path = self.site.output_dir / "asset-manifest.json"
+            if not manifest_path.exists():
+                # Fallback to .bengal cache location
+                manifest_path = self.site.root_path / ".bengal" / "asset-manifest.json"
+
             if manifest_path.exists():
                 manifest = AssetManifest.load(manifest_path)
                 if manifest:
