@@ -16,6 +16,13 @@
     flex-shrink: 0;
 }
 
+/* Loading placeholder - ensure it stays visible until graph loads */
+.graph-contextual-container.graph-loading {
+    opacity: 1 !important;
+    visibility: visible !important;
+    display: flex !important;
+}
+
 .graph-contextual-container {
     position: relative;
     width: 100%;

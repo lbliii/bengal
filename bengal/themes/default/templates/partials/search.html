@@ -45,6 +45,7 @@ This component includes inline
     <input
       type="search"
       id="search-input"
+      name="search"
       class="search-input"
       placeholder="Search documentation..."
       autocomplete="off"
@@ -98,7 +99,7 @@ This component includes inline
       {# Section filter #}
       <div class="search-filter-group">
         <label for="filter-section">Section:</label>
-        <select id="filter-section" class="search-filter-select">
+        <select id="filter-section" name="filter-section" class="search-filter-select">
           <option value="">All Sections</option>
           {# Options populated by JavaScript #}
         </select>
@@ -107,7 +108,7 @@ This component includes inline
       {# Type filter #}
       <div class="search-filter-group">
         <label for="filter-type">Type:</label>
-        <select id="filter-type" class="search-filter-select">
+        <select id="filter-type" name="filter-type" class="search-filter-select">
           <option value="">All Types</option>
           {# Options populated by JavaScript #}
         </select>
@@ -116,7 +117,7 @@ This component includes inline
       {# Tag filter #}
       <div class="search-filter-group">
         <label for="filter-tags">Tags:</label>
-        <select id="filter-tags" class="search-filter-select" multiple size="5">
+        <select id="filter-tags" name="filter-tags" class="search-filter-select" multiple size="5">
           {# Options populated by JavaScript #}
         </select>
         <small class="filter-hint">Hold Ctrl/Cmd to select multiple</small>

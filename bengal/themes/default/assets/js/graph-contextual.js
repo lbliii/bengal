@@ -128,6 +128,12 @@
 
                 // Only create SVG and render if we have data
                 if (this.filteredData && this.filteredData.nodes && this.filteredData.nodes.length > 0) {
+                    // Remove loading class before creating SVG
+                    const graphContainer = this.container.querySelector('.graph-contextual-container');
+                    if (graphContainer) {
+                        graphContainer.classList.remove('graph-loading');
+                    }
+
                     // Create SVG container
                     this.createSVG();
 
@@ -137,6 +143,7 @@
                     // No connections - hide container but keep header visible
                     const graphContainer = this.container.querySelector('.graph-contextual-container');
                     if (graphContainer) {
+                        graphContainer.classList.remove('graph-loading');
                         graphContainer.style.display = 'none';
                     } else {
                         // Replace loading placeholder with "No connections" message
@@ -306,6 +313,8 @@
                 this.container.appendChild(wrapper);
             } else {
                 // Clear existing content (including loading placeholder)
+                // Remove loading class before clearing
+                wrapper.classList.remove('graph-loading');
                 wrapper.innerHTML = '';
             }
 

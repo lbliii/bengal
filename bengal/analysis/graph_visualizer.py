@@ -304,6 +304,37 @@ class GraphVisualizer:
             default_appearance = getattr(theme_config, "default_appearance", "system")
             default_palette = getattr(theme_config, "default_palette", "")
 
+        # Get baseurl for asset paths (handles GitHub Pages /bengal subpath)
+        baseurl = (self.site.config.get("baseurl", "") or "").rstrip("/")
+
+        # Get asset manifest to resolve fingerprinted paths
+        # Try to get fingerprinted paths from manifest, fallback to non-fingerprinted
+        css_path = "/assets/css/style.css"
+        js_path = "/assets/js/theme-init.js"
+
+        # Check if manifest exists and resolve fingerprinted paths
+        try:
+            from bengal.assets.manifest import AssetManifest
+
+            manifest_path = self.site.root_path / ".bengal" / "asset-manifest.json"
+            if manifest_path.exists():
+                manifest = AssetManifest.load(manifest_path)
+                if manifest:
+                    css_entry = manifest.get("css/style.css")
+                    js_entry = manifest.get("js/theme-init.js")
+                    if css_entry:
+                        css_path = f"/{css_entry.output_path}"
+                    if js_entry:
+                        js_path = f"/{js_entry.output_path}"
+        except Exception:
+            # If manifest lookup fails, use non-fingerprinted paths
+            pass
+
+        # Apply baseurl prefix
+        if baseurl:
+            css_path = f"{baseurl}{css_path}"
+            js_path = f"{baseurl}{js_path}"
+
         html = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -311,8 +342,8 @@ class GraphVisualizer:
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{title}</title>
 
-    <!-- Include theme CSS - relative path from /graph/index.html to /assets/css/style.css -->
-    <link rel="stylesheet" href="../assets/css/style.css">
+    <!-- Include theme CSS - absolute path with baseurl support -->
+    <link rel="stylesheet" href="{css_path}">
 
     <!-- Theme configuration defaults -->
     <script>
@@ -323,7 +354,7 @@ class GraphVisualizer:
     </script>
 
     <!-- Theme initialization script -->
-    <script src="../assets/js/theme-init.js"></script>
+    <script src="{js_path}"></script>
 
     <script src="https://d3js.org/d3.v7.min.js"></script>
 </head>
