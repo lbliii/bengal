@@ -14,7 +14,6 @@ class TestOpenAPIAutodocIntegration:
     def test_generate_messy_api_docs(self, tmp_path):
         """Test generating docs from a complex/messy OpenAPI spec."""
         # Locate the fixture
-        # tests/integration/test_autodoc_openapi.py -> tests/fixtures/openapi/messy_api.yaml
         fixture_path = Path(__file__).parent.parent / "fixtures" / "openapi" / "messy_api.yaml"
         
         if not fixture_path.exists():
@@ -24,15 +23,7 @@ class TestOpenAPIAutodocIntegration:
         assert fixture_path.exists(), f"Fixture not found at {fixture_path}"
 
         # Configure extractor
-        import importlib
-        import bengal.autodoc.extractors.openapi
-        importlib.reload(bengal.autodoc.extractors.openapi)
-        from bengal.autodoc.extractors.openapi import OpenAPIExtractor
-        
         extractor = OpenAPIExtractor()
-        print(f"DEBUG: Extractor module: {extractor.__module__}")
-        import inspect
-        print(f"DEBUG: Extractor file: {inspect.getfile(OpenAPIExtractor)}")
 
         # Extract elements
         elements = extractor.extract(fixture_path)
@@ -41,28 +32,18 @@ class TestOpenAPIAutodocIntegration:
         assert len(elements) > 0
         
         # Check for specific known elements from the messy spec
-        endpoints = [e for e in elements if e.element_type == "openapi_endpoint"]
-        schemas = [e for e in elements if e.element_type == "openapi_schema"]
-        overview = [e for e in elements if e.element_type == "openapi_overview"]
+        # Updated types: endpoint, schema, api_overview
+        endpoints = [e for e in elements if e.element_type == "endpoint"]
+        schemas = [e for e in elements if e.element_type == "schema"]
+        overview = [e for e in elements if e.element_type == "api_overview"]
         
         assert len(overview) == 1
         assert overview[0].name == "Legacy Enterprise Sprawl API"
         
-        # We expect 5 endpoints in the spec
-        # /users GET, /users POST, /user/getDetails GET, /reports/upload POST, /iam/... GET, /webhooks/subscribe POST
-        # Wait, /webhooks/subscribe defines a callback, but the main op is POST /webhooks/subscribe
-        # So 6 endpoints?
-        # Let's check the spec I wrote.
-        # 1. GET /users
-        # 2. POST /users
-        # 3. GET /user/getDetails
-        # 4. POST /reports/upload
-        # 5. GET /iam/...
-        # 6. POST /webhooks/subscribe
+        # We expect 6 endpoints in the spec
         assert len(endpoints) == 6
         
         # Check schemas
-        # Error, PaymentMethod, CreditCard, BankAccount, PayPal, OrgChartNode, LegacyConfigBlob
         assert len(schemas) >= 7
 
         # Generate docs
@@ -80,13 +61,10 @@ class TestOpenAPIAutodocIntegration:
         # Verify generated files exist
         assert (output_dir / "index.md").exists()
         
-        # Check for endpoint files (structure defined in extractor.get_output_path)
+        # Check for endpoint files
         # Users tag
         assert (output_dir / "endpoints" / "Users" / "get_users.md").exists()
-        assert (output_dir / "endpoints" / "Users" / "create_user.md").exists() # inferred name? or explicit opId?
-        # POST /users has no opId, so fallback: post_users
-        if (output_dir / "endpoints" / "Users" / "post_users.md").exists():
-             pass 
+        assert (output_dir / "endpoints" / "Users" / "post_users.md").exists()
         
         # Reports tag (uploadReport opId)
         assert (output_dir / "endpoints" / "Reports" / "uploadReport.md").exists()
@@ -94,4 +72,3 @@ class TestOpenAPIAutodocIntegration:
         # Check for schema files
         assert (output_dir / "schemas" / "LegacyConfigBlob.md").exists()
         assert (output_dir / "schemas" / "PaymentMethod.md").exists()
-
