@@ -7,6 +7,13 @@
 - **discovery**: add inode-based symlink loop detection to prevent infinite recursion
 - **discovery**: handle permission errors gracefully when walking directories
 
+### Feature Correctness Hardening (Phase 2)
+- **utils**: add `file_lock` module for cross-platform file locking (fcntl on Unix, msvcrt on Windows)
+- **cache**: integrate file locking into `BuildCache.save()`/`load()` for concurrent build safety
+- **cache**: refactor save/load into separate lock acquisition and file I/O methods for clarity
+- **analysis(knowledge_graph)**: graph analysis commands now correctly extract links via `_ensure_links_extracted()`
+- **rendering(template_engine)**: template cycles already handled by Jinja2 native detection + rich error formatting
+
 ### Health Check System Enhancements (Phase 1 & 2)
 - **health**: add incremental validation with result caching (Phase 1)
 - **health**: extend BuildCache with validation_results field for caching CheckResult objects

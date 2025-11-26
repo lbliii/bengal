@@ -507,15 +507,21 @@ def generate_sitemap(self) -> str | None:
 
 **Commit**: `e98a19e` - core(security): implement Phase 1 edge case hardening
 
-### Phase 2: Feature Correctness (Week 2-3)
+### Phase 2: Feature Correctness (Week 2-3) ✅ COMPLETE
 
 | Task | Effort | Owner | Status |
 |------|--------|-------|--------|
-| 2.1 Graph analysis links | 6h | TBD | ⬜ |
-| 2.2 Concurrent build safety | 4h | TBD | ⬜ |
-| 2.3 Template cycle detection | 3h | TBD | ⬜ |
-| 2.4 Discovery symlink loops | 3h | TBD | ⬜ |
-| **Phase 2 Total** | **16h** | | |
+| 2.1 Graph analysis links | 6h | AI | ✅ (already fixed) |
+| 2.2 Concurrent build safety | 4h | AI | ✅ |
+| 2.3 Template cycle detection | 3h | AI | ✅ (Jinja2 native) |
+| 2.4 Discovery symlink loops | 3h | AI | ✅ (done in P1) |
+| **Phase 2 Total** | **16h** | | **DONE** |
+
+**Notes**:
+- 2.1: Already implemented via `_ensure_links_extracted()` in `KnowledgeGraph`
+- 2.2: Added `file_lock` utility and integrated with `BuildCache.save()/load()`
+- 2.3: Jinja2 natively handles template cycles; rich error formatting already exists
+- 2.4: Inode-based loop detection added in Phase 1
 
 ### Phase 3: Developer Experience (Week 4)
 
