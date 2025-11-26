@@ -17,25 +17,25 @@ All CLI documentation templates should extend this.
 {% block badges %}
 {% if element %}
 {% if element.element_type == "command-group" %}
-```{badge} Command Group
+:::{badge} Command Group
 :class: badge-secondary
-```
+:::
 {% elif element.element_type == "command" %}
-```{badge} Command
+:::{badge} Command
 :class: badge-secondary
-```
+:::
 {% endif %}
 
 {% if element.metadata and element.metadata.deprecated %}
-```{badge} Deprecated
+:::{badge} Deprecated
 :class: badge-danger
-```
+:::
 {% endif %}
 
 {% if element.metadata and element.metadata.hidden %}
-```{badge} Hidden
+:::{badge} Hidden
 :class: badge-light
-```
+:::
 {% endif %}
 {% endif %}
 {% endblock %}

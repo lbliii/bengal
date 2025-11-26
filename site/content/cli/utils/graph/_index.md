@@ -9,11 +9,11 @@ description: "Commands for analyzing the site\'s knowledge graph."
 
 # graph
 **Type:** Command-Group
-**Source:** [View source](https://github.com/lbliii/bengal/blob/main/bengal/bengal/cli/commands/graph/__main__.py#L24)
+**Source:** [View source](bengal/bengal/cli/commands/graph/__main__.py#L24)
 
-```{badge} Command Group
+:::{badge} Command Group
 :class: badge-secondary
-```
+:::
 
 
 

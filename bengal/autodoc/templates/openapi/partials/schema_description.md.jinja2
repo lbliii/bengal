@@ -27,26 +27,26 @@ Handles different schema types and validation rules safely.
 {% endif %}
 
 {% if element.metadata.deprecated %}
-```{warning} Deprecated Schema
+:::{warning} Deprecated Schema
 This schema is deprecated and may be removed in future versions.
-```
+:::
 {% endif %}
 
 {% if element.metadata.read_only %}
-```{info}
+:::{info}
 This schema is read-only.
-```
+:::
 {% endif %}
 
 {% if element.metadata.write_only %}
-```{info}
+:::{info}
 This schema is write-only.
-```
+:::
 {% endif %}
 
 {% if element.metadata.nullable %}
-```{note}
+:::{note}
 This schema allows null values.
-```
+:::
 {% endif %}
 {% endcall %}

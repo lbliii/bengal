@@ -9,11 +9,11 @@ description: "🔍 Validate site health and content quality. Runs health checks 
 
 # validate
 **Type:** Command
-**Source:** [View source](https://github.com/lbliii/bengal/blob/main/bengal/bengal/cli/helpers/error_handling.py#L33)
+**Source:** [View source](bengal/bengal/cli/helpers/error_handling.py#L33)
 
-```{badge} Command
+:::{badge} Command
 :class: badge-secondary
-```
+:::
 
 
 
@@ -41,9 +41,9 @@ validate [OPTIONS] [ARGUMENTS]
 
 **Default:** `.`
 
-```{info}
+:::{info}
 This argument is optional.
-```
+:::
 
 ## Options
 

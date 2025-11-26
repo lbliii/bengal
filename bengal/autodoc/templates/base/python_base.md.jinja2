@@ -16,33 +16,33 @@ All Python documentation templates should extend this.
 {% block badges %}
 {% if element %}
 {% if element.element_type == "class" %}
-```{badge} Class
+:::{badge} Class
 :class: api-badge api-badge-class
-```
+:::
 {% elif element.element_type == "function" %}
-```{badge} Function
+:::{badge} Function
 :class: api-badge
-```
+:::
 {% elif element.element_type == "method" %}
-```{badge} Method
+:::{badge} Method
 :class: api-badge
-```
+:::
 {% elif element.element_type == "module" %}
-```{badge} Module
+:::{badge} Module
 :class: api-badge
-```
+:::
 {% endif %}
 
 {% if element.metadata and element.metadata.deprecated %}
-```{badge} Deprecated
+:::{badge} Deprecated
 :class: api-badge api-badge-deprecated
-```
+:::
 {% endif %}
 
 {% if element.metadata and element.metadata.is_async %}
-```{badge} Async
+:::{badge} Async
 :class: api-badge api-badge-async
-```
+:::
 {% endif %}
 {% endif %}
 {% endblock %}
@@ -60,9 +60,9 @@ All Python documentation templates should extend this.
 {#- Deprecation warning -#}
 {%- if element and element.metadata and element.metadata.deprecated -%}
 {%- call safe_section("deprecation") -%}
-```{warning} Deprecated
+:::{warning} Deprecated
 {{- element.metadata.deprecated -}}
-```
+:::
 {%- endcall -%}
 {%- endif -%}
 

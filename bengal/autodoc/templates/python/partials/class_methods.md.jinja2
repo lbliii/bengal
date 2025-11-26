@@ -35,15 +35,15 @@ parameters, returns, raises, examples, and inherited methods.
 
 {% endif %}
 {% if method_item.metadata.parsed_doc.deprecated %}
-```{warning} Deprecated
+:::{warning} Deprecated
 {{- method_item.metadata.parsed_doc.deprecated -}}
-```
+:::
 
 {% endif %}
 {% if method_item.metadata.is_async %}
-```{info} Async Method
+:::{info} Async Method
 This is an asynchronous method. Use `await` when calling.
-```
+:::
 
 {% endif %}
 {#- Parameters section -#}

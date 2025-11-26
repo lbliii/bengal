@@ -9,11 +9,11 @@ description: "🔧 Auto-fix common health check issues. Analyzes health check re
 
 # fix
 **Type:** Command
-**Source:** [View source](https://github.com/lbliii/bengal/blob/main/bengal/bengal/cli/helpers/error_handling.py#L24)
+**Source:** [View source](bengal/bengal/cli/helpers/error_handling.py#L24)
 
-```{badge} Command
+:::{badge} Command
 :class: badge-secondary
-```
+:::
 
 
 
@@ -41,9 +41,9 @@ fix [OPTIONS] [ARGUMENTS]
 
 **Default:** `.`
 
-```{info}
+:::{info}
 This argument is optional.
-```
+:::
 
 ## Options
 

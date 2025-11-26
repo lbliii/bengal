@@ -35,19 +35,19 @@ Handles positional arguments with safe error boundaries.
 {% endif %}
 
 {% if current_item.metadata.required %}
-```{note}
+:::{note}
 This argument is required.
-```
+:::
 {% else %}
-```{info}
+:::{info}
 This argument is optional.
-```
+:::
 {% endif %}
 
 {% if current_item.metadata.multiple %}
-```{info}
+:::{info}
 This argument accepts multiple values.
-```
+:::
 {% endif %}
 
 {% if current_item.metadata.choices %}

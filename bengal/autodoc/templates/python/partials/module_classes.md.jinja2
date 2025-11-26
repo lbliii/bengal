@@ -27,9 +27,9 @@ Includes class descriptions, inheritance, and nested components.
 {% endcall %}
 
 {% if current_item.metadata.aliases %}
-```{note} Also known as
+:::{note} Also known as
 This element has aliases: {%- for alias in current_item.metadata.aliases -%}`{{- alias -}}`{%- if not loop.last -%}, {%- endif -%}{%- endfor -%}
-```
+:::
 
 {% endif %}
 {% if current_item.metadata.bases %}
@@ -45,9 +45,9 @@ This element has aliases: {%- for alias in current_item.metadata.aliases -%}`{{-
 {% endif %}
 {% if current_item.metadata.is_dataclass %}
 
-```{info}
+:::{info}
 This is a dataclass.
-```
+:::
 
 {% endif %}
 

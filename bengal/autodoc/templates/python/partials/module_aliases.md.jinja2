@@ -17,9 +17,9 @@ Uses safe rendering to handle missing or malformed alias data.
 {% call safe_render("alias", current_item) %}
 ### `{{ current_item.name }}` 🔗
 
-```{info} Alias
+:::{info} Alias
 This is an alias of [`{{ current_item.metadata.alias_of | default('Unknown') }}`](#{{ current_item.metadata.alias_of.split('.')[-1] | lower | default('unknown') }})
-```
+:::
 
 Defined at line {{ current_item.line_number | default('Unknown') }} in `{{ current_item.source_file | project_relative | default('Unknown') }}`
 

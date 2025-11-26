@@ -12,20 +12,20 @@ Extends Python base template with class-specific features.
 {% block doc_type %}python-class{% endblock %}
 
 {% block badges %}
-```{badge} Class
+:::{badge} Class
 :class: api-badge api-badge-class
-```
+:::
 
 {% if element.metadata.is_dataclass %}
-```{badge} Dataclass
+:::{badge} Dataclass
 :class: api-badge api-badge-dataclass
-```
+:::
 {% endif %}
 
 {% if element.metadata.deprecated %}
-```{badge} Deprecated
+:::{badge} Deprecated
 :class: api-badge api-badge-deprecated
-```
+:::
 {% endif %}
 {% endblock %}
 

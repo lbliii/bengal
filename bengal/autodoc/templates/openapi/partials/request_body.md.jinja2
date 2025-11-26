@@ -19,13 +19,13 @@ Handles different content types and complex request structures safely.
 {% endif %}
 
 {% if request_body.required %}
-```{note}
+:::{note}
 Request body is required.
-```
+:::
 {% else %}
-```{info}
+:::{info}
 Request body is optional.
-```
+:::
 {% endif %}
 
 {% if request_body.content %}

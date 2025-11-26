@@ -14,20 +14,20 @@ Extends Python base template with function-specific features.
 {% block doc_type %}python-function{% endblock %}
 
 {% block badges %}
-```{badge} Function
+:::{badge} Function
 :class: api-badge
-```
+:::
 
 {% if element.metadata.is_async %}
-```{badge} Async
+:::{badge} Async
 :class: api-badge api-badge-async
-```
+:::
 {% endif %}
 
 {% if element.metadata.deprecated %}
-```{badge} Deprecated
+:::{badge} Deprecated
 :class: api-badge api-badge-deprecated
-```
+:::
 {% endif %}
 {% endblock %}
 
@@ -46,15 +46,15 @@ Extends Python base template with function-specific features.
 {% endif %}
 
 {% if element.metadata.parsed_doc.deprecated %}
-```{warning} Deprecated Function
+:::{warning} Deprecated Function
 {{ element.metadata.parsed_doc.deprecated }}
-```
+:::
 {% endif %}
 
 {% if element.metadata.is_async %}
-```{info} Async Function
+:::{info} Async Function
 This is an asynchronous function. Use `await` when calling.
-```
+:::
 {% endif %}
 {% endcall %}
 

@@ -99,7 +99,7 @@ Shells provide:
 
 Use shells for:
 - section_shell: Major sections (## Classes, ## Functions)
-- subsection_shell: Subsections (### `name`)  
+- subsection_shell: Subsections (### `name`)
 - rubric_shell: Rubrics (:::{rubric})
 
 Manual spacing for:
@@ -111,16 +111,16 @@ Example:
   {% call section_shell() %}
   ## Classes
   {% endcall %}
-  
+
   {% call subsection_shell() %}
   ### `Community`
   {% endcall %}
-  
+
   {{ element.description }}
-  
-  ```{info}
+
+  :::{info}
   This is a dataclass.
-  ```
+  :::
 -#}
 
 {#- Major section shell (## Classes, ## Functions) -#}

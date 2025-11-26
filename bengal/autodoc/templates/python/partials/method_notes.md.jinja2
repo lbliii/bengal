@@ -11,9 +11,9 @@ Uses MyST admonitions for proper formatting.
 {%- if item.metadata.parsed_doc.notes -%}
 {%- call safe_section("method_notes") -%}
 {%- call(current_item) safe_for(item.metadata.parsed_doc.notes, "") -%}
-```{note}
+:::{note}
 {{- current_item -}}
-```
+:::
 {%- endcall -%}
 {%- endcall -%}
 {%- endif -%}
@@ -22,9 +22,9 @@ Uses MyST admonitions for proper formatting.
 {%- if item.metadata.parsed_doc.warnings -%}
 {%- call safe_section("method_warnings") -%}
 {%- call(current_item) safe_for(item.metadata.parsed_doc.warnings, "") -%}
-```{warning}
+:::{warning}
 {{- current_item -}}
-```
+:::
 {%- endcall -%}
 {%- endcall -%}
 {%- endif -%}

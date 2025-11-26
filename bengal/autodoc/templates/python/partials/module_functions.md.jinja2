@@ -29,9 +29,9 @@ Uses shared components for consistency with method documentation.
 {% endcall %}
 
 {% if current_item.metadata.aliases %}
-```{note} Also known as
+:::{note} Also known as
 This function has aliases: {%- for alias in current_item.metadata.aliases -%}`{{- alias -}}`{%- if not loop.last -%}, {%- endif -%}{%- endfor -%}
-```
+:::
 
 {% endif %}
 {{ signature_block(current_item.metadata.signature | default(''), 'function') }}
@@ -45,15 +45,15 @@ This function has aliases: {%- for alias in current_item.metadata.aliases -%}`{{
 
 {% endif %}
 {% if current_item.metadata.parsed_doc.deprecated %}
-```{warning} Deprecated
+:::{warning} Deprecated
 {{- current_item.metadata.parsed_doc.deprecated -}}
-```
+:::
 
 {% endif %}
 {% if current_item.metadata.is_async %}
-```{info} Async Function
+:::{info} Async Function
 This is an asynchronous function. Use `await` when calling.
-```
+:::
 
 {% endif %}
 {#- Parameters section -#}

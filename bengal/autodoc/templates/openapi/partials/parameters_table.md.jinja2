@@ -36,13 +36,13 @@ Handles different parameter types and locations safely.
 **Type:** `{{ item.metadata.type | default('string') }}`
 
 {% if item.metadata.required %}
-```{note}
+:::{note}
 This parameter is required.
-```
+:::
 {% else %}
-```{info}
+:::{info}
 This parameter is optional.
-```
+:::
 {% endif %}
 
 {% if item.metadata.default %}
