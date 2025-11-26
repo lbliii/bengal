@@ -35,7 +35,7 @@ jobs:
 
       - name: Build site
         working-directory: site
-        run: bengal site build
+        run: bengal site build --autodoc --no-incremental --environment production
         env:
           PYTHON_GIL: 0
 
