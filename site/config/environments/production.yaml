@@ -2,8 +2,8 @@
 # =======================
 
 site:
-  # # GitHub Pages project site: deployed at /bengal
-  # baseurl: "/bengal"
+  # GitHub Pages project site: deployed at /bengal
+  baseurl: "/bengal"
 
 build:
   # Enable parallelization for fast production builds

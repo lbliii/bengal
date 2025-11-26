@@ -89,11 +89,11 @@ def apply_env_overrides(config: dict[str, Any]) -> dict[str, Any]:
                 # Check if GITHUB_PAGES_ROOT is set (indicates root deployment)
                 # or if repo name matches {owner}.github.io (user/org site)
                 if os.environ.get("GITHUB_PAGES_ROOT") == "true" or name == f"{owner}.github.io":
-                    # Root deployment: https://owner.github.io
-                    config["baseurl"] = f"https://{owner}.github.io".rstrip("/")
+                    # Root deployment: empty baseurl (served from root)
+                    config["baseurl"] = ""
                 else:
-                    # Project site: deployed at /{repo-name}
-                    config["baseurl"] = f"https://{owner}.github.io/{name}".rstrip("/")
+                    # Project site: deployed at /{repo-name} (path-only for relative links)
+                    config["baseurl"] = f"/{name}".rstrip("/")
                 return config
 
     except Exception:
