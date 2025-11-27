@@ -394,7 +394,6 @@ Tags and categories automatically create archive pages!
 
 **Get Inspired:**
 - Check `site/content/` for example posts
-- Browse [Bengal themes](/themes/)
 - Read the [full documentation](/docs/)
 
 **Need Help?**

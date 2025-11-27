@@ -4,7 +4,7 @@
 PYTHON_VERSION ?= 3.14t
 VENV_DIR ?= .venv
 
-.PHONY: all help setup install run serve clean test shell
+.PHONY: all help setup install run build serve clean test shell
 
 all: help
 
@@ -16,10 +16,11 @@ help:
 	@echo "Available commands:"
 	@echo "  make setup    - Create virtual environment with Python $(PYTHON_VERSION)"
 	@echo "  make install  - Install dependencies in development mode"
+	@echo "  make build    - Build the documentation site (site/)"
+	@echo "  make serve    - Start the development server for site/"
 	@echo "  make run      - Run bengal CLI (use ARGS='...' to pass arguments)"
-	@echo "  make serve    - Start the Bengal development server"
 	@echo "  make test     - Run the test suite"
-	@echo "  make clean    - Remove virtual environment and build artifacts"
+	@echo "  make clean    - Remove venv, build artifacts, and site output"
 	@echo "  make shell    - Start a shell with the environment activated"
 
 setup:
@@ -30,19 +31,24 @@ install:
 	@echo "Installing dependencies..."
 	uv pip install -e ".[dev]"
 
+build:
+	@echo "Building site..."
+	uv run bengal site build site
+
+serve:
+	@echo "Starting development server..."
+	uv run bengal site serve site
+
 # Example: make run ARGS="site build"
 run:
 	uv run bengal $(ARGS)
-
-serve:
-	uv run bengal site serve
 
 test:
 	uv run pytest
 
 clean:
 	rm -rf $(VENV_DIR)
-	rm -rf build/ dist/ *.egg-info
+	rm -rf build/ dist/ *.egg-info site/public
 	find . -type d -name "__pycache__" -exec rm -rf {} +
 	find . -type d -name ".pytest_cache" -exec rm -rf {} +
 	find . -type d -name ".mypy_cache" -exec rm -rf {} +

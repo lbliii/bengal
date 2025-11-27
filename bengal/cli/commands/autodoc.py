@@ -106,13 +106,24 @@ def autodoc(
 
     # HTML renderer removed - using traditional Markdown generation
 
-    # Determine what to generate
-    generate_python = not cli_only and not openapi_only and (python_only or python_config.get("enabled", True))
-    generate_cli = not python_only and not openapi_only and (
-        cli_only or (cli_config.get("enabled", False) and cli_config.get("app_module"))
+    # Determine what to generate (ensure boolean results for sum() later)
+    generate_python = (
+        not cli_only
+        and not openapi_only
+        and bool(python_only or python_config.get("enabled", True))
     )
-    generate_openapi = not python_only and not cli_only and (
-        openapi_only or (openapi_config.get("enabled", False) and openapi_config.get("spec_file"))
+    generate_cli = (
+        not python_only
+        and not openapi_only
+        and bool(cli_only or (cli_config.get("enabled", False) and cli_config.get("app_module")))
+    )
+    generate_openapi = (
+        not python_only
+        and not cli_only
+        and bool(
+            openapi_only
+            or (openapi_config.get("enabled", False) and openapi_config.get("spec_file"))
+        )
     )
 
     if not generate_python and not generate_cli and not generate_openapi:
@@ -634,8 +645,10 @@ def _generate_openapi_docs(
     # Count elements
     endpoint_count = len([e for e in elements if e.element_type == "openapi_endpoint"])
     schema_count = len([e for e in elements if e.element_type == "openapi_schema"])
-    
-    cli.success(f"   ✓ Extracted {endpoint_count} endpoints, {schema_count} schemas in {extraction_time:.2f}s")
+
+    cli.success(
+        f"   ✓ Extracted {endpoint_count} endpoints, {schema_count} schemas in {extraction_time:.2f}s"
+    )
 
     if verbose:
         cli.blank()
@@ -650,10 +663,10 @@ def _generate_openapi_docs(
     # Pass full autodoc_config so templates can access all sections
     config = autodoc_config if autodoc_config else {"openapi": openapi_config}
     generator = DocumentationGenerator(extractor, config)
-    
+
     cli.info("📝 Generating markdown files...")
     generated_files = generator.generate_all(elements, output_dir, parallel=parallel)
-    
+
     generation_time = time.time() - gen_start
     total_time = time.time() - start_time
 

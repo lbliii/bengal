@@ -565,4 +565,3 @@ Most CI/CD platforms send email notifications by default for failed builds.
 
 - **[Deployment Guide](/docs/guides/deployment/)** - Learn deployment options
 - **[Content Workflow](/docs/guides/content-workflow/)** - Set up content publishing workflow
-- **[Multi-Environment Setup](/docs/guides/multi-environment/)** - Manage dev/staging/production
