@@ -1,5 +1,11 @@
 ## Unreleased
 
+### CLI UX Improvements
+- **cli(site)**: deprecate `bengal site new` in favor of `bengal new site` (hidden from help, shows warning)
+- **cli(new)**: add interactive baseurl prompt during site creation (skipped with `--no-init`)
+- **cli(new)**: enforce `questionary` as core dependency (remove try/except fallback)
+- **cli(health)**: hide 8 advanced linkcheck options from `--help` (still functional when used)
+
 ### Security & Robustness Hardening (Phase 1)
 - **rendering(link_validator)**: implement actual internal link validation with URL resolution and page URL index lookup
 - **rendering(include)**: add `MAX_INCLUDE_SIZE` (10MB) file size limit to prevent memory exhaustion from large includes
