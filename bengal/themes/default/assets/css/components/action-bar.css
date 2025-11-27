@@ -797,10 +797,12 @@
   .action-bar-meta-toggle {
     width: 1.25rem;
     /* 20px - between desktop and mobile */
+    min-width: 1.25rem;
     max-width: 1.25rem;
     /* Prevent flexbox from stretching */
     height: 1.25rem;
     /* 20px */
+    min-height: 1.25rem;
   }
 
   /* Icon automatically scales via --icon-size-sm token */
@@ -895,10 +897,14 @@
   .action-bar-meta-toggle {
     width: 1rem;
     /* 16px - more compact */
+    min-width: 1rem;
+    /* Override global touch target sizing */
     max-width: 1rem;
     /* Prevent flexbox from stretching */
     height: 1rem;
     /* 16px - more compact */
+    min-height: 1rem;
+    /* Override global touch target sizing */
     border-radius: var(--radius-sm);
     /* Slightly smaller radius */
     overflow: hidden;

@@ -18,6 +18,8 @@
   bottom: 5rem;
   right: 2rem;
   width: 3rem;
+  max-width: 3rem;
+  /* Prevent flexbox from stretching */
   height: 3rem;
   display: flex;
   align-items: center;
@@ -29,6 +31,8 @@
   border: none;
   border-radius: var(--radius-full);
   cursor: pointer;
+  overflow: hidden;
+  /* Contain SVG within button bounds */
   z-index: var(--z-fixed);
   transition: all var(--transition-base);
   opacity: 0;
@@ -97,6 +101,7 @@
   fill: none;
   display: block;
   pointer-events: none;
+  flex-shrink: 0;
 }
 
 /* Ensure child elements inherit stroke */
@@ -361,6 +366,8 @@
   top: 1rem;
   right: 1rem;
   width: 3rem;
+  max-width: 3rem;
+  /* Prevent flexbox from stretching */
   height: 3rem;
   display: flex;
   align-items: center;
@@ -372,6 +379,9 @@
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: var(--radius-full);
   cursor: pointer;
+  overflow: hidden;
+  /* Contain SVG within button bounds */
+  flex-shrink: 0;
   transition: all var(--transition-fast);
   backdrop-filter: blur(10px);
   /* Neumorphic shadow for dark overlay - standardized */
@@ -449,6 +459,7 @@
   height: 24px;
   stroke: currentColor;
   stroke-width: 2.5;
+  flex-shrink: 0;
 }
 
 /* Ensure child elements inherit stroke */

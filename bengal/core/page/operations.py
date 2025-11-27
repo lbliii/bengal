@@ -2,7 +2,6 @@
 Page Operations Mixin - Operations and transformations on pages.
 """
 
-
 from __future__ import annotations
 
 import re
@@ -67,14 +66,24 @@ class PageOperationsMixin:
         """
         Extract all links from the page content.
 
+        Skips content inside fenced code blocks to avoid false positives
+        from code examples in documentation.
+
         Returns:
             List of link URLs found in the page
         """
+        # Remove fenced code blocks before extracting links
+        # Matches ``` or ```` (or more backticks) with any content until closing fence
+        content_without_code = re.sub(r"(`{3,})[^\n]*\n.*?\1", "", self.content, flags=re.DOTALL)
+
+        # Also remove inline code spans
+        content_without_code = re.sub(r"`[^`]+`", "", content_without_code)
+
         # Extract Markdown links [text](url)
-        markdown_links = re.findall(r"\[([^\]]+)\]\(([^)]+)\)", self.content)
+        markdown_links = re.findall(r"\[([^\]]+)\]\(([^)]+)\)", content_without_code)
 
         # Extract HTML links <a href="url">
-        html_links = re.findall(r'<a\s+[^>]*href=["\']([^"\']+)["\']', self.content)
+        html_links = re.findall(r'<a\s+[^>]*href=["\']([^"\']+)["\']', content_without_code)
 
         self.links = [url for _, url in markdown_links] + html_links
         return self.links
