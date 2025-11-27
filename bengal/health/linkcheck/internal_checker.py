@@ -146,7 +146,30 @@ class InternalLinkChecker:
 
         # Handle relative paths (resolve to absolute)
         if not path.startswith("/"):
-            # For now, treat relative as potentially valid
+            # Skip source file references (common in autodoc-generated content)
+            # Patterns like: ../bengal/module.py#L1, ../../file.py, etc.
+            # Check for Python file references with line numbers or relative paths to source files
+            if (
+                ".py#L" in url
+                or ".py#" in url
+                or (url.startswith("../") and ".py" in url)
+                or (url.startswith("../") and "/bengal/" in url)
+            ):
+                logger.debug(
+                    "skipping_source_file_reference",
+                    url=url,
+                    reason="source_file_reference_in_autodoc",
+                )
+                return LinkCheckResult(
+                    url=url,
+                    kind=LinkKind.INTERNAL,
+                    status=LinkStatus.IGNORED,
+                    first_ref=refs[0] if refs else None,
+                    ref_count=len(refs),
+                    ignored=True,
+                    ignore_reason="Source file reference (autodoc)",
+                )
+            # For now, treat other relative paths as potentially valid
             # A full implementation would resolve relative to the referencing page
             logger.debug(
                 "skipping_relative_internal_link",

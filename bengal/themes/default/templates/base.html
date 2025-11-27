@@ -195,7 +195,7 @@
                         </li>
                         {% for item in auto_nav %}
                         <li
-                            class="{{ 'active' if (page is defined and page and page.relative_url and page.relative_url.startswith(item.relative_url) and item.relative_url != '/') else '' }}">
+                            class="{{ 'active' if (page is defined and page and page.relative_url is defined and page.relative_url is string and page.relative_url.startswith(item.relative_url) and item.relative_url != '/') else '' }}">
                             <a href="{{ item.url | absolute_url }}">{{ item.name }}</a>
                         </li>
                         {% endfor %}
@@ -307,7 +307,7 @@
             </li>
             {% for item in auto_nav %}
             <li
-                class="{{ 'active' if (page is defined and page and page.relative_url and page.relative_url.startswith(item.relative_url) and item.relative_url != '/') else '' }}">
+                class="{{ 'active' if (page is defined and page and page.relative_url is defined and page.relative_url is string and page.relative_url.startswith(item.relative_url) and item.relative_url != '/') else '' }}">
                 <a href="{{ item.url | absolute_url }}">{{ item.name }}</a>
             </li>
             {% endfor %}
