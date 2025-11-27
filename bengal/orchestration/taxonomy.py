@@ -262,10 +262,12 @@ class TaxonomyOrchestrator:
             if page.tags:
                 pages_with_tags += 1
                 for tag in page.tags:
-                    tag_key = tag.lower().replace(" ", "-")
+                    # Ensure tag is a string (YAML may parse numbers like 404 as int)
+                    tag_str = str(tag)
+                    tag_key = tag_str.lower().replace(" ", "-")
                     if tag_key not in self.site.taxonomies["tags"]:
                         self.site.taxonomies["tags"][tag_key] = {
-                            "name": tag,
+                            "name": tag_str,
                             "slug": tag_key,
                             "pages": [],
                         }
@@ -274,10 +276,12 @@ class TaxonomyOrchestrator:
             # Collect categories (if present in metadata)
             if "category" in page.metadata:
                 category = page.metadata["category"]
-                cat_key = category.lower().replace(" ", "-")
+                # Ensure category is a string
+                category_str = str(category)
+                cat_key = category_str.lower().replace(" ", "-")
                 if cat_key not in self.site.taxonomies["categories"]:
                     self.site.taxonomies["categories"][cat_key] = {
-                        "name": category,
+                        "name": category_str,
                         "slug": cat_key,
                         "pages": [],
                     }
@@ -343,8 +347,9 @@ class TaxonomyOrchestrator:
             for page in current_pages:
                 if page.tags:
                     for tag in page.tags:
-                        if tag.lower().replace(" ", "-") == tag_slug:
-                            original_tag = tag
+                        tag_str = str(tag)
+                        if tag_str.lower().replace(" ", "-") == tag_slug:
+                            original_tag = tag_str
                             break
                 if original_tag:
                     break

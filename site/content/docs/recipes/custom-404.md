@@ -3,7 +3,7 @@ title: Custom 404 Page
 description: Create a branded error page for your Bengal site
 weight: 40
 type: doc
-tags: [recipe, 404, error-page]
+tags: [recipe, "404", error-page]
 ---
 
 # Custom 404 Page
@@ -70,13 +70,13 @@ For a custom layout, create `templates/page/404.html`:
 <div class="error-page">
   <div class="error-code">404</div>
   <h1>{{ page.title }}</h1>
-  
+
   <p class="error-message">
     The page <code>{{ request.path | default('/unknown') }}</code> doesn't exist.
   </p>
-  
+
   {{ page.content }}
-  
+
   <div class="error-actions">
     <a href="/" class="button primary">Go Home</a>
     <a href="/search/" class="button secondary">Search</a>
@@ -216,7 +216,7 @@ If using analytics, you can track 404 hits:
 <script>
   // For Plausible
   plausible('404', { props: { path: document.location.pathname } });
-  
+
   // For Google Analytics
   gtag('event', '404_error', { page_path: document.location.pathname });
 </script>
@@ -227,4 +227,3 @@ If using analytics, you can track 404 hits:
 - [Deployment Guide](/docs/guides/deployment/)
 - [Add Search Recipe](/docs/recipes/search/)
 - [Template Reference](/docs/reference/template-functions/)
-

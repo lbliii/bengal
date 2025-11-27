@@ -4,7 +4,6 @@ Link validator wrapper.
 Integrates the existing LinkValidator into the health check system.
 """
 
-
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, override
@@ -45,29 +44,37 @@ class LinkValidatorWrapper(BaseValidator):
         broken_links = validator.validate_site(site)
 
         if broken_links:
-            # Group by type
+            # broken_links is list of (page_path, link_url) tuples
+            # Group by type based on the link URL (second element)
             internal_broken = [
-                link for link in broken_links if not link.startswith(("http://", "https://"))
+                (page, link)
+                for page, link in broken_links
+                if not link.startswith(("http://", "https://"))
             ]
             external_broken = [
-                link for link in broken_links if link.startswith(("http://", "https://"))
+                (page, link)
+                for page, link in broken_links
+                if link.startswith(("http://", "https://"))
             ]
 
             if internal_broken:
+                # Format as "page: link" for display
+                details = [f"{page}: {link}" for page, link in internal_broken[:5]]
                 results.append(
                     CheckResult.error(
                         f"{len(internal_broken)} broken internal link(s)",
                         recommendation="Fix broken internal links. They point to pages that don't exist.",
-                        details=internal_broken[:5],
+                        details=details,
                     )
                 )
 
             if external_broken:
+                details = [f"{page}: {link}" for page, link in external_broken[:5]]
                 results.append(
                     CheckResult.warning(
                         f"{len(external_broken)} broken external link(s)",
                         recommendation="External links may be temporarily unavailable or incorrect.",
-                        details=external_broken[:5],
+                        details=details,
                     )
                 )
         else:
