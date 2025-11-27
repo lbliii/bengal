@@ -476,6 +476,9 @@
 }
 
 .action-bar-share-chevron {
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+  flex-shrink: 0;
   transition: transform 0.15s ease;
 }
 
@@ -794,6 +797,8 @@
   .action-bar-meta-toggle {
     width: 1.25rem;
     /* 20px - between desktop and mobile */
+    max-width: 1.25rem;
+    /* Prevent flexbox from stretching */
     height: 1.25rem;
     /* 20px */
   }

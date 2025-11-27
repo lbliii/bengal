@@ -11,7 +11,6 @@ Key features:
 - Caches validation results for performance
 """
 
-
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
@@ -189,6 +188,17 @@ class LinkValidator:
 
         # Skip data URLs
         if link.startswith("data:"):
+            self.validated_urls.add(link)
+            return True
+
+        # Skip template syntax (Jinja2, JavaScript template literals, etc.)
+        # These appear in documentation code examples and are not real links
+        if "{{" in link or "}}" in link or "${" in link:
+            logger.debug(
+                "skipping_template_syntax",
+                link=link[:100],
+                reason="template_syntax_in_code_example",
+            )
             self.validated_urls.add(link)
             return True
 
