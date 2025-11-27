@@ -145,8 +145,8 @@ bengal/
 ### Read the Docs
 
 - **[Architecture Overview](/docs/reference/architecture/)** - System design
-- **[Design Principles](/docs/reference/architecture/core/design-principles/)** - Development philosophy
-- **[Testing Strategy](../../../TESTING_STRATEGY.md)** - Testing approach
+- **[Design Principles](/docs/reference/architecture/design-principles/)** - Development philosophy
+- **[Testing Strategy](https://github.com/lbliii/bengal/blob/main/TESTING_STRATEGY.md)** - Testing approach
 
 ## 6. Build the Example Site
 
@@ -460,9 +460,9 @@ Before submitting your PR, verify:
 ## Next Steps
 
 **Learn More:**
-- **[CONTRIBUTING.md](../../../CONTRIBUTING.md)** - Full contribution guidelines
+- **[Contributing Guide](https://github.com/lbliii/bengal/blob/main/CONTRIBUTING.md)** - Full contribution guidelines
 - **[Architecture Overview](/docs/reference/architecture/)** - Deep dive into Bengal's design
-- **[Testing Strategy](../../../TESTING_STRATEGY.md)** - Testing philosophy
+- **[Testing Strategy](https://github.com/lbliii/bengal/blob/main/TESTING_STRATEGY.md)** - Testing philosophy
 
 **Get Involved:**
 - Join discussions on [GitHub](https://github.com/lbliii/bengal)

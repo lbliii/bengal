@@ -233,6 +233,8 @@
   align-items: center;
   justify-content: center;
   width: 1.5rem;
+  max-width: 1.5rem;
+  /* Prevent flexbox from stretching */
   height: 1.5rem;
   padding: 0;
   background: linear-gradient(180deg,
@@ -244,6 +246,8 @@
   cursor: pointer;
   transition: all 0.15s ease;
   flex-shrink: 0;
+  overflow: hidden;
+  /* Contain SVG within button bounds */
   /* Neumorphic shadow - standardized */
   box-shadow: var(--neumorphic-base);
 }
@@ -886,10 +890,14 @@
   .action-bar-meta-toggle {
     width: 1rem;
     /* 16px - more compact */
+    max-width: 1rem;
+    /* Prevent flexbox from stretching */
     height: 1rem;
     /* 16px - more compact */
     border-radius: var(--radius-sm);
     /* Slightly smaller radius */
+    overflow: hidden;
+    /* Contain SVG within button bounds */
   }
 
   /* Icon automatically scales via --icon-size-sm token */
