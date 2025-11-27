@@ -157,17 +157,27 @@ class LinkCheckOrchestrator:
             return internal_links, external_links
 
         class LinkExtractor(HTMLParser):
-            """Extract links from HTML."""
+            """Extract links from HTML, skipping links inside code blocks."""
 
             def __init__(self):
                 super().__init__()
                 self.links: list[str] = []
+                self._in_code_block = 0  # Track nesting depth of code blocks
 
             def handle_starttag(self, tag, attrs):
-                if tag == "a":
+                # Track code block tags
+                if tag in ("code", "pre"):
+                    self._in_code_block += 1
+                # Only extract links if not inside a code block
+                elif tag == "a" and self._in_code_block == 0:
                     for attr, value in attrs:
                         if attr == "href" and value:
                             self.links.append(value)
+
+            def handle_endtag(self, tag):
+                # Exit code block when closing tag found
+                if tag in ("code", "pre"):
+                    self._in_code_block = max(0, self._in_code_block - 1)
 
         # Scan all HTML files
         for html_file in output_dir.rglob("*.html"):

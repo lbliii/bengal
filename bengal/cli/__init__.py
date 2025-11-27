@@ -8,6 +8,7 @@ import click
 
 from bengal import __version__
 from bengal.cli.commands.assets import assets as assets_cli
+from bengal.cli.commands.autodoc import autodoc, autodoc_cli
 from bengal.cli.commands.config import config_cli
 from bengal.cli.commands.fix import fix as fix_cli
 from bengal.cli.commands.health import health_cli
@@ -65,6 +66,8 @@ main.add_command(utils_cli)
 main.add_command(new)
 main.add_command(project_cli)
 main.add_command(assets_cli)
+main.add_command(autodoc)
+main.add_command(autodoc_cli)
 
 
 if __name__ == "__main__":

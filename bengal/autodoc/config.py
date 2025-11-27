@@ -70,7 +70,34 @@ def load_autodoc_config(config_path: Path | None = None) -> dict[str, Any]:
         },
     }
 
-    # Try directory-based config first (new system)
+    # 1. Try explicitly provided config path
+    if config_path:
+        if config_path.is_dir():
+            try:
+                from bengal.config.directory_loader import ConfigDirectoryLoader
+
+                loader = ConfigDirectoryLoader()
+                full_config = loader.load(config_path, environment=None, profile=None)
+
+                # Extract autodoc section if present
+                if "autodoc" in full_config:
+                    return _merge_autodoc_config(default_config, full_config["autodoc"])
+            except Exception as e:
+                print(f"⚠️  Warning: Could not load config from {config_path}: {e}")
+        elif config_path.exists():
+            try:
+                file_config = toml.load(config_path)
+
+                # Merge with defaults
+                if "autodoc" in file_config:
+                    return _merge_autodoc_config(default_config, file_config["autodoc"])
+            except Exception as e:
+                print(f"⚠️  Warning: Could not load config from {config_path}: {e}")
+
+        # Return defaults if explicit config failed (don't try auto-detection)
+        return default_config
+
+    # 2. Try directory-based config (auto-detect 'config/')
     config_dir = Path("config")
     if config_dir.exists() and config_dir.is_dir():
         try:
@@ -87,9 +114,8 @@ def load_autodoc_config(config_path: Path | None = None) -> dict[str, Any]:
             print(f"⚠️  Warning: Could not load config from {config_dir}: {e}")
             # Fall through to try bengal.toml
 
-    # Try single-file config (backward compatibility)
-    if config_path is None:
-        config_path = Path("bengal.toml")
+    # 3. Try single-file config (backward compatibility auto-detect)
+    config_path = Path("bengal.toml")
 
     if config_path.exists():
         try:
