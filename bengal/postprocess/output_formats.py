@@ -1010,6 +1010,10 @@ class OutputFormatsGenerator:
         if not page.output_path:
             return None
 
+        # Handle invalid output paths (e.g., Path('.'))
+        if str(page.output_path) in (".", "..") or page.output_path.name == "":
+            return None
+
         # If output is index.html, put index.json next to it
         if page.output_path.name == "index.html":
             return page.output_path.parent / "index.json"
@@ -1028,6 +1032,10 @@ class OutputFormatsGenerator:
             Path object or None
         """
         if not page.output_path:
+            return None
+
+        # Handle invalid output paths (e.g., Path('.'))
+        if str(page.output_path) in (".", "..") or page.output_path.name == "":
             return None
 
         # If output is index.html, put index.txt next to it
