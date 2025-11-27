@@ -98,7 +98,7 @@ class PostprocessOrchestrator:
         # This is safe because:
         # - Sitemaps update on full builds (periodic refresh)
         # - RSS regenerated on content rebuild (not layout changes)
-        # - Link validation happens in CI/full builds
+        # - Link validation now runs via the health check system (LinkValidatorWrapper)
         if not incremental:
             # Full build: run all tasks
             if self.site.config.get("generate_sitemap", True):
@@ -106,9 +106,6 @@ class PostprocessOrchestrator:
 
             if self.site.config.get("generate_rss", True):
                 tasks.append(("rss", self._generate_rss))
-
-            if self.site.config.get("validate_links", True):
-                tasks.append(("link validation", self._validate_links))
         else:
             # Incremental: only regenerate sitemap/RSS/validation if explicitly requested
             # (Most users don't need updated sitemaps/RSS for every content change)
@@ -289,19 +286,3 @@ class PostprocessOrchestrator:
         config = self.site.config.get("output_formats", {})
         generator = OutputFormatsGenerator(self.site, config, graph_data=graph_data)
         generator.generate()
-
-    def _validate_links(self) -> None:
-        """
-        Validate internal links across all pages (extracted for parallel execution).
-
-        Checks for broken internal links and logs warnings for any found.
-
-        Raises:
-            Exception: If link validation process fails
-        """
-        from bengal.rendering.link_validator import LinkValidator
-
-        validator = LinkValidator()
-        broken_links = validator.validate_site(self.site)
-        if broken_links:
-            logger.warning("broken_links_found", count=len(broken_links))

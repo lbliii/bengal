@@ -31,6 +31,40 @@ if TYPE_CHECKING:
 
 logger = get_logger(__name__)
 
+# Track warned translation keys to avoid spamming logs (once per key per build)
+_warned_translation_keys: set[str] = set()
+
+
+def _warn_missing_translation(key: str, lang: str) -> None:
+    """
+    Log a debug warning when a translation key is missing.
+
+    Only warns once per key/lang combination per build to avoid log spam.
+
+    Args:
+        key: The missing translation key
+        lang: The language that was checked
+    """
+    warn_key = f"{lang}:{key}"
+    if warn_key not in _warned_translation_keys:
+        _warned_translation_keys.add(warn_key)
+        logger.debug(
+            "translation_missing",
+            key=key,
+            lang=lang,
+            fallback="key_returned",
+            hint=f"Add translation for '{key}' in i18n/{lang}.yaml",
+        )
+
+
+def reset_translation_warnings() -> None:
+    """
+    Reset the set of warned translation keys.
+
+    Useful for testing or when starting a new build.
+    """
+    _warned_translation_keys.clear()
+
 
 _DEF_FORMATS = {
     "short": "yyyy-MM-dd",
@@ -169,6 +203,8 @@ def _make_t(site: Site):
             data_def = load_lang(default_lang)
             value = resolve_key(data_def, key)
         if value is None:
+            # Log missing translation once per key per build
+            _warn_missing_translation(key, use_lang)
             # Return key (debug-friendly) if missing
             value = key
         return format_params(value, params or {})

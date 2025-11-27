@@ -117,6 +117,17 @@ class TemplateEngine:
                     checked_bundled=str(bundled_theme_templates),
                     hint="Theme may be missing or incorrectly configured",
                 )
+                # Print visible warning to stderr for user awareness
+                import sys
+
+                print(
+                    f"⚠️  Theme '{theme_name}' not found. Using default theme.",
+                    file=sys.stderr,
+                )
+                print(
+                    f"    Searched: {site_theme_templates}, {bundled_theme_templates}",
+                    file=sys.stderr,
+                )
 
         # Ensure default exists as ultimate fallback
         default_templates = Path(__file__).parent.parent / "themes" / "default" / "templates"

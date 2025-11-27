@@ -530,6 +530,12 @@ def _get_template_dir_source_type(site_root: Path, template_dir: Path) -> str:
     return "unknown"
 
 
+# SECURITY: Safe package name pattern to prevent malicious package names
+# Allows: alphanumeric, dots, underscores, hyphens (standard PyPI naming)
+# Blocks: path traversal (../), shell injection characters, etc.
+SAFE_PACKAGE_PATTERN = re.compile(r"^[a-zA-Z][a-zA-Z0-9._-]*$")
+
+
 @theme.command("install")
 @command_metadata(
     category="theming",
@@ -559,6 +565,16 @@ def install(name: str, force: bool) -> None:
         bengal theme list - List available themes
     """
     cli = get_cli_output()
+
+    # SECURITY: Validate package name against safe pattern
+    if not SAFE_PACKAGE_PATTERN.match(name):
+        cli.error(
+            f"Invalid package name: '{name}'\n"
+            f"Package names must start with a letter and contain only "
+            f"alphanumeric characters, dots, underscores, or hyphens."
+        )
+        raise SystemExit(1)
+
     pkg = name
     is_slug = (
         "." not in name

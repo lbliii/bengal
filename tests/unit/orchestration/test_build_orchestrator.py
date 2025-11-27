@@ -12,9 +12,9 @@ from bengal.utils.build_stats import BuildStats
 
 class TestBuildOrchestrator:
     @pytest.fixture
-    def mock_site(self):
+    def mock_site(self, tmp_path):
         site = MagicMock()
-        site.root_path = MagicMock()
+        site.root_path = tmp_path  # Use real path to prevent MagicMock file leaks
         site.config = {"strict_mode": False, "fonts": {}}
         site.pages = []
         site.regular_pages = []

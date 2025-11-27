@@ -71,19 +71,49 @@
 
 /* Breadcrumbs - moved to style.css to avoid duplication */
 
-/* Mobile responsive */
+/* Tablet - Side by side but more compact */
 @media (max-width: 768px) {
   .nav-links {
+    gap: 1rem;
+  }
+
+  .nav-links a {
+    padding: 0.75rem;
+  }
+
+  .nav-title {
+    font-size: 0.9375rem;
+  }
+}
+
+/* Mobile - Stack vertically with consistent alignment */
+@media (max-width: 480px) {
+  .nav-links {
     grid-template-columns: 1fr;
+    gap: 0.75rem;
   }
 
   .nav-links > .nav-next:only-child {
     grid-column: auto;
-    justify-self: end;
+    justify-self: stretch;
   }
 
+  /* Both items should be full-width and left-aligned when stacked */
+  .nav-previous,
   .nav-next {
-    text-align: end; /* Changed from right */
-    justify-self: end;
+    justify-self: stretch;
+    text-align: start;
+  }
+
+  .nav-links a {
+    width: 100%;
+  }
+
+  .nav-subtitle {
+    font-size: 0.75rem;
+  }
+
+  .nav-title {
+    font-size: 0.875rem;
   }
 }

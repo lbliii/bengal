@@ -109,11 +109,8 @@ class TestLinkSuggestionEngine:
 
     def test_empty_graph(self):
         """Test with empty graph."""
-        site = Mock()
-        site.pages = []
-
         graph = Mock()
-        graph.site = site
+        graph.get_analysis_pages.return_value = []
         graph.outgoing_refs = defaultdict(set)
         graph.incoming_refs = defaultdict(int)
 
@@ -130,11 +127,8 @@ class TestLinkSuggestionEngine:
         page.category = None
         del page.categories  # Remove the categories attribute
 
-        site = Mock()
-        site.pages = [page]
-
         graph = Mock()
-        graph.site = site
+        graph.get_analysis_pages.return_value = [page]
         graph.outgoing_refs = defaultdict(set)
         graph.incoming_refs = defaultdict(int)
 
@@ -161,11 +155,8 @@ class TestLinkSuggestionEngine:
         page3.category = None
         del page3.categories
 
-        site = Mock()
-        site.pages = [page1, page2, page3]
-
         graph = Mock()
-        graph.site = site
+        graph.get_analysis_pages.return_value = [page1, page2, page3]
         graph.outgoing_refs = defaultdict(set)
         graph.incoming_refs = defaultdict(int)
 
@@ -197,11 +188,8 @@ class TestLinkSuggestionEngine:
         page3.category = "Reference"
         del page3.categories
 
-        site = Mock()
-        site.pages = [page1, page2, page3]
-
         graph = Mock()
-        graph.site = site
+        graph.get_analysis_pages.return_value = [page1, page2, page3]
         graph.outgoing_refs = defaultdict(set)
         graph.incoming_refs = defaultdict(int)
 
@@ -227,11 +215,8 @@ class TestLinkSuggestionEngine:
         page2.category = None
         del page2.categories
 
-        site = Mock()
-        site.pages = [page1, page2]
-
         graph = Mock()
-        graph.site = site
+        graph.get_analysis_pages.return_value = [page1, page2]
         graph.outgoing_refs = defaultdict(set)
         graph.outgoing_refs[page1] = {page2}  # Existing link
         graph.incoming_refs = defaultdict(int)
@@ -251,11 +236,8 @@ class TestLinkSuggestionEngine:
         page.category = None
         del page.categories
 
-        site = Mock()
-        site.pages = [page]
-
         graph = Mock()
-        graph.site = site
+        graph.get_analysis_pages.return_value = [page]
         graph.outgoing_refs = defaultdict(set)
         graph.incoming_refs = defaultdict(int)
 
@@ -283,11 +265,8 @@ class TestLinkSuggestionEngine:
         popular.category = None
         del popular.categories
 
-        site = Mock()
-        site.pages = [page1, orphan, popular]
-
         graph = Mock()
-        graph.site = site
+        graph.get_analysis_pages.return_value = [page1, orphan, popular]
         graph.outgoing_refs = defaultdict(set)
         graph.incoming_refs = defaultdict(int)
         graph.incoming_refs[orphan] = 0  # No incoming links
@@ -319,11 +298,8 @@ class TestLinkSuggestionEngine:
             del target.categories
             targets.append(target)
 
-        site = Mock()
-        site.pages = [source] + targets
-
         graph = Mock()
-        graph.site = site
+        graph.get_analysis_pages.return_value = [source] + targets
         graph.outgoing_refs = defaultdict(set)
         graph.incoming_refs = defaultdict(int)
 
@@ -350,11 +326,8 @@ class TestLinkSuggestionEngine:
         generated.category = None
         del generated.categories
 
-        site = Mock()
-        site.pages = [real_page, generated]
-
         graph = Mock()
-        graph.site = site
+        graph.get_analysis_pages.return_value = [real_page, generated]
         graph.outgoing_refs = defaultdict(set)
         graph.incoming_refs = defaultdict(int)
 
@@ -380,11 +353,8 @@ class TestSuggestLinksFunction:
             del page.categories
             pages.append(page)
 
-        site = Mock()
-        site.pages = pages
-
         graph = Mock()
-        graph.site = site
+        graph.get_analysis_pages.return_value = pages
         graph.outgoing_refs = defaultdict(set)
         graph.incoming_refs = defaultdict(int)
 

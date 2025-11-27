@@ -85,6 +85,8 @@
     align-items: center;
     justify-content: center;
     width: 24px;
+    max-width: 24px;
+    /* Prevent flexbox from stretching */
     height: 24px;
     padding: 0;
     background: transparent;
@@ -96,6 +98,8 @@
     touch-action: manipulation;
     user-select: none;
     -webkit-tap-highlight-color: transparent;
+    overflow: hidden;
+    /* Contain SVG within button bounds */
 }
 
 /* Styles moved into .toc-settings-btn nesting above */

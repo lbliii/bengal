@@ -41,9 +41,20 @@ class SitemapGenerator:
         Iterates through all pages, creates XML entries with URLs and metadata,
         and writes the sitemap atomically to prevent corruption.
 
+        If no pages exist, logs info and skips generation (no empty sitemap file).
+
         Raises:
             Exception: If sitemap generation or file writing fails
         """
+        # Skip if no pages (empty site)
+        if not self.site.pages:
+            self.logger.info(
+                "sitemap_skipped",
+                reason="no_pages",
+                hint="Site has no pages to include in sitemap",
+            )
+            return
+
         self.logger.info("sitemap_generation_start", total_pages=len(self.site.pages))
 
         # Create root element with xhtml namespace for hreflang alternates

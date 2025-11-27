@@ -63,4 +63,8 @@ No matter which path you choose, you'll need to install Bengal first:
 - Hot reload, CLI wizards, and auto-generated API docs
 - Support for blogs, docs, portfolios, resumes, and custom setups via interactive wizard
 
+:::{tip}
+**New to static site generators?** Check the [Glossary](/docs/about/glossary/) for definitions of terms like *frontmatter*, *section*, *directive*, and *taxonomy*. For common questions, see the [FAQ](/docs/about/faq/).
+:::
+
 Learn more about Bengal's architecture and design in the [Architecture Overview](/docs/reference/architecture/).

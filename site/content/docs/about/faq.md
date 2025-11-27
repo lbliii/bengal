@@ -15,14 +15,9 @@ tags: [faq, help, support]
 :::
 
 :::{dropdown} What Python version does Bengal require?
-**Python 3.14 or later.** Bengal is built with Python 3.14+ free-threaded features in mind. We recommend Python 3.14+ (3.14t free-threaded build recommended for best performance).
+**Python 3.14 or later** (3.14t free-threaded build recommended for best performance).
 
-**Why Python 3.14?** Bengal leverages modern Python features including:
-- Free-threaded execution for parallel processing
-- Enhanced type hinting capabilities
-- Performance improvements in the standard library
-
-See the [Installation Guide](/docs/getting-started/installation/) for setup instructions.
+See the [Installation Guide](/docs/getting-started/installation/) for why and how to set it up.
 :::
 
 ## Technical

@@ -103,17 +103,19 @@ class BuildCache:
         # Validation results are already in dict format (no conversion needed)
 
     @classmethod
-    def load(cls, cache_path: Path) -> BuildCache:
+    def load(cls, cache_path: Path, use_lock: bool = True) -> BuildCache:
         """
-        Load build cache from disk.
+        Load build cache from disk with optional file locking.
 
         Loader behavior:
         - Tolerant to malformed JSON: On parse errors or schema mismatches, returns a fresh
           `BuildCache` instance and logs a warning.
         - Version mismatches: Logs a warning and best-effort loads known fields.
+        - File locking: Acquires shared lock to prevent reading during writes.
 
         Args:
             cache_path: Path to cache file
+            use_lock: Whether to use file locking (default: True)
 
         Returns:
             BuildCache instance (empty if file doesn't exist or is invalid)
@@ -121,6 +123,37 @@ class BuildCache:
         if not cache_path.exists():
             return cls()
 
+        try:
+            # Acquire shared lock for reading (allows concurrent reads)
+            if use_lock:
+                from bengal.utils.file_lock import file_lock
+
+                with file_lock(cache_path, exclusive=False):
+                    return cls._load_from_file(cache_path)
+            else:
+                return cls._load_from_file(cache_path)
+
+        except Exception as e:
+            logger.warning(
+                "cache_load_failed",
+                cache_path=str(cache_path),
+                error=str(e),
+                error_type=type(e).__name__,
+                action="using_fresh_cache",
+            )
+            return cls()
+
+    @classmethod
+    def _load_from_file(cls, cache_path: Path) -> BuildCache:
+        """
+        Internal method to load cache from file (assumes lock is held if needed).
+
+        Args:
+            cache_path: Path to cache file
+
+        Returns:
+            BuildCache instance
+        """
         try:
             with open(cache_path, encoding="utf-8") as f:
                 data = json.load(f)
@@ -165,7 +198,7 @@ class BuildCache:
             return cls(**data)
         except (json.JSONDecodeError, KeyError, TypeError) as e:
             logger.warning(
-                "cache_load_failed",
+                "cache_load_parse_failed",
                 cache_path=str(cache_path),
                 error=str(e),
                 error_type=type(e).__name__,
@@ -173,26 +206,54 @@ class BuildCache:
             )
             return cls()
 
-    def save(self, cache_path: Path) -> None:
+    def save(self, cache_path: Path, use_lock: bool = True) -> None:
         """
-        Save build cache to disk.
+        Save build cache to disk with optional file locking.
 
         Persistence semantics:
         - Atomic writes: Uses `AtomicFile` (temp-write → atomic rename) to prevent partial files
           on crash/interruption.
-        - Last writer wins: Concurrent saves produce a valid file from the last successful
-          writer; no advisory locking is used.
+        - File locking: Acquires exclusive lock to prevent concurrent writes.
+        - Combined safety: Lock + atomic write ensures complete consistency.
 
         Args:
             cache_path: Path to cache file
+            use_lock: Whether to use file locking (default: True)
 
         Raises:
             IOError: If cache file cannot be written
             json.JSONEncodeError: If cache data cannot be serialized
+            LockAcquisitionError: If lock cannot be acquired (when use_lock=True)
         """
         # Ensure parent directory exists
         cache_path.parent.mkdir(parents=True, exist_ok=True)
 
+        try:
+            # Acquire exclusive lock for writing
+            if use_lock:
+                from bengal.utils.file_lock import file_lock
+
+                with file_lock(cache_path, exclusive=True):
+                    self._save_to_file(cache_path)
+            else:
+                self._save_to_file(cache_path)
+
+        except Exception as e:
+            logger.error(
+                "cache_save_failed",
+                cache_path=str(cache_path),
+                error=str(e),
+                error_type=type(e).__name__,
+                impact="incremental_builds_disabled",
+            )
+
+    def _save_to_file(self, cache_path: Path) -> None:
+        """
+        Internal method to save cache to file (assumes lock is held if needed).
+
+        Args:
+            cache_path: Path to cache file
+        """
         # Convert sets to lists for JSON serialization
         data = {
             "version": self.VERSION,
@@ -208,28 +269,19 @@ class BuildCache:
             "last_build": datetime.now().isoformat(),
         }
 
-        try:
-            # Write cache atomically (crash-safe)
-            from bengal.utils.atomic_write import AtomicFile
+        # Write cache atomically (crash-safe)
+        from bengal.utils.atomic_write import AtomicFile
 
-            with AtomicFile(cache_path, "w", encoding="utf-8") as f:
-                json.dump(data, f, indent=2)
+        with AtomicFile(cache_path, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2)
 
-            logger.debug(
-                "cache_saved",
-                cache_path=str(cache_path),
-                tracked_files=len(self.file_hashes),
-                dependencies=len(self.dependencies),
-                cached_content=len(self.parsed_content),
-            )
-        except Exception as e:
-            logger.error(
-                "cache_save_failed",
-                cache_path=str(cache_path),
-                error=str(e),
-                error_type=type(e).__name__,
-                impact="incremental_builds_disabled",
-            )
+        logger.debug(
+            "cache_saved",
+            cache_path=str(cache_path),
+            tracked_files=len(self.file_hashes),
+            dependencies=len(self.dependencies),
+            cached_content=len(self.parsed_content),
+        )
 
     def hash_file(self, file_path: Path) -> str:
         """

@@ -21,4 +21,4 @@ The core module contains the foundational data models and build coordination log
 - **[Data Flow](data-flow/)**: How data moves through the system.
 - **[Cache System](cache/)**: Incremental build infrastructure.
 - **[Content Strategies](content-types/)**: Handling different types of content.
-- **[Design Principles](design-principles/)**: Core patterns (No "God Objects", etc.).
+- **[Design Principles](../design-principles/)**: Core patterns (No "God Objects", etc.).

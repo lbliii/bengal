@@ -532,7 +532,12 @@ class RenderingPipeline:
 
         # Only print in verbose mode
         if not self.quiet:
-            msg = f"  ✓ {page.output_path.relative_to(self.site.output_dir)}"
+            try:
+                rel_path = page.output_path.relative_to(self.site.output_dir)
+                msg = f"  ✓ {rel_path}"
+            except ValueError:
+                msg = f"  ✓ {page.output_path} (outside output dir)"
+
             reporter = getattr(self, "build_context", None) and getattr(
                 self.build_context, "reporter", None
             )

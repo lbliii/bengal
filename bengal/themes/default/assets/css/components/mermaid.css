@@ -176,6 +176,8 @@
   top: var(--space-4);
   right: var(--space-4);
   width: 2.5rem;
+  max-width: 2.5rem;
+  /* Prevent flexbox from stretching */
   height: 2.5rem;
   display: flex;
   align-items: center;
@@ -187,6 +189,9 @@
   cursor: pointer;
   transition: all var(--transition-fast);
   z-index: 20;
+  overflow: hidden;
+  /* Contain SVG within button bounds */
+  flex-shrink: 0;
 }
 
 .mermaid-lightbox__close:hover {
@@ -199,6 +204,7 @@
   height: 1.25rem;
   stroke: var(--color-text-primary);
   stroke-width: 2.5;
+  flex-shrink: 0;
 }
 
 /* Ensure child elements inherit stroke */

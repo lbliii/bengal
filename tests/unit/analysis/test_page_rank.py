@@ -129,11 +129,8 @@ class TestPageRankCalculator:
     def test_compute_empty_site(self):
         """Test PageRank on site with no pages."""
         # Create mock graph with no pages
-        site = Mock()
-        site.pages = []
-
         graph = Mock()
-        graph.site = site
+        graph.get_analysis_pages.return_value = []
         graph.outgoing_refs = defaultdict(set)
 
         calc = PageRankCalculator(graph, damping=0.85)
@@ -150,11 +147,8 @@ class TestPageRankCalculator:
         page = Mock()
         page.metadata = {}
 
-        site = Mock()
-        site.pages = [page]
-
         graph = Mock()
-        graph.site = site
+        graph.get_analysis_pages.return_value = [page]
         graph.outgoing_refs = defaultdict(set)
 
         calc = PageRankCalculator(graph, damping=0.85)
@@ -177,12 +171,9 @@ class TestPageRankCalculator:
         page_c = Mock(source_path="c.md", title="Page C")
         page_c.metadata = {}
 
-        site = Mock()
-        site.pages = [page_a, page_b, page_c]
-
         # A -> B -> C
         graph = Mock()
-        graph.site = site
+        graph.get_analysis_pages.return_value = [page_a, page_b, page_c]
         graph.outgoing_refs = defaultdict(set)
         graph.outgoing_refs[page_a] = {page_b}
         graph.outgoing_refs[page_b] = {page_c}
@@ -209,12 +200,9 @@ class TestPageRankCalculator:
         page_d = Mock(source_path="d.md", title="Spoke 3")
         page_d.metadata = {}
 
-        site = Mock()
-        site.pages = [page_a, page_b, page_c, page_d]
-
         # A links to all others, no one links back
         graph = Mock()
-        graph.site = site
+        graph.get_analysis_pages.return_value = [page_a, page_b, page_c, page_d]
         graph.outgoing_refs = defaultdict(set)
         graph.outgoing_refs[page_a] = {page_b, page_c, page_d}
 
@@ -238,12 +226,9 @@ class TestPageRankCalculator:
         page_c = Mock(source_path="c.md", title="Page C")
         page_c.metadata = {}
 
-        site = Mock()
-        site.pages = [page_a, page_b, page_c]
-
         # Circular: A -> B -> C -> A
         graph = Mock()
-        graph.site = site
+        graph.get_analysis_pages.return_value = [page_a, page_b, page_c]
         graph.outgoing_refs = defaultdict(set)
         graph.outgoing_refs[page_a] = {page_b}
         graph.outgoing_refs[page_b] = {page_c}
@@ -265,11 +250,8 @@ class TestPageRankCalculator:
         page_b = Mock(source_path="b.md")
         page_b.metadata = {}
 
-        site = Mock()
-        site.pages = [page_a, page_b]
-
         graph = Mock()
-        graph.site = site
+        graph.get_analysis_pages.return_value = [page_a, page_b]
         graph.outgoing_refs = defaultdict(set)
         graph.outgoing_refs[page_a] = {page_b}
 
@@ -293,12 +275,9 @@ class TestPageRankCalculator:
         page_c = Mock(source_path="c.md")
         page_c.metadata = {}
 
-        site = Mock()
-        site.pages = [page_a, page_b, page_c]
-
         # A -> B, B -> C
         graph = Mock()
-        graph.site = site
+        graph.get_analysis_pages.return_value = [page_a, page_b, page_c]
         graph.outgoing_refs = defaultdict(set)
         graph.outgoing_refs[page_a] = {page_b}
         graph.outgoing_refs[page_b] = {page_c}
@@ -316,8 +295,7 @@ class TestPageRankCalculator:
     def test_compute_personalized_empty_seeds(self):
         """Test that personalized PageRank requires seed pages."""
         graph = Mock()
-        graph.site = Mock()
-        graph.site.pages = []
+        graph.get_analysis_pages.return_value = []
 
         calc = PageRankCalculator(graph, damping=0.85)
 
@@ -333,17 +311,14 @@ class TestPageRankCalculator:
         page_generated = Mock(source_path="tag/python.md")
         page_generated.metadata = {"_generated": True}
 
-        site = Mock()
-        site.pages = [page_real, page_generated]
-
         graph = Mock()
-        graph.site = site
+        graph.get_analysis_pages.return_value = [page_real, page_generated]
         graph.outgoing_refs = defaultdict(set)
 
         calc = PageRankCalculator(graph, damping=0.85)
         results = calc.compute()
 
-        # Only real page should be in results
+        # Only real page should be in results (generated pages filtered out)
         assert len(results.scores) == 1
         assert page_real in results.scores
         assert page_generated not in results.scores
@@ -362,12 +337,9 @@ class TestAnalyzePageImportance:
         page_c = Mock(source_path="c.md", title="Page C")
         page_c.metadata = {}
 
-        site = Mock()
-        site.pages = [page_a, page_b, page_c]
-
         # B and C point to A (A is important)
         graph = Mock()
-        graph.site = site
+        graph.get_analysis_pages.return_value = [page_a, page_b, page_c]
         graph.outgoing_refs = defaultdict(set)
         graph.outgoing_refs[page_b] = {page_a}
         graph.outgoing_refs[page_c] = {page_a}

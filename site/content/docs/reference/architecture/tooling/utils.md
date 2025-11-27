@@ -269,6 +269,6 @@ When functionality is duplicated across multiple files:
 
 ## Related Documentation
 
-- [Design Principles](../core/design-principles.md) - Overall design patterns
-- [File Organization](../meta/file-organization.md) - Directory structure
-- [Testing](../meta/testing.md) - Testing strategy and coverage
+- [Design Principles](/docs/reference/architecture/design-principles/) - Overall design patterns
+- [File Organization](/docs/reference/architecture/meta/file-organization/) - Directory structure
+- [Testing](/docs/reference/architecture/meta/testing/) - Testing strategy and coverage

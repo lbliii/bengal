@@ -1,5 +1,32 @@
 ## Unreleased
 
+### CLI UX Improvements
+- **cli(site)**: deprecate `bengal site new` in favor of `bengal new site` (hidden from help, shows warning)
+- **cli(new)**: add interactive baseurl prompt during site creation (skipped with `--no-init`)
+- **cli(new)**: enforce `questionary` as core dependency (remove try/except fallback)
+- **cli(health)**: hide 8 advanced linkcheck options from `--help` (still functional when used)
+
+### Security & Robustness Hardening (Phase 1)
+- **rendering(link_validator)**: implement actual internal link validation with URL resolution and page URL index lookup
+- **rendering(include)**: add `MAX_INCLUDE_SIZE` (10MB) file size limit to prevent memory exhaustion from large includes
+- **rendering(include/literalinclude)**: reject symlinks to prevent path traversal attacks
+- **discovery**: add inode-based symlink loop detection to prevent infinite recursion
+- **discovery**: handle permission errors gracefully when walking directories
+
+### Feature Correctness Hardening (Phase 2)
+- **utils**: add `file_lock` module for cross-platform file locking (fcntl on Unix, msvcrt on Windows)
+- **cache**: integrate file locking into `BuildCache.save()`/`load()` for concurrent build safety
+- **cache**: refactor save/load into separate lock acquisition and file I/O methods for clarity
+- **analysis(knowledge_graph)**: graph analysis commands now correctly extract links via `_ensure_links_extracted()`
+- **rendering(template_engine)**: template cycles already handled by Jinja2 native detection + rich error formatting
+
+### Developer Experience Hardening (Phase 3)
+- **rendering(i18n)**: add debug warning for missing translation keys with once-per-key deduplication
+- **rendering(i18n)**: add `reset_translation_warnings()` for build isolation
+- **rendering(template_engine)**: add visible stderr warning when theme not found (in addition to log)
+- **postprocess(sitemap)**: skip sitemap generation gracefully when site has no pages
+- **postprocess(rss)**: skip RSS generation gracefully when no pages have dates
+
 ### Health Check System Enhancements (Phase 1 & 2)
 - **health**: add incremental validation with result caching (Phase 1)
 - **health**: extend BuildCache with validation_results field for caching CheckResult objects

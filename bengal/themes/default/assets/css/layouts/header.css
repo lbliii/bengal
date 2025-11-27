@@ -215,6 +215,8 @@ header .container {
   align-items: center;
   justify-content: center;
   width: 40px;
+  max-width: 40px;
+  /* Prevent flexbox from stretching */
   height: 40px;
   padding: 0;
   border: none;
@@ -226,6 +228,9 @@ header .container {
   touch-action: manipulation;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
+  overflow: hidden;
+  /* Contain SVG within button bounds */
+  flex-shrink: 0;
 }
 
 .mobile-nav-toggle:hover {
@@ -241,6 +246,7 @@ header .container {
 .mobile-nav-toggle svg {
   width: 24px;
   height: 24px;
+  flex-shrink: 0;
 }
 
 /* Mobile Menu */
@@ -286,6 +292,8 @@ header .container {
   align-items: center;
   justify-content: center;
   width: 40px;
+  max-width: 40px;
+  /* Prevent flexbox from stretching */
   height: 40px;
   padding: 0;
   border: none;
@@ -294,6 +302,9 @@ header .container {
   cursor: pointer;
   border-radius: var(--radius-md);
   transition: background-color var(--transition-fast) var(--ease-out);
+  overflow: hidden;
+  /* Contain SVG within button bounds */
+  flex-shrink: 0;
 }
 
 .mobile-nav-close:hover {
@@ -303,6 +314,7 @@ header .container {
 .mobile-nav-close svg {
   width: 24px;
   height: 24px;
+  flex-shrink: 0;
 }
 
 .mobile-nav ul {

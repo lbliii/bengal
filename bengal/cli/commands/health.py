@@ -44,46 +44,57 @@ def health_cli():
     is_flag=True,
     help="Only check internal links (skip external validation)",
 )
+# Advanced HTTP tuning options (hidden from --help, still functional)
 @click.option(
     "--max-concurrency",
     type=int,
+    hidden=True,
     help="Maximum concurrent HTTP requests (default: 20)",
 )
 @click.option(
     "--per-host-limit",
     type=int,
+    hidden=True,
     help="Maximum concurrent requests per host (default: 4)",
 )
 @click.option(
     "--timeout",
     type=float,
+    hidden=True,
     help="Request timeout in seconds (default: 10.0)",
 )
 @click.option(
     "--retries",
     type=int,
+    hidden=True,
     help="Number of retry attempts (default: 2)",
 )
 @click.option(
     "--retry-backoff",
     type=float,
+    hidden=True,
     help="Base backoff time for exponential backoff in seconds (default: 0.5)",
 )
+# Common filtering options (visible)
 @click.option(
     "--exclude",
     multiple=True,
     help="URL pattern to exclude (repeatable, regex supported)",
 )
+# Advanced filtering options (hidden from --help, still functional)
 @click.option(
     "--exclude-domain",
     multiple=True,
+    hidden=True,
     help="Domain to exclude (repeatable, e.g., 'localhost')",
 )
 @click.option(
     "--ignore-status",
     multiple=True,
+    hidden=True,
     help="Status code or range to ignore (repeatable, e.g., '500-599', '403')",
 )
+# Output options (visible)
 @click.option(
     "--format",
     "output_format",
@@ -97,9 +108,11 @@ def health_cli():
     type=click.Path(),
     help="Output file (for JSON format)",
 )
+# Debug options (hidden)
 @click.option(
     "--traceback",
     type=click.Choice([s.value for s in TracebackStyle]),
+    hidden=True,
     help="Traceback verbosity: full | compact | minimal | off",
 )
 def linkcheck(

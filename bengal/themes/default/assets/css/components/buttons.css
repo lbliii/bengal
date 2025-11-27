@@ -377,10 +377,11 @@ a.button {
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Ensure minimum touch targets on mobile */
+/* Ensure minimum touch targets on mobile for CTA/content buttons */
+/* Note: Icon-only buttons (toggle, close, etc.) handle their own sizing */
 @media (max-width: 768px) {
 
-  button,
+  .button,
   .btn,
   a.button {
     min-height: 44px;
