@@ -35,6 +35,9 @@ h1, h2, h3, h4, h5, h6 {
   color: var(--color-text-primary);
   letter-spacing: var(--tracking-tight);
   scroll-margin-top: var(--space-20);
+  /* Prevent long words from overflowing on mobile */
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 h1 {

@@ -73,8 +73,18 @@ class PageOperationsMixin:
             List of link URLs found in the page
         """
         # Remove fenced code blocks before extracting links
-        # Matches ``` or ```` (or more backticks) with any content until closing fence
-        content_without_code = re.sub(r"(`{3,})[^\n]*\n.*?\1", "", self.content, flags=re.DOTALL)
+        # Process larger fences first (4+ backticks) to handle nested code blocks
+        content_without_code = self.content
+
+        # Remove 4+ backtick fences first (handles nested 3-backtick blocks)
+        content_without_code = re.sub(
+            r"`{4,}[^\n]*\n.*?`{4,}", "", content_without_code, flags=re.DOTALL
+        )
+
+        # Then remove 3-backtick fences
+        content_without_code = re.sub(
+            r"```[^\n]*\n.*?```", "", content_without_code, flags=re.DOTALL
+        )
 
         # Also remove inline code spans
         content_without_code = re.sub(r"`[^`]+`", "", content_without_code)
