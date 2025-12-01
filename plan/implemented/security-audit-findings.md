@@ -339,9 +339,9 @@ def _run(self, cmd: list[str], cwd: Path) -> None:
 - [x] Add recursion guard to include directive ✅ **FIXED** - `MAX_INCLUDE_DEPTH=10` + cycle detection
 
 ### P1 - Should Fix Before Release
-- [ ] Implement actual link validation
-- [ ] Add file size limits to include directives
-- [ ] Harden symlink handling in include directives
+- [x] Implement actual link validation ✅ **FIXED** - `link_validator.py` now has URL resolution + page URL index
+- [x] Add file size limits to include directives ✅ **FIXED** - `MAX_INCLUDE_SIZE = 10MB`
+- [x] Harden symlink handling in include directives ✅ **FIXED** - `is_symlink()` check rejects symlinks
 
 ### P2 - Fix Soon After Release
 - [ ] Validate theme names in install command
@@ -399,4 +399,15 @@ Bengal has a solid security foundation with safe YAML parsing, proper template e
 The codebase shows good security awareness in most areas. The remaining items are quality-of-life improvements (link validator, file size limits) rather than security issues.
 
 **Status**: ✅ Ready for public release from a robustness perspective.
+
+---
+
+## Implementation Status
+
+**All P0 and P1 items are now FIXED.** Remaining P2/P3 items are nice-to-have hardening.
+
+- P0: ✅ Complete (include recursion guard)
+- P1: ✅ Complete (link validation, file size limits, symlink rejection)
+- P2: Deferred (theme name validation, variable substitution sandboxing)
+- P3: Deferred (timeouts, ReDoS analysis)
 
