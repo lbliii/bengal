@@ -5,6 +5,11 @@
 - **orchestration(build)**: fix duplicate phase numbers (two "Phase 5.5", two "Phase 9") with sequential renumbering
 - **orchestration(build)**: add comprehensive docstrings to all phase methods documenting purpose and side effects
 - **utils(build_context)**: extend BuildContext dataclass with all fields needed for phase method communication
+- **utils(autodoc)**: add `is_autodoc_page()` utility for shared autodoc page detection
+- **health(directives)**: refactor 1,094-line `directives.py` into focused package (constants, analysis, checkers)
+- **cli(new)**: refactor 1,088-line `new.py` into focused package (presets, wizard, config, site, scaffolds)
+- **analysis(graph_reporting)**: improve exception handling with specific types and debug logging
+- **postprocess(output_formats)**: consolidate duplicate `strip_html`/`generate_excerpt` to use `bengal.utils.text`
 
 ### CLI UX Improvements
 - **cli(site)**: deprecate `bengal site new` in favor of `bengal new site` (hidden from help, shows warning)
