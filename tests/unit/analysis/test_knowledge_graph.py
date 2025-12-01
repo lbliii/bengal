@@ -382,8 +382,8 @@ class TestAutodocFiltering:
         assert autodoc in analysis_pages
 
     def test_is_autodoc_page(self, tmp_path):
-        """Test autodoc page detection."""
-        site = Site(root_path=tmp_path, config={})
+        """Test autodoc page detection via utility function."""
+        from bengal.utils.autodoc import is_autodoc_page
 
         # Test different autodoc markers
         api_ref = Page(
@@ -410,14 +410,11 @@ class TestAutodocFiltering:
             metadata={"type": "doc"},
         )
 
-        site.pages = [api_ref, python_module, api_path, regular]
-
-        graph = KnowledgeGraph(site, exclude_autodoc=True)
-
-        assert graph._is_autodoc_page(api_ref) is True
-        assert graph._is_autodoc_page(python_module) is True
-        assert graph._is_autodoc_page(api_path) is True
-        assert graph._is_autodoc_page(regular) is False
+        # Test the utility function directly
+        assert is_autodoc_page(api_ref) is True
+        assert is_autodoc_page(python_module) is True
+        assert is_autodoc_page(api_path) is True
+        assert is_autodoc_page(regular) is False
 
 
 class TestActionableRecommendations:

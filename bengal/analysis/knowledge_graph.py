@@ -195,24 +195,6 @@ class KnowledgeGraph:
             orphans=self.metrics.orphan_count,
         )
 
-    def _is_autodoc_page(self, page: Page) -> bool:
-        """
-        Check if a page is an autodoc/API reference page that should be excluded.
-
-        Delegates to bengal.utils.autodoc.is_autodoc_page for the actual detection.
-        See RFC: plan/active/rfc-code-quality-improvements.md
-
-        Args:
-            page: Page to check
-
-        Returns:
-            True if page should be excluded from analysis
-        """
-        if not self.exclude_autodoc:
-            return False
-
-        return is_autodoc_page(page)
-
     def get_analysis_pages(self) -> list[Page]:
         """
         Get list of pages to analyze, excluding autodoc pages if configured.
@@ -223,7 +205,7 @@ class KnowledgeGraph:
         if not self.exclude_autodoc:
             return list(self.site.pages)
 
-        return [p for p in self.site.pages if not self._is_autodoc_page(p)]
+        return [p for p in self.site.pages if not is_autodoc_page(p)]
 
     def _ensure_links_extracted(self) -> None:
         """

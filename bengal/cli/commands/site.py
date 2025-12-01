@@ -7,7 +7,7 @@ from bengal.cli.helpers import command_metadata, get_cli_output, handle_cli_erro
 
 from .build import build
 from .clean import clean
-from .new import _create_site
+from .new import create_site
 from .serve import serve
 
 
@@ -65,7 +65,7 @@ def site_new(name: str, theme: str, template: str, no_init: bool, init_preset: s
     cli.blank()
 
     # Delegate to the shared site creation logic
-    _create_site(name, theme, template, no_init, init_preset)
+    create_site(name, theme, template, no_init, init_preset)
 
 
 site_cli.add_command(build)
