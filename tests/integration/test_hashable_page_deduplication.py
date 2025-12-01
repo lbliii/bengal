@@ -20,7 +20,7 @@ class TestPageDeduplicationInBuilds:
         Test that generated pages are automatically deduplicated when
         added to pages_to_build during incremental builds.
 
-        This tests the optimization in BuildOrchestrator (build.py line 295-306).
+        This tests the optimization in BuildOrchestrator (build/content.py phase_update_pages_list).
 
         Note: This uses set operations which provide O(1) lookup vs O(n) for lists.
         The performance benefit is validated by real-world usage, not timing tests.
@@ -44,7 +44,7 @@ class TestPageDeduplicationInBuilds:
         # (this could happen if multiple pages with 'python' tag are being rebuilt)
         pages_to_build = [page1, tag_page]
 
-        # Convert to set for automatic deduplication (as done in build.py)
+        # Convert to set for automatic deduplication (as done in build/content.py)
         pages_set = set(pages_to_build)
         pages_set.add(tag_page)  # Try adding again
         pages_set.add(tag_page)  # And again
@@ -55,7 +55,7 @@ class TestPageDeduplicationInBuilds:
         assert page1 in pages_set
         assert tag_page in pages_set
 
-        # Convert back to list (as done in build.py)
+        # Convert back to list (as done in build/content.py)
         final_pages = list(pages_set)
         assert len(final_pages) == 2
 

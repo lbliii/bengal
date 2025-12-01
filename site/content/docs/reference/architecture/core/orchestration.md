@@ -161,10 +161,14 @@ This pattern provides:
 
 ::::{tab-set}
 :::{tab-item} Build
-**BuildOrchestrator** (`build.py`)
+**BuildOrchestrator** (`build/` package)
 
-The main conductor. The `build()` method is a clean ~75-line sequence of phase calls.
-- **21 phase methods** (`_phase_*`) for modularity
+The main conductor. The `build()` method is a clean sequence of phase calls.
+- **21 phase methods** (`_phase_*`) organized into focused modules:
+  - `initialization.py`: Phases 1-5 (fonts, discovery, cache, config, filtering)
+  - `content.py`: Phases 6-11 (sections, taxonomies, menus, indexes)
+  - `rendering.py`: Phases 13-16 (assets, render, update pages, track assets)
+  - `finalization.py`: Phases 17-21 (postprocess, cache save, stats, health, finalize)
 - **Coordinates** all other orchestrators
 - **Manages** `BuildContext` threading
 - **Handles** parallel vs sequential execution
