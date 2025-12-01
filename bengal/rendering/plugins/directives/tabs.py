@@ -230,10 +230,7 @@ def _extract_tab_items(text: str) -> list[tuple[str, str, str]]:
         depth = 1
         i = start
         while i < len(text) and depth > 0:
-            if text[i:i+5] == '<div ':
-                depth += 1
-                i += 5
-            elif text[i:i+5] == '<div>':
+            if text[i:i+5] == '<div ' or text[i:i+5] == '<div>':
                 depth += 1
                 i += 5
             elif text[i:i+6] == '</div>':
@@ -284,10 +281,7 @@ def _extract_legacy_tab_items(text: str) -> list[tuple[str, str, str]]:
         depth = 1
         i = start
         while i < len(text) and depth > 0:
-            if text[i:i+5] == '<div ':
-                depth += 1
-                i += 5
-            elif text[i:i+5] == '<div>':
+            if text[i:i+5] == '<div ' or text[i:i+5] == '<div>':
                 depth += 1
                 i += 5
             elif text[i:i+6] == '</div>':

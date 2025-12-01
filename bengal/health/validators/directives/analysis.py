@@ -221,9 +221,7 @@ class DirectiveAnalyzer:
                 if indent >= 4 and stripped:
                     if i == 0 or (
                         lines[i - 1].strip() and len(lines[i - 1]) - len(lines[i - 1].lstrip()) >= 4
-                    ):
-                        in_indented_block = True
-                    elif in_indented_block:
+                    ) or in_indented_block:
                         in_indented_block = True
                     else:
                         in_indented_block = False
@@ -278,10 +276,7 @@ class DirectiveAnalyzer:
                 if not language:
                     if stack:
                         top_line, top_length, top_lang = stack[-1]
-                        if fence_length == top_length:
-                            stack.pop()
-                            continue
-                        elif fence_length > top_length:
+                        if fence_length == top_length or fence_length > top_length:
                             stack.pop()
                             continue
                     continue
