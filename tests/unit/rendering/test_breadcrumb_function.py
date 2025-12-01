@@ -165,15 +165,15 @@ class TestGetBreadcrumbs:
         assert result[1]["url"] == "/docs/"
 
     def test_page_without_title_shows_untitled(self):
-        """Pages without title show 'Untitled'."""
+        """Pages without title show 'Untitled' when no slug or URL path available."""
         # Use spec to prevent Mock from auto-creating title attribute
         section = Mock(spec=["url", "slug"])
-        section.url = "/docs/"
+        section.url = "/"  # Root URL has empty url_parts, triggering "Untitled" fallback
         section.slug = None  # No slug either to trigger "Untitled"
 
         page = Mock()
         page.ancestors = [section]
-        page.url = "/docs/page/"
+        page.url = "/page/"
         page.title = "Page"
 
         result = get_breadcrumbs(page)

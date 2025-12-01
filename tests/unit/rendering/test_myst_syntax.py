@@ -1,7 +1,11 @@
 """
 Test MyST Markdown syntax compatibility.
 
-Verifies that Bengal supports both backtick-fenced and colon-fenced directive syntax.
+Verifies that Bengal supports colon-fenced directive syntax (MyST standard).
+
+Note: Backtick-fenced directives (```{directive}) are NOT supported.
+This is intentional to avoid conflicts with code blocks in documentation.
+Only colon-fenced directives (:::{directive}) are processed.
 """
 
 import pytest
@@ -10,10 +14,14 @@ from bengal.rendering.parsers import MistuneParser
 
 
 class TestMystSyntaxCompatibility:
-    """Test that both backtick and colon fence styles work."""
+    """Test that colon fence style works for directives."""
 
-    def test_backtick_fenced_note(self):
-        """Test backtick-style fenced directive (existing Bengal syntax)."""
+    def test_backtick_fenced_renders_as_code_block(self):
+        """Backtick-style fenced directive renders as code block (not directive).
+
+        This is intentional - backticks are reserved for code blocks to avoid
+        conflicts when directives appear in code examples.
+        """
         parser = MistuneParser()
 
         content = """
@@ -23,9 +31,9 @@ This is a note using backticks.
 """
         result = parser.parse(content, {})
 
-        assert "admonition" in result.lower()
-        assert "note" in result.lower()
-        assert "This is a note using backticks" in result
+        # Should render as code block, NOT as admonition
+        assert "admonition" not in result.lower()
+        assert '<pre><code' in result or '<code' in result
 
     def test_colon_fenced_note(self):
         """Test colon-style fenced directive (MyST Markdown syntax)."""
@@ -42,15 +50,16 @@ This is a note using colons.
         assert "note" in result.lower()
         assert "This is a note using colons" in result
 
-    def test_both_syntaxes_in_same_document(self):
-        """Test that both syntaxes can coexist in the same document."""
+    def test_code_blocks_and_directives_coexist(self):
+        """Test that code blocks and directives work together."""
         parser = MistuneParser()
 
         content = """
-# Mixed Syntax Test
+# Mixed Content Test
 
-```{tip}
-This tip uses backticks.
+```python
+# This is a code block
+print("hello")
 ```
 
 Some text in between.
@@ -61,10 +70,10 @@ This warning uses colons.
 """
         result = parser.parse(content, {})
 
-        # Both should render
-        assert "This tip uses backticks" in result
+        # Code block should render as code
+        assert 'print' in result
+        # Directive should render as admonition
         assert "This warning uses colons" in result
-        assert "tip" in result.lower()
         assert "warning" in result.lower()
 
     def test_nested_colon_directives(self):
@@ -185,49 +194,51 @@ Card content here.
             pytest.fail(f"Parser should not crash on unimplemented directives: {e}")
 
 
-class TestBackwardCompatibility:
-    """Ensure existing backtick syntax still works after adding colon support."""
+class TestColonSyntaxSupport:
+    """Test colon-fenced syntax for all directive types."""
 
-    def test_existing_admonitions_still_work(self):
-        """Test that all existing admonition types still work with backticks."""
+    def test_all_admonition_types(self):
+        """Test that all admonition types work with colon syntax."""
         parser = MistuneParser()
 
         admonition_types = ["note", "tip", "warning", "danger", "info", "important"]
 
         for adm_type in admonition_types:
             content = f"""
-```{{{adm_type}}}
+:::{{{adm_type}}}
 This is a {adm_type}.
-```
+:::
 """
             result = parser.parse(content, {})
             assert f"This is a {adm_type}" in result
+            assert "admonition" in result.lower()
 
-    def test_existing_dropdown_still_works(self):
-        """Test that existing dropdown syntax still works."""
+    def test_dropdown_with_colon_syntax(self):
+        """Test dropdown directive with colon syntax."""
         parser = MistuneParser()
 
         content = """
-```{dropdown} Title
+:::{dropdown} Title
 Content
-```
+:::
 """
         result = parser.parse(content, {})
         assert "Title" in result
         assert "Content" in result
+        assert "<details" in result
 
-    def test_existing_code_tabs_still_work(self):
-        """Test that existing code-tabs syntax still works."""
+    def test_code_tabs_with_colon_syntax(self):
+        """Test code-tabs directive with colon syntax."""
         parser = MistuneParser()
 
         content = """
-```{code-tabs}
+:::{code-tabs}
 ### Python
 print("test")
 
 ### JavaScript
 console.log("test")
-```
+:::
 """
         result = parser.parse(content, {})
         assert "Python" in result

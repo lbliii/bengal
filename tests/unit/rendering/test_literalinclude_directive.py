@@ -116,7 +116,8 @@ class TestLiteralIncludeDirective:
         directive = LiteralIncludeDirective()
 
         match = MagicMock()
-        directive.parse_title = lambda m: "content/examples/api.py"
+        # Path is relative to content/ directory (which is auto-detected as base)
+        directive.parse_title = lambda m: "examples/api.py"
         directive.parse_options = lambda m: []
 
         block = MagicMock()
@@ -134,7 +135,8 @@ class TestLiteralIncludeDirective:
         directive = LiteralIncludeDirective()
 
         match = MagicMock()
-        directive.parse_title = lambda m: "content/examples/config.yaml"
+        # Path is relative to content/ directory
+        directive.parse_title = lambda m: "examples/config.yaml"
         directive.parse_options = lambda m: [("language", "yaml")]
 
         block = MagicMock()
@@ -149,7 +151,8 @@ class TestLiteralIncludeDirective:
         directive = LiteralIncludeDirective()
 
         match = MagicMock()
-        directive.parse_title = lambda m: "content/examples/code.py"
+        # Path is relative to content/ directory
+        directive.parse_title = lambda m: "examples/code.py"
         directive.parse_options = lambda m: [("start-line", "5"), ("end-line", "15")]
 
         block = MagicMock()
@@ -167,7 +170,8 @@ class TestLiteralIncludeDirective:
         directive = LiteralIncludeDirective()
 
         match = MagicMock()
-        directive.parse_title = lambda m: "content/examples/api.py"
+        # Path is relative to content/ directory
+        directive.parse_title = lambda m: "examples/api.py"
         directive.parse_options = lambda m: [("emphasize-lines", "2,3,4")]
 
         block = MagicMock()
@@ -182,7 +186,8 @@ class TestLiteralIncludeDirective:
         directive = LiteralIncludeDirective()
 
         match = MagicMock()
-        directive.parse_title = lambda m: "content/examples/api.py"
+        # Path is relative to content/ directory
+        directive.parse_title = lambda m: "examples/api.py"
         directive.parse_options = lambda m: [("emphasize-lines", "2-4")]
 
         block = MagicMock()
@@ -197,7 +202,8 @@ class TestLiteralIncludeDirective:
         directive = LiteralIncludeDirective()
 
         match = MagicMock()
-        directive.parse_title = lambda m: "content/examples/api.py"
+        # Path is relative to content/ directory
+        directive.parse_title = lambda m: "examples/api.py"
         directive.parse_options = lambda m: [("linenos", "true")]
 
         block = MagicMock()
@@ -212,7 +218,8 @@ class TestLiteralIncludeDirective:
         directive = LiteralIncludeDirective()
 
         match = MagicMock()
-        directive.parse_title = lambda m: "content/examples/missing.py"
+        # Path is relative to content/ directory
+        directive.parse_title = lambda m: "examples/missing.py"
         directive.parse_options = lambda m: []
 
         block = MagicMock()
@@ -334,7 +341,9 @@ class TestLiteralIncludeDirective:
         assert len(lines) == 11  # Lines 5-15 inclusive
         assert "# Line 5" in content
         assert "# Line 15" in content
-        assert "# Line 1" not in content
+        # Check that lines outside range are NOT included
+        # Note: "# Line 1\n" not in content (with newline to avoid substring match with Line 10-19)
+        assert content.startswith("# Line 5")  # First line should be Line 5
         assert "# Line 20" not in content
 
     def test_load_file_with_emphasize(self, multi_line_code_file, mock_state_with_root):
@@ -438,15 +447,14 @@ class TestRenderLiteralInclude:
 
     def test_render_fallback_no_block_code(self):
         """Test rendering when renderer doesn't have block_code method."""
-        renderer = MagicMock()
-        # Don't set block_code attribute
+        renderer = MagicMock(spec=[])  # Empty spec means no block_code attribute
 
         html = render_literalinclude(
             renderer, "", code="def example(): pass", language="python", **{}
         )
 
         # Should fall back to simple code block
-        assert "code" in html.lower() or "pre" in html.lower()
+        assert "<code" in html.lower() and "<pre>" in html.lower()
 
 
 class TestLiteralIncludeDirectiveIntegration:
