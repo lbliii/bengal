@@ -518,7 +518,7 @@ bengal/themes/default/templates/tracks/list.html:47-48
 bengal/themes/default/templates/tracks/list.html:102-108
   - {% if track_page %}
   - <a href="{{ track_page.url }}" class="track-card-button">
-  
+
 bengal/themes/default/templates/tracks/list.html:109-114
   - {% elif track.items %}  # FALLBACK to first lesson
   - <a href="{{ first_page.url }}" class="track-card-button">
@@ -539,4 +539,3 @@ bengal/analysis/knowledge_graph.py:714
 **Document Version**: 1.0  
 **Last Updated**: 2025-11-26  
 **Status**: Ready for Review
-

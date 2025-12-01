@@ -48,30 +48,30 @@ Users who rely on these features and encounter edge cases will lose trust. Fixin
 def _is_valid_link(self, link: str, page: Page) -> bool:
     """Validate internal link resolves to an existing page."""
     from urllib.parse import urlparse, urljoin
-    
+
     parsed = urlparse(link)
-    
+
     # External links validated separately
     if parsed.scheme in ('http', 'https', 'mailto'):
         return True  # External validation is async elsewhere
-    
+
     # Fragment-only links are valid
     path = parsed.path
     if not path:
         return True
-    
+
     # Resolve relative to page URL
     base_url = page.url.rstrip('/') + '/'
     resolved = urljoin(base_url, path)
-    
+
     # Normalize trailing slashes
     resolved_variants = [resolved, resolved.rstrip('/'), resolved.rstrip('/') + '/']
-    
+
     # Check against site pages
     page_urls = {p.url for p in self._site.pages}
     page_urls.update({p.url.rstrip('/') for p in self._site.pages})
     page_urls.update({p.url.rstrip('/') + '/' for p in self._site.pages})
-    
+
     return any(v in page_urls for v in resolved_variants)
 ```
 
@@ -108,7 +108,7 @@ def _load_file(self, file_path: Path, state: BlockState) -> str | None:
                 limit_bytes=MAX_INCLUDE_SIZE,
             )
             return f"[File too large: {file_size:,} bytes exceeds {MAX_INCLUDE_SIZE:,} limit]"
-        
+
         # Existing file reading logic...
 ```
 
@@ -135,7 +135,7 @@ def _load_file(self, file_path: Path, state: BlockState) -> str | None:
 def _resolve_path(self, path: str, state: BlockState) -> Path | None:
     """Resolve include path with symlink safety."""
     # ... existing path construction ...
-    
+
     # Check for symlinks BEFORE resolving
     if file_path.is_symlink():
         logger.warning(
@@ -144,7 +144,7 @@ def _resolve_path(self, path: str, state: BlockState) -> Path | None:
             reason="symlinks_not_allowed",
         )
         return None
-    
+
     # Then verify resolved path is within site root
     try:
         resolved = file_path.resolve(strict=True)
@@ -156,7 +156,7 @@ def _resolve_path(self, path: str, state: BlockState) -> Path | None:
             path=str(file_path),
         )
         return None
-    
+
     return resolved
 ```
 
@@ -188,10 +188,10 @@ Extract links during discovery, before graph construction:
 # In ContentDiscovery._create_page()
 def _create_page(self, file_path: Path, ...) -> Page:
     page = Page(source_path=file_path, ...)
-    
+
     # Extract links early (lightweight regex, not full parse)
     page.links = self._extract_links_early(page.content)
-    
+
     return page
 
 def _extract_links_early(self, content: str) -> list[str]:
@@ -213,7 +213,7 @@ def _build_graph(site):
     pipeline = RenderingPipeline(site)
     for page in site.pages:
         pipeline._extract_links(page)  # New method for link-only extraction
-    
+
     # Now build graph with populated links
     return KnowledgeGraph.build(site)
 ```
@@ -244,13 +244,13 @@ from contextlib import contextmanager
 
 class BuildCache:
     LOCK_TIMEOUT = 30  # seconds
-    
+
     @contextmanager
     def _file_lock(self, cache_path: Path, exclusive: bool = True):
         """Acquire file lock for cache operations."""
         lock_path = cache_path.with_suffix('.lock')
         lock_path.parent.mkdir(parents=True, exist_ok=True)
-        
+
         lock_file = open(lock_path, 'w')
         try:
             lock_type = fcntl.LOCK_EX if exclusive else fcntl.LOCK_SH
@@ -267,11 +267,11 @@ class BuildCache:
         finally:
             fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
             lock_file.close()
-    
+
     def save(self, cache_path: Path) -> None:
         with self._file_lock(cache_path, exclusive=True):
             # Existing save logic...
-    
+
     @classmethod
     def load(cls, cache_path: Path) -> BuildCache:
         with cls()._file_lock(cache_path, exclusive=False):
@@ -300,18 +300,18 @@ class BuildCache:
 ```python
 class CycleDetectingLoader(FileSystemLoader):
     """Custom loader that detects template include cycles."""
-    
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._include_stack = threading.local()
-    
+
     def get_source(self, environment, template):
         # Get or create thread-local stack
         if not hasattr(self._include_stack, 'templates'):
             self._include_stack.templates = []
-        
+
         stack = self._include_stack.templates
-        
+
         # Check for cycle
         if template in stack:
             cycle = ' → '.join(stack + [template])
@@ -319,7 +319,7 @@ class CycleDetectingLoader(FileSystemLoader):
                 f"Template cycle detected: {cycle}",
                 lineno=1,
             )
-        
+
         stack.append(template)
         try:
             return super().get_source(environment, template)
@@ -348,13 +348,13 @@ class CycleDetectingLoader(FileSystemLoader):
 def _discover_full(self) -> tuple[list[Section], list[Page]]:
     """Full discovery with symlink loop protection."""
     visited_inodes: set[tuple[int, int]] = set()  # (device, inode) pairs
-    
+
     def walk_safe(directory: Path):
         """Walk directory tree, skipping symlink loops."""
         try:
             stat = directory.stat()
             inode_key = (stat.st_dev, stat.st_ino)
-            
+
             if inode_key in visited_inodes:
                 logger.warning(
                     "symlink_loop_detected",
@@ -362,18 +362,18 @@ def _discover_full(self) -> tuple[list[Section], list[Page]]:
                     action="skipping",
                 )
                 return
-            
+
             visited_inodes.add(inode_key)
-            
+
             for entry in os.scandir(directory):
                 if entry.is_dir(follow_symlinks=True):
                     yield from walk_safe(Path(entry.path))
                 elif entry.is_file():
                     yield Path(entry.path)
-                    
+
         except PermissionError:
             logger.warning("permission_denied", path=str(directory))
-    
+
     # Use walk_safe instead of rglob
     for file_path in walk_safe(self.content_dir):
         # Existing file processing...
@@ -400,12 +400,12 @@ def _discover_full(self) -> tuple[list[Section], list[Page]]:
 ```python
 def t(key: str, params: dict[str, Any] | None = None, lang: str | None = None) -> str:
     # ... existing resolution logic ...
-    
+
     if value is None:
         # Log missing translation (once per key per build)
         if not hasattr(t, '_warned_keys'):
             t._warned_keys = set()
-        
+
         warn_key = f"{use_lang}:{key}"
         if warn_key not in t._warned_keys:
             t._warned_keys.add(warn_key)
@@ -415,10 +415,10 @@ def t(key: str, params: dict[str, Any] | None = None, lang: str | None = None) -
                 lang=use_lang,
                 fallback="key_returned",
             )
-        
+
         # Still return key for visibility
         value = key
-    
+
     return format_params(value, params or {})
 ```
 
@@ -439,7 +439,7 @@ def t(key: str, params: dict[str, Any] | None = None, lang: str | None = None) -
 ```python
 def _create_environment(self) -> Environment:
     # ... existing theme resolution ...
-    
+
     if not theme_found:
         # Explicit, visible warning
         click.secho(
@@ -475,14 +475,14 @@ def _create_environment(self) -> Environment:
 def generate_sitemap(self) -> str | None:
     """Generate sitemap, or None if no pages."""
     pages = [p for p in self.site.pages if not p.draft]
-    
+
     if not pages:
         logger.info(
             "sitemap_skipped",
             reason="no_published_pages",
         )
         return None
-    
+
     # Existing generation logic...
 ```
 
@@ -573,10 +573,10 @@ def symlink_content(tmp_path):
     content = tmp_path / "content"
     content.mkdir()
     (content / "page.md").write_text("# Test")
-    
+
     # Create symlink loop
     (content / "loop").symlink_to(content)
-    
+
     return content
 
 @pytest.fixture
@@ -679,4 +679,3 @@ def large_file(tmp_path):
 **Document Version**: 1.0  
 **Last Updated**: 2025-11-26  
 **Status**: Ready for Review
-
