@@ -504,7 +504,17 @@ class OutputFormatsGenerator:
                 lines.append(f"Section: {section_name}")
 
             if page.tags:
-                lines.append(f"Tags: {', '.join(page.tags)}")
+                tags = page.tags
+                # Ensure tags is iterable
+                if isinstance(tags, (list, tuple)):
+                    tags_list = list(tags)
+                else:
+                    try:
+                        tags_list = list(tags) if tags else []
+                    except (TypeError, ValueError):
+                        tags_list = []
+                if tags_list:
+                    lines.append(f"Tags: {', '.join(str(tag) for tag in tags_list)}")
 
             if page.date:
                 lines.append(f"Date: {page.date.strftime('%Y-%m-%d')}")
@@ -618,9 +628,17 @@ class OutputFormatsGenerator:
         if hasattr(page, "_section") and page._section:
             data["section"] = getattr(page._section, "name", "")
 
-        # Tags
+        # Tags - ensure it's a list
         if page.tags:
-            data["tags"] = page.tags
+            tags = page.tags
+            if isinstance(tags, (list, tuple)):
+                data["tags"] = list(tags)
+            else:
+                # Convert to list if it's iterable but not a list/tuple
+                try:
+                    data["tags"] = list(tags) if tags else []
+                except (TypeError, ValueError):
+                    data["tags"] = []
 
         # Stats
         word_count = len(content_text.split())
@@ -781,8 +799,17 @@ class OutputFormatsGenerator:
         if hasattr(page, "_section") and page._section:
             summary["section"] = getattr(page._section, "name", "")
 
+        # Tags - ensure it's a list
         if page.tags:
-            summary["tags"] = page.tags
+            tags = page.tags
+            if isinstance(tags, (list, tuple)):
+                summary["tags"] = list(tags)
+            else:
+                # Convert to list if it's iterable but not a list/tuple
+                try:
+                    summary["tags"] = list(tags) if tags else []
+                except (TypeError, ValueError):
+                    summary["tags"] = []
 
         # Stats
         word_count = len(content_text.split())
@@ -872,8 +899,10 @@ class OutputFormatsGenerator:
 
         # Add directory/path structure for hierarchical navigation
         # Use relative_url for path extraction (without baseurl)
-        page_rel_url = getattr(page, "relative_url", None) or getattr(page, "url", None)
-        if page_rel_url:
+        page_rel_url = self._get_page_url(
+            page
+        )  # Use the helper method which handles Mocks properly
+        if page_rel_url and isinstance(page_rel_url, str):
             # Extract directory path (everything except filename)
             path_parts = page_rel_url.strip("/").split("/")
             if len(path_parts) > 1:
@@ -916,7 +945,17 @@ class OutputFormatsGenerator:
             lines.append(f"Section: {section_name}")
 
         if page.tags:
-            lines.append(f"Tags: {', '.join(page.tags)}")
+            tags = page.tags
+            # Ensure tags is iterable
+            if isinstance(tags, (list, tuple)):
+                tags_list = list(tags)
+            else:
+                try:
+                    tags_list = list(tags) if tags else []
+                except (TypeError, ValueError):
+                    tags_list = []
+            if tags_list:
+                lines.append(f"Tags: {', '.join(str(tag) for tag in tags_list)}")
 
         if page.date:
             lines.append(f"Date: {page.date.strftime('%Y-%m-%d')}")
@@ -951,22 +990,34 @@ class OutputFormatsGenerator:
             URL string (relative, without baseurl)
         """
         # Prefer relative_url for postprocessing (we add baseurl manually where needed)
-        if hasattr(page, "relative_url") and callable(getattr(page, "relative_url", None)):
-            try:
-                return page.relative_url
-            except Exception:
-                pass  # Fall back to output_path computation
-        elif hasattr(page, "relative_url") and isinstance(page.relative_url, str):
-            return page.relative_url
+        if hasattr(page, "relative_url"):
+            relative_url = page.relative_url
+            # Handle callable (property)
+            if callable(relative_url):
+                try:
+                    result = relative_url()
+                    if isinstance(result, str):
+                        return result
+                except Exception:
+                    pass  # Fall back to output_path computation
+            # Handle string attribute
+            elif isinstance(relative_url, str):
+                return relative_url
 
         # Fallback: try url property (but it now includes baseurl, so prefer relative_url)
-        if hasattr(page, "url") and callable(getattr(page, "url", None)):
-            try:
-                return page.url
-            except Exception:
-                pass  # Fall back to output_path computation
-        elif hasattr(page, "url") and isinstance(page.url, str):
-            return page.url
+        if hasattr(page, "url"):
+            url = page.url
+            # Handle callable (property)
+            if callable(url):
+                try:
+                    result = url()
+                    if isinstance(result, str):
+                        return result
+                except Exception:
+                    pass  # Fall back to output_path computation
+            # Handle string attribute
+            elif isinstance(url, str):
+                return url
 
         if not page.output_path:
             return f"/{getattr(page, 'slug', page.source_path.stem)}/"
