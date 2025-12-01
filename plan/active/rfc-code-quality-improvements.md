@@ -487,17 +487,26 @@ except Exception as e:
 
 ---
 
-### Phase 2: `directives.py` Refactoring (Days 2-3)
+### Phase 2: `directives.py` Refactoring (Days 2-3) ✅ COMPLETED
 
-**Task 2.1**: Create package structure
-**Task 2.2**: Extract `DirectiveSyntaxChecker`
-**Task 2.3**: Extract `DirectiveCompletenessChecker`
-**Task 2.4**: Extract `DirectivePerformanceChecker`
-**Task 2.5**: Extract `DirectiveRenderingChecker`
-**Task 2.6**: Update `DirectiveValidator` to orchestrate
+**Task 2.1**: Create package structure ✅
+**Task 2.2**: Extract `DirectiveSyntaxChecker` → `checkers.py` ✅
+**Task 2.3**: Extract `DirectiveCompletenessChecker` → `checkers.py` ✅
+**Task 2.4**: Extract `DirectivePerformanceChecker` → `checkers.py` ✅
+**Task 2.5**: Extract `DirectiveRenderingChecker` → `checkers.py` ✅
+**Task 2.6**: Update `DirectiveValidator` to orchestrate ✅
+**Task 2.7**: Update tests to use `DirectiveAnalyzer` API ✅
+
+**Implementation Notes**:
+- Created `bengal/health/validators/directives/` package
+- `__init__.py` (120 lines) - Public API & orchestrator
+- `constants.py` (84 lines) - Known directives, thresholds
+- `analysis.py` (515 lines) - DirectiveAnalyzer class
+- `checkers.py` (313 lines) - Validation check functions
+- Tests updated to use `DirectiveAnalyzer` instead of internal methods
 
 **Success Criteria**:
-- [ ] `directives/__init__.py` < 300 lines
+- [x] `directives/__init__.py` < 300 lines (120 lines)
 - [ ] Each checker module < 300 lines
 - [ ] All tests pass
 - [ ] Public API unchanged
