@@ -196,49 +196,51 @@ class TestRealWorldDirectiveUsage:
 
     def test_data_table_directive_with_options(self, parser):
         """Test data-table directive with various options."""
+        # Bengal uses colon-fenced syntax (:::{directive}) to avoid conflicts with code blocks
         content = """
-```{data-table} data/nonexistent.csv
+:::{data-table} data/nonexistent.csv
 :search: false
 :filter: true
 :pagination: 100
 :height: 500px
-```
+:::
 """
         result = parser.parse(content, {})
 
         # Should be processed as directive (even if file doesn't exist)
-        assert "```{data-table}" not in result
+        assert ":::{data-table}" not in result
         # Will show error since file doesn't exist
         assert "Data Table Error" in result or "bengal-data-table" in result
 
     def test_mixed_directives_in_document(self, parser):
         """Test multiple different directives in one document."""
+        # Bengal uses colon-fenced syntax (:::{directive}) to avoid conflicts with code blocks
         content = """
 # Document with Multiple Directives
 
-```{note}
+:::{note}
 This is a note.
-```
+:::
 
-```{data-table} data/test.yaml
+:::{data-table} data/test.yaml
 :search: true
-```
+:::
 
-```{button} https://example.com
+:::{button} https://example.com
 Click Here
-```
+:::
 
-```{dropdown} More Info
+:::{dropdown} More Info
 Hidden content
-```
+:::
 """
         result = parser.parse(content, {})
 
         # None of the raw directive syntax should remain
-        assert "```{note}" not in result
-        assert "```{data-table}" not in result
-        assert "```{button}" not in result
-        assert "```{dropdown}" not in result
+        assert ":::{note}" not in result
+        assert ":::{data-table}" not in result
+        assert ":::{button}" not in result
+        assert ":::{dropdown}" not in result
 
         # All should be processed
         assert "admonition" in result

@@ -201,7 +201,8 @@ class TestColonSyntaxSupport:
         """Test that all admonition types work with colon syntax."""
         parser = MistuneParser()
 
-        admonition_types = ["note", "tip", "warning", "danger", "info", "important"]
+        # Supported types: note, tip, warning, danger, error, info, example, success, caution
+        admonition_types = ["note", "tip", "warning", "danger", "info", "error", "example", "success", "caution"]
 
         for adm_type in admonition_types:
             content = f"""
