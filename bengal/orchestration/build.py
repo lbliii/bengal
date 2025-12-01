@@ -185,30 +185,10 @@ class BuildOrchestrator:
         # Record resolved mode in stats
         self.stats.incremental = bool(incremental)
 
-        # Phase 0.5: Font Processing (before asset discovery)
-        # Download Google Fonts and generate CSS if configured
-        if "fonts" in self.site.config:
-            with self.logger.phase("fonts"):
-                fonts_start = time.time()
-                try:
-                    from bengal.fonts import FontHelper
+        # Phase 1: Font Processing
+        self._phase_fonts(cli)
 
-                    # Ensure assets directory exists
-                    assets_dir = self.site.root_path / "assets"
-                    assets_dir.mkdir(parents=True, exist_ok=True)
-
-                    # Process fonts (download + generate CSS)
-                    font_helper = FontHelper(self.site.config["fonts"])
-                    font_helper.process(assets_dir)
-
-                    self.stats.fonts_time_ms = (time.time() - fonts_start) * 1000
-                    self.logger.info("fonts_complete")
-                except Exception as e:
-                    cli.warning(f"Font processing failed: {e}")
-                    cli.info("   Continuing build without custom fonts...")
-                    self.logger.warning("fonts_failed", error=str(e))
-
-        # Phase 1: Content Discovery
+        # Phase 2: Content Discovery
         content_dir = self.site.root_path / "content"
         with self.logger.phase("discovery", content_dir=str(content_dir)):
             discovery_start = time.time()
@@ -1056,3 +1036,47 @@ class BuildOrchestrator:
                 f"Build failed health checks: {report.error_count} error(s) found. "
                 "Review output or disable strict_mode."
             )
+
+    # =========================================================================
+    # Phase Methods - Extracted from build() for maintainability
+    # Each _phase_* method handles one logical phase of the build pipeline.
+    # =========================================================================
+
+    def _phase_fonts(self, cli) -> None:
+        """
+        Phase 1: Font Processing.
+
+        Downloads Google Fonts and generates CSS if configured in site config.
+        This runs before asset discovery so font CSS is available.
+
+        Args:
+            cli: CLI output for user messages
+
+        Side effects:
+            - Creates assets/ directory if needed
+            - Downloads font files to assets/fonts/
+            - Generates font CSS file
+            - Updates self.stats.fonts_time_ms
+        """
+        if "fonts" not in self.site.config:
+            return
+
+        with self.logger.phase("fonts"):
+            fonts_start = time.time()
+            try:
+                from bengal.fonts import FontHelper
+
+                # Ensure assets directory exists
+                assets_dir = self.site.root_path / "assets"
+                assets_dir.mkdir(parents=True, exist_ok=True)
+
+                # Process fonts (download + generate CSS)
+                font_helper = FontHelper(self.site.config["fonts"])
+                font_helper.process(assets_dir)
+
+                self.stats.fonts_time_ms = (time.time() - fonts_start) * 1000
+                self.logger.info("fonts_complete")
+            except Exception as e:
+                cli.warning(f"Font processing failed: {e}")
+                cli.info("   Continuing build without custom fonts...")
+                self.logger.warning("fonts_failed", error=str(e))

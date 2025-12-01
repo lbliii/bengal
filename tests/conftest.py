@@ -34,6 +34,7 @@ This file provides:
 - Pytest hooks for better debugging
 - Automatic test output capture
 - Testing infrastructure plugins
+- Progress reporting for long-running tests
 """
 
 # ============================================================================
@@ -42,6 +43,56 @@ This file provides:
 
 # Register Phase 1 testing plugins
 pytest_plugins = ["tests._testing.fixtures", "tests._testing.markers"]
+
+
+# ============================================================================
+# TEST PROGRESS REPORTING
+# ============================================================================
+
+
+@pytest.fixture
+def test_progress(request):
+    """
+    Progress reporter for long-running tests.
+
+    Provides visual feedback during test execution. Enabled when running
+    pytest with -v/--verbose flag.
+
+    Usage:
+        def test_long_operation(test_progress):
+            # Simple status updates
+            test_progress.status("Starting...")
+
+            # Timed operations
+            with test_progress.timed("Building site"):
+                site.build()
+
+            # Progress tracking for loops
+            with test_progress.phase("Processing pages", total=100) as update:
+                for i, page in enumerate(pages):
+                    process(page)
+                    update(i + 1, page.title)
+
+            # Step-by-step progress
+            test_progress.step(1, 3, "Discovering content")
+            test_progress.step(2, 3, "Rendering pages")
+            test_progress.step(3, 3, "Writing output")
+
+    Args:
+        request: pytest request fixture (auto-injected)
+
+    Returns:
+        TestProgressReporter instance
+    """
+    from tests._testing.progress import TestProgressReporter
+
+    # Check if pytest is running in verbose mode
+    verbose = request.config.getoption("verbose", 0) > 0
+
+    # Get test name for prefix
+    test_name = request.node.name
+
+    return TestProgressReporter(verbose=verbose, prefix=test_name)
 
 # ============================================================================
 # COLLECTION HOOKS
