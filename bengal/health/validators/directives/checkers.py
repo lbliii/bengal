@@ -6,6 +6,7 @@ Provides validation methods for syntax, completeness, performance, and rendering
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -15,8 +16,6 @@ from bengal.rendering.parsers.factory import ParserFactory
 from .constants import MAX_DIRECTIVES_PER_PAGE, MAX_TABS_PER_BLOCK
 
 if TYPE_CHECKING:
-    import re
-
     from bengal.core.site import Site
 
 
@@ -231,8 +230,6 @@ def check_directive_performance(data: dict[str, Any]) -> list[CheckResult]:
 
 def check_directive_rendering(site: Site, data: dict[str, Any]) -> list[CheckResult]:
     """Check that directives rendered properly in output HTML."""
-    import re
-
     results = []
     issues = []
 
@@ -255,6 +252,8 @@ def check_directive_rendering(site: Site, data: dict[str, Any]) -> list[CheckRes
                 issues.append(f"{page.output_path.name}: Directive parsing error in output")
 
         except Exception:
+            # Gracefully skip pages that can't be read (permissions, encoding issues)
+            # This is non-critical validation - we don't want to fail the health check
             pass
 
     if issues:
@@ -301,8 +300,6 @@ def _has_unrendered_directives(html_content: str) -> bool:
     Returns:
         True if unrendered directives found (not in code blocks)
     """
-    import re
-
     try:
         parser = ParserFactory.get_html_parser("native")
         soup = parser(html_content)

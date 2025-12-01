@@ -381,5 +381,5 @@ This makes it instantly obvious what the bug is, rather than having to
 manually simplify a complex failing input.
 
 To see this in action:
-    pytest tests/unit/cli/testslugify_properties.py -v --hypothesis-show-statistics
+    pytest tests/unit/cli/test_slugify_properties.py -v --hypothesis-show-statistics
 """
