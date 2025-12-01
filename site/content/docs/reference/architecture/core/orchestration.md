@@ -22,7 +22,7 @@ The orchestration subsystem (`bengal/orchestration/`) implements the **delegatio
 
 ## Build Pipeline
 
-The build process follows a structured sequence organized into 10 main phases, with sub-phases for caching and optimization steps.
+The build process follows a structured sequence organized into **21 phases**, each implemented as a dedicated `_phase_*` method in `BuildOrchestrator`. This modular design improves maintainability and testability.
 
 ```mermaid
 sequenceDiagram
@@ -37,130 +37,125 @@ sequenceDiagram
     Site->>BuildOrch: BuildOrchestrator.build()
 
     rect
-    Note over BuildOrch: Phase 0.5-1.5: Initialization & Discovery
-    BuildOrch->>BuildOrch: Font Processing (optional)
-    BuildOrch->>ContentOrch: discover()
+    Note over BuildOrch: Phase 1-5: Discovery & Setup
+    BuildOrch->>BuildOrch: _phase_fonts()
+    BuildOrch->>ContentOrch: _phase_discovery()
     ContentOrch-->>BuildOrch: pages, sections
-    BuildOrch->>Cache: Save discovery metadata
-    BuildOrch->>BuildOrch: Clean deleted files
+    BuildOrch->>Cache: _phase_cache_metadata()
+    BuildOrch->>BuildOrch: _phase_config_check()
+    BuildOrch->>BuildOrch: _phase_incremental_filter()
     end
 
     rect
-    Note over BuildOrch: Phase 2: Incremental Filter (Early)
-    BuildOrch->>Cache: check changes
-    Cache-->>BuildOrch: affected pages/assets
+    Note over BuildOrch: Phase 6-12: Content Processing
+    BuildOrch->>BuildOrch: _phase_sections()
+    BuildOrch->>BuildOrch: _phase_taxonomies()
+    BuildOrch->>BuildOrch: _phase_taxonomy_index()
+    BuildOrch->>BuildOrch: _phase_menus()
+    BuildOrch->>BuildOrch: _phase_related_posts()
+    BuildOrch->>BuildOrch: _phase_query_indexes()
+    BuildOrch->>BuildOrch: _phase_update_pages_list()
     end
 
     rect
-    Note over BuildOrch: Phase 3-5.5: Structure & Indexes
-    BuildOrch->>BuildOrch: Section finalization
-    BuildOrch->>BuildOrch: Taxonomies
-    BuildOrch->>BuildOrch: Menus
-    BuildOrch->>BuildOrch: Related posts & query indexes
+    Note over BuildOrch: Phase 13-16: Rendering
+    BuildOrch->>BuildOrch: _phase_assets()
+    BuildOrch->>RenderOrch: _phase_render()
+    BuildOrch->>BuildOrch: _phase_update_site_pages()
+    BuildOrch->>Cache: _phase_track_assets()
     end
 
     rect
-    Note over BuildOrch: Phase 6-8.5: Processing
-    BuildOrch->>BuildOrch: Update filtered pages
-    BuildOrch->>BuildOrch: Process assets
-    BuildOrch->>RenderOrch: process(affected_pages)
-    BuildOrch->>Cache: Track asset dependencies
-    end
-
-    rect
-    Note over BuildOrch: Phase 9-10: Finalization
-    BuildOrch->>BuildOrch: Post-processing
-    BuildOrch->>Cache: Update cache
-    BuildOrch->>BuildOrch: Health check
+    Note over BuildOrch: Phase 17-21: Finalization
+    BuildOrch->>BuildOrch: _phase_postprocess()
+    BuildOrch->>Cache: _phase_cache_save()
+    BuildOrch->>BuildOrch: _phase_collect_stats()
+    BuildOrch->>BuildOrch: _phase_health_check()
+    BuildOrch->>BuildOrch: _phase_finalize()
     end
 ```
 
 ### Phase Structure
 
-The build pipeline consists of **10 main phases** with sub-phases for caching and optimization:
+The build pipeline consists of **21 phases**, each extracted into a focused method (~50-100 lines):
 
-**Phase 0.5**: Font Processing (optional)
-- Downloads Google Fonts and generates CSS if configured
-- Runs before asset discovery
+#### Discovery & Setup (Phases 1-5)
 
-**Phase 1**: Content Discovery
-- Scans `content/` directory for markdown files
-- Creates Page and Section objects
-- Applies frontmatter and cascade metadata
+| Phase | Method | Description |
+|-------|--------|-------------|
+| 1 | `_phase_fonts` | Downloads Google Fonts and generates CSS if configured |
+| 2 | `_phase_discovery` | Scans `content/` for markdown files, creates Page/Section objects |
+| 3 | `_phase_cache_metadata` | Saves page metadata to cache for incremental builds |
+| 4 | `_phase_config_check` | Checks if config changed (forces full rebuild), cleans deleted files |
+| 5 | `_phase_incremental_filter` | Detects changes, filters to minimal rebuild set |
 
-**Phase 1.25**: Cache Discovery Metadata
-- Saves page metadata to cache for incremental builds
-- Enables lazy loading in future builds
+#### Content Processing (Phases 6-12)
 
-**Phase 1.5**: Cleanup Deleted Files
-- Removes output files for deleted source files
-- Ensures output stays in sync with source
+| Phase | Method | Description |
+|-------|--------|-------------|
+| 6 | `_phase_sections` | Ensures sections have index pages, validates hierarchy |
+| 7 | `_phase_taxonomies` | Collects tags/categories, generates taxonomy pages |
+| 8 | `_phase_taxonomy_index` | Persists tag-to-pages mapping for incremental builds |
+| 9 | `_phase_menus` | Builds hierarchical navigation menus |
+| 10 | `_phase_related_posts` | Pre-computes related posts for O(1) template access |
+| 11 | `_phase_query_indexes` | Builds query indexes for fast lookups |
+| 12 | `_phase_update_pages_list` | Adds generated taxonomy pages to rebuild set |
 
-**Phase 2**: Incremental Filtering (Early)
-- Detects changed files using SHA256 hashing
-- Filters pages and assets to minimal rebuild set
-- Runs **before** taxonomies/menus for optimization
+#### Rendering (Phases 13-16)
 
-**Phase 3**: Section Finalization
-- Ensures all sections have index pages
-- Validates section hierarchy structure
-- Incremental: Only processes affected sections
+| Phase | Method | Description |
+|-------|--------|-------------|
+| 13 | `_phase_assets` | Processes CSS, JS, images (minify, optimize, fingerprint) |
+| 14 | `_phase_render` | Renders markdown to HTML, applies templates |
+| 15 | `_phase_update_site_pages` | Replaces stale PageProxy objects with fresh Pages |
+| 16 | `_phase_track_assets` | Caches page-to-assets mapping for incremental builds |
 
-**Phase 4**: Taxonomies & Dynamic Pages
-- Collects tags/categories from pages
-- Generates taxonomy term/list pages
-- Incremental: Only updates affected taxonomies
+#### Finalization (Phases 17-21)
 
-**Phase 4.5**: Save Taxonomy Index
-- Persists tag-to-pages mapping to cache
-- Enables incremental taxonomy updates
+| Phase | Method | Description |
+|-------|--------|-------------|
+| 17 | `_phase_postprocess` | Generates sitemap, RSS, validates links |
+| 18 | `_phase_cache_save` | Saves build cache for future incremental builds |
+| 19 | `_phase_collect_stats` | Collects final build statistics |
+| 20 | `_phase_health_check` | Runs validators based on build profile |
+| 21 | `_phase_finalize` | Final cleanup and logging |
 
-**Phase 5**: Menus
-- Builds hierarchical navigation menus
-- Combines config and frontmatter data
-- Incremental: Skips if unchanged
+### Phase Method Pattern
 
-**Phase 5.5**: Related Posts & Query Indexes
-- Pre-computes related posts for O(1) template access
-- Builds query indexes for fast lookups
-- Incremental: Only updates affected indexes
+Each phase is a self-contained method with a clear signature:
 
-**Phase 6**: Update Filtered Pages List
-- Adds generated taxonomy pages to rebuild set
-- Ensures all affected pages are included
+```python
+def _phase_taxonomies(
+    self, cache, incremental: bool, parallel: bool, pages_to_build: list
+) -> set:
+    """
+    Phase 7: Taxonomies & Dynamic Pages.
 
-**Phase 7**: Process Assets
-- Processes CSS, JS, and images
-- Minifies, optimizes, and fingerprints assets
-- Runs **before** rendering so `asset_url()` works
+    Collects taxonomy terms (tags, categories) and generates taxonomy pages.
+    Optimized for incremental builds - only processes changed pages.
 
-**Phase 8**: Render Pages
-- Renders markdown to HTML
-- Applies templates and layouts
-- Writes output files
+    Args:
+        cache: Build cache
+        incremental: Whether this is an incremental build
+        parallel: Whether to use parallel processing
+        pages_to_build: List of pages being built (for incremental)
 
-**Phase 8.4**: Update Site Pages
-- Replaces stale PageProxy objects with fresh Page objects
-- Ensures post-processing sees updated content
+    Returns:
+        Set of affected tag slugs
 
-**Phase 8.5**: Track Asset Dependencies
-- Extracts asset references from rendered HTML
-- Caches page-to-assets mapping for incremental builds
+    Side effects:
+        - Populates self.site.taxonomies
+        - Creates taxonomy pages in self.site.pages
+        - Updates self.stats.taxonomy_time_ms
+    """
+    # ... implementation
+```
 
-**Phase 9**: Post-Processing
-- Generates sitemap.xml
-- Generates RSS feed
-- Validates links
-
-**Phase 9**: Update Cache
-- Saves build cache with file hashes
-- Updates dependency graph
-- Persists for next incremental build
-
-**Phase 10**: Health Check
-- Runs validators based on build profile
-- Generates health report
-- May fail build in strict mode
+This pattern provides:
+- **Testability**: Each phase can be tested in isolation
+- **Readability**: `build()` is now ~75 lines of phase calls
+- **Maintainability**: Changes are scoped to specific phases
+- **Documentation**: Docstrings explain purpose and side effects
 
 ## Orchestrator Reference
 
@@ -168,7 +163,8 @@ The build pipeline consists of **10 main phases** with sub-phases for caching an
 :::{tab-item} Build
 **BuildOrchestrator** (`build.py`)
 
-The main conductor.
+The main conductor. The `build()` method is a clean ~75-line sequence of phase calls.
+- **21 phase methods** (`_phase_*`) for modularity
 - **Coordinates** all other orchestrators
 - **Manages** `BuildContext` threading
 - **Handles** parallel vs sequential execution
@@ -243,24 +239,51 @@ Generates sitemap, RSS, and runs link validation after rendering.
 
 ### 1. BuildContext Threading
 
-To avoid global state, we pass a `BuildContext` object through the pipeline. This pattern is being progressively adopted across orchestrators.
+To avoid global state, we pass a `BuildContext` dataclass through the pipeline. This enables clean phase method signatures and explicit dependency passing.
 
 ```python
-# Created during build initialization
-ctx = BuildContext(
-    site=site,
-    pages=pages_to_build,
-    tracker=dependency_tracker,
-    stats=build_stats,
-    profile=build_profile,
-)
+@dataclass
+class BuildContext:
+    """Shared build context passed across orchestrators and phases."""
+    # Core objects
+    site: Site | None = None
+    pages: list[Page] | None = None
+    assets: list[Asset] | None = None
+    tracker: DependencyTracker | None = None
+    stats: BuildStats | None = None
+    profile: BuildProfile | None = None
 
-# Threaded through phases (progressive adoption)
+    # Progress reporting
+    progress_manager: LiveProgressManager | None = None
+    reporter: ProgressReporter | None = None
+
+    # Build state (populated during build)
+    cli: Any = None
+    build_start: float = 0.0
+    collector: Any = None
+    cache: Any = None
+    incremental: bool = False
+    config_changed: bool = False
+    pages_to_build: list[Page] = field(default_factory=list)
+    assets_to_process: list[Asset] = field(default_factory=list)
+    affected_tags: set[str] = field(default_factory=set)
+    changed_page_paths: set[Path] = field(default_factory=set)
+    affected_sections: set[str] | None = None
+```
+
+**Usage**: BuildContext is initialized at the start of `build()` and threaded through phase methods and sub-orchestrators:
+
+```python
+# In BuildOrchestrator.build()
+ctx = BuildContext(site=self.site, stats=self.stats, ...)
+
+# Phase methods receive what they need
+self._phase_render(ctx.cli, ctx.parallel, ..., ctx.pages_to_build, ...)
+
+# Sub-orchestrators receive full context
 RenderOrchestrator.process(pages, build_context=ctx)
 PostprocessOrchestrator.run(build_context=ctx)
 ```
-
-**Status**: BuildContext is currently passed to RenderOrchestrator and PostprocessOrchestrator. Other orchestrators will adopt it progressively while maintaining backward compatibility.
 
 ### 2. Smart Parallelization
 
