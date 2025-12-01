@@ -66,10 +66,10 @@ class BadgeDirective(DirectivePlugin):
         if badge_class:
             # Split into individual classes
             classes = badge_class.split()
-            
+
             # Check if base "badge" or "api-badge" is already present
             has_base_badge = any(cls in ("badge", "api-badge") for cls in classes)
-            
+
             if not has_base_badge:
                 # Determine which base class to use based on existing classes
                 if any(cls.startswith("api-badge") for cls in classes):
@@ -81,7 +81,7 @@ class BadgeDirective(DirectivePlugin):
                 else:
                     # Default to badge if unclear
                     classes.insert(0, "badge")
-                
+
                 badge_class = " ".join(classes)
         else:
             badge_class = "badge badge-secondary"

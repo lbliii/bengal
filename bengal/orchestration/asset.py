@@ -194,10 +194,10 @@ class AssetOrchestrator:
         # 1. parallel=True is requested AND
         # 2. We have enough work to justify thread overhead (>= 5 items OR mixed CSS/assets)
         # This allows CSS bundling to overlap with other asset processing
-        
+
         total_items = len(css_entries) + len(other_assets)
         MIN_ITEMS_FOR_PARALLEL = 5
-        
+
         should_run_parallel = parallel and (
             total_items >= MIN_ITEMS_FOR_PARALLEL or (len(css_entries) > 0 and len(other_assets) > 0)
         )
@@ -251,18 +251,18 @@ class AssetOrchestrator:
         assets_output = self.site.output_dir / "assets"
         total_assets = len(css_entries) + len(other_assets)
         max_workers = self.site.config.get("max_workers", min(8, (total_assets + 3) // 4))
-        
+
         errors = []
         completed_count = 0
         lock = Lock()
-        
+
         last_update_time = time.time()
         update_interval = 0.1
         pending_updates = 0
-        
+
         with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
             futures = []
-            
+
             # Submit CSS entries
             for entry in css_entries:
                 future = executor.submit(self._process_css_entry, entry, minify, optimize, fingerprint)
@@ -279,20 +279,20 @@ class AssetOrchestrator:
             for future, asset, is_css_entry in futures:
                 try:
                     future.result()
-                    
+
                     # Progress update logic
                     item_name = (
                         f"{asset.source_path.name} (bundled {css_modules_count} modules)"
                         if is_css_entry
                         else asset.source_path.name
                     )
-                    
+
                     pending_updates += 1
                     now = time.time()
                     should_update = progress_manager and (
                         pending_updates >= 10 or (now - last_update_time) >= update_interval
                     )
-                    
+
                     if should_update:
                         with lock:
                             completed_count += pending_updates
@@ -305,7 +305,7 @@ class AssetOrchestrator:
                             )
                             pending_updates = 0
                             last_update_time = now
-                            
+
                 except Exception as e:
                     errors.append(str(e))
 
@@ -347,7 +347,7 @@ class AssetOrchestrator:
                     self._process_css_entry(asset, minify, optimize, fingerprint)
                 else:
                     self._process_single_asset(asset, assets_output, minify, optimize, fingerprint)
-                
+
                 completed += 1
                 if progress_manager:
                     item_name = (

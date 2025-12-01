@@ -201,7 +201,7 @@ class AutodocOrchestrator:
 
         # Create virtual index page
         virtual_path = section.path / "_index.md"
-        
+
         # Use appropriate type and template based on section
         if section_key == "cli":
             page_type = "cli-reference"
@@ -209,7 +209,7 @@ class AutodocOrchestrator:
         else:
             page_type = "api-reference"
             template = "api-reference/list.html"
-        
+
         index_page = Page(
             source_path=virtual_path,
             content="",  # No content needed - template will render page list
@@ -269,7 +269,7 @@ class AutodocOrchestrator:
                 if section_key not in sections_dict:
                     # Create virtual section
                     dummy_section_path = self.site.root_path / "content" / Path(*section_path_parts)
-                    
+
                     # Get display name from config for top-level sections
                     section_title = section_path_parts[-1].upper()  # Default: "api" -> "API"
                     if "/" not in section_key:  # Top-level section (api, cli)
@@ -278,7 +278,7 @@ class AutodocOrchestrator:
                             section_title = autodoc_config["python"].get("display_name", "API Reference")
                         elif section_key == "cli" and "cli" in autodoc_config:
                             section_title = autodoc_config["cli"].get("display_name", "CLI Reference")
-                    
+
                     section = Section(
                         name=section_path_parts[-1],
                         path=dummy_section_path,

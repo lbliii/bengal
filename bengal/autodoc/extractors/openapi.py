@@ -50,7 +50,7 @@ class OpenAPIExtractor(Extractor):
             return []
 
         elements: list[DocElement] = []
-        
+
         # 1. Create API Overview Element
         # This serves as the entry point and contains info object
         overview = self._extract_overview(spec, source)
@@ -77,13 +77,13 @@ class OpenAPIExtractor(Extractor):
         """
         if element.element_type == "openapi_overview":
             return Path("index.md")
-        
+
         elif element.element_type == "openapi_endpoint":
             # Group by first tag if available, else 'default'
             tag = "default"
             if element.metadata.get("tags"):
                 tag = element.metadata["tags"][0]
-            
+
             # Use operationId if available, else sanitized path
             name = element.name.replace(" ", "_").lower()
             if element.metadata.get("operation_id"):
@@ -93,18 +93,18 @@ class OpenAPIExtractor(Extractor):
                 method = element.metadata.get("method", "op")
                 path = element.metadata.get("path", "path").strip("/")
                 name = f"{method}_{path}".replace("/", "_").replace("{", "").replace("}", "")
-            
+
             return Path(f"endpoints/{tag}/{name}.md")
-            
+
         elif element.element_type == "openapi_schema":
             return Path(f"schemas/{element.name}.md")
-            
+
         return None
 
     def _extract_overview(self, spec: dict[str, Any], source: Path) -> DocElement:
         """Extract API overview information."""
         info = spec.get("info", {})
-        
+
         return DocElement(
             name=info.get("title", "API Documentation"),
             qualified_name="openapi.overview",
@@ -123,24 +123,24 @@ class OpenAPIExtractor(Extractor):
         """Extract all path operations."""
         elements = []
         paths = spec.get("paths", {})
-        
+
         for path, path_item in paths.items():
             # Handle common parameters at path level
             path_params = path_item.get("parameters", [])
-            
+
             for method in ["get", "post", "put", "delete", "patch", "head", "options"]:
                 if method not in path_item:
                     continue
-                    
+
                 operation = path_item[method]
-                
+
                 # Merge path-level parameters with operation-level parameters
                 op_params = operation.get("parameters", [])
                 all_params = path_params + op_params
-                
+
                 # Construct name like "GET /users"
                 name = f"{method.upper()} {path}"
-                
+
                 element = DocElement(
                     name=name,
                     qualified_name=f"openapi.paths.{path}.{method}",
@@ -162,7 +162,7 @@ class OpenAPIExtractor(Extractor):
                     deprecated="Deprecated in API spec" if operation.get("deprecated") else None
                 )
                 elements.append(element)
-                
+
         return elements
 
     def _extract_schemas(self, spec: dict[str, Any]) -> list[DocElement]:
@@ -175,7 +175,7 @@ class OpenAPIExtractor(Extractor):
         schemas = components.get("schemas", {})
         print(f"DEBUG: Schemas type: {type(schemas)}")
         print(f"DEBUG: Schemas keys: {schemas.keys() if isinstance(schemas, dict) else 'Not a dict'}")
-        
+
         for name, schema in schemas.items():
             element = DocElement(
                 name=name,
@@ -192,5 +192,5 @@ class OpenAPIExtractor(Extractor):
                 }
             )
             elements.append(element)
-            
+
         return elements
