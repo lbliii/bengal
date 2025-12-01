@@ -181,6 +181,6 @@ After fixes:
 ## Related Code
 
 - Link checker: `bengal/bengal/health/linkcheck/internal_checker.py`
-- Directive validator: `bengal/bengal/health/validators/directives.py`
+- Directive validator: `bengal/bengal/health/validators/directives/` (package)
 - Autodoc template: `bengal/bengal/autodoc/templates/macros/navigation.md.jinja2`
 - Directive syntax validator: `bengal/bengal/rendering/plugins/directives/validator.py`

@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 from bengal.health.report import CheckStatus
-from bengal.health.validators.directives import DirectiveValidator
+from bengal.health.validators.directives import DirectiveAnalyzer, DirectiveValidator
 
 
 class MockPage:
@@ -48,8 +48,8 @@ Regular content.
         file_path = tmp_path / "test.md"
         file_path.write_text(content)
 
-        validator = DirectiveValidator()
-        directives = validator._extract_directives(content, file_path)
+        analyzer = DirectiveAnalyzer()
+        directives = analyzer._extract_directives(content, file_path)
 
         assert len(directives) == 1
         assert directives[0]["type"] == "note"
@@ -74,8 +74,8 @@ Content 3
 """
         file_path = tmp_path / "test.md"
 
-        validator = DirectiveValidator()
-        directives = validator._extract_directives(content, file_path)
+        analyzer = DirectiveAnalyzer()
+        directives = analyzer._extract_directives(content, file_path)
 
         assert len(directives) == 3
         assert directives[0]["type"] == "note"
@@ -101,8 +101,8 @@ Ruby code here
 """
         file_path = tmp_path / "test.md"
 
-        validator = DirectiveValidator()
-        directives = validator._extract_directives(content, file_path)
+        analyzer = DirectiveAnalyzer()
+        directives = analyzer._extract_directives(content, file_path)
 
         assert len(directives) == 1
         assert directives[0]["type"] == "tabs"
@@ -118,8 +118,8 @@ Content
 """
         file_path = tmp_path / "test.md"
 
-        validator = DirectiveValidator()
-        directives = validator._extract_directives(content, file_path)
+        analyzer = DirectiveAnalyzer()
+        directives = analyzer._extract_directives(content, file_path)
 
         assert len(directives) == 1
         assert directives[0]["type"] == "unknown_directive"
@@ -137,8 +137,8 @@ code
 """
         file_path = tmp_path / "test.md"
 
-        validator = DirectiveValidator()
-        directives = validator._extract_directives(content, file_path)
+        analyzer = DirectiveAnalyzer()
+        directives = analyzer._extract_directives(content, file_path)
 
         assert len(directives) == 1
         assert directives[0]["type"] == "code-tabs"
@@ -156,8 +156,8 @@ Line 7
 """
         file_path = tmp_path / "test.md"
 
-        validator = DirectiveValidator()
-        directives = validator._extract_directives(content, file_path)
+        analyzer = DirectiveAnalyzer()
+        directives = analyzer._extract_directives(content, file_path)
 
         assert len(directives) == 1
         assert directives[0]["line_number"] == 4  # Directive starts on line 4
@@ -168,7 +168,7 @@ class TestTabsValidation:
 
     def test_tabs_with_no_markers(self):
         """Test tabs directive with no tab markers."""
-        validator = DirectiveValidator()
+        analyzer = DirectiveAnalyzer()
         directive = {
             "type": "tabs",
             "content": "Just some content without markers",
@@ -177,14 +177,14 @@ class TestTabsValidation:
             "file_path": Path("test.md"),
         }
 
-        validator._validate_tabs_directive(directive)
+        analyzer._validate_tabs_directive(directive)
 
         assert "completeness_error" in directive
         assert "no tab markers" in directive["completeness_error"].lower()
 
     def test_tabs_with_single_tab(self):
         """Test tabs directive with only one tab."""
-        validator = DirectiveValidator()
+        analyzer = DirectiveAnalyzer()
         directive = {
             "type": "tabs",
             "content": "### Tab: Only One\nContent here",
@@ -193,14 +193,14 @@ class TestTabsValidation:
             "file_path": Path("test.md"),
         }
 
-        validator._validate_tabs_directive(directive)
+        analyzer._validate_tabs_directive(directive)
 
         assert "completeness_error" in directive
         assert "only 1 tab" in directive["completeness_error"]
 
     def test_tabs_with_malformed_marker(self):
         """Test tabs directive with malformed tab marker."""
-        validator = DirectiveValidator()
+        analyzer = DirectiveAnalyzer()
         directive = {
             "type": "tabs",
             "content": "### Ta: Python\nContent",  # Typo: "Ta:" instead of "Tab:"
@@ -209,14 +209,14 @@ class TestTabsValidation:
             "file_path": Path("test.md"),
         }
 
-        validator._validate_tabs_directive(directive)
+        analyzer._validate_tabs_directive(directive)
 
         assert "syntax_error" in directive
         assert "malformed tab marker" in directive["syntax_error"].lower()
 
     def test_tabs_with_valid_markers(self):
         """Test tabs directive with valid markers."""
-        validator = DirectiveValidator()
+        analyzer = DirectiveAnalyzer()
         directive = {
             "type": "tabs",
             "content": "### Tab: Python\nContent\n### Tab: JavaScript\nMore content",
@@ -225,7 +225,7 @@ class TestTabsValidation:
             "file_path": Path("test.md"),
         }
 
-        validator._validate_tabs_directive(directive)
+        analyzer._validate_tabs_directive(directive)
 
         assert directive["tab_count"] == 2
         assert "syntax_error" not in directive
@@ -233,7 +233,7 @@ class TestTabsValidation:
 
     def test_tabs_with_empty_content(self):
         """Test tabs directive with empty content."""
-        validator = DirectiveValidator()
+        analyzer = DirectiveAnalyzer()
         directive = {
             "type": "tabs",
             "content": "",
@@ -242,7 +242,7 @@ class TestTabsValidation:
             "file_path": Path("test.md"),
         }
 
-        validator._validate_tabs_directive(directive)
+        analyzer._validate_tabs_directive(directive)
 
         assert "completeness_error" in directive
         assert "no content" in directive["completeness_error"].lower()
@@ -253,7 +253,7 @@ class TestDropdownValidation:
 
     def test_dropdown_with_content(self):
         """Test valid dropdown with content."""
-        validator = DirectiveValidator()
+        analyzer = DirectiveAnalyzer()
         directive = {
             "type": "dropdown",
             "content": "Some content here",
@@ -262,13 +262,13 @@ class TestDropdownValidation:
             "file_path": Path("test.md"),
         }
 
-        validator._validate_dropdown_directive(directive)
+        analyzer._validate_dropdown_directive(directive)
 
         assert "completeness_error" not in directive
 
     def test_dropdown_with_empty_content(self):
         """Test dropdown with empty content."""
-        validator = DirectiveValidator()
+        analyzer = DirectiveAnalyzer()
         directive = {
             "type": "dropdown",
             "content": "",
@@ -277,7 +277,7 @@ class TestDropdownValidation:
             "file_path": Path("test.md"),
         }
 
-        validator._validate_dropdown_directive(directive)
+        analyzer._validate_dropdown_directive(directive)
 
         assert "completeness_error" in directive
         assert "no content" in directive["completeness_error"].lower()
@@ -470,8 +470,8 @@ Content
         page = MockPage(source_file, output_file, metadata={"_generated": True})
         site = MockSite([page])
 
-        validator = DirectiveValidator()
-        data = validator._analyze_directives(site)
+        analyzer = DirectiveAnalyzer()
+        data = analyzer.analyze(site)
 
         # Should have skipped the generated page
         assert data["total_directives"] == 0

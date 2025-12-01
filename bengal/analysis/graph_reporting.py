@@ -9,9 +9,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from bengal.utils.logger import get_logger
+
 if TYPE_CHECKING:
     from bengal.analysis.knowledge_graph import KnowledgeGraph
     from bengal.core.page import Page
+
+logger = get_logger(__name__)
 
 
 class GraphReporter:
@@ -193,9 +197,12 @@ class GraphReporter:
                     f"⭐ {len(high_pagerank_orphans)} high-value pages are underlinked. "
                     f"Consider adding navigation or cross-links: {titles}"
                 )
-        except Exception:
-            # Skip if PageRank computation fails
-            pass
+        except (ValueError, RuntimeError, AttributeError) as e:
+            logger.debug(
+                "pagerank_recommendation_skipped",
+                error=str(e),
+                reason="PageRank computation unavailable for underlinked analysis",
+            )
 
         # Link density recommendation
         if m.avg_connectivity < 2.0:
@@ -223,9 +230,12 @@ class GraphReporter:
                     f"🌉 Top bridge pages: {bridge_titles}. "
                     f"These are critical for navigation - ensure they're prominent in menus."
                 )
-        except Exception:
-            # Skip if path analysis computation fails
-            pass
+        except (ValueError, RuntimeError, AttributeError) as e:
+            logger.debug(
+                "path_analysis_recommendation_skipped",
+                error=str(e),
+                reason="Path analysis unavailable for bridge page detection",
+            )
 
         # Hub pages recommendation
         hubs = self._graph.get_hubs()
@@ -287,8 +297,12 @@ class GraphReporter:
                             "⚠️  Deep pages (>4 clicks) may be hard to discover. "
                             "Consider shortening paths."
                         )
-        except Exception:
-            pass
+        except (ValueError, RuntimeError, AttributeError) as e:
+            logger.debug(
+                "link_depth_analysis_skipped",
+                error=str(e),
+                reason="Path analysis unavailable for link depth calculation",
+            )
 
         # Link equity flow analysis
         try:
@@ -311,8 +325,12 @@ class GraphReporter:
                     f"🔗 {len(high_pagerank_low_outgoing)} pages should pass more link equity "
                     f"(high PageRank, few outgoing links): {titles}"
                 )
-        except Exception:
-            pass
+        except (ValueError, RuntimeError, AttributeError) as e:
+            logger.debug(
+                "link_equity_analysis_skipped",
+                error=str(e),
+                reason="PageRank computation unavailable for link equity analysis",
+            )
 
         # Orphan page SEO risk
         orphans = self._graph.get_orphans()
@@ -402,8 +420,12 @@ class GraphReporter:
                             f"{links_within_tag} cross-links. "
                             f"Consider linking: {', '.join(gap_pages)}"
                         )
-        except Exception:
-            pass
+        except (ValueError, RuntimeError, AttributeError) as e:
+            logger.debug(
+                "tag_crosslink_analysis_skipped",
+                error=str(e),
+                reason="Tag analysis unavailable for content gap detection",
+            )
 
         # Underlinked sections
         try:
@@ -433,7 +455,11 @@ class GraphReporter:
                             f"page and has low internal linking ({links_within_section} links). "
                             f"Consider creating an index page."
                         )
-        except Exception:
-            pass
+        except (ValueError, RuntimeError, AttributeError) as e:
+            logger.debug(
+                "section_linking_analysis_skipped",
+                error=str(e),
+                reason="Section analysis unavailable for content gap detection",
+            )
 
         return gaps

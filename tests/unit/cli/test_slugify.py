@@ -4,11 +4,11 @@ Test page name slugification.
 
 import pytest
 
-from bengal.cli.commands.new import _slugify
+from bengal.cli.commands.new import slugify
 
 
 class TestSlugify:
-    """Test _slugify() function."""
+    """Test slugify() function."""
 
     @pytest.mark.parametrize(
         "input_text,expected_slug",
@@ -61,7 +61,7 @@ class TestSlugify:
             "special_only",
         ],
     )
-    def test_slugify_transformations(self, input_text, expected_slug):
+    def testslugify_transformations(self, input_text, expected_slug):
         """
         Test core slugification transformations.
 
@@ -73,7 +73,7 @@ class TestSlugify:
         - Leading/trailing hyphens are stripped
         - Empty/invalid inputs handled gracefully
         """
-        result = _slugify(input_text)
+        result = slugify(input_text)
         assert result == expected_slug, (
             f"slugify('{input_text}') should produce '{expected_slug}', " f"but got '{result}'"
         )
@@ -81,25 +81,25 @@ class TestSlugify:
     def test_unicode_handling(self):
         """Test unicode character handling."""
         # Unicode word characters are preserved by \w in regex
-        assert _slugify("café") == "café"  # é is a word character
+        assert slugify("café") == "café"  # é is a word character
         # Numbers preserved
-        assert _slugify("test123") == "test123"
+        assert slugify("test123") == "test123"
 
     def test_existing_hyphenated_slugs(self):
         """Test that proper slugs pass through unchanged."""
-        assert _slugify("my-page") == "my-page"
-        assert _slugify("test-slug") == "test-slug"
+        assert slugify("my-page") == "my-page"
+        assert slugify("test-slug") == "test-slug"
 
     def test_mixed_separators(self):
         """Test various separator combinations."""
-        assert _slugify("test_page-slug name") == "test_page-slug-name"
+        assert slugify("test_page-slug name") == "test_page-slug-name"
         # Underscores preserved (word characters)
-        assert _slugify("test_name") == "test_name"
+        assert slugify("test_name") == "test_name"
 
     def test_numbers_preserved(self):
         """Test that numbers are kept."""
-        assert _slugify("Test 123") == "test-123"
-        assert _slugify("Page 2.0") == "page-20"
+        assert slugify("Test 123") == "test-123"
+        assert slugify("Page 2.0") == "page-20"
 
     @pytest.mark.parametrize(
         "page_name,expected_slug",
@@ -143,7 +143,7 @@ class TestSlugify:
 
         Critical for ensuring good user experience when creating pages.
         """
-        result = _slugify(page_name)
+        result = slugify(page_name)
         assert result == expected_slug, (
             f"Page name '{page_name}' should slugify to '{expected_slug}', " f"but got '{result}'"
         )
@@ -151,7 +151,7 @@ class TestSlugify:
     def test_long_names(self):
         """Test long page names."""
         long_name = "This Is A Very Long Page Name With Many Words"
-        result = _slugify(long_name)
+        result = slugify(long_name)
         assert result == "this-is-a-very-long-page-name-with-many-words"
         assert " " not in result
         assert result.islower()

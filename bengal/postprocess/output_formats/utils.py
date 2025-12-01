@@ -3,14 +3,19 @@ Shared utilities for output format generation.
 
 Provides common functions used across all output format generators
 including text processing, URL handling, and path resolution.
+
+Note:
+    Text utilities delegate to bengal.utils.text for DRY compliance.
+    See RFC: plan/active/rfc-code-quality-improvements.md
 """
 
 from __future__ import annotations
 
-import html
-import re
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
+
+from bengal.utils.text import normalize_whitespace
+from bengal.utils.text import strip_html as _strip_html_base
 
 if TYPE_CHECKING:
     from bengal.core.page import Page
@@ -18,35 +23,38 @@ if TYPE_CHECKING:
 
 def strip_html(text: str) -> str:
     """
-    Remove HTML tags from text.
+    Remove HTML tags from text and normalize whitespace.
+
+    Delegates to bengal.utils.text.strip_html with additional whitespace
+    normalization specific to output format generation.
 
     Args:
         text: HTML text
 
     Returns:
-        Plain text with HTML tags and entities removed
+        Plain text with HTML tags, entities, and excess whitespace removed
     """
     if not text:
         return ""
 
-    # Remove HTML tags
-    text = re.sub(r"<[^>]+>", "", text)
+    # Use canonical implementation for tag stripping and entity decoding
+    text = _strip_html_base(text, decode_entities=True)
 
-    # Decode HTML entities
-    text = html.unescape(text)
-
-    # Clean up whitespace
-    text = re.sub(r"\s+", " ", text)
-    return text.strip()
+    # Normalize whitespace (specific to output formats - collapse to single space)
+    return normalize_whitespace(text, collapse=True)
 
 
 def generate_excerpt(text: str, length: int = 200) -> str:
     """
-    Generate excerpt from text.
+    Generate excerpt from text using character-based truncation.
+
+    Note: This uses character-based truncation for backward compatibility
+    with output format generation. For word-based truncation, use
+    bengal.utils.text.generate_excerpt directly.
 
     Args:
-        text: Source text
-        length: Maximum length
+        text: Source text (may contain HTML)
+        length: Maximum character length
 
     Returns:
         Excerpt string, truncated at word boundary with ellipsis
@@ -54,10 +62,13 @@ def generate_excerpt(text: str, length: int = 200) -> str:
     if not text:
         return ""
 
+    # Strip HTML first
+    text = strip_html(text)
+
     if len(text) <= length:
         return text
 
-    # Find last space before limit
+    # Find last space before limit (preserve word boundary)
     excerpt = text[:length].rsplit(" ", 1)[0]
     return excerpt + "..."
 

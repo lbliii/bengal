@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING
 
 from bengal.analysis.graph_analysis import GraphAnalyzer
 from bengal.analysis.graph_reporting import GraphReporter
+from bengal.utils.autodoc import is_autodoc_page
 from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
@@ -194,32 +195,6 @@ class KnowledgeGraph:
             orphans=self.metrics.orphan_count,
         )
 
-    def _is_autodoc_page(self, page: Page) -> bool:
-        """
-        Check if a page is an autodoc/API reference page that should be excluded.
-
-        Args:
-            page: Page to check
-
-        Returns:
-            True if page should be excluded from analysis
-        """
-        if not self.exclude_autodoc:
-            return False
-
-        # Check metadata types
-        page_type = page.metadata.get("type", "")
-        if page_type in ("api-reference", "python-module", "cli-reference"):
-            return True
-
-        # Check for autodoc markers
-        if page.metadata.get("_api_doc") is not None:
-            return True
-
-        # Check if path is under /api/ directory
-        path_str = str(page.source_path)
-        return "/api/" in path_str or path_str.endswith("/api")
-
     def get_analysis_pages(self) -> list[Page]:
         """
         Get list of pages to analyze, excluding autodoc pages if configured.
@@ -230,7 +205,7 @@ class KnowledgeGraph:
         if not self.exclude_autodoc:
             return list(self.site.pages)
 
-        return [p for p in self.site.pages if not self._is_autodoc_page(p)]
+        return [p for p in self.site.pages if not is_autodoc_page(p)]
 
     def _ensure_links_extracted(self) -> None:
         """
