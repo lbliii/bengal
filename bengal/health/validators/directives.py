@@ -446,20 +446,36 @@ class DirectiveValidator(BaseValidator):
                 if self._is_inside_colon_directive(content, char_pos):
                     continue
 
-                # Check if this closes a code block
+                # Check if this closes a code block FIRST (before checking nesting)
                 # In markdown: ```language opens a new block, ``` (no language) closes a block
+                if not language:
+                    # This is a closing fence
+                    if stack:
+                        # Check if it matches the top of stack
+                        top_line, top_length, top_lang = stack[-1]
+                        if fence_length == top_length:
+                            # Matches - closes the top block
+                            stack.pop()
+                            continue  # Skip rest of logic - this was a closing fence
+                        elif fence_length > top_length:
+                            # Longer fence might close a parent (unusual but handle it)
+                            stack.pop()
+                            continue  # Skip rest of logic - this was a closing fence
+                        # If length doesn't match, it's an orphaned closing fence - ignore it
+                    # If stack is empty, this is an orphaned closing fence - ignore it
+                    continue
+
+                # Now handle opening fences (has language)
                 if stack:
                     top_line, top_length, top_lang = stack[-1]
 
-                    # If this is a closing fence (no language) and length matches, it closes the top block
-                    if not language and fence_length == top_length:
-                        stack.pop()
-                    # If fence length is longer, it might close a parent (but this is unusual)
-                    elif fence_length > top_length:
-                        # This shouldn't happen with code blocks, but handle it
-                        stack.pop()
-                    # If this is an opening fence (has language) and length matches parent, it's nested with same length = PROBLEM
-                    elif language and fence_length == top_length:
+                    # If this is an opening fence (has language) and length matches parent, check if it's actually nested
+                    # A block is only nested if the previous block hasn't been closed (i.e., we haven't seen its closing fence)
+                    # Since we process lines sequentially, if we see an opening fence while another is on the stack,
+                    # it means the previous block is still open, so this is nested.
+                    # However, we should only flag it as nested if the previous block is actually still open.
+                    # If the stack entry is from a much earlier line, it might be an unclosed block, not a parent.
+                    if language and fence_length == top_length:
                         warnings.append(
                             {
                                 "page": file_path,

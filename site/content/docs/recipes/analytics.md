@@ -25,9 +25,9 @@ After this recipe, you'll have:
 
 ## Choose Your Provider
 
-::::{tab-set}
+:::::{tab-set}
 
-:::{tab-item} Plausible (Recommended)
+::::{tab-item} Plausible (Recommended)
 **Privacy-friendly, no cookies, GDPR compliant out of the box.**
 
 ### 1. Get Your Script
@@ -64,9 +64,9 @@ In `bengal.toml`:
 [analytics]
 plausible = "yourdomain.com"
 ```
-:::
+::::
 
-:::{tab-item} Fathom
+::::{tab-item} Fathom
 **Privacy-focused, simple analytics.**
 
 ### 1. Get Your Site ID
@@ -103,9 +103,9 @@ In `bengal.toml`:
 [analytics]
 fathom = "ABCDEFGH"  # Your Fathom site ID
 ```
-:::
+::::
 
-:::{tab-item} Google Analytics
+::::{tab-item} Google Analytics
 **Full-featured, free, requires cookie consent for GDPR.**
 
 ### 1. Get Your Measurement ID
@@ -149,9 +149,9 @@ google = "G-XXXXXXXXXX"  # Your GA4 Measurement ID
 :::{warning}
 Google Analytics requires cookie consent in the EU. Consider using a cookie consent banner or switching to Plausible/Fathom for simpler compliance.
 :::
-:::
-
 ::::
+
+:::::
 
 ## Done
 
