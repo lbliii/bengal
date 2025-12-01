@@ -108,8 +108,28 @@
   --font-family-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code',
     'SF Mono', 'Consolas', 'Monaco', 'Menlo', 'Courier New', monospace;
 
-  /* Default font */
+  /**
+   * Display/Heading font - Optional distinctive typeface for h1/h2/hero text.
+   * 
+   * Default: Same as body (system sans) for zero load cost.
+   * 
+   * To use a custom heading font, override in your site's CSS or via theme config:
+   * 
+   *   --font-family-display: 'Instrument Serif', Georgia, serif;
+   *   --font-family-display: 'Fraunces', Georgia, serif;
+   *   --font-family-display: 'DM Serif Display', Georgia, serif;
+   * 
+   * Recommended fonts (all OFL licensed, available via Google Fonts):
+   *   - Instrument Serif: Refined, modern (~25KB)
+   *   - Fraunces: Soft, optical sizing (~35KB variable)
+   *   - DM Serif Display: Classic, bold (~15KB)
+   *   - Newsreader: Editorial clarity (~30KB)
+   */
+  --font-family-display: var(--font-family-sans);
+
+  /* Default fonts */
   --font-family-base: var(--font-family-sans);
+  --font-family-heading: var(--font-family-display);
 }
 
 /* ============================================

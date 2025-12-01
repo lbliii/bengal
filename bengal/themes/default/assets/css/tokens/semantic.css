@@ -187,6 +187,12 @@
   --font-sans: var(--font-family-sans);
   --font-serif: var(--font-family-serif);
   --font-mono: var(--font-family-mono);
+  
+  /* Display/Heading Fonts - For distinctive heading typography */
+  --font-display: var(--font-family-display);
+  --font-heading: var(--font-family-heading);
+  --font-heading-display: var(--font-family-display);  /* h1, hero text */
+  --font-heading-section: var(--font-family-heading);  /* h2-h4 */
 
   /* Font Sizes - Reference new typography tokens */
   --text-xs: var(--font-size-xs);

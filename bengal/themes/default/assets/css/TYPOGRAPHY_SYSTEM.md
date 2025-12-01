@@ -98,6 +98,8 @@ h6 → --tracking-wide     (0.025em)  Wide for uppercase treatment
 | `--font-family-sans` | System stack | Body text, UI |
 | `--font-family-serif` | Georgia, Cambria... | Editorial content |
 | `--font-family-mono` | JetBrains Mono, Fira Code... | Code blocks |
+| `--font-family-display` | Defaults to sans | h1, hero text (customizable) |
+| `--font-family-heading` | Defaults to display | h2-h4 section headings |
 
 **Code Font Priority:**
 
@@ -114,6 +116,34 @@ The monospace stack prioritizes modern developer fonts with ligature support:
 ```
 
 Developers who install JetBrains Mono or Fira Code will see their preferred font by default.
+
+**Custom Heading Fonts:**
+
+To add a distinctive heading font, override `--font-family-display` in your site's CSS:
+
+```css
+:root {
+  /* Option 1: Elegant serif for headings */
+  --font-family-display: 'Instrument Serif', Georgia, serif;
+  
+  /* Option 2: Modern editorial */
+  --font-family-display: 'Fraunces', Georgia, serif;
+  
+  /* Option 3: Classic display */
+  --font-family-display: 'DM Serif Display', Georgia, serif;
+}
+```
+
+**Recommended Fonts** (all OFL licensed, Google Fonts):
+
+| Font | Character | Load Cost | Best For |
+|------|-----------|-----------|----------|
+| Instrument Serif | Refined, modern | ~25KB | Premium docs |
+| Fraunces | Soft, optical | ~35KB | Friendly technical |
+| DM Serif Display | Classic, bold | ~15KB | Traditional reference |
+| Newsreader | Editorial | ~30KB | Long-form content |
+
+**Note**: Default is system sans (zero load cost). Custom fonts require loading via Google Fonts or self-hosting.
 
 ## Usage
 
@@ -170,6 +200,12 @@ Always use semantic tokens:
 - `--tracking-tight` (moderate, for h3/h4)
 - `--tracking-normal` (default, for body/h5)
 - `--tracking-wide`, `--tracking-wider` (for uppercase/small caps)
+
+**Font Families (Semantic):**
+- `--font-sans`, `--font-serif`, `--font-mono` (base stacks)
+- `--font-display` (for h1, hero text - customizable)
+- `--font-heading` (for h2-h4 section headers)
+- `--font-heading-display`, `--font-heading-section` (role-specific)
 
 ## Migration Guide
 

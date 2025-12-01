@@ -29,6 +29,10 @@ body {
    HEADINGS
    ============================================ 
    
+   Font families:
+   - h1, h2: Use --font-heading (defaults to body, can be overridden)
+   - h3-h6: Use inherited body font
+   
    Tracking gradient: Larger headings get tighter tracking
    for improved visual cohesion at display sizes.
    
@@ -51,6 +55,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 h1 {
+  font-family: var(--font-heading-display);
   font-size: var(--text-h1);
   font-weight: var(--weight-extrabold);
   line-height: var(--leading-heading);
@@ -60,6 +65,7 @@ h1 {
 }
 
 h2 {
+  font-family: var(--font-heading-section);
   font-size: var(--text-h2);
   font-weight: var(--weight-bold);
   letter-spacing: var(--tracking-tighter);

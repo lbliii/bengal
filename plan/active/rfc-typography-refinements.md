@@ -228,18 +228,18 @@ For sites wanting full typographic control.
 
 **Commit**: `d9323809`
 
-### Phase 2: Optional Heading Font (Future)
+### Phase 2: Optional Heading Font ✅ IMPLEMENTED (Partial)
 
-| Task | File | Effort |
+| Task | File | Status |
 |------|------|--------|
-| 2.1 | Add `--font-family-display` token | `tokens/typography.css` | 5 min |
-| 2.2 | Add semantic heading font tokens | `tokens/semantic.css` | 10 min |
-| 2.3 | Update h1/h2 to use heading font | `base/typography.css` | 10 min |
-| 2.4 | Add theme config for font loading | `config/` | 30 min |
-| 2.5 | Add font preload injection | `rendering/` | 45 min |
-| 2.6 | Document font configuration | `site/content/` | 20 min |
+| 2.1 | Add `--font-family-display` token | `tokens/typography.css` | ✅ Done |
+| 2.2 | Add semantic heading font tokens | `tokens/semantic.css` | ✅ Done |
+| 2.3 | Update h1/h2 to use heading font | `base/typography.css` | ✅ Done |
+| 2.4 | Add theme config for font loading | `config/` | 🔮 Future |
+| 2.5 | Add font preload injection | `rendering/` | 🔮 Future |
+| 2.6 | Document font configuration | `TYPOGRAPHY_SYSTEM.md` | ✅ Done |
 
-**Total**: ~2 hours
+**Note**: Core tokens and CSS implemented. Theme config integration (2.4, 2.5) deferred to future sprint.
 
 ### Phase 3: Alternative Body Stacks (Future)
 
