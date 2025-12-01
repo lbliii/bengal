@@ -27,11 +27,13 @@
 
   const CONFIG = {
     indexUrl: null, // computed from meta tag when available
+    prebuiltIndexUrl: null, // search-index.json (pre-built Lunr)
     minQueryLength: 2,
     maxResults: 50,
     excerptLength: 150,
     highlightClass: 'search-highlight',
     debounceDelay: 200,
+    usePrebuilt: true, // Prefer pre-built index if available
   };
 
   // ====================================
@@ -54,7 +56,30 @@
   // ====================================
 
   /**
-   * Load search index from index.json
+   * Resolve base URL from meta tag
+   */
+  function resolveBaseUrl() {
+    let baseurl = '';
+    try {
+      const m = document.querySelector('meta[name="bengal:baseurl"]');
+      baseurl = (m && m.getAttribute('content')) || '';
+    } catch (e) { /* no-op */ }
+    return baseurl.replace(/\/$/, '');
+  }
+
+  /**
+   * Build URL with baseurl prefix
+   */
+  function buildIndexUrl(filename, baseurl) {
+    let url = '/' + filename;
+    if (baseurl) {
+      url = baseurl + url;
+    }
+    return url;
+  }
+
+  /**
+   * Load search index - prefers pre-built index, falls back to runtime building
    */
   async function loadSearchIndex() {
     if (isIndexLoaded || isIndexLoading) return;
@@ -62,90 +87,23 @@
     isIndexLoading = true;
 
     try {
-      // Resolve baseurl from meta tag if present
-      let baseurl = '';
-      try {
-        const m = document.querySelector('meta[name="bengal:baseurl"]');
-        baseurl = (m && m.getAttribute('content')) || '';
-      } catch (e) { /* no-op */ }
+      const baseurl = resolveBaseUrl();
 
-      // Prefer explicit meta index URL first
-      let indexUrl = '';
-      try {
-        const m2 = document.querySelector('meta[name="bengal:index_url"]');
-        indexUrl = (m2 && m2.getAttribute('content')) || '';
-      } catch (e) { /* no-op */ }
-
-      if (!indexUrl) {
-        indexUrl = '/index.json';
-        if (baseurl) {
-          baseurl = baseurl.replace(/\/$/, '');
-          // Ensure leading slash on indexUrl
-          indexUrl = indexUrl.startsWith('/') ? indexUrl : ('/' + indexUrl);
-          indexUrl = baseurl + indexUrl;
+      // Try loading pre-built Lunr index first (faster)
+      if (CONFIG.usePrebuilt) {
+        const prebuiltLoaded = await tryLoadPrebuiltIndex(baseurl);
+        if (prebuiltLoaded) {
+          isIndexLoaded = true;
+          isIndexLoading = false;
+          return;
         }
       }
 
-      const response = await fetch(indexUrl);
-      if (!response.ok) {
-        throw new Error(`Failed to load search index: ${response.status}`);
-      }
-
-      const data = await response.json();
-      
-      // Validate data structure
-      if (!data || typeof data !== 'object') {
-        throw new Error('Invalid search index: expected object, got ' + typeof data);
-      }
-      
-      if (!Array.isArray(data.pages)) {
-        throw new Error('Invalid search index: missing or invalid "pages" array. Got: ' + typeof data.pages);
-      }
-      
-      searchData = data;
-
-      // Build Lunr index
-      searchIndex = lunr(function () {
-        // Configure reference field (use objectID if available, fallback to url)
-        this.ref('objectID');
-
-        // Configure fields with boost values (inspired by Algolia/MiloDoc weighting)
-        this.field('title', { boost: 10 });
-        this.field('description', { boost: 5 });
-        this.field('content', { boost: 1 });
-        this.field('tags', { boost: 3 });
-        this.field('section', { boost: 2 });
-        this.field('author', { boost: 2 });
-        this.field('search_keywords', { boost: 8 });
-        this.field('kind', { boost: 1 });  // Content type
-
-        // Add all pages to index (excluding those marked search_exclude)
-        data.pages.forEach(page => {
-          if (!page.search_exclude && !page.draft) {
-            this.add({
-              objectID: page.objectID || page.url,  // Use objectID for unique tracking
-              title: page.title || '',
-              description: page.description || '',
-              content: page.content || page.excerpt || '',
-              tags: (page.tags || []).join(' '),
-              section: page.section || '',
-              author: page.author || page.authors?.join(' ') || '',
-              search_keywords: (page.search_keywords || []).join(' '),
-              kind: page.kind || page.type || '',
-            });
-          }
-        });
-      });
+      // Fall back to loading index.json and building at runtime
+      await loadAndBuildRuntimeIndex(baseurl);
 
       isIndexLoaded = true;
       isIndexLoading = false;
-
-      log(`Search index loaded: ${data.pages.length} pages`);
-
-      // Dispatch event for other components
-      window.dispatchEvent(new CustomEvent('searchIndexLoaded', {
-        detail: { pages: data.pages.length }
-      }));
 
     } catch (error) {
       console.error('Failed to load search index:', error);
@@ -156,6 +114,146 @@
         detail: { error: error.message }
       }));
     }
+  }
+
+  /**
+   * Try loading pre-built Lunr index (search-index.json)
+   * Returns true if successful, false to fall back to runtime building
+   */
+  async function tryLoadPrebuiltIndex(baseurl) {
+    try {
+      // Prefer explicit meta tag URL (handles i18n, custom paths)
+      let prebuiltUrl = '';
+      try {
+        const m = document.querySelector('meta[name="bengal:search_index_url"]');
+        prebuiltUrl = (m && m.getAttribute('content')) || '';
+      } catch (e) { /* no-op */ }
+
+      // Fall back to constructing URL from baseurl
+      if (!prebuiltUrl) {
+        prebuiltUrl = buildIndexUrl('search-index.json', baseurl);
+      }
+
+      const response = await fetch(prebuiltUrl);
+
+      if (!response.ok) {
+        log('Pre-built index not found, falling back to runtime build');
+        return false;
+      }
+
+      const prebuiltData = await response.json();
+
+      // Load pre-built index using lunr.Index.load()
+      if (typeof lunr === 'undefined' || !lunr.Index) {
+        log('Lunr.js not available for pre-built index');
+        return false;
+      }
+
+      searchIndex = lunr.Index.load(prebuiltData);
+
+      // Still need to load index.json for page data (pre-built index only has search index)
+      const indexUrl = buildIndexUrl('index.json', baseurl);
+      const dataResponse = await fetch(indexUrl);
+
+      if (!dataResponse.ok) {
+        throw new Error(`Failed to load page data: ${dataResponse.status}`);
+      }
+
+      const data = await dataResponse.json();
+
+      if (!data || !Array.isArray(data.pages)) {
+        throw new Error('Invalid page data structure');
+      }
+
+      searchData = data;
+
+      log(`Search index loaded (pre-built): ${data.pages.length} pages`);
+
+      // Dispatch event for other components
+      window.dispatchEvent(new CustomEvent('searchIndexLoaded', {
+        detail: { pages: data.pages.length, prebuilt: true }
+      }));
+
+      return true;
+
+    } catch (error) {
+      log('Pre-built index load failed, falling back to runtime build:', error.message);
+      return false;
+    }
+  }
+
+  /**
+   * Load index.json and build Lunr index at runtime (fallback)
+   */
+  async function loadAndBuildRuntimeIndex(baseurl) {
+    // Prefer explicit meta index URL first
+    let indexUrl = '';
+    try {
+      const m2 = document.querySelector('meta[name="bengal:index_url"]');
+      indexUrl = (m2 && m2.getAttribute('content')) || '';
+    } catch (e) { /* no-op */ }
+
+    if (!indexUrl) {
+      indexUrl = buildIndexUrl('index.json', baseurl);
+    }
+
+    const response = await fetch(indexUrl);
+    if (!response.ok) {
+      throw new Error(`Failed to load search index: ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    // Validate data structure
+    if (!data || typeof data !== 'object') {
+      throw new Error('Invalid search index: expected object, got ' + typeof data);
+    }
+
+    if (!Array.isArray(data.pages)) {
+      throw new Error('Invalid search index: missing or invalid "pages" array. Got: ' + typeof data.pages);
+    }
+
+    searchData = data;
+
+    // Build Lunr index at runtime
+    searchIndex = lunr(function () {
+      // Configure reference field (use objectID if available, fallback to url)
+      this.ref('objectID');
+
+      // Configure fields with boost values (inspired by Algolia/MiloDoc weighting)
+      this.field('title', { boost: 10 });
+      this.field('description', { boost: 5 });
+      this.field('content', { boost: 1 });
+      this.field('tags', { boost: 3 });
+      this.field('section', { boost: 2 });
+      this.field('author', { boost: 2 });
+      this.field('search_keywords', { boost: 8 });
+      this.field('kind', { boost: 1 });  // Content type
+
+      // Add all pages to index (excluding those marked search_exclude)
+      data.pages.forEach(page => {
+        if (!page.search_exclude && !page.draft) {
+          this.add({
+            objectID: page.objectID || page.url,  // Use objectID for unique tracking
+            title: page.title || '',
+            description: page.description || '',
+            content: page.content || page.excerpt || '',
+            tags: (page.tags || []).join(' '),
+            section: page.section || '',
+            author: page.author || page.authors?.join(' ') || '',
+            search_keywords: (page.search_keywords || []).join(' '),
+            kind: page.kind || page.type || '',
+          });
+        }
+      });
+    });
+
+    log(`Search index loaded (runtime): ${data.pages.length} pages`);
+
+    // Dispatch event for other components
+    window.dispatchEvent(new CustomEvent('searchIndexLoaded', {
+      detail: { pages: data.pages.length, prebuilt: false }
+    }));
   }
 
   // ====================================

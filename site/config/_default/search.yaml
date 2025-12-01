@@ -1,0 +1,29 @@
+# Search Configuration
+# ====================
+# Controls client-side search behavior and index generation.
+
+search:
+  enabled: true  # Enable search functionality
+
+  # Lunr.js settings (client-side search engine)
+  lunr:
+    prebuilt: true          # Pre-build Lunr index at build time for faster search
+    min_query_length: 2     # Minimum characters to trigger search
+    max_results: 50         # Maximum results to display
+
+    # Index preloading strategy:
+    #   - immediate: Load index on page load
+    #   - smart: Load on first user interaction (hover/focus)
+    #   - lazy: Load only when search is triggered
+    preload: smart
+
+  # UI settings (for future modal implementation)
+  ui:
+    modal: false             # Enable Cmd+K modal (Phase 2)
+    recent_searches: 5       # Number of recent searches to store
+    placeholder: "Search documentation..."
+
+  # Optional analytics hooks (no external dependencies)
+  analytics:
+    enabled: false
+    event_endpoint: null     # POST target for custom instrumentation
