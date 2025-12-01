@@ -377,8 +377,11 @@ a.button {
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Ensure minimum touch targets on mobile for CTA/content buttons */
-/* Note: Icon-only buttons (toggle, close, etc.) handle their own sizing */
+/* Ensure minimum touch targets on mobile for CTA/content buttons (WCAG 2.5.5) */
+/* Uses .button/.btn classes (not bare <button>) because:
+   - CTA/content buttons need 44px minimum for accessibility
+   - Icon-only buttons (toggle, close, etc.) handle their own sizing via specific classes
+   - Bare <button> elements in forms use browser defaults or form-specific styles */
 @media (max-width: 768px) {
 
   .button,

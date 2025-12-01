@@ -16,6 +16,7 @@ Example:
 
 from __future__ import annotations
 
+import errno
 import sys
 import time
 from collections.abc import Generator
@@ -96,6 +97,7 @@ def _acquire_lock(
     start_time = time.monotonic()
     retry_interval = 0.1  # Start with 100ms retries
     max_retry_interval = 1.0  # Cap at 1 second
+    last_log_second = 0  # Track last logged second to log once per second
 
     while True:
         try:
@@ -109,8 +111,10 @@ def _acquire_lock(
                     "Another build process may be running."
                 ) from err
 
-            # Log contention (but not on every retry)
-            if elapsed > 1.0 and int(elapsed) == int(elapsed):  # Log once per second
+            # Log contention once per second (not on every retry)
+            current_second = int(elapsed)
+            if current_second > last_log_second:
+                last_log_second = current_second
                 logger.debug(
                     "lock_contention",
                     lock_path=str(lock_path),
@@ -161,8 +165,8 @@ def _lock_unix(lock_file, exclusive: bool, blocking: bool) -> None:
     try:
         fcntl.flock(lock_file.fileno(), lock_type)
     except OSError as e:
-        # EAGAIN (11) or EWOULDBLOCK indicates lock is held
-        if e.errno in (11, 35):  # EAGAIN on Linux, EWOULDBLOCK on macOS
+        # EAGAIN or EWOULDBLOCK indicates lock is held by another process
+        if e.errno in (errno.EAGAIN, errno.EWOULDBLOCK):
             raise BlockingIOError(f"Lock is held by another process: {e}") from e
         raise
 
