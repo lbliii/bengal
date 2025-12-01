@@ -75,6 +75,18 @@
      LETTER SPACING (Foundation)
      ============================================ */
   
+  /**
+   * Tracking scale for optical adjustment at different sizes.
+   * Larger type needs tighter tracking for visual cohesion.
+   * 
+   * display: -0.04em  (40px+ display/hero text)
+   * tighter: -0.05em  (h1/h2 headings)
+   * tight:   -0.025em (h3/h4 headings)
+   * normal:  0        (body text, h5/h6)
+   * wide+:   positive (uppercase, small caps)
+   */
+  
+  --letter-spacing-display: -0.04em;
   --letter-spacing-tighter: -0.05em;
   --letter-spacing-tight: -0.025em;
   --letter-spacing-normal: 0;
@@ -92,8 +104,9 @@
   
   --font-family-serif: Georgia, Cambria, 'Times New Roman', Times, serif;
   
-  --font-family-mono: 'Consolas', 'Monaco', 'SF Mono', 'JetBrains Mono',
-    'Fira Code', 'Cascadia Code', 'Courier New', monospace;
+  /* Code fonts: Prioritize modern developer fonts with ligature support */
+  --font-family-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code',
+    'SF Mono', 'Consolas', 'Monaco', 'Menlo', 'Courier New', monospace;
 
   /* Default font */
   --font-family-base: var(--font-family-sans);

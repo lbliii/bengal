@@ -27,13 +27,23 @@ body {
 
 /* ============================================
    HEADINGS
-   ============================================ */
+   ============================================ 
+   
+   Tracking gradient: Larger headings get tighter tracking
+   for improved visual cohesion at display sizes.
+   
+   h1:      --tracking-display  (-0.04em) - display/hero
+   h2:      --tracking-tighter  (-0.05em) - section headers
+   h3, h4:  --tracking-tight    (-0.025em) - subsections
+   h5, h6:  --tracking-normal   (0) - body-adjacent
+   
+   Exception: h6 uses uppercase with --tracking-wide
+*/
 
 h1, h2, h3, h4, h5, h6 {
   font-weight: var(--weight-heading);
   line-height: var(--leading-heading);
   color: var(--color-text-primary);
-  letter-spacing: var(--tracking-tight);
   scroll-margin-top: var(--space-20);
   /* Prevent long words from overflowing on mobile */
   overflow-wrap: break-word;
@@ -44,7 +54,7 @@ h1 {
   font-size: var(--text-h1);
   font-weight: var(--weight-extrabold);
   line-height: var(--leading-heading);
-  letter-spacing: var(--tracking-tighter);
+  letter-spacing: var(--tracking-display);
   margin-top: 0;
   margin-bottom: 0.75rem;
 }
@@ -52,7 +62,7 @@ h1 {
 h2 {
   font-size: var(--text-h2);
   font-weight: var(--weight-bold);
-  letter-spacing: var(--tracking-tight);
+  letter-spacing: var(--tracking-tighter);
   margin-top: 1.75em;
   margin-bottom: 0.5em;
   padding-bottom: 0.375rem;
@@ -62,6 +72,7 @@ h2 {
 h3 {
   font-size: var(--text-h3);
   font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-tight);
   margin-top: 1.5em;
   margin-bottom: 0.5em;
 }
@@ -69,6 +80,7 @@ h3 {
 h4 {
   font-size: var(--text-h4);
   font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-tight);
   margin-top: 1.25em;
   margin-bottom: 0.5em;
 }
@@ -76,6 +88,7 @@ h4 {
 h5 {
   font-size: var(--text-h5);
   font-weight: var(--weight-medium);
+  letter-spacing: var(--tracking-normal);
   margin-top: 1.25em;
   margin-bottom: 0.5em;
 }
@@ -674,8 +687,8 @@ dd {
 .text-2xl { font-size: var(--text-h4); }
 .text-3xl { font-size: var(--text-h3); }
 .text-4xl { font-size: var(--text-h2); }
-.text-5xl { font-size: var(--text-h1); }
-.text-6xl { font-size: var(--text-display); }
+.text-5xl { font-size: var(--text-h1); letter-spacing: var(--tracking-display); }
+.text-6xl { font-size: var(--text-display); letter-spacing: var(--tracking-display); }
 
 /* Font Weights */
 .font-light { font-weight: var(--weight-light); }
@@ -716,6 +729,7 @@ dd {
 .no-underline { text-decoration: none; }
 
 /* Letter Spacing */
+.tracking-display { letter-spacing: var(--tracking-display); }
 .tracking-tighter { letter-spacing: var(--tracking-tighter); }
 .tracking-tight { letter-spacing: var(--tracking-tight); }
 .tracking-normal { letter-spacing: var(--tracking-normal); }
