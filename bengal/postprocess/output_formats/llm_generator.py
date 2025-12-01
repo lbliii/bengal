@@ -136,6 +136,7 @@ class SiteLlmTxtGenerator:
                 if existing == content:
                     return
         except Exception:
+            # If we can't read existing file, proceed to write new content
             pass
 
         with AtomicFile(path, "w", encoding="utf-8") as f:

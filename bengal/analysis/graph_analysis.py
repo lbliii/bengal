@@ -157,7 +157,7 @@ class GraphAnalyzer:
         ]
 
         # Sort by connectivity (ascending)
-        leaves.sort(key=lambda p: self.get_connectivity_score(p))
+        leaves.sort(key=self.get_connectivity_score)
 
         return leaves
 
@@ -213,7 +213,7 @@ class GraphAnalyzer:
         # Sort all pages by connectivity (descending)
         sorted_pages = sorted(
             self._graph.site.pages,
-            key=lambda p: self.get_connectivity_score(p),
+            key=self.get_connectivity_score,
             reverse=True,
         )
 

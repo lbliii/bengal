@@ -82,6 +82,7 @@ def get_page_relative_url(page: Page, site: Any) -> str:
                 if isinstance(result, str):
                     return result
             except Exception:
+                # Ignore exceptions from relative_url() to allow fallback to other URL methods
                 pass
         elif isinstance(result := relative_url, str):
             return result
@@ -95,6 +96,7 @@ def get_page_relative_url(page: Page, site: Any) -> str:
                 if isinstance(result, str):
                     return result
             except Exception:
+                # Ignore exceptions from url() to allow fallback to other URL sources
                 pass
         elif isinstance(result := url, str):
             return result
@@ -117,6 +119,7 @@ def get_page_relative_url(page: Page, site: Any) -> str:
             url = url.replace("/index.html", "/")
             return url
     except ValueError:
+        # output_path is not relative to output_dir; fall back to slug-based URL below
         pass
 
     return f"/{getattr(page, 'slug', page.source_path.stem)}/"
