@@ -20,7 +20,8 @@ Progress Reporting:
 from tests._testing.progress import (
     TestProgressReporter,
     create_test_progress,
-    test_status,
+    progress_status,
+    test_status,  # Deprecated, kept for backward compatibility
 )
 
 __version__ = "1.0.0"
@@ -28,5 +29,6 @@ __version__ = "1.0.0"
 __all__ = [
     "TestProgressReporter",
     "create_test_progress",
-    "test_status",
+    "progress_status",
+    "test_status",  # Deprecated
 ]

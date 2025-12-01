@@ -22,9 +22,9 @@ from __future__ import annotations
 
 import sys
 import time
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass, field
-from typing import Callable, Iterator
 
 
 @dataclass
@@ -190,9 +190,7 @@ class TestProgressReporter:
                 )
 
 
-def create_test_progress(
-    verbose: bool | None = None, prefix: str = ""
-) -> TestProgressReporter:
+def create_test_progress(verbose: bool | None = None, prefix: str = "") -> TestProgressReporter:
     """
     Create a test progress reporter.
 
@@ -216,7 +214,7 @@ def create_test_progress(
 
 
 # Convenience function for quick status updates
-def test_status(message: str, done: bool = False) -> None:
+def progress_status(message: str, done: bool = False) -> None:
     """
     Quick status message during tests (always prints to stderr).
 
@@ -225,3 +223,15 @@ def test_status(message: str, done: bool = False) -> None:
     indicator = "✓" if done else "→"
     print(f"  {indicator} {message}", file=sys.stderr, flush=True)
 
+
+# Backward compatibility alias (deprecated, use progress_status instead)
+def test_status(message: str, done: bool = False) -> None:
+    """Deprecated: Use progress_status instead."""
+    import warnings
+
+    warnings.warn(
+        "test_status is deprecated, use progress_status instead",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    progress_status(message, done)

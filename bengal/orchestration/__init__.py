@@ -22,17 +22,19 @@ Usage:
     stats = orchestrator.build(parallel=True, incremental=True)
 """
 
-
 from __future__ import annotations
 
 from bengal.orchestration.asset import AssetOrchestrator
-from bengal.orchestration.build import BuildOrchestrator
 from bengal.orchestration.content import ContentOrchestrator
 from bengal.orchestration.incremental import IncrementalOrchestrator
 from bengal.orchestration.menu import MenuOrchestrator
 from bengal.orchestration.postprocess import PostprocessOrchestrator
 from bengal.orchestration.render import RenderOrchestrator
 from bengal.orchestration.taxonomy import TaxonomyOrchestrator
+
+# Import BuildOrchestrator using relative import to avoid circular import
+# (build/__init__.py imports from other orchestration modules)
+from .build import BuildOrchestrator
 
 __all__ = [
     "AssetOrchestrator",
