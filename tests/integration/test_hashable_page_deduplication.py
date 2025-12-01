@@ -20,7 +20,8 @@ class TestPageDeduplicationInBuilds:
         Test that generated pages are automatically deduplicated when
         added to pages_to_build during incremental builds.
 
-        This tests the optimization in BuildOrchestrator (build/content.py phase_update_pages_list).
+        This tests the optimization in BuildOrchestrator._phase_update_pages_list
+        (implemented in build/content.py phase_update_pages_list).
 
         Note: This uses set operations which provide O(1) lookup vs O(n) for lists.
         The performance benefit is validated by real-world usage, not timing tests.

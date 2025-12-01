@@ -99,7 +99,7 @@ The build pipeline consists of **21 phases**, each extracted into a focused meth
 | 9 | `_phase_menus` | Builds hierarchical navigation menus |
 | 10 | `_phase_related_posts` | Pre-computes related posts for O(1) template access |
 | 11 | `_phase_query_indexes` | Builds query indexes for fast lookups |
-| 12 | `_phase_update_pages_list` | Adds generated taxonomy pages to rebuild set |
+| 12 | `_phase_update_pages_list` | Updates the list of pages to include generated taxonomy pages |
 
 #### Rendering (Phases 13-16)
 
@@ -163,8 +163,8 @@ This pattern provides:
 :::{tab-item} Build
 **BuildOrchestrator** (`build/` package)
 
-The main conductor. The `build()` method is a clean sequence of phase calls.
-- **21 phase methods** (`_phase_*`) organized into focused modules:
+The main conductor. The `build()` method is a clean sequence of phase calls that delegates to focused modules.
+- **21 phase methods** (`_phase_*`) implemented via delegation to focused modules:
   - `initialization.py`: Phases 1-5 (fonts, discovery, cache, config, filtering)
   - `content.py`: Phases 6-11 (sections, taxonomies, menus, indexes)
   - `rendering.py`: Phases 13-16 (assets, render, update pages, track assets)

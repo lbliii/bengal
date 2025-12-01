@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any
+from pathlib import Path
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from bengal.cache.build_cache import BuildCache
@@ -65,7 +66,7 @@ class BuildContext:
     # Incremental build state
     affected_tags: set[str] = field(default_factory=set)
     affected_sections: set[str] | None = None
-    changed_page_paths: set[Any] = field(default_factory=set)  # set[Path] but Any for typing
+    changed_page_paths: set[Path] = field(default_factory=set)
     config_changed: bool = False
 
     # Output/progress
