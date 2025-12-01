@@ -116,7 +116,9 @@ def get_breadcrumbs(page: Page) -> list[dict[str, Any]]:
         items.append({"title": "Home", "url": "/", "is_current": False})
         items.append({"title": "Tags", "url": "/tags/", "is_current": False})
         page_url = (
-            page.url if hasattr(page, "url") else f"/tags/{page.metadata.get('_tag_slug', '')}/"
+            page.relative_url
+            if hasattr(page, "relative_url")
+            else f"/tags/{page.metadata.get('_tag_slug', '')}/"
         )
         items.append({"title": tag_name, "url": page_url, "is_current": True})
         return items
@@ -127,15 +129,17 @@ def get_breadcrumbs(page: Page) -> list[dict[str, Any]]:
         # Check for actual string values, not just attribute existence
         has_title = hasattr(page, "title") and isinstance(getattr(page, "title", None), str)
         has_url = (
-            hasattr(page, "url")
-            and isinstance(getattr(page, "url", None), str)
-            and getattr(page, "url", "")
+            hasattr(page, "relative_url")
+            and isinstance(getattr(page, "relative_url", None), str)
+            and getattr(page, "relative_url", "")
         )
         if not (has_title and has_url):
             return []
         # If page has a title and URL, add Home and the page
         items.append({"title": "Home", "url": "/", "is_current": False})
-        page_url = page.url if hasattr(page, "url") else f"/{getattr(page, 'slug', '')}/"
+        page_url = (
+            page.relative_url if hasattr(page, "relative_url") else f"/{getattr(page, 'slug', '')}/"
+        )
         page_title = getattr(page, "title", None)
         if not page_title or not page_title.strip():
             # Derive title from slug or URL if title is empty
@@ -162,23 +166,27 @@ def get_breadcrumbs(page: Page) -> list[dict[str, Any]]:
     last_ancestor = reversed_ancestors[-1] if reversed_ancestors else None
     is_section_index = False
 
-    if last_ancestor and hasattr(page, "url"):
-        # Use url_for function from the ancestor if available
-        if hasattr(last_ancestor, "url"):
-            ancestor_url = last_ancestor.url
+    if last_ancestor and hasattr(page, "relative_url"):
+        # Use relative_url for comparison (without baseurl)
+        if hasattr(last_ancestor, "relative_url"):
+            ancestor_url = last_ancestor.relative_url
         else:
             # Fallback to slug-based URL
             ancestor_url = f"/{getattr(last_ancestor, 'slug', '')}/"
 
-        is_section_index = ancestor_url == page.url
+        is_section_index = ancestor_url == page.relative_url
 
     # Add all ancestors
     for i, ancestor in enumerate(reversed_ancestors):
         is_last = i == len(reversed_ancestors) - 1
         is_current_item = is_last and is_section_index
 
-        # Get ancestor URL
-        url = ancestor.url if hasattr(ancestor, "url") else f"/{getattr(ancestor, 'slug', '')}/"
+        # Get ancestor URL (relative, without baseurl - templates apply | absolute_url)
+        url = (
+            ancestor.relative_url
+            if hasattr(ancestor, "relative_url")
+            else f"/{getattr(ancestor, 'slug', '')}/"
+        )
 
         # Get title, handling empty strings
         ancestor_title = getattr(ancestor, "title", None)
@@ -206,7 +214,7 @@ def get_breadcrumbs(page: Page) -> list[dict[str, Any]]:
 
     # Only add the current page if it's not a section index
     if not is_section_index:
-        page_url = page.url if hasattr(page, "url") else f"/{page.slug}/"
+        page_url = page.relative_url if hasattr(page, "relative_url") else f"/{page.slug}/"
         page_title = getattr(page, "title", None)
         if not page_title or not page_title.strip():
             # Derive title from slug or URL if title is empty

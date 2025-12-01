@@ -47,11 +47,11 @@ output_dir = "public"
         # Create mock page with mock ancestors for breadcrumbs
         docs_section = Mock()
         docs_section.title = "Documentation"
-        docs_section.url = "/docs/"  # Relative URL (identity)
+        docs_section.relative_url = "/docs/"  # Relative URL (identity)
 
         page = Mock()
         page.title = "User Guide"
-        page.url = "/docs/guide/"  # Relative URL (identity)
+        page.relative_url = "/docs/guide/"  # Relative URL (identity)
         page.ancestors = [docs_section]
 
         # Render template with breadcrumbs macro
@@ -99,11 +99,11 @@ output_dir = "public"
         # Create mock page with ancestors
         section = Mock()
         section.title = "Documentation"
-        section.url = "/docs/"
+        section.relative_url = "/docs/"
 
         page = Mock()
         page.title = "User Guide"
-        page.url = "/docs/guide/"
+        page.relative_url = "/docs/guide/"
         page.ancestors = [section]
 
         template_str = """
@@ -171,9 +171,9 @@ output_dir = "public"
         assert "Privacy" in html or "Terms" in html, "Footer menu items should be present"
         if 'href="/privacy/"' in html or 'href="/terms/"' in html:
             # Check if baseurl is applied
-            assert (
-                'href="/blog/privacy/"' in html or 'href="/blog/terms/"' in html
-            ), "Footer links should have baseurl applied"
+            assert 'href="/blog/privacy/"' in html or 'href="/blog/terms/"' in html, (
+                "Footer links should have baseurl applied"
+            )
 
 
 class TestNavigationComponentsConsistency:
@@ -229,11 +229,11 @@ output_dir = "public"
         # Create mock page with breadcrumbs
         section = Mock()
         section.title = "Documentation"
-        section.url = "/docs/"
+        section.relative_url = "/docs/"
 
         page = Mock()
         page.title = "User Guide"
-        page.url = "/docs/guide/"
+        page.relative_url = "/docs/guide/"
         page.ancestors = [section]
 
         # Test breadcrumbs

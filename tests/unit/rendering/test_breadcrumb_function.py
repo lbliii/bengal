@@ -21,7 +21,7 @@ class TestGetBreadcrumbs:
 
     def test_no_ancestors_attribute_returns_empty(self):
         """Pages without ancestors attribute return empty list."""
-        page = Mock(spec=["title", "url"])
+        page = Mock(spec=["title", "relative_url"])
 
         result = get_breadcrumbs(page)
 
@@ -32,11 +32,11 @@ class TestGetBreadcrumbs:
         # Create mock ancestors
         docs_section = Mock()
         docs_section.title = "Docs"
-        docs_section.url = "/docs/"
+        docs_section.relative_url = "/docs/"
 
         page = Mock()
         page.ancestors = [docs_section]
-        page.url = "/docs/getting-started/"
+        page.relative_url = "/docs/getting-started/"
         page.title = "Getting Started"
 
         result = get_breadcrumbs(page)
@@ -55,15 +55,15 @@ class TestGetBreadcrumbs:
         # Create nested ancestors
         docs = Mock()
         docs.title = "Docs"
-        docs.url = "/docs/"
+        docs.relative_url = "/docs/"
 
         markdown = Mock()
         markdown.title = "Markdown"
-        markdown.url = "/docs/markdown/"
+        markdown.relative_url = "/docs/markdown/"
 
         page = Mock()
         page.ancestors = [markdown, docs]  # Closest ancestor first
-        page.url = "/docs/markdown/syntax/"
+        page.relative_url = "/docs/markdown/syntax/"
         page.title = "Syntax"
 
         result = get_breadcrumbs(page)
@@ -80,16 +80,16 @@ class TestGetBreadcrumbs:
         # Create section
         markdown = Mock()
         markdown.title = "Markdown"
-        markdown.url = "/docs/markdown/"
+        markdown.relative_url = "/docs/markdown/"
 
         docs = Mock()
         docs.title = "Docs"
-        docs.url = "/docs/"
+        docs.relative_url = "/docs/"
 
         # Page is the index of the markdown section
         page = Mock()
         page.ancestors = [markdown, docs]
-        page.url = "/docs/markdown/"  # Same URL as last ancestor
+        page.relative_url = "/docs/markdown/"  # Same URL as last ancestor
         page.title = "Markdown"
 
         result = get_breadcrumbs(page)
@@ -109,11 +109,11 @@ class TestGetBreadcrumbs:
         """All breadcrumb items have title, url, and is_current."""
         section = Mock()
         section.title = "Docs"
-        section.url = "/docs/"
+        section.relative_url = "/docs/"
 
         page = Mock()
         page.ancestors = [section]
-        page.url = "/docs/page/"
+        page.relative_url = "/docs/page/"
         page.title = "Page"
 
         result = get_breadcrumbs(page)
@@ -130,11 +130,11 @@ class TestGetBreadcrumbs:
         """Only the last breadcrumb item is marked as current."""
         section = Mock()
         section.title = "Docs"
-        section.url = "/docs/"
+        section.relative_url = "/docs/"
 
         page = Mock()
         page.ancestors = [section]
-        page.url = "/docs/page/"
+        page.relative_url = "/docs/page/"
         page.title = "Page"
 
         result = get_breadcrumbs(page)
@@ -147,16 +147,16 @@ class TestGetBreadcrumbs:
                 assert not item["is_current"]
 
     def test_ancestor_without_url_uses_slug(self):
-        """Ancestors without url property fall back to slug."""
+        """Ancestors without relative_url property fall back to slug."""
         section = Mock()
         section.title = "Docs"
         section.slug = "docs"
-        # No url attribute
-        del section.url
+        # No relative_url attribute
+        del section.relative_url
 
         page = Mock()
         page.ancestors = [section]
-        page.url = "/docs/page/"
+        page.relative_url = "/docs/page/"
         page.title = "Page"
 
         result = get_breadcrumbs(page)
@@ -167,13 +167,13 @@ class TestGetBreadcrumbs:
     def test_page_without_title_shows_untitled(self):
         """Pages without title show 'Untitled' when no slug or URL path available."""
         # Use spec to prevent Mock from auto-creating title attribute
-        section = Mock(spec=["url", "slug"])
-        section.url = "/"  # Root URL has empty url_parts, triggering "Untitled" fallback
+        section = Mock(spec=["relative_url", "slug"])
+        section.relative_url = "/"  # Root URL has empty url_parts, triggering "Untitled" fallback
         section.slug = None  # No slug either to trigger "Untitled"
 
         page = Mock()
         page.ancestors = [section]
-        page.url = "/page/"
+        page.relative_url = "/page/"
         page.title = "Page"
 
         result = get_breadcrumbs(page)
@@ -184,11 +184,11 @@ class TestGetBreadcrumbs:
         """Home is always the first breadcrumb."""
         section = Mock()
         section.title = "Docs"
-        section.url = "/docs/"
+        section.relative_url = "/docs/"
 
         page = Mock()
         page.ancestors = [section]
-        page.url = "/docs/page/"
+        page.relative_url = "/docs/page/"
         page.title = "Page"
 
         result = get_breadcrumbs(page)
