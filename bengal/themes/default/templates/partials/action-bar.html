@@ -9,6 +9,11 @@ Usage: {% include 'partials/action-bar.html' %}
 Requires: page object in context
 #}
 
+{# Macro: Get page URL with fallback chain for robustness #}
+{% macro get_page_url(page) -%}
+    {{ page.relative_url if page.relative_url is defined else (page.url if page.url is defined else '/') }}
+{%- endmacro %}
+
 {% if page %}
 <div class="action-bar-container">
     {# Main Action Bar #}
@@ -51,8 +56,7 @@ Requires: page object in context
             <div class="action-bar-actions">
                 {# LLM Share Button #}
                 {# Use relative_url for canonical_url (canonical_url adds baseurl) #}
-                {% set page_relative_url = page.relative_url if page.relative_url is defined else (page.url if page.url is defined else '/') %}
-                {% set page_url = canonical_url(page_relative_url) %}
+                {% set page_url = canonical_url(get_page_url(page)) %}
                 {% set llm_txt_url = ensure_trailing_slash(page_url) ~ 'index.txt' %}
                 {% set share_prompt = "Please help me understand this documentation: " + llm_txt_url %}
 

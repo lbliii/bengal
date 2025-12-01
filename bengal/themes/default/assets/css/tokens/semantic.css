@@ -496,6 +496,13 @@
 
 /* ============================================
    RESPONSIVE ICON SIZES
+   ============================================
+   
+   Note: Media queries must be at the top level in CSS (cannot be nested 
+   inside :root selector). The duplicate :root selectors inside media 
+   queries are intentional and follow standard CSS practices for 
+   responsive custom properties. This keeps responsive overrides grouped
+   separately from base definitions for better maintainability.
    ============================================ */
 
 /* Tablet breakpoint (max-width: 768px) - Slightly smaller */
