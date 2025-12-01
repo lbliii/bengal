@@ -188,4 +188,3 @@ Verify the Pagefind assets are being served:
 - [Pagefind Documentation](https://pagefind.app/docs/)
 - [Pagefind UI Options](https://pagefind.app/docs/ui/)
 - [Search Configuration](/docs/reference/architecture/tooling/config/#search)
-

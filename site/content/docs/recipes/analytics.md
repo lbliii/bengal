@@ -40,9 +40,9 @@ Create `templates/partials/analytics.html`:
 
 ```html
 {% if site.config.analytics.plausible %}
-<script 
-  defer 
-  data-domain="{{ site.config.analytics.plausible }}" 
+<script
+  defer
+  data-domain="{{ site.config.analytics.plausible }}"
   src="https://plausible.io/js/script.js">
 </script>
 {% endif %}
@@ -79,9 +79,9 @@ Create `templates/partials/analytics.html`:
 
 ```html
 {% if site.config.analytics.fathom %}
-<script 
-  src="https://cdn.usefathom.com/script.js" 
-  data-site="{{ site.config.analytics.fathom }}" 
+<script
+  src="https://cdn.usefathom.com/script.js"
+  data-site="{{ site.config.analytics.fathom }}"
   defer>
 </script>
 {% endif %}
@@ -202,4 +202,3 @@ analytics:
 - [Fathom Documentation](https://usefathom.com/docs)
 - [Google Analytics Setup](https://support.google.com/analytics/answer/9304153)
 - [Configuration Reference](/docs/reference/architecture/tooling/config/)
-

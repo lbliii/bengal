@@ -49,16 +49,16 @@ Create `netlify.toml` in your project root:
       connect-src 'self';
       frame-ancestors 'none';
     """
-    
+
     # Prevent clickjacking
     X-Frame-Options = "DENY"
-    
+
     # Prevent MIME sniffing
     X-Content-Type-Options = "nosniff"
-    
+
     # Control referrer
     Referrer-Policy = "strict-origin-when-cross-origin"
-    
+
     # Restrict browser features
     Permissions-Policy = "camera=(), microphone=(), geolocation=()"
 ```
@@ -238,10 +238,10 @@ Add security checks to your CI pipeline:
   run: |
     # Validate no sensitive patterns
     ! grep -r "API_KEY\|SECRET\|PASSWORD" public/
-    
+
     # Validate no drafts
     ! grep -r "draft-banner\|class=\"draft\"" public/
-    
+
     # Run Bengal validation
     bengal validate --strict
 ```
@@ -255,7 +255,7 @@ Add security checks to your CI pipeline:
 When loading external scripts, use SRI to verify integrity:
 
 ```html
-<script 
+<script
   src="https://cdn.example.com/lib.js"
   integrity="sha384-oqVuAfXRKap7fdgcCY5uykM6+R9GqQ8K/uxh..."
   crossorigin="anonymous">
@@ -430,4 +430,3 @@ We'll respond within 48 hours and work with you on a fix before public disclosur
 - [CI/CD Setup](/docs/guides/ci-cd-setup/)
 - [Configuration Reference](/docs/reference/architecture/tooling/config/)
 - [Mozilla Observatory](https://observatory.mozilla.org/) — Test your site's security headers
-

@@ -38,4 +38,3 @@ Implemented comprehensive integration tests for the tracks feature.
 ## Related Plans
 
 - Original: `plan/active/tracks-testing-and-robustness.md` (deleted)
-

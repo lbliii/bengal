@@ -224,7 +224,7 @@ no_format: true                        # Skip HTML formatting
 ```jinja2
 <nav>
   {% for item in site.menus.main | sort(attribute='weight') %}
-    <a href="{{ item.url }}" 
+    <a href="{{ item.url }}"
        {% if page.url == item.url %}class="active"{% endif %}>
       {{ item.name }}
     </a>
@@ -367,4 +367,3 @@ weight = 2
 - [Full CLI Reference](/cli/) — All commands and options
 - [Template Functions](/docs/reference/template-functions/) — All template helpers
 - [Configuration Reference](/docs/reference/architecture/tooling/config/) — All config options
-

@@ -22,7 +22,7 @@ These are deliberate choices, not missing features.
 
 Bengal generates static HTML at build time. There's no runtime server processing requests.
 
-**Implication**: 
+**Implication**:
 - No per-request dynamic content
 - No server-side authentication
 - No personalization based on user state
@@ -185,7 +185,7 @@ These are intentional scope boundaries. We won't add these features.
 
 Bengal is code-first. There's no visual editor, admin panel, or GUI for content management.
 
-**Why?**: 
+**Why?**:
 - GUIs add complexity and maintenance burden
 - Developers prefer code and version control
 - Many excellent headless CMS options exist (if you need one)
@@ -251,4 +251,3 @@ Bengal is for developers who write Markdown in text editors. It's not a WordPres
 - [Comparison with Other SSGs](/docs/about/comparison/)
 - [Performance Benchmarks](/docs/about/benchmarks/)
 - [FAQ](/docs/about/faq/)
-

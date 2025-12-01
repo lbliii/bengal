@@ -9,8 +9,6 @@ from __future__ import annotations
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 
 class TestEmptySitemap:
     """Tests for empty sitemap handling."""
@@ -160,4 +158,3 @@ class TestEmptyRSS:
         # Verify it contains the page
         content = rss_path.read_text()
         assert "Test Post" in content
-

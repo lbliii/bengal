@@ -235,7 +235,7 @@ Filters can be chained for powerful queries:
 
 ```jinja2
 {# Recent Python tutorials, sorted by date #}
-{% set result = site.pages 
+{% set result = site.pages
   | where('category', 'tutorial')
   | where('tags', 'python', 'in')
   | where('draft', false)
@@ -366,4 +366,3 @@ Bengal's template functions are designed for easy migration from Hugo. Here's ho
 | `union(list2)` | Combine lists | `list1 \| union(list2)` |
 | `intersect(list2)` | Common items | `list1 \| intersect(list2)` |
 | `complement(list2)` | Difference | `list1 \| complement(list2)` |
-

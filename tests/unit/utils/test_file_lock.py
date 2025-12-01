@@ -6,18 +6,14 @@ Tests concurrent access safety for the build cache.
 
 from __future__ import annotations
 
-import multiprocessing
 import os
-import tempfile
 import threading
 import time
 from pathlib import Path
-from unittest.mock import patch
 
 import pytest
 
 from bengal.utils.file_lock import (
-    DEFAULT_LOCK_TIMEOUT,
     LockAcquisitionError,
     file_lock,
     is_locked,
@@ -123,9 +119,11 @@ class TestFileLock:
         lock_held.wait(timeout=5)
 
         # Try to acquire with short timeout - should fail
-        with pytest.raises(LockAcquisitionError) as exc_info:
-            with file_lock(test_file, exclusive=True, timeout=0.5):
-                pass
+        with (
+            pytest.raises(LockAcquisitionError) as exc_info,
+            file_lock(test_file, exclusive=True, timeout=0.5),
+        ):
+            pass
 
         assert "Could not acquire lock" in str(exc_info.value)
 
@@ -300,9 +298,9 @@ class TestBuildCacheWithLocking:
         loaded = BuildCache.load(cache_path, use_lock=True)
         assert loaded is not None
         # Last writer's data should be present
-        assert any(
-            f"file_{i}.md" in loaded.file_hashes for i in range(5)
-        ), "At least one write should persist"
+        assert any(f"file_{i}.md" in loaded.file_hashes for i in range(5)), (
+            "At least one write should persist"
+        )
 
     def test_cache_lock_prevents_corruption_during_read(self, tmp_path: Path) -> None:
         """Test that reads during writes get consistent data."""
@@ -352,4 +350,3 @@ class TestBuildCacheWithLocking:
         # Result should be valid (either old or new, not corrupted)
         result = read_results[0]
         assert isinstance(result, BuildCache)
-

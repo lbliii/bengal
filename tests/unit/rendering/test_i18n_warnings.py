@@ -7,8 +7,6 @@ from __future__ import annotations
 from pathlib import Path
 from unittest.mock import patch
 
-import pytest
-
 
 class TestI18nMissingTranslationWarning:
     """Tests for missing translation key warnings."""
@@ -144,4 +142,3 @@ class TestI18nMissingTranslationWarning:
 
             # Should NOT log warning
             mock_logger.debug.assert_not_called()
-

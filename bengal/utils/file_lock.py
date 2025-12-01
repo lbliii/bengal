@@ -9,7 +9,6 @@ On Windows: Uses msvcrt.locking()
 
 Example:
     >>> from bengal.utils.file_lock import file_lock
-    >>> 
     >>> with file_lock(cache_path, exclusive=True):
     ...     # Safely read/write cache
     ...     cache.save(cache_path)
@@ -17,12 +16,11 @@ Example:
 
 from __future__ import annotations
 
-import os
 import sys
 import time
+from collections.abc import Generator
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Generator
 
 from bengal.utils.logger import get_logger
 
@@ -43,7 +41,7 @@ def file_lock(
     path: Path,
     exclusive: bool = True,
     timeout: float = DEFAULT_LOCK_TIMEOUT,
-) -> Generator[None, None, None]:
+) -> Generator[None]:
     """
     Context manager for file locking.
 
@@ -71,14 +69,10 @@ def file_lock(
     lock_path.parent.mkdir(parents=True, exist_ok=True)
 
     # Open lock file (create if doesn't exist)
-    lock_file = open(lock_path, "w")
-
-    try:
+    with open(lock_path, "w") as lock_file:
         _acquire_lock(lock_file, exclusive, timeout, lock_path)
         yield
-    finally:
         _release_lock(lock_file)
-        lock_file.close()
 
 
 def _acquire_lock(
@@ -107,13 +101,13 @@ def _acquire_lock(
         try:
             _try_lock_nonblocking(lock_file, exclusive)
             return  # Lock acquired!
-        except BlockingIOError:
+        except BlockingIOError as err:
             elapsed = time.monotonic() - start_time
             if elapsed >= timeout:
                 raise LockAcquisitionError(
                     f"Could not acquire lock on {lock_path} after {timeout}s. "
                     "Another build process may be running."
-                )
+                ) from err
 
             # Log contention (but not on every retry)
             if elapsed > 1.0 and int(elapsed) == int(elapsed):  # Log once per second
@@ -169,7 +163,7 @@ def _lock_unix(lock_file, exclusive: bool, blocking: bool) -> None:
     except OSError as e:
         # EAGAIN (11) or EWOULDBLOCK indicates lock is held
         if e.errno in (11, 35):  # EAGAIN on Linux, EWOULDBLOCK on macOS
-            raise BlockingIOError(f"Lock is held by another process: {e}")
+            raise BlockingIOError(f"Lock is held by another process: {e}") from e
         raise
 
 
@@ -197,7 +191,7 @@ def _lock_windows(lock_file, exclusive: bool, blocking: bool) -> None:
         msvcrt.locking(lock_file.fileno(), lock_mode, 1)
     except OSError as e:
         if e.errno == 36:  # EDEADLOCK - resource busy
-            raise BlockingIOError(f"Lock is held by another process: {e}")
+            raise BlockingIOError(f"Lock is held by another process: {e}") from e
         raise
 
 
@@ -216,12 +210,11 @@ def _release_lock(lock_file) -> None:
 
 def _unlock_unix(lock_file) -> None:
     """Release Unix/macOS lock."""
+    import contextlib
     import fcntl
 
-    try:
+    with contextlib.suppress(OSError):
         fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
-    except OSError:
-        pass  # Ignore unlock errors
 
 
 def _unlock_windows(lock_file) -> None:
@@ -251,16 +244,13 @@ def is_locked(path: Path) -> bool:
         return False
 
     try:
-        lock_file = open(lock_path, "w")
-        try:
+        with open(lock_path, "w") as lock_file:
             _try_lock_nonblocking(lock_file, exclusive=True)
             # Successfully acquired lock, so it wasn't locked
             _release_lock(lock_file)
             return False
-        except BlockingIOError:
-            return True
-        finally:
-            lock_file.close()
+    except BlockingIOError:
+        return True
     except OSError:
         # Can't open lock file, assume not locked
         return False
@@ -299,4 +289,3 @@ def remove_stale_lock(path: Path, max_age_seconds: float = 3600) -> bool:
         pass
 
     return False
-

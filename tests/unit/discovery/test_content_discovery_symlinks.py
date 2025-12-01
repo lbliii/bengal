@@ -10,7 +10,6 @@ Tests that content discovery:
 from __future__ import annotations
 
 import os
-from pathlib import Path
 
 import pytest
 
@@ -122,12 +121,8 @@ class TestSymlinkLoopDetection:
         for i in range(3):
             section_dir = temp_content_dir / f"section{i}"
             section_dir.mkdir()
-            (section_dir / "_index.md").write_text(
-                f"---\ntitle: Section {i}\n---\n# Section {i}"
-            )
-            (section_dir / "page.md").write_text(
-                f"---\ntitle: Page in Section {i}\n---\n# Page"
-            )
+            (section_dir / "_index.md").write_text(f"---\ntitle: Section {i}\n---\n# Section {i}")
+            (section_dir / "page.md").write_text(f"---\ntitle: Page in Section {i}\n---\n# Page")
 
         discovery = ContentDiscovery(temp_content_dir)
         sections, pages = discovery.discover()
@@ -179,4 +174,3 @@ class TestPermissionErrorHandling:
         finally:
             # Restore permission for cleanup
             no_access.chmod(0o755)
-
