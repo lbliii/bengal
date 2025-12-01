@@ -1,6 +1,6 @@
 # RFC: Typography Refinements for Bengal Theme
 
-**Status**: Phase 1 Implemented  
+**Status**: Phase 1 & 2 Implemented  
 **Author**: Typography Review  
 **Created**: 2024-12-01  
 **Priority**: Medium  
@@ -228,18 +228,35 @@ For sites wanting full typographic control.
 
 **Commit**: `d9323809`
 
-### Phase 2: Optional Heading Font ✅ IMPLEMENTED (Partial)
+### Phase 2: Optional Heading Font ✅ FULLY IMPLEMENTED
 
 | Task | File | Status |
 |------|------|--------|
 | 2.1 | Add `--font-family-display` token | `tokens/typography.css` | ✅ Done |
 | 2.2 | Add semantic heading font tokens | `tokens/semantic.css` | ✅ Done |
 | 2.3 | Update h1/h2 to use heading font | `base/typography.css` | ✅ Done |
-| 2.4 | Add theme config for font loading | `config/` | 🔮 Future |
-| 2.5 | Add font preload injection | `rendering/` | 🔮 Future |
+| 2.4 | Connect to existing font system | `tokens/typography.css` | ✅ Done |
+| 2.5 | Font preload injection | N/A | ✅ Already exists! |
 | 2.6 | Document font configuration | `TYPOGRAPHY_SYSTEM.md` | ✅ Done |
 
-**Note**: Core tokens and CSS implemented. Theme config integration (2.4, 2.5) deferred to future sprint.
+**Discovery**: Bengal already has a complete font system (`bengal/fonts/`):
+- Reads `[fonts]` section from `bengal.toml`
+- Downloads fonts from Google Fonts
+- Generates `fonts.css` with `@font-face` rules
+- Creates CSS variables (`--font-{name}`)
+- Base template already loads `fonts.css` when configured
+
+**Integration**: Updated `--font-family-display` to use CSS variable fallback:
+```css
+--font-family-display: var(--font-display, var(--font-family-sans));
+```
+
+**Usage**:
+```toml
+# bengal.toml
+[fonts]
+display = "Instrument Serif:400,700"
+```
 
 ### Phase 3: Alternative Body Stacks (Future)
 

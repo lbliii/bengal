@@ -119,31 +119,48 @@ Developers who install JetBrains Mono or Fira Code will see their preferred font
 
 **Custom Heading Fonts:**
 
-To add a distinctive heading font, override `--font-family-display` in your site's CSS:
+**Option 1: Configure in bengal.toml (Recommended)**
+
+The easiest way to add custom heading fonts is via Bengal's built-in font system:
+
+```toml
+# bengal.toml
+[fonts]
+display = "Instrument Serif:400,700"
+```
+
+This automatically:
+- Downloads the font from Google Fonts during build
+- Generates `@font-face` rules in `fonts.css`
+- Creates `--font-display` CSS variable
+- Connects to `--font-family-display` token
+
+**Option 2: Override in Custom CSS**
+
+For self-hosted fonts or more control:
 
 ```css
 :root {
-  /* Option 1: Elegant serif for headings */
+  /* Elegant serif for headings */
   --font-family-display: 'Instrument Serif', Georgia, serif;
-  
-  /* Option 2: Modern editorial */
-  --font-family-display: 'Fraunces', Georgia, serif;
-  
-  /* Option 3: Classic display */
-  --font-family-display: 'DM Serif Display', Georgia, serif;
 }
 ```
 
 **Recommended Fonts** (all OFL licensed, Google Fonts):
 
-| Font | Character | Load Cost | Best For |
-|------|-----------|-----------|----------|
-| Instrument Serif | Refined, modern | ~25KB | Premium docs |
-| Fraunces | Soft, optical | ~35KB | Friendly technical |
-| DM Serif Display | Classic, bold | ~15KB | Traditional reference |
-| Newsreader | Editorial | ~30KB | Long-form content |
+| Font | bengal.toml Config | Load Cost | Best For |
+|------|-------------------|-----------|----------|
+| Instrument Serif | `display = "Instrument Serif:400,700"` | ~25KB | Premium docs |
+| Fraunces | `display = "Fraunces:400,700"` | ~35KB | Friendly technical |
+| DM Serif Display | `display = "DM Serif Display:700"` | ~15KB | Traditional reference |
+| Newsreader | `display = "Newsreader:400,700"` | ~30KB | Long-form content |
 
-**Note**: Default is system sans (zero load cost). Custom fonts require loading via Google Fonts or self-hosting.
+**Fallback Chain:**
+```
+--font-display (from bengal.toml) → --font-family-sans (system fonts)
+```
+
+**Note**: Default is system sans (zero load cost). Custom fonts add load time but provide visual identity.
 
 ## Usage
 
