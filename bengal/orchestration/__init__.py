@@ -32,10 +32,6 @@ from bengal.orchestration.postprocess import PostprocessOrchestrator
 from bengal.orchestration.render import RenderOrchestrator
 from bengal.orchestration.taxonomy import TaxonomyOrchestrator
 
-# Import BuildOrchestrator using relative import to avoid circular import
-# (build/__init__.py imports from other orchestration modules)
-from .build import BuildOrchestrator
-
 __all__ = [
     "AssetOrchestrator",
     "BuildOrchestrator",
@@ -46,3 +42,13 @@ __all__ = [
     "RenderOrchestrator",
     "TaxonomyOrchestrator",
 ]
+
+
+# Lazy import BuildOrchestrator to avoid circular import
+# (build/__init__.py imports from other orchestration modules)
+def __getattr__(name: str):
+    if name == "BuildOrchestrator":
+        from bengal.orchestration.build import BuildOrchestrator
+
+        return BuildOrchestrator
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
