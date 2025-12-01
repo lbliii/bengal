@@ -227,285 +227,36 @@ class BuildOrchestrator:
         # Phase 12: Update Pages List (add generated taxonomy pages)
         pages_to_build = self._phase_update_pages_list(incremental, pages_to_build, affected_tags)
 
-        # Phase 13: Process Assets (MOVED BEFORE RENDERING)
-        # Assets must be processed first so asset_url() can find fingerprinted files
-        with self.logger.phase("assets", asset_count=len(assets_to_process), parallel=parallel):
-            assets_start = time.time()
+        # Phase 13: Process Assets
+        assets_to_process = self._phase_assets(cli, incremental, parallel, assets_to_process)
 
-            # CRITICAL FIX: On incremental builds, if no assets changed, still need to ensure
-            # theme assets are in output. This handles the case where assets directory doesn't
-            # exist yet (e.g., first incremental build after initial setup)
-            if incremental and not assets_to_process and self.site.theme:
-                # Check if theme has assets
-                from bengal.orchestration.content import ContentOrchestrator
+        # Phase 14: Render Pages
+        ctx = self._phase_render(
+            cli, incremental, parallel, quiet, verbose, memory_optimized,
+            pages_to_build, tracker, profile, progress_manager, reporter
+        )
 
-                co = ContentOrchestrator(self.site)
-                theme_dir = co._get_theme_assets_dir()
-                if theme_dir and theme_dir.exists():
-                    # Check if output/assets directory was populated
-                    output_assets = self.site.output_dir / "assets"
-                    if not output_assets.exists() or len(list(output_assets.rglob("*"))) < 5:
-                        # Theme assets not in output - re-process all assets
-                        assets_to_process = self.site.assets
+        # Phase 15: Update Site Pages (replace proxies with rendered pages)
+        self._phase_update_site_pages(incremental, pages_to_build)
 
-            self.assets.process(assets_to_process, parallel=parallel, progress_manager=None)
-            self.stats.assets_time_ms = (time.time() - assets_start) * 1000
+        # Phase 16: Track Asset Dependencies
+        self._phase_track_assets(pages_to_build)
 
-            # Show phase completion
-            cli.phase("Assets", duration_ms=self.stats.assets_time_ms)
+        # Phase 17: Post-processing
+        self._phase_postprocess(cli, parallel, ctx, incremental)
 
-            self.logger.info("assets_complete", assets_processed=len(assets_to_process))
+        # Phase 18: Save Cache
+        self._phase_cache_save(pages_to_build, assets_to_process)
 
-        # Phase 8: Render Pages (MOVED AFTER ASSETS)
-        # quiet mode: suppress progress when --quiet flag is used (unless verbose overrides)
-        quiet_mode = quiet and not verbose
+        # Phase 19: Collect Final Stats
+        self._phase_collect_stats(build_start)
 
-        # Rendering phase header removed - phases are now shown via progress manager or final summary
-        with self.logger.phase(
-            "rendering",
-            page_count=len(pages_to_build),
-            parallel=parallel,
-            memory_optimized=memory_optimized,
-        ):
-            rendering_start = time.time()
-
-            # Use memory-optimized streaming if requested
-            if memory_optimized:
-                from bengal.orchestration.streaming import StreamingRenderOrchestrator
-                from bengal.utils.build_context import BuildContext
-
-                streaming_render = StreamingRenderOrchestrator(self.site)
-                # Prepare context (future use)
-                ctx = BuildContext(
-                    site=self.site,
-                    pages=pages_to_build,
-                    tracker=tracker,
-                    stats=self.stats,
-                    profile=profile,
-                    progress_manager=progress_manager,
-                    reporter=reporter,
-                )
-                streaming_render.process(
-                    pages_to_build,
-                    parallel=parallel,
-                    quiet=quiet_mode,
-                    tracker=tracker,
-                    stats=self.stats,
-                    progress_manager=progress_manager,
-                    reporter=reporter,
-                    build_context=ctx,
-                )
-            else:
-                from bengal.utils.build_context import BuildContext
-
-                # Prepare context (future use)
-                ctx = BuildContext(
-                    site=self.site,
-                    pages=pages_to_build,
-                    tracker=tracker,
-                    stats=self.stats,
-                    profile=profile,
-                    progress_manager=progress_manager,
-                    reporter=reporter,
-                )
-                # Keep existing API while threading context in progressively
-                self.render.process(
-                    pages_to_build,
-                    parallel=parallel,
-                    quiet=quiet_mode,
-                    tracker=tracker,
-                    stats=self.stats,
-                    progress_manager=progress_manager,
-                    reporter=reporter,
-                    build_context=ctx,
-                )
-
-            self.stats.rendering_time_ms = (time.time() - rendering_start) * 1000
-
-            # Show phase completion with page count
-            page_count = len(pages_to_build)
-            cli.phase(
-                "Rendering", duration_ms=self.stats.rendering_time_ms, details=f"{page_count} pages"
-            )
-
-            self.logger.info(
-                "rendering_complete",
-                pages_rendered=len(pages_to_build),
-                errors=len(self.stats.template_errors)
-                if hasattr(self.stats, "template_errors")
-                else 0,
-                memory_optimized=memory_optimized,
-            )
-
-        # Print rendering summary in quiet mode
-        if quiet_mode:
-            self._print_rendering_summary()
-
-        # Phase 8.4: Update site.pages with freshly rendered pages (incremental builds)
-        # During incremental builds, site.pages contains stale PageProxy objects.
-        # Replace them with the freshly rendered Page objects so postprocessing sees updated content.
-        if incremental and pages_to_build:
-            # Create a mapping of source_path -> rendered page
-            rendered_map = {page.source_path: page for page in pages_to_build}
-
-            # Replace stale proxies with fresh pages
-            updated_pages = []
-            for page in self.site.pages:
-                if page.source_path in rendered_map:
-                    # Use the freshly rendered page
-                    updated_pages.append(rendered_map[page.source_path])
-                else:
-                    # Keep the existing page (proxy or unchanged)
-                    updated_pages.append(page)
-
-            self.site.pages = updated_pages
-
-            # Log composition for debugging (helps troubleshoot incremental issues)
-            if self.logger.level.value <= 10:  # DEBUG level
-                page_types = {"Page": 0, "PageProxy": 0, "other": 0}
-                for p in self.site.pages:
-                    ptype = type(p).__name__
-                    if ptype == "Page":
-                        page_types["Page"] += 1
-                    elif ptype == "PageProxy":
-                        page_types["PageProxy"] += 1
-                    else:
-                        page_types["other"] += 1
-
-                self.logger.debug(
-                    "site_pages_composition_before_postprocess",
-                    fresh_pages=page_types["Page"],
-                    cached_proxies=page_types["PageProxy"],
-                    total_pages=len(self.site.pages),
-                )
-            else:
-                self.logger.debug(
-                    "site_pages_updated_after_render",
-                    fresh_pages=len(rendered_map),
-                    total_pages=len(self.site.pages),
-                )
-
-        # Phase 8.5: Track Asset Dependencies (Phase 2b - Step 2)
-        # Extract and cache which assets each rendered page references
-        with self.logger.phase("track_assets", enabled=True):
-            try:
-                from bengal.cache.asset_dependency_map import AssetDependencyMap
-                from bengal.rendering.asset_extractor import extract_assets_from_html
-
-                asset_map = AssetDependencyMap(self.site.root_path / ".bengal" / "asset_deps.json")
-
-                # Extract assets from rendered pages
-                for page in pages_to_build:
-                    if page.rendered_html:
-                        # Extract asset references from the rendered HTML
-                        assets = extract_assets_from_html(page.rendered_html)
-
-                        if assets:
-                            # Track page-to-assets mapping
-                            asset_map.track_page_assets(page.source_path, assets)
-
-                # Persist asset dependencies to disk
-                asset_map.save_to_disk()
-
-                self.logger.info(
-                    "asset_dependencies_tracked",
-                    pages_with_assets=len(asset_map.pages),
-                    unique_assets=len(asset_map.get_all_assets()),
-                )
-            except Exception as e:
-                self.logger.warning(
-                    "asset_tracking_failed",
-                    error=str(e),
-                )
-
-        # Phase 9: Post-processing
-        with self.logger.phase("postprocessing", parallel=parallel):
-            postprocess_start = time.time()
-
-            # Count postprocess tasks
-            postprocess_task_count = 0
-            if self.site.config.get("generate_sitemap", True):
-                postprocess_task_count += 1
-            if self.site.config.get("generate_rss", True):
-                postprocess_task_count += 1
-            if self.site.config.get("output_formats", {}).get("enabled", True):
-                postprocess_task_count += 1
-            if self.site.config.get("validate_links", True):
-                postprocess_task_count += 1
-            postprocess_task_count += 1  # special pages always run
-
-            self.postprocess.run(
-                parallel=parallel,
-                progress_manager=None,
-                build_context=ctx,
-                incremental=incremental,
-            )
-
-            self.stats.postprocess_time_ms = (time.time() - postprocess_start) * 1000
-
-            # Show phase completion
-            cli.phase("Post-process", duration_ms=self.stats.postprocess_time_ms)
-
-            self.logger.info("postprocessing_complete")
-
-        # Phase 9: Update cache
-        # Always save cache after successful build (needed for future incremental builds)
-        with self.logger.phase("cache_save"):
-            self.incremental.save_cache(pages_to_build, assets_to_process)
-            self.logger.info("cache_saved")
-
-        # Collect final stats (before health check so we can include them in report)
-        self.stats.total_pages = len(self.site.pages)
-        self.stats.regular_pages = len(self.site.regular_pages)
-        self.stats.generated_pages = len(self.site.generated_pages)
-        self.stats.total_assets = len(self.site.assets)
-        self.stats.total_sections = len(self.site.sections)
-        self.stats.taxonomies_count = sum(len(terms) for terms in self.site.taxonomies.values())
-        self.stats.build_time_ms = (time.time() - build_start) * 1000
-
-        # Store stats for health check validators to access
-        self.site._last_build_stats = {
-            "build_time_ms": self.stats.build_time_ms,
-            "rendering_time_ms": self.stats.rendering_time_ms,
-            "total_pages": self.stats.total_pages,
-            "total_assets": self.stats.total_assets,
-        }
-
-        # Phase 10: Health Check (with profile filtering)
+        # Phase 20: Health Check
         with self.logger.phase("health_check"):
             self._run_health_check(profile=profile)
 
-        # Collect memory metrics and save performance data (if enabled by profile)
-        if collector:
-            self.stats = collector.end_build(self.stats)
-            collector.save(self.stats)
-
-        # Log build completion
-        log_data = {
-            "duration_ms": self.stats.build_time_ms,
-            "total_pages": self.stats.total_pages,
-            "total_assets": self.stats.total_assets,
-            "success": True,
-        }
-
-        # Only add memory metrics if they were collected
-        if self.stats.memory_rss_mb > 0:
-            log_data["memory_rss_mb"] = self.stats.memory_rss_mb
-            log_data["memory_heap_mb"] = self.stats.memory_heap_mb
-
-        self.logger.info("build_complete", **log_data)
-
-        # Restore normal logger console output if we suppressed it
-        if not verbose:
-            set_console_quiet(False)
-
-        # Log Pygments cache statistics (performance monitoring)
-        try:
-            from bengal.rendering.pygments_cache import log_cache_stats
-
-            log_cache_stats()
-        except ImportError:
-            pass  # Cache not used
+        # Phase 21: Finalize Build
+        self._phase_finalize(verbose, collector)
 
         return self.stats
 
@@ -1288,3 +1039,376 @@ class BuildOrchestrator:
 
         # Convert back to list for rendering (preserves compatibility)
         return list(pages_to_build_set)
+
+    def _phase_assets(
+        self, cli, incremental: bool, parallel: bool, assets_to_process: list
+    ) -> list:
+        """
+        Phase 13: Process Assets.
+
+        Processes assets (copy, minify, fingerprint) before rendering so asset_url() works.
+
+        Args:
+            cli: CLI output for user messages
+            incremental: Whether this is an incremental build
+            parallel: Whether to use parallel processing
+            assets_to_process: List of assets to process
+
+        Returns:
+            Updated assets_to_process list (may be expanded if theme assets need processing)
+
+        Side effects:
+            - Copies/processes assets to output directory
+            - Updates self.stats.assets_time_ms
+        """
+        with self.logger.phase("assets", asset_count=len(assets_to_process), parallel=parallel):
+            assets_start = time.time()
+
+            # CRITICAL FIX: On incremental builds, if no assets changed, still need to ensure
+            # theme assets are in output. This handles the case where assets directory doesn't
+            # exist yet (e.g., first incremental build after initial setup)
+            if incremental and not assets_to_process and self.site.theme:
+                # Check if theme has assets
+                from bengal.orchestration.content import ContentOrchestrator
+
+                co = ContentOrchestrator(self.site)
+                theme_dir = co._get_theme_assets_dir()
+                if theme_dir and theme_dir.exists():
+                    # Check if output/assets directory was populated
+                    output_assets = self.site.output_dir / "assets"
+                    if not output_assets.exists() or len(list(output_assets.rglob("*"))) < 5:
+                        # Theme assets not in output - re-process all assets
+                        assets_to_process = self.site.assets
+
+            self.assets.process(assets_to_process, parallel=parallel, progress_manager=None)
+            self.stats.assets_time_ms = (time.time() - assets_start) * 1000
+
+            # Show phase completion
+            cli.phase("Assets", duration_ms=self.stats.assets_time_ms)
+
+            self.logger.info("assets_complete", assets_processed=len(assets_to_process))
+
+        return assets_to_process
+
+    def _phase_render(
+        self,
+        cli,
+        incremental: bool,
+        parallel: bool,
+        quiet: bool,
+        verbose: bool,
+        memory_optimized: bool,
+        pages_to_build: list,
+        tracker,
+        profile,
+        progress_manager,
+        reporter,
+    ):
+        """
+        Phase 14: Render Pages.
+
+        Renders all pages to HTML using templates.
+
+        Args:
+            cli: CLI output for user messages
+            incremental: Whether this is an incremental build
+            parallel: Whether to use parallel processing
+            quiet: Whether quiet mode is enabled
+            verbose: Whether verbose mode is enabled
+            memory_optimized: Whether to use streaming render
+            pages_to_build: List of pages to render
+            tracker: Dependency tracker
+            profile: Build profile
+            progress_manager: Progress manager
+            reporter: Progress reporter
+
+        Returns:
+            BuildContext used for rendering (needed by postprocess)
+
+        Side effects:
+            - Renders pages to HTML
+            - Updates self.stats.rendering_time_ms
+        """
+        quiet_mode = quiet and not verbose
+
+        with self.logger.phase(
+            "rendering",
+            page_count=len(pages_to_build),
+            parallel=parallel,
+            memory_optimized=memory_optimized,
+        ):
+            rendering_start = time.time()
+
+            # Use memory-optimized streaming if requested
+            if memory_optimized:
+                from bengal.orchestration.streaming import StreamingRenderOrchestrator
+                from bengal.utils.build_context import BuildContext
+
+                streaming_render = StreamingRenderOrchestrator(self.site)
+                ctx = BuildContext(
+                    site=self.site,
+                    pages=pages_to_build,
+                    tracker=tracker,
+                    stats=self.stats,
+                    profile=profile,
+                    progress_manager=progress_manager,
+                    reporter=reporter,
+                )
+                streaming_render.process(
+                    pages_to_build,
+                    parallel=parallel,
+                    quiet=quiet_mode,
+                    tracker=tracker,
+                    stats=self.stats,
+                    progress_manager=progress_manager,
+                    reporter=reporter,
+                    build_context=ctx,
+                )
+            else:
+                from bengal.utils.build_context import BuildContext
+
+                ctx = BuildContext(
+                    site=self.site,
+                    pages=pages_to_build,
+                    tracker=tracker,
+                    stats=self.stats,
+                    profile=profile,
+                    progress_manager=progress_manager,
+                    reporter=reporter,
+                )
+                self.render.process(
+                    pages_to_build,
+                    parallel=parallel,
+                    quiet=quiet_mode,
+                    tracker=tracker,
+                    stats=self.stats,
+                    progress_manager=progress_manager,
+                    reporter=reporter,
+                    build_context=ctx,
+                )
+
+            self.stats.rendering_time_ms = (time.time() - rendering_start) * 1000
+
+            # Show phase completion with page count
+            page_count = len(pages_to_build)
+            cli.phase(
+                "Rendering", duration_ms=self.stats.rendering_time_ms, details=f"{page_count} pages"
+            )
+
+            self.logger.info(
+                "rendering_complete",
+                pages_rendered=len(pages_to_build),
+                errors=len(self.stats.template_errors)
+                if hasattr(self.stats, "template_errors")
+                else 0,
+                memory_optimized=memory_optimized,
+            )
+
+        # Print rendering summary in quiet mode
+        if quiet_mode:
+            self._print_rendering_summary()
+
+        return ctx
+
+    def _phase_update_site_pages(self, incremental: bool, pages_to_build: list) -> None:
+        """
+        Phase 15: Update Site Pages.
+
+        Updates site.pages with freshly rendered pages (for incremental builds).
+        Replaces stale PageProxy objects with rendered Page objects.
+
+        Args:
+            incremental: Whether this is an incremental build
+            pages_to_build: List of freshly rendered pages
+        """
+        if incremental and pages_to_build:
+            # Create a mapping of source_path -> rendered page
+            rendered_map = {page.source_path: page for page in pages_to_build}
+
+            # Replace stale proxies with fresh pages
+            updated_pages = []
+            for page in self.site.pages:
+                if page.source_path in rendered_map:
+                    # Use the freshly rendered page
+                    updated_pages.append(rendered_map[page.source_path])
+                else:
+                    # Keep the existing page (proxy or unchanged)
+                    updated_pages.append(page)
+
+            self.site.pages = updated_pages
+
+            # Log composition for debugging (helps troubleshoot incremental issues)
+            if self.logger.level.value <= 10:  # DEBUG level
+                page_types = {"Page": 0, "PageProxy": 0, "other": 0}
+                for p in self.site.pages:
+                    ptype = type(p).__name__
+                    if ptype == "Page":
+                        page_types["Page"] += 1
+                    elif ptype == "PageProxy":
+                        page_types["PageProxy"] += 1
+                    else:
+                        page_types["other"] += 1
+
+                self.logger.debug(
+                    "site_pages_composition_before_postprocess",
+                    fresh_pages=page_types["Page"],
+                    cached_proxies=page_types["PageProxy"],
+                    total_pages=len(self.site.pages),
+                )
+            else:
+                self.logger.debug(
+                    "site_pages_updated_after_render",
+                    fresh_pages=len(rendered_map),
+                    total_pages=len(self.site.pages),
+                )
+
+    def _phase_track_assets(self, pages_to_build: list) -> None:
+        """
+        Phase 16: Track Asset Dependencies.
+
+        Extracts and caches which assets each rendered page references.
+        Used for incremental builds to invalidate pages when assets change.
+
+        Args:
+            pages_to_build: List of rendered pages
+        """
+        with self.logger.phase("track_assets", enabled=True):
+            try:
+                from bengal.cache.asset_dependency_map import AssetDependencyMap
+                from bengal.rendering.asset_extractor import extract_assets_from_html
+
+                asset_map = AssetDependencyMap(self.site.root_path / ".bengal" / "asset_deps.json")
+
+                # Extract assets from rendered pages
+                for page in pages_to_build:
+                    if page.rendered_html:
+                        # Extract asset references from the rendered HTML
+                        assets = extract_assets_from_html(page.rendered_html)
+
+                        if assets:
+                            # Track page-to-assets mapping
+                            asset_map.track_page_assets(page.source_path, assets)
+
+                # Persist asset dependencies to disk
+                asset_map.save_to_disk()
+
+                self.logger.info(
+                    "asset_dependencies_tracked",
+                    pages_with_assets=len(asset_map.pages),
+                    unique_assets=len(asset_map.get_all_assets()),
+                )
+            except Exception as e:
+                self.logger.warning(
+                    "asset_tracking_failed",
+                    error=str(e),
+                )
+
+    def _phase_postprocess(self, cli, parallel: bool, ctx, incremental: bool) -> None:
+        """
+        Phase 17: Post-processing.
+
+        Runs post-build tasks: sitemap, RSS, output formats, validation.
+
+        Args:
+            cli: CLI output for user messages
+            parallel: Whether to use parallel processing
+            ctx: Build context
+            incremental: Whether this is an incremental build
+        """
+        with self.logger.phase("postprocessing", parallel=parallel):
+            postprocess_start = time.time()
+
+            self.postprocess.run(
+                parallel=parallel,
+                progress_manager=None,
+                build_context=ctx,
+                incremental=incremental,
+            )
+
+            self.stats.postprocess_time_ms = (time.time() - postprocess_start) * 1000
+
+            # Show phase completion
+            cli.phase("Post-process", duration_ms=self.stats.postprocess_time_ms)
+
+            self.logger.info("postprocessing_complete")
+
+    def _phase_cache_save(self, pages_to_build: list, assets_to_process: list) -> None:
+        """
+        Phase 18: Save Cache.
+
+        Saves build cache for future incremental builds.
+
+        Args:
+            pages_to_build: Pages that were built
+            assets_to_process: Assets that were processed
+        """
+        with self.logger.phase("cache_save"):
+            self.incremental.save_cache(pages_to_build, assets_to_process)
+            self.logger.info("cache_saved")
+
+    def _phase_collect_stats(self, build_start: float) -> None:
+        """
+        Phase 19: Collect Final Stats.
+
+        Collects final build statistics.
+
+        Args:
+            build_start: Build start time for duration calculation
+        """
+        self.stats.total_pages = len(self.site.pages)
+        self.stats.regular_pages = len(self.site.regular_pages)
+        self.stats.generated_pages = len(self.site.generated_pages)
+        self.stats.total_assets = len(self.site.assets)
+        self.stats.total_sections = len(self.site.sections)
+        self.stats.taxonomies_count = sum(len(terms) for terms in self.site.taxonomies.values())
+        self.stats.build_time_ms = (time.time() - build_start) * 1000
+
+        # Store stats for health check validators to access
+        self.site._last_build_stats = {
+            "build_time_ms": self.stats.build_time_ms,
+            "rendering_time_ms": self.stats.rendering_time_ms,
+            "total_pages": self.stats.total_pages,
+            "total_assets": self.stats.total_assets,
+        }
+
+    def _phase_finalize(self, verbose: bool, collector) -> None:
+        """
+        Phase 20: Finalize Build.
+
+        Performs final cleanup and logging.
+
+        Args:
+            verbose: Whether verbose mode is enabled
+            collector: Performance collector (if enabled)
+        """
+        # Collect memory metrics and save performance data (if enabled by profile)
+        if collector:
+            self.stats = collector.end_build(self.stats)
+            collector.save(self.stats)
+
+        # Log build completion
+        log_data = {
+            "duration_ms": self.stats.build_time_ms,
+            "total_pages": self.stats.total_pages,
+            "total_assets": self.stats.total_assets,
+            "success": True,
+        }
+
+        # Only add memory metrics if they were collected
+        if self.stats.memory_rss_mb > 0:
+            log_data["memory_rss_mb"] = self.stats.memory_rss_mb
+            log_data["memory_heap_mb"] = self.stats.memory_heap_mb
+
+        self.logger.info("build_complete", **log_data)
+
+        # Restore normal logger console output if we suppressed it
+        if not verbose:
+            set_console_quiet(False)
+
+        # Log Pygments cache statistics (performance monitoring)
+        try:
+            from bengal.rendering.pygments_cache import log_cache_stats
+
+            log_cache_stats()
+        except ImportError:
+            pass  # Cache not used
