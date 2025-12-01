@@ -302,10 +302,12 @@ class RenderOrchestrator:
             _thread_local.pipeline.process_page(page)
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-            futures = [executor.submit(process_page_with_pipeline, page) for page in pages]
+            # Map futures to pages for error reporting
+            future_to_page = {executor.submit(process_page_with_pipeline, page): page for page in pages}
 
             # Wait for all to complete
-            for future in concurrent.futures.as_completed(futures):
+            for future in concurrent.futures.as_completed(future_to_page):
+                page = future_to_page[future]
                 try:
                     future.result()
                 except Exception as e:
@@ -429,10 +431,12 @@ class RenderOrchestrator:
                 )
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-            futures = [executor.submit(process_page_with_pipeline, page) for page in pages]
+            # Map futures to pages for error reporting
+            future_to_page = {executor.submit(process_page_with_pipeline, page): page for page in pages}
 
             # Wait for all to complete
-            for future in concurrent.futures.as_completed(futures):
+            for future in concurrent.futures.as_completed(future_to_page):
+                page = future_to_page[future]
                 try:
                     future.result()
                 except Exception as e:
