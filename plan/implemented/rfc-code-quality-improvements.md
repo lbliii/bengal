@@ -462,28 +462,23 @@ except Exception as e:
 
 ## 4. Implementation Plan
 
-### Phase 1: Quick Wins (Day 1)
+### Phase 1: Quick Wins (Day 1) ✅ COMPLETED
 
-**Task 1.1**: Consolidate `strip_html`/`generate_excerpt` in `output_formats/utils.py`
-- Update imports
-- Delegate to `bengal.utils.text`
-- Run tests
+**Task 1.1**: Consolidate `strip_html`/`generate_excerpt` in `output_formats/utils.py` ✅
+- Updated imports to delegate to `bengal.utils.text`
 
-**Task 1.2**: Extract `is_autodoc_page` utility
-- Create `bengal/utils/autodoc.py`
-- Update `knowledge_graph.py`
-- Update `directives.py`
-- Run tests
+**Task 1.2**: Extract `is_autodoc_page` utility ✅
+- Created `bengal/utils/autodoc.py`
+- Updated `knowledge_graph.py` and `directives.py`
 
-**Task 1.3**: Improve exception handling in `graph_reporting.py`
-- Add specific exception types
-- Add debug/warning logging
-- Run tests
+**Task 1.3**: Improve exception handling in `graph_reporting.py` ✅
+- Added specific exception types (`RuntimeError`, `ValueError`)
+- Added debug logging with `truncate_error`
 
 **Success Criteria**:
-- [ ] All tests pass
-- [ ] No duplicate function implementations
-- [ ] Exception handling logs useful information
+- [x] All tests pass
+- [x] No duplicate function implementations
+- [x] Exception handling logs useful information
 
 ---
 
@@ -639,19 +634,23 @@ This RFC **complements** `rfc-large-file-refactoring.md`:
 
 ## 10. Decision
 
-**Status**: Draft - Pending Review
+**Status**: ✅ IMPLEMENTED
 
-**Next Steps**:
-1. Review RFC with team
-2. Get approval for Phase 1 (quick wins)
-3. Execute Phase 1 immediately
-4. Schedule Phases 2-3 after Phase 1 validates approach
+**Implementation Complete**:
+- Phase 1: Completed 2025-12-01 (consolidate duplicates, improve exceptions)
+- Phase 2: Completed 2025-12-01 (directives.py → package)
+- Phase 3: Completed 2025-12-01 (new.py → package)
+- Tech debt cleanup: Removed backward compatibility shims, updated tests to use public APIs
 
-**Estimated Timeline**:
-- Phase 1: 1 day
-- Phase 2: 2 days
-- Phase 3: 2 days
-- **Total**: ~5 days
+**Commits**:
+1. `refactor: consolidate duplicate code and improve exception handling (RFC Phase 1)`
+2. `refactor(health): convert directives.py to package with focused modules (RFC Phase 2)`
+3. `refactor(cli): convert new.py to package; remove backward compat shims (RFC Phase 3)`
+
+**Results**:
+- 3338 tests passing
+- No backward compatibility aliases remaining
+- All code uses public APIs
 
 ---
 
