@@ -1403,6 +1403,8 @@ class BuildOrchestrator:
 
         # Restore normal logger console output if we suppressed it
         if not verbose:
+            from bengal.utils.logger import set_console_quiet
+
             set_console_quiet(False)
 
         # Log Pygments cache statistics (performance monitoring)
