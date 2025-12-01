@@ -22,7 +22,7 @@ keywords: [CLI, command-line interface, Click, commands, build, serve, autodoc, 
   - `graph.py` - Graph analysis commands
   - `perf.py` - Performance analysis
   - `clean.py` - Cleanup utilities
-  - `new.py` - Content creation
+  - `new/` - Content creation (package with presets, wizard, config, site, scaffolds)
 
 **Features**:
 - **Typo Detection**: Fuzzy matching for command names with suggestions
