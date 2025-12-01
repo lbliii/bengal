@@ -19,6 +19,26 @@ Bengal requires **Python 3.14 or later**. We recommend Python 3.14+ (3.14t free-
 - **Enhanced type hinting** - Better code quality and IDE support
 - **Performance improvements** - Faster standard library operations
 
+:::{admonition} What is Python 3.14t?
+:class: info
+
+The `t` suffix indicates the **free-threaded build**, which disables Python's Global Interpreter Lock (GIL). With [PEP 779](https://peps.python.org/pep-0779/), free-threaded Python is now officially supported.
+
+**Why it matters for Bengal:**
+- **1.8-2x faster builds** through true parallel processing
+- Standard Python 3.14 works fine, but 3.14t unlocks Bengal's full performance
+
+**Install the free-threaded build:**
+```bash
+# With pyenv
+pyenv install 3.14.0t
+pyenv global 3.14.0t
+
+# Verify free-threading is enabled
+python -c "import sys; print('Free-threaded!' if sys._is_gil_enabled() == False else 'GIL enabled')"
+```
+:::
+
 :::::{tab-set}
 ::::{tab-item} pyenv (Recommended)
 
@@ -51,8 +71,14 @@ pyenv is a Python version manager that lets you install and switch between multi
 
 4. **Install Python 3.14:**
    ```bash
+   # Standard build (works great)
    pyenv install 3.14.0
-   pyenv global 3.14.0
+   
+   # Free-threaded build (recommended for best performance)
+   pyenv install 3.14.0t
+   
+   # Set as default
+   pyenv global 3.14.0t  # or 3.14.0
    ```
 
 5. **Verify installation:**
@@ -107,6 +133,7 @@ pip install bengal
 ```bash
 git clone https://github.com/lbliii/bengal.git
 cd bengal
+pip install -e ".[dev]"
 ```
 
 :::

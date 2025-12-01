@@ -29,8 +29,15 @@ TEMPLATE_TYPE_MAP: Final[dict[str, str]] = {
     "class": "python/class.md.jinja2",
     "function": "python/function.md.jinja2",
     "method": "python/function.md.jinja2",  # Methods use function template
+    # OpenAPI element types (from OpenAPIExtractor)
+    "openapi_overview": "openapi/api_overview.md.jinja2",
+    "openapi_endpoint": "openapi/endpoint.md.jinja2",
+    "openapi_schema": "openapi/schema.md.jinja2",
+    # Legacy aliases (for backward compatibility)
     "endpoint": "openapi/endpoint.md.jinja2",
     "schema": "openapi/schema.md.jinja2",
+    "api_overview": "openapi/api_overview.md.jinja2",
+    # CLI element types
     "command": "cli/command.md.jinja2",
     "command-group": "cli/command_group.md.jinja2",
 }

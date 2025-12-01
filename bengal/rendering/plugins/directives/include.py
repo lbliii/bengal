@@ -13,6 +13,12 @@ Or with options:
     ```
 
 Paths are resolved relative to the site root or the current page's directory.
+
+Robustness:
+    - Maximum include depth of 10 to prevent stack overflow
+    - Cycle detection to prevent infinite loops (a.md → b.md → a.md)
+    - File size limits to prevent memory exhaustion (10MB default)
+    - Symlink rejection to prevent path traversal attacks
 """
 
 from __future__ import annotations
@@ -33,6 +39,10 @@ if TYPE_CHECKING:
 __all__ = ["IncludeDirective", "render_include"]
 
 logger = get_logger(__name__)
+
+# Robustness limits
+MAX_INCLUDE_DEPTH = 10  # Prevent stack overflow from deeply nested includes
+MAX_INCLUDE_SIZE = 10 * 1024 * 1024  # 10 MB - prevent memory exhaustion
 
 
 class IncludeDirective(DirectivePlugin):
@@ -97,6 +107,42 @@ class IncludeDirective(DirectivePlugin):
                 "children": [],
             }
 
+        # --- Robustness: Check depth limit ---
+        current_depth = getattr(state, "_include_depth", 0)
+        if current_depth >= MAX_INCLUDE_DEPTH:
+            logger.warning(
+                "include_max_depth_exceeded",
+                path=path,
+                depth=current_depth,
+                max_depth=MAX_INCLUDE_DEPTH,
+            )
+            return {
+                "type": "include",
+                "attrs": {
+                    "error": f"Maximum include depth ({MAX_INCLUDE_DEPTH}) exceeded. "
+                    f"Check for deeply nested includes."
+                },
+                "children": [],
+            }
+
+        # --- Robustness: Check for include cycles ---
+        included_files: set[str] = getattr(state, "_included_files", set())
+        canonical_path = str(file_path.resolve())
+        if canonical_path in included_files:
+            logger.warning(
+                "include_cycle_detected",
+                path=path,
+                canonical_path=canonical_path,
+            )
+            return {
+                "type": "include",
+                "attrs": {
+                    "error": f"Include cycle detected: {path} was already included. "
+                    f"Check for circular includes (a.md → b.md → a.md)."
+                },
+                "children": [],
+            }
+
         # Load file content
         content = self._load_file(file_path, start_line, end_line)
 
@@ -107,9 +153,18 @@ class IncludeDirective(DirectivePlugin):
                 "children": [],
             }
 
+        # --- Update state for nested includes ---
+        # Track this file to detect cycles
+        new_included_files = included_files | {canonical_path}
+        state._included_files = new_included_files
+        state._include_depth = current_depth + 1
+
         # Parse included content as markdown
         # Use parse_tokens to allow nested directives in included content
         children = self.parse_tokens(block, content, state)
+
+        # Restore depth after parsing (allows sibling includes at same depth)
+        state._include_depth = current_depth
 
         return {
             "type": "include",
@@ -124,6 +179,11 @@ class IncludeDirective(DirectivePlugin):
     def _resolve_path(self, path: str, state: BlockState) -> Path | None:
         """
         Resolve file path relative to current page or site root.
+
+        Security:
+            - Rejects absolute paths
+            - Rejects paths outside site root
+            - Rejects symlinks (could escape containment)
 
         Args:
             path: Relative or absolute path to file
@@ -174,9 +234,34 @@ class IncludeDirective(DirectivePlugin):
             if not path.endswith(".md"):
                 file_path = base_dir / f"{path}.md"
                 if not file_path.exists():
-                    return None
+                    file_path = None
             else:
-                return None
+                file_path = None
+
+        # Fallback: try content directory if file not found relative to page
+        # This allows global snippets to be used from any page location
+        if file_path is None and source_path:
+            content_dir = root_path / "content"
+            if content_dir.exists():
+                fallback_path = content_dir / path
+                if fallback_path.exists():
+                    file_path = fallback_path
+                elif not path.endswith(".md"):
+                    fallback_path = content_dir / f"{path}.md"
+                    if fallback_path.exists():
+                        file_path = fallback_path
+
+        if file_path is None:
+            return None
+
+        # Security: Reject symlinks (could escape containment via symlink target)
+        if file_path.is_symlink():
+            logger.warning(
+                "include_symlink_rejected",
+                path=str(file_path),
+                reason="symlinks_not_allowed_for_security",
+            )
+            return None
 
         # Ensure file is within site root (security check)
         try:
@@ -193,6 +278,8 @@ class IncludeDirective(DirectivePlugin):
         """
         Load file content, optionally with line range.
 
+        Security: Enforces file size limit to prevent memory exhaustion.
+
         Args:
             file_path: Path to file
             start_line: Optional start line (1-indexed)
@@ -202,6 +289,19 @@ class IncludeDirective(DirectivePlugin):
             File content as string, or None on error
         """
         try:
+            # Check file size before reading (security)
+            file_size = file_path.stat().st_size
+            if file_size > MAX_INCLUDE_SIZE:
+                logger.warning(
+                    "include_file_too_large",
+                    path=str(file_path),
+                    size_bytes=file_size,
+                    limit_bytes=MAX_INCLUDE_SIZE,
+                    size_mb=f"{file_size / (1024 * 1024):.2f}",
+                    limit_mb=f"{MAX_INCLUDE_SIZE / (1024 * 1024):.0f}",
+                )
+                return None
+
             with open(file_path, encoding="utf-8") as f:
                 lines = f.readlines()
 
@@ -214,7 +314,9 @@ class IncludeDirective(DirectivePlugin):
                 end = max(start, min(end, len(lines)))
                 lines = lines[start:end]
 
-            return "".join(lines)
+            # Join lines and strip trailing whitespace (including trailing newline)
+            # This prevents extra blank lines when embedding content
+            return "".join(lines).rstrip()
 
         except Exception as e:
             logger.warning("include_load_error", path=str(file_path), error=str(e))

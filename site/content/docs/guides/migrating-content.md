@@ -29,7 +29,6 @@ Migrate your existing static site to Bengal. Whether you're coming from Hugo, Je
 - Access to your existing site's source files
 - Basic knowledge of Markdown and YAML/TOML
 :::
-```
 
 ## Step 1: Create Your Bengal Site
 

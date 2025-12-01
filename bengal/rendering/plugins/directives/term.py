@@ -44,13 +44,7 @@ def parse_term(inline, m, state):
 
         # Check for ="..."
         match = re.match(r'^=["\']?(.*?)["\']?$', attrs_str)
-        if match:
-            definition = match.group(1)
-        else:
-            # Fallback: treat whole attr string as definition if it doesn't start with =
-            # This handles {term definition} (if we want to support that, though typical is ="")
-            # Let's assume standard key=value or just value for default arg
-            definition = attrs_str
+        definition = match.group(1) if match else attrs_str
 
     if not definition:
         # Default: if no definition provided, use text as definition (or maybe later lookup)

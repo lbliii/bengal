@@ -153,11 +153,8 @@ class TestPathAnalyzer:
 
     def test_analyze_empty_graph(self):
         """Test analysis on empty graph."""
-        site = Mock()
-        site.pages = []
-
         graph = Mock()
-        graph.site = site
+        graph.get_analysis_pages.return_value = []
         graph.outgoing_refs = defaultdict(set)
 
         analyzer = PathAnalyzer(graph)
@@ -172,11 +169,8 @@ class TestPathAnalyzer:
         """Test analysis with single page."""
         page = Mock(source_path=Path("page.md"), metadata={})
 
-        site = Mock()
-        site.pages = [page]
-
         graph = Mock()
-        graph.site = site
+        graph.get_analysis_pages.return_value = [page]
         graph.outgoing_refs = defaultdict(set)
 
         analyzer = PathAnalyzer(graph)
@@ -192,11 +186,8 @@ class TestPathAnalyzer:
         page_b = Mock(source_path=Path("b.md"), metadata={})
         page_c = Mock(source_path=Path("c.md"), metadata={})
 
-        site = Mock()
-        site.pages = [page_a, page_b, page_c]
-
         graph = Mock()
-        graph.site = site
+        graph.get_analysis_pages.return_value = [page_a, page_b, page_c]
         graph.outgoing_refs = defaultdict(set)
         graph.outgoing_refs[page_a] = {page_b}
         graph.outgoing_refs[page_b] = {page_c}
@@ -216,11 +207,8 @@ class TestPathAnalyzer:
         center = Mock(source_path=Path("center.md"), metadata={})
         spokes = [Mock(source_path=Path(f"spoke{i}.md"), metadata={}) for i in range(4)]
 
-        site = Mock()
-        site.pages = [center] + spokes
-
         graph = Mock()
-        graph.site = site
+        graph.get_analysis_pages.return_value = [center] + spokes
         graph.outgoing_refs = defaultdict(set)
 
         # Center connects to all spokes (directed out from center)
@@ -239,11 +227,8 @@ class TestPathAnalyzer:
         """Test analysis on fully connected graph."""
         pages = [Mock(source_path=Path(f"page{i}.md"), metadata={}) for i in range(4)]
 
-        site = Mock()
-        site.pages = pages
-
         graph = Mock()
-        graph.site = site
+        graph.get_analysis_pages.return_value = pages
         graph.outgoing_refs = defaultdict(set)
 
         # Fully connected
@@ -318,17 +303,14 @@ class TestPathAnalyzer:
         real_page = Mock(source_path=Path("real.md"), metadata={})
         generated_page = Mock(source_path=Path("generated.md"), metadata={"_generated": True})
 
-        site = Mock()
-        site.pages = [real_page, generated_page]
-
         graph = Mock()
-        graph.site = site
+        graph.get_analysis_pages.return_value = [real_page, generated_page]
         graph.outgoing_refs = defaultdict(set)
 
         analyzer = PathAnalyzer(graph)
         results = analyzer.analyze()
 
-        # Only real page should be analyzed
+        # Only real page should be analyzed (generated filtered in analyze())
         assert len(results.betweenness_centrality) == 1
         assert real_page in results.betweenness_centrality
         assert generated_page not in results.betweenness_centrality
@@ -341,11 +323,8 @@ class TestAnalyzePathsFunction:
         """Test the convenience function."""
         pages = [Mock(source_path=Path(f"page{i}.md"), metadata={}) for i in range(3)]
 
-        site = Mock()
-        site.pages = pages
-
         graph = Mock()
-        graph.site = site
+        graph.get_analysis_pages.return_value = pages
         graph.outgoing_refs = defaultdict(set)
         graph.outgoing_refs[pages[0]] = {pages[1]}
         graph.outgoing_refs[pages[1]] = {pages[2]}

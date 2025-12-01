@@ -78,3 +78,63 @@ Unclosed
             if fence_warnings:
                 # Details format: "file:line - N issue(s)"
                 assert "unclosed.md" in str(fence_warnings[0].details)
+
+    def test_sequential_code_blocks_not_nested(self, tmp_path):
+        """Test that sequential code blocks (not nested) don't trigger false positives."""
+        content = """
+**Hugo:**
+```go-html-template
+{{ $posts := where .Site.RegularPages "Section" "blog" }}
+```
+
+**Bengal:**
+```jinja2
+{% set posts = site.pages | where('section', 'blog') %}
+```
+"""
+        source_file = tmp_path / "sequential.md"
+        source_file.write_text(content)
+
+        page = MockPage(source_file)
+        site = MockSite([page])
+
+        validator = DirectiveValidator()
+        results = validator.validate(site)
+
+        # Should NOT have warnings about fence nesting for sequential blocks
+        warnings = [r for r in results if r.status == CheckStatus.WARNING]
+        fence_warnings = [
+            w
+            for w in warnings
+            if "fence nesting" in w.message and "sequential.md" in str(w.details)
+        ]
+        assert len(fence_warnings) == 0, (
+            f"False positive: sequential code blocks flagged as nested: {fence_warnings}"
+        )
+
+    def test_actually_nested_code_blocks_detected(self, tmp_path):
+        """Test that truly nested code blocks (one inside another) are still detected."""
+        content = """
+```markdown
+Here's some markdown with a code example:
+
+```python
+print("hello")
+```
+```
+"""
+        source_file = tmp_path / "nested.md"
+        source_file.write_text(content)
+
+        page = MockPage(source_file)
+        site = MockSite([page])
+
+        validator = DirectiveValidator()
+        results = validator.validate(site)
+
+        # SHOULD have warnings about fence nesting for truly nested blocks
+        warnings = [r for r in results if r.status == CheckStatus.WARNING]
+        fence_warnings = [
+            w for w in warnings if "fence nesting" in w.message and "nested.md" in str(w.details)
+        ]
+        assert len(fence_warnings) > 0, "Should detect truly nested code blocks"

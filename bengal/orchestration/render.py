@@ -309,7 +309,12 @@ class RenderOrchestrator:
                 try:
                     future.result()
                 except Exception as e:
-                    logger.error("page_rendering_error", error=str(e), error_type=type(e).__name__)
+                    logger.error(
+                        "page_rendering_error",
+                        error=str(e),
+                        error_type=type(e).__name__,
+                        source_path=str(page.source_path),
+                    )
 
     def _render_sequential_with_progress(
         self,
@@ -355,7 +360,12 @@ class RenderOrchestrator:
                 try:
                     pipeline.process_page(page)
                 except Exception as e:
-                    logger.error("page_rendering_error", error=str(e), error_type=type(e).__name__)
+                    logger.error(
+                        "page_rendering_error",
+                        error=str(e),
+                        error_type=type(e).__name__,
+                        source_path=str(page.source_path),
+                    )
                 progress.update(task, advance=1)
 
     def _render_parallel_with_live_progress(
@@ -426,7 +436,12 @@ class RenderOrchestrator:
                 try:
                     future.result()
                 except Exception as e:
-                    logger.error("page_rendering_error", error=str(e), error_type=type(e).__name__)
+                    logger.error(
+                        "page_rendering_error",
+                        error=str(e),
+                        error_type=type(e).__name__,
+                        source_path=str(page.source_path),
+                    )
 
             # Final update to ensure progress shows 100%
             if progress_manager:

@@ -106,3 +106,7 @@ quality = 85
 strip_metadata = true
 formats = ["webp"]
 ```
+
+---
+
+**Deep Dive**: For implementation details, caching behavior, and internal architecture, see the [Asset Pipeline Reference](/docs/reference/architecture/rendering/assets-pipeline/).

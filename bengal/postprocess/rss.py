@@ -42,9 +42,22 @@ class RSSGenerator:
         Filters pages with dates, sorts by date (newest first), limits to 20 items,
         and writes RSS feed atomically to prevent corruption.
 
+        If no pages with dates exist, logs info and skips generation.
+
         Raises:
             Exception: If RSS generation or file writing fails
         """
+        # Check for any pages with dates first
+        pages_with_dates = [p for p in self.site.pages if p.date]
+        if not pages_with_dates:
+            self.logger.info(
+                "rss_skipped",
+                reason="no_pages_with_dates",
+                total_pages=len(self.site.pages),
+                hint="No pages have dates set. Add 'date:' to frontmatter to include in RSS feed.",
+            )
+            return
+
         # Per-locale generation (prefix strategy) or single feed
         i18n = self.site.config.get("i18n", {}) or {}
         strategy = i18n.get("strategy", "none")

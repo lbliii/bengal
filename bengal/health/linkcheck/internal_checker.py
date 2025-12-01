@@ -133,6 +133,32 @@ class InternalLinkChecker:
                 ignore_reason=ignore_reason,
             )
 
+        # Skip source file references FIRST (before parsing)
+        # These are common in autodoc-generated content and should not be checked as page links
+        # Patterns: bengal/module.py#L1, ../bengal/module.py#L1, module.py#L1, etc.
+        if (
+            ".py#L" in url  # Python file with line number anchor
+            or ".py#" in url  # Python file with any anchor
+            or url.endswith(".py")  # Python file without anchor
+            or "/bengal/" in url
+            and ".py" in url  # Paths containing bengal/ and .py
+            or (url.startswith("../") and ".py" in url)  # Relative paths to .py files
+        ):
+            logger.debug(
+                "skipping_source_file_reference",
+                url=url,
+                reason="source_file_reference_in_autodoc",
+            )
+            return LinkCheckResult(
+                url=url,
+                kind=LinkKind.INTERNAL,
+                status=LinkStatus.IGNORED,
+                first_ref=refs[0] if refs else None,
+                ref_count=len(refs),
+                ignored=True,
+                ignore_reason="Source file reference (autodoc)",
+            )
+
         # Parse URL to separate path and fragment
         parsed = urlparse(url)
         path = parsed.path
@@ -146,7 +172,22 @@ class InternalLinkChecker:
 
         # Handle relative paths (resolve to absolute)
         if not path.startswith("/"):
-            # For now, treat relative as potentially valid
+            # For now, treat other relative paths as potentially valid
+            # A full implementation would resolve relative to the referencing page
+            logger.debug(
+                "skipping_relative_internal_link",
+                url=url,
+                reason="relative paths not yet fully supported",
+            )
+            return LinkCheckResult(
+                url=url,
+                kind=LinkKind.INTERNAL,
+                status=LinkStatus.OK,
+                first_ref=refs[0] if refs else None,
+                ref_count=len(refs),
+                metadata={"note": "relative path - validation skipped"},
+            )
+            # For now, treat other relative paths as potentially valid
             # A full implementation would resolve relative to the referencing page
             logger.debug(
                 "skipping_relative_internal_link",

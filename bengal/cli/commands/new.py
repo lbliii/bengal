@@ -6,12 +6,11 @@ from datetime import datetime
 from pathlib import Path
 
 import click
+import questionary
 
 from bengal.cli.base import BengalGroup
 from bengal.cli.helpers import command_metadata, get_cli_output, handle_cli_errors
 from bengal.cli.site_templates import get_template
-
-# Add these imports
 from bengal.utils.atomic_write import atomic_write_text
 from bengal.utils.cli_output import CLIOutput
 
@@ -66,7 +65,12 @@ PRESETS = {
 
 
 def _create_config_directory(
-    site_path: Path, site_title: str, theme: str, cli: CLIOutput, template: str = "default"
+    site_path: Path,
+    site_title: str,
+    theme: str,
+    cli: CLIOutput,
+    template: str = "default",
+    baseurl: str = "https://example.com",
 ) -> None:
     """Create config directory structure with sensible defaults."""
     import yaml
@@ -84,7 +88,7 @@ def _create_config_directory(
     site_config = {
         "site": {
             "title": site_title,
-            "baseurl": "https://example.com",
+            "baseurl": baseurl,
             "description": f"{site_title} - Built with Bengal",
             "language": "en",
         }
@@ -269,14 +273,6 @@ def _run_init_wizard(preset: str = None) -> str | None:
         cli.info(f"🏗️  Selected {selected_preset['emoji']} {selected_preset['name']} preset.")
         return selected_preset.get("template_id", "default")
 
-    # Interactive wizard with questionary
-    try:
-        import questionary
-    except ImportError:
-        cli.blank()
-        cli.warning("Install questionary for better interactive prompts: pip install questionary")
-        return None
-
     # Build choices list
     choices = []
     preset_items = list(PRESETS.items())
@@ -408,6 +404,33 @@ def _create_site(
         cli.error(f"Directory {site_dir_name} already exists!")
         raise click.Abort()
 
+    # Prompt for base URL (skip if non-interactive mode)
+    if no_init:
+        # Non-interactive: use default
+        baseurl = "https://example.com"
+    else:
+        cli.blank()
+        baseurl = questionary.text(
+            "Base URL for your site:",
+            default="https://example.com",
+            instruction="(Production URL, e.g., https://mysite.com)",
+            style=questionary.Style(
+                [
+                    ("qmark", "fg:cyan bold"),
+                    ("question", "fg:cyan bold"),
+                    ("answer", "fg:green"),
+                ]
+            ),
+        ).ask()
+
+        if baseurl is None:
+            # User cancelled with Ctrl+C
+            cli.warning("✨ Cancelled.")
+            raise click.Abort()
+
+        # Use default if empty, otherwise strip whitespace
+        baseurl = "https://example.com" if not baseurl.strip() else baseurl.strip()
+
     # Determine effective template
     effective_template = template
     is_custom = False
@@ -453,7 +476,7 @@ def _create_site(
     cli.info("   ├─ Created directory structure")
 
     # Create config directory structure (new system)
-    _create_config_directory(site_path, site_title, theme, cli, effective_template)
+    _create_config_directory(site_path, site_title, theme, cli, effective_template, baseurl)
 
     # Create .gitignore
     gitignore_content = """# Bengal build outputs
@@ -540,10 +563,10 @@ Thumbs.db
     # Show next steps
     cli.subheader("Next steps:", icon="📚")
     cli.info(f"   ├─ cd {site_dir_name}")
-    cli.info("   ├─ Edit config/_default/site.yaml (update baseurl)")
     cli.info("   └─ bengal site serve")
     cli.blank()
     cli.tip("💡 Config uses environment-aware directory structure!")
+    cli.tip(f"   • Base URL: {baseurl}")
     cli.tip("   • Local dev: config/environments/local.yaml")
     cli.tip("   • Production: config/environments/production.yaml")
     cli.tip("   • Run 'bengal config show' to see merged config")

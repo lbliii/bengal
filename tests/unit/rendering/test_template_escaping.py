@@ -309,3 +309,119 @@ def mock_site():
         (),
         {"title": "Test Site", "baseurl": "https://example.com", "config": {"title": "Test Site"}},
     )
+
+
+class TestVariableSubstitutionSecurity:
+    """Security tests for variable substitution sandboxing.
+
+    These tests ensure that malicious template expressions cannot
+    access private/dunder attributes to escape the sandbox.
+    """
+
+    def test_blocks_dunder_class(self):
+        """Test that __class__ access is blocked."""
+        page = type("Page", (), {"title": "Test"})
+        context = {"page": page}
+        plugin = VariableSubstitutionPlugin(context)
+
+        with pytest.raises(ValueError, match="private/protected attributes denied"):
+            plugin._eval_expression("page.__class__")
+
+    def test_blocks_dunder_init(self):
+        """Test that __init__ access is blocked."""
+        page = type("Page", (), {"title": "Test"})
+        context = {"page": page}
+        plugin = VariableSubstitutionPlugin(context)
+
+        with pytest.raises(ValueError, match="private/protected attributes denied"):
+            plugin._eval_expression("page.__init__")
+
+    def test_blocks_dunder_globals(self):
+        """Test that __globals__ access is blocked."""
+        context = {"config": {"key": "value"}}
+        plugin = VariableSubstitutionPlugin(context)
+
+        with pytest.raises(ValueError, match="private/protected attributes denied"):
+            plugin._eval_expression("config.__class__.__init__.__globals__")
+
+    def test_blocks_dunder_bases(self):
+        """Test that __bases__ access is blocked."""
+        page = type("Page", (), {"title": "Test"})
+        context = {"page": page}
+        plugin = VariableSubstitutionPlugin(context)
+
+        with pytest.raises(ValueError, match="private/protected attributes denied"):
+            plugin._eval_expression("page.__class__.__bases__")
+
+    def test_blocks_single_underscore_private(self):
+        """Test that _private attributes are blocked."""
+        page = type("Page", (), {"title": "Test", "_secret": "hidden"})
+        context = {"page": page}
+        plugin = VariableSubstitutionPlugin(context)
+
+        with pytest.raises(ValueError, match="private/protected attributes denied"):
+            plugin._eval_expression("page._secret")
+
+    def test_blocks_nested_dunder_access(self):
+        """Test that nested dunder access is blocked."""
+        page = type("Page", (), {"metadata": {"key": "value"}})
+        context = {"page": page}
+        plugin = VariableSubstitutionPlugin(context)
+
+        with pytest.raises(ValueError, match="private/protected attributes denied"):
+            plugin._eval_expression("page.metadata.__class__")
+
+    def test_allows_normal_attribute_access(self):
+        """Test that normal attribute access still works."""
+        page = type("Page", (), {"title": "My Title", "metadata": {"author": "Test"}})()
+        context = {"page": page}
+        plugin = VariableSubstitutionPlugin(context)
+
+        # Normal access should work
+        assert plugin._eval_expression("page.title") == "My Title"
+
+    def test_allows_normal_dict_access(self):
+        """Test that normal dict access still works."""
+        context = {"config": {"site": {"title": "My Site"}}}
+        plugin = VariableSubstitutionPlugin(context)
+
+        assert plugin._eval_expression("config.site.title") == "My Site"
+
+    def test_allows_nested_attribute_access(self):
+        """Test that nested attribute access works."""
+        metadata = type("Metadata", (), {"author": "Jane", "version": "1.0"})()
+        page = type("Page", (), {"metadata": metadata})()
+        context = {"page": page}
+        plugin = VariableSubstitutionPlugin(context)
+
+        assert plugin._eval_expression("page.metadata.author") == "Jane"
+        assert plugin._eval_expression("page.metadata.version") == "1.0"
+
+    def test_substitute_variables_handles_blocked_access_gracefully(self):
+        """Test that blocked access in templates becomes escaped placeholder."""
+        page = type("Page", (), {"title": "Test"})
+        context = {"page": page}
+        plugin = VariableSubstitutionPlugin(context)
+
+        # When used through substitute_variables, blocked access should
+        # become an escaped placeholder (not raise an error to the user)
+        text = "Try {{ page.__class__ }} for hacking"
+        result = plugin.substitute_variables(text)
+        result = plugin.restore_placeholders(result)
+
+        # Should become HTML-escaped (blocked expression treated as doc example)
+        assert "&#123;&#123; page.__class__ &#125;&#125;" in result
+
+    def test_substitute_variables_handles_private_access_gracefully(self):
+        """Test that private access in templates becomes escaped placeholder."""
+        page = type("Page", (), {"title": "Test", "_private": "secret"})
+        context = {"page": page}
+        plugin = VariableSubstitutionPlugin(context)
+
+        text = "Secret: {{ page._private }}"
+        result = plugin.substitute_variables(text)
+        result = plugin.restore_placeholders(result)
+
+        # Should become HTML-escaped (blocked, not substituted)
+        assert "&#123;&#123; page._private &#125;&#125;" in result
+        assert "secret" not in result

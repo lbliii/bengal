@@ -40,7 +40,8 @@
 .container>.docs-layout {
   max-width: 100%;
   margin: 0;
-  padding-inline: 0; /* Remove padding when inside container - container already provides padding */
+  padding-inline-start: 0; /* Container handles left padding */
+  padding-inline-end: var(--space-4); /* Extra right padding for the page's vertical scrollbar (not the sidebar scrollbar) */
 }
 
 /* Docs layout provides its own padding when NOT inside a container */
@@ -105,6 +106,7 @@
   overflow-y: auto;
   overscroll-behavior: contain;
   padding-inline-start: 1rem;
+  padding-inline-end: 0.75rem; /* Breathing room from page scrollbar */
 }
 
 /* ============================================

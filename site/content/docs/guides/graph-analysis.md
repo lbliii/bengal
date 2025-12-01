@@ -452,5 +452,5 @@ for page, score in top_pages:
 ## Related Documentation
 
 - [Analysis System Reference](/docs/reference/architecture/subsystems/analysis/) - Technical API documentation
-- [CLI Graph Commands](/docs/reference/cli/utils/graph/) - Complete CLI reference
+- [CLI Graph Commands](/cli/utils/graph/) - Complete CLI reference
 - [Content Workflow Guide](/docs/guides/content-workflow/) - Content organization best practices

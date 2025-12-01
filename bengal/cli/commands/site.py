@@ -3,7 +3,7 @@ from __future__ import annotations
 import click
 
 from bengal.cli.base import BengalGroup
-from bengal.cli.helpers import command_metadata, handle_cli_errors
+from bengal.cli.helpers import command_metadata, get_cli_output, handle_cli_errors
 
 from .build import build
 from .clean import clean
@@ -19,18 +19,18 @@ def site_cli():
     pass
 
 
-# Register the new site command as an alias: bengal site new
-@site_cli.command("new")
+# Deprecated: bengal site new → use bengal new site instead
+# Hidden from help but still functional for backwards compatibility
+@site_cli.command("new", hidden=True)
 @command_metadata(
     category="content",
-    description="Create a new Bengal site with optional structure initialization",
+    description="[DEPRECATED] Use 'bengal new site' instead",
     examples=[
-        "bengal site new my-blog",
-        "bengal site new --template blog",
-        "bengal site new --init-preset docs",
+        "bengal new site my-blog",
+        "bengal new site --template blog",
     ],
     requires_site=False,
-    tags=["setup", "quick", "content"],
+    tags=["setup", "deprecated"],
 )
 @handle_cli_errors(show_art=False)
 @click.argument("name", required=False)
@@ -51,20 +51,19 @@ def site_cli():
 )
 def site_new(name: str, theme: str, template: str, no_init: bool, init_preset: str) -> None:
     """
-    🏗️  Create a new Bengal site with optional structure initialization.
+    🏗️  [DEPRECATED] Create a new Bengal site.
 
-    Creates a new site directory with configuration, content structure, and
-    optional sample content. Use --template to choose a preset layout.
+    ⚠️  This command is deprecated. Use 'bengal new site' instead.
 
     Examples:
-        bengal site new my-blog
-        bengal site new --template blog
-        bengal site new --init-preset docs
-
-    See also:
-        bengal new site - Alternative command (same functionality)
-        bengal site build - Build the site
+        bengal new site my-blog
+        bengal new site --template blog
     """
+    # Show deprecation warning
+    cli = get_cli_output()
+    cli.warning("⚠️  'bengal site new' is deprecated. Use 'bengal new site' instead.")
+    cli.blank()
+
     # Delegate to the shared site creation logic
     _create_site(name, theme, template, no_init, init_preset)
 

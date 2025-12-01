@@ -225,7 +225,7 @@ class AutodocOrchestrator:
 
         # Set output path and site reference
         index_page._site = self.site
-        index_page.output_path = self.site.root_path / "public" / section_key / "index.html"
+        index_page.output_path = self.site.output_dir / section_key / "index.html"
 
         # Set as section's index page
         section.index_page = index_page

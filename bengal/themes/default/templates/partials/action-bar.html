@@ -9,6 +9,11 @@ Usage: {% include 'partials/action-bar.html' %}
 Requires: page object in context
 #}
 
+{# Macro: Get page URL with fallback chain for robustness #}
+{% macro get_page_url(page) -%}
+    {{ page.relative_url if page.relative_url is defined else (page.url if page.url is defined else '/') }}
+{%- endmacro %}
+
 {% if page %}
 <div class="action-bar-container">
     {# Main Action Bar #}
@@ -29,8 +34,8 @@ Requires: page object in context
                         {% if has_metadata %}
                         <button class="action-bar-meta-toggle" aria-label="Toggle page metadata" aria-expanded="false"
                             aria-controls="action-bar-metadata" title="Show page details">
-                            <svg class="action-bar-meta-toggle-icon" fill="none" stroke="currentColor"
-                                viewBox="0 0 24 24">
+                            <svg class="action-bar-meta-toggle-icon" width="14" height="14" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24" aria-hidden="true">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M19 9l-7 7-7-7" />
                             </svg>
@@ -47,19 +52,20 @@ Requires: page object in context
             {% endif %}
         </nav>
 
-        {# Right: Actions #}
-        <div class="action-bar-actions">
-            {# LLM Share Button #}
-            {% set page_url = canonical_url(page.url) %}
-            {% set llm_txt_url = ensure_trailing_slash(page_url) + 'index.txt' %}
-            {% set share_prompt = "Please help me understand this documentation: " + llm_txt_url %}
+            {# Right: Actions #}
+            <div class="action-bar-actions">
+                {# LLM Share Button #}
+                {# Use relative_url for canonical_url (canonical_url adds baseurl) #}
+                {% set page_url = canonical_url(get_page_url(page)) %}
+                {% set llm_txt_url = ensure_trailing_slash(page_url) ~ 'index.txt' %}
+                {% set share_prompt = "Please help me understand this documentation: " + llm_txt_url %}
 
             <div class="action-bar-share">
                 <button class="action-bar-share-trigger" aria-label="Share with AI assistants" aria-expanded="false"
                     aria-controls="action-bar-share-dropdown" title="Share with AI assistants">
                     {# Bengal cat symbol - on-brand! #}
                     <span>ᗢ</span>
-                    <svg class="action-bar-share-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="action-bar-share-chevron" width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                     </svg>
                 </button>

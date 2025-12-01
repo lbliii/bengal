@@ -45,6 +45,7 @@ class DirectiveValidator(BaseValidator):
     # This should match all directive types registered in bengal/rendering/plugins/directives/
     KNOWN_DIRECTIVES = {
         # Admonitions
+        "admonition",  # Generic admonition directive
         "note",
         "tip",
         "warning",
@@ -445,20 +446,36 @@ class DirectiveValidator(BaseValidator):
                 if self._is_inside_colon_directive(content, char_pos):
                     continue
 
-                # Check if this closes a code block
+                # Check if this closes a code block FIRST (before checking nesting)
                 # In markdown: ```language opens a new block, ``` (no language) closes a block
+                if not language:
+                    # This is a closing fence
+                    if stack:
+                        # Check if it matches the top of stack
+                        top_line, top_length, top_lang = stack[-1]
+                        if fence_length == top_length:
+                            # Matches - closes the top block
+                            stack.pop()
+                            continue  # Skip rest of logic - this was a closing fence
+                        elif fence_length > top_length:
+                            # Longer fence might close a parent (unusual but handle it)
+                            stack.pop()
+                            continue  # Skip rest of logic - this was a closing fence
+                        # If length doesn't match, it's an orphaned closing fence - ignore it
+                    # If stack is empty, this is an orphaned closing fence - ignore it
+                    continue
+
+                # Now handle opening fences (has language)
                 if stack:
                     top_line, top_length, top_lang = stack[-1]
 
-                    # If this is a closing fence (no language) and length matches, it closes the top block
-                    if not language and fence_length == top_length:
-                        stack.pop()
-                    # If fence length is longer, it might close a parent (but this is unusual)
-                    elif fence_length > top_length:
-                        # This shouldn't happen with code blocks, but handle it
-                        stack.pop()
-                    # If this is an opening fence (has language) and length matches parent, it's nested with same length = PROBLEM
-                    elif language and fence_length == top_length:
+                    # If this is an opening fence (has language) and length matches parent, check if it's actually nested
+                    # A block is only nested if the previous block hasn't been closed (i.e., we haven't seen its closing fence)
+                    # Since we process lines sequentially, if we see an opening fence while another is on the stack,
+                    # it means the previous block is still open, so this is nested.
+                    # However, we should only flag it as nested if the previous block is actually still open.
+                    # If the stack entry is from a much earlier line, it might be an unclosed block, not a parent.
+                    if language and fence_length == top_length:
                         warnings.append(
                             {
                                 "page": file_path,
@@ -597,7 +614,8 @@ class DirectiveValidator(BaseValidator):
                 found_closing = False
                 while j < len(lines):
                     # Check if this line is the closing fence (same colon count)
-                    closing_pattern = rf"^\s*:{fence_depth}\s*$"
+                    # Use triple braces in f-string to create regex repetition: :{{{n}}} becomes :{n}
+                    closing_pattern = rf"^\s*:{{{fence_depth}}}\s*$"
                     if re.match(closing_pattern, lines[j]):
                         found_closing = True
                         break
@@ -703,45 +721,49 @@ class DirectiveValidator(BaseValidator):
 
     def _check_fence_nesting(self, directive: dict[str, Any]) -> None:
         """
-        Check for fence nesting issues - when a directive uses 3 backticks
-        but contains code blocks that also use 3 backticks.
+        Check for fence nesting issues.
 
-        This checks if:
-        1. The directive uses exactly 3 backticks
-        2. The content appears truncated (suspiciously short) OR
-        3. The content contains code block markers
+        Note: Directives use colon fences (:::) which don't conflict with backtick
+        code blocks (```). This check only validates that directives don't use
+        backtick fences (which are deprecated).
 
         Args:
-            directive: Directive info dict with 'fence_depth' and 'content'
+            directive: Directive info dict with 'fence_depth', 'fence_type', and 'content'
         """
         content = directive["content"]
         fence_depth = directive["fence_depth"]
+        fence_type = directive.get("fence_type", "colon")
 
-        # Only check if using exactly 3 backticks for the directive
-        if fence_depth != 3:
+        # Directives should use colon fences, not backtick fences
+        # Colon fences (:::) don't conflict with backtick code blocks (```)
+        # So we don't need to warn about code blocks inside colon-fenced directives
+        if fence_type == "colon":
+            # Colon-fenced directives can safely contain backtick code blocks
+            # No nesting conflict possible
             return
 
-        # Check 1: Look for code blocks in the extracted content
-        # Match both ``` and ~~~ fenced code blocks
-        code_block_pattern = r"^(`{3,}|~{3,})[a-zA-Z0-9_-]*\s*$"
+        # Legacy backtick-fenced directives (deprecated) - check for conflicts
+        # This code path should rarely be hit since we only support colon fences
+        if fence_type == "backtick" and fence_depth == 3:
+            # Check for code blocks in the extracted content
+            code_block_pattern = r"^(`{3,}|~{3,})[a-zA-Z0-9_-]*\s*$"
+            lines = content.split("\n")
+            has_code_blocks = False
+            for line in lines:
+                match = re.match(code_block_pattern, line.strip())
+                if match:
+                    fence_marker = match.group(1)
+                    # If we find a 3-backtick code block inside a 3-backtick directive
+                    if fence_marker.startswith("`") and len(fence_marker) == 3:
+                        has_code_blocks = True
+                        break
 
-        lines = content.split("\n")
-        has_code_blocks = False
-        for line in lines:
-            match = re.match(code_block_pattern, line.strip())
-            if match:
-                fence_marker = match.group(1)
-                # If we find a 3-backtick code block inside a 3-backtick directive
-                if fence_marker.startswith("`") and len(fence_marker) == 3:
-                    has_code_blocks = True
-                    break
-
-        if has_code_blocks:
-            directive["fence_nesting_warning"] = (
-                "Directive uses 3 backticks (```) but contains 3-backtick code blocks. "
-                "Use 4+ backticks (````) for the directive to avoid parsing issues."
-            )
-            return
+            if has_code_blocks:
+                directive["fence_nesting_warning"] = (
+                    "Directive uses 3 backticks (```) but contains 3-backtick code blocks. "
+                    "Use colon fences (:::) instead, or use 4+ backticks (````) for the directive."
+                )
+                return
 
         # Check 2: Detect suspiciously short content for tabs/code-tabs directives
         # These directives typically have substantial content; if truncated, it's a red flag
@@ -1066,6 +1088,7 @@ class DirectiveValidator(BaseValidator):
             parser = ParserFactory.get_html_parser("native")
             soup = parser(html_content)
             remaining_text = soup.get_text()
-            return bool(re.search(r"```\{(\w+)", remaining_text))
+            # Check for colon fence syntax (:::) - the only supported format
+            return bool(re.search(r":{3,}\{(\w+)", remaining_text))
         except Exception:
-            return re.search(r"```\{(\w+)", html_content) is not None
+            return re.search(r":{3,}\{(\w+)", html_content) is not None

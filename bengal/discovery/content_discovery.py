@@ -1,5 +1,8 @@
 """
 Content discovery - finds and organizes pages and sections.
+
+Robustness:
+    - Symlink loop detection via inode tracking to prevent infinite recursion
 """
 
 from __future__ import annotations
@@ -29,6 +32,7 @@ class ContentDiscovery:
       skipped except `_index.md`.
     - Parsing uses a thread pool for concurrency; unchanged pages can be represented as
       `PageProxy` in lazy modes.
+    - Symlink loops are detected via inode tracking to prevent infinite recursion.
     """
 
     def __init__(self, content_dir: Path, site: Any | None = None) -> None:
@@ -45,6 +49,8 @@ class ContentDiscovery:
         self.logger = get_logger(__name__)
         # Deprecated: do not store mutable current section on the instance; pass explicitly
         self.current_section: Section | None = None
+        # Symlink loop detection: track visited (device, inode) pairs
+        self._visited_inodes: set[tuple[int, int]] = set()
 
     def discover(
         self,
@@ -86,6 +92,9 @@ class ContentDiscovery:
             Tuple of (sections, pages)
         """
         self.logger.info("content_discovery_start", content_dir=str(self.content_dir))
+
+        # Reset symlink loop detection set for new discovery
+        self._visited_inodes.clear()
 
         # One-time performance hint: check if PyYAML has C extensions
         try:
@@ -365,6 +374,8 @@ class ContentDiscovery:
         """
         Recursively walk a directory to discover content.
 
+        Uses inode tracking to detect and skip symlink loops.
+
         Args:
             directory: Directory to walk
             parent_section: Parent section to add content to
@@ -372,10 +383,44 @@ class ContentDiscovery:
         if not directory.exists():
             return
 
+        # Check for symlink loops using inode tracking
+        try:
+            stat = directory.stat()
+            inode_key = (stat.st_dev, stat.st_ino)
+
+            if inode_key in self._visited_inodes:
+                self.logger.warning(
+                    "symlink_loop_detected",
+                    path=str(directory),
+                    action="skipping_to_prevent_infinite_recursion",
+                )
+                return
+
+            self._visited_inodes.add(inode_key)
+        except (OSError, PermissionError) as e:
+            self.logger.warning(
+                "directory_stat_failed",
+                path=str(directory),
+                error=str(e),
+                action="skipping",
+            )
+            return
+
         # Iterate through items in directory (non-recursively for control)
         # Collect files in this directory for parallel page creation
         file_futures = []
-        for item in sorted(directory.iterdir()):
+        try:
+            dir_items = sorted(directory.iterdir())
+        except PermissionError as e:
+            self.logger.warning(
+                "directory_permission_denied",
+                path=str(directory),
+                error=str(e),
+                action="skipping",
+            )
+            return
+
+        for item in dir_items:
             # Skip hidden files and directories
             if item.name.startswith((".", "_")) and item.name not in (
                 "_index.md",

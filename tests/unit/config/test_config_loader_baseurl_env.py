@@ -83,7 +83,8 @@ def test_github_pages_owner_repo_fallback(tmp_path: Path, monkeypatch: pytest.Mo
     loader = ConfigLoader(tmp_path)
     config = loader.load()
 
-    assert config.get("baseurl") == "https://owner123.github.io/repo456"
+    # Project sites get path-only baseurl for relative links
+    assert config.get("baseurl") == "/repo456"
 
 
 def test_github_pages_root_deployment_via_env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
@@ -99,8 +100,8 @@ def test_github_pages_root_deployment_via_env(tmp_path: Path, monkeypatch: pytes
     loader = ConfigLoader(tmp_path)
     config = loader.load()
 
-    # Should be root deployment, not /bengal subdirectory
-    assert config.get("baseurl") == "https://lbliii.github.io"
+    # Root deployment gets empty baseurl (served from root)
+    assert config.get("baseurl") == ""
 
 
 def test_github_pages_user_org_site_auto_detection(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
@@ -116,8 +117,8 @@ def test_github_pages_user_org_site_auto_detection(tmp_path: Path, monkeypatch: 
     loader = ConfigLoader(tmp_path)
     config = loader.load()
 
-    # User/org site should be at root, not /lbliii.github.io
-    assert config.get("baseurl") == "https://lbliii.github.io"
+    # User/org site auto-detects root deployment (empty baseurl)
+    assert config.get("baseurl") == ""
 
 
 def test_explicit_config_baseurl_not_overridden_by_env(

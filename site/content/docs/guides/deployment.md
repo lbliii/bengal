@@ -26,7 +26,6 @@ This command:
 - Minifies assets (if enabled)
 :::
 - Generates the `public/` directory with your complete site
-```
 
 ### Common Build Flags
 

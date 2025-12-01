@@ -325,26 +325,6 @@
   --icon-size-xs: 0.625rem;
   /* 10px base */
 
-  /* Tablet breakpoint (max-width: 768px) - Slightly smaller */
-  @media (max-width: 768px) {
-    --icon-size-sm: 0.8125rem;
-    /* 13px */
-    --icon-size-md: 0.6875rem;
-    /* 11px */
-    --icon-size-xs: 0.5625rem;
-    /* 9px */
-  }
-
-  /* Mobile breakpoint (max-width: 639px) - Smallest */
-  @media (max-width: 639px) {
-    --icon-size-sm: 0.75rem;
-    /* 12px */
-    --icon-size-md: 0.625rem;
-    /* 10px */
-    --icon-size-xs: 0.5rem;
-    /* 8px */
-  }
-
   /* ============================================
      SEMANTIC ELEVATION (Shadows)
      ============================================ */
@@ -512,6 +492,35 @@
   --breakpoint-xl: 1280px;
   --breakpoint-2xl: 1536px;
 
+}
+
+/* ============================================
+   RESPONSIVE ICON SIZES
+   ============================================
+   
+   Note: Media queries must be at the top level in CSS (cannot be nested 
+   inside :root selector). The duplicate :root selectors inside media 
+   queries are intentional and follow standard CSS practices for 
+   responsive custom properties. This keeps responsive overrides grouped
+   separately from base definitions for better maintainability.
+   ============================================ */
+
+/* Tablet breakpoint (max-width: 768px) - Slightly smaller */
+@media (max-width: 768px) {
+  :root {
+    --icon-size-sm: 0.8125rem;  /* 13px */
+    --icon-size-md: 0.6875rem;  /* 11px */
+    --icon-size-xs: 0.5625rem;  /* 9px */
+  }
+}
+
+/* Mobile breakpoint (max-width: 639px) - Smallest */
+@media (max-width: 639px) {
+  :root {
+    --icon-size-sm: 0.75rem;    /* 12px */
+    --icon-size-md: 0.625rem;   /* 10px */
+    --icon-size-xs: 0.5rem;     /* 8px */
+  }
 }
 
 /* ============================================

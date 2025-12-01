@@ -121,6 +121,7 @@ class SpecialPagesGenerator:
                 title="Page Not Found",
                 description="The page you're looking for doesn't exist.",
                 url="/404.html",
+                relative_url="/404.html",
                 kind="page",
                 draft=False,
                 metadata={},
@@ -234,6 +235,7 @@ class SpecialPagesGenerator:
                 title="Search",
                 description="Search this site for content.",
                 url=raw_path,
+                relative_url=raw_path,
                 kind="page",
                 draft=False,
                 metadata={"search_exclude": True},  # never index the search page

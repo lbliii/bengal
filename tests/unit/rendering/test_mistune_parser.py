@@ -160,10 +160,10 @@ class TestAdmonitions:
         return MistuneParser()
 
     def test_note_admonition(self, parser):
-        """Test note admonition using fenced code block syntax."""
-        content = """```{note} Important Note
+        """Test note admonition using colon-fenced directive syntax."""
+        content = """:::{note} Important Note
 This is a note with **markdown** support.
-```
+:::
 """
         result = parser.parse(content, {})
 
@@ -174,9 +174,9 @@ This is a note with **markdown** support.
 
     def test_warning_admonition(self, parser):
         """Test warning admonition."""
-        content = """```{warning} Be Careful
+        content = """:::{warning} Be Careful
 This is a warning.
-```
+:::
 """
         result = parser.parse(content, {})
 
@@ -186,9 +186,9 @@ This is a warning.
 
     def test_admonition_without_title(self, parser):
         """Test admonition without explicit title."""
-        content = """```{tip}
+        content = """:::{tip}
 Here's a tip!
-```
+:::
 """
         result = parser.parse(content, {})
 
@@ -200,9 +200,9 @@ Here's a tip!
         types = ["note", "warning", "danger", "tip", "info", "example", "success"]
 
         for admon_type in types:
-            content = f"""```{{{admon_type}}} Title
+            content = f""":::{{{admon_type}}} Title
 Content here.
-```
+:::
 """
             result = parser.parse(content, {})
             assert "admonition" in result
@@ -220,11 +220,11 @@ class TestDirectives:
     def test_dropdown_directive(self, parser):
         """Test dropdown directive."""
         content = """
-```{dropdown} Click to expand
+:::{dropdown} Click to expand
 :open: false
 
 Hidden content with **markdown**.
-```
+:::
 """
         result = parser.parse(content, {})
 
@@ -236,11 +236,11 @@ Hidden content with **markdown**.
     def test_dropdown_open_state(self, parser):
         """Test dropdown with open state."""
         content = """
-```{dropdown} Already open
+:::{dropdown} Already open
 :open: true
 
 Visible content.
-```
+:::
 """
         result = parser.parse(content, {})
 
@@ -250,7 +250,7 @@ Visible content.
     def test_tabs_directive(self, parser):
         """Test tabs directive."""
         content = """
-```{tabs}
+:::{tabs}
 :id: example
 
 ### Tab: First
@@ -260,7 +260,7 @@ Content in first tab.
 ### Tab: Second
 
 Content in second tab.
-```
+:::
 """
         result = parser.parse(content, {})
 
@@ -272,14 +272,14 @@ Content in second tab.
     def test_nested_markdown_in_dropdown(self, parser):
         """Test markdown nesting in dropdown."""
         content = """
-```{dropdown} Details
+:::{dropdown} Details
 
 - List item 1
 - List item 2
 
 **Bold text**
 
-```
+:::
 """
         result = parser.parse(content, {})
 

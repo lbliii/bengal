@@ -7,8 +7,10 @@
 
 {% set current_index = track.items.index(current_slug) %}
 {% set prev_slug = track.items[current_index - 1] if current_index > 0 else None %}
-{% set next_slug = track.items[current_index + 1] if current_index < (track.items|length - 1) else None %} {# Track
-    Navigation Component #} <div class="track-navigation card mb-4">
+{% set next_slug = track.items[current_index + 1] if current_index < (track.items|length - 1) else None %}
+
+{# Track Navigation Component #}
+<div class="track-navigation card mb-4">
     <div class="card-header d-flex justify-content-between align-items-center">
         <div>
             <span class="badge bg-primary me-2">Track</span>

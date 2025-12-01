@@ -41,8 +41,11 @@ def test_url_cache_cleared_after_output_path_set():
     page.output_path = Path("/tmp/public/releases/0.1.0/index.html")
 
     # Clear the cache (this is what orchestrators do)
+    # Must clear both url AND relative_url since url depends on relative_url
     if "url" in page.__dict__:
         del page.__dict__["url"]
+    if "relative_url" in page.__dict__:
+        del page.__dict__["relative_url"]
 
     # Now accessing url should compute the correct value
     correct_url = page.url

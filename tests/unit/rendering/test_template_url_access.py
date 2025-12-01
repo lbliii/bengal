@@ -43,7 +43,7 @@ class TestChildPageTilesMacro:
             # Child pages
             for i in range(1, 4):
                 (content_dir / f"guide-{i}.md").write_text(
-                    f"---\ntitle: Guide {i}\nweight: {i*10}\n---\n# Guide {i}"
+                    f"---\ntitle: Guide {i}\nweight: {i * 10}\n---\n# Guide {i}"
                 )
 
             site = Site(root_path=root, config={})
@@ -77,9 +77,9 @@ class TestChildPageTilesMacro:
         # Verify all URLs have section prefix
         assert len(tile_data) >= 3
         for tile in tile_data:
-            assert tile["url"].startswith(
-                "/guides/"
-            ), f"Tile URL missing section prefix: {tile['url']}"
+            assert tile["url"].startswith("/guides/"), (
+                f"Tile URL missing section prefix: {tile['url']}"
+            )
 
     def test_sorted_pages_iteration_urls(self, site_with_children):
         """Test URL access when iterating sorted_pages."""
@@ -168,9 +168,9 @@ class TestNavigationComponentURLs:
         # Simulate breadcrumb: {% for ancestor in page.ancestors %}
         # (Note: page.ancestors would need to be set up, simulating the access pattern)
         breadcrumb_url = hello_page.url
-        assert breadcrumb_url.startswith(
-            "/docs/getting-started/basics/"
-        ), f"Deeply nested page has wrong URL: {breadcrumb_url}"
+        assert breadcrumb_url.startswith("/docs/getting-started/basics/"), (
+            f"Deeply nested page has wrong URL: {breadcrumb_url}"
+        )
 
 
 class TestRelatedPostsURLs:
@@ -222,6 +222,7 @@ class TestPaginationURLs:
         """Test accessing URLs of pages in paginated list."""
         site = Mock()
         site.output_dir = Path("/site/public")
+        site.config = {}  # Return empty dict (no baseurl) to avoid MagicMock issues
 
         # Create pages with proper output paths
         pages = []

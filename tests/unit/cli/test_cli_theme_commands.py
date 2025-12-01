@@ -71,3 +71,78 @@ def test_theme_discover_lists_templates(tmp_path, monkeypatch):
     r = CliRunner().invoke(cli_main, ["utils", "theme", "discover", str(site_root)])
     assert r.exit_code == 0
     assert "a.html" in r.stdout
+
+
+class TestThemeInstallSecurity:
+    """Security tests for theme install package name validation."""
+
+    def test_rejects_path_traversal(self):
+        """Test that path traversal attempts are rejected."""
+        r = CliRunner().invoke(cli_main, ["utils", "theme", "install", "../malicious"])
+        assert r.exit_code != 0
+        assert "Invalid package name" in r.output
+
+    def test_rejects_absolute_path(self):
+        """Test that absolute paths are rejected."""
+        r = CliRunner().invoke(cli_main, ["utils", "theme", "install", "/etc/passwd"])
+        assert r.exit_code != 0
+        assert "Invalid package name" in r.output
+
+    def test_rejects_shell_injection(self):
+        """Test that shell injection attempts are rejected."""
+        r = CliRunner().invoke(cli_main, ["utils", "theme", "install", "theme; rm -rf /"])
+        assert r.exit_code != 0
+        assert "Invalid package name" in r.output
+
+    def test_rejects_backtick_injection(self):
+        """Test that backtick command substitution is rejected."""
+        r = CliRunner().invoke(cli_main, ["utils", "theme", "install", "theme`whoami`"])
+        assert r.exit_code != 0
+        assert "Invalid package name" in r.output
+
+    def test_rejects_dollar_injection(self):
+        """Test that dollar sign command substitution is rejected."""
+        r = CliRunner().invoke(cli_main, ["utils", "theme", "install", "theme$(whoami)"])
+        assert r.exit_code != 0
+        assert "Invalid package name" in r.output
+
+    def test_rejects_pipe_injection(self):
+        """Test that pipe characters are rejected."""
+        r = CliRunner().invoke(cli_main, ["utils", "theme", "install", "theme|cat /etc/passwd"])
+        assert r.exit_code != 0
+        assert "Invalid package name" in r.output
+
+    def test_rejects_name_starting_with_number(self):
+        """Test that names starting with numbers are rejected."""
+        r = CliRunner().invoke(cli_main, ["utils", "theme", "install", "123theme"])
+        assert r.exit_code != 0
+        assert "Invalid package name" in r.output
+
+    def test_rejects_name_starting_with_hyphen(self):
+        """Test that names starting with hyphen are rejected.
+
+        Note: Click's option parsing also catches this case, rejecting it as
+        an invalid option. Either way, malicious names are blocked.
+        """
+        r = CliRunner().invoke(cli_main, ["utils", "theme", "install", "-malicious"])
+        assert r.exit_code != 0
+        # Click may reject as "No such option" or our validation may reject
+        assert "Invalid package name" in r.output or "No such option" in r.output
+
+    def test_accepts_valid_package_name(self):
+        """Test that valid package names pass validation."""
+        # Note: This will fail at pip install stage, but should pass validation
+        r = CliRunner().invoke(cli_main, ["utils", "theme", "install", "bengal-theme-test"])
+        # Either succeeds at validation (and fails at pip), or warns about non-standard
+        # The key is it shouldn't fail with "Invalid package name"
+        assert "Invalid package name" not in r.output
+
+    def test_accepts_name_with_dots(self):
+        """Test that names with dots (version specifiers) pass validation."""
+        r = CliRunner().invoke(cli_main, ["utils", "theme", "install", "bengal-theme-test.1.0"])
+        assert "Invalid package name" not in r.output
+
+    def test_accepts_name_with_underscores(self):
+        """Test that names with underscores pass validation."""
+        r = CliRunner().invoke(cli_main, ["utils", "theme", "install", "bengal_theme_test"])
+        assert "Invalid package name" not in r.output

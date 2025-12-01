@@ -39,7 +39,6 @@ Bengal resolves themes in this order:
 - **Installed themes** - Installed via pip/uv
 - **Bundled themes** - Built into Bengal (e.g., `default`)
 :::
-```
 
 ### Check Active Theme
 
