@@ -6,7 +6,7 @@ Documentation List Template
 Three-column layout optimized for documentation section index pages:
 - Left sidebar: Navigation tree
 - Center: Content + Child page tiles
-- Right sidebar: TOC + metadata
+- Right sidebar: Contextual Graph + TOC + metadata
 
 Usage: Set `template: doc/list.html` in frontmatter
 Or set `type: doc` to auto-select this template
@@ -69,9 +69,19 @@ Features:
     {{ page_navigation(page) }}
   </div>
 
-  {# Right Sidebar: TOC + Metadata #}
+  {# Right Sidebar: Contextual Graph + TOC + Metadata #}
   {% if toc_items %}
   <aside class="docs-toc" role="complementary" aria-label="Table of contents">
+    {# Contextual Graph Minimap - shows connections to current page #}
+    <div class="graph-contextual" data-page-url="{{ page.url }}">
+      {# Placeholder - will be replaced by JavaScript #}
+      <div class="graph-contextual-container graph-loading"
+        style="min-height: 200px; display: flex; align-items: center; justify-content: center; color: var(--color-text-secondary); font-size: 12px; opacity: 1 !important; visibility: visible !important;">
+        Loading connections...
+      </div>
+    </div>
+
+    {# Table of Contents #}
     {{ toc(toc_items=toc_items, toc=toc, page=page) }}
   </aside>
   {% endif %}
