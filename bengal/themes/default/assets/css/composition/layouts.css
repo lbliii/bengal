@@ -41,7 +41,7 @@
   max-width: 100%;
   margin: 0;
   padding-inline-start: 0; /* Container handles left padding */
-  padding-inline-end: var(--space-4); /* Extra right padding for scrollbar breathing room */
+  padding-inline-end: var(--space-4); /* Extra right padding for the page's vertical scrollbar (not the sidebar scrollbar) */
 }
 
 /* Docs layout provides its own padding when NOT inside a container */

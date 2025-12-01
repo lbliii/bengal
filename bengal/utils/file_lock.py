@@ -105,7 +105,7 @@ def _acquire_lock(
             elapsed = time.monotonic() - start_time
             if elapsed >= timeout:
                 raise LockAcquisitionError(
-                    f"Could not acquire lock on {lock_path} after {timeout}s. "
+                    f"Could not acquire {'exclusive' if exclusive else 'shared'} lock on {lock_path} after {timeout}s. "
                     "Another build process may be running."
                 ) from err
 
