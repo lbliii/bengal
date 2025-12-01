@@ -3,13 +3,13 @@
 title: "page"
 type: "cli-reference"
 source_file: "bengal/bengal/cli/helpers/error_handling.py"
-line_number: 645
+line_number: 20
 description: "📄 Create a new page. The page name will be automatically slugified for the filename. Example: \"My Awesome Page\" → my-awesome-page.md"
 ---
 
 # page
 **Type:** Command
-**Source:** [View source](https://github.com/lbliii/bengal/blob/main/bengal/bengal/cli/helpers/error_handling.py#L645)
+**Source:** [View source](https://github.com/lbliii/bengal/blob/main/bengal/bengal/cli/helpers/error_handling.py#L20)
 
 :::{badge} Command
 :class: badge-secondary

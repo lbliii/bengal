@@ -3,13 +3,13 @@
 title: "autodoc-cli"
 type: "cli-reference"
 source_file: "bengal/bengal/cli/helpers/error_handling.py"
-line_number: 409
+line_number: 420
 description: "⌨️  Generate CLI documentation from Click/argparse/typer apps. Extracts documentation from command-line interfaces to create comprehensive command reference documentation. Useful for documenting custo..."
 ---
 
 # autodoc-cli
 **Type:** Command
-**Source:** [View source](https://github.com/lbliii/bengal/blob/main/bengal/bengal/cli/helpers/error_handling.py#L409)
+**Source:** [View source](https://github.com/lbliii/bengal/blob/main/bengal/bengal/cli/helpers/error_handling.py#L420)
 
 :::{badge} Command
 :class: badge-secondary

@@ -3,13 +3,13 @@
 title: "site"
 type: "cli-reference"
 source_file: "bengal/bengal/cli/helpers/error_handling.py"
-line_number: 576
+line_number: 311
 description: "Create a new Bengal site (bengal new site)."
 ---
 
 # site
 **Type:** Command
-**Source:** [View source](https://github.com/lbliii/bengal/blob/main/bengal/bengal/cli/helpers/error_handling.py#L576)
+**Source:** [View source](https://github.com/lbliii/bengal/blob/main/bengal/bengal/cli/helpers/error_handling.py#L311)
 
 :::{badge} Command
 :class: badge-secondary

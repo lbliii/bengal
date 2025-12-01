@@ -3,13 +3,13 @@
 title: "partial"
 type: "cli-reference"
 source_file: "bengal/bengal/cli/helpers/error_handling.py"
-line_number: 780
+line_number: 150
 description: "🧩 Create a new partial template. Partials are reusable template fragments included in other templates. Example: \"sidebar\" → templates/partials/sidebar.html See also: bengal new layout - Create a layou..."
 ---
 
 # partial
 **Type:** Command
-**Source:** [View source](https://github.com/lbliii/bengal/blob/main/bengal/bengal/cli/helpers/error_handling.py#L780)
+**Source:** [View source](https://github.com/lbliii/bengal/blob/main/bengal/bengal/cli/helpers/error_handling.py#L150)
 
 :::{badge} Command
 :class: badge-secondary

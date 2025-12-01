@@ -3,13 +3,13 @@
 title: "theme"
 type: "cli-reference"
 source_file: "bengal/bengal/cli/helpers/error_handling.py"
-line_number: 854
+line_number: 214
 description: "🎨 Create a new theme scaffold. Themes are self-contained template and asset packages. Example: \"my-theme\" → themes/my-theme/ with templates, partials, and assets See also: bengal new layout - Create a..."
 ---
 
 # theme
 **Type:** Command
-**Source:** [View source](https://github.com/lbliii/bengal/blob/main/bengal/bengal/cli/helpers/error_handling.py#L854)
+**Source:** [View source](https://github.com/lbliii/bengal/blob/main/bengal/bengal/cli/helpers/error_handling.py#L214)
 
 :::{badge} Command
 :class: badge-secondary
