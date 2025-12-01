@@ -20,13 +20,16 @@ autodoc:
     output_dir: content/api
     docstring_style: auto  # Auto-detect docstring format
 
-    # Exclude test and cache files
+    # Exclude test, cache, and virtual environment files
     exclude:
       - "*/tests/*"
       - "*/test_*.py"
       - "*/__pycache__/*"
       - "*/migrations/*"
       - "*/.pytest_cache/*"
+      - "*/.venv/*"
+      - "*/venv/*"
+      - "*/.env/*"
 
     # Member visibility
     include_private: false  # Skip _private methods

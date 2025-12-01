@@ -1,0 +1,228 @@
+
+---
+title: "initialization"
+type: "python-module"
+source_file: "bengal/orchestration/build/initialization.py"
+line_number: 1
+description: "Initialization phases for build orchestration. Phases 1-5: Font processing, content discovery, cache metadata, config check, incremental filtering."
+---
+
+# initialization
+**Type:** Module
+**Source:** [View source](https://github.com/lbliii/bengal/blob/main/bengal/orchestration/build/initialization.py#L1)
+
+
+
+**Navigation:**
+[orchestration](/api/orchestration/) ›[build](/api/orchestration/build/) ›initialization
+
+Initialization phases for build orchestration.
+
+Phases 1-5: Font processing, content discovery, cache metadata, config check, incremental filtering.
+
+## Functions
+
+
+
+### `phase_fonts`
+
+
+```python
+def phase_fonts(orchestrator: BuildOrchestrator, cli) -> None
+```
+
+
+
+Phase 1: Font Processing.
+
+Downloads Google Fonts and generates CSS if configured in site config.
+This runs before asset discovery so font CSS is available.
+
+
+**Parameters:**
+
+| Name | Type | Default | Description |
+|:-----|:-----|:--------|:------------|
+| `orchestrator` | `BuildOrchestrator` | - | Build orchestrator instance |
+| `cli` | - | - | CLI output for user messages Side effects: - Creates assets/ directory if needed - Downloads font files to assets/fonts/ - Generates font CSS file - Updates orchestrator.stats.fonts_time_ms |
+
+
+
+
+
+
+
+**Returns**
+
+
+`None`
+
+
+
+
+### `phase_discovery`
+
+
+```python
+def phase_discovery(orchestrator: BuildOrchestrator, cli, incremental: bool) -> None
+```
+
+
+
+Phase 2: Content Discovery.
+
+Discovers all content files in the content/ directory and creates Page objects.
+For incremental builds, uses cached page metadata for lazy loading.
+
+
+**Parameters:**
+
+| Name | Type | Default | Description |
+|:-----|:-----|:--------|:------------|
+| `orchestrator` | `BuildOrchestrator` | - | Build orchestrator instance |
+| `cli` | - | - | CLI output for user messages |
+| `incremental` | `bool` | - | Whether this is an incremental build Side effects: - Populates orchestrator.site.pages with discovered pages - Populates orchestrator.site.sections with discovered sections - Updates orchestrator.stats.discovery_time_ms |
+
+
+
+
+
+
+
+**Returns**
+
+
+`None`
+
+
+
+
+### `phase_cache_metadata`
+
+
+```python
+def phase_cache_metadata(orchestrator: BuildOrchestrator) -> None
+```
+
+
+
+Phase 3: Cache Discovery Metadata.
+
+Saves page discovery metadata to cache for future incremental builds.
+This enables lazy loading of unchanged pages.
+
+Side effects:
+    - Normalizes page core paths to relative
+    - Persists page metadata to .bengal/page_metadata.json
+
+
+**Parameters:**
+
+| Name | Type | Default | Description |
+|:-----|:-----|:--------|:------------|
+| `orchestrator` | `BuildOrchestrator` | - | *No description provided.* |
+
+
+
+
+
+
+
+**Returns**
+
+
+`None`
+
+
+
+
+### `phase_config_check`
+
+
+```python
+def phase_config_check(orchestrator: BuildOrchestrator, cli, cache, incremental: bool) -> tuple[bool, bool]
+```
+
+
+
+Phase 4: Config Check and Cleanup.
+
+Checks if config file changed (forces full rebuild) and cleans up deleted files.
+
+
+**Parameters:**
+
+| Name | Type | Default | Description |
+|:-----|:-----|:--------|:------------|
+| `orchestrator` | `BuildOrchestrator` | - | Build orchestrator instance |
+| `cli` | - | - | CLI output for user messages |
+| `cache` | - | - | Build cache |
+| `incremental` | `bool` | - | Whether this is an incremental build |
+
+
+
+
+
+
+
+**Returns**
+
+
+`tuple[bool, bool]` - Tuple of (updated_incremental, config_changed) - incremental may be
+    set to False if config changed
+
+Side effects:
+    - Cleans up output files for deleted source files
+    - Clears cache if config changed
+
+
+
+
+### `phase_incremental_filter`
+
+
+```python
+def phase_incremental_filter(orchestrator: BuildOrchestrator, cli, cache, incremental: bool, verbose: bool, build_start: float) -> tuple[list, list, set, set, set | None] | None
+```
+
+
+
+Phase 5: Incremental Filtering.
+
+Determines which pages and assets need to be built based on what changed.
+This is the KEY optimization: filter BEFORE expensive operations.
+
+
+**Parameters:**
+
+| Name | Type | Default | Description |
+|:-----|:-----|:--------|:------------|
+| `orchestrator` | `BuildOrchestrator` | - | Build orchestrator instance |
+| `cli` | - | - | CLI output for user messages |
+| `cache` | - | - | Build cache |
+| `incremental` | `bool` | - | Whether this is an incremental build |
+| `verbose` | `bool` | - | Whether to show verbose output |
+| `build_start` | `float` | - | Build start time for duration calculation |
+
+
+
+
+
+
+
+**Returns**
+
+
+`tuple[list, list, set, set, set | None] | None` - Tuple of (pages_to_build, assets_to_process, affected_tags,
+             changed_page_paths, affected_sections)
+    Returns None if build should be skipped (no changes detected)
+
+Side effects:
+    - Updates orchestrator.stats with cache hit/miss statistics
+    - May return early if no changes detected
+
+
+
+---
+*Generated by Bengal autodoc from `bengal/orchestration/build/initialization.py`*
+

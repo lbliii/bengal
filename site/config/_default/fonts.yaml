@@ -1,15 +1,11 @@
 # Font Configuration
 # Bengal automatically downloads fonts from Google Fonts and generates fonts.css
 #
-# Format: "Font Name:weight1,weight2" or { family: "Font Name", weights: [400, 700] }
-#
-# Available font roles:
-#   display  - h1, hero text (--font-family-display)
-#   heading  - Section headings (optional, falls back to display)
-#   primary  - Body text (optional, uses system fonts by default)
-#   mono     - Code blocks (optional, uses system fonts by default)
+# Outfit: Modern geometric sans-serif with personality
+# - Clean, friendly, professional
+# - Works well for headings without being jarring
+# - 400 for regular weight, 700 for bold headings
 
 fonts:
-  # Distinctive heading font - refined, modern serif for h1/h2
-  display: "Instrument Serif:400,700"
+  display: "Outfit:400,600,700"
 

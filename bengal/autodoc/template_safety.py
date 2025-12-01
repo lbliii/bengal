@@ -407,15 +407,26 @@ def _get_safe_filters() -> dict[str, Any]:
         while path_str.startswith("./"):
             path_str = path_str[2:]
 
-        # Handle absolute paths - remove common prefixes
-        for prefix in ["/Users/", "/home/", "C:\\Users\\", "C:\\", "/opt/", "/usr/"]:
-            if path_str.startswith(prefix):
-                # Find project root (look for common markers)
+        # Handle absolute paths - find project root by looking for markers
+        try:
+            path_obj = Path(path_str)
+            if path_obj.is_absolute():
+                # Walk up to find project root (directory with .git, pyproject.toml, etc.)
+                for parent in path_obj.parents:
+                    if (parent / ".git").exists() or (parent / "pyproject.toml").exists():
+                        # Found project root, return path relative to it
+                        try:
+                            return str(path_obj.relative_to(parent))
+                        except ValueError:
+                            break
+                
+                # Fallback: look for common project directory markers
                 parts = path_str.split("/")
                 for i, part in enumerate(parts):
                     if part in ["bengal", "src", "lib", "project"]:
                         return "/".join(parts[i:])
-                break
+        except (OSError, ValueError):
+            pass
 
         return path_str
 

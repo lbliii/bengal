@@ -85,8 +85,7 @@ class FontHelper:
             print("   └─ No fonts generated")
             return None
 
-        # Write fonts.css inside the fonts directory so it gets copied with assets
-        css_path = fonts_dir / "fonts.css"
+        css_path = assets_dir / "fonts.css"
         css_path.write_text(css_content, encoding="utf-8")
 
         total_variants = sum(len(v) for v in all_variants.values())

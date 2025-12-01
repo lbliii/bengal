@@ -350,7 +350,7 @@ ol {
 }
 
 li {
-  margin: var(--space-2) 0;
+  margin: 0.375rem 0;  /* Tighter than --space-2 for better scannability */
   line-height: var(--leading-body);
 }
 
@@ -474,7 +474,7 @@ pre {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-2xl);
   overflow-x: auto;
-  line-height: var(--leading-body);
+  line-height: 1.5;  /* Tighter than body (1.65) for code readability */
   position: relative;
 }
 
@@ -632,15 +632,18 @@ thead {
 }
 
 th {
-  padding: var(--space-3) var(--space-4);
+  padding: var(--space-3) var(--space-5);  /* More horizontal breathing room */
   text-align: left;
+  font-size: var(--text-caption);  /* Smaller than body */
   font-weight: var(--weight-semibold);
-  color: var(--color-text-primary);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+  color: var(--color-text-secondary);  /* Softer than primary */
   background-color: var(--color-bg-secondary);
 }
 
 td {
-  padding: var(--space-3) var(--space-4);
+  padding: var(--space-3) var(--space-5);  /* Match th horizontal padding */
   border-bottom: 1px solid var(--color-border-light);
 }
 
