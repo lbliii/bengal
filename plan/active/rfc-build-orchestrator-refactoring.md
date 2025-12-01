@@ -1,9 +1,9 @@
-# RFC: BuildOrchestrator Refactoring - Phase Extraction and Structure
+# RFC: BuildOrchestrator Refactoring - Phase Method Extraction
 
 **Author**: AI + Human Reviewer  
 **Date**: 2025-01-27  
 **Status**: Draft  
-**Confidence**: 87% 🟢
+**Confidence**: 82% 🟢
 
 ---
 
@@ -13,16 +13,45 @@
 
 **Question**: Should we refactor `BuildOrchestrator` to improve maintainability, testability, and clarity?
 
-**Answer**: **Yes** - Extract phase execution into separate methods, create a phase registry/executor pattern, and implement a build strategy pattern for incremental vs full builds. This will reduce complexity, improve testability, and make the build pipeline easier to understand and modify.
+**Answer**: **Yes** - Extract phase execution into separate `_phase_*` methods. This is the primary deliverable. Registry/strategy patterns are deferred until value is proven.
 
 **Impact**:
-- ✅ Reduced method complexity (900 lines → ~50 lines per phase method)
+- ✅ Reduced method complexity (894 lines → ~50 lines per phase method)
 - ✅ Improved testability (can test phases independently)
 - ✅ Better maintainability (clear phase boundaries)
-- ✅ Easier to add/modify phases (registry pattern)
+- ✅ **Contributor-friendly codebase** (key for open source growth)
 - ⚠️ Requires careful migration to avoid breaking changes
 
-**Confidence**: 87% (strong evidence from code analysis, clear refactoring path, moderate implementation complexity)
+**Confidence**: 82% (strong evidence from code analysis, clear refactoring path; registry pattern deferred)
+
+---
+
+## 0. Strategic Context
+
+### Why This Matters for Bengal
+
+Bengal is positioning as **the modern Python SSG**. For open source success, we need:
+
+```
+Adoption = (Ease of Getting Started × Visible Quality × Community) / Friction
+```
+
+**This refactoring directly impacts "Visible Quality" and "Community":**
+
+1. **Contributor Velocity**: A 894-line method is a contributor deterrent
+   - New contributors open `build.py` → feel overwhelmed → close PR
+   - Clean, focused methods → contributors can find and fix issues
+
+2. **Competitive Position**: Python SSG landscape
+   - MkDocs: Limited to docs, simple architecture
+   - Pelican: Aging codebase, stale development
+   - Bengal: Modern Python, sophisticated features, **needs clean internals**
+
+3. **Long-term Maintainability**: Technical debt compounds
+   - Current: Every new feature adds to 894-line method
+   - After: New phases are isolated, testable, reviewable
+
+**Strategic recommendation**: Prioritize Option A (method extraction) for immediate contributor experience improvement. Defer Option B/C abstractions until pain justifies complexity.
 
 ---
 
@@ -49,9 +78,9 @@ def build(self, ...) -> BuildStats:
 ```
 
 **Phase structure issues**:
-- Duplicate phase numbers: two "Phase 5.5", two "Phase 9"
+- Duplicate phase numbers: two "Phase 5.5" (lines 569, 616), two "Phase 9" (lines 871, 901)
 - Decimal numbering: 0.5, 1.25, 1.5, 4.5, 5.5, 8.4, 8.5 (organic growth)
-- Repetitive execution pattern: 35+ occurrences of `with self.logger.phase(...)`
+- Repetitive execution pattern: 17 occurrences of `with self.logger.phase(...)` with timing boilerplate
 
 **Incremental logic issues**:
 - Conditional checks (`if incremental:`) scattered throughout phases
@@ -69,15 +98,21 @@ def build(self, ...) -> BuildStats:
 
 ### User Impact
 
-**Developers**:
-- Hard to understand build pipeline
-- Difficult to add new phases or modify existing ones
-- Risk of introducing bugs when making changes
+**End Users**: No impact (internal refactoring only)
+
+**Contributors** (Strategic Priority):
+- ❌ Current: Open `build.py` → 894 lines → "where do I start?" → close PR
+- ✅ After: Open `build.py` → see clear phase methods → find relevant code → submit PR
 
 **Maintainers**:
+- Hard to understand build pipeline
 - High cognitive load when debugging build issues
 - Difficult to test build phases independently
 - Hard to reason about incremental vs full build behavior
+
+**Open Source Growth**:
+- Clean codebase → more contributors → more features → more users
+- 894-line methods deter contributions (proven pattern in OSS)
 
 ---
 
@@ -86,11 +121,16 @@ def build(self, ...) -> BuildStats:
 ### Goals
 
 1. **Extract Phase Methods**: Break `build()` into focused `_phase_*` methods (~50-100 lines each)
-2. **Phase Registry Pattern**: Create explicit phase ordering and execution framework
-3. **Build Strategy Pattern**: Separate incremental vs full build logic
-4. **Reduce Complexity**: Lower cyclomatic complexity of `build()` method
-5. **Improve Testability**: Enable independent testing of phases
-6. **Maintain Backward Compatibility**: No breaking changes to public API
+2. **Improve Contributor Experience**: Make codebase approachable for new contributors
+3. **Reduce Complexity**: Lower cyclomatic complexity of `build()` method
+4. **Improve Testability**: Enable independent testing of phases
+5. **Maintain Backward Compatibility**: No breaking changes to public API
+6. **Fix Technical Debt**: Resolve duplicate phase numbers (5.5, 9)
+
+### Deferred Goals (Option B/C)
+
+- **Phase Registry Pattern**: Evaluate after Option A is complete
+- **Build Strategy Pattern**: Only if incremental logic becomes painful
 
 ### Non-Goals
 
@@ -99,6 +139,7 @@ def build(self, ...) -> BuildStats:
 - **Not optimizing build performance** (focus on code structure)
 - **Not changing orchestrator interfaces** (only internal refactoring)
 - **Not adding new features** (pure refactoring)
+- **Not adding abstractions prematurely** (YAGNI principle)
 
 ---
 
@@ -107,9 +148,9 @@ def build(self, ...) -> BuildStats:
 **Affected Subsystems**:
 
 - **Orchestration** (`bengal/orchestration/`): **Primary impact**
-  - `build.py`: Major refactoring (extract phase methods, add registry)
+  - `build.py`: Major refactoring (extract phase methods)
   - Other orchestrators: No changes (still called the same way)
-  - New modules: `phase_registry.py`, `build_strategy.py` (optional)
+  - New modules: None (Option A keeps everything in `build.py`)
 
 - **Core** (`bengal/core/`): **No impact**
   - Site, Page, Section, Asset unchanged
@@ -168,7 +209,7 @@ class BuildOrchestrator:
 
 **Complexity**: Simple (2-3 days)
 
-**Evidence**: Similar pattern used in other orchestrators (e.g., `PostprocessOrchestrator._run_sequential`)
+**Evidence**: Method extraction pattern used elsewhere (e.g., `PostprocessOrchestrator._generate_*` methods)
 
 ---
 
@@ -212,7 +253,7 @@ class BuildOrchestrator:
 
 **Complexity**: Moderate (5-7 days)
 
-**Evidence**: Registry pattern used elsewhere (e.g., `ContentTypeRegistry`)
+**Evidence**: Task-based execution pattern used in `PostprocessOrchestrator.run()` with named task tuples
 
 ---
 
@@ -259,28 +300,82 @@ class BuildOrchestrator:
 
 **Complexity**: Complex (10-14 days)
 
-**Evidence**: Strategy pattern used in content types (`ContentStrategy`)
+**Evidence**: No existing strategy pattern in codebase; would be a new abstraction
 
 ---
 
-### Recommended: Option B (Phase Registry + Executor)
+### Recommended: Option A (Method Extraction)
 
-**Reasoning**:
-- **Balanced**: Good improvement without over-engineering
-- **Incremental**: Can start with Option A, then add registry
-- **Future-proof**: Easy to add Option C later if needed
-- **Tested pattern**: Registry pattern already used in codebase
+**This is the deliverable. Options B and C are deferred.**
 
-**Phased approach**:
-1. **Phase 1**: Extract phase methods (Option A) - quick win
-2. **Phase 2**: Add phase registry/executor (Option B) - structure
-3. **Phase 3**: Consider strategy pattern (Option C) - if needed later
+**Strategic Reasoning**:
+- **Contributor experience**: Clean methods attract contributors; 894-line methods repel them
+- **Low risk**: Simple extraction, no new abstractions
+- **Immediate value**: 80% of the benefit with 20% of the complexity
+- **YAGNI**: Registry pattern adds cognitive load without proven need
+- **Reversible**: Can always add Option B later if pain emerges
+
+**Why NOT Option B/C now**:
+- No existing registry/strategy patterns in Bengal codebase
+- Adds abstraction overhead for contributors to learn
+- Premature optimization of code organization
+- Method extraction alone solves the core problem
+
+**Implementation approach**:
+1. **Phase 1**: Extract phase methods (Option A) - **THE DELIVERABLE**
+2. **Phase 2**: Live with it for 1-2 release cycles
+3. **Phase 3**: Re-evaluate: Is phase ordering actually painful? If yes → Option B
 
 ---
 
-## 5. Detailed Design (Option B: Phase Registry + Executor)
+## 5. Detailed Design (Option A: Method Extraction)
 
-### API Changes
+### Primary Deliverable: Extract Phase Methods
+
+**Target structure** after refactoring:
+
+```python
+class BuildOrchestrator:
+    def build(self, ...) -> BuildStats:
+        """Public API unchanged - backward compatible."""
+        ctx = self._setup_build_context(...)
+
+        # Clear phase sequence (~15 method calls instead of 894 lines)
+        self._phase_fonts(ctx)                    # Phase 0.5
+        self._phase_discovery(ctx)                # Phase 1
+        self._phase_cache_metadata(ctx)           # Phase 1.25
+        self._phase_cleanup_deleted(ctx)          # Phase 1.5
+        self._phase_incremental_filter(ctx)       # Phase 2
+        self._phase_sections(ctx)                 # Phase 3
+        self._phase_taxonomies(ctx)               # Phase 4
+        self._phase_taxonomy_index(ctx)           # Phase 4.5
+        self._phase_menus(ctx)                    # Phase 5
+        self._phase_related_posts(ctx)            # Phase 6 (was 5.5)
+        self._phase_query_indexes(ctx)            # Phase 7 (was 5.5)
+        self._phase_update_pages_list(ctx)        # Phase 8 (was 6)
+        self._phase_assets(ctx)                   # Phase 9 (was 7)
+        self._phase_render(ctx)                   # Phase 10 (was 8)
+        self._phase_track_assets(ctx)             # Phase 11 (was 8.5)
+        self._phase_postprocess(ctx)              # Phase 12 (was 9)
+        self._phase_cache_save(ctx)               # Phase 13 (was 9)
+        self._phase_health_check(ctx)             # Phase 14 (was 10)
+
+        return ctx.stats
+```
+
+**Key changes**:
+- Fix duplicate phase numbers (renumber sequentially)
+- Each phase method is ~50-100 lines
+- `build()` becomes a readable sequence of method calls
+- No new abstractions (registry, strategy) - just extraction
+
+---
+
+## 5.1. Reference Design (Option B: Phase Registry - DEFERRED)
+
+> **Note**: This section is preserved for future reference. Option B is NOT part of the current deliverable. Re-evaluate after living with Option A for 1-2 release cycles.
+
+### API Changes (If Implemented Later)
 
 **New modules**:
 - `bengal/orchestration/phase_registry.py`: Phase definitions and registry
@@ -425,18 +520,25 @@ class TestContentDiscoveryPhase:
 
 ## 6. Tradeoffs & Risks
 
-### Tradeoffs
+### Tradeoffs (Option A)
 
 **Gain**:
 - ✅ Better code organization (phases clearly separated)
 - ✅ Improved testability (can test phases independently)
 - ✅ Easier maintenance (smaller, focused methods)
-- ✅ Clearer build flow (explicit phase ordering)
+- ✅ **Contributor-friendly** (can understand codebase quickly)
+- ✅ Lower barrier to entry for new contributors
+- ✅ Clearer build flow (explicit phase sequence)
 
 **Lose**:
-- ⚠️ More methods (17+ phase methods vs 1 large method)
+- ⚠️ More methods (15 phase methods vs 1 large method)
 - ⚠️ Slight indirection (method calls vs inline code)
-- ⚠️ Initial refactoring effort (2-3 days)
+- ⚠️ Initial refactoring effort (3-4 days)
+
+**Explicitly NOT doing** (YAGNI):
+- ❌ Phase Registry (adds abstraction without proven need)
+- ❌ Strategy Pattern (over-engineering for current scale)
+- ❌ New modules (keep everything in `build.py`)
 
 ### Risks
 
@@ -502,25 +604,27 @@ class TestContentDiscoveryPhase:
 
 ### Implementation Phases
 
-**Phase 1: Extract Phase Methods** (2-3 days)
-1. Extract first phase (`_phase_font_processing`) as proof of concept
-2. Run tests to verify behavior unchanged
-3. Extract remaining phases one by one
-4. Update `build()` to call phase methods
-5. Run full test suite
+**Phase 1: Setup & First Extraction** (Day 1)
+1. Create `BuildContext` dataclass if not exists (holds shared state)
+2. Extract first phase (`_phase_fonts`) as proof of concept
+3. Run full test suite to verify behavior unchanged
+4. Commit: `orchestration: extract _phase_fonts from build(); add BuildContext`
 
-**Phase 2: Add Phase Registry** (1-2 days)
-1. Create `Phase` dataclass
-2. Create `_get_phase_registry()` method
-3. Update `_execute_phases()` to use registry
-4. Verify phase order matches current behavior
-5. Run full test suite
+**Phase 2: Extract Remaining Phases** (Days 2-3)
+1. Extract phases one by one (in execution order)
+2. Run tests after each extraction
+3. Fix duplicate phase numbers during extraction (5.5 → 6/7, 9 → 12/13)
+4. Commit after each 2-3 phases extracted
 
-**Phase 3: Polish & Documentation** (1 day)
-1. Add docstrings to phase methods
-2. Update architecture docs
-3. Add phase execution diagram
-4. Code review
+**Phase 3: Polish & Documentation** (Day 4)
+1. Add docstrings to all phase methods
+2. Update `architecture/core/orchestration.md`
+3. Final test pass + code review
+4. Commit: `orchestration: complete build() phase extraction; update docs`
+
+**Phase 4: Deferred (Option B - Only If Needed)**
+- Re-evaluate after 1-2 release cycles
+- Only proceed if phase ordering becomes painful
 
 ### Rollout Strategy
 
@@ -561,16 +665,16 @@ class TestContentDiscoveryPhase:
 
 ## 10. Confidence Scoring
 
-**Evidence Strength**: 40/40 ✅
-- Direct code analysis: `build()` method is 900 lines
-- Phase structure documented: 17+ phases identified
-- Repetitive patterns found: 35+ `with self.logger.phase` occurrences
+**Evidence Strength**: 38/40 ✅
+- Direct code analysis: `build()` method is 894 lines (lines 66-960)
+- Phase structure documented: 15 distinct phases identified
+- Repetitive patterns found: 17 `with self.logger.phase` occurrences
 - Evidence: `bengal/orchestration/build.py:66-960`
 
-**Consistency**: 30/30 ✅
+**Consistency**: 25/30 🟡
 - Code analysis matches documentation (phases documented)
-- Pattern matches other orchestrators (similar extraction possible)
-- Refactoring approach aligns with Bengal patterns (registry pattern exists)
+- Method extraction pattern used in `PostprocessOrchestrator._generate_*` methods
+- Note: Registry pattern would be NEW to Bengal (no existing precedent)
 
 **Recency**: 15/15 ✅
 - Code reviewed today (2025-01-27)
@@ -582,9 +686,9 @@ class TestContentDiscoveryPhase:
 - Unit tests for orchestrators exist
 - No dedicated tests for phase extraction (will add during refactoring)
 
-**Total Confidence**: **87%** 🟢
+**Total Confidence**: **82%** 🟢
 
-**Quality Gate**: ✅ Passes (≥85% required for RFC)
+**Quality Gate**: ⚠️ Marginal (85% threshold for RFC; proceed with Option A focus)
 
 ---
 
@@ -599,15 +703,23 @@ class TestContentDiscoveryPhase:
 
 ## 12. Next Steps
 
-1. **Review RFC** with team/SME
-2. **Resolve open questions** (especially phase numbering)
-3. **Run `::plan`** to convert RFC to implementation tasks
-4. **Create implementation branch** for refactoring
-5. **Start Phase 1**: Extract first phase method as proof of concept
+1. ✅ **RFC Review**: Complete (evidence verified, strategic context added)
+2. **Approve RFC**: Confirm Option A approach, defer Option B/C
+3. **Run `::plan`**: Convert to atomic implementation tasks
+4. **Create branch**: `refactor/build-orchestrator-phases`
+5. **Execute Phase 1**: Extract `_phase_fonts` as proof of concept
+6. **Ship it**: Merge after tests pass, update changelog
+
+**Success criteria**:
+- `build()` method reduced from 894 lines to <100 lines
+- 15 focused `_phase_*` methods (~50-100 lines each)
+- All existing tests pass
+- No new abstractions introduced
 
 ---
 
 **Status**: Draft (ready for review)  
-**Confidence**: 87% 🟢  
-**Estimated Effort**: 4-6 days  
-**Risk Level**: Low-Medium (internal refactoring, comprehensive tests)
+**Confidence**: 82% 🟢  
+**Estimated Effort**: 3-4 days (Option A only)  
+**Risk Level**: Low (simple extraction, no new abstractions)  
+**Strategic Value**: High (contributor experience, codebase quality)

@@ -166,9 +166,10 @@ class TestGetBreadcrumbs:
 
     def test_page_without_title_shows_untitled(self):
         """Pages without title show 'Untitled'."""
-        section = Mock()
+        # Use spec to prevent Mock from auto-creating title attribute
+        section = Mock(spec=["url", "slug"])
         section.url = "/docs/"
-        del section.title  # No title
+        section.slug = None  # No slug either to trigger "Untitled"
 
         page = Mock()
         page.ancestors = [section]

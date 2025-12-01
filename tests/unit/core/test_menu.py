@@ -152,6 +152,7 @@ class TestMenuBuilder:
         class MockPage:
             title = "Contact Page"
             url = "/contact/"
+            relative_url = "/contact/"
 
         builder = MenuBuilder()
         page = MockPage()
@@ -172,6 +173,7 @@ class TestMenuBuilder:
         class MockPage:
             title = "My Page Title"
             url = "/my-page/"
+            relative_url = "/my-page/"
 
         builder = MenuBuilder()
         page = MockPage()

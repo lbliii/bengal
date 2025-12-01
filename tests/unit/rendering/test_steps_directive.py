@@ -54,20 +54,22 @@ Content
         assert "Tip content" in result
         assert ":::{tip}" not in result
 
-    def test_nested_admonition_with_backticks_in_steps(self, parser):
-        """Test nested admonition with backticks using new :::{step} syntax."""
+    def test_nested_admonition_with_colons_in_steps(self, parser):
+        """Test nested admonition with colon syntax inside steps."""
+        # Bengal uses colon-fenced syntax for all directives (including nested ones)
         content = """
-::::{steps}
-:::{step} Step 1
+:::::{steps}
+::::{step} Step 1
 
-   ```{tip}
-   Tip content
-   ```
-
-:::{step} Step 2
-Content
+:::{tip}
+Tip content
 :::
+
 ::::
+::::{step} Step 2
+Content
+::::
+:::::
 """
         result = parser.parse(content, {})
 

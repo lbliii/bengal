@@ -147,10 +147,11 @@ class TestMistuneDirectives:
         parser = MistuneParser()
 
         # Test a simple directive
+        # Bengal uses colon-fenced syntax (:::{directive}) to avoid conflicts with code blocks
         markdown = """
-```{note}
+:::{note}
 This is a note directive.
-```
+:::
 """
 
         html = parser.parse(markdown, {})
@@ -159,7 +160,7 @@ This is a note directive.
         assert '<div class="admonition' in html, "Mistune parser should process note directive"
         assert "This is a note directive" in html
         # Should NOT contain the raw directive syntax
-        assert "```{note}" not in html
+        assert ":::{note}" not in html
 
     def test_mistune_parser_has_tabs(self):
         """Test that MistuneParser can handle tabs directive."""
@@ -167,8 +168,9 @@ This is a note directive.
 
         parser = MistuneParser()
 
+        # Bengal uses colon-fenced syntax (:::{directive}) to avoid conflicts with code blocks
         markdown = """
-```{tabs}
+:::{tabs}
 :id: test-tabs
 
 ### Tab: First
@@ -178,7 +180,7 @@ First tab content
 ### Tab: Second
 
 Second tab content
-```
+:::
 """
 
         html = parser.parse(markdown, {})
@@ -190,7 +192,7 @@ Second tab content
         assert "First" in html
         assert "Second" in html
         # Should NOT contain raw directive syntax
-        assert "```{tabs}" not in html
+        assert ":::{tabs}" not in html
 
     @pytest.mark.skipif(
         not HAS_MARKDOWN, reason="python-markdown not installed (optional dependency)"

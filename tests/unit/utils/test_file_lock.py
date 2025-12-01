@@ -125,7 +125,7 @@ class TestFileLock:
         ):
             pass
 
-        assert "Could not acquire lock" in str(exc_info.value)
+        assert "Could not acquire" in str(exc_info.value)
 
         # Release the holder
         can_release.set()

@@ -56,16 +56,17 @@ class TestDirectiveRegistration:
         parser = MistuneParser()
 
         # Test that the directive syntax is recognized (not treated as code)
+        # Bengal uses colon-fenced syntax (:::{directive}) to avoid conflicts with code blocks
         content = """
-```{data-table} data/test.yaml
+:::{data-table} data/test.yaml
 :search: true
-```
+:::
 """
         result = parser.parse(content, {})
 
         # Should contain data table error (file doesn't exist)
         # but should NOT contain raw directive syntax
-        assert "```{data-table}" not in result
+        assert ":::{data-table}" not in result
         assert "bengal-data-table" in result or "Data Table Error" in result
 
     def test_all_core_directives_registered(self):
@@ -73,25 +74,26 @@ class TestDirectiveRegistration:
         parser = MistuneParser()
 
         # Test cases for each directive type
+        # Bengal uses colon-fenced syntax (:::{directive}) to avoid conflicts with code blocks
         test_cases = [
             # (directive_name, markdown_content, expected_in_output)
-            ("note", "```{note}\nTest note\n```", "admonition"),
-            ("tip", "```{tip}\nTest tip\n```", "admonition"),
-            ("warning", "```{warning}\nTest warning\n```", "admonition"),
-            ("tabs", "```{tabs}\n### Tab: One\nContent\n```", "tabs"),
-            ("dropdown", "```{dropdown} Title\nContent\n```", "dropdown"),
-            ("rubric", "```{rubric} Heading\n```", "rubric"),
-            ("button", "```{button} https://example.com\nClick me\n```", "button button-primary"),
-            ("card", "```{card} Title\nContent\n```", "card-title"),
-            ("checklist", "```{checklist}\n- Item one\n- Item two\n```", "checklist"),
-            ("list-table", "```{list-table}\n* - Row 1\n  - Col 1\n```", "list-table"),
+            ("note", ":::{note}\nTest note\n:::", "admonition"),
+            ("tip", ":::{tip}\nTest tip\n:::", "admonition"),
+            ("warning", ":::{warning}\nTest warning\n:::", "admonition"),
+            ("tabs", ":::{tabs}\n### Tab: One\nContent\n:::", "tabs"),
+            ("dropdown", ":::{dropdown} Title\nContent\n:::", "dropdown"),
+            ("rubric", ":::{rubric} Heading\n:::", "rubric"),
+            ("button", ":::{button} https://example.com\nClick me\n:::", "button button-primary"),
+            ("card", ":::{card} Title\nContent\n:::", "card-title"),
+            ("checklist", ":::{checklist}\n- Item one\n- Item two\n:::", "checklist"),
+            ("list-table", ":::{list-table}\n* - Row 1\n  - Col 1\n:::", "list-table"),
         ]
 
         for directive_name, markdown, expected in test_cases:
             result = parser.parse(markdown, {})
 
             # Should NOT contain raw directive syntax
-            assert f"```{{{directive_name}" not in result, (
+            assert f":::{{{directive_name}" not in result, (
                 f"Directive '{directive_name}' not properly registered - raw syntax found in output"
             )
 
