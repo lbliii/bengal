@@ -206,262 +206,28 @@ class BuildOrchestrator:
             return self.stats
         pages_to_build, assets_to_process, affected_tags, changed_page_paths, affected_sections = filter_result
 
-        # Phase 6: Section Finalization (ensure all sections have index pages)
-        # Note: "Generated pages" message removed - cluttered output
-        with self.logger.phase("section_finalization"):
-            # If incremental and there are no affected sections, skip noisy finalization/validation
-            if not (
-                incremental and isinstance(affected_sections, set) and len(affected_sections) == 0
-            ):
-                self.sections.finalize_sections(affected_sections=affected_sections)
+        # Phase 6: Section Finalization
+        self._phase_sections(cli, incremental, affected_sections)
 
-                # Invalidate regular_pages cache (section finalization may add generated index pages)
-                self.site.invalidate_regular_pages_cache()
+        # Phase 7: Taxonomies & Dynamic Pages
+        affected_tags = self._phase_taxonomies(cache, incremental, parallel, pages_to_build)
 
-                # Validate section structure
-                section_errors = self.sections.validate_sections()
-                if section_errors:
-                    self.logger.warning(
-                        "section_validation_errors",
-                        error_count=len(section_errors),
-                        errors=section_errors[:3],
-                    )
-                    strict_mode = self.site.config.get("strict_mode", False)
-                    if strict_mode:
-                        cli.blank()
-                        cli.error("Section validation errors:")
-                        for error in section_errors:
-                            cli.detail(str(error), indent=1, icon="•")
-                        raise Exception(
-                            f"Build failed: {len(section_errors)} section validation error(s)"
-                        )
-                    else:
-                        # Warn but continue in non-strict mode
-                        for error in section_errors[:3]:  # Show first 3
-                            cli.warning(str(error))
-                        if len(section_errors) > 3:
-                            cli.warning(f"... and {len(section_errors) - 3} more errors")
-            else:
-                self.logger.info("section_finalization_skipped", reason="no_affected_sections")
+        # Phase 8: Save Taxonomy Index
+        self._phase_taxonomy_index()
 
-        # Phase 4: Taxonomies & Dynamic Pages (INCREMENTAL OPTIMIZATION)
-        with self.logger.phase("taxonomies"):
-            taxonomy_start = time.time()
+        # Phase 9: Menus
+        self._phase_menus(incremental, changed_page_paths)
 
-            if incremental and pages_to_build:
-                # Incremental: Only update taxonomies for changed pages
-                # This is O(changed) instead of O(all) - major optimization!
-                affected_tags = self.taxonomy.collect_and_generate_incremental(
-                    pages_to_build, cache
-                )
+        # Phase 10: Related Posts Index
+        self._phase_related_posts(incremental, parallel, pages_to_build)
 
-                # Store affected tags for later use (related posts, etc.)
-                self.site._affected_tags = affected_tags
+        # Phase 11: Query Indexes
+        self._phase_query_indexes(cache, incremental, pages_to_build)
 
-            elif incremental and not pages_to_build:
-                # Incremental but no pages changed: Still need to regenerate taxonomy pages
-                # because site.pages was cleared (dev server case)
-                # Use cache to rebuild taxonomies efficiently
-                affected_tags = self.taxonomy.collect_and_generate_incremental([], cache)
-                self.site._affected_tags = affected_tags
+        # Phase 12: Update Pages List (add generated taxonomy pages)
+        pages_to_build = self._phase_update_pages_list(incremental, pages_to_build, affected_tags)
 
-            elif not incremental:
-                # Full build: Collect and generate everything
-                self.taxonomy.collect_and_generate(parallel=parallel)
-
-                # Mark all tags as affected (for Phase 6 - adding to pages_to_build)
-                if hasattr(self.site, "taxonomies") and "tags" in self.site.taxonomies:
-                    affected_tags = set(self.site.taxonomies["tags"].keys())
-
-                # Update cache with full taxonomy data (for next incremental build)
-                for page in self.site.pages:
-                    if not page.metadata.get("_generated") and page.tags:
-                        cache.update_page_tags(page.source_path, set(page.tags))
-
-            self.stats.taxonomy_time_ms = (time.time() - taxonomy_start) * 1000
-            if hasattr(self.site, "taxonomies"):
-                self.logger.info(
-                    "taxonomies_built",
-                    taxonomy_count=len(self.site.taxonomies),
-                    total_terms=sum(len(terms) for terms in self.site.taxonomies.values()),
-                )
-
-            # Invalidate regular_pages cache (taxonomy generation adds tag/category pages)
-            self.site.invalidate_regular_pages_cache()
-
-        # Phase 4.5: Save Taxonomy Index (Phase 2b - Step 3)
-        # Persist tag-to-pages mapping for incremental builds
-        with self.logger.phase("save_taxonomy_index", enabled=True):
-            try:
-                from bengal.cache.taxonomy_index import TaxonomyIndex
-
-                index = TaxonomyIndex(self.site.root_path / ".bengal" / "taxonomy_index.json")
-
-                # Populate index from collected taxonomies
-                if hasattr(self.site, "taxonomies") and "tags" in self.site.taxonomies:
-                    tags_dict = self.site.taxonomies["tags"]
-
-                    for tag_slug, tag_data in tags_dict.items():
-                        # tag_data is a dict like {"name": "Programming", "slug": "programming", "pages": [...]}
-                        if not isinstance(tag_data, dict):
-                            continue
-
-                        tag_name = tag_data.get("name", tag_slug)
-                        pages = tag_data.get("pages", [])
-
-                        # Extract source paths from page objects, handling various types
-                        page_paths = []
-                        for p in pages:
-                            if isinstance(p, str):
-                                page_paths.append(p)
-                            elif hasattr(p, "source_path"):
-                                page_paths.append(str(p.source_path))
-
-                        # Update index with tag mapping if we have valid paths
-                        if page_paths:
-                            index.update_tag(tag_slug, tag_name, page_paths)
-
-                # Persist taxonomy index to disk
-                index.save_to_disk()
-
-                self.logger.info(
-                    "taxonomy_index_saved",
-                    tags=len(index.tags),
-                    path=str(index.cache_path),
-                )
-            except Exception as e:
-                self.logger.warning(
-                    "taxonomy_index_save_failed",
-                    error=str(e),
-                )
-
-        # Phase 5: Menus (INCREMENTAL - skip if unchanged)
-        with self.logger.phase("menus"):
-            menu_start = time.time()
-            # Check if config changed (forces menu rebuild)
-            config_changed = incremental and self.incremental.check_config_changed()
-
-            # Build menus (or reuse cached if unchanged)
-            menu_rebuilt = self.menu.build(
-                changed_pages=changed_page_paths if incremental else None,
-                config_changed=config_changed,
-            )
-
-            self.stats.menu_time_ms = (time.time() - menu_start) * 1000
-            self.logger.info("menus_built", menu_count=len(self.site.menu), rebuilt=menu_rebuilt)
-
-        # Phase 5.5: Related Posts Index (NEW - Pre-compute for O(1) template access)
-        # Note: This is O(n·t·p) and can be expensive at scale. Skip for large sites
-        # or sites without tags to improve performance.
-        should_build_related = (
-            hasattr(self.site, "taxonomies")
-            and "tags" in self.site.taxonomies
-            and len(self.site.pages) < 5000  # Skip for large sites (>5K pages)
-        )
-
-        if should_build_related:
-            with self.logger.phase("related_posts_index"):
-                from bengal.orchestration.related_posts import RelatedPostsOrchestrator
-
-                related_posts_start = time.time()
-                related_posts_orchestrator = RelatedPostsOrchestrator(self.site)
-                # OPTIMIZATION: In incremental builds, only update related posts for changed pages
-                related_posts_orchestrator.build_index(
-                    limit=5,
-                    parallel=parallel,
-                    affected_pages=pages_to_build if incremental else None,
-                )
-
-                # Log statistics
-                pages_with_related = sum(
-                    1
-                    for p in self.site.pages
-                    if hasattr(p, "related_posts")
-                    and p.related_posts
-                    and not p.metadata.get("_generated")
-                )
-                self.stats.related_posts_time_ms = (time.time() - related_posts_start) * 1000
-                self.logger.info(
-                    "related_posts_built",
-                    pages_with_related=pages_with_related,
-                    total_pages=len(self.site.regular_pages),
-                )
-        else:
-            # Skip related posts for large sites or sites without tags
-            for page in self.site.pages:
-                page.related_posts = []
-            self.logger.info(
-                "related_posts_skipped",
-                reason="large_site_or_no_tags",
-                page_count=len(self.site.pages),
-                threshold=5000,
-            )
-
-        # Phase 5.5: Build/Update Query Indexes
-        # Build pre-computed indexes for O(1) template lookups
-        with self.logger.phase("query_indexes"):
-            query_indexes_start = time.time()
-
-            if incremental and pages_to_build:
-                # Incremental: only update affected indexes
-                affected_keys = self.site.indexes.update_incremental(
-                    pages_to_build,
-                    cache,
-                )
-                total_affected = sum(len(keys) for keys in affected_keys.values())
-                self.logger.info(
-                    "query_indexes_updated_incremental",
-                    affected_keys=total_affected,
-                    indexes=len(affected_keys),
-                )
-            else:
-                # Full build: rebuild all indexes
-                self.site.indexes.build_all(
-                    self.site.pages,
-                    cache,
-                )
-                stats = self.site.indexes.stats()
-                self.logger.info(
-                    "query_indexes_built",
-                    indexes=stats["total_indexes"],
-                )
-
-            query_indexes_time = (time.time() - query_indexes_start) * 1000
-            self.logger.debug(
-                "query_indexes_complete",
-                duration_ms=query_indexes_time,
-            )
-
-        # Phase 6: Update filtered pages list (add generated pages)
-        # Now that we've generated tag pages, update pages_to_build if needed
-        # Always check for tag pages, even if affected_tags is empty (edge case protection)
-        # Convert to set for O(1) membership and automatic deduplication
-        pages_to_build_set = set(pages_to_build) if pages_to_build else set()
-
-        # Ensure cache is fresh before accessing generated_pages
-        # (Tag pages were just added in Phase 4, so cache might be stale)
-        self.site.invalidate_page_caches()
-
-        # Add newly generated tag pages to rebuild set
-        # OPTIMIZATION: Use site.generated_pages (cached) instead of filtering all pages
-        for page in self.site.generated_pages:
-            if page.metadata.get("type") in ("tag", "tag-index"):
-                # For full builds, add all taxonomy pages
-                # For incremental builds, add only affected tag pages + tag index
-                tag_slug = page.metadata.get("_tag_slug")
-                should_include = (
-                    not incremental  # Full build: include all
-                    or page.metadata.get("type") == "tag-index"  # Always include tag index
-                    or (affected_tags and tag_slug in affected_tags)  # Include affected tag pages
-                )
-
-                if should_include:
-                    pages_to_build_set.add(page)  # O(1) + automatic dedup
-
-        # Convert back to list for rendering (preserves compatibility)
-        pages_to_build = list(pages_to_build_set)
-
-        # Phase 7: Process Assets (MOVED BEFORE RENDERING)
+        # Phase 13: Process Assets (MOVED BEFORE RENDERING)
         # Assets must be processed first so asset_url() can find fingerprinted files
         with self.logger.phase("assets", asset_count=len(assets_to_process), parallel=parallel):
             assets_start = time.time()
@@ -865,25 +631,25 @@ class BuildOrchestrator:
         if "fonts" not in self.site.config:
             return
 
-        with self.logger.phase("fonts"):
-            fonts_start = time.time()
-            try:
-                from bengal.fonts import FontHelper
+            with self.logger.phase("fonts"):
+                fonts_start = time.time()
+                try:
+                    from bengal.fonts import FontHelper
 
-                # Ensure assets directory exists
-                assets_dir = self.site.root_path / "assets"
-                assets_dir.mkdir(parents=True, exist_ok=True)
+                    # Ensure assets directory exists
+                    assets_dir = self.site.root_path / "assets"
+                    assets_dir.mkdir(parents=True, exist_ok=True)
 
-                # Process fonts (download + generate CSS)
-                font_helper = FontHelper(self.site.config["fonts"])
-                font_helper.process(assets_dir)
+                    # Process fonts (download + generate CSS)
+                    font_helper = FontHelper(self.site.config["fonts"])
+                    font_helper.process(assets_dir)
 
-                self.stats.fonts_time_ms = (time.time() - fonts_start) * 1000
-                self.logger.info("fonts_complete")
-            except Exception as e:
-                cli.warning(f"Font processing failed: {e}")
-                cli.info("   Continuing build without custom fonts...")
-                self.logger.warning("fonts_failed", error=str(e))
+                    self.stats.fonts_time_ms = (time.time() - fonts_start) * 1000
+                    self.logger.info("fonts_complete")
+                except Exception as e:
+                    cli.warning(f"Font processing failed: {e}")
+                    cli.info("   Continuing build without custom fonts...")
+                    self.logger.warning("fonts_failed", error=str(e))
 
     def _phase_discovery(self, cli, incremental: bool) -> None:
         """
@@ -1166,3 +932,359 @@ class BuildOrchestrator:
                     cli.blank()
 
             return pages_to_build, assets_to_process, affected_tags, changed_page_paths, affected_sections
+
+    def _phase_sections(self, cli, incremental: bool, affected_sections: set | None) -> None:
+        """
+        Phase 6: Section Finalization.
+
+        Ensures all sections have index pages and validates section structure.
+
+        Args:
+            cli: CLI output for user messages
+            incremental: Whether this is an incremental build
+            affected_sections: Set of section paths affected by changes (or None for full build)
+
+        Side effects:
+            - May create generated index pages for sections without them
+            - Invalidates regular_pages cache
+        """
+        with self.logger.phase("section_finalization"):
+            # If incremental and there are no affected sections, skip noisy finalization/validation
+            if not (
+                incremental and isinstance(affected_sections, set) and len(affected_sections) == 0
+            ):
+                self.sections.finalize_sections(affected_sections=affected_sections)
+
+                # Invalidate regular_pages cache (section finalization may add generated index pages)
+                self.site.invalidate_regular_pages_cache()
+
+                # Validate section structure
+                section_errors = self.sections.validate_sections()
+                if section_errors:
+                    self.logger.warning(
+                        "section_validation_errors",
+                        error_count=len(section_errors),
+                        errors=section_errors[:3],
+                    )
+                    strict_mode = self.site.config.get("strict_mode", False)
+                    if strict_mode:
+                        cli.blank()
+                        cli.error("Section validation errors:")
+                        for error in section_errors:
+                            cli.detail(str(error), indent=1, icon="•")
+                        raise Exception(
+                            f"Build failed: {len(section_errors)} section validation error(s)"
+                        )
+                    else:
+                        # Warn but continue in non-strict mode
+                        for error in section_errors[:3]:  # Show first 3
+                            cli.warning(str(error))
+                        if len(section_errors) > 3:
+                            cli.warning(f"... and {len(section_errors) - 3} more errors")
+            else:
+                self.logger.info("section_finalization_skipped", reason="no_affected_sections")
+
+    def _phase_taxonomies(
+        self, cache, incremental: bool, parallel: bool, pages_to_build: list
+    ) -> set:
+        """
+        Phase 7: Taxonomies & Dynamic Pages.
+
+        Collects taxonomy terms (tags, categories) and generates taxonomy pages.
+        Optimized for incremental builds - only processes changed pages.
+
+        Args:
+            cache: Build cache
+            incremental: Whether this is an incremental build
+            parallel: Whether to use parallel processing
+            pages_to_build: List of pages being built (for incremental)
+
+        Returns:
+            Set of affected tag slugs
+
+        Side effects:
+            - Populates self.site.taxonomies
+            - Creates taxonomy pages in self.site.pages
+            - Invalidates regular_pages cache
+            - Updates self.stats.taxonomy_time_ms
+        """
+        affected_tags = set()
+        
+        with self.logger.phase("taxonomies"):
+            taxonomy_start = time.time()
+
+            if incremental and pages_to_build:
+                # Incremental: Only update taxonomies for changed pages
+                # This is O(changed) instead of O(all) - major optimization!
+                affected_tags = self.taxonomy.collect_and_generate_incremental(
+                    pages_to_build, cache
+                )
+
+                # Store affected tags for later use (related posts, etc.)
+                self.site._affected_tags = affected_tags
+
+            elif incremental and not pages_to_build:
+                # Incremental but no pages changed: Still need to regenerate taxonomy pages
+                # because site.pages was cleared (dev server case)
+                # Use cache to rebuild taxonomies efficiently
+                affected_tags = self.taxonomy.collect_and_generate_incremental([], cache)
+                self.site._affected_tags = affected_tags
+
+            elif not incremental:
+                # Full build: Collect and generate everything
+                self.taxonomy.collect_and_generate(parallel=parallel)
+
+                # Mark all tags as affected (for Phase 6 - adding to pages_to_build)
+                if hasattr(self.site, "taxonomies") and "tags" in self.site.taxonomies:
+                    affected_tags = set(self.site.taxonomies["tags"].keys())
+
+                # Update cache with full taxonomy data (for next incremental build)
+                for page in self.site.pages:
+                    if not page.metadata.get("_generated") and page.tags:
+                        cache.update_page_tags(page.source_path, set(page.tags))
+
+            self.stats.taxonomy_time_ms = (time.time() - taxonomy_start) * 1000
+            if hasattr(self.site, "taxonomies"):
+                self.logger.info(
+                    "taxonomies_built",
+                    taxonomy_count=len(self.site.taxonomies),
+                    total_terms=sum(len(terms) for terms in self.site.taxonomies.values()),
+                )
+
+            # Invalidate regular_pages cache (taxonomy generation adds tag/category pages)
+            self.site.invalidate_regular_pages_cache()
+
+        return affected_tags
+
+    def _phase_taxonomy_index(self) -> None:
+        """
+        Phase 8: Save Taxonomy Index.
+
+        Persists tag-to-pages mapping for incremental builds.
+
+        Side effects:
+            - Writes taxonomy index to .bengal/taxonomy_index.json
+        """
+        with self.logger.phase("save_taxonomy_index", enabled=True):
+            try:
+                from bengal.cache.taxonomy_index import TaxonomyIndex
+
+                index = TaxonomyIndex(self.site.root_path / ".bengal" / "taxonomy_index.json")
+
+                # Populate index from collected taxonomies
+                if hasattr(self.site, "taxonomies") and "tags" in self.site.taxonomies:
+                    tags_dict = self.site.taxonomies["tags"]
+
+                    for tag_slug, tag_data in tags_dict.items():
+                        # tag_data is a dict like {"name": "Programming", "slug": "programming", "pages": [...]}
+                        if not isinstance(tag_data, dict):
+                            continue
+
+                        tag_name = tag_data.get("name", tag_slug)
+                        pages = tag_data.get("pages", [])
+
+                        # Extract source paths from page objects, handling various types
+                        page_paths = []
+                        for p in pages:
+                            if isinstance(p, str):
+                                page_paths.append(p)
+                            elif hasattr(p, "source_path"):
+                                page_paths.append(str(p.source_path))
+
+                        # Update index with tag mapping if we have valid paths
+                        if page_paths:
+                            index.update_tag(tag_slug, tag_name, page_paths)
+
+                # Persist taxonomy index to disk
+                index.save_to_disk()
+
+                self.logger.info(
+                    "taxonomy_index_saved",
+                    tags=len(index.tags),
+                    path=str(index.cache_path),
+                )
+            except Exception as e:
+                self.logger.warning(
+                    "taxonomy_index_save_failed",
+                    error=str(e),
+                )
+
+    def _phase_menus(self, incremental: bool, changed_page_paths: set) -> None:
+        """
+        Phase 9: Menu Building.
+
+        Builds navigation menus. Optimized for incremental builds.
+
+        Args:
+            incremental: Whether this is an incremental build
+            changed_page_paths: Set of paths for pages that changed
+
+        Side effects:
+            - Populates self.site.menu
+            - Updates self.stats.menu_time_ms
+        """
+        with self.logger.phase("menus"):
+            menu_start = time.time()
+            # Check if config changed (forces menu rebuild)
+            config_changed = incremental and self.incremental.check_config_changed()
+
+            # Build menus (or reuse cached if unchanged)
+            menu_rebuilt = self.menu.build(
+                changed_pages=changed_page_paths if incremental else None,
+                config_changed=config_changed,
+            )
+
+            self.stats.menu_time_ms = (time.time() - menu_start) * 1000
+            self.logger.info("menus_built", menu_count=len(self.site.menu), rebuilt=menu_rebuilt)
+
+    def _phase_related_posts(self, incremental: bool, parallel: bool, pages_to_build: list) -> None:
+        """
+        Phase 10: Related Posts Index.
+
+        Pre-computes related posts for O(1) template access.
+        Skipped for large sites (>5K pages) or sites without tags.
+
+        Args:
+            incremental: Whether this is an incremental build
+            parallel: Whether to use parallel processing
+            pages_to_build: List of pages being built (for incremental optimization)
+
+        Side effects:
+            - Populates page.related_posts for each page
+            - Updates self.stats.related_posts_time_ms
+        """
+        should_build_related = (
+            hasattr(self.site, "taxonomies")
+            and "tags" in self.site.taxonomies
+            and len(self.site.pages) < 5000  # Skip for large sites (>5K pages)
+        )
+
+        if should_build_related:
+            with self.logger.phase("related_posts_index"):
+                from bengal.orchestration.related_posts import RelatedPostsOrchestrator
+
+                related_posts_start = time.time()
+                related_posts_orchestrator = RelatedPostsOrchestrator(self.site)
+                # OPTIMIZATION: In incremental builds, only update related posts for changed pages
+                related_posts_orchestrator.build_index(
+                    limit=5,
+                    parallel=parallel,
+                    affected_pages=pages_to_build if incremental else None,
+                )
+
+                # Log statistics
+                pages_with_related = sum(
+                    1
+                    for p in self.site.pages
+                    if hasattr(p, "related_posts")
+                    and p.related_posts
+                    and not p.metadata.get("_generated")
+                )
+                self.stats.related_posts_time_ms = (time.time() - related_posts_start) * 1000
+                self.logger.info(
+                    "related_posts_built",
+                    pages_with_related=pages_with_related,
+                    total_pages=len(self.site.regular_pages),
+                )
+        else:
+            # Skip related posts for large sites or sites without tags
+            for page in self.site.pages:
+                page.related_posts = []
+            self.logger.info(
+                "related_posts_skipped",
+                reason="large_site_or_no_tags",
+                page_count=len(self.site.pages),
+                threshold=5000,
+            )
+
+    def _phase_query_indexes(self, cache, incremental: bool, pages_to_build: list) -> None:
+        """
+        Phase 11: Query Indexes.
+
+        Builds pre-computed indexes for O(1) template lookups.
+
+        Args:
+            cache: Build cache
+            incremental: Whether this is an incremental build
+            pages_to_build: List of pages being built (for incremental)
+
+        Side effects:
+            - Builds/updates site.indexes
+        """
+        with self.logger.phase("query_indexes"):
+            query_indexes_start = time.time()
+
+            if incremental and pages_to_build:
+                # Incremental: only update affected indexes
+                affected_keys = self.site.indexes.update_incremental(
+                    pages_to_build,
+                    cache,
+                )
+                total_affected = sum(len(keys) for keys in affected_keys.values())
+                self.logger.info(
+                    "query_indexes_updated_incremental",
+                    affected_keys=total_affected,
+                    indexes=len(affected_keys),
+                )
+            else:
+                # Full build: rebuild all indexes
+                self.site.indexes.build_all(
+                    self.site.pages,
+                    cache,
+                )
+                stats = self.site.indexes.stats()
+                self.logger.info(
+                    "query_indexes_built",
+                    indexes=stats["total_indexes"],
+                )
+
+            query_indexes_time = (time.time() - query_indexes_start) * 1000
+            self.logger.debug(
+                "query_indexes_complete",
+                duration_ms=query_indexes_time,
+            )
+
+    def _phase_update_pages_list(
+        self, incremental: bool, pages_to_build: list, affected_tags: set
+    ) -> list:
+        """
+        Phase 12: Update Pages List.
+
+        Updates the pages_to_build list to include newly generated taxonomy pages.
+
+        Args:
+            incremental: Whether this is an incremental build
+            pages_to_build: Current list of pages to build
+            affected_tags: Set of affected tag slugs
+
+        Returns:
+            Updated pages_to_build list including generated taxonomy pages
+
+        Side effects:
+            - Invalidates page caches
+        """
+        # Convert to set for O(1) membership and automatic deduplication
+        pages_to_build_set = set(pages_to_build) if pages_to_build else set()
+
+        # Ensure cache is fresh before accessing generated_pages
+        # (Tag pages were just added in Phase 4, so cache might be stale)
+        self.site.invalidate_page_caches()
+
+        # Add newly generated tag pages to rebuild set
+        # OPTIMIZATION: Use site.generated_pages (cached) instead of filtering all pages
+        for page in self.site.generated_pages:
+            if page.metadata.get("type") in ("tag", "tag-index"):
+                # For full builds, add all taxonomy pages
+                # For incremental builds, add only affected tag pages + tag index
+                tag_slug = page.metadata.get("_tag_slug")
+                should_include = (
+                    not incremental  # Full build: include all
+                    or page.metadata.get("type") == "tag-index"  # Always include tag index
+                    or (affected_tags and tag_slug in affected_tags)  # Include affected tag pages
+                )
+
+                if should_include:
+                    pages_to_build_set.add(page)  # O(1) + automatic dedup
+
+        # Convert back to list for rendering (preserves compatibility)
+        return list(pages_to_build_set)
