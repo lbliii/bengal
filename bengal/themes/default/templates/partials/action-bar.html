@@ -47,12 +47,14 @@ Requires: page object in context
             {% endif %}
         </nav>
 
-        {# Right: Actions #}
-        <div class="action-bar-actions">
-            {# LLM Share Button #}
-            {% set page_url = canonical_url(page.url) %}
-            {% set llm_txt_url = ensure_trailing_slash(page_url) + 'index.txt' %}
-            {% set share_prompt = "Please help me understand this documentation: " + llm_txt_url %}
+            {# Right: Actions #}
+            <div class="action-bar-actions">
+                {# LLM Share Button #}
+                {# Use relative_url for canonical_url (canonical_url adds baseurl) #}
+                {% set page_relative_url = page.relative_url if page.relative_url is defined else (page.url if page.url is defined else '/') %}
+                {% set page_url = canonical_url(page_relative_url) %}
+                {% set llm_txt_url = ensure_trailing_slash(page_url) ~ 'index.txt' %}
+                {% set share_prompt = "Please help me understand this documentation: " + llm_txt_url %}
 
             <div class="action-bar-share">
                 <button class="action-bar-share-trigger" aria-label="Share with AI assistants" aria-expanded="false"
