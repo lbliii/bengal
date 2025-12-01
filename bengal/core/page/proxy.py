@@ -52,7 +52,7 @@ class PageProxy:
        - Modified pages rendered as full Page objects
        - PageProxy objects skipped (already have cached output)
 
-    4. **Update** (build.py Phase 8.4):
+    4. **Update** (build/rendering.py Phase 15):
        - Freshly rendered Page objects REPLACE their PageProxy counterparts
        - site.pages becomes: mix of fresh Page (rebuilt) + PageProxy (cached)
 

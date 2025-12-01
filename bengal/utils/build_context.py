@@ -1,14 +1,17 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from bengal.cache.build_cache import BuildCache
     from bengal.cache.dependency_tracker import DependencyTracker
     from bengal.core.asset import Asset
     from bengal.core.page import Page
     from bengal.core.site import Site
     from bengal.utils.build_stats import BuildStats
+    from bengal.utils.cli_output import CLIOutput
     from bengal.utils.live_progress import LiveProgressManager
     from bengal.utils.profile import BuildProfile
     from bengal.utils.progress import ProgressReporter
@@ -17,17 +20,59 @@ if TYPE_CHECKING:
 @dataclass
 class BuildContext:
     """
-    Shared build context passed across orchestrators.
+    Shared build context passed across build phases.
 
-    Introduced to reduce implicit global state usage and make dependencies explicit.
-    Fields are optional to maintain backward compatibility while we thread this through.
+    This context is created at the start of build() and passed to all _phase_* methods.
+    It replaces local variables that were scattered throughout the 894-line build() method.
+
+    Lifecycle:
+        1. Created in _setup_build_context() at build start
+        2. Populated incrementally as phases execute
+        3. Used by all _phase_* methods for shared state
+
+    Categories:
+        - Core: site, stats, profile (required)
+        - Cache: cache, tracker (initialized in Phase 0)
+        - Build mode: incremental, verbose, quiet, strict, parallel
+        - Work items: pages_to_build, assets_to_process (determined in Phase 2)
+        - Incremental state: affected_tags, affected_sections, changed_page_paths
+        - Output: cli, progress_manager, reporter
     """
 
+    # Core (required)
     site: Site | None = None
-    pages: list[Page] | None = None
-    assets: list[Asset] | None = None
-    tracker: DependencyTracker | None = None
     stats: BuildStats | None = None
     profile: BuildProfile | None = None
+
+    # Cache and tracking
+    cache: BuildCache | None = None
+    tracker: DependencyTracker | None = None
+
+    # Build mode flags
+    incremental: bool = False
+    verbose: bool = False
+    quiet: bool = False
+    strict: bool = False
+    parallel: bool = True
+    memory_optimized: bool = False
+    full_output: bool = False
+
+    # Work items (determined during incremental filtering)
+    pages: list[Page] | None = None  # All discovered pages
+    pages_to_build: list[Page] | None = None  # Pages that need rendering
+    assets: list[Asset] | None = None  # All discovered assets
+    assets_to_process: list[Asset] | None = None  # Assets that need processing
+
+    # Incremental build state
+    affected_tags: set[str] = field(default_factory=set)
+    affected_sections: set[str] | None = None
+    changed_page_paths: set[Path] = field(default_factory=set)
+    config_changed: bool = False
+
+    # Output/progress
+    cli: CLIOutput | None = None
     progress_manager: LiveProgressManager | None = None
     reporter: ProgressReporter | None = None
+
+    # Timing (build start time for duration calculation)
+    build_start: float = 0.0

@@ -3,10 +3,15 @@ Stateful integration tests for build workflows using Hypothesis.
 
 These tests simulate real user workflows with multiple steps,
 automatically generating hundreds of different sequences.
+
+Progress feedback is provided for long-running state machine tests.
 """
+
+from __future__ import annotations
 
 import os
 import string
+import sys
 
 import pytest
 from hypothesis import settings
@@ -22,6 +27,11 @@ from .helpers import (
     run_build,
     write_page,
 )
+
+
+def _status(msg: str) -> None:
+    """Print status message to stderr for visibility during long tests."""
+    print(f"  → {msg}", file=sys.stderr, flush=True)
 
 # Configure Hypothesis profiles for different environments
 # Dev: Faster feedback with fewer examples (20)
@@ -76,6 +86,7 @@ class PageLifecycleWorkflow(RuleBasedStateMachine):
         self.last_build_output = None
         self.build_count = 0
         self.last_action_was_build = False
+        _status(f"[PageLifecycle] Site initialized")
 
     @rule(name=page_names(), title=page_titles())
     def create_page(self, name, title):
@@ -157,6 +168,7 @@ class PageLifecycleWorkflow(RuleBasedStateMachine):
 
         This simulates `bengal build`.
         """
+        _status(f"[PageLifecycle] Full build #{self.build_count + 1} ({len(self.pages)} pages)")
         result = run_build(self.site_dir, incremental=False)
         self.last_build_output = result
         self.build_count += 1
@@ -183,6 +195,7 @@ class PageLifecycleWorkflow(RuleBasedStateMachine):
 
         This simulates `bengal build` after initial build.
         """
+        _status(f"[PageLifecycle] Incremental build #{self.build_count + 1}")
         result = run_build(self.site_dir, incremental=True)
         self.last_build_output = result
         self.build_count += 1
@@ -326,6 +339,7 @@ class IncrementalConsistencyWorkflow(RuleBasedStateMachine):
     def setup_site(self):
         """Initialize test site with some initial pages."""
         self.site_dir = create_temp_site("consistency")
+        _status("[IncrementalConsistency] Site initialized with 3 pages")
 
         # Create 3 initial pages to make it interesting
         for i in range(3):
@@ -358,6 +372,7 @@ class IncrementalConsistencyWorkflow(RuleBasedStateMachine):
     @rule()
     def full_build_and_snapshot(self):
         """Run full build and save output hashes."""
+        _status(f"[IncrementalConsistency] Full build (version {self.content_version})")
         run_build(self.site_dir, incremental=False)
         self.full_build_hashes = hash_outputs(self.site_dir)
         self.full_build_content_version = self.content_version
@@ -365,6 +380,7 @@ class IncrementalConsistencyWorkflow(RuleBasedStateMachine):
     @rule()
     def incremental_build_and_snapshot(self):
         """Run incremental build and save output hashes."""
+        _status(f"[IncrementalConsistency] Incremental build (version {self.content_version})")
         run_build(self.site_dir, incremental=True)
         self.incremental_build_hashes = hash_outputs(self.site_dir)
         self.incremental_build_content_version = self.content_version

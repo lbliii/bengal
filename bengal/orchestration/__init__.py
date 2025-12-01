@@ -22,11 +22,9 @@ Usage:
     stats = orchestrator.build(parallel=True, incremental=True)
 """
 
-
 from __future__ import annotations
 
 from bengal.orchestration.asset import AssetOrchestrator
-from bengal.orchestration.build import BuildOrchestrator
 from bengal.orchestration.content import ContentOrchestrator
 from bengal.orchestration.incremental import IncrementalOrchestrator
 from bengal.orchestration.menu import MenuOrchestrator
@@ -44,3 +42,13 @@ __all__ = [
     "RenderOrchestrator",
     "TaxonomyOrchestrator",
 ]
+
+
+# Lazy import BuildOrchestrator to avoid circular import
+# (build/__init__.py imports from other orchestration modules)
+def __getattr__(name: str):
+    if name == "BuildOrchestrator":
+        from bengal.orchestration.build import BuildOrchestrator
+
+        return BuildOrchestrator
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

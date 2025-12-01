@@ -2,6 +2,8 @@
 Full build performance regression tests.
 
 Validates that stable section references don't degrade build performance.
+
+These tests provide progress feedback when run with pytest -v.
 """
 
 import time
@@ -154,20 +156,25 @@ def test_cascade_application_performance(test_site_dir):
     assert elapsed_ms < 1000, f"Discovery + cascade too slow: {elapsed_ms:.2f}ms"
 
 
-def test_multiple_rebuild_cycles_no_degradation(test_site_dir):
+def test_multiple_rebuild_cycles_no_degradation(test_site_dir, test_progress):
     """Test that multiple rebuild cycles don't degrade performance."""
     site = Site.from_config(test_site_dir)
 
     timings = []
-    for _i in range(5):
-        start = time.perf_counter()
-        site.reset_ephemeral_state()
-        site.discover_content()
-        elapsed = time.perf_counter() - start
-        timings.append(elapsed)
+    num_cycles = 5
+
+    with test_progress.phase("Running rebuild cycles", total=num_cycles) as update:
+        for i in range(num_cycles):
+            start = time.perf_counter()
+            site.reset_ephemeral_state()
+            site.discover_content()
+            elapsed = time.perf_counter() - start
+            timings.append(elapsed)
+            update(i + 1, f"cycle {i + 1}: {elapsed * 1000:.1f}ms")
 
     # Average should be reasonable
     avg_ms = (sum(timings) / len(timings)) * 1000
+    test_progress.status(f"Average: {avg_ms:.2f}ms")
     assert avg_ms < 500, f"Average rebuild too slow: {avg_ms:.2f}ms"
 
     # Performance shouldn't degrade significantly over cycles
@@ -179,20 +186,25 @@ def test_multiple_rebuild_cycles_no_degradation(test_site_dir):
     assert ratio < 2.0, f"Performance degraded: {ratio:.2f}x slower"
 
 
-def test_section_registry_overhead_minimal(test_site_dir):
+def test_section_registry_overhead_minimal(test_site_dir, test_progress):
     """Test that section registry adds minimal overhead to discovery."""
     site = Site.from_config(test_site_dir)
 
     # Time multiple rebuilds to get average
     timings = []
-    for _i in range(3):
-        site.reset_ephemeral_state()
-        start = time.perf_counter()
-        site.discover_content()  # Includes registry build
-        elapsed = time.perf_counter() - start
-        timings.append(elapsed)
+    num_runs = 3
+
+    with test_progress.phase("Measuring registry overhead", total=num_runs) as update:
+        for i in range(num_runs):
+            site.reset_ephemeral_state()
+            start = time.perf_counter()
+            site.discover_content()  # Includes registry build
+            elapsed = time.perf_counter() - start
+            timings.append(elapsed)
+            update(i + 1, f"run {i + 1}: {elapsed * 1000:.1f}ms")
 
     avg_ms = (sum(timings) / len(timings)) * 1000
+    test_progress.status(f"Average: {avg_ms:.2f}ms")
 
     # Discovery with registry should be fast (< 200ms average)
     assert avg_ms < 200, f"Discovery too slow: {avg_ms:.2f}ms average"
@@ -201,53 +213,64 @@ def test_section_registry_overhead_minimal(test_site_dir):
     assert len(site._section_registry) > 0
 
 
-def test_large_section_tree_performance(tmp_path):
+def test_large_section_tree_performance(tmp_path, test_progress):
     """Test performance with a large section tree (100 sections)."""
     content_dir = tmp_path / "content"
     content_dir.mkdir()
 
-    # Create 100 sections with 10 pages each
-    for i in range(100):
-        section_dir = content_dir / f"section_{i}"
-        section_dir.mkdir()
+    num_sections = 100
+    pages_per_section = 10
 
-        (section_dir / "_index.md").write_text(f"""---
+    # Create 100 sections with 10 pages each
+    with test_progress.phase(f"Creating {num_sections} sections", total=num_sections) as update:
+        for i in range(num_sections):
+            section_dir = content_dir / f"section_{i}"
+            section_dir.mkdir()
+
+            (section_dir / "_index.md").write_text(f"""---
 title: Section {i}
 ---
 
 Section content.
 """)
 
-        for j in range(10):
-            (section_dir / f"page_{j}.md").write_text(f"""---
+            for j in range(pages_per_section):
+                (section_dir / f"page_{j}.md").write_text(f"""---
 title: Page {j} in Section {i}
 ---
 
 Content for page {j}.
 """)
 
+            if i % 20 == 0:  # Update every 20 sections
+                update(i + 1, f"section_{i}")
+
     # Build site
     site = Site.from_config(tmp_path)
 
-    start = time.perf_counter()
-    site.discover_content()
-    elapsed = time.perf_counter() - start
+    with test_progress.timed(f"Discovering {num_sections * pages_per_section} pages"):
+        start = time.perf_counter()
+        site.discover_content()
+        elapsed = time.perf_counter() - start
 
     elapsed_ms = elapsed * 1000
+    test_progress.status(f"Discovery: {elapsed_ms:.2f}ms")
 
     # Should handle 100 sections + 1000 pages efficiently
     assert elapsed_ms < 2000, f"Large site discovery too slow: {elapsed_ms:.2f}ms"
 
     # Verify discovery worked
-    assert len(site._section_registry) == 100
-    assert len(site.pages) >= 1000  # At least 1000 regular pages
+    assert len(site._section_registry) == num_sections
+    assert len(site.pages) >= num_sections * pages_per_section
 
     # Test lookups are still fast
-    lookup_start = time.perf_counter()
-    for i in range(100):
-        section = site.get_section_by_path(Path(f"section_{i}"))
-        assert section is not None
-    lookup_elapsed = time.perf_counter() - lookup_start
+    with test_progress.timed(f"Testing {num_sections} section lookups"):
+        lookup_start = time.perf_counter()
+        for i in range(num_sections):
+            section = site.get_section_by_path(Path(f"section_{i}"))
+            assert section is not None
+        lookup_elapsed = time.perf_counter() - lookup_start
 
-    avg_ms = (lookup_elapsed / 100) * 1000
+    avg_ms = (lookup_elapsed / num_sections) * 1000
+    test_progress.status(f"Avg lookup: {avg_ms:.3f}ms")
     assert avg_ms < 1, f"Average lookup too slow: {avg_ms:.3f}ms"
