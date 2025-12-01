@@ -1,5 +1,11 @@
 ## Unreleased
 
+### Code Quality & Contributor Experience
+- **orchestration(build)**: refactor 894-line `build()` method into 20 focused `_phase_*` methods (~50-100 lines each)
+- **orchestration(build)**: fix duplicate phase numbers (two "Phase 5.5", two "Phase 9") with sequential renumbering
+- **orchestration(build)**: add comprehensive docstrings to all phase methods documenting purpose and side effects
+- **utils(build_context)**: extend BuildContext dataclass with all fields needed for phase method communication
+
 ### CLI UX Improvements
 - **cli(site)**: deprecate `bengal site new` in favor of `bengal new site` (hidden from help, shows warning)
 - **cli(new)**: add interactive baseurl prompt during site creation (skipped with `--no-init`)
