@@ -11,6 +11,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from bengal.analysis.graph_analysis import GraphAnalyzer
 from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
@@ -130,6 +131,9 @@ class KnowledgeGraph:
         self._path_results: PathAnalysisResults | None = None
         self._link_suggestions: LinkSuggestionResults | None = None
 
+        # Delegated analyzers (initialized after build)
+        self._analyzer: GraphAnalyzer | None = None
+
     def build(self) -> None:
         """
         Build the knowledge graph by analyzing all page connections.
@@ -174,6 +178,9 @@ class KnowledgeGraph:
         self.metrics = self._compute_metrics()
 
         self._built = True
+
+        # Initialize delegated analyzer
+        self._analyzer = GraphAnalyzer(self)
 
         logger.info(
             "knowledge_graph_build_complete",
@@ -433,20 +440,7 @@ class KnowledgeGraph:
         """
         if not self._built:
             raise ValueError("Must call build() before getting connectivity")
-
-        incoming = self.incoming_refs[page]  # Direct page lookup
-        outgoing = len(self.outgoing_refs[page])  # Direct page lookup
-        connectivity = incoming + outgoing
-
-        return PageConnectivity(
-            page=page,
-            incoming_refs=incoming,
-            outgoing_refs=outgoing,
-            connectivity_score=connectivity,
-            is_hub=incoming >= self.hub_threshold,
-            is_leaf=connectivity <= self.leaf_threshold,
-            is_orphan=(incoming == 0 and outgoing == 0),
-        )
+        return self._analyzer.get_connectivity(page)
 
     def get_hubs(self, threshold: int | None = None) -> list[Page]:
         """
@@ -468,15 +462,7 @@ class KnowledgeGraph:
         """
         if not self._built:
             raise ValueError("Must call build() before getting hubs")
-
-        threshold = threshold if threshold is not None else self.hub_threshold
-
-        hubs = [page for page in self.site.pages if self.incoming_refs[page] >= threshold]
-
-        # Sort by incoming refs (descending)
-        hubs.sort(key=lambda p: self.incoming_refs[p], reverse=True)
-
-        return hubs
+        return self._analyzer.get_hubs(threshold)
 
     def get_leaves(self, threshold: int | None = None) -> list[Page]:
         """
@@ -498,17 +484,7 @@ class KnowledgeGraph:
         """
         if not self._built:
             raise ValueError("Must call build() before getting leaves")
-
-        threshold = threshold if threshold is not None else self.leaf_threshold
-
-        leaves = [
-            page for page in self.site.pages if self.get_connectivity_score(page) <= threshold
-        ]
-
-        # Sort by connectivity (ascending)
-        leaves.sort(key=lambda p: self.get_connectivity_score(p))
-
-        return leaves
+        return self._analyzer.get_leaves(threshold)
 
     def get_orphans(self) -> list[Page]:
         """
@@ -527,21 +503,7 @@ class KnowledgeGraph:
         """
         if not self._built:
             raise ValueError("Must call build() before getting orphans")
-
-        # Get analysis pages (already excludes autodoc)
-        analysis_pages = self.get_analysis_pages()
-        orphans = [
-            page
-            for page in analysis_pages
-            if self.incoming_refs[page] == 0
-            and len(self.outgoing_refs[page]) == 0
-            and not page.metadata.get("_generated")  # Exclude generated pages
-        ]
-
-        # Sort by slug for consistent ordering
-        orphans.sort(key=lambda p: p.slug)
-
-        return orphans
+        return self._analyzer.get_orphans()
 
     def get_connectivity_score(self, page: Page) -> int:
         """
@@ -560,8 +522,7 @@ class KnowledgeGraph:
         """
         if not self._built:
             raise ValueError("Must call build() before getting connectivity score")
-
-        return self.incoming_refs[page] + len(self.outgoing_refs[page])  # Direct page lookup
+        return self._analyzer.get_connectivity_score(page)
 
     def get_layers(self) -> tuple[list[Page], list[Page], list[Page]]:
         """
@@ -580,23 +541,7 @@ class KnowledgeGraph:
         """
         if not self._built:
             raise ValueError("Must call build() before getting layers")
-
-        # Sort all pages by connectivity (descending)
-        sorted_pages = sorted(
-            self.site.pages, key=lambda p: self.get_connectivity_score(p), reverse=True
-        )
-
-        total = len(sorted_pages)
-
-        # Layer thresholds (configurable)
-        hub_cutoff = int(total * 0.10)  # Top 10%
-        mid_cutoff = int(total * 0.40)  # Next 30%
-
-        hubs = sorted_pages[:hub_cutoff]
-        mid_tier = sorted_pages[hub_cutoff:mid_cutoff]
-        leaves = sorted_pages[mid_cutoff:]
-
-        return hubs, mid_tier, leaves
+        return self._analyzer.get_layers()
 
     def get_metrics(self) -> GraphMetrics:
         """
