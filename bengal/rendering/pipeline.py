@@ -530,24 +530,8 @@ class RenderingPipeline:
                 page.source_path, page.output_path, self.site.output_dir
             )
 
-        # Only print in verbose mode
-        if not self.quiet:
-            try:
-                rel_path = page.output_path.relative_to(self.site.output_dir)
-                msg = f"  ✓ {rel_path}"
-            except ValueError:
-                msg = f"  ✓ {page.output_path} (outside output dir)"
-
-            reporter = getattr(self, "build_context", None) and getattr(
-                self.build_context, "reporter", None
-            )
-            if reporter:
-                try:
-                    reporter.log(msg)
-                except Exception:
-                    print(msg)
-            else:
-                print(msg)
+        # Per-page output removed - progress bar provides sufficient feedback
+        # Individual page logging available via --full-output if needed for debugging
 
     def _determine_output_path(self, page: Page) -> Path:
         """

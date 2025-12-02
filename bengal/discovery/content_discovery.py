@@ -197,6 +197,13 @@ class ContentDiscovery:
                     self.pages.append(page)
                     produced_pages.append(page)
                 except Exception as e:  # pragma: no cover - guarded logging
+                    # Import here to avoid circular dependency
+                    from bengal.collections.errors import ContentValidationError
+
+                    # Re-raise validation errors in strict mode
+                    if isinstance(e, ContentValidationError) and self._strict_validation:
+                        raise
+
                     self.logger.error(
                         "page_future_failed",
                         path=str(item_path),
@@ -488,6 +495,13 @@ class ContentDiscovery:
                 parent_section.add_page(page)
                 self.pages.append(page)
             except Exception as e:  # pragma: no cover - guarded logging
+                # Import here to avoid circular dependency
+                from bengal.collections.errors import ContentValidationError
+
+                # Re-raise validation errors in strict mode
+                if isinstance(e, ContentValidationError) and self._strict_validation:
+                    raise
+
                 self.logger.error(
                     "page_future_failed",
                     path=str(directory),
@@ -508,6 +522,111 @@ class ContentDiscovery:
         content_extensions = {".md", ".markdown", ".rst", ".txt"}
         return file_path.suffix.lower() in content_extensions
 
+    def _validate_against_collection(
+        self, file_path: Path, metadata: dict[str, Any]
+    ) -> dict[str, Any]:
+        """
+        Validate frontmatter against collection schema if applicable.
+
+        Args:
+            file_path: Path to content file
+            metadata: Parsed frontmatter metadata
+
+        Returns:
+            Validated metadata (possibly with schema-enforced defaults)
+
+        Raises:
+            ContentValidationError: If strict_validation=True and validation fails
+        """
+        if not self._collections:
+            return metadata
+
+        # Find applicable collection
+        collection_name, config = self._get_collection_for_file(file_path)
+
+        if config is None:
+            return metadata
+
+        # Import here to avoid circular dependency
+        from bengal.collections import ContentValidationError, SchemaValidator
+
+        # Apply optional transform
+        if config.transform:
+            try:
+                metadata = config.transform(metadata)
+            except Exception as e:
+                self.logger.warning(
+                    "collection_transform_failed",
+                    path=str(file_path),
+                    collection=collection_name,
+                    error=str(e),
+                )
+
+        # Validate
+        validator = SchemaValidator(config.schema, strict=config.strict)
+        result = validator.validate(metadata, source_file=file_path)
+
+        if not result.valid:
+            error_summary = result.error_summary
+            self._validation_errors.append((file_path, collection_name, result.errors))
+
+            if self._strict_validation:
+                raise ContentValidationError(
+                    message=f"Validation failed for {file_path}",
+                    path=file_path,
+                    errors=result.errors,
+                    collection_name=collection_name,
+                )
+            else:
+                self.logger.warning(
+                    "collection_validation_failed",
+                    path=str(file_path),
+                    collection=collection_name,
+                    errors=error_summary,
+                    action="continuing_with_original_metadata",
+                )
+                return metadata
+
+        # Return validated data as dict (from schema instance)
+        if result.data is not None:
+            # Convert validated instance back to dict for Page metadata
+            from dataclasses import asdict, is_dataclass
+
+            if is_dataclass(result.data):
+                return asdict(result.data)
+            elif hasattr(result.data, "model_dump"):
+                # Pydantic model
+                return result.data.model_dump()
+
+        return metadata
+
+    def _get_collection_for_file(
+        self, file_path: Path
+    ) -> tuple[str | None, "CollectionConfig | None"]:
+        """
+        Find which collection a file belongs to based on its path.
+
+        Args:
+            file_path: Path to content file
+
+        Returns:
+            Tuple of (collection_name, CollectionConfig) or (None, None)
+        """
+        try:
+            rel_path = file_path.relative_to(self.content_dir)
+        except ValueError:
+            return None, None
+
+        for name, config in self._collections.items():
+            try:
+                # Check if file is under this collection's directory
+                rel_path.relative_to(config.directory)
+                return name, config
+            except ValueError:
+                continue
+
+        return None, None
+
     def _create_page(
         self, file_path: Path, current_lang: str | None = None, section: Section | None = None
     ) -> Page:
@@ -520,6 +639,7 @@ class ContentDiscovery:
         - Missing frontmatter
         - File encoding issues
         - IO errors
+        - Collection schema validation (when collections defined)
 
         Args:
             file_path: Path to content file
@@ -529,9 +649,13 @@ class ContentDiscovery:
 
         Raises:
             IOError: Only if file cannot be read at all
+            ContentValidationError: If strict_validation=True and validation fails
         """
         try:
             content, metadata = self._parse_content_file(file_path)
+
+            # Validate against collection schema if applicable
+            metadata = self._validate_against_collection(file_path, metadata)
 
             # Create page without passing section into constructor
             page = Page(
