@@ -155,11 +155,14 @@ def get_breadcrumbs(page: Page) -> list[dict[str, Any]]:
         items.append({"title": page_title, "url": page_url, "is_current": True})
         return items
 
-    # Add Home as the first breadcrumb for pages with ancestors
-    items.append({"title": "Home", "url": "/", "is_current": False})
-
     # Get ancestors in reverse order (root to current)
     reversed_ancestors = list(reversed(page.ancestors))
+
+    # Limit to last 2 ancestors (skip Home and deep nesting)
+    # This prevents breadcrumbs from wrapping to 2 lines
+    MAX_ANCESTORS = 2
+    if len(reversed_ancestors) > MAX_ANCESTORS:
+        reversed_ancestors = reversed_ancestors[-MAX_ANCESTORS:]
 
     # Check if current page is the index page of the last ancestor
     # (This prevents duplication like "Docs / Markdown / Markdown")
