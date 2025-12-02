@@ -48,6 +48,13 @@ dependencies = [
 # Pre-built Lunr search index (faster client-side search)
 search = ["lunr>=0.7.0"]
 
+# Content Layer - Remote content sources
+# These provide async HTTP for fetching from GitHub, REST APIs, Notion, etc.
+github = ["aiohttp>=3.9.0"]
+notion = ["aiohttp>=3.9.0"]
+rest = ["aiohttp>=3.9.0"]
+all-sources = ["aiohttp>=3.9.0"]  # All remote sources
+
 # CSS optimization removed - lightningcss not supported for Python 3.14 minimum version
 # CSS minification uses fallback lossless minifier
 dev = [

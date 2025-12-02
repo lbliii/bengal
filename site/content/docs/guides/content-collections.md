@@ -145,7 +145,26 @@ collections = {
 }
 ```
 
+## Remote Content
+
+Collections work with remote content too. Use a loader instead of a directory:
+
+```python
+from bengal.collections import define_collection, DocPage
+from bengal.content_layer import github_loader
+
+collections = {
+    "api-docs": define_collection(
+        schema=DocPage,
+        loader=github_loader(repo="myorg/api-docs", path="docs/"),
+    ),
+}
+```
+
+See [Remote Content Sources](/docs/guides/content-sources/) for GitHub, Notion, REST API loaders.
+
 ## See Also
 
+- [Remote Content Sources](/docs/guides/content-sources/) — GitHub, Notion, REST API loaders
 - [CLI Reference: collections](/cli/collections/) — Command details
 - [API Reference: collections](/api/collections/) — Schema and validator API

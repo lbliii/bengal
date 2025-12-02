@@ -7,6 +7,41 @@ import click
 from bengal.utils.cli_output import CLIOutput
 
 
+# =============================================================================
+# ALIAS REGISTRY
+# =============================================================================
+# Maps aliases to their canonical command names for help and typo detection
+
+COMMAND_ALIASES: dict[str, str] = {
+    # Short aliases
+    "b": "build",
+    "s": "serve",
+    "c": "clean",
+    "v": "validate",
+    # Semantic aliases
+    "dev": "serve",
+    "check": "validate",
+    "lint": "validate",
+}
+
+# Reverse mapping: canonical name → list of aliases
+CANONICAL_TO_ALIASES: dict[str, list[str]] = {}
+for alias, canonical in COMMAND_ALIASES.items():
+    if canonical not in CANONICAL_TO_ALIASES:
+        CANONICAL_TO_ALIASES[canonical] = []
+    CANONICAL_TO_ALIASES[canonical].append(alias)
+
+
+def get_aliases_for_command(cmd_name: str) -> list[str]:
+    """Get all aliases for a canonical command name."""
+    return CANONICAL_TO_ALIASES.get(cmd_name, [])
+
+
+def get_canonical_name(cmd_or_alias: str) -> str:
+    """Get the canonical command name for an alias (or return as-is if not an alias)."""
+    return COMMAND_ALIASES.get(cmd_or_alias, cmd_or_alias)
+
+
 def _sanitize_help_text(text: str) -> str:
     """
     Remove Commands section from help text to avoid duplication.
@@ -132,17 +167,29 @@ class BengalGroup(click.Group):
         if ctx.command_path == "bengal":
             cli.subheader("Quick Start:", leading_blank=False)
             if cli.use_rich:
-                cli.console.print("  [info]bengal site build[/info]     Build your site")
+                cli.console.print("  [info]bengal build[/info]          Build your site")
                 cli.console.print(
-                    "  [info]bengal site serve[/info]     Start dev server with live reload"
+                    "  [info]bengal serve[/info]          Start dev server with live reload"
                 )
                 cli.console.print("  [info]bengal new site[/info]       Create a new site")
             else:
-                cli.info("  bengal site build     Build your site")
-                cli.info("  bengal site serve     Start dev server with live reload")
+                cli.info("  bengal build          Build your site")
+                cli.info("  bengal serve          Start dev server with live reload")
                 cli.info("  bengal new site       Create a new site")
             cli.blank()
-            cli.tip("For more commands: bengal --help")
+
+            # Show shortcuts section
+            cli.subheader("Shortcuts:", leading_blank=False, trailing_blank=False)
+            if cli.use_rich:
+                cli.console.print("  [dim]b[/dim]                      build")
+                cli.console.print("  [dim]s[/dim], [dim]dev[/dim]               serve")
+                cli.console.print("  [dim]c[/dim]                      clean")
+                cli.console.print("  [dim]v[/dim], [dim]check[/dim], [dim]lint[/dim]      validate")
+            else:
+                cli.info("  b                      build")
+                cli.info("  s, dev                 serve")
+                cli.info("  c                      clean")
+                cli.info("  v, check, lint         validate")
             cli.blank()
 
         # Usage pattern
@@ -160,13 +207,32 @@ class BengalGroup(click.Group):
                 cli.console.print(f"  [info]{opts:<20}[/info] {help_text}")
             cli.blank()
 
-        # Commands
+        # Commands (filter out aliases to avoid clutter)
         commands = self.list_commands(ctx)
         if commands:
             cli.subheader("Commands:", trailing_blank=False)
-            for name in commands:
+
+            # For root bengal group, filter out aliases to reduce clutter
+            if ctx.command_path == "bengal":
+                # These are aliases we register - skip them in the main list
+                # The user already sees them in the Shortcuts section
+                skip_names = {"b", "s", "c", "v", "dev", "check", "lint"}
+                shown_commands = [
+                    name for name in commands
+                    if name not in skip_names
+                    and self.get_command(ctx, name)
+                    and not self.get_command(ctx, name).hidden
+                ]
+            else:
+                shown_commands = [
+                    name for name in commands
+                    if self.get_command(ctx, name)
+                    and not self.get_command(ctx, name).hidden
+                ]
+
+            for name in shown_commands:
                 cmd = self.get_command(ctx, name)
-                if cmd and not cmd.hidden:
+                if cmd:
                     help_text = cmd.get_short_help_str(limit=60)
                     cli.console.print(f"  [info]{name:<12}[/info] {help_text}")
             cli.blank()
@@ -191,13 +257,21 @@ class BengalGroup(click.Group):
                     if cli.use_rich:
                         cli.console.print("[header]Did you mean one of these?[/header]")
                         for suggestion in suggestions:
-                            cli.console.print(f"  [info]•[/info] [phase]{suggestion}[/phase]")
+                            # Show alias info if relevant
+                            aliases = get_aliases_for_command(suggestion)
+                            if aliases:
+                                alias_hint = f" [dim](or: {', '.join(aliases)})[/dim]"
+                            else:
+                                alias_hint = ""
+                            cli.console.print(
+                                f"  [info]•[/info] [phase]{suggestion}[/phase]{alias_hint}"
+                            )
                     else:
                         cli.info("Did you mean one of these?")
                         for suggestion in suggestions:
                             cli.info(f"  • {suggestion}")
                     cli.blank()
-                    cli.tip("Run 'bengal --help' to see all commands.")
+                    cli.tip("Run 'bengal --help' to see all commands and shortcuts.")
                     cli.blank()
                     raise SystemExit(2) from None
 
@@ -205,7 +279,7 @@ class BengalGroup(click.Group):
                 # Use themed single-line error
                 cli = CLIOutput()
                 cli.error_header(f"Unknown command '{unknown_cmd}'.", mouse=True)
-                cli.tip("Run 'bengal --help' to see all commands.")
+                cli.tip("Run 'bengal --help' to see all commands and shortcuts.")
                 raise SystemExit(2) from None
 
             # Re-raise original error if no suggestions
@@ -215,14 +289,35 @@ class BengalGroup(click.Group):
         """Find similar command names using simple string similarity."""
         from difflib import get_close_matches
 
+        # Get all available commands, but prefer canonical names over aliases
         available_commands = list(self.commands.keys())
 
-        # Use difflib for fuzzy matching
+        # Filter to prefer canonical commands and avoid suggesting aliases
+        # (user will see aliases in the output anyway)
+        canonical_commands = [
+            cmd for cmd in available_commands if cmd not in COMMAND_ALIASES
+        ]
+
+        # Use difflib for fuzzy matching against canonical commands first
         matches = get_close_matches(
             unknown_cmd,
-            available_commands,
+            canonical_commands,
             n=max_suggestions,
-            cutoff=0.6,  # 60% similarity threshold
+            cutoff=0.5,  # Slightly lower threshold for better suggestions
         )
 
-        return matches
+        # If no matches, try aliases too
+        if not matches:
+            matches = get_close_matches(
+                unknown_cmd,
+                available_commands,
+                n=max_suggestions,
+                cutoff=0.5,
+            )
+            # Convert aliases to canonical names
+            matches = [get_canonical_name(m) for m in matches]
+            # Remove duplicates while preserving order
+            seen = set()
+            matches = [m for m in matches if not (m in seen or seen.add(m))]
+
+        return matches[:max_suggestions]
