@@ -42,13 +42,13 @@ KNOWN_SECTIONS = {
 }
 ```
 
-**Additional sections found in code but not in KNOWN_SECTIONS**:
-- `search` - Search configuration
-- `content` - Content processing
-- `autodoc` - API documentation
-- `i18n` - Internationalization
-- `graph` - Knowledge graph
-- `rss` - RSS feed settings
+**Additional sections found in code but not in KNOWN_SECTIONS** ⚠️:
+- `search` - Search configuration (used extensively)
+- `content` - Content processing (used in templates)
+- `autodoc` - API documentation generator
+- `i18n` - Internationalization (used in 10+ files)
+- `graph` - Knowledge graph visualization
+- `rss` - RSS feed settings (legacy, now in features)
 
 ---
 
@@ -390,6 +390,30 @@ Profiles determine health checks and metrics collection via CLI flags, NOT confi
 
 ---
 
+### 21. Environment Variables
+
+Environment variables that affect Bengal behavior:
+
+| Variable | Type | Default | Source | Notes |
+|----------|------|---------|--------|-------|
+| `BENGAL_BASEURL` | string | - | env_overrides.py | Override baseurl |
+| `BENGAL_BASE_URL` | string | - | env_overrides.py | Alias for above |
+| `BENGAL_RAISE_ON_CONFIG_ERROR` | bool | `0` | loader.py | Raise on config errors |
+| `BENGAL_DEV_SERVER` | bool | `0` | cli_output.py | Mark as dev server mode |
+| `BENGAL_WATCHDOG_BACKEND` | string | - | dev_server.py | Filesystem watcher backend |
+| `BENGAL_DEBOUNCE_MS` | int | - | build_handler.py | Build debounce time |
+| `BENGAL_DISABLE_RELOAD_EVENTS` | bool | - | live_reload.py | Disable SSE events |
+| `BENGAL_SSE_KEEPALIVE_SECS` | int | `15` | live_reload.py | SSE keepalive interval |
+| `BENGAL_CLI_PHASE_DEDUP_MS` | int | `1500` | cli_output.py | Phase display dedup |
+
+**Platform-specific env vars** (auto-detected):
+- `NETLIFY_URL` - Netlify deployment URL
+- `VERCEL_URL` - Vercel deployment URL
+- `GITHUB_REPOSITORY` - GitHub repo (owner/repo)
+- `GITHUB_REF_NAME` - GitHub branch name
+
+---
+
 ## Issues Summary
 
 ### 1. Duplicated Defaults (Should be centralized)
@@ -443,10 +467,69 @@ Keys that accept BOTH bool AND dict:
 
 ## Recommendations
 
-1. **Create `bengal/config/defaults.py`** - Single source of truth
-2. **Fix `max_workers`** - Default to `os.cpu_count()` not `4`
-3. **Add missing sections to `KNOWN_SECTIONS`**
-4. **Standardize bool/dict handling** - Consistent merge behavior
-5. **Deprecate flat asset keys** - Use `assets.*` only
-6. **Document all keys** - Generate from code, not manually
-7. **Add config schema validation** - JSON Schema or similar
+### Immediate (High Impact, Low Effort)
+
+1. **Add missing sections to `KNOWN_SECTIONS`**
+   ```python
+   KNOWN_SECTIONS = {
+       # ... existing ...
+       "search",    # Used in 10+ places
+       "content",   # Used in templates
+       "autodoc",   # Used by autodoc module
+       "i18n",      # Used in 10+ places
+       "graph",     # Used by special_pages
+   }
+   ```
+
+2. **Fix `max_workers` defaults** - Currently hard-coded to 4 in 6 files!
+   - Create `bengal/config/defaults.py` with single source of truth
+   - Default should be `os.cpu_count() - 1` or `null` (auto-detect)
+   - Fix in: `render.py`, `taxonomy.py`, `asset.py`, `related_posts.py`
+
+3. **Document profile behavior**
+   - `--verbose` ≠ "verbose output", it means THEME_DEV profile
+   - Add `--quiet` flag for truly minimal output
+   - Consider `--verbose-output` vs `--theme-dev` distinction
+
+### Medium Priority
+
+4. **Standardize bool/dict config handling**
+   - `health_check: false` vs `health_check: { enabled: false }`
+   - Same for `search`, `graph`, `output_formats`
+   - Document the merge behavior clearly
+
+5. **Create `bengal/config/defaults.py`**
+   ```python
+   DEFAULTS = {
+       "build": {
+           "max_workers": None,  # Auto-detect
+           "parallel": True,
+           # ... all build defaults
+       },
+       "content": {
+           "excerpt_length": 200,
+           "reading_speed": 200,
+           # ... all content defaults
+       },
+   }
+   ```
+
+6. **Deprecate duplicate keys**
+   - `minify_assets` → `assets.minify`
+   - `generate_sitemap` → `features.sitemap`
+   - `generate_rss` → `features.rss`
+   - Add deprecation warnings
+
+### Long Term
+
+7. **Generate config documentation from code**
+   - Annotate config keys with type hints and descriptions
+   - Auto-generate reference docs
+
+8. **Add config schema validation**
+   - JSON Schema or pydantic models
+   - Catch invalid config early with helpful errors
+
+9. **Config file profile support**
+   - Allow `build.profile: theme-dev` in config
+   - CLI flags override config file

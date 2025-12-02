@@ -144,8 +144,8 @@ Example:
 {{ page_navigation(page) }}
 #}
 {% macro page_navigation(page) %}
-{# Check theme config for show_prev_next setting #}
-{% set show_nav = site.theme_config.config.get('show_prev_next', true) %}
+{# Check feature flag for prev/next navigation #}
+{% set show_nav = 'navigation.prev_next' in site.theme_config.features %}
 {% if show_nav %}
 {# Determine which navigation to use based on content type #}
 {% set content_type = page.metadata.get('type', 'page') %}

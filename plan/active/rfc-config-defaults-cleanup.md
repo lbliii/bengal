@@ -1,215 +1,597 @@
-# RFC: Config Defaults Cleanup
+# RFC: Config Defaults Cleanup & Centralization
 
 **Status**: Draft  
 **Created**: 2025-12-02  
-**Priority**: Medium  
-**Est. Impact**: Better DX, fewer "gotcha" moments
+**Author**: AI Assistant  
+**Related**: `plan/active/config-inventory.md`
+
+---
+
+## Executive Summary
+
+Bengal's configuration system has grown organically, resulting in:
+- **Duplicated defaults** across 12+ files
+- **5 missing sections** in `KNOWN_SECTIONS` validation
+- **Confusing naming** (flat vs nested keys)
+- **Ambiguous bool/dict handling**
+- **Misleading CLI flags** (`--verbose` secretly enables health checks)
+
+This RFC proposes a phased cleanup to centralize defaults, standardize naming, and improve DX.
 
 ---
 
 ## Problem Statement
 
-Bengal's configuration system has several "sharp edges" that cause unexpected behavior:
+### 1. Scattered Defaults (High Priority)
 
-1. **Hard-coded defaults that should auto-detect** (`max_workers: 4`)
-2. **Config in multiple places with confusing overrides** (`health_check`)
-3. **Inconsistent naming** (`minify_assets` vs `assets.minify`)
-4. **Scattered defaults** (no single source of truth)
+`max_workers` is hard-coded to `4` in **6 different files**:
+
+| File | Location | Default |
+|------|----------|---------|
+| `render.py:294` | `_render_parallel()` | 4 |
+| `render.py:387` | `_render_parallel()` | 4 |
+| `render.py:481` | `_render_parallel()` | 4 |
+| `taxonomy.py:634` | `_render_tag_pages_parallel()` | 4 |
+| `asset.py:253` | `process_assets()` | varies |
+| `loader.py:393` | `_default_config()` | cpu_count-1 |
+
+**Impact**: Users with 16-core machines get 4 workers unless they manually set `max_workers`.
+
+### 2. Missing `KNOWN_SECTIONS`
+
+These sections are used throughout the codebase but will trigger "unknown section" warnings:
+
+```python
+# Current KNOWN_SECTIONS (missing 5!)
+KNOWN_SECTIONS = {
+    "site", "build", "markdown", "features", "taxonomies",
+    "menu", "params", "assets", "pagination", "dev",
+    "output_formats", "health_check", "fonts", "theme",
+}
+
+# Missing (used in 30+ files):
+# - "search"    (10+ usages)
+# - "content"   (templates + new/config.py)
+# - "autodoc"   (autodoc module)
+# - "i18n"      (10+ usages)
+# - "graph"     (special_pages.py)
+```
+
+### 3. Duplicate Naming Patterns
+
+| Flat Key | Nested Key | Both Work? |
+|----------|------------|------------|
+| `minify_assets` | `assets.minify` | ✅ Yes |
+| `optimize_assets` | `assets.optimize` | ✅ Yes |
+| `fingerprint_assets` | `assets.fingerprint` | ✅ Yes |
+| `generate_sitemap` | `features.sitemap` | ✅ Yes |
+| `generate_rss` | `features.rss` | ✅ Yes |
+
+**Impact**: Users don't know which to use. Documentation inconsistent.
+
+### 4. Bool/Dict Config Ambiguity
+
+```yaml
+# These behave DIFFERENTLY during config merge:
+
+# Option A: Bool
+health_check: false
+
+# Option B: Dict
+health_check:
+  enabled: false
+  verbose: true
+
+# If both exist in different files, dict WINS
+# User expects bool to disable, but dict overrides it
+```
+
+### 5. Misleading CLI Flags
+
+```bash
+# User expects: "show verbose output"
+bengal build --verbose
+
+# Actually does: Enables THEME_DEV profile which:
+# - Enables 7 health check validators
+# - Enables metrics collection
+# - Enables detailed build stats
+# - Shows phase timing
+```
 
 ---
 
-## Issues Found
+## Proposed Solution
 
-### Issue 1: `max_workers` Hard-coded to 4
+### Phase 1: Centralize Defaults (Week 1)
 
-**Current**: 6 places hard-code `max_workers` default to 4:
-
-```python
-# render.py, taxonomy.py, related_posts.py
-max_workers = self.site.config.get("max_workers", 4)
-```
-
-**Problem**: Users with 11+ cores get 4 workers unless they explicitly set `max_workers: null`.
-
-**Fix**: Default to `None` → auto-detect:
+**Create `bengal/config/defaults.py`**:
 
 ```python
-def get_max_workers(config: dict) -> int:
-    """Get max_workers with smart auto-detection."""
-    configured = config.get("max_workers")
-    if configured is None:
-        return os.cpu_count() or 4
-    return configured
-```
+"""
+Single source of truth for all Bengal configuration defaults.
 
-### Issue 2: `health_check` in Multiple Places
+All config access should use these defaults via get_default().
+"""
+from __future__ import annotations
 
-**Current**: Can be in `build.yaml` AND `environments/*.yaml`:
+import os
+from typing import Any
 
-```yaml
-# config/_default/build.yaml
-health_check: false  # <-- User sets this
+# Auto-detect optimal worker count
+_CPU_COUNT = os.cpu_count() or 4
+DEFAULT_MAX_WORKERS = max(4, _CPU_COUNT - 1)
 
-# config/environments/local.yaml  
-health_check:
-  verbose: true  # <-- Overrides the false!
-```
-
-**Problem**: Dict overrides boolean, user thinks health checks are disabled but they're not.
-
-**Fix Options**:
-- A) Only allow `health_check` in one file
-- B) Smarter merge: `health_check: false` should win over `health_check: { ... }`
-- C) Require explicit `enabled: false` in the dict form
-
-### Issue 3: Inconsistent Config Key Naming
-
-**Current**:
-```python
-# Some use flat keys
-minify = self.site.config.get("minify_assets", True)
-fingerprint = self.site.config.get("fingerprint_assets", True)
-
-# Some use nested
-assets_cfg = self.site.config.get("assets", {})
-minify = assets_cfg.get("minify", True)
-```
-
-**Problem**: Users don't know which to set:
-- `minify_assets: false` (flat)
-- `assets.minify: false` (nested)
-
-**Fix**: Standardize on nested structure, deprecate flat keys:
-
-```yaml
-# Canonical form
-assets:
-  minify: false
-  fingerprint: true
-
-# Deprecated (show warning)
-minify_assets: false  # ⚠️ Deprecated, use assets.minify
-```
-
-### Issue 4: No Single Source of Truth for Defaults
-
-**Current**: Defaults scattered across:
-- Code: `config.get("key", 4)`
-- Config files: `_default/*.yaml`
-- CLI: `@click.option(..., default=...)`
-- Profiles: `utils/profile.py`
-
-**Problem**: Changing a default requires updating multiple places.
-
-**Fix**: Create `bengal/config/defaults.py`:
-
-```python
-# bengal/config/defaults.py
-"""Single source of truth for all config defaults."""
-
-DEFAULTS = {
-    "build": {
-        "parallel": True,
-        "incremental": True,
-        "max_workers": None,  # Auto-detect
+DEFAULTS: dict[str, Any] = {
+    # Site
+    "title": "Bengal Site",
+    "baseurl": "",
+    "description": "",
+    "author": "",
+    "language": "en",
+    
+    # Build
+    "output_dir": "public",
+    "content_dir": "content",
+    "assets_dir": "assets",
+    "templates_dir": "templates",
+    "parallel": True,
+    "incremental": True,
+    "max_workers": None,  # None = auto-detect
+    "pretty_urls": True,
+    "minify_html": True,
+    "strict_mode": False,
+    "debug": False,
+    "validate_build": True,
+    "validate_links": True,
+    "transform_links": True,
+    "cache_templates": True,
+    "fast_writes": False,
+    "stable_section_references": True,
+    "min_page_size": 1000,
+    
+    # HTML Output
+    "html_output": {
+        "mode": "minify",
+        "remove_comments": True,
+        "collapse_blank_lines": True,
     },
+    
+    # Assets
     "assets": {
         "minify": True,
-        "fingerprint": True,
         "optimize": True,
+        "fingerprint": True,
+        "pipeline": False,
     },
-    "health_check": {
+    
+    # Theme
+    "theme": {
+        "name": "default",
+        "default_appearance": "system",
+        "default_palette": "",
+        "features": [],
+        "show_reading_time": True,
+        "show_author": True,
+        "show_prev_next": True,
+        "show_children_default": True,
+        "show_excerpts_default": True,
+        "max_tags_display": 10,
+        "popular_tags_count": 20,
+    },
+    
+    # Content
+    "content": {
+        "default_type": "doc",
+        "excerpt_length": 200,
+        "summary_length": 160,
+        "reading_speed": 200,
+        "related_count": 5,
+        "related_threshold": 0.25,
+        "toc_depth": 4,
+        "toc_min_headings": 2,
+        "toc_style": "nested",
+        "sort_pages_by": "weight",
+        "sort_order": "asc",
+    },
+    
+    # Search
+    "search": {
         "enabled": True,
-        "verbose": False,
+        "lunr": {
+            "prebuilt": True,
+            "min_query_length": 2,
+            "max_results": 50,
+            "preload": "smart",
+        },
+        "ui": {
+            "modal": True,
+            "recent_searches": 5,
+            "placeholder": "Search documentation...",
+        },
+        "analytics": {
+            "enabled": False,
+            "event_endpoint": None,
+        },
     },
+    
+    # Pagination
     "pagination": {
         "per_page": 10,
     },
+    
+    # Health Check
+    "health_check": {
+        "enabled": True,
+        "verbose": False,
+        "strict_mode": False,
+        "orphan_threshold": 5,
+        "super_hub_threshold": 50,
+    },
+    
+    # Features
+    "features": {
+        "rss": True,
+        "sitemap": True,
+        "search": True,
+        "json": True,
+        "llm_txt": True,
+        "syntax_highlighting": True,
+    },
+    
+    # Graph
+    "graph": {
+        "enabled": True,
+        "path": "/graph/",
+    },
+    
+    # i18n
+    "i18n": {
+        "strategy": None,
+        "default_language": "en",
+        "default_in_subdir": False,
+    },
+    
+    # Output Formats
+    "output_formats": {
+        "enabled": True,
+        "per_page": ["json"],
+        "site_wide": ["index_json"],
+        "options": {
+            "excerpt_length": 200,
+            "json_indent": None,
+            "llm_separator_width": 80,
+            "include_full_content_in_index": False,
+            "exclude_sections": [],
+            "exclude_patterns": ["404.html", "search.html"],
+        },
+    },
+    
+    # Markdown
+    "markdown": {
+        "parser": "mistune",
+        "toc_depth": "2-4",
+    },
 }
 
-def get_default(key_path: str) -> Any:
-    """Get default value for a config key path like 'build.max_workers'."""
-    ...
+
+def get_default(key: str, nested_key: str | None = None) -> Any:
+    """
+    Get default value for a config key.
+    
+    Args:
+        key: Top-level config key
+        nested_key: Optional nested key (dot-separated)
+    
+    Returns:
+        Default value or None if not found
+    
+    Example:
+        >>> get_default("max_workers")
+        None  # Auto-detect
+        >>> get_default("content", "excerpt_length")
+        200
+        >>> get_default("search", "lunr.prebuilt")
+        True
+    """
+    value = DEFAULTS.get(key)
+    
+    if nested_key is None:
+        return value
+    
+    if not isinstance(value, dict):
+        return None
+    
+    # Handle dot-separated nested keys
+    parts = nested_key.split(".")
+    for part in parts:
+        if not isinstance(value, dict):
+            return None
+        value = value.get(part)
+    
+    return value
+
+
+def get_max_workers(config_value: int | None = None) -> int:
+    """
+    Resolve max_workers with auto-detection.
+    
+    Args:
+        config_value: User-configured value (None = auto-detect)
+    
+    Returns:
+        Resolved worker count
+    """
+    if config_value is None or config_value == 0:
+        return DEFAULT_MAX_WORKERS
+    return config_value
+```
+
+**Update all hardcoded defaults**:
+
+```python
+# Before (render.py:294)
+max_workers = self.site.config.get("max_workers", 4)
+
+# After
+from bengal.config.defaults import get_max_workers
+max_workers = get_max_workers(self.site.config.get("max_workers"))
+```
+
+---
+
+### Phase 2: Fix KNOWN_SECTIONS (Week 1)
+
+**Update `bengal/config/loader.py`**:
+
+```python
+KNOWN_SECTIONS = {
+    # Core
+    "site",
+    "build",
+    "theme",
+    "params",
+    
+    # Content
+    "content",
+    "markdown",
+    "taxonomies",
+    
+    # Features
+    "features",
+    "search",
+    "graph",
+    
+    # Navigation
+    "menu",
+    "pagination",
+    
+    # Output
+    "output_formats",
+    "assets",
+    
+    # Development
+    "dev",
+    "health_check",
+    
+    # Integrations
+    "fonts",
+    "autodoc",
+    "i18n",
+}
+```
+
+---
+
+### Phase 3: Standardize Naming (Week 2)
+
+**Deprecate flat asset keys** with warnings:
+
+```python
+# bengal/config/deprecation.py
+DEPRECATED_KEYS = {
+    "minify_assets": ("assets", "minify"),
+    "optimize_assets": ("assets", "optimize"),
+    "fingerprint_assets": ("assets", "fingerprint"),
+    "generate_sitemap": ("features", "sitemap"),
+    "generate_rss": ("features", "rss"),
+    "markdown_engine": ("markdown", "parser"),
+}
+
+def check_deprecated_keys(config: dict[str, Any]) -> None:
+    """Warn about deprecated config keys."""
+    for old_key, (section, new_key) in DEPRECATED_KEYS.items():
+        if old_key in config:
+            logger.warning(
+                "config_key_deprecated",
+                old_key=old_key,
+                new_key=f"{section}.{new_key}",
+                note=f"'{old_key}' is deprecated, use '{section}.{new_key}' instead",
+            )
+```
+
+---
+
+### Phase 4: Fix Bool/Dict Handling (Week 2)
+
+**Standardize config merge behavior**:
+
+```python
+def normalize_bool_or_dict(value: bool | dict, key: str) -> dict:
+    """
+    Normalize config that can be bool or dict.
+    
+    bool → {"enabled": bool}
+    dict → dict (with "enabled" default True if missing)
+    """
+    if isinstance(value, bool):
+        return {"enabled": value}
+    if isinstance(value, dict):
+        if "enabled" not in value:
+            value["enabled"] = True
+        return value
+    raise ConfigValidationError(f"'{key}' must be bool or dict, got {type(value)}")
+```
+
+**Apply to**: `health_check`, `search`, `graph`, `output_formats`
+
+---
+
+### Phase 5: Clarify CLI Flags (Week 3)
+
+**Rename/add CLI flags**:
+
+| Current | Proposed | Behavior |
+|---------|----------|----------|
+| `--verbose` | `--theme-dev` | THEME_DEV profile |
+| (new) | `--verbose` | Verbose output only |
+| `--dev` | `--dev` | DEVELOPER profile |
+| `--debug` | `--debug-log` | Debug logging only |
+
+**Update `profile.py`**:
+
+```python
+@classmethod
+def from_cli_args(
+    cls,
+    profile: str | None = None,
+    dev: bool = False,
+    theme_dev: bool = False,
+    verbose: bool = False,  # Now just verbose output
+    debug_log: bool = False,
+) -> tuple[BuildProfile, dict[str, bool]]:
+    """
+    Returns:
+        (profile, output_flags)
+        
+        output_flags = {
+            "verbose_output": bool,  # Show detailed progress
+            "debug_logging": bool,   # Enable debug logs
+        }
+    """
+    output_flags = {
+        "verbose_output": verbose,
+        "debug_logging": debug_log,
+    }
+    
+    if dev:
+        return cls.DEVELOPER, output_flags
+    if theme_dev:
+        return cls.THEME_DEV, output_flags
+    if profile:
+        return cls.from_string(profile), output_flags
+    
+    return cls.WRITER, output_flags
+```
+
+---
+
+## Migration Guide
+
+### For Users
+
+**No breaking changes in Phase 1-2**. Deprecation warnings only.
+
+```yaml
+# Deprecated (still works, shows warning):
+minify_assets: true
+generate_sitemap: true
+
+# Preferred:
+assets:
+  minify: true
+features:
+  sitemap: true
+```
+
+**Phase 5 CLI changes** (breaking):
+
+```bash
+# Before
+bengal build --verbose  # Enabled health checks!
+
+# After
+bengal build --theme-dev  # Same behavior
+bengal build --verbose    # Just verbose output
 ```
 
 ---
 
 ## Implementation Plan
 
-### Phase 1: Fix `max_workers` (Day 1)
-- [ ] Create `get_max_workers()` utility function
-- [ ] Replace all 6 hard-coded defaults
-- [ ] Remove `max_workers: null` requirement from docs
+| Phase | Scope | Files Changed | Risk |
+|-------|-------|---------------|------|
+| 1 | Create `defaults.py`, update hardcoded defaults | 8 | Low |
+| 2 | Add missing `KNOWN_SECTIONS` | 1 | Low |
+| 3 | Add deprecation warnings | 2 | Low |
+| 4 | Standardize bool/dict merge | 3 | Medium |
+| 5 | Rename CLI flags | 4 | Medium |
 
-### Phase 2: Fix `health_check` Merge (Day 1)
-- [ ] Update config loader to handle bool/dict merge properly
-- [ ] Add warning when conflicting settings detected
-- [ ] Document expected behavior
-
-### Phase 3: Standardize Config Keys (Day 2)
-- [ ] Create deprecation warnings for flat keys
-- [ ] Update code to prefer nested structure
-- [ ] Update docs/examples
-
-### Phase 4: Create Defaults Module (Day 2-3)
-- [ ] Create `bengal/config/defaults.py`
-- [ ] Update all `config.get()` calls to use defaults module
-- [ ] Add tests for default resolution
+**Total estimate**: 2-3 weeks
 
 ---
 
-## Migration Path
+## Confidence Assessment
 
-### For `max_workers`
-No user action needed - auto-detect becomes default.
+| Component | Confidence | Rationale |
+|-----------|------------|-----------|
+| Phase 1 (defaults.py) | 95% 🟢 | Straightforward, low risk |
+| Phase 2 (KNOWN_SECTIONS) | 95% 🟢 | Simple addition |
+| Phase 3 (deprecation) | 90% 🟢 | Non-breaking |
+| Phase 4 (bool/dict) | 80% 🟡 | Needs careful testing |
+| Phase 5 (CLI flags) | 75% 🟡 | Breaking change, needs docs |
 
-### For `health_check`
-Users with `health_check: false` + `health_check: { verbose: true }` will get a warning:
-
-```
-⚠️ Config conflict: health_check set to false in build.yaml but
-   has settings in local.yaml. Using enabled: false.
-```
-
-### For Asset Config Keys
-Deprecation warning for 2 releases:
-
-```
-⚠️ Deprecated: 'minify_assets' - use 'assets.minify' instead
-```
+**Overall**: 87% 🟢
 
 ---
 
-## Affected Files
+## Alternatives Considered
 
-- `bengal/orchestration/render.py` (3 occurrences)
-- `bengal/orchestration/taxonomy.py` (1 occurrence)
-- `bengal/orchestration/related_posts.py` (1 occurrence)
-- `bengal/orchestration/asset.py` (1 occurrence + naming issue)
-- `bengal/orchestration/build/finalization.py` (health_check)
-- `bengal/config/loader.py` (merge logic)
+### A. Do Nothing
+- **Pro**: No effort
+- **Con**: Technical debt grows, user confusion continues
+- **Decision**: Rejected
+
+### B. Full Config Rewrite with Pydantic
+- **Pro**: Type safety, auto-validation, auto-docs
+- **Con**: Large dependency, major refactor, breaking changes
+- **Decision**: Defer to future (too disruptive now)
+
+### C. Incremental Cleanup (This RFC)
+- **Pro**: Low risk, immediate value, non-breaking (mostly)
+- **Con**: Doesn't solve everything
+- **Decision**: **Accepted**
 
 ---
 
 ## Success Criteria
 
-- [ ] `max_workers` auto-detects without config
-- [ ] `health_check: false` works regardless of environment files
-- [ ] Deprecated flat config keys show warnings
-- [ ] All defaults in single module
+- [ ] All defaults come from single source (`defaults.py`)
+- [ ] No "unknown section" warnings for documented sections
+- [ ] Deprecation warnings for old keys
+- [ ] Consistent bool/dict handling
+- [ ] CLI flags match user expectations
+- [ ] Config reference documentation auto-generated
 
 ---
 
-## Appendix: Full List of Hard-coded Defaults
+## Open Questions
 
-| Key | Default | Files | Should Be |
-|-----|---------|-------|-----------|
-| `max_workers` | 4 | 6 files | `os.cpu_count()` |
-| `pagination.per_page` | 10 | 3 files | Central default |
-| `minify_assets` | True | 1 file | `assets.minify` |
-| `fingerprint_assets` | True | 1 file | `assets.fingerprint` |
-| `optimize_assets` | True | 1 file | `assets.optimize` |
-| `generate_sitemap` | True | 1 file | Central default |
-| `generate_rss` | True | 1 file | Central default |
-| `cache_templates` | True | 1 file | Central default |
-| `transform_links` | True | 1 file | Central default |
+1. **Should we bump minor version for CLI flag changes?**
+   - Recommendation: Yes, v0.X+1.0
+
+2. **Should `--verbose` be completely redefined?**
+   - Option A: Keep THEME_DEV behavior (backward compatible)
+   - Option B: Change to just verbose output (breaking but clearer)
+   - Recommendation: Option B with deprecation period
+
+3. **Should we add JSON Schema validation?**
+   - Recommendation: Yes, but in a separate RFC
+
+---
+
+## References
+
+- `plan/active/config-inventory.md` - Full config audit
+- `bengal/config/loader.py` - Current implementation
+- `bengal/utils/profile.py` - Profile system

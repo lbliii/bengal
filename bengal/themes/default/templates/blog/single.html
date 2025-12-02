@@ -43,8 +43,8 @@ Context variables:
 
             {# Post Metadata #}
             <div class="blog-post-meta">
-                {# Author Info #}
-                {% if page.metadata.get('author') and site.theme_config.config.get('show_author', true) %}
+                {# Author Info - Feature: content.author #}
+                {% if page.metadata.get('author') and 'content.author' in site.theme_config.features %}
                 <div class="blog-post-author">
                     {% if page.metadata.get('author_avatar') %}
                     <img src="{{ page.metadata.get('author_avatar') }}" alt="{{ page.metadata.get('author') }}"
@@ -68,8 +68,8 @@ Context variables:
                     </time>
                     {% endif %}
 
-                    {# Reading Time #}
-                    {% if page.content and site.theme_config.config.get('show_reading_time', true) %}
+                    {# Reading Time - Feature: content.reading_time #}
+                    {% if page.content and 'content.reading_time' in site.theme_config.features %}
                     <span class="reading-time">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                             stroke-width="2">
@@ -116,9 +116,9 @@ Context variables:
             </p>
             {% endif %}
 
-            {# Author Bio #}
+            {# Author Bio - Feature: content.author #}
             {% if page.metadata.get('author') and page.metadata.get('author_bio') and
-            site.theme_config.config.get('show_author', true) %}
+            'content.author' in site.theme_config.features %}
             <div class="author-bio">
                 <div class="author-bio-header">
                     {% if page.metadata.get('author_avatar') %}

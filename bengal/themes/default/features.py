@@ -114,6 +114,30 @@ FEATURES: dict[str, FeatureInfo] = {
         default=True,
         category="content",
     ),
+    "content.reading_time": FeatureInfo(
+        key="content.reading_time",
+        description="Display reading time estimate on pages",
+        default=True,
+        category="content",
+    ),
+    "content.author": FeatureInfo(
+        key="content.author",
+        description="Display author information when present",
+        default=True,
+        category="content",
+    ),
+    "content.excerpts": FeatureInfo(
+        key="content.excerpts",
+        description="Show excerpts in article cards and lists",
+        default=True,
+        category="content",
+    ),
+    "content.children": FeatureInfo(
+        key="content.children",
+        description="Show child pages in section index pages",
+        default=True,
+        category="content",
+    ),
     # ============================================================
     # Search Features
     # ============================================================

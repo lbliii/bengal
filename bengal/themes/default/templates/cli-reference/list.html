@@ -57,10 +57,10 @@ Features:
         {{ content | safe }}
       </div>
 
-      {# Child page tiles - can be disabled via frontmatter: show_children: false or theme config #}
+      {# Child page tiles - can be disabled via frontmatter: show_children: false or feature flag #}
       {% set show_children_fm = page.metadata.get('show_children', none) if page else none %}
-      {% set show_children_theme = site.theme_config.config.get('show_children_default', true) %}
-      {% set show_children = show_children_fm if show_children_fm is not none else show_children_theme %}
+      {% set show_children_feature = 'content.children' in site.theme_config.features %}
+      {% set show_children = show_children_fm if show_children_fm is not none else show_children_feature %}
       {% if show_children and (posts or subsections) %}
       <div class="docs-children">
         {{ child_page_tiles(posts=posts, subsections=subsections) }}

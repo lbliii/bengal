@@ -99,11 +99,28 @@ def _create_theme_config(theme: str) -> dict:
             "name": theme,
             "default_appearance": "dark",
             "default_palette": "snow-lynx",
-            "show_reading_time": True,
-            "show_author": True,
-            "show_prev_next": True,
-            "show_children_default": True,
-            "show_excerpts_default": True,
+            "features": [
+                # Navigation
+                "navigation.breadcrumbs",
+                "navigation.toc",
+                "navigation.toc.sticky",
+                "navigation.prev_next",
+                "navigation.back_to_top",
+                # Content
+                "content.code.copy",
+                "content.lightbox",
+                "content.reading_time",
+                "content.author",
+                "content.excerpts",
+                "content.children",
+                # Search
+                "search.suggest",
+                "search.highlight",
+                # Footer
+                "footer.social",
+                # Accessibility
+                "accessibility.skip_link",
+            ],
             "max_tags_display": 10,
             "popular_tags_count": 20,
         }
