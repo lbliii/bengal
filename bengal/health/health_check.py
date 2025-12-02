@@ -161,8 +161,10 @@ class HealthCheck:
                 # Check if profile allows this validator (uses global profile state)
                 profile_allows = is_validator_enabled(validator.name)
 
-                # Check config for explicit override
-                health_config = self.site.config.get("health_check", {})
+                # Check config for explicit override (normalized to handle bool/dict)
+                from bengal.config.defaults import get_feature_config
+
+                health_config = get_feature_config(self.site.config, "health_check")
                 validators_config = health_config.get("validators", {})
                 validator_key = validator.name.lower().replace(" ", "_")
                 config_explicit = validator_key in validators_config

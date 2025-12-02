@@ -155,7 +155,11 @@ class RenderingPipeline:
         if build_context and getattr(build_context, "template_engine", None):
             self.template_engine = build_context.template_engine
         else:
-            self.template_engine = TemplateEngine(site)
+            # Check if template profiling is enabled via build_context
+            profile_templates = (
+                getattr(build_context, "profile_templates", False) if build_context else False
+            )
+            self.template_engine = TemplateEngine(site, profile_templates=profile_templates)
         if self.dependency_tracker:
             self.template_engine._dependency_tracker = self.dependency_tracker
         self.renderer = Renderer(self.template_engine, build_stats=build_stats)
@@ -194,6 +198,10 @@ class RenderingPipeline:
                     page.parsed_ast = cached["html"]
                     page.toc = cached["toc"]
                     page._toc_items_cache = cached.get("toc_items", [])
+
+                    # Phase 3: Restore AST from cache for page.ast/plain_text properties
+                    if cached.get("ast"):
+                        page._ast_cache = cached["ast"]
 
                     # Track cache hit for statistics
                     if self.build_stats:
@@ -292,6 +300,7 @@ class RenderingPipeline:
             else:
                 # Single-pass parsing with variable substitution - fast and simple!
                 context = {"page": page, "site": self.site, "config": self.site.config}
+
                 if need_toc:
                     parsed_content, toc = self.parser.parse_with_toc_and_context(
                         page.content, page.metadata, context
@@ -301,6 +310,20 @@ class RenderingPipeline:
                         page.content, page.metadata, context
                     )
                     toc = ""
+
+                # Phase 3: Extract AST separately for caching (doesn't affect rendered HTML)
+                # This enables page.plain_text and page.links to use AST walkers
+                if (
+                    hasattr(self.parser, "supports_ast")
+                    and self.parser.supports_ast
+                    and hasattr(self.parser, "parse_to_ast")
+                ):
+                    try:
+                        ast_tokens = self.parser.parse_to_ast(page.content, page.metadata)
+                        page._ast_cache = ast_tokens
+                    except Exception:
+                        # AST extraction is optional - don't break builds
+                        pass
         else:
             # FALLBACK: python-markdown (legacy)
             # Uses Jinja2 preprocessing - deprecated, use Mistune instead
@@ -375,12 +398,15 @@ class RenderingPipeline:
         # ============================================================================
         page.toc = toc
 
-        # OPTIMIZATION #2: Store parsed content in cache for next build
+        # OPTIMIZATION #2 + Phase 3: Store parsed content and AST in cache for next build
         if self.dependency_tracker and hasattr(self.dependency_tracker, "_cache"):
             cache = self.dependency_tracker._cache
             if cache and not page.metadata.get("_generated"):
                 # Extract TOC items for caching
                 toc_items = extract_toc_structure(toc)
+
+                # Get AST from page cache (may be None if extraction failed)
+                cached_ast = getattr(page, "_ast_cache", None)
 
                 cache.store_parsed_content(
                     page.source_path,
@@ -390,6 +416,7 @@ class RenderingPipeline:
                     page.metadata,
                     template,
                     parser_version,
+                    ast=cached_ast,  # Phase 3: Cache AST for parse-once patterns
                 )
 
         # Stage 3: Extract links for validation
@@ -530,24 +557,8 @@ class RenderingPipeline:
                 page.source_path, page.output_path, self.site.output_dir
             )
 
-        # Only print in verbose mode
-        if not self.quiet:
-            try:
-                rel_path = page.output_path.relative_to(self.site.output_dir)
-                msg = f"  ✓ {rel_path}"
-            except ValueError:
-                msg = f"  ✓ {page.output_path} (outside output dir)"
-
-            reporter = getattr(self, "build_context", None) and getattr(
-                self.build_context, "reporter", None
-            )
-            if reporter:
-                try:
-                    reporter.log(msg)
-                except Exception:
-                    print(msg)
-            else:
-                print(msg)
+        # Per-page output removed - progress bar provides sufficient feedback
+        # Individual page logging available via --full-output if needed for debugging
 
     def _determine_output_path(self, page: Page) -> Path:
         """

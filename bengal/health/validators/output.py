@@ -4,7 +4,6 @@ Output validator - checks generated pages and assets.
 Migrated from Site._validate_build_health() with improvements.
 """
 
-
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, override
@@ -69,10 +68,7 @@ class OutputValidator(BaseValidator):
                     details=small_pages[:5],  # Show first 5
                 )
             )
-        else:
-            results.append(
-                CheckResult.success(f"All pages are adequately sized (>= {min_size} bytes)")
-            )
+        # No success message - if pages are adequate size, silence is golden
 
         return results
 
@@ -99,8 +95,7 @@ class OutputValidator(BaseValidator):
                     recommendation="Theme may not be applied. Check theme configuration and asset discovery.",
                 )
             )
-        else:
-            results.append(CheckResult.success(f"{css_count} CSS file(s) in output"))
+        # No success message for CSS - if present, silence is golden
 
         # Check JS files (only warn for default theme)
         js_count = len(list(assets_dir.glob("js/*.js")))
@@ -111,8 +106,7 @@ class OutputValidator(BaseValidator):
                     recommendation="Default theme expects JavaScript files. Check asset discovery.",
                 )
             )
-        elif js_count > 0:
-            results.append(CheckResult.success(f"{js_count} JavaScript file(s) in output"))
+        # No success message for JS - if present, silence is golden
 
         return results
 
@@ -127,9 +121,6 @@ class OutputValidator(BaseValidator):
                     recommendation="This should not happen after a build. Check build process.",
                 )
             )
-        else:
-            # Count files in output
-            file_count = sum(1 for _ in site.output_dir.rglob("*") if _.is_file())
-            results.append(CheckResult.success(f"Output directory exists with {file_count} files"))
+        # No success message for output dir - if exists, silence is golden
 
         return results

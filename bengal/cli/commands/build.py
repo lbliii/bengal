@@ -80,6 +80,11 @@ from bengal.utils.traceback_config import TracebackStyle
     help="Enable performance profiling and save to file (default: .bengal/profiles/profile.stats)",
 )
 @click.option(
+    "--profile-templates",
+    is_flag=True,
+    help="Profile template rendering times (shows which templates and functions are slow)",
+)
+@click.option(
     "--clean-output/--no-clean-output",
     default=False,
     help="Delete the output directory before building (useful for CI cache-busting).",
@@ -100,7 +105,7 @@ from bengal.utils.traceback_config import TracebackStyle
     "--verbose",
     "-v",
     is_flag=True,
-    help="Show detailed build information (maps to theme-dev profile)",
+    help="Show detailed build output (phase timing, build stats). Does NOT change profile.",
 )
 @click.option("--strict", is_flag=True, help="Fail on template errors (recommended for CI/CD)")
 @click.option(
@@ -149,6 +154,7 @@ def build(
     environment: str | None,
     profile: str,
     perf_profile: str,
+    profile_templates: bool,
     clean_output: bool,
     use_theme_dev: bool,
     use_dev: bool,
@@ -202,8 +208,9 @@ def build(
         cli.blank()
 
     # Determine build profile with proper precedence
+    # NOTE: --verbose is NOT passed here - it only controls output verbosity, not profile
     build_profile = BuildProfile.from_cli_args(
-        profile=profile, dev=use_dev, theme_dev=use_theme_dev, verbose=verbose, debug=debug
+        profile=profile, dev=use_dev, theme_dev=use_theme_dev, debug=debug
     )
 
     # Set global profile for helper functions
@@ -378,6 +385,12 @@ def build(
                 cli.success(f"Full profile saved to: {perf_profile_path}")
                 cli.warning("Analyze with: python -m pstats " + str(perf_profile_path))
         else:
+            # Enable template profiling if requested
+            if profile_templates:
+                from bengal.rendering.template_profiler import enable_profiling
+
+                enable_profiling()
+
             # Pass profile to build
             # When --full-output is used, enable console logs for debugging
             stats = site.build(
@@ -389,7 +402,23 @@ def build(
                 memory_optimized=memory_optimized,
                 strict=strict,
                 full_output=full_output,
+                profile_templates=profile_templates,
             )
+
+            # Display template profiling report if enabled
+            if profile_templates and not quiet:
+                from bengal.rendering.template_profiler import (
+                    format_profile_report,
+                    get_profiler,
+                )
+
+                profiler = get_profiler()
+                if profiler:
+                    report = profiler.get_report()
+                    cli.blank()
+                    cli.header("📊 Template Profiling Report")
+                    for line in format_profile_report(report, top_n=20).splitlines():
+                        cli.info(line)
 
         # Display template errors first if we're in theme-dev or dev mode
         if stats.template_errors and build_profile != BuildProfile.WRITER:

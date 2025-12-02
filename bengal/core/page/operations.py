@@ -72,6 +72,7 @@ class PageOperationsMixin:
         Returns:
             List of link URLs found in the page
         """
+        # Regex-based extraction from raw markdown
         # Remove fenced code blocks before extracting links
         # Process larger fences first (4+ backticks) to handle nested code blocks
         content_without_code = self.content

@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any, ClassVar
 
 from .computed import PageComputedMixin
+from .content import PageContentMixin
 from .metadata import PageMetadataMixin
 from .navigation import PageNavigationMixin
 from .operations import PageOperationsMixin
@@ -27,6 +28,7 @@ class Page(
     PageComputedMixin,
     PageRelationshipsMixin,
     PageOperationsMixin,
+    PageContentMixin,
 ):
     """
     Represents a single content page.
@@ -120,6 +122,12 @@ class Page(
 
     # Private cache for lazy toc_items property
     _toc_items_cache: list[dict[str, Any]] | None = field(default=None, repr=False, init=False)
+
+    # Private caches for AST-based content (Phase 3 of RFC)
+    # See: plan/active/rfc-content-ast-architecture.md
+    _ast_cache: list[dict[str, Any]] | None = field(default=None, repr=False, init=False)
+    _html_cache: str | None = field(default=None, repr=False, init=False)
+    _plain_text_cache: str | None = field(default=None, repr=False, init=False)
 
     def __post_init__(self) -> None:
         """Initialize computed fields and PageCore."""

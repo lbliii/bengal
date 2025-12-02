@@ -289,3 +289,127 @@ class TestBuildCache:
         assert "BuildCache" in repr_str
         assert "files=" in repr_str
         assert "deps=" in repr_str
+
+
+class TestBuildCacheConfigHash:
+    """Test suite for BuildCache config hash validation."""
+
+    def test_validate_config_first_build(self):
+        """First build initializes config_hash without invalidating."""
+        cache = BuildCache()
+        assert cache.config_hash is None
+
+        # First validation should succeed and store hash
+        result = cache.validate_config("abc123def456")
+
+        assert result is True
+        assert cache.config_hash == "abc123def456"
+
+    def test_validate_config_same_hash(self):
+        """Same config hash validates successfully."""
+        cache = BuildCache()
+        cache.config_hash = "abc123def456"
+
+        # Same hash should validate
+        result = cache.validate_config("abc123def456")
+
+        assert result is True
+        # Cache should NOT be cleared
+        assert cache.config_hash == "abc123def456"
+
+    def test_validate_config_different_hash_clears_cache(self, tmp_path):
+        """Different config hash clears the cache."""
+        cache = BuildCache()
+        cache.config_hash = "old_hash_12345"
+
+        # Add some data to the cache
+        test_file = tmp_path / "test.txt"
+        test_file.write_text("content")
+        cache.update_file(test_file)
+        cache.add_dependency(test_file, tmp_path / "template.html")
+
+        assert len(cache.file_hashes) > 0
+        assert len(cache.dependencies) > 0
+
+        # Different hash should invalidate
+        result = cache.validate_config("new_hash_67890")
+
+        assert result is False
+        # Cache should be cleared
+        assert len(cache.file_hashes) == 0
+        assert len(cache.dependencies) == 0
+        # New hash should be stored
+        assert cache.config_hash == "new_hash_67890"
+
+    def test_validate_config_clears_all_fields(self, tmp_path):
+        """Config hash change clears all cache fields."""
+        cache = BuildCache()
+        cache.config_hash = "old_hash"
+
+        # Populate various cache fields
+        test_file = tmp_path / "test.md"
+        test_file.write_text("content")
+        cache.update_file(test_file)
+        cache.add_dependency(test_file, tmp_path / "template.html")
+        cache.add_taxonomy_dependency("tag:python", test_file)
+        cache.update_page_tags(test_file, {"python", "web"})
+
+        # Validate with different hash
+        cache.validate_config("new_hash")
+
+        # All fields should be cleared
+        assert len(cache.file_hashes) == 0
+        assert len(cache.dependencies) == 0
+        assert len(cache.taxonomy_deps) == 0
+        assert len(cache.page_tags) == 0
+        assert len(cache.tag_to_pages) == 0
+        assert len(cache.known_tags) == 0
+
+    def test_config_hash_persists_through_save_load(self, tmp_path):
+        """Config hash is saved and loaded correctly."""
+        cache = BuildCache()
+        cache.config_hash = "test_hash_abc"
+
+        # Save cache
+        cache_file = tmp_path / "cache.json"
+        cache.save(cache_file)
+
+        # Load cache
+        loaded_cache = BuildCache.load(cache_file)
+
+        assert loaded_cache.config_hash == "test_hash_abc"
+
+    def test_config_hash_none_in_old_cache(self, tmp_path):
+        """Old cache without config_hash loads with None."""
+        import json
+
+        # Create an old-format cache file without config_hash
+        cache_file = tmp_path / "cache.json"
+        old_cache_data = {
+            "version": 2,  # Old version before config_hash
+            "file_hashes": {},
+            "dependencies": {},
+            "output_sources": {},
+            "taxonomy_deps": {},
+            "page_tags": {},
+            "tag_to_pages": {},
+            "known_tags": [],
+            "parsed_content": {},
+            "validation_results": {},
+            "last_build": None,
+        }
+        cache_file.write_text(json.dumps(old_cache_data))
+
+        # Load should work and config_hash should be None
+        loaded_cache = BuildCache.load(cache_file)
+
+        assert loaded_cache.config_hash is None
+
+    def test_clear_also_clears_config_hash(self):
+        """Clear method also clears config_hash."""
+        cache = BuildCache()
+        cache.config_hash = "some_hash"
+
+        cache.clear()
+
+        assert cache.config_hash is None

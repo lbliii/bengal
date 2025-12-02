@@ -187,7 +187,7 @@
   --font-sans: var(--font-family-sans);
   --font-serif: var(--font-family-serif);
   --font-mono: var(--font-family-mono);
-  
+
   /* Display/Heading Fonts - For distinctive heading typography */
   --font-display: var(--font-family-display);
   --font-heading: var(--font-family-heading);
@@ -399,6 +399,12 @@
   inset -0.3px -0.3px 0.5px rgba(255, 255, 255, 0.3),
   0.3px 0.3px 0.5px rgba(0, 0, 0, 0.03);
 
+  /* Neumorphic active - selected/current item (keyboard key appearance) */
+  --neumorphic-active:
+    inset 0 1px 0 rgba(255, 255, 255, 0.8),
+    0 1px 2px rgba(0, 0, 0, 0.05),
+    0 2px 0 var(--color-border-strong);
+
   /* ============================================
      SEMANTIC BORDERS
      ============================================ */
@@ -510,10 +516,10 @@
 /* ============================================
    RESPONSIVE ICON SIZES
    ============================================
-   
-   Note: Media queries must be at the top level in CSS (cannot be nested 
-   inside :root selector). The duplicate :root selectors inside media 
-   queries are intentional and follow standard CSS practices for 
+
+   Note: Media queries must be at the top level in CSS (cannot be nested
+   inside :root selector). The duplicate :root selectors inside media
+   queries are intentional and follow standard CSS practices for
    responsive custom properties. This keeps responsive overrides grouped
    separately from base definitions for better maintainability.
    ============================================ */
@@ -656,6 +662,12 @@
     inset 0.5px 0.5px 1px rgba(0, 0, 0, 0.4),
     inset -0.3px -0.3px 0.5px rgba(255, 255, 255, 0.08),
     0.3px 0.3px 0.5px rgba(0, 0, 0, 0.15);
+
+  /* Neumorphic active - selected/current item (dark mode) */
+  --neumorphic-active:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 1px 3px rgba(0, 0, 0, 0.4),
+    0 2px 0 #000;
 
   /* Surface Colors (Dark mode) */
   --color-surface: #252525;

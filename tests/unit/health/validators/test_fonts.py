@@ -48,7 +48,7 @@ def test_font_validator_missing_css(site_with_fonts):
 
 
 def test_font_validator_valid_fonts(site_with_fonts, tmp_path):
-    """Test validator passes for valid fonts."""
+    """Test validator passes for valid fonts (silence is golden pattern)."""
     # Create fonts directory and files
     fonts_dir = tmp_path / "assets" / "fonts"
     fonts_dir.mkdir(parents=True)
@@ -77,10 +77,9 @@ def test_font_validator_valid_fonts(site_with_fonts, tmp_path):
     validator = FontValidator()
     results = validator.validate(site_with_fonts)
 
-    # Should have success results
-    assert any(r.status == CheckStatus.SUCCESS for r in results)
-    assert any("fonts.css generated" in r.message for r in results)
-    assert any("font file(s) downloaded" in r.message for r in results)
+    # Validators follow "silence is golden" - valid fonts produce no warnings/errors
+    assert not any(r.status == CheckStatus.ERROR for r in results)
+    assert not any(r.status == CheckStatus.WARNING for r in results)
 
 
 def test_font_validator_no_font_files(site_with_fonts, tmp_path):

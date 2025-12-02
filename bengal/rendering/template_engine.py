@@ -1,12 +1,20 @@
 """
 Template engine using Jinja2.
+
+Supports optional template profiling via --profile-templates flag.
+When enabled, collects timing data for template renders and template
+function calls to identify performance bottlenecks.
+
+See Also:
+    - bengal/rendering/template_profiler.py
+    - plan/active/rfc-template-performance-optimization.md
 """
 
 from __future__ import annotations
 
 from collections.abc import Mapping
 from pathlib import Path, PurePosixPath
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import toml
 from jinja2 import Environment, FileSystemLoader, StrictUndefined, select_autoescape
@@ -14,9 +22,17 @@ from jinja2.bccache import FileSystemBytecodeCache
 
 from bengal.assets.manifest import AssetManifest, AssetManifestEntry
 from bengal.rendering.template_functions import register_all
+from bengal.rendering.template_profiler import (
+    ProfiledTemplate,
+    TemplateProfiler,
+    get_profiler,
+)
 from bengal.utils.logger import get_logger, truncate_error
 from bengal.utils.metadata import build_template_metadata
 from bengal.utils.theme_registry import get_theme_package
+
+if TYPE_CHECKING:
+    pass
 
 logger = get_logger(__name__)
 
@@ -35,12 +51,13 @@ class TemplateEngine:
       self-extends surface as `TemplateError` or `RecursionError` from Jinja2 during render.
     """
 
-    def __init__(self, site: Any) -> None:
+    def __init__(self, site: Any, profile_templates: bool = False) -> None:
         """
         Initialize the template engine.
 
         Args:
             site: Site instance
+            profile_templates: Enable template profiling for performance analysis
         """
         logger.debug(
             "initializing_template_engine", theme=site.theme, root_path=str(site.root_path)
@@ -48,6 +65,14 @@ class TemplateEngine:
 
         self.site = site
         self.template_dirs = []  # Initialize before _create_environment populates it
+
+        # Template profiling support (for --profile-templates flag)
+        self._profile_templates = profile_templates
+        self._profiler: TemplateProfiler | None = None
+        if profile_templates:
+            self._profiler = get_profiler() or TemplateProfiler()
+            logger.debug("template_profiling_enabled")
+
         self.env = self._create_environment()  # This will populate self.template_dirs
         self._dependency_tracker = (
             None  # Set by RenderingPipeline for incremental builds (private attr)
@@ -329,7 +354,13 @@ class TemplateEngine:
 
         try:
             template = self.env.get_template(template_name)
-            result = template.render(**context)
+
+            # Wrap with profiling if enabled
+            if self._profiler:
+                profiled_template = ProfiledTemplate(template, self._profiler)
+                result = profiled_template.render(**context)
+            else:
+                result = template.render(**context)
 
             logger.debug("template_rendered", template=template_name, output_size=len(result))
 
@@ -345,6 +376,24 @@ class TemplateEngine:
                 context_keys=list(context.keys()),
             )
             raise
+
+    def get_template_profile(self) -> dict[str, Any] | None:
+        """
+        Get template profiling report.
+
+        Returns:
+            Dictionary with template and function timing statistics,
+            or None if profiling is not enabled.
+
+        Example:
+            report = engine.get_template_profile()
+            if report:
+                for name, stats in report['templates'].items():
+                    print(f"{name}: {stats['count']} renders, {stats['total_ms']:.2f}ms")
+        """
+        if self._profiler:
+            return self._profiler.get_report()
+        return None
 
     def render_string(self, template_string: str, context: dict[str, Any]) -> str:
         """

@@ -9,7 +9,6 @@ Validates:
 - Sitemap follows protocol
 """
 
-
 from __future__ import annotations
 
 import xml.etree.ElementTree as ET
@@ -55,8 +54,6 @@ class SitemapValidator(BaseValidator):
             )
             return results
 
-        results.append(CheckResult.success("Sitemap file exists"))
-
         # Check 2: XML is well-formed
         try:
             tree = ET.parse(sitemap_path)
@@ -69,8 +66,6 @@ class SitemapValidator(BaseValidator):
                 )
             )
             return results
-
-        results.append(CheckResult.success("Sitemap XML is well-formed"))
 
         # Check 3: Valid sitemap structure
         results.extend(self._check_sitemap_structure(root))
@@ -113,7 +108,7 @@ class SitemapValidator(BaseValidator):
                 )
             )
 
-        results.append(CheckResult.success("Sitemap structure is valid"))
+        # No success message - if structure is valid, silence is golden
 
         return results
 
@@ -135,8 +130,6 @@ class SitemapValidator(BaseValidator):
                 )
             )
             return results
-
-        results.append(CheckResult.info(f"Sitemap contains {len(urls)} URL(s)"))
 
         # Check URL format (sample first 10)
         invalid_urls = []
@@ -175,8 +168,7 @@ class SitemapValidator(BaseValidator):
                 )
             )
 
-        if not invalid_urls and not relative_urls and urls:
-            results.append(CheckResult.success("All sitemap URLs are properly formatted"))
+        # No success message - if URLs are valid, silence is golden
 
         return results
 
@@ -215,8 +207,7 @@ class SitemapValidator(BaseValidator):
                     details=list(set(duplicates))[:5],
                 )
             )
-        else:
-            results.append(CheckResult.success("No duplicate URLs in sitemap"))
+        # No success message - if no duplicates, silence is golden
 
         return results
 
@@ -247,17 +238,7 @@ class SitemapValidator(BaseValidator):
                         recommendation="Ensure all pages are included in sitemap. Check if some pages have output_path issues.",
                     )
                 )
-            elif sitemap_count > total_pages:
-                extra = sitemap_count - total_pages
-                results.append(
-                    CheckResult.info(
-                        f"Sitemap has {sitemap_count} URLs but site has {total_pages} pages ({extra} extra)",
-                        recommendation="Extra URLs may be generated pages (tags, archives). This is normal.",
-                    )
-                )
-            else:
-                results.append(
-                    CheckResult.success(f"Sitemap includes all {total_pages} publishable pages")
-                )
+            # Extra URLs (sitemap_count > total_pages) is normal - generated pages like tags/archives
+            # No success message - if coverage is good, silence is golden
 
         return results

@@ -249,12 +249,10 @@ class PostprocessOrchestrator:
         try:
             from bengal.analysis.graph_visualizer import GraphVisualizer
             from bengal.analysis.knowledge_graph import KnowledgeGraph
+            from bengal.config.defaults import is_feature_enabled
 
-            # Check if graph is enabled
-            graph_config = self.site.config.get("graph", True)
-            if isinstance(graph_config, dict) and not graph_config.get("enabled", True):
-                return None
-            if graph_config is False:
+            # Check if graph is enabled (handles both bool and dict)
+            if not is_feature_enabled(self.site.config, "graph"):
                 return None
 
             # Build knowledge graph

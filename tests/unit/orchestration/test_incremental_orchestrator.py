@@ -98,7 +98,8 @@ class TestIncrementalOrchestrator:
         """Test config change detection with existing file."""
         # Setup
         orchestrator.cache = Mock(spec=BuildCache)
-        orchestrator.cache.is_changed.return_value = True
+        # validate_config returns False when config has changed (cache invalidated)
+        orchestrator.cache.validate_config.return_value = False
         orchestrator.cache.file_hashes = {}  # Add file_hashes attribute
 
         # Create a temporary config file
@@ -106,12 +107,14 @@ class TestIncrementalOrchestrator:
         config_file.write_text("title = 'Test'")
         mock_site.root_path = tmp_path
 
+        # Mock config_hash on the site
+        mock_site.config_hash = "test_hash_12345"
+
         # Test
         result = orchestrator.check_config_changed()
 
         assert result is True
-        orchestrator.cache.is_changed.assert_called_once()
-        orchestrator.cache.update_file.assert_called_once()
+        orchestrator.cache.validate_config.assert_called_once_with("test_hash_12345")
 
     def test_find_work_early_without_cache(self, orchestrator):
         """Test find_work_early raises error without cache."""

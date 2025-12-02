@@ -56,6 +56,7 @@ class BuildContext:
     parallel: bool = True
     memory_optimized: bool = False
     full_output: bool = False
+    profile_templates: bool = False  # Enable template profiling for performance analysis
 
     # Work items (determined during incremental filtering)
     pages: list[Page] | None = None  # All discovered pages

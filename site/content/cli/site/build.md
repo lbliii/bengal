@@ -115,6 +115,18 @@ Enable performance profiling and save to file (default: .bengal/profiles/profile
 
 
 
+### `profile_templates`
+
+
+Profile template rendering times (shows which templates and functions are slow)
+
+**Type:** `boolean`
+
+**Default:** `False`
+
+
+
+
 ### `clean_output`
 
 
@@ -154,7 +166,7 @@ Use developer profile with full observability (shorthand for --profile dev)
 ### `verbose`
 
 
-Show detailed build information (maps to theme-dev profile)
+Show detailed build output (phase timing, build stats). Does NOT change profile.
 
 **Type:** `boolean`
 

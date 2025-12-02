@@ -4,7 +4,6 @@ Base validator interface for health checks.
 All validators should inherit from BaseValidator and implement the validate() method.
 """
 
-
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -37,8 +36,7 @@ class BaseValidator(ABC):
                         "Something is wrong",
                         recommendation="Fix it like this"
                     ))
-                else:
-                    results.append(CheckResult.success("Everything OK"))
+                # No success message - if no errors, silence is golden
 
                 return results
     """
@@ -76,8 +74,7 @@ class BaseValidator(ABC):
                     "Warning message",
                     recommendation="How to improve"
                 ))
-            else:
-                results.append(CheckResult.success("Check passed"))
+            # No success message - if no problems, silence is golden
 
             return results
         """
@@ -93,12 +90,18 @@ class BaseValidator(ABC):
         Returns:
             True if validator should run
         """
+        from bengal.config.defaults import get_feature_config
+
         # Check if health checks are globally enabled
         if not config.get("validate_build", True):
             return False
 
+        # Get normalized health_check config (handles bool or dict)
+        health_config = get_feature_config(config, "health_check")
+        if not health_config.get("enabled", True):
+            return False
+
         # Check if this specific validator is enabled
-        health_config = config.get("health_check", {})
         validators_config = health_config.get("validators", {})
 
         # Look for validator-specific config using lowercase name

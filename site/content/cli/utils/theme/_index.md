@@ -58,6 +58,18 @@ swizzled (copied) to your project for customization.
 
 
 
+### `features`
+
+📋 List available theme features.
+
+Shows all features that can be enabled in [theme.features] config.
+Feature flags allow declarative control over theme behavior.
+
+**Usage:** `theme features [OPTIONS]`
+
+
+
+
 ### `info`
 
 ℹ️  Show theme info for a slug.

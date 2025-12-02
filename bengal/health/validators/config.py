@@ -4,11 +4,11 @@ Configuration validator wrapper.
 Integrates the existing ConfigValidator into the health check system.
 """
 
-
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, override
 
+from bengal.config.defaults import get_max_workers
 from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult
 
@@ -61,8 +61,7 @@ class ConfigValidatorWrapper(BaseValidator):
                     recommendation="Add these fields to your bengal.toml for better control.",
                 )
             )
-        else:
-            results.append(CheckResult.success("All essential configuration fields present"))
+        # No success message - if fields are present, silence is golden
 
         return results
 
@@ -81,7 +80,7 @@ class ConfigValidatorWrapper(BaseValidator):
             )
 
         # Check if max_workers is very high
-        max_workers = config.get("max_workers", 4)
+        max_workers = get_max_workers(config.get("max_workers"))
         if max_workers > 20:
             results.append(
                 CheckResult.warning(
@@ -99,8 +98,6 @@ class ConfigValidatorWrapper(BaseValidator):
                 )
             )
 
-        # All checks passed
-        if not any(r.is_problem() for r in results):
-            results.append(CheckResult.success("Configuration validated successfully"))
+        # No success message - if no problems found, silence is golden
 
         return results

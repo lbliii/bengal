@@ -13,6 +13,7 @@ from threading import Lock
 from typing import TYPE_CHECKING
 
 from bengal.assets.manifest import AssetManifest
+from bengal.config.defaults import get_max_workers
 from bengal.utils.logger import get_logger
 
 if TYPE_CHECKING:
@@ -250,7 +251,9 @@ class AssetOrchestrator:
         """
         assets_output = self.site.output_dir / "assets"
         total_assets = len(css_entries) + len(other_assets)
-        max_workers = self.site.config.get("max_workers", min(8, (total_assets + 3) // 4))
+        # Use configured max_workers, or auto-detect with asset-aware bound
+        config_workers = self.site.config.get("max_workers")
+        max_workers = get_max_workers(config_workers) if config_workers else min(8, max(1, (total_assets + 3) // 4))
 
         errors = []
         completed_count = 0

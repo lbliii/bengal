@@ -10,6 +10,7 @@ from __future__ import annotations
 import concurrent.futures
 from typing import TYPE_CHECKING
 
+from bengal.config.defaults import get_max_workers
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -170,8 +171,8 @@ class RelatedPostsOrchestrator:
         Returns:
             Number of pages with related posts found
         """
-        # Get max_workers from site config (default: 4)
-        max_workers = self.site.config.get("max_workers", 4)
+        # Get max_workers from site config (auto-detect if not set)
+        max_workers = get_max_workers(self.site.config.get("max_workers"))
 
         pages_with_related = 0
 

@@ -58,7 +58,7 @@ def test_rss_validator_missing_file(site_with_dated_pages):
 
 
 def test_rss_validator_valid_feed(site_with_dated_pages, tmp_path):
-    """Test validator passes for valid RSS feed."""
+    """Test validator passes for valid RSS feed (silence is golden pattern)."""
     # Create valid RSS
     rss_path = tmp_path / "rss.xml"
     rss_content = """<?xml version="1.0" encoding="UTF-8"?>
@@ -81,10 +81,9 @@ def test_rss_validator_valid_feed(site_with_dated_pages, tmp_path):
     validator = RSSValidator()
     results = validator.validate(site_with_dated_pages)
 
-    # Should have success results
-    assert any(r.status == CheckStatus.SUCCESS for r in results)
-    assert any("RSS file exists" in r.message for r in results)
-    assert any("well-formed" in r.message for r in results)
+    # Validators follow "silence is golden" - valid RSS produces no warnings/errors
+    assert not any(r.status == CheckStatus.ERROR for r in results)
+    assert not any(r.status == CheckStatus.WARNING for r in results)
 
 
 def test_rss_validator_malformed_xml(site_with_dated_pages, tmp_path):

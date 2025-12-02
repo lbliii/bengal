@@ -3,13 +3,13 @@
 title: "bengal CLI"
 type: "cli-reference"
 source_file: "lib/python3.12/site-packages/click/decorators.py"
-line_number: 27
+line_number: 28
 description: "Bengal Static Site Generator CLI. Build fast, modern static sites with Python. Quick Start: bengal new site my-site    Create a new site bengal site build          Build your site bengal site serve   ..."
 ---
 
 # bengal
 **Type:** Command-Group
-**Source:** [View source](https://github.com/lbliii/bengal/blob/main/lib/python3.12/site-packages/click/decorators.py#L27)
+**Source:** [View source](https://github.com/lbliii/bengal/blob/main/lib/python3.12/site-packages/click/decorators.py#L28)
 
 :::{badge} Command Group
 :class: badge-secondary

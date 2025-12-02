@@ -9,7 +9,6 @@ Validates:
 - Reasonable asset sizes
 """
 
-
 from __future__ import annotations
 
 import itertools
@@ -61,8 +60,6 @@ class AssetValidator(BaseValidator):
             )
             return results
 
-        results.append(CheckResult.success("Assets directory exists"))
-
         # Check 2: Asset types present
         results.extend(self._check_asset_types(assets_dir))
 
@@ -81,19 +78,8 @@ class AssetValidator(BaseValidator):
         """Check expected asset types are present."""
         results = []
 
-        # Count assets by type
+        # CSS check - only warn if missing (JS and images are optional)
         css_files = list(assets_dir.rglob("*.css"))
-        js_files = list(assets_dir.rglob("*.js"))
-        image_files = (
-            list(assets_dir.rglob("*.jpg"))
-            + list(assets_dir.rglob("*.jpeg"))
-            + list(assets_dir.rglob("*.png"))
-            + list(assets_dir.rglob("*.gif"))
-            + list(assets_dir.rglob("*.svg"))
-            + list(assets_dir.rglob("*.webp"))
-        )
-
-        # CSS check
         if not css_files:
             results.append(
                 CheckResult.warning(
@@ -101,16 +87,7 @@ class AssetValidator(BaseValidator):
                     recommendation="Theme may not be applied. Check theme asset discovery.",
                 )
             )
-        else:
-            results.append(CheckResult.success(f"{len(css_files)} CSS file(s) found"))
-
-        # JS check (optional, not all sites need JS)
-        if js_files:
-            results.append(CheckResult.info(f"{len(js_files)} JavaScript file(s) found"))
-
-        # Images check (optional)
-        if image_files:
-            results.append(CheckResult.info(f"{len(image_files)} image file(s) found"))
+        # No success/info messages - if present, silence is golden
 
         return results
 
@@ -178,12 +155,7 @@ class AssetValidator(BaseValidator):
                     recommendation="Consider asset optimization to improve site performance.",
                 )
             )
-        else:
-            results.append(
-                CheckResult.success(
-                    f"Asset sizes are reasonable (total: {total_size_kb / 1024:.1f} MB)"
-                )
-            )
+        # No success message - if sizes are reasonable, silence is golden
 
         return results
 
@@ -222,14 +194,7 @@ class AssetValidator(BaseValidator):
                 file_list = ", ".join(f.name for f in files[:3])
                 duplicates.append(f"{base_name} (JS): {file_list}")
 
-        if duplicates:
-            results.append(
-                CheckResult.info(
-                    f"{len(duplicates)} asset(s) have multiple versions",
-                    recommendation="Multiple versions may indicate cache busting. This is OK if using asset hashing.",
-                    details=duplicates[:3],
-                )
-            )
+        # No info message for duplicates - multiple versions are normal with cache busting
 
         return results
 
@@ -292,8 +257,6 @@ class AssetValidator(BaseValidator):
                 )
             )
 
-        # If nothing to report, give success message
-        if not large_unminified_css and not large_unminified_js:
-            results.append(CheckResult.success("Asset optimization appears reasonable"))
+        # No success message - if optimization is good, silence is golden
 
         return results

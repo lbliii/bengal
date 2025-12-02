@@ -13,7 +13,6 @@ from typing import TYPE_CHECKING
 
 from bengal.postprocess.output_formats.utils import (
     get_page_relative_url,
-    strip_html,
 )
 from bengal.utils.atomic_write import AtomicFile
 from bengal.utils.logger import get_logger
@@ -112,8 +111,8 @@ class SiteLlmTxtGenerator:
 
             lines.append("")  # Blank line before content
 
-            # Page content (plain text)
-            content = strip_html(page.parsed_ast or page.content)
+            # Page content (plain text via AST walker)
+            content = page.plain_text
             lines.append(content)
 
             lines.append("\n" + separator + "\n")

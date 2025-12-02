@@ -15,7 +15,6 @@ from typing import TYPE_CHECKING, Any
 from bengal.postprocess.output_formats.utils import (
     generate_excerpt,
     get_page_relative_url,
-    strip_html,
 )
 from bengal.utils.atomic_write import AtomicFile
 from bengal.utils.logger import get_logger
@@ -175,7 +174,8 @@ class SiteIndexGenerator:
         Returns:
             Dictionary with page summary for search indexing
         """
-        content_text = strip_html(page.parsed_ast or page.content)
+        # Use page.plain_text for AST-based extraction (faster than regex stripping)
+        content_text = page.plain_text
 
         # Get relative URI (without baseurl) for objectID and uri
         page_uri = get_page_relative_url(page, self.site)
@@ -183,10 +183,7 @@ class SiteIndexGenerator:
         # Construct full URL by combining baseurl with relative URI
         # This avoids double/triple baseurl that occurred when page.url already had baseurl
         baseurl = self.site.config.get("baseurl", "").rstrip("/")
-        if baseurl:
-            page_url = f"{baseurl}{page_uri}"
-        else:
-            page_url = page_uri
+        page_url = f"{baseurl}{page_uri}" if baseurl else page_uri
 
         summary: dict[str, Any] = {
             "objectID": page_uri,  # Unique identifier (relative path)

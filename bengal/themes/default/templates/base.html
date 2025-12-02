@@ -1,14 +1,33 @@
 <!DOCTYPE html>
-<html lang="{{ current_lang() }}">
+{#
+================================================================================
+PERFORMANCE OPTIMIZATION: Cache expensive lookups once per render
+================================================================================
+These cached variables eliminate repeated defensive checks (34+ instances of
+"page is defined and page") and redundant function calls (get_menu_lang, etc.)
+
+See: plan/active/rfc-template-performance-optimization.md
+================================================================================
+#}
+{% set _page = page if page is defined else none %}
+{% set _has_page = _page is not none %}
+{% set _page_title = _page.title if (_has_page and _page.title is defined) else '' %}
+{% set _page_url = _page.relative_url if (_has_page and _page.relative_url is defined) else '/' %}
+{% set _current_lang = current_lang() %}
+{% set _main_menu = get_menu_lang('main', _current_lang) %}
+{% set _auto_nav = get_auto_nav() if _main_menu | length == 0 else [] %}
+{% set _footer_menu = get_menu_lang('footer', _current_lang) %}
+{% set _site_title = site.config.title %}
+
+<html lang="{{ _current_lang }}">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
 
-    {# Title #}
-    <title>{% block title %}{{ (page.title if page is defined and page and page.title is defined else site.config.title)
-        }}{% if page is defined and page and page.title is defined %} - {{ site.config.title }}{% endif %}{% endblock %}
+    {# Title - uses cached variables #}
+    <title>{% block title %}{{ _page_title if _page_title else _site_title }}{% if _page_title %} - {{ _site_title }}{% endif %}{% endblock %}
     </title>
 
     {# Meta description - automatically pre-computed by renderer (page.meta_description cached_property) #}
@@ -18,40 +37,38 @@
     <meta name="description" content="{{ meta_desc }}">
 
     {# Meta Keywords - use page.keywords or fallback to tags #}
-    {% if page is defined and page and page.keywords is defined and page.keywords %}
-    <meta name="keywords" content="{{ page.keywords | join(', ') }}">
-    {% elif page is defined and page and page.tags is defined and page.tags %}
-    <meta name="keywords" content="{{ page.tags | meta_keywords(10) }}">
+    {% if _has_page and _page.keywords is defined and _page.keywords %}
+    <meta name="keywords" content="{{ _page.keywords | join(', ') }}">
+    {% elif _has_page and _page.tags is defined and _page.tags %}
+    <meta name="keywords" content="{{ _page.tags | meta_keywords(10) }}">
     {% endif %}
 
     {# Open Graph / Facebook #}
-    <meta property="og:type" content="{% if page is defined and page %}article{% else %}website{% endif %}">
+    <meta property="og:type" content="{% if _has_page %}article{% else %}website{% endif %}">
     <meta property="og:title"
-        content="{{ (page.title if page is defined and page and page.title is defined else site.config.title) }}">
+        content="{{ _page_title if _page_title else _site_title }}">
     {% if meta_desc %}
     <meta property="og:description" content="{{ meta_desc }}">
     {% endif %}
     {% if site.config.baseurl %}
     {# Use relative_url for canonical URLs (canonical_url adds baseurl) #}
-    <meta property="og:url"
-        content="{{ canonical_url((page.relative_url if page is defined and page and page.relative_url is defined else '/')) }}">
+    <meta property="og:url" content="{{ canonical_url(_page_url) }}">
     {% endif %}
     {# Open Graph Image #}
-    {% if page is defined and page and page.metadata is defined and page.metadata.get('image') %}
-    <meta property="og:image" content="{{ og_image(page.metadata.get('image')) }}">
+    {% if _has_page and _page.metadata is defined and _page.metadata.get('image') %}
+    <meta property="og:image" content="{{ og_image(_page.metadata.get('image')) }}">
     {% elif site.config.get('og_image') %}
     <meta property="og:image" content="{{ og_image(site.config.get('og_image')) }}">
     {% endif %}
 
     {# Twitter Card #}
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title"
-        content="{{ (page.title if page is defined and page and page.title is defined else site.config.title) }}">
+    <meta name="twitter:title" content="{{ _page_title if _page_title else _site_title }}">
     {% if meta_desc %}
     <meta name="twitter:description" content="{{ meta_desc }}">
     {% endif %}
-    {% if page is defined and page and page.metadata is defined and page.metadata.get('image') %}
-    <meta name="twitter:image" content="{{ og_image(page.metadata.get('image')) }}">
+    {% if _has_page and _page.metadata is defined and _page.metadata.get('image') %}
+    <meta name="twitter:image" content="{{ og_image(_page.metadata.get('image')) }}">
     {% elif site.config.get('og_image') %}
     <meta name="twitter:image" content="{{ og_image(site.config.get('og_image')) }}">
     {% endif %}
@@ -65,12 +82,11 @@
     {# Canonical URL #}
     {% if site.config.baseurl %}
     {# Use relative_url for canonical URLs (canonical_url adds baseurl) #}
-    <link rel="canonical"
-        href="{{ canonical_url((page.relative_url if page is defined and page and page.relative_url is defined else '/')) }}">
+    <link rel="canonical" href="{{ canonical_url(_page_url) }}">
     {% endif %}
 
     {# RSS Feed (locale-aware when i18n prefix strategy is enabled) #}
-    {% set _lang = current_lang() %}
+    {% set _lang = _current_lang %}
     {% set _i18n = site.config.get('i18n', {}) %}
     {% set _rss_href = '/rss.xml' %}
     {% if _i18n and _i18n.get('strategy') == 'prefix' %}
@@ -158,9 +174,11 @@
 </head>
 
 <body
-    class="page-kind-{{ page.kind if (page is defined and page and page.kind is defined) else 'page' }} {% if (page is defined and page and page.draft is defined and page.draft) %}draft-page{% endif %} {% if (page is defined and page and page.tags is defined and (page | has_tag('featured'))) %}featured-content{% endif %}">
-    {# Skip to main content for accessibility #}
+    class="page-kind-{{ _page.kind if (_has_page and _page.kind is defined) else 'page' }} {% if (_has_page and _page.draft is defined and _page.draft) %}draft-page{% endif %} {% if (_has_page and _page.tags is defined and (_page | has_tag('featured'))) %}featured-content{% endif %}">
+    {# Skip to main content for accessibility - Feature: accessibility.skip_link #}
+    {% if 'accessibility.skip_link' in site.theme_config.features %}
     <a href="#main-content" class="skip-link">Skip to main content</a>
+    {% endif %}
 
     {# Search Modal (Cmd/Ctrl+K) #}
     {% include 'partials/search-modal.html' %}
@@ -175,29 +193,21 @@
                     %}
                     {% set _logo_text = site.config.get('logo_text') or site.config.get('site', {}).get('logo_text') %}
                     {% if _logo_image %}
-                    <img src="{{ _logo_image | absolute_url }}" alt="{{ site.config.title }}" class="brand-image" />
+                    <img src="{{ _logo_image | absolute_url }}" alt="{{ _site_title }}" class="brand-image" />
                     {% elif _logo_text %}
                     <span class="brand-text">{{ _logo_text }}</span>
                     {% else %}
-                    <span class="brand-text">{{ site.config.title }}</span>
+                    <span class="brand-text">{{ _site_title }}</span>
                     {% endif %}
                 </a>
 
-                {# Desktop Navigation #}
+                {# Desktop Navigation - uses cached _main_menu and _auto_nav from top of template #}
                 <div class="nav-main hidden-mobile">
-                    {# Try manual menu config first, fallback to auto-discovery #}
-                    {% set main_menu = get_menu_lang('main', current_lang()) %}
-                    {# Only use auto_nav if main_menu is empty (not just falsy) #}
-                    {% set auto_nav = [] %}
-                    {% if main_menu | length == 0 %}
-                    {% set auto_nav = get_auto_nav() %}
-                    {% endif %}
-
-                    {% if main_menu or auto_nav %}
+                    {% if _main_menu or _auto_nav %}
                     <ul>
                         {# Manual menu items (if configured) #}
-                        {% if main_menu %}
-                        {% for item in main_menu %}
+                        {% if _main_menu %}
+                        {% for item in _main_menu %}
                         <li
                             class="{{ 'active' if item.active else '' }} {{ 'active-trail' if item.active_trail else '' }}">
                             <a href="{{ item.url | absolute_url }}">{{ item.name }}</a>
@@ -215,14 +225,14 @@
                         {% endif %}
 
                         {# Auto-discovered nav items (if no manual config) #}
-                        {% if auto_nav %}
+                        {% if _auto_nav %}
                         {# Always show Home first in auto mode #}
-                        <li class="{{ 'active' if (page is defined and page and page.relative_url == '/') else '' }}">
+                        <li class="{{ 'active' if _page_url == '/' else '' }}">
                             <a href="{{ '/' | absolute_url }}">Home</a>
                         </li>
-                        {% for item in auto_nav %}
+                        {% for item in _auto_nav %}
                         <li
-                            class="{{ 'active' if (page is defined and page and page.relative_url is defined and page.relative_url is string and page.relative_url.startswith(item.relative_url) and item.relative_url != '/') else '' }}">
+                            class="{{ 'active' if (_page_url is string and _page_url.startswith(item.relative_url) and item.relative_url != '/') else '' }}">
                             <a href="{{ item.url | absolute_url }}">{{ item.name }}</a>
                         </li>
                         {% endfor %}
@@ -295,18 +305,18 @@
         </nav>
     </header>
 
-    {# Mobile Navigation #}
+    {# Mobile Navigation - uses cached _main_menu and _auto_nav from top of template #}
     <nav class="mobile-nav" role="navigation" aria-label="Mobile navigation">
         <div class="mobile-nav-header">
             <span class="logo">
                 {% set _logo_image = site.config.get('logo_image') or site.config.get('site', {}).get('logo_image') %}
                 {% set _logo_text = site.config.get('logo_text') or site.config.get('site', {}).get('logo_text') %}
                 {% if _logo_image %}
-                <img src="{{ _logo_image | absolute_url }}" alt="{{ site.config.title }}" class="brand-image" />
+                <img src="{{ _logo_image | absolute_url }}" alt="{{ _site_title }}" class="brand-image" />
                 {% elif _logo_text %}
                 <span class="brand-text">{{ _logo_text }}</span>
                 {% else %}
-                <span class="brand-text">{{ site.config.title }}</span>
+                <span class="brand-text">{{ _site_title }}</span>
                 {% endif %}
             </span>
             <button class="mobile-nav-close" aria-label="Close menu">
@@ -315,19 +325,11 @@
                 </svg>
             </button>
         </div>
-        {# Try manual menu config first, fallback to auto-discovery #}
-        {% set main_menu = get_menu_lang('main', current_lang()) %}
-        {# Only use auto_nav if main_menu is empty (not just falsy) #}
-        {% set auto_nav = [] %}
-        {% if main_menu | length == 0 %}
-        {% set auto_nav = get_auto_nav() %}
-        {% endif %}
-
-        {% if main_menu or auto_nav %}
+        {% if _main_menu or _auto_nav %}
         <ul>
             {# Manual menu items (if configured) #}
-            {% if main_menu %}
-            {% for item in main_menu %}
+            {% if _main_menu %}
+            {% for item in _main_menu %}
             <li class="{{ 'has-submenu' if item.children else '' }} {{ 'active' if item.active else '' }}">
                 <a href="{{ item.url | absolute_url }}">{{ item.name }}</a>
                 {% if item.children %}
@@ -344,14 +346,14 @@
             {% endif %}
 
             {# Auto-discovered nav items (if no manual config) #}
-            {% if auto_nav %}
+            {% if _auto_nav %}
             {# Always show Home first in auto mode #}
-            <li class="{{ 'active' if (page is defined and page and page.relative_url == '/') else '' }}">
+            <li class="{{ 'active' if _page_url == '/' else '' }}">
                 <a href="{{ '/' | absolute_url }}">Home</a>
             </li>
-            {% for item in auto_nav %}
+            {% for item in _auto_nav %}
             <li
-                class="{{ 'active' if (page is defined and page and page.relative_url is defined and page.relative_url is string and page.relative_url.startswith(item.relative_url) and item.relative_url != '/') else '' }}">
+                class="{{ 'active' if (_page_url is string and _page_url.startswith(item.relative_url) and item.relative_url != '/') else '' }}">
                 <a href="{{ item.url | absolute_url }}">{{ item.name }}</a>
             </li>
             {% endfor %}
@@ -400,12 +402,11 @@
             <div class="footer-bottom">
                 <div class="footer-left">
                     <p class="footer-copyright">
-                        &copy; {{ site.build_time | dateformat('%Y') }} {{ site.config.title }}
+                        &copy; {{ site.build_time | dateformat('%Y') }} {{ _site_title }}
                     </p>
-                    {% set footer_menu = get_menu_lang('footer', current_lang()) %}
-                    {% if footer_menu %}
+                    {% if _footer_menu %}
                     <ul class="footer-links">
-                        {% for item in footer_menu %}
+                        {% for item in _footer_menu %}
                         <li><a href="{{ item.url | absolute_url }}">{{ item.name }}</a></li>
                         {% endfor %}
                     </ul>
@@ -442,7 +443,10 @@
     <script defer src="{{ asset_url('js/main.js') }}"></script>
     <script defer src="{{ asset_url('js/interactive.js') }}"></script>
     <script defer src="{{ asset_url('js/copy-link.js') }}"></script>
+    {# Lightbox JS - Feature: content.lightbox #}
+    {% if 'content.lightbox' in site.theme_config.features %}
     <script defer src="{{ asset_url('js/lightbox.js') }}"></script>
+    {% endif %}
 
     {# Search - Core scripts with defer #}
     <script defer src="{{ asset_url('js/lunr.min.js') }}"></script>
@@ -471,7 +475,8 @@
 
     {% block extra_js %}{% endblock %}
 
-    {# Back to Top Button - Static HTML for reliable SVG rendering #}
+    {# Back to Top Button - Feature: navigation.back_to_top #}
+    {% if 'navigation.back_to_top' in site.theme_config.features %}
     <button class="back-to-top" aria-label="Scroll to top" title="Back to top">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
             stroke-linecap="round" stroke-linejoin="round">
@@ -479,8 +484,10 @@
             <polyline points="5 12 12 5 19 12"></polyline>
         </svg>
     </button>
+    {% endif %}
 
-    {# Image Lightbox - Static HTML for reliable SVG rendering #}
+    {# Image Lightbox - Feature: content.lightbox #}
+    {% if 'content.lightbox' in site.theme_config.features %}
     <div class="lightbox" role="dialog" aria-label="Image lightbox" aria-hidden="true">
         <img class="lightbox__image" alt="">
         <button class="lightbox__close" aria-label="Close lightbox">
@@ -492,6 +499,7 @@
         </button>
         <div class="lightbox__caption"></div>
     </div>
+    {% endif %}
 
     {# Dev-only live reload is now injected by the server automatically via LiveReloadMixin #}
 </body>

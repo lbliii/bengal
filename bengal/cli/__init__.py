@@ -9,6 +9,7 @@ import click
 from bengal import __version__
 from bengal.cli.commands.assets import assets as assets_cli
 from bengal.cli.commands.autodoc import autodoc, autodoc_cli
+from bengal.cli.commands.collections import collections as collections_cli
 from bengal.cli.commands.config import config_cli
 from bengal.cli.commands.fix import fix as fix_cli
 from bengal.cli.commands.health import health_cli
@@ -59,6 +60,7 @@ def main(ctx) -> None:
 # Register commands from new modular structure
 main.add_command(site_cli)
 main.add_command(config_cli)
+main.add_command(collections_cli)
 main.add_command(health_cli)
 main.add_command(validate_cli)
 main.add_command(fix_cli)

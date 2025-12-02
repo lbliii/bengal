@@ -5,11 +5,12 @@ Configuration loader supporting TOML and YAML formats.
 from __future__ import annotations
 
 import difflib
-import multiprocessing
 import os
 from pathlib import Path
 from typing import Any
 
+from bengal.config.defaults import DEFAULTS, DEFAULT_MAX_WORKERS
+from bengal.config.deprecation import check_deprecated_keys
 from bengal.utils.logger import get_logger
 
 
@@ -64,20 +65,32 @@ class ConfigLoader:
 
     # Known valid section names
     KNOWN_SECTIONS = {
+        # Core
         "site",
         "build",
-        "markdown",
-        "features",
-        "taxonomies",
-        "menu",
-        "params",
-        "assets",
-        "pagination",
-        "dev",
-        "output_formats",
-        "health_check",
-        "fonts",
         "theme",
+        "params",
+        # Content
+        "content",
+        "markdown",
+        "taxonomies",
+        # Features
+        "features",
+        "search",
+        "graph",
+        # Navigation
+        "menu",
+        "pagination",
+        # Output
+        "output_formats",
+        "assets",
+        # Development
+        "dev",
+        "health_check",
+        # Integrations
+        "fonts",
+        "autodoc",
+        "i18n",
     }
 
     def __init__(self, root_path: Path) -> None:
@@ -89,6 +102,7 @@ class ConfigLoader:
         """
         self.root_path = root_path
         self.warnings: list[str] = []
+        self.deprecated_keys: list[tuple[str, str, str]] = []
         self.logger = get_logger(__name__)
 
     def load(self, config_path: Path | None = None) -> dict[str, Any]:
@@ -158,12 +172,20 @@ class ConfigLoader:
             validator = ConfigValidator()
             validated_config = validator.validate(raw_config, source_file=config_path)
 
+            # Check for deprecated keys and store for later reporting
+            self.deprecated_keys = check_deprecated_keys(
+                validated_config,
+                source=config_path.name,
+                warn=False,  # Don't log yet, store for print_warnings()
+            )
+
             # Use debug level to avoid noise in normal output
             self.logger.debug(
                 "config_load_complete",
                 config_path=str(config_path),
                 sections=list(validated_config.keys()),
                 warnings=len(self.warnings),
+                deprecated_keys=len(self.deprecated_keys),
             )
 
             return self._apply_env_overrides(validated_config)
@@ -354,6 +376,10 @@ class ConfigLoader:
         """Get configuration warnings (aliases used, unknown sections, etc)."""
         return self.warnings
 
+    def get_deprecated_keys(self) -> list[tuple[str, str, str]]:
+        """Get list of deprecated keys found (old_key, new_location, note)."""
+        return self.deprecated_keys
+
     def print_warnings(self, verbose: bool = False) -> None:
         """Print configuration warnings if verbose mode is enabled."""
         if self.warnings and verbose:
@@ -362,54 +388,54 @@ class ConfigLoader:
                 self.logger.warning("config_warning", note=warning)
                 print(warning)
 
+        # Always print deprecation warnings (they're important for migration)
+        if self.deprecated_keys:
+            from bengal.config.deprecation import print_deprecation_warnings
+
+            print_deprecation_warnings(self.deprecated_keys)
+
     def _default_config(self) -> dict[str, Any]:
         """
         Get default configuration.
 
+        Uses centralized defaults from bengal.config.defaults module.
+
         Returns:
             Default configuration dictionary
         """
-        # Auto-detect optimal worker count based on CPU cores
-        # Use CPU count - 1 to leave one core for OS/UI, minimum 4
-        cpu_count = multiprocessing.cpu_count()
-        default_workers = max(4, cpu_count - 1)
-
+        # Build config from centralized DEFAULTS
+        # Note: We flatten some nested defaults for backward compatibility
         return {
-            "title": "Bengal Site",
-            "baseurl": "",
-            "output_dir": "public",
-            "content_dir": "content",
-            "assets_dir": "assets",
-            "templates_dir": "templates",
-            "parallel": True,
-            "incremental": True,  # Fast incremental builds by default (18-42x faster)
-            "minify_html": True,  # Minify HTML output by default (15-25% smaller)
-            # HTML output formatting (advanced controls)
-            "html_output": {
-                "mode": "minify",  # minify | pretty | raw (overrides minify_html)
-                "remove_comments": True,
-                "collapse_blank_lines": True,
-            },
-            "max_workers": default_workers,  # Auto-detected based on CPU cores
-            "pretty_urls": True,
-            "minify_assets": True,
-            "optimize_assets": True,
-            "fingerprint_assets": True,
-            "generate_sitemap": True,
-            "generate_rss": True,
-            "validate_links": True,
+            # Site metadata
+            "title": DEFAULTS["title"],
+            "baseurl": DEFAULTS["baseurl"],
+            # Build settings
+            "output_dir": DEFAULTS["output_dir"],
+            "content_dir": DEFAULTS["content_dir"],
+            "assets_dir": DEFAULTS["assets_dir"],
+            "templates_dir": DEFAULTS["templates_dir"],
+            "parallel": DEFAULTS["parallel"],
+            "incremental": DEFAULTS["incremental"],
+            "minify_html": DEFAULTS["minify_html"],
+            "html_output": DEFAULTS["html_output"],
+            "max_workers": DEFAULT_MAX_WORKERS,  # Auto-detected based on CPU cores
+            "pretty_urls": DEFAULTS["pretty_urls"],
+            # Assets (flat for backward compatibility)
+            "minify_assets": DEFAULTS["assets"]["minify"],
+            "optimize_assets": DEFAULTS["assets"]["optimize"],
+            "fingerprint_assets": DEFAULTS["assets"]["fingerprint"],
+            # Features (flat for backward compatibility)
+            "generate_sitemap": DEFAULTS["features"]["sitemap"],
+            "generate_rss": DEFAULTS["features"]["rss"],
+            "validate_links": DEFAULTS["validate_links"],
             # Debug and validation options
-            "strict_mode": False,  # Fail on template errors instead of fallback
-            "debug": False,  # Show verbose debug output and tracebacks
-            "validate_build": True,  # Run post-build health checks
-            "stable_section_references": True,  # Use path-based section references (rollback safety)
-            "min_page_size": 1000,  # Minimum expected page size in bytes
+            "strict_mode": DEFAULTS["strict_mode"],
+            "debug": DEFAULTS["debug"],
+            "validate_build": DEFAULTS["validate_build"],
+            "stable_section_references": DEFAULTS["stable_section_references"],
+            "min_page_size": DEFAULTS["min_page_size"],
             # Theme configuration
-            "theme": {
-                "name": "default",
-                "default_appearance": "system",
-                "default_palette": "",
-            },
+            "theme": DEFAULTS["theme"],
         }
 
     def _apply_env_overrides(self, config: dict[str, Any]) -> dict[str, Any]:

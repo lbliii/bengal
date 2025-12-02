@@ -47,7 +47,7 @@
   display: flex;
   align-items: center;
   gap: 0.25rem;
-  border-radius: var(--border-radius-small);
+  border-radius: var(--border-radius-medium);
   transition: all var(--transition-fast), box-shadow 0.2s ease;
   padding: 0.125rem;
   position: relative;
@@ -127,7 +127,7 @@
   padding: 0.5rem;
   background: none;
   border: none;
-  border-radius: var(--border-radius-small);
+  border-radius: var(--border-radius-medium);
   cursor: pointer;
   transition: all var(--transition-fast);
   touch-action: manipulation;
@@ -167,7 +167,7 @@
   font-weight: var(--weight-bold);
   color: var(--color-text-primary);
   text-decoration: none;
-  border-radius: var(--border-radius-small);
+  border-radius: var(--border-radius-medium);
   transition: all var(--transition-fast);
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
@@ -188,7 +188,7 @@
 /* Only show subtle accent bar, don't highlight the entire wrapper/link */
 .docs-nav-group:has(.docs-nav-link.active) .docs-nav-group-toggle-wrapper::after,
 .docs-nav-group:has(.docs-nav-link[aria-current="page"]) .docs-nav-group-toggle-wrapper::after {
-  opacity: 0.6;
+  opacity: 0.7;
   /* Subtle accent bar to indicate parent contains active child */
   background: var(--gradient-border);
 }
@@ -209,16 +209,12 @@
 /* Also handle when the group link itself is active */
 .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link.active),
 .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link[aria-current="page"]) {
-  /* Skeumorphic Key-like State */
-  background: linear-gradient(to bottom, var(--color-bg-primary), var(--color-bg-secondary));
+  /* Unified neumorphic style - matches nav action buttons */
+  background: linear-gradient(180deg,
+      var(--color-surface, var(--color-bg-elevated)),
+      var(--color-bg-secondary));
   border: 1px solid var(--color-border);
-  /* Top highlight, bottom shadow for 3D pop */
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.8),
-    0 1px 2px rgba(0, 0, 0, 0.05),
-    0 2px 0 var(--color-border-strong);
-  transform: translateY(-1px);
-  z-index: 1;
+  box-shadow: var(--neumorphic-subtle);
 }
 
 .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link.active)::after,
@@ -259,7 +255,7 @@
   font-size: var(--text-sm);
   color: var(--color-text-secondary);
   text-decoration: none;
-  border-radius: var(--border-radius-small);
+  border-radius: var(--border-radius-medium);
   border-inline-start: 3px solid transparent;
   margin-inline-start: -3px;
   transition: all var(--transition-fast), box-shadow 0.2s ease;
@@ -313,35 +309,20 @@
 .docs-nav-link[aria-current="page"] {
   color: var(--color-primary);
   font-weight: var(--weight-medium);
-  /* Skeumorphic Key-like State */
-  background: linear-gradient(to bottom, var(--color-bg-primary), var(--color-bg-secondary));
+  /* Unified neumorphic style - matches nav action buttons */
+  background: linear-gradient(180deg,
+      var(--color-surface, var(--color-bg-elevated)),
+      var(--color-bg-secondary));
   border: 1px solid var(--color-border);
-  /* Top highlight, bottom shadow for 3D pop */
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.8),
-    0 1px 2px rgba(0, 0, 0, 0.05),
-    0 2px 0 var(--color-border-strong);
-  transform: translateY(-1px);
-  z-index: 1;
+  box-shadow: var(--neumorphic-subtle);
 }
 
 .docs-nav-link.active::before,
 .docs-nav-link[aria-current="page"]::before {
-  opacity: 0;
-  /* Hidden in light mode, shown in dark mode */
+  opacity: 1;
+  /* Gradient accent bar for active indication */
   background: var(--gradient-border);
   width: 3px;
-}
-
-[data-theme="dark"] .docs-nav-link.active,
-[data-theme="dark"] .docs-nav-link[aria-current="page"] {
-  background: var(--color-bg-secondary);
-  border: 1px solid var(--color-border);
-  border-bottom-width: 3px;
-  border-bottom-color: #000;
-  /* Darker shade for dimension in dark mode */
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-  transform: translateY(-1px);
 }
 
 /* Active trail (parent of active page) */
@@ -430,14 +411,12 @@
 /* Also handle when the group link itself is active */
 [data-theme="dark"] .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link.active),
 [data-theme="dark"] .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link[aria-current="page"]) {
-  background: linear-gradient(to bottom, var(--color-bg-secondary), var(--color-bg-tertiary));
+  /* Unified neumorphic style - dark mode inherits via CSS variables */
+  background: linear-gradient(180deg,
+      var(--color-surface, var(--color-bg-elevated)),
+      var(--color-bg-secondary));
   border: 1px solid var(--color-border);
-  /* Dark mode skeumorphism */
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.05),
-    0 1px 3px rgba(0, 0, 0, 0.4),
-    0 2px 0 #000;
-  transform: translateY(-1px);
+  box-shadow: var(--neumorphic-subtle);
 }
 
 [data-theme="dark"] .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link.active)::after,
@@ -476,128 +455,46 @@
   background: var(--gradient-border);
 }
 
-[data-theme="dark"] .docs-nav-link.active,
-[data-theme="dark"] .docs-nav-link[aria-current="page"] {
-  background: var(--color-bg-secondary);
-  border: 1px solid var(--color-border);
-  border-bottom-width: 3px;
-  border-bottom-color: #000;
-  /* Darker shade for dimension in dark mode */
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-  transform: translateY(-1px);
-}
-
 [data-theme="dark"] .docs-nav-link.active::before,
 [data-theme="dark"] .docs-nav-link[aria-current="page"]::before {
-  opacity: 0.9;
+  opacity: 1;
   /* Strong gradient border in dark mode for visibility */
   background: var(--gradient-border);
 }
 
 /* ============================================
    PALETTE-SPECIFIC ACTIVE NAVIGATION STYLING
-   ============================================ */
+   ============================================
 
-/* Brown Bengal - Warm amber active sidebar navigation */
-[data-palette="brown-bengal"] .docs-nav-link.active,
-[data-palette="brown-bengal"] .docs-nav-link[aria-current="page"],
-[data-palette="brown-bengal"] .docs-nav-group-link.active,
-[data-palette="brown-bengal"] .docs-nav-group-link[aria-current="page"] {
+   All palettes use --color-primary-light for active backgrounds.
+   This is consolidated into a single rule using the attribute selector
+   to match any data-palette value ending in "-bengal".
+*/
+
+/* Active navigation links - all palettes */
+[data-palette$="-bengal"] .docs-nav-link.active,
+[data-palette$="-bengal"] .docs-nav-link[aria-current="page"],
+[data-palette$="-bengal"] .docs-nav-group-link.active,
+[data-palette$="-bengal"] .docs-nav-group-link[aria-current="page"] {
   background: var(--color-primary-light);
 }
 
-[data-theme="dark"][data-palette="brown-bengal"] .docs-nav-link.active,
-[data-theme="dark"][data-palette="brown-bengal"] .docs-nav-link[aria-current="page"],
-[data-theme="dark"][data-palette="brown-bengal"] .docs-nav-group-link.active,
-[data-theme="dark"][data-palette="brown-bengal"] .docs-nav-group-link[aria-current="page"] {
+/* Active navigation links - all palettes (dark mode) */
+[data-theme="dark"][data-palette$="-bengal"] .docs-nav-link.active,
+[data-theme="dark"][data-palette$="-bengal"] .docs-nav-link[aria-current="page"],
+[data-theme="dark"][data-palette$="-bengal"] .docs-nav-group-link.active,
+[data-theme="dark"][data-palette$="-bengal"] .docs-nav-group-link[aria-current="page"] {
   background: var(--color-primary-light);
 }
 
-/* Palette-specific: Only highlight when group link itself is active, not when it contains active child */
-[data-palette="brown-bengal"] .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link.active),
-[data-palette="brown-bengal"] .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link[aria-current="page"]) {
+/* Active group toggle wrappers - all palettes */
+[data-palette$="-bengal"] .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link.active),
+[data-palette$="-bengal"] .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link[aria-current="page"]) {
   background: var(--color-primary-light);
 }
 
-[data-theme="dark"][data-palette="brown-bengal"] .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link.active),
-[data-theme="dark"][data-palette="brown-bengal"] .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link[aria-current="page"]) {
-  background: var(--color-primary-light);
-}
-
-/* Blue Bengal - Soft powder blue active sidebar navigation */
-[data-palette="blue-bengal"] .docs-nav-link.active,
-[data-palette="blue-bengal"] .docs-nav-link[aria-current="page"],
-[data-palette="blue-bengal"] .docs-nav-group-link.active,
-[data-palette="blue-bengal"] .docs-nav-group-link[aria-current="page"] {
-  background: var(--color-primary-light);
-}
-
-[data-theme="dark"][data-palette="blue-bengal"] .docs-nav-link.active,
-[data-theme="dark"][data-palette="blue-bengal"] .docs-nav-link[aria-current="page"],
-[data-theme="dark"][data-palette="blue-bengal"] .docs-nav-group-link.active,
-[data-theme="dark"][data-palette="blue-bengal"] .docs-nav-group-link[aria-current="page"] {
-  background: var(--color-primary-light);
-}
-
-/* Palette-specific: Only highlight when group link itself is active, not when it contains active child */
-[data-palette="blue-bengal"] .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link.active),
-[data-palette="blue-bengal"] .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link[aria-current="page"]) {
-  background: var(--color-primary-light);
-}
-
-[data-theme="dark"][data-palette="blue-bengal"] .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link.active),
-[data-theme="dark"][data-palette="blue-bengal"] .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link[aria-current="page"]) {
-  background: var(--color-primary-light);
-}
-
-/* Silver Bengal - High contrast monochrome active sidebar navigation */
-[data-palette="silver-bengal"] .docs-nav-link.active,
-[data-palette="silver-bengal"] .docs-nav-link[aria-current="page"],
-[data-palette="silver-bengal"] .docs-nav-group-link.active,
-[data-palette="silver-bengal"] .docs-nav-group-link[aria-current="page"] {
-  background: var(--color-primary-light);
-}
-
-[data-theme="dark"][data-palette="silver-bengal"] .docs-nav-link.active,
-[data-theme="dark"][data-palette="silver-bengal"] .docs-nav-link[aria-current="page"],
-[data-theme="dark"][data-palette="silver-bengal"] .docs-nav-group-link.active,
-[data-theme="dark"][data-palette="silver-bengal"] .docs-nav-group-link[aria-current="page"] {
-  background: var(--color-primary-light);
-}
-
-/* Palette-specific: Only highlight when group link itself is active, not when it contains active child */
-[data-palette="silver-bengal"] .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link.active),
-[data-palette="silver-bengal"] .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link[aria-current="page"]) {
-  background: var(--color-primary-light);
-}
-
-[data-theme="dark"][data-palette="silver-bengal"] .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link.active),
-[data-theme="dark"][data-palette="silver-bengal"] .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link[aria-current="page"]) {
-  background: var(--color-primary-light);
-}
-
-/* Charcoal Bengal - Dramatic slate active sidebar navigation */
-[data-palette="charcoal-bengal"] .docs-nav-link.active,
-[data-palette="charcoal-bengal"] .docs-nav-link[aria-current="page"],
-[data-palette="charcoal-bengal"] .docs-nav-group-link.active,
-[data-palette="charcoal-bengal"] .docs-nav-group-link[aria-current="page"] {
-  background: var(--color-primary-light);
-}
-
-[data-theme="dark"][data-palette="charcoal-bengal"] .docs-nav-link.active,
-[data-theme="dark"][data-palette="charcoal-bengal"] .docs-nav-link[aria-current="page"],
-[data-theme="dark"][data-palette="charcoal-bengal"] .docs-nav-group-link.active,
-[data-theme="dark"][data-palette="charcoal-bengal"] .docs-nav-group-link[aria-current="page"] {
-  background: var(--color-primary-light);
-}
-
-/* Palette-specific: Only highlight when group link itself is active, not when it contains active child */
-[data-palette="charcoal-bengal"] .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link.active),
-[data-palette="charcoal-bengal"] .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link[aria-current="page"]) {
-  background: var(--color-primary-light);
-}
-
-[data-theme="dark"][data-palette="charcoal-bengal"] .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link.active),
-[data-theme="dark"][data-palette="charcoal-bengal"] .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link[aria-current="page"]) {
+/* Active group toggle wrappers - all palettes (dark mode) */
+[data-theme="dark"][data-palette$="-bengal"] .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link.active),
+[data-theme="dark"][data-palette$="-bengal"] .docs-nav-group-toggle-wrapper:has(.docs-nav-group-link[aria-current="page"]) {
   background: var(--color-primary-light);
 }

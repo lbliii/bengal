@@ -122,14 +122,15 @@ class DirectiveAnalyzer:
 
                     # Check for fence nesting warnings
                     if directive.get("fence_nesting_warning"):
-                        data["fence_nesting_warnings"].append(
-                            {
-                                "page": page.source_path,
-                                "line": directive["line_number"],
-                                "type": directive["type"],
-                                "warning": directive["fence_nesting_warning"],
-                            }
-                        )
+                        warning_data = {
+                            "page": page.source_path,
+                            "line": directive["line_number"],
+                            "type": directive["type"],
+                            "warning": directive["fence_nesting_warning"],
+                        }
+                        if directive.get("inner_conflict_line"):
+                            warning_data["inner_line"] = directive["inner_conflict_line"]
+                        data["fence_nesting_warnings"].append(warning_data)
 
                     # Check for fence style warnings (backtick vs colon)
                     if directive.get("fence_style_warning"):
@@ -287,12 +288,13 @@ class DirectiveAnalyzer:
                         warnings.append(
                             {
                                 "page": file_path,
-                                "line": i,
+                                "line": top_line,  # Outer directive line (for context display)
+                                "inner_line": i,  # Inner conflicting line
                                 "type": "structure",
                                 "warning": (
-                                    f"Line {i}: Code block with {fence_length} backticks contains nested code block "
-                                    f"with same fence length (line {top_line}). "
-                                    f"Fix: Change outer block to use {fence_length + 1}+ backticks (e.g., ````{top_lang or 'markdown'}`)."
+                                    f"Outer directive at line {top_line} uses {fence_length} backticks but "
+                                    f"inner code block at line {i} also uses {fence_length}. "
+                                    f"Use {fence_length + 1}+ backticks for outer (e.g., ````{top_lang or 'markdown'}`)."
                                 ),
                             }
                         )
@@ -474,6 +476,7 @@ class DirectiveAnalyzer:
         content = directive["content"]
         fence_depth = directive["fence_depth"]
         fence_type = directive.get("fence_type", "colon")
+        directive_line = directive["line_number"]
 
         if fence_type == "colon":
             return
@@ -481,20 +484,24 @@ class DirectiveAnalyzer:
         if fence_type == "backtick" and fence_depth == 3:
             code_block_pattern = r"^(`{3,}|~{3,})[a-zA-Z0-9_-]*\s*$"
             lines = content.split("\n")
-            has_code_blocks = False
-            for line in lines:
+            inner_line_offset = None
+            for idx, line in enumerate(lines):
                 match = re.match(code_block_pattern, line.strip())
                 if match:
                     fence_marker = match.group(1)
                     if fence_marker.startswith("`") and len(fence_marker) == 3:
-                        has_code_blocks = True
+                        inner_line_offset = idx
                         break
 
-            if has_code_blocks:
+            if inner_line_offset is not None:
+                # Calculate actual line number in source file
+                # directive_line is where the directive starts, content starts after opening fence
+                inner_line = directive_line + inner_line_offset + 1  # +1 for the opening fence line
                 directive["fence_nesting_warning"] = (
-                    "Directive uses 3 backticks (```) but contains 3-backtick code blocks. "
-                    "Use colon fences (:::) instead, or use 4+ backticks (````) for the directive."
+                    f"Outer directive at line {directive_line} uses ``` but inner code block "
+                    f"at line {inner_line} also uses ```. Use 4+ backticks for outer."
                 )
+                directive["inner_conflict_line"] = inner_line
                 return
 
         directive_type = directive["type"]

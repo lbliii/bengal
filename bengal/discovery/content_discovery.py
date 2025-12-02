@@ -3,6 +3,7 @@ Content discovery - finds and organizes pages and sections.
 
 Robustness:
     - Symlink loop detection via inode tracking to prevent infinite recursion
+    - Content collection validation (opt-in via collections.py)
 """
 
 from __future__ import annotations
@@ -10,13 +11,17 @@ from __future__ import annotations
 import os
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import frontmatter
 
+from bengal.config.defaults import get_max_workers
 from bengal.core.page import Page, PageProxy
 from bengal.core.section import Section
 from bengal.utils.logger import get_logger
+
+if TYPE_CHECKING:
+    from bengal.collections import CollectionConfig
 
 
 class ContentDiscovery:
@@ -33,14 +38,27 @@ class ContentDiscovery:
     - Parsing uses a thread pool for concurrency; unchanged pages can be represented as
       `PageProxy` in lazy modes.
     - Symlink loops are detected via inode tracking to prevent infinite recursion.
+    - Content collections: When collections.py is present at project root, frontmatter
+      is validated against schemas during discovery (fail fast).
     """
 
-    def __init__(self, content_dir: Path, site: Any | None = None) -> None:
+    def __init__(
+        self,
+        content_dir: Path,
+        site: Any | None = None,
+        *,
+        collections: dict[str, CollectionConfig] | None = None,
+        strict_validation: bool = True,
+    ) -> None:
         """
         Initialize content discovery.
 
         Args:
             content_dir: Root content directory
+            site: Optional Site reference for configuration access
+            collections: Optional dict of collection configs for schema validation
+            strict_validation: If True, raise errors on validation failure;
+                if False, log warnings and continue
         """
         self.content_dir = content_dir
         self.site = site  # Optional reference for accessing configuration (i18n, etc.)
@@ -51,6 +69,11 @@ class ContentDiscovery:
         self.current_section: Section | None = None
         # Symlink loop detection: track visited (device, inode) pairs
         self._visited_inodes: set[tuple[int, int]] = set()
+        # Content collections for schema validation
+        self._collections = collections or {}
+        self._strict_validation = strict_validation
+        # Track validation errors for reporting
+        self._validation_errors: list[tuple[Path, str, list[Any]]] = []
 
     def discover(
         self,
@@ -174,6 +197,13 @@ class ContentDiscovery:
                     self.pages.append(page)
                     produced_pages.append(page)
                 except Exception as e:  # pragma: no cover - guarded logging
+                    # Import here to avoid circular dependency
+                    from bengal.collections.errors import ContentValidationError
+
+                    # Re-raise validation errors in strict mode
+                    if isinstance(e, ContentValidationError) and self._strict_validation:
+                        raise
+
                     self.logger.error(
                         "page_future_failed",
                         path=str(item_path),
@@ -184,7 +214,8 @@ class ContentDiscovery:
             return produced_pages
 
         # Initialize a thread pool for parallel file parsing
-        max_workers = min(8, (os.cpu_count() or 4))
+        # Use auto-detected workers but cap at 8 for discovery (I/O bound)
+        max_workers = min(8, get_max_workers())
         self._executor: ThreadPoolExecutor | None = ThreadPoolExecutor(max_workers=max_workers)
 
         top_level_results: list[Page] = []
@@ -464,6 +495,13 @@ class ContentDiscovery:
                 parent_section.add_page(page)
                 self.pages.append(page)
             except Exception as e:  # pragma: no cover - guarded logging
+                # Import here to avoid circular dependency
+                from bengal.collections.errors import ContentValidationError
+
+                # Re-raise validation errors in strict mode
+                if isinstance(e, ContentValidationError) and self._strict_validation:
+                    raise
+
                 self.logger.error(
                     "page_future_failed",
                     path=str(directory),
@@ -484,6 +522,111 @@ class ContentDiscovery:
         content_extensions = {".md", ".markdown", ".rst", ".txt"}
         return file_path.suffix.lower() in content_extensions
 
+    def _validate_against_collection(
+        self, file_path: Path, metadata: dict[str, Any]
+    ) -> dict[str, Any]:
+        """
+        Validate frontmatter against collection schema if applicable.
+
+        Args:
+            file_path: Path to content file
+            metadata: Parsed frontmatter metadata
+
+        Returns:
+            Validated metadata (possibly with schema-enforced defaults)
+
+        Raises:
+            ContentValidationError: If strict_validation=True and validation fails
+        """
+        if not self._collections:
+            return metadata
+
+        # Find applicable collection
+        collection_name, config = self._get_collection_for_file(file_path)
+
+        if config is None:
+            return metadata
+
+        # Import here to avoid circular dependency
+        from bengal.collections import ContentValidationError, SchemaValidator
+
+        # Apply optional transform
+        if config.transform:
+            try:
+                metadata = config.transform(metadata)
+            except Exception as e:
+                self.logger.warning(
+                    "collection_transform_failed",
+                    path=str(file_path),
+                    collection=collection_name,
+                    error=str(e),
+                )
+
+        # Validate
+        validator = SchemaValidator(config.schema, strict=config.strict)
+        result = validator.validate(metadata, source_file=file_path)
+
+        if not result.valid:
+            error_summary = result.error_summary
+            self._validation_errors.append((file_path, collection_name, result.errors))
+
+            if self._strict_validation:
+                raise ContentValidationError(
+                    message=f"Validation failed for {file_path}",
+                    path=file_path,
+                    errors=result.errors,
+                    collection_name=collection_name,
+                )
+            else:
+                self.logger.warning(
+                    "collection_validation_failed",
+                    path=str(file_path),
+                    collection=collection_name,
+                    errors=error_summary,
+                    action="continuing_with_original_metadata",
+                )
+                return metadata
+
+        # Return validated data as dict (from schema instance)
+        if result.data is not None:
+            # Convert validated instance back to dict for Page metadata
+            from dataclasses import asdict, is_dataclass
+
+            if is_dataclass(result.data):
+                return asdict(result.data)
+            elif hasattr(result.data, "model_dump"):
+                # Pydantic model
+                return result.data.model_dump()
+
+        return metadata
+
+    def _get_collection_for_file(
+        self, file_path: Path
+    ) -> tuple[str | None, "CollectionConfig | None"]:
+        """
+        Find which collection a file belongs to based on its path.
+
+        Args:
+            file_path: Path to content file
+
+        Returns:
+            Tuple of (collection_name, CollectionConfig) or (None, None)
+        """
+        try:
+            rel_path = file_path.relative_to(self.content_dir)
+        except ValueError:
+            return None, None
+
+        for name, config in self._collections.items():
+            try:
+                # Check if file is under this collection's directory
+                rel_path.relative_to(config.directory)
+                return name, config
+            except ValueError:
+                continue
+
+        return None, None
+
     def _create_page(
         self, file_path: Path, current_lang: str | None = None, section: Section | None = None
     ) -> Page:
@@ -496,6 +639,7 @@ class ContentDiscovery:
         - Missing frontmatter
         - File encoding issues
         - IO errors
+        - Collection schema validation (when collections defined)
 
         Args:
             file_path: Path to content file
@@ -505,9 +649,13 @@ class ContentDiscovery:
 
         Raises:
             IOError: Only if file cannot be read at all
+            ContentValidationError: If strict_validation=True and validation fails
         """
         try:
             content, metadata = self._parse_content_file(file_path)
+
+            # Validate against collection schema if applicable
+            metadata = self._validate_against_collection(file_path, metadata)
 
             # Create page without passing section into constructor
             page = Page(

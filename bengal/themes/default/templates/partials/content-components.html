@@ -64,18 +64,18 @@ Example:
       </time>
       {% endif %}
 
-      {% if article.metadata.get('author') and site.theme_config.config.get('show_author', true) %}
+      {% if article.metadata.get('author') and 'content.author' in site.theme_config.features %}
       <span class="author">{{ article.metadata.get('author') }}</span>
       {% endif %}
 
-      {% if article.content and site.theme_config.config.get('show_reading_time', true) %}
+      {% if article.content and 'content.reading_time' in site.theme_config.features %}
       <span class="reading-time">
         {{ article.content | reading_time }} min read
       </span>
       {% endif %}
     </div>
 
-    {% if show_excerpt and site.theme_config.config.get('show_excerpts_default', true) %}
+    {% if show_excerpt and 'content.excerpts' in site.theme_config.features %}
     <p class="article-card-excerpt">
       {% if article.metadata.get('description') %}
       {{ article.metadata.get('description') }}

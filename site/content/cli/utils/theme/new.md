@@ -3,13 +3,13 @@
 title: "new"
 type: "cli-reference"
 source_file: "bengal/cli/helpers/error_handling.py"
-line_number: 626
+line_number: 757
 description: "🎨 Create a new theme scaffold. Creates a new theme with templates, partials, and assets. SLUG is the theme identifier used in config (e.g., [site].theme = SLUG)."
 ---
 
 # new
 **Type:** Command
-**Source:** [View source](https://github.com/lbliii/bengal/blob/main/bengal/cli/helpers/error_handling.py#L626)
+**Source:** [View source](https://github.com/lbliii/bengal/blob/main/bengal/cli/helpers/error_handling.py#L757)
 
 :::{badge} Command
 :class: badge-secondary

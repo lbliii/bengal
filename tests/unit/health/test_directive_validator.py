@@ -310,9 +310,8 @@ Just regular markdown content here.
         validator = DirectiveValidator()
         results = validator.validate(site)
 
-        # Should have results but no errors
-        assert len(results) > 0
-        # No statistics when no directives
+        # No issues = no results (silence is golden)
+        # OR if there are results, none should be errors
         assert all(r.status != CheckStatus.ERROR for r in results)
 
     def test_validate_with_valid_directives(self, tmp_path):
@@ -354,15 +353,8 @@ Second option content.
         validator = DirectiveValidator()
         results = validator.validate(site)
 
-        # Should have success results
-        success_results = [r for r in results if r.status == CheckStatus.SUCCESS]
-        assert len(success_results) > 0
-
-        # Should have info about directive usage
-        info_results = [r for r in results if r.status == CheckStatus.INFO]
-        assert len(info_results) > 0
-
-        # Should have no errors
+        # With valid directives and no issues, validator follows "silence is golden"
+        # principle - no results or only non-error results
         error_results = [r for r in results if r.status == CheckStatus.ERROR]
         assert len(error_results) == 0
 
@@ -552,14 +544,19 @@ Content
         validator = DirectiveValidator()
         results = validator.validate(site)
 
-        # Should have info result with statistics
-        info_results = [r for r in results if r.status == CheckStatus.INFO]
-        assert len(info_results) > 0
+        # With valid directives and no issues, validator follows "silence is golden"
+        # principle - no error results for well-formed content
+        error_results = [r for r in results if r.status == CheckStatus.ERROR]
+        assert len(error_results) == 0
 
-        # Check statistics in info message
-        stats_result = [r for r in info_results if "directive usage" in r.message.lower()]
-        assert len(stats_result) > 0
-        assert "5 total" in stats_result[0].message
+        # Verify analyzer correctly counts directives (internal check)
+        analyzer = DirectiveAnalyzer()
+        data = analyzer.analyze(site)
+        assert data["total_directives"] == 5
+        assert data["by_type"]["note"] == 2
+        assert data["by_type"]["tip"] == 1
+        assert data["by_type"]["tabs"] == 1
+        assert data["by_type"]["dropdown"] == 1
 
 
 if __name__ == "__main__":

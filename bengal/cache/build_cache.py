@@ -47,11 +47,12 @@ class BuildCache:
         tag_to_pages: Inverted index mapping tag slug to page paths (for O(1) reconstruction)
         known_tags: Set of all tag slugs from previous build (for detecting deletions)
         parsed_content: Cached parsed HTML/TOC (Optimization #2)
+        config_hash: Hash of resolved configuration (for auto-invalidation)
         last_build: Timestamp of last successful build
     """
 
     # Serialized schema version (persisted in cache JSON). Tolerant loader accepts missing/older.
-    VERSION: int = 2  # Bumped for validation_results field
+    VERSION: int = 4  # Bumped for AST caching (Phase 3 of RFC-content-ast-architecture)
 
     # Instance persisted version; defaults to current VERSION
     version: int = VERSION
@@ -74,6 +75,10 @@ class BuildCache:
     # Validation result cache: file_path → validator_name → [CheckResult dicts]
     # Structure: {file_path: {validator_name: [CheckResult.to_cache_dict(), ...]}}
     validation_results: dict[str, dict[str, list[dict[str, Any]]]] = field(default_factory=dict)
+
+    # Config hash for auto-invalidation when configuration changes
+    # Hash of resolved config dict (captures env vars, profiles, split configs)
+    config_hash: str | None = None
 
     last_build: str | None = None
 
@@ -191,6 +196,10 @@ class BuildCache:
             if "validation_results" not in data:
                 data["validation_results"] = {}
 
+            # Config hash (new in VERSION 3, tolerate missing)
+            if "config_hash" not in data:
+                data["config_hash"] = None
+
             # Inject default version if missing
             if "version" not in data:
                 data["version"] = cls.VERSION
@@ -266,6 +275,7 @@ class BuildCache:
             "known_tags": list(self.known_tags),  # Save known tags
             "parsed_content": self.parsed_content,  # Already in dict format
             "validation_results": self.validation_results,  # Already in dict format
+            "config_hash": self.config_hash,  # Config hash for auto-invalidation
             "last_build": datetime.now().isoformat(),
         }
 
@@ -601,7 +611,58 @@ class BuildCache:
         self.tag_to_pages.clear()
         self.known_tags.clear()
         self.synthetic_pages.clear()
+        self.config_hash = None
         self.last_build = None
+
+    def validate_config(self, current_hash: str) -> bool:
+        """
+        Check if cache is valid for the current configuration.
+
+        Compares the stored config_hash with the current configuration hash.
+        If they differ, the cache is automatically cleared to ensure correctness.
+
+        This enables automatic cache invalidation when:
+        - Configuration files change (bengal.toml, config/*.yaml)
+        - Environment variables change (BENGAL_*)
+        - Build profiles change (--profile writer)
+
+        Args:
+            current_hash: Hash of the current resolved configuration
+
+        Returns:
+            True if cache is valid (hashes match), False if cache was cleared
+
+        Example:
+            >>> from bengal.config.hash import compute_config_hash
+            >>> config_hash = compute_config_hash(site.config)
+            >>> if not cache.validate_config(config_hash):
+            ...     logger.info("Config changed, performing full rebuild")
+        """
+        if self.config_hash is None:
+            # First build with config hashing - store hash but don't invalidate
+            logger.info(
+                "config_hash_initialized",
+                hash=current_hash[:8],
+            )
+            self.config_hash = current_hash
+            return True
+
+        if self.config_hash != current_hash:
+            logger.info(
+                "config_hash_changed",
+                previous=self.config_hash[:8],
+                current=current_hash[:8],
+                action="invalidating_cache",
+            )
+            self.clear()
+            self.config_hash = current_hash
+            return False
+
+        logger.debug(
+            "config_hash_valid",
+            hash=current_hash[:8],
+        )
+        return True
 
     def invalidate_file(self, file_path: Path) -> None:
         """
@@ -697,12 +758,17 @@ class BuildCache:
         metadata: dict[str, Any],
         template: str,
         parser_version: str,
+        ast: list[dict[str, Any]] | None = None,
     ) -> None:
         """
-        Store parsed content in cache (Optimization #2).
+        Store parsed content in cache (Optimization #2 + AST caching).
 
         This allows skipping markdown parsing when only templates change,
         resulting in 20-30% faster builds in that scenario.
+
+        Phase 3 Enhancement (RFC-content-ast-architecture):
+        - Also caches the true AST for parse-once, use-many patterns
+        - AST enables faster TOC/link extraction and plain text generation
 
         Args:
             file_path: Path to source file
@@ -711,7 +777,8 @@ class BuildCache:
             toc_items: Structured TOC data
             metadata: Page metadata (frontmatter)
             template: Template name used
-            parser_version: Parser version string (e.g., "mistune-3.0")
+            parser_version: Parser version string (e.g., "mistune-3.0-toc2")
+            ast: True AST tokens from parser (optional, for Phase 3)
         """
         # Hash metadata to detect changes
         metadata_str = json.dumps(metadata, sort_keys=True, default=str)
@@ -719,12 +786,17 @@ class BuildCache:
 
         # Calculate size for cache management
         size_bytes = len(html.encode("utf-8")) + len(toc.encode("utf-8"))
+        if ast:
+            # Estimate AST size (JSON serialization)
+            ast_str = json.dumps(ast, default=str)
+            size_bytes += len(ast_str.encode("utf-8"))
 
         # Store as dict (will be serialized to JSON)
         self.parsed_content[str(file_path)] = {
             "html": html,
             "toc": toc,
             "toc_items": toc_items,
+            "ast": ast,  # Phase 3: Store true AST tokens
             "metadata_hash": metadata_hash,
             "template": template,
             "parser_version": parser_version,

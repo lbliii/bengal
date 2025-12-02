@@ -18,8 +18,9 @@ assets:
   fingerprint: false
 
 # Health check configuration
+# WRITER profile checks: config, output, links, directives (catches broken links + markdown errors)
+# THEME_DEV profile adds: rendering, navigation, menu (for template debugging)
+# DEV profile: all checks
 health_check:
-  # Enable verbose output to see INFO-level warnings (admonitions, links, etc.)
-  verbose: true
-  # Note: WRITER profile now includes directives validator by default (writers care about markdown errors)
-  # Theme devs get additional validators: rendering, navigation, menu (for template/theme debugging)
+  enabled: true   # Enable for local dev to catch issues early
+  verbose: true   # Show INFO-level warnings (broken links, directive issues)

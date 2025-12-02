@@ -104,6 +104,9 @@ class Site:
     # Section registry for path-based lookups (O(1) section access by path)
     _section_registry: dict[Path, Section] = field(default_factory=dict, repr=False, init=False)
 
+    # Config hash for cache invalidation (computed on init)
+    _config_hash: str | None = field(default=None, repr=False, init=False)
+
     def __post_init__(self) -> None:
         """Initialize site from configuration."""
         # Ensure root_path is a Path object
@@ -131,6 +134,9 @@ class Site:
         # Load data from data/ directory
         self.data = self._load_data_directory()
 
+        # Compute config hash for cache invalidation
+        self._compute_config_hash()
+
     @property
     def title(self) -> str | None:
         """Get site title from config."""
@@ -145,6 +151,38 @@ class Site:
     def author(self) -> str | None:
         """Get site author from config."""
         return self.config.get("author")
+
+    @property
+    def config_hash(self) -> str:
+        """
+        Get deterministic hash of the resolved configuration.
+
+        Used for automatic cache invalidation when configuration changes.
+        The hash captures the effective config state including:
+        - Base config from files
+        - Environment variable overrides
+        - Build profile settings
+
+        Returns:
+            16-character hex string (truncated SHA-256)
+        """
+        if self._config_hash is None:
+            self._compute_config_hash()
+        return self._config_hash
+
+    def _compute_config_hash(self) -> None:
+        """
+        Compute and cache the configuration hash.
+
+        Called during __post_init__ to ensure hash is available immediately.
+        """
+        from bengal.config.hash import compute_config_hash
+
+        self._config_hash = compute_config_hash(self.config)
+        logger.debug(
+            "config_hash_computed",
+            hash=self._config_hash[:8] if self._config_hash else "none",
+        )
 
     @property
     def theme_config(self) -> Theme:
@@ -425,9 +463,22 @@ class Site:
             logger.warning("content_dir_not_found", path=str(content_dir))
             return
 
+        from bengal.collections import load_collections
         from bengal.discovery.content_discovery import ContentDiscovery
 
-        discovery = ContentDiscovery(content_dir, site=self)
+        # Load collection schemas from project root (if collections.py exists)
+        collections = load_collections(self.root_path)
+
+        # Check if strict validation is enabled (default: False for backward compatibility)
+        build_config = self.config.get("build", {}) if isinstance(self.config, dict) else {}
+        strict_validation = build_config.get("strict_collections", False)
+
+        discovery = ContentDiscovery(
+            content_dir,
+            site=self,
+            collections=collections,
+            strict_validation=strict_validation,
+        )
         self.sections, self.pages = discovery.discover()
 
         # Build section registry for path-based lookups (MUST come before _setup_page_references)
@@ -608,6 +659,7 @@ class Site:
         memory_optimized: bool = False,
         strict: bool = False,
         full_output: bool = False,
+        profile_templates: bool = False,
     ) -> BuildStats:
         """
         Build the entire site.
@@ -623,6 +675,7 @@ class Site:
             memory_optimized: Use streaming build for memory efficiency (best for 5K+ pages)
             strict: Whether to fail on warnings
             full_output: Show full traditional output instead of live progress
+            profile_templates: Enable template profiling for performance analysis
 
         Returns:
             BuildStats object with build statistics
@@ -639,6 +692,7 @@ class Site:
             memory_optimized=memory_optimized,
             strict=strict,
             full_output=full_output,
+            profile_templates=profile_templates,
         )
 
     def serve(

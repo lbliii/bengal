@@ -79,8 +79,8 @@ class TestPerPageLLMTextGeneration:
         assert "Word Count:" in content
         assert "Reading Time:" in content
 
-    def test_llm_txt_strips_html_tags(self, tmp_path):
-        """Test that HTML tags are stripped from LLM.txt content."""
+    def test_llm_txt_uses_plain_text(self, tmp_path):
+        """Test that LLM.txt uses page.plain_text (pre-extracted via AST)."""
         output_dir = tmp_path / "public"
         output_dir.mkdir()
 
@@ -91,6 +91,8 @@ class TestPerPageLLMTextGeneration:
             content="<p>This is <strong>bold</strong> and <em>italic</em> text.</p>",
             output_path=output_dir / "tutorial/index.html",
         )
+        # plain_text should already be extracted (via AST walker in real usage)
+        page.plain_text = "This is bold and italic text."
         mock_site.pages = [page]
 
         config = {"enabled": True, "per_page": ["llm_txt"], "site_wide": []}
@@ -103,7 +105,7 @@ class TestPerPageLLMTextGeneration:
         txt_path = output_dir / "tutorial/index.txt"
         content = txt_path.read_text()
 
-        # Should have plain text, no HTML tags
+        # Should have plain text from page.plain_text property
         assert "This is bold and italic text" in content
         assert "<p>" not in content
         assert "<strong>" not in content
@@ -257,6 +259,7 @@ class TestPerPageLLMTextGeneration:
         page.url = url
         page.content = content
         page.parsed_ast = content  # Simplified for testing
+        page.plain_text = content  # For AST-based extraction
         page.output_path = output_path
         page.tags = tags or []
         page.date = None
@@ -414,6 +417,7 @@ class TestSiteWideLLMFullGeneration:
         page.url = url
         page.content = content
         page.parsed_ast = content
+        page.plain_text = content  # For AST-based extraction
         page.output_path = output_path
         page.tags = []
         page.date = None
@@ -510,6 +514,7 @@ class TestLLMTextFormatSpec:
         page.url = url
         page.content = content
         page.parsed_ast = content
+        page.plain_text = content  # For AST-based extraction
         page.output_path = output_path
         page.tags = []
         page.date = None

@@ -391,6 +391,7 @@ class TestSiteIndexJsonGeneration:
         page.url = url
         page.content = content
         page.parsed_ast = content  # Simplified for testing
+        page.plain_text = content  # For AST-based extraction
         page.output_path = output_path
         page.tags = tags or []
         page.date = None

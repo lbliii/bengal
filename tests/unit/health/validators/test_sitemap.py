@@ -42,7 +42,7 @@ def test_sitemap_validator_missing_file(mock_site):
 
 
 def test_sitemap_validator_valid_sitemap(mock_site, tmp_path):
-    """Test validator passes for valid sitemap."""
+    """Test validator passes for valid sitemap (silence is golden pattern)."""
     sitemap_path = tmp_path / "sitemap.xml"
     sitemap_content = """<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
@@ -63,10 +63,10 @@ def test_sitemap_validator_valid_sitemap(mock_site, tmp_path):
     validator = SitemapValidator()
     results = validator.validate(mock_site)
 
-    # Should have success results
-    assert any(r.status == CheckStatus.SUCCESS for r in results)
-    assert any("Sitemap file exists" in r.message for r in results)
-    assert any("well-formed" in r.message for r in results)
+    # Validators follow "silence is golden" - valid sitemap produces no errors
+    assert not any(r.status == CheckStatus.ERROR for r in results)
+    # Sitemap has 2 URLs but mock_site has 3 pages (2 non-draft), so might get coverage warning
+    # That's expected behavior - sitemap doesn't cover all pages
 
 
 def test_sitemap_validator_malformed_xml(mock_site, tmp_path):

@@ -5,6 +5,7 @@ build:
   output_dir: "public"
   parallel: true
   incremental: true
+  max_workers: null  # Auto-detect CPU cores (11 on this machine)
 
 assets:
   minify: true
@@ -43,3 +44,9 @@ autodoc:
     framework: "click"
     output_dir: "content/cli"
     display_name: "Bengal CLI"  # Display name for CLI documentation section (used in navigation)
+
+# Health check configuration
+# Note: Use --profile writer/theme-dev/dev to control which checks run
+health_check:
+  enabled: true
+  verbose: false  # Set true to see INFO-level warnings
