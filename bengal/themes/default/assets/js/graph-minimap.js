@@ -415,12 +415,15 @@
         }
     }
 
-    // Initialize when DOM is ready
+    // Initialize when DOM is ready OR when D3 becomes available (lazy-loaded)
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', initMinimap);
     } else {
         initMinimap();
     }
+
+    // Also listen for d3:ready event (fired when D3 is lazy-loaded)
+    window.addEventListener('d3:ready', initMinimap);
 
     // Cleanup on page unload to prevent memory leaks
     window.addEventListener('beforeunload', cleanup);
