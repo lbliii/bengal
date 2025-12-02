@@ -260,26 +260,7 @@
   transform: translateY(0) scale(0.98);
 }
 
-/* Dark mode */
-[data-theme="dark"] .action-bar-meta-toggle {
-  background: linear-gradient(180deg,
-      rgba(42, 42, 42, 0.95),
-      rgba(28, 28, 28, 0.92));
-  border-color: rgba(255, 255, 255, 0.1);
-}
-
-[data-theme="dark"] .action-bar-meta-toggle:hover {
-  background: linear-gradient(180deg,
-      rgba(48, 48, 48, 0.97),
-      rgba(32, 32, 32, 0.95));
-  border-color: rgba(255, 255, 255, 0.15);
-}
-
-[data-theme="dark"] .action-bar-meta-toggle:active {
-  background: linear-gradient(180deg,
-      rgba(32, 32, 32, 0.98),
-      rgba(22, 22, 22, 0.96));
-}
+/* Dark mode inherits via CSS variables - no explicit overrides needed */
 
 .action-bar-meta-toggle-icon {
   transition: transform 0.15s ease;
@@ -586,29 +567,7 @@
    Dark Mode - Action Bar Share Components
    ============================================================================ */
 
-[data-theme="dark"] .action-bar-share-trigger {
-  background: linear-gradient(180deg,
-      rgba(42, 42, 42, 0.95),
-      rgba(28, 28, 28, 0.92));
-  border-color: rgba(255, 255, 255, 0.1);
-}
-
-[data-theme="dark"] .action-bar-share-trigger:hover {
-  background: linear-gradient(180deg,
-      rgba(48, 48, 48, 0.97),
-      rgba(32, 32, 32, 0.95));
-  border-color: rgba(255, 255, 255, 0.15);
-}
-
-[data-theme="dark"] .action-bar-share-trigger:active {
-  background: linear-gradient(180deg,
-      rgba(32, 32, 32, 0.98),
-      rgba(22, 22, 22, 0.96));
-}
-
-[data-theme="dark"] .action-bar-share-trigger[aria-expanded="true"] {
-  color: var(--color-primary);
-}
+/* Dark mode inherits via CSS variables - no explicit overrides needed */
 
 [data-theme="dark"] .action-bar-share-dropdown {
   /* Neumorphic shadow for dark mode dropdown */

@@ -593,29 +593,7 @@ header .container {
    DARK MODE - Theme Dropdown
    ============================================ */
 
-[data-theme="dark"] .theme-dropdown__button {
-  background: linear-gradient(180deg,
-      rgba(42, 42, 42, 0.95),
-      rgba(28, 28, 28, 0.92));
-  border-color: rgba(255, 255, 255, 0.1);
-}
-
-[data-theme="dark"] .theme-dropdown__button:hover {
-  background: linear-gradient(180deg,
-      rgba(48, 48, 48, 0.97),
-      rgba(32, 32, 32, 0.95));
-  border-color: rgba(255, 255, 255, 0.15);
-}
-
-[data-theme="dark"] .theme-dropdown__button:active {
-  background: linear-gradient(180deg,
-      rgba(32, 32, 32, 0.98),
-      rgba(22, 22, 22, 0.96));
-}
-
-[data-theme="dark"] .theme-dropdown__button[aria-expanded="true"] {
-  color: var(--color-primary);
-}
+/* Dark mode inherits via CSS variables - no explicit overrides needed */
 
 [data-theme="dark"] .theme-dropdown__menu {
   /* Neumorphic shadow for dark mode dropdown */

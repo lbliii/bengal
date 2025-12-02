@@ -78,25 +78,10 @@
    DARK MODE
    ============================================ */
 
-[data-theme="dark"] .nav-action-btn {
-  background: linear-gradient(180deg,
-      rgba(42, 42, 42, 0.95),
-      rgba(28, 28, 28, 0.92));
-  border-color: rgba(255, 255, 255, 0.1);
-}
-
-[data-theme="dark"] .nav-action-btn:hover {
-  background: linear-gradient(180deg,
-      rgba(48, 48, 48, 0.97),
-      rgba(32, 32, 32, 0.95));
-  border-color: rgba(255, 255, 255, 0.15);
-}
-
-[data-theme="dark"] .nav-action-btn:active {
-  background: linear-gradient(180deg,
-      rgba(32, 32, 32, 0.98),
-      rgba(22, 22, 22, 0.96));
-}
+/* Dark mode inherits via CSS variables:
+   - --color-surface and --color-bg-secondary adapt automatically
+   - --neumorphic-subtle/hover/pressed are redefined for dark mode
+   No explicit overrides needed! */
 
 /* ============================================
    RESPONSIVE
