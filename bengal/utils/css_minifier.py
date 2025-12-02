@@ -167,11 +167,15 @@ def minify_css(css: str) -> str:
         if (prev == "/" or next_char == "/") and in_slash_prop:
             return True
 
-        # Operators in calc/clamp need spaces
+        # Operators in calc/clamp need spaces around + and -
+        # CSS spec: "both + and - operators must be surrounded by whitespace"
+        # Note: * and / do NOT require spaces
         if in_calc_function:
+            # Space after + or - (before number/variable)
             if prev in "+-" and (next_char.isalnum() or next_char == "-"):
                 return True
-            if next_char in "+-" and prev.isalnum():
+            # Space before + or - (after number/variable, closing paren, or %)
+            if next_char in "+-" and (prev.isalnum() or prev in ")%"):
                 return True
 
         # Value keywords (inset, etc.) need space before values
