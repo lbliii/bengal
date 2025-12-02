@@ -41,17 +41,17 @@ class TestGetBreadcrumbs:
 
         result = get_breadcrumbs(page)
 
-        assert len(result) == 3
-        assert result[0] == {"title": "Home", "url": "/", "is_current": False}
-        assert result[1] == {"title": "Docs", "url": "/docs/", "is_current": False}
-        assert result[2] == {
+        # Only 2 items: parent section + current page (no Home)
+        assert len(result) == 2
+        assert result[0] == {"title": "Docs", "url": "/docs/", "is_current": False}
+        assert result[1] == {
             "title": "Getting Started",
             "url": "/docs/getting-started/",
             "is_current": True,
         }
 
     def test_nested_breadcrumbs(self):
-        """Multiple levels of nesting."""
+        """Multiple levels of nesting - limited to last 2 ancestors."""
         # Create nested ancestors
         docs = Mock()
         docs.title = "Docs"
@@ -68,12 +68,12 @@ class TestGetBreadcrumbs:
 
         result = get_breadcrumbs(page)
 
-        assert len(result) == 4
-        assert result[0]["title"] == "Home"
-        assert result[1]["title"] == "Docs"
-        assert result[2]["title"] == "Markdown"
-        assert result[3]["title"] == "Syntax"
-        assert result[3]["is_current"]
+        # Limited to 2 ancestors max + current (no Home, 3 items total)
+        assert len(result) == 3
+        assert result[0]["title"] == "Docs"
+        assert result[1]["title"] == "Markdown"
+        assert result[2]["title"] == "Syntax"
+        assert result[2]["is_current"]
 
     def test_section_index_page_no_duplication(self):
         """Section index pages don't duplicate the section name."""
@@ -94,12 +94,11 @@ class TestGetBreadcrumbs:
 
         result = get_breadcrumbs(page)
 
-        # Should NOT have duplicate "Markdown" at the end
-        assert len(result) == 3
-        assert result[0]["title"] == "Home"
-        assert result[1]["title"] == "Docs"
-        assert result[2]["title"] == "Markdown"
-        assert result[2]["is_current"]  # Last item is current
+        # Should NOT have duplicate "Markdown" at the end (no Home)
+        assert len(result) == 2
+        assert result[0]["title"] == "Docs"
+        assert result[1]["title"] == "Markdown"
+        assert result[1]["is_current"]  # Last item is current
 
         # Verify no duplicate
         titles = [item["title"] for item in result]
@@ -161,8 +160,8 @@ class TestGetBreadcrumbs:
 
         result = get_breadcrumbs(page)
 
-        # Should construct URL from slug
-        assert result[1]["url"] == "/docs/"
+        # Should construct URL from slug (no Home, so index 0)
+        assert result[0]["url"] == "/docs/"
 
     def test_page_without_title_shows_untitled(self):
         """Pages without title show 'Untitled' when no slug or URL path available."""
@@ -178,21 +177,38 @@ class TestGetBreadcrumbs:
 
         result = get_breadcrumbs(page)
 
-        assert result[1]["title"] == "Untitled"
+        # No Home, so index 0 is the untitled section
+        assert result[0]["title"] == "Untitled"
 
-    def test_home_is_always_first(self):
-        """Home is always the first breadcrumb."""
-        section = Mock()
-        section.title = "Docs"
-        section.relative_url = "/docs/"
+    def test_deeply_nested_truncates_to_2_ancestors(self):
+        """Deep nesting is truncated to only last 2 ancestors."""
+        # Create deeply nested ancestors (4 levels)
+        root = Mock()
+        root.title = "Root"
+        root.relative_url = "/root/"
+
+        level1 = Mock()
+        level1.title = "Level1"
+        level1.relative_url = "/root/level1/"
+
+        level2 = Mock()
+        level2.title = "Level2"
+        level2.relative_url = "/root/level1/level2/"
+
+        level3 = Mock()
+        level3.title = "Level3"
+        level3.relative_url = "/root/level1/level2/level3/"
 
         page = Mock()
-        page.ancestors = [section]
-        page.relative_url = "/docs/page/"
+        page.ancestors = [level3, level2, level1, root]  # Closest ancestor first
+        page.relative_url = "/root/level1/level2/level3/page/"
         page.title = "Page"
 
         result = get_breadcrumbs(page)
 
-        assert result[0]["title"] == "Home"
-        assert result[0]["url"] == "/"
-        assert not result[0]["is_current"]
+        # Should only include last 2 ancestors + current page (3 items total)
+        assert len(result) == 3
+        assert result[0]["title"] == "Level2"  # Grandparent
+        assert result[1]["title"] == "Level3"  # Parent
+        assert result[2]["title"] == "Page"    # Current
+        assert result[2]["is_current"]
