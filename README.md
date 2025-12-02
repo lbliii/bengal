@@ -40,17 +40,17 @@ PYTHON_GIL=0 bengal site build --fast
 ## Requirements
 
 - Python 3.14+ (recommended: free-threaded build for 1.8x faster rendering)
-- See [installation guide](https://bengal.dev/docs/getting-started/installation/) for setup
+- See [installation guide](https://lbliii.github.io/bengal/docs/getting-started/installation/) for setup
 
 ## Documentation
 
-📚 **[bengal.dev](https://bengal.dev)**
+📚 **[bengal.dev](https://lbliii.github.io/bengal/)**
 
-- [Getting Started](https://bengal.dev/docs/getting-started/) — Installation, quickstarts by role
-- [Guides](https://bengal.dev/docs/guides/) — Tutorials and how-tos
-- [Reference](https://bengal.dev/docs/reference/) — Architecture, directives, configuration
-- [CLI Reference](https://bengal.dev/cli/) — All commands and options
-- [API Reference](https://bengal.dev/api/) — Python API documentation
+- [Getting Started](https://lbliii.github.io/bengal/docs/getting-started/) — Installation, quickstarts by role
+- [Guides](https://lbliii.github.io/bengal/docs/guides/) — Tutorials and how-tos
+- [Reference](https://lbliii.github.io/bengal/docs/reference/) — Architecture, directives, configuration
+- [CLI Reference](https://lbliii.github.io/bengal/cli/) — All commands and options
+- [API Reference](https://lbliii.github.io/bengal/api/) — Python API documentation
 
 ## Commands
 
@@ -79,7 +79,7 @@ fast_mode = true
 name = "default"
 ```
 
-See [configuration reference](https://bengal.dev/docs/reference/architecture/tooling/config/) for all options.
+See [configuration reference](https://lbliii.github.io/bengal/docs/reference/architecture/tooling/config/) for all options.
 
 ## Project Structure
 
@@ -100,7 +100,7 @@ cd bengal
 pip install -e ".[server]"
 ```
 
-See [contributor quickstart](https://bengal.dev/docs/getting-started/contributor-quickstart/) for development setup.
+See [contributor quickstart](https://lbliii.github.io/bengal/docs/getting-started/contributor-quickstart/) for development setup.
 
 ## License
 
