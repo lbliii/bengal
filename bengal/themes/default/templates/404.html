@@ -11,18 +11,20 @@
   <div class="empty-state">
     <div class="empty-state__code">404</div>
 
-    {# Decorative icon #}
+    {# Decorative icon - compass/lost metaphor #}
     <div class="empty-state__icon" aria-hidden="true">
       <svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
         <circle cx="60" cy="60" r="50" stroke="currentColor" stroke-width="2" stroke-opacity="0.1" fill="none"/>
-        <path d="M40 40L80 80M80 40L40 80" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-opacity="0.2"/>
-        <circle cx="60" cy="60" r="8" fill="currentColor" fill-opacity="0.1"/>
+        <circle cx="60" cy="60" r="35" stroke="currentColor" stroke-width="1.5" stroke-opacity="0.15" fill="none" stroke-dasharray="4 4"/>
+        <path d="M60 25L65 55L60 60L55 55L60 25Z" fill="currentColor" fill-opacity="0.3"/>
+        <path d="M60 95L55 65L60 60L65 65L60 95Z" fill="currentColor" fill-opacity="0.15"/>
+        <circle cx="60" cy="60" r="6" fill="currentColor" fill-opacity="0.2"/>
       </svg>
     </div>
 
     <h1 class="empty-state__title">Page Not Found</h1>
     <p class="empty-state__message">
-      The page you're looking for doesn't exist or may have been moved. Let's get you back on track.
+      The page you're looking for doesn't exist or may have been moved.
     </p>
 
     <div class="empty-state__actions">
@@ -33,25 +35,34 @@
         </svg>
         <span>Go Home</span>
       </a>
-      <a href="{{ '/search/' | absolute_url }}" class="button button-secondary">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <circle cx="11" cy="11" r="8"></circle>
-          <path d="m21 21-4.35-4.35"></path>
-        </svg>
-        <span>Search</span>
-      </a>
     </div>
 
+    {# Get actual navigation items from site config or auto-discovery #}
+    {% set main_menu = get_menu_lang('main', current_lang()) %}
+    {% set auto_nav = [] %}
+    {% if main_menu | length == 0 %}
+    {% set auto_nav = get_auto_nav() %}
+    {% endif %}
+    {% set nav_items = main_menu if main_menu else auto_nav %}
+
+    {# Only show suggestions if we have navigation items #}
+    {% if nav_items %}
     <div class="empty-state__suggestions">
-      <h2>What would you like to do?</h2>
+      <h2>Quick Navigation</h2>
       <ul>
-        <li><a href="{{ '/' | absolute_url }}">Visit the homepage</a></li>
-        <li><a href="{{ '/blog/' | absolute_url }}">Browse all posts</a></li>
-        <li><a href="{{ '/tags/' | absolute_url }}">Explore by tags</a></li>
-        <li><a href="{{ '/search/' | absolute_url }}">Search the site</a></li>
-        <li>Use the navigation menu above</li>
+        {% for item in nav_items[:5] %}
+        <li>
+          <a href="{{ item.url | absolute_url }}">{{ item.name }}</a>
+        </li>
+        {% endfor %}
       </ul>
     </div>
+    {% endif %}
+
+    {# Search hint - points to existing global search #}
+    <p class="empty-state__search-hint">
+      Press <kbd>⌘</kbd><kbd>K</kbd> to search
+    </p>
   </div>
 </div>
 {% endblock %}
