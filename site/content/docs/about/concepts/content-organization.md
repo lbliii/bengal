@@ -180,3 +180,7 @@ cascade:
 ```
 
 Any page inside `content/blog/` will now automatically have `type: blog-post` unless it specifically overrides it.
+
+## Validating Frontmatter
+
+Want to catch frontmatter errors at build time? Use [Content Collections](/docs/guides/content-collections/) to define schemas that validate your content automatically. Collections are optional but helpful for teams or sites with strict content requirements.
