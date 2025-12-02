@@ -113,17 +113,13 @@ def run_health_check(
     Raises:
         Exception: If strict_mode is enabled and health checks fail
     """
+    from bengal.config.defaults import get_feature_config
     from bengal.health import HealthCheck
 
-    health_config = orchestrator.site.config.get("health_check", {})
+    # Get normalized health_check config (handles bool or dict)
+    health_config = get_feature_config(orchestrator.site.config, "health_check")
 
-    # Check if health checks are enabled
-    if isinstance(health_config, bool):
-        enabled = health_config
-    else:
-        enabled = health_config.get("enabled", True)
-
-    if not enabled:
+    if not health_config.get("enabled", True):
         return
 
     # Run health checks with profile filtering

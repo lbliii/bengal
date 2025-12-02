@@ -180,24 +180,16 @@ class SpecialPagesGenerator:
         - Writes to /search/index.html by default
         """
         try:
-            # Read config with sensible defaults
-            raw_cfg = self.site.config.get("search", True)
-            # Support both boolean (search = true/false) and table ([search]) forms
-            if isinstance(raw_cfg, bool):
-                enabled = raw_cfg
-                path_cfg = "/search/"
-                template_name = "search.html"
-            elif isinstance(raw_cfg, dict):
-                enabled = raw_cfg.get("enabled", True)
-                path_cfg = raw_cfg.get("path", "/search/") or "/search/"
-                template_name = raw_cfg.get("template", "search.html") or "search.html"
-            else:
-                # Unknown type → fall back to defaults and enable
-                enabled = True
-                path_cfg = "/search/"
-                template_name = "search.html"
-            if not enabled:
+            from bengal.config.defaults import get_feature_config
+
+            # Get normalized search config (handles both bool and dict)
+            search_cfg = get_feature_config(self.site.config, "search")
+            if not search_cfg.get("enabled", True):
                 return False
+
+            # Extract config options with defaults
+            path_cfg = search_cfg.get("path", "/search/") or "/search/"
+            template_name = search_cfg.get("template", "search.html") or "search.html"
 
             # Path normalization: default '/search/'
             raw_path = path_cfg
@@ -290,21 +282,15 @@ class SpecialPagesGenerator:
             True if generated successfully, False if disabled or error occurred
         """
         try:
-            # Read config with sensible defaults
-            raw_cfg = self.site.config.get("graph", True)
-            # Support both boolean (graph = true/false) and table ([graph]) forms
-            if isinstance(raw_cfg, bool):
-                enabled = raw_cfg
-                path_cfg = "/graph/"
-            elif isinstance(raw_cfg, dict):
-                enabled = raw_cfg.get("enabled", True)
-                path_cfg = raw_cfg.get("path", "/graph/") or "/graph/"
-            else:
-                # Unknown type → fall back to defaults and enable
-                enabled = True
-                path_cfg = "/graph/"
-            if not enabled:
+            from bengal.config.defaults import get_feature_config
+
+            # Get normalized graph config (handles both bool and dict)
+            graph_cfg = get_feature_config(self.site.config, "graph")
+            if not graph_cfg.get("enabled", True):
                 return False
+
+            # Extract config options with defaults
+            path_cfg = graph_cfg.get("path", "/graph/") or "/graph/"
 
             # Path normalization: default '/graph/'
             raw_path = path_cfg

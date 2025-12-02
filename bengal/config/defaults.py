@@ -286,3 +286,161 @@ def get_pagination_per_page(config_value: int | None = None) -> int:
         return DEFAULTS["pagination"]["per_page"]
     return max(1, config_value)
 
+
+# =============================================================================
+# Bool/Dict Normalization
+# =============================================================================
+
+# Keys that can be either bool or dict
+BOOL_OR_DICT_KEYS = frozenset({
+    "health_check",
+    "search",
+    "graph",
+    "output_formats",
+})
+
+
+def normalize_bool_or_dict(
+    value: bool | dict[str, Any] | None,
+    key: str,
+    default_enabled: bool = True,
+) -> dict[str, Any]:
+    """
+    Normalize config values that can be bool or dict.
+
+    This standardizes handling of config keys like `health_check`, `search`,
+    `graph`, etc. that accept both:
+    - `key: false` (bool to disable)
+    - `key: { enabled: true, ... }` (dict with options)
+
+    Args:
+        value: The config value (bool, dict, or None)
+        key: The config key name (for defaults lookup)
+        default_enabled: Whether the feature is enabled by default
+
+    Returns:
+        Normalized dict with 'enabled' key and any other options
+
+    Examples:
+        >>> normalize_bool_or_dict(False, "health_check")
+        {'enabled': False}
+
+        >>> normalize_bool_or_dict(True, "search")
+        {'enabled': True, 'lunr': {'prebuilt': True, ...}, 'ui': {...}}
+
+        >>> normalize_bool_or_dict({'verbose': True}, "health_check")
+        {'enabled': True, 'verbose': True}
+
+        >>> normalize_bool_or_dict(None, "graph")
+        {'enabled': True, 'path': '/graph/'}
+    """
+    # Get defaults for this key if available
+    key_defaults = DEFAULTS.get(key, {})
+    if not isinstance(key_defaults, dict):
+        key_defaults = {"enabled": default_enabled}
+
+    if value is None:
+        # Use defaults
+        result = dict(key_defaults)
+        if "enabled" not in result:
+            result["enabled"] = default_enabled
+        return result
+
+    if isinstance(value, bool):
+        # Convert bool to dict with enabled flag
+        result = dict(key_defaults)
+        result["enabled"] = value
+        return result
+
+    if isinstance(value, dict):
+        # Merge with defaults, user values take precedence
+        result = dict(key_defaults)
+        result.update(value)
+        # Ensure 'enabled' exists
+        if "enabled" not in result:
+            result["enabled"] = default_enabled
+        return result
+
+    # Fallback for unexpected types
+    return {"enabled": default_enabled}
+
+
+def is_feature_enabled(
+    config: dict[str, Any],
+    key: str,
+    default: bool = True,
+) -> bool:
+    """
+    Check if a bool/dict config feature is enabled.
+
+    Convenience function for quick enable/disable checks without
+    needing the full normalized dict.
+
+    Args:
+        config: The site config dictionary
+        key: The config key to check (e.g., "health_check", "search")
+        default: Default value if key not present
+
+    Returns:
+        True if feature is enabled, False otherwise
+
+    Examples:
+        >>> is_feature_enabled({"health_check": False}, "health_check")
+        False
+
+        >>> is_feature_enabled({"search": {"enabled": True}}, "search")
+        True
+
+        >>> is_feature_enabled({}, "graph")  # Not in config
+        True  # Default is True
+    """
+    value = config.get(key)
+
+    if value is None:
+        return default
+
+    if isinstance(value, bool):
+        return value
+
+    if isinstance(value, dict):
+        return value.get("enabled", default)
+
+    return default
+
+
+def get_feature_config(
+    config: dict[str, Any],
+    key: str,
+    default_enabled: bool = True,
+) -> dict[str, Any]:
+    """
+    Get normalized config for a bool/dict feature.
+
+    This is the main entry point for accessing features that can be
+    configured as either bool or dict.
+
+    Args:
+        config: The site config dictionary
+        key: The config key (e.g., "health_check", "search", "graph")
+        default_enabled: Whether the feature is enabled by default
+
+    Returns:
+        Normalized dict with 'enabled' key and feature options
+
+    Examples:
+        >>> cfg = get_feature_config({"health_check": False}, "health_check")
+        >>> cfg["enabled"]
+        False
+
+        >>> cfg = get_feature_config({"search": {"ui": {"modal": False}}}, "search")
+        >>> cfg["enabled"]
+        True
+        >>> cfg["ui"]["modal"]
+        False
+    """
+    return normalize_bool_or_dict(
+        config.get(key),
+        key,
+        default_enabled,
+    )
+

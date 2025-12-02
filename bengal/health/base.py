@@ -93,12 +93,18 @@ class BaseValidator(ABC):
         Returns:
             True if validator should run
         """
+        from bengal.config.defaults import get_feature_config
+
         # Check if health checks are globally enabled
         if not config.get("validate_build", True):
             return False
 
+        # Get normalized health_check config (handles bool or dict)
+        health_config = get_feature_config(config, "health_check")
+        if not health_config.get("enabled", True):
+            return False
+
         # Check if this specific validator is enabled
-        health_config = config.get("health_check", {})
         validators_config = health_config.get("validators", {})
 
         # Look for validator-specific config using lowercase name
