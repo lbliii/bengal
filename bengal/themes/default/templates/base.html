@@ -59,7 +59,6 @@
     {# Bengal config meta for JS to read without template tags inside scripts #}
     <meta name="bengal:search_preload" content="{{ site.config.get('search_preload', 'smart') }}">
     <meta name="bengal:baseurl" content="{{ site.config.baseurl or '' }}">
-    <meta name="bengal:asset_base" content="{{ '/assets' | absolute_url }}">
     <meta name="bengal:index_url" content="{{ '/index.json' | absolute_url }}">
     <meta name="bengal:search_index_url" content="{{ '/search-index.json' | absolute_url }}">
 
@@ -454,10 +453,57 @@
     {# Session path tracker - lightweight, always load #}
     <script defer src="{{ asset_url('js/session-path-tracker.js') }}"></script>
 
-    {# Lazy-loaded Libraries (Mermaid, D3, Tabulator) - external file for cleaner template #}
-    <script defer src="{{ asset_url('js/lazy-loaders.js') }}"></script>
+    {# ================================================================ #}
+    {# Lazy-loaded Libraries - MUST be inline to use asset_url() #}
+    {# for fingerprinted filenames. These are small loaders that #}
+    {# conditionally load heavy libraries only when needed. #}
+    {# ================================================================ #}
 
-    {# Smart search index preloading - must load after search.js #}
+    {# Tabulator (~100KB) - Only load if data tables exist #}
+    <script>
+        (function () {
+            if (!document.querySelector('.bengal-data-table-wrapper')) return;
+            var s = document.createElement('script'); s.src = '{{ asset_url("js/tabulator.min.js") }}';
+            s.onload = function () {
+                var d = document.createElement('script');
+                d.src = '{{ asset_url("js/data-table.js") }}'; document.head.appendChild(d);
+            };
+            document.head.appendChild(s);
+        })();
+    </script>
+
+    {# Mermaid (~930KB) - Only load if .mermaid elements exist #}
+    <script>
+        (function () {
+            if (!document.querySelector('.mermaid')) return;
+            var s = document.createElement('script'); s.src = 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js';
+            s.onload = function () {
+                var t = document.createElement('script');
+                t.src = '{{ asset_url("js/mermaid-toolbar.js") }}'; t.onload = function () {
+                    var m = document.createElement('script'); m.src = '{{ asset_url("js/mermaid-theme.js") }}';
+                    document.head.appendChild(m);
+                }; document.head.appendChild(t);
+            };
+            document.head.appendChild(s);
+        })();
+    </script>
+
+    {# D3 (~92KB) - Only load if graph elements exist #}
+    <script>
+        (function () {
+            if (!document.querySelector('.graph-minimap,.graph-contextual,[data-graph]')) return;
+            var s = document.createElement('script'); s.src = 'https://d3js.org/d3.v7.min.js';
+            s.onload = function () {
+                window.dispatchEvent(new Event('d3:ready'));
+                var m = document.createElement('script'); m.src = '{{ asset_url("js/graph-minimap.js") }}';
+                document.head.appendChild(m); var c = document.createElement('script');
+                c.src = '{{ asset_url("js/graph-contextual.js") }}'; document.head.appendChild(c);
+            };
+            document.head.appendChild(s);
+        })();
+    </script>
+
+    {# Smart search index preloading #}
     <script defer src="{{ asset_url('js/search-preload.js') }}"></script>
 
     {% block extra_js %}{% endblock %}
