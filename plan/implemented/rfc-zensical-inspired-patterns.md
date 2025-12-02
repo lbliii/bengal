@@ -60,7 +60,7 @@ We will move away from tracking config *files* and instead track the config *sta
 def compute_config_hash(config: dict[str, Any]) -> str:
     """
     Compute deterministic hash of the resolved configuration.
-    
+
     Handles:
     - Recursive sorting of keys
     - Serialization of non-JSON types (Path objects, etc.)
@@ -78,7 +78,7 @@ def compute_config_hash(config: dict[str, Any]) -> str:
 class BuildCache:
     # ... existing fields ...
     config_hash: str | None = None
-    
+
     def validate_config(self, current_hash: str) -> bool:
         """
         Check if cache is valid for the current configuration.
@@ -101,7 +101,7 @@ class Site:
     def __init__(self, ...):
         # ...
         self.config_hash = compute_config_hash(self.config)
-        
+
     def build(self, ...):
         # Pass config_hash to orchestrator/cache
 ```
@@ -137,8 +137,8 @@ def compute_config_hash(config: dict[str, Any]) -> str:
     # 1. Sort keys for determinism
     # 2. Use custom serializer for Paths/Sets
     serialized = json.dumps(
-        config, 
-        sort_keys=True, 
+        config,
+        sort_keys=True,
         default=_json_default,
         ensure_ascii=True
     )
