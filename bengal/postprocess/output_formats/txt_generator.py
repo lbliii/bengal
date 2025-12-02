@@ -62,24 +62,38 @@ class PageTxtGenerator:
         Returns:
             Number of TXT files generated
         """
-        count = 0
-        for page in pages:
-            # Build text content
-            text = self.page_to_llm_text(page)
+        import concurrent.futures
+        from typing import Any
 
-            # Determine output path (next to HTML file)
+        # Prepare all page data first
+        page_items: list[tuple[Any, str]] = []
+        for page in pages:
             txt_path = get_page_txt_path(page)
             if not txt_path:
                 continue
+            text = self.page_to_llm_text(page)
+            page_items.append((txt_path, text))
 
-            # Ensure directory exists
-            txt_path.parent.mkdir(parents=True, exist_ok=True)
+        if not page_items:
+            return 0
 
-            # Write text atomically (crash-safe)
-            with AtomicFile(txt_path, "w", encoding="utf-8") as f:
-                f.write(text)
+        # Write files in parallel
+        def write_txt(item: tuple[Any, str]) -> bool:
+            txt_path, text = item
+            try:
+                txt_path.parent.mkdir(parents=True, exist_ok=True)
+                with AtomicFile(txt_path, "w", encoding="utf-8") as f:
+                    f.write(text)
+                return True
+            except Exception as e:
+                logger.warning("page_txt_write_failed", path=str(txt_path), error=str(e))
+                return False
 
-            count += 1
+        # Use thread pool for I/O-bound writes
+        count = 0
+        with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
+            results = executor.map(write_txt, page_items)
+            count = sum(1 for r in results if r)
 
         logger.info("page_txt_generated", count=count)
         return count
