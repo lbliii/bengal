@@ -9,11 +9,58 @@
 
 footer[role="contentinfo"] {
   margin-top: var(--space-16);
-  padding: var(--space-8) 0;
+  padding: var(--space-4) 0;
   border-top: 1px solid var(--color-border);
   background-color: var(--color-bg-secondary);
   margin-top: auto;
   /* stick to bottom on short pages */
+  position: relative;
+  /* Peaceful glow animation */
+  animation: footer-glow 8s ease-in-out infinite;
+}
+
+/* Peaceful slow glow animation for footer border */
+@keyframes footer-glow {
+
+  0%,
+  100% {
+    box-shadow: 0 -1px 0 0 color-mix(in srgb, var(--color-primary) 0%, transparent),
+      0 -2px 8px 0 color-mix(in srgb, var(--color-primary) 8%, transparent);
+  }
+
+  50% {
+    box-shadow: 0 -1px 0 0 color-mix(in srgb, var(--color-primary) 15%, transparent),
+      0 -2px 12px 0 color-mix(in srgb, var(--color-primary) 12%, transparent);
+  }
+}
+
+/* Dark mode glow - slightly brighter */
+[data-theme="dark"] footer[role="contentinfo"] {
+  animation: footer-glow-dark 8s ease-in-out infinite;
+}
+
+@keyframes footer-glow-dark {
+
+  0%,
+  100% {
+    box-shadow: 0 -1px 0 0 color-mix(in srgb, var(--color-primary) 5%, transparent),
+      0 -2px 10px 0 color-mix(in srgb, var(--color-primary) 10%, transparent);
+  }
+
+  50% {
+    box-shadow: 0 -1px 0 0 color-mix(in srgb, var(--color-primary) 20%, transparent),
+      0 -2px 14px 0 color-mix(in srgb, var(--color-primary) 15%, transparent);
+  }
+}
+
+/* Respect reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+
+  footer[role="contentinfo"],
+  [data-theme="dark"] footer[role="contentinfo"] {
+    animation: none;
+    box-shadow: 0 -1px 0 0 color-mix(in srgb, var(--color-primary) 10%, transparent);
+  }
 }
 
 footer .container {
@@ -228,18 +275,44 @@ footer .container {
 }
 
 @keyframes contemplative-head {
-  0%, 100% { transform: rotate(0deg); }
-  30% { transform: rotate(-8deg); }
-  45% { transform: rotate(-8deg); }
+
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+
+  30% {
+    transform: rotate(-8deg);
+  }
+
+  45% {
+    transform: rotate(-8deg);
+  }
+
   /* tiny ear twitch flick */
-  47% { transform: rotate(-10deg); }
-  49% { transform: rotate(-8deg); }
+  47% {
+    transform: rotate(-10deg);
+  }
+
+  49% {
+    transform: rotate(-8deg);
+  }
 }
 
 @keyframes contemplative-tail {
-  0%, 100% { transform: rotate(0deg); }
-  30% { transform: rotate(-10deg); }
-  60% { transform: rotate(-12deg); }
+
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+
+  30% {
+    transform: rotate(-10deg);
+  }
+
+  60% {
+    transform: rotate(-12deg);
+  }
 }
 
 /* Hover bounce to draw attention at tiny size */
@@ -266,7 +339,8 @@ footer .container {
 }
 
 .bengal-badge .cat {
-  font-size: var(--text-sm); /* Slightly larger for visibility (14px) */
+  font-size: var(--text-sm);
+  /* Slightly larger for visibility (14px) */
 }
 
 .bengal-badge:hover {
@@ -319,6 +393,11 @@ html[data-theme="dark"] .bengal-badge[data-tooltip]::after {
     animation: none;
   }
 
-  .bengal-badge { transition: none; }
-  .bengal-badge:hover { transform: none; }
+  .bengal-badge {
+    transition: none;
+  }
+
+  .bengal-badge:hover {
+    transform: none;
+  }
 }
