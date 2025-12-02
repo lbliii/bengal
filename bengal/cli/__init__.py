@@ -16,6 +16,7 @@ from bengal.cli.commands.health import health_cli
 from bengal.cli.commands.new import new
 from bengal.cli.commands.project import project_cli
 from bengal.cli.commands.site import site_cli
+from bengal.cli.commands.sources import sources_group
 from bengal.cli.commands.utils import utils_cli
 from bengal.cli.commands.validate import validate as validate_cli
 from bengal.utils.cli_output import CLIOutput
@@ -70,6 +71,7 @@ main.add_command(project_cli)
 main.add_command(assets_cli)
 main.add_command(autodoc)
 main.add_command(autodoc_cli)
+main.add_command(sources_group)
 
 
 if __name__ == "__main__":

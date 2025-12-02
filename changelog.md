@@ -1,5 +1,20 @@
 ## Unreleased
 
+### Content Layer API (Remote Content Sources)
+- **content_layer**: add unified content abstraction for fetching from any source (local, GitHub, REST APIs, Notion)
+- **content_layer(entry)**: add `ContentEntry` dataclass as source-agnostic content representation
+- **content_layer(source)**: add `ContentSource` abstract base class defining the loader protocol
+- **content_layer(sources/local)**: add `LocalSource` for filesystem content with frontmatter parsing
+- **content_layer(sources/github)**: add `GitHubSource` for fetching markdown from GitHub repos
+- **content_layer(sources/rest)**: add `RESTSource` for fetching content from REST APIs with field mapping
+- **content_layer(sources/notion)**: add `NotionSource` for fetching pages from Notion databases
+- **content_layer(manager)**: add `ContentLayerManager` for orchestrating multi-source fetching with caching
+- **content_layer(loaders)**: add factory functions (`local_loader`, `github_loader`, `rest_loader`, `notion_loader`)
+- **collections**: extend `CollectionConfig` with optional `loader` parameter for remote content
+- **collections**: add `is_remote` and `source_type` properties to `CollectionConfig`
+- **cli(sources)**: add `bengal sources` command group (list, status, fetch, clear)
+- **pyproject.toml**: add optional dependencies for remote sources (`github`, `notion`, `rest`, `all-sources`)
+
 ### Cache & Incremental Build Improvements
 - **cache**: add global config hashing for automatic cache invalidation when configuration changes
 - **config**: add `compute_config_hash()` utility for deterministic hashing of resolved config state
