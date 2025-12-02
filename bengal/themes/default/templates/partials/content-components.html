@@ -102,11 +102,14 @@ Displays subsections and child pages as compact row-based items with icons.
 Args:
 posts: List of child pages to display (optional, defaults to None)
 subsections: List of child sections to display (optional, defaults to None)
+current_page_url: URL of current page to exclude from list (optional, for caching optimization)
 
 Example:
-{{ child_page_tiles(posts=page.regular_pages, subsections=page.sections) }}
+{{ child_page_tiles(posts=posts, subsections=subsections, current_page_url=_page.relative_url if _has_page else none) }}
 #}
-{% macro child_page_tiles(posts=None, subsections=None) %}
+{% macro child_page_tiles(posts=None, subsections=None, current_page_url=None) %}
+{# Use passed current_page_url or fall back to global page lookup #}
+{% set _exclude_url = current_page_url if current_page_url is not none else (page.relative_url if (page is defined and page) else none) %}
 {% if posts or subsections %}
 {# Merge subsections and pages into unified list #}
 {% set all_items = [] %}
@@ -131,7 +134,7 @@ subsection.metadata.get('description', '') else '',
 {% if posts %}
 {% for post in posts %}
 {# Skip the current section index page if it appears in child posts #}
-{% if not ((page is defined and page) and (post.relative_url == page.relative_url)) %}
+{% if not (_exclude_url and post.relative_url == _exclude_url) %}
 {% set _ = all_items.append({
 'type': 'page',
 'obj': post,

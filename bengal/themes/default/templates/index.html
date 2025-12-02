@@ -48,7 +48,7 @@ Controls whether child pages and subsections are displayed as tiles
     {# Child content display - can be disabled via frontmatter: show_children: false #}
     {% set show_children = _page.metadata.get('show_children', true) if _has_page else true %}
     {% if show_children %}
-    {{ child_page_tiles(posts=posts, subsections=subsections) }}
+    {{ child_page_tiles(posts=posts, subsections=subsections, current_page_url=_page.relative_url if _has_page else none) }}
     {% endif %}
 
     {# Empty state if no children to display #}
