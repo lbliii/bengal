@@ -25,6 +25,10 @@ If no section, falls back to showing all top-level sections.
 Usage:
 {% include 'partials/docs-nav.html' %}
 #}
+{# Cache page lookups once - eliminates repeated defensive checks #}
+{% set _page = page if page is defined else none %}
+{% set _has_page = _page is not none %}
+{% set _current_url = _page.relative_url.rstrip('/') if (_has_page and _page.relative_url) else '' %}
 
 <nav class="docs-nav" aria-label="Documentation pages">
   {# Navigation Tree #}
@@ -33,7 +37,7 @@ Usage:
     {# Strategy: If current page has a section, find its root ancestor #}
     {# This allows the nav to be scoped to just the docs tree, not the entire site #}
     {# Get the root section to display the navigation tree from the top #}
-    {% set root_section = page._section.root if (page is defined and page and page._section) else none %}
+    {% set root_section = _page._section.root if (_has_page and _page._section) else none %}
 
     {# If we have a root section, show only its tree #}
     {% if root_section %}
@@ -44,17 +48,13 @@ Usage:
     {% set subsection_index_urls = root_section.subsection_index_urls %}
     {% set root_index_url = root_section.index_page.relative_url if root_section.index_page else none %}
 
-    {# Normalize current page URL for exact matching (remove trailing slash) #}
-    {# Use relative_url for comparisons (without baseurl) #}
-    {% set current_url = page.relative_url.rstrip('/') if (page is defined and page and page.relative_url) else '' %}
-
     {# Show the section's index page if it exists #}
     {% if root_section.index_page %}
     {% set root_url_normalized = root_index_url.rstrip('/') if root_index_url else '' %}
     {% set root_title = root_section.index_page.title if root_section.index_page.title and root_section.index_page.title.strip() else (root_section.slug.replace('-', ' ').replace('_', ' ').title() if root_section.slug else 'API Reference') %}
     <a href="{{ root_section.index_page.url }}"
-      class="docs-nav-link {% if (page is defined and page and current_url == root_url_normalized) %}active{% endif %}"
-      {% if (page is defined and page and current_url == root_url_normalized) %}aria-current="page"{% endif %}>
+      class="docs-nav-link {% if _current_url == root_url_normalized %}active{% endif %}"
+      {% if _current_url == root_url_normalized %}aria-current="page"{% endif %}>
       {{ root_title }}
     </a>
     {% endif %}
@@ -62,12 +62,11 @@ Usage:
     {# Show regular pages (O(n) with O(1) lookups) - sorted by weight #}
     {% for p in sorted_pages %}
     {# Skip root index and subsection index pages - now O(1) set lookup! #}
-    {# Use relative_url for comparisons (without baseurl) #}
     {% if p.relative_url != root_index_url and p.relative_url not in subsection_index_urls %}
     {% set p_url_normalized = p.relative_url.rstrip('/') if p.relative_url else '' %}
     <a href="{{ p.url }}"
-      class="docs-nav-link {% if (page is defined and page and current_url == p_url_normalized) %}active{% endif %}"
-      {% if (page is defined and page and current_url == p_url_normalized) %}aria-current="page"{% endif %}>
+      class="docs-nav-link {% if _current_url == p_url_normalized %}active{% endif %}"
+      {% if _current_url == p_url_normalized %}aria-current="page"{% endif %}>
       {{ p.title }}
     </a>
     {% endif %}
@@ -82,19 +81,14 @@ Usage:
     {# Fallback: Show all top-level sections (original behavior) #}
     {% set top_sections = site.sections | selectattr('parent', 'none') | list %}
 
-    {# Normalize current page URL for exact matching (remove trailing slash) #}
-    {# Use relative_url for comparisons (without baseurl) #}
-    {% set current_url = page.relative_url.rstrip('/') if (page is defined and page and page.relative_url) else '' %}
-
     {# Show any top-level pages first (regular pages without a section) #}
     {% set top_pages = site.pages | selectattr('_section', 'none') | rejectattr('metadata._generated', 'defined') | list
     %}
     {% for p in top_pages %}
-    {# Use relative_url for comparisons (without baseurl) #}
     {% set p_url_normalized = p.relative_url.rstrip('/') if p.relative_url else '' %}
     <a href="{{ p.url }}"
-      class="docs-nav-link {% if (page is defined and page and current_url == p_url_normalized) %}active{% endif %}"
-      {% if (page is defined and page and current_url == p_url_normalized) %}aria-current="page"{% endif %}>
+      class="docs-nav-link {% if _current_url == p_url_normalized %}active{% endif %}"
+      {% if _current_url == p_url_normalized %}aria-current="page"{% endif %}>
       {{ p.title }}
     </a>
     {% endfor %}

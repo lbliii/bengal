@@ -75,7 +75,7 @@ class TestProfilePrecedence:
         from bengal.utils.profile import BuildProfile
 
         profile = BuildProfile.from_cli_args(
-            dev=True, theme_dev=True, profile="writer", verbose=True
+            dev=True, theme_dev=True, profile="writer"
         )
 
         assert profile == BuildProfile.DEVELOPER
@@ -85,35 +85,35 @@ class TestProfilePrecedence:
         from bengal.utils.profile import BuildProfile
 
         profile = BuildProfile.from_cli_args(
-            dev=False, theme_dev=True, profile="writer", verbose=False
+            dev=False, theme_dev=True, profile="writer"
         )
 
         assert profile == BuildProfile.THEME_DEV
 
     def test_profile_option_precedence(self):
-        """Test that --profile option takes precedence over --verbose."""
+        """Test that --profile option takes precedence over --debug."""
         from bengal.utils.profile import BuildProfile
 
         profile = BuildProfile.from_cli_args(
-            profile="writer", verbose=True, dev=False, theme_dev=False
+            profile="writer", debug=True, dev=False, theme_dev=False
         )
 
         assert profile == BuildProfile.WRITER
 
-    def test_verbose_maps_to_theme_dev(self):
-        """Test that --verbose maps to theme-dev profile."""
+    def test_debug_maps_to_developer(self):
+        """Test that --debug maps to developer profile."""
         from bengal.utils.profile import BuildProfile
 
-        profile = BuildProfile.from_cli_args(verbose=True, dev=False, theme_dev=False, profile=None)
+        profile = BuildProfile.from_cli_args(debug=True, dev=False, theme_dev=False, profile=None)
 
-        assert profile == BuildProfile.THEME_DEV
+        assert profile == BuildProfile.DEVELOPER
 
     def test_default_profile_is_writer(self):
         """Test that default profile is WRITER."""
         from bengal.utils.profile import BuildProfile
 
         profile = BuildProfile.from_cli_args(
-            dev=False, theme_dev=False, verbose=False, profile=None, debug=False
+            dev=False, theme_dev=False, profile=None, debug=False
         )
 
         assert profile == BuildProfile.WRITER
