@@ -104,6 +104,9 @@ class Site:
     # Section registry for path-based lookups (O(1) section access by path)
     _section_registry: dict[Path, Section] = field(default_factory=dict, repr=False, init=False)
 
+    # Config hash for cache invalidation (computed on init)
+    _config_hash: str | None = field(default=None, repr=False, init=False)
+
     def __post_init__(self) -> None:
         """Initialize site from configuration."""
         # Ensure root_path is a Path object
@@ -131,6 +134,9 @@ class Site:
         # Load data from data/ directory
         self.data = self._load_data_directory()
 
+        # Compute config hash for cache invalidation
+        self._compute_config_hash()
+
     @property
     def title(self) -> str | None:
         """Get site title from config."""
@@ -145,6 +151,38 @@ class Site:
     def author(self) -> str | None:
         """Get site author from config."""
         return self.config.get("author")
+
+    @property
+    def config_hash(self) -> str:
+        """
+        Get deterministic hash of the resolved configuration.
+
+        Used for automatic cache invalidation when configuration changes.
+        The hash captures the effective config state including:
+        - Base config from files
+        - Environment variable overrides
+        - Build profile settings
+
+        Returns:
+            16-character hex string (truncated SHA-256)
+        """
+        if self._config_hash is None:
+            self._compute_config_hash()
+        return self._config_hash
+
+    def _compute_config_hash(self) -> None:
+        """
+        Compute and cache the configuration hash.
+
+        Called during __post_init__ to ensure hash is available immediately.
+        """
+        from bengal.config.hash import compute_config_hash
+
+        self._config_hash = compute_config_hash(self.config)
+        logger.debug(
+            "config_hash_computed",
+            hash=self._config_hash[:8] if self._config_hash else "none",
+        )
 
     @property
     def theme_config(self) -> Theme:

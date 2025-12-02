@@ -111,14 +111,38 @@ class IncrementalOrchestrator:
 
     def check_config_changed(self) -> bool:
         """
-        Check if config file has changed (requires full rebuild).
+        Check if configuration has changed (requires full rebuild).
+
+        Uses config hash validation which captures the *effective* configuration state:
+        - Base config from files (bengal.toml, config/*.yaml)
+        - Environment variable overrides (BENGAL_*)
+        - Build profile settings (--profile writer)
+
+        This is more robust than file-based tracking because it detects changes
+        in split config files, env vars, and profiles that wouldn't trigger
+        a file hash change.
 
         Returns:
-            True if config changed
+            True if config changed (cache was invalidated)
         """
         if not self.cache:
             return False
 
+        # Use config hash for robust config change detection
+        # This captures env vars, split configs, and profiles
+        config_hash = self.site.config_hash
+        is_valid = self.cache.validate_config(config_hash)
+
+        if not is_valid:
+            logger.info(
+                "config_changed_via_hash",
+                new_hash=config_hash[:8],
+                reason="effective_config_modified",
+            )
+            return True
+
+        # Also track individual config files for informative logging
+        # (but don't use for invalidation decision - hash is authoritative)
         config_files = [
             self.site.root_path / "bengal.toml",
             self.site.root_path / "bengal.yaml",
@@ -127,27 +151,8 @@ class IncrementalOrchestrator:
         config_file = next((f for f in config_files if f.exists()), None)
 
         if config_file:
-            # Check if this is the first time we're seeing the config
-            file_key = str(config_file)
-            is_new = file_key not in self.cache.file_hashes
-
-            changed = self.cache.is_changed(config_file)
-            # Always update config file hash (for next build)
+            # Update file hash for tracking (informational only)
             self.cache.update_file(config_file)
-
-            if changed:
-                if is_new:
-                    logger.info(
-                        "config_not_cached",
-                        config_file=config_file.name,
-                        reason="first_build_or_cache_cleared",
-                    )
-                else:
-                    logger.info(
-                        "config_changed", config_file=config_file.name, reason="content_modified"
-                    )
-
-            return changed
 
         return False
 

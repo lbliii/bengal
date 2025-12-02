@@ -1,5 +1,12 @@
 ## Unreleased
 
+### Cache & Incremental Build Improvements
+- **cache**: add global config hashing for automatic cache invalidation when configuration changes
+- **config**: add `compute_config_hash()` utility for deterministic hashing of resolved config state
+- **cache(build_cache)**: add `config_hash` field and `validate_config()` method for config-based invalidation
+- **orchestration(incremental)**: use config hash instead of file tracking for robust config change detection
+- **core(site)**: compute and expose `config_hash` property capturing effective configuration state
+
 ### Code Quality & Contributor Experience
 - **orchestration(build)**: refactor 894-line `build()` method into 20 focused `_phase_*` methods (~50-100 lines each)
 - **orchestration(build)**: fix duplicate phase numbers (two "Phase 5.5", two "Phase 9") with sequential renumbering
