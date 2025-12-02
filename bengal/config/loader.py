@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from bengal.config.defaults import DEFAULTS, DEFAULT_MAX_WORKERS
+from bengal.config.deprecation import check_deprecated_keys
 from bengal.utils.logger import get_logger
 
 
@@ -101,6 +102,7 @@ class ConfigLoader:
         """
         self.root_path = root_path
         self.warnings: list[str] = []
+        self.deprecated_keys: list[tuple[str, str, str]] = []
         self.logger = get_logger(__name__)
 
     def load(self, config_path: Path | None = None) -> dict[str, Any]:
@@ -170,12 +172,20 @@ class ConfigLoader:
             validator = ConfigValidator()
             validated_config = validator.validate(raw_config, source_file=config_path)
 
+            # Check for deprecated keys and store for later reporting
+            self.deprecated_keys = check_deprecated_keys(
+                validated_config,
+                source=config_path.name,
+                warn=False,  # Don't log yet, store for print_warnings()
+            )
+
             # Use debug level to avoid noise in normal output
             self.logger.debug(
                 "config_load_complete",
                 config_path=str(config_path),
                 sections=list(validated_config.keys()),
                 warnings=len(self.warnings),
+                deprecated_keys=len(self.deprecated_keys),
             )
 
             return self._apply_env_overrides(validated_config)
@@ -366,6 +376,10 @@ class ConfigLoader:
         """Get configuration warnings (aliases used, unknown sections, etc)."""
         return self.warnings
 
+    def get_deprecated_keys(self) -> list[tuple[str, str, str]]:
+        """Get list of deprecated keys found (old_key, new_location, note)."""
+        return self.deprecated_keys
+
     def print_warnings(self, verbose: bool = False) -> None:
         """Print configuration warnings if verbose mode is enabled."""
         if self.warnings and verbose:
@@ -373,6 +387,12 @@ class ConfigLoader:
             for warning in self.warnings:
                 self.logger.warning("config_warning", note=warning)
                 print(warning)
+
+        # Always print deprecation warnings (they're important for migration)
+        if self.deprecated_keys:
+            from bengal.config.deprecation import print_deprecation_warnings
+
+            print_deprecation_warnings(self.deprecated_keys)
 
     def _default_config(self) -> dict[str, Any]:
         """

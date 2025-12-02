@@ -17,6 +17,7 @@ from typing import Any
 
 import yaml
 
+from bengal.config.deprecation import check_deprecated_keys
 from bengal.config.environment import detect_environment, get_environment_file_candidates
 from bengal.config.feature_mappings import expand_features
 from bengal.config.merge import deep_merge
@@ -56,6 +57,7 @@ class ConfigDirectoryLoader:
         """
         self.track_origins = track_origins
         self.origin_tracker: ConfigWithOrigin | None = None
+        self.deprecated_keys: list[tuple[str, str, str]] = []
 
     def load(
         self,
@@ -137,14 +139,33 @@ class ConfigDirectoryLoader:
 
         config = apply_env_overrides(config)
 
+        # Check for deprecated keys (don't warn yet, store for later)
+        self.deprecated_keys = check_deprecated_keys(
+            config,
+            source="config/",
+            warn=False,
+        )
+
         logger.debug(
             "config_loaded",
             environment=environment,
             profile=profile,
             sections=list(config.keys()),
+            deprecated_keys=len(self.deprecated_keys),
         )
 
         return config
+
+    def get_deprecated_keys(self) -> list[tuple[str, str, str]]:
+        """Get list of deprecated keys found (old_key, new_location, note)."""
+        return self.deprecated_keys
+
+    def print_deprecation_warnings(self) -> None:
+        """Print deprecation warnings if any deprecated keys were found."""
+        if self.deprecated_keys:
+            from bengal.config.deprecation import print_deprecation_warnings
+
+            print_deprecation_warnings(self.deprecated_keys)
 
     def _load_directory(self, directory: Path, origin_prefix: str = "") -> dict[str, Any]:
         """
