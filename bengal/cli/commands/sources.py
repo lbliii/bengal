@@ -96,6 +96,7 @@ collections = {
         console.print("\n[dim]Remote sources require extras:[/dim]")
         console.print("[dim]  pip install bengal[github]   # GitHub loader[/dim]")
         console.print("[dim]  pip install bengal[notion]   # Notion loader[/dim]")
+        console.print("[dim]  pip install bengal[rest]     # REST API loader[/dim]")
 
 
 @sources_group.command("status")

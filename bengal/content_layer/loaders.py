@@ -139,7 +139,7 @@ def rest_loader(
         RESTSource instance
 
     Requires:
-        pip install bengal[github]  # includes aiohttp
+        pip install bengal[rest]  # includes aiohttp
 
     Example:
         >>> from bengal.content_layer import rest_loader
@@ -158,7 +158,7 @@ def rest_loader(
     except ImportError as e:
         raise ImportError(
             "rest_loader requires aiohttp.\n"
-            "Install with: pip install bengal[github]"
+            "Install with: pip install bengal[rest]"
         ) from e
 
     config: dict[str, Any] = {

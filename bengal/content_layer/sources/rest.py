@@ -4,7 +4,7 @@ RESTSource - Content source for REST APIs.
 Fetches content from any REST API that returns JSON, with
 configurable field mappings for content and frontmatter.
 
-Requires: pip install bengal[github] (installs aiohttp)
+Requires: pip install bengal[rest] (installs aiohttp)
 """
 
 from __future__ import annotations
@@ -17,7 +17,7 @@ try:
 except ImportError as e:
     raise ImportError(
         "RESTSource requires aiohttp.\n"
-        "Install with: pip install bengal[github]"
+        "Install with: pip install bengal[rest]"
     ) from e
 
 from bengal.content_layer.entry import ContentEntry
