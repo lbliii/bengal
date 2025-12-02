@@ -107,6 +107,131 @@ const blog = defineCollection({
 
 ---
 
+## Design Principle: Zero-Cost Unless Used
+
+**This feature is opt-in with zero overhead for users who don't need it.**
+
+### Default Behavior (No Change)
+
+```python
+# collections.py - Local-only (current behavior, zero overhead)
+collections = {
+    "docs": define_collection(schema=Doc, directory="content/docs"),
+    "blog": define_collection(schema=BlogPost, directory="content/blog"),
+}
+# ☝️ No remote loaders = no network calls, no new dependencies
+```
+
+### Opt-In Remote Content
+
+```python
+# collections.py - With remote sources (opt-in)
+collections = {
+    "docs": define_collection(schema=Doc, directory="content/docs"),
+    "blog": define_collection(
+        schema=BlogPost,
+        loader=notion_loader(database_id="..."),  # ← Only now does Notion code load
+    ),
+}
+```
+
+### Implementation Strategy
+
+**1. Remote loaders as optional package extras:**
+
+```toml
+# pyproject.toml
+[project.optional-dependencies]
+notion = ["notion-client>=2.0"]
+github = ["pygithub>=2.0", "aiohttp>=3.0"]
+contentful = ["contentful>=2.0"]
+all-sources = ["bengal[notion,github,contentful]"]
+
+# Users install only what they need:
+pip install bengal              # Local-only (default)
+pip install bengal[github]      # + GitHub source
+pip install bengal[notion]      # + Notion source
+```
+
+**2. Lazy imports (no load until used):**
+
+```python
+# bengal/content_layer/sources/notion.py
+def notion_loader(database_id: str):
+    """Create Notion content loader."""
+    try:
+        from notion_client import Client
+    except ImportError:
+        raise ImportError(
+            "notion_loader requires the notion-client package.\n"
+            "Install with: pip install bengal[notion]"
+        )
+    return NotionSource(database_id)
+```
+
+**3. No network calls unless explicitly configured:**
+
+| Scenario | Network Calls | Extra Dependencies |
+|----------|--------------|-------------------|
+| No `collections.py` | ❌ None | ❌ None |
+| Local-only collections | ❌ None | ❌ None |
+| Remote loader defined but not installed | Clear error | ❌ None |
+| Remote loader installed and configured | ✅ At build time | Only what's used |
+
+**4. Build flag for CI safety:**
+
+```toml
+# bengal.toml
+[build]
+remote_content = false  # Disable all remote fetching (CI safety, offline builds)
+```
+
+```bash
+# Or via CLI
+bengal build --offline  # Use cached remote content only
+```
+
+---
+
+## Prior Art: Hugo Content Adapters
+
+This design is similar to **Hugo's Content Adapters** (v0.126.0, May 2024), which also fetch content from external sources at build time.
+
+**Hugo approach** (Go templates):
+```go
+{{/* content/books/_content.gotmpl */}}
+{{ $data := dict }}
+{{ with resources.GetRemote "https://api.example.com/books.json" }}
+  {{ $data = .Content | transform.Unmarshal }}
+{{ end }}
+{{ range $data.books }}
+  {{ $.AddPage (dict "path" .id "title" .title "content" .summary) }}
+{{ end }}
+```
+
+**Bengal approach** (Python):
+```python
+# collections.py
+collections = {
+    "books": define_collection(
+        schema=Book,
+        loader=rest_loader(url="https://api.example.com/books.json"),
+    ),
+}
+```
+
+**Key differences from Hugo:**
+
+| Aspect | Hugo | Bengal |
+|--------|------|--------|
+| Language | Go templates | Python |
+| Type safety | None | Dataclass/Pydantic validation |
+| IDE support | Limited | Full autocomplete |
+| Custom loaders | Write Go templates | Write Python classes |
+| Error messages | Go template errors | Python exceptions with context |
+
+---
+
 ## Architecture Impact
 
 **Affected Subsystems**:
