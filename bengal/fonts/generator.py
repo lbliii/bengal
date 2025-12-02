@@ -2,7 +2,6 @@
 Generate CSS for self-hosted fonts.
 """
 
-
 from __future__ import annotations
 
 from bengal.fonts.downloader import FontVariant
@@ -16,14 +15,18 @@ class FontCSSGenerator:
     def generate(
         self,
         font_mapping: dict[str, list[FontVariant]],
-        font_path_prefix: str = "/assets/fonts",
+        font_path_prefix: str = "fonts",
     ) -> str:
         """
         Generate fonts.css content.
 
+        Uses relative paths (e.g., 'fonts/outfit-400.woff2') since fonts.css
+        is placed at assets/fonts.css and font files are at assets/fonts/.
+        This ensures compatibility with any base URL configuration.
+
         Args:
             font_mapping: Dict of font name -> list of variants
-            font_path_prefix: URL prefix for font files
+            font_path_prefix: URL prefix for font files (relative to fonts.css location)
 
         Returns:
             Complete CSS content as string

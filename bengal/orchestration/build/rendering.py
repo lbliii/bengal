@@ -6,11 +6,49 @@ Phases 13-16: Asset processing, page rendering, update site pages, track asset d
 
 from __future__ import annotations
 
+import json
 import time
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from bengal.orchestration.build import BuildOrchestrator
+
+
+def _rewrite_fonts_css_urls(orchestrator: BuildOrchestrator) -> None:
+    """
+    Rewrite fonts.css to use fingerprinted font filenames.
+
+    After asset fingerprinting, font files have hashed names like:
+        fonts/outfit-400.6c18d579.woff2
+
+    This function updates fonts.css to reference these fingerprinted names
+    instead of the original names.
+
+    Args:
+        orchestrator: Build orchestrator instance
+    """
+    fonts_css_path = orchestrator.site.output_dir / "assets" / "fonts.css"
+    manifest_path = orchestrator.site.output_dir / "asset-manifest.json"
+
+    if not fonts_css_path.exists():
+        return
+
+    if not manifest_path.exists():
+        return
+
+    try:
+        # Load the asset manifest
+        manifest_data = json.loads(manifest_path.read_text(encoding="utf-8"))
+
+        # Rewrite font URLs
+        from bengal.fonts import rewrite_font_urls_with_fingerprints
+
+        updated = rewrite_font_urls_with_fingerprints(fonts_css_path, manifest_data)
+
+        if updated:
+            orchestrator.logger.debug("fonts_css_urls_rewritten")
+    except Exception as e:
+        orchestrator.logger.warning("fonts_css_rewrite_failed", error=str(e))
 
 
 def phase_assets(
@@ -59,6 +97,12 @@ def phase_assets(
                     assets_to_process = orchestrator.site.assets
 
         orchestrator.assets.process(assets_to_process, parallel=parallel, progress_manager=None)
+
+        # Rewrite fonts.css to use fingerprinted font filenames
+        # This must happen after asset fingerprinting is complete
+        if "fonts" in orchestrator.site.config:
+            _rewrite_fonts_css_urls(orchestrator)
+
         orchestrator.stats.assets_time_ms = (time.time() - assets_start) * 1000
 
         # Show phase completion

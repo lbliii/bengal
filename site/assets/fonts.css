@@ -7,7 +7,7 @@
   font-weight: 400;
   font-style: normal;
   font-display: swap;
-  src: url('/assets/fonts/outfit-400.woff2') format('woff2');
+  src: url('fonts/outfit-400.woff2') format('woff2');
 }
 
 @font-face {
@@ -15,7 +15,7 @@
   font-weight: 600;
   font-style: normal;
   font-display: swap;
-  src: url('/assets/fonts/outfit-600.woff2') format('woff2');
+  src: url('fonts/outfit-600.woff2') format('woff2');
 }
 
 @font-face {
@@ -23,7 +23,7 @@
   font-weight: 700;
   font-style: normal;
   font-display: swap;
-  src: url('/assets/fonts/outfit-700.woff2') format('woff2');
+  src: url('fonts/outfit-700.woff2') format('woff2');
 }
 
 /* CSS Custom Properties */

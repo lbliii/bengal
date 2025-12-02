@@ -12,14 +12,74 @@ Usage:
     # Bengal automatically downloads fonts and generates CSS
 """
 
-
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import Any
 
 from bengal.fonts.downloader import FontVariant, GoogleFontsDownloader
 from bengal.fonts.generator import FontCSSGenerator
+
+
+def rewrite_font_urls_with_fingerprints(
+    fonts_css_path: Path, asset_manifest: dict[str, Any]
+) -> bool:
+    """
+    Rewrite font URLs in fonts.css to use fingerprinted filenames.
+
+    After asset fingerprinting, font files have hashed names like:
+        fonts/outfit-400.6c18d579.woff2
+
+    This function updates fonts.css to reference these fingerprinted names
+    instead of the original names like fonts/outfit-400.woff2.
+
+    Args:
+        fonts_css_path: Path to fonts.css in output directory
+        asset_manifest: Asset manifest dict with 'assets' key mapping
+                       logical paths to fingerprinted output paths
+
+    Returns:
+        True if fonts.css was updated, False otherwise
+    """
+    if not fonts_css_path.exists():
+        return False
+
+    assets = asset_manifest.get("assets", {})
+    if not assets:
+        return False
+
+    css_content = fonts_css_path.read_text(encoding="utf-8")
+    original_content = css_content
+
+    # Build a mapping of original font filenames to fingerprinted filenames
+    # Asset manifest has entries like: "fonts/outfit-400.woff2" -> {"output_path": "assets/fonts/outfit-400.6c18d579.woff2"}
+    for logical_path, entry in assets.items():
+        if not logical_path.startswith("fonts/") or not logical_path.endswith(".woff2"):
+            continue
+
+        output_path = entry.get("output_path", "")
+        if not output_path:
+            continue
+
+        # Extract filenames
+        # logical_path: "fonts/outfit-400.woff2"
+        # output_path: "assets/fonts/outfit-400.6c18d579.woff2"
+        original_filename = Path(logical_path).name  # outfit-400.woff2
+        fingerprinted_filename = Path(output_path).name  # outfit-400.6c18d579.woff2
+
+        if original_filename != fingerprinted_filename:
+            # Replace in CSS: url('fonts/outfit-400.woff2') -> url('fonts/outfit-400.6c18d579.woff2')
+            # Use regex to handle both single and double quotes
+            pattern = rf"url\(['\"]?fonts/{re.escape(original_filename)}['\"]?\)"
+            replacement = f"url('fonts/{fingerprinted_filename}')"
+            css_content = re.sub(pattern, replacement, css_content)
+
+    if css_content != original_content:
+        fonts_css_path.write_text(css_content, encoding="utf-8")
+        return True
+
+    return False
 
 
 class FontHelper:
@@ -138,4 +198,10 @@ class FontHelper:
         return fonts
 
 
-__all__ = ["FontCSSGenerator", "FontHelper", "FontVariant", "GoogleFontsDownloader"]
+__all__ = [
+    "FontCSSGenerator",
+    "FontHelper",
+    "FontVariant",
+    "GoogleFontsDownloader",
+    "rewrite_font_urls_with_fingerprints",
+]
