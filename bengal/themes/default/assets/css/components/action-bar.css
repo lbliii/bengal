@@ -11,6 +11,7 @@
 
 .action-bar-container {
   margin-bottom: var(--space-6);
+  margin-inline: auto;
   width: 100%;
   max-width: var(--prose-width);
 }
