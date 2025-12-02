@@ -16,7 +16,6 @@ import click
 from rich.console import Console
 from rich.table import Table
 
-from bengal.cli.base import pass_site_context
 from bengal.utils.logger import get_logger
 
 logger = get_logger(__name__)
