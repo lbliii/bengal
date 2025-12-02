@@ -146,9 +146,16 @@ class FontHelper:
             return None
 
         css_path = assets_dir / "fonts.css"
-        css_path.write_text(css_content, encoding="utf-8")
-
         total_variants = sum(len(v) for v in all_variants.values())
+
+        # Only write if content has changed (prevents file watcher loops)
+        if css_path.exists():
+            existing_content = css_path.read_text(encoding="utf-8")
+            if existing_content == css_content:
+                print(f"   └─ Cached: fonts.css ({total_variants} variants)")
+                return css_path
+
+        css_path.write_text(css_content, encoding="utf-8")
         print(f"   └─ Generated: fonts.css ({total_variants} variants)")
 
         return css_path
