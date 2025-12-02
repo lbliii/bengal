@@ -1,7 +1,8 @@
 # RFC: Theme Feature Flags System
 
-**Status**: Draft  
+**Status**: Implemented  
 **Created**: 2025-12-02  
+**Implemented**: 2025-12-02  
 **Author**: AI Assistant  
 **Priority**: Medium  
 **Confidence**: 91% 🟢  
@@ -96,19 +97,19 @@ Users can enable complex behaviors with a single line of config.
 
 - **Core** (`bengal/core/`): Primary impact
   - `theme.py` - Add `features` field to Theme dataclass
-  
+
 - **Rendering** (`bengal/rendering/`): Moderate impact
   - `template_context.py` - Expose features to templates
-  
+
 - **CLI** (`bengal/cli/`): Minor impact
   - New command: `bengal utils theme features`
-  
+
 - **Themes** (`bengal/themes/`): Moderate impact
   - Templates updated to check feature flags
   - Feature registry/documentation added
 
 **Integration Points**:
-- Theme.features accessible in templates as `site.theme.features`
+- Theme.features accessible in templates as `site.theme_config.features`
 - Feature checks use Jinja2 `in` operator
 - Features are strings (namespaced like `navigation.tabs`)
 
@@ -145,7 +146,7 @@ features = [
 
 ```html
 {# Template usage #}
-{% if 'navigation.breadcrumbs' in site.theme.features %}
+{% if 'navigation.breadcrumbs' in site.theme_config.features %}
   {% include 'partials/breadcrumbs.html' %}
 {% endif %}
 ```
@@ -396,7 +397,7 @@ FEATURES: dict[str, FeatureInfo] = {
         default=True,
         category="navigation",
     ),
-    
+
     # Content features
     "content.code.copy": FeatureInfo(
         key="content.code.copy",
@@ -422,7 +423,7 @@ FEATURES: dict[str, FeatureInfo] = {
         default=True,
         category="content",
     ),
-    
+
     # Search features
     "search.suggest": FeatureInfo(
         key="search.suggest",
@@ -442,7 +443,7 @@ FEATURES: dict[str, FeatureInfo] = {
         default=False,
         category="search",
     ),
-    
+
     # Header features
     "header.autohide": FeatureInfo(
         key="header.autohide",
@@ -450,7 +451,7 @@ FEATURES: dict[str, FeatureInfo] = {
         default=False,
         category="header",
     ),
-    
+
     # Footer features
     "footer.social": FeatureInfo(
         key="footer.social",
@@ -458,7 +459,7 @@ FEATURES: dict[str, FeatureInfo] = {
         default=True,
         category="footer",
     ),
-    
+
     # Accessibility features
     "accessibility.skip_link": FeatureInfo(
         key="accessibility.skip_link",
@@ -477,10 +478,10 @@ def get_default_features() -> list[str]:
 def validate_features(features: list[str]) -> list[str]:
     """
     Validate feature list and return unknown features.
-    
+
     Args:
         features: List of feature keys to validate
-        
+
     Returns:
         List of unknown feature keys (empty if all valid)
     """
@@ -509,17 +510,17 @@ def get_features_by_category() -> dict[str, list[FeatureInfo]]:
 def theme_features(ctx: click.Context, category: str | None, enabled: bool) -> None:
     """
     List available theme features.
-    
+
     Shows all features that can be enabled in [theme.features] config.
     """
     from bengal.themes.default.features import FEATURES, get_features_by_category
-    
+
     console = Console()
-    
+
     # Get site config if available
     site = ctx.obj.get("site") if ctx.obj else None
-    enabled_features = set(site.theme.features) if site else set()
-    
+    enabled_features = set(site.theme_config.features) if site else set()
+
     if category:
         # Show features for specific category
         features = [f for f in FEATURES.values() if f.category == category]
@@ -528,34 +529,34 @@ def theme_features(ctx: click.Context, category: str | None, enabled: bool) -> N
             return
     else:
         features = list(FEATURES.values())
-    
+
     # Filter to enabled only if requested
     if enabled:
         features = [f for f in features if f.key in enabled_features]
-    
+
     # Group by category
     by_category = get_features_by_category()
-    
+
     # Display
     console.print("\n[bold]Available Theme Features[/bold]\n")
-    
+
     for cat_name, cat_features in sorted(by_category.items()):
         if category and cat_name != category:
             continue
-            
+
         console.print(f"[cyan]{cat_name.title()}[/cyan]")
-        
+
         for feature in cat_features:
             if enabled and feature.key not in enabled_features:
                 continue
-                
+
             status = "✅" if feature.key in enabled_features else "  "
             default = "[dim](default)[/dim]" if feature.default else ""
             console.print(f"  {status} [green]{feature.key}[/green] {default}")
             console.print(f"      [dim]{feature.description}[/dim]")
-        
+
         console.print()
-    
+
     console.print("[dim]Enable features in bengal.toml:[/dim]")
     console.print('[dim][theme]\nfeatures = ["navigation.toc", "content.code.copy"][/dim]')
 ```
@@ -566,29 +567,29 @@ def theme_features(ctx: click.Context, category: str | None, enabled: bool) -> N
 {# bengal/themes/default/templates/base.html #}
 
 {# Breadcrumbs - conditional on feature #}
-{% if 'navigation.breadcrumbs' in site.theme.features %}
+{% if 'navigation.breadcrumbs' in site.theme_config.features %}
   {% include 'partials/breadcrumbs.html' %}
 {% endif %}
 
 {# TOC - conditional on feature #}
-{% if 'navigation.toc' in site.theme.features %}
-  <aside class="toc-sidebar {% if 'navigation.toc.sticky' in site.theme.features %}toc-sticky{% endif %}">
+{% if 'navigation.toc' in site.theme_config.features %}
+  <aside class="toc-sidebar {% if 'navigation.toc.sticky' in site.theme_config.features %}toc-sticky{% endif %}">
     {% include 'partials/toc.html' %}
   </aside>
 {% endif %}
 
 {# Code copy button - load JS only if enabled #}
-{% if 'content.code.copy' in site.theme.features %}
+{% if 'content.code.copy' in site.theme_config.features %}
   <script defer src="{{ asset_url('js/copy-code.js') }}"></script>
 {% endif %}
 
 {# Back to top - conditional #}
-{% if 'navigation.back_to_top' in site.theme.features %}
+{% if 'navigation.back_to_top' in site.theme_config.features %}
   {% include 'partials/back-to-top.html' %}
 {% endif %}
 
 {# Prev/Next navigation #}
-{% if 'navigation.prev_next' in site.theme.features %}
+{% if 'navigation.prev_next' in site.theme_config.features %}
   {% include 'partials/prev-next.html' %}
 {% endif %}
 ```
@@ -611,15 +612,15 @@ features = [
     "navigation.toc.sticky",
     "navigation.prev_next",
     "navigation.back_to_top",
-    
+
     # Content
     "content.code.copy",
     "content.lightbox",
-    
+
     # Search
     "search.suggest",
     "search.highlight",
-    
+
     # Accessibility
     "accessibility.skip_link",
 ]
@@ -648,18 +649,18 @@ features = [
 ┌─────────────────────────────────────────────────────────────────┐
 │                   Template Context                               │
 │                                                                  │
-│  site.theme.features = ["navigation.toc", "content.code.copy"]   │
+│  site.theme_config.features = ["navigation.toc", "content.code.copy"]   │
 └──────────────────────────────┬──────────────────────────────────┘
                                │
                                ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │                    Template Rendering                            │
 │                                                                  │
-│  {% if 'navigation.toc' in site.theme.features %}                │
+│  {% if 'navigation.toc' in site.theme_config.features %}                │
 │    {% include 'partials/toc.html' %}                             │
 │  {% endif %}                                                     │
 │                                                                  │
-│  {% if 'content.code.copy' in site.theme.features %}             │
+│  {% if 'content.code.copy' in site.theme_config.features %}             │
 │    <script defer src="copy-code.js"></script>                    │
 │  {% endif %}                                                     │
 └─────────────────────────────────────────────────────────────────┘
@@ -668,15 +669,25 @@ features = [
 ### Error Handling
 
 ```python
-# In Theme.from_config() or build initialization
-from bengal.themes.default.features import validate_features
+# In Site.__post_init__ or separate validation step (decoupled from core)
+# Note: core/theme.py should NOT import from themes/ to avoid circular deps
 
-unknown = validate_features(theme.features)
-if unknown:
-    logger.warning(
-        f"Unknown theme features (will be ignored): {', '.join(unknown)}\n"
-        f"Run 'bengal utils theme features' to see available features."
-    )
+def validate_site_theme_features(site: Site) -> None:
+    """
+    Validate features against active theme registry.
+
+    This should happen in Site initialization or a validator,
+    dynamically loading the registry for the active theme.
+    """
+    # Dynamic loading of registry based on site.theme
+    # registry = load_theme_registry(site.theme)
+
+    unknown = [f for f in site.theme_config.features if f not in registry]
+    if unknown:
+        logger.warning(
+            f"Unknown theme features (will be ignored): {', '.join(unknown)}\n"
+            f"Run 'bengal utils theme features' to see available features."
+        )
 ```
 
 ### Testing Strategy
@@ -715,7 +726,7 @@ if unknown:
 
 - **Likelihood**: Medium
 - **Impact**: Low (documentation solves it)
-- **Mitigation**: 
+- **Mitigation**:
   - Group features logically (navigation.*, content.*, etc.)
   - Start with ~15-20 high-value features
   - Add new features based on user requests
@@ -726,7 +737,7 @@ if unknown:
 
 - **Likelihood**: Low
 - **Impact**: Negligible
-- **Mitigation**: 
+- **Mitigation**:
   - `in` check on small list is O(n) where n ≈ 20
   - Could convert to set at template load time if needed
   - Benchmark shows <1ms overhead per page
@@ -737,7 +748,7 @@ if unknown:
 
 - **Likelihood**: Medium
 - **Impact**: Medium (user confusion)
-- **Mitigation**: 
+- **Mitigation**:
   - Document that features are theme-specific
   - CLI shows features for active theme only
   - Themes declare their supported features
@@ -768,37 +779,40 @@ None - this is additive functionality.
 
 ### Implementation Phases
 
-#### Phase 1: Core Infrastructure (Day 1)
+#### Phase 1: Core Infrastructure (Day 1) ✅
 
-- [ ] Add `features` field to Theme dataclass
-- [ ] Update `Theme.from_config()` to parse features
-- [ ] Add `has_feature()` helper method
-- [ ] Unit tests for Theme changes
+- [x] Add `features` field to Theme dataclass
+- [x] Update `Theme.from_config()` to parse features
+- [x] Add `has_feature()` helper method
+- [x] Unit tests for Theme changes
 
-#### Phase 2: Feature Registry (Day 1)
+#### Phase 2: Feature Registry (Day 1) ✅
 
-- [ ] Create `bengal/themes/default/features.py`
-- [ ] Define initial feature set (~15-20 features)
-- [ ] Add validation helper functions
-- [ ] Unit tests for registry
+- [x] Create `bengal/themes/default/features.py`
+- [x] Define initial feature set (~15-20 features)
+- [x] Add validation helper functions
+- [x] Unit tests for registry
 
-#### Phase 3: Template Updates (Day 2)
+#### Phase 3: Template Updates (Day 2) ✅
 
-- [ ] Audit default theme templates for feature opportunities
-- [ ] Add feature conditionals to templates
-- [ ] Test each feature toggle works correctly
+- [x] Audit default theme templates for feature opportunities
+- [x] Add feature conditionals to templates (base.html)
+  - accessibility.skip_link
+  - navigation.back_to_top
+  - content.lightbox
+- [ ] Test each feature toggle works correctly (follow-up)
 
-#### Phase 4: CLI & Documentation (Day 2)
+#### Phase 4: CLI & Documentation (Day 2) ✅
 
-- [ ] Add `bengal utils theme features` command
-- [ ] Update theme documentation
-- [ ] Add examples to README/quickstart
+- [x] Add `bengal utils theme features` command
+- [ ] Update theme documentation (follow-up)
+- [ ] Add examples to README/quickstart (follow-up)
 
 ### Rollout Strategy
 
 - **Feature flag**: Not needed (backward compatible)
 - **Beta period**: Include in next minor release
-- **Documentation updates**: 
+- **Documentation updates**:
   - Theme configuration guide
   - Feature reference page
   - Migration guide for template customizers
@@ -872,4 +886,3 @@ None - this is additive functionality.
 - [x] Implementation phases defined
 - [x] Open questions flagged
 - [x] Confidence ≥ 85% (91%)
-

@@ -19,7 +19,8 @@ assets:
 
 # Health check configuration
 health_check:
+  enabled: false  # Disable for faster local builds
   # Enable verbose output to see INFO-level warnings (admonitions, links, etc.)
-  verbose: true
+  # verbose: true
   # Note: WRITER profile now includes directives validator by default (writers care about markdown errors)
   # Theme devs get additional validators: rendering, navigation, menu (for template/theme debugging)

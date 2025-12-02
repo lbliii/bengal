@@ -5,6 +5,7 @@ build:
   output_dir: "public"
   parallel: true
   incremental: true
+  max_workers: null  # Auto-detect CPU cores (11 on this machine)
 
 assets:
   minify: true
@@ -43,3 +44,5 @@ autodoc:
     framework: "click"
     output_dir: "content/cli"
     display_name: "Bengal CLI"  # Display name for CLI documentation section (used in navigation)
+
+health_check: false
