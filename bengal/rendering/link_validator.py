@@ -202,6 +202,21 @@ class LinkValidator:
             self.validated_urls.add(link)
             return True
 
+        # Skip source file references (common in autodoc-generated content)
+        # These are "View Source" links that point to Python files, not doc pages
+        # Patterns: bengal/module.py#L1, ../module.py, path/to/file.py
+        if ".py" in link and (
+            link.endswith(".py")
+            or ".py#" in link  # Python file with fragment (line number)
+        ):
+            logger.debug(
+                "skipping_source_file_reference",
+                link=link[:100],
+                reason="source_file_reference_in_autodoc",
+            )
+            self.validated_urls.add(link)
+            return True
+
         # Parse the link
         parsed = urlparse(link)
 

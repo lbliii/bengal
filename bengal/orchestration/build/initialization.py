@@ -40,14 +40,22 @@ def phase_fonts(orchestrator: BuildOrchestrator, cli) -> None:
         fonts_start = time.time()
         try:
             from bengal.fonts import FontHelper
+            import shutil
 
-            # Ensure assets directory exists
+            # Ensure assets directory exists (source)
             assets_dir = orchestrator.site.root_path / "assets"
             assets_dir.mkdir(parents=True, exist_ok=True)
 
-            # Process fonts (download + generate CSS)
+            # Process fonts (download + generate CSS to source assets)
             font_helper = FontHelper(orchestrator.site.config["fonts"])
-            font_helper.process(assets_dir)
+            css_path = font_helper.process(assets_dir)
+
+            # Also copy fonts.css to output directory so it's immediately available
+            # (fonts/ directory is copied by asset pipeline, but fonts.css at root needs explicit copy)
+            if css_path and css_path.exists():
+                output_assets = orchestrator.site.output_dir / "assets"
+                output_assets.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(css_path, output_assets / "fonts.css")
 
             orchestrator.stats.fonts_time_ms = (time.time() - fonts_start) * 1000
             orchestrator.logger.info("fonts_complete")

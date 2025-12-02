@@ -27,6 +27,7 @@ from typing import TYPE_CHECKING, Any
 from bengal.postprocess.output_formats.index_generator import SiteIndexGenerator
 from bengal.postprocess.output_formats.json_generator import PageJSONGenerator
 from bengal.postprocess.output_formats.llm_generator import SiteLlmTxtGenerator
+from bengal.postprocess.output_formats.lunr_index_generator import LunrIndexGenerator
 from bengal.postprocess.output_formats.txt_generator import PageTxtGenerator
 from bengal.utils.logger import get_logger
 
@@ -37,6 +38,7 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 __all__ = [
+    "LunrIndexGenerator",
     "OutputFormatsGenerator",
     "PageJSONGenerator",
     "PageTxtGenerator",
@@ -217,9 +219,27 @@ class OutputFormatsGenerator:
                 json_indent=json_indent,
                 include_full_content=include_full_content,
             )
-            index_gen.generate(pages)
+            index_path = index_gen.generate(pages)
             generated.append("index.json")
             logger.debug("generated_site_index_json")
+
+            # Generate pre-built Lunr index if enabled
+            search_config = self.site.config.get("search", {})
+            lunr_config = search_config.get("lunr", {})
+            prebuilt_enabled = lunr_config.get("prebuilt", True)  # Default: enabled
+
+            if prebuilt_enabled:
+                lunr_gen = LunrIndexGenerator(self.site)
+                if lunr_gen.is_available():
+                    lunr_path = lunr_gen.generate(index_path)
+                    if lunr_path:
+                        generated.append("search-index.json")
+                        logger.debug("generated_prebuilt_lunr_index")
+                else:
+                    logger.debug(
+                        "lunr_prebuilt_skipped",
+                        reason="lunr package not installed",
+                    )
 
         if "llm_full" in site_wide:
             separator_width = options.get("llm_separator_width", 80)

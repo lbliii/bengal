@@ -187,6 +187,12 @@
   --font-sans: var(--font-family-sans);
   --font-serif: var(--font-family-serif);
   --font-mono: var(--font-family-mono);
+  
+  /* Display/Heading Fonts - For distinctive heading typography */
+  --font-display: var(--font-family-display);
+  --font-heading: var(--font-family-heading);
+  --font-heading-display: var(--font-family-display);  /* h1, hero text */
+  --font-heading-section: var(--font-family-heading);  /* h2-h4 */
 
   /* Font Sizes - Reference new typography tokens */
   --text-xs: var(--font-size-xs);
@@ -272,6 +278,7 @@
   --type-leading-body: var(--leading-body);
 
   /* Letter Spacing - Reference foundation tokens */
+  --tracking-display: var(--letter-spacing-display);
   --tracking-tighter: var(--letter-spacing-tighter);
   --tracking-tight: var(--letter-spacing-tight);
   --tracking-normal: var(--letter-spacing-normal);
@@ -279,7 +286,13 @@
   --tracking-wider: var(--letter-spacing-wider);
   --tracking-widest: var(--letter-spacing-widest);
 
-  /* Letter spacing semantic aliases */
+  /* Semantic tracking for content roles */
+  --tracking-heading-display: var(--tracking-display);   /* h1, display text */
+  --tracking-heading-large: var(--tracking-tighter);     /* h2 */
+  --tracking-heading-medium: var(--tracking-tight);      /* h3, h4 */
+  --tracking-heading-small: var(--tracking-normal);      /* h5, h6 */
+
+  /* Letter spacing semantic aliases (legacy compatibility) */
   --letter-spacing-tighter: var(--tracking-tighter);
   --letter-spacing-tight: var(--tracking-tight);
   --letter-spacing-wide: var(--tracking-wide);

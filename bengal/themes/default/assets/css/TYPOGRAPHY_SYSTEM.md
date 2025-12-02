@@ -65,16 +65,102 @@ All sizes use **fluid typography** (`clamp()`) for responsive scaling between mo
 | `--line-height-relaxed` | 1.65 | Body text (comfortable) |
 | `--line-height-loose` | 2 | Spacious text |
 
-### Letter Spacing
+### Letter Spacing (Tracking)
+
+Letter spacing uses a **tracking gradient** where larger type gets tighter tracking for improved visual cohesion:
 
 | Token | Value | Use Case |
 |-------|-------|----------|
-| `--letter-spacing-tighter` | -0.05em | Large headings |
-| `--letter-spacing-tight` | -0.025em | Headings |
-| `--letter-spacing-normal` | 0 | Default |
+| `--letter-spacing-display` | -0.04em | Display text (40px+), h1 |
+| `--letter-spacing-tighter` | -0.05em | h2 section headers |
+| `--letter-spacing-tight` | -0.025em | h3, h4 subsections |
+| `--letter-spacing-normal` | 0 | Body text, h5, h6 |
 | `--letter-spacing-wide` | 0.025em | Uppercase text |
-| `--letter-spacing-wider` | 0.05em | Display text |
-| `--letter-spacing-widest` | 0.1em | Large display |
+| `--letter-spacing-wider` | 0.05em | All-caps labels |
+| `--letter-spacing-widest` | 0.1em | Decorative uppercase |
+
+**Heading Tracking Gradient:**
+```
+h1 → --tracking-display  (-0.04em)  Tightest for large display sizes
+h2 → --tracking-tighter  (-0.05em)  Tight for section headers
+h3 → --tracking-tight    (-0.025em) Moderate for subsections
+h4 → --tracking-tight    (-0.025em) Moderate for subsections
+h5 → --tracking-normal   (0)        Normal for body-adjacent
+h6 → --tracking-wide     (0.025em)  Wide for uppercase treatment
+```
+
+**Rationale**: Large type (40px+) appears optically loose at default tracking. Progressively tighter tracking at larger sizes creates better visual cohesion without affecting body text readability.
+
+### Font Families
+
+| Token | Stack | Use Case |
+|-------|-------|----------|
+| `--font-family-sans` | System stack | Body text, UI |
+| `--font-family-serif` | Georgia, Cambria... | Editorial content |
+| `--font-family-mono` | JetBrains Mono, Fira Code... | Code blocks |
+| `--font-family-display` | Defaults to sans | h1, hero text (customizable) |
+| `--font-family-heading` | Defaults to display | h2-h4 section headings |
+
+**Code Font Priority:**
+
+The monospace stack prioritizes modern developer fonts with ligature support:
+
+```
+1. JetBrains Mono    ← Excellent 0O/1lI distinction, ligatures
+2. Fira Code         ← Popular VS Code choice, ligatures
+3. Cascadia Code     ← Windows Terminal default, ligatures
+4. SF Mono           ← macOS system mono
+5. Consolas          ← Windows fallback
+6. Monaco, Menlo     ← Legacy fallbacks
+7. Courier New       ← Universal fallback
+```
+
+Developers who install JetBrains Mono or Fira Code will see their preferred font by default.
+
+**Custom Heading Fonts:**
+
+**Option 1: Configure in bengal.toml (Recommended)**
+
+The easiest way to add custom heading fonts is via Bengal's built-in font system:
+
+```toml
+# bengal.toml
+[fonts]
+display = "Instrument Serif:400,700"
+```
+
+This automatically:
+- Downloads the font from Google Fonts during build
+- Generates `@font-face` rules in `fonts.css`
+- Creates `--font-display` CSS variable
+- Connects to `--font-family-display` token
+
+**Option 2: Override in Custom CSS**
+
+For self-hosted fonts or more control:
+
+```css
+:root {
+  /* Elegant serif for headings */
+  --font-family-display: 'Instrument Serif', Georgia, serif;
+}
+```
+
+**Recommended Fonts** (all OFL licensed, Google Fonts):
+
+| Font | bengal.toml Config | Load Cost | Best For |
+|------|-------------------|-----------|----------|
+| Instrument Serif | `display = "Instrument Serif:400,700"` | ~25KB | Premium docs |
+| Fraunces | `display = "Fraunces:400,700"` | ~35KB | Friendly technical |
+| DM Serif Display | `display = "DM Serif Display:700"` | ~15KB | Traditional reference |
+| Newsreader | `display = "Newsreader:400,700"` | ~30KB | Long-form content |
+
+**Fallback Chain:**
+```
+--font-display (from bengal.toml) → --font-family-sans (system fonts)
+```
+
+**Note**: Default is system sans (zero load cost). Custom fonts add load time but provide visual identity.
 
 ## Usage
 
@@ -87,7 +173,7 @@ Always use semantic tokens:
   font-size: var(--text-h1);
   font-weight: var(--weight-heading);
   line-height: var(--leading-heading);
-  letter-spacing: var(--tracking-tight);
+  letter-spacing: var(--tracking-display);
 }
 ```
 
@@ -124,6 +210,19 @@ Always use semantic tokens:
 - `--leading-heading` (tight, for headings)
 - `--leading-body` (relaxed, for body text)
 - `--leading-tight`, `--leading-normal`, `--leading-relaxed`, etc.
+
+**Letter Spacing (Tracking):**
+- `--tracking-display` (tightest, for h1/display text)
+- `--tracking-tighter` (tight, for h2)
+- `--tracking-tight` (moderate, for h3/h4)
+- `--tracking-normal` (default, for body/h5)
+- `--tracking-wide`, `--tracking-wider` (for uppercase/small caps)
+
+**Font Families (Semantic):**
+- `--font-sans`, `--font-serif`, `--font-mono` (base stacks)
+- `--font-display` (for h1, hero text - customizable)
+- `--font-heading` (for h2-h4 section headers)
+- `--font-heading-display`, `--font-heading-section` (role-specific)
 
 ## Migration Guide
 

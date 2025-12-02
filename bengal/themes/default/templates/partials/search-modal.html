@@ -1,0 +1,137 @@
+{#
+Search Modal Component (Cmd/Ctrl+K)
+
+A command-palette style search modal for quick documentation access.
+
+Features:
+- Cmd/Ctrl+K keyboard shortcut to open
+- Escape to close
+- Recent searches (localStorage)
+- Keyboard navigation (↑↓ to navigate, Enter to select)
+- Focus trap for accessibility
+- Lazy loads search index on first open
+
+Dependencies:
+- JavaScript: /assets/js/search-modal.js
+- CSS: /assets/css/components/search-modal.css
+- Search: BengalSearch module (search.js)
+
+Configuration:
+  search:
+    ui:
+      modal: true
+      recent_searches: 5
+
+Usage:
+  {% include 'partials/search-modal.html' %}
+#}
+
+{# Only render if modal is enabled #}
+{% set search_config = site.config.get('search', {}) %}
+{% set ui_config = search_config.get('ui', {}) %}
+{% set modal_enabled = ui_config.get('modal', false) %}
+
+{% if modal_enabled %}
+<dialog id="search-modal" class="search-modal" aria-label="Search documentation">
+  {# Backdrop for clicking outside to close #}
+  <div class="search-modal__backdrop" data-close-modal></div>
+
+  {# Modal container #}
+  <div class="search-modal__container" role="dialog" aria-modal="true">
+    {# Header with search input #}
+    <header class="search-modal__header">
+      <div class="search-modal__input-wrapper">
+        <svg class="search-modal__icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <circle cx="11" cy="11" r="8"></circle>
+          <path d="m21 21-4.35-4.35"></path>
+        </svg>
+
+        <input
+          type="search"
+          id="search-modal-input"
+          class="search-modal__input"
+          placeholder="{{ ui_config.get('placeholder', 'Search documentation...') }}"
+          autocomplete="off"
+          autocorrect="off"
+          autocapitalize="off"
+          spellcheck="false"
+          aria-label="Search"
+          aria-describedby="search-modal-status"
+          aria-controls="search-modal-results"
+          aria-autocomplete="list"
+        >
+
+        <div class="search-modal__loading" id="search-modal-loading" style="display: none;">
+          <div class="search-modal__spinner"></div>
+        </div>
+      </div>
+
+      <button type="button" class="search-modal__close" data-close-modal aria-label="Close search">
+        <kbd>ESC</kbd>
+      </button>
+    </header>
+
+    {# Status for screen readers #}
+    <div id="search-modal-status" class="sr-only" role="status" aria-live="polite"></div>
+
+    {# Recent searches section #}
+    <section class="search-modal__recent" id="search-modal-recent" aria-label="Recent searches">
+      <div class="search-modal__section-header">
+        <span class="search-modal__section-title">Recent</span>
+        <button type="button" class="search-modal__clear-recent" id="clear-recent-searches" title="Clear recent searches">
+          Clear
+        </button>
+      </div>
+      <ul class="search-modal__recent-list" id="search-modal-recent-list" role="listbox">
+        {# Recent searches populated by JS #}
+      </ul>
+    </section>
+
+    {# Search results #}
+    <section class="search-modal__results" id="search-modal-results" aria-label="Search results">
+      <div class="search-modal__results-list" id="search-modal-results-list" role="listbox">
+        {# Results populated by JS #}
+      </div>
+
+      {# No results message #}
+      <div class="search-modal__no-results" id="search-modal-no-results" style="display: none;">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+          <circle cx="11" cy="11" r="8"></circle>
+          <path d="m21 21-4.35-4.35"></path>
+          <path d="M8 8l6 6M14 8l-6 6"></path>
+        </svg>
+        <p class="search-modal__no-results-text">No results for "<span id="search-modal-no-results-query"></span>"</p>
+        <p class="search-modal__no-results-hint">Try different keywords or check your spelling</p>
+      </div>
+
+      {# Empty state (before search) #}
+      <div class="search-modal__empty" id="search-modal-empty">
+        <p class="search-modal__empty-hint">Start typing to search...</p>
+      </div>
+    </section>
+
+    {# Footer with keyboard hints #}
+    <footer class="search-modal__footer">
+      <div class="search-modal__hints">
+        <span class="search-modal__hint">
+          <kbd>↑</kbd><kbd>↓</kbd>
+          <span>Navigate</span>
+        </span>
+        <span class="search-modal__hint">
+          <kbd>↵</kbd>
+          <span>Open</span>
+        </span>
+        <span class="search-modal__hint">
+          <kbd>ESC</kbd>
+          <span>Close</span>
+        </span>
+      </div>
+      <div class="search-modal__powered-by">
+        <span>Powered by</span>
+        <a href="https://lunrjs.com/" target="_blank" rel="noopener">Lunr</a>
+      </div>
+    </footer>
+  </div>
+</dialog>
+
+{% endif %}

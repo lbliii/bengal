@@ -16,7 +16,7 @@ class FontCSSGenerator:
     def generate(
         self,
         font_mapping: dict[str, list[FontVariant]],
-        font_path_prefix: str = "/fonts",
+        font_path_prefix: str = "/assets/fonts",
     ) -> str:
         """
         Generate fonts.css content.

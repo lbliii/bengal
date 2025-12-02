@@ -45,6 +45,9 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# Pre-built Lunr search index (faster client-side search)
+search = ["lunr>=0.7.0"]
+
 # CSS optimization removed - lightningcss not supported for Python 3.14 minimum version
 # CSS minification uses fallback lossless minifier
 dev = [

@@ -1,0 +1,11 @@
+# Font Configuration
+# Bengal automatically downloads fonts from Google Fonts and generates fonts.css
+#
+# Outfit: Modern geometric sans-serif with personality
+# - Clean, friendly, professional
+# - Works well for headings without being jarring
+# - 400 for regular weight, 700 for bold headings
+
+fonts:
+  display: "Outfit:400,600,700"
+

@@ -187,21 +187,6 @@ class InternalLinkChecker:
                 ref_count=len(refs),
                 metadata={"note": "relative path - validation skipped"},
             )
-            # For now, treat other relative paths as potentially valid
-            # A full implementation would resolve relative to the referencing page
-            logger.debug(
-                "skipping_relative_internal_link",
-                url=url,
-                reason="relative paths not yet fully supported",
-            )
-            return LinkCheckResult(
-                url=url,
-                kind=LinkKind.INTERNAL,
-                status=LinkStatus.OK,
-                first_ref=refs[0] if refs else None,
-                ref_count=len(refs),
-                metadata={"note": "relative path - validation skipped"},
-            )
 
         # Check if page exists (with or without trailing slash)
         page_exists = path in self._output_paths or path.rstrip("/") in self._output_paths

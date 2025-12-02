@@ -6,11 +6,11 @@
  */
 
 :root {
-  /* ============================================
+   /* ============================================
      TYPOGRAPHY SCALE (Foundation)
      ============================================ */
-  
-  /**
+
+   /**
    * Type Scale: Major Third (1.25 ratio)
    * Base: 16px (1rem)
    * 
@@ -27,35 +27,45 @@
    * 6xl: 4.375rem (70px)
    */
 
-  /* Font Sizes - Fluid Typography */
-  --font-size-xs: clamp(0.6875rem, 0.65rem + 0.15vw, 0.75rem);      /* 11-12px */
-  --font-size-sm: clamp(0.8125rem, 0.78rem + 0.15vw, 0.875rem);     /* 13-14px */
-  --font-size-base: clamp(0.9375rem, 0.9rem + 0.2vw, 1rem);         /* 15-16px */
-  --font-size-lg: clamp(1.125rem, 1.05rem + 0.3vw, 1.25rem);        /* 18-20px */
-  --font-size-xl: clamp(1.375rem, 1.3rem + 0.35vw, 1.5rem);        /* 22-24px */
-  --font-size-2xl: clamp(1.6875rem, 1.6rem + 0.4vw, 1.875rem);      /* 27-30px */
-  --font-size-3xl: clamp(2rem, 1.9rem + 0.5vw, 2.25rem);            /* 32-36px */
-  --font-size-4xl: clamp(2.5rem, 2.35rem + 0.7vw, 2.8125rem);      /* 40-45px */
-  --font-size-5xl: clamp(3rem, 2.8rem + 1vw, 3.5rem);              /* 48-56px */
-  --font-size-6xl: clamp(3.75rem, 3.5rem + 1.2vw, 4.375rem);       /* 60-70px */
+   /* Font Sizes - Fluid Typography */
+   --font-size-xs: clamp(0.6875rem, 0.65rem + 0.15vw, 0.75rem);
+   /* 11-12px */
+   --font-size-sm: clamp(0.8125rem, 0.78rem + 0.15vw, 0.875rem);
+   /* 13-14px */
+   --font-size-base: clamp(0.9375rem, 0.9rem + 0.2vw, 1rem);
+   /* 15-16px */
+   --font-size-lg: clamp(1.125rem, 1.05rem + 0.3vw, 1.25rem);
+   /* 18-20px */
+   --font-size-xl: clamp(1.375rem, 1.3rem + 0.35vw, 1.5rem);
+   /* 22-24px */
+   --font-size-2xl: clamp(1.6875rem, 1.6rem + 0.4vw, 1.875rem);
+   /* 27-30px */
+   --font-size-3xl: clamp(2rem, 1.9rem + 0.5vw, 2.25rem);
+   /* 32-36px */
+   --font-size-4xl: clamp(2.5rem, 2.35rem + 0.7vw, 2.8125rem);
+   /* 40-45px */
+   --font-size-5xl: clamp(3rem, 2.8rem + 1vw, 3.5rem);
+   /* 48-56px */
+   --font-size-6xl: clamp(3.75rem, 3.5rem + 1.2vw, 4.375rem);
+   /* 60-70px */
 
-  /* ============================================
+   /* ============================================
      FONT WEIGHTS (Foundation)
      ============================================ */
-  
-  --font-weight-light: 300;
-  --font-weight-normal: 400;
-  --font-weight-medium: 500;
-  --font-weight-semibold: 600;
-  --font-weight-bold: 700;
-  --font-weight-extrabold: 800;
-  --font-weight-black: 900;
 
-  /* ============================================
+   --font-weight-light: 300;
+   --font-weight-normal: 400;
+   --font-weight-medium: 500;
+   --font-weight-semibold: 600;
+   --font-weight-bold: 700;
+   --font-weight-extrabold: 800;
+   --font-weight-black: 900;
+
+   /* ============================================
      LINE HEIGHTS (Foundation)
      ============================================ */
-  
-  /**
+
+   /**
    * Line heights are unitless ratios for better scaling
    * Tight: 1.2  (headings)
    * Snug:  1.35 (subheadings)
@@ -63,40 +73,88 @@
    * Relaxed: 1.65 (comfortable reading)
    * Loose: 2.0  (spacious)
    */
-  
-  --line-height-none: 1;
-  --line-height-tight: 1.2;
-  --line-height-snug: 1.35;
-  --line-height-normal: 1.5;
-  --line-height-relaxed: 1.65;
-  --line-height-loose: 2;
 
-  /* ============================================
+   --line-height-none: 1;
+   --line-height-tight: 1.2;
+   --line-height-snug: 1.35;
+   --line-height-normal: 1.5;
+   --line-height-relaxed: 1.65;
+   --line-height-loose: 2;
+
+   /* ============================================
      LETTER SPACING (Foundation)
      ============================================ */
-  
-  --letter-spacing-tighter: -0.05em;
-  --letter-spacing-tight: -0.025em;
-  --letter-spacing-normal: 0;
-  --letter-spacing-wide: 0.025em;
-  --letter-spacing-wider: 0.05em;
-  --letter-spacing-widest: 0.1em;
 
-  /* ============================================
+   /**
+   * Tracking scale for optical adjustment at different sizes.
+   * Larger type needs tighter tracking for visual cohesion.
+   * 
+   * display: -0.04em  (40px+ display/hero text)
+   * tighter: -0.05em  (h1/h2 headings)
+   * tight:   -0.025em (h3/h4 headings)
+   * normal:  0        (body text, h5/h6)
+   * wide+:   positive (uppercase, small caps)
+   */
+
+   --letter-spacing-display: -0.04em;
+   --letter-spacing-tighter: -0.05em;
+   --letter-spacing-tight: -0.025em;
+   --letter-spacing-normal: 0;
+   --letter-spacing-wide: 0.025em;
+   --letter-spacing-wider: 0.05em;
+   --letter-spacing-widest: 0.1em;
+
+   /* ============================================
      FONT FAMILIES
      ============================================ */
-  
-  --font-family-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Segoe UI Variable',
-    'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans',
-    'Droid Sans', 'Helvetica Neue', system-ui, sans-serif;
-  
-  --font-family-serif: Georgia, Cambria, 'Times New Roman', Times, serif;
-  
-  --font-family-mono: 'Consolas', 'Monaco', 'SF Mono', 'JetBrains Mono',
-    'Fira Code', 'Cascadia Code', 'Courier New', monospace;
 
-  /* Default font */
-  --font-family-base: var(--font-family-sans);
+   --font-family-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Segoe UI Variable',
+      'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans',
+      'Droid Sans', 'Helvetica Neue', system-ui, sans-serif;
+
+   --font-family-serif: Georgia, Cambria, 'Times New Roman', Times, serif;
+
+   /* Code fonts: Prioritize modern developer fonts with ligature support */
+   --font-family-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code',
+      'SF Mono', 'Consolas', 'Monaco', 'Menlo', 'Courier New', monospace;
+
+   /**
+   * Display/Heading font - Optional distinctive typeface for h1/h2/hero text.
+   * 
+   * CONFIGURATION OPTIONS:
+   * 
+   * Option 1: Configure in bengal.toml (recommended)
+   * ------------------------------------------------
+   * [fonts]
+   * display = "Instrument Serif:400,700"
+   * 
+   * This automatically:
+   * - Downloads the font from Google Fonts
+   * - Generates @font-face rules in fonts.css
+   * - Creates --font-display CSS variable
+   * - Falls back gracefully if font fails to load
+   * 
+   * Option 2: Override in custom CSS
+   * ---------------------------------
+   * :root {
+   *   --font-family-display: 'Your Font', Georgia, serif;
+   * }
+   * 
+   * Recommended fonts (all OFL licensed, available via Google Fonts):
+   *   - Instrument Serif: Refined, modern (~25KB)
+   *   - Fraunces: Soft, optical sizing (~35KB variable)
+   *   - DM Serif Display: Classic, bold (~15KB)
+   *   - Newsreader: Editorial clarity (~30KB)
+   * 
+   * FALLBACK CHAIN:
+   *   1. --font-display (from bengal.toml [fonts] config)
+   *   2. --font-family-sans (system font stack)
+   */
+   --font-family-display: var(--font-display, var(--font-family-sans));
+
+   /* Default fonts */
+   --font-family-base: var(--font-family-sans);
+   --font-family-heading: var(--font-family-display);
 }
 
 /* ============================================
@@ -104,18 +162,27 @@
    ============================================ */
 
 @media (max-width: 768px) {
-  :root {
-    /* Slightly reduce fluid ranges on mobile */
-    --font-size-xs: 0.6875rem;      /* 11px fixed */
-    --font-size-sm: 0.8125rem;       /* 13px fixed */
-    --font-size-base: 0.9375rem;     /* 15px fixed */
-    --font-size-lg: 1.125rem;         /* 18px fixed */
-    --font-size-xl: 1.375rem;         /* 22px fixed */
-    --font-size-2xl: 1.6875rem;       /* 27px fixed */
-    --font-size-3xl: 2rem;            /* 32px fixed */
-    --font-size-4xl: 2.5rem;          /* 40px fixed */
-    --font-size-5xl: 3rem;            /* 48px fixed */
-    --font-size-6xl: 3.75rem;         /* 60px fixed */
-  }
+   :root {
+      /* Slightly reduce fluid ranges on mobile */
+      --font-size-xs: 0.6875rem;
+      /* 11px fixed */
+      --font-size-sm: 0.8125rem;
+      /* 13px fixed */
+      --font-size-base: 0.9375rem;
+      /* 15px fixed */
+      --font-size-lg: 1.125rem;
+      /* 18px fixed */
+      --font-size-xl: 1.375rem;
+      /* 22px fixed */
+      --font-size-2xl: 1.6875rem;
+      /* 27px fixed */
+      --font-size-3xl: 2rem;
+      /* 32px fixed */
+      --font-size-4xl: 2.5rem;
+      /* 40px fixed */
+      --font-size-5xl: 3rem;
+      /* 48px fixed */
+      --font-size-6xl: 3.75rem;
+      /* 60px fixed */
+   }
 }
-
