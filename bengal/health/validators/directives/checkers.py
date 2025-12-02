@@ -52,7 +52,7 @@ def check_directive_syntax(data: dict[str, Any]) -> list[CheckResult]:
     errors = data["syntax_errors"]
     fence_warnings = data["fence_nesting_warnings"]
 
-    # Check for syntax errors
+    # Check for syntax errors (only report if there ARE errors)
     if errors:
         details = []
         for e in errors[:5]:
@@ -69,12 +69,7 @@ def check_directive_syntax(data: dict[str, Any]) -> list[CheckResult]:
                 details=details,
             )
         )
-    elif data["total_directives"] > 0:
-        results.append(
-            CheckResult.success(f"All {data['total_directives']} directive(s) syntactically valid")
-        )
-    else:
-        results.append(CheckResult.success("No directives found in site (validation skipped)"))
+    # No success message - if there are no errors, silence is golden
 
     # Check for fence nesting warnings
     if fence_warnings:
@@ -97,7 +92,9 @@ def check_directive_syntax(data: dict[str, Any]) -> list[CheckResult]:
             file_path = first_warning["page"]
             line_num = first_warning["line"]
 
-            detail_msg = f"{file_name}:{line_num} - {first_warning.get('warning', 'fence nesting issue')}"
+            detail_msg = (
+                f"{file_name}:{line_num} - {first_warning.get('warning', 'fence nesting issue')}"
+            )
             context = get_line_with_context(file_path, line_num)
             details.append(f"{detail_msg}\n{context}")
 
@@ -171,10 +168,7 @@ def check_directive_completeness(data: dict[str, Any]) -> list[CheckResult]:
                 )
             )
 
-    if not errors and data["total_directives"] > 0:
-        results.append(
-            CheckResult.success(f"All {data['total_directives']} directive(s) complete")
-        )
+    # No success message - if directives are complete, silence is golden
 
     return results
 
@@ -212,18 +206,7 @@ def check_directive_performance(data: dict[str, Any]) -> list[CheckResult]:
                 )
             )
 
-    # Always show statistics if there are directives
-    if data["total_directives"] > 0:
-        top_types = sorted(data["by_type"].items(), key=lambda x: x[1], reverse=True)[:3]
-        type_summary = ", ".join([f"{t}({c})" for t, c in top_types])
-        avg_per_page = data["total_directives"] / max(len(data["by_page"]), 1)
-
-        results.append(
-            CheckResult.info(
-                f"Directive usage: {data['total_directives']} total across {len(data['by_page'])} pages. "
-                f"Most used: {type_summary}. Average per page: {avg_per_page:.1f}"
-            )
-        )
+    # No stats message - directive usage stats are noise during debugging
 
     return results
 
@@ -280,12 +263,7 @@ def check_directive_rendering(site: Site, data: dict[str, Any]) -> list[CheckRes
                 details=details,
             )
         )
-    elif data["total_directives"] > 0:
-        results.append(
-            CheckResult.success(
-                f"All directive(s) rendered successfully (checked {len(pages_to_check)} pages)"
-            )
-        )
+    # No success message - if rendering worked, silence is golden
 
     return results
 
@@ -307,4 +285,3 @@ def _has_unrendered_directives(html_content: str) -> bool:
         return bool(re.search(r":{3,}\{(\w+)", remaining_text))
     except Exception:
         return re.search(r":{3,}\{(\w+)", html_content) is not None
-
