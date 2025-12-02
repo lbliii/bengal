@@ -84,7 +84,7 @@ def get_page_relative_url(page: Page, site: Any) -> str:
     Returns:
         Relative URL string (without baseurl)
     """
-    # Prefer relative_url for postprocessing
+    # Prefer relative_url for postprocessing (guaranteed to be without baseurl)
     if hasattr(page, "relative_url"):
         relative_url = page.relative_url
         if callable(relative_url):
@@ -98,19 +98,31 @@ def get_page_relative_url(page: Page, site: Any) -> str:
         elif isinstance(result := relative_url, str):
             return result
 
-    # Fallback: try url property (might include baseurl but we'll use it)
+    # Fallback: try url property, but STRIP baseurl if present
+    # page.url may include baseurl, so we need to remove it
     if hasattr(page, "url"):
         url = page.url
         if callable(url):
             try:
-                result = url()
-                if isinstance(result, str):
-                    return result
+                url = url()
             except Exception:
-                # Ignore exceptions from url() to allow fallback to other URL sources
-                pass
-        elif isinstance(result := url, str):
-            return result
+                url = None
+        
+        if isinstance(url, str):
+            # Strip baseurl from url if present
+            baseurl = ""
+            if site and hasattr(site, "config") and isinstance(site.config, dict):
+                baseurl = site.config.get("baseurl", "") or ""
+            
+            if baseurl and baseurl != "/" and url.startswith(baseurl):
+                # Remove baseurl prefix to get relative URL
+                url = url[len(baseurl):]
+                # Ensure leading slash
+                if not url.startswith("/"):
+                    url = "/" + url
+            
+            if url:
+                return url
 
     # Build from output_path
     output_path = getattr(page, "output_path", None)
