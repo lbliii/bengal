@@ -115,15 +115,11 @@ class PageContentMixin:
         """
         Plain text extracted from content (for search/LLM).
 
-        Provides clean text without HTML tags or markdown syntax.
-        Uses AST extraction when available, falls back to raw markdown.
-
-        Strategy (per RFC):
-            - Default: Raw markdown (preserves structure for LLM)
-            - With AST: Clean text extraction (no markdown syntax)
+        Strips HTML tags from rendered content to get clean text.
+        Uses the rendered HTML (which includes directive output) for accuracy.
 
         Returns:
-            Plain text content
+            Plain text content with HTML tags removed
 
         Example:
             >>> page.plain_text
@@ -133,16 +129,18 @@ class PageContentMixin:
         if hasattr(self, "_plain_text_cache") and self._plain_text_cache is not None:
             return self._plain_text_cache
 
-        # If we have true AST, extract text from it (Phase 3)
-        if hasattr(self, "_ast_cache") and self._ast_cache is not None:
-            text = self._extract_text_from_ast()
-            if hasattr(self, "_plain_text_cache"):
-                self._plain_text_cache = text
-            return text
+        # Use HTML-based extraction (works correctly with directives)
+        # Get HTML from parsed_ast (the rendered HTML before template)
+        html_content = getattr(self, "parsed_ast", None) or ""
+        if html_content:
+            text = self._strip_html_to_text(html_content)
+        else:
+            # Fallback to raw content if no HTML available
+            text = self.content if self.content else ""
 
-        # Phase 1/2 fallback: Use raw markdown content
-        # This is actually preferred for LLM contexts where structure matters
-        return self.content if self.content else ""
+        if hasattr(self, "_plain_text_cache"):
+            self._plain_text_cache = text
+        return text
 
     def _render_ast_to_html(self) -> str:
         """

@@ -66,21 +66,13 @@ class PageOperationsMixin:
         """
         Extract all links from the page content.
 
-        Uses AST-based extraction when available (Phase 3+), falling back to
-        regex-based extraction for parsers that don't support AST.
-
         Skips content inside fenced code blocks to avoid false positives
         from code examples in documentation.
 
         Returns:
             List of link URLs found in the page
         """
-        # Phase 3+: Use AST-based extraction when available (faster, more accurate)
-        if hasattr(self, "_ast_cache") and self._ast_cache is not None:
-            self.links = self._extract_links_from_ast()
-            return self.links
-
-        # Fallback: Regex-based extraction from raw markdown
+        # Regex-based extraction from raw markdown
         # Remove fenced code blocks before extracting links
         # Process larger fences first (4+ backticks) to handle nested code blocks
         content_without_code = self.content

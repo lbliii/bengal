@@ -279,9 +279,6 @@ class RenderingPipeline:
             else:
                 need_toc = True
 
-        # Track AST for Phase 3 caching (RFC-content-ast-architecture)
-        ast_tokens: list[dict] | None = None
-
         if hasattr(self.parser, "parse_with_toc_and_context"):
             # Mistune with VariableSubstitutionPlugin (recommended)
             # Check if preprocessing is disabled
@@ -300,19 +297,7 @@ class RenderingPipeline:
                 # Single-pass parsing with variable substitution - fast and simple!
                 context = {"page": page, "site": self.site, "config": self.site.config}
 
-                # Phase 3: Use parse_with_ast() when parser supports AST for caching
-                if (
-                    hasattr(self.parser, "supports_ast")
-                    and self.parser.supports_ast
-                    and hasattr(self.parser, "parse_with_ast")
-                ):
-                    # Get AST, HTML, and TOC in single pass
-                    ast_tokens, parsed_content, toc = self.parser.parse_with_ast(
-                        page.content, page.metadata
-                    )
-                    # Store AST in page for later use (search indexing, LLM, etc.)
-                    page._ast_cache = ast_tokens
-                elif need_toc:
+                if need_toc:
                     parsed_content, toc = self.parser.parse_with_toc_and_context(
                         page.content, page.metadata, context
                     )
@@ -321,6 +306,20 @@ class RenderingPipeline:
                         page.content, page.metadata, context
                     )
                     toc = ""
+
+                # Phase 3: Extract AST separately for caching (doesn't affect rendered HTML)
+                # This enables page.plain_text and page.links to use AST walkers
+                if (
+                    hasattr(self.parser, "supports_ast")
+                    and self.parser.supports_ast
+                    and hasattr(self.parser, "parse_to_ast")
+                ):
+                    try:
+                        ast_tokens = self.parser.parse_to_ast(page.content, page.metadata)
+                        page._ast_cache = ast_tokens
+                    except Exception:
+                        # AST extraction is optional - don't break builds
+                        pass
         else:
             # FALLBACK: python-markdown (legacy)
             # Uses Jinja2 preprocessing - deprecated, use Mistune instead
@@ -402,6 +401,9 @@ class RenderingPipeline:
                 # Extract TOC items for caching
                 toc_items = extract_toc_structure(toc)
 
+                # Get AST from page cache (may be None if extraction failed)
+                cached_ast = getattr(page, "_ast_cache", None)
+
                 cache.store_parsed_content(
                     page.source_path,
                     parsed_content,
@@ -410,7 +412,7 @@ class RenderingPipeline:
                     page.metadata,
                     template,
                     parser_version,
-                    ast=ast_tokens,  # Phase 3: Cache AST for parse-once patterns
+                    ast=cached_ast,  # Phase 3: Cache AST for parse-once patterns
                 )
 
         # Stage 3: Extract links for validation

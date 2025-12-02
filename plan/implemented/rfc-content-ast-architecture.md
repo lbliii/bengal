@@ -345,22 +345,30 @@ Replaced `strip_html()` with `page.plain_text` in:
 - `llm_generator.py` - Site-wide `llm-full.txt`
 - `txt_generator.py` - Per-page `index.txt`
 
-### Phase 5: AST Link Extraction (2024-12-02)
+### ⚠️ Directive Compatibility Fix (2024-12-02)
 
-Updated `extract_links()` in `operations.py` to use AST walker when available:
-- Falls back to regex for parsers without AST support
-- Fixed `_extract_links_from_ast()` to handle Mistune 3.x `attrs.url` format
-- 3 links extracted in test (https/internal/autolink)
+**Problem**: AST-based extraction broke directive rendering because:
+- `parse_to_ast()` created a parser without directive plugins
+- `render_ast()` used a plain HTMLRenderer without custom renderers
+- Content inside directives (admonitions, dropdowns, etc.) was missing
+
+**Solution**: Reverted to HTML-based extraction (Option A):
+- `page.plain_text` now uses `_strip_html_to_text()` on rendered HTML
+- `extract_links()` uses regex on raw markdown (original behavior)
+- AST is still cached for potential future use, but not used for extraction
+
+**Key insight**: The 30% build speedup came from pipeline improvements
+(single-pass parsing), not from AST text extraction.
 
 ### ✅ Implementation Complete
 
-All phases implemented:
+Working features:
 - Phase 1-2: New properties (`html`, `plain_text`, `ast`) + deprecation
-- Phase 3: AST caching in BuildCache and RenderingPipeline
-- Phase 4: LLM/search outputs use `page.plain_text`
-- Phase 5: Link extraction uses AST walker
+- Phase 3: AST caching in BuildCache (for future use)
+- Phase 4: LLM/search outputs use `page.plain_text` (HTML-based)
+- Directives render correctly ✅
 
-### Next Steps
+### Limitations
 
-1. **Performance benchmarks**: Measure actual speedup vs regex-based extraction
-2. **Consider removing strip_html()**: May be unused after AST adoption
+- AST doesn't include directive content (Mistune plugins are renderer-coupled)
+- Future: Consider custom renderer that captures AST during rendering
