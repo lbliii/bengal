@@ -32,6 +32,11 @@ Step-by-step guides for common tasks with Bengal.
 - **[CI/CD Setup](/docs/guides/ci-cd-setup/)** - Automate builds, testing, and deployments
 - **[Deployment](/docs/guides/deployment/)** - Deploy your site to production
 
+### Content Management
+
+- **[Content Collections](/docs/guides/content-collections/)** - Validate frontmatter with typed schemas
+- **[Remote Content Sources](/docs/guides/content-sources/)** - Fetch content from GitHub, Notion, REST APIs
+
 ### Site Optimization
 
 - **[Graph Analysis](/docs/guides/graph-analysis/)** - Analyze site structure, improve internal linking, and optimize navigation using graph analysis tools
