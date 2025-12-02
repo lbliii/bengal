@@ -45,4 +45,8 @@ autodoc:
     output_dir: "content/cli"
     display_name: "Bengal CLI"  # Display name for CLI documentation section (used in navigation)
 
-health_check: false
+# Health check configuration
+# Note: Use --profile writer/theme-dev/dev to control which checks run
+health_check:
+  enabled: true
+  verbose: false  # Set true to see INFO-level warnings
