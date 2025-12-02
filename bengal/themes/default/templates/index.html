@@ -20,19 +20,15 @@ Controls whether child pages and subsections are displayed as tiles
 {% from 'partials/navigation-components.html' import breadcrumbs %}
 {% from 'partials/content-components.html' import child_page_tiles %}
 
-{# Cache page lookups once - eliminates repeated defensive checks #}
-{% set _page = page if page is defined else none %}
-{% set _has_page = _page is not none %}
-
 {% block content %}
-{{ breadcrumbs(_page if _has_page else section) }}
+{{ breadcrumbs(page if page is defined else section) }}
 
 <div class="section-index">
     <header class="section-header">
-        <h1>{{ _page.title if _has_page else section.title if section else site.config.title }}</h1>
+        <h1>{{ page.title if (page is defined and page) else section.title if section else site.config.title }}</h1>
 
-        {% if _has_page and _page.metadata.get('description', '') %}
-        <p class="section-description">{{ _page.metadata.get('description', '') }}</p>
+        {% if (page is defined and page) and page.metadata.get('description', '') %}
+        <p class="section-description">{{ page.metadata.get('description', '') }}</p>
         {% elif section and section.metadata.get('description') %}
         <p class="section-description">{{ section.metadata.get('description', '') }}</p>
         {% endif %}
@@ -46,9 +42,9 @@ Controls whether child pages and subsections are displayed as tiles
     {% endif %}
 
     {# Child content display - can be disabled via frontmatter: show_children: false #}
-    {% set show_children = _page.metadata.get('show_children', true) if _has_page else true %}
+    {% set show_children = page.metadata.get('show_children', true) if (page is defined and page) else true %}
     {% if show_children %}
-    {{ child_page_tiles(posts=posts, subsections=subsections, current_page_url=_page.relative_url if _has_page else none) }}
+    {{ child_page_tiles(posts=posts, subsections=subsections) }}
     {% endif %}
 
     {# Empty state if no children to display #}
