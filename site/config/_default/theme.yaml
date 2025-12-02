@@ -1,6 +1,6 @@
 # Theme Configuration
 # ===================
-# Controls theme appearance and display behavior
+# Controls theme appearance, behavior, and UI components
 
 theme:
   name: "default"
@@ -9,12 +9,42 @@ theme:
   default_appearance: "dark"     # Options: "light", "dark", "system"
   default_palette: "snow-lynx"   # Warm teal + cream (light), ice blue (dark)
 
-  # Display Preferences
-  # All features below are enabled by default; set to false to disable
+  # Feature Flags
+  # =============
+  # Declaratively enable/disable theme UI components.
+  # Run `bengal utils theme features` to see all available options.
+  features:
+    # Navigation
+    - navigation.breadcrumbs      # Breadcrumb trail above content
+    - navigation.toc              # Table of contents sidebar
+    - navigation.toc.sticky       # Make TOC sticky when scrolling
+    - navigation.prev_next        # Previous/next page links at bottom
+    - navigation.back_to_top      # Back-to-top button when scrolling
+    # - navigation.tabs           # Tabbed top-level navigation (disabled)
 
+    # Content
+    - content.code.copy           # Copy button on code blocks
+    - content.lightbox            # Image lightbox on click
+    # - content.code.annotate     # Code annotation markers (disabled)
+    # - content.tabs.link         # Sync content tabs across page (disabled)
+
+    # Search
+    - search.suggest              # Search suggestions as you type
+    - search.highlight            # Highlight search terms on result pages
+    # - search.share              # Search result sharing via URL (disabled)
+
+    # Header
+    # - header.autohide           # Auto-hide header on scroll (disabled)
+
+    # Footer
+    - footer.social               # Social links in footer
+
+    # Accessibility
+    - accessibility.skip_link     # Skip-to-content link for keyboard users
+
+  # Display Preferences (legacy - may be migrated to features in future)
   show_reading_time: true        # Display "X min read" on pages
   show_author: true              # Display author information when present
-  show_prev_next: true           # Display previous/next navigation links
   show_children_default: true    # Show child pages in section indexes
   show_excerpts_default: true    # Show excerpts in article cards
 
