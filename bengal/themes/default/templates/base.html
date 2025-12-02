@@ -9,7 +9,77 @@ These cached variables eliminate repeated defensive checks (34+ instances of
 See: plan/active/rfc-template-performance-optimization.md
 ================================================================================
 #}
-{% from 'partials/nav-menu.html' import render_menu_items, render_auto_nav, render_github_link, render_logo %}
+{# Navigation Macros - defined inline for Jinja2 template inheritance compatibility #}
+{% macro render_menu_items(menu, is_mobile=false) %}
+{% if menu %}
+{% for item in menu %}
+<li class="{{ 'has-submenu' if (is_mobile and item.children) else '' }} {{ 'active' if item.active else '' }} {{ 'active-trail' if (not is_mobile and item.active_trail) else '' }}">
+    <a href="{{ item.url | absolute_url }}">{{ item.name }}</a>
+    {% if item.children %}
+    <ul class="submenu">
+        {% for child in item.children %}
+        <li class="{{ 'active' if child.active else '' }}">
+            <a href="{{ child.url | absolute_url }}">{{ child.name }}</a>
+        </li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+</li>
+{% endfor %}
+{% endif %}
+{% endmacro %}
+
+{% macro render_auto_nav(auto_nav, page_url) %}
+{% if auto_nav %}
+<li class="{{ 'active' if page_url == '/' else '' }}">
+    <a href="{{ '/' | absolute_url }}">Home</a>
+</li>
+{% for item in auto_nav %}
+<li class="{{ 'active' if (page_url is string and page_url.startswith(item.relative_url) and item.relative_url != '/') else '' }}">
+    <a href="{{ item.url | absolute_url }}">{{ item.name }}</a>
+</li>
+{% endfor %}
+{% endif %}
+{% endmacro %}
+
+{% macro render_github_link(site, is_mobile=false) %}
+{% set github_bundled = false %}
+{% if site._dev_menu_metadata is defined %}
+{% set github_bundled = site._dev_menu_metadata.get("github_bundled", false) %}
+{% endif %}
+{% if site.config.params and site.config.params.repo_url and not github_bundled %}
+<li>
+    {% if is_mobile %}
+    <a href="{{ site.config.params.repo_url }}" target="_blank" rel="noopener">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 8px; vertical-align: text-bottom;">
+            <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
+        </svg>
+        GitHub
+    </a>
+    {% else %}
+    <a href="{{ site.config.params.repo_url }}" target="_blank" rel="noopener" title="GitHub Repository" data-external="true" aria-label="GitHub (opens in new tab)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
+        </svg>
+        <span>GitHub</span>
+    </a>
+    {% endif %}
+</li>
+{% endif %}
+{% endmacro %}
+
+{% macro render_logo(site, site_title) %}
+{% set _logo_image = site.config.get('logo_image') or site.config.get('site', {}).get('logo_image') %}
+{% set _logo_text = site.config.get('logo_text') or site.config.get('site', {}).get('logo_text') %}
+{% if _logo_image %}
+<img src="{{ _logo_image | absolute_url }}" alt="{{ site_title }}" class="brand-image" />
+{% elif _logo_text %}
+<span class="brand-text">{{ _logo_text }}</span>
+{% else %}
+<span class="brand-text">{{ site_title }}</span>
+{% endif %}
+{% endmacro %}
+
 {% set _page = page if page is defined else none %}
 {% set _has_page = _page is not none %}
 {% set _page_title = _page.title if (_has_page and _page.title is defined) else '' %}

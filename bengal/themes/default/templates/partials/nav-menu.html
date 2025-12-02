@@ -1,19 +1,13 @@
 {#
 ================================================================================
-Navigation Menu Macros - Shared between desktop and mobile navigation
+Navigation Menu Macros - REFERENCE ONLY
 ================================================================================
-Eliminates ~60 lines of duplicated menu rendering code from base.html.
+NOTE: These macros are now defined INLINE in base.html because Jinja2's
+{% from ... import %} doesn't work with template inheritance - child templates
+that extend base.html don't inherit the imported macros.
 
-Usage:
-    {% from 'partials/nav-menu.html' import render_menu_items, render_auto_nav %}
-
-    {# Desktop nav #}
-    {{ render_menu_items(_main_menu) }}
-    {{ render_auto_nav(_auto_nav, _page_url) }}
-
-    {# Mobile nav (with has-submenu class) #}
-    {{ render_menu_items(_main_menu, is_mobile=true) }}
-    {{ render_auto_nav(_auto_nav, _page_url) }}
+This file is kept as documentation/reference for the macro signatures.
+The actual macros are defined at the top of base.html.
 
 See: plan/active/rfc-template-performance-optimization.md
 ================================================================================
