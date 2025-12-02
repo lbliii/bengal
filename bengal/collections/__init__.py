@@ -160,17 +160,39 @@ from bengal.collections.loader import (
     load_collections,
     validate_collections_config,
 )
+from bengal.collections.schemas import (
+    API,
+    APIReference,
+    BlogPost,
+    Changelog,
+    Doc,
+    DocPage,
+    Post,
+    Tutorial,
+)
 from bengal.collections.validator import SchemaValidator, ValidationResult
 
 __all__ = [
+    # Core API
     "CollectionConfig",
+    "define_collection",
+    # Validation
     "ContentValidationError",
     "SchemaValidator",
     "ValidationError",
     "ValidationResult",
-    "define_collection",
+    # Loader
     "get_collection_for_path",
     "load_collections",
     "validate_collections_config",
+    # Standard schemas
+    "API",
+    "APIReference",
+    "BlogPost",
+    "Changelog",
+    "Doc",
+    "DocPage",
+    "Post",
+    "Tutorial",
 ]
 

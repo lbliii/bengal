@@ -463,9 +463,22 @@ class Site:
             logger.warning("content_dir_not_found", path=str(content_dir))
             return
 
+        from bengal.collections import load_collections
         from bengal.discovery.content_discovery import ContentDiscovery
 
-        discovery = ContentDiscovery(content_dir, site=self)
+        # Load collection schemas from project root (if collections.py exists)
+        collections = load_collections(self.root_path)
+
+        # Check if strict validation is enabled (default: False for backward compatibility)
+        build_config = self.config.get("build", {}) if isinstance(self.config, dict) else {}
+        strict_validation = build_config.get("strict_collections", False)
+
+        discovery = ContentDiscovery(
+            content_dir,
+            site=self,
+            collections=collections,
+            strict_validation=strict_validation,
+        )
         self.sections, self.pages = discovery.discover()
 
         # Build section registry for path-based lookups (MUST come before _setup_page_references)

@@ -472,64 +472,56 @@ class HealthReport:
 
         # Show problems first (most important - what needs attention)
         if validators_with_problems:
-            lines.append("[bold]Issues Found:[/bold]")
+            lines.append("[bold]Issues:[/bold]")
             lines.append("")
 
             for i, vr in enumerate(validators_with_problems):
                 is_last_problem = i == len(validators_with_problems) - 1
-                is_last_overall = is_last_problem and not validators_passed
-                tree_symbol = "└─" if is_last_overall else "├─"
 
-                # Build status line with emoji, tree symbol, and validator name
-                status_parts = [f"   {tree_symbol} {vr.status_emoji}"]
-                status_parts.append(f"[bold]{vr.validator_name}[/bold]")
-
+                # Clean header: - ValidatorName (count)
                 if vr.error_count > 0:
-                    status_parts.append(f"[error]{vr.error_count} error(s)[/error]")
+                    count_str = f"[error]{vr.error_count} error(s)[/error]"
                 elif vr.warning_count > 0:
-                    status_parts.append(f"[warning]{vr.warning_count} warning(s)[/warning]")
-                elif vr.info_count > 0:
-                    status_parts.append(f"[info]{vr.info_count} info[/info]")
+                    count_str = f"[warning]{vr.warning_count} warning(s)[/warning]"
+                else:
+                    count_str = f"[info]{vr.info_count} info[/info]"
 
-                lines.append(" ".join(status_parts))
+                lines.append(f"  {vr.status_emoji} [bold]{vr.validator_name}[/bold] ({count_str})")
 
-                # Show problem details
+                # Show problem details - location first, then context
                 for result in vr.results:
                     if result.is_problem():
-                        lines.append(f"      • {result.message}")
-                        if result.recommendation:
-                            lines.append(f"        💡 {result.recommendation}")
+                        # Brief message describing the issue type
+                        lines.append(f"    • {result.message}")
+
+                        # Details show location + context (the important part)
                         if result.details:
-                            for detail in result.details[:3]:
-                                lines.append(f"           - {detail}")
-                            if len(result.details) > 3:
-                                lines.append(f"           ... and {len(result.details) - 3} more")
+                            for detail in result.details[:5]:
+                                # Details are already formatted with location:line
+                                lines.append(f"      {detail}")
+                            if len(result.details) > 5:
+                                lines.append(f"      ... and {len(result.details) - 5} more")
 
                 if not is_last_problem:
-                    lines.append("")  # Blank line between validators (not after last)
+                    lines.append("")  # Blank line between validators
 
         # Show suggestions (collapsed by default, only if show_suggestions=True)
         if validators_with_suggestions and show_suggestions:
             if validators_with_problems:
                 lines.append("")
-            lines.append("[bold]💡 Quality Suggestions:[/bold]")
+            lines.append("[bold]Suggestions:[/bold]")
             lines.append("")
 
             for i, vr in enumerate(validators_with_suggestions):
                 is_last_suggestion = i == len(validators_with_suggestions) - 1
-                is_last_overall = is_last_suggestion and not validators_passed
-                tree_symbol = "└─" if is_last_overall else "├─"
 
-                status_parts = [f"   {tree_symbol} 💡"]
-                status_parts.append(f"[bold]{vr.validator_name}[/bold]")
-                status_parts.append(f"[info]{vr.suggestion_count} suggestion(s)[/info]")
-                lines.append(" ".join(status_parts))
+                lines.append(
+                    f"  💡 [bold]{vr.validator_name}[/bold] ([info]{vr.suggestion_count} suggestion(s)[/info])"
+                )
 
                 for result in vr.results:
                     if result.status == CheckStatus.SUGGESTION:
-                        lines.append(f"      • {result.message}")
-                        if result.recommendation:
-                            lines.append(f"        💡 {result.recommendation}")
+                        lines.append(f"    • {result.message}")
 
                 if not is_last_suggestion:
                     lines.append("")
@@ -597,42 +589,35 @@ class HealthReport:
 
         # Show problems first (most important - what needs attention)
         if validators_with_problems:
-            lines.append("[bold]Issues Found:[/bold]")
+            lines.append("[bold]Issues:[/bold]")
             lines.append("")
 
             for i, vr in enumerate(validators_with_problems):
                 is_last_problem = i == len(validators_with_problems) - 1
-                is_last_overall = is_last_problem and not validators_passed
-                tree_symbol = "└─" if is_last_overall else "├─"
 
-                # Build status line
-                status_parts = [f"   {tree_symbol} {vr.status_emoji}"]
-                status_parts.append(f"[bold]{vr.validator_name}[/bold]")
-
+                # Clean header
                 if vr.error_count > 0:
-                    status_parts.append(f"[error]{vr.error_count} error(s)[/error]")
+                    count_str = f"[error]{vr.error_count} error(s)[/error]"
                 elif vr.warning_count > 0:
-                    status_parts.append(f"[warning]{vr.warning_count} warning(s)[/warning]")
-                elif vr.info_count > 0:
-                    status_parts.append(f"[info]{vr.info_count} info[/info]")
+                    count_str = f"[warning]{vr.warning_count} warning(s)[/warning]"
+                else:
+                    count_str = f"[info]{vr.info_count} info[/info]"
 
-                lines.append(" ".join(status_parts))
+                lines.append(f"  {vr.status_emoji} [bold]{vr.validator_name}[/bold] ({count_str})")
 
                 # Show ALL results in verbose mode (including successes for context)
                 for result in vr.results:
                     if result.is_problem():
-                        # Problems get full detail
-                        lines.append(f"      • {result.message}")
-                        if result.recommendation:
-                            lines.append(f"        💡 {result.recommendation}")
+                        # Problems get full detail - location first
+                        lines.append(f"    • {result.message}")
                         if result.details:
-                            for detail in result.details[:3]:
-                                lines.append(f"           - {detail}")
-                            if len(result.details) > 3:
-                                lines.append(f"           ... and {len(result.details) - 3} more")
+                            for detail in result.details[:5]:
+                                lines.append(f"      {detail}")
+                            if len(result.details) > 5:
+                                lines.append(f"      ... and {len(result.details) - 5} more")
                     else:
                         # Successes shown briefly
-                        lines.append(f"      ✓ {result.message}")
+                        lines.append(f"    ✓ {result.message}")
 
                 if not is_last_problem:
                     lines.append("")

@@ -78,9 +78,24 @@ class ContentOrchestrator:
             use_cache=incremental and cache is not None,
         )
 
+        from bengal.collections import load_collections
         from bengal.discovery.content_discovery import ContentDiscovery
 
-        discovery = ContentDiscovery(content_dir, site=self.site)
+        # Load collection schemas from project root (if collections.py exists)
+        collections = load_collections(self.site.root_path)
+
+        # Check if strict validation is enabled
+        build_config = (
+            self.site.config.get("build", {}) if isinstance(self.site.config, dict) else {}
+        )
+        strict_validation = build_config.get("strict_collections", False)
+
+        discovery = ContentDiscovery(
+            content_dir,
+            site=self.site,
+            collections=collections,
+            strict_validation=strict_validation,
+        )
 
         # Use lazy loading if incremental build with cache
         use_cache = incremental and cache is not None
