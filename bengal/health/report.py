@@ -494,13 +494,17 @@ class HealthReport:
                     # Brief message describing the issue type
                     lines.append(f"    • {result.message}")
 
+                    # Show recommendation if available
+                    if result.recommendation:
+                        lines.append(f"      💡 {result.recommendation}")
+
                     # Details show location + context (the important part)
                     if result.details:
-                        for detail in result.details[:5]:
+                        for detail in result.details[:3]:
                             # Details are already formatted with location:line
                             lines.append(f"      {detail}")
-                        if len(result.details) > 5:
-                            lines.append(f"      ... and {len(result.details) - 5} more")
+                        if len(result.details) > 3:
+                            lines.append(f"      ... and {len(result.details) - 3} more")
 
                     # Add spacing between issues (not after the last one)
                     if j < len(problem_results) - 1:

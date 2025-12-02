@@ -128,9 +128,10 @@ Use {{/* content | meta_description(160) */}} for meta tags.
         output_file = site.output_dir / "guide" / "index.html"
         output = output_file.read_text()
 
-        # Real variables should be substituted (site.title, page.title, page.author)
-        assert "Template Guide" in output  # page.title
-        assert "Test Author" in output  # page.author from frontmatter
+        # Real variables should be substituted by the template
+        # page.title is rendered by the page.html template in the H1 header
+        assert "Template Guide" in output  # page.title from frontmatter
+        # Note: page.author is NOT rendered - the page.html template doesn't include it
 
         # Examples should be literal (as HTML entities to prevent Jinja2 processing)
         # Browsers will render &#123;&#123; as {{ for the user

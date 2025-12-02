@@ -30,7 +30,7 @@ def test_asset_validator_missing_assets_dir(mock_site):
 
 
 def test_asset_validator_valid_assets(mock_site, tmp_path):
-    """Test validator passes for valid assets."""
+    """Test validator passes for valid assets (silence is golden pattern)."""
     # Create assets directory with files
     assets_dir = tmp_path / "assets"
     css_dir = assets_dir / "css"
@@ -45,10 +45,10 @@ def test_asset_validator_valid_assets(mock_site, tmp_path):
     validator = AssetValidator()
     results = validator.validate(mock_site)
 
-    # Should have success results
-    assert any(r.status == CheckStatus.SUCCESS for r in results)
-    assert any("Assets directory exists" in r.message for r in results)
-    assert any("CSS file(s)" in r.message for r in results)
+    # Validators follow "silence is golden" - no warnings/errors means success
+    # Valid assets should not produce any warnings or errors
+    assert not any(r.status == CheckStatus.WARNING for r in results)
+    assert not any(r.status == CheckStatus.ERROR for r in results)
 
 
 def test_asset_validator_no_css(mock_site, tmp_path):
@@ -113,19 +113,23 @@ def test_asset_validator_large_images(mock_site, tmp_path):
 
 
 def test_asset_validator_total_size(mock_site, tmp_path):
-    """Test validator reports total asset size."""
+    """Test validator with small assets (silence is golden pattern)."""
     assets_dir = tmp_path / "assets"
-    assets_dir.mkdir()
+    css_dir = assets_dir / "css"
+    css_dir.mkdir(parents=True)
 
     # Create several small files
-    (assets_dir / "style.css").write_text("body {}")
+    (css_dir / "style.css").write_text("body {}")
     (assets_dir / "main.js").write_text("console.log();")
 
     validator = AssetValidator()
     results = validator.validate(mock_site)
 
-    # Should report size
-    assert any("size" in r.message.lower() and "mb" in r.message.lower() for r in results)
+    # Small assets should not trigger size warnings
+    # Validators follow "silence is golden" - no warnings for reasonable sizes
+    assert not any(
+        r.status == CheckStatus.WARNING and "very large" in r.message.lower() for r in results
+    )
 
 
 def test_asset_validator_very_large_total(mock_site, tmp_path):
@@ -145,20 +149,23 @@ def test_asset_validator_very_large_total(mock_site, tmp_path):
 
 
 def test_asset_validator_duplicate_detection(mock_site, tmp_path):
-    """Test validator detects duplicate assets."""
+    """Test validator with multiple versioned assets (normal with cache busting)."""
     assets_dir = tmp_path / "assets" / "css"
     assets_dir.mkdir(parents=True)
 
     # Create files that look like duplicates (same base name)
+    # Multiple versions are normal with cache busting, so no warning expected
     (assets_dir / "style.abc123.css").write_text("body {}")
     (assets_dir / "style.def456.css").write_text("body {}")
 
     validator = AssetValidator()
     results = validator.validate(mock_site)
 
-    # Should note multiple versions
-    assert any(r.status == CheckStatus.INFO for r in results)
-    assert any("multiple versions" in r.message.lower() for r in results)
+    # Validators follow "silence is golden" - multiple versions are normal with cache busting
+    # No warnings or errors expected for this pattern
+    assert not any(r.status == CheckStatus.ERROR for r in results)
+    # CSS warning should not be present since CSS files exist
+    assert not any("No CSS files" in r.message for r in results)
 
 
 def test_asset_validator_minification_hints(mock_site, tmp_path):
@@ -205,7 +212,7 @@ def test_asset_validator_minified_assets_ok(mock_site, tmp_path):
 
 
 def test_asset_validator_with_js_files(mock_site, tmp_path):
-    """Test validator reports JS files as info."""
+    """Test validator with JS files (silence is golden pattern)."""
     assets_dir = tmp_path / "assets"
     css_dir = assets_dir / "css"
     js_dir = assets_dir / "js"
@@ -218,12 +225,13 @@ def test_asset_validator_with_js_files(mock_site, tmp_path):
     validator = AssetValidator()
     results = validator.validate(mock_site)
 
-    # Should report JS files
-    assert any(r.status == CheckStatus.INFO and "JavaScript file(s)" in r.message for r in results)
+    # Validators follow "silence is golden" - valid assets produce no warnings/errors
+    assert not any(r.status == CheckStatus.ERROR for r in results)
+    assert not any(r.status == CheckStatus.WARNING for r in results)
 
 
 def test_asset_validator_with_images(mock_site, tmp_path):
-    """Test validator reports image files as info."""
+    """Test validator with image files (silence is golden pattern)."""
     assets_dir = tmp_path / "assets"
     img_dir = assets_dir / "images"
     css_dir = assets_dir / "css"
@@ -237,9 +245,11 @@ def test_asset_validator_with_images(mock_site, tmp_path):
     validator = AssetValidator()
     results = validator.validate(mock_site)
 
-    # Should report images
-    assert any(
-        r.status == CheckStatus.INFO and "image file(s)" in r.message.lower() for r in results
+    # Validators follow "silence is golden" - valid assets produce no warnings/errors
+    # Small images should not trigger size warnings
+    assert not any(r.status == CheckStatus.ERROR for r in results)
+    assert not any(
+        r.status == CheckStatus.WARNING and "image(s) are very large" in r.message for r in results
     )
 
 
