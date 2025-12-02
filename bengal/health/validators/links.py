@@ -77,7 +77,6 @@ class LinkValidatorWrapper(BaseValidator):
                         details=details,
                     )
                 )
-        else:
-            results.append(CheckResult.success("All links are valid"))
+        # No success message - if all links are valid, silence is golden
 
         return results

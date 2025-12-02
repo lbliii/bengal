@@ -4,7 +4,6 @@ Configuration validator wrapper.
 Integrates the existing ConfigValidator into the health check system.
 """
 
-
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, override
@@ -62,8 +61,7 @@ class ConfigValidatorWrapper(BaseValidator):
                     recommendation="Add these fields to your bengal.toml for better control.",
                 )
             )
-        else:
-            results.append(CheckResult.success("All essential configuration fields present"))
+        # No success message - if fields are present, silence is golden
 
         return results
 
@@ -100,8 +98,6 @@ class ConfigValidatorWrapper(BaseValidator):
                 )
             )
 
-        # All checks passed
-        if not any(r.is_problem() for r in results):
-            results.append(CheckResult.success("Configuration validated successfully"))
+        # No success message - if no problems found, silence is golden
 
         return results

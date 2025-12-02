@@ -9,7 +9,6 @@ Validates:
 - Reasonable font file sizes
 """
 
-
 from __future__ import annotations
 
 import re
@@ -70,8 +69,6 @@ class FontValidator(BaseValidator):
             )
             return results
 
-        results.append(CheckResult.success("fonts.css generated"))
-
         # Check 2: Font files exist
         fonts_dir = site.output_dir / "assets" / "fonts"
         results.extend(self._check_font_files(fonts_dir, font_config))
@@ -121,8 +118,7 @@ class FontValidator(BaseValidator):
                     recommendation="Some fonts may not have downloaded. Check for download errors in logs.",
                 )
             )
-        else:
-            results.append(CheckResult.success(f"{len(font_files)} font file(s) downloaded"))
+        # No success message - if fonts downloaded, silence is golden
 
         return results
 
@@ -153,10 +149,6 @@ class FontValidator(BaseValidator):
             )
             return results
 
-        results.append(
-            CheckResult.success(f"fonts.css contains {font_face_count} @font-face rule(s)")
-        )
-
         # Check for broken font references
         broken_refs = self._check_font_references(css_content, fonts_dir)
 
@@ -168,8 +160,7 @@ class FontValidator(BaseValidator):
                     details=broken_refs[:5],
                 )
             )
-        else:
-            results.append(CheckResult.success("All font references are valid"))
+        # No success message - if references are valid, silence is golden
 
         return results
 
@@ -230,9 +221,6 @@ class FontValidator(BaseValidator):
                     recommendation="Consider reducing number of font weights to improve performance.",
                 )
             )
-        else:
-            results.append(
-                CheckResult.success(f"Font sizes are reasonable (total: {total_size_kb:.0f} KB)")
-            )
+        # No success message - if sizes are reasonable, silence is golden
 
         return results

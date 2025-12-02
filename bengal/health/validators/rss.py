@@ -9,7 +9,6 @@ Validates:
 - Dates are in RFC 822 format
 """
 
-
 from __future__ import annotations
 
 import xml.etree.ElementTree as ET
@@ -66,8 +65,6 @@ class RSSValidator(BaseValidator):
             )
             return results
 
-        results.append(CheckResult.success("RSS file exists"))
-
         # Check 2: XML is well-formed
         try:
             tree = ET.parse(rss_path)
@@ -80,8 +77,6 @@ class RSSValidator(BaseValidator):
                 )
             )
             return results
-
-        results.append(CheckResult.success("RSS XML is well-formed"))
 
         # Check 3: Valid RSS 2.0 structure
         results.extend(self._check_rss_structure(root))
@@ -144,8 +139,7 @@ class RSSValidator(BaseValidator):
                     recommendation="RSS 2.0 requires <title>, <link>, and <description> in <channel>.",
                 )
             )
-        else:
-            results.append(CheckResult.success("RSS structure is valid"))
+        # No success message - if structure is valid, silence is golden
 
         return results
 
@@ -180,8 +174,7 @@ class RSSValidator(BaseValidator):
                     recommendation="Consider increasing RSS item limit to include more recent content.",
                 )
             )
-        else:
-            results.append(CheckResult.success(f"RSS feed contains {item_count} item(s)"))
+        # No success message - if feed has items, silence is golden
 
         # Check items have required elements
         invalid_items = []
@@ -248,7 +241,6 @@ class RSSValidator(BaseValidator):
                     details=relative_links[:3],
                 )
             )
-        elif items:
-            results.append(CheckResult.success("All RSS URLs are properly formatted"))
+        # No success message - if URLs are valid, silence is golden
 
         return results

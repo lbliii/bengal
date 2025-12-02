@@ -6,11 +6,12 @@ to include the configured baseurl. This is essential for deployments where the
 site is not at the root of the domain (e.g., GitHub Pages project sites).
 
 Example:
-    With baseurl="/bengal":
-    - <a href="/docs/guide/"> becomes <a href="/bengal/docs/guide/">
-    - <a href="https://example.com/"> stays unchanged (external)
-    - <a href="guide/"> stays unchanged (relative)
-    - <a href="#section"> stays unchanged (anchor)
+    With baseurl="/bengal"::
+
+        href="/docs/guide/"     -> href="/bengal/docs/guide/"
+        href="https://ext.com/" -> unchanged (external)
+        href="guide/"           -> unchanged (relative)
+        href="#section"         -> unchanged (anchor)
 """
 
 from __future__ import annotations
