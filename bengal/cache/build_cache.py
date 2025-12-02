@@ -52,7 +52,7 @@ class BuildCache:
     """
 
     # Serialized schema version (persisted in cache JSON). Tolerant loader accepts missing/older.
-    VERSION: int = 3  # Bumped for config_hash field
+    VERSION: int = 4  # Bumped for AST caching (Phase 3 of RFC-content-ast-architecture)
 
     # Instance persisted version; defaults to current VERSION
     version: int = VERSION
@@ -758,12 +758,17 @@ class BuildCache:
         metadata: dict[str, Any],
         template: str,
         parser_version: str,
+        ast: list[dict[str, Any]] | None = None,
     ) -> None:
         """
-        Store parsed content in cache (Optimization #2).
+        Store parsed content in cache (Optimization #2 + AST caching).
 
         This allows skipping markdown parsing when only templates change,
         resulting in 20-30% faster builds in that scenario.
+
+        Phase 3 Enhancement (RFC-content-ast-architecture):
+        - Also caches the true AST for parse-once, use-many patterns
+        - AST enables faster TOC/link extraction and plain text generation
 
         Args:
             file_path: Path to source file
@@ -772,7 +777,8 @@ class BuildCache:
             toc_items: Structured TOC data
             metadata: Page metadata (frontmatter)
             template: Template name used
-            parser_version: Parser version string (e.g., "mistune-3.0")
+            parser_version: Parser version string (e.g., "mistune-3.0-toc2")
+            ast: True AST tokens from parser (optional, for Phase 3)
         """
         # Hash metadata to detect changes
         metadata_str = json.dumps(metadata, sort_keys=True, default=str)
@@ -780,12 +786,17 @@ class BuildCache:
 
         # Calculate size for cache management
         size_bytes = len(html.encode("utf-8")) + len(toc.encode("utf-8"))
+        if ast:
+            # Estimate AST size (JSON serialization)
+            ast_str = json.dumps(ast, default=str)
+            size_bytes += len(ast_str.encode("utf-8"))
 
         # Store as dict (will be serialized to JSON)
         self.parsed_content[str(file_path)] = {
             "html": html,
             "toc": toc,
             "toc_items": toc_items,
+            "ast": ast,  # Phase 3: Store true AST tokens
             "metadata_hash": metadata_hash,
             "template": template,
             "parser_version": parser_version,

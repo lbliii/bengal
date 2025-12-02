@@ -312,8 +312,34 @@ parser.parse_with_ast(...)   # All-in-one: AST + HTML + TOC
 - `page.html` is an alias that returns the same value
 - All existing tests pass (123/124, 1 unrelated failure)
 
+### Phase 3 Implementation (2024-12-02)
+
+**AST Caching Integrated**:
+
+1. **`bengal/cache/build_cache.py`**
+   - Bumped VERSION to 4 for AST caching
+   - Extended `store_parsed_content()` with `ast` parameter
+   - AST persisted alongside HTML/TOC in cache JSON
+
+2. **`bengal/rendering/pipeline.py`**
+   - Uses `parse_with_ast()` when parser supports AST
+   - Stores AST in `page._ast_cache` for content properties
+   - AST persisted to cache for next build
+   - AST restored from cache on cache hit
+
+3. **`bengal/core/page/content.py`**
+   - Fixed `_render_ast_to_html()` to use correct Mistune API
+   - `page.html` now renders from AST when available
+   - `page.plain_text` extracts text from AST via walker
+
+**Benefits Realized**:
+- Parse once, cache AST and HTML
+- `page.ast` property returns true AST tokens
+- `page.plain_text` extracts clean text via AST walker
+- Cache persists AST across builds (JSON-serializable)
+
 ### Next Steps
 
-1. **Phase 3 completion**: Integrate AST caching into `BuildCache`
-2. **Pipeline integration**: Use `parse_with_ast()` in `RenderingPipeline`
-3. **Performance benchmarks**: Measure actual speedup vs regex-based extraction
+1. **Performance benchmarks**: Measure actual speedup vs regex-based extraction
+2. **LLM integration**: Use `page.plain_text` in search indexing and LLM outputs
+3. **Link extraction**: Use AST walker for link extraction (replace regex)

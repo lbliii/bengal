@@ -157,11 +157,13 @@ class PageContentMixin:
             return ""
 
         try:
-            import mistune
+            # Mistune 3.x requires HTMLRenderer instance and BlockState
+            from mistune.core import BlockState
+            from mistune.renderers.html import HTMLRenderer
 
-            # Create renderer and render tokens
-            md = mistune.create_markdown()
-            return md.renderer.render_tokens(self._ast_cache)
+            renderer = HTMLRenderer()
+            state = BlockState()
+            return renderer(self._ast_cache, state)
         except (ImportError, AttributeError, Exception):
             # Fallback to empty string if rendering fails
             return ""

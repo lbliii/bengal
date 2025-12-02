@@ -195,6 +195,10 @@ class RenderingPipeline:
                     page.toc = cached["toc"]
                     page._toc_items_cache = cached.get("toc_items", [])
 
+                    # Phase 3: Restore AST from cache for page.ast/plain_text properties
+                    if cached.get("ast"):
+                        page._ast_cache = cached["ast"]
+
                     # Track cache hit for statistics
                     if self.build_stats:
                         if not hasattr(self.build_stats, "parsed_cache_hits"):
@@ -275,6 +279,9 @@ class RenderingPipeline:
             else:
                 need_toc = True
 
+        # Track AST for Phase 3 caching (RFC-content-ast-architecture)
+        ast_tokens: list[dict] | None = None
+
         if hasattr(self.parser, "parse_with_toc_and_context"):
             # Mistune with VariableSubstitutionPlugin (recommended)
             # Check if preprocessing is disabled
@@ -292,7 +299,20 @@ class RenderingPipeline:
             else:
                 # Single-pass parsing with variable substitution - fast and simple!
                 context = {"page": page, "site": self.site, "config": self.site.config}
-                if need_toc:
+
+                # Phase 3: Use parse_with_ast() when parser supports AST for caching
+                if (
+                    hasattr(self.parser, "supports_ast")
+                    and self.parser.supports_ast
+                    and hasattr(self.parser, "parse_with_ast")
+                ):
+                    # Get AST, HTML, and TOC in single pass
+                    ast_tokens, parsed_content, toc = self.parser.parse_with_ast(
+                        page.content, page.metadata
+                    )
+                    # Store AST in page for later use (search indexing, LLM, etc.)
+                    page._ast_cache = ast_tokens
+                elif need_toc:
                     parsed_content, toc = self.parser.parse_with_toc_and_context(
                         page.content, page.metadata, context
                     )
@@ -375,7 +395,7 @@ class RenderingPipeline:
         # ============================================================================
         page.toc = toc
 
-        # OPTIMIZATION #2: Store parsed content in cache for next build
+        # OPTIMIZATION #2 + Phase 3: Store parsed content and AST in cache for next build
         if self.dependency_tracker and hasattr(self.dependency_tracker, "_cache"):
             cache = self.dependency_tracker._cache
             if cache and not page.metadata.get("_generated"):
@@ -390,6 +410,7 @@ class RenderingPipeline:
                     page.metadata,
                     template,
                     parser_version,
+                    ast=ast_tokens,  # Phase 3: Cache AST for parse-once patterns
                 )
 
         # Stage 3: Extract links for validation
