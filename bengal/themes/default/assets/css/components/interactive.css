@@ -18,28 +18,34 @@
   bottom: 5rem;
   right: 2rem;
   width: 3rem;
-  max-width: 3rem;
-  /* Prevent flexbox from stretching */
   height: 3rem;
+  min-width: 3rem;
+  min-height: 3rem;
+  max-width: 3rem;
+  max-height: 3rem;
+  aspect-ratio: 1 / 1;
+  /* Prevent flexbox from stretching */
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
+  /* Neumorphic background - subtle gradient matching other neumorphic elements */
   background: linear-gradient(180deg,
-      color-mix(in srgb, var(--color-primary) 95%, white),
-      var(--color-primary));
-  color: var(--color-icon-on-accent);
-  border: none;
+      var(--color-surface, var(--color-bg-elevated)),
+      var(--color-bg-secondary));
+  color: var(--color-primary);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-full);
   cursor: pointer;
-  overflow: hidden;
-  /* Contain SVG within button bounds */
+  overflow: visible;
+  /* Allow SVG to render properly */
   z-index: var(--z-fixed);
   transition: all var(--transition-base);
   opacity: 0;
   visibility: hidden;
   transform: translate3d(0, 20px, 0) scale(0.8);
-  /* Neumorphic shadow - standardized */
-  box-shadow: var(--neumorphic-base);
+  /* Neumorphic shadow - subtle for compact circular element */
+  box-shadow: var(--neumorphic-subtle);
 }
 
 .back-to-top.visible {
@@ -48,44 +54,60 @@
   transform: translate3d(0, 0, 0) scale(1);
 }
 
+.back-to-top.visible svg,
+.back-to-top.visible svg line,
+.back-to-top.visible svg polyline {
+  opacity: 1;
+  visibility: visible;
+}
+
 .back-to-top:hover {
   background: linear-gradient(180deg,
-      color-mix(in srgb, var(--color-primary-hover) 95%, white),
-      var(--color-primary-hover));
-  /* Neumorphic hover - standardized */
+      var(--color-surface, var(--color-bg-elevated)),
+      var(--color-bg-hover));
+  color: var(--color-primary-hover);
+  /* Neumorphic hover - raised key effect */
   box-shadow: var(--neumorphic-hover);
-  transform: translate3d(0, -4px, 0) scale(1.05);
+  transform: translateY(-1px);
 }
 
 .back-to-top:active {
-  /* Neumorphic pressed - standardized */
   background: linear-gradient(180deg,
-      color-mix(in srgb, var(--color-primary-active) 95%, black),
-      var(--color-primary-active));
-  box-shadow: var(--neumorphic-pressed);
-  transform: translate3d(0, -1px, 0) scale(1.02);
+      var(--color-bg-active),
+      var(--color-bg-secondary));
+  color: var(--color-primary-active);
+  /* Neumorphic pressed - key fully depressed */
+  box-shadow: var(--neumorphic-subtle-pressed);
+  transform: translateY(0) scale(0.98);
 }
 
 /* Dark mode adjustments for back-to-top */
 [data-theme="dark"] .back-to-top {
   background: linear-gradient(180deg,
-      color-mix(in srgb, var(--color-primary) 90%, rgba(0, 0, 0, 0.3)),
-      var(--color-primary));
-  box-shadow: var(--neumorphic-base);
+      var(--color-surface, var(--color-bg-elevated)),
+      var(--color-bg-secondary));
+  color: var(--color-primary);
+  border-color: var(--color-border);
+  /* Neumorphic shadow for dark mode - inherits via CSS variables */
+  box-shadow: var(--neumorphic-subtle);
 }
 
 [data-theme="dark"] .back-to-top:hover {
   background: linear-gradient(180deg,
-      color-mix(in srgb, var(--color-primary-hover) 90%, rgba(0, 0, 0, 0.2)),
-      var(--color-primary-hover));
+      var(--color-surface, var(--color-bg-elevated)),
+      var(--color-bg-hover));
+  color: var(--color-primary-hover);
+  /* Neumorphic hover for dark mode */
   box-shadow: var(--neumorphic-hover);
 }
 
 [data-theme="dark"] .back-to-top:active {
   background: linear-gradient(180deg,
-      color-mix(in srgb, var(--color-primary-active) 90%, rgba(0, 0, 0, 0.4)),
-      var(--color-primary-active));
-  box-shadow: var(--neumorphic-pressed);
+      var(--color-bg-active),
+      var(--color-bg-secondary));
+  color: var(--color-primary-active);
+  /* Neumorphic pressed for dark mode */
+  box-shadow: var(--neumorphic-subtle-pressed);
 }
 
 .back-to-top:focus-visible {
@@ -96,18 +118,29 @@
 .back-to-top svg {
   width: 20px;
   height: 20px;
+  min-width: 20px;
+  min-height: 20px;
   stroke: currentColor;
   stroke-width: 2.5;
   fill: none;
   display: block;
+  visibility: visible;
+  opacity: 1;
   pointer-events: none;
   flex-shrink: 0;
+  position: relative;
+  color: inherit;
 }
 
-/* Ensure child elements inherit stroke */
+/* Ensure child elements use currentColor with fallback */
 .back-to-top svg line,
 .back-to-top svg polyline {
-  stroke: inherit;
+  stroke: currentColor;
+  stroke-width: 2.5;
+  fill: none;
+  visibility: visible;
+  opacity: 1;
+  color: inherit;
 }
 
 /* Mobile adjustments */
@@ -117,6 +150,11 @@
     right: 1rem;
     width: 2.5rem;
     height: 2.5rem;
+    min-width: 2.5rem;
+    min-height: 2.5rem;
+    max-width: 2.5rem;
+    max-height: 2.5rem;
+    aspect-ratio: 1 / 1;
   }
 
   .back-to-top svg {
