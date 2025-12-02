@@ -97,6 +97,11 @@
   /* max-width removed - let grid control width */
 }
 
+/* Center prose content within docs-main on wide screens */
+.docs-main .prose {
+  margin-inline: auto;
+}
+
 /* Right Sidebar (TOC) */
 .docs-toc {
   grid-area: toc;
