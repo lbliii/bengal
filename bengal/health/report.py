@@ -489,18 +489,22 @@ class HealthReport:
                 lines.append(f"  {vr.status_emoji} [bold]{vr.validator_name}[/bold] ({count_str})")
 
                 # Show problem details - location first, then context
-                for result in vr.results:
-                    if result.is_problem():
-                        # Brief message describing the issue type
-                        lines.append(f"    • {result.message}")
+                problem_results = [r for r in vr.results if r.is_problem()]
+                for j, result in enumerate(problem_results):
+                    # Brief message describing the issue type
+                    lines.append(f"    • {result.message}")
 
-                        # Details show location + context (the important part)
-                        if result.details:
-                            for detail in result.details[:5]:
-                                # Details are already formatted with location:line
-                                lines.append(f"      {detail}")
-                            if len(result.details) > 5:
-                                lines.append(f"      ... and {len(result.details) - 5} more")
+                    # Details show location + context (the important part)
+                    if result.details:
+                        for detail in result.details[:5]:
+                            # Details are already formatted with location:line
+                            lines.append(f"      {detail}")
+                        if len(result.details) > 5:
+                            lines.append(f"      ... and {len(result.details) - 5} more")
+
+                    # Add spacing between issues (not after the last one)
+                    if j < len(problem_results) - 1:
+                        lines.append("")
 
                 if not is_last_problem:
                     lines.append("")  # Blank line between validators
@@ -606,18 +610,25 @@ class HealthReport:
                 lines.append(f"  {vr.status_emoji} [bold]{vr.validator_name}[/bold] ({count_str})")
 
                 # Show ALL results in verbose mode (including successes for context)
-                for result in vr.results:
-                    if result.is_problem():
-                        # Problems get full detail - location first
-                        lines.append(f"    • {result.message}")
-                        if result.details:
-                            for detail in result.details[:5]:
-                                lines.append(f"      {detail}")
-                            if len(result.details) > 5:
-                                lines.append(f"      ... and {len(result.details) - 5} more")
-                    else:
-                        # Successes shown briefly
-                        lines.append(f"    ✓ {result.message}")
+                problem_results = [r for r in vr.results if r.is_problem()]
+                other_results = [r for r in vr.results if not r.is_problem()]
+
+                for j, result in enumerate(problem_results):
+                    # Problems get full detail - location first
+                    lines.append(f"    • {result.message}")
+                    if result.details:
+                        for detail in result.details[:5]:
+                            lines.append(f"      {detail}")
+                        if len(result.details) > 5:
+                            lines.append(f"      ... and {len(result.details) - 5} more")
+
+                    # Add spacing between issues
+                    if j < len(problem_results) - 1:
+                        lines.append("")
+
+                # Show successes briefly (grouped at end)
+                for result in other_results:
+                    lines.append(f"    ✓ {result.message}")
 
                 if not is_last_problem:
                     lines.append("")
