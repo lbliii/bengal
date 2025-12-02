@@ -12,7 +12,6 @@ from typing import TYPE_CHECKING
 from bengal.postprocess.output_formats.utils import (
     get_page_relative_url,
     get_page_txt_path,
-    strip_html,
 )
 from bengal.utils.atomic_write import AtomicFile
 from bengal.utils.logger import get_logger
@@ -143,8 +142,8 @@ class PageTxtGenerator:
 
         lines.append("\n" + ("-" * self.separator_width) + "\n")
 
-        # Content (plain text)
-        content = strip_html(page.parsed_ast or page.content)
+        # Content (plain text via AST walker)
+        content = page.plain_text
         lines.append(content)
 
         # Footer metadata

@@ -338,8 +338,14 @@ parser.parse_with_ast(...)   # All-in-one: AST + HTML + TOC
 - `page.plain_text` extracts clean text via AST walker
 - Cache persists AST across builds (JSON-serializable)
 
+### Phase 4: LLM/Search Integration (2024-12-02)
+
+Replaced `strip_html()` with `page.plain_text` in:
+- `index_generator.py` - Search indexing
+- `llm_generator.py` - Site-wide `llm-full.txt`
+- `txt_generator.py` - Per-page `index.txt`
+
 ### Next Steps
 
 1. **Performance benchmarks**: Measure actual speedup vs regex-based extraction
-2. **LLM integration**: Use `page.plain_text` in search indexing and LLM outputs
-3. **Link extraction**: Use AST walker for link extraction (replace regex)
+2. **Link extraction**: Use AST walker for link extraction (replace regex)
