@@ -14,6 +14,7 @@ from typing import Any
 
 import frontmatter
 
+from bengal.config.defaults import get_max_workers
 from bengal.core.page import Page, PageProxy
 from bengal.core.section import Section
 from bengal.utils.logger import get_logger
@@ -184,7 +185,8 @@ class ContentDiscovery:
             return produced_pages
 
         # Initialize a thread pool for parallel file parsing
-        max_workers = min(8, (os.cpu_count() or 4))
+        # Use auto-detected workers but cap at 8 for discovery (I/O bound)
+        max_workers = min(8, get_max_workers())
         self._executor: ThreadPoolExecutor | None = ThreadPoolExecutor(max_workers=max_workers)
 
         top_level_results: list[Page] = []

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, override
 
+from bengal.config.defaults import get_max_workers
 from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult
 
@@ -81,7 +82,7 @@ class ConfigValidatorWrapper(BaseValidator):
             )
 
         # Check if max_workers is very high
-        max_workers = config.get("max_workers", 4)
+        max_workers = get_max_workers(config.get("max_workers"))
         if max_workers > 20:
             results.append(
                 CheckResult.warning(

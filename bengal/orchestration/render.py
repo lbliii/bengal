@@ -11,6 +11,7 @@ import sys
 import threading
 from typing import TYPE_CHECKING, Any
 
+from bengal.config.defaults import get_max_workers
 from bengal.utils.logger import get_logger
 from bengal.utils.url_strategy import URLStrategy
 
@@ -291,7 +292,7 @@ class RenderOrchestrator:
         """Parallel rendering without progress (traditional)."""
         from bengal.rendering.pipeline import RenderingPipeline
 
-        max_workers = self.site.config.get("max_workers", 4)
+        max_workers = get_max_workers(self.site.config.get("max_workers"))
 
         def process_page_with_pipeline(page):
             """Process a page with a thread-local pipeline instance (thread-safe)."""
@@ -384,7 +385,7 @@ class RenderOrchestrator:
 
         from bengal.rendering.pipeline import RenderingPipeline
 
-        max_workers = self.site.config.get("max_workers", 4)
+        max_workers = get_max_workers(self.site.config.get("max_workers"))
         completed_count = 0
         lock = threading.Lock()
         last_update_time = time.time()
@@ -478,7 +479,7 @@ class RenderOrchestrator:
         from bengal.utils.rich_console import get_console
 
         console = get_console()
-        max_workers = self.site.config.get("max_workers", 4)
+        max_workers = get_max_workers(self.site.config.get("max_workers"))
 
         def process_page_with_pipeline(page):
             """Process a page with a thread-local pipeline instance (thread-safe)."""
