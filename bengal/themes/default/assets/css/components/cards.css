@@ -935,13 +935,12 @@ a.card:hover {
   margin: 2rem 0;
 }
 
-/* Performance optimization: Content visibility removed due to DevTools crash
-.cards-grid > *,
-.feature-cards > * {
+/* Virtualize large card grids unless DevTools are open */
+html:not([data-devtools-open]) .cards-grid > *,
+html:not([data-devtools-open]) .feature-cards > * {
   content-visibility: auto;
   contain-intrinsic-size: 300px;
 }
-*/
 
 .cards-grid--2 {
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));

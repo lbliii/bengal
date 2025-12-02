@@ -28,13 +28,11 @@
   gap: 0.25rem;
 }
 
-/* Performance optimization: Content visibility removed due to DevTools crash (Error Code 5)
-   when inspecting deep recursive navigation trees.
-.docs-nav-tree > * {
+/* Virtualize deep nav trees unless DevTools are open to keep the inspector stable. */
+html:not([data-devtools-open]) .docs-nav-tree > * {
   content-visibility: auto;
   contain-intrinsic-size: 40px;
 }
-*/
 
 /* Navigation Groups (Sections) */
 .docs-nav-group {

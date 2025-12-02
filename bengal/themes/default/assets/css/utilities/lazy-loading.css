@@ -133,12 +133,11 @@ img[loading="lazy"] {
   /* But we can hint about it */
 }
 
-/* Content-visibility for off-screen content - REMOVED due to DevTools crash
-.offscreen-content {
+/* Content-visibility for off-screen content (disabled automatically when DevTools are open) */
+html:not([data-devtools-open]) .offscreen-content {
   content-visibility: auto;
   contain-intrinsic-size: auto 500px;
 }
-*/
 
 /* ============================================
    FADE IN ANIMATIONS
