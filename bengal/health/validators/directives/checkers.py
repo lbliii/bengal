@@ -46,6 +46,30 @@ def get_line_with_context(file_path: Path, line_number: int, context_lines: int 
         return f"Line {line_number}: (could not read file)"
 
 
+def _get_relative_content_path(file_path: Path) -> str:
+    """
+    Get a user-friendly relative path for display.
+
+    Tries to show path relative to 'content' directory for wayfinding.
+    Falls back to showing last 3 path components if content dir not found.
+    """
+    parts = file_path.parts
+
+    # Try to find 'content' in path and show relative to it
+    try:
+        content_idx = parts.index("content")
+        rel_parts = parts[content_idx + 1 :]  # Parts after 'content/'
+        return "/".join(rel_parts)
+    except ValueError:
+        pass
+
+    # Fallback: show last 3 components for context (e.g., "guides/topics/file.md")
+    if len(parts) > 3:
+        return "/".join(parts[-3:])
+
+    return str(file_path.name)
+
+
 def check_directive_syntax(data: dict[str, Any]) -> list[CheckResult]:
     """Check directive syntax is valid."""
     results = []
@@ -77,7 +101,8 @@ def check_directive_syntax(data: dict[str, Any]) -> list[CheckResult]:
         metadata_warnings = []
 
         for w in fence_warnings:
-            file_key = w["page"].name
+            # Use full path as key to avoid grouping unrelated files with same name
+            file_key = str(w["page"])
             if file_key not in file_groups:
                 file_groups[file_key] = []
             file_groups[file_key].append(w)
@@ -87,22 +112,25 @@ def check_directive_syntax(data: dict[str, Any]) -> list[CheckResult]:
             metadata_warnings.append(w_copy)
 
         details = []
-        for file_name, warnings in list(file_groups.items())[:3]:
+        for file_path_str, warnings in list(file_groups.items())[:3]:
             first_warning = warnings[0]
             file_path = first_warning["page"]
             outer_line = first_warning["line"]
             inner_line = first_warning.get("inner_line")
 
+            # Show relative path from content dir for wayfinding
+            rel_path = _get_relative_content_path(file_path)
+
             # Show clear outer vs inner relationship with context at inner line
             if inner_line:
                 detail_msg = (
-                    f"{file_name}:{inner_line} - Inner code block conflicts with "
+                    f"{rel_path}:{inner_line} - Inner code block conflicts with "
                     f"outer directive at line {outer_line}. Fix: Change outer to 4+ backticks."
                 )
                 # Show context at the inner (conflicting) line where user needs to look
                 context = get_line_with_context(file_path, inner_line)
             else:
-                detail_msg = f"{file_name}:{outer_line} - {first_warning.get('warning', 'fence nesting issue')}"
+                detail_msg = f"{rel_path}:{outer_line} - {first_warning.get('warning', 'fence nesting issue')}"
                 context = get_line_with_context(file_path, outer_line)
 
             details.append(f"{detail_msg}\n{context}")
@@ -195,7 +223,7 @@ def check_directive_performance(data: dict[str, Any]) -> list[CheckResult]:
         if heavy_pages:
             details = []
             for w in sorted(heavy_pages, key=lambda x: x["count"], reverse=True)[:5]:
-                page_name = w["page"].name
+                page_path = _get_relative_content_path(w["page"])
                 total_count = w["count"]
 
                 # Get directive type breakdown if available
@@ -209,9 +237,9 @@ def check_directive_performance(data: dict[str, Any]) -> list[CheckResult]:
                     # Show top 3 directive types
                     sorted_types = sorted(type_counts.items(), key=lambda x: x[1], reverse=True)[:3]
                     type_breakdown = ", ".join(f"{dtype}: {count}" for dtype, count in sorted_types)
-                    details.append(f"{page_name}: {total_count} directives ({type_breakdown})")
+                    details.append(f"{page_path}: {total_count} directives ({type_breakdown})")
                 else:
-                    details.append(f"{page_name}: {total_count} directives")
+                    details.append(f"{page_path}: {total_count} directives")
 
             results.append(
                 CheckResult.warning(
@@ -227,7 +255,7 @@ def check_directive_performance(data: dict[str, Any]) -> list[CheckResult]:
                     f"{len(too_many_tabs)} tabs block(s) have many tabs (>{MAX_TABS_PER_BLOCK})",
                     recommendation="Consider splitting into multiple tabs blocks or separate pages. Large tabs blocks slow rendering.",
                     details=[
-                        f"{w['page'].name}:{w['line']}: {w['count']} tabs"
+                        f"{_get_relative_content_path(w['page'])}:{w['line']}: {w['count']} tabs"
                         for w in sorted(too_many_tabs, key=lambda x: x["count"], reverse=True)[:5]
                     ],
                 )
