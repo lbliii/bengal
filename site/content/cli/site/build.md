@@ -154,7 +154,7 @@ Use developer profile with full observability (shorthand for --profile dev)
 ### `verbose`
 
 
-Show detailed build information (maps to theme-dev profile)
+Show detailed build output (phase timing, build stats). Does NOT change profile.
 
 **Type:** `boolean`
 

@@ -100,7 +100,7 @@ from bengal.utils.traceback_config import TracebackStyle
     "--verbose",
     "-v",
     is_flag=True,
-    help="Show detailed build information (maps to theme-dev profile)",
+    help="Show detailed build output (phase timing, build stats). Does NOT change profile.",
 )
 @click.option("--strict", is_flag=True, help="Fail on template errors (recommended for CI/CD)")
 @click.option(
@@ -202,8 +202,9 @@ def build(
         cli.blank()
 
     # Determine build profile with proper precedence
+    # NOTE: --verbose is NOT passed here - it only controls output verbosity, not profile
     build_profile = BuildProfile.from_cli_args(
-        profile=profile, dev=use_dev, theme_dev=use_theme_dev, verbose=verbose, debug=debug
+        profile=profile, dev=use_dev, theme_dev=use_theme_dev, debug=debug
     )
 
     # Set global profile for helper functions

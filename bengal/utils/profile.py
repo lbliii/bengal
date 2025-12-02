@@ -73,7 +73,6 @@ class BuildProfile(Enum):
         profile: str | None = None,
         dev: bool = False,
         theme_dev: bool = False,
-        verbose: bool = False,
         debug: bool = False,
     ) -> BuildProfile:
         """
@@ -83,19 +82,17 @@ class BuildProfile(Enum):
         1. --dev flag (full developer mode)
         2. --theme-dev flag
         3. --profile option
-        4. --verbose flag (legacy)
-        5. --debug flag (debug logging only, fast health checks)
-        6. Default (WRITER)
+        4. --debug flag (enables DEVELOPER profile)
+        5. Default (WRITER)
 
-        NOTE: --debug now only enables debug logging, not comprehensive health checks.
-        For full validation, use --dev or --profile=dev.
+        NOTE: --verbose is NOT a profile selector. It only controls output verbosity.
+        Use --theme-dev or --dev for profile-based health checks and metrics.
 
         Args:
             profile: Explicit profile name from --profile
             dev: --dev flag (full developer mode)
             theme_dev: --theme-dev flag
-            verbose: --verbose flag (legacy)
-            debug: --debug flag (debug logging only)
+            debug: --debug flag (debug logging, maps to DEVELOPER profile)
 
         Returns:
             Determined BuildProfile
@@ -104,11 +101,11 @@ class BuildProfile(Enum):
             >>> BuildProfile.from_cli_args(dev=True)
             BuildProfile.DEVELOPER
 
-            >>> BuildProfile.from_cli_args(debug=True)
-            BuildProfile.DEVELOPER  # Full dev mode with debug logging
-
-            >>> BuildProfile.from_cli_args(verbose=True)
+            >>> BuildProfile.from_cli_args(theme_dev=True)
             BuildProfile.THEME_DEV
+
+            >>> BuildProfile.from_cli_args(debug=True)
+            BuildProfile.DEVELOPER
         """
         # Priority 1: Explicit dev flag (full developer mode)
         if dev:
@@ -122,15 +119,11 @@ class BuildProfile(Enum):
         if profile:
             return cls.from_string(profile)
 
-        # Priority 4: Legacy verbose flag
-        if verbose:
-            return cls.THEME_DEV
-
-        # Priority 5: --debug flag (enables debug logging via DEVELOPER profile)
+        # Priority 4: --debug flag (enables debug logging via DEVELOPER profile)
         if debug:
             return cls.DEVELOPER
 
-        # Priority 6: Default (WRITER for fast, clean builds)
+        # Priority 5: Default (WRITER for fast, clean builds)
         return cls.WRITER
 
     def get_config(self) -> dict[str, Any]:
