@@ -345,7 +345,22 @@ Replaced `strip_html()` with `page.plain_text` in:
 - `llm_generator.py` - Site-wide `llm-full.txt`
 - `txt_generator.py` - Per-page `index.txt`
 
+### Phase 5: AST Link Extraction (2024-12-02)
+
+Updated `extract_links()` in `operations.py` to use AST walker when available:
+- Falls back to regex for parsers without AST support
+- Fixed `_extract_links_from_ast()` to handle Mistune 3.x `attrs.url` format
+- 3 links extracted in test (https/internal/autolink)
+
+### ✅ Implementation Complete
+
+All phases implemented:
+- Phase 1-2: New properties (`html`, `plain_text`, `ast`) + deprecation
+- Phase 3: AST caching in BuildCache and RenderingPipeline
+- Phase 4: LLM/search outputs use `page.plain_text`
+- Phase 5: Link extraction uses AST walker
+
 ### Next Steps
 
 1. **Performance benchmarks**: Measure actual speedup vs regex-based extraction
-2. **Link extraction**: Use AST walker for link extraction (replace regex)
+2. **Consider removing strip_html()**: May be unused after AST adoption

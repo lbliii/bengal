@@ -210,6 +210,7 @@ class PageContentMixin:
         Extract links from AST tokens.
 
         Walks the AST tree and extracts all link URLs (Phase 3).
+        Handles Mistune 3.x AST format where URLs are in `attrs.url`.
 
         Returns:
             List of link URLs
@@ -224,15 +225,22 @@ class PageContentMixin:
             for token in tokens:
                 token_type = token.get("type", "")
 
-                # Extract link URLs
+                # Extract link URLs (Mistune 3.x stores in attrs.url)
                 if token_type == "link":
-                    url = token.get("link", "") or token.get("href", "")
+                    # Try attrs.url first (Mistune 3.x format)
+                    attrs = token.get("attrs", {})
+                    url = attrs.get("url", "") if isinstance(attrs, dict) else ""
+                    # Fallback for other formats
+                    if not url:
+                        url = token.get("link", "") or token.get("href", "")
                     if url:
                         links.append(url)
 
                 # Recurse into children
                 if "children" in token:
-                    walk_tokens(token["children"])
+                    children = token["children"]
+                    if isinstance(children, list):
+                        walk_tokens(children)
 
         walk_tokens(self._ast_cache)
         return links
