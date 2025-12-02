@@ -405,9 +405,24 @@ Results:
 - `get_auto_nav()` calls: 2 → 1
 - `current_lang()` calls: 3+ → 1
 
-### ⏳ Phase 3: Navigation Extraction (PENDING)
+### ✅ Phase 3: Navigation Extraction (COMPLETE)
 
-Create `partials/nav-menu.html` macro to share between desktop/mobile nav.
+Created `partials/nav-menu.html` with reusable Jinja macros:
+- `render_menu_items(menu, is_mobile=false)` - Renders manual menu items
+- `render_auto_nav(auto_nav, page_url)` - Renders auto-discovered nav
+- `render_github_link(site, is_mobile=false)` - Renders GitHub link
+- `render_logo(site, site_title)` - Renders logo/brand element
+
+Results:
+- base.html: 507 → 398 lines (**109 lines removed**)
+- Duplicated navigation code: **~70 lines → 4 macro calls**
+- Logo rendering: **10 lines × 2 → 2 macro calls**
+- GitHub link: **~20 lines × 2 → 2 macro calls**
+
+The new partial (124 lines) provides reusable, parameterized macros that:
+1. Eliminate code duplication between desktop and mobile nav
+2. Handle styling differences via `is_mobile` parameter
+3. Are easier to maintain and test independently
 
 ### ⏳ Phase 4: Baseline Profile (PENDING)
 
@@ -423,3 +438,4 @@ Run `bengal build --profile-templates` on test site to measure actual impact.
 | 2024-12-02 | Phase 1: Added template profiling infrastructure |
 | 2024-12-02 | Phase 2: Added variable caching in base.html |
 | 2024-12-02 | Updated evidence with verified counts |
+| 2024-12-02 | Phase 3: Extracted navigation to shared macros |
