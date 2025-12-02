@@ -155,7 +155,11 @@ class RenderingPipeline:
         if build_context and getattr(build_context, "template_engine", None):
             self.template_engine = build_context.template_engine
         else:
-            self.template_engine = TemplateEngine(site)
+            # Check if template profiling is enabled via build_context
+            profile_templates = (
+                getattr(build_context, "profile_templates", False) if build_context else False
+            )
+            self.template_engine = TemplateEngine(site, profile_templates=profile_templates)
         if self.dependency_tracker:
             self.template_engine._dependency_tracker = self.dependency_tracker
         self.renderer = Renderer(self.template_engine, build_stats=build_stats)

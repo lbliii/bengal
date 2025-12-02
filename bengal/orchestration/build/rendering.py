@@ -126,6 +126,7 @@ def phase_render(
     profile,
     progress_manager,
     reporter,
+    profile_templates: bool = False,
 ):
     """
     Phase 14: Render Pages.
@@ -145,6 +146,7 @@ def phase_render(
         profile: Build profile
         progress_manager: Progress manager
         reporter: Progress reporter
+        profile_templates: Whether template profiling is enabled
 
     Returns:
         BuildContext used for rendering (needed by postprocess)
@@ -177,6 +179,7 @@ def phase_render(
                 profile=profile,
                 progress_manager=progress_manager,
                 reporter=reporter,
+                profile_templates=profile_templates,
             )
             streaming_render.process(
                 pages_to_build,
@@ -199,6 +202,7 @@ def phase_render(
                 profile=profile,
                 progress_manager=progress_manager,
                 reporter=reporter,
+                profile_templates=profile_templates,
             )
             orchestrator.render.process(
                 pages_to_build,

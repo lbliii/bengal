@@ -1,6 +1,6 @@
 # RFC: Template Performance Optimization
 
-**Status**: Draft  
+**Status**: In Progress  
 **Created**: 2024-12-02  
 **Author**: AI Assistant  
 **Subsystems**: Rendering, Themes
@@ -13,11 +13,11 @@ Bengal's default theme templates have grown organically and contain several perf
 
 1. **base.html is 508 lines** - Monolithic, hard to maintain
 2. **Duplicate logic** - Mobile/desktop nav render identical menus separately
-3. **Repeated defensive checks** - `{% if page is defined and page %}` appears 20+ times
+3. **Repeated defensive checks** - `{% if page is defined and page %}` appears 34 times across templates
 4. **Uncached template function calls** - Same functions called multiple times per render
 5. **No template-level profiling** - Unknown which parts are slow
 
-### Evidence
+### Evidence (Verified 2024-12-02)
 
 ```bash
 # Template line counts (partials)
@@ -25,6 +25,19 @@ Bengal's default theme templates have grown organically and contain several perf
 508 base.html                   # Every page pays this cost
 409 partials/navigation-components.html
 331 partials/content-components.html
+
+# Defensive checks count (verified via grep)
+34 instances of "page is defined and page" across 5 template files:
+  - base.html: 16 instances (now 1 after optimization)
+  - docs-nav.html: 9 instances
+  - docs-nav-section.html: 5 instances
+  - content-components.html: 1 instance
+  - index.html: 3 instances
+
+# Duplicate function calls (verified)
+  - get_menu_lang('main', current_lang()): called 3x in base.html (desktop, mobile, footer)
+  - get_auto_nav(): called 2x in base.html (desktop, mobile)
+  - current_lang(): called 3+x
 ```
 
 ### Symptoms
@@ -349,8 +362,64 @@ menu_function_calls_per_page: 1 (cached)
 
 ---
 
+## Implementation Progress
+
+### ✅ Phase 1: Template Profiling (COMPLETE)
+
+Added `bengal/rendering/template_profiler.py` with:
+- `TemplateProfiler` class for collecting timing data
+- `ProfiledTemplate` wrapper for template.render() timing
+- `format_profile_report()` for CLI output
+- Integration with TemplateEngine via `profile_templates` parameter
+
+New CLI flag: `bengal build --profile-templates`
+
+Files changed:
+- `bengal/rendering/template_profiler.py` (new, ~320 lines)
+- `bengal/rendering/template_engine.py` (updated)
+- `bengal/rendering/pipeline.py` (updated)
+- `bengal/cli/commands/build.py` (updated)
+- `bengal/core/site.py` (updated)
+- `bengal/orchestration/build/__init__.py` (updated)
+- `bengal/orchestration/build/rendering.py` (updated)
+- `bengal/utils/build_context.py` (updated)
+
+### ✅ Phase 2: Variable Caching (COMPLETE)
+
+Added cached variables at top of `base.html`:
+```jinja
+{% set _page = page if page is defined else none %}
+{% set _has_page = _page is not none %}
+{% set _page_title = _page.title if (_has_page and _page.title is defined) else '' %}
+{% set _page_url = _page.relative_url if (_has_page and _page.relative_url is defined) else '/' %}
+{% set _current_lang = current_lang() %}
+{% set _main_menu = get_menu_lang('main', _current_lang) %}
+{% set _auto_nav = get_auto_nav() if _main_menu | length == 0 else [] %}
+{% set _footer_menu = get_menu_lang('footer', _current_lang) %}
+{% set _site_title = site.config.title %}
+```
+
+Results:
+- `page is defined and page` in base.html: 16 → 1 (15 eliminated)
+- `get_menu_lang()` calls: 3 → 1
+- `get_auto_nav()` calls: 2 → 1
+- `current_lang()` calls: 3+ → 1
+
+### ⏳ Phase 3: Navigation Extraction (PENDING)
+
+Create `partials/nav-menu.html` macro to share between desktop/mobile nav.
+
+### ⏳ Phase 4: Baseline Profile (PENDING)
+
+Run `bengal build --profile-templates` on test site to measure actual impact.
+
+---
+
 ## Changelog
 
 | Date | Change |
 |------|--------|
 | 2024-12-02 | Initial draft |
+| 2024-12-02 | Phase 1: Added template profiling infrastructure |
+| 2024-12-02 | Phase 2: Added variable caching in base.html |
+| 2024-12-02 | Updated evidence with verified counts |

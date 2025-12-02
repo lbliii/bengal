@@ -659,6 +659,7 @@ class Site:
         memory_optimized: bool = False,
         strict: bool = False,
         full_output: bool = False,
+        profile_templates: bool = False,
     ) -> BuildStats:
         """
         Build the entire site.
@@ -674,6 +675,7 @@ class Site:
             memory_optimized: Use streaming build for memory efficiency (best for 5K+ pages)
             strict: Whether to fail on warnings
             full_output: Show full traditional output instead of live progress
+            profile_templates: Enable template profiling for performance analysis
 
         Returns:
             BuildStats object with build statistics
@@ -690,6 +692,7 @@ class Site:
             memory_optimized=memory_optimized,
             strict=strict,
             full_output=full_output,
+            profile_templates=profile_templates,
         )
 
     def serve(
