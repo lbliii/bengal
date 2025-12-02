@@ -227,92 +227,58 @@
   /* Slightly longer for current page */
 }
 
-/* Metadata Toggle Button - Ghost style */
+/* Metadata Toggle Button - Compact neumorphic style matching nav buttons */
 .action-bar-meta-toggle {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 1.5rem;
-  max-width: 1.5rem;
-  /* Prevent flexbox from stretching */
-  height: 1.5rem;
+  width: 1.375rem;
+  max-width: 1.375rem;
+  height: 1.375rem;
   padding: 0;
   background: linear-gradient(180deg,
-      rgba(255, 255, 255, 0.94),
-      rgba(240, 240, 240, 0.9));
+      var(--color-surface, var(--color-bg-elevated)),
+      var(--color-bg-secondary));
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--border-radius-medium, 6px);
   color: var(--color-text-secondary);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--transition-fast, 0.15s);
   flex-shrink: 0;
   overflow: hidden;
-  /* Contain SVG within button bounds */
-  /* Neumorphic shadow - standardized */
-  box-shadow: var(--neumorphic-base);
+  box-shadow: var(--neumorphic-subtle);
 }
 
 .action-bar-meta-toggle:hover {
-  background: linear-gradient(180deg,
-      rgba(255, 255, 255, 0.98),
-      rgba(245, 245, 245, 0.94));
-  border-color: var(--color-primary);
   color: var(--color-text-primary);
-  /* Neumorphic hover - standardized */
   box-shadow: var(--neumorphic-hover);
+  transform: translateY(-1px);
 }
 
 .action-bar-meta-toggle:active {
-  /* Neumorphic pressed state - standardized */
-  transform: translateY(1px);
-  box-shadow: var(--neumorphic-pressed);
-  background: linear-gradient(180deg,
-      rgba(240, 240, 240, 0.95),
-      rgba(228, 228, 228, 0.92));
+  box-shadow: var(--neumorphic-subtle-pressed);
+  transform: translateY(0) scale(0.98);
 }
 
 /* Dark mode */
 [data-theme="dark"] .action-bar-meta-toggle {
   background: linear-gradient(180deg,
-      rgba(38, 38, 38, 0.95),
-      rgba(20, 20, 20, 0.93));
+      rgba(42, 42, 42, 0.95),
+      rgba(28, 28, 28, 0.92));
   border-color: rgba(255, 255, 255, 0.1);
-  /* Neumorphic shadow for dark mode - standardized */
-  box-shadow: var(--neumorphic-base);
 }
 
 [data-theme="dark"] .action-bar-meta-toggle:hover {
   background: linear-gradient(180deg,
-      rgba(44, 44, 44, 0.97),
-      rgba(26, 26, 26, 0.95));
-  border-color: rgba(255, 255, 255, 0.2);
-  /* Neumorphic hover for dark mode - standardized */
-  box-shadow: var(--neumorphic-hover);
+      rgba(48, 48, 48, 0.97),
+      rgba(32, 32, 32, 0.95));
+  border-color: rgba(255, 255, 255, 0.15);
 }
 
 [data-theme="dark"] .action-bar-meta-toggle:active {
-  transform: translateY(1px);
-  box-shadow: var(--neumorphic-pressed);
   background: linear-gradient(180deg,
-      rgba(28, 28, 28, 0.98),
-      rgba(16, 16, 16, 0.96));
-}
-
-/* Fallback */
-@supports not (backdrop-filter: blur(8px)) {
-  .action-bar-meta-toggle {
-    background: linear-gradient(180deg,
-        rgba(255, 255, 255, 0.94),
-        rgba(240, 240, 240, 0.9));
-    border: 1px solid var(--color-border);
-  }
-
-  [data-theme="dark"] .action-bar-meta-toggle {
-    background: linear-gradient(180deg,
-        rgba(34, 34, 34, 0.95),
-        rgba(18, 18, 18, 0.92));
-    border-color: rgba(255, 255, 255, 0.1);
-  }
+      rgba(32, 32, 32, 0.98),
+      rgba(22, 22, 22, 0.96));
 }
 
 .action-bar-meta-toggle-icon {
@@ -403,100 +369,65 @@
 .action-bar-share-trigger {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.375rem 0.75rem;
+  gap: 0.375rem;
+  padding: 0.25rem 0.5rem 0.25rem 0.375rem;
   background: linear-gradient(180deg,
-      rgba(255, 255, 255, 0.95),
-      rgba(242, 242, 242, 0.9));
+      var(--color-surface, var(--color-bg-elevated)),
+      var(--color-bg-secondary));
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  color: var(--color-text-primary);
-  font-size: 0.8125rem;
-  font-weight: var(--weight-medium);
+  border-radius: var(--border-radius-medium, 6px);
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs, 0.75rem);
+  font-weight: var(--weight-medium, 500);
   cursor: pointer;
-  transition: all 0.15s ease, box-shadow 0.2s ease;
+  transition: all var(--transition-fast, 0.15s);
   white-space: nowrap;
   touch-action: manipulation;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
-  /* Neumorphic shadow - refined depth */
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.34),
-    inset 0.5px 0.5px 1px rgba(255, 255, 255, 0.4),
-    inset -0.5px -0.5px 1px rgba(0, 0, 0, 0.15),
-    1px 1px 2px rgba(0, 0, 0, 0.08),
-    -0.5px -0.5px 1px rgba(255, 255, 255, 0.3);
+  box-shadow: var(--neumorphic-subtle);
 }
 
 .action-bar-share-trigger:hover {
-  background: linear-gradient(180deg,
-      rgba(255, 255, 255, 0.98),
-      rgba(245, 245, 245, 0.94));
-  border-color: var(--color-primary);
-  transform: translateY(-0.5px);
-  /* Neumorphic hover - refined raised effect */
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.36),
-    inset 0.5px 0.5px 1.5px rgba(255, 255, 255, 0.5),
-    inset -0.5px -0.5px 1.5px rgba(0, 0, 0, 0.12),
-    2px 2px 6px rgba(0, 0, 0, 0.1),
-    -1px -1px 3px rgba(255, 255, 255, 0.4);
+  color: var(--color-text-primary);
+  box-shadow: var(--neumorphic-hover);
+  transform: translateY(-1px);
 }
 
 .action-bar-share-trigger:active {
-  /* Neumorphic pressed state */
-  transform: translateY(1px);
-  box-shadow:
-    inset 2px 2px 3px rgba(0, 0, 0, 0.18),
-    inset -1px -1px 2px rgba(255, 255, 255, 0.24);
-  background: linear-gradient(180deg,
-      rgba(238, 238, 238, 0.96),
-      rgba(226, 226, 226, 0.93));
-  color: var(--color-text-primary);
-}
-
-/* Ensure SVG icon stays visible in active state for light mode */
-.action-bar-share-trigger:active:not([aria-expanded="true"]) svg {
-  stroke: var(--color-text-primary);
-  color: var(--color-text-primary);
+  box-shadow: var(--neumorphic-subtle-pressed);
+  transform: translateY(0) scale(0.98);
 }
 
 .action-bar-share-trigger svg {
   flex-shrink: 0;
-  width: var(--icon-size-md);
-  height: var(--icon-size-md);
+  width: var(--icon-size-sm, 14px);
+  height: var(--icon-size-sm, 14px);
   display: block;
+  opacity: 0.7;
+}
+
+.action-bar-share-trigger:hover svg {
+  opacity: 1;
 }
 
 /* Responsive Bengal cat symbol */
 .action-bar-share-trigger>span:first-child {
-  font-size: var(--icon-size-md);
+  font-size: var(--icon-size-sm, 14px);
   line-height: 1;
   flex-shrink: 0;
 }
 
 .action-bar-share-chevron {
-  width: var(--icon-size-sm);
-  height: var(--icon-size-sm);
+  width: var(--icon-size-xs, 12px);
+  height: var(--icon-size-xs, 12px);
   flex-shrink: 0;
   transition: transform 0.15s ease;
 }
 
 .action-bar-share-trigger[aria-expanded="true"] {
-  background: linear-gradient(180deg,
-      rgba(255, 255, 255, 0.98),
-      rgba(245, 245, 245, 0.94));
-  color: var(--color-text-primary);
-  border-color: var(--color-primary);
-  border-width: 2px;
-  /* Neumorphic shadow with primary color accent ring */
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.36),
-    inset 0.5px 0.5px 1.5px rgba(255, 255, 255, 0.5),
-    inset -0.5px -0.5px 1.5px rgba(0, 0, 0, 0.12),
-    2px 2px 6px rgba(0, 0, 0, 0.1),
-    -1px -1px 3px rgba(255, 255, 255, 0.4),
-    0 0 0 2px color-mix(in srgb, var(--color-primary) 30%, transparent);
+  color: var(--color-primary);
+  box-shadow: var(--neumorphic-hover);
 }
 
 /* Ensure SVG icon stays visible when expanded */
@@ -656,72 +587,27 @@
    ============================================================================ */
 
 [data-theme="dark"] .action-bar-share-trigger {
-  /* Neumorphic shadow for dark mode */
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.08),
-    inset 0.5px 0.5px 1px rgba(255, 255, 255, 0.08),
-    inset -0.5px -0.5px 1px rgba(0, 0, 0, 0.4),
-    1px 1px 3px rgba(0, 0, 0, 0.25),
-    -0.5px -0.5px 1px rgba(255, 255, 255, 0.05);
   background: linear-gradient(180deg,
-      rgba(38, 38, 38, 0.95),
-      rgba(20, 20, 20, 0.92));
+      rgba(42, 42, 42, 0.95),
+      rgba(28, 28, 28, 0.92));
   border-color: rgba(255, 255, 255, 0.1);
 }
 
 [data-theme="dark"] .action-bar-share-trigger:hover {
-  /* Neumorphic hover for dark mode */
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.12),
-    inset 0.5px 0.5px 1.5px rgba(255, 255, 255, 0.12),
-    inset -0.5px -0.5px 1.5px rgba(0, 0, 0, 0.5),
-    2px 2px 6px rgba(0, 0, 0, 0.35),
-    -1px -1px 3px rgba(255, 255, 255, 0.08);
   background: linear-gradient(180deg,
-      rgba(46, 46, 46, 0.97),
-      rgba(28, 28, 28, 0.95));
-  border-color: rgba(255, 255, 255, 0.2);
+      rgba(48, 48, 48, 0.97),
+      rgba(32, 32, 32, 0.95));
+  border-color: rgba(255, 255, 255, 0.15);
 }
 
 [data-theme="dark"] .action-bar-share-trigger:active {
-  transform: translateY(1px);
-  box-shadow:
-    inset 2px 2px 3px rgba(0, 0, 0, 0.45),
-    inset -1px -1px 2px rgba(255, 255, 255, 0.12);
   background: linear-gradient(180deg,
-      rgba(30, 30, 30, 0.98),
-      rgba(18, 18, 18, 0.96));
-  color: var(--color-text-primary);
+      rgba(32, 32, 32, 0.98),
+      rgba(22, 22, 22, 0.96));
 }
 
-/* Ensure SVG icon stays visible in active state for dark mode */
-[data-theme="dark"] .action-bar-share-trigger:active:not([aria-expanded="true"]) svg {
-  stroke: var(--color-text-primary);
-  color: var(--color-text-primary);
-}
-
-/* Dark mode expanded state - maintain dark styling */
 [data-theme="dark"] .action-bar-share-trigger[aria-expanded="true"] {
-  background: linear-gradient(180deg,
-      rgba(46, 46, 46, 0.97),
-      rgba(28, 28, 28, 0.95));
-  color: var(--color-text-primary);
-  border-color: var(--color-primary);
-  border-width: 2px;
-  /* Neumorphic shadow with primary color accent ring */
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.12),
-    inset 0.5px 0.5px 1.5px rgba(255, 255, 255, 0.12),
-    inset -0.5px -0.5px 1.5px rgba(0, 0, 0, 0.5),
-    2px 2px 6px rgba(0, 0, 0, 0.35),
-    -1px -1px 3px rgba(255, 255, 255, 0.08),
-    0 0 0 2px color-mix(in srgb, var(--color-primary) 30%, transparent);
-}
-
-/* Ensure SVG icon stays visible when expanded in dark mode */
-[data-theme="dark"] .action-bar-share-trigger[aria-expanded="true"] svg {
-  stroke: var(--color-text-primary);
-  color: var(--color-text-primary);
+  color: var(--color-primary);
 }
 
 [data-theme="dark"] .action-bar-share-dropdown {
@@ -785,23 +671,17 @@
 
   /* Icons automatically scale via --icon-size-md token */
 
-  /* Slightly more compact share button on tablet */
+  /* Slightly more compact buttons on tablet */
   .action-bar-share-trigger {
-    padding: 0.25rem 0.5625rem;
-    /* 4px 9px - tighter than desktop */
-    font-size: 0.75rem;
-    min-height: auto;
-    line-height: 1.2;
+    padding: 0.1875rem 0.375rem;
+    font-size: 0.6875rem;
   }
 
   .action-bar-meta-toggle {
     width: 1.25rem;
-    /* 20px - between desktop and mobile */
     min-width: 1.25rem;
     max-width: 1.25rem;
-    /* Prevent flexbox from stretching */
     height: 1.25rem;
-    /* 20px */
     min-height: 1.25rem;
   }
 
@@ -882,33 +762,20 @@
 
   /* More compact share button on mobile */
   .action-bar-share-trigger {
-    padding: 0.1875rem 0.4375rem;
-    /* 3px 7px - tighter padding */
-    font-size: 0.6875rem;
-    gap: 0.25rem;
-    min-height: auto;
-    /* Remove fixed min-height, let content determine */
-    line-height: 1.2;
+    padding: 0.125rem 0.3125rem;
+    font-size: 0.625rem;
+    gap: 0.1875rem;
   }
 
-  /* Icons automatically scale via --icon-size-md token */
-
-  /* Smaller meta toggle button and icon on mobile */
+  /* Smaller meta toggle button on mobile */
   .action-bar-meta-toggle {
     width: 1rem;
-    /* 16px - more compact */
     min-width: 1rem;
-    /* Override global touch target sizing */
     max-width: 1rem;
-    /* Prevent flexbox from stretching */
     height: 1rem;
-    /* 16px - more compact */
     min-height: 1rem;
-    /* Override global touch target sizing */
     border-radius: var(--radius-sm);
-    /* Slightly smaller radius */
     overflow: hidden;
-    /* Contain SVG within button bounds */
   }
 
   /* Icon automatically scales via --icon-size-sm token */

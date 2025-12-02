@@ -446,9 +446,10 @@ This component includes inline
 
     html += `</div>`;
 
-    // Excerpt (with highlights)
-    if (result.highlightedExcerpt) {
-      html += `<p class="search-result-excerpt">${result.highlightedExcerpt}</p>`;
+    // Description (prefer frontmatter description over generated excerpt)
+    const description = result.description || result.highlightedExcerpt || '';
+    if (description) {
+      html += `<p class="search-result-excerpt">${description}</p>`;
     }
 
     // Tags (clickable)
@@ -574,6 +575,16 @@ This component includes inline
   .search-input:focus {
     outline: none;
     /* Focus ring */
+  }
+
+  /* Hide native browser clear button (prevents double X) */
+  .search-input::-webkit-search-cancel-button,
+  .search-input::-webkit-search-decoration,
+  .search-input::-webkit-search-results-button,
+  .search-input::-webkit-search-results-decoration {
+    -webkit-appearance: none;
+    appearance: none;
+    display: none;
   }
 
   .search-input-wrapper:focus-within {
@@ -758,6 +769,7 @@ This component includes inline
 
   .search-result-excerpt {
     margin: 0 0 0.75rem 0;
+    font-size: var(--text-sm, 0.875rem);
     line-height: var(--line-height-relaxed);
     color: var(--color-text-secondary);
   }
@@ -768,17 +780,27 @@ This component includes inline
     gap: 0.5rem;
   }
 
-  /* Clickable tags */
+  /* Clickable tags - ensure pill styling is always visible */
   .tag-clickable {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.125rem 0.5rem;
+    font-size: var(--text-xs, 0.75rem);
+    font-weight: var(--weight-medium, 500);
+    font-family: inherit;
+    line-height: 1.4;
+    color: var(--color-primary);
+    background-color: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-full, 9999px);
     cursor: pointer;
     transition: all var(--transition-fast);
-    border: none;
-    font: inherit;
   }
 
   .tag-clickable:hover {
     background: var(--color-primary);
     color: var(--color-text-inverse);
+    border-color: var(--color-primary);
     transform: translateY(-1px);
   }
 

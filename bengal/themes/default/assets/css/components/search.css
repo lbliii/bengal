@@ -67,6 +67,16 @@
   color: var(--color-text-tertiary);
 }
 
+/* Hide native browser clear button (prevents double X) */
+.search__input::-webkit-search-cancel-button,
+.search__input::-webkit-search-decoration,
+.search__input::-webkit-search-results-button,
+.search__input::-webkit-search-results-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+  display: none;
+}
+
 .search__input:hover {
   border-color: var(--color-border-dark);
 }
@@ -389,7 +399,7 @@
 }
 
 .search-hero .page-header {
-  margin-bottom: 2.5rem;
+  margin-bottom: 0;
 }
 
 .search-page-description {
@@ -398,6 +408,12 @@
   color: var(--color-text-secondary);
   max-width: 600px;
   margin: 0.5rem auto 0;
+}
+
+.search-page-content {
+  padding: 0 2rem 2rem;
+  max-width: 900px;
+  margin: 0 auto;
 }
 
 /* Compact Tips Section */
@@ -531,6 +547,10 @@
 @media (max-width: 768px) {
   .search-hero {
     padding: 2rem 1rem;
+  }
+
+  .search-page-content {
+    padding: 0 1rem 1.5rem;
   }
 
   .tips-grid--compact {
