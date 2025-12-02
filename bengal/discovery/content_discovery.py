@@ -3,6 +3,7 @@ Content discovery - finds and organizes pages and sections.
 
 Robustness:
     - Symlink loop detection via inode tracking to prevent infinite recursion
+    - Content collection validation (opt-in via collections.py)
 """
 
 from __future__ import annotations
@@ -10,7 +11,7 @@ from __future__ import annotations
 import os
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import frontmatter
 
@@ -18,6 +19,9 @@ from bengal.config.defaults import get_max_workers
 from bengal.core.page import Page, PageProxy
 from bengal.core.section import Section
 from bengal.utils.logger import get_logger
+
+if TYPE_CHECKING:
+    from bengal.collections import CollectionConfig
 
 
 class ContentDiscovery:
@@ -34,14 +38,27 @@ class ContentDiscovery:
     - Parsing uses a thread pool for concurrency; unchanged pages can be represented as
       `PageProxy` in lazy modes.
     - Symlink loops are detected via inode tracking to prevent infinite recursion.
+    - Content collections: When collections.py is present at project root, frontmatter
+      is validated against schemas during discovery (fail fast).
     """
 
-    def __init__(self, content_dir: Path, site: Any | None = None) -> None:
+    def __init__(
+        self,
+        content_dir: Path,
+        site: Any | None = None,
+        *,
+        collections: dict[str, CollectionConfig] | None = None,
+        strict_validation: bool = True,
+    ) -> None:
         """
         Initialize content discovery.
 
         Args:
             content_dir: Root content directory
+            site: Optional Site reference for configuration access
+            collections: Optional dict of collection configs for schema validation
+            strict_validation: If True, raise errors on validation failure;
+                if False, log warnings and continue
         """
         self.content_dir = content_dir
         self.site = site  # Optional reference for accessing configuration (i18n, etc.)
@@ -52,6 +69,11 @@ class ContentDiscovery:
         self.current_section: Section | None = None
         # Symlink loop detection: track visited (device, inode) pairs
         self._visited_inodes: set[tuple[int, int]] = set()
+        # Content collections for schema validation
+        self._collections = collections or {}
+        self._strict_validation = strict_validation
+        # Track validation errors for reporting
+        self._validation_errors: list[tuple[Path, str, list[Any]]] = []
 
     def discover(
         self,
