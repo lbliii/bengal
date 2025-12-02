@@ -13,7 +13,9 @@
 - **collections**: extend `CollectionConfig` with optional `loader` parameter for remote content
 - **collections**: add `is_remote` and `source_type` properties to `CollectionConfig`
 - **cli(sources)**: add `bengal sources` command group (list, status, fetch, clear)
+- **cli(sources)**: add REST loader to installation hints
 - **pyproject.toml**: add optional dependencies for remote sources (`github`, `notion`, `rest`, `all-sources`)
+- **content_layer(loaders)**: fix incorrect `bengal[github]` references to `bengal[rest]` in rest_loader
 
 ### Cache & Incremental Build Improvements
 - **cache**: add global config hashing for automatic cache invalidation when configuration changes
