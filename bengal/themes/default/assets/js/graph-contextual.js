@@ -796,6 +796,9 @@
         initContextualGraph();
     }
 
+    // Also listen for d3:ready event (fired when D3 is lazy-loaded)
+    window.addEventListener('d3:ready', initContextualGraph);
+
     // Cleanup on page unload to prevent memory leaks
     window.addEventListener('beforeunload', cleanup);
 

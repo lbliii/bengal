@@ -59,6 +59,7 @@
     {# Bengal config meta for JS to read without template tags inside scripts #}
     <meta name="bengal:search_preload" content="{{ site.config.get('search_preload', 'smart') }}">
     <meta name="bengal:baseurl" content="{{ site.config.baseurl or '' }}">
+    <meta name="bengal:asset_base" content="{{ '/assets' | absolute_url }}">
     <meta name="bengal:index_url" content="{{ '/index.json' | absolute_url }}">
     <meta name="bengal:search_index_url" content="{{ '/search-index.json' | absolute_url }}">
 
@@ -99,9 +100,15 @@
     <link rel="manifest" href="{{ asset_url('site.webmanifest') }}">
     {% endif %}
 
-    {# Fonts - Load before stylesheets for proper font rendering #}
+    {# Fonts - Preload critical fonts, load CSS non-blocking #}
     {% if site.config.get('fonts') %}
-    <link rel="stylesheet" href="{{ asset_url('fonts.css') }}">
+    {# Preload the most critical font weight for faster LCP #}
+    <link rel="preload" href="{{ asset_url('fonts/outfit-700.woff2') }}" as="font" type="font/woff2" crossorigin>
+    {# Load font CSS with non-blocking pattern #}
+    <link rel="preload" href="{{ asset_url('fonts.css') }}" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript>
+        <link rel="stylesheet" href="{{ asset_url('fonts.css') }}">
+    </noscript>
     {% endif %}
 
     {# Stylesheets #}
@@ -115,8 +122,25 @@
         };
     </script>
 
-    {# Theme & Palette initialization (prevent flash) #}
-    <script src="{{ asset_url('js/theme-init.js') }}"></script>
+    {# Theme & Palette initialization - INLINED to prevent FOUC (must be synchronous) #}
+    <script>
+        (function () {
+            try {
+                var defaults = window.BENGAL_THEME_DEFAULTS || { appearance: 'system', palette: '' };
+                var defaultAppearance = defaults.appearance;
+                if (defaultAppearance === 'system') {
+                    defaultAppearance = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)
+                        ? 'dark' : 'light';
+                }
+                var storedTheme = localStorage.getItem('bengal-theme');
+                var storedPalette = localStorage.getItem('bengal-palette');
+                var theme = storedTheme ? (storedTheme === 'system' ? defaultAppearance : storedTheme) : defaultAppearance;
+                var palette = storedPalette ?? defaults.palette;
+                document.documentElement.setAttribute('data-theme', theme);
+                if (palette) { document.documentElement.setAttribute('data-palette', palette); }
+            } catch (e) { document.documentElement.setAttribute('data-theme', 'light'); }
+        })();
+    </script>
 
     {% block extra_head %}{% endblock %}
     {# Generator and build meta #}
@@ -211,7 +235,8 @@
                         {% set modal_enabled = ui_config.get('modal', false) %}
                         <li>
                             {% if modal_enabled %}
-                            <button type="button" class="nav-search-trigger" id="nav-search-trigger" title="Search (⌘K)" aria-label="Open search">
+                            <button type="button" class="nav-search-trigger" id="nav-search-trigger" title="Search (⌘K)"
+                                aria-label="Open search">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                     stroke-width="2" aria-hidden="true">
                                     <circle cx="11" cy="11" r="8"></circle>
@@ -261,7 +286,8 @@
 
                 {# Mobile Menu Toggle #}
                 <button class="mobile-nav-toggle visible-mobile" aria-label="Open menu" aria-expanded="false">
-                    <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                        aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M4 6h16M4 12h16M4 18h16" />
                     </svg>
@@ -399,85 +425,40 @@
         </div>
     </footer>
 
-    {# JavaScript - Utils must load first #}
-    <script src="{{ asset_url('js/utils.js') }}"></script>
-    <script src="{{ asset_url('js/theme-toggle.js') }}"></script>
-    <script src="{{ asset_url('js/mobile-nav.js') }}"></script>
-    <script src="{{ asset_url('js/tabs.js') }}"></script>
-    <script src="{{ asset_url('js/toc.js') }}"></script>
-    <script src="{{ asset_url('js/action-bar.js') }}"></script>
-    <script src="{{ asset_url('js/main.js') }}"></script>
-    <script src="{{ asset_url('js/interactive.js') }}"></script>
-    <script src="{{ asset_url('js/copy-link.js') }}"></script>
-    <script src="{{ asset_url('js/lightbox.js') }}"></script>
+    {# ============================================================== #}
+    {# JavaScript Loading Strategy (Render Performance Optimized) #}
+    {# ============================================================== #}
+    {# All scripts use defer to avoid render-blocking. #}
+    {# Heavy libraries (Mermaid, D3, Tabulator) are lazy-loaded only #}
+    {# when their features are present on the page. #}
+    {# ============================================================== #}
 
-    {# Tabulator for data tables #}
-    <script src="{{ asset_url('js/tabulator.min.js') }}"></script>
-    <script src="{{ asset_url('js/data-table.js') }}"></script>
+    {# Core Scripts - Always loaded, use defer for non-blocking #}
+    <script defer src="{{ asset_url('js/utils.js') }}"></script>
+    <script defer src="{{ asset_url('js/theme-toggle.js') }}"></script>
+    <script defer src="{{ asset_url('js/mobile-nav.js') }}"></script>
+    <script defer src="{{ asset_url('js/tabs.js') }}"></script>
+    <script defer src="{{ asset_url('js/toc.js') }}"></script>
+    <script defer src="{{ asset_url('js/action-bar.js') }}"></script>
+    <script defer src="{{ asset_url('js/main.js') }}"></script>
+    <script defer src="{{ asset_url('js/interactive.js') }}"></script>
+    <script defer src="{{ asset_url('js/copy-link.js') }}"></script>
+    <script defer src="{{ asset_url('js/lightbox.js') }}"></script>
 
-    {# Lunr.js for search (local copy avoids CDN integrity issues) #}
-    <script src="{{ asset_url('js/lunr.min.js') }}"></script>
-    <script src="{{ asset_url('js/search.js') }}"></script>
-    <script src="{{ asset_url('js/search-page.js') }}"></script>
-    <script src="{{ asset_url('js/search-modal.js') }}"></script>
+    {# Search - Core scripts with defer #}
+    <script defer src="{{ asset_url('js/lunr.min.js') }}"></script>
+    <script defer src="{{ asset_url('js/search.js') }}"></script>
+    <script defer src="{{ asset_url('js/search-page.js') }}"></script>
+    <script defer src="{{ asset_url('js/search-modal.js') }}"></script>
 
-    {# Mermaid.js for diagram rendering #}
-    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
-    {# Mermaid toolbar for interactive diagram controls #}
-    <script src="{{ asset_url('js/mermaid-toolbar.js') }}"></script>
-    {# Mermaid theme configuration - maps Bengal CSS variables to Mermaid themeVariables #}
-    <script src="{{ asset_url('js/mermaid-theme.js') }}"></script>
+    {# Session path tracker - lightweight, always load #}
+    <script defer src="{{ asset_url('js/session-path-tracker.js') }}"></script>
 
-    {# Session path tracker - tracks user's navigation path for graph visualization #}
-    <script src="{{ asset_url('js/session-path-tracker.js') }}"></script>
+    {# Lazy-loaded Libraries (Mermaid, D3, Tabulator) - external file for cleaner template #}
+    <script defer src="{{ asset_url('js/lazy-loaders.js') }}"></script>
 
-    {# D3.js for graph visualizations #}
-    <script src="https://d3js.org/d3.v7.min.js"></script>
-
-    {# Graph visualizations - auto-initialize when containers exist #}
-    <script src="{{ asset_url('js/graph-minimap.js') }}"></script>
-    <script src="{{ asset_url('js/graph-contextual.js') }}"></script>
-
-    {# Smart search index preloading #}
-    <script>
-        (function () {
-            const preloadMode = (document.querySelector('meta[name="bengal:search_preload"]').content) || 'smart';
-            let preloadTriggered = false;
-
-            function preloadSearch() {
-                if (preloadTriggered || !window.BengalSearch) return;
-                preloadTriggered = true;
-
-                console.log('🔍 Preloading search index...');
-                window.BengalSearch.load();
-            }
-
-            // Immediate: Load right away (best for small sites <100 pages)
-            if (preloadMode === 'immediate') {
-                document.addEventListener('DOMContentLoaded', preloadSearch);
-            }
-            // Smart: Load on user intent signals (default, best for most sites)
-            else if (preloadMode === 'smart') {
-                document.addEventListener('DOMContentLoaded', function () {
-                    // Preload on search link/button hover (user likely to search)
-                    const searchTriggers = document.querySelectorAll('a[href$="/search/"], a[href*="search"], .nav-search-trigger, #nav-search-trigger');
-                    searchTriggers.forEach(el => {
-                        el.addEventListener('mouseenter', preloadSearch, { once: true });
-                        el.addEventListener('focus', preloadSearch, { once: true });
-                    });
-
-                    // Preload if user presses Cmd/Ctrl (likely ⌘K)
-                    document.addEventListener('keydown', function (e) {
-                        if (e.metaKey || e.ctrlKey) {
-                            preloadSearch();
-                        }
-                    }, { once: true });
-                });
-            }
-            // Lazy: Only load when search is actually opened (best for large sites >500 pages)
-            // No preloading - index loads on first search
-        })();
-    </script>
+    {# Smart search index preloading - must load after search.js #}
+    <script defer src="{{ asset_url('js/search-preload.js') }}"></script>
 
     {% block extra_js %}{% endblock %}
 
@@ -494,8 +475,8 @@
     <div class="lightbox" role="dialog" aria-label="Image lightbox" aria-hidden="true">
         <img class="lightbox__image" alt="">
         <button class="lightbox__close" aria-label="Close lightbox">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
-                stroke-linejoin="round" aria-hidden="true">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <line x1="18" y1="6" x2="6" y2="18"></line>
                 <line x1="6" y1="6" x2="18" y2="18"></line>
             </svg>
