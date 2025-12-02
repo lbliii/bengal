@@ -59,7 +59,6 @@
     {# Bengal config meta for JS to read without template tags inside scripts #}
     <meta name="bengal:search_preload" content="{{ site.config.get('search_preload', 'smart') }}">
     <meta name="bengal:baseurl" content="{{ site.config.baseurl or '' }}">
-    <meta name="bengal:asset_base" content="{{ '/assets' | absolute_url }}">
     <meta name="bengal:index_url" content="{{ '/index.json' | absolute_url }}">
     <meta name="bengal:search_index_url" content="{{ '/search-index.json' | absolute_url }}">
 
@@ -454,10 +453,20 @@
     {# Session path tracker - lightweight, always load #}
     <script defer src="{{ asset_url('js/session-path-tracker.js') }}"></script>
 
-    {# Lazy-loaded Libraries (Mermaid, D3, Tabulator) - external file for cleaner template #}
+    {# Lazy-loaded Libraries - URLs injected here, logic in external file #}
+    <script>
+    window.BENGAL_LAZY_ASSETS={
+        tabulator:'{{ asset_url("js/tabulator.min.js") }}',
+        dataTable:'{{ asset_url("js/data-table.js") }}',
+        mermaidToolbar:'{{ asset_url("js/mermaid-toolbar.js") }}',
+        mermaidTheme:'{{ asset_url("js/mermaid-theme.js") }}',
+        graphMinimap:'{{ asset_url("js/graph-minimap.js") }}',
+        graphContextual:'{{ asset_url("js/graph-contextual.js") }}'
+    };
+    </script>
     <script defer src="{{ asset_url('js/lazy-loaders.js') }}"></script>
 
-    {# Smart search index preloading - must load after search.js #}
+    {# Smart search index preloading #}
     <script defer src="{{ asset_url('js/search-preload.js') }}"></script>
 
     {% block extra_js %}{% endblock %}

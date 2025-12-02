@@ -2,8 +2,8 @@
  * Bengal SSG - Lazy Library Loaders
  *
  * Conditionally loads heavy third-party libraries only when their
- * features are present on the page. This eliminates ~1MB+ of JavaScript
- * from pages that don't need diagrams, tables, or graphs.
+ * features are present on the page. URLs are injected by the template
+ * via window.BENGAL_LAZY_ASSETS to support fingerprinted filenames.
  *
  * Libraries handled:
  * - Mermaid.js (~930KB) - Diagram rendering
@@ -14,41 +14,30 @@
 (function () {
     'use strict';
 
+    // Get asset URLs from template-injected config
+    var assets = window.BENGAL_LAZY_ASSETS || {};
+
     /**
      * Helper to dynamically load a script
      * @param {string} src - Script URL
      * @param {function} [onload] - Callback after load
-     * @returns {HTMLScriptElement}
      */
     function loadScript(src, onload) {
         var script = document.createElement('script');
         script.src = src;
-        if (onload) {
-            script.onload = onload;
-        }
+        if (onload) script.onload = onload;
         document.head.appendChild(script);
-        return script;
     }
-
-    /**
-     * Get asset URL using Bengal's asset_url pattern
-     * Reads from a data attribute set by the template
-     */
-    function getAssetBase() {
-        var meta = document.querySelector('meta[name="bengal:asset_base"]');
-        return meta ? meta.getAttribute('content') : '/assets';
-    }
-
-    var assetBase = getAssetBase();
 
     /**
      * Tabulator (~100KB) - Only load if data tables exist
      */
     function loadTabulator() {
         if (!document.querySelector('.bengal-data-table-wrapper')) return;
+        if (!assets.tabulator) return;
 
-        loadScript(assetBase + '/js/tabulator.min.js', function () {
-            loadScript(assetBase + '/js/data-table.js');
+        loadScript(assets.tabulator, function () {
+            if (assets.dataTable) loadScript(assets.dataTable);
         });
     }
 
@@ -59,10 +48,12 @@
         if (!document.querySelector('.mermaid')) return;
 
         loadScript('https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js', function () {
-            // Load support scripts sequentially: toolbar first, then theme
-            loadScript(assetBase + '/js/mermaid-toolbar.js', function () {
-                loadScript(assetBase + '/js/mermaid-theme.js');
-            });
+            // Load support scripts sequentially
+            if (assets.mermaidToolbar) {
+                loadScript(assets.mermaidToolbar, function () {
+                    if (assets.mermaidTheme) loadScript(assets.mermaidTheme);
+                });
+            }
         });
     }
 
@@ -73,33 +64,18 @@
         if (!document.querySelector('.graph-minimap, .graph-contextual, [data-graph]')) return;
 
         loadScript('https://d3js.org/d3.v7.min.js', function () {
-            // Dispatch event for graph scripts to listen for
+            // Dispatch event for graph scripts
             window.dispatchEvent(new Event('d3:ready'));
 
             // Load graph visualization scripts
-            loadScript(assetBase + '/js/graph-minimap.js');
-            loadScript(assetBase + '/js/graph-contextual.js');
+            if (assets.graphMinimap) loadScript(assets.graphMinimap);
+            if (assets.graphContextual) loadScript(assets.graphContextual);
         });
     }
 
-    /**
-     * Initialize all lazy loaders
-     * Called when DOM is ready (defer script ensures this)
-     */
-    function init() {
-        loadTabulator();
-        loadMermaid();
-        loadD3();
-    }
-
-    // Run immediately - defer attribute ensures DOM is ready
-    init();
-
-    // Export for manual triggering if needed
-    window.BengalLazyLoaders = {
-        loadTabulator: loadTabulator,
-        loadMermaid: loadMermaid,
-        loadD3: loadD3
-    };
+    // Initialize all loaders
+    loadTabulator();
+    loadMermaid();
+    loadD3();
 
 })();
