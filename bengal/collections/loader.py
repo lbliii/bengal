@@ -10,7 +10,7 @@ from __future__ import annotations
 import importlib.util
 import logging
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from bengal.collections import CollectionConfig
@@ -190,13 +190,8 @@ def validate_collections_config(
         collection_dir = content_root / config.directory
 
         if not collection_dir.exists():
-            warnings.append(
-                f"Collection '{name}' directory does not exist: {collection_dir}"
-            )
+            warnings.append(f"Collection '{name}' directory does not exist: {collection_dir}")
         elif not collection_dir.is_dir():
-            warnings.append(
-                f"Collection '{name}' path is not a directory: {collection_dir}"
-            )
+            warnings.append(f"Collection '{name}' path is not a directory: {collection_dir}")
 
     return warnings
-

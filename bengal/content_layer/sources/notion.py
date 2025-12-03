@@ -9,15 +9,15 @@ Requires: pip install bengal[notion] (installs aiohttp)
 from __future__ import annotations
 
 import os
+from collections.abc import AsyncIterator
 from datetime import datetime
-from typing import Any, AsyncIterator
+from typing import Any
 
 try:
     import aiohttp
 except ImportError as e:
     raise ImportError(
-        "NotionSource requires aiohttp.\n"
-        "Install with: pip install bengal[notion]"
+        "NotionSource requires aiohttp.\nInstall with: pip install bengal[notion]"
     ) from e
 
 from bengal.content_layer.entry import ContentEntry
@@ -189,9 +189,7 @@ class NotionSource(ContentSource):
         # Parse last edited time
         last_modified = None
         if page.get("last_edited_time"):
-            last_modified = datetime.fromisoformat(
-                page["last_edited_time"].replace("Z", "+00:00")
-            )
+            last_modified = datetime.fromisoformat(page["last_edited_time"].replace("Z", "+00:00"))
 
         return ContentEntry(
             id=page_id,
@@ -315,9 +313,8 @@ class NotionSource(ContentSource):
 
             elif block_type == "image":
                 image_data = block_data
-                url = (
-                    image_data.get("external", {}).get("url")
-                    or image_data.get("file", {}).get("url")
+                url = image_data.get("external", {}).get("url") or image_data.get("file", {}).get(
+                    "url"
                 )
                 caption = self._rich_text_to_md(image_data.get("caption", []))
                 if url:
@@ -464,4 +461,3 @@ class NotionSource(ContentSource):
         slug = re.sub(r"[^\w\s-]", "", slug)
         slug = re.sub(r"[-\s]+", "-", slug)
         return slug.strip("-")
-

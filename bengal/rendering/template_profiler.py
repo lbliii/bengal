@@ -29,9 +29,10 @@ from __future__ import annotations
 import threading
 import time
 from collections import defaultdict
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from functools import wraps
-from typing import TYPE_CHECKING, Any, Callable
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from jinja2 import Template
@@ -118,14 +119,12 @@ class TemplateProfiler:
 
     def __init__(self) -> None:
         """Initialize the profiler."""
-        self._templates: dict[str, TemplateTimings] = defaultdict(
-            lambda: TemplateTimings(name="")
-        )
-        self._functions: dict[str, FunctionTimings] = defaultdict(
-            lambda: FunctionTimings(name="")
-        )
+        self._templates: dict[str, TemplateTimings] = defaultdict(lambda: TemplateTimings(name=""))
+        self._functions: dict[str, FunctionTimings] = defaultdict(lambda: FunctionTimings(name=""))
         self._lock = threading.Lock()
-        self._active_renders: dict[int, dict[str, float]] = {}  # thread_id -> {template: start_time}
+        self._active_renders: dict[
+            int, dict[str, float]
+        ] = {}  # thread_id -> {template: start_time}
         self._enabled = True
 
     def enable(self) -> None:
@@ -436,4 +435,3 @@ def disable_profiling() -> None:
     global _global_profiler
     if _global_profiler is not None:
         _global_profiler.disable()
-

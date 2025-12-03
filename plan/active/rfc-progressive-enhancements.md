@@ -47,7 +47,7 @@ const tocItems = document.querySelectorAll('[data-toc-item]');
 // Declarative configuration ✅
 ```
 
-**Evidence**: 
+**Evidence**:
 - `bengal/themes/default/assets/js/lazy-loaders.js` - conditional loading
 - `bengal/themes/default/assets/js/toc.js` - data attribute pattern
 - `bengal/themes/default/assets/js/tabs.js` - event delegation
@@ -363,8 +363,8 @@ Current script loading on a simple page (no tabs, no TOC):
     const defaultTheme = options.default || 'system';
 
     // Get existing BengalTheme API or create inline
-    const toggleTheme = window.BengalTheme 
-      ? window.BengalTheme.toggle 
+    const toggleTheme = window.BengalTheme
+      ? window.BengalTheme.toggle
       : function() {
           const current = document.documentElement.dataset.theme;
           const next = current === 'dark' ? 'light' : 'dark';
@@ -379,7 +379,7 @@ Current script loading on a simple page (no tabs, no TOC):
 
     // Update aria-pressed on theme change
     window.addEventListener('themechange', () => {
-      el.setAttribute('aria-pressed', 
+      el.setAttribute('aria-pressed',
         document.documentElement.dataset.theme === 'dark');
     });
   });
@@ -435,7 +435,7 @@ Current script loading on a simple page (no tabs, no TOC):
   Bengal.enhance.register('toc', function(nav, options) {
     const spy = options.spy !== false; // Default true
     const items = nav.querySelectorAll('[data-toc-item]');
-    
+
     if (!items.length) return;
 
     // Build heading map
@@ -470,7 +470,7 @@ Current script loading on a simple page (no tabs, no TOC):
 
       function updateActive() {
         const scrollTop = window.scrollY + 120;
-        
+
         let active = headings[0];
         for (const heading of headings) {
           if (heading.element.offsetTop <= scrollTop) {
@@ -502,13 +502,13 @@ Current script loading on a simple page (no tabs, no TOC):
 <head>
   <!-- Critical: Theme init (inline, prevents FOUC) -->
   <script>/* existing inline theme init */</script>
-  
+
   <!-- Enhancement loader - small, always load -->
   <script defer src="{{ asset_url('js/bengal-enhance.js') }}"></script>
-  
+
   <!-- Utils - dependency for complex enhancements -->
   <script defer src="{{ asset_url('js/utils.js') }}"></script>
-  
+
   <!-- Preload critical enhancements (configured in bengal.toml) -->
   {% for name in site.config.enhancements.preload %}
   <link rel="modulepreload" href="{{ asset_url('js/enhancements/' ~ name ~ '.js') }}">
@@ -517,11 +517,11 @@ Current script loading on a simple page (no tabs, no TOC):
 
 <body>
   <!-- Enhancements auto-discovered via data-bengal -->
-  
+
   <button data-bengal="theme-toggle">Toggle Theme</button>
-  
+
   <nav data-bengal="mobile-nav">...</nav>
-  
+
   {% if page.toc %}
   <aside data-bengal="toc" data-spy="true">
     {% for item in page.toc %}
@@ -529,7 +529,7 @@ Current script loading on a simple page (no tabs, no TOC):
     {% endfor %}
   </aside>
   {% endif %}
-  
+
   <!-- No need to load tabs.js if page has no tabs! -->
   {% if page.has_tabs %}
   <div data-bengal="tabs">...</div>
@@ -638,10 +638,10 @@ Enhancement Loading Strategies:
 
   PRELOADED (theme-toggle, mobile-nav):
     Script bundled → Register immediately → Enhance on DOMContentLoaded
-    
+
   LAZY-LOADED (tabs, toc, search-modal):
     DOMContentLoaded → Scan [data-bengal] → Dynamic import → Register → Enhance
-    
+
   CONDITIONAL (from template):
     {% if page.has_tabs %}<div data-bengal="tabs">{% endif %}
     → Only included in HTML when needed
@@ -727,7 +727,7 @@ Enhancement Loading Strategies:
 
 - **Likelihood**: Low (backward compatible)
 - **Impact**: Medium
-- **Mitigation**: 
+- **Mitigation**:
   - Phased migration
   - Dual-mode: old scripts + new enhancements coexist
   - Clear migration guide
@@ -807,4 +807,3 @@ Enhancement Loading Strategies:
 - [x] Code examples provided
 - [x] Comparison with alternatives (Islands)
 - [x] Confidence ≥ 85% (88%)
-

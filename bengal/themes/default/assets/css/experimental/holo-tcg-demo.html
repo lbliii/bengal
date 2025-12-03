@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Holographic TCG Admonitions - Bengal Theme Exploration</title>
+
+  <!-- Load Bengal's token system -->
+  <link rel="stylesheet" href="../tokens/foundation.css">
+  <link rel="stylesheet" href="../tokens/semantic.css">
+  <link rel="stylesheet" href="../tokens/typography.css">
+  <link rel="stylesheet" href="../components/admonitions.css">
+
+  <!-- Load TCG experimental styles -->
+  <link rel="stylesheet" href="holo-tcg-admonitions.css">
+
+  <style>
+    /* Demo page styles */
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: var(--font-sans, system-ui, -apple-system, sans-serif);
+      line-height: 1.6;
+      color: var(--color-text-primary, #1a1a1a);
+      background: var(--color-bg-primary, #ffffff);
+      padding: 2rem;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    h1, h2, h3 {
+      font-family: var(--font-heading, var(--font-sans));
+      margin-top: 2rem;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 0.5rem;
+    }
+
+    .subtitle {
+      color: var(--color-text-secondary, #666);
+      font-size: 1.1rem;
+      margin-bottom: 2rem;
+    }
+
+    .demo-section {
+      margin: 3rem 0;
+      padding: 2rem;
+      background: var(--color-bg-secondary, #f5f5f5);
+      border-radius: 1rem;
+    }
+
+    .demo-section h2 {
+      margin-top: 0;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .demo-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1.5rem;
+      margin-top: 1.5rem;
+    }
+
+    .orb-demo {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .orb-demo span {
+      font-size: 0.875rem;
+      color: var(--color-text-secondary);
+    }
+
+    /* Theme toggle */
+    .theme-toggle {
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+      padding: 0.5rem 1rem;
+      background: var(--color-primary, #2196f3);
+      color: white;
+      border: none;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      font-size: 0.875rem;
+      z-index: 100;
+    }
+
+    .theme-toggle:hover {
+      opacity: 0.9;
+    }
+
+    /* Dark mode overrides for demo */
+    [data-theme="dark"] body {
+      background: #1a1a1a;
+      color: #f5f5f5;
+    }
+
+    [data-theme="dark"] .demo-section {
+      background: #2d2d2d;
+    }
+
+    code {
+      background: rgba(0, 0, 0, 0.1);
+      padding: 0.125rem 0.375rem;
+      border-radius: 0.25rem;
+      font-family: var(--font-mono, monospace);
+      font-size: 0.875em;
+    }
+
+    [data-theme="dark"] code {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .note-block {
+      padding: 1rem;
+      background: rgba(59, 130, 246, 0.1);
+      border-left: 4px solid #3b82f6;
+      border-radius: 0 0.5rem 0.5rem 0;
+      margin: 1rem 0;
+    }
+  </style>
+</head>
+<body>
+  <button class="theme-toggle" onclick="toggleTheme()">🌓 Toggle Dark Mode</button>
+
+  <h1>✨ Holographic TCG Admonitions</h1>
+  <p class="subtitle">Pokemon/Trading Card Game inspired design exploration for Bengal documentation</p>
+
+  <div class="note-block">
+    <strong>🎮 Interaction:</strong> Hover over cards to see the holographic shimmer and glow effects!
+  </div>
+
+  <!-- Energy Orbs -->
+  <div class="demo-section">
+    <h2>🔮 Energy Orb Icons</h2>
+    <p>Spherical resource indicators inspired by Pokemon TCG energy cards. Pulse animation on hover.</p>
+
+    <div class="demo-grid">
+      <div class="orb-demo">
+        <div class="energy-orb fire">🔥</div>
+        <span>Fire</span>
+      </div>
+      <div class="orb-demo">
+        <div class="energy-orb water">💧</div>
+        <span>Water</span>
+      </div>
+      <div class="orb-demo">
+        <div class="energy-orb grass">🌿</div>
+        <span>Grass</span>
+      </div>
+      <div class="orb-demo">
+        <div class="energy-orb electric">⚡</div>
+        <span>Electric</span>
+      </div>
+      <div class="orb-demo">
+        <div class="energy-orb psychic">🔮</div>
+        <span>Psychic</span>
+      </div>
+      <div class="orb-demo">
+        <div class="energy-orb dark">🌑</div>
+        <span>Dark</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Holographic Foil -->
+  <div class="demo-section">
+    <h2>🌈 Holographic Foil Admonition</h2>
+    <p>Rainbow prismatic shimmer effect that activates on hover. Uses <code>mix-blend-mode: color-dodge</code> for authentic foil look.</p>
+
+    <div class="admonition holo-foil note">
+      <p class="admonition-title">Holographic Note</p>
+      <p>Hover over this card to see the rainbow foil shimmer effect! The diagonal shine sweeps across like a real holographic card.</p>
+    </div>
+
+    <div class="admonition holo-foil tip">
+      <p class="admonition-title">Holographic Tip</p>
+      <p>This effect works great for highlighting special or premium content. The shine animation creates that satisfying TCG card tilt moment.</p>
+    </div>
+  </div>
+
+  <!-- Rarity Tiers -->
+  <div class="demo-section">
+    <h2>⭐ Rarity Tier System</h2>
+    <p>Visual escalation from Common → Legendary with increasing effects.</p>
+
+    <div class="admonition rarity-common note">
+      <p class="admonition-title">Common</p>
+      <p>Basic styling with minimal effects. Clean and simple.</p>
+    </div>
+
+    <div class="admonition rarity-uncommon tip">
+      <p class="admonition-title">Uncommon</p>
+      <p>Green accent with subtle glow. A step up from common.</p>
+    </div>
+
+    <div class="admonition rarity-rare info">
+      <p class="admonition-title">Rare</p>
+      <p>Blue glow with shimmer animation. Getting fancy!</p>
+    </div>
+
+    <div class="admonition rarity-ultra-rare warning">
+      <p class="admonition-title">Ultra Rare</p>
+      <p>Purple glow with rainbow overlay. For important callouts.</p>
+    </div>
+
+    <div class="admonition rarity-legendary danger">
+      <p class="admonition-title">Legendary</p>
+      <p>Gold frame with full holographic effect and intense glow. Maximum impact for critical information!</p>
+    </div>
+  </div>
+
+  <!-- TCG Card Frame -->
+  <div class="demo-section">
+    <h2>🃏 TCG Card Frame</h2>
+    <p>Full trading card inspired design with colored header banner.</p>
+
+    <div class="admonition tcg-card note">
+      <p class="admonition-title">Note Card</p>
+      <p>This style mimics a trading card with a colored header bar and metallic frame border.</p>
+    </div>
+
+    <div class="admonition tcg-card tip">
+      <p class="admonition-title">Tip Card</p>
+      <p>Green variant for tips and success messages. The gradient header adds depth.</p>
+    </div>
+
+    <div class="admonition tcg-card warning">
+      <p class="admonition-title">Warning Card</p>
+      <p>Orange/amber header for warnings. The card frame draws attention.</p>
+    </div>
+
+    <div class="admonition tcg-card danger">
+      <p class="admonition-title">Danger Card</p>
+      <p>Red variant for critical errors. High visibility for important warnings.</p>
+    </div>
+  </div>
+
+  <!-- Full TCG with Energy Orbs -->
+  <div class="demo-section">
+    <h2>🎴 Full TCG Design with Energy Orbs</h2>
+    <p>Complete card design featuring energy orb icons instead of emoji.</p>
+
+    <div class="admonition tcg-full note">
+      <p class="admonition-title">Information</p>
+      <p>Water energy orb for info/note cards. The spherical icon adds that collectible card feel.</p>
+    </div>
+
+    <div class="admonition tcg-full tip">
+      <p class="admonition-title">Pro Tip</p>
+      <p>Grass energy for tips and best practices. Matches the nature/growth theme of tips.</p>
+    </div>
+
+    <div class="admonition tcg-full warning">
+      <p class="admonition-title">Caution</p>
+      <p>Fire energy for warnings. The warm glow draws attention to potential issues.</p>
+    </div>
+
+    <div class="admonition tcg-full danger">
+      <p class="admonition-title">Critical</p>
+      <p>Psychic energy for dangers/errors. The mysterious purple conveys severity.</p>
+    </div>
+
+    <div class="admonition tcg-full example">
+      <p class="admonition-title">Example</p>
+      <p>Electric energy for examples. Bright and energetic for code examples!</p>
+    </div>
+  </div>
+
+  <!-- Combination Styles -->
+  <div class="demo-section">
+    <h2>🔥 Combining Effects</h2>
+    <p>Mix and match classes for maximum impact.</p>
+
+    <div class="admonition holo-foil rarity-legendary tcg-full tip">
+      <p class="admonition-title">Ultimate Legendary Card</p>
+      <p>This combines holographic foil, legendary rarity, and TCG styling. Maximum "wow" factor for your most important documentation callouts! Hover to see all effects.</p>
+      <ul>
+        <li>Gold frame border</li>
+        <li>Rainbow holographic shimmer</li>
+        <li>Intense legendary glow</li>
+        <li>Energy orb icon</li>
+      </ul>
+    </div>
+
+    <div class="admonition holo-foil rarity-ultra-rare danger">
+      <p class="admonition-title">⚠️ Breaking Change</p>
+      <p>Perfect for documenting breaking changes or critical migrations. The purple ultra-rare glow commands attention.</p>
+    </div>
+  </div>
+
+  <!-- Usage Examples -->
+  <div class="demo-section">
+    <h2>📝 How to Use</h2>
+    <p>Add these classes to your admonitions:</p>
+
+    <pre style="background: #1a1a1a; color: #f5f5f5; padding: 1rem; border-radius: 0.5rem; overflow-x: auto;"><code>&lt;!-- Holographic foil effect --&gt;
+&lt;div class="admonition holo-foil note"&gt;...&lt;/div&gt;
+
+&lt;!-- Rarity tiers --&gt;
+&lt;div class="admonition rarity-common note"&gt;...&lt;/div&gt;
+&lt;div class="admonition rarity-uncommon tip"&gt;...&lt;/div&gt;
+&lt;div class="admonition rarity-rare info"&gt;...&lt;/div&gt;
+&lt;div class="admonition rarity-ultra-rare warning"&gt;...&lt;/div&gt;
+&lt;div class="admonition rarity-legendary danger"&gt;...&lt;/div&gt;
+
+&lt;!-- TCG card frame --&gt;
+&lt;div class="admonition tcg-card note"&gt;...&lt;/div&gt;
+
+&lt;!-- Full TCG with energy orbs --&gt;
+&lt;div class="admonition tcg-full note"&gt;...&lt;/div&gt;
+
+&lt;!-- Combine effects --&gt;
+&lt;div class="admonition holo-foil rarity-legendary tcg-full tip"&gt;...&lt;/div&gt;
+
+&lt;!-- Energy orb icons --&gt;
+&lt;div class="energy-orb fire"&gt;🔥&lt;/div&gt;
+&lt;div class="energy-orb water"&gt;💧&lt;/div&gt;</code></pre>
+  </div>
+
+  <script>
+    function toggleTheme() {
+      const html = document.documentElement;
+      const currentTheme = html.getAttribute('data-theme');
+      html.setAttribute('data-theme', currentTheme === 'dark' ? 'light' : 'dark');
+    }
+  </script>
+</body>
+</html>

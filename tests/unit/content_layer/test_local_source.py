@@ -60,11 +60,14 @@ class TestLocalSource:
 
     def test_config_parsing(self) -> None:
         """Test configuration is parsed correctly."""
-        source = LocalSource("docs", {
-            "directory": "content/docs",
-            "glob": "**/*.mdx",
-            "exclude": ["_drafts/*"],
-        })
+        source = LocalSource(
+            "docs",
+            {
+                "directory": "content/docs",
+                "glob": "**/*.mdx",
+                "exclude": ["_drafts/*"],
+            },
+        )
 
         assert source.directory == Path("content/docs")
         assert source.glob_pattern == "**/*.mdx"
@@ -98,10 +101,13 @@ class TestLocalSource:
 
     def test_should_exclude(self) -> None:
         """Test exclusion pattern matching."""
-        source = LocalSource("test", {
-            "directory": "content",
-            "exclude": ["_drafts/*", "*.tmp"],
-        })
+        source = LocalSource(
+            "test",
+            {
+                "directory": "content",
+                "exclude": ["_drafts/*", "*.tmp"],
+            },
+        )
 
         # Excluded patterns
         assert source._should_exclude(Path("content/_drafts/post.md"))
@@ -172,11 +178,13 @@ class TestLocalSource:
         drafts.mkdir(parents=True)
         (drafts / "draft.md").write_text("Draft content")
 
-        source = LocalSource("test", {
-            "directory": str(content_dir),
-            "exclude": ["_drafts/*"],
-        })
+        source = LocalSource(
+            "test",
+            {
+                "directory": str(content_dir),
+                "exclude": ["_drafts/*"],
+            },
+        )
 
         entry = await source.fetch_one("_drafts/draft.md")
         assert entry is None
-

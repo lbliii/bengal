@@ -9,12 +9,9 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional
-
-import pytest
+from typing import Any
 
 from bengal.collections import CollectionConfig, define_collection
-
 
 # Test schemas
 
@@ -328,4 +325,3 @@ class TestGenericTypeParameter:
 
         assert blog.schema is BlogPost
         assert docs.schema is DocPage
-

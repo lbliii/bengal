@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Holographic Card Effects Demo - Bengal</title>
+  <style>
+/* ============================================
+   BASE STYLES
+   ============================================ */
+:root {
+  --holo-gradient: repeating-linear-gradient(
+    0deg,
+    rgb(255, 119, 115) calc(5% * 1),
+    rgba(255, 237, 95, 1) calc(5% * 2),
+    rgba(168, 255, 95, 1) calc(5% * 3),
+    rgba(131, 255, 247, 1) calc(5% * 4),
+    rgba(120, 148, 255, 1) calc(5% * 5),
+    rgb(216, 117, 255) calc(5% * 6),
+    rgb(255, 119, 115) calc(5% * 7)
+  );
+  --pointer-x: 50;
+  --pointer-y: 50;
+  --card-glow: rgba(59, 130, 246, 0.4);
+  --color-bg: #fafafa;
+  --color-bg-secondary: #f0f0f0;
+  --color-text: #1a1a1a;
+  --color-text-secondary: #666;
+  --color-border: #e0e0e0;
+  --color-primary: #D4850F;
+  --radius-xl: 12px;
+  --radius-lg: 8px;
+}
+
+[data-theme="dark"] {
+  --color-bg: #0a0a0a;
+  --color-bg-secondary: #1a1a1a;
+  --color-text: #e5e5e5;
+  --color-text-secondary: #999;
+  --color-border: #333;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--color-bg);
+  color: var(--color-text);
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+h1 { font-size: 2.5rem; margin: 0 0 0.5rem; }
+h2 { font-size: 1.5rem; border-bottom: 1px solid var(--color-border); padding-bottom: 0.5rem; margin-top: 2.5rem; }
+hr { border: none; border-top: 1px solid var(--color-border); margin: 2rem 0; }
+a { color: var(--color-primary); }
+code { background: var(--color-bg-secondary); padding: 0.125rem 0.375rem; border-radius: 4px; font-size: 0.875em; }
+
+.lead { font-size: 1.125rem; color: var(--color-text-secondary); margin-bottom: 2rem; }
+.back-link { display: inline-block; margin-bottom: 1.5rem; text-decoration: none; }
+.back-link:hover { text-decoration: underline; }
+
+/* Theme Toggle */
+.theme-toggle {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-bg-secondary);
+  color: var(--color-text);
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+
+/* ============================================
+   HOLOGRAPHIC CARDS
+   ============================================ */
+.holo-demo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 2rem;
+  margin: 2rem 0;
+  perspective: 1000px;
+}
+
+.holo-card {
+  --card-glow: rgba(59, 130, 246, 0.4);
+  position: relative;
+  min-height: 220px;
+  border-radius: var(--radius-xl);
+  transform-style: preserve-3d;
+  transition: transform 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.holo-card__inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: inherit;
+  border-radius: inherit;
+  overflow: hidden;
+  background: var(--color-bg);
+  border: 2px solid var(--color-border);
+  box-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.1),
+    0 0 30px var(--card-glow);
+  transform-style: preserve-3d;
+  transition:
+    transform 0.4s cubic-bezier(0.23, 1, 0.32, 1),
+    box-shadow 0.3s ease;
+}
+
+.holo-card:hover .holo-card__inner {
+  box-shadow:
+    0 8px 40px rgba(0, 0, 0, 0.15),
+    0 0 50px var(--card-glow);
+}
+
+.holo-card__shine {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--holo-gradient);
+  background-size: 400% 400%;
+  background-position:
+    calc(var(--pointer-x) * 1%)
+    calc(var(--pointer-y) * 1%);
+  mix-blend-mode: color-dodge;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 3;
+  transition: opacity 0.3s ease;
+  -webkit-mask-image: radial-gradient(
+    farthest-corner circle at
+    calc(var(--pointer-x) * 1%)
+    calc(var(--pointer-y) * 1%),
+    rgba(0, 0, 0, 0.8) 10%,
+    rgba(0, 0, 0, 0.5) 40%,
+    transparent 80%
+  );
+  mask-image: radial-gradient(
+    farthest-corner circle at
+    calc(var(--pointer-x) * 1%)
+    calc(var(--pointer-y) * 1%),
+    rgba(0, 0, 0, 0.8) 10%,
+    rgba(0, 0, 0, 0.5) 40%,
+    transparent 80%
+  );
+}
+
+.holo-card:hover .holo-card__shine { opacity: 0.7; }
+[data-theme="dark"] .holo-card:hover .holo-card__shine { opacity: 0.5; }
+
+.holo-card__glare {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(
+    farthest-corner circle at
+    calc(var(--pointer-x) * 1%)
+    calc(var(--pointer-y) * 1%),
+    rgba(255, 255, 255, 0.8) 0%,
+    rgba(255, 255, 255, 0.3) 25%,
+    transparent 60%
+  );
+  mix-blend-mode: overlay;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 4;
+  transition: opacity 0.3s ease;
+}
+
+.holo-card:hover .holo-card__glare { opacity: 0.4; }
+
+.holo-card__content {
+  position: relative;
+  z-index: 1;
+  padding: 1.25rem;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.holo-card__header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.holo-card__header strong { display: block; font-size: 1.125rem; }
+.holo-card__header small { color: var(--color-text-secondary); font-size: 0.8125rem; }
+.holo-card__content p { margin: 0; font-size: 0.9375rem; color: var(--color-text-secondary); }
+
+/* Card Variants */
+.holo-card--rainbow .holo-card__shine {
+  background: conic-gradient(
+    from calc(var(--pointer-x) * 3.6deg) at 50% 50%,
+    hsl(0, 100%, 70%), hsl(60, 100%, 70%), hsl(120, 100%, 70%),
+    hsl(180, 100%, 70%), hsl(240, 100%, 70%), hsl(300, 100%, 70%), hsl(360, 100%, 70%)
+  );
+  filter: saturate(1.2) brightness(1.1);
+}
+
+.holo-card--cosmos { --card-glow: rgba(168, 85, 247, 0.5); }
+.holo-card--cosmos .holo-card__shine {
+  background:
+    radial-gradient(circle at 20% 80%, rgba(255, 0, 128, 0.4) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(0, 200, 255, 0.4) 0%, transparent 50%),
+    var(--holo-gradient);
+  background-size: 200% 200%, 200% 200%, 400% 400%;
+}
+
+.holo-card--sunburst .holo-card__shine {
+  background: repeating-conic-gradient(
+    from calc(var(--pointer-x) * 1deg) at calc(var(--pointer-x) * 1%) calc(var(--pointer-y) * 1%),
+    transparent 0deg, rgba(255, 255, 255, 0.3) 2deg, transparent 4deg
+  ), var(--holo-gradient);
+}
+
+.holo-card--gold { --card-glow: rgba(251, 191, 36, 0.6); }
+.holo-card--gold .holo-card__inner {
+  border: 3px solid;
+  border-image: linear-gradient(135deg, #ffd700, #b8860b, #ffd700) 1;
+}
+
+/* ============================================
+   ENERGY ORBS
+   ============================================ */
+.energy-orb {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  font-size: 1.125rem;
+  color: white;
+  flex-shrink: 0;
+  box-shadow:
+    0 2px 8px var(--orb-glow, rgba(0,0,0,0.2)),
+    inset 0 2px 4px rgba(255,255,255,0.4),
+    inset 0 -2px 4px rgba(0,0,0,0.2);
+  background: var(--orb-gradient);
+}
+
+.energy-orb.info { --orb-gradient: linear-gradient(135deg, #60a5fa, #2563eb); --orb-glow: rgba(59, 130, 246, 0.5); }
+.energy-orb.success { --orb-gradient: linear-gradient(135deg, #4ade80, #16a34a); --orb-glow: rgba(34, 197, 94, 0.5); }
+.energy-orb.warning { --orb-gradient: linear-gradient(135deg, #fbbf24, #d97706); --orb-glow: rgba(245, 158, 11, 0.5); }
+.energy-orb.error { --orb-gradient: linear-gradient(135deg, #f87171, #dc2626); --orb-glow: rgba(239, 68, 68, 0.5); }
+.energy-orb.fire { --orb-gradient: linear-gradient(135deg, #fb923c, #ea580c); --orb-glow: rgba(249, 115, 22, 0.5); }
+.energy-orb.psychic { --orb-gradient: linear-gradient(135deg, #c084fc, #9333ea); --orb-glow: rgba(168, 85, 247, 0.5); }
+.energy-orb.electric { --orb-gradient: linear-gradient(135deg, #fde047, #ca8a04); --orb-glow: rgba(234, 179, 8, 0.5); }
+
+.orb-showcase {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  justify-content: center;
+  padding: 2rem;
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-xl);
+  margin: 1.5rem 0;
+}
+
+.orb-item { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; }
+.orb-item small { font-size: 0.75rem; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.05em; }
+
+/* ============================================
+   HOLOGRAPHIC ADMONITIONS
+   ============================================ */
+.admonition {
+  position: relative;
+  padding: 1rem 1.25rem;
+  margin: 1.5rem 0;
+  border-radius: var(--radius-lg);
+  border-left: 4px solid var(--admon-color, #666);
+  background: var(--color-bg-secondary);
+}
+
+.admonition-title { font-weight: 600; margin-bottom: 0.5rem; color: var(--admon-color, #666); }
+.admonition p { margin: 0; }
+
+.admonition.note { --admon-color: #3b82f6; }
+.admonition.tip { --admon-color: #10b981; }
+.admonition.warning { --admon-color: #f59e0b; }
+.admonition.danger { --admon-color: #ef4444; }
+
+.admonition.holo { overflow: visible; isolation: isolate; }
+
+.admonition.holo::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--holo-gradient);
+  background-size: 400% 400%;
+  background-position: calc(var(--pointer-x) * 1%) calc(var(--pointer-y) * 1%);
+  mix-blend-mode: color-dodge;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 10;
+  transition: opacity 0.3s ease;
+  -webkit-mask-image: radial-gradient(
+    farthest-corner circle at calc(var(--pointer-x) * 1%) calc(var(--pointer-y) * 1%),
+    rgba(0, 0, 0, 0.8) 10%, rgba(0, 0, 0, 0.5) 40%, transparent 80%
+  );
+  mask-image: radial-gradient(
+    farthest-corner circle at calc(var(--pointer-x) * 1%) calc(var(--pointer-y) * 1%),
+    rgba(0, 0, 0, 0.8) 10%, rgba(0, 0, 0, 0.5) 40%, transparent 80%
+  );
+}
+
+.admonition.holo::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(
+    farthest-corner circle at calc(var(--pointer-x) * 1%) calc(var(--pointer-y) * 1%),
+    rgba(255, 255, 255, 0.7) 0%, rgba(255, 255, 255, 0.2) 30%, transparent 60%
+  );
+  mix-blend-mode: overlay;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 11;
+  transition: opacity 0.3s ease;
+}
+
+.admonition.holo:hover::before { opacity: 0.5; }
+.admonition.holo:hover::after { opacity: 0.3; }
+[data-theme="dark"] .admonition.holo:hover::before { opacity: 0.4; }
+
+.admonition.holo.note::before { filter: hue-rotate(180deg) saturate(0.8); }
+.admonition.holo.tip::before { filter: hue-rotate(100deg) saturate(0.9); }
+.admonition.holo.warning::before { filter: hue-rotate(30deg) saturate(1.2); }
+.admonition.holo.danger::before { filter: hue-rotate(-30deg) saturate(1.3); }
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .holo-card, .holo-card__inner, .holo-card__shine, .holo-card__glare,
+  .admonition.holo::before, .admonition.holo::after { transition: none !important; }
+}
+  </style>
+</head>
+<body>
+
+<button class="theme-toggle" onclick="toggleTheme()">🌓 Toggle Theme</button>
+
+<a href="/docs/experimental/" class="back-link">← Back to Experimental</a>
+
+<h1>✨ Holographic Card Effects</h1>
+<p class="lead">Pokemon TCG-inspired holographic effects for Bengal components.<br>
+<strong>Move your cursor over the cards to see the effects!</strong></p>
+
+<hr>
+
+<h2>Demo Cards</h2>
+
+<div class="holo-demo-grid">
+  <div class="holo-card holo-card--rainbow">
+    <div class="holo-card__inner">
+      <div class="holo-card__shine"></div>
+      <div class="holo-card__glare"></div>
+      <div class="holo-card__content">
+        <div class="holo-card__header">
+          <span class="energy-orb info">💧</span>
+          <div>
+            <strong>Rainbow Holo</strong>
+            <small>Conic gradient</small>
+          </div>
+        </div>
+        <p>Move your cursor around to see the rainbow foil shimmer effect! The holo rotates based on cursor position.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="holo-card holo-card--cosmos">
+    <div class="holo-card__inner">
+      <div class="holo-card__shine"></div>
+      <div class="holo-card__glare"></div>
+      <div class="holo-card__content">
+        <div class="holo-card__header">
+          <span class="energy-orb psychic">🔮</span>
+          <div>
+            <strong>Cosmos</strong>
+            <small>Ultra Rare</small>
+          </div>
+        </div>
+        <p>Cosmic nebula effect with layered radial gradients. Features pink and cyan energy bursts.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="holo-card holo-card--sunburst holo-card--gold">
+    <div class="holo-card__inner">
+      <div class="holo-card__shine"></div>
+      <div class="holo-card__glare"></div>
+      <div class="holo-card__content">
+        <div class="holo-card__header">
+          <span class="energy-orb electric">⚡</span>
+          <div>
+            <strong>Sunburst Gold</strong>
+            <small>Secret Rare</small>
+          </div>
+        </div>
+        <p>Gold frame with radiating light rays. Maximum premium! The rays follow your cursor.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<hr>
+
+<h2>Energy Orbs</h2>
+
+<div class="orb-showcase">
+  <div class="orb-item"><span class="energy-orb info">ℹ</span><small>Info</small></div>
+  <div class="orb-item"><span class="energy-orb success">✓</span><small>Success</small></div>
+  <div class="orb-item"><span class="energy-orb warning">!</span><small>Warning</small></div>
+  <div class="orb-item"><span class="energy-orb error">✕</span><small>Error</small></div>
+  <div class="orb-item"><span class="energy-orb fire">🔥</span><small>Fire</small></div>
+  <div class="orb-item"><span class="energy-orb psychic">🔮</span><small>Psychic</small></div>
+  <div class="orb-item"><span class="energy-orb electric">⚡</span><small>Electric</small></div>
+</div>
+
+<hr>
+
+<h2>Holographic Admonitions</h2>
+
+<div class="admonition note holo">
+  <p class="admonition-title">Note</p>
+  <p><strong>Holographic Note</strong> — Move your cursor around to see the rainbow foil shimmer!</p>
+</div>
+
+<div class="admonition tip holo">
+  <p class="admonition-title">Tip</p>
+  <p><strong>Pro Tip</strong> — The effect uses CSS custom properties updated by JavaScript for smooth tracking.</p>
+</div>
+
+<div class="admonition warning holo">
+  <p class="admonition-title">Warning</p>
+  <p><strong>Caution</strong> — Warning gets an orange-shifted holo effect through hue rotation.</p>
+</div>
+
+<div class="admonition danger holo">
+  <p class="admonition-title">Danger</p>
+  <p><strong>Critical</strong> — Danger shifts the holo effect red-ward for extra urgency!</p>
+</div>
+
+<hr>
+
+<h2>How It Works</h2>
+
+<p>The holographic effect combines several CSS techniques:</p>
+<ul>
+  <li><strong>Rainbow gradient</strong> — A repeating linear gradient with all spectrum colors</li>
+  <li><strong><code>mix-blend-mode: color-dodge</code></strong> — Creates the metallic shine effect</li>
+  <li><strong>Radial mask</strong> — Focuses the effect around the cursor position</li>
+  <li><strong>3D transform</strong> — Cards tilt based on cursor position for depth</li>
+  <li><strong>CSS custom properties</strong> — JS updates <code>--pointer-x</code> and <code>--pointer-y</code></li>
+</ul>
+
+<script>
+(function() {
+  'use strict';
+
+  const MAX_ROTATION = 12;
+
+  function getPointerPosition(e, el) {
+    const rect = el.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    return { x: Math.max(0, Math.min(100, x)), y: Math.max(0, Math.min(100, y)) };
+  }
+
+  function updateStyles(el, x, y) {
+    const rotateY = ((x / 50) - 1) * MAX_ROTATION;
+    const rotateX = ((y / 50) - 1) * -MAX_ROTATION;
+
+    el.style.setProperty('--pointer-x', x.toFixed(1));
+    el.style.setProperty('--pointer-y', y.toFixed(1));
+
+    const inner = el.querySelector('.holo-card__inner');
+    if (inner) {
+      inner.style.transform = `rotateY(${rotateY.toFixed(1)}deg) rotateX(${rotateX.toFixed(1)}deg)`;
+    }
+  }
+
+  function resetStyles(el) {
+    el.style.setProperty('--pointer-x', '50');
+    el.style.setProperty('--pointer-y', '50');
+    const inner = el.querySelector('.holo-card__inner');
+    if (inner) inner.style.transform = '';
+  }
+
+  // Initialize cards
+  document.querySelectorAll('.holo-card').forEach(card => {
+    card.addEventListener('mousemove', e => {
+      const pos = getPointerPosition(e, card);
+      updateStyles(card, pos.x, pos.y);
+    });
+    card.addEventListener('mouseleave', () => resetStyles(card));
+  });
+
+  // Initialize admonitions
+  document.querySelectorAll('.admonition.holo').forEach(admon => {
+    admon.addEventListener('mousemove', e => {
+      const rect = admon.getBoundingClientRect();
+      const x = ((e.clientX - rect.left) / rect.width) * 100;
+      const y = ((e.clientY - rect.top) / rect.height) * 100;
+      admon.style.setProperty('--pointer-x', Math.max(0, Math.min(100, x)).toFixed(1));
+      admon.style.setProperty('--pointer-y', Math.max(0, Math.min(100, y)).toFixed(1));
+    });
+    admon.addEventListener('mouseleave', () => {
+      admon.style.setProperty('--pointer-x', '50');
+      admon.style.setProperty('--pointer-y', '50');
+    });
+  });
+})();
+
+function toggleTheme() {
+  const html = document.documentElement;
+  html.setAttribute('data-theme', html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+}
+</script>
+
+</body>
+</html>

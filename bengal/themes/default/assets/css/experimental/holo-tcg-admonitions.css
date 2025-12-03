@@ -1,0 +1,747 @@
+/**
+ * Holographic TCG Card Styles - Experimental
+ * Pokemon/Trading Card Game inspired admonitions
+ *
+ * Design Philosophy:
+ * - Holographic rainbow foil effects on hover
+ * - Spherical "energy orb" resource icons
+ * - Card-like borders and frames
+ * - Multiple rarity tiers (common → legendary)
+ *
+ * Compatible with Bengal's design token system.
+ */
+
+/* ============================================
+   CSS CUSTOM PROPERTIES (TCG Tokens)
+   ============================================ */
+
+:root {
+  /* Holographic Foil Colors */
+  --holo-rainbow: linear-gradient(125deg,
+      #ff0000 0%,
+      #ff8000 14%,
+      #ffff00 28%,
+      #00ff00 42%,
+      #00ffff 56%,
+      #0080ff 70%,
+      #8000ff 84%,
+      #ff00ff 100%);
+
+  /* Shimmer Animation Properties */
+  --holo-shimmer-speed: 3s;
+  --holo-shine-speed: 2s;
+
+  /* Energy Orb Colors - Inspired by Pokemon TCG */
+  --energy-fire: linear-gradient(135deg, #ff6b35 0%, #f7931e 50%, #ffcc00 100%);
+  --energy-water: linear-gradient(135deg, #00b4d8 0%, #0077b6 50%, #023e8a 100%);
+  --energy-grass: linear-gradient(135deg, #80ed99 0%, #38b000 50%, #008000 100%);
+  --energy-electric: linear-gradient(135deg, #fff200 0%, #ffc800 50%, #ff9500 100%);
+  --energy-psychic: linear-gradient(135deg, #e040fb 0%, #9c27b0 50%, #6a1b9a 100%);
+  --energy-dark: linear-gradient(135deg, #4a4a4a 0%, #2d2d2d 50%, #1a1a1a 100%);
+
+  /* Card Frame Colors */
+  --card-frame-gold: linear-gradient(135deg, #ffd700 0%, #b8860b 25%, #ffd700 50%, #b8860b 75%, #ffd700 100%);
+  --card-frame-silver: linear-gradient(135deg, #c0c0c0 0%, #808080 25%, #c0c0c0 50%, #808080 75%, #c0c0c0 100%);
+  --card-frame-bronze: linear-gradient(135deg, #cd7f32 0%, #8b4513 25%, #cd7f32 50%, #8b4513 75%, #cd7f32 100%);
+
+  /* Rarity Glow Colors */
+  --glow-common: rgba(156, 163, 175, 0.3);
+  --glow-uncommon: rgba(34, 197, 94, 0.4);
+  --glow-rare: rgba(59, 130, 246, 0.5);
+  --glow-ultra-rare: rgba(168, 85, 247, 0.6);
+  --glow-legendary: rgba(251, 191, 36, 0.7);
+}
+
+[data-theme="dark"] {
+  --glow-common: rgba(156, 163, 175, 0.2);
+  --glow-uncommon: rgba(34, 197, 94, 0.3);
+  --glow-rare: rgba(59, 130, 246, 0.4);
+  --glow-ultra-rare: rgba(168, 85, 247, 0.5);
+  --glow-legendary: rgba(251, 191, 36, 0.6);
+}
+
+/* ============================================
+   KEYFRAME ANIMATIONS
+   ============================================ */
+
+/* Holographic shimmer - diagonal sweep */
+@keyframes holo-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Rainbow color shift */
+@keyframes holo-rainbow-shift {
+
+  0%,
+  100% {
+    filter: hue-rotate(0deg);
+  }
+
+  50% {
+    filter: hue-rotate(360deg);
+  }
+}
+
+/* Shine glint effect */
+@keyframes holo-shine {
+  0% {
+    transform: translateX(-100%) rotate(25deg);
+    opacity: 0;
+  }
+
+  50% {
+    opacity: 1;
+  }
+
+  100% {
+    transform: translateX(300%) rotate(25deg);
+    opacity: 0;
+  }
+}
+
+/* Energy orb pulse */
+@keyframes energy-pulse {
+
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow:
+      0 0 8px currentColor,
+      0 0 16px currentColor,
+      inset 0 0 8px rgba(255, 255, 255, 0.3);
+  }
+
+  50% {
+    transform: scale(1.05);
+    box-shadow:
+      0 0 12px currentColor,
+      0 0 24px currentColor,
+      0 0 36px currentColor,
+      inset 0 0 12px rgba(255, 255, 255, 0.5);
+  }
+}
+
+/* Floating sparkle particles */
+@keyframes sparkle-float {
+
+  0%,
+  100% {
+    opacity: 0;
+    transform: translateY(0) scale(0);
+  }
+
+  10% {
+    opacity: 1;
+    transform: translateY(-5px) scale(1);
+  }
+
+  90% {
+    opacity: 1;
+    transform: translateY(-25px) scale(1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(-30px) scale(0);
+  }
+}
+
+/* Card reveal shine */
+@keyframes card-reveal {
+  0% {
+    clip-path: inset(100% 0 0 0);
+  }
+
+  100% {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+/* ============================================
+   VARIANT 1: HOLOGRAPHIC FOIL ADMONITION
+   Base style with rainbow prismatic effect
+   ============================================ */
+
+.admonition.holo-foil {
+  position: relative;
+  border: none;
+  border-radius: var(--radius-xl);
+  background: var(--color-bg-secondary);
+  overflow: hidden;
+  isolation: isolate;
+}
+
+/* Holographic foil overlay */
+.admonition.holo-foil::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--holo-rainbow);
+  background-size: 400% 100%;
+  opacity: 0;
+  mix-blend-mode: color-dodge;
+  transition: opacity 0.3s ease;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.admonition.holo-foil:hover::before {
+  opacity: 0.15;
+  animation: holo-shimmer var(--holo-shimmer-speed) linear infinite;
+}
+
+/* Shine glint line */
+.admonition.holo-foil::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 20%;
+  height: 200%;
+  background: linear-gradient(90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0) 40%,
+      rgba(255, 255, 255, 0.8) 50%,
+      rgba(255, 255, 255, 0) 60%,
+      transparent 100%);
+  transform: rotate(25deg);
+  opacity: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.admonition.holo-foil:hover::after {
+  animation: holo-shine var(--holo-shine-speed) ease-in-out;
+}
+
+/* Card-like border frame */
+.admonition.holo-foil {
+  border: 3px solid transparent;
+  background-clip: padding-box;
+  background-image: linear-gradient(var(--color-bg-secondary), var(--color-bg-secondary)),
+    linear-gradient(135deg,
+      rgba(255, 255, 255, 0.3) 0%,
+      rgba(255, 255, 255, 0.1) 25%,
+      rgba(255, 255, 255, 0.3) 50%,
+      rgba(255, 255, 255, 0.1) 75%,
+      rgba(255, 255, 255, 0.3) 100%);
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+}
+
+/* ============================================
+   VARIANT 2: ENERGY ORB ICONS
+   Spherical resource indicators
+   ============================================ */
+
+.energy-orb {
+  --orb-color: var(--color-info);
+  --orb-gradient: var(--energy-water);
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--orb-gradient);
+  color: white;
+  font-weight: var(--weight-bold);
+  font-size: var(--text-sm);
+  position: relative;
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.2),
+    0 0 8px var(--orb-color),
+    inset 0 2px 4px rgba(255, 255, 255, 0.4),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.2);
+  animation: energy-pulse 2s ease-in-out infinite;
+  animation-play-state: paused;
+}
+
+.energy-orb:hover {
+  animation-play-state: running;
+}
+
+/* Highlight reflection on orb */
+.energy-orb::before {
+  content: '';
+  position: absolute;
+  top: 15%;
+  left: 20%;
+  width: 35%;
+  height: 25%;
+  background: linear-gradient(135deg,
+      rgba(255, 255, 255, 0.8) 0%,
+      rgba(255, 255, 255, 0.4) 50%,
+      transparent 100%);
+  border-radius: 50%;
+}
+
+/* Energy type variants */
+.energy-orb.fire {
+  --orb-color: #ff6b35;
+  --orb-gradient: var(--energy-fire);
+}
+
+.energy-orb.water {
+  --orb-color: #00b4d8;
+  --orb-gradient: var(--energy-water);
+}
+
+.energy-orb.grass {
+  --orb-color: #38b000;
+  --orb-gradient: var(--energy-grass);
+}
+
+.energy-orb.electric {
+  --orb-color: #ffc800;
+  --orb-gradient: var(--energy-electric);
+}
+
+.energy-orb.psychic {
+  --orb-color: #9c27b0;
+  --orb-gradient: var(--energy-psychic);
+}
+
+.energy-orb.dark {
+  --orb-color: #4a4a4a;
+  --orb-gradient: var(--energy-dark);
+}
+
+/* ============================================
+   VARIANT 3: TCG CARD FRAME ADMONITION
+   Full card-like treatment
+   ============================================ */
+
+.admonition.tcg-card {
+  --card-accent: var(--color-info);
+
+  position: relative;
+  border-radius: var(--radius-xl);
+  padding: 0;
+  overflow: hidden;
+  background: var(--color-bg-primary);
+  border: 4px solid;
+  border-image: var(--card-frame-silver) 1;
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.15),
+    0 0 20px var(--glow-rare);
+}
+
+/* Card header bar (like TCG name banner) */
+.admonition.tcg-card .admonition-title {
+  margin: 0;
+  padding: 0.75rem 1rem;
+  background: linear-gradient(180deg,
+      var(--card-accent) 0%,
+      color-mix(in srgb, var(--card-accent) 70%, black) 100%);
+  color: white;
+  font-weight: var(--weight-bold);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  border-bottom: 2px solid rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* Card body (text box area) */
+.admonition.tcg-card>*:not(.admonition-title) {
+  padding: 0.75rem 1rem;
+}
+
+/* Card type specific colors */
+.admonition.tcg-card.note {
+  --card-accent: var(--color-info);
+  border-image: linear-gradient(135deg, #60a5fa 0%, #3b82f6 50%, #2563eb 100%) 1;
+}
+
+.admonition.tcg-card.tip {
+  --card-accent: var(--color-success);
+  border-image: linear-gradient(135deg, #4ade80 0%, #22c55e 50%, #16a34a 100%) 1;
+}
+
+.admonition.tcg-card.warning {
+  --card-accent: var(--color-warning);
+  border-image: linear-gradient(135deg, #fbbf24 0%, #f59e0b 50%, #d97706 100%) 1;
+}
+
+.admonition.tcg-card.danger {
+  --card-accent: var(--color-error);
+  border-image: linear-gradient(135deg, #f87171 0%, #ef4444 50%, #dc2626 100%) 1;
+}
+
+/* ============================================
+   VARIANT 4: RARITY TIERS
+   Common → Legendary visual escalation
+   ============================================ */
+
+/* Common - Subtle, simple */
+.admonition.rarity-common {
+  border-left: 4px solid var(--gray-400);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Uncommon - Green accent */
+.admonition.rarity-uncommon {
+  border-left: 4px solid var(--green-500);
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.1),
+    0 0 12px var(--glow-uncommon);
+}
+
+/* Rare - Blue with shimmer */
+.admonition.rarity-rare {
+  border: none;
+  border-radius: var(--radius-xl);
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.15),
+    0 0 20px var(--glow-rare),
+    inset 0 0 0 2px var(--blue-500);
+  position: relative;
+  overflow: hidden;
+}
+
+.admonition.rarity-rare::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg,
+      transparent 0%,
+      rgba(59, 130, 246, 0.1) 25%,
+      transparent 50%,
+      rgba(59, 130, 246, 0.1) 75%,
+      transparent 100%);
+  background-size: 200% 200%;
+  animation: holo-shimmer 4s linear infinite;
+  pointer-events: none;
+}
+
+/* Ultra Rare - Purple with intense glow */
+.admonition.rarity-ultra-rare {
+  border: none;
+  border-radius: var(--radius-xl);
+  box-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.2),
+    0 0 30px var(--glow-ultra-rare),
+    0 0 60px var(--glow-ultra-rare),
+    inset 0 0 0 2px var(--purple-500);
+  position: relative;
+  overflow: hidden;
+}
+
+.admonition.rarity-ultra-rare::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--holo-rainbow);
+  background-size: 400% 100%;
+  opacity: 0.08;
+  mix-blend-mode: overlay;
+  animation: holo-shimmer 3s linear infinite;
+  pointer-events: none;
+}
+
+/* Legendary - Gold frame with full holographic */
+.admonition.rarity-legendary {
+  border: none;
+  border-radius: var(--radius-xl);
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+/* Gold frame effect */
+.admonition.rarity-legendary::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 3px;
+  background: var(--card-frame-gold);
+  border-radius: var(--radius-xl);
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  z-index: 1;
+}
+
+/* Holographic inner glow */
+.admonition.rarity-legendary::after {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  background: var(--holo-rainbow);
+  background-size: 400% 100%;
+  opacity: 0.12;
+  animation: holo-shimmer 2.5s linear infinite;
+  border-radius: calc(var(--radius-xl) - 3px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.admonition.rarity-legendary {
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.25),
+    0 0 40px var(--glow-legendary),
+    0 0 80px var(--glow-legendary);
+}
+
+/* ============================================
+   VARIANT 5: FULL TCG CARD WITH ENERGY ORB
+   Complete trading card inspired design
+   ============================================ */
+
+.admonition.tcg-full {
+  --card-energy: var(--energy-water);
+  --card-glow: var(--glow-rare);
+
+  position: relative;
+  padding: 0;
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  background:
+    linear-gradient(180deg,
+      var(--color-bg-elevated) 0%,
+      var(--color-bg-primary) 100%);
+  border: 3px solid;
+  border-image: var(--card-frame-silver) 1;
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.2),
+    0 0 24px var(--card-glow);
+}
+
+/* Card header with energy orb */
+.admonition.tcg-full .admonition-title {
+  margin: 0;
+  padding: 0.875rem 1rem;
+  background: linear-gradient(180deg,
+      rgba(255, 255, 255, 0.1) 0%,
+      rgba(0, 0, 0, 0.05) 100%);
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-weight: var(--weight-bold);
+}
+
+/* Replace emoji icon with energy orb */
+.admonition.tcg-full .admonition-title::before {
+  content: '';
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--card-energy);
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.2),
+    0 0 8px var(--card-glow),
+    inset 0 2px 4px rgba(255, 255, 255, 0.4),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.2);
+  flex-shrink: 0;
+}
+
+/* Card body */
+.admonition.tcg-full>*:not(.admonition-title) {
+  padding: 1rem;
+}
+
+/* Type variants */
+.admonition.tcg-full.note,
+.admonition.tcg-full.info {
+  --card-energy: var(--energy-water);
+  --card-glow: rgba(0, 180, 216, 0.4);
+}
+
+.admonition.tcg-full.tip {
+  --card-energy: var(--energy-grass);
+  --card-glow: rgba(56, 176, 0, 0.4);
+}
+
+.admonition.tcg-full.warning {
+  --card-energy: var(--energy-fire);
+  --card-glow: rgba(255, 107, 53, 0.4);
+}
+
+.admonition.tcg-full.danger,
+.admonition.tcg-full.error {
+  --card-energy: var(--energy-psychic);
+  --card-glow: rgba(156, 39, 176, 0.4);
+}
+
+.admonition.tcg-full.example {
+  --card-energy: var(--energy-electric);
+  --card-glow: rgba(255, 200, 0, 0.4);
+}
+
+/* ============================================
+   VARIANT 6: TEXTURE PATTERN OVERLAY
+   Adds subtle card texture
+   ============================================ */
+
+.admonition.textured {
+  position: relative;
+}
+
+.admonition.textured::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    repeating-linear-gradient(45deg,
+      transparent,
+      transparent 2px,
+      rgba(255, 255, 255, 0.03) 2px,
+      rgba(255, 255, 255, 0.03) 4px);
+  pointer-events: none;
+  z-index: 1;
+  border-radius: inherit;
+}
+
+/* ============================================
+   VARIANT 7: SPARKLE PARTICLES
+   Floating particle effect on legendary items
+   ============================================ */
+
+.admonition.with-sparkles {
+  position: relative;
+}
+
+.admonition.with-sparkles .sparkle {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: white;
+  border-radius: 50%;
+  box-shadow: 0 0 4px 2px rgba(255, 255, 255, 0.8);
+  animation: sparkle-float 3s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.admonition.with-sparkles .sparkle:nth-child(1) {
+  left: 10%;
+  animation-delay: 0s;
+}
+
+.admonition.with-sparkles .sparkle:nth-child(2) {
+  left: 30%;
+  animation-delay: 0.5s;
+}
+
+.admonition.with-sparkles .sparkle:nth-child(3) {
+  left: 50%;
+  animation-delay: 1s;
+}
+
+.admonition.with-sparkles .sparkle:nth-child(4) {
+  left: 70%;
+  animation-delay: 1.5s;
+}
+
+.admonition.with-sparkles .sparkle:nth-child(5) {
+  left: 90%;
+  animation-delay: 2s;
+}
+
+/* ============================================
+   DARK MODE ADJUSTMENTS
+   ============================================ */
+
+[data-theme="dark"] .admonition.holo-foil:hover::before {
+  opacity: 0.2;
+}
+
+[data-theme="dark"] .admonition.rarity-legendary::after {
+  opacity: 0.18;
+}
+
+[data-theme="dark"] .admonition.rarity-ultra-rare::before {
+  opacity: 0.12;
+}
+
+[data-theme="dark"] .energy-orb {
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.4),
+    0 0 12px var(--orb-color),
+    inset 0 2px 4px rgba(255, 255, 255, 0.3),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="dark"] .admonition.tcg-card .admonition-title {
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+/* ============================================
+   REDUCED MOTION
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+
+  .admonition.holo-foil::before,
+  .admonition.holo-foil::after,
+  .admonition.rarity-rare::before,
+  .admonition.rarity-ultra-rare::before,
+  .admonition.rarity-legendary::after,
+  .energy-orb,
+  .admonition.with-sparkles .sparkle {
+    animation: none !important;
+  }
+
+  .admonition.holo-foil:hover::before {
+    opacity: 0.1;
+  }
+}
+
+/* ============================================
+   UTILITY CLASSES
+   ============================================ */
+
+/* Apply holographic shimmer to any element */
+.holo-effect {
+  position: relative;
+}
+
+.holo-effect::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--holo-rainbow);
+  background-size: 400% 100%;
+  opacity: 0;
+  mix-blend-mode: color-dodge;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+  border-radius: inherit;
+}
+
+.holo-effect:hover::after {
+  opacity: 0.12;
+  animation: holo-shimmer var(--holo-shimmer-speed) linear infinite;
+}
+
+/* Gold/Premium frame for any card */
+.gold-frame {
+  border: 3px solid transparent;
+  background-clip: padding-box;
+  position: relative;
+}
+
+.gold-frame::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 3px;
+  background: var(--card-frame-gold);
+  border-radius: inherit;
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}

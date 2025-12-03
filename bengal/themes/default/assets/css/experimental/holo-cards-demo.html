@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Advanced Holographic Card Effects - Bengal Theme</title>
+
+  <!-- Load Bengal's token system -->
+  <link rel="stylesheet" href="../tokens/foundation.css">
+  <link rel="stylesheet" href="../tokens/semantic.css">
+  <link rel="stylesheet" href="../tokens/typography.css">
+  <link rel="stylesheet" href="../components/admonitions.css">
+
+  <!-- Load advanced holo styles -->
+  <link rel="stylesheet" href="holo-cards-advanced.css">
+
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
+      line-height: 1.6;
+      color: var(--color-text-primary, #1a1a1a);
+      background:
+        radial-gradient(ellipse at 20% 0%, rgba(59, 130, 246, 0.08) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 100%, rgba(168, 85, 247, 0.08) 0%, transparent 50%),
+        var(--color-bg-primary, #ffffff);
+      min-height: 100vh;
+      padding: 2rem;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      font-size: clamp(2rem, 5vw, 3rem);
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      background: linear-gradient(
+        135deg,
+        #ff6b6b 0%,
+        #feca57 20%,
+        #48dbfb 40%,
+        #ff9ff3 60%,
+        #54a0ff 80%,
+        #5f27cd 100%
+      );
+      background-size: 200% auto;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: gradient-shift 5s ease infinite;
+      margin-bottom: 0.5rem;
+    }
+
+    @keyframes gradient-shift {
+      0%, 100% { background-position: 0% center; }
+      50% { background-position: 100% center; }
+    }
+
+    .subtitle {
+      color: var(--color-text-secondary, #666);
+      font-size: 1.1rem;
+      margin-bottom: 2rem;
+    }
+
+    .credit {
+      font-size: 0.875rem;
+      color: var(--color-text-tertiary);
+      margin-bottom: 3rem;
+    }
+
+    .credit a {
+      color: var(--color-primary);
+      text-decoration: none;
+    }
+
+    .credit a:hover {
+      text-decoration: underline;
+    }
+
+    .demo-section {
+      margin: 4rem 0;
+    }
+
+    .demo-section h2 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .demo-section p {
+      color: var(--color-text-secondary);
+      margin-bottom: 1.5rem;
+    }
+
+    /* Card grid */
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 2rem;
+      perspective: 1000px;
+    }
+
+    /* Demo card styling */
+    .demo-card {
+      --card-aspect: 4/5;
+      min-height: 320px;
+    }
+
+    .demo-card .holo-card__content {
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .card-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin: 0;
+    }
+
+    .card-subtitle {
+      font-size: 0.875rem;
+      color: var(--color-text-secondary);
+      margin: 0;
+    }
+
+    .card-body {
+      flex: 1;
+      font-size: 0.9375rem;
+    }
+
+    .card-footer {
+      font-size: 0.8125rem;
+      color: var(--color-text-tertiary);
+      border-top: 1px solid var(--color-border-light, #eee);
+      padding-top: 0.75rem;
+      margin-top: auto;
+    }
+
+    /* Rarity badge */
+    .rarity-badge {
+      font-size: 0.6875rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      background: var(--color-bg-tertiary);
+    }
+
+    .rarity-badge.holo { background: linear-gradient(90deg, #60a5fa, #a78bfa); color: white; }
+    .rarity-badge.ultra { background: linear-gradient(90deg, #a855f7, #ec4899); color: white; }
+    .rarity-badge.secret { background: linear-gradient(90deg, #f59e0b, #fcd34d); color: #78350f; }
+
+    /* Admonition demo grid */
+    .admonition-grid {
+      display: grid;
+      gap: 1.5rem;
+    }
+
+    /* Orb demo */
+    .orb-showcase {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+      justify-content: center;
+      padding: 2rem;
+      background: var(--color-bg-secondary);
+      border-radius: 1rem;
+    }
+
+    .orb-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .orb-item span {
+      font-size: 0.75rem;
+      color: var(--color-text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .orb-item .energy-orb-3d {
+      --orb-size: 48px;
+    }
+
+    /* Theme toggle */
+    .theme-toggle {
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+      padding: 0.75rem 1rem;
+      background: var(--color-bg-secondary);
+      color: var(--color-text-primary);
+      border: 1px solid var(--color-border);
+      border-radius: 0.5rem;
+      cursor: pointer;
+      font-size: 0.875rem;
+      z-index: 100;
+      transition: all 0.2s ease;
+    }
+
+    .theme-toggle:hover {
+      background: var(--color-bg-tertiary);
+    }
+
+    /* Code block */
+    pre {
+      background: #1e1e1e;
+      color: #d4d4d4;
+      padding: 1rem;
+      border-radius: 0.5rem;
+      overflow-x: auto;
+      font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+      font-size: 0.8125rem;
+      line-height: 1.6;
+    }
+
+    code {
+      background: rgba(0, 0, 0, 0.1);
+      padding: 0.125rem 0.375rem;
+      border-radius: 0.25rem;
+      font-family: inherit;
+    }
+
+    pre code {
+      background: none;
+      padding: 0;
+    }
+
+    /* Dark mode */
+    [data-theme="dark"] body {
+      background:
+        radial-gradient(ellipse at 20% 0%, rgba(59, 130, 246, 0.12) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 100%, rgba(168, 85, 247, 0.12) 0%, transparent 50%),
+        #0f0f0f;
+      color: #f5f5f5;
+    }
+
+    [data-theme="dark"] .demo-section p,
+    [data-theme="dark"] .subtitle,
+    [data-theme="dark"] .card-subtitle {
+      color: #a0a0a0;
+    }
+
+    [data-theme="dark"] .holo-card__inner {
+      background: #1a1a1a;
+    }
+
+    [data-theme="dark"] .card-footer {
+      border-top-color: #333;
+    }
+
+    [data-theme="dark"] .orb-showcase {
+      background: #1a1a1a;
+    }
+
+    [data-theme="dark"] code {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    /* Instruction badge */
+    .instruction {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1rem;
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(168, 85, 247, 0.1));
+      border: 1px solid rgba(59, 130, 246, 0.2);
+      border-radius: 0.5rem;
+      font-size: 0.9375rem;
+      margin-bottom: 2rem;
+    }
+
+    .instruction::before {
+      content: '👆';
+      font-size: 1.25rem;
+    }
+  </style>
+</head>
+<body>
+  <button class="theme-toggle" onclick="toggleTheme()">🌓 Toggle Theme</button>
+
+  <div class="container">
+    <h1>✨ Holographic Card Effects</h1>
+    <p class="subtitle">Pokemon TCG-inspired holographic effects for Bengal documentation</p>
+    <p class="credit">
+      Inspired by <a href="https://poke-holo.simey.me/" target="_blank">poke-holo.simey.me</a>
+      by <a href="https://github.com/simeydotme/pokemon-cards-css" target="_blank">@simeydotme</a>
+    </p>
+
+    <div class="instruction">
+      Move your cursor over the cards to see the holographic effect!
+    </div>
+
+    <!-- Holo Cards Demo -->
+    <section class="demo-section">
+      <h2>🃏 Holographic Cards</h2>
+      <p>Full 3D tilt with rainbow foil, glare, and sparkle layers. Try tilting your cursor to different corners!</p>
+
+      <div class="card-grid">
+        <!-- Rainbow variant -->
+        <div class="holo-card holo-card--rainbow holo-card--holo-rare demo-card">
+          <div class="holo-card__inner">
+            <div class="holo-card__shine"></div>
+            <div class="holo-card__glare"></div>
+            <div class="holo-card__sparkle"></div>
+            <div class="holo-card__content">
+              <div class="card-header">
+                <div class="energy-orb-3d info">💧</div>
+                <div>
+                  <h3 class="card-title">Rainbow Holo</h3>
+                  <p class="card-subtitle">Conic gradient rainbow</p>
+                </div>
+                <span class="rarity-badge holo">Holo Rare</span>
+              </div>
+              <div class="card-body">
+                Classic rainbow foil effect using conic-gradient that rotates based on cursor position. The colors shift dynamically as you move.
+              </div>
+              <div class="card-footer">
+                <code>.holo-card--rainbow</code>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Cosmos variant -->
+        <div class="holo-card holo-card--cosmos holo-card--ultra-rare demo-card">
+          <div class="holo-card__inner">
+            <div class="holo-card__shine"></div>
+            <div class="holo-card__glare"></div>
+            <div class="holo-card__sparkle"></div>
+            <div class="holo-card__content">
+              <div class="card-header">
+                <div class="energy-orb-3d psychic">🔮</div>
+                <div>
+                  <h3 class="card-title">Cosmos</h3>
+                  <p class="card-subtitle">Nebula & stars</p>
+                </div>
+                <span class="rarity-badge ultra">Ultra Rare</span>
+              </div>
+              <div class="card-body">
+                Cosmic nebula effect with layered radial gradients creating a space-like atmosphere. Perfect for mystical content.
+              </div>
+              <div class="card-footer">
+                <code>.holo-card--cosmos</code>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sunburst variant -->
+        <div class="holo-card holo-card--sunburst holo-card--holo-rare demo-card">
+          <div class="holo-card__inner">
+            <div class="holo-card__shine"></div>
+            <div class="holo-card__glare"></div>
+            <div class="holo-card__sparkle"></div>
+            <div class="holo-card__content">
+              <div class="card-header">
+                <div class="energy-orb-3d fire">🔥</div>
+                <div>
+                  <h3 class="card-title">Sunburst</h3>
+                  <p class="card-subtitle">Radiating rays</p>
+                </div>
+                <span class="rarity-badge holo">Holo Rare</span>
+              </div>
+              <div class="card-body">
+                Repeating conic gradient creates radiating light rays that follow your cursor position. High energy visual.
+              </div>
+              <div class="card-footer">
+                <code>.holo-card--sunburst</code>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Secret Rare -->
+        <div class="holo-card holo-card--galaxy holo-card--secret-rare demo-card">
+          <div class="holo-card__inner">
+            <div class="holo-card__shine"></div>
+            <div class="holo-card__glare"></div>
+            <div class="holo-card__sparkle"></div>
+            <div class="holo-card__content">
+              <div class="card-header">
+                <div class="energy-orb-3d electric">⚡</div>
+                <div>
+                  <h3 class="card-title">Galaxy Secret</h3>
+                  <p class="card-subtitle">Gold frame treatment</p>
+                </div>
+                <span class="rarity-badge secret">Secret Rare</span>
+              </div>
+              <div class="card-body">
+                Gold border frame with enhanced sparkle. The premium treatment for your most important documentation callouts.
+              </div>
+              <div class="card-footer">
+                <code>.holo-card--secret-rare</code>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Energy Orbs -->
+    <section class="demo-section">
+      <h2>🔮 3D Energy Orbs</h2>
+      <p>Spherical resource indicators with realistic 3D lighting and subtle float animation.</p>
+
+      <div class="orb-showcase">
+        <div class="orb-item">
+          <div class="energy-orb-3d info">ℹ</div>
+          <span>Info</span>
+        </div>
+        <div class="orb-item">
+          <div class="energy-orb-3d success">✓</div>
+          <span>Success</span>
+        </div>
+        <div class="orb-item">
+          <div class="energy-orb-3d warning">!</div>
+          <span>Warning</span>
+        </div>
+        <div class="orb-item">
+          <div class="energy-orb-3d error">✕</div>
+          <span>Error</span>
+        </div>
+        <div class="orb-item">
+          <div class="energy-orb-3d fire">🔥</div>
+          <span>Fire</span>
+        </div>
+        <div class="orb-item">
+          <div class="energy-orb-3d psychic">🔮</div>
+          <span>Psychic</span>
+        </div>
+        <div class="orb-item">
+          <div class="energy-orb-3d electric">⚡</div>
+          <span>Electric</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Holo Admonitions -->
+    <section class="demo-section">
+      <h2>📋 Holographic Admonitions</h2>
+      <p>Apply holographic effects directly to Bengal's admonition components with the <code>.holo</code> class.</p>
+
+      <div class="admonition-grid">
+        <div class="admonition holo note">
+          <p class="admonition-title">ℹ️ Holographic Note</p>
+          <p>This is a note admonition with holographic effects. Move your cursor around to see the rainbow shimmer and glare follow your movement. The effect is most visible at the edges!</p>
+        </div>
+
+        <div class="admonition holo tip">
+          <p class="admonition-title">💡 Pro Tip</p>
+          <p>The holographic effect uses CSS custom properties updated by JavaScript for smooth, performant animations. The effect respects <code>prefers-reduced-motion</code> for accessibility.</p>
+        </div>
+
+        <div class="admonition holo warning">
+          <p class="admonition-title">⚠️ Caution</p>
+          <p>Warning admonitions get an orange-shifted holo effect to maintain semantic meaning while still being visually striking.</p>
+        </div>
+
+        <div class="admonition holo danger">
+          <p class="admonition-title">🛑 Critical</p>
+          <p>Danger/error admonitions shift the holo effect red-ward. Even with the flashy effects, the semantic color coding remains clear.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Usage -->
+    <section class="demo-section">
+      <h2>📝 Usage</h2>
+      <p>Add holographic effects to your Bengal documentation:</p>
+
+      <pre><code>&lt;!-- Include the CSS and JS --&gt;
+&lt;link rel="stylesheet" href="css/experimental/holo-cards-advanced.css"&gt;
+&lt;script src="js/holo-cards.js"&gt;&lt;/script&gt;
+
+&lt;!-- Holographic Card --&gt;
+&lt;div class="holo-card holo-card--rainbow holo-card--holo-rare"&gt;
+  &lt;div class="holo-card__inner"&gt;
+    &lt;div class="holo-card__shine"&gt;&lt;/div&gt;
+    &lt;div class="holo-card__glare"&gt;&lt;/div&gt;
+    &lt;div class="holo-card__sparkle"&gt;&lt;/div&gt;
+    &lt;div class="holo-card__content"&gt;
+      &lt;!-- Your content here --&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/div&gt;
+
+&lt;!-- Holographic Admonition (simpler!) --&gt;
+&lt;div class="admonition holo note"&gt;
+  &lt;p class="admonition-title"&gt;Title&lt;/p&gt;
+  &lt;p&gt;Content...&lt;/p&gt;
+&lt;/div&gt;
+
+&lt;!-- Energy Orb --&gt;
+&lt;div class="energy-orb-3d fire"&gt;🔥&lt;/div&gt;</code></pre>
+    </section>
+
+    <!-- Variants Reference -->
+    <section class="demo-section">
+      <h2>🎨 Available Classes</h2>
+
+      <h3>Effect Variants</h3>
+      <pre><code>.holo-card--rainbow    /* Conic gradient rainbow */
+.holo-card--cosmos     /* Nebula/space effect */
+.holo-card--sunburst   /* Radiating rays */
+.holo-card--pixel      /* Digital/glitch grid */
+.holo-card--galaxy     /* Enhanced sparkle */</code></pre>
+
+      <h3>Rarity Levels</h3>
+      <pre><code>.holo-card--common       /* Subtle, no holo */
+.holo-card--uncommon     /* Light holo */
+.holo-card--holo-rare    /* Standard holo (default) */
+.holo-card--ultra-rare   /* Enhanced effects */
+.holo-card--secret-rare  /* Gold frame + max effects */</code></pre>
+
+      <h3>Energy Orb Types</h3>
+      <pre><code>.energy-orb-3d.info      /* Blue */
+.energy-orb-3d.success   /* Green */
+.energy-orb-3d.warning   /* Amber */
+.energy-orb-3d.error     /* Red */
+.energy-orb-3d.fire      /* Orange */
+.energy-orb-3d.psychic   /* Purple */
+.energy-orb-3d.electric  /* Yellow */</code></pre>
+    </section>
+  </div>
+
+  <!-- Load JavaScript -->
+  <script src="../../js/holo-cards.js"></script>
+  <script>
+    function toggleTheme() {
+      const html = document.documentElement;
+      const current = html.getAttribute('data-theme');
+      html.setAttribute('data-theme', current === 'dark' ? 'light' : 'dark');
+    }
+  </script>
+</body>
+</html>

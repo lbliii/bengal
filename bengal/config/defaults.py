@@ -60,7 +60,6 @@ DEFAULTS: dict[str, Any] = {
     "description": "",
     "author": "",
     "language": "en",
-
     # -------------------------------------------------------------------------
     # Build Settings
     # -------------------------------------------------------------------------
@@ -83,7 +82,15 @@ DEFAULTS: dict[str, Any] = {
     "fast_mode": False,
     "stable_section_references": True,
     "min_page_size": 1000,
-
+    # -------------------------------------------------------------------------
+    # Static Files
+    # -------------------------------------------------------------------------
+    # Files in static/ are copied verbatim to output root without processing.
+    # Static HTML can link to /assets/css/style.css to use Bengal's theme.
+    "static": {
+        "enabled": True,  # Enable static folder support
+        "dir": "static",  # Source directory (relative to site root)
+    },
     # -------------------------------------------------------------------------
     # HTML Output
     # -------------------------------------------------------------------------
@@ -92,7 +99,6 @@ DEFAULTS: dict[str, Any] = {
         "remove_comments": True,
         "collapse_blank_lines": True,
     },
-
     # -------------------------------------------------------------------------
     # Assets
     # -------------------------------------------------------------------------
@@ -102,7 +108,6 @@ DEFAULTS: dict[str, Any] = {
         "fingerprint": True,
         "pipeline": False,
     },
-
     # -------------------------------------------------------------------------
     # Theme
     # -------------------------------------------------------------------------
@@ -119,7 +124,6 @@ DEFAULTS: dict[str, Any] = {
         "max_tags_display": 10,
         "popular_tags_count": 20,
     },
-
     # -------------------------------------------------------------------------
     # Content Processing
     # -------------------------------------------------------------------------
@@ -136,7 +140,6 @@ DEFAULTS: dict[str, Any] = {
         "sort_pages_by": "weight",  # weight | date | title | modified
         "sort_order": "asc",  # asc | desc
     },
-
     # -------------------------------------------------------------------------
     # Search
     # -------------------------------------------------------------------------
@@ -158,14 +161,12 @@ DEFAULTS: dict[str, Any] = {
             "event_endpoint": None,
         },
     },
-
     # -------------------------------------------------------------------------
     # Pagination
     # -------------------------------------------------------------------------
     "pagination": {
         "per_page": 10,
     },
-
     # -------------------------------------------------------------------------
     # Health Check
     # -------------------------------------------------------------------------
@@ -176,7 +177,6 @@ DEFAULTS: dict[str, Any] = {
         "orphan_threshold": 5,
         "super_hub_threshold": 50,
     },
-
     # -------------------------------------------------------------------------
     # Features (Output Generation)
     # -------------------------------------------------------------------------
@@ -188,7 +188,6 @@ DEFAULTS: dict[str, Any] = {
         "llm_txt": True,
         "syntax_highlighting": True,
     },
-
     # -------------------------------------------------------------------------
     # Graph
     # -------------------------------------------------------------------------
@@ -196,7 +195,6 @@ DEFAULTS: dict[str, Any] = {
         "enabled": True,
         "path": "/graph/",
     },
-
     # -------------------------------------------------------------------------
     # i18n
     # -------------------------------------------------------------------------
@@ -205,7 +203,6 @@ DEFAULTS: dict[str, Any] = {
         "default_language": "en",
         "default_in_subdir": False,
     },
-
     # -------------------------------------------------------------------------
     # Output Formats
     # -------------------------------------------------------------------------
@@ -222,7 +219,6 @@ DEFAULTS: dict[str, Any] = {
             "exclude_patterns": ["404.html", "search.html"],
         },
     },
-
     # -------------------------------------------------------------------------
     # Markdown
     # -------------------------------------------------------------------------
@@ -292,12 +288,14 @@ def get_pagination_per_page(config_value: int | None = None) -> int:
 # =============================================================================
 
 # Keys that can be either bool or dict
-BOOL_OR_DICT_KEYS = frozenset({
-    "health_check",
-    "search",
-    "graph",
-    "output_formats",
-})
+BOOL_OR_DICT_KEYS = frozenset(
+    {
+        "health_check",
+        "search",
+        "graph",
+        "output_formats",
+    }
+)
 
 
 def normalize_bool_or_dict(
@@ -443,4 +441,3 @@ def get_feature_config(
         key,
         default_enabled,
     )
-

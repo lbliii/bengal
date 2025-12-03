@@ -9,8 +9,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
-
 from bengal.config.hash import compute_config_hash
 
 
@@ -186,4 +184,3 @@ class TestConfigHashIntegration:
         site2 = Site(root_path=tmp_path, config={"title": "Test2"})
 
         assert site1.config_hash != site2.config_hash
-

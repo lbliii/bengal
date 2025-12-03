@@ -133,15 +133,14 @@ class ContentLayerManager:
 
         # Fetch from all sources concurrently
         tasks = [
-            self._fetch_source(name, source, use_cache)
-            for name, source in self.sources.items()
+            self._fetch_source(name, source, use_cache) for name, source in self.sources.items()
         ]
 
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
         # Aggregate results, logging errors
         entries: list[ContentEntry] = []
-        for name, result in zip(self.sources.keys(), results):
+        for name, result in zip(self.sources.keys(), results, strict=True):
             if isinstance(result, Exception):
                 logger.error(f"Failed to fetch from source '{name}': {result}")
                 if self.offline:
@@ -153,7 +152,9 @@ class ContentLayerManager:
             else:
                 entries.extend(result)
 
-        logger.info(f"Content layer fetched {len(entries)} entries from {len(self.sources)} sources")
+        logger.info(
+            f"Content layer fetched {len(entries)} entries from {len(self.sources)} sources"
+        )
         return entries
 
     async def _fetch_source(
@@ -188,9 +189,7 @@ class ContentLayerManager:
             if cached:
                 logger.warning(f"Using stale cache for '{name}' (offline mode)")
                 return cached
-            raise RuntimeError(
-                f"Cannot fetch from '{name}' in offline mode (no cache available)"
-            )
+            raise RuntimeError(f"Cannot fetch from '{name}' in offline mode (no cache available)")
 
         # Fetch fresh content
         logger.info(f"Fetching content from '{name}' ({source.source_type})...")
@@ -389,4 +388,3 @@ class ContentLayerManager:
 
     def __repr__(self) -> str:
         return f"ContentLayerManager(sources={list(self.sources.keys())})"
-

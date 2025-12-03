@@ -142,17 +142,12 @@ class ContentEntry:
             source_name=data.get("source_name", "default"),
             source_url=data.get("source_url"),
             last_modified=(
-                datetime.fromisoformat(data["last_modified"])
-                if data.get("last_modified")
-                else None
+                datetime.fromisoformat(data["last_modified"]) if data.get("last_modified") else None
             ),
             checksum=data.get("checksum"),
             etag=data.get("etag"),
             cached_path=Path(data["cached_path"]) if data.get("cached_path") else None,
             cached_at=(
-                datetime.fromisoformat(data["cached_at"])
-                if data.get("cached_at")
-                else None
+                datetime.fromisoformat(data["cached_at"]) if data.get("cached_at") else None
             ),
         )
-

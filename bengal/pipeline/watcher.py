@@ -246,13 +246,13 @@ class FileWatcher:
             raise ImportError("watchdog is required for file watching") from None
 
         class Handler(FileSystemEventHandler):
-            def __init__(inner_self, watcher: FileWatcher) -> None:
-                inner_self._watcher = watcher
+            def __init__(self, watcher: FileWatcher) -> None:
+                self._watcher = watcher
 
-            def on_any_event(inner_self, event) -> None:
+            def on_any_event(self, event) -> None:
                 if event.is_directory:
                     return
-                inner_self._watcher._handle_event(event)
+                self._watcher._handle_event(event)
 
         self._observer = Observer()
         handler = Handler(self)

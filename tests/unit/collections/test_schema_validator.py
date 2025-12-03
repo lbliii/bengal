@@ -10,13 +10,10 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import date, datetime
 from pathlib import Path
-from typing import Any, Optional
-
-import pytest
+from typing import Any
 
 from bengal.collections.errors import ValidationError
 from bengal.collections.validator import SchemaValidator, ValidationResult
-
 
 # Test schemas
 
@@ -38,7 +35,7 @@ class BlogPostSchema:
     author: str = "Anonymous"
     tags: list[str] = field(default_factory=list)
     draft: bool = False
-    description: Optional[str] = None
+    description: str | None = None
 
 
 @dataclass
@@ -55,7 +52,7 @@ class ComplexTypesSchema:
 
     items: list[str]
     mapping: dict[str, Any]
-    optional_list: Optional[list[int]] = None
+    optional_list: list[int] | None = None
 
 
 # Basic validation tests
@@ -299,9 +296,7 @@ class TestListValidation:
     def test_non_list_fails(self) -> None:
         """Test non-list value fails for list field."""
         validator = SchemaValidator(BlogPostSchema)
-        result = validator.validate(
-            {"title": "Post", "date": datetime.now(), "tags": "not-a-list"}
-        )
+        result = validator.validate({"title": "Post", "date": datetime.now(), "tags": "not-a-list"})
 
         assert result.valid is False
         assert any("tags" in e.field for e in result.errors)
@@ -322,9 +317,7 @@ class TestListValidation:
     def test_list_item_type_error(self) -> None:
         """Test list with invalid item type fails."""
         validator = SchemaValidator(ComplexTypesSchema)
-        result = validator.validate(
-            {"items": ["a"], "mapping": {}, "optional_list": ["not-int"]}
-        )
+        result = validator.validate({"items": ["a"], "mapping": {}, "optional_list": ["not-int"]})
 
         assert result.valid is False
         # Error should indicate which item failed
@@ -350,9 +343,7 @@ class TestOptionalTypes:
     def test_optional_with_none(self) -> None:
         """Test optional field with explicit None."""
         validator = SchemaValidator(BlogPostSchema)
-        result = validator.validate(
-            {"title": "Post", "date": datetime.now(), "description": None}
-        )
+        result = validator.validate({"title": "Post", "date": datetime.now(), "description": None})
 
         assert result.valid is True
         assert result.data.description is None
@@ -370,16 +361,12 @@ class TestOptionalTypes:
         validator = SchemaValidator(ComplexTypesSchema)
 
         # With value
-        result = validator.validate(
-            {"items": ["a"], "mapping": {}, "optional_list": [1, 2, 3]}
-        )
+        result = validator.validate({"items": ["a"], "mapping": {}, "optional_list": [1, 2, 3]})
         assert result.valid is True
         assert result.data.optional_list == [1, 2, 3]
 
         # With None
-        result = validator.validate(
-            {"items": ["a"], "mapping": {}, "optional_list": None}
-        )
+        result = validator.validate({"items": ["a"], "mapping": {}, "optional_list": None})
         assert result.valid is True
         assert result.data.optional_list is None
 
@@ -393,9 +380,7 @@ class TestNestedDataclass:
     def test_nested_valid(self) -> None:
         """Test valid nested dataclass."""
         validator = SchemaValidator(NestedSchema)
-        result = validator.validate(
-            {"name": "Parent", "metadata": {"title": "Child", "count": 10}}
-        )
+        result = validator.validate({"name": "Parent", "metadata": {"title": "Child", "count": 10}})
 
         assert result.valid is True
         assert result.data.name == "Parent"
@@ -544,4 +529,3 @@ class TestBlogPostSchema:
         assert result.valid is True
         assert result.data.title == "Getting Started with Bengal"
         assert result.data.date.year == 2025
-
