@@ -36,10 +36,6 @@ Learn about specific capabilities:
 | **[Building](/docs/building/)** | Configuration, CLI, performance, deployment |
 | **[Extending](/docs/extending/)** | Autodoc, analysis, validation, architecture |
 
-## Quick Solutions
-
-- **[Recipes](/docs/recipes/)** — Copy-paste solutions in 5-15 minutes
-
 ## Reference
 
 - **[About](/docs/about/)** — Philosophy, concepts, FAQ

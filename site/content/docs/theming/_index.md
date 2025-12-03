@@ -47,6 +47,10 @@ The asset pipeline — stylesheets, JavaScript, images, and custom fonts. Optimi
 
 Working with theme packages — using existing themes, customizing without forking, and creating your own.
 
+### [Template Cookbook](/docs/theming/recipes/)
+
+Practical examples showing Bengal's filters and template patterns — list recent posts, group by category, filter by tags, and more.
+
 ### [Variables Reference](/docs/theming/variables/)
 
 Complete reference for all theme variables available in templates.
