@@ -221,9 +221,9 @@ def create_page_stream(
         """Transform ParsedContent into Page."""
         return Page(
             source_path=parsed.source_path,
-            raw_content=parsed.content,
-            params=parsed.metadata,
-            site=site,
+            content=parsed.content,
+            metadata=parsed.metadata,
+            _site=site,
         )
 
     return content_stream.map(create_page, name="create_page")

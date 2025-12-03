@@ -730,7 +730,7 @@ class Site:
             TaxonomyOrchestrator,
         )
         from bengal.orchestration.section import SectionOrchestrator
-        from bengal.pipeline import StreamCache, create_simple_pipeline
+        from bengal.pipeline import create_simple_pipeline
 
         logger.info("pipeline_build_starting", parallel=parallel)
         start_time = time.time()
@@ -744,25 +744,17 @@ class Site:
         sections = SectionOrchestrator(self)
         sections.finalize_sections()
 
-        # Phase 3: Taxonomies (generates tag pages, etc.)
+        # Phase 3: Taxonomies (collects tags and generates tag pages)
         taxonomy = TaxonomyOrchestrator(self, parallel=parallel)
-        taxonomy.build_taxonomies()
-        taxonomy.generate_dynamic_pages(parallel=parallel)
+        taxonomy.collect_and_generate(parallel=parallel)
 
         # Phase 4: Menus
         menu = MenuOrchestrator(self)
         menu.build_menus()
 
         # Phase 5: Render ALL pages using pipeline (including generated pages)
-        cache_dir = self.root_path / ".bengal" / "pipeline"
-        cache = StreamCache(cache_dir)
-
-        # Use simple pipeline - pages already discovered
         pipeline = create_simple_pipeline(self, pages=list(self.pages))
         result = pipeline.run()
-
-        # Save cache
-        cache.save()
 
         # Phase 6: Postprocessing (sitemap, RSS, JSON, llms.txt)
         postprocess = PostprocessOrchestrator(self)
