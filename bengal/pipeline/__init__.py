@@ -38,6 +38,22 @@ Related:
 
 from __future__ import annotations
 
+# Bengal-specific streams and factories
+from bengal.pipeline.bengal_streams import (
+    ContentDiscoveryStream,
+    FileChangeStream,
+    ParsedContent,
+    RenderedPage,
+    create_content_stream,
+    create_page_stream,
+    create_render_stream,
+    write_output,
+)
+from bengal.pipeline.build import (
+    create_build_pipeline,
+    create_incremental_pipeline,
+    create_simple_pipeline,
+)
 from bengal.pipeline.builder import (
     Pipeline,
     PipelineResult,
@@ -75,4 +91,17 @@ __all__ = [
     # Builder
     "Pipeline",
     "PipelineResult",
+    # Bengal streams
+    "ContentDiscoveryStream",
+    "FileChangeStream",
+    "ParsedContent",
+    "RenderedPage",
+    "create_content_stream",
+    "create_page_stream",
+    "create_render_stream",
+    "write_output",
+    # Build factories
+    "create_build_pipeline",
+    "create_incremental_pipeline",
+    "create_simple_pipeline",
 ]
