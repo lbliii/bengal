@@ -1,5 +1,17 @@
 ## Unreleased
 
+### Documentation Information Architecture Overhaul
+- **docs(ia)**: reorganize documentation by feature dimensions (content, theming, building, extending) instead of Diataxis types
+- **docs(tutorials)**: create dedicated tutorials section for guided learning journeys
+- **docs(content)**: add content dimension with organization, authoring, collections, sources, and reuse sections
+- **docs(theming)**: add theming dimension with templating, assets, and themes sections
+- **docs(building)**: add building dimension with configuration, commands, performance, and deployment sections
+- **docs(extending)**: add extending dimension with autodoc, analysis, validation, and architecture sections
+- **docs(recipes)**: expand recipes with dark-mode, rss-feed, reading-time, table-of-contents, syntax-highlighting
+- **docs(snippets)**: add `_snippets/` directory for reusable content fragments (install, prerequisites, warnings)
+- **docs(navigation)**: add URL aliases for backward compatibility with previous structure
+- **docs(get-started)**: rename getting-started/ to get-started/ with streamlined quickstarts
+
 ### Reactive Dataflow Pipeline ✅
 - **pipeline(core)**: add `StreamKey`, `StreamItem[T]`, and abstract `Stream[T]` base class for reactive streams
 - **pipeline(streams)**: add concrete stream implementations: `SourceStream`, `MapStream`, `FilterStream`, `FlatMapStream`, `CollectStream`, `CombineStream`, `ParallelStream`, `CachedStream`
