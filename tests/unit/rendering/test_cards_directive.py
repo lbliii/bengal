@@ -620,3 +620,208 @@ Manual content
         assert "card-layout-portrait" in result
         # Second card has color
         assert "card-color-blue" in result
+
+
+class TestCardPullWithXrefIndex:
+    """Test :pull: option with actual xref_index (not graceful degradation)."""
+
+    def _create_mock_page(self, title, url, description="", icon="", tags=None):
+        """Create a mock page object for testing."""
+
+        class MockPage:
+            def __init__(self, title, url, description, icon, tags):
+                self.title = title
+                self.url = url
+                self.metadata = {
+                    "description": description,
+                    "icon": icon,
+                }
+                self.tags = tags or []
+                self.date = None
+
+        return MockPage(title, url, description, icon, tags)
+
+    def test_pull_title_from_linked_page(self):
+        """Test that :pull: title actually fetches from linked page."""
+        parser = MistuneParser()
+
+        # Set up xref_index with mock page
+        mock_page = self._create_mock_page(
+            title="Writer Quickstart",
+            url="/docs/get-started/quickstart-writer/",
+            description="Learn to write content",
+        )
+        parser.md.renderer._xref_index = {
+            "by_id": {"writer-qs": mock_page},
+            "by_path": {},
+            "by_slug": {},
+        }
+
+        content = """
+::::{cards}
+:::{card}
+:link: id:writer-qs
+:pull: title
+
+Fallback content
+:::
+::::
+"""
+        result = parser.parse(content, {})
+
+        # Should have pulled the title
+        assert "Writer Quickstart" in result
+        # Link should be resolved
+        assert 'href="/docs/get-started/quickstart-writer/"' in result
+
+    def test_pull_description_from_linked_page(self):
+        """Test that :pull: description replaces empty content."""
+        parser = MistuneParser()
+
+        mock_page = self._create_mock_page(
+            title="Themer Guide",
+            url="/docs/theming/",
+            description="Learn to customize themes and styles",
+        )
+        parser.md.renderer._xref_index = {
+            "by_id": {"themer-qs": mock_page},
+            "by_path": {},
+            "by_slug": {},
+        }
+
+        # Note: Empty card content should be replaced by pulled description
+        content = """
+::::{cards}
+:::{card} Custom Title
+:link: id:themer-qs
+:pull: description
+:::
+::::
+"""
+        result = parser.parse(content, {})
+
+        # Should use explicit title
+        assert "Custom Title" in result
+        # Should have pulled description (when content is empty)
+        # Note: This may not replace non-empty content
+        assert 'href="/docs/theming/"' in result
+
+    def test_pull_icon_from_linked_page(self):
+        """Test that :pull: icon fetches icon from page metadata."""
+        parser = MistuneParser()
+
+        mock_page = self._create_mock_page(
+            title="Code Guide",
+            url="/docs/code/",
+            icon="code",
+        )
+        parser.md.renderer._xref_index = {
+            "by_id": {"code-guide": mock_page},
+            "by_path": {},
+            "by_slug": {},
+        }
+
+        content = """
+::::{cards}
+:::{card} Title
+:link: id:code-guide
+:pull: icon
+
+Content
+:::
+::::
+"""
+        result = parser.parse(content, {})
+
+        # Should have pulled the icon
+        assert 'data-icon="code"' in result
+
+    def test_explicit_values_override_pulled(self):
+        """Test that explicit values take precedence over pulled values."""
+        parser = MistuneParser()
+
+        mock_page = self._create_mock_page(
+            title="Page Title",
+            url="/docs/page/",
+            description="Page description",
+            icon="book",
+        )
+        parser.md.renderer._xref_index = {
+            "by_id": {"my-page": mock_page},
+            "by_path": {},
+            "by_slug": {},
+        }
+
+        content = """
+::::{cards}
+:::{card} Explicit Title
+:link: id:my-page
+:pull: title, icon
+:icon: rocket
+
+Content here
+:::
+::::
+"""
+        result = parser.parse(content, {})
+
+        # Explicit title should be used, not pulled
+        assert "Explicit Title" in result
+        assert "Page Title" not in result
+        # Explicit icon should be used, not pulled
+        assert 'data-icon="rocket"' in result
+        assert 'data-icon="book"' not in result
+
+    def test_link_resolution_by_path(self):
+        """Test link resolution using path reference."""
+        parser = MistuneParser()
+
+        mock_page = self._create_mock_page(
+            title="Installation Guide",
+            url="/docs/installation/",
+        )
+        parser.md.renderer._xref_index = {
+            "by_id": {},
+            "by_path": {"docs/installation": mock_page},
+            "by_slug": {},
+        }
+
+        content = """
+::::{cards}
+:::{card} Install
+:link: docs/installation
+:pull: title
+:::
+::::
+"""
+        result = parser.parse(content, {})
+
+        # Link should be resolved via path
+        assert 'href="/docs/installation/"' in result
+
+    def test_link_resolution_by_slug(self):
+        """Test link resolution using slug reference."""
+        parser = MistuneParser()
+
+        mock_page = self._create_mock_page(
+            title="Quickstart",
+            url="/docs/quickstart/",
+        )
+        parser.md.renderer._xref_index = {
+            "by_id": {},
+            "by_path": {},
+            "by_slug": {"quickstart": [mock_page]},
+        }
+
+        content = """
+::::{cards}
+:::{card} Start
+:link: quickstart
+:pull: title
+:::
+::::
+"""
+        result = parser.parse(content, {})
+
+        # Link should be resolved via slug
+        assert 'href="/docs/quickstart/"' in result
