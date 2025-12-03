@@ -262,23 +262,30 @@ def create_render_stream(
         Stream of RenderedPage objects
     """
 
+    # Lazily initialize renderer
+    _renderer = None
+
     def render_page(page: Page) -> RenderedPage:
         """Render a single page."""
+        nonlocal _renderer
+        from bengal.rendering.renderer import Renderer
         from bengal.rendering.template_engine import TemplateEngine
 
-        # Get or create template engine
-        engine = getattr(site, "_template_engine", None)
-        if engine is None:
+        # Get or create renderer
+        if _renderer is None:
             engine = TemplateEngine(site)
-            site._template_engine = engine
+            _renderer = Renderer(engine)
 
         try:
-            # Render page with template
-            html = engine.render_page(page, navigation=navigation)
+            # Render page with renderer
+            html = _renderer.render_page(page)
 
             # Compute output path
             output_path = page.url.lstrip("/")
-            if not output_path.endswith(".html"):
+            if not output_path:
+                # Homepage: / → index.html
+                output_path = "index.html"
+            elif not output_path.endswith(".html"):
                 output_path = output_path.rstrip("/") + "/index.html"
 
             return RenderedPage(

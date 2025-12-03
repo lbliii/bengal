@@ -131,7 +131,10 @@ def create_build_pipeline(
         html = renderer.render_page(page)
 
         output_path = page.url.lstrip("/")
-        if not output_path.endswith(".html"):
+        if not output_path:
+            # Homepage: / → index.html
+            output_path = "index.html"
+        elif not output_path.endswith(".html"):
             output_path = output_path.rstrip("/") + "/index.html"
 
         return RenderedPage(
@@ -250,7 +253,10 @@ def create_incremental_pipeline(
         html = renderer.render_page(page)
 
         output_path = page.url.lstrip("/")
-        if not output_path.endswith(".html"):
+        if not output_path:
+            # Homepage: / → index.html
+            output_path = "index.html"
+        elif not output_path.endswith(".html"):
             output_path = output_path.rstrip("/") + "/index.html"
 
         return RenderedPage(
@@ -313,7 +319,10 @@ def create_simple_pipeline(
         html = renderer.render_page(page)
 
         output_path = page.url.lstrip("/")
-        if not output_path.endswith(".html"):
+        if not output_path:
+            # Homepage: / → index.html
+            output_path = "index.html"
+        elif not output_path.endswith(".html"):
             output_path = output_path.rstrip("/") + "/index.html"
 
         return RenderedPage(
