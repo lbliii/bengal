@@ -762,39 +762,62 @@ class Site:
                 logger.warning("fonts_processing_failed", error=str(e))
 
         # Phase 1: Discovery (use existing orchestrators - they handle all the edge cases)
+        discovery_start = time.time()
         content = ContentOrchestrator(self)
         content.discover_content()
         content.discover_assets()
+        discovery_time_ms = (time.time() - discovery_start) * 1000
 
         # Phase 2: Sections (finalize hierarchy, create missing index pages)
         sections = SectionOrchestrator(self)
         sections.finalize_sections()
 
         # Phase 3: Taxonomies (collects tags and generates tag pages)
+        taxonomy_start = time.time()
         taxonomy = TaxonomyOrchestrator(self, parallel=parallel)
         taxonomy.collect_and_generate(parallel=parallel)
+        taxonomy_time_ms = (time.time() - taxonomy_start) * 1000
 
         # Phase 4: Menus
         menu = MenuOrchestrator(self)
         menu.build()
 
         # Phase 5: Assets (copy/process BEFORE rendering so asset_url() works)
+        assets_start = time.time()
         assets = AssetOrchestrator(self)
         assets.process(self.assets, parallel=parallel, progress_manager=None)
+        assets_time_ms = (time.time() - assets_start) * 1000
 
         # Phase 6: Render ALL pages using pipeline (including generated pages)
+        rendering_start = time.time()
         pipeline = create_simple_pipeline(self, pages=list(self.pages))
         result = pipeline.run()
+        rendering_time_ms = (time.time() - rendering_start) * 1000
 
         # Phase 7: Postprocessing (sitemap, RSS, JSON, llms.txt)
+        postprocess_start = time.time()
         postprocess = PostprocessOrchestrator(self)
         postprocess.run(parallel=parallel, incremental=False)
+        postprocess_time_ms = (time.time() - postprocess_start) * 1000
 
         elapsed = time.time() - start_time
 
         # Count page types
         regular_count = len(self.regular_pages)
         generated_count = len(self.generated_pages)
+
+        # Count sections
+        section_count = len(list(self.sections)) if hasattr(self, "sections") else 0
+
+        # Count assets
+        asset_count = len(self.assets) if hasattr(self, "assets") else 0
+
+        # Count taxonomies (sum of all terms across all taxonomy types)
+        taxonomies_count = (
+            sum(len(terms) for terms in self.taxonomies.values())
+            if hasattr(self, "taxonomies") and self.taxonomies
+            else 0
+        )
 
         logger.info(
             "pipeline_build_complete",
@@ -810,9 +833,18 @@ class Site:
             total_pages=result.items_processed,
             regular_pages=regular_count,
             generated_pages=generated_count,
+            total_sections=section_count,
+            total_assets=asset_count,
+            taxonomies_count=taxonomies_count,
             build_time_ms=elapsed * 1000,
             parallel=parallel,
             incremental=False,
+            # Phase timings
+            discovery_time_ms=discovery_time_ms,
+            taxonomy_time_ms=taxonomy_time_ms,
+            rendering_time_ms=rendering_time_ms,
+            assets_time_ms=assets_time_ms,
+            postprocess_time_ms=postprocess_time_ms,
         )
 
     def serve(
