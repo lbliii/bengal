@@ -1,7 +1,7 @@
 ---
 title: Recipes
 description: Quick copy-paste solutions for common tasks
-weight: 25
+weight: 40
 type: doc
 tags: [recipes, cookbook, solutions]
 cascade:
@@ -16,10 +16,10 @@ Quick solutions you can copy-paste. Each recipe solves one specific problem in 5
 
 **Recipes are not tutorials.** They assume you already have a working Bengal site and want to add a specific feature fast.
 
-- **Guides** teach you the *why* and *how* through a learning journey
+- **Tutorials** teach you through a guided learning journey
 - **Recipes** give you the *what* to copy-paste right now
 
-Need to understand the concepts first? Start with [Guides](/docs/guides/).
+Need to understand the concepts first? Start with [Tutorials](/docs/tutorials/).
 
 ---
 
@@ -31,12 +31,22 @@ Need to understand the concepts first? Start with [Guides](/docs/guides/).
 |--------|------|-------------|
 | [Add Search](/docs/recipes/search/) | 5 min | Client-side search with Pagefind |
 | [Add Analytics](/docs/recipes/analytics/) | 5 min | Google Analytics, Plausible, or Fathom |
+| [Add RSS Feed](/docs/recipes/rss-feed/) | 5 min | RSS feed for syndication |
 
-### Customization
+### Theming & Design
 
 | Recipe | Time | Description |
 |--------|------|-------------|
+| [Dark Mode Toggle](/docs/recipes/dark-mode/) | 10 min | Dark/light mode with persistence |
 | [Custom 404 Page](/docs/recipes/custom-404/) | 5 min | Branded error page |
+| [Syntax Highlighting](/docs/recipes/syntax-highlighting/) | 5 min | Code block themes |
+
+### Content Features
+
+| Recipe | Time | Description |
+|--------|------|-------------|
+| [Reading Time](/docs/recipes/reading-time/) | 5 min | Estimated reading time |
+| [Table of Contents](/docs/recipes/table-of-contents/) | 10 min | Auto-generated TOC |
 
 ---
 
@@ -44,10 +54,10 @@ Need to understand the concepts first? Start with [Guides](/docs/guides/).
 
 Each recipe follows the same structure:
 
-1. **Goal** — What you'll achieve
-2. **Prerequisites** — What you need before starting
+1. **Time Required** — How long it takes
+2. **What You'll Build** — Expected outcome
 3. **Steps** — Numbered, copy-paste instructions
-4. **Done** — Verification that it works
+4. **Result** — Verification checklist
 5. **See Also** — Related resources
 
 ---
@@ -61,4 +71,4 @@ Have a recipe to share? Recipes should be:
 - **Copy-paste friendly** — Working code, not pseudocode
 - **Tested** — Verified to work with current Bengal version
 
-See the [Contributor Quickstart](/docs/getting-started/contributor-quickstart/) for contribution guidelines.
+See the [Contributor Quickstart](/docs/get-started/contributor-quickstart/) for contribution guidelines.
