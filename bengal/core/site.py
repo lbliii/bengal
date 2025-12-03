@@ -792,6 +792,7 @@ class Site:
         watch: bool = True,
         auto_port: bool = True,
         open_browser: bool = False,
+        use_pipeline: bool = False,
     ) -> None:
         """
         Start a development server.
@@ -802,11 +803,18 @@ class Site:
             watch: Whether to watch for file changes and rebuild
             auto_port: Whether to automatically find an available port if the specified one is in use
             open_browser: Whether to automatically open the browser
+            use_pipeline: Whether to use reactive dataflow pipeline for builds
         """
         from bengal.server.dev_server import DevServer
 
         server = DevServer(
-            self, host=host, port=port, watch=watch, auto_port=auto_port, open_browser=open_browser
+            self,
+            host=host,
+            port=port,
+            watch=watch,
+            auto_port=auto_port,
+            open_browser=open_browser,
+            use_pipeline=use_pipeline,
         )
         server.start()
 

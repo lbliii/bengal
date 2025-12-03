@@ -59,7 +59,13 @@ class BuildHandler(FileSystemEventHandler):
     # Debounce delay in seconds (slightly higher to coalesce noisy editor events)
     DEBOUNCE_DELAY = 0.3
 
-    def __init__(self, site: Any, host: str = "localhost", port: int = 5173) -> None:
+    def __init__(
+        self,
+        site: Any,
+        host: str = "localhost",
+        port: int = 5173,
+        use_pipeline: bool = False,
+    ) -> None:
         """
         Initialize the build handler.
 
@@ -67,10 +73,12 @@ class BuildHandler(FileSystemEventHandler):
             site: Site instance
             host: Server host
             port: Server port
+            use_pipeline: Whether to use reactive dataflow pipeline for builds
         """
         self.site = site
         self.host = host
         self.port = port
+        self.use_pipeline = use_pipeline
         self.building = False
         self.pending_changes: set[str] = set()
         self.pending_event_types: set[str] = set()  # Track event types for build strategy
@@ -250,7 +258,10 @@ class BuildHandler(FileSystemEventHandler):
                 use_incremental = not needs_full_rebuild
 
                 stats = self.site.build(
-                    parallel=True, incremental=use_incremental, profile=BuildProfile.WRITER
+                    parallel=True,
+                    incremental=use_incremental,
+                    profile=BuildProfile.WRITER,
+                    use_pipeline=self.use_pipeline,
                 )
                 build_duration = time.time() - build_start
 
