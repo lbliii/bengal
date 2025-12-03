@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Holographic Card Effects Demo - Bengal</title>
+  <!-- Use Bengal's theme stylesheet -->
+  <link rel="stylesheet" href="/assets/css/style.css">
+  <style>
+/* ============================================
+   DEMO PAGE LAYOUT
+   ============================================ */
+.demo-container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.demo-header {
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.demo-header h1 {
+  font-size: 2.25rem;
+  margin: 0 0 0.5rem;
+  color: var(--color-text-primary);
+}
+
+.demo-lead {
+  font-size: 1.125rem;
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.demo-section {
+  margin: 2.5rem 0;
+}
+
+.demo-section h2 {
+  font-size: 1.5rem;
+  color: var(--color-text-primary);
+  margin: 0 0 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+hr {
+  border: none;
+  border-top: 1px solid var(--color-border-light);
+  margin: 2rem 0;
+}
+
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--color-primary);
+  text-decoration: none;
+  margin-bottom: 1.5rem;
+}
+
+.back-link:hover {
+  text-decoration: underline;
+}
+
+/* ============================================
+   HOLOGRAPHIC CARDS - Token Integrated
+   ============================================ */
+.holo-demo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  margin: 1.5rem 0;
+  perspective: 1200px;
+}
+
+.holo-card {
+  --holo-x: 50;
+  --holo-y: 50;
+  --card-accent: var(--color-primary);
+  position: relative;
+  min-height: 240px;
+  border-radius: var(--radius-xl);
+  transform-style: preserve-3d;
+  transition: transform 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.holo-card__inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: inherit;
+  border-radius: inherit;
+  overflow: hidden;
+  background: var(--color-bg-primary);
+  border: 2px solid var(--color-border);
+  box-shadow: var(--elevation-card),
+    0 0 0 1px color-mix(in srgb, var(--card-accent) 20%, transparent);
+  transform-style: preserve-3d;
+  transition: 
+    transform 0.4s cubic-bezier(0.23, 1, 0.32, 1),
+    box-shadow var(--transition-base);
+}
+
+.holo-card:hover .holo-card__inner {
+  box-shadow: var(--elevation-card-hover),
+    0 0 30px color-mix(in srgb, var(--card-accent) 30%, transparent);
+}
+
+/* Shine Layer - uses semantic tokens */
+.holo-card__shine {
+  --holo-gradient: repeating-linear-gradient(
+    0deg,
+    color-mix(in oklch, var(--color-error) 80%, white) calc(5% * 1),
+    color-mix(in oklch, var(--color-warning) 80%, white) calc(5% * 2),
+    color-mix(in oklch, var(--color-success) 80%, white) calc(5% * 3),
+    color-mix(in oklch, var(--color-info) 80%, white) calc(5% * 4),
+    color-mix(in oklch, var(--color-primary) 80%, white) calc(5% * 5),
+    color-mix(in oklch, var(--color-accent) 80%, white) calc(5% * 6),
+    color-mix(in oklch, var(--color-error) 80%, white) calc(5% * 7)
+  );
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--holo-gradient);
+  background-size: 400% 400%;
+  background-position: 
+    calc(var(--holo-x) * 1%)
+    calc(var(--holo-y) * 1%);
+  mix-blend-mode: var(--holo-blend, color-dodge);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 3;
+  transition: opacity var(--transition-base);
+  -webkit-mask-image: radial-gradient(
+    farthest-corner circle at
+    calc(var(--holo-x) * 1%)
+    calc(var(--holo-y) * 1%),
+    rgba(0, 0, 0, 0.9) 10%,
+    rgba(0, 0, 0, 0.5) 40%,
+    transparent 75%
+  );
+  mask-image: radial-gradient(
+    farthest-corner circle at
+    calc(var(--holo-x) * 1%)
+    calc(var(--holo-y) * 1%),
+    rgba(0, 0, 0, 0.9) 10%,
+    rgba(0, 0, 0, 0.5) 40%,
+    transparent 75%
+  );
+}
+
+.holo-card:hover .holo-card__shine {
+  opacity: var(--holo-opacity, 0.6);
+}
+
+/* Glare Layer */
+.holo-card__glare {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(
+    farthest-corner circle at
+    calc(var(--holo-x) * 1%)
+    calc(var(--holo-y) * 1%),
+    var(--color-bg-primary) 0%,
+    color-mix(in srgb, var(--color-bg-primary) 50%, transparent) 25%,
+    transparent 55%
+  );
+  mix-blend-mode: overlay;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 4;
+  transition: opacity var(--transition-base);
+}
+
+.holo-card:hover .holo-card__glare {
+  opacity: 0.35;
+}
+
+/* Card Content */
+.holo-card__content {
+  position: relative;
+  z-index: 1;
+  padding: 1.5rem;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.holo-card__header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.holo-card__header strong {
+  display: block;
+  font-size: 1.25rem;
+  color: var(--color-text-primary);
+}
+
+.holo-card__header small {
+  color: var(--color-text-secondary);
+  font-size: 0.8125rem;
+}
+
+.holo-card__content p {
+  margin: 0;
+  font-size: 0.9375rem;
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+}
+
+/* Card Variants */
+.holo-card--rainbow .holo-card__shine {
+  background: conic-gradient(
+    from calc(var(--holo-x) * 3.6deg) at 50% 50%,
+    var(--color-error),
+    var(--color-warning),
+    var(--color-success),
+    var(--color-info),
+    var(--color-primary),
+    var(--color-accent),
+    var(--color-error)
+  );
+  filter: saturate(1.2) brightness(1.1);
+}
+
+.holo-card--cosmos {
+  --card-accent: var(--color-accent);
+}
+
+.holo-card--cosmos .holo-card__shine {
+  background: 
+    radial-gradient(circle at 20% 80%, color-mix(in srgb, var(--color-error) 50%, transparent) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, color-mix(in srgb, var(--color-info) 50%, transparent) 0%, transparent 50%),
+    var(--holo-gradient);
+  background-size: 200% 200%, 200% 200%, 400% 400%;
+}
+
+.holo-card--sunburst .holo-card__shine {
+  background: repeating-conic-gradient(
+    from calc(var(--holo-x) * 1deg) at calc(var(--holo-x) * 1%) calc(var(--holo-y) * 1%),
+    transparent 0deg, rgba(255, 255, 255, 0.25) 2deg, transparent 4deg
+  ), var(--holo-gradient);
+}
+
+.holo-card--gold {
+  --card-accent: var(--color-warning);
+}
+
+.holo-card--gold .holo-card__inner {
+  border: 3px solid;
+  border-image: linear-gradient(135deg, var(--color-warning), var(--color-warning-border), var(--color-warning)) 1;
+}
+
+/* ============================================
+   ENERGY ORBS - Glossy with tokens
+   ============================================ */
+.energy-orb {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  font-size: 1.25rem;
+  color: var(--color-text-inverse);
+  flex-shrink: 0;
+  background: var(--orb-gradient);
+  position: relative;
+  /* Enhanced glossy effect */
+  box-shadow: 
+    0 4px 12px var(--orb-glow),
+    0 2px 4px rgba(0, 0, 0, 0.2),
+    inset 0 3px 6px rgba(255, 255, 255, 0.5),
+    inset 0 -3px 6px rgba(0, 0, 0, 0.25),
+    inset 0 0 20px rgba(255, 255, 255, 0.15);
+}
+
+/* Glossy highlight overlay */
+.energy-orb::before {
+  content: '';
+  position: absolute;
+  top: 4px;
+  left: 10%;
+  width: 80%;
+  height: 40%;
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.6) 0%,
+    rgba(255, 255, 255, 0.2) 50%,
+    transparent 100%
+  );
+  border-radius: 50% 50% 45% 45%;
+  pointer-events: none;
+}
+
+/* Orb type colors using tokens */
+.energy-orb.info {
+  --orb-gradient: linear-gradient(145deg, var(--color-info), var(--color-info-border));
+  --orb-glow: color-mix(in srgb, var(--color-info) 50%, transparent);
+}
+
+.energy-orb.success {
+  --orb-gradient: linear-gradient(145deg, var(--color-success), var(--color-success-border));
+  --orb-glow: color-mix(in srgb, var(--color-success) 50%, transparent);
+}
+
+.energy-orb.warning {
+  --orb-gradient: linear-gradient(145deg, var(--color-warning), var(--color-warning-border));
+  --orb-glow: color-mix(in srgb, var(--color-warning) 50%, transparent);
+}
+
+.energy-orb.error {
+  --orb-gradient: linear-gradient(145deg, var(--color-error), var(--color-error-border));
+  --orb-glow: color-mix(in srgb, var(--color-error) 50%, transparent);
+}
+
+.energy-orb.primary {
+  --orb-gradient: linear-gradient(145deg, var(--color-primary), var(--color-primary-dark));
+  --orb-glow: color-mix(in srgb, var(--color-primary) 50%, transparent);
+}
+
+.energy-orb.accent {
+  --orb-gradient: linear-gradient(145deg, var(--color-accent), var(--color-accent-dark));
+  --orb-glow: color-mix(in srgb, var(--color-accent) 50%, transparent);
+}
+
+.energy-orb.secondary {
+  --orb-gradient: linear-gradient(145deg, var(--color-secondary), var(--color-secondary-dark));
+  --orb-glow: color-mix(in srgb, var(--color-secondary) 50%, transparent);
+}
+
+/* Orb Showcase */
+.orb-showcase {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2rem;
+  justify-content: center;
+  padding: 2.5rem;
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-xl);
+  margin: 1.5rem 0;
+  border: 1px solid var(--color-border-light);
+}
+
+.orb-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.625rem;
+}
+
+.orb-item small {
+  font-size: 0.6875rem;
+  color: var(--color-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: var(--weight-medium);
+}
+
+/* ============================================
+   DARK MODE ADJUSTMENTS
+   ============================================ */
+[data-theme="dark"] .holo-card__shine {
+  --holo-blend: soft-light;
+  --holo-opacity: 0.7;
+  --holo-gradient: repeating-linear-gradient(
+    0deg,
+    color-mix(in oklch, var(--color-error) 85%, transparent) calc(5% * 1),
+    color-mix(in oklch, var(--color-warning) 85%, transparent) calc(5% * 2),
+    color-mix(in oklch, var(--color-success) 85%, transparent) calc(5% * 3),
+    color-mix(in oklch, var(--color-info) 85%, transparent) calc(5% * 4),
+    color-mix(in oklch, var(--color-primary) 85%, transparent) calc(5% * 5),
+    color-mix(in oklch, var(--color-accent) 85%, transparent) calc(5% * 6),
+    color-mix(in oklch, var(--color-error) 85%, transparent) calc(5% * 7)
+  );
+}
+
+[data-theme="dark"] .holo-card__glare {
+  background: radial-gradient(
+    farthest-corner circle at
+    calc(var(--holo-x) * 1%)
+    calc(var(--holo-y) * 1%),
+    color-mix(in srgb, var(--color-bg-secondary) 70%, white) 0%,
+    color-mix(in srgb, var(--color-bg-secondary) 30%, transparent) 30%,
+    transparent 55%
+  );
+}
+
+[data-theme="dark"] .holo-card--rainbow .holo-card__shine {
+  filter: saturate(1.3) brightness(0.95);
+}
+
+[data-theme="dark"] .energy-orb {
+  box-shadow: 
+    0 4px 16px var(--orb-glow),
+    0 2px 4px rgba(0, 0, 0, 0.4),
+    inset 0 3px 8px rgba(255, 255, 255, 0.35),
+    inset 0 -3px 8px rgba(0, 0, 0, 0.35),
+    inset 0 0 24px rgba(255, 255, 255, 0.1);
+}
+
+/* ============================================
+   REDUCED MOTION
+   ============================================ */
+@media (prefers-reduced-motion: reduce) {
+  .holo-card,
+  .holo-card__inner,
+  .holo-card__shine,
+  .holo-card__glare {
+    transition: none !important;
+  }
+}
+  </style>
+</head>
+<body>
+
+<div class="demo-container">
+  <a href="/docs/experimental/holo-cards/" class="back-link">← Back to Documentation</a>
+  
+  <header class="demo-header">
+    <h1>✨ Holographic Card Effects</h1>
+    <p class="demo-lead">Pokemon TCG-inspired effects using Bengal's design tokens.<br>
+    <strong>Move your cursor over the cards!</strong></p>
+  </header>
+
+  <section class="demo-section">
+    <h2>Demo Cards</h2>
+    <div class="holo-demo-grid">
+      <div class="holo-card holo-card--rainbow">
+        <div class="holo-card__inner">
+          <div class="holo-card__shine"></div>
+          <div class="holo-card__glare"></div>
+          <div class="holo-card__content">
+            <div class="holo-card__header">
+              <span class="energy-orb info">💧</span>
+              <div>
+                <strong>Rainbow Holo</strong>
+                <small>Conic gradient</small>
+              </div>
+            </div>
+            <p>The rainbow rotates based on cursor X position. Uses Bengal's semantic color tokens.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="holo-card holo-card--cosmos">
+        <div class="holo-card__inner">
+          <div class="holo-card__shine"></div>
+          <div class="holo-card__glare"></div>
+          <div class="holo-card__content">
+            <div class="holo-card__header">
+              <span class="energy-orb accent">🔮</span>
+              <div>
+                <strong>Cosmos</strong>
+                <small>Ultra Rare</small>
+              </div>
+            </div>
+            <p>Nebula effect with layered radial gradients. Energy bursts in error and info colors.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="holo-card holo-card--sunburst holo-card--gold">
+        <div class="holo-card__inner">
+          <div class="holo-card__shine"></div>
+          <div class="holo-card__glare"></div>
+          <div class="holo-card__content">
+            <div class="holo-card__header">
+              <span class="energy-orb warning">⚡</span>
+              <div>
+                <strong>Sunburst Gold</strong>
+                <small>Secret Rare</small>
+              </div>
+            </div>
+            <p>Gold frame with radiating rays. The sunburst follows your cursor position.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr>
+
+  <section class="demo-section">
+    <h2>Energy Orbs</h2>
+    <p style="color: var(--color-text-secondary); margin-bottom: 1rem;">
+      Glossy orbs using Bengal's semantic color tokens. They automatically adapt to palette variants.
+    </p>
+    <div class="orb-showcase">
+      <div class="orb-item"><span class="energy-orb info">ℹ</span><small>Info</small></div>
+      <div class="orb-item"><span class="energy-orb success">✓</span><small>Success</small></div>
+      <div class="orb-item"><span class="energy-orb warning">!</span><small>Warning</small></div>
+      <div class="orb-item"><span class="energy-orb error">✕</span><small>Error</small></div>
+      <div class="orb-item"><span class="energy-orb primary">★</span><small>Primary</small></div>
+      <div class="orb-item"><span class="energy-orb accent">◆</span><small>Accent</small></div>
+      <div class="orb-item"><span class="energy-orb secondary">●</span><small>Secondary</small></div>
+    </div>
+  </section>
+
+  <hr>
+
+  <section class="demo-section">
+    <h2>Holographic Admonitions</h2>
+    <p style="color: var(--color-text-secondary); margin-bottom: 1rem;">
+      These use the <code>.holo</code> class. Hover to see the effect.
+    </p>
+    
+    <div class="admonition note holo">
+      <p class="admonition-title">Note</p>
+      <p><strong>Holographic Note</strong> — The rainbow gradient uses Bengal's semantic tokens so it adapts to any palette!</p>
+    </div>
+
+    <div class="admonition tip holo">
+      <p class="admonition-title">Tip</p>
+      <p><strong>Pro Tip</strong> — In dark mode, the blend mode switches to <code>soft-light</code> for better visibility.</p>
+    </div>
+
+    <div class="admonition warning holo">
+      <p class="admonition-title">Warning</p>
+      <p><strong>Caution</strong> — Each admonition type gets a hue-shifted variant of the holographic effect.</p>
+    </div>
+
+    <div class="admonition danger holo">
+      <p class="admonition-title">Danger</p>
+      <p><strong>Critical</strong> — Danger shifts the spectrum red-ward for visual emphasis.</p>
+    </div>
+  </section>
+
+  <hr>
+
+  <section class="demo-section">
+    <h2>How It Works</h2>
+    <ul style="color: var(--color-text-secondary); line-height: 1.8;">
+      <li><strong>Token-based colors</strong> — Uses <code>--color-error</code>, <code>--color-warning</code>, etc. for palette compatibility</li>
+      <li><strong>Adaptive blend modes</strong> — <code>color-dodge</code> in light mode, <code>soft-light</code> in dark mode</li>
+      <li><strong>Radial mask</strong> — Focuses the effect around cursor position</li>
+      <li><strong>3D transform</strong> — Cards tilt based on cursor for depth perception</li>
+      <li><strong>CSS custom properties</strong> — JS updates <code>--holo-x</code> and <code>--holo-y</code></li>
+    </ul>
+  </section>
+</div>
+
+<script>
+(function() {
+  'use strict';
+  
+  const MAX_ROTATION = 12;
+  
+  function getPointerPosition(e, el) {
+    const rect = el.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    return { x: Math.max(0, Math.min(100, x)), y: Math.max(0, Math.min(100, y)) };
+  }
+  
+  function updateCardStyles(el, x, y) {
+    const rotateY = ((x / 50) - 1) * MAX_ROTATION;
+    const rotateX = ((y / 50) - 1) * -MAX_ROTATION;
+    
+    el.style.setProperty('--holo-x', x.toFixed(1));
+    el.style.setProperty('--holo-y', y.toFixed(1));
+    
+    const inner = el.querySelector('.holo-card__inner');
+    if (inner) {
+      inner.style.transform = `rotateY(${rotateY.toFixed(1)}deg) rotateX(${rotateX.toFixed(1)}deg)`;
+    }
+  }
+  
+  function resetCardStyles(el) {
+    el.style.setProperty('--holo-x', '50');
+    el.style.setProperty('--holo-y', '50');
+    const inner = el.querySelector('.holo-card__inner');
+    if (inner) inner.style.transform = '';
+  }
+  
+  // Initialize cards
+  document.querySelectorAll('.holo-card').forEach(card => {
+    card.addEventListener('mousemove', e => {
+      const pos = getPointerPosition(e, card);
+      updateCardStyles(card, pos.x, pos.y);
+    });
+    card.addEventListener('mouseleave', () => resetCardStyles(card));
+  });
+  
+  // Initialize admonitions
+  document.querySelectorAll('.admonition.holo').forEach(admon => {
+    admon.addEventListener('mousemove', e => {
+      const rect = admon.getBoundingClientRect();
+      const x = ((e.clientX - rect.left) / rect.width) * 100;
+      const y = ((e.clientY - rect.top) / rect.height) * 100;
+      admon.style.setProperty('--holo-x', Math.max(0, Math.min(100, x)).toFixed(1));
+      admon.style.setProperty('--holo-y', Math.max(0, Math.min(100, y)).toFixed(1));
+    });
+    admon.addEventListener('mouseleave', () => {
+      admon.style.setProperty('--holo-x', '50');
+      admon.style.setProperty('--holo-y', '50');
+    });
+  });
+})();
+</script>
+
+</body>
+</html>

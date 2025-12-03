@@ -55,5 +55,5 @@ clean:
 	find . -type d -name ".ruff_cache" -exec rm -rf {} +
 
 shell:
-	@echo "Activating environment in new shell..."
-	@uv run --python $(PYTHON_VERSION) $$SHELL
+	@echo "Activating environment with GIL disabled..."
+	@bash -c 'source $(VENV_DIR)/bin/activate && export PYTHON_GIL=0 && echo "✓ venv active, GIL disabled" && exec bash'
