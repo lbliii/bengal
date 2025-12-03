@@ -81,6 +81,15 @@ from bengal.pipeline.streams import (
     SourceStream,
 )
 
+# File watching for watch mode
+from bengal.pipeline.watcher import (
+    ChangeType,
+    FileWatcher,
+    PipelineWatcher,
+    WatchBatch,
+    WatchEvent,
+)
+
 __all__ = [
     # Core
     "Stream",
@@ -115,4 +124,10 @@ __all__ = [
     "StreamCache",
     "StreamCacheEntry",
     "DiskCachedStream",
+    # Watcher
+    "FileWatcher",
+    "PipelineWatcher",
+    "WatchEvent",
+    "WatchBatch",
+    "ChangeType",
 ]
