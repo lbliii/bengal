@@ -129,6 +129,7 @@ class StreamItem[T]:
             if hasattr(value, "__hash__") and value.__hash__ is not None:
                 return hashlib.sha256(str(hash(value)).encode()).hexdigest()[:16]
         except TypeError:
+            # Value is unhashable; fall through to string-based hash
             pass
         return hashlib.sha256(str(value).encode()).hexdigest()[:16]
 
