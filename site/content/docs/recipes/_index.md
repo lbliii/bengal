@@ -25,15 +25,9 @@ Need to understand the concepts first? Start with [Tutorials](/docs/tutorials/).
 
 ## Available Recipes
 
-### Integrations
-
-| Recipe | Time | Description |
-|--------|------|-------------|
-| [Add Search](/docs/recipes/search/) | 5 min | Client-side search with Pagefind |
-| [Add Analytics](/docs/recipes/analytics/) | 5 min | Google Analytics, Plausible, or Fathom |
-| [Add RSS Feed](/docs/recipes/rss-feed/) | 5 min | RSS feed for syndication |
-
 ### Theming & Design
+
+Customize your site's appearance and user interface.
 
 | Recipe | Time | Description |
 |--------|------|-------------|
@@ -41,12 +35,24 @@ Need to understand the concepts first? Start with [Tutorials](/docs/tutorials/).
 | [Custom 404 Page](/docs/recipes/custom-404/) | 5 min | Branded error page |
 | [Syntax Highlighting](/docs/recipes/syntax-highlighting/) | 5 min | Code block themes |
 
-### Content Features
+### Content Enhancements
+
+Add features that enhance content display and navigation.
 
 | Recipe | Time | Description |
 |--------|------|-------------|
+| [Table of Contents](/docs/recipes/table-of-contents/) | 10 min | Auto-generated TOC sidebar |
 | [Reading Time](/docs/recipes/reading-time/) | 5 min | Estimated reading time |
-| [Table of Contents](/docs/recipes/table-of-contents/) | 10 min | Auto-generated TOC |
+
+### Third-Party Integrations
+
+Connect your site to external services and outputs.
+
+| Recipe | Time | Description |
+|--------|------|-------------|
+| [Add Search](/docs/recipes/search/) | 5 min | Client-side search with Pagefind |
+| [Add Analytics](/docs/recipes/analytics/) | 5 min | Google Analytics, Plausible, or Fathom |
+| [Add RSS Feed](/docs/recipes/rss-feed/) | 5 min | RSS feed for syndication |
 
 ---
 
