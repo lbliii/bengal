@@ -7,7 +7,7 @@ lang: en
 tags: [extending, advanced, architecture, contributing]
 keywords: [extending, advanced, architecture, contributing, autodoc, validation, plugins]
 category: guide
-menu: false  # Experimental/advanced - hide from nav but accessible via URL
+# menu: false  # Experimental/advanced - hide from nav but accessible via URL (disabled due to bug)
 cascade:
   type: doc
 ---
