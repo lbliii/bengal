@@ -32,6 +32,46 @@ The global site object.
 | `site.data` | `dict` | Data loaded from `data/` directory |
 | `site.config` | `dict` | Full configuration object |
 
+### `section`
+
+Available on index pages (`_index.md`) and doc-type pages.
+
+| Attribute | Type | Description |
+| :--- | :--- | :--- |
+| `section.name` | `str` | Directory name |
+| `section.title` | `str` | Section title (from `_index.md`) |
+| `section.index_page` | `Page` | The section's `_index.md` page |
+| `section.pages` | `list[Page]` | Direct child pages |
+| `section.sorted_pages` | `list[Page]` | Pages sorted by weight/date |
+| `section.subsections` | `list[Section]` | Child sections |
+| `section.metadata` | `dict` | Frontmatter from `_index.md` |
+
+**Example - Auto-Generated Child Cards:**
+
+```jinja2
+<div class="child-cards">
+  {% for subsection in section.subsections %}
+    <a href="{{ subsection.index_page.url }}" class="card">
+      <h3>{{ subsection.title }}</h3>
+      <p>{{ subsection.metadata.description }}</p>
+    </a>
+  {% endfor %}
+</div>
+```
+
+**Example - Section Navigation:**
+
+```jinja2
+<nav class="section-nav">
+  <h4>In this section:</h4>
+  <ul>
+    {% for page in section.sorted_pages %}
+      <li><a href="{{ page.url }}">{{ page.title }}</a></li>
+    {% endfor %}
+  </ul>
+</nav>
+```
+
 ### `page`
 
 The current page being rendered.
@@ -49,6 +89,56 @@ The current page being rendered.
 | `page.toc` | `str` | Auto-generated Table of Contents |
 | `page.is_home` | `bool` | True if homepage |
 | `page.is_section` | `bool` | True if section index |
+
+#### Navigation Properties
+
+| Attribute | Type | Description |
+| :--- | :--- | :--- |
+| `page._section` | `Section` | Parent section object (direct access to object tree) |
+| `page.ancestors` | `list[Section]` | Parent sections from root to current (for breadcrumbs) |
+| `page.prev_in_section` | `Page \| None` | Previous page in section (by weight/date) |
+| `page.next_in_section` | `Page \| None` | Next page in section (by weight/date) |
+| `page.related_posts` | `list[Page]` | Pages with matching tags |
+
+**Example - Custom Breadcrumbs:**
+
+```jinja2
+<nav class="breadcrumbs">
+  <a href="/">Home</a>
+  {% for ancestor in page.ancestors %}
+    > <a href="{{ ancestor.url }}">{{ ancestor.title }}</a>
+  {% endfor %}
+  > <span>{{ page.title }}</span>
+</nav>
+```
+
+**Example - Prev/Next Navigation:**
+
+```jinja2
+<nav class="prev-next">
+  {% if page.prev_in_section %}
+    <a href="{{ page.prev_in_section.url }}">← {{ page.prev_in_section.title }}</a>
+  {% endif %}
+  {% if page.next_in_section %}
+    <a href="{{ page.next_in_section.url }}">{{ page.next_in_section.title }} →</a>
+  {% endif %}
+</nav>
+```
+
+**Example - Related Posts:**
+
+```jinja2
+{% if page.related_posts %}
+<aside class="related">
+  <h3>Related Articles</h3>
+  <ul>
+    {% for post in page.related_posts[:5] %}
+      <li><a href="{{ post.url }}">{{ post.title }}</a></li>
+    {% endfor %}
+  </ul>
+</aside>
+{% endif %}
+```
 
 #### URL Properties
 
