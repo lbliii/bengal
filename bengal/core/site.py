@@ -721,6 +721,7 @@ class Site:
         Returns:
             BuildStats object with build statistics
         """
+        import shutil
         import time
 
         from bengal.orchestration import (
@@ -735,6 +736,30 @@ class Site:
 
         logger.info("pipeline_build_starting", parallel=parallel)
         start_time = time.time()
+
+        # Phase 0: Font Processing (generate fonts.css if fonts configured)
+        if "fonts" in self.config:
+            try:
+                from bengal.fonts import FontHelper
+
+                assets_dir = self.root_path / "assets"
+                assets_dir.mkdir(parents=True, exist_ok=True)
+
+                font_helper = FontHelper(self.config["fonts"])
+                css_path = font_helper.process(assets_dir)
+
+                # Copy fonts.css to output directory
+                if css_path and css_path.exists():
+                    output_assets = self.output_dir / "assets"
+                    output_assets.mkdir(parents=True, exist_ok=True)
+                    output_css = output_assets / "fonts.css"
+                    if (
+                        not output_css.exists()
+                        or css_path.stat().st_mtime > output_css.stat().st_mtime
+                    ):
+                        shutil.copy2(css_path, output_css)
+            except Exception as e:
+                logger.warning("fonts_processing_failed", error=str(e))
 
         # Phase 1: Discovery (use existing orchestrators - they handle all the edge cases)
         content = ContentOrchestrator(self)

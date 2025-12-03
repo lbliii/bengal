@@ -41,11 +41,11 @@ from bengal.utils.traceback_config import TracebackStyle
     help="Find available port if specified port is taken (default: enabled)",
 )
 @click.option(
-    "--open",
-    "-o",
+    "--open/--no-open",
+    "-o/-O",
     "open_browser",
-    is_flag=True,
-    help="Open browser automatically after server starts",
+    default=True,
+    help="Open browser automatically after server starts (default: enabled)",
 )
 @click.option(
     "--environment",
