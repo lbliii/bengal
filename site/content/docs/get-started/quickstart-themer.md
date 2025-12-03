@@ -1,6 +1,8 @@
 ---
 title: Themer Quickstart
 description: Customize themes and create your own designs
+id: themer-qs
+icon: palette
 weight: 30
 type: doc
 draft: false

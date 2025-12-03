@@ -1,6 +1,8 @@
 ---
 title: Writer Quickstart
 description: Create your first site and start writing content
+id: writer-qs
+icon: pencil
 weight: 20
 type: doc
 draft: false

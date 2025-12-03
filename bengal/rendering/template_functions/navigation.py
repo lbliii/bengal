@@ -724,12 +724,18 @@ def _build_section_menu_item(
         index_page = section.index_page
         metadata = getattr(index_page, "metadata", {})
 
-        # Check if explicitly hidden from menu
+        # Check if explicitly hidden from menu via legacy menu: false
         menu_setting = metadata.get("menu", True)
         if menu_setting is False or (
             isinstance(menu_setting, dict) and menu_setting.get("main") is False
         ):
             section_hidden = True
+
+        # Check visibility system (hidden: true or visibility.menu: false)
+        if hasattr(index_page, "visibility"):
+            visibility = index_page.visibility
+            if not visibility.get("menu", True):
+                section_hidden = True
 
         # Get title from frontmatter if available
         if hasattr(index_page, "title") and index_page.title:

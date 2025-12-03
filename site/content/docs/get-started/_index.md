@@ -22,34 +22,45 @@ Bengal is a Python-based static site generator with parallel processing, increme
 
 Bengal serves different roles in your workflow. Pick the path that matches your goal:
 
-::::{list-table}
-:header-rows: 1
-:widths: 33 33 34
+::::{cards}
+:columns: 1-2-3
+:gap: medium
 
-* - 📝 **Writer Path**
-  - 🎨 **Themer Path**
-  - 🛠️ **Contributor Path**
-* - **Create content, write posts, build a site**
-  - **Design and customize site appearance**
-  - **Contribute to Bengal itself**
-* - Perfect if you want to:
+:::{card} 📝 Writer Path
+:link: id:writer-qs
+:pull: description
+:color: blue
 
-    - Start a blog or documentation site
-    - Focus on writing, not code
-    - Use templates and themes as-is
-  - Perfect if you want to:
+Perfect if you want to:
 
-    - Create custom themes
-    - Override templates and styles
-    - Build branded experiences
-  - Perfect if you want to:
+- Start a blog or documentation site
+- Focus on writing, not code
+- Use templates and themes as-is
+:::
 
-    - Fix bugs or add features
-    - Improve Bengal's core
-    - Submit pull requests
-* - **[→ Writer Quickstart](./quickstart-writer/)**
-  - **[→ Themer Quickstart](./quickstart-themer/)**
-  - **[→ Contributor Quickstart](./quickstart-contributor/)**
+:::{card} 🎨 Themer Path
+:link: id:themer-qs
+:pull: description
+:color: purple
+
+Perfect if you want to:
+
+- Create custom themes
+- Override templates and styles
+- Build branded experiences
+:::
+
+:::{card} 🛠️ Contributor Path
+:link: id:contributor-qs
+:pull: description
+:color: green
+
+Perfect if you want to:
+
+- Fix bugs or add features
+- Improve Bengal's core
+- Submit pull requests
+:::
 ::::
 
 ## All Paths Start Here

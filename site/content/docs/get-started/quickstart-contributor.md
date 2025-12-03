@@ -1,6 +1,8 @@
 ---
 title: Contributor Quickstart
 description: Set up Bengal for development and start contributing
+id: contributor-qs
+icon: code
 weight: 40
 type: doc
 draft: false
