@@ -1,60 +1,85 @@
 ---
 title: Content
-description: Everything about content authoring in Bengal
+description: Author, organize, and validate your documentation
 weight: 20
-draft: false
-lang: en
-tags: [content, authoring, markdown]
-keywords: [content, authoring, markdown, frontmatter, collections, sources]
-category: guide
 cascade:
   type: doc
 ---
 
-# Content
+# The Content System
 
-Everything you need to know about creating, organizing, and managing content in Bengal.
+Bengal turns your Markdown files into a structured, validated documentation site.
 
-## Overview
+## What Do You Need?
 
-Bengal provides a powerful content system with:
+::::{cards}
+:columns: 2
+:gap: medium
 
-- **Flexible organization** — Pages, sections, bundles, and custom taxonomies
-- **Rich authoring** — Markdown, MyST directives, and shortcodes
-- **Typed schemas** — Validate frontmatter with content collections
-- **Multiple sources** — Local files, GitHub, Notion, REST APIs
-- **Content reuse** — Snippets, data files, and smart filtering
+:::{card} 📁 Organize Content
+:link: ./organization/
+:color: green
 
-## Quick Links
+Understand pages, sections, bundles, and how your folder structure becomes your site structure.
+:::
 
-| I want to... | Go to... |
-|--------------|----------|
-| Understand content structure | [Organization](/docs/content/organization/) |
-| Write rich content | [Authoring](/docs/content/authoring/) |
-| Validate frontmatter | [Collections](/docs/content/collections/) |
-| Pull content from external sources | [Sources](/docs/content/sources/) |
-| Reuse content across pages | [Reuse](/docs/content/reuse/) |
+:::{card} ✍️ Write Content
+:link: ./authoring/
+:color: blue
 
-## Sections
+Markdown, MyST directives, admonitions, tabs, and code blocks for rich documentation.
+:::
 
-### [Organization](/docs/content/organization/)
+:::{card} ✅ Validate Content
+:link: ./collections/
+:color: purple
 
-How content is structured in Bengal — pages, sections, bundles, frontmatter, and navigation menus.
+Define schemas for your frontmatter. Catch typos and missing fields at build time.
+:::
 
-### [Authoring](/docs/content/authoring/)
+:::{card} 🔗 Connect Sources
+:link: ./sources/
+:color: orange
 
-Writing content with Markdown, MyST directives, and shortcodes. Reference for all available formatting options.
+Pull content from GitHub repos, Notion databases, or REST APIs alongside local files.
+:::
 
-### [Collections](/docs/content/collections/)
+:::{card} ♻️ Reuse Content
+:link: ./reuse/
+:color: teal
 
-Define typed schemas for your content. Validate frontmatter, enforce required fields, and maintain consistency.
+Snippets, data files, and filtering to write once and publish everywhere.
+:::
+::::
 
-### [Sources](/docs/content/sources/)
+## How Content Flows
 
-Fetch content from external sources — GitHub repositories, Notion databases, REST APIs, and custom loaders.
+```mermaid
+flowchart LR
+    subgraph Sources
+        A[Local .md files]
+        B[GitHub repos]
+        C[Notion/APIs]
+    end
+    
+    subgraph Processing
+        D[Discovery]
+        E[Schema Validation]
+        F[Markdown Rendering]
+    end
+    
+    subgraph Output
+        G[HTML Pages]
+    end
+    
+    A --> D
+    B --> D
+    C --> D
+    D --> E
+    E --> F
+    F --> G
+```
 
-### [Reuse](/docs/content/reuse/)
-
-DRY content strategies using snippets, data files, taxonomies, and smart filtering.
-
-
+:::{tip}
+**New to Bengal content?** Start with [Organization](./organization/) to understand how files become pages, then explore [Authoring](./authoring/) for writing syntax.
+:::

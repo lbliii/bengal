@@ -2,60 +2,86 @@
 title: Assets
 description: CSS, JavaScript, images, and fonts
 weight: 20
-draft: false
-lang: en
-tags: [assets, css, javascript, images]
-keywords: [assets, css, javascript, images, fonts, pipeline]
 category: guide
 ---
 
-# Assets
+# Asset Pipeline
 
-The asset pipeline — handling stylesheets, JavaScript, images, and fonts.
+Bengal processes your CSS, JavaScript, images, and fonts with optional minification and fingerprinting.
 
-## Overview
+## How Assets Flow
 
-Bengal's asset pipeline provides:
-
-- **Multiple sources** — Project assets, theme assets, and page bundles
-- **Processing** — Minification, fingerprinting, optimization
-- **Template access** — Easy asset URLs in templates
+```mermaid
+flowchart LR
+    subgraph Sources
+        A[static/]
+        B[assets/]
+        C[Theme assets]
+        D[Page bundles]
+    end
+    
+    subgraph Processing
+        E[Collect]
+        F[Minify]
+        G[Fingerprint]
+    end
+    
+    subgraph Output
+        H[public/]
+    end
+    
+    A --> E
+    B --> E
+    C --> E
+    D --> E
+    E --> F --> G --> H
+```
 
 ## Asset Locations
 
-| Location | Purpose |
-|----------|---------|
-| `static/` | Project-wide static files |
-| `assets/` | Processed assets (CSS, JS) |
-| Theme's `static/` | Theme static files |
-| Page bundles | Page-specific assets |
+| Location | Copied To | Processing | Use For |
+|----------|-----------|------------|---------|
+| `static/` | `public/` | None | Files that don't need processing |
+| `assets/` | `public/` | Full pipeline | CSS/JS needing minification |
+| Theme's `static/` | `public/` | None | Theme's static files |
+| Page bundles | `public/` | Scope-limited | Page-specific images/data |
 
-## Asset Processing
+## Quick Reference
 
+::::{tab-set}
+:::{tab-item} Configuration
 ```toml
 # bengal.toml
 [build.assets]
 minify_css = true
 minify_js = true
-fingerprint = true
+fingerprint = true   # main.css → main.a1b2c3.css
 ```
+:::
 
-## Using Assets in Templates
-
+:::{tab-item} Template Usage
 ```jinja
-{# Static assets #}
+{# Basic asset URL #}
 <link rel="stylesheet" href="{{ 'css/main.css' | asset_url }}">
-<script src="{{ 'js/app.js' | asset_url }}"></script>
 
-{# With fingerprinting #}
+{# With fingerprint for cache-busting #}
 <link rel="stylesheet" href="{{ 'css/main.css' | fingerprint }}">
+
+{# Images #}
+<img src="{{ 'images/logo.png' | asset_url }}" alt="Logo">
 ```
+:::
 
-## In This Section
+:::{tab-item} Page Bundle Assets
+```jinja
+{# Access assets co-located with current page #}
+{% for image in page.resources.match("*.jpg") %}
+  <img src="{{ image.url }}" alt="{{ image.title }}">
+{% endfor %}
+```
+:::
+::::
 
-- **[Stylesheets](/docs/theming/assets/stylesheets/)** — CSS handling and processing
-- **[JavaScript](/docs/theming/assets/javascript/)** — JS bundling and optimization
-- **[Images](/docs/theming/assets/images/)** — Image optimization and responsive images
-- **[Fonts](/docs/theming/assets/fonts/)** — Custom font integration
-
-
+:::{tip}
+**Fingerprinting** adds a hash to filenames (`main.a1b2c3.css`) for cache-busting. Enable it in production for optimal caching.
+:::

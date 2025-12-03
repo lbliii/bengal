@@ -1,54 +1,71 @@
 ---
 title: Extending
-description: Advanced features and contributor documentation
+description: Autodoc, analysis, validation, and architecture
 weight: 35
-draft: false
-lang: en
-tags: [extending, advanced, architecture, contributing]
-keywords: [extending, advanced, architecture, contributing, autodoc, validation, plugins]
-category: guide
-# menu: false  # Experimental/advanced - hide from nav but accessible via URL (disabled due to bug)
 cascade:
   type: doc
 ---
 
-# Extending
+# Extend Bengal
 
-Advanced features, analysis tools, and contributor documentation.
+Power features for documentation teams: auto-generate API docs, analyze site structure, validate content, and contribute to Bengal itself.
 
-## Overview
+## What Do You Need?
 
-Bengal is designed for extensibility:
+::::{cards}
+:columns: 2
+:gap: medium
 
-- **Autodoc** — Generate documentation from Python code, CLI commands, and OpenAPI specs
-- **Analysis** — Graph analysis, link suggestions, and site structure insights
-- **Validation** — Health checks, auto-fix, and custom validators
-- **Architecture** — Deep dive into Bengal's internals for contributors
+:::{card} 📚 Autodoc
+:link: ./autodoc/
+:color: blue
 
-## Quick Links
+Generate documentation from Python docstrings, CLI commands, and OpenAPI specs.
+:::
 
-| I want to... | Go to... |
-|--------------|----------|
-| Generate API docs | [Autodoc](/docs/extending/autodoc/) |
-| Analyze my site structure | [Analysis](/docs/extending/analysis/) |
-| Set up health checks | [Validation](/docs/extending/validation/) |
-| Contribute to Bengal | [Architecture](/docs/extending/architecture/) |
+:::{card} 🔬 Analysis
+:link: ./analysis/
+:color: green
 
-## Sections
+Graph analysis, PageRank, link suggestions, and navigation optimization.
+:::
 
-### [Autodoc](/docs/extending/autodoc/)
+:::{card} ✅ Validation
+:link: ./validation/
+:color: purple
 
-Automatic documentation generation — Python docstrings, CLI commands, and OpenAPI specifications.
+Health checks, broken link detection, auto-fix, and custom validators.
+:::
 
-### [Analysis](/docs/extending/analysis/)
+:::{card} 🏗️ Architecture
+:link: ./architecture/
+:color: orange
 
-Site structure analysis tools — graph analysis, page rank, link suggestions, and navigation optimization.
+For contributors: Bengal's internals, object model, and extension points.
+:::
+::::
 
-### [Validation](/docs/extending/validation/)
+## Extension Points
 
-Content validation system — built-in health checks, auto-fix capabilities, and custom validators.
+```mermaid
+flowchart TB
+    subgraph "Your Code"
+        A[Custom Validators]
+        B[Content Loaders]
+        C[Post-Processors]
+    end
+    
+    subgraph "Bengal Pipeline"
+        D[Discovery] --> E[Validation]
+        E --> F[Rendering]
+        F --> G[Post-Process]
+    end
+    
+    A -.->|hooks into| E
+    B -.->|feeds| D
+    C -.->|extends| G
+```
 
-### [Architecture](/docs/extending/architecture/)
-
-For contributors — Bengal's object model, build pipeline, extension points, and development guide.
-
+:::{note}
+**Most users don't need this section.** These are power features for documentation teams with specific automation needs. Start with [Content](../content/) and [Theming](../theming/) for standard documentation.
+:::

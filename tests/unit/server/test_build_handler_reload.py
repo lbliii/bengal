@@ -245,3 +245,203 @@ def test_ignores_temp_files_on_create(tmp_path):
     # Verify the file was NOT added to pending changes
     assert str(temp_file) not in handler.pending_changes
     assert handler.debounce_timer is None
+
+
+class TestRebuildStrategy:
+    """Test the rebuild strategy logic (full vs incremental)."""
+
+    def test_content_file_change_triggers_full_rebuild(self, tmp_path, monkeypatch):
+        """Content file (.md) changes should trigger full rebuild for navigation consistency."""
+        handler = _make_handler(tmp_path)
+        handler.pending_changes = {str(tmp_path / "content" / "page.md")}
+        handler.pending_event_types = {"modified"}
+
+        build_kwargs = {}
+
+        def capture_build(*args, **kwargs):
+            build_kwargs.update(kwargs)
+            return DummyStats()
+
+        handler.site.build = capture_build
+
+        # Silence display/printing
+        monkeypatch.setattr("bengal.server.build_handler.display_build_stats", lambda *a, **k: None)
+        monkeypatch.setattr("bengal.server.build_handler.show_building_indicator", lambda *a, **k: None)
+
+        with (
+            patch("bengal.server.reload_controller.controller") as mock_controller,
+            patch("bengal.server.live_reload.send_reload_payload", lambda *a, **k: None),
+        ):
+            from bengal.server.reload_controller import ReloadDecision
+
+            mock_controller.decide_and_update.return_value = ReloadDecision(
+                action="reload", reason="content-changed", changed_paths=[]
+            )
+            handler._trigger_build()
+
+        # Content changes should trigger full rebuild (incremental=False)
+        assert build_kwargs.get("incremental") is False
+
+    def test_css_only_change_allows_incremental_build(self, tmp_path, monkeypatch):
+        """CSS-only changes should allow incremental builds."""
+        handler = _make_handler(tmp_path)
+        handler.pending_changes = {str(tmp_path / "assets" / "style.css")}
+        handler.pending_event_types = {"modified"}
+
+        build_kwargs = {}
+
+        def capture_build(*args, **kwargs):
+            build_kwargs.update(kwargs)
+            return DummyStats()
+
+        handler.site.build = capture_build
+
+        # Silence display/printing
+        monkeypatch.setattr("bengal.server.build_handler.display_build_stats", lambda *a, **k: None)
+        monkeypatch.setattr("bengal.server.build_handler.show_building_indicator", lambda *a, **k: None)
+
+        with (
+            patch("bengal.server.reload_controller.controller") as mock_controller,
+            patch("bengal.server.live_reload.send_reload_payload", lambda *a, **k: None),
+        ):
+            from bengal.server.reload_controller import ReloadDecision
+
+            mock_controller.decide_and_update.return_value = ReloadDecision(
+                action="reload-css", reason="css-only", changed_paths=[]
+            )
+            handler._trigger_build()
+
+        # CSS-only changes should allow incremental builds
+        assert build_kwargs.get("incremental") is True
+
+    def test_created_file_triggers_full_rebuild(self, tmp_path, monkeypatch):
+        """File creation should trigger full rebuild (structural change)."""
+        handler = _make_handler(tmp_path)
+        handler.pending_changes = {str(tmp_path / "content" / "new-page.md")}
+        handler.pending_event_types = {"created"}
+
+        build_kwargs = {}
+
+        def capture_build(*args, **kwargs):
+            build_kwargs.update(kwargs)
+            return DummyStats()
+
+        handler.site.build = capture_build
+
+        # Silence display/printing
+        monkeypatch.setattr("bengal.server.build_handler.display_build_stats", lambda *a, **k: None)
+        monkeypatch.setattr("bengal.server.build_handler.show_building_indicator", lambda *a, **k: None)
+
+        with (
+            patch("bengal.server.reload_controller.controller") as mock_controller,
+            patch("bengal.server.live_reload.send_reload_payload", lambda *a, **k: None),
+        ):
+            from bengal.server.reload_controller import ReloadDecision
+
+            mock_controller.decide_and_update.return_value = ReloadDecision(
+                action="reload", reason="content-changed", changed_paths=[]
+            )
+            handler._trigger_build()
+
+        # Created files should trigger full rebuild
+        assert build_kwargs.get("incremental") is False
+
+    def test_deleted_file_triggers_full_rebuild(self, tmp_path, monkeypatch):
+        """File deletion should trigger full rebuild (structural change)."""
+        handler = _make_handler(tmp_path)
+        handler.pending_changes = {str(tmp_path / "content" / "deleted-page.md")}
+        handler.pending_event_types = {"deleted"}
+
+        build_kwargs = {}
+
+        def capture_build(*args, **kwargs):
+            build_kwargs.update(kwargs)
+            return DummyStats()
+
+        handler.site.build = capture_build
+
+        # Silence display/printing
+        monkeypatch.setattr("bengal.server.build_handler.display_build_stats", lambda *a, **k: None)
+        monkeypatch.setattr("bengal.server.build_handler.show_building_indicator", lambda *a, **k: None)
+
+        with (
+            patch("bengal.server.reload_controller.controller") as mock_controller,
+            patch("bengal.server.live_reload.send_reload_payload", lambda *a, **k: None),
+        ):
+            from bengal.server.reload_controller import ReloadDecision
+
+            mock_controller.decide_and_update.return_value = ReloadDecision(
+                action="reload", reason="content-changed", changed_paths=[]
+            )
+            handler._trigger_build()
+
+        # Deleted files should trigger full rebuild
+        assert build_kwargs.get("incremental") is False
+
+    def test_js_only_change_allows_incremental_build(self, tmp_path, monkeypatch):
+        """JavaScript-only changes should allow incremental builds."""
+        handler = _make_handler(tmp_path)
+        handler.pending_changes = {str(tmp_path / "assets" / "script.js")}
+        handler.pending_event_types = {"modified"}
+
+        build_kwargs = {}
+
+        def capture_build(*args, **kwargs):
+            build_kwargs.update(kwargs)
+            return DummyStats()
+
+        handler.site.build = capture_build
+
+        # Silence display/printing
+        monkeypatch.setattr("bengal.server.build_handler.display_build_stats", lambda *a, **k: None)
+        monkeypatch.setattr("bengal.server.build_handler.show_building_indicator", lambda *a, **k: None)
+
+        with (
+            patch("bengal.server.reload_controller.controller") as mock_controller,
+            patch("bengal.server.live_reload.send_reload_payload", lambda *a, **k: None),
+        ):
+            from bengal.server.reload_controller import ReloadDecision
+
+            mock_controller.decide_and_update.return_value = ReloadDecision(
+                action="reload", reason="js-changed", changed_paths=[]
+            )
+            handler._trigger_build()
+
+        # JS-only changes should allow incremental builds
+        assert build_kwargs.get("incremental") is True
+
+    def test_markdown_extension_triggers_full_rebuild(self, tmp_path, monkeypatch):
+        """Both .md and .markdown extensions should trigger full rebuild."""
+        for ext in [".md", ".markdown"]:
+            handler = _make_handler(tmp_path)
+            handler.pending_changes = {str(tmp_path / "content" / f"page{ext}")}
+            handler.pending_event_types = {"modified"}
+
+            build_kwargs = {}
+
+            def capture_build(*args, **kwargs):
+                build_kwargs.update(kwargs)
+                return DummyStats()
+
+            handler.site.build = capture_build
+
+            # Silence display/printing
+            monkeypatch.setattr(
+                "bengal.server.build_handler.display_build_stats", lambda *a, **k: None
+            )
+            monkeypatch.setattr(
+                "bengal.server.build_handler.show_building_indicator", lambda *a, **k: None
+            )
+
+            with (
+                patch("bengal.server.reload_controller.controller") as mock_controller,
+                patch("bengal.server.live_reload.send_reload_payload", lambda *a, **k: None),
+            ):
+                from bengal.server.reload_controller import ReloadDecision
+
+                mock_controller.decide_and_update.return_value = ReloadDecision(
+                    action="reload", reason="content-changed", changed_paths=[]
+                )
+                handler._trigger_build()
+
+            assert build_kwargs.get("incremental") is False, f"Extension {ext} should trigger full rebuild"

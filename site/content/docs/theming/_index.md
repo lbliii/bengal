@@ -1,57 +1,87 @@
 ---
 title: Theming
-description: Design and styling for Bengal sites
+description: Templates, assets, and visual customization
 weight: 25
-draft: false
-lang: en
-tags: [theming, design, templates, css]
-keywords: [theming, design, templates, css, jinja2, assets, styling]
-category: guide
 cascade:
   type: doc
 ---
 
-# Theming
+# Design & Theming
 
-Everything about design, styling, and customization in Bengal.
+Control how your site looks with Jinja2 templates, CSS/JS assets, and theme packages.
 
-## Overview
+## What Do You Need?
 
-Bengal's theming system provides:
+::::{cards}
+:columns: 2
+:gap: medium
 
-- **Jinja2 templating** — Powerful template engine with inheritance and partials
-- **Asset pipeline** — CSS, JavaScript, images, and fonts handling
-- **Theme packages** — Use, customize, or create complete themes
-- **Design tokens** — Consistent theme variables across your site
+:::{card} 🧩 Templates
+:link: ./templating/
+:color: blue
 
-## Quick Links
+Jinja2 layouts, inheritance, partials, and the complete template API reference.
+:::
 
-| I want to... | Go to... |
-|--------------|----------|
-| Learn template basics | [Templating](/docs/theming/templating/) |
-| Handle CSS/JS/images | [Assets](/docs/theming/assets/) |
-| Use or customize themes | [Themes](/docs/theming/themes/) |
-| Look up theme variables | [Variables Reference](/docs/theming/variables/) |
+:::{card} 🎨 Assets
+:link: ./assets/
+:color: green
 
-## Sections
+CSS, JavaScript, images, and fonts. Processing, optimization, and fingerprinting.
+:::
 
-### [Templating](/docs/theming/templating/)
+:::{card} 📦 Themes
+:link: ./themes/
+:color: purple
 
-Jinja2 templating fundamentals — layouts, inheritance, partials, and the complete template functions reference.
+Use existing themes, customize without forking, or create your own from scratch.
+:::
 
-### [Assets](/docs/theming/assets/)
+:::{card} 🍳 Recipes
+:link: ./recipes/
+:color: orange
 
-The asset pipeline — stylesheets, JavaScript, images, and custom fonts. Optimization and processing options.
+Copy-paste patterns: list recent posts, group by category, filter by tags, and more.
+:::
+::::
 
-### [Themes](/docs/theming/themes/)
+## How Theming Works
 
-Working with theme packages — using existing themes, customizing without forking, and creating your own.
+```mermaid
+flowchart TB
+    subgraph Input
+        A[Content Pages]
+        B[Theme Templates]
+        C[Assets CSS/JS]
+    end
+    
+    subgraph "Template Engine"
+        D[Select Layout]
+        E[Render Jinja2]
+        F[Process Assets]
+    end
+    
+    subgraph Output
+        G[HTML Pages]
+        H[Optimized Assets]
+    end
+    
+    A --> D
+    B --> D
+    D --> E
+    C --> F
+    E --> G
+    F --> H
+```
 
-### [Template Cookbook](/docs/theming/recipes/)
+## Customization Levels
 
-Practical examples showing Bengal's filters and template patterns — list recent posts, group by category, filter by tags, and more.
+| Level | Effort | What You Can Change |
+|-------|--------|---------------------|
+| **CSS Variables** | Low | Colors, fonts, spacing via `--var` overrides |
+| **Template Overrides** | Medium | Copy and modify specific templates |
+| **Custom Theme** | High | Full control over all templates and assets |
 
-### [Variables Reference](/docs/theming/variables/)
-
-Complete reference for all theme variables available in templates.
-
+:::{tip}
+**Quick wins**: Start with [CSS Variables](./themes/customization/) to change colors and fonts without touching templates. Graduate to [Template Overrides](./templating/overrides/) when you need structural changes.
+:::

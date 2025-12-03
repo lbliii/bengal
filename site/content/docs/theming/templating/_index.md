@@ -1,37 +1,31 @@
 ---
 title: Templating
-description: Jinja2 templating in Bengal
+description: Jinja2 layouts, inheritance, and partials
 weight: 10
-draft: false
-lang: en
-tags: [templating, jinja2, layouts]
-keywords: [templating, jinja2, layouts, partials, inheritance]
 category: guide
 ---
 
-# Templating
+# Jinja2 Templating
 
-Jinja2 templating fundamentals for Bengal themes.
+Bengal uses [Jinja2](https://jinja.palletsprojects.com/) for all templates. If you know Python, you'll feel at home.
 
-## Overview
+## Template Lookup Order
 
-Bengal uses Jinja2 as its template engine, providing:
+```mermaid
+flowchart LR
+    A[Page Request] --> B{layouts/ ?}
+    B -->|Found| C[Use Your Template]
+    B -->|Not Found| D{Theme layouts/ ?}
+    D -->|Found| E[Use Theme Template]
+    D -->|Not Found| F[Use Bengal Default]
+```
 
-- **Template inheritance** — Build layouts with extendable blocks
-- **Partials** — Reusable template fragments
-- **Filters** — Transform data in templates
-- **Functions** — Access site data and utilities
+Bengal searches: **Your project** → **Theme** → **Bengal defaults**
 
-## Template Lookup
+## Quick Start
 
-Bengal searches for templates in order:
-
-1. `layouts/` in your project
-2. Theme's `layouts/`
-3. Bengal's default templates
-
-## Basic Template
-
+::::{tab-set}
+:::{tab-item} Basic Template
 ```jinja
 {# layouts/single.html #}
 {% extends "baseof.html" %}
@@ -39,24 +33,19 @@ Bengal searches for templates in order:
 {% block content %}
 <article>
   <h1>{{ page.title }}</h1>
-  <div class="content">
-    {{ page.content | safe }}
-  </div>
+  {{ page.content | safe }}
 </article>
 {% endblock %}
 ```
+:::
 
-## Template Inheritance
-
-Base template with blocks:
-
+:::{tab-item} Base Layout
 ```jinja
 {# layouts/baseof.html #}
 <!DOCTYPE html>
 <html>
 <head>
   <title>{% block title %}{{ page.title }}{% endblock %}</title>
-  {% block head %}{% endblock %}
 </head>
 <body>
   {% block header %}{% include "partials/header.html" %}{% endblock %}
@@ -65,23 +54,46 @@ Base template with blocks:
 </body>
 </html>
 ```
+:::
 
-Child template:
-
+:::{tab-item} Partial
 ```jinja
-{% extends "baseof.html" %}
+{# layouts/partials/header.html #}
+<header>
+  <nav>
+    {% for item in site.menus.main %}
+      <a href="{{ item.url }}">{{ item.title }}</a>
+    {% endfor %}
+  </nav>
+</header>
+```
+:::
+::::
 
-{% block title %}{{ page.title }} | {{ site.title }}{% endblock %}
+## Key Concepts
 
-{% block content %}
-  <main>{{ page.content | safe }}</main>
-{% endblock %}
+| Concept | Syntax | Purpose |
+|---------|--------|---------|
+| **Extends** | `{% extends "base.html" %}` | Inherit from parent template |
+| **Block** | `{% block name %}...{% endblock %}` | Replaceable section |
+| **Include** | `{% include "partial.html" %}` | Insert another template |
+| **Variable** | `{{ page.title }}` | Output a value |
+| **Filter** | `{{ text \| truncate(100) }}` | Transform a value |
+
+## Template Inheritance
+
+```mermaid
+flowchart TB
+    A["baseof.html<br/>(blocks: head, content, footer)"]
+    B["single.html<br/>(extends baseof)"]
+    C["list.html<br/>(extends baseof)"]
+    D["doc.html<br/>(extends single)"]
+    
+    A --> B
+    A --> C
+    B --> D
 ```
 
-## In This Section
-
-- **[Layouts](/docs/theming/templating/layouts/)** — Layout patterns and inheritance
-- **[Partials](/docs/theming/templating/partials/)** — Reusable template fragments
-- **[Functions Reference](/docs/theming/templating/functions/)** — All template functions
-
-
+:::{tip}
+**Override sparingly**: You only need to create templates you want to customize. Start by copying one template from your theme, modify it, and let the rest fall through to defaults.
+:::

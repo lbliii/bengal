@@ -1,99 +1,124 @@
 ---
 title: Content Authoring
-description: Writing rich content with Markdown and MyST
+description: Markdown, MyST directives, and shortcodes
 weight: 20
-draft: false
-lang: en
-tags: [authoring, markdown, myst]
-keywords: [markdown, myst, directives, shortcodes, writing]
 category: guide
 ---
 
-# Content Authoring
+# Writing Content
 
-Writing rich content in Bengal with Markdown, MyST directives, and shortcodes.
+Bengal uses CommonMark Markdown with [MyST](https://myst-parser.readthedocs.io/) extensions for rich documentation.
 
-## Markdown Basics
+## Quick Reference
 
-Bengal uses standard CommonMark Markdown with MyST (Markedly Structured Text) extensions.
-
-### Text Formatting
-
+::::{tab-set}
+:::{tab-item} Text
 ```markdown
-**bold text**
-*italic text*
+**bold** and *italic*
 ~~strikethrough~~
 `inline code`
 ```
+:::
 
-### Links and Images
-
+:::{tab-item} Links
 ```markdown
-[Link text](https://example.com)
-[Internal link](/docs/getting-started/)
-
-![Alt text](/images/hero.jpg)
-![With title](/images/hero.jpg "Image title")
+[External](https://example.com)
+[Internal](/docs/getting-started/)
+[Relative](../other-page/)
 ```
+:::
 
-### Code Blocks
+:::{tab-item} Images
+```markdown
+![Alt text](/images/hero.jpg)
+![With title](/images/hero.jpg "Title")
+```
+:::
 
+:::{tab-item} Code
 ````markdown
 ```python
 def hello():
-    print("Hello, Bengal!")
+    print("Hello!")
 ```
 ````
 
 With line highlighting:
-
 ````markdown
 ```python {hl_lines="2"}
 def hello():
-    print("Hello, Bengal!")  # This line highlighted
+    print("Highlighted!")
 ```
 ````
+:::
+::::
 
 ## MyST Directives
 
-MyST extends Markdown with powerful directives for rich content.
+Directives add rich components to your Markdown:
 
-### Admonitions
-
+::::{tab-set}
+:::{tab-item} Admonitions
 ```markdown
 :::{note}
-This is a note admonition.
+Informational callout.
 :::
 
 :::{warning}
-This is a warning!
+Important warning!
 :::
 
 :::{tip}
-Pro tip: Use directives for callouts.
+Helpful suggestion.
 :::
 ```
+:::
 
-### Tabs
-
+:::{tab-item} Tabs
 ```markdown
 ::::{tab-set}
 :::{tab-item} Python
-```python
 print("Hello")
-```
 :::
 :::{tab-item} JavaScript
-```javascript
-console.log("Hello");
-```
+console.log("Hello")
 :::
 ::::
 ```
+:::
 
-## In This Section
+:::{tab-item} Cards
+```markdown
+::::{cards}
+:::{card} Title
+:link: ./path/
+Description here
+:::
+::::
+```
+:::
 
-- **[Directives Reference](/docs/content/authoring/directives/)** — All available MyST directives
-- **[Shortcodes](/docs/content/authoring/shortcodes/)** — Using and creating shortcodes
+:::{tab-item} Dropdowns
+```markdown
+:::{dropdown} Click to expand
+Hidden content here.
+:::
+```
+:::
+::::
 
+## Syntax Overview
 
+```mermaid
+flowchart LR
+    A[Markdown] --> B[MyST Parser]
+    B --> C{Directive?}
+    C -->|Yes| D[Render Component]
+    C -->|No| E[Render HTML]
+    D --> F[Final Page]
+    E --> F
+```
+
+:::{tip}
+**Most common**: Admonitions (`note`, `warning`, `tip`) and code blocks with syntax highlighting. Start there, add tabs and cards as needed.
+:::

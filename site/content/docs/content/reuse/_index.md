@@ -1,53 +1,61 @@
 ---
 title: Content Reuse
-description: DRY content strategies with snippets and data files
+description: Snippets, data files, and DRY patterns
 weight: 50
-draft: false
-lang: en
-tags: [reuse, snippets, dry]
-keywords: [reuse, snippets, includes, data, dry]
 category: guide
 ---
 
-# Content Reuse
+# Reusing Content
 
-Write once, publish everywhere — strategies for DRY documentation.
+Write once, publish everywhere. Bengal provides multiple ways to avoid repeating yourself.
 
-## Overview
+## Reuse Strategies
 
-Bengal provides several mechanisms for content reuse:
+```mermaid
+flowchart LR
+    subgraph "Single Source"
+        A[Snippet]
+        B[Data File]
+        C[Shortcode]
+    end
+    
+    subgraph "Multiple Outputs"
+        D[Page 1]
+        E[Page 2]
+        F[Page 3]
+    end
+    
+    A --> D
+    A --> E
+    B --> D
+    B --> F
+    C --> E
+    C --> F
+```
 
-- **Snippets** — Reusable content fragments via `_snippets/`
-- **Data files** — YAML/JSON data accessible in templates
-- **Shortcodes** — Parameterized content components
-- **Filtering** — Query and filter content dynamically
+## Quick Reference
 
-## Snippets
-
-The `_snippets/` directory contains reusable content fragments:
+::::{tab-set}
+:::{tab-item} Snippets
+Reusable Markdown fragments stored in `_snippets/`:
 
 ```
 _snippets/
 ├── install/
 │   ├── pip.md
-│   ├── uv.md
-│   └── pipx.md
+│   └── uv.md
 └── warnings/
-    ├── experimental.md
-    └── breaking-change.md
+    └── experimental.md
 ```
 
-Include snippets in your content:
-
+Include in any page:
 ```markdown
-## Installation
-
 {{< include "_snippets/install/pip.md" >}}
 ```
+:::
 
-## Data Files
-
-Store structured data in `data/` directory:
+:::{tab-item} Data Files
+Structured YAML/JSON in `data/`:
 
 ```yaml
 # data/team.yaml
@@ -57,26 +65,38 @@ Store structured data in `data/` directory:
 ```
 
 Access in templates:
-
 ```jinja
 {% for member in site.data.team %}
-  <div class="team-member">{{ member.name }}</div>
+  {{ member.name }} - {{ member.role }}
 {% endfor %}
 ```
+:::
 
-## Content Filtering
-
+:::{tab-item} Filtering
 Query content dynamically:
 
 ```jinja
-{% set tutorials = site.pages | selectattr("params.type", "equalto", "tutorial") %}
-{% for page in tutorials %}
-  <a href="{{ page.url }}">{{ page.title }}</a>
-{% endfor %}
+{# All tutorials #}
+{% set tutorials = site.pages 
+   | selectattr("params.type", "equalto", "tutorial") %}
+
+{# Recent posts #}
+{% set recent = site.pages 
+   | sort(attribute="date", reverse=true) 
+   | list | slice(5) %}
 ```
+:::
+::::
 
-## In This Section
+## When to Use What
 
-- **[Snippets](/docs/content/reuse/snippets/)** — Using the include directives and `_snippets/` system
-- **[Filtering](/docs/content/reuse/filtering/)** — Advanced content queries with set intersections
+| Method | Best For | Example |
+|--------|----------|---------|
+| **Snippets** | Repeated prose blocks | Installation instructions, warnings |
+| **Data Files** | Structured data | Team members, product features |
+| **Filtering** | Dynamic lists | Recent posts, related pages |
+| **Shortcodes** | Parameterized components | Video embeds, API badges |
 
+:::{tip}
+**Start with snippets** for common content blocks. Graduate to data files when you need structured data, and filtering when you need dynamic queries.
+:::

@@ -1,66 +1,110 @@
 ---
 title: Themes
-description: Using and creating Bengal themes
+description: Use, customize, or create themes
 weight: 30
-draft: false
-lang: en
-tags: [themes, customization]
-keywords: [themes, customization, create, override]
 category: guide
 ---
 
-# Themes
+# Working with Themes
 
-Using existing themes, customizing them, and creating your own.
+Themes are complete design packages. Use one as-is, customize it, or build your own.
 
-## Overview
+## Theme Resolution
 
-Bengal themes are complete design packages containing:
+```mermaid
+flowchart TB
+    A[Request: header.html]
+    B{Your layouts/?}
+    C{Theme layouts/?}
+    D{Bengal default?}
+    E[Use your file]
+    F[Use theme file]
+    G[Use default file]
+    
+    A --> B
+    B -->|Found| E
+    B -->|Not found| C
+    C -->|Found| F
+    C -->|Not found| D
+    D --> G
+```
 
-- **Layouts** — HTML templates
-- **Assets** — CSS, JavaScript, images
-- **Partials** — Reusable components
-- **Configuration** — Theme-specific settings
+Your files always win. Override only what you need.
 
-## Using a Theme
+## Choose Your Approach
 
-Set your theme in configuration:
+::::{cards}
+:columns: 3
+:gap: small
 
+:::{card} 🎨 Use Default
+**Effort**: None
+
+Works out of the box. Set colors via CSS variables.
+:::
+
+:::{card} ✏️ Customize
+**Effort**: Low-Medium
+
+Override specific templates. No forking required.
+:::
+
+:::{card} 🏗️ Create New
+**Effort**: High
+
+Full control. Start from scratch or fork existing.
+:::
+::::
+
+## Quick Reference
+
+::::{tab-set}
+:::{tab-item} Use a Theme
 ```toml
 # bengal.toml
 [theme]
 name = "default"
 ```
+:::
 
-## Theme Resolution
-
-Bengal layers themes, allowing overrides:
-
+:::{tab-item} CSS Variables
+```css
+/* static/css/custom.css */
+:root {
+  --color-primary: #3b82f6;
+  --color-background: #0f172a;
+  --font-family-base: "Inter", sans-serif;
+}
 ```
-your-project/layouts/     # Highest priority
-your-project/themes/my-theme/layouts/
-bengal/themes/default/layouts/  # Lowest priority
+
+Include in your config:
+```toml
+[theme.config]
+custom_css = ["css/custom.css"]
 ```
+:::
 
-Any file you create in `layouts/` overrides the theme's version.
-
-## Customizing Without Forking
-
-Override specific files without modifying the theme:
-
+:::{tab-item} Override Template
 ```
 your-project/
-├── layouts/
-│   └── partials/
-│       └── header.html    # Overrides theme's header
-└── static/
-    └── css/
-        └── custom.css     # Additional styles
+└── layouts/
+    └── partials/
+        └── header.html  # Your version wins
 ```
 
-## In This Section
+Copy the original from `themes/default/layouts/`, modify as needed.
+:::
+::::
 
-- **[Customize](/docs/theming/themes/customize/)** — Override themes without forking
-- **[Create](/docs/theming/themes/create/)** — Build a theme from scratch
+## Theme Contents
 
+| Directory | Purpose |
+|-----------|---------|
+| `layouts/` | HTML templates (Jinja2) |
+| `static/` | CSS, JS, images |
+| `assets/` | Processed assets |
+| `theme.toml` | Theme configuration |
 
+:::{tip}
+**Start minimal**: Override CSS variables first. Only copy templates when you need structural changes. The less you override, the easier upgrades will be.
+:::

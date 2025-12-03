@@ -1,23 +1,67 @@
 ---
 title: Tutorials
-description: Hands-on learning journeys to master Bengal
+description: Guided learning journeys to master Bengal
 weight: 15
-draft: false
-lang: en
-tags: [tutorials, learning, hands-on]
-keywords: [tutorials, learning, guides, step-by-step, hands-on]
-category: tutorial
 cascade:
   type: doc
 ---
 
 # Tutorials
 
-Guided, hands-on learning journeys that take you from beginner to confident Bengal user.
+Hands-on lessons that teach you Bengal step-by-step. Each tutorial starts from scratch and builds to a working result.
 
-## What Makes a Tutorial?
+## Choose Your Starting Point
 
-Tutorials are **learning-oriented** — they help you acquire skills through guided practice. Unlike how-to guides (which solve specific problems), tutorials teach foundational skills you'll use repeatedly.
+::::{cards}
+:columns: 1
+:gap: medium
+
+:::{card} 📝 Build a Blog from Scratch
+:link: ./build-a-blog/
+:color: blue
+
+**15 minutes** · For writers and beginners
+
+Go from zero to a deployed personal blog. The perfect first tutorial.
+:::
+
+:::{card} 🔄 Migrate from Hugo
+:link: ./migrate-from-hugo/
+:color: green
+
+**30 minutes** · For existing SSG users
+
+Step-by-step migration from Hugo, Jekyll, Gatsby, or other static site generators.
+:::
+
+:::{card} ⚙️ Automate with GitHub Actions
+:link: ./automate-with-github-actions/
+:color: purple
+
+**20 minutes** · For DevOps
+
+Set up CI/CD pipelines for automatic builds, testing, and deployment.
+:::
+::::
+
+## Learning Journey
+
+```mermaid
+flowchart LR
+    A[Build a Blog] --> B[Content Authoring]
+    A --> C[Theming Basics]
+    B --> D[Advanced Content]
+    C --> E[Custom Themes]
+    D --> F[Automation]
+    E --> F
+```
+
+:::{tip}
+**After tutorials**: Move to [Content](../content/) for authoring reference, [Theming](../theming/) for customization, or [Building](../building/) for deployment options.
+:::
+
+:::{dropdown} What makes a good tutorial?
+Tutorials are **learning-oriented** — they teach skills through guided practice.
 
 Each tutorial:
 - **Starts from scratch** — No prior Bengal knowledge assumed
@@ -25,29 +69,5 @@ Each tutorial:
 - **Provides working code** — Copy, run, and see results
 - **Explains the "why"** — Understand concepts as you go
 
-## Available Tutorials
-
-### For Writers
-
-- **[Build a Blog in 15 Minutes](/docs/tutorials/build-a-blog/)** — Go from zero to a deployed personal blog. The perfect starting point.
-
-### For Migrators
-
-- **[Migrate from Hugo](/docs/tutorials/migrate-from-hugo/)** — Step-by-step guide to migrate your existing site from Hugo, Jekyll, or other SSGs.
-
-### For DevOps
-
-- **[Automate with GitHub Actions](/docs/tutorials/automate-with-github-actions/)** — Set up CI/CD pipelines for automatic builds, testing, and deployment.
-
-## Learning Paths
-
-Looking for a structured curriculum? Check out our [Learning Tracks](/tracks/) that combine tutorials with concepts and references.
-
-## Next Steps
-
-After completing a tutorial, explore:
-- [Content](/docs/content/) — Master content authoring
-- [Theming](/docs/theming/) — Customize your site's look
-- [Building](/docs/building/) — Configure builds and deployment
-
-
+This follows the [Diátaxis](https://diataxis.fr/) documentation framework.
+:::
