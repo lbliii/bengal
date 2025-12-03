@@ -25,28 +25,21 @@ Need to understand the concepts first? Start with [Tutorials](/docs/tutorials/).
 
 ## Available Recipes
 
-### Theming & Design
+### Theming & Templates
 
-Customize your site's appearance and user interface.
+Customize your site's appearance with templates, CSS, and JavaScript. **For themers.**
 
 | Recipe | Time | Description |
 |--------|------|-------------|
 | [Dark Mode Toggle](/docs/recipes/dark-mode/) | 10 min | Dark/light mode with persistence |
 | [Custom 404 Page](/docs/recipes/custom-404/) | 5 min | Branded error page |
 | [Syntax Highlighting](/docs/recipes/syntax-highlighting/) | 5 min | Code block themes |
-
-### Content Enhancements
-
-Add features that enhance content display and navigation.
-
-| Recipe | Time | Description |
-|--------|------|-------------|
 | [Table of Contents](/docs/recipes/table-of-contents/) | 10 min | Auto-generated TOC sidebar |
-| [Reading Time](/docs/recipes/reading-time/) | 5 min | Estimated reading time |
+| [Reading Time](/docs/recipes/reading-time/) | 5 min | Estimated reading time display |
 
-### Third-Party Integrations
+### Integrations
 
-Connect your site to external services and outputs.
+Connect your site to external services and outputs. **For site owners.**
 
 | Recipe | Time | Description |
 |--------|------|-------------|
