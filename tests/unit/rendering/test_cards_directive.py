@@ -383,3 +383,240 @@ Content
 
         # Should not have a color class
         assert "card-color-notacolor" not in result
+
+
+class TestCardLayoutOption:
+    """Test the :layout: option for cards."""
+
+    def test_grid_layout_horizontal(self):
+        """Test horizontal layout on cards grid."""
+        parser = MistuneParser()
+
+        content = """
+:::{cards}
+:layout: horizontal
+
+:::{card} Card One
+Content
+:::
+::::
+"""
+        result = parser.parse(content, {})
+
+        assert 'data-layout="horizontal"' in result
+
+    def test_grid_layout_portrait(self):
+        """Test portrait layout on cards grid."""
+        parser = MistuneParser()
+
+        content = """
+:::{cards}
+:layout: portrait
+:columns: 3
+
+:::{card} Card One
+Content
+:::
+::::
+"""
+        result = parser.parse(content, {})
+
+        assert 'data-layout="portrait"' in result
+
+    def test_grid_layout_compact(self):
+        """Test compact layout on cards grid."""
+        parser = MistuneParser()
+
+        content = """
+:::{cards}
+:layout: compact
+
+:::{card} Card One
+Content
+:::
+::::
+"""
+        result = parser.parse(content, {})
+
+        assert 'data-layout="compact"' in result
+
+    def test_grid_layout_default(self):
+        """Test default layout on cards grid."""
+        parser = MistuneParser()
+
+        content = """
+:::{cards}
+
+:::{card} Card One
+Content
+:::
+::::
+"""
+        result = parser.parse(content, {})
+
+        assert 'data-layout="default"' in result
+
+    def test_card_layout_override(self):
+        """Test individual card can override grid layout."""
+        parser = MistuneParser()
+
+        content = """
+:::{cards}
+:layout: default
+
+:::{card} Normal Card
+Normal content
+:::
+
+:::{card} Horizontal Card
+:layout: horizontal
+
+Horizontal content
+:::
+::::
+"""
+        result = parser.parse(content, {})
+
+        # Grid has default layout
+        assert 'data-layout="default"' in result
+        # Individual card has horizontal layout class
+        assert "card-layout-horizontal" in result
+
+    def test_invalid_layout_defaults(self):
+        """Test that invalid layout defaults to default."""
+        parser = MistuneParser()
+
+        content = """
+:::{cards}
+:layout: notvalid
+
+:::{card} Card
+Content
+:::
+::::
+"""
+        result = parser.parse(content, {})
+
+        assert 'data-layout="default"' in result
+
+
+class TestCardPullOption:
+    """Test the :pull: option for fetching metadata from linked pages."""
+
+    def test_pull_option_parsed(self):
+        """Test that pull option is parsed correctly."""
+        parser = MistuneParser()
+
+        content = """
+:::{cards}
+:::{card}
+:link: docs/quickstart
+:pull: title, description
+
+Fallback content
+:::
+::::
+"""
+        result = parser.parse(content, {})
+
+        # Card should render (pull gracefully degrades without xref_index)
+        assert "card" in result
+        # Link should be used (as-is since no xref_index to resolve)
+        assert 'href="docs/quickstart"' in result
+
+    def test_pull_with_fallback_title(self):
+        """Test that provided title is used when pull fails."""
+        parser = MistuneParser()
+
+        content = """
+:::{cards}
+:::{card} My Custom Title
+:link: docs/nonexistent
+:pull: title
+
+Fallback description
+:::
+::::
+"""
+        result = parser.parse(content, {})
+
+        # Should use provided title since no xref_index
+        assert "My Custom Title" in result
+
+    def test_pull_multiple_fields(self):
+        """Test pull with multiple fields specified."""
+        parser = MistuneParser()
+
+        content = """
+:::{cards}
+:::{card} Title
+:link: id:my-page
+:pull: title, description, icon
+
+Content
+:::
+::::
+"""
+        result = parser.parse(content, {})
+
+        # Should render without error
+        assert "card" in result
+        # id: prefix in link should work
+        assert "id:my-page" in result or 'href' in result
+
+    def test_pull_empty_fields(self):
+        """Test pull with empty field list."""
+        parser = MistuneParser()
+
+        content = """
+:::{cards}
+:::{card} Title
+:link: /docs/
+:pull:
+
+Content only
+:::
+::::
+"""
+        result = parser.parse(content, {})
+
+        # Should render normally
+        assert "Title" in result
+        assert "Content only" in result
+
+
+class TestLayoutAndPullCombined:
+    """Test combining layout and pull options."""
+
+    def test_all_new_options_together(self):
+        """Test layout and pull together."""
+        parser = MistuneParser()
+
+        content = """
+:::{cards}
+:layout: horizontal
+:columns: 2
+
+:::{card}
+:link: docs/getting-started
+:pull: title, description
+:layout: portrait
+
+Optional fallback
+:::
+
+:::{card} Manual Card
+:color: blue
+
+Manual content
+:::
+::::
+"""
+        result = parser.parse(content, {})
+
+        # Grid has horizontal layout
+        assert 'data-layout="horizontal"' in result
+        # First card has portrait override
+        assert "card-layout-portrait" in result
+        # Second card has color
+        assert "card-color-blue" in result

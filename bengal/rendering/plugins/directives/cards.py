@@ -9,6 +9,7 @@ Syntax:
     :gap: medium
     :style: default
     :variant: navigation  # or "info", "concept" for non-interactive use
+    :layout: default  # or "horizontal", "portrait", "compact"
 
     :::{card} Card Title
     :icon: book
@@ -16,6 +17,8 @@ Syntax:
     :color: blue
     :image: /hero.jpg
     :footer: Updated 2025
+    :pull: title, description  # Auto-fetch from linked page
+    :layout: horizontal  # Override grid layout for this card
 
     Card content with **full markdown** support.
     :::
@@ -38,6 +41,23 @@ Examples:
     :::{card} Card 2
     :::
     ::::
+
+    # Auto-pull metadata from linked pages
+    :::{cards}
+    :::{card}
+    :link: docs/quickstart
+    :pull: title, description
+    :::
+    ::::
+
+    # Portrait layout (TCG/phone style)
+    :::{cards}
+    :layout: portrait
+    :columns: 3
+    :::{card} Card 1
+    :image: /hero.png
+    :::
+    ::::
 """
 
 from __future__ import annotations
@@ -47,6 +67,10 @@ from typing import Any
 
 from mistune.directives import DirectivePlugin
 
+from bengal.utils.logger import get_logger
+
+logger = get_logger(__name__)
+
 __all__ = [
     "CardDirective",
     "CardsDirective",
@@ -55,6 +79,9 @@ __all__ = [
     "render_card",
     "render_cards_grid",
 ]
+
+# Valid layout options
+VALID_LAYOUTS = ("default", "horizontal", "portrait", "compact")
 
 
 class CardsDirective(DirectivePlugin):
@@ -102,6 +129,11 @@ class CardsDirective(DirectivePlugin):
         # Get variant option (e.g. "info", "concept" vs default "navigation")
         variant = options.get("variant", "navigation")
 
+        # Get layout option (default, horizontal, portrait, compact)
+        layout = options.get("layout", "default")
+        if layout not in VALID_LAYOUTS:
+            layout = "default"
+
         return {
             "type": "cards_grid",
             "attrs": {
@@ -109,6 +141,7 @@ class CardsDirective(DirectivePlugin):
                 "gap": gap,
                 "style": style,
                 "variant": variant,
+                "layout": layout,
             },
             "children": children,
         }
@@ -228,6 +261,15 @@ class CardDirective(DirectivePlugin):
         if color and color not in valid_colors:
             color = ""
 
+        # Parse pull option (comma-separated list of fields to pull from linked page)
+        pull_str = options.get("pull", "")
+        pull_fields = [f.strip() for f in pull_str.split(",") if f.strip()]
+
+        # Get layout option (can override grid-level layout)
+        layout = options.get("layout", "")
+        if layout and layout not in VALID_LAYOUTS:
+            layout = ""
+
         return {
             "type": "card",
             "attrs": {
@@ -237,6 +279,8 @@ class CardDirective(DirectivePlugin):
                 "color": color,
                 "image": image,
                 "footer": footer,
+                "pull": pull_fields,
+                "layout": layout,
             },
             "children": children,
         }
@@ -505,7 +549,7 @@ def render_cards_grid(renderer, text: str, **attrs) -> str:
     Args:
         renderer: Mistune renderer
         text: Rendered children (cards)
-        attrs: Grid attributes (columns, gap, style)
+        attrs: Grid attributes (columns, gap, style, variant, layout)
 
     Returns:
         HTML string for card grid
@@ -514,6 +558,7 @@ def render_cards_grid(renderer, text: str, **attrs) -> str:
     gap = attrs.get("gap", "medium")
     style = attrs.get("style", "default")
     variant = attrs.get("variant", "navigation")
+    layout = attrs.get("layout", "default")
 
     # Build data attributes for CSS
     html = (
@@ -521,7 +566,8 @@ def render_cards_grid(renderer, text: str, **attrs) -> str:
         f'data-columns="{columns}" '
         f'data-gap="{gap}" '
         f'data-style="{style}" '
-        f'data-variant="{variant}">\n'
+        f'data-variant="{variant}" '
+        f'data-layout="{layout}">\n'
         f"{text}"
         f"</div>\n"
     )
@@ -532,10 +578,14 @@ def render_card(renderer, text: str, **attrs) -> str:
     """
     Render individual card to HTML.
 
+    Supports pulling metadata from linked pages via the :pull: option.
+    When pull fields are specified and a link is provided, metadata is
+    fetched from the linked page via xref_index (O(1) lookup).
+
     Args:
         renderer: Mistune renderer
         text: Rendered card content
-        attrs: Card attributes (title, icon, link, color, image, footer)
+        attrs: Card attributes (title, icon, link, color, image, footer, pull, layout)
 
     Returns:
         HTML string for card
@@ -546,11 +596,29 @@ def render_card(renderer, text: str, **attrs) -> str:
     color = attrs.get("color", "")
     image = attrs.get("image", "")
     footer = attrs.get("footer", "")
+    pull_fields = attrs.get("pull", [])
+    layout = attrs.get("layout", "")
+
+    # Pull metadata from linked page if requested
+    if link and pull_fields:
+        pulled = _pull_from_linked_page(renderer, link, pull_fields)
+        # Pulled values fill in missing/empty attrs
+        if "title" in pull_fields and not title:
+            title = pulled.get("title", "")
+        if "description" in pull_fields and not text.strip():
+            text = f"<p>{_escape_html(pulled.get('description', ''))}</p>"
+        if "icon" in pull_fields and not icon:
+            icon = pulled.get("icon", "")
+        if "image" in pull_fields and not image:
+            image = pulled.get("image", "")
+
+    # Resolve link URL if it's a reference (id:xxx or path)
+    resolved_link = _resolve_link_url(renderer, link) if link else ""
 
     # Card wrapper (either <a> or <div>)
-    if link:
+    if resolved_link:
         card_tag = "a"
-        card_attrs_str = f' href="{_escape_html(link)}"'
+        card_attrs_str = f' href="{_escape_html(resolved_link)}"'
     else:
         card_tag = "div"
         card_attrs_str = ""
@@ -559,6 +627,8 @@ def render_card(renderer, text: str, **attrs) -> str:
     classes = ["card"]
     if color:
         classes.append(f"card-color-{color}")
+    if layout:
+        classes.append(f"card-layout-{layout}")
 
     class_str = " ".join(classes)
 
@@ -603,6 +673,124 @@ def render_card(renderer, text: str, **attrs) -> str:
     parts.append(f"</{card_tag}>")
 
     return "\n".join(parts) + "\n"
+
+
+def _pull_from_linked_page(renderer, link: str, fields: list[str]) -> dict[str, Any]:
+    """
+    Pull metadata from a linked page via xref_index.
+
+    Supports three lookup strategies (same as cross-references):
+    - id:xxx - Custom ID from frontmatter
+    - path/to/page - Path relative to content/
+    - slug - URL slug
+
+    Args:
+        renderer: Mistune renderer (may have _xref_index attribute)
+        link: Link string (id:xxx, path, or slug)
+        fields: List of field names to pull
+
+    Returns:
+        Dict of pulled field values (empty dict if page not found)
+    """
+    # Get xref_index from renderer (set during markdown parsing)
+    xref_index = getattr(renderer, "_xref_index", None)
+    if not xref_index:
+        logger.debug("pull_no_xref_index", link=link)
+        return {}
+
+    # Resolve page using existing strategies
+    page = _resolve_page(xref_index, link)
+    if not page:
+        logger.debug("pull_page_not_found", link=link)
+        return {}
+
+    # Extract requested fields
+    result: dict[str, Any] = {}
+    for field in fields:
+        if field == "title":
+            result["title"] = getattr(page, "title", "")
+        elif field == "description":
+            result["description"] = page.metadata.get("description", "") if hasattr(page, "metadata") else ""
+        elif field == "date":
+            result["date"] = getattr(page, "date", None)
+        elif field == "tags":
+            result["tags"] = getattr(page, "tags", [])
+        elif field == "icon":
+            result["icon"] = page.metadata.get("icon", "") if hasattr(page, "metadata") else ""
+        elif field == "image":
+            result["image"] = page.metadata.get("image", "") if hasattr(page, "metadata") else ""
+        elif field == "estimated_time":
+            result["estimated_time"] = page.metadata.get("estimated_time", "") if hasattr(page, "metadata") else ""
+        elif field == "difficulty":
+            result["difficulty"] = page.metadata.get("difficulty", "") if hasattr(page, "metadata") else ""
+
+    logger.debug("pull_success", link=link, fields=list(result.keys()))
+    return result
+
+
+def _resolve_page(xref_index: dict, link: str):
+    """
+    Resolve a link to a page object via xref_index.
+
+    Args:
+        xref_index: Cross-reference index with by_id, by_path, by_slug
+        link: Link string
+
+    Returns:
+        Page object or None
+    """
+    # Strategy 1: Custom ID (id:xxx)
+    if link.startswith("id:"):
+        ref_id = link[3:]
+        return xref_index.get("by_id", {}).get(ref_id)
+
+    # Strategy 2: Path lookup (contains / or ends with .md)
+    if "/" in link or link.endswith(".md"):
+        clean_path = link.replace(".md", "").strip("/")
+        # Try exact path
+        page = xref_index.get("by_path", {}).get(clean_path)
+        if page:
+            return page
+        # Try without trailing _index
+        if clean_path.endswith("/_index"):
+            return xref_index.get("by_path", {}).get(clean_path[:-7])
+        return None
+
+    # Strategy 3: Slug lookup
+    pages = xref_index.get("by_slug", {}).get(link, [])
+    return pages[0] if pages else None
+
+
+def _resolve_link_url(renderer, link: str) -> str:
+    """
+    Resolve a link reference to a URL.
+
+    If link is an id: reference or path, resolve to actual URL.
+    If link is already a URL (starts with / or http), return as-is.
+
+    Args:
+        renderer: Mistune renderer
+        link: Link string
+
+    Returns:
+        Resolved URL string
+    """
+    # Already a URL
+    if link.startswith("/") or link.startswith("http://") or link.startswith("https://"):
+        return link
+
+    # Try to resolve via xref_index
+    xref_index = getattr(renderer, "_xref_index", None)
+    if not xref_index:
+        # Can't resolve, return as relative path
+        return link
+
+    page = _resolve_page(xref_index, link)
+    if page and hasattr(page, "url"):
+        return page.url
+
+    # Fallback: treat as relative path
+    return link
 
 
 def _render_icon(icon_name: str) -> str:

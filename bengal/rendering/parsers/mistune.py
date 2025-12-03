@@ -462,6 +462,8 @@ class MistuneParser(BaseMarkdownParser):
         Should be called after content discovery when xref_index is built.
         Creates CrossReferencePlugin for post-processing HTML output.
 
+        Also stores xref_index on the renderer for directive access (e.g., cards :pull:).
+
         Performance: O(1) - just stores reference to index
         Thread-safe: Each thread-local parser instance needs this called once
 
@@ -483,6 +485,9 @@ class MistuneParser(BaseMarkdownParser):
             # Already enabled, just update index
             if self._xref_plugin:
                 self._xref_plugin.xref_index = xref_index
+            # Also update renderer's reference
+            if self.md and self.md.renderer:
+                self.md.renderer._xref_index = xref_index
             return
 
         from bengal.rendering.plugins import CrossReferencePlugin
@@ -490,6 +495,11 @@ class MistuneParser(BaseMarkdownParser):
         # Create plugin instance (for post-processing HTML)
         self._xref_plugin = CrossReferencePlugin(xref_index)
         self._xref_enabled = True
+
+        # Store xref_index on renderer for directive access (e.g., cards :pull: option)
+        # This allows directives to resolve page references during rendering
+        if self.md and self.md.renderer:
+            self.md.renderer._xref_index = xref_index
 
     # =========================================================================
     # AST Support (Phase 3 of RFC)

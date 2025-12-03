@@ -487,6 +487,76 @@ class PageProxy:
         return self._full_page.draft if self._full_page else False
 
     # ============================================================================
+    # Visibility Properties - Page visibility controls
+    # ============================================================================
+
+    @property
+    def hidden(self) -> bool:
+        """Check if page is hidden (unlisted)."""
+        self._ensure_loaded()
+        return self._full_page.hidden if self._full_page else False
+
+    @property
+    def visibility(self) -> dict[str, Any]:
+        """Get visibility settings with defaults."""
+        self._ensure_loaded()
+        if self._full_page:
+            return self._full_page.visibility
+        # Fallback to permissive defaults
+        return {
+            "menu": True,
+            "listings": True,
+            "sitemap": True,
+            "robots": "index, follow",
+            "render": "always",
+            "search": True,
+            "rss": True,
+        }
+
+    @property
+    def in_listings(self) -> bool:
+        """Check if page should appear in listings/queries."""
+        self._ensure_loaded()
+        return self._full_page.in_listings if self._full_page else True
+
+    @property
+    def in_sitemap(self) -> bool:
+        """Check if page should appear in sitemap."""
+        self._ensure_loaded()
+        return self._full_page.in_sitemap if self._full_page else True
+
+    @property
+    def in_search(self) -> bool:
+        """Check if page should appear in search index."""
+        self._ensure_loaded()
+        return self._full_page.in_search if self._full_page else True
+
+    @property
+    def in_rss(self) -> bool:
+        """Check if page should appear in RSS feeds."""
+        self._ensure_loaded()
+        return self._full_page.in_rss if self._full_page else True
+
+    @property
+    def robots_meta(self) -> str:
+        """Get robots meta content for this page."""
+        self._ensure_loaded()
+        return self._full_page.robots_meta if self._full_page else "index, follow"
+
+    @property
+    def should_render(self) -> bool:
+        """Check if page should be rendered."""
+        self._ensure_loaded()
+        return self._full_page.should_render if self._full_page else True
+
+    def should_render_in_environment(self, is_production: bool = False) -> bool:
+        """Check if page should be rendered in the given environment."""
+        self._ensure_loaded()
+        if self._full_page:
+            return self._full_page.should_render_in_environment(is_production)
+        return True
+
+    # ============================================================================
     # Navigation Properties - Most work with cached metadata only
     # ============================================================================
 
