@@ -2,25 +2,19 @@
 title: Performance
 description: Optimize Bengal build performance
 weight: 30
-draft: false
-lang: en
-tags: [performance, optimization, speed]
-keywords: [performance, speed, incremental, parallel, cache]
 category: guide
 ---
 
-# Performance
+# Optimize Build Performance
 
-Speed up your Bengal builds with incremental building, parallel processing, and caching.
+Speed up Bengal with incremental builds, parallel processing, and smart caching.
 
-## Overview
+## Do I Need This?
 
-Bengal is designed for performance:
-
-- **Incremental builds** — Only rebuild changed content
-- **Parallel processing** — Multi-core rendering
-- **Smart caching** — Skip redundant work
-- **Lazy loading** — Load content on demand
+:::{note}
+**Skip this if**: Your site builds in under 10 seconds.  
+**Read this if**: You have 500+ pages or builds feel slow.
+:::
 
 ## Quick Wins
 
@@ -32,46 +26,43 @@ incremental = true
 cache = true
 ```
 
-## Incremental Builds
+These three settings handle most performance needs automatically.
 
-Only rebuild pages affected by changes:
+## How Builds Get Faster
 
-```bash
-# First build (full)
-bengal build
-
-# Subsequent builds (incremental)
-bengal build  # Automatically detects changes
+```mermaid
+flowchart LR
+    A[Change file.md] --> B{Changed?}
+    B -->|Yes| C[Rebuild page]
+    B -->|No| D[Skip]
+    C --> E[Cache result]
+    D --> F[Use cached]
+    E --> G[Output]
+    F --> G
 ```
 
-## Parallel Processing
+## Performance Strategies
 
-Use multiple CPU cores:
+| Strategy | Effort | Speedup | Best For |
+|----------|--------|---------|----------|
+| **Incremental** | Zero | 10-50x | Development |
+| **Parallel** | Zero | 2-8x | Large sites |
+| **Caching** | Zero | 5-20x | Repeated builds |
+| **Content splitting** | Medium | Variable | Very large sites |
 
-```toml
-[build]
-parallel = true
-workers = 4  # Or "auto" for CPU count
-```
-
-## Caching
-
-Bengal caches:
-
-- **Content parsing** — Markdown processing results
-- **Template compilation** — Compiled Jinja2 templates
-- **Asset processing** — Fingerprints and transformations
-
-Clear cache if needed:
+## Common Commands
 
 ```bash
+# Force full rebuild
+bengal build --no-incremental
+
+# Clear all caches
 bengal clean --cache
+
+# Profile build time
+bengal build --profile
 ```
 
-## In This Section
-
-- **[Incremental Builds](/docs/building/performance/incremental/)** — How incremental builds work
-- **[Parallel Processing](/docs/building/performance/parallel/)** — Multi-core configuration
-- **[Caching](/docs/building/performance/caching/)** — Cache system details
-
-
+:::{tip}
+**Development workflow**: Keep `bengal serve` running — it uses all optimizations automatically. Full builds are only needed for production.
+:::

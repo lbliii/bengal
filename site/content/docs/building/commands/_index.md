@@ -2,10 +2,6 @@
 title: CLI Commands
 description: CLI workflow guides for Bengal
 weight: 20
-draft: false
-lang: en
-tags: [cli, commands, workflow]
-keywords: [cli, commands, build, serve, validate]
 category: guide
 ---
 
@@ -13,25 +9,54 @@ category: guide
 
 Workflow guides for Bengal's command-line interface.
 
-## Overview
+## Essential Commands
 
-Bengal's CLI provides commands for:
-
-- **Building** — Generate your static site
-- **Serving** — Local development with live reload
-- **Creating** — Scaffold new projects and content
-- **Validating** — Check site health and content
-
-**Note**: These guides explain common workflows. For comprehensive flag references, see the [CLI Reference](/cli/).
+| Command | Purpose | When to Use |
+|---------|---------|-------------|
+| `bengal build` | Generate static site | Production builds |
+| `bengal serve` | Dev server with live reload | Local development |
+| `bengal new` | Scaffold projects/content | Starting new work |
+| `bengal validate` | Run health checks | Before deploying |
 
 ## Quick Reference
 
-| Command | Purpose |
-|---------|---------|
-| `bengal build` | Build site for production |
-| `bengal serve` | Start development server |
-| `bengal new` | Create new project or content |
-| `bengal validate` | Run health checks |
+::::{tab-set}
+:::{tab-item} Build
+```bash
+# Development build
+bengal build
+
+# Production build
+bengal build --environment production --strict
+
+# Clean and rebuild
+bengal build --clean
+```
+:::
+
+:::{tab-item} Serve
+```bash
+# Start dev server
+bengal serve
+
+# Custom port
+bengal serve --port 8080
+
+# Open browser automatically
+bengal serve --open
+```
+:::
+
+:::{tab-item} New
+```bash
+# New project
+bengal new site my-site
+
+# New page
+bengal new page "My Post" --section blog
+```
+:::
+::::
 
 ## Getting Help
 
@@ -44,11 +69,6 @@ bengal build --help
 bengal serve --help
 ```
 
-## In This Section
-
-- **[Build](/docs/building/commands/build/)** — Production build workflows
-- **[Serve](/docs/building/commands/serve/)** — Local development workflows
-- **[New](/docs/building/commands/new/)** — Scaffolding projects and content
-- **[Validate](/docs/building/commands/validate/)** — Running health checks
-
-
+:::{seealso}
+For comprehensive flag references, see the auto-generated [CLI Reference](/cli/).
+:::

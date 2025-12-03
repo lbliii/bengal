@@ -77,7 +77,7 @@ Helpful suggestion.
 :::
 
 :::{tab-item} Tabs
-````markdown
+```markdown
 ::::{tab-set}
 :::{tab-item} Python
 print("Hello")
@@ -86,7 +86,7 @@ print("Hello")
 console.log("Hello")
 :::
 ::::
-````
+```
 :::
 
 :::{tab-item} Cards

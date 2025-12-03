@@ -2,10 +2,6 @@
 title: Autodoc
 description: Automatic documentation generation
 weight: 10
-draft: false
-lang: en
-tags: [autodoc, api-docs, generation]
-keywords: [autodoc, api-docs, python, cli, openapi]
 category: guide
 ---
 
@@ -13,32 +9,73 @@ category: guide
 
 Generate documentation automatically from source code.
 
-## Overview
+## Do I Need This?
 
-Bengal's autodoc system extracts documentation from:
+:::{note}
+**Skip this if**: You write all documentation manually.  
+**Read this if**: You want API docs from Python docstrings, CLI help from commands, or API specs from OpenAPI.
+:::
 
-- **Python** — Docstrings, type hints, module structure
-- **CLI** — Command definitions, help text, arguments
-- **OpenAPI** — API specifications
+## Supported Sources
+
+```mermaid
+flowchart LR
+    subgraph Sources
+        A[Python Modules]
+        B[CLI Commands]
+        C[OpenAPI Specs]
+    end
+    
+    D[Autodoc Engine]
+    
+    subgraph Output
+        E[Markdown Pages]
+    end
+    
+    A --> D
+    B --> D
+    C --> D
+    D --> E
+```
 
 ## Quick Start
 
+::::{tab-set}
+:::{tab-item} Python
 ```bash
-# Generate Python API docs
 bengal autodoc python --source ./mypackage --output content/api/
+```
 
-# Generate CLI docs
+Extracts:
+- Module and class docstrings
+- Function signatures and type hints
+- Examples from docstrings
+:::
+
+:::{tab-item} CLI
+```bash
 bengal autodoc cli --source ./mypackage --output content/cli/
 ```
 
-## Python Autodoc
+Extracts:
+- Command descriptions
+- Argument documentation
+- Option flags and defaults
+:::
 
-Extracts from Python modules:
+:::{tab-item} OpenAPI
+```bash
+bengal autodoc openapi --source ./openapi.yaml --output content/api/
+```
 
-- Module docstrings
-- Class and method documentation
-- Type hints and signatures
-- Examples from docstrings
+Extracts:
+- Endpoint documentation
+- Request/response schemas
+- Authentication requirements
+:::
+::::
+
+## Configuration
 
 ```toml
 # bengal.toml
@@ -49,19 +86,6 @@ include_private = false
 include_dunder = false
 ```
 
-## CLI Autodoc
-
-Extracts from Click/Typer commands:
-
-- Command descriptions
-- Argument documentation
-- Option flags and defaults
-- Subcommand hierarchy
-
-## In This Section
-
-- **[Python](/docs/extending/autodoc/python/)** — Python API documentation
-- **[CLI](/docs/extending/autodoc/cli/)** — CLI reference documentation
-- **[OpenAPI](/docs/extending/autodoc/openapi/)** — API specification docs
-
-
+:::{tip}
+**Best practice**: Run autodoc in your CI pipeline to keep generated docs in sync with code changes.
+:::

@@ -2,55 +2,86 @@
 title: Building
 description: Build configuration, CLI usage, and deployment
 weight: 30
-draft: false
-lang: en
-tags: [building, deployment, cli, configuration]
-keywords: [building, deployment, cli, configuration, performance, ci-cd]
-category: guide
 cascade:
   type: doc
 ---
 
-# Building
+# Build & Deploy
 
-Configuration, CLI workflows, performance optimization, and deployment.
+Configure, build, optimize, and deploy your Bengal site.
 
-## Overview
+## What Do You Need?
 
-Bengal's build system provides:
+::::{cards}
+:columns: 2
+:gap: medium
 
-- **Flexible configuration** — `bengal.toml` with environment-specific overrides
-- **Powerful CLI** — Commands for building, serving, validating, and more
-- **High performance** — Incremental builds, parallel processing, and smart caching
-- **Easy deployment** — One-command deployment to popular platforms
+:::{card} ⚙️ Configuration
+:link: ./configuration/
+:color: blue
 
-## Quick Links
+Set up `bengal.toml`, environment overrides, and project settings.
+:::
+
+:::{card} 💻 Commands
+:link: ./commands/
+:color: green
+
+CLI workflows for building, serving, and validating your site.
+:::
+
+:::{card} ⚡ Performance
+:link: ./performance/
+:color: purple
+
+Incremental builds, parallel processing, and caching strategies.
+:::
+
+:::{card} 🚀 Deployment
+:link: ./deployment/
+:color: orange
+
+Deploy to GitHub Pages, Netlify, Vercel, and other platforms.
+:::
+::::
+
+## Build Pipeline
+
+```mermaid
+flowchart LR
+    subgraph Input
+        A[Content]
+        B[Config]
+        C[Theme]
+    end
+    
+    subgraph Build
+        D[Discovery]
+        E[Rendering]
+        F[Post-Process]
+    end
+    
+    subgraph Output
+        G[public/]
+    end
+    
+    A --> D
+    B --> D
+    C --> E
+    D --> E
+    E --> F
+    F --> G
+```
+
+## Quick Reference
 
 | I want to... | Go to... |
 |--------------|----------|
-| Configure my site | [Configuration](/docs/building/configuration/) |
-| Learn CLI workflows | [Commands](/docs/building/commands/) |
-| Speed up builds | [Performance](/docs/building/performance/) |
-| Deploy my site | [Deployment](/docs/building/deployment/) |
+| Configure my site | [Configuration](./configuration/) |
+| Build for production | [Commands](./commands/) |
+| Speed up builds | [Performance](./performance/) |
+| Deploy my site | [Deployment](./deployment/) |
 
-## Sections
-
-### [Configuration](/docs/building/configuration/)
-
-The `bengal.toml` configuration file — all options, environment-specific settings, and best practices.
-
-### [Commands](/docs/building/commands/)
-
-CLI workflow guides — build, serve, new, and validate commands with practical examples.
-
-**Note**: For comprehensive flag references, see the auto-generated [CLI Reference](/cli/).
-
-### [Performance](/docs/building/performance/)
-
-Speed up your builds — incremental builds, parallel processing, and caching strategies.
-
-### [Deployment](/docs/building/deployment/)
-
-Deploy to production — Netlify, Vercel, GitHub Pages, and general CI/CD patterns.
-
-
+:::{tip}
+**Quick start**: Run `bengal build` for production, `bengal serve` for development. Add `--environment production` for production builds with optimizations.
+:::

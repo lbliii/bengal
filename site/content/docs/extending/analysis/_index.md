@@ -2,68 +2,83 @@
 title: Analysis
 description: Site structure analysis tools
 weight: 20
-draft: false
-lang: en
-tags: [analysis, graph, links]
-keywords: [analysis, graph, pagerank, links, structure]
 category: guide
 ---
 
-# Analysis
+# Site Analysis
 
 Analyze your site's structure to improve navigation and discoverability.
 
-## Overview
+## Do I Need This?
 
-Bengal provides analysis tools for:
+:::{note}
+**Skip this if**: Your site has under 50 pages.  
+**Read this if**: You have a large site and want to optimize internal linking and find orphan pages.
+:::
 
-- **Graph analysis** — Visualize content relationships
-- **Link suggestions** — Find internal linking opportunities
-- **Page rank** — Identify important pages
-- **Path analysis** — Understand user journeys
+## Analysis Tools
+
+```mermaid
+flowchart LR
+    A[Your Site] --> B[Analysis Engine]
+    
+    subgraph Outputs
+        C[Graph Visualization]
+        D[Link Suggestions]
+        E[Page Rankings]
+    end
+    
+    B --> C
+    B --> D
+    B --> E
+```
 
 ## Quick Start
 
-```bash
-# Analyze site structure
-bengal analyze graph
-
-# Get link suggestions
-bengal analyze links --suggestions
-
-# Calculate page importance
-bengal analyze pagerank
-```
-
-## Graph Analysis
-
-Visualize how your content connects:
-
+::::{tab-set}
+:::{tab-item} Graph
 ```bash
 bengal analyze graph --output graph.html
 ```
 
-Identifies:
+Visualizes:
+- Page connections
 - Orphan pages (no incoming links)
 - Hub pages (many connections)
 - Content clusters
+:::
 
-## Link Suggestions
-
-Find pages that should link to each other:
-
+:::{tab-item} Links
 ```bash
 bengal analyze links --suggestions --min-score 0.7
 ```
 
-Based on:
+Suggests links based on:
 - Content similarity
 - Taxonomy overlap
 - Structural proximity
+:::
 
-## In This Section
+:::{tab-item} PageRank
+```bash
+bengal analyze pagerank
+```
 
-- **[Graph Analysis](/docs/extending/analysis/graph/)** — Content relationship visualization
-- **[Link Suggestions](/docs/extending/analysis/link-suggestions/)** — Internal linking opportunities
+Identifies:
+- Most important pages
+- Underlinked valuable content
+- Navigation priorities
+:::
+::::
 
+## Use Cases
 
+| Goal | Command | Output |
+|------|---------|--------|
+| Find orphan pages | `bengal analyze graph` | Pages with no incoming links |
+| Improve internal linking | `bengal analyze links` | Suggested link additions |
+| Identify key content | `bengal analyze pagerank` | Pages ranked by importance |
+
+:::{tip}
+**Start with graph analysis** to visualize your site structure. The visual output often reveals issues that metrics alone miss.
+:::

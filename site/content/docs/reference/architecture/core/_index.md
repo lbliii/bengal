@@ -1,24 +1,51 @@
 ---
 title: Core Architecture
-description: The brain of Bengal - data models, build coordination, and core principles.
+description: Data models, build coordination, and core principles
 weight: 10
-type: doc
-category: core
-tags: [core, architecture, data-models, orchestration, design-principles]
-keywords: [core, architecture, data models, orchestration, design principles, site, page, section]
 cascade:
   type: doc
 ---
 
 # Core Architecture
 
-The core module contains the foundational data models and build coordination logic.
+The brain of Bengal — foundational data models and build coordination.
 
-## In This Section
+## Data Model Overview
 
-- **[Object Model](object-model/)**: Site, Page, Section, and Asset models.
-- **[Orchestration](orchestration/)**: How the build process is coordinated.
-- **[Data Flow](data-flow/)**: How data moves through the system.
-- **[Cache System](cache/)**: Incremental build infrastructure.
-- **[Content Strategies](content-types/)**: Handling different types of content.
-- **[Design Principles](../design-principles/)**: Core patterns (No "God Objects", etc.).
+```mermaid
+graph TB
+    subgraph "Core Objects"
+        Site[Site]
+        Page[Page]
+        Section[Section]
+        Asset[Asset]
+    end
+    
+    Site --> Section
+    Site --> Page
+    Site --> Asset
+    Section --> Page
+    Section --> Section
+    Page --> Asset
+```
+
+## Key Components
+
+| Component | Responsibility | Module |
+|-----------|----------------|--------|
+| **Site** | Central container, holds all content | `bengal/core/site.py` |
+| **Page** | Single content page with metadata | `bengal/core/page/` |
+| **Section** | Directory container, holds children | `bengal/core/section.py` |
+| **Asset** | Static file with processing metadata | `bengal/core/asset.py` |
+
+## Design Principles
+
+- **No God Objects**: Each class has single responsibility
+- **Passive Core**: Data models don't perform I/O
+- **Composition over Inheritance**: BuildContext passes services
+- **Immutable Where Possible**: Minimize side effects
+
+:::{seealso}
+- [Design Principles](../design-principles/) — Full architectural guidelines
+- [Orchestration](orchestration/) — How builds are coordinated
+:::

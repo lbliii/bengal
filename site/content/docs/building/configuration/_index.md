@@ -2,26 +2,35 @@
 title: Configuration
 description: Configuring Bengal with bengal.toml
 weight: 10
-draft: false
-lang: en
-tags: [configuration, settings]
-keywords: [configuration, bengal.toml, settings, options]
 category: guide
 ---
 
 # Configuration
 
-Configure Bengal using the `bengal.toml` configuration file.
+Control Bengal's behavior through `bengal.toml` and environment-specific settings.
 
-## Overview
+## Configuration Methods
 
-Bengal uses TOML for configuration, with support for:
+```mermaid
+flowchart TB
+    subgraph "Configuration Sources"
+        A[bengal.toml]
+        B[config/ directory]
+        C[environment overrides]
+        D[CLI flags]
+    end
+    
+    E[Final Config]
+    
+    A --> E
+    B --> E
+    C --> E
+    D --> E
+```
 
-- **Single file** — `bengal.toml` in project root
-- **Directory-based** — `config/` with modular files
-- **Environment overrides** — Different settings per environment
+Settings merge in order: `bengal.toml` → `config/` → environment → CLI flags.
 
-## Basic Configuration
+## Quick Start
 
 ```toml
 # bengal.toml
@@ -29,7 +38,6 @@ Bengal uses TOML for configuration, with support for:
 title = "My Site"
 base_url = "https://example.com"
 language = "en"
-description = "A Bengal-powered site"
 
 [build]
 output_dir = "public"
@@ -39,9 +47,27 @@ clean = true
 name = "default"
 ```
 
-## Directory-Based Configuration
+## Configuration Patterns
 
-For larger sites, split configuration:
+::::{tab-set}
+:::{tab-item} Single File
+Best for small sites:
+
+```toml
+# bengal.toml - everything in one place
+[site]
+title = "My Blog"
+
+[build]
+output_dir = "public"
+
+[theme]
+name = "default"
+```
+:::
+
+:::{tab-item} Directory-Based
+Best for larger sites:
 
 ```
 config/
@@ -53,10 +79,18 @@ config/
     ├── production.yaml
     └── staging.yaml
 ```
+:::
+::::
 
-## Environment-Specific Settings
+## Environment Overrides
 
-```toml
+Run with different settings per environment:
+
+```bash
+bengal build --environment production
+```
+
+```yaml
 # config/environments/production.yaml
 site:
   base_url: "https://example.com"
@@ -66,15 +100,6 @@ build:
   fingerprint: true
 ```
 
-Run with:
-
-```bash
-bengal build --environment production
-```
-
-## In This Section
-
-- **[Options Reference](/docs/building/configuration/options/)** — All configuration options
-- **[Environments](/docs/building/configuration/environments/)** — Environment-specific configuration
-
-
+:::{tip}
+**Best practice**: Keep development settings in `bengal.toml`, add production overrides in `config/environments/production.yaml`.
+:::

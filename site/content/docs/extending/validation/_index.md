@@ -2,69 +2,97 @@
 title: Validation
 description: Content validation and health checks
 weight: 30
-draft: false
-lang: en
-tags: [validation, health, checks]
-keywords: [validation, health, checks, autofix, quality]
 category: guide
 ---
 
-# Validation
+# Content Validation
 
 Ensure content quality with health checks and automatic fixes.
 
-## Overview
+## Do I Need This?
 
-Bengal's validation system provides:
+:::{note}
+**Skip this if**: You manually check all links and content.  
+**Read this if**: You want automated quality assurance and CI/CD integration.
+:::
 
-- **Built-in checks** — Links, images, frontmatter, structure
-- **Auto-fix** — Automatically repair common issues
-- **Custom validators** — Add your own rules
-- **CI integration** — Fail builds on errors
+## Validation Flow
+
+```mermaid
+flowchart LR
+    A[Content] --> B[Validators]
+    B --> C{Issues?}
+    C -->|Yes| D[Report]
+    C -->|No| E[Pass]
+    D --> F{Auto-fixable?}
+    F -->|Yes| G[Auto-fix]
+    F -->|No| H[Manual fix needed]
+```
 
 ## Quick Start
 
+::::{tab-set}
+:::{tab-item} Validate
 ```bash
-# Run all health checks
+# Run all checks
 bengal validate
 
-# Check specific aspects
+# Specific checks
 bengal validate --links
 bengal validate --frontmatter
 bengal validate --images
+```
+:::
 
-# Auto-fix issues
+:::{tab-item} Auto-fix
+```bash
+# Preview fixes
+bengal fix --dry-run
+
+# Apply fixes
 bengal fix
 ```
 
-## Built-in Checks
-
-| Check | Description |
-|-------|-------------|
-| `links` | Verify internal and external links |
-| `images` | Check image references exist |
-| `frontmatter` | Validate required fields |
-| `structure` | Check content organization |
-| `spelling` | Basic spell checking |
-
-## Auto-Fix
-
-Bengal can automatically fix:
-
+Fixes:
 - Missing frontmatter fields
 - Broken relative links
 - Incorrect slugs
-- Common formatting issues
+:::
 
+:::{tab-item} CI/CD
 ```bash
-bengal fix --dry-run  # Preview changes
-bengal fix            # Apply fixes
+# Fail build on issues
+bengal build --strict
 ```
 
-## In This Section
+The `--strict` flag makes warnings into errors.
+:::
+::::
 
-- **[Health Checks](/docs/extending/validation/health-checks/)** — Built-in validation rules
-- **[Auto-Fix](/docs/extending/validation/autofix/)** — Automatic issue repair
-- **[Custom Validators](/docs/extending/validation/custom-validators/)** — Create your own rules
+## Built-in Checks
 
+| Check | What it validates |
+|-------|-------------------|
+| `links` | Internal and external links work |
+| `images` | Image references exist |
+| `frontmatter` | Required fields present |
+| `structure` | Content organization correct |
+| `spelling` | Basic spell checking |
 
+## Custom Validators
+
+Create project-specific rules:
+
+```python
+# validators/custom.py
+from bengal.health import Validator
+
+class RequireAuthor(Validator):
+    def validate(self, page):
+        if not page.frontmatter.get("author"):
+            return self.error("Missing author field")
+```
+
+:::{tip}
+**CI integration**: Add `bengal validate` to your CI pipeline with `--strict` to catch issues before deployment.
+:::
