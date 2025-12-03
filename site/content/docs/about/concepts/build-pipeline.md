@@ -76,3 +76,30 @@ Bengal's incremental build system relies on **Change Detection** and **Dependenc
 ## Memory Optimization
 
 For massive sites (>10,000 pages), Bengal offers a `--memory-optimized` flag. This uses a **Streaming Orchestrator** to process pages in batches, keeping memory usage constant rather than linear to site size.
+
+## Reactive Dataflow Pipeline
+
+Bengal also provides a **Reactive Dataflow Pipeline** for declarative, stream-based builds:
+
+```python
+from bengal.pipeline import Pipeline
+
+pipeline = (
+    Pipeline("build")
+    .source("files", discover_files)
+    .map("parse", parse_markdown)
+    .parallel(workers=4)
+    .for_each("write", write_output)
+)
+
+result = pipeline.run()
+```
+
+Key benefits:
+
+*   **Declarative**: Define what, not how
+*   **Automatic Caching**: Version-based cache invalidation
+*   **Watch Mode**: Built-in file watching with debouncing
+*   **Composable**: Chain operations fluently
+
+See [Reactive Pipeline Architecture](/docs/reference/architecture/core/pipeline/) for details.

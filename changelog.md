@@ -1,6 +1,6 @@
 ## Unreleased
 
-### Reactive Dataflow Pipeline (Phase 1-4)
+### Reactive Dataflow Pipeline ✅
 - **pipeline(core)**: add `StreamKey`, `StreamItem[T]`, and abstract `Stream[T]` base class for reactive streams
 - **pipeline(streams)**: add concrete stream implementations: `SourceStream`, `MapStream`, `FilterStream`, `FlatMapStream`, `CollectStream`, `CombineStream`, `ParallelStream`, `CachedStream`
 - **pipeline(builder)**: add `Pipeline` fluent builder API and `PipelineResult` metrics dataclass
@@ -14,6 +14,8 @@
 - **pipeline(watcher)**: add `FileWatcher` for file change detection with debouncing
 - **pipeline(watcher)**: add `WatchEvent`, `WatchBatch`, `ChangeType` for change batching
 - **pipeline(watcher)**: add `PipelineWatcher` for pipeline-based incremental rebuilds in watch mode
+- **docs**: add reactive dataflow pipeline architecture documentation
+- **docs**: update build pipeline concepts with reactive pipeline section
 
 ### Content Layer API (Remote Content Sources)
 - **content_layer**: add unified content abstraction for fetching from any source (local, GitHub, REST APIs, Notion)
