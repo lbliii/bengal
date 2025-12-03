@@ -12,14 +12,25 @@ Syntax:
     :::{glossary}
     :tags: admonitions
     :sorted: true
+    :collapsed: true
+    :limit: 3
     :::
 
 The directive loads terms from data/glossary.yaml and renders matching
 terms as a styled definition list.
+
+Options:
+    - tags: Comma-separated list of tags to filter terms (required)
+    - sorted: Sort terms alphabetically (default: false)
+    - show-tags: Display tag badges under each term (default: false)
+    - collapsed: Wrap glossary in collapsible <details> element (default: false)
+    - limit: Show only first N terms, with "Show all" to expand (default: all)
+    - source: Custom glossary file path (default: data/glossary.yaml)
 """
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from re import Match
 from typing import Any
@@ -46,12 +57,16 @@ class GlossaryDirective(DirectivePlugin):
         :tags: tag1, tag2
         :sorted: true
         :show-tags: true
+        :collapsed: true
+        :limit: 3
         :::
 
     Options:
         - tags: Comma-separated list of tags to filter terms (required)
         - sorted: Sort terms alphabetically (default: false, preserves file order)
         - show-tags: Display tag badges under each term (default: false)
+        - collapsed: Wrap in collapsible <details> element (default: false)
+        - limit: Show only first N terms with "Show all" expansion (default: all)
         - source: Custom glossary file path (default: data/glossary.yaml)
     """
 
@@ -94,6 +109,8 @@ class GlossaryDirective(DirectivePlugin):
         # Parse other options
         sorted_terms = self._parse_bool(options.get("sorted", "false"))
         show_tags = self._parse_bool(options.get("show-tags", "false"))
+        collapsed = self._parse_bool(options.get("collapsed", "false"))
+        limit = self._parse_int(options.get("limit", "0"))  # 0 = show all
         source_path = options.get("source", DEFAULT_GLOSSARY_PATH)
 
         # Load glossary data
@@ -135,6 +152,8 @@ class GlossaryDirective(DirectivePlugin):
             "tags": tags,
             "sorted": sorted_terms,
             "show_tags": show_tags,
+            "collapsed": collapsed,
+            "limit": limit,
             "source": source_path,
         }
 
@@ -214,6 +233,15 @@ class GlossaryDirective(DirectivePlugin):
             return value
         return str(value).lower() in ("true", "1", "yes", "on")
 
+    def _parse_int(self, value: str | int) -> int:
+        """Parse integer option value, returns 0 on invalid input."""
+        if isinstance(value, int):
+            return value
+        try:
+            return int(str(value).strip())
+        except (ValueError, TypeError):
+            return 0
+
     def __call__(self, directive: Any, md: Any) -> Any:
         """Register the directive and renderer."""
         directive.register("glossary", self.parse)
@@ -225,6 +253,9 @@ class GlossaryDirective(DirectivePlugin):
 def render_glossary(renderer: Any, text: str, **attrs: Any) -> str:
     """
     Render glossary to HTML as a definition list.
+
+    Supports inline markdown in definitions (backticks for code, bold, italic).
+    Can be collapsed and/or limited to first N terms.
 
     Args:
         renderer: Mistune renderer
@@ -245,34 +276,116 @@ def render_glossary(renderer: Any, text: str, **attrs: Any) -> str:
 
     terms = attrs["terms"]
     show_tags = attrs.get("show_tags", False)
+    collapsed = attrs.get("collapsed", False)
+    limit = attrs.get("limit", 0)
 
-    # Build definition list
+    total_terms = len(terms)
+    has_limit = limit > 0 and limit < total_terms
+    visible_terms = terms[:limit] if has_limit else terms
+    hidden_terms = terms[limit:] if has_limit else []
+
+    # Build definition list for visible terms
     html_parts = ['<dl class="bengal-glossary">']
 
-    for term_data in terms:
-        term = term_data.get("term", "Unknown Term")
-        definition = term_data.get("definition", "No definition provided.")
-        term_tags = term_data.get("tags", [])
-
-        # Term (dt)
-        html_parts.append(f"  <dt>{_escape_html(term)}</dt>")
-
-        # Definition (dd)
-        dd_content = _escape_html(definition)
-
-        # Optionally show tags
-        if show_tags and term_tags:
-            tag_badges = " ".join(
-                f'<span class="bengal-glossary-tag">{_escape_html(t)}</span>'
-                for t in term_tags
-            )
-            dd_content += f'<div class="bengal-glossary-tags">{tag_badges}</div>'
-
-        html_parts.append(f"  <dd>{dd_content}</dd>")
+    for term_data in visible_terms:
+        html_parts.append(_render_term(renderer, term_data, show_tags))
 
     html_parts.append("</dl>")
 
-    return "\n".join(html_parts)
+    # Add hidden terms in expandable section if limit was applied
+    if hidden_terms:
+        html_parts.append(
+            f'<details class="bengal-glossary-more">'
+            f'<summary>Show {len(hidden_terms)} more term{"s" if len(hidden_terms) > 1 else ""}</summary>'
+        )
+        html_parts.append('<dl class="bengal-glossary bengal-glossary-expanded">')
+        for term_data in hidden_terms:
+            html_parts.append(_render_term(renderer, term_data, show_tags))
+        html_parts.append("</dl>")
+        html_parts.append("</details>")
+
+    content = "\n".join(html_parts)
+
+    # Wrap in collapsible <details> if requested
+    if collapsed:
+        summary_text = f"Key Terms ({total_terms})"
+        return (
+            f'<details class="bengal-glossary-collapsed">\n'
+            f"<summary>{summary_text}</summary>\n"
+            f"{content}\n"
+            f"</details>"
+        )
+
+    return content
+
+
+def _render_term(renderer: Any, term_data: dict, show_tags: bool) -> str:
+    """Render a single glossary term as dt/dd pair."""
+    term = term_data.get("term", "Unknown Term")
+    definition = term_data.get("definition", "No definition provided.")
+    term_tags = term_data.get("tags", [])
+
+    parts = []
+
+    # Term (dt) - escape HTML but don't parse markdown
+    parts.append(f"  <dt>{_escape_html(term)}</dt>")
+
+    # Definition (dd) - parse inline markdown
+    dd_content = _parse_inline_markdown(renderer, definition)
+
+    # Optionally show tags
+    if show_tags and term_tags:
+        tag_badges = " ".join(
+            f'<span class="bengal-glossary-tag">{_escape_html(t)}</span>'
+            for t in term_tags
+        )
+        dd_content += f'<div class="bengal-glossary-tags">{tag_badges}</div>'
+
+    parts.append(f"  <dd>{dd_content}</dd>")
+
+    return "\n".join(parts)
+
+
+def _parse_inline_markdown(renderer: Any, text: str) -> str:
+    """
+    Parse inline markdown in glossary definitions.
+
+    Tries to use mistune's inline parser first (proper way),
+    falls back to simple regex for basic markdown if not available.
+
+    Args:
+        renderer: Mistune renderer instance
+        text: Text to parse
+
+    Returns:
+        HTML string with inline markdown converted
+    """
+    # Try to use mistune's inline parser (proper way)
+    if hasattr(renderer, "_md"):
+        md_instance = renderer._md
+        if hasattr(md_instance, "inline"):
+            try:
+                return md_instance.inline(text)
+            except Exception:
+                pass
+    elif hasattr(renderer, "md"):
+        md_instance = renderer.md
+        if hasattr(md_instance, "inline"):
+            try:
+                return md_instance.inline(text)
+            except Exception:
+                pass
+
+    # Fallback to simple regex for basic markdown
+    # First escape HTML to prevent XSS
+    text = _escape_html(text)
+    # **bold** -> <strong>bold</strong>
+    text = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", text)
+    # *italic* -> <em>italic</em> (but not if it's part of **bold**)
+    text = re.sub(r"(?<!\*)\*([^*]+?)\*(?!\*)", r"<em>\1</em>", text)
+    # `code` -> <code>code</code>
+    text = re.sub(r"`(.+?)`", r"<code>\1</code>", text)
+    return text
 
 
 def _escape_html(text: str) -> str:

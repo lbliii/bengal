@@ -7,6 +7,7 @@ as a single factory function for easy registration with Mistune.
 Also provides:
 - Directive caching for performance
 - Error handling and validation
+- KNOWN_DIRECTIVE_NAMES: Single source of truth for all registered directive names
 """
 
 from __future__ import annotations
@@ -55,7 +56,91 @@ from bengal.rendering.plugins.directives.tabs import (
 from bengal.rendering.plugins.directives.validator import DirectiveSyntaxValidator
 from bengal.utils.logger import get_logger
 
+# =============================================================================
+# KNOWN_DIRECTIVE_NAMES - Single source of truth for all registered directives
+# =============================================================================
+# This set is the canonical list of all directive names that Bengal registers.
+# The health check imports this directly instead of maintaining a duplicate list.
+#
+# When adding a new directive:
+# 1. Add the directive class to directives_list in create_documentation_directives()
+# 2. Add the directive name(s) to KNOWN_DIRECTIVE_NAMES below
+# =============================================================================
+
+KNOWN_DIRECTIVE_NAMES: frozenset[str] = frozenset({
+    # Admonitions (AdmonitionDirective registers all of these)
+    "note",
+    "tip",
+    "warning",
+    "danger",
+    "error",
+    "info",
+    "example",
+    "success",
+    "caution",
+    "seealso",
+    # Badges (BadgeDirective)
+    "badge",
+    "bdg",  # Sphinx-Design compatibility alias
+    # Buttons (ButtonDirective)
+    "button",
+    # Cards (CardsDirective, CardDirective, ChildCardsDirective)
+    "cards",
+    "card",
+    "child-cards",
+    # Sphinx-Design grid compatibility (GridDirective, GridItemCardDirective)
+    "grid",
+    "grid-item-card",
+    # Tabs (TabsDirective, TabSetDirective, TabItemDirective)
+    "tabs",
+    "tab-set",
+    "tab-item",
+    # Code tabs (CodeTabsDirective)
+    "code-tabs",
+    # Dropdowns (DropdownDirective)
+    "dropdown",
+    "details",  # Alias
+    # Tables (ListTableDirective, DataTableDirective)
+    "list-table",
+    "data-table",
+    # Glossary (GlossaryDirective)
+    "glossary",
+    # Checklists (ChecklistDirective)
+    "checklist",
+    # Steps (StepsDirective, StepDirective)
+    "steps",
+    "step",
+    # Rubric (RubricDirective)
+    "rubric",
+    # Includes (IncludeDirective, LiteralIncludeDirective)
+    "include",
+    "literalinclude",
+    # Navigation (BreadcrumbsDirective, SiblingsDirective, PrevNextDirective, RelatedDirective)
+    "breadcrumbs",
+    "siblings",
+    "prev-next",
+    "related",
+    # Marimo (MarimoCellDirective - optional, only if marimo is installed)
+    "marimo",
+})
+
+# Admonition types subset (for type-specific validation)
+ADMONITION_TYPES: frozenset[str] = frozenset({
+    "note", "tip", "warning", "danger", "error",
+    "info", "example", "success", "caution", "seealso",
+})
+
+# Code-related directives (can use backtick fences)
+CODE_BLOCK_DIRECTIVES: frozenset[str] = frozenset({
+    "code-tabs", "literalinclude",
+})
+
 __all__ = [
+    # Registry constants (single source of truth)
+    "KNOWN_DIRECTIVE_NAMES",
+    "ADMONITION_TYPES",
+    "CODE_BLOCK_DIRECTIVES",
+    # Classes and functions
     "DirectiveCache",
     "DirectiveError",
     "DirectiveSyntaxValidator",
