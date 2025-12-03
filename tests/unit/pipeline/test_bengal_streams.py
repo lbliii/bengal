@@ -5,16 +5,26 @@ Tests:
     - ParsedContent dataclass
     - ContentDiscoveryStream file discovery
     - FileChangeStream for incremental builds
+    - RenderedPage dataclass
+    - Factory functions: create_content_stream, create_page_stream, create_render_stream
+    - write_output utility
 """
 
 from __future__ import annotations
 
 from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import MagicMock, patch
 
 from bengal.pipeline.bengal_streams import (
     ContentDiscoveryStream,
     FileChangeStream,
     ParsedContent,
+    RenderedPage,
+    create_content_stream,
+    create_page_stream,
+    create_render_stream,
+    write_output,
 )
 
 
@@ -276,3 +286,257 @@ class TestContentDiscoveryWithPipeline:
 
         assert len(collected) == 1
         assert len(collected[0]) == 2
+
+
+class TestRenderedPage:
+    """Tests for RenderedPage dataclass."""
+
+    def test_creation(self, tmp_path: Path) -> None:
+        """RenderedPage stores all fields."""
+        mock_page = MagicMock()
+        mock_page.source_path = tmp_path / "test.md"
+
+        rendered = RenderedPage(
+            page=mock_page,
+            html="<html><body>Hello</body></html>",
+            output_path=Path("test/index.html"),
+        )
+
+        assert rendered.page is mock_page
+        assert rendered.html == "<html><body>Hello</body></html>"
+        assert rendered.output_path == Path("test/index.html")
+
+    def test_output_path_is_relative(self) -> None:
+        """output_path should be relative for joining with output_dir."""
+        mock_page = MagicMock()
+        rendered = RenderedPage(
+            page=mock_page,
+            html="<html></html>",
+            output_path=Path("docs/guide/index.html"),
+        )
+
+        assert not rendered.output_path.is_absolute()
+        assert rendered.output_path.parts == ("docs", "guide", "index.html")
+
+
+class TestCreateContentStream:
+    """Tests for create_content_stream factory."""
+
+    def test_creates_content_discovery_stream(self, tmp_path: Path) -> None:
+        """Factory creates ContentDiscoveryStream."""
+        content_dir = tmp_path / "content"
+        content_dir.mkdir()
+        (content_dir / "page.md").write_text("# Page")
+
+        site = SimpleNamespace(root_path=tmp_path)
+
+        stream = create_content_stream(site)
+
+        assert isinstance(stream, ContentDiscoveryStream)
+        result = stream.materialize()
+        assert len(result) == 1
+
+    def test_uses_site_content_dir(self, tmp_path: Path) -> None:
+        """Factory uses site's content directory."""
+        content_dir = tmp_path / "content"
+        content_dir.mkdir()
+        (content_dir / "test.md").write_text("# Test")
+
+        site = SimpleNamespace(root_path=tmp_path)
+
+        stream = create_content_stream(site)
+        result = stream.materialize()
+
+        assert len(result) == 1
+        assert result[0].source_path == content_dir / "test.md"
+
+
+class TestCreatePageStream:
+    """Tests for create_page_stream factory."""
+
+    def test_creates_page_from_parsed_content(self, tmp_path: Path) -> None:
+        """Factory creates Page objects from ParsedContent."""
+        from bengal.pipeline.core import StreamItem
+        from bengal.pipeline.streams import SourceStream
+
+        # Create mock site
+        site = SimpleNamespace(root_path=tmp_path)
+
+        # Create ParsedContent
+        parsed = ParsedContent(
+            source_path=tmp_path / "test.md",
+            content="# Hello World",
+            metadata={"title": "Test"},
+            content_hash="abc123",
+        )
+
+        # Create a source stream with ParsedContent
+        items = [StreamItem.create("test", "page.md", parsed)]
+        content_stream = SourceStream(lambda: iter(items), name="test")
+
+        # Mock the Page class to avoid full initialization
+        with patch("bengal.core.page.Page") as mock_page_class:
+            mock_page = MagicMock()
+            mock_page_class.return_value = mock_page
+
+            page_stream = create_page_stream(content_stream, site)
+            result = page_stream.materialize()
+
+            assert len(result) == 1
+            # Verify Page was called with correct args
+            mock_page_class.assert_called_once_with(
+                source_path=parsed.source_path,
+                content=parsed.content,
+                metadata=parsed.metadata,
+                _site=site,
+            )
+
+
+class TestCreateRenderStream:
+    """Tests for create_render_stream factory."""
+
+    def test_renders_pages_to_html(self, tmp_path: Path) -> None:
+        """Factory renders Page objects to HTML."""
+        from bengal.pipeline.core import StreamItem
+        from bengal.pipeline.streams import SourceStream
+
+        site = SimpleNamespace(root_path=tmp_path, output_dir=tmp_path / "public")
+
+        # Create mock page
+        mock_page = MagicMock()
+        mock_page.url = "/test/"
+        mock_page.source_path = tmp_path / "test.md"
+
+        items = [StreamItem.create("pages", "test.md", mock_page)]
+        page_stream = SourceStream(lambda: iter(items), name="pages")
+
+        with (
+            patch("bengal.rendering.template_engine.TemplateEngine"),
+            patch("bengal.rendering.renderer.Renderer") as mock_renderer_class,
+        ):
+            mock_renderer = MagicMock()
+            mock_renderer.render_page.return_value = "<html><body>Rendered</body></html>"
+            mock_renderer_class.return_value = mock_renderer
+
+            render_stream = create_render_stream(page_stream, site)
+            result = render_stream.materialize()
+
+            assert len(result) == 1
+            assert isinstance(result[0], RenderedPage)
+            assert result[0].html == "<html><body>Rendered</body></html>"
+            assert result[0].output_path == Path("test/index.html")
+
+    def test_homepage_output_path(self, tmp_path: Path) -> None:
+        """Homepage renders to index.html."""
+        from bengal.pipeline.core import StreamItem
+        from bengal.pipeline.streams import SourceStream
+
+        site = SimpleNamespace(root_path=tmp_path, output_dir=tmp_path / "public")
+
+        mock_page = MagicMock()
+        mock_page.url = "/"
+        mock_page.source_path = tmp_path / "_index.md"
+
+        items = [StreamItem.create("pages", "_index.md", mock_page)]
+        page_stream = SourceStream(lambda: iter(items), name="pages")
+
+        with (
+            patch("bengal.rendering.template_engine.TemplateEngine"),
+            patch("bengal.rendering.renderer.Renderer") as mock_renderer_class,
+        ):
+            mock_renderer = MagicMock()
+            mock_renderer.render_page.return_value = "<html></html>"
+            mock_renderer_class.return_value = mock_renderer
+
+            render_stream = create_render_stream(page_stream, site)
+            result = render_stream.materialize()
+
+            assert result[0].output_path == Path("index.html")
+
+
+class TestWriteOutput:
+    """Tests for write_output utility function."""
+
+    def test_writes_file_to_disk(self, tmp_path: Path) -> None:
+        """write_output writes HTML to correct location."""
+        output_dir = tmp_path / "public"
+        output_dir.mkdir()
+
+        site = SimpleNamespace(output_dir=output_dir)
+
+        mock_page = MagicMock()
+        rendered = RenderedPage(
+            page=mock_page,
+            html="<html><body>Content</body></html>",
+            output_path=Path("test/index.html"),
+        )
+
+        write_output(site, rendered)
+
+        output_file = output_dir / "test" / "index.html"
+        assert output_file.exists()
+        assert output_file.read_text() == "<html><body>Content</body></html>"
+
+    def test_creates_parent_directories(self, tmp_path: Path) -> None:
+        """write_output creates parent directories as needed."""
+        output_dir = tmp_path / "public"
+        output_dir.mkdir()
+
+        site = SimpleNamespace(output_dir=output_dir)
+
+        mock_page = MagicMock()
+        rendered = RenderedPage(
+            page=mock_page,
+            html="<html></html>",
+            output_path=Path("deep/nested/path/index.html"),
+        )
+
+        write_output(site, rendered)
+
+        output_file = output_dir / "deep" / "nested" / "path" / "index.html"
+        assert output_file.exists()
+
+    def test_overwrites_existing_file(self, tmp_path: Path) -> None:
+        """write_output overwrites existing files."""
+        output_dir = tmp_path / "public"
+        output_dir.mkdir()
+
+        # Create existing file
+        existing = output_dir / "test" / "index.html"
+        existing.parent.mkdir(parents=True)
+        existing.write_text("Old content")
+
+        site = SimpleNamespace(output_dir=output_dir)
+
+        mock_page = MagicMock()
+        rendered = RenderedPage(
+            page=mock_page,
+            html="New content",
+            output_path=Path("test/index.html"),
+        )
+
+        write_output(site, rendered)
+
+        assert existing.read_text() == "New content"
+
+    def test_writes_utf8_content(self, tmp_path: Path) -> None:
+        """write_output handles UTF-8 content correctly."""
+        output_dir = tmp_path / "public"
+        output_dir.mkdir()
+
+        site = SimpleNamespace(output_dir=output_dir)
+
+        mock_page = MagicMock()
+        rendered = RenderedPage(
+            page=mock_page,
+            html="<html><body>日本語 🎉 émoji</body></html>",
+            output_path=Path("test/index.html"),
+        )
+
+        write_output(site, rendered)
+
+        output_file = output_dir / "test" / "index.html"
+        content = output_file.read_text(encoding="utf-8")
+        assert "日本語" in content
+        assert "🎉" in content
+        assert "émoji" in content

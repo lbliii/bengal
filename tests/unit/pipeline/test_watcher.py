@@ -6,16 +6,20 @@ Tests:
     - WatchBatch aggregation
     - FileWatcher ignore patterns
     - Debouncing behavior
+    - PipelineWatcher integration
 """
 
 from __future__ import annotations
 
 import time
 from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import MagicMock, patch
 
 from bengal.pipeline.watcher import (
     ChangeType,
     FileWatcher,
+    PipelineWatcher,
     WatchBatch,
     WatchEvent,
 )
@@ -303,3 +307,256 @@ class TestChangeType:
         assert ChangeType.MODIFIED.value == "modified"
         assert ChangeType.DELETED.value == "deleted"
         assert ChangeType.MOVED.value == "moved"
+
+
+class TestPipelineWatcher:
+    """Tests for PipelineWatcher class."""
+
+    def test_initialization(self, tmp_path: Path) -> None:
+        """PipelineWatcher initializes with site."""
+        # Create expected directories
+        (tmp_path / "content").mkdir()
+        (tmp_path / "templates").mkdir()
+
+        site = SimpleNamespace(root_path=tmp_path)
+
+        watcher = PipelineWatcher(site)
+
+        assert watcher.site is site
+        assert watcher._use_cache is True
+        assert watcher._debounce_ms == 300
+
+    def test_custom_debounce(self, tmp_path: Path) -> None:
+        """PipelineWatcher respects debounce_ms option."""
+        (tmp_path / "content").mkdir()
+
+        site = SimpleNamespace(root_path=tmp_path)
+
+        watcher = PipelineWatcher(site, debounce_ms=100)
+
+        assert watcher._debounce_ms == 100
+
+    def test_cache_disabled(self, tmp_path: Path) -> None:
+        """PipelineWatcher can disable caching."""
+        (tmp_path / "content").mkdir()
+
+        site = SimpleNamespace(root_path=tmp_path)
+
+        watcher = PipelineWatcher(site, use_cache=False)
+
+        assert watcher._cache is None
+
+    def test_cache_enabled(self, tmp_path: Path) -> None:
+        """PipelineWatcher creates cache when enabled."""
+        (tmp_path / "content").mkdir()
+
+        site = SimpleNamespace(root_path=tmp_path)
+
+        watcher = PipelineWatcher(site, use_cache=True)
+
+        assert watcher._cache is not None
+
+    def test_watch_dirs_include_existing(self, tmp_path: Path) -> None:
+        """PipelineWatcher only watches existing directories."""
+        # Only create some directories
+        (tmp_path / "content").mkdir()
+        (tmp_path / "templates").mkdir()
+        # Don't create: assets, data, themes
+
+        site = SimpleNamespace(root_path=tmp_path)
+
+        watcher = PipelineWatcher(site)
+
+        # Check internal watcher's dirs
+        watch_dirs = watcher._watcher._watch_dirs
+        # Should include content, templates, and root
+        assert any(tmp_path / "content" == d or str(d).endswith("content") for d in watch_dirs)
+        assert any(tmp_path / "templates" == d or str(d).endswith("templates") for d in watch_dirs)
+        # Should not include non-existent directories
+        assert not any(str(d).endswith("assets") for d in watch_dirs)
+
+    def test_handle_changes_incremental(self, tmp_path: Path) -> None:
+        """PipelineWatcher triggers incremental build for content changes."""
+        (tmp_path / "content").mkdir()
+
+        site = SimpleNamespace(root_path=tmp_path)
+        watcher = PipelineWatcher(site, use_cache=False)
+
+        # Create a batch with content changes only
+        batch = WatchBatch()
+        batch.add(WatchEvent(Path("content/post.md"), ChangeType.MODIFIED))
+
+        with patch("bengal.pipeline.build.create_incremental_pipeline") as mock_incr:
+            mock_pipeline = MagicMock()
+            mock_result = MagicMock()
+            mock_result.success = True
+            mock_result.items_processed = 1
+            mock_pipeline.run.return_value = mock_result
+            mock_incr.return_value = mock_pipeline
+
+            watcher._handle_changes(batch)
+
+            # Should call create_incremental_pipeline for content-only changes
+            mock_incr.assert_called_once()
+
+    def test_handle_changes_full_rebuild_for_config(self, tmp_path: Path) -> None:
+        """PipelineWatcher triggers full rebuild for config changes."""
+        (tmp_path / "content").mkdir()
+
+        site = SimpleNamespace(root_path=tmp_path)
+        watcher = PipelineWatcher(site, use_cache=False)
+
+        # Create a batch with config changes
+        batch = WatchBatch()
+        batch.add(WatchEvent(Path("bengal.toml"), ChangeType.MODIFIED))
+
+        with patch("bengal.pipeline.build.create_build_pipeline") as mock_full:
+            mock_pipeline = MagicMock()
+            mock_result = MagicMock()
+            mock_result.success = True
+            mock_result.items_processed = 5
+            mock_pipeline.run.return_value = mock_result
+            mock_full.return_value = mock_pipeline
+
+            watcher._handle_changes(batch)
+
+            # Should call create_build_pipeline for config changes
+            mock_full.assert_called_once()
+
+    def test_handle_changes_full_rebuild_for_templates(self, tmp_path: Path) -> None:
+        """PipelineWatcher triggers full rebuild for template changes."""
+        (tmp_path / "content").mkdir()
+
+        site = SimpleNamespace(root_path=tmp_path)
+        watcher = PipelineWatcher(site, use_cache=False)
+
+        # Create a batch with template changes
+        batch = WatchBatch()
+        batch.add(WatchEvent(Path("templates/base.html"), ChangeType.MODIFIED))
+
+        with patch("bengal.pipeline.build.create_build_pipeline") as mock_full:
+            mock_pipeline = MagicMock()
+            mock_result = MagicMock()
+            mock_result.success = True
+            mock_result.items_processed = 5
+            mock_pipeline.run.return_value = mock_result
+            mock_full.return_value = mock_pipeline
+
+            watcher._handle_changes(batch)
+
+            # Should call create_build_pipeline for template changes
+            mock_full.assert_called_once()
+
+    def test_handle_changes_saves_cache(self, tmp_path: Path) -> None:
+        """PipelineWatcher saves cache after rebuild."""
+        (tmp_path / "content").mkdir()
+
+        site = SimpleNamespace(root_path=tmp_path)
+        watcher = PipelineWatcher(site, use_cache=True)
+
+        # Mock the cache
+        mock_cache = MagicMock()
+        watcher._cache = mock_cache
+
+        batch = WatchBatch()
+        batch.add(WatchEvent(Path("content/post.md"), ChangeType.MODIFIED))
+
+        with patch("bengal.pipeline.build.create_incremental_pipeline") as mock_incr:
+            mock_pipeline = MagicMock()
+            mock_result = MagicMock()
+            mock_result.success = True
+            mock_result.items_processed = 1
+            mock_pipeline.run.return_value = mock_result
+            mock_incr.return_value = mock_pipeline
+
+            watcher._handle_changes(batch)
+
+            # Should save cache after rebuild
+            mock_cache.save.assert_called_once()
+
+    def test_handle_changes_with_errors(self, tmp_path: Path) -> None:
+        """PipelineWatcher handles rebuild errors gracefully."""
+        (tmp_path / "content").mkdir()
+
+        site = SimpleNamespace(root_path=tmp_path)
+        watcher = PipelineWatcher(site, use_cache=False)
+
+        batch = WatchBatch()
+        batch.add(WatchEvent(Path("content/post.md"), ChangeType.MODIFIED))
+
+        with patch("bengal.pipeline.build.create_incremental_pipeline") as mock_incr:
+            mock_pipeline = MagicMock()
+            mock_result = MagicMock()
+            mock_result.success = False
+            mock_result.items_processed = 0
+            mock_result.errors = [("stage", "key", Exception("Test error"))]
+            mock_pipeline.run.return_value = mock_result
+            mock_incr.return_value = mock_pipeline
+
+            # Should not raise
+            watcher._handle_changes(batch)
+
+    def test_stop_saves_cache(self, tmp_path: Path) -> None:
+        """PipelineWatcher saves cache on stop."""
+        (tmp_path / "content").mkdir()
+
+        site = SimpleNamespace(root_path=tmp_path)
+        watcher = PipelineWatcher(site, use_cache=True)
+
+        # Mock the cache and watcher
+        mock_cache = MagicMock()
+        watcher._cache = mock_cache
+        watcher._watcher = MagicMock()
+
+        watcher.stop()
+
+        mock_cache.save.assert_called_once()
+
+
+class TestFileWatcherMapEventType:
+    """Tests for FileWatcher._map_event_type method."""
+
+    def test_maps_created(self) -> None:
+        """Maps created event type."""
+        watcher = FileWatcher()
+        event = SimpleNamespace(event_type="created")
+
+        result = watcher._map_event_type(event)
+
+        assert result == ChangeType.CREATED
+
+    def test_maps_modified(self) -> None:
+        """Maps modified event type."""
+        watcher = FileWatcher()
+        event = SimpleNamespace(event_type="modified")
+
+        result = watcher._map_event_type(event)
+
+        assert result == ChangeType.MODIFIED
+
+    def test_maps_deleted(self) -> None:
+        """Maps deleted event type."""
+        watcher = FileWatcher()
+        event = SimpleNamespace(event_type="deleted")
+
+        result = watcher._map_event_type(event)
+
+        assert result == ChangeType.DELETED
+
+    def test_maps_moved(self) -> None:
+        """Maps moved event type."""
+        watcher = FileWatcher()
+        event = SimpleNamespace(event_type="moved")
+
+        result = watcher._map_event_type(event)
+
+        assert result == ChangeType.MOVED
+
+    def test_unknown_returns_none(self) -> None:
+        """Unknown event type returns None."""
+        watcher = FileWatcher()
+        event = SimpleNamespace(event_type="unknown")
+
+        result = watcher._map_event_type(event)
+
+        assert result is None
