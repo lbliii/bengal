@@ -1,10 +1,13 @@
 ## Unreleased
 
-### Reactive Dataflow Pipeline (Phase 1)
+### Reactive Dataflow Pipeline (Phase 1-2)
 - **pipeline(core)**: add `StreamKey`, `StreamItem[T]`, and abstract `Stream[T]` base class for reactive streams
 - **pipeline(streams)**: add concrete stream implementations: `SourceStream`, `MapStream`, `FilterStream`, `FlatMapStream`, `CollectStream`, `CombineStream`, `ParallelStream`, `CachedStream`
 - **pipeline(builder)**: add `Pipeline` fluent builder API and `PipelineResult` metrics dataclass
 - **pipeline**: support declarative build pipelines with lazy evaluation and automatic caching
+- **pipeline(bengal_streams)**: add Bengal-specific streams: `ContentDiscoveryStream`, `FileChangeStream`, `ParsedContent`, `RenderedPage`
+- **pipeline(build)**: add factory functions `create_build_pipeline()`, `create_incremental_pipeline()`, `create_simple_pipeline()`
+- **pipeline**: integrate with discovery system for content parsing and frontmatter extraction
 
 ### Content Layer API (Remote Content Sources)
 - **content_layer**: add unified content abstraction for fetching from any source (local, GitHub, REST APIs, Notion)
