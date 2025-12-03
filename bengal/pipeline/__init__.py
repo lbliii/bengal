@@ -58,6 +58,13 @@ from bengal.pipeline.builder import (
     Pipeline,
     PipelineResult,
 )
+
+# Cache integration (extends Stream with disk_cache method)
+from bengal.pipeline.cache import (
+    DiskCachedStream,
+    StreamCache,
+    StreamCacheEntry,
+)
 from bengal.pipeline.core import (
     Stream,
     StreamItem,
@@ -104,4 +111,8 @@ __all__ = [
     "create_build_pipeline",
     "create_incremental_pipeline",
     "create_simple_pipeline",
+    # Cache
+    "StreamCache",
+    "StreamCacheEntry",
+    "DiskCachedStream",
 ]
