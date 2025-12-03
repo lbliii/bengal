@@ -800,6 +800,24 @@ class Site:
         assets_start = time.time()
         assets = AssetOrchestrator(self)
         assets.process(self.assets, parallel=parallel, progress_manager=None)
+
+        # Rewrite fonts.css to use fingerprinted font filenames
+        # This must happen after asset fingerprinting is complete
+        if "fonts" in self.config:
+            from bengal.fonts import rewrite_font_urls_with_fingerprints
+
+            fonts_css_path = self.output_dir / "assets" / "fonts.css"
+            manifest_path = self.output_dir / "asset-manifest.json"
+
+            if fonts_css_path.exists() and manifest_path.exists():
+                try:
+                    import json
+
+                    manifest_data = json.loads(manifest_path.read_text(encoding="utf-8"))
+                    rewrite_font_urls_with_fingerprints(fonts_css_path, manifest_data)
+                except Exception as e:
+                    logger.warning("fonts_css_rewrite_failed", error=str(e))
+
         assets_time_ms = (time.time() - assets_start) * 1000
 
         # Phase 6: Render ALL pages using pipeline (including generated pages)
