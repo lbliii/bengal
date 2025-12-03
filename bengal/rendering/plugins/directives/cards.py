@@ -74,10 +74,12 @@ logger = get_logger(__name__)
 __all__ = [
     "CardDirective",
     "CardsDirective",
+    "ChildCardsDirective",
     "GridDirective",
     "GridItemCardDirective",
     "render_card",
     "render_cards_grid",
+    "render_child_cards",
 ]
 
 # Valid layout options
@@ -679,14 +681,15 @@ def _pull_from_linked_page(renderer, link: str, fields: list[str]) -> dict[str, 
     """
     Pull metadata from a linked page via xref_index.
 
-    Supports three lookup strategies (same as cross-references):
+    Supports four lookup strategies:
+    - ./child/ - Relative path from current page's directory
     - id:xxx - Custom ID from frontmatter
     - path/to/page - Path relative to content/
     - slug - URL slug
 
     Args:
-        renderer: Mistune renderer (may have _xref_index attribute)
-        link: Link string (id:xxx, path, or slug)
+        renderer: Mistune renderer (may have _xref_index and _current_page_dir attributes)
+        link: Link string (./relative/, id:xxx, path, or slug)
         fields: List of field names to pull
 
     Returns:
@@ -698,8 +701,11 @@ def _pull_from_linked_page(renderer, link: str, fields: list[str]) -> dict[str, 
         logger.debug("pull_no_xref_index", link=link)
         return {}
 
+    # Get current page directory for relative path resolution
+    current_page_dir = getattr(renderer, "_current_page_dir", None)
+
     # Resolve page using existing strategies
-    page = _resolve_page(xref_index, link)
+    page = _resolve_page(xref_index, link, current_page_dir)
     if not page:
         logger.debug("pull_page_not_found", link=link)
         return {}
@@ -710,7 +716,9 @@ def _pull_from_linked_page(renderer, link: str, fields: list[str]) -> dict[str, 
         if field == "title":
             result["title"] = getattr(page, "title", "")
         elif field == "description":
-            result["description"] = page.metadata.get("description", "") if hasattr(page, "metadata") else ""
+            result["description"] = (
+                page.metadata.get("description", "") if hasattr(page, "metadata") else ""
+            )
         elif field == "date":
             result["date"] = getattr(page, "date", None)
         elif field == "tags":
@@ -720,25 +728,66 @@ def _pull_from_linked_page(renderer, link: str, fields: list[str]) -> dict[str, 
         elif field == "image":
             result["image"] = page.metadata.get("image", "") if hasattr(page, "metadata") else ""
         elif field == "estimated_time":
-            result["estimated_time"] = page.metadata.get("estimated_time", "") if hasattr(page, "metadata") else ""
+            result["estimated_time"] = (
+                page.metadata.get("estimated_time", "") if hasattr(page, "metadata") else ""
+            )
         elif field == "difficulty":
-            result["difficulty"] = page.metadata.get("difficulty", "") if hasattr(page, "metadata") else ""
+            result["difficulty"] = (
+                page.metadata.get("difficulty", "") if hasattr(page, "metadata") else ""
+            )
 
     logger.debug("pull_success", link=link, fields=list(result.keys()))
     return result
 
 
-def _resolve_page(xref_index: dict, link: str):
+def _resolve_page(xref_index: dict, link: str, current_page_dir: str | None = None):
     """
     Resolve a link to a page object via xref_index.
 
     Args:
         xref_index: Cross-reference index with by_id, by_path, by_slug
         link: Link string
+        current_page_dir: Current page's content-relative directory (for relative paths)
 
     Returns:
         Page object or None
     """
+    # Strategy 0: Relative path (./child/ or ../sibling/)
+    if link.startswith("./") or link.startswith("../"):
+        if current_page_dir:
+            # Resolve relative path
+            clean_link = link.replace(".md", "").rstrip("/")
+            if clean_link.startswith("./"):
+                # ./child -> current_dir/child
+                resolved_path = f"{current_page_dir}/{clean_link[2:]}"
+            else:
+                # ../sibling -> parent_dir/sibling
+                parts = current_page_dir.split("/")
+                up_count = 0
+                remaining = clean_link
+                while remaining.startswith("../"):
+                    up_count += 1
+                    remaining = remaining[3:]
+                if up_count < len(parts):
+                    parent = "/".join(parts[:-up_count]) if up_count > 0 else current_page_dir
+                    resolved_path = f"{parent}/{remaining}" if remaining else parent
+                else:
+                    resolved_path = remaining
+
+            # Try exact path
+            page = xref_index.get("by_path", {}).get(resolved_path)
+            if page:
+                return page
+            # Try without trailing _index
+            if resolved_path.endswith("/_index"):
+                page = xref_index.get("by_path", {}).get(resolved_path[:-7])
+                if page:
+                    return page
+            logger.debug("pull_relative_path_not_found", link=link, resolved=resolved_path)
+        else:
+            logger.debug("pull_relative_path_no_context", link=link)
+        return None
+
     # Strategy 1: Custom ID (id:xxx)
     if link.startswith("id:"):
         ref_id = link[3:]
@@ -785,7 +834,10 @@ def _resolve_link_url(renderer, link: str) -> str:
         # Can't resolve, return as relative path
         return link
 
-    page = _resolve_page(xref_index, link)
+    # Get current page directory for relative path resolution
+    current_page_dir = getattr(renderer, "_current_page_dir", None)
+
+    page = _resolve_page(xref_index, link, current_page_dir)
     if page and hasattr(page, "url"):
         return page.url
 
@@ -825,6 +877,14 @@ def _render_icon(icon_name: str) -> str:
         "pin": "📌",
         "graph": "📊",
         "shield-lock": "🔒",
+        "folder": "📁",
+        "file": "📄",
+        "document": "📄",
+        "link": "🔗",
+        "settings": "⚙️",
+        "edit": "✏️",
+        "search": "🔍",
+        "home": "🏠",
     }
 
     # Return the emoji if found, empty string if not (no fallback bullet)
@@ -851,3 +911,253 @@ def _escape_html(text: str) -> str:
         .replace('"', "&quot;")
         .replace("'", "&#x27;")
     )
+
+
+# =============================================================================
+# Child Cards Directive - Auto-generates cards from page children
+# =============================================================================
+
+
+class ChildCardsDirective(DirectivePlugin):
+    """
+    Auto-generate cards from current page's child sections/pages.
+
+    Hugo-style shortcode that walks the object tree directly!
+    No manual card definitions needed.
+
+    Syntax:
+        :::{child-cards}
+        :columns: 3
+        :layout: default
+        :include: sections  # "sections", "pages", or "all"
+        :fields: title, description, icon
+        :::
+
+    Example:
+        # On an _index.md page, shows all child sections as cards:
+        :::{child-cards}
+        :columns: 2
+        :include: sections
+        :fields: title, description, icon
+        :::
+    """
+
+    def parse(self, block, m, state):
+        """Parse child-cards directive options."""
+        options = dict(self.parse_options(m))
+
+        # Normalize columns
+        columns = options.get("columns", "auto")
+        if not columns:
+            columns = "auto"
+
+        # Normalize gap
+        gap = options.get("gap", "medium")
+        if gap not in ("small", "medium", "large"):
+            gap = "medium"
+
+        # What to include: sections, pages, or all
+        include = options.get("include", "all")
+        if include not in ("sections", "pages", "all"):
+            include = "all"
+
+        # Fields to pull from children
+        fields_str = options.get("fields", "title, description")
+        fields = [f.strip() for f in fields_str.split(",") if f.strip()]
+
+        # Layout
+        layout = options.get("layout", "default")
+        if layout not in VALID_LAYOUTS:
+            layout = "default"
+
+        # Style
+        style = options.get("style", "default")
+        if style not in ("default", "minimal", "bordered"):
+            style = "default"
+
+        return {
+            "type": "child_cards",
+            "attrs": {
+                "columns": columns,
+                "gap": gap,
+                "include": include,
+                "fields": fields,
+                "layout": layout,
+                "style": style,
+            },
+            "children": [],
+        }
+
+    def __call__(self, directive, md):
+        """Register the directive with mistune."""
+        directive.register("child-cards", self.parse)
+
+        if md.renderer and md.renderer.NAME == "html":
+            md.renderer.register("child_cards", render_child_cards)
+
+
+def render_child_cards(renderer, text: str, **attrs) -> str:
+    """
+    Render child cards by walking the page object tree.
+
+    This is where the magic happens! We access renderer._current_page
+    and walk the section tree to generate cards.
+
+    Args:
+        renderer: Mistune renderer (has _current_page attribute)
+        text: Unused (no nested content)
+        attrs: Directive options
+
+    Returns:
+        HTML string with card grid
+    """
+    columns = attrs.get("columns", "auto")
+    gap = attrs.get("gap", "medium")
+    include = attrs.get("include", "all")
+    fields = attrs.get("fields", ["title", "description"])
+    layout = attrs.get("layout", "default")
+    style = attrs.get("style", "default")
+
+    # Get current page from renderer
+    current_page = getattr(renderer, "_current_page", None)
+    if not current_page:
+        logger.debug("child_cards_no_current_page")
+        return '<div class="card-grid" data-columns="auto"><p><em>No page context available</em></p></div>'
+
+    # Get section (parent container for children)
+    section = getattr(current_page, "_section", None)
+    if not section:
+        logger.debug("child_cards_no_section", page=str(current_page.source_path))
+        return (
+            '<div class="card-grid" data-columns="auto"><p><em>Page has no section</em></p></div>'
+        )
+
+    # Collect children based on include setting
+    children = []
+
+    if include in ("sections", "all"):
+        # Add subsections
+        for subsection in getattr(section, "subsections", []):
+            children.append(
+                {
+                    "type": "section",
+                    "obj": subsection,
+                    "title": getattr(subsection, "title", subsection.name),
+                    "description": subsection.metadata.get("description", "")
+                    if hasattr(subsection, "metadata")
+                    else "",
+                    "icon": subsection.metadata.get("icon", "")
+                    if hasattr(subsection, "metadata")
+                    else "",
+                    "url": _get_section_url(subsection),
+                    "weight": subsection.metadata.get("weight", 0)
+                    if hasattr(subsection, "metadata")
+                    else 0,
+                }
+            )
+
+    if include in ("pages", "all"):
+        # Add sibling pages (excluding _index pages)
+        for page in getattr(section, "pages", []):
+            # Skip _index pages (they're sections, not content)
+            source_str = str(getattr(page, "source_path", ""))
+            if source_str.endswith("_index.md") or source_str.endswith("index.md"):
+                continue
+            # Skip the current page itself
+            if (
+                hasattr(current_page, "source_path")
+                and hasattr(page, "source_path")
+                and page.source_path == current_page.source_path
+            ):
+                continue
+            children.append(
+                {
+                    "type": "page",
+                    "obj": page,
+                    "title": getattr(page, "title", ""),
+                    "description": page.metadata.get("description", "")
+                    if hasattr(page, "metadata")
+                    else "",
+                    "icon": page.metadata.get("icon", "") if hasattr(page, "metadata") else "",
+                    "url": getattr(page, "url", ""),
+                    "weight": page.metadata.get("weight", 0) if hasattr(page, "metadata") else 0,
+                }
+            )
+
+    # Sort by weight, then title
+    children.sort(key=lambda c: (c.get("weight", 0), c.get("title", "").lower()))
+
+    if not children:
+        logger.debug("child_cards_no_children", page=str(current_page.source_path))
+        return '<div class="card-grid" data-columns="auto"><p><em>No child content found</em></p></div>'
+
+    # Generate card HTML for each child
+    cards_html = []
+    for child in children:
+        card_html = _render_child_card(child, fields, layout)
+        cards_html.append(card_html)
+
+    # Wrap in grid container
+    html = (
+        f'<div class="card-grid" '
+        f'data-columns="{columns}" '
+        f'data-gap="{gap}" '
+        f'data-style="{style}" '
+        f'data-variant="navigation" '
+        f'data-layout="{layout}">\n'
+        f"{''.join(cards_html)}"
+        f"</div>\n"
+    )
+
+    logger.debug("child_cards_rendered", count=len(children), page=str(current_page.source_path))
+    return html
+
+
+def _render_child_card(child: dict, fields: list[str], layout: str) -> str:
+    """Render a single card for a child section/page."""
+    title = child.get("title", "") if "title" in fields else ""
+    description = child.get("description", "") if "description" in fields else ""
+    icon = child.get("icon", "") if "icon" in fields else ""
+    url = child.get("url", "")
+
+    # Build card classes
+    classes = ["card"]
+    if layout:
+        classes.append(f"card-layout-{layout}")
+    class_str = " ".join(classes)
+
+    parts = [f'<a class="{class_str}" href="{_escape_html(url)}">']
+
+    # Card header (icon and title)
+    if icon or title:
+        parts.append('  <div class="card-header">')
+        if icon:
+            rendered_icon = _render_icon(icon)
+            if rendered_icon:
+                parts.append(f'    <span class="card-icon" data-icon="{_escape_html(icon)}">')
+                parts.append(rendered_icon)
+                parts.append("    </span>")
+        if title:
+            parts.append(f'    <div class="card-title">{_escape_html(title)}</div>')
+        parts.append("  </div>")
+
+    # Card content (description)
+    if description:
+        parts.append('  <div class="card-content">')
+        parts.append(f"    <p>{_escape_html(description)}</p>")
+        parts.append("  </div>")
+
+    parts.append("</a>")
+
+    return "\n".join(parts) + "\n"
+
+
+def _get_section_url(section) -> str:
+    """Get URL for a section (uses index_page if available)."""
+    if hasattr(section, "index_page") and section.index_page:
+        return getattr(section.index_page, "url", "/")
+    # Fallback: construct from path
+    path = getattr(section, "path", None)
+    if path:
+        return f"/{path}/"
+    return "/"

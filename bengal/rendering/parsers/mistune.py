@@ -373,6 +373,27 @@ class MistuneParser(BaseMarkdownParser):
             # Just update the context on existing plugin (fast!)
             self._var_plugin.update_context(context)
 
+        # Store current page on renderer for directive access
+        # This enables directives (cards, etc.) to access page._section.subsections directly
+        # Much cleaner than xref_index lookups!
+        current_page = context.get("page") if "page" in context else None
+        self._shared_renderer._current_page = current_page
+
+        # Also store content-relative path for backward compatibility
+        if current_page and hasattr(current_page, "source_path"):
+            page_source = current_page.source_path
+            source_str = str(page_source)
+            if source_str.endswith("/_index.md"):
+                self._shared_renderer._current_page_dir = source_str[:-10]
+            elif source_str.endswith("/index.md"):
+                self._shared_renderer._current_page_dir = source_str[:-9]
+            elif "/" in source_str:
+                self._shared_renderer._current_page_dir = source_str.rsplit("/", 1)[0]
+            else:
+                self._shared_renderer._current_page_dir = ""
+        else:
+            self._shared_renderer._current_page_dir = None
+
         try:
             # IMPORTANT: Only process escape syntax BEFORE Mistune parses markdown
             content = self._var_plugin.preprocess(content)

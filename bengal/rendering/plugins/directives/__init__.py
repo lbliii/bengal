@@ -24,6 +24,7 @@ from bengal.rendering.plugins.directives.cache import (
 from bengal.rendering.plugins.directives.cards import (
     CardDirective,
     CardsDirective,
+    ChildCardsDirective,
     GridDirective,
     GridItemCardDirective,
 )
@@ -112,6 +113,7 @@ def create_documentation_directives():
                 DataTableDirective(),  # Interactive data tables with Tabulator.js
                 CardsDirective(),  # Modern card grid system
                 CardDirective(),  # Individual cards
+                ChildCardsDirective(),  # Auto-generate cards from children
                 GridDirective(),  # Sphinx-Design compatibility
                 GridItemCardDirective(),  # Sphinx-Design compatibility
                 ButtonDirective(),  # Simple button links

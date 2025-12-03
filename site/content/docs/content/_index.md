@@ -12,40 +12,11 @@ Bengal turns your Markdown files into a structured, validated documentation site
 
 ## What Do You Need?
 
-::::{cards}
+:::{child-cards}
 :columns: 2
-:gap: medium
-
-:::{card}
-:link: ./organization/
-:pull: title, description
-:color: green
+:include: sections
+:fields: title, description, icon
 :::
-
-:::{card}
-:link: ./authoring/
-:pull: title, description
-:color: blue
-:::
-
-:::{card}
-:link: ./collections/
-:pull: title, description
-:color: purple
-:::
-
-:::{card}
-:link: ./sources/
-:pull: title, description
-:color: orange
-:::
-
-:::{card}
-:link: ./reuse/
-:pull: title, description
-:color: teal
-:::
-::::
 
 ## How Content Flows
 
@@ -56,17 +27,17 @@ flowchart LR
         B[GitHub repos]
         C[Notion/APIs]
     end
-    
+
     subgraph Processing
         D[Discovery]
         E[Schema Validation]
         F[Markdown Rendering]
     end
-    
+
     subgraph Output
         G[HTML Pages]
     end
-    
+
     A --> D
     B --> D
     C --> D
