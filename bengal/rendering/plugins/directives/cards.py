@@ -94,6 +94,9 @@ class CardsDirective(DirectivePlugin):
     Uses modern CSS Grid for layout.
     """
 
+    # Directive names this class registers (for health check introspection)
+    DIRECTIVE_NAMES = ["cards"]
+
     def parse(self, block: Any, m: Match, state: Any) -> dict[str, Any]:
         """
         Parse cards directive.

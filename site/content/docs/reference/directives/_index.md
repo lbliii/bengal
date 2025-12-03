@@ -14,6 +14,7 @@ Bengal extends Markdown with powerful directives using `:::{name}` or ` ```{name
 
 :::{glossary}
 :tags: directives, core
+:limit: 3
 :::
 
 ## Quick Reference
@@ -45,6 +46,7 @@ Bengal extends Markdown with powerful directives using `:::{name}` or ` ```{name
 | `{siblings}` | ` :::{siblings} ` | Sibling page list | Navigation |
 | `{prev-next}` | ` :::{prev-next} ` | Prev/next links | Navigation |
 | `{related}` | ` :::{related} ` | Related pages by tags | Navigation |
+| `{glossary}` | ` :::{glossary} ` | Render terms from glossary data | Data |
 
 ## Directive Syntax
 
@@ -176,6 +178,87 @@ console.log("Hello");
 :::
 ::::
 ```
+
+## Glossary Directive
+
+The `{glossary}` directive renders terms from a centralized glossary data file (`data/glossary.yaml`) as a styled definition list. Filter terms by tags to show relevant definitions for each page.
+
+### Syntax
+
+```markdown
+:::{glossary}
+:tags: directives, core
+:sorted: true
+:collapsed: true
+:limit: 3
+:::
+```
+
+### Options
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `:tags:` | (required) | Comma-separated tags to filter terms (OR logic) |
+| `:sorted:` | `false` | Sort terms alphabetically |
+| `:show-tags:` | `false` | Display tag badges under each term |
+| `:collapsed:` | `false` | Wrap in collapsible `<details>` element |
+| `:limit:` | (all) | Show only first N terms; remaining in expandable section |
+| `:source:` | `data/glossary.yaml` | Custom glossary file path |
+
+### Examples
+
+**Basic Usage** - Show terms tagged with "directives":
+
+```markdown
+:::{glossary}
+:tags: directives
+:::
+```
+
+**Progressive Disclosure** - Show first 3 terms, rest expandable:
+
+```markdown
+:::{glossary}
+:tags: directives, core
+:limit: 3
+:::
+```
+
+**Fully Collapsed** - Entire glossary in collapsible section:
+
+```markdown
+:::{glossary}
+:tags: formatting
+:collapsed: true
+:::
+```
+
+**Both Options** - Collapsed, with limited terms when expanded:
+
+```markdown
+:::{glossary}
+:tags: layout
+:collapsed: true
+:limit: 2
+:::
+```
+
+### Glossary Data Format
+
+Terms are defined in `data/glossary.yaml`:
+
+```yaml
+terms:
+  - term: Directive
+    definition: Extended markdown syntax using `{name}` that creates rich components.
+    tags: [directives, core]
+  
+  - term: Admonition
+    definition: A styled callout box for **important** information.
+    tags: [directives, admonitions]
+```
+
+**Note**: Definitions support inline markdown: backticks for `code`, `**bold**`, and `*italic*`.
 
 ## Next Steps
 
