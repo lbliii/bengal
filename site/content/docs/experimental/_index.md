@@ -3,7 +3,7 @@ title: "Experimental"
 description: "Experimental components and features for Bengal"
 layout: doc
 toc: false
-menu: false  # Hide from nav - accessible via direct URL only
+# menu: false  # Hide from nav - accessible via direct URL only (disabled due to bug)
 ---
 
 # 🧪 Experimental Features

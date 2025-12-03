@@ -179,7 +179,7 @@ See: plan/active/rfc-template-performance-optimization.md
 </head>
 
 <body
-    class="page-kind-{{ _page.kind if (_has_page and _page.kind is defined) else 'page' }} {% if (_has_page and _page.draft is defined and _page.draft) %}draft-page{% endif %} {% if (_has_page and _page.tags is defined and (_page | has_tag('featured'))) %}featured-content{% endif %}">
+    class="page-kind-{{ _page.kind if (_has_page and _page.kind is defined) else 'page' }} {% if (_has_page and _page.draft is defined and _page.draft) %}draft-page{% endif %} {% if (_has_page and _page.hidden is defined and _page.hidden) %}hidden-page{% endif %} {% if (_has_page and _page.tags is defined and (_page | has_tag('featured'))) %}featured-content{% endif %}">
     {# Skip to main content for accessibility - Feature: accessibility.skip_link #}
     {% if 'accessibility.skip_link' in site.theme_config.features %}
     <a href="#main-content" class="skip-link">Skip to main content</a>

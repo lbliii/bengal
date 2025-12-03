@@ -208,3 +208,28 @@ body.draft-page::before {
   font-weight: var(--weight-bold);
   z-index: var(--z-dropdown);
 }
+
+/* Hidden/unlisted page indicator - shows in dev server */
+body.hidden-page::before {
+  content: "👁️ HIDDEN";
+  position: fixed;
+  top: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--color-warning, #f59e0b);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-md);
+  font-weight: var(--weight-bold);
+  font-size: 0.75rem;
+  z-index: var(--z-dropdown);
+  box-shadow: var(--shadow-md);
+}
+
+/* When both hidden and draft, show hidden (more specific) */
+body.hidden-page.draft-page::before {
+  content: "👁️ HIDDEN DRAFT";
+  left: 50%;
+  right: auto;
+  transform: translateX(-50%);
+}
