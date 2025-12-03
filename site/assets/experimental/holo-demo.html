@@ -99,7 +99,7 @@ hr {
   box-shadow: var(--elevation-card),
     0 0 0 1px color-mix(in srgb, var(--card-accent) 20%, transparent);
   transform-style: preserve-3d;
-  transition: 
+  transition:
     transform 0.4s cubic-bezier(0.23, 1, 0.32, 1),
     box-shadow var(--transition-base);
 }
@@ -126,7 +126,7 @@ hr {
   border-radius: inherit;
   background: var(--holo-gradient);
   background-size: 400% 400%;
-  background-position: 
+  background-position:
     calc(var(--holo-x) * 1%)
     calc(var(--holo-y) * 1%);
   mix-blend-mode: var(--holo-blend, color-dodge);
@@ -235,7 +235,7 @@ hr {
 }
 
 .holo-card--cosmos .holo-card__shine {
-  background: 
+  background:
     radial-gradient(circle at 20% 80%, color-mix(in srgb, var(--color-error) 50%, transparent) 0%, transparent 50%),
     radial-gradient(circle at 80% 20%, color-mix(in srgb, var(--color-info) 50%, transparent) 0%, transparent 50%),
     var(--holo-gradient);
@@ -274,7 +274,7 @@ hr {
   background: var(--orb-gradient);
   position: relative;
   /* Enhanced glossy effect */
-  box-shadow: 
+  box-shadow:
     0 4px 12px var(--orb-glow),
     0 2px 4px rgba(0, 0, 0, 0.2),
     inset 0 3px 6px rgba(255, 255, 255, 0.5),
@@ -398,7 +398,7 @@ hr {
 }
 
 [data-theme="dark"] .energy-orb {
-  box-shadow: 
+  box-shadow:
     0 4px 16px var(--orb-glow),
     0 2px 4px rgba(0, 0, 0, 0.4),
     inset 0 3px 8px rgba(255, 255, 255, 0.35),
@@ -423,7 +423,7 @@ hr {
 
 <div class="demo-container">
   <a href="/docs/experimental/holo-cards/" class="back-link">← Back to Documentation</a>
-  
+
   <header class="demo-header">
     <h1>✨ Holographic Card Effects</h1>
     <p class="demo-lead">Pokemon TCG-inspired effects using Bengal's design tokens.<br>
@@ -511,7 +511,7 @@ hr {
     <p style="color: var(--color-text-secondary); margin-bottom: 1rem;">
       These use the <code>.holo</code> class. Hover to see the effect.
     </p>
-    
+
     <div class="admonition note holo">
       <p class="admonition-title">Note</p>
       <p><strong>Holographic Note</strong> — The rainbow gradient uses Bengal's semantic tokens so it adapts to any palette!</p>
@@ -550,36 +550,36 @@ hr {
 <script>
 (function() {
   'use strict';
-  
+
   const MAX_ROTATION = 12;
-  
+
   function getPointerPosition(e, el) {
     const rect = el.getBoundingClientRect();
     const x = ((e.clientX - rect.left) / rect.width) * 100;
     const y = ((e.clientY - rect.top) / rect.height) * 100;
     return { x: Math.max(0, Math.min(100, x)), y: Math.max(0, Math.min(100, y)) };
   }
-  
+
   function updateCardStyles(el, x, y) {
     const rotateY = ((x / 50) - 1) * MAX_ROTATION;
     const rotateX = ((y / 50) - 1) * -MAX_ROTATION;
-    
+
     el.style.setProperty('--holo-x', x.toFixed(1));
     el.style.setProperty('--holo-y', y.toFixed(1));
-    
+
     const inner = el.querySelector('.holo-card__inner');
     if (inner) {
       inner.style.transform = `rotateY(${rotateY.toFixed(1)}deg) rotateX(${rotateX.toFixed(1)}deg)`;
     }
   }
-  
+
   function resetCardStyles(el) {
     el.style.setProperty('--holo-x', '50');
     el.style.setProperty('--holo-y', '50');
     const inner = el.querySelector('.holo-card__inner');
     if (inner) inner.style.transform = '';
   }
-  
+
   // Initialize cards
   document.querySelectorAll('.holo-card').forEach(card => {
     card.addEventListener('mousemove', e => {
@@ -588,7 +588,7 @@ hr {
     });
     card.addEventListener('mouseleave', () => resetCardStyles(card));
   });
-  
+
   // Initialize admonitions
   document.querySelectorAll('.admonition.holo').forEach(admon => {
     admon.addEventListener('mousemove', e => {

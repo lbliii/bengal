@@ -737,7 +737,21 @@ class Site:
         logger.info("pipeline_build_starting", parallel=parallel)
         start_time = time.time()
 
-        # Phase 0: Font Processing (generate fonts.css if fonts configured)
+        # Phase 0a: Static files (copy FIRST, before everything else)
+        # Static files are copied verbatim to output root, allowing raw HTML
+        # pages to access theme assets via /assets/css/style.css
+        from bengal.orchestration.static import StaticOrchestrator
+
+        static_start = time.time()
+        static = StaticOrchestrator(self)
+        static_count = static.copy()
+        static_time_ms = (time.time() - static_start) * 1000
+        if static_count > 0:
+            logger.debug(
+                "static_phase_complete", files=static_count, time_ms=f"{static_time_ms:.1f}"
+            )
+
+        # Phase 0b: Font Processing (generate fonts.css if fonts configured)
         if "fonts" in self.config:
             try:
                 from bengal.fonts import FontHelper

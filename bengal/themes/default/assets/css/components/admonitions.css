@@ -410,7 +410,7 @@
 /* ============================================
    HOLOGRAPHIC ADMONITIONS (Experimental)
    Pokemon TCG-inspired holographic effect
-   
+
    Usage: Add class="holo" to any admonition
    Uses Bengal's semantic tokens for theme compatibility.
    JS updates --holo-x and --holo-y on mousemove.
@@ -462,7 +462,7 @@
   border-radius: 0 var(--radius-xl) var(--radius-xl) 0;
   background: var(--holo-gradient);
   background-size: 400% 400%;
-  background-position: 
+  background-position:
     calc(var(--holo-x) * 1%)
     calc(var(--holo-y) * 1%);
   mix-blend-mode: var(--holo-blend);
