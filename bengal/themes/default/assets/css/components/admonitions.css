@@ -427,16 +427,14 @@
 /* Holographic variant - overrides default ::before/::after */
 .admonition.holo {
   /* Rainbow spectrum using semantic color tokens as anchors */
-  --holo-gradient: repeating-linear-gradient(
-    0deg,
-    color-mix(in oklch, var(--color-error) 80%, white) calc(5% * 1),
-    color-mix(in oklch, var(--color-warning) 80%, white) calc(5% * 2),
-    color-mix(in oklch, var(--color-success) 80%, white) calc(5% * 3),
-    color-mix(in oklch, var(--color-info) 80%, white) calc(5% * 4),
-    color-mix(in oklch, var(--color-primary) 80%, white) calc(5% * 5),
-    color-mix(in oklch, var(--color-accent) 80%, white) calc(5% * 6),
-    color-mix(in oklch, var(--color-error) 80%, white) calc(5% * 7)
-  );
+  --holo-gradient: repeating-linear-gradient(0deg,
+      color-mix(in oklch, var(--color-error) 80%, white) calc(5% * 1),
+      color-mix(in oklch, var(--color-warning) 80%, white) calc(5% * 2),
+      color-mix(in oklch, var(--color-success) 80%, white) calc(5% * 3),
+      color-mix(in oklch, var(--color-info) 80%, white) calc(5% * 4),
+      color-mix(in oklch, var(--color-primary) 80%, white) calc(5% * 5),
+      color-mix(in oklch, var(--color-accent) 80%, white) calc(5% * 6),
+      color-mix(in oklch, var(--color-error) 80%, white) calc(5% * 7));
   --holo-x: 50;
   --holo-y: 50;
   --holo-blend: color-dodge;
@@ -449,16 +447,14 @@
 /* Fallback gradient for browsers without color-mix */
 @supports not (color: color-mix(in oklch, red, blue)) {
   .admonition.holo {
-    --holo-gradient: repeating-linear-gradient(
-      0deg,
-      hsl(0, 90%, 75%) calc(5% * 1),
-      hsl(45, 95%, 70%) calc(5% * 2),
-      hsl(120, 80%, 70%) calc(5% * 3),
-      hsl(190, 90%, 70%) calc(5% * 4),
-      hsl(220, 90%, 75%) calc(5% * 5),
-      hsl(280, 80%, 75%) calc(5% * 6),
-      hsl(360, 90%, 75%) calc(5% * 7)
-    );
+    --holo-gradient: repeating-linear-gradient(0deg,
+        hsl(0, 90%, 75%) calc(5% * 1),
+        hsl(45, 95%, 70%) calc(5% * 2),
+        hsl(120, 80%, 70%) calc(5% * 3),
+        hsl(190, 90%, 70%) calc(5% * 4),
+        hsl(220, 90%, 75%) calc(5% * 5),
+        hsl(280, 80%, 75%) calc(5% * 6),
+        hsl(360, 90%, 75%) calc(5% * 7));
   }
 }
 
@@ -471,8 +467,7 @@
   background: var(--holo-gradient);
   background-size: 400% 400%;
   background-position:
-    calc(var(--holo-x) * 1%)
-    calc(var(--holo-y) * 1%);
+    calc(var(--holo-x) * 1%) calc(var(--holo-y) * 1%);
   mix-blend-mode: var(--holo-blend);
   opacity: 0;
   pointer-events: none;
@@ -483,22 +478,14 @@
   height: auto;
   top: 0;
   right: 0;
-  -webkit-mask-image: radial-gradient(
-    farthest-corner circle at
-    calc(var(--holo-x) * 1%)
-    calc(var(--holo-y) * 1%),
-    rgba(0, 0, 0, 0.9) 10%,
-    rgba(0, 0, 0, 0.5) 40%,
-    transparent 75%
-  );
-  mask-image: radial-gradient(
-    farthest-corner circle at
-    calc(var(--holo-x) * 1%)
-    calc(var(--holo-y) * 1%),
-    rgba(0, 0, 0, 0.9) 10%,
-    rgba(0, 0, 0, 0.5) 40%,
-    transparent 75%
-  );
+  -webkit-mask-image: radial-gradient(farthest-corner circle at calc(var(--holo-x) * 1%) calc(var(--holo-y) * 1%),
+      rgba(0, 0, 0, 0.9) 10%,
+      rgba(0, 0, 0, 0.5) 40%,
+      transparent 75%);
+  mask-image: radial-gradient(farthest-corner circle at calc(var(--holo-x) * 1%) calc(var(--holo-y) * 1%),
+      rgba(0, 0, 0, 0.9) 10%,
+      rgba(0, 0, 0, 0.5) 40%,
+      transparent 75%);
 }
 
 /* Glare layer - spotlight following cursor */
@@ -507,14 +494,10 @@
   position: absolute;
   inset: 0;
   border-radius: 0 var(--radius-xl) var(--radius-xl) 0;
-  background: radial-gradient(
-    farthest-corner circle at
-    calc(var(--holo-x) * 1%)
-    calc(var(--holo-y) * 1%),
-    var(--color-bg-primary) 0%,
-    color-mix(in srgb, var(--color-bg-primary) 50%, transparent) 25%,
-    transparent 55%
-  );
+  background: radial-gradient(farthest-corner circle at calc(var(--holo-x) * 1%) calc(var(--holo-y) * 1%),
+      var(--color-bg-primary) 0%,
+      color-mix(in srgb, var(--color-bg-primary) 50%, transparent) 25%,
+      transparent 55%);
   mix-blend-mode: overlay;
   opacity: 0;
   pointer-events: none;
@@ -566,47 +549,40 @@
   --holo-opacity: 0.7;
   --holo-glare-opacity: 0.4;
   /* Boost saturation for dark mode visibility */
-  --holo-gradient: repeating-linear-gradient(
-    0deg,
-    color-mix(in oklch, var(--color-error) 90%, transparent) calc(5% * 1),
-    color-mix(in oklch, var(--color-warning) 90%, transparent) calc(5% * 2),
-    color-mix(in oklch, var(--color-success) 90%, transparent) calc(5% * 3),
-    color-mix(in oklch, var(--color-info) 90%, transparent) calc(5% * 4),
-    color-mix(in oklch, var(--color-primary) 90%, transparent) calc(5% * 5),
-    color-mix(in oklch, var(--color-accent) 90%, transparent) calc(5% * 6),
-    color-mix(in oklch, var(--color-error) 90%, transparent) calc(5% * 7)
-  );
+  --holo-gradient: repeating-linear-gradient(0deg,
+      color-mix(in oklch, var(--color-error) 90%, transparent) calc(5% * 1),
+      color-mix(in oklch, var(--color-warning) 90%, transparent) calc(5% * 2),
+      color-mix(in oklch, var(--color-success) 90%, transparent) calc(5% * 3),
+      color-mix(in oklch, var(--color-info) 90%, transparent) calc(5% * 4),
+      color-mix(in oklch, var(--color-primary) 90%, transparent) calc(5% * 5),
+      color-mix(in oklch, var(--color-accent) 90%, transparent) calc(5% * 6),
+      color-mix(in oklch, var(--color-error) 90%, transparent) calc(5% * 7));
 }
 
 /* Dark mode fallback */
 @supports not (color: color-mix(in oklch, red, blue)) {
   [data-theme="dark"] .admonition.holo {
-    --holo-gradient: repeating-linear-gradient(
-      0deg,
-      hsla(0, 85%, 60%, 0.9) calc(5% * 1),
-      hsla(45, 90%, 55%, 0.9) calc(5% * 2),
-      hsla(120, 75%, 55%, 0.9) calc(5% * 3),
-      hsla(190, 85%, 55%, 0.9) calc(5% * 4),
-      hsla(220, 85%, 60%, 0.9) calc(5% * 5),
-      hsla(280, 75%, 60%, 0.9) calc(5% * 6),
-      hsla(360, 85%, 60%, 0.9) calc(5% * 7)
-    );
+    --holo-gradient: repeating-linear-gradient(0deg,
+        hsla(0, 85%, 60%, 0.9) calc(5% * 1),
+        hsla(45, 90%, 55%, 0.9) calc(5% * 2),
+        hsla(120, 75%, 55%, 0.9) calc(5% * 3),
+        hsla(190, 85%, 55%, 0.9) calc(5% * 4),
+        hsla(220, 85%, 60%, 0.9) calc(5% * 5),
+        hsla(280, 75%, 60%, 0.9) calc(5% * 6),
+        hsla(360, 85%, 60%, 0.9) calc(5% * 7));
   }
 }
 
 [data-theme="dark"] .admonition.holo::after {
-  background: radial-gradient(
-    farthest-corner circle at
-    calc(var(--holo-x) * 1%)
-    calc(var(--holo-y) * 1%),
-    color-mix(in srgb, var(--color-bg-secondary) 80%, white) 0%,
-    color-mix(in srgb, var(--color-bg-secondary) 40%, transparent) 30%,
-    transparent 55%
-  );
+  background: radial-gradient(farthest-corner circle at calc(var(--holo-x) * 1%) calc(var(--holo-y) * 1%),
+      color-mix(in srgb, var(--color-bg-secondary) 80%, white) 0%,
+      color-mix(in srgb, var(--color-bg-secondary) 40%, transparent) 30%,
+      transparent 55%);
 }
 
 /* Reduced motion - disable holo transitions */
 @media (prefers-reduced-motion: reduce) {
+
   .admonition.holo::before,
   .admonition.holo::after {
     transition: none !important;
