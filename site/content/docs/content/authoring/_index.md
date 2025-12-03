@@ -3,6 +3,8 @@ title: Content Authoring
 description: Markdown, MyST directives, and shortcodes
 weight: 20
 category: guide
+icon: edit
+card_color: blue
 ---
 
 # Writing Content
@@ -75,7 +77,7 @@ Helpful suggestion.
 :::
 
 :::{tab-item} Tabs
-```markdown
+````markdown
 ::::{tab-set}
 :::{tab-item} Python
 print("Hello")
@@ -84,7 +86,7 @@ print("Hello")
 console.log("Hello")
 :::
 ::::
-```
+````
 :::
 
 :::{tab-item} Cards

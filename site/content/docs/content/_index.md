@@ -16,39 +16,34 @@ Bengal turns your Markdown files into a structured, validated documentation site
 :columns: 2
 :gap: medium
 
-:::{card} 📁 Organize Content
+:::{card}
 :link: ./organization/
+:pull: title, description
 :color: green
-
-Understand pages, sections, bundles, and how your folder structure becomes your site structure.
 :::
 
-:::{card} ✍️ Write Content
+:::{card}
 :link: ./authoring/
+:pull: title, description
 :color: blue
-
-Markdown, MyST directives, admonitions, tabs, and code blocks for rich documentation.
 :::
 
-:::{card} ✅ Validate Content
+:::{card}
 :link: ./collections/
+:pull: title, description
 :color: purple
-
-Define schemas for your frontmatter. Catch typos and missing fields at build time.
 :::
 
-:::{card} 🔗 Connect Sources
+:::{card}
 :link: ./sources/
+:pull: title, description
 :color: orange
-
-Pull content from GitHub repos, Notion databases, or REST APIs alongside local files.
 :::
 
-:::{card} ♻️ Reuse Content
+:::{card}
 :link: ./reuse/
+:pull: title, description
 :color: teal
-
-Snippets, data files, and filtering to write once and publish everywhere.
 :::
 ::::
 

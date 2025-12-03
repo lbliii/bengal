@@ -3,6 +3,8 @@ title: Content Reuse
 description: Snippets, data files, and DRY patterns
 weight: 50
 category: guide
+icon: recycle
+card_color: teal
 ---
 
 # Reusing Content

@@ -7,6 +7,8 @@ lang: en
 tags: [sources, remote, github, notion]
 keywords: [sources, remote, github, notion, api, external]
 category: guide
+icon: link
+card_color: orange
 aliases:
   - /docs/guides/content-sources/
 ---

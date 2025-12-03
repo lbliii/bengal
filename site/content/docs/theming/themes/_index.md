@@ -3,6 +3,8 @@ title: Themes
 description: Use, customize, or create themes
 weight: 30
 category: guide
+icon: palette
+card_color: purple
 ---
 
 # Working with Themes

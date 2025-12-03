@@ -16,32 +16,28 @@ Control how your site looks with Jinja2 templates, CSS/JS assets, and theme pack
 :columns: 2
 :gap: medium
 
-:::{card} 🧩 Templates
+:::{card}
 :link: ./templating/
+:pull: title, description
 :color: blue
-
-Jinja2 layouts, inheritance, partials, and the complete template API reference.
 :::
 
-:::{card} 🎨 Assets
+:::{card}
 :link: ./assets/
+:pull: title, description
 :color: green
-
-CSS, JavaScript, images, and fonts. Processing, optimization, and fingerprinting.
 :::
 
-:::{card} 📦 Themes
+:::{card}
 :link: ./themes/
+:pull: title, description
 :color: purple
-
-Use existing themes, customize without forking, or create your own from scratch.
 :::
 
-:::{card} 🍳 Recipes
+:::{card}
 :link: ./recipes/
+:pull: title, description
 :color: orange
-
-Copy-paste patterns: list recent posts, group by category, filter by tags, and more.
 :::
 ::::
 

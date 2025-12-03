@@ -7,6 +7,8 @@ lang: en
 tags: [cookbook, templates, jinja, examples]
 keywords: [cookbook, templates, jinja, examples, bengal]
 category: guide
+icon: book-open
+card_color: orange
 aliases:
   - /docs/recipes/
 cascade:

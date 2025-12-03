@@ -7,6 +7,8 @@ lang: en
 tags: [collections, schemas, validation]
 keywords: [collections, schemas, validation, frontmatter, types]
 category: guide
+icon: check-circle
+card_color: purple
 aliases:
   - /docs/guides/content-collections/
 ---
