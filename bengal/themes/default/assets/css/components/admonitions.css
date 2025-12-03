@@ -191,12 +191,20 @@
   margin-bottom: 0;
 }
 
+/* Inline code in admonitions */
 .admonition code {
   background-color: rgba(0, 0, 0, 0.05);
 }
 
 [data-theme="dark"] .admonition code {
   background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Reset for code blocks inside admonitions (not inline code) */
+.admonition pre code {
+  padding: 0;
+  background: none;
+  border-radius: 0;
 }
 
 /* ============================================

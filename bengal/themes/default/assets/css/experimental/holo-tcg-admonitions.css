@@ -17,17 +17,15 @@
 
 :root {
   /* Holographic Foil Colors */
-  --holo-rainbow: linear-gradient(
-    125deg,
-    #ff0000 0%,
-    #ff8000 14%,
-    #ffff00 28%,
-    #00ff00 42%,
-    #00ffff 56%,
-    #0080ff 70%,
-    #8000ff 84%,
-    #ff00ff 100%
-  );
+  --holo-rainbow: linear-gradient(125deg,
+      #ff0000 0%,
+      #ff8000 14%,
+      #ffff00 28%,
+      #00ff00 42%,
+      #00ffff 56%,
+      #0080ff 70%,
+      #8000ff 84%,
+      #ff00ff 100%);
 
   /* Shimmer Animation Properties */
   --holo-shimmer-speed: 3s;
@@ -71,6 +69,7 @@
   0% {
     background-position: 200% 0;
   }
+
   100% {
     background-position: -200% 0;
   }
@@ -78,9 +77,12 @@
 
 /* Rainbow color shift */
 @keyframes holo-rainbow-shift {
-  0%, 100% {
+
+  0%,
+  100% {
     filter: hue-rotate(0deg);
   }
+
   50% {
     filter: hue-rotate(360deg);
   }
@@ -92,9 +94,11 @@
     transform: translateX(-100%) rotate(25deg);
     opacity: 0;
   }
+
   50% {
     opacity: 1;
   }
+
   100% {
     transform: translateX(300%) rotate(25deg);
     opacity: 0;
@@ -103,13 +107,16 @@
 
 /* Energy orb pulse */
 @keyframes energy-pulse {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: scale(1);
     box-shadow:
       0 0 8px currentColor,
       0 0 16px currentColor,
       inset 0 0 8px rgba(255, 255, 255, 0.3);
   }
+
   50% {
     transform: scale(1.05);
     box-shadow:
@@ -122,18 +129,23 @@
 
 /* Floating sparkle particles */
 @keyframes sparkle-float {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 0;
     transform: translateY(0) scale(0);
   }
+
   10% {
     opacity: 1;
     transform: translateY(-5px) scale(1);
   }
+
   90% {
     opacity: 1;
     transform: translateY(-25px) scale(1);
   }
+
   100% {
     opacity: 0;
     transform: translateY(-30px) scale(0);
@@ -145,6 +157,7 @@
   0% {
     clip-path: inset(100% 0 0 0);
   }
+
   100% {
     clip-path: inset(0 0 0 0);
   }
@@ -191,14 +204,12 @@
   left: -50%;
   width: 20%;
   height: 200%;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(255, 255, 255, 0) 40%,
-    rgba(255, 255, 255, 0.8) 50%,
-    rgba(255, 255, 255, 0) 60%,
-    transparent 100%
-  );
+  background: linear-gradient(90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0) 40%,
+      rgba(255, 255, 255, 0.8) 50%,
+      rgba(255, 255, 255, 0) 60%,
+      transparent 100%);
   transform: rotate(25deg);
   opacity: 0;
   z-index: 3;
@@ -214,12 +225,12 @@
   border: 3px solid transparent;
   background-clip: padding-box;
   background-image: linear-gradient(var(--color-bg-secondary), var(--color-bg-secondary)),
-                    linear-gradient(135deg,
-                      rgba(255, 255, 255, 0.3) 0%,
-                      rgba(255, 255, 255, 0.1) 25%,
-                      rgba(255, 255, 255, 0.3) 50%,
-                      rgba(255, 255, 255, 0.1) 75%,
-                      rgba(255, 255, 255, 0.3) 100%);
+    linear-gradient(135deg,
+      rgba(255, 255, 255, 0.3) 0%,
+      rgba(255, 255, 255, 0.1) 25%,
+      rgba(255, 255, 255, 0.3) 50%,
+      rgba(255, 255, 255, 0.1) 75%,
+      rgba(255, 255, 255, 0.3) 100%);
   background-origin: border-box;
   background-clip: padding-box, border-box;
 }
@@ -265,12 +276,10 @@
   left: 20%;
   width: 35%;
   height: 25%;
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.8) 0%,
-    rgba(255, 255, 255, 0.4) 50%,
-    transparent 100%
-  );
+  background: linear-gradient(135deg,
+      rgba(255, 255, 255, 0.8) 0%,
+      rgba(255, 255, 255, 0.4) 50%,
+      transparent 100%);
   border-radius: 50%;
 }
 
@@ -329,11 +338,9 @@
 .admonition.tcg-card .admonition-title {
   margin: 0;
   padding: 0.75rem 1rem;
-  background: linear-gradient(
-    180deg,
-    var(--card-accent) 0%,
-    color-mix(in srgb, var(--card-accent) 70%, black) 100%
-  );
+  background: linear-gradient(180deg,
+      var(--card-accent) 0%,
+      color-mix(in srgb, var(--card-accent) 70%, black) 100%);
   color: white;
   font-weight: var(--weight-bold);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
@@ -344,7 +351,7 @@
 }
 
 /* Card body (text box area) */
-.admonition.tcg-card > *:not(.admonition-title) {
+.admonition.tcg-card>*:not(.admonition-title) {
   padding: 0.75rem 1rem;
 }
 
@@ -404,14 +411,12 @@
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    135deg,
-    transparent 0%,
-    rgba(59, 130, 246, 0.1) 25%,
-    transparent 50%,
-    rgba(59, 130, 246, 0.1) 75%,
-    transparent 100%
-  );
+  background: linear-gradient(135deg,
+      transparent 0%,
+      rgba(59, 130, 246, 0.1) 25%,
+      transparent 50%,
+      rgba(59, 130, 246, 0.1) 75%,
+      transparent 100%);
   background-size: 200% 200%;
   animation: holo-shimmer 4s linear infinite;
   pointer-events: none;
@@ -516,11 +521,9 @@
 .admonition.tcg-full .admonition-title {
   margin: 0;
   padding: 0.875rem 1rem;
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.1) 0%,
-    rgba(0, 0, 0, 0.05) 100%
-  );
+  background: linear-gradient(180deg,
+      rgba(255, 255, 255, 0.1) 0%,
+      rgba(0, 0, 0, 0.05) 100%);
   border-bottom: 1px solid var(--color-border);
   display: flex;
   align-items: center;
@@ -544,7 +547,7 @@
 }
 
 /* Card body */
-.admonition.tcg-full > *:not(.admonition-title) {
+.admonition.tcg-full>*:not(.admonition-title) {
   padding: 1rem;
 }
 
@@ -590,13 +593,11 @@
   position: absolute;
   inset: 0;
   background-image:
-    repeating-linear-gradient(
-      45deg,
+    repeating-linear-gradient(45deg,
       transparent,
       transparent 2px,
       rgba(255, 255, 255, 0.03) 2px,
-      rgba(255, 255, 255, 0.03) 4px
-    );
+      rgba(255, 255, 255, 0.03) 4px);
   pointer-events: none;
   z-index: 1;
   border-radius: inherit;
@@ -680,6 +681,7 @@
    ============================================ */
 
 @media (prefers-reduced-motion: reduce) {
+
   .admonition.holo-foil::before,
   .admonition.holo-foil::after,
   .admonition.rarity-rare::before,
