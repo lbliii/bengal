@@ -251,3 +251,4 @@ Bengal is for developers who write Markdown in text editors. It's not a WordPres
 - [Comparison with Other SSGs](/docs/about/comparison/)
 - [Performance Benchmarks](/docs/about/benchmarks/)
 - [FAQ](/docs/about/faq/)
+

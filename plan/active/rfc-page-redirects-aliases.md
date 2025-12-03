@@ -392,3 +392,4 @@ Only generate `_redirects` file, no HTML fallback.
 - [Hugo Aliases Documentation](https://gohugo.io/content-management/urls/#aliases)
 - [Netlify Redirects](https://docs.netlify.com/routing/redirects/)
 - [Meta Refresh Best Practices](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/meta#attr-http-equiv)
+

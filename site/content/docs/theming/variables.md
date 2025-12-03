@@ -144,3 +144,4 @@ You can inspect available variables by printing them in a comment:
 - [Template Functions](/docs/theming/templating/functions/) — Filter and function reference
 - [Templating](/docs/theming/templating/) — Template basics
 
+

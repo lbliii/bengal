@@ -51,3 +51,4 @@ bengal serve --help
 - **[New](/docs/building/commands/new/)** — Scaffolding projects and content
 - **[Validate](/docs/building/commands/validate/)** — Running health checks
 
+

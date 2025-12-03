@@ -74,3 +74,4 @@ bengal clean --cache
 - **[Parallel Processing](/docs/building/performance/parallel/)** — Multi-core configuration
 - **[Caching](/docs/building/performance/caching/)** — Cache system details
 
+

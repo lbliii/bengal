@@ -58,3 +58,4 @@ fingerprint = true
 - **[Images](/docs/theming/assets/images/)** — Image optimization and responsive images
 - **[Fonts](/docs/theming/assets/fonts/)** — Custom font integration
 
+

@@ -67,3 +67,4 @@ bengal fix            # Apply fixes
 - **[Auto-Fix](/docs/extending/validation/autofix/)** — Automatic issue repair
 - **[Custom Validators](/docs/extending/validation/custom-validators/)** — Create your own rules
 
+

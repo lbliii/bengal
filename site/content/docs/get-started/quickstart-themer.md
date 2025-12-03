@@ -142,3 +142,4 @@ bengal utils theme info default
 - **[Variables Reference](/docs/theming/variables/)** — All template variables
 - **[Assets](/docs/theming/assets/)** — CSS, JS, and image handling
 
+

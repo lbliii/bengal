@@ -440,3 +440,4 @@ window.addEventListener('pagehide', cleanup);
 ---
 
 **Next Steps**: Proceed to `::plan` to break down into atomic tasks.
+

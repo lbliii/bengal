@@ -265,3 +265,4 @@ bengal new theme my-theme
 - [Assets](/docs/theming/assets/) — Asset pipeline
 - [Variables Reference](/docs/theming/variables/) — Available template variables
 
+

@@ -64,3 +64,4 @@ Extracts from Click/Typer commands:
 - **[CLI](/docs/extending/autodoc/cli/)** — CLI reference documentation
 - **[OpenAPI](/docs/extending/autodoc/openapi/)** — API specification docs
 
+

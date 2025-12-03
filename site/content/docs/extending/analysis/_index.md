@@ -66,3 +66,4 @@ Based on:
 - **[Graph Analysis](/docs/extending/analysis/graph/)** — Content relationship visualization
 - **[Link Suggestions](/docs/extending/analysis/link-suggestions/)** — Internal linking opportunities
 
+

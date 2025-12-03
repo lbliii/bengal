@@ -113,3 +113,4 @@ Pages without the grouped field go into a `None` group:
 - [Template Functions](/docs/theming/templating/functions/) — All filter options
 - [Filter by Tags](./filter-by-tags/) — Multi-criteria filtering
 
+

@@ -216,3 +216,4 @@ Filters can be chained for powerful queries:
 - [Variables Reference](/docs/theming/variables/) — Available template variables
 - [Templating](/docs/theming/templating/) — Template basics
 
+

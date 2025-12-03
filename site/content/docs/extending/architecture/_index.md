@@ -60,3 +60,4 @@ bengal/
 - **[Plugin API](/docs/extending/architecture/plugin-api/)** — Extension points
 - **[Contributing](/docs/extending/architecture/contributing/)** — Development guide
 
+

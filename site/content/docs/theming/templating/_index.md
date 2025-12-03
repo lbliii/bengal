@@ -84,3 +84,4 @@ Child template:
 - **[Partials](/docs/theming/templating/partials/)** — Reusable template fragments
 - **[Functions Reference](/docs/theming/templating/functions/)** — All template functions
 
+
