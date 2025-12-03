@@ -17,7 +17,7 @@ description: "🚀 Start development server with hot reload. Watches for changes
 
 
 
-**Command:** `bengal.site.serve`
+**Command:** `bengal.serve`
 
 
 🚀 Start development server with hot reload.

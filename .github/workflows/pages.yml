@@ -27,7 +27,7 @@ jobs:
           allow-prereleases: true
 
       - name: Install bengal
-        run: pip install -e .
+        run: pip install -e ".[search]"
 
       - name: Clean build artifacts and cache
         working-directory: site

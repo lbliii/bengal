@@ -1,5 +1,22 @@
 ## Unreleased
 
+### Reactive Dataflow Pipeline ✅
+- **pipeline(core)**: add `StreamKey`, `StreamItem[T]`, and abstract `Stream[T]` base class for reactive streams
+- **pipeline(streams)**: add concrete stream implementations: `SourceStream`, `MapStream`, `FilterStream`, `FlatMapStream`, `CollectStream`, `CombineStream`, `ParallelStream`, `CachedStream`
+- **pipeline(builder)**: add `Pipeline` fluent builder API and `PipelineResult` metrics dataclass
+- **pipeline**: support declarative build pipelines with lazy evaluation and automatic caching
+- **pipeline(bengal_streams)**: add Bengal-specific streams: `ContentDiscoveryStream`, `FileChangeStream`, `ParsedContent`, `RenderedPage`
+- **pipeline(build)**: add factory functions `create_build_pipeline()`, `create_incremental_pipeline()`, `create_simple_pipeline()`
+- **pipeline**: integrate with discovery system for content parsing and frontmatter extraction
+- **pipeline(cache)**: add `StreamCache` for disk-backed persistent caching, `DiskCachedStream` wrapper
+- **pipeline(cache)**: add `disk_cache()` method to `Stream` class for fluent cache integration
+- **pipeline(cache)**: implement version-based cache invalidation with `StreamCacheEntry`
+- **pipeline(watcher)**: add `FileWatcher` for file change detection with debouncing
+- **pipeline(watcher)**: add `WatchEvent`, `WatchBatch`, `ChangeType` for change batching
+- **pipeline(watcher)**: add `PipelineWatcher` for pipeline-based incremental rebuilds in watch mode
+- **docs**: add reactive dataflow pipeline architecture documentation
+- **docs**: update build pipeline concepts with reactive pipeline section
+
 ### Content Layer API (Remote Content Sources)
 - **content_layer**: add unified content abstraction for fetching from any source (local, GitHub, REST APIs, Notion)
 - **content_layer(entry)**: add `ContentEntry` dataclass as source-agnostic content representation

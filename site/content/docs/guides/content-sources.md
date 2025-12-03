@@ -38,7 +38,7 @@ collections = {
         schema=DocPage,
         directory="content/docs",
     ),
-    
+
     # Remote content from GitHub
     "api-docs": define_collection(
         schema=DocPage,
@@ -190,13 +190,13 @@ collections = {
         schema=DocPage,
         directory="content/docs",
     ),
-    
+
     # API reference (from API team's repo)
     "api": define_collection(
         schema=DocPage,
         loader=github_loader(repo="myorg/api-service", path="docs/"),
     ),
-    
+
     # SDK docs (from SDK repo)
     "sdk": define_collection(
         schema=DocPage,
@@ -229,7 +229,7 @@ from bengal.content_layer import ContentSource, ContentEntry
 
 class MyCustomSource(ContentSource):
     source_type = "my-api"
-    
+
     async def fetch_all(self):
         for item in await self._get_items():
             yield ContentEntry(
@@ -240,7 +240,7 @@ class MyCustomSource(ContentSource):
                 source_type=self.source_type,
                 source_name=self.name,
             )
-    
+
     async def fetch_one(self, id: str):
         item = await self._get_item(id)
         if not item:
@@ -261,5 +261,3 @@ Remote loaders are lazy-loaded only when you import them.
 ## See Also
 
 - [Content Collections](/docs/guides/content-collections/) — Schema validation for any source
-- [CLI Reference: sources](/cli/sources/) — Command details
-

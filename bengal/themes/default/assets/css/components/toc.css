@@ -52,6 +52,8 @@
     height: 100%;
     overflow-x: hidden;
     min-width: 0;
+    /* Breathing room from parent's scrollbar (docs-toc overflow-y: auto) */
+    padding-inline-end: 0.5rem;
 }
 
 /* ============================================================================

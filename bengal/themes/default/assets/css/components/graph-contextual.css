@@ -14,6 +14,9 @@
     overflow: hidden;
     /* Reserve space to prevent layout shift */
     flex-shrink: 0;
+    /* Breathing room from parent's scrollbar (docs-toc overflow-y: auto) */
+    padding-inline-end: 0.5rem;
+    box-sizing: border-box;
 }
 
 /* Loading placeholder - ensure it stays visible until graph loads */

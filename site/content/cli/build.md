@@ -17,7 +17,7 @@ description: "🔨 Build the static site. Generates HTML files from your content
 
 
 
-**Command:** `bengal.site.build`
+**Command:** `bengal.build`
 
 
 🔨 Build the static site.
