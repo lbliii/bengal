@@ -207,20 +207,22 @@ class BuildHandler(FileSystemEventHandler):
             # Determine build strategy based on event types and file types
             # Force full rebuild for:
             # 1. Structural changes (created/deleted/moved files) - affects section relationships
-            # 2. Section index changes (_index.md) - affects navigation across all pages
-            # 3. Any file that may have visibility changes affecting navigation
-            # Use incremental only for regular content modifications
+            # 2. Content file changes (.md) - may affect navigation via hidden/visibility frontmatter
+            # 3. Template changes - affects all rendered pages
+            # Use incremental only for asset-only modifications (CSS, JS, images)
             needs_full_rebuild = bool({"created", "deleted", "moved"} & self.pending_event_types)
 
-            # Check if any section index files changed - these always affect navigation
-            # Changes to _index.md can affect menu, visibility, and page listings site-wide
+            # Content files (.md) always trigger full rebuild for navigation consistency
+            # Frontmatter changes (hidden, visibility, menu, draft) affect site-wide navigation
+            # and listings, which are rendered into every page's HTML
             if not needs_full_rebuild:
+                content_extensions = {".md", ".markdown"}
                 for changed_path in changed_files:
-                    if Path(changed_path).name == "_index.md":
+                    if Path(changed_path).suffix.lower() in content_extensions:
                         needs_full_rebuild = True
                         logger.debug(
-                            "full_rebuild_triggered_by_index",
-                            reason="section_index_changed",
+                            "full_rebuild_triggered_by_content",
+                            reason="content_file_changed",
                             file=changed_path,
                         )
                         break
