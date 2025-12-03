@@ -821,7 +821,7 @@ class Site:
         generated_count = len(self.generated_pages)
 
         # Count sections
-        section_count = len(list(self.sections)) if hasattr(self, "sections") else 0
+        section_count = len(self.sections) if hasattr(self, "sections") else 0
 
         # Count assets
         asset_count = len(self.assets) if hasattr(self, "assets") else 0

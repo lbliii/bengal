@@ -248,8 +248,11 @@ class TestThreadLocalPipelineCaching:
 
         parallel.materialize()
 
-        # Should have used multiple threads
-        # (exact count depends on thread scheduling, but should be > 1 with 4 workers)
+        # Verify all items were processed
         assert call_count == 10, f"Expected 10 calls, got {call_count}"
-        # With 4 workers and 10 items, we'd expect at least 2 threads to be used
-        # (but can't guarantee exact count due to thread scheduling)
+
+        # Verify multiple threads were used (with 4 workers and 10 items, expect >1 thread)
+        assert len(thread_ids) > 1, (
+            f"Expected multiple threads to be used with 4 workers, "
+            f"but only {len(thread_ids)} thread(s) were used: {thread_ids}"
+        )

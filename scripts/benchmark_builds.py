@@ -92,6 +92,7 @@ def run_build(site_dir: Path, name: str, *args: str) -> BuildResult:
             match = re.search(r"total_pages[=:]\s*(\d+)", line, re.IGNORECASE)
             if match:
                 pages_rendered = int(match.group(1))
+                break
 
     build_result = BuildResult(
         name=name,
@@ -244,8 +245,8 @@ def main() -> None:
     parser.add_argument(
         "--site",
         type=Path,
-        default=Path("/Users/llane/Documents/github/python/bengal/site"),
-        help="Path to site directory",
+        default=Path.cwd() / "site",
+        help="Path to site directory (defaults to ./site)",
     )
     parser.add_argument(
         "--iterations",
