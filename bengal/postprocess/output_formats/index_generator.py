@@ -278,6 +278,11 @@ class SiteIndexGenerator:
         if metadata.get("search_exclude"):
             summary["search_exclude"] = True
 
+        # Visibility system integration
+        # Check in_search property if available (Page/PageProxy have this)
+        if hasattr(page, "in_search") and not page.in_search:
+            summary["search_exclude"] = True
+
         # API/CLI specific
         if metadata.get("cli_name"):
             summary["cli_name"] = metadata["cli_name"]

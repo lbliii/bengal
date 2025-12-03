@@ -69,6 +69,11 @@ class SitemapGenerator:
         skipped_count = 0
 
         for page in self.site.pages:
+            # Skip pages that shouldn't be in sitemap (hidden, visibility.sitemap=false, drafts)
+            if not page.in_sitemap:
+                skipped_count += 1
+                continue
+
             url_elem = ET.SubElement(urlset, "url")
 
             # Get page URL
