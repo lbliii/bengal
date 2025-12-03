@@ -204,12 +204,26 @@ class BuildHandler(FileSystemEventHandler):
                 if file_count > 1:
                     file_name = f"{file_name} (+{file_count - 1} more)"
 
-            # Determine build strategy based on event types
-            # Force full rebuild for structural changes (created/deleted/moved files).
-            # These events can affect section relationships and require a cascade rebuild,
-            # since adding, removing, or moving files may change the structure of the site.
-            # Use incremental only for modifications to existing files.
+            # Determine build strategy based on event types and file types
+            # Force full rebuild for:
+            # 1. Structural changes (created/deleted/moved files) - affects section relationships
+            # 2. Section index changes (_index.md) - affects navigation across all pages
+            # 3. Any file that may have visibility changes affecting navigation
+            # Use incremental only for regular content modifications
             needs_full_rebuild = bool({"created", "deleted", "moved"} & self.pending_event_types)
+
+            # Check if any section index files changed - these always affect navigation
+            # Changes to _index.md can affect menu, visibility, and page listings site-wide
+            if not needs_full_rebuild:
+                for changed_path in changed_files:
+                    if Path(changed_path).name == "_index.md":
+                        needs_full_rebuild = True
+                        logger.debug(
+                            "full_rebuild_triggered_by_index",
+                            reason="section_index_changed",
+                            file=changed_path,
+                        )
+                        break
 
             logger.info(
                 "rebuild_triggered",
