@@ -1,5 +1,19 @@
 ## Unreleased
 
+### Page Visibility System ✅
+- **core(page)**: add `hidden` frontmatter shorthand for unlisted pages (excludes from nav, listings, sitemap, search, RSS)
+- **core(page)**: add `visibility` object for granular control (menu, listings, sitemap, robots, render, search, rss)
+- **core(page)**: add `in_listings`, `in_sitemap`, `in_search`, `in_rss`, `robots_meta` properties
+- **core(page)**: add `should_render_in_environment()` for environment-aware rendering (local vs production)
+- **core(site)**: add `listable_pages` property that respects visibility settings
+- **postprocess(sitemap)**: exclude hidden pages from sitemap.xml
+- **postprocess(rss)**: exclude hidden pages from RSS feeds
+- **postprocess(search)**: exclude hidden pages from search index
+- **rendering(navigation)**: integrate visibility.menu with auto-nav discovery
+- **themes(default)**: add robots meta tag injection for hidden pages (noindex, nofollow)
+- **themes(default)**: add visual indicator banner for hidden pages in dev server
+- **pipeline(build)**: add visibility-based filtering for render: local/never pages
+
 ### Documentation Information Architecture Overhaul
 - **docs(ia)**: reorganize documentation by feature dimensions (content, theming, building, extending) instead of Diataxis types
 - **docs(tutorials)**: create dedicated tutorials section for guided learning journeys

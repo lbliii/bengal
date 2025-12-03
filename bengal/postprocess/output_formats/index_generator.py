@@ -279,9 +279,12 @@ class SiteIndexGenerator:
             summary["search_exclude"] = True
 
         # Visibility system integration
-        # Check in_search property if available (Page/PageProxy have this)
-        if hasattr(page, "in_search") and not page.in_search:
+        # Check hidden frontmatter or visibility.search setting
+        if metadata.get("hidden", False):
             summary["search_exclude"] = True
+        elif isinstance(metadata.get("visibility"), dict):
+            if not metadata["visibility"].get("search", True):
+                summary["search_exclude"] = True
 
         # API/CLI specific
         if metadata.get("cli_name"):

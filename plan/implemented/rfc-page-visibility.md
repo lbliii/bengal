@@ -1,7 +1,8 @@
 # RFC: Page Visibility System
 
-**Status**: Draft  
+**Status**: Implemented  
 **Created**: 2024-12-03  
+**Implemented**: 2024-12-03  
 **Author**: AI Assistant  
 **Scope**: Core frontmatter, rendering, sitemap, SEO
 
