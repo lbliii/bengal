@@ -212,6 +212,9 @@ class CardDirective(DirectivePlugin):
         :::
     """
 
+    # Directive names this class registers (for health check introspection)
+    DIRECTIVE_NAMES = ["card"]
+
     def parse(self, block: Any, m: Match, state: Any) -> dict[str, Any]:
         """
         Parse card directive.
@@ -315,6 +318,9 @@ class GridDirective(DirectivePlugin):
         :gap: medium
         :::
     """
+
+    # Directive names this class registers (for health check introspection)
+    DIRECTIVE_NAMES = ["grid"]
 
     def parse(self, block: Any, m: Match, state: Any) -> dict[str, Any]:
         """
@@ -440,6 +446,9 @@ class GridItemCardDirective(DirectivePlugin):
         Content
         :::
     """
+
+    # Directive names this class registers (for health check introspection)
+    DIRECTIVE_NAMES = ["grid-item-card"]
 
     def parse(self, block: Any, m: Match, state: Any) -> dict[str, Any]:
         """
@@ -1012,6 +1021,9 @@ class ChildCardsDirective(DirectivePlugin):
         :fields: title, description, icon
         :::
     """
+
+    # Directive names this class registers (for health check introspection)
+    DIRECTIVE_NAMES = ["child-cards"]
 
     def parse(self, block, m, state):
         """Parse child-cards directive options."""

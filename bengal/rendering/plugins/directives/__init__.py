@@ -57,72 +57,93 @@ from bengal.rendering.plugins.directives.validator import DirectiveSyntaxValidat
 from bengal.utils.logger import get_logger
 
 # =============================================================================
-# KNOWN_DIRECTIVE_NAMES - Single source of truth for all registered directives
+# DIRECTIVE REGISTRY - Single Source of Truth
 # =============================================================================
-# This set is the canonical list of all directive names that Bengal registers.
-# The health check imports this directly instead of maintaining a duplicate list.
+# All directive classes that Bengal registers. Each class has a DIRECTIVE_NAMES
+# attribute declaring the directive names it registers.
 #
 # When adding a new directive:
-# 1. Add the directive class to directives_list in create_documentation_directives()
-# 2. Add the directive name(s) to KNOWN_DIRECTIVE_NAMES below
+# 1. Add DIRECTIVE_NAMES class attribute to your directive class
+# 2. Add the class to DIRECTIVE_CLASSES below
+# 3. Add the class to create_documentation_directives() directives_list
+#
+# The health check imports KNOWN_DIRECTIVE_NAMES which is computed automatically
+# from DIRECTIVE_CLASSES - no manual synchronization needed!
 # =============================================================================
 
-KNOWN_DIRECTIVE_NAMES: frozenset[str] = frozenset({
-    # Admonitions (AdmonitionDirective registers all of these)
-    "note",
-    "tip",
-    "warning",
-    "danger",
-    "error",
-    "info",
-    "example",
-    "success",
-    "caution",
-    "seealso",
-    # Badges (BadgeDirective)
-    "badge",
-    "bdg",  # Sphinx-Design compatibility alias
-    # Buttons (ButtonDirective)
-    "button",
-    # Cards (CardsDirective, CardDirective, ChildCardsDirective)
-    "cards",
-    "card",
-    "child-cards",
-    # Sphinx-Design grid compatibility (GridDirective, GridItemCardDirective)
-    "grid",
-    "grid-item-card",
-    # Tabs (TabsDirective, TabSetDirective, TabItemDirective)
-    "tabs",
-    "tab-set",
-    "tab-item",
-    # Code tabs (CodeTabsDirective)
-    "code-tabs",
-    # Dropdowns (DropdownDirective)
-    "dropdown",
-    "details",  # Alias
-    # Tables (ListTableDirective, DataTableDirective)
-    "list-table",
-    "data-table",
-    # Glossary (GlossaryDirective)
-    "glossary",
-    # Checklists (ChecklistDirective)
-    "checklist",
-    # Steps (StepsDirective, StepDirective)
-    "steps",
-    "step",
-    # Rubric (RubricDirective)
-    "rubric",
-    # Includes (IncludeDirective, LiteralIncludeDirective)
-    "include",
-    "literalinclude",
-    # Navigation (BreadcrumbsDirective, SiblingsDirective, PrevNextDirective, RelatedDirective)
-    "breadcrumbs",
-    "siblings",
-    "prev-next",
-    "related",
-    # Marimo (MarimoCellDirective - optional, only if marimo is installed)
-    "marimo",
-})
+DIRECTIVE_CLASSES: list[type] = [
+    # Admonitions (10 types: note, tip, warning, danger, error, info, example, success, caution, seealso)
+    AdmonitionDirective,
+    # Badges (badge, bdg)
+    BadgeDirective,
+    # Buttons (button)
+    ButtonDirective,
+    # Cards (cards, card, child-cards, grid, grid-item-card)
+    CardsDirective,
+    CardDirective,
+    ChildCardsDirective,
+    GridDirective,
+    GridItemCardDirective,
+    # Tabs (tabs, tab-set, tab-item)
+    TabsDirective,
+    TabSetDirective,
+    TabItemDirective,
+    # Dropdowns (dropdown, details)
+    DropdownDirective,
+    # Code tabs (code-tabs, code_tabs)
+    CodeTabsDirective,
+    # Tables (list-table, data-table)
+    ListTableDirective,
+    DataTableDirective,
+    # Glossary (glossary)
+    GlossaryDirective,
+    # Checklist (checklist)
+    ChecklistDirective,
+    # Steps (steps, step)
+    StepsDirective,
+    StepDirective,
+    # Rubric (rubric)
+    RubricDirective,
+    # Includes (include, literalinclude)
+    IncludeDirective,
+    LiteralIncludeDirective,
+    # Navigation (breadcrumbs, siblings, prev-next, related)
+    BreadcrumbsDirective,
+    SiblingsDirective,
+    PrevNextDirective,
+    RelatedDirective,
+    # Marimo (marimo) - optional, works even if marimo package not installed
+    MarimoCellDirective,
+]
+
+
+def get_known_directive_names() -> frozenset[str]:
+    """
+    Derive known directive names from actual directive classes.
+
+    This is the SINGLE SOURCE OF TRUTH. Do not maintain a separate list.
+    Each directive class declares its names via the DIRECTIVE_NAMES class attribute.
+
+    Returns:
+        Frozenset of all registered directive names.
+    """
+    names: set[str] = set()
+    for cls in DIRECTIVE_CLASSES:
+        if hasattr(cls, "DIRECTIVE_NAMES"):
+            names.update(cls.DIRECTIVE_NAMES)
+        else:
+            # Log warning about missing DIRECTIVE_NAMES (shouldn't happen)
+            logger = get_logger(__name__)
+            logger.warning(
+                "directive_missing_names",
+                directive=cls.__name__,
+                info=f"Directive {cls.__name__} missing DIRECTIVE_NAMES attribute",
+            )
+    return frozenset(names)
+
+
+# Cached for performance - computed once at import time
+KNOWN_DIRECTIVE_NAMES: frozenset[str] = get_known_directive_names()
 
 # Admonition types subset (for type-specific validation)
 ADMONITION_TYPES: frozenset[str] = frozenset({
@@ -136,8 +157,10 @@ CODE_BLOCK_DIRECTIVES: frozenset[str] = frozenset({
 })
 
 __all__ = [
-    # Registry constants (single source of truth)
+    # Registry constants and functions (single source of truth)
+    "DIRECTIVE_CLASSES",
     "KNOWN_DIRECTIVE_NAMES",
+    "get_known_directive_names",
     "ADMONITION_TYPES",
     "CODE_BLOCK_DIRECTIVES",
     # Classes and functions

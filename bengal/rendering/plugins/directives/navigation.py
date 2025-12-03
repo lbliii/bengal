@@ -68,6 +68,9 @@ class BreadcrumbsDirective(DirectivePlugin):
         Home / Docs / Content / Authoring
     """
 
+    # Directive names this class registers (for health check introspection)
+    DIRECTIVE_NAMES = ["breadcrumbs"]
+
     def parse(self, block: Any, m: Match, state: Any) -> dict[str, Any]:
         """Parse breadcrumbs directive options."""
         options = dict(self.parse_options(m))
@@ -180,6 +183,9 @@ class SiblingsDirective(DirectivePlugin):
         :show-description: true
         :::
     """
+
+    # Directive names this class registers (for health check introspection)
+    DIRECTIVE_NAMES = ["siblings"]
 
     def parse(self, block: Any, m: Match, state: Any) -> dict[str, Any]:
         """Parse siblings directive options."""
@@ -300,6 +306,9 @@ class PrevNextDirective(DirectivePlugin):
         :::
     """
 
+    # Directive names this class registers (for health check introspection)
+    DIRECTIVE_NAMES = ["prev-next"]
+
     def parse(self, block: Any, m: Match, state: Any) -> dict[str, Any]:
         """Parse prev-next directive options."""
         options = dict(self.parse_options(m))
@@ -400,6 +409,9 @@ class RelatedDirective(DirectivePlugin):
         :show-tags: true
         :::
     """
+
+    # Directive names this class registers (for health check introspection)
+    DIRECTIVE_NAMES = ["related"]
 
     def parse(self, block: Any, m: Match, state: Any) -> dict[str, Any]:
         """Parse related directive options."""

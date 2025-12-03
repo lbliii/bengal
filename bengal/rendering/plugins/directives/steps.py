@@ -51,6 +51,9 @@ class StepDirective(DirectivePlugin):
         :class: Custom CSS class for the step
     """
 
+    # Directive names this class registers (for health check introspection)
+    DIRECTIVE_NAMES = ["step"]
+
     def parse(self, block, m, state):
         """
         Parse step directive.
@@ -123,6 +126,9 @@ class StepsDirective(DirectivePlugin):
             <ol>...</ol>
         </div>
     """
+
+    # Directive names this class registers (for health check introspection)
+    DIRECTIVE_NAMES = ["steps"]
 
     def parse(self, block, m, state):
         """

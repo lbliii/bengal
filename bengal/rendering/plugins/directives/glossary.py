@@ -70,6 +70,9 @@ class GlossaryDirective(DirectivePlugin):
         - source: Custom glossary file path (default: data/glossary.yaml)
     """
 
+    # Directive names this class registers (for health check introspection)
+    DIRECTIVE_NAMES = ["glossary"]
+
     def parse(self, block: Any, m: Match, state: Any) -> dict[str, Any]:
         """
         Parse glossary directive.

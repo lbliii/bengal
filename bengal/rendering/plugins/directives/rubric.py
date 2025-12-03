@@ -35,6 +35,9 @@ class RubricDirective(DirectivePlugin):
     the directive is parsed as separate markdown.
     """
 
+    # Directive names this class registers (for health check introspection)
+    DIRECTIVE_NAMES = ["rubric"]
+
     def parse(self, block, m, state):
         """Parse rubric directive.
 

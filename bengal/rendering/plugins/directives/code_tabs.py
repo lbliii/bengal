@@ -47,6 +47,10 @@ class CodeTabsDirective(DirectivePlugin):
         ````
     """
 
+    # Directive names this class registers (for health check introspection)
+    # "code_tabs" (underscore) is an alias
+    DIRECTIVE_NAMES = ["code-tabs", "code_tabs"]
+
     def parse(self, block, m, state):
         """Parse code tabs directive."""
         content = self.parse_content(m)

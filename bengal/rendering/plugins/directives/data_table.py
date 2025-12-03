@@ -47,6 +47,9 @@ class DataTableDirective(DirectivePlugin):
     - Keyboard navigation
     """
 
+    # Directive names this class registers (for health check introspection)
+    DIRECTIVE_NAMES = ["data-table"]
+
     def parse(self, block: Any, m: Match, state: Any) -> dict[str, Any]:
         """
         Parse data-table directive.

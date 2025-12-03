@@ -1,5 +1,12 @@
 ## Unreleased
 
+### Directive Registry - Single Source of Truth ✅
+- **rendering(directives)**: add `DIRECTIVE_NAMES` class attribute to all 27 directive classes
+- **rendering(directives)**: add `DIRECTIVE_CLASSES` registry and `get_known_directive_names()` function
+- **rendering(directives)**: replace manual `KNOWN_DIRECTIVE_NAMES` with computed version from class attributes
+- **tests**: add `test_directive_registry.py` with 47 tests for registry consistency and registration verification
+- **health**: health check now uses single source of truth from rendering package (no more drift)
+
 ### Page Visibility System ✅
 - **core(page)**: add `hidden` frontmatter shorthand for unlisted pages (excludes from nav, listings, sitemap, search, RSS)
 - **core(page)**: add `visibility` object for granular control (menu, listings, sitemap, robots, render, search, rss)
