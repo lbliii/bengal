@@ -23,7 +23,7 @@ Related:
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from bengal.pipeline.bengal_streams import (
     ParsedContent,
@@ -51,11 +51,7 @@ def create_build_pipeline(
 
     The pipeline flows:
 
-        discover → parse → page → [collect] → navigation
-                              ↓           ↓
-                           render ← ← ← ←┘
-                              ↓
-                           write
+        discover → parse → page → render → write
 
     Args:
         site: Bengal Site instance to build
@@ -72,12 +68,20 @@ def create_build_pipeline(
         ...     print(f"Built {result.items_processed} pages")
     """
     from bengal.core.page import Page
+    from bengal.rendering.renderer import Renderer
+    from bengal.rendering.template_engine import TemplateEngine
 
     content_dir = site.root_path / "content"
 
-    # Build navigation from all pages (collected first)
-    all_pages: list[Page] = []
-    navigation: Any = None
+    # Lazily initialize renderer
+    _renderer: Renderer | None = None
+
+    def get_renderer() -> Renderer:
+        nonlocal _renderer
+        if _renderer is None:
+            engine = TemplateEngine(site)
+            _renderer = Renderer(engine)
+        return _renderer
 
     def discover_and_parse():
         """Discover content files and parse frontmatter."""
@@ -114,39 +118,17 @@ def create_build_pipeline(
 
     def create_page(parsed: ParsedContent) -> Page:
         """Create Page from ParsedContent."""
-        page = Page(
+        return Page(
             source_path=parsed.source_path,
             content=parsed.content,
             metadata=parsed.metadata,
             _site=site,
         )
-        all_pages.append(page)
-        return page
-
-    def build_navigation_once(pages: list[Page]) -> Any:
-        """Build navigation from collected pages."""
-        nonlocal navigation
-        if navigation is None:
-            from bengal.core.menu import MenuBuilder
-
-            menu_builder = MenuBuilder(site)
-            navigation = menu_builder.build_menus(pages)
-        return navigation
 
     def render_page(page: Page) -> RenderedPage:
-        """Render page with navigation."""
-        from bengal.rendering.template_engine import TemplateEngine
-
-        # Ensure navigation is built
-        if navigation is None:
-            build_navigation_once(all_pages)
-
-        engine = getattr(site, "_template_engine", None)
-        if engine is None:
-            engine = TemplateEngine(site)
-            site._template_engine = engine
-
-        html = engine.render_page(page, navigation=navigation)
+        """Render page using Bengal's renderer."""
+        renderer = get_renderer()
+        html = renderer.render_page(page)
 
         output_path = page.url.lstrip("/")
         if not output_path.endswith(".html"):
@@ -162,23 +144,6 @@ def create_build_pipeline(
         """Write rendered page to disk."""
         write_output(site, rendered)
 
-    # Build the pipeline
-    pipeline = (
-        Pipeline("bengal-build")
-        .source("discover", discover_and_parse)
-        .map("create_page", create_page)
-    )
-
-    if parallel:
-        pipeline = pipeline.parallel(workers=workers)
-
-    pipeline = (
-        pipeline.collect("all_pages").map("build_nav", build_navigation_once)
-        # After building nav, we need to render each page
-    )
-
-    # For now, use a simpler approach - render in for_each
-    # This captures the navigation in closure
     return (
         Pipeline("bengal-build")
         .source("discover", discover_and_parse)
@@ -200,9 +165,7 @@ def create_incremental_pipeline(
 
     This pipeline:
     1. Only processes files in changed_files
-    2. Reuses cached pages for unchanged files (from site.pages)
-    3. Rebuilds navigation only if structure changed
-    4. Re-renders only affected pages
+    2. Re-renders only affected pages
 
     Args:
         site: Bengal Site instance
@@ -219,10 +182,18 @@ def create_incremental_pipeline(
         >>> result = pipeline.run()
     """
     from bengal.core.page import Page
+    from bengal.rendering.renderer import Renderer
+    from bengal.rendering.template_engine import TemplateEngine
 
-    # Track if navigation needs rebuild
-    nav_rebuild_needed = False
-    navigation: Any = None
+    # Lazily initialize renderer
+    _renderer: Renderer | None = None
+
+    def get_renderer() -> Renderer:
+        nonlocal _renderer
+        if _renderer is None:
+            engine = TemplateEngine(site)
+            _renderer = Renderer(engine)
+        return _renderer
 
     def get_changed_content():
         """Yield content for changed files only."""
@@ -266,49 +237,17 @@ def create_incremental_pipeline(
 
     def create_page(parsed: ParsedContent) -> Page:
         """Create Page from ParsedContent."""
-        nonlocal nav_rebuild_needed
-
-        page = Page(
+        return Page(
             source_path=parsed.source_path,
             content=parsed.content,
             metadata=parsed.metadata,
             _site=site,
         )
 
-        # Check if nav rebuild needed (weight or title changed)
-        existing = next((p for p in site.pages if p.source_path == parsed.source_path), None)
-        if existing:
-            if existing.weight != page.weight or existing.title != page.title:
-                nav_rebuild_needed = True
-        else:
-            # New page - nav rebuild needed
-            nav_rebuild_needed = True
-
-        return page
-
     def render_page(page: Page) -> RenderedPage:
-        """Render page with navigation."""
-        nonlocal navigation
-
-        from bengal.rendering.template_engine import TemplateEngine
-
-        # Build or reuse navigation
-        if navigation is None:
-            if nav_rebuild_needed:
-                from bengal.core.menu import MenuBuilder
-
-                menu_builder = MenuBuilder(site)
-                navigation = menu_builder.build_menus(site.pages)
-            else:
-                # Reuse existing navigation
-                navigation = getattr(site, "_navigation", {})
-
-        engine = getattr(site, "_template_engine", None)
-        if engine is None:
-            engine = TemplateEngine(site)
-            site._template_engine = engine
-
-        html = engine.render_page(page, navigation=navigation)
+        """Render page using Bengal's renderer."""
+        renderer = get_renderer()
+        html = renderer.render_page(page)
 
         output_path = page.url.lstrip("/")
         if not output_path.endswith(".html"):
@@ -324,15 +263,13 @@ def create_incremental_pipeline(
         """Write rendered page to disk."""
         write_output(site, rendered)
 
-    pipeline = (
+    return (
         Pipeline("bengal-incremental")
         .source("changed", get_changed_content)
         .map("create_page", create_page)
         .map("render", render_page)
         .for_each("write", write_page)
     )
-
-    return pipeline
 
 
 def create_simple_pipeline(
@@ -351,32 +288,29 @@ def create_simple_pipeline(
     Returns:
         Pipeline that renders and writes pages
     """
+    from bengal.rendering.renderer import Renderer
+    from bengal.rendering.template_engine import TemplateEngine
 
     pages_to_render = pages if pages is not None else list(site.pages)
-    navigation: Any = None
+
+    # Lazily initialize renderer
+    _renderer: Renderer | None = None
+
+    def get_renderer() -> Renderer:
+        nonlocal _renderer
+        if _renderer is None:
+            engine = TemplateEngine(site)
+            _renderer = Renderer(engine)
+        return _renderer
 
     def get_pages():
         """Yield pages to render."""
         yield from pages_to_render
 
     def render_page(page: Page) -> RenderedPage:
-        """Render page with navigation."""
-        nonlocal navigation
-
-        from bengal.rendering.template_engine import TemplateEngine
-
-        if navigation is None:
-            from bengal.core.menu import MenuBuilder
-
-            menu_builder = MenuBuilder(site)
-            navigation = menu_builder.build_menus(pages_to_render)
-
-        engine = getattr(site, "_template_engine", None)
-        if engine is None:
-            engine = TemplateEngine(site)
-            site._template_engine = engine
-
-        html = engine.render_page(page, navigation=navigation)
+        """Render page using Bengal's renderer."""
+        renderer = get_renderer()
+        html = renderer.render_page(page)
 
         output_path = page.url.lstrip("/")
         if not output_path.endswith(".html"):
