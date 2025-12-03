@@ -140,25 +140,22 @@
                     // Render graph
                     this.render();
                 } else {
-                    // No connections - hide container but keep header visible
+                    // No connections - hide container entirely
                     const graphContainer = this.container.querySelector('.graph-contextual-container');
                     if (graphContainer) {
                         graphContainer.classList.remove('graph-loading');
                         graphContainer.style.display = 'none';
-                    } else {
-                        // Replace loading placeholder with "No connections" message
-                        this.container.innerHTML = '<div class="graph-contextual-container" style="padding: var(--space-4); text-align: center; color: var(--color-text-secondary); font-size: 12px;">No connections</div>';
                     }
+                    // Hide the parent container too
+                    this.container.style.display = 'none';
                 }
             } catch (error) {
-                // Replace loading placeholder with error message
+                // Hide container on error - fail silently
                 const graphContainer = this.container.querySelector('.graph-contextual-container');
                 if (graphContainer) {
-                    graphContainer.innerHTML = '<div style="padding: var(--space-4); text-align: center; color: var(--color-text-secondary); font-size: 12px;">Graph unavailable</div>';
-                } else {
-                    // If container doesn't exist yet, create error message
-                    this.container.innerHTML = '<div class="graph-contextual-container" style="padding: var(--space-4); text-align: center; color: var(--color-text-secondary); font-size: 12px;">Graph unavailable</div>';
+                    graphContainer.style.display = 'none';
                 }
+                this.container.style.display = 'none';
             }
         }
 
@@ -759,21 +756,23 @@
                         currentPageUrl: currentPageUrl
                     });
                 } catch (error) {
-                    // Replace loading placeholder with error
+                    // Hide container on initialization error - fail silently
                     const container = contextualContainer.querySelector('.graph-contextual-container');
                     if (container) {
-                        container.innerHTML = '<div style="padding: var(--space-4); text-align: center; color: var(--color-text-secondary); font-size: 12px;">Initialization error</div>';
+                        container.style.display = 'none';
                     }
+                    contextualContainer.style.display = 'none';
                 }
             } else if (retries < maxRetries) {
                 retries++;
                 setTimeout(checkD3, 100);
             } else {
-                // Replace loading placeholder with error
+                // Hide container if D3.js fails to load - fail silently
                 const container = contextualContainer.querySelector('.graph-contextual-container');
                 if (container) {
-                    container.innerHTML = '<div style="padding: var(--space-4); text-align: center; color: var(--color-text-secondary); font-size: 12px;">D3.js not loaded</div>';
+                    container.style.display = 'none';
                 }
+                contextualContainer.style.display = 'none';
             }
         }
 
