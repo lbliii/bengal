@@ -98,11 +98,11 @@ Find available port if specified port is taken (default: enabled)
 ### `open_browser`
 
 
-Open browser automatically after server starts
+Open browser automatically after server starts (default: enabled)
 
 **Type:** `boolean`
 
-**Default:** `False`
+**Default:** `True`
 
 
 
@@ -170,6 +170,19 @@ Traceback verbosity: full | compact | minimal | off
 Path to config file (default: bengal.toml)
 
 **Type:** `path`
+
+
+
+
+
+### `use_pipeline`
+
+
+Use reactive dataflow pipeline for builds (experimental)
+
+**Type:** `boolean`
+
+**Default:** `False`
 
 
 

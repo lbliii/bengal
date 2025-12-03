@@ -143,6 +143,67 @@ class TestPipelineBuildAssets:
         assert len(js_files) > 0, "No JS files copied"
 
 
+class TestPipelineBuildContent:
+    """Tests for actual content rendering in pipeline builds."""
+
+    def test_markdown_content_rendered_to_html(self, tmp_path):
+        """Pipeline should render markdown content into HTML (not empty)."""
+        from bengal.core.site import Site
+
+        # Create site with actual markdown content
+        content_dir = tmp_path / "content"
+        content_dir.mkdir()
+        (content_dir / "_index.md").write_text(
+            """---
+title: Home
+---
+# Welcome to Bengal
+
+This is a paragraph with **bold** and *italic* text.
+
+## Features
+
+- Item one
+- Item two
+- Item three
+"""
+        )
+
+        (tmp_path / "bengal.toml").write_text('title = "Test"')
+
+        site = Site.from_config(tmp_path)
+        site.build(use_pipeline=True)
+
+        # Read the generated HTML
+        index_html = (site.output_dir / "index.html").read_text()
+
+        # Verify markdown was actually rendered to HTML
+        assert "<h1" in index_html, "H1 heading not rendered"
+        assert "Welcome to Bengal" in index_html, "Heading text missing"
+        assert "<strong>bold</strong>" in index_html or "<b>bold</b>" in index_html, (
+            "Bold text not rendered"
+        )
+        assert "<em>italic</em>" in index_html or "<i>italic</i>" in index_html, (
+            "Italic text not rendered"
+        )
+        assert "<h2" in index_html, "H2 heading not rendered"
+        assert "<li>" in index_html, "List items not rendered"
+
+    def test_pipeline_renders_page_body_not_empty(self, basic_site):
+        """Pipeline should not produce empty content divs."""
+        basic_site.build(use_pipeline=True)
+
+        # Find any HTML file and check it has content
+        html_files = list(basic_site.output_dir.rglob("*.html"))
+        assert html_files, "No HTML files generated"
+
+        # Check at least one page has substantial content
+        for html_file in html_files[:3]:  # Check first 3 files
+            content = html_file.read_text()
+            # Should have more than just the template shell
+            assert len(content) > 500, f"{html_file} appears to have no content"
+
+
 class TestPipelineBuildEdgeCases:
     """Edge case tests for pipeline builds."""
 
