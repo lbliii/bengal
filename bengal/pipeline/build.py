@@ -116,9 +116,9 @@ def create_build_pipeline(
         """Create Page from ParsedContent."""
         page = Page(
             source_path=parsed.source_path,
-            raw_content=parsed.content,
-            params=parsed.metadata,
-            site=site,
+            content=parsed.content,
+            metadata=parsed.metadata,
+            _site=site,
         )
         all_pages.append(page)
         return page
@@ -270,9 +270,9 @@ def create_incremental_pipeline(
 
         page = Page(
             source_path=parsed.source_path,
-            raw_content=parsed.content,
-            params=parsed.metadata,
-            site=site,
+            content=parsed.content,
+            metadata=parsed.metadata,
+            _site=site,
         )
 
         # Check if nav rebuild needed (weight or title changed)

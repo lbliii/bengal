@@ -752,10 +752,9 @@ class Site:
         # Convert PipelineResult to BuildStats
         return BuildStats(
             total_pages=result.items_processed,
-            rendered_pages=result.items_processed,
-            cached_pages=0,  # TODO: Track cache hits
-            skipped_pages=0,
-            build_time=elapsed,
+            regular_pages=result.items_processed,
+            generated_pages=0,
+            build_time_ms=elapsed * 1000,  # Convert to milliseconds
             parallel=parallel,
             incremental=False,  # Pipeline doesn't use incremental mode yet
         )
