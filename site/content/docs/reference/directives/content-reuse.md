@@ -14,20 +14,9 @@ Content reuse directives allow you to include external files directly in your ma
 
 ## Key Terms
 
-Include Directive
-:   A directive (`{include}`) that includes markdown files directly in your content. Supports line ranges and relative path resolution.
-
-Literal Include Directive
-:   A directive (`{literalinclude}`) that includes code files as syntax-highlighted code blocks. Auto-detects language from file extension and supports line ranges, emphasis, and line numbers.
-
-Snippet
-:   A reusable content file (typically markdown or code) that can be included in multiple pages. Organized in dedicated directories like `content/snippets/`.
-
-Path Resolution
-:   The process of finding included files. Bengal resolves paths relative to the current page's directory first, then falls back to the site root.
-
-Path Traversal Prevention
-:   Security feature that prevents including files outside the site root. Blocks `../` sequences and absolute paths to protect against unauthorized file access.
+:::{glossary}
+:tags: content-reuse
+:::
 
 ## Include
 

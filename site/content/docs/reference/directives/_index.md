@@ -12,20 +12,9 @@ Bengal extends Markdown with powerful directives using `:::{name}` or ` ```{name
 
 ## Key Terms
 
-Directive
-:   Extended markdown syntax that creates rich components. Bengal supports two syntax styles: fenced (` ```{name} `) and MyST (`:::{name}`).
-
-Fenced Syntax
-:   Directives using triple backticks (e.g., ` ```{note} `). Used for admonitions, dropdowns, badges, checklists, and include directives.
-
-MyST Syntax
-:   Directives using triple colons (e.g., `:::{card}`). Used for cards, tabs, buttons, steps, and list tables. Named after the MyST Markdown specification.
-
-Container Directive
-:   A directive that contains other directives (e.g., `{cards}`, `{steps}`, `{tab-set}`). Requires 4 fences minimum (`::::`) and increments for deeper nesting.
-
-Nesting
-:   Placing directives inside other directives. Each nesting level requires incrementing the fence count (container: 4 fences, nested item: 4 fences, deeper nesting: 5+ fences).
+:::{glossary}
+:tags: directives, core
+:::
 
 ## Quick Reference
 

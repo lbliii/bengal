@@ -34,6 +34,7 @@ from bengal.rendering.plugins.directives.data_table import DataTableDirective
 from bengal.rendering.plugins.directives.dropdown import DropdownDirective
 from bengal.rendering.plugins.directives.errors import DirectiveError, format_directive_error
 from bengal.rendering.plugins.directives.fenced import FencedDirective
+from bengal.rendering.plugins.directives.glossary import GlossaryDirective
 from bengal.rendering.plugins.directives.include import IncludeDirective
 from bengal.rendering.plugins.directives.list_table import ListTableDirective
 from bengal.rendering.plugins.directives.literalinclude import LiteralIncludeDirective
@@ -58,6 +59,7 @@ __all__ = [
     "DirectiveCache",
     "DirectiveError",
     "DirectiveSyntaxValidator",
+    "GlossaryDirective",
     "clear_cache",
     "configure_cache",
     "create_documentation_directives",
@@ -117,6 +119,7 @@ def create_documentation_directives():
                 RubricDirective(),  # Pseudo-headings for API docs
                 ListTableDirective(),  # MyST list-table for tables without pipe issues
                 DataTableDirective(),  # Interactive data tables with Tabulator.js
+                GlossaryDirective(),  # Key terms from centralized glossary data file
                 CardsDirective(),  # Modern card grid system
                 CardDirective(),  # Individual cards
                 ChildCardsDirective(),  # Auto-generate cards from children

@@ -1,0 +1,196 @@
+# Glossary of Key Terms
+#
+# Single source of truth for terminology used throughout Bengal documentation.
+# Use the {glossary} directive to render terms by tag filter.
+#
+# Structure:
+#   - term: Term name
+#     definition: Full definition text
+#     tags: [list, of, tags]  # Used for filtering which terms to show
+#
+# Usage in markdown:
+#   :::{glossary}
+#   :tags: directives
+#   :::
+
+terms:
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Core Directive Concepts
+  # ─────────────────────────────────────────────────────────────────────────────
+
+  - term: Directive
+    definition: Extended markdown syntax that creates rich components. Bengal supports two syntax styles`:` fenced (` ```{name} `) and MyST (`:::{name}`).
+    tags: [directives, core]
+
+  - term: Fenced Syntax
+    definition: Directives using triple backticks (e.g., ` ```{note} `). Used for admonitions, dropdowns, badges, checklists, and include directives.
+    tags: [directives, core, syntax]
+
+  - term: MyST Syntax
+    definition: Directives using triple colons (e.g., `:::{card}`). Used for cards, tabs, buttons, steps, and list tables. Named after the MyST Markdown specification.
+    tags: [directives, core, syntax]
+
+  - term: Container Directive
+    definition: A directive that contains other directives (e.g., `{cards}`, `{steps}`, `{tab-set}`). Requires 4 fences minimum (`::::`) and increments for deeper nesting.
+    tags: [directives, core]
+
+  - term: Nesting
+    definition: Placing directives inside other directives. Each nesting level requires incrementing the fence count (container`:` 4 fences, nested item`:` 4 fences, deeper nesting`:` 5+ fences).
+    tags: [directives, core]
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Admonitions
+  # ─────────────────────────────────────────────────────────────────────────────
+
+  - term: Admonition
+    definition: A styled callout box that draws attention to important information. Available in multiple types (note, warning, tip, danger, etc.) with distinct visual styling.
+    tags: [directives, admonitions]
+
+  - term: Callout
+    definition: Another name for an admonition - a visual box that highlights important content separate from the main text flow.
+    tags: [directives, admonitions]
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Layout Directives
+  # ─────────────────────────────────────────────────────────────────────────────
+
+  - term: Card Grid
+    definition: A container directive (`{cards}`) that creates a responsive grid of card components. Supports flexible column layouts and responsive breakpoints.
+    tags: [directives, layout]
+
+  - term: Card
+    definition: An individual card component (`{card}`) within a card grid. Can include icons, links, images, colors, and footer content.
+    tags: [directives, layout]
+
+  - term: Tab Set
+    definition: A container directive (`{tab-set}`) that groups multiple tab items together. Provides tabbed navigation for organizing related content.
+    tags: [directives, layout]
+
+  - term: Tab Item
+    definition: An individual tab (`{tab-item}`) within a tab set. Contains content for one tab panel.
+    tags: [directives, layout]
+
+  - term: Dropdown
+    definition: A collapsible section directive (`{dropdown}`) that can be expanded or collapsed. Useful for optional or advanced content to reduce cognitive load.
+    tags: [directives, layout]
+
+  - term: Grid
+    definition: A Sphinx-Design compatibility directive (`{grid}`) that converts to card grids internally. Prefer `{cards}` for new content.
+    tags: [directives, layout]
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Formatting Directives
+  # ─────────────────────────────────────────────────────────────────────────────
+
+  - term: Badge
+    definition: A small styled label for tags, status indicators, or labels. Renders as an inline element with customizable CSS classes.
+    tags: [directives, formatting]
+
+  - term: Button
+    definition: A styled link element that appears as a button. Supports colors, sizes, icons, and link targets for calls-to-action.
+    tags: [directives, formatting]
+
+  - term: Steps Container
+    definition: A container directive (`{steps}`) that groups multiple step directives together. Requires 4 fences minimum (`::::`).
+    tags: [directives, formatting]
+
+  - term: Step
+    definition: An individual step directive (`{step}`) within a steps container. Contains content for one step in a sequential guide.
+    tags: [directives, formatting]
+
+  - term: Checklist
+    definition: A styled container for bullet lists and task lists. Provides visual styling for prerequisites, requirements, or task tracking.
+    tags: [directives, formatting]
+
+  - term: Rubric
+    definition: A pseudo-heading that looks like a heading but doesn't appear in the table of contents. Perfect for API documentation section labels.
+    tags: [directives, formatting]
+
+  - term: List Table
+    definition: A table created from nested lists, avoiding pipe character conflicts in type annotations. Useful for Python type hints and complex data structures.
+    tags: [directives, formatting]
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Interactive Directives
+  # ─────────────────────────────────────────────────────────────────────────────
+
+  - term: Code Tabs
+    definition: An interactive tabbed interface (`{code-tabs}`) for displaying code examples in multiple languages. Users can switch between languages with tab navigation.
+    tags: [directives, interactive]
+
+  - term: Data Table
+    definition: An interactive table directive (`{data-table}`) with JavaScript-enhanced features like sorting, filtering, and pagination. Requires Tabulator.js in your theme.
+    tags: [directives, interactive]
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Navigation Directives
+  # ─────────────────────────────────────────────────────────────────────────────
+
+  - term: Object Tree
+    definition: Bengal's hierarchical representation of your site structure (Site → Sections → Pages). Navigation directives traverse this tree to generate content automatically.
+    tags: [directives, navigation, architecture]
+
+  - term: Child Cards
+    definition: A directive (`{child-cards}`) that automatically creates a card grid from a section's child pages and subsections.
+    tags: [directives, navigation]
+
+  - term: Breadcrumbs
+    definition: A directive (`{breadcrumbs}`) that generates hierarchical navigation showing the current page's location in the site structure.
+    tags: [directives, navigation]
+
+  - term: Siblings
+    definition: A directive (`{siblings}`) that lists pages at the same level as the current page within their shared parent section.
+    tags: [directives, navigation]
+
+  - term: Prev/Next
+    definition: A directive (`{prev-next}`) that generates previous/next navigation links within a section.
+    tags: [directives, navigation]
+
+  - term: Related
+    definition: A directive (`{related}`) that lists pages with matching tags.
+    tags: [directives, navigation]
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Content Reuse Directives
+  # ─────────────────────────────────────────────────────────────────────────────
+
+  - term: Include Directive
+    definition: A directive (`{include}`) that includes markdown files directly in your content. Supports line ranges and relative path resolution.
+    tags: [directives, content-reuse]
+
+  - term: Literal Include Directive
+    definition: A directive (`{literalinclude}`) that includes code files as syntax-highlighted code blocks. Auto-detects language from file extension and supports line ranges, emphasis, and line numbers.
+    tags: [directives, content-reuse]
+
+  - term: Snippet
+    definition: A reusable content file (typically markdown or code) that can be included in multiple pages. Organized in dedicated directories like `content/snippets/`.
+    tags: [directives, content-reuse]
+
+  - term: Path Resolution
+    definition: The process of finding included files. Bengal resolves paths relative to the current page's directory first, then falls back to the site root.
+    tags: [directives, content-reuse]
+
+  - term: Path Traversal Prevention
+    definition: Security feature that prevents including files outside the site root. Blocks `../` sequences and absolute paths to protect against unauthorized file access.
+    tags: [directives, content-reuse, security]
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Theme Variables (for theme-variables.md)
+  # ─────────────────────────────────────────────────────────────────────────────
+
+  - term: CSS Custom Property
+    definition: A CSS variable defined with `--` prefix (e.g., `--color-primary`) that can be used throughout stylesheets. Bengal themes expose these for customization.
+    tags: [theming, css]
+
+  - term: Theme Variable
+    definition: A CSS custom property defined by Bengal themes for consistent styling. Override in your own CSS to customize appearance.
+    tags: [theming, css]
+
+  - term: Color Token
+    definition: A semantic color variable (e.g., `--color-text-primary`) that abstracts actual color values. Enables consistent theming and dark mode support.
+    tags: [theming, css]
+
+  - term: Spacing Token
+    definition: A variable for consistent spacing (e.g., `--spacing-md`). Uses a defined scale for uniform margins and padding across components.
+    tags: [theming, css]
+

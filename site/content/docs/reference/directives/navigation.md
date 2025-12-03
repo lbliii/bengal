@@ -12,23 +12,9 @@ Navigation directives automatically generate navigation elements from your site'
 
 ## Key Terms
 
-Object Tree
-:   Bengal's hierarchical representation of your site structure (Site → Sections → Pages). Navigation directives traverse this tree to generate content automatically.
-
-Child Cards
-:   A directive (`{child-cards}`) that automatically creates a card grid from a section's child pages and subsections.
-
-Breadcrumbs
-:   A directive (`{breadcrumbs}`) that generates hierarchical navigation showing the current page's location in the site structure.
-
-Siblings
-:   A directive (`{siblings}`) that lists pages at the same level as the current page within their shared parent section.
-
-Prev/Next
-:   A directive (`{prev-next}`) that generates previous/next navigation links within a section.
-
-Related
-:   A directive (`{related}`) that lists pages with matching tags.
+:::{glossary}
+:tags: navigation
+:::
 
 ## Child Cards
 

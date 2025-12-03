@@ -12,23 +12,9 @@ Layout directives organize content into structured components like card grids, t
 
 ## Key Terms
 
-Card Grid
-:   A container directive (`{cards}`) that creates a responsive grid of card components. Supports flexible column layouts and responsive breakpoints.
-
-Card
-:   An individual card component (`{card}`) within a card grid. Can include icons, links, images, colors, and footer content.
-
-Tab Set
-:   A container directive (`{tab-set}`) that groups multiple tab items together. Provides tabbed navigation for organizing related content.
-
-Tab Item
-:   An individual tab (`{tab-item}`) within a tab set. Contains content for one tab panel.
-
-Dropdown
-:   A collapsible section directive (`{dropdown}`) that can be expanded or collapsed. Useful for optional or advanced content to reduce cognitive load.
-
-Grid
-:   A Sphinx-Design compatibility directive (`{grid}`) that converts to card grids internally. Prefer `{cards}` for new content.
+:::{glossary}
+:tags: layout
+:::
 
 ## Cards
 

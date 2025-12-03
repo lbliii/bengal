@@ -20,6 +20,7 @@ KNOWN_DIRECTIVES = {
     "example",
     "success",
     "caution",
+    "seealso",  # Sphinx-style cross-reference admonition
     # Badges
     "badge",
     "bdg",  # Alias for badge (Sphinx-Design compatibility)
@@ -28,7 +29,9 @@ KNOWN_DIRECTIVES = {
     # Cards
     "card",
     "cards",
+    "child-cards",  # Auto-generate cards from page children
     "grid",  # Sphinx-Design compatibility
+    "grid-item-card",  # Sphinx-Design compatibility
     # Tabs
     "tabs",
     "tab-set",
@@ -43,6 +46,8 @@ KNOWN_DIRECTIVES = {
     "list-table",
     "data-table",
     "data_table",  # Alternative naming
+    # Glossary
+    "glossary",
     # Checklists
     "checklist",
     # Steps
@@ -53,6 +58,11 @@ KNOWN_DIRECTIVES = {
     # Includes
     "include",
     "literalinclude",
+    # Navigation
+    "breadcrumbs",
+    "siblings",
+    "prev-next",
+    "related",
     # Marimo (if installed)
     "marimo",
 }
@@ -68,6 +78,7 @@ ADMONITION_TYPES = {
     "example",
     "success",
     "caution",
+    "seealso",
 }
 
 # Directives that are code-related and can reasonably use backtick fences
