@@ -15,24 +15,11 @@ Complete technical documentation for Bengal's APIs, syntax, and internals.
 
 ## What Do You Need?
 
-::::{cards}
+:::{child-cards}
 :columns: 2
-:gap: medium
-
-:::{card} 📝 Directives
-:link: ./directives/
-:color: blue
-
-Complete reference for all markdown directives — admonitions, tabs, cards, and more.
+:include: sections
+:fields: title, description, icon
 :::
-
-:::{card} 🏗️ Architecture
-:link: ./architecture/
-:color: purple
-
-Bengal's internal architecture, object model, and extension points.
-:::
-::::
 
 ## Reference vs Guides
 

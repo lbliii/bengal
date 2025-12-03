@@ -126,67 +126,11 @@ More content
 
 ## Categories
 
-### [Admonitions](/docs/reference/directives/admonitions/)
-
-Callout boxes for notes, warnings, tips, and more.
-
-- `{note}` - General information
-- `{tip}` - Helpful tips
-- `{warning}` - Warnings
-- `{danger}` - Critical warnings
-- `{error}` - Error messages
-- `{info}` - Informational content
-- `{example}` - Examples
-- `{success}` - Success messages
-- `{caution}` - Cautions
-
-### [Layout Directives](/docs/reference/directives/layout/)
-
-Components for organizing content layout.
-
-- `{cards}` / `{card}` - Card grid layouts
-- `{tab-set}` / `{tab-item}` - Tabbed content
-- `{dropdown}` - Collapsible sections
-- `{grid}` / `{grid-item-card}` - Sphinx-Design compatibility
-
-### [Formatting Directives](/docs/reference/directives/formatting/)
-
-Styling and formatting components.
-
-- `{badge}` - Styled badges
-- `{button}` - Link buttons
-- `{steps}` / `{step}` - Step-by-step guides
-- `{checklist}` - Styled checklists
-- `{rubric}` - Pseudo-headings (not in TOC)
-- `{list-table}` - Tables from nested lists
-
-### [Interactive Directives](/docs/reference/directives/interactive/)
-
-Interactive components with JavaScript.
-
-- `{code-tabs}` - Multi-language code examples
-- `{data-table}` - Interactive data tables with sorting/filtering
-
-### [Content Reuse](/docs/reference/directives/content-reuse/)
-
-Include external files in your content.
-
-- `{include}` - Include markdown files
-- `{literalinclude}` - Include code files as code blocks
-
-**See also**: [Content Reuse Guide](/docs/guides/content-reuse/) for detailed strategies and best practices.
-
-### [Navigation Directives](/docs/reference/directives/navigation/)
-
-Auto-generated navigation from the object tree.
-
-- `{child-cards}` - Auto-generate cards from child sections/pages
-- `{breadcrumbs}` - Hierarchical breadcrumb navigation
-- `{siblings}` - List sibling pages in the same section
-- `{prev-next}` - Previous/next navigation links
-- `{related}` - Related pages by tags
-
-**Best for**: Section index pages where you want cards to auto-update when content changes.
+:::{child-cards}
+:columns: 2
+:include: pages
+:fields: title, description
+:::
 
 ## Common Options
 
