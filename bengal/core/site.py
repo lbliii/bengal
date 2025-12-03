@@ -707,10 +707,12 @@ class Site:
         verbose: bool = False,
     ) -> BuildStats:
         """
-        Build site using the reactive dataflow pipeline.
+        Build site using the reactive dataflow pipeline for rendering.
 
-        This is an experimental alternative to the orchestrator-based build.
-        It uses declarative stream processing for automatic dependency tracking.
+        This hybrid approach:
+        1. Uses orchestrators for discovery, taxonomies, menus (complex logic)
+        2. Uses pipeline for parallel rendering (where it shines)
+        3. Uses orchestrators for postprocessing (sitemap, RSS, etc.)
 
         Args:
             parallel: Whether to use parallel processing
@@ -721,42 +723,74 @@ class Site:
         """
         import time
 
-        from bengal.pipeline import StreamCache, create_build_pipeline
+        from bengal.orchestration import (
+            ContentOrchestrator,
+            MenuOrchestrator,
+            PostprocessOrchestrator,
+            TaxonomyOrchestrator,
+        )
+        from bengal.orchestration.section import SectionOrchestrator
+        from bengal.pipeline import StreamCache, create_simple_pipeline
 
         logger.info("pipeline_build_starting", parallel=parallel)
         start_time = time.time()
 
-        # Initialize pipeline cache
+        # Phase 1: Discovery (use existing orchestrators - they handle all the edge cases)
+        content = ContentOrchestrator(self)
+        content.discover_content()
+        content.discover_assets()
+
+        # Phase 2: Sections (builds hierarchy, archive pages)
+        sections = SectionOrchestrator(self)
+        sections.build_sections()
+
+        # Phase 3: Taxonomies (generates tag pages, etc.)
+        taxonomy = TaxonomyOrchestrator(self, parallel=parallel)
+        taxonomy.build_taxonomies()
+        taxonomy.generate_dynamic_pages(parallel=parallel)
+
+        # Phase 4: Menus
+        menu = MenuOrchestrator(self)
+        menu.build_menus()
+
+        # Phase 5: Render ALL pages using pipeline (including generated pages)
         cache_dir = self.root_path / ".bengal" / "pipeline"
         cache = StreamCache(cache_dir)
 
-        # Create and run the build pipeline
-        workers = self.config.get("build", {}).get("max_workers", 4) if parallel else 1
-        pipeline = create_build_pipeline(self, parallel=parallel, workers=workers)
-
+        # Use simple pipeline - pages already discovered
+        pipeline = create_simple_pipeline(self, pages=list(self.pages))
         result = pipeline.run()
 
-        # Save cache for incremental builds
+        # Save cache
         cache.save()
+
+        # Phase 6: Postprocessing (sitemap, RSS, JSON, llms.txt)
+        postprocess = PostprocessOrchestrator(self)
+        postprocess.run(parallel=parallel, incremental=False)
 
         elapsed = time.time() - start_time
 
+        # Count page types
+        regular_count = len(self.regular_pages)
+        generated_count = len(self.generated_pages)
+
         logger.info(
             "pipeline_build_complete",
-            pages=result.items_processed,
+            total_pages=result.items_processed,
+            regular_pages=regular_count,
+            generated_pages=generated_count,
             elapsed_seconds=round(elapsed, 2),
             success=result.success,
             errors=len(result.errors),
         )
 
-        # Convert PipelineResult to BuildStats
         return BuildStats(
             total_pages=result.items_processed,
-            regular_pages=result.items_processed,
-            generated_pages=0,
-            build_time_ms=elapsed * 1000,  # Convert to milliseconds
+            regular_pages=regular_count,
+            generated_pages=generated_count,
+            build_time_ms=elapsed * 1000,
             parallel=parallel,
-            incremental=False,  # Pipeline doesn't use incremental mode yet
+            incremental=False,
         )
 
     def serve(
