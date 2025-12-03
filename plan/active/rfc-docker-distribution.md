@@ -15,6 +15,8 @@ Provide official Docker images for Bengal to dramatically lower the barrier to e
 - Unfamiliar with virtual environments
 - Want to try Bengal without committing to a local install
 
+**Key Innovation**: Leverage Bengal's existing content layer (`github_loader`) to enable "zero-volume" builds - users can build documentation directly from a GitHub repo without any local files.
+
 ---
 
 ## Motivation
@@ -283,16 +285,222 @@ jobs:
 
 ---
 
+## Remote Content Mode (Content Layer Integration)
+
+Bengal's content layer already supports `github_loader`, enabling a powerful "zero-volume" Docker pattern:
+
+### Architecture
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    Docker Container                      │
+│  ┌─────────────┐    ┌──────────────┐    ┌───────────┐  │
+│  │   Bengal    │───▶│ Content Layer │───▶│  GitHub   │  │
+│  │   CLI       │    │ github_loader │    │   API     │  │
+│  └─────────────┘    └──────────────┘    └───────────┘  │
+│         │                                               │
+│         ▼                                               │
+│  ┌─────────────┐                                        │
+│  │   Output    │ ──▶ (volume mount or artifact upload)  │
+│  │   public/   │                                        │
+│  └─────────────┘                                        │
+└─────────────────────────────────────────────────────────┘
+```
+
+### Zero-Volume Build from GitHub
+
+```bash
+# Build directly from a GitHub repo - no local files needed!
+docker run --rm \
+  -e BENGAL_CONTENT_REPO=myorg/my-docs \
+  -e BENGAL_CONTENT_BRANCH=main \
+  -e BENGAL_CONTENT_PATH=docs \
+  -v $(pwd)/output:/site/public \
+  ghcr.io/bengal/bengal build
+
+# With private repo
+docker run --rm \
+  -e BENGAL_CONTENT_REPO=myorg/private-docs \
+  -e GITHUB_TOKEN=$GITHUB_TOKEN \
+  -v $(pwd)/output:/site/public \
+  ghcr.io/bengal/bengal build
+```
+
+### Config-as-Environment Pattern
+
+```bash
+# Complete site definition via env vars
+docker run --rm \
+  -e BENGAL_SITE_TITLE="My Documentation" \
+  -e BENGAL_SITE_BASEURL="/docs" \
+  -e BENGAL_CONTENT_REPO=myorg/api-docs \
+  -e BENGAL_CONTENT_PATH=content \
+  -e BENGAL_THEME=default \
+  -e GITHUB_TOKEN=$GITHUB_TOKEN \
+  -v $(pwd)/output:/site/public \
+  ghcr.io/bengal/bengal build
+```
+
+### Implementation
+
+```python
+# bengal/config/env_loader.py (new)
+"""Load site configuration from environment variables."""
+
+import os
+from bengal.content_layer import github_loader
+
+def create_env_config() -> dict:
+    """
+    Create site config from BENGAL_* environment variables.
+
+    Environment Variables:
+        BENGAL_SITE_TITLE: Site title
+        BENGAL_SITE_BASEURL: Base URL
+        BENGAL_CONTENT_REPO: GitHub repo (owner/repo)
+        BENGAL_CONTENT_BRANCH: Branch (default: main)
+        BENGAL_CONTENT_PATH: Path within repo (default: "")
+        BENGAL_THEME: Theme name (default: "default")
+        GITHUB_TOKEN: GitHub token for private repos
+    """
+    config = {}
+
+    # Site config
+    if title := os.environ.get("BENGAL_SITE_TITLE"):
+        config.setdefault("site", {})["title"] = title
+    if baseurl := os.environ.get("BENGAL_SITE_BASEURL"):
+        config.setdefault("site", {})["baseurl"] = baseurl
+
+    # Content source
+    if repo := os.environ.get("BENGAL_CONTENT_REPO"):
+        branch = os.environ.get("BENGAL_CONTENT_BRANCH", "main")
+        path = os.environ.get("BENGAL_CONTENT_PATH", "")
+
+        config["content_source"] = {
+            "type": "github",
+            "repo": repo,
+            "branch": branch,
+            "path": path,
+        }
+
+    # Theme
+    if theme := os.environ.get("BENGAL_THEME"):
+        config["theme"] = theme
+
+    return config
+```
+
+### Dockerfile Update for Remote Content
+
+```dockerfile
+# Support both local and remote content modes
+
+# Default: local mode (expects volume mount)
+# Remote: set BENGAL_CONTENT_REPO env var
+
+COPY docker-entrypoint.sh /entrypoint.sh
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["--help"]
+```
+
+```bash
+#!/bin/bash
+# docker-entrypoint.sh
+
+# If BENGAL_CONTENT_REPO is set, create a minimal site config
+if [ -n "$BENGAL_CONTENT_REPO" ]; then
+    # Generate bengal.toml from env vars
+    python -c "
+from bengal.config.env_loader import create_env_config
+import toml
+config = create_env_config()
+with open('/site/bengal.toml', 'w') as f:
+    toml.dump(config, f)
+"
+fi
+
+exec bengal "$@"
+```
+
+### Use Case: Serverless Documentation Builds
+
+```yaml
+# Netlify/Vercel function that builds docs on-demand
+# No source code in the function - just pulls from GitHub
+
+FROM ghcr.io/bengal/bengal:latest
+
+ENV BENGAL_CONTENT_REPO=myorg/docs
+ENV BENGAL_CONTENT_BRANCH=main
+ENV GITHUB_TOKEN=${GITHUB_TOKEN}
+
+CMD ["build", "--output", "/output"]
+```
+
+### Use Case: Multi-Repo Documentation Aggregation
+
+```python
+# collections.py - Aggregate docs from multiple repos
+from bengal.content_layer import github_loader, local_loader
+
+collections = {
+    # Local content
+    "guides": define_collection(
+        schema=Guide,
+        loader=local_loader("content/guides"),
+    ),
+
+    # API docs from another repo
+    "api": define_collection(
+        schema=APIDoc,
+        loader=github_loader(
+            repo="myorg/api",
+            path="docs/api",
+        ),
+    ),
+
+    # SDK docs from SDK repo
+    "sdk": define_collection(
+        schema=SDKDoc,
+        loader=github_loader(
+            repo="myorg/sdk-python",
+            path="docs",
+        ),
+    ),
+}
+```
+
+### Caching for Remote Content
+
+```bash
+# Cache remote content between builds
+docker run --rm \
+  -e BENGAL_CONTENT_REPO=myorg/docs \
+  -v bengal-cache:/root/.cache/bengal \
+  -v $(pwd)/output:/site/public \
+  ghcr.io/bengal/bengal build
+
+# Bengal uses ETag/Last-Modified headers to skip unchanged content
+```
+
+---
+
 ## Use Cases
 
 ### 1. Quick Evaluation ("Try Before Install")
 
 ```bash
-# Clone example site and run immediately
+# Option A: Clone example site and run
 git clone https://github.com/bengal/example-site
 cd example-site
 docker run --rm -p 8000:8000 -v $(pwd):/site ghcr.io/bengal/bengal serve
-# Open http://localhost:8000
+
+# Option B: Zero-clone! Build directly from GitHub
+docker run --rm \
+  -e BENGAL_CONTENT_REPO=bengal/example-site \
+  -v $(pwd)/output:/site/public \
+  ghcr.io/bengal/bengal build
+# Output appears in ./output/ - no git clone needed!
 ```
 
 ### 2. CI/CD Pipeline
@@ -497,6 +705,8 @@ def test_docker_build_produces_output():
 - [ ] Build performance within 20% of native Python 3.14t
 - [ ] Documentation covers common use cases
 - [ ] CI/CD examples for GitHub Actions, GitLab CI
+- [ ] **Remote content mode**: Build from GitHub repo via `BENGAL_CONTENT_REPO` env var
+- [ ] **Zero-volume builds**: Complete site generation without local volume mounts
 
 ---
 
@@ -547,6 +757,32 @@ Docker volumes can have permission issues on Linux.
 - Use rootless containers
 
 **Recommendation**: Document the `--user` flag, investigate entrypoint script.
+
+### 6. Remote Content Mode - Theme Handling
+
+When building from a remote repo, where do themes come from?
+
+**Options**:
+- Default theme bundled in image (simplest)
+- Theme specified by repo's `bengal.toml` (fetched with content)
+- Theme from separate GitHub repo via `BENGAL_THEME_REPO`
+- Theme URL pointing to a tarball
+
+**Recommendation**:
+1. Bundle default theme in image
+2. Support `BENGAL_THEME_REPO` for custom themes
+3. Future: Theme registry/CDN
+
+### 7. Remote Content Mode - Dev Server
+
+Can we support live reload for remote content?
+
+**Options**:
+- Polling GitHub API for changes (rate limits, latency)
+- GitHub webhooks (requires callback URL)
+- No dev server for remote mode (build-only)
+
+**Recommendation**: Start with build-only for remote mode. Dev server requires local volume mount. Document this clearly.
 
 ---
 

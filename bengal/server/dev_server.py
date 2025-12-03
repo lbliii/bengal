@@ -311,6 +311,15 @@ class DevServer:
             self.site.root_path / "templates",
             self.site.root_path / "data",
         ]
+
+        # Watch static directory for passthrough files (copied verbatim to output)
+        static_config = self.site.config.get("static", {})
+        if static_config.get("enabled", True):
+            static_dir_name = static_config.get("dir", "static")
+            static_dir = self.site.root_path / static_dir_name
+            if static_dir.exists():
+                watch_dirs.append(static_dir)
+
         # Watch i18n directory for translation file changes (hot reload)
         i18n_dir = self.site.root_path / "i18n"
         if i18n_dir.exists():

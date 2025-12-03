@@ -14,7 +14,7 @@ Pokemon TCG-inspired holographic effects for Bengal documentation components.
 > **Inspiration**: Based on [simeydotme's Pokemon Cards CSS](https://github.com/simeydotme/pokemon-cards-css) and the [CSS-Tricks article](https://css-tricks.com/holographic-trading-card-effect/).
 
 :::{tip}
-**[→ View the Interactive Demo](/assets/experimental/holo-demo.html)** — Move your cursor over cards to see the full effect!
+**[→ View the Interactive Demo](/demos/holo-cards.html)** — Move your cursor over cards to see the full effect!
 :::
 
 ---

@@ -390,16 +390,16 @@ def test_static_html_with_theme(tmp_site):
 ## Rollout Plan
 
 ### Phase 1: Core Feature (This PR)
-- [ ] `StaticOrchestrator` class
-- [ ] Integration in build pipeline
-- [ ] Config schema update
+- [x] `StaticOrchestrator` class (`bengal/orchestration/static.py`)
+- [x] Integration in build pipeline (`bengal/core/site.py`)
+- [x] Config defaults (`bengal/config/defaults.py`)
 - [ ] Unit tests
 - [ ] Documentation
 
-### Phase 2: Dev Server (Follow-up)
-- [ ] Watch `static/` for changes
-- [ ] Incremental copy on change
-- [ ] Browser reload trigger
+### Phase 2: Dev Server (This PR)
+- [x] Watch `static/` for changes (`bengal/server/dev_server.py`)
+- [ ] Incremental copy on change (optimization for future)
+- [x] Browser reload trigger (via existing build handler)
 
 ### Phase 3: CLI Enhancement (Optional)
 - [ ] `bengal static list` - Show what would be copied
