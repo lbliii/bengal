@@ -1,0 +1,401 @@
+"""
+Test navigation directives (breadcrumbs, siblings, prev-next, related).
+
+These directives leverage the pre-computed site tree via renderer._current_page.
+"""
+
+from pathlib import Path
+from unittest.mock import Mock
+
+from bengal.rendering.parsers import MistuneParser
+
+
+class TestBreadcrumbsDirective:
+    """Test the breadcrumbs directive."""
+
+    def _create_mock_section(self, title, url, path):
+        """Create a mock section for breadcrumbs."""
+        section = Mock()
+        section.title = title
+        section.path = Path(path)
+        section.index_page = Mock()
+        section.index_page.url = url
+        return section
+
+    def test_breadcrumbs_renders_ancestors(self):
+        """Test breadcrumbs renders ancestor sections."""
+        parser = MistuneParser()
+
+        section1 = self._create_mock_section("Content", "/docs/content/", "docs/content")
+        section2 = self._create_mock_section("Docs", "/docs/", "docs")
+
+        current_page = Mock()
+        current_page.title = "Authoring"
+        current_page.source_path = Path("docs/content/authoring/_index.md")
+        current_page.ancestors = [section1, section2]
+
+        parser.md.renderer._current_page = current_page
+
+        content = """
+:::{breadcrumbs}
+:::
+"""
+        result = parser.parse(content, {})
+
+        assert "breadcrumbs" in result
+        assert "Docs" in result
+        assert "Content" in result
+        assert "Authoring" in result
+
+    def test_breadcrumbs_with_home_link(self):
+        """Test breadcrumbs includes home link."""
+        parser = MistuneParser()
+
+        current_page = Mock()
+        current_page.title = "Test"
+        current_page.ancestors = []
+
+        parser.md.renderer._current_page = current_page
+
+        content = """
+:::{breadcrumbs}
+:show-home: true
+:home-text: Home
+:::
+"""
+        result = parser.parse(content, {})
+
+        assert "Home" in result
+        assert 'href="/"' in result
+
+    def test_breadcrumbs_custom_separator(self):
+        """Test breadcrumbs uses custom separator."""
+        parser = MistuneParser()
+
+        current_page = Mock()
+        current_page.title = "Test"
+        current_page.ancestors = []
+
+        parser.md.renderer._current_page = current_page
+
+        content = """
+:::{breadcrumbs}
+:separator: /
+:::
+"""
+        result = parser.parse(content, {})
+
+        assert "breadcrumb-separator" in result
+
+    def test_breadcrumbs_no_page_context(self):
+        """Test breadcrumbs handles missing page context."""
+        parser = MistuneParser()
+        parser.md.renderer._current_page = None
+
+        content = """
+:::{breadcrumbs}
+:::
+"""
+        result = parser.parse(content, {})
+
+        assert "No page context" in result
+
+
+class TestSiblingsDirective:
+    """Test the siblings directive."""
+
+    def test_siblings_renders_section_pages(self):
+        """Test siblings renders other pages in section."""
+        parser = MistuneParser()
+
+        sibling1 = Mock()
+        sibling1.title = "Installation"
+        sibling1.url = "/docs/installation/"
+        sibling1.source_path = Path("docs/installation.md")
+        sibling1.metadata = {"description": "How to install"}
+
+        sibling2 = Mock()
+        sibling2.title = "Configuration"
+        sibling2.url = "/docs/config/"
+        sibling2.source_path = Path("docs/config.md")
+        sibling2.metadata = {}
+
+        section = Mock()
+        section.sorted_pages = [sibling1, sibling2]
+        section.pages = [sibling1, sibling2]
+
+        current_page = Mock()
+        current_page.title = "Installation"
+        current_page.source_path = Path("docs/installation.md")
+        current_page._section = section
+
+        parser.md.renderer._current_page = current_page
+
+        content = """
+:::{siblings}
+:exclude-current: true
+:::
+"""
+        result = parser.parse(content, {})
+
+        assert "siblings-list" in result
+        assert "Configuration" in result
+        # Current page should be excluded
+        assert (
+            result.count("Installation") == 0
+            or "Installation" not in result.split("Configuration")[0]
+        )
+
+    def test_siblings_with_descriptions(self):
+        """Test siblings shows descriptions when enabled."""
+        parser = MistuneParser()
+
+        sibling = Mock()
+        sibling.title = "Config"
+        sibling.url = "/config/"
+        sibling.source_path = Path("config.md")
+        sibling.metadata = {"description": "Configure your site"}
+
+        section = Mock()
+        section.sorted_pages = [sibling]
+        section.pages = [sibling]
+
+        current_page = Mock()
+        current_page.source_path = Path("other.md")
+        current_page._section = section
+
+        parser.md.renderer._current_page = current_page
+
+        content = """
+:::{siblings}
+:show-description: true
+:::
+"""
+        result = parser.parse(content, {})
+
+        assert "Configure your site" in result
+
+    def test_siblings_no_section(self):
+        """Test siblings handles missing section."""
+        parser = MistuneParser()
+
+        current_page = Mock()
+        current_page._section = None
+
+        parser.md.renderer._current_page = current_page
+
+        content = """
+:::{siblings}
+:::
+"""
+        result = parser.parse(content, {})
+
+        assert "No section" in result
+
+
+class TestPrevNextDirective:
+    """Test the prev-next directive."""
+
+    def test_prev_next_renders_navigation(self):
+        """Test prev-next renders navigation links."""
+        parser = MistuneParser()
+
+        prev_page = Mock()
+        prev_page.title = "Installation"
+        prev_page.url = "/docs/installation/"
+
+        next_page = Mock()
+        next_page.title = "Configuration"
+        next_page.url = "/docs/config/"
+
+        current_page = Mock()
+        current_page.title = "Quickstart"
+        current_page.prev_in_section = prev_page
+        current_page.next_in_section = next_page
+
+        parser.md.renderer._current_page = current_page
+
+        content = """
+:::{prev-next}
+:show-title: true
+:::
+"""
+        result = parser.parse(content, {})
+
+        assert "prev-next" in result
+        assert "Installation" in result
+        assert "Configuration" in result
+        assert "← Previous" in result
+        assert "Next →" in result
+
+    def test_prev_next_only_prev(self):
+        """Test prev-next with only previous page."""
+        parser = MistuneParser()
+
+        prev_page = Mock()
+        prev_page.title = "Previous"
+        prev_page.url = "/prev/"
+
+        current_page = Mock()
+        current_page.prev_in_section = prev_page
+        current_page.next_in_section = None
+
+        parser.md.renderer._current_page = current_page
+
+        content = """
+:::{prev-next}
+:::
+"""
+        result = parser.parse(content, {})
+
+        assert "Previous" in result
+        assert "next-link disabled" in result
+
+    def test_prev_next_only_next(self):
+        """Test prev-next with only next page."""
+        parser = MistuneParser()
+
+        next_page = Mock()
+        next_page.title = "Next"
+        next_page.url = "/next/"
+
+        current_page = Mock()
+        current_page.prev_in_section = None
+        current_page.next_in_section = next_page
+
+        parser.md.renderer._current_page = current_page
+
+        content = """
+:::{prev-next}
+:::
+"""
+        result = parser.parse(content, {})
+
+        assert "Next" in result
+        assert "prev-link disabled" in result
+
+    def test_prev_next_no_navigation(self):
+        """Test prev-next returns empty when no navigation."""
+        parser = MistuneParser()
+
+        current_page = Mock()
+        current_page.prev_in_section = None
+        current_page.next_in_section = None
+
+        parser.md.renderer._current_page = current_page
+
+        content = """
+:::{prev-next}
+:::
+"""
+        result = parser.parse(content, {})
+
+        # Should return empty string (no navigation needed)
+        assert result.strip() == "" or "prev-next" not in result
+
+
+class TestRelatedDirective:
+    """Test the related directive."""
+
+    def test_related_renders_posts(self):
+        """Test related renders related posts."""
+        parser = MistuneParser()
+
+        related1 = Mock()
+        related1.title = "Advanced Config"
+        related1.url = "/docs/advanced/"
+        related1.tags = ["config"]
+
+        related2 = Mock()
+        related2.title = "Theming"
+        related2.url = "/docs/theming/"
+        related2.tags = ["theme"]
+
+        current_page = Mock()
+        current_page.related_posts = [related1, related2]
+
+        parser.md.renderer._current_page = current_page
+
+        content = """
+:::{related}
+:title: Related Articles
+:::
+"""
+        result = parser.parse(content, {})
+
+        assert "related" in result
+        assert "Related Articles" in result
+        assert "Advanced Config" in result
+        assert "Theming" in result
+
+    def test_related_with_tags(self):
+        """Test related shows tags when enabled."""
+        parser = MistuneParser()
+
+        related = Mock()
+        related.title = "Advanced"
+        related.url = "/advanced/"
+        related.tags = ["python", "config"]
+
+        current_page = Mock()
+        current_page.related_posts = [related]
+
+        parser.md.renderer._current_page = current_page
+
+        content = """
+:::{related}
+:show-tags: true
+:::
+"""
+        result = parser.parse(content, {})
+
+        assert "python" in result
+        assert "config" in result
+
+    def test_related_respects_limit(self):
+        """Test related respects limit option."""
+        parser = MistuneParser()
+
+        related_posts = []
+        for i in range(10):
+            post = Mock()
+            post.title = f"Post {i}"
+            post.url = f"/post-{i}/"
+            post.tags = []
+            related_posts.append(post)
+
+        current_page = Mock()
+        current_page.related_posts = related_posts
+
+        parser.md.renderer._current_page = current_page
+
+        content = """
+:::{related}
+:limit: 3
+:::
+"""
+        result = parser.parse(content, {})
+
+        # Should only have 3 posts
+        assert "Post 0" in result
+        assert "Post 1" in result
+        assert "Post 2" in result
+        assert "Post 3" not in result
+
+    def test_related_no_posts_returns_empty(self):
+        """Test related returns empty when no related posts."""
+        parser = MistuneParser()
+
+        current_page = Mock()
+        current_page.related_posts = []
+
+        parser.md.renderer._current_page = current_page
+
+        content = """
+:::{related}
+:::
+"""
+        result = parser.parse(content, {})
+
+        # Should return empty string
+        assert result.strip() == ""

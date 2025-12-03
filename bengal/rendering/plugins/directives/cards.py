@@ -845,20 +845,45 @@ def _resolve_link_url(renderer, link: str) -> str:
     return link
 
 
-def _render_icon(icon_name: str) -> str:
+def _render_icon(icon_name: str, use_svg: bool = False) -> str:
     """
-    Render icon as inline SVG or icon font.
-
-    For now, renders a simple emoji/text representation.
-    In the future, this will render actual SVG icons from Lucide.
+    Render icon as inline SVG or emoji.
 
     Args:
-        icon_name: Name of the icon
+        icon_name: Name of the icon (e.g., "folder", "file", "book")
+        use_svg: If True, render SVG icons for folder/file types
 
     Returns:
         HTML for icon, or empty string if icon not found
     """
-    # Simple icon mapping (temporary - will be replaced with Lucide icons)
+    # SVG icons for folder/file types (matches theme template icons)
+    if use_svg:
+        svg_icons = {
+            "folder": (
+                '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" '
+                'stroke="currentColor" stroke-width="2">'
+                '<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>'
+                "</svg>"
+            ),
+            "file": (
+                '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" '
+                'stroke="currentColor" stroke-width="2">'
+                '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>'
+                '<polyline points="14 2 14 8 20 8"></polyline>'
+                "</svg>"
+            ),
+            "document": (
+                '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" '
+                'stroke="currentColor" stroke-width="2">'
+                '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>'
+                '<polyline points="14 2 14 8 20 8"></polyline>'
+                "</svg>"
+            ),
+        }
+        if icon_name in svg_icons:
+            return svg_icons[icon_name]
+
+    # Emoji icon mapping
     icon_map = {
         "book": "📖",
         "code": "💻",
@@ -887,7 +912,6 @@ def _render_icon(icon_name: str) -> str:
         "home": "🏠",
     }
 
-    # Return the emoji if found, empty string if not (no fallback bullet)
     return icon_map.get(icon_name, "")
 
 
@@ -1119,6 +1143,11 @@ def _render_child_card(child: dict, fields: list[str], layout: str) -> str:
     description = child.get("description", "") if "description" in fields else ""
     icon = child.get("icon", "") if "icon" in fields else ""
     url = child.get("url", "")
+    child_type = child.get("type", "page")  # "section" or "page"
+
+    # Fallback icon based on type (matches theme template icons)
+    if not icon and "icon" in fields:
+        icon = "folder" if child_type == "section" else "file"
 
     # Build card classes
     classes = ["card"]
@@ -1132,10 +1161,12 @@ def _render_child_card(child: dict, fields: list[str], layout: str) -> str:
     if icon or title:
         parts.append('  <div class="card-header">')
         if icon:
-            rendered_icon = _render_icon(icon)
+            # Use SVG for default folder/file icons to match theme
+            use_svg = icon in ("folder", "file", "document")
+            rendered_icon = _render_icon(icon, use_svg=use_svg)
             if rendered_icon:
                 parts.append(f'    <span class="card-icon" data-icon="{_escape_html(icon)}">')
-                parts.append(rendered_icon)
+                parts.append(f"      {rendered_icon}")
                 parts.append("    </span>")
         if title:
             parts.append(f'    <div class="card-title">{_escape_html(title)}</div>')

@@ -38,6 +38,12 @@ from bengal.rendering.plugins.directives.include import IncludeDirective
 from bengal.rendering.plugins.directives.list_table import ListTableDirective
 from bengal.rendering.plugins.directives.literalinclude import LiteralIncludeDirective
 from bengal.rendering.plugins.directives.marimo import MarimoCellDirective
+from bengal.rendering.plugins.directives.navigation import (
+    BreadcrumbsDirective,
+    PrevNextDirective,
+    RelatedDirective,
+    SiblingsDirective,
+)
 from bengal.rendering.plugins.directives.rubric import RubricDirective
 from bengal.rendering.plugins.directives.steps import StepDirective, StepsDirective
 from bengal.rendering.plugins.directives.tabs import (
@@ -122,6 +128,11 @@ def create_documentation_directives():
                 StepDirective(),  # Individual step (nested in steps)
                 IncludeDirective(),  # Include markdown files
                 LiteralIncludeDirective(),  # Include code files as code blocks
+                # Navigation directives (Hugo-style site tree access)
+                BreadcrumbsDirective(),  # Auto-generate breadcrumb navigation
+                SiblingsDirective(),  # Show other pages in same section
+                PrevNextDirective(),  # Section-aware prev/next navigation
+                RelatedDirective(),  # Related content based on tags
             ]
 
             # Conditionally add Marimo support (only if marimo is installed)
