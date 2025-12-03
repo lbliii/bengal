@@ -81,4 +81,3 @@ CODE_BLOCK_DIRECTIVES = {
 MAX_DIRECTIVES_PER_PAGE = 10  # Warn if page has more than this
 MAX_NESTING_DEPTH = 5  # Warn if nesting deeper than this
 MAX_TABS_PER_BLOCK = 10  # Warn if single tabs block has more than this
-

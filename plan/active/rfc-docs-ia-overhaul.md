@@ -11,7 +11,7 @@
 
 ## Executive Summary
 
-This RFC proposes a complete overhaul of the Bengal documentation site's information architecture (IA). The current structure mixes Diataxis types (tutorials, how-tos, explanations, references) in ways that make content hard to discover and maintain. 
+This RFC proposes a complete overhaul of the Bengal documentation site's information architecture (IA). The current structure mixes Diataxis types (tutorials, how-tos, explanations, references) in ways that make content hard to discover and maintain.
 
 The new structure organizes documentation by **product/feature dimensions** (content, theming, building, extending) with nested capabilities under each, paired with relevant references at the point of need rather than in a separate silo.
 
@@ -47,7 +47,7 @@ docs/
    - True tutorials (`blog-from-scratch.md` - learning journey)
    - Task-focused how-tos (`content-collections.md` - specific task)
    - Conceptual explanations (`graph-analysis.md` - understanding)
-   
+
    **Evidence**: `site/content/docs/guides/_index.md:20-43` lists content without clear categorization
 
 2. **References are siloed from usage**: The `reference/` directory focuses on architecture but doesn't provide practical lookup references (frontmatter fields, config options, template functions) near where users need them.
@@ -165,7 +165,7 @@ tutorials/
 └── automate-with-github-actions.md  # CI/CD setup (from guides/)
 ```
 
-**Migration**: 
+**Migration**:
 - Move `guides/blog-from-scratch.md` → `tutorials/build-a-blog.md`
 - Move `guides/migrating-content.md` → `tutorials/migrate-from-hugo.md`
 - Move `guides/ci-cd-setup.md` → `tutorials/automate-with-github-actions.md`
@@ -260,7 +260,9 @@ theming/
 
 #### 6. Building (`/docs/building/`) — NEW
 
-**Purpose**: Build configuration, CLI, deployment
+**Purpose**: Build configuration, CLI usage guides, and deployment.
+
+*Note: The `commands/` directory contains human-written guides and common workflows. Comprehensive flag references remain in the auto-generated `/cli/` section, which these guides will link to.*
 
 ```
 building/
@@ -271,12 +273,12 @@ building/
 │   ├── options.md              # Ref: all config options
 │   └── environments.md         # Dev/staging/prod configs
 │
-├── commands/                   # CLI
-│   ├── _index.md               # CLI overview
-│   ├── build.md                # bengal build
-│   ├── serve.md                # bengal serve
-│   ├── new.md                  # bengal new
-│   └── validate.md             # bengal validate
+├── commands/                   # CLI Guides (Human-Written)
+│   ├── _index.md               # CLI workflow overview
+│   ├── build.md                # Guide: Production build workflows
+│   ├── serve.md                # Guide: Local development workflows
+│   ├── new.md                  # Guide: Scaffolding new projects
+│   └── validate.md             # Guide: Running health checks
 │
 ├── performance/                # Speed
 │   ├── _index.md               # Performance overview
@@ -296,7 +298,7 @@ building/
 - Move `guides/deployment.md` → `building/deployment/_index.md` (split into subpages)
 - Move `about/concepts/configuration.md` → `building/configuration/_index.md`
 - Move `about/concepts/build-pipeline.md` → `building/performance/_index.md`
-- Create new CLI docs from existing auto-generated `/cli/` content
+- Create human-readable command guides in `building/commands/` that link to auto-generated `/cli/` references
 
 ---
 
@@ -358,6 +360,15 @@ recipes/
 ├── table-of-contents.md    # Custom TOC (NEW)
 └── syntax-highlighting.md  # Code block themes (NEW)
 ```
+
+#### 9. Curated Tracks (`/tracks/`) — GENERATED
+
+**Purpose**: Guided learning paths combining tutorials and concepts. Defined in YAML and generated to leverage the new content structure.
+
+**Proposed Tracks**:
+1. **Content Author Track**: `getting-started` → `content/authoring` → `content/collections`
+2. **Theme Developer Track**: `getting-started` → `theming/templates` → `theming/assets` → `theming/themes`
+3. **Site Architect Track**: `building/configuration` → `content/collections` → `extending/architecture`
 
 ---
 
@@ -590,7 +601,7 @@ Choose your package manager:
 
 ## Open Questions
 
-- [ ] **Q1**: Should `tracks/` learning paths be migrated or kept separate?
+- [x] **Q1**: Should `tracks/` learning paths be migrated or kept separate? (Resolved: Keep separate, generate from YAML based on new IA)
 - [ ] **Q2**: How to handle auto-generated `/api/` and `/cli/` documentation?
 - [ ] **Q3**: Should we add search-specific metadata to improve discoverability?
 - [ ] **Q4**: Priority order for new recipe creation?
@@ -616,4 +627,3 @@ Choose your package manager:
 - [x] Content mapping provided
 - [x] Success metrics defined
 - [x] Confidence ≥ 85% (88%)
-

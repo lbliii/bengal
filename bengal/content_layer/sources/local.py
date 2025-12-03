@@ -9,9 +9,10 @@ from __future__ import annotations
 
 import fnmatch
 import hashlib
+from collections.abc import AsyncIterator
 from datetime import datetime
 from pathlib import Path
-from typing import Any, AsyncIterator
+from typing import Any
 
 from bengal.content_layer.entry import ContentEntry
 from bengal.content_layer.source import ContentSource
@@ -197,11 +198,7 @@ class LocalSource(ContentSource):
 
         rel_path = str(path.relative_to(self.directory))
 
-        for pattern in self.exclude_patterns:
-            if fnmatch.fnmatch(rel_path, pattern):
-                return True
-
-        return False
+        return any(fnmatch.fnmatch(rel_path, pattern) for pattern in self.exclude_patterns)
 
     def _path_to_slug(self, rel_path: Path) -> str:
         """
@@ -246,4 +243,3 @@ class LocalSource(ContentSource):
                 latest = mtime
 
         return latest
-

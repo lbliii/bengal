@@ -97,4 +97,3 @@ def compute_config_hash(config: dict[str, Any]) -> str:
     # Compute SHA-256 and truncate to 16 chars (64 bits - collision-resistant enough)
     full_hash = hashlib.sha256(serialized.encode("utf-8")).hexdigest()
     return full_hash[:16]
-

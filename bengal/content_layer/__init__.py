@@ -51,16 +51,16 @@ Related:
 from __future__ import annotations
 
 from bengal.content_layer.entry import ContentEntry
-from bengal.content_layer.source import ContentSource
-from bengal.content_layer.manager import ContentLayerManager
 
 # Loader factory functions (lazy import actual sources)
 from bengal.content_layer.loaders import (
-    local_loader,
     github_loader,
-    rest_loader,
+    local_loader,
     notion_loader,
+    rest_loader,
 )
+from bengal.content_layer.manager import ContentLayerManager
+from bengal.content_layer.source import ContentSource
 
 __all__ = [
     # Core types
@@ -73,4 +73,3 @@ __all__ = [
     "rest_loader",
     "notion_loader",
 ]
-

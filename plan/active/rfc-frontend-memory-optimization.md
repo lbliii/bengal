@@ -122,7 +122,7 @@ this.svg = d3.select(wrapper)
     .append('svg')
     // ...
     .style('display', 'block')      // ❌ More inline style
-    .style('opacity', '1')          // ❌ 
+    .style('opacity', '1')          // ❌
     .style('visibility', 'visible'); // ❌
 ```
 
@@ -138,7 +138,7 @@ setupThemeListener() {
     this._themeObserver = new MutationObserver((mutations) => {
         // ...calls resolveNodeColors() which calls getComputedStyle per node
     });
-    
+
     this._themeObserver.observe(document.documentElement, {
         attributes: true,
         attributeFilter: ['data-theme', 'data-palette']
@@ -193,12 +193,12 @@ resolveNodeColors() {
 resolveNodeColors() {
     // Single getComputedStyle call, cached for all nodes
     const computedStyles = getComputedStyle(document.documentElement);
-    
+
     const resolveCSSVariable = (varName) => {
         const cleanVar = varName.replace(/var\(|\s|\)/g, '');
         return computedStyles.getPropertyValue(cleanVar).trim() || '#9e9e9e';
     };
-    
+
     // Now uses cached computedStyles
     nodes.forEach(node => {
         if (node.color && node.color.startsWith('var(')) {
@@ -219,14 +219,14 @@ resolveNodeColors() {
 function getMermaidThemeConfig() {
     const root = document.documentElement;
     const styles = getComputedStyle(root);
-    
+
     // Single call, read all values from cached object
     const cssVars = {
         primary: styles.getPropertyValue('--color-primary').trim(),
         primaryHover: styles.getPropertyValue('--color-primary-hover').trim(),
         // ... batch all 50+ reads
     };
-    
+
     return buildThemeConfig(cssVars);
 }
 ```
@@ -289,7 +289,7 @@ wrapper.classList.remove('graph-loading');
 function initContextualGraph() {
     const container = document.querySelector('.graph-contextual');
     if (!container) return;
-    
+
     // Only initialize when visible
     const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
@@ -299,7 +299,7 @@ function initContextualGraph() {
             }
         });
     }, { rootMargin: '100px' }); // Preload 100px before visible
-    
+
     observer.observe(container);
 }
 ```
@@ -440,4 +440,3 @@ window.addEventListener('pagehide', cleanup);
 ---
 
 **Next Steps**: Proceed to `::plan` to break down into atomic tasks.
-

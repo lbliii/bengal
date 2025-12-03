@@ -320,41 +320,38 @@ class ParallelStream[T](Stream[T]):
 
     def _produce(self) -> Iterator[StreamItem[T]]:
         """
-        Execute upstream in parallel.
+        Execute upstream MapStream transformation in parallel.
 
-        For simple iteration, just passes through. Parallel execution
-        is handled by the upstream MapStream when it detects it's
-        being consumed by a ParallelStream.
+        If upstream is a MapStream, extracts its source items and transformation
+        function, then applies the function in parallel using ThreadPoolExecutor.
+        For other stream types, just passes through items as-is.
         """
-        # Collect items for parallel processing
-        items = list(self._upstream._produce())
-
-        if not items:
-            return
-
-        # If upstream is a MapStream, we can parallelize the transformation
+        # If upstream is a MapStream, parallelize the transformation
         if isinstance(self._upstream, MapStream):
-            yield from self._parallel_map(items)
+            yield from self._parallel_map()
         else:
-            # For other streams, just yield items as-is
-            yield from items
+            # For other streams, just iterate normally
+            yield from self._upstream.iterate()
 
-    def _parallel_map(self, items: list[StreamItem[Any]]) -> Iterator[StreamItem[T]]:
-        """Execute map transformation in parallel."""
+    def _parallel_map(self) -> Iterator[StreamItem[T]]:
+        """Execute map transformation in parallel using ThreadPoolExecutor."""
         upstream_map = self._upstream
         if not isinstance(upstream_map, MapStream):
-            yield from items
+            yield from upstream_map.iterate()
             return
 
-        # Get the upstream's upstream items (pre-transformation)
+        # Get source items BEFORE transformation (from map's upstream)
         source_items = list(upstream_map._upstream.iterate())
+        if not source_items:
+            return
+
         fn = upstream_map._fn
         name = upstream_map.name
 
         results: dict[str, StreamItem[T]] = {}
 
         with ThreadPoolExecutor(max_workers=self._workers) as executor:
-            # Submit all transformations
+            # Submit all transformations in parallel
             futures = {executor.submit(fn, item.value): item for item in source_items}
 
             # Collect results as they complete
@@ -374,7 +371,7 @@ class ParallelStream[T](Stream[T]):
                         f"Parallel execution failed for {source_item.key}: {e}"
                     ) from e
 
-        # Yield in original order
+        # Yield in original order (for deterministic output)
         for item in source_items:
             if item.key.id in results:
                 yield results[item.key.id]

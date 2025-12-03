@@ -29,7 +29,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Optional
 
 
 @dataclass
@@ -64,9 +63,9 @@ class BlogPost:
     author: str = "Anonymous"
     tags: list[str] = field(default_factory=list)
     draft: bool = False
-    description: Optional[str] = None
-    image: Optional[str] = None
-    excerpt: Optional[str] = None
+    description: str | None = None
+    image: str | None = None
+    excerpt: str | None = None
 
 
 @dataclass
@@ -97,12 +96,12 @@ class DocPage:
 
     title: str
     weight: int = 0
-    category: Optional[str] = None
+    category: str | None = None
     tags: list[str] = field(default_factory=list)
     toc: bool = True
-    description: Optional[str] = None
+    description: str | None = None
     deprecated: bool = False
-    since: Optional[str] = None
+    since: str | None = None
 
 
 @dataclass
@@ -139,8 +138,8 @@ class APIReference:
     version: str = "v1"
     deprecated: bool = False
     auth_required: bool = True
-    rate_limit: Optional[str] = None
-    description: Optional[str] = None
+    rate_limit: str | None = None
+    description: str | None = None
 
 
 @dataclass
@@ -170,10 +169,10 @@ class Changelog:
 
     title: str
     date: datetime
-    version: Optional[str] = None
+    version: str | None = None
     breaking: bool = False
     draft: bool = False
-    summary: Optional[str] = None
+    summary: str | None = None
 
 
 @dataclass
@@ -206,16 +205,15 @@ class Tutorial:
     """
 
     title: str
-    difficulty: Optional[str] = None  # beginner, intermediate, advanced
-    duration: Optional[str] = None
+    difficulty: str | None = None  # beginner, intermediate, advanced
+    duration: str | None = None
     prerequisites: list[str] = field(default_factory=list)
     tags: list[str] = field(default_factory=list)
-    series: Optional[str] = None
-    order: Optional[int] = None
+    series: str | None = None
+    order: int | None = None
 
 
 # Aliases for convenience
 Post = BlogPost
 Doc = DocPage
 API = APIReference
-

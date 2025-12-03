@@ -281,31 +281,42 @@ def create_incremental_pipeline(
 def create_simple_pipeline(
     site: Site,
     pages: list[Page] | None = None,
+    parallel: bool = True,
+    workers: int | None = None,
 ) -> Pipeline:
     """
     Create a simple render-only pipeline for pre-discovered pages.
 
     Uses RenderingPipeline to parse markdown and render templates in one step.
+    Supports parallel rendering with thread-local pipeline instances for
+    optimal performance on free-threaded Python (3.14t+).
 
     Args:
         site: Bengal Site instance
         pages: Pre-discovered pages (uses site.pages if not provided)
+        parallel: Whether to use parallel rendering (default: True)
+        workers: Number of worker threads (default: from config or 4)
 
     Returns:
         Pipeline that parses, renders, and writes pages
     """
+    import threading
+
     from bengal.rendering.pipeline import RenderingPipeline
 
     pages_to_render = pages if pages is not None else list(site.pages)
 
-    # Lazily initialize rendering pipeline (parses markdown AND renders templates)
-    _render_pipeline: RenderingPipeline | None = None
+    # Thread-local storage for pipeline instances (same pattern as RenderOrchestrator)
+    _thread_local = threading.local()
+
+    # Get worker count from config or default
+    max_workers = workers or site.config.get("max_workers", 4)
 
     def get_render_pipeline() -> RenderingPipeline:
-        nonlocal _render_pipeline
-        if _render_pipeline is None:
-            _render_pipeline = RenderingPipeline(site, dependency_tracker=None, quiet=True)
-        return _render_pipeline
+        """Get thread-local rendering pipeline instance."""
+        if not hasattr(_thread_local, "pipeline"):
+            _thread_local.pipeline = RenderingPipeline(site, dependency_tracker=None, quiet=True)
+        return _thread_local.pipeline
 
     def get_pages():
         """Yield pages to render."""
@@ -334,12 +345,14 @@ def create_simple_pipeline(
         """Write rendered page to disk."""
         write_output(site, rendered)
 
-    return (
-        Pipeline("bengal-render")
-        .source("pages", get_pages)
-        .map("render", render_page)
-        .for_each("write", write_page)
-    )
+    # Build pipeline with optional parallelism
+    pipeline = Pipeline("bengal-render").source("pages", get_pages).map("render", render_page)
+
+    # Add parallelism for rendering step (significant speedup on free-threaded Python)
+    if parallel and len(pages_to_render) >= 5:  # Same threshold as RenderOrchestrator
+        pipeline = pipeline.parallel(workers=max_workers)
+
+    return pipeline.for_each("write", write_page)
 
 
 def _discover_content_files(content_dir: Path) -> list[Path]:

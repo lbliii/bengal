@@ -10,13 +10,11 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
 
 import pytest
 
 from bengal.collections import CollectionConfig, ContentValidationError, define_collection
 from bengal.discovery.content_discovery import ContentDiscovery
-
 
 # Test schemas
 
@@ -512,4 +510,3 @@ Doc content.
         assert len(pages) == 2
         # One validation error
         assert len(discovery._validation_errors) == 1
-

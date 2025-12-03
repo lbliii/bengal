@@ -8,8 +8,9 @@ from __future__ import annotations
 
 import hashlib
 from abc import ABC, abstractmethod
+from collections.abc import AsyncIterator, Iterator
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, AsyncIterator, Iterator
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from bengal.content_layer.entry import ContentEntry
@@ -170,4 +171,3 @@ class ContentSource(ABC):
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(name={self.name!r}, type={self.source_type!r})"
-

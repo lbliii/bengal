@@ -11,15 +11,15 @@ from __future__ import annotations
 
 import os
 from base64 import b64decode
+from collections.abc import AsyncIterator
 from datetime import datetime
-from typing import Any, AsyncIterator
+from typing import Any
 
 try:
     import aiohttp
 except ImportError as e:
     raise ImportError(
-        "GitHubSource requires aiohttp.\n"
-        "Install with: pip install bengal[github]"
+        "GitHubSource requires aiohttp.\nInstall with: pip install bengal[github]"
     ) from e
 
 from bengal.content_layer.entry import ContentEntry
@@ -245,4 +245,3 @@ class GitHubSource(ContentSource):
                 return current_sha != cached_checksum
 
         return True
-
