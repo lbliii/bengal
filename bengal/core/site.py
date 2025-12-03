@@ -724,6 +724,7 @@ class Site:
         import time
 
         from bengal.orchestration import (
+            AssetOrchestrator,
             ContentOrchestrator,
             MenuOrchestrator,
             PostprocessOrchestrator,
@@ -752,11 +753,15 @@ class Site:
         menu = MenuOrchestrator(self)
         menu.build()
 
-        # Phase 5: Render ALL pages using pipeline (including generated pages)
+        # Phase 5: Assets (copy/process BEFORE rendering so asset_url() works)
+        assets = AssetOrchestrator(self)
+        assets.process(self.assets, parallel=parallel, progress_manager=None)
+
+        # Phase 6: Render ALL pages using pipeline (including generated pages)
         pipeline = create_simple_pipeline(self, pages=list(self.pages))
         result = pipeline.run()
 
-        # Phase 6: Postprocessing (sitemap, RSS, JSON, llms.txt)
+        # Phase 7: Postprocessing (sitemap, RSS, JSON, llms.txt)
         postprocess = PostprocessOrchestrator(self)
         postprocess.run(parallel=parallel, incremental=False)
 
