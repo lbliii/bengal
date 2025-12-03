@@ -750,7 +750,7 @@ class Site:
 
         # Phase 4: Menus
         menu = MenuOrchestrator(self)
-        menu.build_menus()
+        menu.build()
 
         # Phase 5: Render ALL pages using pipeline (including generated pages)
         pipeline = create_simple_pipeline(self, pages=list(self.pages))
