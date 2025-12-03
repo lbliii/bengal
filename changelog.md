@@ -1,5 +1,11 @@
 ## Unreleased
 
+### Reactive Dataflow Pipeline (Phase 1)
+- **pipeline(core)**: add `StreamKey`, `StreamItem[T]`, and abstract `Stream[T]` base class for reactive streams
+- **pipeline(streams)**: add concrete stream implementations: `SourceStream`, `MapStream`, `FilterStream`, `FlatMapStream`, `CollectStream`, `CombineStream`, `ParallelStream`, `CachedStream`
+- **pipeline(builder)**: add `Pipeline` fluent builder API and `PipelineResult` metrics dataclass
+- **pipeline**: support declarative build pipelines with lazy evaluation and automatic caching
+
 ### Content Layer API (Remote Content Sources)
 - **content_layer**: add unified content abstraction for fetching from any source (local, GitHub, REST APIs, Notion)
 - **content_layer(entry)**: add `ContentEntry` dataclass as source-agnostic content representation
