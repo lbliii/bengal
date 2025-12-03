@@ -285,38 +285,37 @@ def create_simple_pipeline(
     """
     Create a simple render-only pipeline for pre-discovered pages.
 
-    Useful when pages are already discovered and you just need to render.
+    Uses RenderingPipeline to parse markdown and render templates in one step.
 
     Args:
         site: Bengal Site instance
         pages: Pre-discovered pages (uses site.pages if not provided)
 
     Returns:
-        Pipeline that renders and writes pages
+        Pipeline that parses, renders, and writes pages
     """
-    from bengal.rendering.renderer import Renderer
-    from bengal.rendering.template_engine import TemplateEngine
+    from bengal.rendering.pipeline import RenderingPipeline
 
     pages_to_render = pages if pages is not None else list(site.pages)
 
-    # Lazily initialize renderer
-    _renderer: Renderer | None = None
+    # Lazily initialize rendering pipeline (parses markdown AND renders templates)
+    _render_pipeline: RenderingPipeline | None = None
 
-    def get_renderer() -> Renderer:
-        nonlocal _renderer
-        if _renderer is None:
-            engine = TemplateEngine(site)
-            _renderer = Renderer(engine)
-        return _renderer
+    def get_render_pipeline() -> RenderingPipeline:
+        nonlocal _render_pipeline
+        if _render_pipeline is None:
+            _render_pipeline = RenderingPipeline(site, dependency_tracker=None, quiet=True)
+        return _render_pipeline
 
     def get_pages():
         """Yield pages to render."""
         yield from pages_to_render
 
     def render_page(page: Page) -> RenderedPage:
-        """Render page using Bengal's renderer."""
-        renderer = get_renderer()
-        html = renderer.render_page(page)
+        """Parse markdown and render page using Bengal's RenderingPipeline."""
+        pipeline = get_render_pipeline()
+        # process_page parses markdown, sets parsed_ast, and renders HTML
+        pipeline.process_page(page)
 
         output_path = page.url.lstrip("/")
         if not output_path:
@@ -327,7 +326,7 @@ def create_simple_pipeline(
 
         return RenderedPage(
             page=page,
-            html=html,
+            html=page.rendered_html,
             output_path=Path(output_path),
         )
 
