@@ -491,7 +491,22 @@ Prefer `{cards}` / `{card}` for new content. Grid directives convert to cards in
 3. **Dropdowns**: Use for optional or advanced content to reduce cognitive load
 4. **Responsive Design**: Use responsive column syntax (`1-2-3`) for mobile-friendly layouts
 
+## Auto-Generated Cards
+
+For section index pages, consider using `{child-cards}` instead of manual cards. It automatically generates cards from child sections and pages:
+
+```markdown
+:::{child-cards}
+:columns: 2
+:include: sections
+:fields: title, description, icon
+:::
+```
+
+See [Navigation Directives](/docs/reference/directives/navigation/) for full documentation.
+
 ## Related
 
+- [Navigation Directives](/docs/reference/directives/navigation/) - Auto-generated cards, breadcrumbs, siblings
 - [Admonitions](/docs/reference/directives/admonitions/) - Callout boxes
 - [Formatting Directives](/docs/reference/directives/formatting/) - Badges, buttons, steps

@@ -12,38 +12,11 @@ Power features for documentation teams: auto-generate API docs, analyze site str
 
 ## What Do You Need?
 
-::::{cards}
+:::{child-cards}
 :columns: 2
-:gap: medium
-
-:::{card} 📚 Autodoc
-:link: ./autodoc/
-:color: blue
-
-Generate documentation from Python docstrings, CLI commands, and OpenAPI specs.
+:include: sections
+:fields: title, description, icon
 :::
-
-:::{card} 🔬 Analysis
-:link: ./analysis/
-:color: green
-
-Graph analysis, PageRank, link suggestions, and navigation optimization.
-:::
-
-:::{card} ✅ Validation
-:link: ./validation/
-:color: purple
-
-Health checks, broken link detection, auto-fix, and custom validators.
-:::
-
-:::{card} 🏗️ Architecture
-:link: ./architecture/
-:color: orange
-
-For contributors: Bengal's internals, object model, and extension points.
-:::
-::::
 
 ## Extension Points
 
@@ -54,13 +27,13 @@ flowchart TB
         B[Content Loaders]
         C[Post-Processors]
     end
-    
+
     subgraph "Bengal Pipeline"
         D[Discovery] --> E[Validation]
         E --> F[Rendering]
         F --> G[Post-Process]
     end
-    
+
     A -.->|hooks into| E
     B -.->|feeds| D
     C -.->|extends| G

@@ -12,38 +12,11 @@ Configure, build, optimize, and deploy your Bengal site.
 
 ## What Do You Need?
 
-::::{cards}
+:::{child-cards}
 :columns: 2
-:gap: medium
-
-:::{card} ⚙️ Configuration
-:link: ./configuration/
-:color: blue
-
-Set up `bengal.toml`, environment overrides, and project settings.
+:include: sections
+:fields: title, description, icon
 :::
-
-:::{card} 💻 Commands
-:link: ./commands/
-:color: green
-
-CLI workflows for building, serving, and validating your site.
-:::
-
-:::{card} ⚡ Performance
-:link: ./performance/
-:color: purple
-
-Incremental builds, parallel processing, and caching strategies.
-:::
-
-:::{card} 🚀 Deployment
-:link: ./deployment/
-:color: orange
-
-Deploy to GitHub Pages, Netlify, Vercel, and other platforms.
-:::
-::::
 
 ## Build Pipeline
 
@@ -54,17 +27,17 @@ flowchart LR
         B[Config]
         C[Theme]
     end
-    
+
     subgraph Build
         D[Discovery]
         E[Rendering]
         F[Post-Process]
     end
-    
+
     subgraph Output
         G[public/]
     end
-    
+
     A --> D
     B --> D
     C --> E

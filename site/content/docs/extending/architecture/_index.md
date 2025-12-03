@@ -7,6 +7,8 @@ lang: en
 tags: [architecture, internals, contributing]
 keywords: [architecture, internals, contributing, development]
 category: explanation
+icon: layers
+card_color: orange
 ---
 
 # Architecture
@@ -59,5 +61,3 @@ bengal/
 - **[Build Pipeline](/docs/extending/architecture/build-pipeline/)** — How builds work
 - **[Plugin API](/docs/extending/architecture/plugin-api/)** — Extension points
 - **[Contributing](/docs/extending/architecture/contributing/)** — Development guide
-
-

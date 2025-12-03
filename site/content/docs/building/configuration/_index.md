@@ -3,6 +3,8 @@ title: Configuration
 description: Configuring Bengal with bengal.toml
 weight: 10
 category: guide
+icon: settings
+card_color: blue
 ---
 
 # Configuration
@@ -19,9 +21,9 @@ flowchart TB
         C[environment overrides]
         D[CLI flags]
     end
-    
+
     E[Final Config]
-    
+
     A --> E
     B --> E
     C --> E

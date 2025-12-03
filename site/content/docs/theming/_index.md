@@ -12,34 +12,11 @@ Control how your site looks with Jinja2 templates, CSS/JS assets, and theme pack
 
 ## What Do You Need?
 
-::::{cards}
+:::{child-cards}
 :columns: 2
-:gap: medium
-
-:::{card}
-:link: ./templating/
-:pull: title, description
-:color: blue
+:include: sections
+:fields: title, description, icon
 :::
-
-:::{card}
-:link: ./assets/
-:pull: title, description
-:color: green
-:::
-
-:::{card}
-:link: ./themes/
-:pull: title, description
-:color: purple
-:::
-
-:::{card}
-:link: ./recipes/
-:pull: title, description
-:color: orange
-:::
-::::
 
 ## How Theming Works
 
@@ -50,18 +27,18 @@ flowchart TB
         B[Theme Templates]
         C[Assets CSS/JS]
     end
-    
+
     subgraph "Template Engine"
         D[Select Layout]
         E[Render Jinja2]
         F[Process Assets]
     end
-    
+
     subgraph Output
         G[HTML Pages]
         H[Optimized Assets]
     end
-    
+
     A --> D
     B --> D
     D --> E

@@ -51,6 +51,11 @@ Nesting
 | `{literalinclude}` | ` ```{literalinclude} ` | Include code file | Content Reuse |
 | `{list-table}` | ` :::{list-table} ` | Table from lists | Formatting |
 | `{data-table}` | ` :::{data-table} ` | Interactive data table | Interactive |
+| `{child-cards}` | ` :::{child-cards} ` | Auto-generate cards from children | Navigation |
+| `{breadcrumbs}` | ` :::{breadcrumbs} ` | Breadcrumb navigation | Navigation |
+| `{siblings}` | ` :::{siblings} ` | Sibling page list | Navigation |
+| `{prev-next}` | ` :::{prev-next} ` | Prev/next links | Navigation |
+| `{related}` | ` :::{related} ` | Related pages by tags | Navigation |
 
 ## Directive Syntax
 
@@ -170,6 +175,18 @@ Include external files in your content.
 - `{literalinclude}` - Include code files as code blocks
 
 **See also**: [Content Reuse Guide](/docs/guides/content-reuse/) for detailed strategies and best practices.
+
+### [Navigation Directives](/docs/reference/directives/navigation/)
+
+Auto-generated navigation from the object tree.
+
+- `{child-cards}` - Auto-generate cards from child sections/pages
+- `{breadcrumbs}` - Hierarchical breadcrumb navigation
+- `{siblings}` - List sibling pages in the same section
+- `{prev-next}` - Previous/next navigation links
+- `{related}` - Related pages by tags
+
+**Best for**: Section index pages where you want cards to auto-update when content changes.
 
 ## Common Options
 

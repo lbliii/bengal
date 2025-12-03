@@ -124,3 +124,59 @@ flowchart LR
 :::{tip}
 **Most common**: Admonitions (`note`, `warning`, `tip`) and code blocks with syntax highlighting. Start there, add tabs and cards as needed.
 :::
+
+## Variable Substitution
+
+Use `{{ variable }}` syntax to insert frontmatter values directly into your content:
+
+```markdown
+---
+product_name: Bengal
+version: 1.0.0
+beta: true
+---
+
+Welcome to **{{ product_name }}** version {{ version }}.
+
+{% if beta %}
+:::{warning}
+This is a beta release.
+:::
+{% endif %}
+```
+
+### Available Variables
+
+| Variable | Source | Example |
+|----------|--------|---------|
+| `{{ page.title }}` | Current page | `{{ page.title }}` |
+| `{{ page.description }}` | Current page | `{{ page.description }}` |
+| `{{ product_name }}` | Frontmatter | Direct access to any frontmatter key |
+| `{{ params.key }}` | Frontmatter | Hugo-style access via `params` |
+| `{{ site.title }}` | Site config | `{{ site.title }}` |
+| `{{ config.baseurl }}` | Site config | `{{ config.baseurl }}` |
+
+### Cascaded Variables
+
+Variables cascade from parent sections. Set them once in a section's `_index.md`:
+
+```yaml
+# docs/api/_index.md
+---
+title: API Reference
+cascade:
+  api_version: v2
+  deprecated: false
+---
+```
+
+Then use in any child page:
+
+```markdown
+# docs/api/users.md
+This endpoint uses API {{ api_version }}.
+```
+
+:::{tip}
+**Common use cases**: Product names, version numbers, feature flags, environment-specific values, and cascaded metadata like API versions or status badges.
+:::

@@ -3,6 +3,8 @@ title: Autodoc
 description: Automatic documentation generation
 weight: 10
 category: guide
+icon: book
+card_color: blue
 ---
 
 # Autodoc
@@ -25,13 +27,13 @@ flowchart LR
         B[CLI Commands]
         C[OpenAPI Specs]
     end
-    
+
     D[Autodoc Engine]
-    
+
     subgraph Output
         E[Markdown Pages]
     end
-    
+
     A --> D
     B --> D
     C --> D

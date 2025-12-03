@@ -243,11 +243,15 @@ class MenuBuilder:
                 metadata = getattr(index_page, "metadata", {})
 
                 # Check if hidden from menu
-                menu_setting = metadata.get("menu", True)
-                if menu_setting is False or (
-                    isinstance(menu_setting, dict) and menu_setting.get("main") is False
-                ):
+                # Supports: hidden: true, menu: false, menu.main: false
+                if metadata.get("hidden", False) is True:
                     section_hidden = True
+                else:
+                    menu_setting = metadata.get("menu", True)
+                    if menu_setting is False or (
+                        isinstance(menu_setting, dict) and menu_setting.get("main") is False
+                    ):
+                        section_hidden = True
 
                 # Get title and weight from frontmatter
                 if hasattr(index_page, "title") and index_page.title:

@@ -679,39 +679,79 @@ def render_card(renderer, text: str, **attrs) -> str:
 
 def _pull_from_linked_page(renderer, link: str, fields: list[str]) -> dict[str, Any]:
     """
-    Pull metadata from a linked page via xref_index.
+    Pull metadata from a linked page using the object tree (preferred) or xref_index.
 
-    Supports four lookup strategies:
-    - ./child/ - Relative path from current page's directory
-    - id:xxx - Custom ID from frontmatter
-    - path/to/page - Path relative to content/
-    - slug - URL slug
+    NEW: Uses page._section.subsections for O(1) direct access when possible.
+    Falls back to xref_index for non-relative paths.
+
+    Supports:
+    - ./child/ - Direct object tree lookup (fast, reliable!)
+    - id:xxx - xref_index lookup
+    - path/to/page - xref_index lookup
+    - slug - xref_index lookup
 
     Args:
-        renderer: Mistune renderer (may have _xref_index and _current_page_dir attributes)
+        renderer: Mistune renderer (has _current_page for object tree access)
         link: Link string (./relative/, id:xxx, path, or slug)
         fields: List of field names to pull
 
     Returns:
         Dict of pulled field values (empty dict if page not found)
     """
-    # Get xref_index from renderer (set during markdown parsing)
-    xref_index = getattr(renderer, "_xref_index", None)
-    if not xref_index:
-        logger.debug("pull_no_xref_index", link=link)
-        return {}
+    page = None
 
-    # Get current page directory for relative path resolution
-    current_page_dir = getattr(renderer, "_current_page_dir", None)
+    # Strategy 1: Object tree for relative paths (NEW - fast and reliable!)
+    if link.startswith("./"):
+        current_page = getattr(renderer, "_current_page", None)
+        if current_page:
+            section = getattr(current_page, "_section", None)
+            if section:
+                # Extract child name from ./child/ or ./child
+                child_name = link[2:].rstrip("/").split("/")[0]
 
-    # Resolve page using existing strategies
-    page = _resolve_page(xref_index, link, current_page_dir)
+                # Look in subsections first
+                for subsection in getattr(section, "subsections", []):
+                    if getattr(subsection, "name", "") == child_name:
+                        # Found subsection - use its index_page for metadata
+                        page = getattr(subsection, "index_page", None)
+                        if page:
+                            logger.debug(
+                                "pull_object_tree_subsection",
+                                link=link,
+                                found=child_name,
+                            )
+                            break
+
+                # If not found in subsections, look in pages
+                if not page:
+                    for p in getattr(section, "pages", []):
+                        source_str = str(getattr(p, "source_path", ""))
+                        # Match by filename (without extension)
+                        if f"/{child_name}." in source_str or f"/{child_name}/" in source_str:
+                            page = p
+                            logger.debug("pull_object_tree_page", link=link, found=child_name)
+                            break
+
+    # Strategy 2: Fall back to xref_index for other patterns
+    if not page:
+        xref_index = getattr(renderer, "_xref_index", None)
+        current_page_dir = getattr(renderer, "_current_page_dir", None)
+
+        if xref_index:
+            page = _resolve_page(xref_index, link, current_page_dir)
+
     if not page:
         logger.debug("pull_page_not_found", link=link)
         return {}
 
-    # Extract requested fields
+    # Extract requested fields from found page
+    return _extract_page_fields(page, fields)
+
+
+def _extract_page_fields(page, fields: list[str]) -> dict[str, Any]:
+    """Extract requested fields from a page object."""
     result: dict[str, Any] = {}
+
     for field in fields:
         if field == "title":
             result["title"] = getattr(page, "title", "")
@@ -727,6 +767,10 @@ def _pull_from_linked_page(renderer, link: str, fields: list[str]) -> dict[str, 
             result["icon"] = page.metadata.get("icon", "") if hasattr(page, "metadata") else ""
         elif field == "image":
             result["image"] = page.metadata.get("image", "") if hasattr(page, "metadata") else ""
+        elif field == "card_color":
+            result["card_color"] = (
+                page.metadata.get("card_color", "") if hasattr(page, "metadata") else ""
+            )
         elif field == "estimated_time":
             result["estimated_time"] = (
                 page.metadata.get("estimated_time", "") if hasattr(page, "metadata") else ""
@@ -736,7 +780,7 @@ def _pull_from_linked_page(renderer, link: str, fields: list[str]) -> dict[str, 
                 page.metadata.get("difficulty", "") if hasattr(page, "metadata") else ""
             )
 
-    logger.debug("pull_success", link=link, fields=list(result.keys()))
+    logger.debug("pull_success", fields=list(result.keys()))
     return result
 
 

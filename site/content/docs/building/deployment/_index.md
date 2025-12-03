@@ -7,6 +7,8 @@ lang: en
 tags: [deployment, hosting, ci-cd]
 keywords: [deployment, hosting, netlify, vercel, github-pages]
 category: guide
+icon: rocket
+card_color: orange
 aliases:
   - /docs/guides/deployment/
 ---
@@ -146,4 +148,3 @@ site:
 - [Automate with GitHub Actions](/docs/tutorials/automate-with-github-actions/) — Full CI/CD tutorial
 - [Configuration](/docs/building/configuration/) — Environment-specific settings
 - [Performance](/docs/building/performance/) — Optimize build times
-

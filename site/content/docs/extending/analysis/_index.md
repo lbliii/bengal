@@ -3,6 +3,8 @@ title: Analysis
 description: Site structure analysis tools
 weight: 20
 category: guide
+icon: search
+card_color: green
 ---
 
 # Site Analysis
@@ -21,13 +23,13 @@ Analyze your site's structure to improve navigation and discoverability.
 ```mermaid
 flowchart LR
     A[Your Site] --> B[Analysis Engine]
-    
+
     subgraph Outputs
         C[Graph Visualization]
         D[Link Suggestions]
         E[Page Rankings]
     end
-    
+
     B --> C
     B --> D
     B --> E
