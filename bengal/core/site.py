@@ -660,11 +660,13 @@ class Site:
         strict: bool = False,
         full_output: bool = False,
         profile_templates: bool = False,
+        use_pipeline: bool = False,
     ) -> BuildStats:
         """
         Build the entire site.
 
-        Delegates to BuildOrchestrator for actual build process.
+        Delegates to BuildOrchestrator for actual build process, or uses
+        the reactive dataflow pipeline if use_pipeline is True.
 
         Args:
             parallel: Whether to use parallel processing
@@ -676,10 +678,14 @@ class Site:
             strict: Whether to fail on warnings
             full_output: Show full traditional output instead of live progress
             profile_templates: Enable template profiling for performance analysis
+            use_pipeline: Use reactive dataflow pipeline (experimental)
 
         Returns:
             BuildStats object with build statistics
         """
+        if use_pipeline:
+            return self._build_with_pipeline(parallel=parallel, verbose=verbose)
+
         from bengal.orchestration import BuildOrchestrator
 
         orchestrator = BuildOrchestrator(self)
@@ -693,6 +699,65 @@ class Site:
             strict=strict,
             full_output=full_output,
             profile_templates=profile_templates,
+        )
+
+    def _build_with_pipeline(
+        self,
+        parallel: bool = True,
+        verbose: bool = False,
+    ) -> BuildStats:
+        """
+        Build site using the reactive dataflow pipeline.
+
+        This is an experimental alternative to the orchestrator-based build.
+        It uses declarative stream processing for automatic dependency tracking.
+
+        Args:
+            parallel: Whether to use parallel processing
+            verbose: Whether to show detailed build information
+
+        Returns:
+            BuildStats object with build statistics
+        """
+        import time
+
+        from bengal.pipeline import StreamCache, create_build_pipeline
+
+        logger.info("pipeline_build_starting", parallel=parallel)
+        start_time = time.time()
+
+        # Initialize pipeline cache
+        cache_dir = self.root_path / ".bengal" / "pipeline"
+        cache = StreamCache(cache_dir)
+
+        # Create and run the build pipeline
+        workers = self.config.get("build", {}).get("max_workers", 4) if parallel else 1
+        pipeline = create_build_pipeline(self, parallel=parallel, workers=workers)
+
+        result = pipeline.run()
+
+        # Save cache for incremental builds
+        cache.save()
+
+        elapsed = time.time() - start_time
+
+        logger.info(
+            "pipeline_build_complete",
+            pages=result.items_processed,
+            elapsed_seconds=round(elapsed, 2),
+            success=result.success,
+            errors=len(result.errors),
+        )
+
+        # Convert PipelineResult to BuildStats
+        return BuildStats(
+            total_pages=result.items_processed,
+            rendered_pages=result.items_processed,
+            cached_pages=0,  # TODO: Track cache hits
+            skipped_pages=0,
+            build_time=elapsed,
+            parallel=parallel,
+            incremental=False,  # Pipeline doesn't use incremental mode yet
         )
 
     def serve(
