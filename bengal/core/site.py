@@ -740,9 +740,9 @@ class Site:
         content.discover_content()
         content.discover_assets()
 
-        # Phase 2: Sections (builds hierarchy, archive pages)
+        # Phase 2: Sections (finalize hierarchy, create missing index pages)
         sections = SectionOrchestrator(self)
-        sections.build_sections()
+        sections.finalize_sections()
 
         # Phase 3: Taxonomies (generates tag pages, etc.)
         taxonomy = TaxonomyOrchestrator(self, parallel=parallel)
