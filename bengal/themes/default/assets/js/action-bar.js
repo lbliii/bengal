@@ -25,6 +25,7 @@
   function init() {
     initMetadataToggle();
     initShareDropdowns();
+    updateShareLinks();
   }
 
   /**
@@ -244,6 +245,45 @@
   function closeDropdown(trigger, dropdown) {
     trigger.setAttribute('aria-expanded', 'false');
     dropdown.setAttribute('aria-hidden', 'true');
+  }
+
+  /**
+   * Update share links to use absolute URLs
+   * This ensures we send full URLs to AI assistants even if baseurl was missing/relative
+   */
+  function updateShareLinks() {
+    const aiLinks = document.querySelectorAll('.action-bar-share-ai, .page-hero__share-ai');
+
+    aiLinks.forEach(link => {
+      const href = link.getAttribute('href');
+      if (!href) return;
+
+      try {
+        const url = new URL(href);
+        const params = new URLSearchParams(url.search);
+        const q = params.get('q');
+
+        if (q) {
+          // Look for relative paths ending in index.txt
+          // Regex matches path starting with / or current dir, ending in index.txt
+          // Ensures we don't match absolute URLs (containing :)
+          const relativeMatch = q.match(/(^|\s)(\/?[^:\s]*index\.txt)/);
+
+          if (relativeMatch && relativeMatch[2] && !relativeMatch[2].startsWith('http')) {
+             const relativePath = relativeMatch[2];
+             const absolutePath = toAbsoluteUrl(relativePath);
+
+             const newQ = q.replace(relativePath, absolutePath);
+             params.set('q', newQ);
+             url.search = params.toString();
+
+             link.setAttribute('href', url.toString());
+          }
+        }
+      } catch (e) {
+        // Ignore invalid URLs
+      }
+    });
   }
 
   /**
