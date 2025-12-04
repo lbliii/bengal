@@ -57,6 +57,7 @@ from bengal.pipeline.bengal_streams import (
 from bengal.pipeline.builder import Pipeline
 from bengal.pipeline.cache import StreamCache
 from bengal.pipeline.menu import create_menu_stream
+from bengal.pipeline.postprocess import create_postprocess_streams
 from bengal.pipeline.sections import create_sections_stream
 from bengal.pipeline.taxonomy import create_taxonomy_stream
 from bengal.utils.logger import get_logger
@@ -290,16 +291,31 @@ def create_full_build_pipeline(
         write_output(site, rendered)
 
     # ========================================================================
-    # Phase 7: Postprocessing
+    # Phase 7: Postprocessing (now using streams!)
     # ========================================================================
     # Postprocessing runs after all pages are written
     # We collect all rendered pages, run postprocessing, then continue
     def run_postprocess(rendered_pages: list[RenderedPage]) -> list[RenderedPage]:
-        """Run postprocessing (sitemap, RSS, etc.)."""
-        from bengal.orchestration.postprocess import PostprocessOrchestrator
+        """Run postprocessing (sitemap, RSS, etc.) using streams."""
+        from bengal.pipeline.core import StreamItem
+        from bengal.pipeline.streams import SourceStream
 
-        orchestrator = PostprocessOrchestrator(site)
-        orchestrator.run(parallel=parallel, incremental=False)
+        # Create stream from rendered pages
+        def rendered_producer():
+            """Produce StreamItems from rendered pages list."""
+            for i, page in enumerate(rendered_pages):
+                yield StreamItem.create(
+                    source="rendered_pages",
+                    id=str(i),
+                    value=page,
+                )
+
+        rendered_stream = SourceStream(rendered_producer, name="rendered_pages")
+        postprocess_stream = create_postprocess_streams(
+            rendered_stream, site, parallel=parallel, incremental=False
+        )
+        # Iterate to run postprocessing (postprocessing is side-effect)
+        list(postprocess_stream.iterate())
         return rendered_pages
 
     # Build pipeline using Pipeline builder API
