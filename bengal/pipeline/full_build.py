@@ -57,6 +57,7 @@ from bengal.pipeline.bengal_streams import (
 from bengal.pipeline.builder import Pipeline
 from bengal.pipeline.cache import StreamCache
 from bengal.pipeline.menu import create_menu_stream
+from bengal.pipeline.sections import create_sections_stream
 from bengal.pipeline.taxonomy import create_taxonomy_stream
 from bengal.utils.logger import get_logger
 
@@ -159,15 +160,32 @@ def create_full_build_pipeline(
         content = ContentOrchestrator(site)
         content.discover_assets()
 
-        # Phase 2: Sections
-        from bengal.orchestration.section import SectionOrchestrator
+        # Phase 2: Sections (now using streams!)
+        # Create a stream from pages, finalize sections, collect results
+        from bengal.pipeline.core import StreamItem
+        from bengal.pipeline.streams import SourceStream
 
-        sections = SectionOrchestrator(site)
-        sections.finalize_sections()
+        def pages_for_sections_producer():
+            """Produce StreamItems from pages list for section finalization."""
+            for i, page in enumerate(pages):
+                yield StreamItem.create(
+                    source="pages_for_sections",
+                    id=str(i),
+                    value=page,
+                )
+
+        pages_for_sections_stream = SourceStream(
+            pages_for_sections_producer, name="pages_for_sections"
+        )
+        sections_stream = create_sections_stream(pages_for_sections_stream, site)
+        # Collect pages (includes original + generated archive pages)
+        all_pages_with_sections = [item.value for item in sections_stream.iterate()]
+        # Update site.pages with section pages
+        pages = all_pages_with_sections
+        site.pages = pages
 
         # Phase 3: Taxonomies (now using streams!)
         # Create a stream from pages, process taxonomies, collect results
-        from bengal.pipeline.core import StreamItem
         from bengal.pipeline.streams import SourceStream
 
         def pages_producer():
