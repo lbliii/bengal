@@ -341,9 +341,7 @@
 .toc-link-h2 {
     flex: 1;
     font-weight: var(--weight-medium);
-    font-size: var(--text-xxs, 11px);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
+    font-size: var(--text-xs);
     color: var(--color-text-tertiary);
     min-inline-size: 0;
     overflow: hidden;
