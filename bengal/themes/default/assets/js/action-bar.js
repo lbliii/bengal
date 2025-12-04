@@ -9,7 +9,7 @@
  * Supports both action-bar (classic) and page-hero (magazine) variants.
  */
 
-(function() {
+(function () {
   'use strict';
 
   // Ensure utils are available
@@ -270,14 +270,14 @@
           const relativeMatch = q.match(/(^|\s)(\/?[^:\s]*index\.txt)/);
 
           if (relativeMatch && relativeMatch[2] && !relativeMatch[2].startsWith('http')) {
-             const relativePath = relativeMatch[2];
-             const absolutePath = toAbsoluteUrl(relativePath);
+            const relativePath = relativeMatch[2];
+            const absolutePath = toAbsoluteUrl(relativePath);
 
-             const newQ = q.replace(relativePath, absolutePath);
-             params.set('q', newQ);
-             url.search = params.toString();
+            const newQ = q.replace(relativePath, absolutePath);
+            params.set('q', newQ);
+            url.search = params.toString();
 
-             link.setAttribute('href', url.toString());
+            link.setAttribute('href', url.toString());
           }
         }
       } catch (e) {
@@ -315,7 +315,7 @@
     try {
       let textToCopy = '';
 
-      switch(action) {
+      switch (action) {
         case 'copy-url':
           // Copy full absolute URL for external sharing
           textToCopy = toAbsoluteUrl(url);
