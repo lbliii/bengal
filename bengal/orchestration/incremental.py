@@ -90,13 +90,28 @@ class IncrementalOrchestrator:
 
     def initialize(self, enabled: bool = False) -> tuple[BuildCache, DependencyTracker]:
         """
-        Initialize cache and tracker.
+        Initialize cache and dependency tracker for incremental builds.
+
+        Sets up BuildCache and DependencyTracker instances. If enabled, loads
+        existing cache from .bengal/cache.json (migrates from legacy location
+        if needed). If disabled, creates empty cache instances.
 
         Args:
-            enabled: Whether incremental builds are enabled
+            enabled: Whether incremental builds are enabled. If False, creates
+                    empty cache instances (full rebuilds always).
 
         Returns:
-            Tuple of (cache, tracker)
+            Tuple of (BuildCache, DependencyTracker) instances
+
+        Process:
+            1. Create .bengal/ directory if enabled
+            2. Migrate legacy cache from output_dir/.bengal-cache.json if exists
+            3. Load or create BuildCache instance
+            4. Create DependencyTracker with cache and site
+
+        Examples:
+            cache, tracker = orchestrator.initialize(enabled=True)
+            # Cache loaded from .bengal/cache.json if exists
         """
         import shutil
 

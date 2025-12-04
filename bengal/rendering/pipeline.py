@@ -293,10 +293,32 @@ class RenderingPipeline:
 
     def process_page(self, page: Page) -> None:
         """
-        Process a single page through the entire pipeline.
+        Process a single page through the entire rendering pipeline.
+
+        Executes all rendering stages: parsing, AST building, template rendering,
+        and output writing. Uses cached parsed content when available (skips
+        markdown parsing if only template changed).
 
         Args:
-            page: Page to process
+            page: Page object to process. Must have source_path set.
+
+        Process:
+            1. Determine output path early (for page.url property)
+            2. Check parsed content cache (skip parsing if cache hit)
+            3. Parse markdown with variable substitution (if not cached)
+            4. Build AST and extract TOC (if not cached)
+            5. Render template with page context
+            6. Format HTML output (minify/pretty)
+            7. Write to output directory
+
+        Performance:
+            - Cache hit: Skips markdown parsing (~10-50ms saved per page)
+            - Cache miss: Full pipeline execution
+            - Thread-local parser reuse: No parser creation overhead
+
+        Examples:
+            pipeline.process_page(page)
+            # Page is now fully rendered with rendered_html populated
         """
         # Track this page if we have a dependency tracker
         if self.dependency_tracker and not page.metadata.get("_generated"):
