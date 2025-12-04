@@ -48,10 +48,11 @@
 .toc-sidebar {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: 0.75rem;
     height: 100%;
     overflow-x: hidden;
     min-width: 0;
+    position: relative;
     /* Breathing room from parent's scrollbar (docs-toc overflow-y: auto) */
     padding-inline-end: 0.5rem;
 }
@@ -65,30 +66,71 @@
     align-items: center;
     justify-content: space-between;
     gap: 0.75rem;
-    padding-block-end: 0.5rem;
-    margin-block-end: 0.75rem;
-    border-block-end: 1px solid var(--color-border-light);
+    margin-block-end: 0.5rem;
     position: relative;
 }
 
 .toc-title {
     margin: 0;
     font-size: var(--text-sm);
-    font-weight: var(--weight-semibold);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
+    font-weight: var(--weight-medium);
     color: var(--color-text-tertiary);
     flex: 1;
 }
 
-/* Settings button - minimal dot menu */
+/* Toggle all button - direct expand/collapse */
+.toc-toggle-all {
+    position: absolute;
+    top: 0;
+    right: 0;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    background: transparent;
+    border: 1px solid var(--color-border-light);
+    border-radius: var(--border-radius-small);
+    color: var(--color-text-tertiary);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.toc-toggle-all:hover {
+    color: var(--color-text-secondary);
+    border-color: var(--color-border);
+    background: var(--color-bg-secondary);
+}
+
+.toc-toggle-all svg {
+    flex-shrink: 0;
+}
+
+/* Show expand icon by default, collapse when expanded */
+.toc-toggle-icon--collapse {
+    display: none;
+}
+
+.toc-toggle-all[aria-expanded="true"] .toc-toggle-icon--expand {
+    display: none;
+}
+
+.toc-toggle-all[aria-expanded="true"] .toc-toggle-icon--collapse {
+    display: block;
+}
+
+/* Legacy settings button - keep for backwards compatibility */
 .toc-settings-btn {
     display: flex;
     align-items: center;
     justify-content: center;
     width: 24px;
     max-width: 24px;
-    /* Prevent flexbox from stretching */
     height: 24px;
     padding: 0;
     background: transparent;
@@ -101,16 +143,13 @@
     user-select: none;
     -webkit-tap-highlight-color: transparent;
     overflow: hidden;
-    /* Contain SVG within button bounds */
 }
-
-/* Styles moved into .toc-settings-btn nesting above */
 
 .toc-settings-btn svg {
     flex-shrink: 0;
 }
 
-/* Settings dropdown menu */
+/* Settings dropdown menu (legacy) */
 .toc-settings-menu {
     position: absolute;
     inset-block-start: 100%;
@@ -141,8 +180,6 @@
     user-select: none;
     -webkit-tap-highlight-color: transparent;
 }
-
-/* Styles moved into .toc-settings-menu button nesting above */
 
 /* ============================================================================
    Scroll Progress Indicator - Subtle
@@ -509,10 +546,9 @@
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
-    padding-top: 0.75rem;
-    margin-top: 0.75rem;
-    border-top: 1px solid var(--color-border-light);
+    margin-top: 1.25rem;
     font-size: var(--text-xs);
+    /* Editorial: no border, spacing creates separation */
 }
 
 .toc-meta-item {
