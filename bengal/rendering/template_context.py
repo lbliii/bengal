@@ -142,9 +142,29 @@ class TemplateSectionWrapper:
     """
     Wraps Section objects to auto-apply baseurl to .url in templates.
 
-    Same pattern as TemplatePageWrapper but for Section objects.
-    Sections also have url/permalink properties that need baseurl.
-    Also wraps pages/subsections when accessed so they have .relative_url.
+    Provides transparent wrapper that automatically applies baseurl to section URLs,
+    similar to TemplatePageWrapper. Also wraps pages and subsections when accessed
+    to ensure consistent baseurl handling throughout the section hierarchy.
+
+    Creation:
+        Direct instantiation: TemplateSectionWrapper(section, baseurl="")
+            - Created by TemplateEngine for template context
+            - Requires Section instance and optional baseurl
+
+    Attributes:
+        _section: Wrapped Section object
+        _baseurl: Base URL from site config
+
+    Relationships:
+        - Uses: Section for wrapped section object
+        - Used by: TemplateEngine for template context
+        - Used in: Templates via template context
+        - Wraps: Pages and subsections when accessed
+
+    Examples:
+        wrapped = TemplateSectionWrapper(section, baseurl="/bengal")
+        wrapped.url  # Returns "/bengal/docs/section/" (with baseurl)
+        wrapped.pages  # Returns wrapped pages with baseurl
     """
 
     def __init__(self, section: Any, baseurl: str = ""):
