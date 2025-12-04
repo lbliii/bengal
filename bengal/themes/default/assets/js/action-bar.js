@@ -236,6 +236,9 @@
    * Convert relative URL to absolute URL using current origin
    */
   function toAbsoluteUrl(relativeUrl) {
+    if (!relativeUrl) {
+      return window.location.href;
+    }
     if (relativeUrl.startsWith('http://') || relativeUrl.startsWith('https://')) {
       return relativeUrl;
     }
@@ -248,6 +251,12 @@
   async function handleCopyAction(button) {
     const action = button.getAttribute('data-action');
     const url = button.getAttribute('data-url');
+
+    if (!url) {
+      log('Copy action missing data-url attribute');
+      showError(button, 'URL missing');
+      return;
+    }
 
     try {
       let textToCopy = '';
